@@ -205,6 +205,7 @@ describe("buildWhatsNew", () => {
       ["1.5.0", "1.4.0", "1.3.0", "1.2.0", "1.1.0"],
     );
     assert.equal(kept[0].url, "https://docs.librephotos.com/blog/1-5-0");
+    assert.deepEqual(kept[0].after_update, []);
     assert.deepEqual(kept[0].highlights, [
       {
         id: "thing",
@@ -215,6 +216,26 @@ describe("buildWhatsNew", () => {
         open_in_app: "/search",
       },
     ]);
+  });
+});
+
+describe("after_update", () => {
+  const step = { id: "rescan", audience: "admin", title: "Rescan once", body: "Reads the new tags.", learn_more: "/docs/user-guide/library#rescan" };
+
+  it("is carried into the app's copy with absolute links", () => {
+    const { releases } = buildWhatsNew(buildReleaseIndex([post({ after_update: [step] })]));
+    assert.deepEqual(releases[0].after_update, [{ ...step, learn_more: "https://docs.librephotos.com/docs/user-guide/library#rescan" }]);
+  });
+
+  it("rejects screenshots and ids a highlight already uses", () => {
+    const fm = post({ after_update: [{ ...step, shot: "timeline" }] });
+    assert.match(validatePost(fm, new Map([["timeline", ""]])).join(), /after_update\.0/);
+    const taken = post({ after_update: [{ ...step, id: post().data.highlights[0].id }] });
+    assert.match(validatePost(taken, NO_SHOTS).join(), /ids must be unique/);
+  });
+
+  it("asks the post-build check for its links", () => {
+    assert.ok(linksToVerify([post({ after_update: [step] })]).includes("/docs/user-guide/library#rescan"));
   });
 });
 

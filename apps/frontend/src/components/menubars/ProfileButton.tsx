@@ -62,7 +62,17 @@ export function ProfileButton(): React.ReactNode {
         {/* While the worker is busy a progress ring wraps the avatar, and the running
           job heads the menu. When idle there is nothing extra in the header. */}
         <Box pos="relative" display="flex">
-          <Indicator color="orange" size={9} offset={3} withBorder disabled={!upgradeTasksLeft} zIndex={2}>
+          {/* display: flex, like the upload button's Indicator: a block Indicator gives the
+              avatar a text line box that lifts it ~3px above the tiles beside it. */}
+          <Indicator
+            color="orange"
+            size={9}
+            offset={3}
+            withBorder
+            disabled={!upgradeTasksLeft}
+            zIndex={2}
+            display="flex"
+          >
             <Menu.Target>
               <ActionIcon
                 variant="transparent"

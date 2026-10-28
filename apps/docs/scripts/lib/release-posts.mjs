@@ -53,6 +53,12 @@ export const highlightSchema = z.strictObject({
   open_in_app: sitePath.optional(),
 });
 
+/**
+ * What a user or an admin does after the update (the "After you update" part of the post, or the
+ * work LibrePhotos does by itself), for the in-app What's new card. No screenshots.
+ */
+export const afterUpdateSchema = highlightSchema.omit({ shot: true });
+
 export const releaseFrontMatterSchema = z
   .strictObject({
     slug: z.string(),
@@ -64,6 +70,7 @@ export const releaseFrontMatterSchema = z
     covers: z.array(version).optional(),
     summary: z.string().min(1).max(240),
     highlights: z.array(highlightSchema).min(1).max(6).optional(),
+    after_update: z.array(afterUpdateSchema).min(1).max(4).optional(),
   })
   .superRefine((fm, ctx) => {
     if (fm.slug !== releaseSlug(fm.release)) {
@@ -77,9 +84,9 @@ export const releaseFrontMatterSchema = z
         ctx.addIssue({ code: "custom", path: ["covers"], message: `${covered} is not newer than ${fm.release}` });
       }
     }
-    const ids = (fm.highlights ?? []).map((h) => h.id);
+    const ids = [...(fm.highlights ?? []), ...(fm.after_update ?? [])].map((h) => h.id);
     if (new Set(ids).size !== ids.length) {
-      ctx.addIssue({ code: "custom", path: ["highlights"], message: "ids must be unique" });
+      ctx.addIssue({ code: "custom", path: ["highlights"], message: "ids must be unique (after_update included)" });
     }
   });
 
@@ -286,6 +293,7 @@ export function buildReleaseIndex(posts) {
       permalink: `/blog/${data.slug}`,
       summary: data.summary,
       highlights: data.highlights ?? [],
+      after_update: data.after_update ?? [],
     }))
     .sort((a, b) => compareVersions(b.release, a.release));
   const latest = releases.flatMap((r) => r.versions).sort(compareVersions).at(-1);
@@ -302,7 +310,8 @@ function absolute(url) {
 
 /**
  * The app's "What's new" data: the newest releases of the index, newest first, with absolute links
- * to the docs. Screenshots stay on the docs site for now, so `shot` is left out.
+ * to the docs. Screenshots stay on the docs site for now, so `shot` is left out. `after_update` is
+ * what the card lists above the highlights.
  */
 export function buildWhatsNew(index) {
   return {
@@ -317,6 +326,7 @@ export function buildWhatsNew(index) {
         ...highlight,
         learn_more: absolute(learn_more),
       })),
+      after_update: release.after_update.map(({ learn_more, ...item }) => ({ ...item, learn_more: absolute(learn_more) })),
     })),
   };
 }
@@ -354,7 +364,7 @@ export function toGithubMarkdown(post, shots = new Map()) {
 export function linksToVerify(posts) {
   const links = new Set();
   for (const post of posts) {
-    for (const highlight of post.data.highlights ?? []) {
+    for (const highlight of [...(post.data.highlights ?? []), ...(post.data.after_update ?? [])]) {
       links.add(highlight.learn_more);
     }
     for (const match of post.body.matchAll(/\]\((?:https:\/\/docs\.librephotos\.com)?(\/docs\/[^)\s]+)\)/g)) {

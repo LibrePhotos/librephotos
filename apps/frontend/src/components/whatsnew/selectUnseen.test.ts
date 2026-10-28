@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { MAX_SHOWN_RELEASES, releasesForMenu, selectUnseen, withHighlights, type WhatsNewViewer } from "./selectUnseen";
-import { RELEASES } from "./whatsNewFixture.test-utils";
+import { highlight, RELEASES } from "./whatsNewFixture.test-utils";
 
 const viewer = (overrides: Partial<WhatsNewViewer> = {}): WhatsNewViewer => ({
   runningTag: "1.4.0",
@@ -91,6 +91,19 @@ describe("withHighlights", () => {
   it("keeps every highlight for an admin and drops releases with none", () => {
     expect(withHighlights(RELEASES, true).map(item => item.release)).not.toContain("1.2.1");
     expect(withHighlights(RELEASES, true)[1]?.highlights).toHaveLength(2);
+  });
+
+  it("hides admin-only after-update steps from other users", () => {
+    const steps = (isAdmin: boolean) => withHighlights(RELEASES, isAdmin)[0]?.after_update.map(item => item.id);
+    expect(steps(false)).toEqual(["rescan"]);
+    expect(steps(true)).toEqual(["rescan", "gpu-image"]);
+  });
+
+  it("keeps a release that has only after-update steps", () => {
+    const stepsOnly = RELEASES.map(item =>
+      item.release === "1.2.1" ? { ...item, after_update: [highlight("x")] } : item
+    );
+    expect(withHighlights(stepsOnly, false).map(item => item.release)).toContain("1.2.1");
   });
 });
 

@@ -29,6 +29,8 @@ const WhatsNewRelease = z.object({
   /** Its release post on docs.librephotos.com. */
   url: z.string(),
   highlights: WhatsNewHighlight.array(),
+  /** What to do after updating, or what LibrePhotos does by itself; the card lists it first. */
+  after_update: WhatsNewHighlight.array(),
 });
 export type WhatsNewRelease = z.infer<typeof WhatsNewRelease>;
 

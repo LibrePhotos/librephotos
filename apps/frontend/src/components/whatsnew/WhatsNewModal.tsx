@@ -27,6 +27,27 @@ function useShownReleases(tags: readonly string[] | null): WhatsNewRelease[] {
   );
 }
 
+/** The release's after-update steps, above its highlights. */
+function AfterUpdateSection({ release, onOpen }: Readonly<{ release: WhatsNewRelease; onOpen: () => void }>) {
+  const { t } = useTranslation();
+  if (release.after_update.length === 0) return null;
+  return (
+    <Stack gap="xs">
+      <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+        {t("whatsnew.afterupdate")}
+      </Text>
+      {release.after_update.map(step => (
+        <HighlightItem key={step.id} highlight={step} onOpen={onOpen} />
+      ))}
+      {release.highlights.length > 0 ? (
+        <Text size="xs" fw={700} tt="uppercase" c="dimmed" mt="xs">
+          {t("whatsnew.highlights")}
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
+
 function HighlightItem({ highlight, onOpen }: Readonly<{ highlight: WhatsNewHighlight; onOpen: () => void }>) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -88,6 +109,7 @@ export function WhatsNewModal({ opened, onClose, releases: tags }: WhatsNewModal
             <Text c="dimmed" size="sm">
               {release.summary}
             </Text>
+            <AfterUpdateSection release={release} onOpen={onClose} />
             {release.highlights.map(highlight => (
               <HighlightItem key={highlight.id} highlight={highlight} onOpen={onClose} />
             ))}

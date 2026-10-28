@@ -191,6 +191,18 @@ start /wait librephotos.exe --data-dir D:\LibrePhotos manage strip_thumbnail_met
 
 Both only rewrite thumbnails that still carry metadata, and keep their pixels and colour profile, so running them again is safe. Add `--dry-run` to the command to only count them. See [Management Commands](../user-guide/library.md#management-commands).
 
+## Windows app: after 1.3.0 or 1.4.0 {#windows-1-4-0}
+
+<Since version="1.5.0" /> The Windows app of 1.3.0 and 1.4.0 was built without a module it needs for the perceptual hash of a photo. Every photo it scanned or received as an upload stopped right after its thumbnail: the scan job counted it as failed, and the photo has no date, place or camera details, and no search text. Docker installs were not affected.
+
+After updating to 1.5.0 or newer, each user scans once:
+
+1. Go to **Account menu > Library** and click **Scan**. A plain **Scan** is enough: it reads every photo whose details were never read, whatever its file date. **Rescan** does it too, but reads every photo again and takes longer.
+2. It is done when the job in **Account menu > My Jobs** has finished. Places, faces, things and search follow by themselves after the scan.
+3. If you use them, run **Detect Duplicates** (on the Duplicate Photos page), **Detect Photo Stacks** and **Generate Event Albums** again, because they only ran on the photos that had a date and a hash.
+
+If you skip it, those photos stay without a date (they show up under **Without Timestamp**) and without a place.
+
 ## After upgrading from 1.3.0 or older {#refresh-exposure-time}
 
 <Since version="1.4.0" /> Up to 1.3.0, the shutter speed shown in Info was stored wrongly for fast and long exposures: anything faster than about 1/2000 s as `0`, 1/1250 to 1/2000 s as `1/1000`, and 2.5 s as `5/2`. The old value cannot be repaired from the database, so the exposure time of those photos is read again, once.

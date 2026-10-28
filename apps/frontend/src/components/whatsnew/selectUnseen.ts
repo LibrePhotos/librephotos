@@ -30,13 +30,23 @@ function releaseIndex(releases: readonly WhatsNewRelease[], tag: string): number
   return tag ? releases.findIndex(release => release.versions.includes(tag)) : -1;
 }
 
-/** The releases with only the highlights this user may see, leaving out those with none left. */
+/**
+ * The releases with only the highlights and after-update steps this user may see, leaving out those
+ * with nothing left.
+ */
 export function withHighlights(releases: readonly WhatsNewRelease[], isAdmin: boolean): WhatsNewRelease[] {
+  const forEveryone = (item: Readonly<{ audience: string }>) => item.audience === "all";
   return releases
     .map(release =>
-      isAdmin ? release : { ...release, highlights: release.highlights.filter(item => item.audience === "all") }
+      isAdmin
+        ? release
+        : {
+            ...release,
+            highlights: release.highlights.filter(forEveryone),
+            after_update: release.after_update.filter(forEveryone),
+          }
     )
-    .filter(release => release.highlights.length > 0);
+    .filter(release => release.highlights.length > 0 || release.after_update.length > 0);
 }
 
 /** The releases from the running one down to the one last seen; null when there is nothing newer. */

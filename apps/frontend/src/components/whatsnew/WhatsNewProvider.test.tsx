@@ -130,12 +130,19 @@ afterEach(() => {
 });
 
 describe("WhatsNewCard", () => {
-  it("shows the unseen release's highlights once, without the admin-only one", async () => {
+  it("shows the after-update steps and highlights once, without the admin-only ones", async () => {
     await render(testUser());
     const shown = defined(card(), "the card");
     expect(shown.getAttribute("aria-label")).toBe("What's new in LibrePhotos 1.4.0");
+    expect(shown.textContent).toContain("After the update");
     const titles = [...shown.querySelectorAll("li p:first-child")].map(item => item.textContent);
-    expect(titles).toEqual(["Title of edits", "Title of many", "Title of filters", "Title of collections"]);
+    expect(titles).toEqual([
+      "Title of rescan",
+      "Title of edits",
+      "Title of many",
+      "Title of filters",
+      "Title of collections",
+    ]);
     expect(shown.querySelector('a[href="https://docs.librephotos.com/blog/1-4-0"]')).not.toBeNull();
     expect(stubs.patch).not.toHaveBeenCalled();
   });
@@ -156,7 +163,9 @@ describe("WhatsNewCard", () => {
     expect(card()).toBeNull();
     const open = defined(dialog(), "the dialog");
     expect(open.textContent).toContain("What 1.4.0 brings.");
-    expect(open.querySelectorAll("h3")).toHaveLength(4);
+    // 1.4.0's after-update step for everyone, then its four highlights for everyone.
+    expect(open.textContent).toContain("After the update");
+    expect(open.querySelectorAll("h3")).toHaveLength(5);
   });
 
   it("never shows when the user or the server turned it off", async () => {
@@ -186,7 +195,8 @@ describe("WhatsNewCard", () => {
     await render(testUser({ is_superuser: true }));
     const shown = defined(card());
     expect(shown.textContent).toContain("2 tasks to finish the upgrade.");
-    expect(shown.querySelectorAll("li")).toHaveLength(4);
+    // Both after-update steps (one only for admins) and four highlights.
+    expect(shown.querySelectorAll("li")).toHaveLength(6);
     await click(buttonNamed("Open", shown));
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/admin", hash: "admin-upgrade" });
   });
