@@ -33,7 +33,7 @@ psycopg[binary]==3.3.6
 # Nextcloud client. PyPI 0.6 is the last release; master only adds a port fix to
 # from_public_link (unused here) plus docs. The upstream repo is archived.
 pyocclient==0.6
-pytz==2026.5
+pytz==2026.6
 tzdata==2026.6
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
 # pyvips-binary bundles libvips, but without HEVC (HEIC), JPEG XL, BMP and JPEG 2000
