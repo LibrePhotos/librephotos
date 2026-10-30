@@ -228,6 +228,10 @@ class ExposureTimeRefresh:
 #: Rows between two progress reports of ``refresh_exposure_times``.
 EXPOSURE_PROGRESS_EVERY = 100
 
+#: Rows ``refresh_exposure_times`` reads, then writes, at a time. Well under
+#: SQLite's limit on the variables of one query.
+EXPOSURE_BATCH_SIZE = 500
+
 
 def _refresh_exposure_time(metadata: PhotoMetadata) -> bool | None:
     """Read one row's ExposureTime again: whether it changed, None if unreadable."""
@@ -263,21 +267,32 @@ def refresh_exposure_times(
     read and only the two shutter speed columns are written: no other field
     of the photo changes.
 
+    The rows are read ``EXPOSURE_BATCH_SIZE`` at a time, each batch in full
+    before its first write: a write made while a read cursor is still open
+    fails with "database is locked" on SQLite once another connection (the job
+    queue) has committed in between (#2890). A row that no longer matches
+    ``metadata_rows`` when its batch is read is left out.
+
     ``progress(done, total)`` is called at the start, every
     ``EXPOSURE_PROGRESS_EVERY`` rows and at the end; what it raises (a
     cancelled job) stops the run.
     """
     result = ExposureTimeRefresh()
-    total = metadata_rows.count() if progress else 0
+    pks = list(metadata_rows.values_list("pk", flat=True))
+    total = len(pks) if progress else 0
     if progress:
         progress(0, total)
-    for metadata in metadata_rows.iterator():
-        result.checked += 1
-        changed = _refresh_exposure_time(metadata)
-        result.updated += changed is True
-        result.unreadable += changed is None
-        if progress and result.checked % EXPOSURE_PROGRESS_EVERY == 0:
-            progress(result.checked, total)
+    for start in range(0, len(pks), EXPOSURE_BATCH_SIZE):
+        batch = list(
+            metadata_rows.filter(pk__in=pks[start : start + EXPOSURE_BATCH_SIZE])
+        )
+        for metadata in batch:
+            result.checked += 1
+            changed = _refresh_exposure_time(metadata)
+            result.updated += changed is True
+            result.unreadable += changed is None
+            if progress and result.checked % EXPOSURE_PROGRESS_EVERY == 0:
+                progress(result.checked, total)
     if progress:
         progress(result.checked, max(total, result.checked))
     return result

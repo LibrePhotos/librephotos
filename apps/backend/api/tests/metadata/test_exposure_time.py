@@ -244,3 +244,66 @@ class RefreshExposureTimesJobTest(TestCase):
                 progress=lambda done, total: reports.append((done, total)),
             )
         self.assertEqual(reports, [(0, 1), (1, 1), (1, 1)])
+
+
+class RefreshExposureTimesInBatchesTest(TestCase):
+    """Rows are read a batch at a time, not through one cursor held open while writing (#2890)."""
+
+    def setUp(self) -> None:
+        self.user = create_test_user()
+
+    def photos(self, count: int) -> list[PhotoMetadata]:
+        return [
+            PhotoMetadata.objects.get(
+                photo=create_test_photo(owner=self.user, shutter_speed="0")
+            )
+            for _ in range(count)
+        ]
+
+    def test_more_rows_than_one_batch_are_all_read_and_reported(self) -> None:
+        rows = self.photos(5)
+        reports: list[tuple[int, int]] = []
+
+        with (
+            patch("api.metadata.photo_reader.EXPOSURE_BATCH_SIZE", 2),
+            patch("api.metadata.photo_reader.EXPOSURE_PROGRESS_EVERY", 2),
+            patch("api.metadata.photo_reader.get_metadata", return_value=[1 / 4000]),
+        ):
+            result = refresh_exposure_times(
+                misread_exposure_times(),
+                progress=lambda done, total: reports.append((done, total)),
+            )
+
+        self.assertEqual((result.checked, result.updated, result.unreadable), (5, 5, 0))
+        self.assertEqual(reports, [(0, 5), (2, 5), (4, 5), (5, 5)])
+        for row in rows:
+            row.refresh_from_db()
+            self.assertEqual(row.shutter_speed, "1/4000")
+
+    def test_no_rows_reads_nothing(self) -> None:
+        with patch("api.metadata.photo_reader.get_metadata") as get_metadata:
+            result = refresh_exposure_times(misread_exposure_times())
+
+        get_metadata.assert_not_called()
+        self.assertEqual((result.checked, result.updated, result.unreadable), (0, 0, 0))
+
+    def test_a_row_that_stops_matching_before_its_batch_is_read_is_left_out(
+        self,
+    ) -> None:
+        self.photos(3)
+        # The rows are read in primary key order, which is not their creation order.
+        *_, last = misread_exposure_times().values_list("pk", flat=True)
+
+        def read(*args: object, **kwargs: object) -> list[float]:
+            # Another writer fixes the last row while the first batch is being read.
+            PhotoMetadata.objects.filter(pk=last).update(shutter_speed="1/250")
+            return [1 / 4000]
+
+        with (
+            patch("api.metadata.photo_reader.EXPOSURE_BATCH_SIZE", 2),
+            patch("api.metadata.photo_reader.get_metadata", side_effect=read),
+        ):
+            result = refresh_exposure_times(misread_exposure_times())
+
+        self.assertEqual((result.checked, result.updated), (2, 2))
+        self.assertEqual(PhotoMetadata.objects.get(pk=last).shutter_speed, "1/250")
