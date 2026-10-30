@@ -10,6 +10,7 @@ from io import StringIO
 from unittest.mock import patch
 
 from django.core.management import call_command
+from django.db.models import QuerySet
 from django.test import SimpleTestCase, TestCase
 
 from api.metadata.exposure_time_job import refresh_exposure_times_job
@@ -244,3 +245,30 @@ class RefreshExposureTimesJobTest(TestCase):
                 progress=lambda done, total: reports.append((done, total)),
             )
         self.assertEqual(reports, [(0, 1), (1, 1), (1, 1)])
+
+    def test_rows_are_read_in_batches_before_they_are_written(self) -> None:
+        """No row is written while a read cursor is open: on SQLite in WAL
+        mode that write fails with "database is locked" once the django-q
+        broker commits in between (#2890)."""
+        for _ in range(4):
+            create_test_photo(owner=self.admin, shutter_speed="1/1000")
+        reads: list[str] = []
+
+        def get_metadata(path: str, **_: object) -> list[object]:
+            reads.append(path)
+            return [1 / 4000]
+
+        with (
+            patch("api.metadata.photo_reader.EXPOSURE_BATCH_SIZE", 2),
+            patch("api.metadata.photo_reader.get_metadata", side_effect=get_metadata),
+            patch.object(
+                QuerySet, "iterator", side_effect=AssertionError("cursor left open")
+            ),
+        ):
+            result = refresh_exposure_times(misread_exposure_times())
+
+        self.assertEqual((result.checked, result.updated), (5, 5))
+        self.assertEqual(len(set(reads)), 5)
+        self.assertFalse(
+            PhotoMetadata.objects.filter(shutter_speed__in=("0", "1/1000")).exists()
+        )
