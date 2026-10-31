@@ -46,3 +46,20 @@ export const useRunProcessingStageMutation = () => {
       ]),
   });
 };
+
+/**
+ * Try again (#2888): ask the face model again about the faces it found no face in, then run the face
+ * recognition data's job, as Run now does.
+ */
+export const useRetryUnmatchedFacesMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => startJob(() => endpoints.retryUnmatchedFaces(apiClient)),
+    onSettled: () =>
+      Promise.all([
+        // Under jobKeys.all: the count of unmatched faces and the stage's job.
+        queryClient.invalidateQueries({ queryKey: jobKeys.all }),
+        queryClient.invalidateQueries({ queryKey: jobKeys.worker() }),
+      ]),
+  });
+};

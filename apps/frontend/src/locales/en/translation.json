@@ -3704,6 +3704,10 @@
     "failedcount_other": "{{formatted}} failed in the last run",
     "lastrunfailed": "The last run failed",
     "uploadfacenote": "Includes older uploads with no faces: they count until a face scan has checked them once.",
+    "unmatched_one": "{{formatted}} face region has no face match (kept as a person tag)",
+    "unmatched_other": "{{formatted}} face regions have no face match (kept as person tags)",
+    "tryagain": "Try again",
+    "tryagainlabel": "Try again: face regions with no face match",
     "stage": {
       "thumbnails": {
         "title": "Thumbnails",

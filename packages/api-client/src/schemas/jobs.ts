@@ -196,6 +196,9 @@ export type ProcessingStageKey = (typeof PROCESSING_STAGE_KEYS)[number];
 export const ProcessingStage = z.object({
   key: z.string(),
   remaining: z.number(),
+  // face_recognition: faces the face model found no face in, not counted in `remaining` (#2888);
+  // 0 for the other stages. Absent from older servers.
+  unmatched: z.number().optional().default(0),
   running_job: z.object({ job_id: z.string(), progress_current: z.number(), progress_target: z.number() }).nullable(),
   last_run: z
     .object({

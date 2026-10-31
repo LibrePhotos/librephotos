@@ -60,6 +60,8 @@ Looks for faces in your photos and saves them. It runs automatically after each 
 
 Computes the numeric encoding for faces that have been detected but not yet encoded, so they can be grouped and matched. It runs automatically as part of **Scan Faces**. If no faces are waiting to be encoded it finishes immediately, so you may not always see a row for it.
 
+<Since version="1.5.1" /> A face region the face model finds no face in (often one imported from your files) is not a failure: the job counts it as unmatched, keeps it as a person tag without an encoding, and leaves it alone on later runs until the **Face Recognition Model** site setting changes or you press **Try again** on the [processing status](./library.md#processing-status). Up to 1.5.0 each run asked again and counted every such region as a failed item, so a library with many of them showed the job as failed, and the job list did not say why.
+
 ### Find Similar Faces
 
 Clusters the faces into known and unknown groups.
