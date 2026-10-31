@@ -36,6 +36,7 @@ from rest_framework.exceptions import ValidationError
 
 from api.directory_watcher.processing_jobs import probe_videos, unprobed_videos
 from api.drf.exceptions import Conflict, JobAlreadyRunning
+from api.faces.turned_faces import repair_turned_faces_job
 from api.jobs.queue import JobStep
 from api.jobs.start import enqueue_for_request
 from api.metadata.exposure_time_job import refresh_exposure_times_job
@@ -208,6 +209,20 @@ UPGRADE_TASKS: tuple[UpgradeTask, ...] = (
         start=_as_admin(LongRunningJob.JOB_MAKE_VIDEO_POSTERS, make_video_posters_job),
         seeded=True,
         autostart=True,
+    ),
+    # Faces imported up to 1.5.0 a quarter turn off the face, next to an
+    # unnamed duplicate (#2887). Seeded by migration 0219 when a photo has a
+    # face without an encoding and one with. Optional: it moves and deletes
+    # faces, and most libraries have none of them to repair.
+    UpgradeTask(
+        key="repair_turned_faces",
+        kind="action",
+        job_type=LongRunningJob.JOB_REPAIR_TURNED_FACES,
+        check=_until_clean_run(LongRunningJob.JOB_REPAIR_TURNED_FACES),
+        start=_as_admin(
+            LongRunningJob.JOB_REPAIR_TURNED_FACES, repair_turned_faces_job
+        ),
+        seeded=True,
     ),
 )
 

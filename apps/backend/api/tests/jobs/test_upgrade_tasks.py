@@ -16,6 +16,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from api.faces.turned_faces import repair_turned_faces_job
 from api.jobs import upgrade_tasks
 from api.jobs.upgrade_tasks import (
     TASKS_BY_KEY,
@@ -44,6 +45,7 @@ EXPOSURE = "refresh_exposure_times"
 PROBE = "probe_videos"
 SEARCH = "semantic_search_conversion"
 POSTERS = "make_video_posters"
+TURNED_FACES = "repair_turned_faces"
 LIST_URL = "/api/upgrade-tasks/"
 
 
@@ -350,6 +352,19 @@ class StartingTasksTest(UpgradeTaskTestCase):
         self.assertEqual(job.job_type, LongRunningJob.JOB_MAKE_VIDEO_POSTERS)
         self.assertEqual(
             async_task.call_args.args, (make_video_posters_job, self.admin)
+        )
+
+    def test_the_turned_faces_repair_is_queued_for_the_admin(self):
+        create_test_upgrade_task_state(TURNED_FACES)
+        with (
+            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            [job] = upgrade_tasks.start_task(TASKS_BY_KEY[TURNED_FACES], self.admin)
+
+        self.assertEqual(job.job_type, LongRunningJob.JOB_REPAIR_TURNED_FACES)
+        self.assertEqual(
+            async_task.call_args.args, (repair_turned_faces_job, self.admin)
         )
 
     def test_the_probe_is_queued_per_owner(self):
