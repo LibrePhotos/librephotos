@@ -1,5 +1,5 @@
 Django==6.1.2
-django-allauth==65.21.0
+django-allauth==65.21.1
 django-constance==4.5.0
 django-cors-headers==4.9.0
 django-cryptography-5==2.0.3
