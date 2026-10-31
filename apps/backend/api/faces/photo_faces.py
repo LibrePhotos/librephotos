@@ -432,15 +432,18 @@ def restore_missing_crops(user: User) -> int:
     )
     restored = 0
     for face in faces:
-        if _restore_crop(face):
+        if cut_crop(face):
             restored += 1
     if restored:
         logger.info("restored the crop of %d face(s) of %s", restored, user)
     return restored
 
 
-def _restore_crop(face: api.models.face.Face) -> bool:
-    """Cut and save the crop of one face; whether it worked."""
+def cut_crop(face: api.models.face.Face) -> bool:
+    """Cut and save the crop of one face from its box; whether it worked.
+
+    The file of a crop the face had before stays on disk.
+    """
     photo = face.photo
     thumbnail = getattr(photo, "thumbnail", None) if photo else None
     if photo is None or thumbnail is None or not thumbnail.thumbnail_big:

@@ -147,8 +147,12 @@ ENCODING = [0.1 * index for index in range(8)]
 
 
 @override_settings(FEATURE_FACE_DETECTION=True)
-class PhysicallyTurnedJpegTest(RealExifToolTestCase):
-    """A JPEG whose pixels were turned after its region was written, read by ExifTool."""
+class TurnedJpegTestCase(RealExifToolTestCase):
+    """A JPEG whose pixels were turned after its region was written, read by ExifTool.
+
+    ``self.written`` is the box of the region as written, ``self.face`` the
+    face in the big thumbnail.
+    """
 
     def setUp(self):
         super().setUp()
@@ -199,6 +203,8 @@ class PhysicallyTurnedJpegTest(RealExifToolTestCase):
             face.location_left,
         )
 
+
+class PhysicallyTurnedJpegTest(TurnedJpegTestCase):
     def test_the_region_is_moved_onto_the_detected_face(self):
         (alice,) = self._extract([self.face])
 

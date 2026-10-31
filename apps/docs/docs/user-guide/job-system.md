@@ -157,6 +157,17 @@ docker compose exec backend python manage.py deduplicate_faces --user anna --chu
 
 <Since version="1.5.0" /> Started with **Rename files…** for a selection of more than 100 photos. Gives your photos, with all their files, the name made from their capture date, one photo after the other; a taken name gets ` (1)`, ` (2)`. A cancel stops after the photo it is on, and the photos renamed until then keep their new names. It ends with how many photos were renamed, how many kept their names, and how many could not be renamed (their files keep their old names). See [Renaming photos by their date](./library.md#renaming-photos-by-their-date).
 
+### Repair Turned Faces
+
+<Since version="1.5.1" /> Some apps turn a photo's pixels when they export it but keep the face tags they wrote for the picture before the turn. Up to 1.5.0, LibrePhotos put such a face a quarter turn away from the face: it never got an encoding, and **Scan Faces** found the face again as a second face without a name. This job moves those faces onto the face, across every user's library. An admin starts it from the [Finish the upgrade card](../installation/upgrading.md#finish-the-upgrade).
+
+A face is moved only when exactly one of the two quarter turns lands on a face LibrePhotos found on the photo, and that face has no name or the same name. The face then takes that face's place and encoding, and the copy is deleted; it does not go to the Deleted tab. Anything else stays as it is, for example a face found there that you named as someone else. Your files are not changed, and the photo's faces are not looked for again. It ends with how many faces it repaired and how many it left. The same work runs from the command line; `--dry-run` only counts the faces:
+
+```bash
+docker compose exec backend python manage.py repair_turned_faces --dry-run
+docker compose exec backend python manage.py repair_turned_faces
+```
+
 ## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.
