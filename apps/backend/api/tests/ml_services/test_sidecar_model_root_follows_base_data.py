@@ -221,3 +221,24 @@ class ServiceEnvironmentOpenBlasTest(SimpleTestCase):
         with patch.dict(os.environ, {"OPENBLAS_NUM_THREADS": "4"}):
             env = _service_environment()
         self.assertEqual(env["OPENBLAS_NUM_THREADS"], "4")
+
+
+class ServiceEnvironmentVulkanTest(SimpleTestCase):
+    """#2445: WebGPU in a container without the GPU's driver ran on lavapipe,
+    Mesa's CPU renderer, 20 times slower than the CPU provider. The sidecars'
+    Vulkan loader skips it unless the host chose otherwise."""
+
+    def test_lavapipe_is_skipped_by_default(self):
+        with patch.dict(os.environ):
+            os.environ.pop("VK_LOADER_DRIVERS_DISABLE", None)
+            env = _service_environment()
+        self.assertEqual(env["VK_LOADER_DRIVERS_DISABLE"], "*lvp*")
+
+    def test_an_explicit_setting_wins(self):
+        for value in ("", "*nouveau*"):
+            with (
+                self.subTest(value=value),
+                patch.dict(os.environ, {"VK_LOADER_DRIVERS_DISABLE": value}),
+            ):
+                env = _service_environment()
+                self.assertEqual(env["VK_LOADER_DRIVERS_DISABLE"], value)

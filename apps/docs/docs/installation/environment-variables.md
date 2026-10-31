@@ -32,7 +32,7 @@ services:
       - /dev/dri:/dev/dri
 ```
 
-**NVIDIA:** install the current NVIDIA driver and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host, reserve the GPU for the backend, and ask for the `graphics` capability: it is what makes the toolkit hand the container NVIDIA's Vulkan driver. With only `compute`, the models stay on the CPU.
+**NVIDIA:** this needs a Linux host whose NVIDIA driver includes its Vulkan driver. Check on the host first: `vulkaninfo --summary` lists the GPU, and `/usr/share/vulkan/icd.d` or `/etc/vulkan/icd.d` holds an `nvidia_icd.json` (or `nvidia_icd.x86_64.json`). Some distributions ship that part separately, for example `libnvidia-gl` or `nvidia-vulkan-icd` on Debian and Ubuntu. Then install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), reserve the GPU for the backend, and ask for the `graphics` capability: with it the toolkit mounts the host's Vulkan driver into the container. It cannot add one the host does not have, and with only `compute` the models stay on the CPU.
 
 ```yaml
 services:
@@ -49,22 +49,29 @@ services:
               capabilities: [gpu]
 ```
 
-**Check that it works:** when a machine learning service loads its first model, the backend log says which device it got, once per service:
+Check that the driver arrived in the container: `docker compose exec backend ls /usr/share/vulkan/icd.d /etc/vulkan/icd.d` lists an `nvidia_icd` file next to Mesa's.
+
+**Docker Desktop and WSL2 on Windows:** the models run on the CPU there. NVIDIA's driver for WSL2 brings CUDA into Linux containers but no Vulkan driver, and Mesa's Vulkan on Direct3D 12 (Dozen) sees the GPU but WebGPU does not accept it. LibrePhotos running on Windows itself, outside Docker, reaches the GPU through Direct3D 12 instead.
+
+**Check that it works:** when a machine learning service has started its first model on the GPU, the backend log says so, once per service. On Linux ONNX Runtime does not report the GPU's name, so the line shows the vendor, the PCI ids and the slot:
 
 ```
-ML models run on the GPU through WebGPU: NVIDIA GeForce GTX 1660 Ti
+ML models run on the GPU through WebGPU: NVIDIA 10de:1f82 at 0000:01:00.0
 ```
 
-or, without a usable GPU:
+Without a usable GPU, the log says one of these instead, and the models run on the CPU:
 
 ```
-No GPU found for WebGPU, ML models run on the CPU. Docker: pass /dev/dri to the container for Intel and AMD GPUs, or set NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics for NVIDIA. ...
+No GPU found for WebGPU, ML models run on the CPU. Docker: pass /dev/dri to the container for Intel and AMD GPUs, ...
+WebGPU failed, ML models run on the CPU from now on: ...
 ```
 
 The results are the same as on the CPU. On a GTX 1660 Ti, the models ran about 1.6 to 5 times faster than on a 6-core Ryzen CPU.
 
+<Since version="1.5.1" /> The image's Vulkan includes Mesa's software renderer (lavapipe), which draws on the CPU. In 1.5.0, a container that saw the host's GPU without getting its driver ran the models on lavapipe, about 20 times slower than ONNX Runtime's own CPU code, while the log said `ML models run on the GPU through WebGPU:` with an empty name ([#2445](https://github.com/LibrePhotos/librephotos/issues/2445)). The machine learning services now start with `VK_LOADER_DRIVERS_DISABLE=*lvp*`, so Vulkan skips lavapipe and the models fall back to the CPU properly. Setting `VK_LOADER_DRIVERS_DISABLE` yourself (even to an empty value) replaces that default. On 1.5.0, `ONNX_PROVIDERS=CPUExecutionProvider` avoids it.
+
 :::note
-GPUs in Docker on Linux have not been tested on every setup yet (see [#2445](https://github.com/LibrePhotos/librephotos/issues/2445)). If the log says no GPU was found although you passed one, check that `vulkaninfo --summary` lists it on the host. Some NVIDIA Container Toolkit versions do not mount the Vulkan driver into the container even with `graphics`. Report what you see on the issue. To keep the models off the GPU, set `ONNX_PROVIDERS=CPUExecutionProvider`.
+GPUs in Docker on Linux have not been tested on every setup yet (see [#2445](https://github.com/LibrePhotos/librephotos/issues/2445)). If the log says WebGPU failed although you passed a GPU, check the Vulkan driver files above on the host and in the container. Report what you see on the issue. To keep the models off the GPU, set `ONNX_PROVIDERS=CPUExecutionProvider`.
 :::
 
 #### Which device the models run on

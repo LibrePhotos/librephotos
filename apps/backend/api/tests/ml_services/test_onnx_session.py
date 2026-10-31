@@ -153,6 +153,16 @@ def _ep_device(name, description="NVIDIA GeForce GTX 1660 Ti"):
     return MagicMock(ep_name=name, device=hardware)
 
 
+def _linux_ep_device(vendor_id=0x10DE, device_id=0x1F82, metadata=None):
+    """What the plugin reports on Linux: PCI ids, no name."""
+    if metadata is None:
+        metadata = {"Discrete": "1", "card_idx": "0", "pci_bus_id": "0000:01:00.0"}
+    hardware = MagicMock(
+        vendor="", vendor_id=vendor_id, device_id=device_id, metadata=metadata
+    )
+    return MagicMock(ep_name=WEBGPU, device=hardware)
+
+
 class FindWebGpuDeviceTest(SimpleTestCase):
     """Registering the plugin, and the one log line when there is no GPU."""
 
@@ -167,25 +177,27 @@ class FindWebGpuDeviceTest(SimpleTestCase):
             self.assertIsNone(onnx_session._find_webgpu_device())
         reg.assert_not_called()
 
-    def test_the_gpu_device_is_found_and_named(self):
-        gpu = _ep_device(WEBGPU)
+    def _find(self, devices):
         with (
             _plugin(),
             patch.object(
                 onnx_session.ort, "register_execution_provider_library"
             ) as reg,
-            patch.object(
-                onnx_session.ort,
-                "get_ep_devices",
-                return_value=[_ep_device(CPU), gpu],
-            ),
-            self.assertLogs("onnx_session", "INFO") as logs,
+            patch.object(onnx_session.ort, "get_ep_devices", return_value=devices),
         ):
-            self.assertIs(onnx_session._find_webgpu_device(), gpu)
+            found = onnx_session._find_webgpu_device()
+        return found, reg
+
+    def test_the_gpu_device_is_found_but_not_claimed_yet(self):
+        # #2445: a container sees the host's GPU in sysfs without its driver,
+        # so "runs on the GPU" waits for a session that started on it.
+        gpu = _ep_device(WEBGPU)
+        with self.assertNoLogs("onnx_session"):
+            found, reg = self._find([_ep_device(CPU), gpu])
+        self.assertIs(found, gpu)
         reg.assert_called_once_with(
             "webgpu", "/plugin/libonnxruntime_providers_webgpu.so"
         )
-        self.assertIn("GTX 1660 Ti", logs.output[0])
 
     def test_no_gpu_is_one_info_line_with_the_fix(self):
         with (
@@ -221,6 +233,25 @@ class FindWebGpuDeviceTest(SimpleTestCase):
         self.assertTrue({"Fail", "EPFail", "RuntimeException"} <= names)
 
 
+class GpuNameTest(SimpleTestCase):
+    """The name in "ML models run on the GPU through WebGPU: ..."."""
+
+    def test_windows_and_macos_report_a_name(self):
+        self.assertEqual(
+            onnx_session.gpu_name(_ep_device(WEBGPU)), "NVIDIA GeForce GTX 1660 Ti"
+        )
+
+    def test_linux_reports_vendor_ids_and_slot(self):
+        self.assertEqual(
+            onnx_session.gpu_name(_linux_ep_device()),
+            "NVIDIA 10de:1f82 at 0000:01:00.0",
+        )
+
+    def test_an_unknown_vendor_without_a_slot(self):
+        device = _linux_ep_device(vendor_id=0x1234, device_id=0x1111, metadata={})
+        self.assertEqual(onnx_session.gpu_name(device), "GPU 1234:1111")
+
+
 class WebGpuSessionTest(SimpleTestCase):
     """Sessions go on the WebGPU device, never by provider name."""
 
@@ -228,6 +259,7 @@ class WebGpuSessionTest(SimpleTestCase):
         self.addCleanup(_environ().stop)
         self.device = MagicMock()
         self.state = _fresh_webgpu_state(self, device=self.device)
+        self.state.announced = True  # the one test of the log line resets it
         available = _available([*CPU_ONLY, WEBGPU])
         available.start()
         self.addCleanup(available.stop)
@@ -261,6 +293,19 @@ class WebGpuSessionTest(SimpleTestCase):
         options.add_provider_for_devices.assert_called_once_with([self.device], {})
         self.assertFalse(options.enable_cpu_mem_arena)
         by_name.InferenceSession.assert_not_called()
+
+    def test_the_first_session_on_the_gpu_says_so_once(self):
+        self.state.device = self.device = _linux_ep_device()
+        self.state.announced = False
+        webgpu = self._patch("_WebGpuSession")
+        webgpu.return_value.get_providers.return_value = WITH_WEBGPU
+
+        with self.assertLogs("onnx_session", "INFO") as logs:
+            inference_session("/models/a.onnx")
+            inference_session("/models/b.onnx")
+
+        self.assertEqual(len(logs.records), 1)
+        self.assertIn("through WebGPU: NVIDIA 10de:1f82", logs.output[0])
 
     def test_a_failed_session_falls_back_to_the_cpu_for_good(self):
         fail = onnx_session.ort_state.Fail("Failed to get a WebGPU adapter")

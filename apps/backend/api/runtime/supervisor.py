@@ -387,6 +387,13 @@ def _service_environment() -> dict[str, str]:
         # heavy maths in ONNX Runtime, which has its own threads, and use
         # numpy only for pre- and post-processing. Unless set already.
         "OPENBLAS_NUM_THREADS": "1",
+        # The Vulkan loader skips Mesa's software driver (lavapipe, which the
+        # image ships with the Intel and AMD drivers). In a container without
+        # the GPU's own driver, WebGPU ran every model on it with no error,
+        # about 20 times slower than ONNX Runtime's CPU provider (#2445);
+        # without it the session fails and service.onnx_session falls back to
+        # the CPU provider. Unless set already.
+        "VK_LOADER_DRIVERS_DISABLE": "*lvp*",
         **os.environ,
         "BASE_DATA": settings.BASE_DATA,
         "BASE_LOGS": settings.LOGS_ROOT,
