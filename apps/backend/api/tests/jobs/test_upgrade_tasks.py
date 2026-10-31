@@ -286,6 +286,41 @@ class TaskStatusTest(UpgradeTaskTestCase):
         row = rows()[STRIP]
         self.assertEqual((row["status"], row["error"]), ("failed", None))
 
+    def test_a_task_that_never_ran_is_pending_without_a_job(self):
+        create_test_photo(owner=self.admin, video=True)
+        create_test_upgrade_task_state(PROBE)
+
+        row = rows()[PROBE]
+        self.assertEqual((row["status"], row["latest_job_id"]), ("pending", None))
+
+    def test_a_run_that_left_work_keeps_its_job_and_count(self):
+        """#2867: a conversion ran for 38 minutes and finished, its check still
+        found photos, and the card said "Not started yet". The row keeps the
+        job, so the card says what the run left and links to it."""
+        create_test_photo(owner=self.admin, video=True)
+        create_test_upgrade_task_state(PROBE)
+        job = finished_job(self.admin, LongRunningJob.JOB_PROBE_VIDEOS)
+
+        row = rows()[PROBE]
+        self.assertEqual(row["status"], "pending")
+        self.assertEqual(row["latest_job_id"], job.pk)
+        self.assertEqual(row["count"], 1)
+
+    def test_a_search_conversion_that_left_photos_keeps_its_job(self):
+        photo = create_test_photo(owner=self.admin)
+        Photo.objects.filter(pk=photo.pk).update(clip_embeddings=[1.0])
+        create_test_upgrade_task_state(
+            SEARCH, created_at=timezone.now() - timedelta(hours=1)
+        )
+        job = finished_job(self.admin, LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS)
+
+        row = rows()[SEARCH]
+        self.assertEqual((row["status"], row["latest_job_id"]), ("pending", job.pk))
+
+        Photo.objects.filter(pk=photo.pk).update(clip_embeddings_model=OPENCLIP)
+        row = rows()[SEARCH]
+        self.assertEqual((row["status"], row["latest_job_id"]), ("done", job.pk))
+
 
 class StartingTasksTest(UpgradeTaskTestCase):
     def test_the_cleanup_is_queued_for_the_admin(self):

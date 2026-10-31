@@ -29518,7 +29518,7 @@
                 "$ref": "#/components/schemas/UpgradeTaskStatusEnum"
               }
             ],
-            "description": "done: finished in the last day; failed: the last run failed or was cancelled\n\n* `pending` - pending\n* `running` - running\n* `failed` - failed\n* `done` - done"
+            "description": "done: finished in the last day; failed: the last run failed or was cancelled; pending: work is left, and with a latest_job_id a run ended without doing all of it\n\n* `pending` - pending\n* `running` - running\n* `failed` - failed\n* `done` - done"
           },
           "count": {
             "type": "integer",

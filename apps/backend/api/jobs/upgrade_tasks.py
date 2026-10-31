@@ -330,6 +330,9 @@ def _running_overview(
 
 
 def _describe(task: UpgradeTask, state: UpgradeTaskState) -> TaskOverview:
+    """The task's row. A pending task keeps the job of its last run, when one
+    ended since the task appeared and its check still finds work, so the card
+    says what that run left instead of "Not started yet" (#2867)."""
     if state.completed_at is not None:
         return _overview(task, state, "done", _latest_job(task, state))
     running = _running_jobs(task)
