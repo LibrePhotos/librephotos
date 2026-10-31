@@ -17,6 +17,6 @@ import-linter==2.15
 mypy==2.3.1
 django-stubs==6.1.2
 djangorestframework-stubs==3.18.1
-types-pytz==2026.5.0.20261006
+types-pytz==2026.6.0.20261031
 types-psutil==7.2.2.20260906
 types-gevent==26.9.0.20261006
