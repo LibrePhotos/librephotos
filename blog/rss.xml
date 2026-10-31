@@ -4,10 +4,44 @@
         <title>LibrePhotos Blog</title>
         <link>https://docs.librephotos.com/blog</link>
         <description>LibrePhotos Blog</description>
-        <lastBuildDate>Wed, 28 Oct 2026 12:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 31 Oct 2026 16:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>en</language>
+        <item>
+            <title><![CDATA[1.5.1: Faces in the right place, an upgrade step that finishes on SQLite]]></title>
+            <link>https://docs.librephotos.com/blog/1-5-1</link>
+            <guid>https://docs.librephotos.com/blog/1-5-1</guid>
+            <pubDate>Sat, 31 Oct 2026 16:00:00 GMT</pubDate>
+            <description><![CDATA[This point release finishes a step of the 1.4.0 upgrade that kept failing on SQLite, puts faces from turned photos on the face, and stops LibrePhotos from asking about the same faces again on every run.]]></description>
+            <content:encoded><![CDATA[<p>This point release <strong>finishes a step of the 1.4.0 upgrade that kept failing on SQLite</strong>, <strong>puts faces from turned photos on the face</strong>, and stops LibrePhotos from asking about the same faces again on every run.</p>
+<p><strong>Who should update:</strong> Everyone. Update first if you use SQLite (the single container image or the <a class="" href="https://docs.librephotos.com/docs/user-guide/glossary#windows-app">Windows app</a>) and <strong>Read shutter speeds again</strong> kept failing on the <strong>Finish the upgrade</strong> card, or if you import face tags from other apps.</p>
+<p><strong>After you update:</strong></p>
+<ul>
+<li class=""><strong>Nothing to do for faces.</strong> The next face run asks once more about face tags it could not match before. Those it still cannot match are kept as person tags and no longer count as failures. The <strong>Processing status</strong> card under <strong>Account menu &gt; Library</strong> lists them, with <strong>Try again</strong>. See <a class="" href="https://docs.librephotos.com/docs/user-guide/library#processing-status">Processing status</a>.</li>
+<li class=""><strong>Admins, if Read shutter speeds again had stopped:</strong> go to <strong>Account menu &gt; Admin Area</strong> and click <strong>Retry</strong> next to <strong>Read shutter speeds again</strong> on the <strong>Finish the upgrade</strong> card. It is done when the row says so. If you skip it, some photos keep a wrong shutter speed. See <a class="" href="https://docs.librephotos.com/docs/installation/upgrading#refresh-exposure-time">Read shutter speeds again</a>.</li>
+<li class=""><strong>Admins, optional:</strong> the <strong>Finish the upgrade</strong> card may list <strong>Move faces tagged on a turned picture</strong>. Click <strong>Start</strong> to move faces that were imported a quarter turn away from the face onto it, next to the unnamed copy LibrePhotos found there. Your photos are not changed. If you skip it, those faces stay where they are; <strong>Not now</strong> hides the row. See <a class="" href="https://docs.librephotos.com/docs/user-guide/job-system#repair-turned-faces">Repair Turned Faces</a>.</li>
+</ul>
+<p><strong>Upstream:</strong></p>
+<p>🚀 Backend: Faces From Turned Photos Land on the Face</p>
+<p>Some apps turn a photo's pixels when they export it but keep the face tags they wrote for the picture before the turn. LibrePhotos placed those tags 90 degrees away from the face, so a named face sat in an empty spot while the face itself showed up again as an unnamed one. A scan now checks the tag's recorded picture size against the photo: when the two are a quarter turn apart, it tries both turns and moves the tag only when exactly one of them lands on a face the face model found. Faces already imported this way are fixed by the optional <strong>Repair Turned Faces</strong> task on the <strong>Finish the upgrade</strong> card, or with <code>manage.py repair_turned_faces --dry-run</code> to see first what it would do. Thanks to <a href="https://github.com/koen-bosmans" target="_blank" rel="noopener noreferrer" class="">koen-bosmans</a> for the detailed analysis (<a href="https://github.com/LibrePhotos/librephotos/issues/2887" target="_blank" rel="noopener noreferrer" class="">#2887</a>, <a href="https://github.com/LibrePhotos/librephotos/pull/2899" target="_blank" rel="noopener noreferrer" class="">#2899</a>, <a href="https://github.com/LibrePhotos/librephotos/pull/2903" target="_blank" rel="noopener noreferrer" class="">#2903</a>).</p>
+<p>🚀 Backend: Face Tags Without a Match Stop Failing</p>
+<p>A face tag the face model finds no face in is kept as a person tag without recognition data, so it is never grouped with a stranger. Until now, <strong>Generate Face Embeddings</strong> asked the face model about each of them again on every run, counted them as failures and marked the job failed with no error listed. Each face now remembers which face model could not match it and is skipped until the model changes or you click <strong>Try again</strong> on the <strong>Processing status</strong> card, which lists them apart. Finished jobs also keep the errors they recorded instead of losing them at the end (<a href="https://github.com/LibrePhotos/librephotos/issues/2888" target="_blank" rel="noopener noreferrer" class="">#2888</a>, <a href="https://github.com/LibrePhotos/librephotos/pull/2904" target="_blank" rel="noopener noreferrer" class="">#2904</a>).</p>
+<ul>
+<li class="">🔨 Backend: <strong>Read shutter speeds again</strong> reads the photos in batches, so it no longer stops with "database is locked" on SQLite libraries with more than a few thousand affected photos. Reported by <a href="https://github.com/Numbliercat" target="_blank" rel="noopener noreferrer" class="">Numbliercat</a> (<a href="https://github.com/LibrePhotos/librephotos/issues/2890" target="_blank" rel="noopener noreferrer" class="">#2890</a>, <a href="https://github.com/LibrePhotos/librephotos/pull/2896" target="_blank" rel="noopener noreferrer" class="">#2896</a>) (Implemented by <a href="https://github.com/lalmachado" target="_blank" rel="noopener noreferrer" class="">lalmachado</a>)</li>
+<li class="">🔨 Backend: A Docker container that sees the host's GPU but has no driver for it now runs the models on the CPU instead of Mesa's much slower software Vulkan renderer, and the log names the GPU only once a model really runs on it (<a href="https://github.com/LibrePhotos/librephotos/pull/2900" target="_blank" rel="noopener noreferrer" class="">#2900</a>)</li>
+<li class="">🔨 Frontend: The <strong>Finish the upgrade</strong> card says what the last run of a task left, with a link to its job, instead of "Not started yet". Reported by <a href="https://github.com/dotanm" target="_blank" rel="noopener noreferrer" class="">dotanm</a> (<a href="https://github.com/LibrePhotos/librephotos/pull/2902" target="_blank" rel="noopener noreferrer" class="">#2902</a>)</li>
+<li class="">🔨 LibrePhotos: Dependency updates for the backend, the web app and Node.js 24.22.2</li>
+</ul>
+<p><strong>Full changelog:</strong> <a href="https://github.com/LibrePhotos/librephotos/compare/1.5.0...1.5.1" target="_blank" rel="noopener noreferrer" class="">https://github.com/LibrePhotos/librephotos/compare/1.5.0...1.5.1</a></p>
+<hr>
+<p>If you are interested in how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
+<hr>
+<p><strong>Sponsoring development:</strong></p>
+<p>My work is sponsored by <strong>2</strong> awesome people!</p>
+<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content:encoded>
+            <category>release</category>
+        </item>
         <item>
             <title><![CDATA[1.5.0: Share your library, faces made easier, photos on the map, updates from the app]]></title>
             <link>https://docs.librephotos.com/blog/1-5-0</link>
@@ -834,27 +868,6 @@
             <pubDate>Thu, 09 Jan 2025 00:00:00 GMT</pubDate>
             <description><![CDATA[ARM is no longer an option for the GPU image.]]></description>
             <content:encoded><![CDATA[<p>ARM is no longer an option for the GPU image.</p>]]></content:encoded>
-            <category>release</category>
-        </item>
-        <item>
-            <title><![CDATA[Development: 2024 - Week 46/47]]></title>
-            <link>https://docs.librephotos.com/blog/2024w47</link>
-            <guid>https://docs.librephotos.com/blog/2024w47</guid>
-            <pubDate>Sat, 16 Nov 2024 00:00:00 GMT</pubDate>
-            <description><![CDATA[Upstream:]]></description>
-            <content:encoded><![CDATA[<p><strong>Upstream:</strong></p>
-<ul>
-<li class="">🚀 Docker: Use pgautoupgrade/pgautoupgrade to use latest postgres</li>
-<li class="">✨ LibrePhotos: Remove heavyweight process setting</li>
-<li class="">🔨 LibrePhotos: Fix xss file upload vulnerability (Found and fixed by <a href="https://github.com/ii5mai1" target="_blank" rel="noopener noreferrer" class="">ii5mai1</a>)</li>
-<li class="">🔨 Docker: Remove postgres setting that can lead to a corrupt db in certain scenarios</li>
-</ul>
-<hr>
-<p>If you are interested on how I develop this application, you can watch me develop features live on <strong><a href="https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w" target="_blank" rel="noopener noreferrer" class="">my channel</a></strong></p>
-<hr>
-<p><strong>Sponsoring development:</strong></p>
-<p>My work is sponsored by <strong>6</strong> awesome people!</p>
-<p>If you like the work I do, then you can support me via <strong><a href="https://github.com/sponsors/derneuere" target="_blank" rel="noopener noreferrer" class="">GitHub sponsors</a></strong> or via <strong><a href="https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96" target="_blank" rel="noopener noreferrer" class="">PayPal</a></strong></p>]]></content:encoded>
             <category>release</category>
         </item>
     </channel>
