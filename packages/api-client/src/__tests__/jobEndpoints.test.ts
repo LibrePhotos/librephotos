@@ -391,6 +391,26 @@ describe("library processing status (#2741)", () => {
     await expect(endpoints.fetchProcessingStatus(client)).rejects.toBeInstanceOf(ResponseParseError);
   });
 
+  it("reads the unmatched faces, as 0 from a server that does not send them (#2888)", async () => {
+    const faces = { key: "face_recognition", remaining: 0, unmatched: 5, running_job: null, last_run: null };
+    const { client } = fakeServer({ ...status, stages: [...status.stages, faces] });
+    const answer = await endpoints.fetchProcessingStatus(client);
+    expect(answer.stages.map(stage => stage.unmatched)).toEqual([0, 0, 5]);
+  });
+
+  it("tries the unmatched faces again, and follows the job when it already runs", async () => {
+    const { client, requests } = fakeServer({ status: true, job_id: "j4", job_ids: ["j4"] });
+    const answer = await endpoints.retryUnmatchedFaces(client);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/library/processing-status/retry-unmatched-faces/`,
+      method: "POST",
+    });
+    expect(answer.job_id).toBe("j4");
+
+    const running = fakeServer(alreadyRunning, 409);
+    await expect(endpoints.retryUnmatchedFaces(running.client)).resolves.toMatchObject({ already_running: true });
+  });
+
   it("runs a stage, and follows its job when it already runs", async () => {
     const { client, requests } = fakeServer({ status: true, job_id: "j3", job_ids: ["j3"] });
     const answer = await endpoints.runProcessingStage(client, "places");

@@ -5,13 +5,16 @@ that is turned on: how many of the user's photos (faces, for the face
 recognition data) the stage still has to do, its job while one runs, and
 what its last run left failed. ``POST /api/library/processing-status/run/``
 starts the stage's job for what is left, the job its own trigger or the
-scan's follow-ups start, never a new kind of job.
+scan's follow-ups start, never a new kind of job. The face recognition data
+also counts the faces the face model found no face in, which it leaves
+alone (#2888); ``POST /api/library/processing-status/retry-unmatched-faces/``
+asks the model about them again.
 
 Each stage counts with the same ``Q`` its job selects with
 (``needs_things``, ``needs_ocr``, ...), so a finished run brings the count
 to zero. The photo counts are one aggregate over the user's photos, the
-face count one more query, and the jobs two: the cost does not grow with
-the library.
+face counts two more queries, and the jobs two: the cost does not grow
+with the library.
 """
 
 from __future__ import annotations
@@ -41,6 +44,7 @@ from api.directory_watcher.processing_jobs import (
     needs_ocr,
     needs_things,
     scan_faces,
+    unmatched_faces,
 )
 from api.faces.classify import cluster_all_faces
 from api.geocode.photo_location import needs_geocoding
@@ -273,6 +277,8 @@ class LastRun(TypedDict):
 class StageStatus(TypedDict):
     key: StageKey
     remaining: int
+    # Faces the face model found no face in (face_recognition only, #2888).
+    unmatched: int
     running_job: RunningJob | None
     last_run: LastRun | None
 
@@ -284,11 +290,21 @@ class ProcessingStatus(TypedDict):
     stages: list[StageStatus]
 
 
-def _remaining(user: User, stages: list[Stage]) -> tuple[int, dict[StageKey, int]]:
+@dataclass(frozen=True)
+class _Counts:
+    photos: int
+    remaining: dict[StageKey, int]
+    unmatched_faces: int
+
+
+def _counts(user: User, stages: list[Stage]) -> _Counts:
     """The user's photos and what each stage has left of them.
 
     Photos in the trash or whose file is gone are left out, as on the
     timeline; the jobs take them along, so a finished run leaves no count.
+    The face recognition data counts the faces its job selects, and apart
+    from them the faces the face model found no face in, which the job
+    leaves alone: a finished run leaves only those (#2888).
     """
     counts = {
         stage.key: Count("pk", filter=stage.needs())
@@ -303,12 +319,11 @@ def _remaining(user: User, stages: list[Stage]) -> tuple[int, dict[StageKey, int
     remaining: dict[StageKey, int] = {
         stage.key: totals[stage.key] for stage in stages if stage.needs is not None
     }
+    unmatched = 0
     if any(stage.needs is None for stage in stages):
-        faces = faces_missing_encoding(user).filter(
-            photo__in_trashcan=False, photo__removed=False
-        )
-        remaining["face_recognition"] = faces.count()
-    return totals["photos"], remaining
+        remaining["face_recognition"] = faces_missing_encoding(user).count()
+        unmatched = unmatched_faces(user).count()
+    return _Counts(totals["photos"], remaining, unmatched)
 
 
 def _running_jobs(user: User, job_types: list[int]) -> dict[int, LongRunningJob]:
@@ -365,16 +380,19 @@ def _last_run(job: LongRunningJob | None) -> LastRun | None:
 def processing_status(user: User) -> ProcessingStatus:
     """Each turned-on stage with what is left of the user's library, in pipeline order."""
     stages = [stage for stage in STAGES if stage.enabled()]
-    photo_count, remaining = _remaining(user, stages)
+    counts = _counts(user, stages)
     job_types = [stage.job_type for stage in stages]
     running = _running_jobs(user, job_types)
     last = _last_runs(user, job_types)
     return {
-        "photo_count": photo_count,
+        "photo_count": counts.photos,
         "stages": [
             {
                 "key": stage.key,
-                "remaining": remaining[stage.key],
+                "remaining": counts.remaining[stage.key],
+                "unmatched": (
+                    counts.unmatched_faces if stage.key == "face_recognition" else 0
+                ),
                 "running_job": _running(running.get(stage.job_type)),
                 "last_run": _last_run(last.get(stage.job_type)),
             }
@@ -389,7 +407,25 @@ def start_stage(user: User, key: StageKey) -> Response:
     A second start while the job runs is a 409 ``job_already_running`` with
     that job's id (``api.jobs.start``).
     """
+    return _enabled_stage(key).start(user)
+
+
+def retry_unmatched_faces(user: User) -> Response:
+    """Ask the face model again about the user's faces it found no face in (#2888).
+
+    Clears the mark (``Face.unmatched_by``) on the user's own faces only,
+    then starts the face recognition data's job, as Run now does: the faces
+    the model still finds no face in are marked again. 403 (``stage_off``)
+    while face detection is off, with nothing cleared.
+    """
+    stage = _enabled_stage("face_recognition")
+    unmatched_faces(user).update(unmatched_by="")
+    return stage.start(user)
+
+
+def _enabled_stage(key: StageKey) -> Stage:
+    """The stage, or a 403 (``stage_off``) while it is turned off."""
     stage = STAGES_BY_KEY[key]
     if not stage.enabled():
         raise PermissionDenied("This processing stage is turned off.", code="stage_off")
-    return stage.start(user)
+    return stage

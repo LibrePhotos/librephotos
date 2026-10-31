@@ -174,7 +174,10 @@ def _merge(stale: Face, turned_box: FaceBox, found: Face) -> Face:
         stale.location_left,
     ) = turned_box
     stale.encoding = found.encoding
-    stale.save(update_fields=[*FACE_BOX_FIELDS, "encoding"])
+    # A new box and encoding: the face model's earlier "no face here" was
+    # about the box a quarter turn off (#2888).
+    stale.unmatched_by = ""
+    stale.save(update_fields=[*FACE_BOX_FIELDS, "encoding", "unmatched_by"])
     found.delete()
     if cut_crop(stale) and old_crop and old_crop != stale.image.name:
         transaction.on_commit(partial(stale.image.storage.delete, old_crop))

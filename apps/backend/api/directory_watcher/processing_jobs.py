@@ -19,12 +19,14 @@ from api.classification.documents import classify_document
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
+    update_batch_counter,
     update_scan_counter,
 )
 from api.drf.exceptions import JobAlreadyRunning
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
 from api.faces.photo_faces import extract_faces
+from api.faces.recognition import face_model_name
 from api.geocode.photo_location import (
     HAS_POSITION,
     add_location_to_album_dates,
@@ -49,26 +51,42 @@ logger = logging.getLogger(__name__)
 
 
 def _encode_face(face: Face, job_id: UUID | str) -> None:
-    failed = False
-    error = None
+    """Encode one face and count it: done, unmatched or failed.
+
+    A box the face model finds no face in is not a failure (#2888): the face
+    keeps no encoding, is marked unmatched and counts as ``unmatched`` in the
+    job's result.
+    """
     try:
         photo_faces.generate_face_encoding(face)
+    except photo_faces.NoFaceInRegionError:
+        logger.info("face %s: the face model found no face in its box", face.id)
+        update_batch_counter(job_id, 1, {"unmatched": 1}, [])
+        return
     except Exception as err:
         logger.exception("Could not generate an encoding for face %s", face.id)
-        failed = True
         error = f"Face {face.id}: {str(err)}\n{traceback.format_exc()}"
-    update_scan_counter(job_id, failed, error)
+        update_scan_counter(job_id, True, error)
+        return
+    update_scan_counter(job_id)
 
 
 def faces_missing_encoding(user: User) -> QuerySet[Face]:
-    """Faces on ``user``'s photos that have no encoding yet.
+    """The faces of ``user`` that Generate Face Embeddings encodes.
 
-    Not a face from a video's later frames: the scan saves it with its
-    encoding, and its frame is gone to make one again from (#2761).
+    ``Face.objects.needs_encoding``: not deleted, on a photo in the library,
+    and not one the current face model already found no face in (#2888).
     """
-    return Face.objects.filter(
-        photo__in=Photo.objects.owned_by(user), encoding="", video_time__isnull=True
-    )
+    return Face.objects.owned_by(user).needs_encoding(face_model_name())
+
+
+def unmatched_faces(user: User) -> QuerySet[Face]:
+    """The faces of ``user`` the current face model found no face in (#2888).
+
+    Generate Face Embeddings leaves them out; Try again on the processing
+    status clears their mark (``Face.unmatched_by``).
+    """
+    return Face.objects.owned_by(user).unmatched(face_model_name())
 
 
 def generate_face_embeddings(

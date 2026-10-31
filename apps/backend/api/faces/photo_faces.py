@@ -29,7 +29,7 @@ from api.faces.geometry import (
     calculate_iou,
     min_face_height,
 )
-from api.faces.recognition import get_face_encodings
+from api.faces.recognition import face_model_name, get_face_encodings
 from api.lazy_import import LazyModule
 from api.metadata.reader import sidecar_files_for_photo
 from api.runtime.features import feature_enabled
@@ -314,7 +314,8 @@ def _give_encoding_to_overlapping_face(
         return
     # As save_detected_face and generate_face_encoding store it.
     best_face.encoding = encoding.tobytes().hex()
-    best_face.save(update_fields=["encoding"])
+    best_face.unmatched_by = ""
+    best_face.save(update_fields=["encoding", "unmatched_by"])
 
 
 def _get_or_create_named_person(
@@ -484,18 +485,27 @@ def _retry_face_extraction(photo: Photo, second_try: bool) -> None:
         logger.error("image %s: rescan face failed", photo)
 
 
+class NoFaceInRegionError(ValueError):
+    """The face model found no face in a face's box; the face was marked so."""
+
+
 def generate_face_encoding(face: api.models.face.Face) -> None:
     """Ask the face service for the encoding of ``face``'s region and save it.
 
     Moved out of ``Face`` so the model makes no sidecar calls (#2336). A
     face from a video's later frames is left as it is: its box is not in the
     big thumbnail, and the scan saved its encoding with it (#2761).
+
+    When the face model finds no face in the box, the face keeps no encoding
+    and records the model in ``unmatched_by``, so Generate Face Embeddings
+    does not ask that model again (#2888), and ``NoFaceInRegionError`` is raised.
     """
     if face.video_time is not None:
         logger.debug("face %s: from a video frame, not encoded again", face.id)
         return
     photo = face.photo
     assert photo is not None
+    face_model = face_model_name()
     encodings = get_face_encodings(
         photo.thumbnail.thumbnail_big.path,
         [
@@ -512,6 +522,11 @@ def generate_face_encoding(face: api.models.face.Face) -> None:
     if encodings[0] is None:
         # Another face's embedding would file this one under a stranger,
         # so the face keeps no encoding and stays out of clustering.
-        raise ValueError(f"The face service detected no face in face {face.id}")
+        face.unmatched_by = face_model
+        face.save(update_fields=["unmatched_by"])
+        raise NoFaceInRegionError(
+            f"The face service detected no face in face {face.id}"
+        )
     face.encoding = encodings[0].tobytes().hex()
+    face.unmatched_by = ""
     face.save()

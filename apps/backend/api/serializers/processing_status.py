@@ -41,6 +41,11 @@ class ProcessingStageSerializer(serializers.Serializer[StageStatus]):
         help_text="What the stage still has to do: photos, or faces for "
         "face_recognition. Photos in the trash or whose file is gone are not counted"
     )
+    unmatched = serializers.IntegerField(
+        help_text="face_recognition: faces the face model found no face in, kept "
+        "without recognition data and not counted in remaining until the model "
+        "changes or they are tried again. 0 for the other stages"
+    )
     running_job = ProcessingStageRunningJobSerializer(allow_null=True)
     last_run = ProcessingStageLastRunSerializer(allow_null=True)
 

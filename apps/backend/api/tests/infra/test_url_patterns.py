@@ -209,6 +209,9 @@ CLIENT_PATHS = {
     "/api/library/processing-status/run/": (
         "api.views.processing_status.RunProcessingStageView"
     ),
+    "/api/library/processing-status/retry-unmatched-faces/": (
+        "api.views.processing_status.RetryUnmatchedFacesView"
+    ),
     "/api/locationsunburst/": "api.views.dataviz.LocationSunburst",
     "/api/locationtimeline/": "api.views.dataviz.LocationTimeline",
     "/api/locclust/": "api.views.dataviz.LocationClustersView",

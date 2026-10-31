@@ -8,7 +8,11 @@ from rest_framework.views import APIView
 
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
-from api.jobs.processing_status import processing_status, start_stage
+from api.jobs.processing_status import (
+    processing_status,
+    retry_unmatched_faces,
+    start_stage,
+)
 from api.serializers.job import JobStartedResponseSerializer
 from api.serializers.processing_status import (
     ProcessingStatusSerializer,
@@ -20,8 +24,9 @@ class ProcessingStatusView(APIView):
     """What each processing stage that is turned on still has to do in the
     caller's library: photos without a big thumbnail, things, search
     embedding, place (with a position), face scan or text, faces without
-    recognition data, photos without a generated caption. Only the caller's
-    own photos and jobs, staff included.
+    recognition data (and apart from them the faces the face model found no
+    face in), photos without a generated caption. Only the caller's own
+    photos and jobs, staff included.
     """
 
     permission_classes = (IsAuthenticated,)
@@ -49,3 +54,20 @@ class RunProcessingStageView(APIView):
     def post(self, request: Request, format: str | None = None) -> Response:
         stage = parse_body(request, RunProcessingStageRequest)["stage"]
         return start_stage(request_user(request), stage)
+
+
+class RetryUnmatchedFacesView(APIView):
+    """Try again: ask the face model about the caller's unmatched faces (#2888).
+
+    Generate Face Embeddings leaves a face alone once the face model found no
+    face in its box. This clears that mark on the caller's own faces and
+    starts the face recognition data's job, as Run now does. 403
+    (``stage_off``) while face detection is off, 409 ``job_already_running``
+    with the running job's ``job_id``.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(request=None, responses=JobStartedResponseSerializer)
+    def post(self, request: Request, format: str | None = None) -> Response:
+        return retry_unmatched_faces(request_user(request))

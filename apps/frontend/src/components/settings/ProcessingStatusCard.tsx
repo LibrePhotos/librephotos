@@ -4,7 +4,11 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown as ChevronDown, IconCircleCheck as CircleCheck } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useProcessingStatusQuery, useRunProcessingStageMutation } from "../../api_client/jobs/hooks";
+import {
+  useProcessingStatusQuery,
+  useRetryUnmatchedFacesMutation,
+  useRunProcessingStageMutation,
+} from "../../api_client/jobs/hooks";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { useJobQueue } from "../../hooks/useJobQueue";
 import { formatCount } from "../../util/formatCount";
@@ -23,8 +27,15 @@ type ProcessingStatusCardProps = Readonly<{
   uploadOnly: boolean;
 }>;
 
+type AllDoneLineProps = Readonly<{
+  photoCount: number;
+  /** Faces the face model found no face in (#2888): said here too, Try again is in the details. */
+  unmatchedFaces: number;
+  onShow: () => void;
+}>;
+
 /** One green line when every stage is done; Show details opens the rows. */
-function AllDoneLine({ photoCount, onShow }: Readonly<{ photoCount: number; onShow: () => void }>) {
+function AllDoneLine({ photoCount, unmatchedFaces, onShow }: AllDoneLineProps) {
   const { t } = useTranslation();
   const locale = useFormatLocale();
   return (
@@ -38,6 +49,14 @@ function AllDoneLine({ photoCount, onShow }: Readonly<{ photoCount: number; onSh
           <Text size="xs" c="dimmed">
             {t("processingstatus.alldonedescription")}
           </Text>
+          {unmatchedFaces > 0 && (
+            <Text size="xs" c="dimmed">
+              {t("processingstatus.unmatched", {
+                count: unmatchedFaces,
+                formatted: formatCount(unmatchedFaces, locale),
+              })}
+            </Text>
+          )}
         </Stack>
       </Group>
       <Button variant="subtle" size="xs" rightSection={<ChevronDown size={14} />} onClick={onShow} ml="auto">
@@ -56,6 +75,7 @@ type StageListProps = Readonly<{
 /** The rows, each with its Run now; a click starts that stage's job. */
 function StageList({ stages, busyReason, uploadOnly }: StageListProps) {
   const run = useRunProcessingStageMutation();
+  const retry = useRetryUnmatchedFacesMutation();
   return (
     <ul className={classes.list}>
       {stages.map(stage => (
@@ -66,6 +86,8 @@ function StageList({ stages, busyReason, uploadOnly }: StageListProps) {
           starting={run.isPending && run.variables === stage.key}
           onRun={({ key }) => run.mutate(key)}
           showUploadNote={uploadOnly && stage.key === "face_detection" && stage.remaining > 0}
+          retrying={retry.isPending}
+          onRetry={() => retry.mutate()}
         />
       ))}
     </ul>
@@ -87,7 +109,8 @@ function StatusBody({ status, busyReason, uploadOnly }: StatusBodyProps) {
   const allDone = stages.every(isStageDone);
   const count = status.photo_count;
   if (allDone && !expanded) {
-    return <AllDoneLine photoCount={count} onShow={open} />;
+    const unmatchedFaces = stages.reduce((total, stage) => total + stage.unmatched, 0);
+    return <AllDoneLine photoCount={count} unmatchedFaces={unmatchedFaces} onShow={open} />;
   }
   return (
     <>

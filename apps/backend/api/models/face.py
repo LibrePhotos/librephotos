@@ -59,6 +59,34 @@ class FaceQuerySet(OwnedQuerySet["Face"]):
             .order_by("id")
         )
 
+    def _waiting_for_encoding(self) -> Self:
+        """Faces without an encoding that Generate Face Embeddings is for.
+
+        Not deleted, on a photo in the library (not in the trash, its file
+        not gone), and not from a video's later frames: the scan saves those
+        with their encoding, and their frame is gone to make one again
+        from (#2761).
+        """
+        return self.filter(
+            encoding="",
+            deleted=False,
+            video_time__isnull=True,
+            photo__in_trashcan=False,
+            photo__removed=False,
+        )
+
+    def needs_encoding(self, face_model: str) -> Self:
+        """The faces Generate Face Embeddings encodes with ``face_model``.
+
+        A face that model already found no face in (``unmatched_by``) is
+        left out until the model changes or the user tries again (#2888).
+        """
+        return self._waiting_for_encoding().exclude(unmatched_by=face_model)
+
+    def unmatched(self, face_model: str) -> Self:
+        """The faces ``face_model`` found no face in, kept without an encoding."""
+        return self._waiting_for_encoding().filter(unmatched_by=face_model)
+
 
 class Face(models.Model):
     photo = models.ForeignKey(
@@ -112,6 +140,14 @@ class Face(models.Model):
     location_left = models.IntegerField()
     location_right = models.IntegerField()
     encoding = models.TextField()
+
+    # The face model (``FACE_RECOGNITION_MODEL``) that found no face in this
+    # box (#2888): an imported region no detection overlaps, or a box drawn
+    # where the model sees none. The face keeps no encoding, so clustering
+    # never files it under a stranger, and Generate Face Embeddings skips
+    # it until the model changes. Cleared when the face gets an encoding or
+    # its box changes, and by Try again on the processing status.
+    unmatched_by = models.CharField(max_length=64, blank=True, default="")
 
     # The second of the video the face was found at (#2761); None for a
     # photo's faces and a video's faces on its first frame (the big thumbnail).

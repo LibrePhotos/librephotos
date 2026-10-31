@@ -1161,6 +1161,20 @@ export async function runProcessingStage(
   });
 }
 
+/**
+ * Try again (#2888): ask the face model again about the caller's faces it found no face in, then
+ * start the face recognition job as Run now does. A 403 while face detection is off; its job
+ * already running resolves as that job.
+ */
+export async function retryUnmatchedFaces(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(
+    client,
+    "/library/processing-status/retry-unmatched-faces/",
+    S.JobStartedResponse,
+    "retry unmatched faces"
+  );
+}
+
 /** The post-upgrade tasks this instance still has, and those done in the last day (admins only, #2322). */
 export async function fetchUpgradeTasks(client: ApiClient): Promise<S.UpgradeTaskList> {
   const res = await client.get<unknown>("/upgrade-tasks/");

@@ -8,7 +8,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { useProcessingStatusQuery, useRunProcessingStageMutation } from "./useProcessingStatus";
+import {
+  useProcessingStatusQuery,
+  useRetryUnmatchedFacesMutation,
+  useRunProcessingStageMutation,
+} from "./useProcessingStatus";
 
 const stubs = vi.hoisted(() => ({
   get: vi.fn<(endpoint: string) => Promise<unknown>>(),
@@ -22,7 +26,7 @@ const RUNNING = { job_id: "j1", progress_current: 1, progress_target: 4 };
 function status(running: boolean): ProcessingStatus {
   return {
     photo_count: 4,
-    stages: [{ key: "things", remaining: 3, running_job: running ? RUNNING : null, last_run: null }],
+    stages: [{ key: "things", remaining: 3, unmatched: 0, running_job: running ? RUNNING : null, last_run: null }],
   };
 }
 
@@ -30,10 +34,12 @@ let root: Root | undefined;
 let queryClient: QueryClient;
 let data: ProcessingStatus | undefined;
 let run: ((stage: "places") => Promise<unknown>) | undefined;
+let retry: (() => Promise<unknown>) | undefined;
 
 function Harness({ busy }: { busy: boolean }) {
   data = useProcessingStatusQuery(busy).data;
   run = useRunProcessingStageMutation().mutateAsync;
+  retry = useRetryUnmatchedFacesMutation().mutateAsync;
   return null;
 }
 
@@ -123,5 +129,20 @@ describe("useRunProcessingStageMutation", () => {
     expect(stubs.post).toHaveBeenCalledWith("/library/processing-status/run/", { stage: "places" });
     expect(stubs.get).toHaveBeenCalledTimes(2);
     expect(queryClient.getQueryState(jobKeys.processingStatus())?.isInvalidated).toBe(false);
+  });
+});
+
+describe("useRetryUnmatchedFacesMutation", () => {
+  it("tries the unmatched faces again and refreshes the status (#2888)", async () => {
+    await render(false);
+    stubs.post.mockResolvedValue({ status: true, job_id: "j3", job_ids: ["j3"] });
+
+    await act(async () => {
+      await retry?.();
+    });
+    await advance(0);
+
+    expect(stubs.post).toHaveBeenCalledWith("/library/processing-status/retry-unmatched-faces/", {});
+    expect(stubs.get).toHaveBeenCalledTimes(2);
   });
 });

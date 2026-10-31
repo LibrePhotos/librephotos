@@ -41,7 +41,14 @@ URL = "/api/library/processing-status/"
 RUN_URL = "/api/library/processing-status/run/"
 OCR = "ppocrv6_small"
 CAPTIONER = "lfm2_vl_450m"
-EVERYTHING_ON = {"OCR_MODEL": OCR, "CAPTIONING_MODEL": CAPTIONER}
+FACE_MODEL = "buffalo_sc"
+# Saved, as a real site has them (migration 0125 saves the face model): constance
+# writes a default on its first read, which drops the cached site switches.
+EVERYTHING_ON = {
+    "OCR_MODEL": OCR,
+    "CAPTIONING_MODEL": CAPTIONER,
+    "FACE_RECOGNITION_MODEL": FACE_MODEL,
+}
 
 
 def _done_photo(user, **kwargs):
@@ -150,9 +157,8 @@ class ProcessingStatusCountsTest(TestCase):
             "things": pj.photos_to_tag(user, False).filter(**shown),
             "search": photos_missing_clip_embeddings(user).filter(**shown),
             "face_detection": pj._faces_to_scan(user, False).filter(**shown),
-            "face_recognition": pj.faces_missing_encoding(user).filter(
-                photo__in_trashcan=False, photo__removed=False
-            ),
+            # The job leaves out what the status leaves out (#2888).
+            "face_recognition": pj.faces_missing_encoding(user),
             "text": pj.photos_needing_ocr(user, OCR).filter(**shown),
             "captions": pj.photos_to_caption(user, False).filter(**shown),
         }
@@ -162,6 +168,24 @@ class ProcessingStatusCountsTest(TestCase):
         for key, selection in selections.items():
             with self.subTest(key):
                 self.assertEqual(selection.count(), remaining[key])
+
+    def test_unmatched_faces_are_counted_apart_and_the_rest_can_reach_zero(self):
+        """#2888: what the face model found no face in is not left to do."""
+        # The face on done, and someone else's, which never counts.
+        Face.objects.filter(encoding="").update(unmatched_by=FACE_MODEL)
+        _face_without_encoding(self.fresh)
+
+        stages = _stages(self.status())
+        face = stages.pop("face_recognition")
+
+        self.assertEqual((1, 1), (face["remaining"], face["unmatched"]))
+        self.assertEqual({0}, {stage["unmatched"] for stage in stages.values()})
+
+        Face.objects.filter(photo=self.fresh).update(unmatched_by=FACE_MODEL)
+        face = _stages(self.status())["face_recognition"]
+
+        self.assertEqual((0, 2), (face["remaining"], face["unmatched"]))
+        self.assertEqual(2, pj.unmatched_faces(self.user).count())
 
     def test_stages_come_in_pipeline_order(self):
         self.assertEqual(
@@ -368,3 +392,77 @@ class RunProcessingStageTest(TestCase):
 
         self.assertEqual(400, response.status_code)
         self.assertEqual("stage", api_error(response)["field"])
+
+
+RETRY_URL = "/api/library/processing-status/retry-unmatched-faces/"
+
+
+@override_config(**EVERYTHING_ON)
+@patch("api.jobs.processing_status.missing_models_prerequisites", return_value=[])
+class RetryUnmatchedFacesTest(TestCase):
+    """Try again (#2888): ask the face model about the unmatched faces again."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.mine = self.unmatched_face(self.user)
+        self.theirs = self.unmatched_face(create_test_user())
+
+    @staticmethod
+    def unmatched_face(owner):
+        face = _face_without_encoding(create_test_photo(owner=owner))
+        Face.objects.filter(pk=face.pk).update(unmatched_by=FACE_MODEL)
+        return face
+
+    def retry(self):
+        with (
+            patch("api.jobs.queue.AsyncTask") as async_task,
+            patch("api.jobs.queue.Chain") as chain,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.post(RETRY_URL)
+        self.async_task = async_task
+        self.chain = chain
+        return response
+
+    def marks(self):
+        return {
+            face.pk: face.unmatched_by
+            for face in Face.objects.filter(pk__in=[self.mine.pk, self.theirs.pk])
+        }
+
+    def test_clears_only_the_callers_faces_and_starts_the_job(self, _):
+        response = self.retry()
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual({self.mine.pk: "", self.theirs.pk: FACE_MODEL}, self.marks())
+        self.assertEqual([self.mine], list(pj.faces_missing_encoding(self.user)))
+        appended = [
+            call.args[0] for call in self.chain.return_value.append.call_args_list
+        ]
+        self.assertEqual([pj.generate_face_embeddings, cluster_all_faces], appended)
+        job = J.objects.get(job_id=response.json()["job_id"])
+        self.assertEqual(self.user, job.started_by)
+
+    def test_another_user_cannot_clear_them(self, _):
+        self.client.force_authenticate(user=create_test_user())
+
+        self.assertEqual(200, self.retry().status_code)
+
+        self.assertEqual(
+            {self.mine.pk: FACE_MODEL, self.theirs.pk: FACE_MODEL}, self.marks()
+        )
+
+    @override_config(FACE_DETECTION_ENABLED=False)
+    def test_while_face_detection_is_off_it_is_a_403_and_clears_nothing(self, _):
+        response = self.retry()
+
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("stage_off", api_error(response)["code"])
+        self.assertEqual(FACE_MODEL, self.marks()[self.mine.pk])
+        self.assertFalse(J.objects.exists())
+
+    def test_anonymous_callers_are_refused(self, _):
+        self.assertEqual(401, APIClient().post(RETRY_URL).status_code)
+        self.assertEqual(FACE_MODEL, self.marks()[self.mine.pk])

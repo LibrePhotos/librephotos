@@ -21,6 +21,7 @@ type QueryStub = {
 
 const stubs = vi.hoisted(() => ({
   run: vi.fn<(stage: ProcessingStageKey) => void>(),
+  retry: vi.fn<() => void>(),
   refetch: vi.fn<() => Promise<unknown>>(),
   busy: false,
   query: { data: undefined, isError: false, isFetching: false } as Omit<QueryStub, "refetch">,
@@ -29,6 +30,7 @@ const stubs = vi.hoisted(() => ({
 vi.mock("../../api_client/jobs/hooks", () => ({
   useProcessingStatusQuery: (): QueryStub => ({ ...stubs.query, refetch: stubs.refetch }),
   useRunProcessingStageMutation: () => ({ mutate: stubs.run, isPending: false, variables: undefined }),
+  useRetryUnmatchedFacesMutation: () => ({ mutate: stubs.retry, isPending: false }),
 }));
 vi.mock("../../hooks/useJobQueue", () => ({ useJobQueue: () => ({ busy: stubs.busy, job: null }) }));
 vi.mock("@tanstack/react-router", () => ({
@@ -40,7 +42,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 function stage(key: string, overrides: Partial<ProcessingStage> = {}): ProcessingStage {
-  return { key, remaining: 0, running_job: null, last_run: null, ...overrides };
+  return { key, remaining: 0, unmatched: 0, running_job: null, last_run: null, ...overrides };
 }
 
 function status(stages: ProcessingStage[], photoCount = 48212): ProcessingStatus {
@@ -68,6 +70,7 @@ beforeAll(async () => {
 beforeEach(() => {
   document.body.innerHTML = "";
   stubs.run.mockReset();
+  stubs.retry.mockReset();
   stubs.refetch.mockReset();
   stubs.busy = false;
   stubs.query = { data: undefined, isError: false, isFetching: false };
@@ -153,6 +156,39 @@ describe("ProcessingStatusCard", () => {
     expect(stubs.run).not.toHaveBeenCalled();
   });
 
+  it("counts the faces the face model cannot match apart, so the row is done, and tries them again (#2888)", async () => {
+    const container = await renderCard(
+      status([stage("search", { remaining: 2 }), stage("face_recognition", { unmatched: 235 })])
+    );
+    const faces = row(container, "Face recognition data");
+
+    expect(faces.textContent).toContain("Done");
+    expect(faces.textContent).toContain("235 face regions have no face match (kept as person tags)");
+    const tryAgain = defined(faces.querySelector("button"));
+    expect(tryAgain.textContent).toBe("Try again");
+    expect(tryAgain.getAttribute("aria-label")).toBe("Try again: face regions with no face match");
+    await click(tryAgain);
+    expect(stubs.retry).toHaveBeenCalledTimes(1);
+    expect(stubs.run).not.toHaveBeenCalled();
+  });
+
+  it("says why Try again waits while a job runs, and hides it while the faces' job runs", async () => {
+    const reason = "A job is running. Start this one when it has finished.";
+    const faces = stage("face_recognition", { remaining: 4, unmatched: 1 });
+    stubs.query = { ...stubs.query, data: status([faces]) };
+    const { container } = await renderInMantine(<ProcessingStatusCard busyReason={reason} uploadOnly={false} />);
+    const tryAgain = defined(row(container, "Face recognition data").querySelector("button"));
+
+    expect(row(container, "Face recognition data").textContent).toContain("1 face region has no face match");
+    expectDisabledWithReason(tryAgain, reason);
+    await click(tryAgain);
+    expect(stubs.retry).not.toHaveBeenCalled();
+
+    const running = { job_id: "j1", progress_current: 0, progress_target: 3 };
+    const busy = await renderCard(status([{ ...faces, running_job: running }]));
+    expect(row(busy, "Face recognition data").textContent).not.toContain("no face match");
+  });
+
   it("collapses to one green line when every stage is done, and opens on Show details", async () => {
     const container = await renderCard(status([stage("thumbnails"), stage("search")]));
 
@@ -162,6 +198,14 @@ describe("ProcessingStatusCard", () => {
     await click(show);
     expect(container.querySelectorAll("li")).toHaveLength(2);
     expect(container.textContent).toContain("Hide details");
+  });
+
+  it("says on the green line how many face regions have no face match", async () => {
+    const container = await renderCard(status([stage("search"), stage("face_recognition", { unmatched: 3 })]));
+
+    expect(container.textContent).toContain("All 48,212 photos are processed");
+    expect(container.textContent).toContain("3 face regions have no face match (kept as person tags)");
+    expect(container.querySelector("li")).toBeNull();
   });
 
   it("explains older uploads on the face detection row of an upload-only library", async () => {

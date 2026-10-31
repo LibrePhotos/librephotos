@@ -36,6 +36,8 @@ The header says how many stages are done. **Run now** starts the job that does w
 
 When every stage is done, the card is a single line, "All N photos are processed"; **Show details** opens the rows again. A library without photos has no card.
 
+<Since version="1.5.1" /> A face region imported from your files where the face model finds no face (or a box you drew around something it does not see as a face) stays a person tag without recognition data, so it is never grouped with a stranger. **Face recognition data** does not count such regions as left to do: the row says "N face regions have no face match (kept as person tags)", also on the single line when everything else is done. LibrePhotos does not ask the face model about them again until an admin picks another **Face Recognition Model** in the site settings or you press **Try again** next to that line, which asks once more and then runs the stage. Up to 1.5.0 they counted as left to do forever, every run asked again, and with enough of them the job showed as failed.
+
 If your photos only come from uploads (you have no scan directory), photos uploaded before LibrePhotos 1.4.0 that have no faces count as not checked for faces until a face scan has looked at them once: press **Run now** on **Face detection**. The row says so.
 
 For scripts: the card reads `GET /api/library/processing-status/`, and **Run now** is `POST /api/library/processing-status/run/` with the stage's key, for example `{"stage": "places"}` (keys: `thumbnails`, `things`, `search`, `places`, `face_detection`, `face_recognition`, `text`, `captions`). A stage that is off is a 403; its job already running is a 409 that names the job.

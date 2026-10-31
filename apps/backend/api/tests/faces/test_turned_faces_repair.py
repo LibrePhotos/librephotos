@@ -89,6 +89,16 @@ class TurnedFaceRepairTest(TurnedJpegTestCase):
         self.assertFalse(os.path.exists(old_crop))
         self.assertEqual((result.photos, result.repaired, result.skipped), (1, 1, 0))
 
+    def test_the_moved_face_is_no_longer_marked_unmatched(self):
+        """#2888: the face model found no face in the box a quarter turn off."""
+        Face.objects.filter(pk=self.alice.pk).update(unmatched_by="buffalo_sc")
+
+        self.repair()
+
+        self.alice.refresh_from_db()
+        self.assertEqual(self.alice.unmatched_by, "")
+        self.assertNotEqual(self.alice.encoding, "")
+
     def test_a_second_run_changes_nothing(self):
         self.repair()
         (before,) = self.faces()

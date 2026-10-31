@@ -367,13 +367,20 @@ class LongRunningJob(models.Model):
     def complete(self, result: dict[str, Any] | None = None) -> bool:
         """Mark job as successfully completed, unless it was cancelled.
 
-        Returns False when the job had been cancelled; the row is left as is.
+        ``result`` is written only when given. Without it the row keeps the
+        result its workers recorded (``update_scan_counter``,
+        ``update_batch_counter``), which this instance has not seen: writing
+        its stale copy dropped the run's errors (#2888). ``failed`` is left
+        as the workers set it (#2867). Returns False when the job had been
+        cancelled; the row is left as is.
         """
         self.finished = True
         self.finished_at = timezone.now()
+        fields = ["finished", "finished_at"]
         if result is not None:
             self.result = result
-        return self._write_unless_cancelled(["finished", "finished_at", "result"])
+            fields.append("result")
+        return self._write_unless_cancelled(fields)
 
     def fail(
         self,

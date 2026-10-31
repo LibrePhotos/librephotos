@@ -103,6 +103,42 @@ function LastRunFailures({ stage }: StageProps) {
   return run.failed ? <JobListLink color="red">{t("processingstatus.lastrunfailed")}</JobListLink> : null;
 }
 
+type UnmatchedFacesProps = Readonly<{
+  stage: KnownStage;
+  /** Why Try again cannot be used (a job runs); null when it can. */
+  busyReason: string | null;
+  retrying: boolean;
+  onRetry: () => void;
+}>;
+
+/**
+ * The faces the face model found no face in (#2888): kept as person tags and not left to do, so the
+ * count can reach Done. Try again asks the model about them once more.
+ */
+function UnmatchedFaces({ stage, busyReason, retrying, onRetry }: UnmatchedFacesProps) {
+  const { t } = useTranslation();
+  const locale = useFormatLocale();
+  if (stage.unmatched === 0 || stage.running_job !== null) return null;
+  return (
+    <Group gap={4} wrap="nowrap">
+      <Text size="xs" c="dimmed">
+        {t("processingstatus.unmatched", { count: stage.unmatched, formatted: formatCount(stage.unmatched, locale) })}
+      </Text>
+      <DisabledReason reason={busyReason}>
+        <Button
+          size="compact-xs"
+          variant="subtle"
+          loading={retrying}
+          onClick={onRetry}
+          aria-label={t("processingstatus.tryagainlabel")}
+        >
+          {t("processingstatus.tryagain")}
+        </Button>
+      </DisabledReason>
+    </Group>
+  );
+}
+
 type RowActionProps = Readonly<{
   stage: KnownStage;
   /** Why Run now cannot be used (a job runs); null when it can. */
@@ -137,13 +173,17 @@ type ProcessingStageRowProps = RowActionProps &
   Readonly<{
     /** Say that older uploads without faces count as not checked (#2741): upload-only libraries. */
     showUploadNote: boolean;
+    /** Try again on the faces the face model found no face in (#2888) is starting. */
+    retrying: boolean;
+    onRetry: () => void;
   }>;
 
 /**
  * One stage of the Processing status card (#2741): its name and meaning, what is left (or its
- * job's progress while it runs), the failures of its last run, and Run now.
+ * job's progress while it runs), the faces the face model cannot match (#2888), the failures of its
+ * last run, and Run now.
  */
-export function ProcessingStageRow({ showUploadNote, ...action }: ProcessingStageRowProps) {
+export function ProcessingStageRow({ showUploadNote, retrying, onRetry, ...action }: ProcessingStageRowProps) {
   const { t } = useTranslation();
   const { stage } = action;
   const StageIcon = STAGE_ICONS[stage.key];
@@ -166,6 +206,7 @@ export function ProcessingStageRow({ showUploadNote, ...action }: ProcessingStag
         ) : (
           <RunningProgress stage={stage} job={stage.running_job} />
         )}
+        <UnmatchedFaces stage={stage} busyReason={action.busyReason} retrying={retrying} onRetry={onRetry} />
         <LastRunFailures stage={stage} />
       </Box>
       <Box className={classes.action}>
