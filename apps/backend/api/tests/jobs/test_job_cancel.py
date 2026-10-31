@@ -261,6 +261,27 @@ class JobRowWritesTest(TestCase):
         self.assertTrue(other.failed)
         self.assertEqual(other.result, {"status": "failed", "error": "boom"})
 
+    def test_complete_without_a_result_keeps_what_the_workers_recorded(self):
+        """#2888: a bare complete() left the run's errors out of the job row.
+
+        ``update_scan_counter`` writes the errors to the row, not to the
+        instance the job holds; completing that stale instance wrote its
+        ``result`` (None) over them.
+        """
+        stale = LongRunningJob.objects.get(pk=self.job.pk)
+        recorded = {"status": "partial_failure", "error_count": 1, "errors": ["x"]}
+        LongRunningJob.objects.filter(pk=self.job.pk).update(
+            result=recorded, failed=True
+        )
+
+        self.assertTrue(stale.complete())
+
+        job = LongRunningJob.objects.get(pk=self.job.pk)
+        self.assertTrue(job.finished)
+        self.assertEqual(job.result, recorded)
+        # complete() does not clear a failure the workers recorded (#2867).
+        self.assertTrue(job.failed)
+
     def test_admin_shows_jobs_read_only(self):
         request = RequestFactory().get("/admin/")
         request.user = create_test_user(is_admin=True)

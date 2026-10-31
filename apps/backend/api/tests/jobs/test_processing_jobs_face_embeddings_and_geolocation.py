@@ -113,10 +113,10 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         self.assertTrue(job.finished)
         # One error out of two stays below the sticky-failure floor (10).
         self.assertFalse(job.failed)
-        # QUIRK: the trailing ``lrj.complete()`` writes the *stale* in-memory
-        # ``result`` back over whatever update_scan_counter() accumulated, so
-        # the per-face error text is lost from the job row.
-        self.assertIsNone(job.result)
+        # The trailing ``lrj.complete()`` keeps what update_scan_counter()
+        # recorded (#2888): it used to write the stale in-memory None over it.
+        self.assertEqual(job.result["error_count"], 1)
+        self.assertIn("no encoding", job.result["errors"][0])
 
     def test_all_faces_failing_still_completes_the_job(self):
         _face_without_encoding(self.user)
@@ -130,7 +130,8 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         job = _job(self.job_id)
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
-        self.assertIsNone(job.result)
+        self.assertEqual(job.result["error_count"], 1)
+        self.assertIn("service down", job.result["error"])
 
     # ---- cancellation / fatal error ----------------------------------
 
