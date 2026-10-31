@@ -3769,6 +3769,7 @@
     "progress": "{{done}} of {{total}} · {{percent}}",
     "waiting": "Waiting for the running job to finish",
     "notstarted": "Not started yet",
+    "lastrunleft": "The last run left this unfinished",
     "failed": "Stopped: {{error}}",
     "failednoreason": "The last run did not finish.",
     "done": "Done {{when}}",

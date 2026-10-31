@@ -120,6 +120,35 @@ describe("FinishUpgradeCard", () => {
     expect([...row.querySelectorAll("button")].map(b => b.textContent)).toEqual(["Retry"]);
   });
 
+  it("says a required task that never ran is not started yet", async () => {
+    const container = await renderCard([task()]);
+    const row = defined(rows(container)[0]);
+
+    expect(row.textContent).toContain("Not started yet");
+    expect(row.textContent).not.toContain("The last run left this unfinished");
+    expect(row.querySelector("a")).toBeNull();
+  });
+
+  it("says what the last run left, with a link to its job, when work remains after a run (#2867)", async () => {
+    // A 38-minute conversion finished, yet its check still found photos: the card said "Not started yet".
+    const container = await renderCard([task({ key: "semantic_search_conversion", latest_job_id: 44 })]);
+    const row = defined(rows(container)[0]);
+
+    expect(row.textContent).toContain("The last run left this unfinished");
+    expect(row.textContent).not.toContain("Not started yet");
+    expect(row.querySelector("a")?.getAttribute("href")).toBe("/admin/job/44");
+    expect(row.querySelector("a")?.textContent).toBe("View job");
+    expect(button(row, "Start")).toBeDefined();
+  });
+
+  it("says what the last run of an optional task left, too", async () => {
+    const container = await renderCard([{ ...PROBE, latest_job_id: 45 }]);
+    const row = defined(rows(container)[0]);
+
+    expect(row.textContent).toContain("The last run left this unfinished");
+    expect(row.querySelector("a")?.getAttribute("href")).toBe("/admin/job/45");
+  });
+
   it("starts an optional task, or hides it with Not now", async () => {
     const container = await renderCard([PROBE]);
     const row = defined(rows(container)[0]);

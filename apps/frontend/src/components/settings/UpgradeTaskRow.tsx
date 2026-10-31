@@ -94,7 +94,10 @@ function RunningLine({ task }: Readonly<{ task: UpgradeTask }>) {
   );
 }
 
-/** Under the sentence: how far it got, why it stopped, when it finished, or why it cannot start. */
+/**
+ * Under the sentence: how far it got, why it stopped, what the last run left, when it finished, or
+ * why it cannot start.
+ */
 function StatusLine({ task, busyReason }: Readonly<{ task: UpgradeTask; busyReason: string | null }>) {
   const { t } = useTranslation();
   switch (task.status) {
@@ -121,6 +124,17 @@ function StatusLine({ task, busyReason }: Readonly<{ task: UpgradeTask; busyReas
           <Text size="xs" c="orange">
             {busyReason}
           </Text>
+        );
+      }
+      if (task.latest_job_id !== null) {
+        // A run since the task appeared has ended, and the task's check still finds work (#2867).
+        return (
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">
+              {t("upgradetasks.lastrunleft")}
+            </Text>
+            <JobLink id={task.latest_job_id} />
+          </Group>
         );
       }
       return task.optional ? null : (
