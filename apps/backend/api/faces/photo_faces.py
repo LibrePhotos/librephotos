@@ -127,10 +127,12 @@ def _detect_and_save_faces(
 
     Both, always (#2260): a desktop photo manager stores regions only for
     the faces someone tagged there. Regions go first, since they carry the
-    names, and are saved before the face service is asked, so a service
-    error (re-raised, the photo is scanned again) does not lose them. A
-    detection overlapping a saved face is that face: it is not saved again,
-    and gives the face its encoding if it has none.
+    names. They are read with the detections, which can confirm a region
+    whose picture was turned since it was written (#2887); when the face
+    service fails they are saved as written before the error is re-raised
+    (the photo is scanned again), so they are not lost. A detection
+    overlapping a saved face is that face: it is not saved again, and gives
+    the face its encoding if it has none.
     """
     thumbnail_path = photo.thumbnail.thumbnail_big.path
     scan = _FaceScan(
@@ -145,19 +147,32 @@ def _detect_and_save_faces(
         ),
     )
 
-    assert photo.main_file is not None
-    regions = extractor.extract_from_exif(
-        photo.main_file.path,
-        thumbnail_path,
-        sidecar_files_for_photo(photo),
-        local_orientation=photo.local_orientation,
-    )
-    _save_new_faces(scan, regions or [])
-    detected = extractor.extract_from_face_service(thumbnail_path)
+    try:
+        detected = extractor.extract_from_face_service(thumbnail_path)
+    except Exception:
+        _save_new_faces(scan, _face_regions(photo, thumbnail_path, None) or [])
+        raise
+    _save_new_faces(scan, _face_regions(photo, thumbnail_path, detected) or [])
     _save_new_faces(scan, big_enough_faces(scan, detected))
     if photo.video and feature_enabled("FACE_DETECTION_IN_VIDEOS"):
         _save_frame_faces(scan)
     logger.info("image %s: %s face(s) saved", photo.image_hash, scan.saved)
+
+
+def _face_regions(
+    photo: Photo,
+    thumbnail_path: str,
+    detected: list[extractor.FaceLocation] | None,
+) -> list[extractor.FaceLocation] | None:
+    """The photo's face regions from XMP, checked against ``detected``."""
+    assert photo.main_file is not None
+    return extractor.extract_from_exif(
+        photo.main_file.path,
+        thumbnail_path,
+        sidecar_files_for_photo(photo),
+        local_orientation=photo.local_orientation,
+        detected_faces=detected,
+    )
 
 
 def _first_frame_faces(photo: Photo) -> QuerySet[api.models.face.Face]:

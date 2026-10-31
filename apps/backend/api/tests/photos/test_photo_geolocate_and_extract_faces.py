@@ -391,6 +391,8 @@ class ExtractFacesCharacterizationTest(TestCase):
             self.photo.thumbnail.thumbnail_big.path,
             sidecar_files_for_photo(self.photo),
             local_orientation=self.photo.local_orientation,
+            # The detections, which can confirm a region turned since (#2887).
+            detected_faces=[],
         )
         extractor.extract_from_face_service.assert_called_once_with(
             self.photo.thumbnail.thumbnail_big.path
