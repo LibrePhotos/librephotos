@@ -119,13 +119,18 @@ def _post_to_face_service(path: str, payload: dict[str, object]) -> dict[str, An
         ) from exc
 
 
+def face_model_name() -> str:
+    """The face model the face service detects and encodes with (a site setting)."""
+    return str(site_config.FACE_RECOGNITION_MODEL)
+
+
 def get_face_encodings(
     image_path: str, known_face_locations: list[tuple[int, int, int, int]]
 ) -> list[npt.NDArray[float64] | None]:
-    payload = {
+    payload: dict[str, object] = {
         "source": image_path,
         "face_locations": known_face_locations,
-        "model_name": site_config.FACE_RECOGNITION_MODEL,
+        "model_name": face_model_name(),
     }
     face_encoding = _post_to_face_service("/face-encodings", payload)
 
@@ -144,9 +149,9 @@ def detect_faces(
     The sidecar computes the encodings while detecting; a sidecar from before
     it sent them leaves them to ``api.faces.photo_faces.generate_face_encoding``.
     """
-    payload = {
+    payload: dict[str, object] = {
         "source": image_path,
-        "model_name": site_config.FACE_RECOGNITION_MODEL,
+        "model_name": face_model_name(),
     }
     response = _post_to_face_service("/face-locations", payload)
     locations = response["face_locations"]

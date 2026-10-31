@@ -32,7 +32,8 @@ def rescale_face_boxes(photo: Photo, before: Size | None, after: Size | None) ->
     """Scale ``photo``'s face boxes from a big thumbnail of ``before`` to one of ``after``.
 
     Returns how many faces were changed: none when either size is unknown, the
-    size did not change, or the shape did.
+    size did not change, or the shape did. A changed face is no longer marked
+    as one the face model found no face in (``Face.unmatched_by``).
     """
     if before is None or after is None or before == after:
         return 0
@@ -43,5 +44,7 @@ def rescale_face_boxes(photo: Photo, before: Size | None, after: Size | None) ->
     for face in faces:
         for field in FACE_BOX_FIELDS:
             setattr(face, field, round(getattr(face, field) * scale))
-    Face.objects.bulk_update(faces, FACE_BOX_FIELDS)
+        # A new box in a new thumbnail: the face model may find a face in it.
+        face.unmatched_by = ""
+    Face.objects.bulk_update(faces, [*FACE_BOX_FIELDS, "unmatched_by"])
     return len(faces)

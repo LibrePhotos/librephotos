@@ -19,7 +19,7 @@ from unittest.mock import MagicMock, patch
 import requests
 from django.test import SimpleTestCase
 
-from api.faces.photo_faces import generate_face_encoding
+from api.faces.photo_faces import NoFaceInRegionError, generate_face_encoding
 from api.faces.recognition import (
     _post_to_face_service,
     detect_faces,
@@ -150,17 +150,22 @@ class GetFaceEncodingsTest(SimpleTestCase):
 
 
 class GenerateEncodingTest(SimpleTestCase):
-    """generate_face_encoding stores nothing for a region with no face in it."""
+    """generate_face_encoding stores no encoding for a region with no face in it."""
 
-    def test_an_unmatched_region_raises_and_saves_nothing(self):
+    def test_an_unmatched_region_raises_and_records_only_the_face_model(self):
         face = MagicMock(id=7, encoding="", video_time=None)
 
-        with patch("api.faces.photo_faces.get_face_encodings", return_value=[None]):
-            with self.assertRaisesRegex(ValueError, "no face"):
+        with (
+            patch("api.faces.photo_faces.get_face_encodings", return_value=[None]),
+            patch("api.faces.photo_faces.face_model_name", return_value="buffalo_sc"),
+        ):
+            with self.assertRaisesRegex(NoFaceInRegionError, "no face"):
                 generate_face_encoding(face)
 
         self.assertEqual(face.encoding, "")
-        face.save.assert_not_called()
+        # #2888: the face remembers the model, so the next runs skip it.
+        self.assertEqual(face.unmatched_by, "buffalo_sc")
+        face.save.assert_called_once_with(update_fields=["unmatched_by"])
 
 
 def _ok_response(json_body=None):

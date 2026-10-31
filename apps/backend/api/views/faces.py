@@ -684,10 +684,13 @@ def _encode_drawn_face(face: Face) -> None:
     Without an encoding the face is still a valid label -- it just cannot be
     compared to anything yet. "Train faces" encodes faces that have none, so
     a face service that is down or disabled delays recognition rather than
-    losing the user's work.
+    losing the user's work. A box the face model sees no face in is marked
+    as such (``Face.unmatched_by``) and not asked about again (#2888).
     """
     try:
         photo_faces.generate_face_encoding(face)
+    except photo_faces.NoFaceInRegionError:
+        logger.info("Manually added face %s: the face model sees no face", face.id)
     except Exception:
         logger.exception(
             "Could not encode manually added face %s; "

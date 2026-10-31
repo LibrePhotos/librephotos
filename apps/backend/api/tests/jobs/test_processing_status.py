@@ -41,7 +41,14 @@ URL = "/api/library/processing-status/"
 RUN_URL = "/api/library/processing-status/run/"
 OCR = "ppocrv6_small"
 CAPTIONER = "lfm2_vl_450m"
-EVERYTHING_ON = {"OCR_MODEL": OCR, "CAPTIONING_MODEL": CAPTIONER}
+FACE_MODEL = "buffalo_sc"
+# Saved, as a real site has them (migration 0125 saves the face model): constance
+# writes a default on its first read, which drops the cached site switches.
+EVERYTHING_ON = {
+    "OCR_MODEL": OCR,
+    "CAPTIONING_MODEL": CAPTIONER,
+    "FACE_RECOGNITION_MODEL": FACE_MODEL,
+}
 
 
 def _done_photo(user, **kwargs):
