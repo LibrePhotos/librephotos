@@ -157,7 +157,8 @@ class UpgradeTaskSerializer(serializers.Serializer[TaskOverview]):
     status = serializers.ChoiceField(
         choices=["pending", "running", "failed", "done"],
         help_text="done: finished in the last day; failed: the last run failed "
-        "or was cancelled",
+        "or was cancelled; pending: work is left, and with a latest_job_id a run "
+        "ended without doing all of it",
     )
     count = serializers.IntegerField(
         allow_null=True, help_text="How many items the task works on, when it says"
