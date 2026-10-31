@@ -16,6 +16,16 @@ CPU
     Always. When WebGPU finds no GPU, or a session cannot start on it, the
     process says so once in the log and stays on the CPU.
 
+ONNX Runtime offers the WebGPU device for any GPU it sees in sysfs, and a
+container sees the host's GPUs there even when it cannot use them. Vulkan
+then has only Mesa's software driver left (lavapipe, which the image ships
+with the Intel and AMD drivers), and WebGPU ran every model on it with no
+error: on the CPU, about 20 times slower than the CPU provider (#2445). So
+api.runtime.supervisor starts the sidecars with the Vulkan loader skipping
+lavapipe (``VK_LOADER_DRIVERS_DISABLE``); without a GPU driver the session
+fails and the process falls back to the CPU provider. The log names the GPU
+once the first session started on it, not when the device is found.
+
 ``ONNX_PROVIDERS``
     Comma-separated execution providers in order of preference, e.g.
     ``CPUExecutionProvider`` to keep a GPU off, or
@@ -61,6 +71,8 @@ DEFAULT_PROVIDERS = (CUDA, WEBGPU, CPU)
 GPU_PROVIDERS = frozenset({CUDA, WEBGPU})
 # The name the plugin library is registered under; any name works.
 WEBGPU_PLUGIN = "webgpu"
+# On Linux ONNX Runtime reports PCI ids but no GPU name.
+PCI_VENDORS = {0x10DE: "NVIDIA", 0x1002: "AMD", 0x8086: "Intel", 0x1414: "Microsoft"}
 # The errors ONNX Runtime raises (Fail, EPFail, NoSuchFile, ...): they share no
 # base class but Exception.
 ORT_ERRORS: tuple[type[Exception], ...] = tuple(
@@ -73,7 +85,8 @@ ORT_ERRORS: tuple[type[Exception], ...] = tuple(
 PLUGIN_LOAD_ERRORS: tuple[type[Exception], ...] = (*ORT_ERRORS, RuntimeError, OSError)
 NO_GPU_HINT = (
     "Docker: pass /dev/dri to the container for Intel and AMD GPUs, or set "
-    "NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics for NVIDIA. "
+    "NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics for NVIDIA, which "
+    "mounts the host's Vulkan driver (nvidia_icd.json) if the host has one. "
     "ONNX_PROVIDERS=CPUExecutionProvider skips the GPU check."
 )
 
@@ -88,6 +101,7 @@ class _WebGpuState:
         self.probed = False
         self.device: ort.OrtEpDevice | None = None
         self.failed = False
+        self.announced = False
 
 
 _webgpu = _WebGpuState()
@@ -132,11 +146,21 @@ def _find_webgpu_device() -> ort.OrtEpDevice | None:
     if device is None:
         log.info("No GPU found for WebGPU, ML models run on the CPU. %s", NO_GPU_HINT)
         return None
-    log.info(
-        "ML models run on the GPU through WebGPU: %s",
-        device.device.metadata.get("Description") or device.device.vendor,
-    )
+    # Not "runs on the GPU" yet: a container sees the host's GPUs here even
+    # without their driver. inference_session says it once a session started.
     return device
+
+
+def gpu_name(device: ort.OrtEpDevice) -> str:
+    """The GPU's name, or on Linux (no name there) its vendor, PCI ids and slot."""
+    hardware = device.device
+    name = hardware.metadata.get("Description") or hardware.vendor
+    if name:
+        return name
+    vendor = PCI_VENDORS.get(hardware.vendor_id, "GPU")
+    ids = f"{hardware.vendor_id:04x}:{hardware.device_id:04x}"
+    slot = hardware.metadata.get("pci_bus_id")
+    return f"{vendor} {ids} at {slot}" if slot else f"{vendor} {ids}"
 
 
 def webgpu_device() -> ort.OrtEpDevice | None:
@@ -249,6 +273,10 @@ def inference_session(path: str, variable_shapes: bool = False) -> ort.Inference
         return _session_by_name(path, variable_shapes, providers)
     session, reason = _webgpu_session(path, variable_shapes, device)
     if session is not None:
+        with _webgpu.lock:
+            announce, _webgpu.announced = not _webgpu.announced, True
+        if announce:
+            log.info("ML models run on the GPU through WebGPU: %s", gpu_name(device))
         return session
     fallback = _session_by_name(path, variable_shapes, providers)
     with _webgpu.lock:
