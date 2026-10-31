@@ -11,8 +11,8 @@
   "//react": "react/react-dom are pinned here to the SAME versions apps/mobile uses. Without the pin, npm resolves expo-router's optional react-dom peer to the newest 19.x, which peer-requires a newer react than the app's and conflicts -- npm then refuses to hoist. 19.2.3 is not arbitrary: it is the React version Expo SDK 57 / react-native 0.86 ships with, and jest-expo@57 pins react-test-renderer@19.2.3 while jest-expo hard-fails if react-test-renderer does not match react exactly. Keep all of these in lockstep with apps/mobile/package.json.",
   "//zod": "zod is pinned here, to the SAME range as apps/mobile and packages/api-client, so one zod 4 copy hoists to the root. @expo/cli still depends on zod 3; without the pin npm hoists that copy and nests a zod 4 under apps/mobile and under packages/api-client, so the app and the shared schemas it imports would each get their own zod. scripts/check-shared-deps.mjs checks the versions.",
   "dependencies": {
-    "expo": "~57.0.24",
-    "expo-router": "~57.0.22",
+    "expo": "~58.0.0",
+    "expo-router": "~58.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "zod": "^4.6.6"
