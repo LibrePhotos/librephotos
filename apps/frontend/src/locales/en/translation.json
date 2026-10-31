@@ -652,7 +652,8 @@
       "make_video_posters": "Make Video Posters",
       "check_file_contents": "Check File Contents",
       "trash_photos_outside_library": "Trash Photos Outside the Library",
-      "rename_photos": "Rename Photos"
+      "rename_photos": "Rename Photos",
+      "repair_turned_faces": "Repair Turned Faces"
     },
     "queuebusy": {
       "reason": "A job is running. Start this one when it has finished.",
@@ -3805,6 +3806,10 @@
     "make_video_posters": {
       "title": "Make still pictures of older videos",
       "description": "The photo grid shows a still picture of each video and plays it only when you point at it. Videos added before this update get theirs now. Your videos are not changed."
+    },
+    "repair_turned_faces": {
+      "title": "Move faces tagged on a turned picture",
+      "description": "Faces read from a photo whose picture was turned after they were tagged may sit a quarter turn away from the face, next to an unnamed copy of it. This moves each one onto the face, when only one fits. Your photos are not changed."
     }
   },
   "movephotos": {
