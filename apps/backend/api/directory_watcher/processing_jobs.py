@@ -80,6 +80,15 @@ def faces_missing_encoding(user: User) -> QuerySet[Face]:
     return Face.objects.owned_by(user).needs_encoding(face_model_name())
 
 
+def unmatched_faces(user: User) -> QuerySet[Face]:
+    """The faces of ``user`` the current face model found no face in (#2888).
+
+    Generate Face Embeddings leaves them out; Try again on the processing
+    status clears their mark (``Face.unmatched_by``).
+    """
+    return Face.objects.owned_by(user).unmatched(face_model_name())
+
+
 def generate_face_embeddings(
     user: User,
     job_id: UUID | str | None = None,

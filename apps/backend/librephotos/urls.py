@@ -675,6 +675,10 @@ urlpatterns = [
         "api/library/processing-status/run/",
         processing_status.RunProcessingStageView.as_view(),
     ),
+    path(
+        "api/library/processing-status/retry-unmatched-faces/",
+        processing_status.RetryUnmatchedFacesView.as_view(),
+    ),
     path("api/deduplicate-faces/", scan_triggers.DeduplicateFacesView.as_view()),
     path("api/check-file-contents/", scan_triggers.CheckFileContentsView.as_view()),
     path("api/updates/", updates.UpdateStatusView.as_view()),

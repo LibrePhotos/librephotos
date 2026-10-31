@@ -5387,7 +5387,7 @@
     "/api/library/processing-status/": {
       "get": {
         "operationId": "api_library_processing_status_retrieve",
-        "description": "What each processing stage that is turned on still has to do in the\ncaller's library: photos without a big thumbnail, things, search\nembedding, place (with a position), face scan or text, faces without\nrecognition data, photos without a generated caption. Only the caller's\nown photos and jobs, staff included.",
+        "description": "What each processing stage that is turned on still has to do in the\ncaller's library: photos without a big thumbnail, things, search\nembedding, place (with a position), face scan or text, faces without\nrecognition data (and apart from them the faces the face model found no\nface in), photos without a generated caption. Only the caller's own\nphotos and jobs, staff included.",
         "tags": [
           "api"
         ],
@@ -5405,6 +5405,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProcessingStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/library/processing-status/retry-unmatched-faces/": {
+      "post": {
+        "operationId": "api_library_processing_status_retry_unmatched_faces_create",
+        "description": "Try again: ask the face model about the caller's unmatched faces (#2888).\n\nGenerate Face Embeddings leaves a face alone once the face model found no\nface in its box. This clears that mark on the caller's own faces and\nstarts the face recognition data's job, as Run now does. 403\n(``stage_off``) while face detection is off, 409 ``job_already_running``\nwith the running job's ``job_id``.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStartedResponse"
                 }
               }
             },
@@ -24956,6 +24985,10 @@
             "type": "integer",
             "description": "What the stage still has to do: photos, or faces for face_recognition. Photos in the trash or whose file is gone are not counted"
           },
+          "unmatched": {
+            "type": "integer",
+            "description": "face_recognition: faces the face model found no face in, kept without recognition data and not counted in remaining until the model changes or they are tried again. 0 for the other stages"
+          },
           "running_job": {
             "allOf": [
               {
@@ -24977,7 +25010,8 @@
           "key",
           "last_run",
           "remaining",
-          "running_job"
+          "running_job",
+          "unmatched"
         ]
       },
       "ProcessingStageEnum": {
