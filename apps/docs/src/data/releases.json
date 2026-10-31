@@ -1,6 +1,35 @@
 {
-  "latest": "1.5.0",
+  "latest": "1.5.1",
   "releases": [
+    {
+      "release": "1.5.1",
+      "versions": [
+        "1.5.1"
+      ],
+      "date": "2026-10-31T16:00:00.000Z",
+      "title": "1.5.1: Faces in the right place, an upgrade step that finishes on SQLite",
+      "permalink": "/blog/1-5-1",
+      "summary": "Fixes a step of the 1.4.0 upgrade that kept failing on SQLite, puts faces from turned photos on the face, and stops asking about the same faces on every run.",
+      "highlights": [],
+      "after_update": [
+        {
+          "id": "retry-shutter-speeds",
+          "audience": "admin",
+          "title": "Retry Read shutter speeds again",
+          "body": "If this step had stopped on the Finish the upgrade card, click Retry next to it. It now finishes on SQLite too.",
+          "learn_more": "/docs/installation/upgrading#refresh-exposure-time",
+          "open_in_app": "/admin"
+        },
+        {
+          "id": "move-turned-faces",
+          "audience": "admin",
+          "title": "Optional: move faces tagged on a turned picture",
+          "body": "If the Finish the upgrade card lists it, Start moves faces that sit a quarter turn away from the face onto it.",
+          "learn_more": "/docs/user-guide/job-system#repair-turned-faces",
+          "open_in_app": "/admin"
+        }
+      ]
+    },
     {
       "release": "1.5.0",
       "versions": [
