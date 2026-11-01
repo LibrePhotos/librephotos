@@ -18,4 +18,4 @@ The app is currently in [open beta on the Google Play Store](https://play.google
 
 *Not released yet: LibrePhotos Mobile is not on the Google Play Store, the App Store, F-Droid, or TestFlight yet. You can try it by running it from the source code.* See the [LibrePhotos Mobile guide](./librephotos-mobile.md) for how to try it, first login, offline mode, backup, and sync.
 
-It is meant to replace the original React Native app. That app's `.apk` builds on the [releases page](https://github.com/LibrePhotos/librephotos/releases?q=mobile%2F) are no longer updated.
+It is meant to replace the original React Native app. That app's `.apk` builds on the [releases page](https://github.com/LibrePhotos/librephotos-mobile/releases) are no longer updated.

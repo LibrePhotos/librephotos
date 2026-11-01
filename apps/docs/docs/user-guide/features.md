@@ -16,7 +16,7 @@ sidebar_position: 26
         <th><a href="https://github.com/LibrePhotos/LibrePhotos">LibrePhotos</a></th>
         <th><a href="https://github.com/Photoview/Photoview">Photoview</a></th>
         <th><a href="https://github.com/Photoprism/Photoprism">PhotoPrism</a></th>
-        <th><a href="https://github.com/alextran1502/immich">Immich</a></th>
+        <th><a href="https://github.com/immich-app/immich">Immich</a></th>
         <th><a href="https://github.com/photonixapp/photonix">Photonix</a></th>
         <th><a href="https://github.com/Webreaper/Damselfly">Damselfly</a></th>
         <th><a href="https://www.synology.com/en-us/dsm/feature/photos">Synology Photos</a></th>
@@ -169,7 +169,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>Partial</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>
@@ -217,10 +217,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Search photos on map</td>
-        <p hidden>LibrePhotos</p>    <td>❌</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/places">✔️</a></td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>
@@ -254,7 +254,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️<a href="https://kb.synology.com/en-uk/DSM/tutorial/Which_Synology_NAS_models_support_the_facial_recognition_feature_on_Synology_Photos">*</a></td>
@@ -271,7 +271,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>
@@ -356,7 +356,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❌</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>✔️</td>
+        <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>
@@ -373,7 +373,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❌</td>
         <p hidden>PhotoPrism</p>     <td>❌</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -404,10 +404,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Editing by metadata</td>
-        <p hidden>LibrePhotos</p>    <td>🚧</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/exif-data">✔️</a></td>
         <p hidden>Photoview</p>      <td>❌</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -424,7 +424,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❌</td>
         <p hidden>PhotoPrism</p>     <td>❌</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>Sidecar only</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -475,7 +475,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❌</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>
@@ -574,7 +574,7 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Android App</td>
-        <p hidden>LibrePhotos</p>    <td>✔️</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/mobile/">Third-party</a></td>
         <p hidden>Photoview</p>      <td>❌</td>
         <p hidden>PhotoPrism</p>     <td>❌</td>
         <p hidden>Immich</p>         <td>✔️</td>
@@ -645,7 +645,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
-        <p hidden>Immich</p>         <td>❌</td>
+        <p hidden>Immich</p>         <td>Partial</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>
@@ -659,7 +659,7 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Size</td>
-        <p hidden>LibrePhotos</p>    <td><img alt="Docker Image Size (latest by date)" src="https://img.shields.io/docker/image-size/reallibrephotos/singleton"/></td>
+        <p hidden>LibrePhotos</p>    <td><img alt="Docker Image Size (latest by date)" src="https://img.shields.io/docker/image-size/reallibrephotos/librephotos-unified"/></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
         <p hidden>Immich</p>         <td>❔</td>
@@ -693,10 +693,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Resources</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/installation/standard-install">4 GB RAM recommended</a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>6 GB RAM minimum</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -744,7 +744,7 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Deployment</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/installation/">Docker, unRAID, Windows</a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
         <p hidden>Immich</p>         <td>❔</td>
@@ -761,10 +761,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>XMP Support</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/exif-data#xmp-sidecars">✔️</a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -778,10 +778,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Reading / Writing face data from metadata</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/exif-data">✔️</a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>Read only</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -795,10 +795,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Read only mode</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/faq#why-is-the-scan-directory-not-mounted-read-only">Partial</a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>
@@ -812,7 +812,7 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Creates own copy of file</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td>❌</td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
         <p hidden>Immich</p>         <td>❔</td>
@@ -829,10 +829,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Smart tagging</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -882,7 +882,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td><a href="https://github.com/LibrePhotos/librephotos"><img src="https://img.shields.io/github/stars/LibrePhotos/librephotos.svg?style=for-the-badge&color=3F51B5&logoColor=000000" alt="LibrePhotos Start"/></a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td><a href="https://github.com/photoprism/photoprism"><img src="https://img.shields.io/github/stars/photoprism/photoprism.svg?style=for-the-badge&color=3F51B5&logoColor=000000" alt="PhotoPrism Start"/></a></td>
-        <p hidden>Immich</p>         <td><a href="https://github.com/alextran1502/immich"><img src="https://img.shields.io/github/stars/alextran1502/immich.svg?style=for-the-badge&color=3F51B5&logoColor=000000" alt="Immich Start"/></a></td>
+        <p hidden>Immich</p>         <td><a href="https://github.com/immich-app/immich"><img src="https://img.shields.io/github/stars/immich-app/immich.svg?style=for-the-badge&color=3F51B5&logoColor=000000" alt="Immich Start"/></a></td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>N/A</td>
@@ -896,7 +896,7 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>s3 support</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td>❌</td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
         <p hidden>Immich</p>         <td>❌</td>
@@ -934,7 +934,7 @@ sidebar_position: 26
         MIT</td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>MIT</td>
+        <p hidden>Immich</p>         <td>AGPL-3.0</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -965,10 +965,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td> Share albums user/link</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/sharing">✔️</a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>
@@ -982,10 +982,10 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>Sharing only for a certain time</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/sharing#expiration">✔️</a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -1002,7 +1002,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>✔️</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>❔</td>
@@ -1016,7 +1016,7 @@ sidebar_position: 26
     </tr>
     <tr>
         <td>dlna</td>
-        <p hidden>LibrePhotos</p>    <td>❔</td>
+        <p hidden>LibrePhotos</p>    <td>❌</td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
         <p hidden>Immich</p>         <td>❔</td>
@@ -1036,7 +1036,7 @@ sidebar_position: 26
         <p hidden>LibrePhotos</p>    <td><a href="/docs/user-guide/settings/single-sign-on#using-ldap-accounts">via OIDC</a></td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
-        <p hidden>Immich</p>         <td>❔</td>
+        <p hidden>Immich</p>         <td>via OIDC</td>
         <p hidden>Photonix</p>       <td>❔</td>
         <p hidden>Damselfly</p>      <td>❔</td>
         <p hidden>Synology Photos</p><td>✔️</td>

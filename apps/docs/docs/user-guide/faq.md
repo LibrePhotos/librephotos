@@ -4,6 +4,14 @@ description: "Scan always fails after importing few images"
 sidebar_position: 27
 ---
 
+## Is LibrePhotos still maintained?
+
+Yes. Version 1.0.0 came out in June 2026, and new versions have followed every few weeks since. Each release is described in the [blog](/blog) and on the [GitHub releases page](https://github.com/LibrePhotos/librephotos/releases). Reviews and comparison articles written before 2026 often describe an older LibrePhotos; the [feature comparison](features.md) shows what it does today.
+
+## Is there a mobile app?
+
+Not an official one yet. The official app, [LibrePhotos Mobile](mobile/librephotos-mobile.md), is being developed and can be tried by running it from the source code. Until it is released, [UhuruPhotos](https://uhuru.photos/) is a third-party Android app for LibrePhotos. See [Mobile Apps](mobile/index.md).
+
 ## Proxmox - Scan always fails after importing few images
 
 ### Symptom
