@@ -6,7 +6,7 @@ pre-commit==4.7.0
 coverage==7.17.0
 Faker==40.44.0
 setuptools==84.2.1
-pyfakefs==6.2.0
+pyfakefs==6.3.0
 ruff==0.15.22
 # Dead-code check (scripts/check_dead_code.py); lint-backend.yml installs this pin.
 vulture==2.16
