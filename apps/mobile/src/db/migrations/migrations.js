@@ -9,6 +9,7 @@ import m0004 from './0004_icy_the_hand.sql';
 import m0005 from './0005_special_wolf_cub.sql';
 import m0006 from './0006_tidy_tiger_shark.sql';
 import m0007 from './0007_first_bill_hollister.sql';
+import m0008 from './0008_faithful_maximus.sql';
 
   export default {
     journal,
@@ -20,7 +21,8 @@ m0003,
 m0004,
 m0005,
 m0006,
-m0007
+m0007,
+m0008
     }
   }
   

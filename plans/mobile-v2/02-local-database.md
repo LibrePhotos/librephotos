@@ -28,6 +28,9 @@ remote_photo {
   rating: integer not null default 0,
   is_favorite: integer not null,   // derived server-side: rating >= user.favorite_min_rating
   hidden: integer not null,
+  archived: integer not null,      // off the timeline + Memories only (#545); migration 0008
+  is_screenshot: integer not null, // media categories, for the timeline filter (0008)
+  is_document: integer not null,
   in_trashcan: integer not null,
   removed: integer not null,
   is_public: integer not null,
@@ -39,7 +42,9 @@ remote_photo {
   bucket_month: text not null      // 'YYYY-MM'
 }
 -- indexes: (bucket_day), (timestamp), (image_hash), (last_modified),
---          partial indexes for hidden/in_trashcan/removed flags
+--          partial indexes for hidden/in_trashcan/removed flags,
+--          archived/screenshot/document flag screens, and the visible
+--          timeline (timestamp, id) WHERE not hidden/trashed/removed/archived
 
 remote_photo_detail {              // lazy cache of the full photo endpoint
   photo_id: text pk references remote_photo,

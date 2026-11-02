@@ -28,6 +28,16 @@
  * after `n` rows. The only sort left is the outer merge of the two already-sorted
  * arms, which is bounded by `2n` rows regardless of library size. See
  * `explainMergedTimelinePage` and the assertions in `__tests__/explain.test.ts`.
+ *
+ * ## Archived photos and the filter
+ *
+ * Archived photos (#545) leave the timeline, as on the web, but stay in albums,
+ * search and the flag screens (favorites, videos, ...). Every timeline read here
+ * drops them, and so does `idx_remote_photo_visible`.
+ *
+ * A `TimelineFilter` narrows the timeline offline the way the web timeline's
+ * filter popover does (media, favorites only, hide screenshots / documents). It
+ * adds terms to both arms; the index still drives the keyset walk.
  */
 import { sql, type SQL } from "drizzle-orm";
 import type { AppDatabase, MergedTimelineRow, TimelineBucket } from "../types";
@@ -43,16 +53,81 @@ export type TimelinePage = { rows: MergedTimelineRow[]; nextCursor: TimelineCurs
  */
 export type TimelineDirection = "older" | "newer";
 
+/**
+ * The timeline filter (the web's timeline filter popover, offline). "photos" is
+ * every still (image or motion photo), "videos" every video.
+ */
+export type TimelineFilter = {
+  media: "all" | "photos" | "videos";
+  favorites: boolean;
+  hideScreenshots: boolean;
+  hideDocuments: boolean;
+};
+
+export const NO_TIMELINE_FILTER: TimelineFilter = {
+  media: "all",
+  favorites: false,
+  hideScreenshots: false,
+  hideDocuments: false,
+};
+
+/** Whether `f` narrows the timeline at all. */
+export function isTimelineFilterActive(f: TimelineFilter): boolean {
+  return f.media !== "all" || f.favorites || f.hideScreenshots || f.hideDocuments;
+}
+
 export type TimelinePageOptions = {
   limit: number;
   cursor?: TimelineCursor | null;
   direction?: TimelineDirection;
   /** Include the cursor row itself. Used to anchor a window on a tapped photo. */
   inclusive?: boolean;
+  /** Narrow the timeline; none by default. */
+  filter?: TimelineFilter;
 };
 
 /** The visible-timeline predicate, shared by every timeline read. */
-const VISIBLE = sql`hidden = 0 AND in_trashcan = 0 AND removed = 0 AND timestamp IS NOT NULL`;
+const VISIBLE = sql`hidden = 0 AND in_trashcan = 0 AND removed = 0 AND archived = 0 AND timestamp IS NOT NULL`;
+
+/** The server's media types a "photos" filter keeps (the seed path spells motion photos out). */
+const STILL_TYPES = ["image", "motion", "motion_photo"] as const;
+
+/**
+ * The filter's terms over remote_photo, each with a leading AND (empty without
+ * a filter). `alias` is a constant table prefix ("" or "rp."), never user input;
+ * every value is a bound parameter.
+ */
+function remoteFilter(f: TimelineFilter, alias: "" | "rp."): SQL {
+  const col = (name: string) => sql.raw(`${alias}${name}`);
+  const terms: SQL[] = [];
+  if (f.media === "photos") {
+    terms.push(sql`${col("type")} IN (${sql.join(STILL_TYPES.map((t) => sql`${t}`), sql`, `)})`);
+  } else if (f.media === "videos") {
+    terms.push(sql`${col("type")} = ${"video"}`);
+  }
+  if (f.favorites) terms.push(sql`${col("is_favorite")} = ${1}`);
+  if (f.hideScreenshots) terms.push(sql`${col("is_screenshot")} = ${0}`);
+  if (f.hideDocuments) terms.push(sql`${col("is_document")} = ${0}`);
+  return andAll(terms);
+}
+
+/**
+ * The filter's terms over the camera-roll arm. Media goes by the device's own
+ * type. A camera-roll-only asset is no favorite on the server, so "favorites
+ * only" drops the arm; whether it is a screenshot or a document is not known
+ * on the phone, so those two keep it.
+ */
+function localFilter(f: TimelineFilter): SQL {
+  const terms: SQL[] = [];
+  if (f.media === "photos") terms.push(sql`la.type IS NOT ${"video"}`);
+  else if (f.media === "videos") terms.push(sql`la.type = ${"video"}`);
+  if (f.favorites) terms.push(sql`${0} = ${1}`);
+  return andAll(terms);
+}
+
+function andAll(terms: SQL[]): SQL {
+  return terms.length === 0 ? sql`` : sql` AND ${sql.join(terms, sql` AND `)}`;
+}
 
 /** True once any backup-selected, not-yet-uploaded local asset exists (Phase 3). */
 export function hasLocalTimelineAssets(db: AppDatabase): boolean {
@@ -93,25 +168,33 @@ function order(direction: TimelineDirection): SQL {
 
 /* ---- remote fast path (index-covered) --------------------------------- */
 
-export function remoteTimelinePage(db: AppDatabase, opts: TimelinePageOptions): TimelinePage {
+function remotePageSql(opts: TimelinePageOptions): SQL {
   const { limit, cursor = null, direction = "older", inclusive = false } = opts;
   const dir = order(direction);
-  const rows = db.all(
-    sql`SELECT id AS remote_id, NULL AS local_id, timestamp, type, aspect_ratio, is_favorite,
+  return sql`SELECT id AS remote_id, NULL AS local_id, timestamp, type, aspect_ratio, is_favorite,
                bucket_day, image_hash, NULL AS local_uri, dominant_color, 0 AS processing, id AS sort_id
         FROM remote_photo
-        WHERE ${VISIBLE} AND ${keyset("timestamp", "id", cursor, direction, inclusive)}
+        WHERE ${VISIBLE}${remoteFilter(opts.filter ?? NO_TIMELINE_FILTER, "")}
+          AND ${keyset("timestamp", "id", cursor, direction, inclusive)}
         ORDER BY timestamp ${dir}, id ${dir}
-        LIMIT ${limit}`
-  ) as (MergedTimelineRow & { sort_id: string })[];
-  return page(rows, limit, direction);
+        LIMIT ${limit}`;
 }
 
-export function remoteTimelineBuckets(db: AppDatabase): TimelineBucket[] {
-  return db.all(
-    sql`SELECT bucket_day, COUNT(*) AS count FROM remote_photo
-        WHERE ${VISIBLE} GROUP BY bucket_day ORDER BY bucket_day DESC`
-  ) as TimelineBucket[];
+export function remoteTimelinePage(db: AppDatabase, opts: TimelinePageOptions): TimelinePage {
+  const rows = db.all(remotePageSql(opts)) as (MergedTimelineRow & { sort_id: string })[];
+  return page(rows, opts.limit, opts.direction ?? "older");
+}
+
+function remoteBucketsSql(filter: TimelineFilter): SQL {
+  return sql`SELECT bucket_day, COUNT(*) AS count FROM remote_photo
+        WHERE ${VISIBLE}${remoteFilter(filter, "")} GROUP BY bucket_day ORDER BY bucket_day DESC`;
+}
+
+export function remoteTimelineBuckets(
+  db: AppDatabase,
+  filter: TimelineFilter = NO_TIMELINE_FILTER
+): TimelineBucket[] {
+  return db.all(remoteBucketsSql(filter)) as TimelineBucket[];
 }
 
 /* ---- merged path (remote UNION local-only) ---------------------------- */
@@ -138,7 +221,14 @@ const REMOTE_ARM = `
          rp.dominant_color AS dominant_color, 0 AS processing, rp.id AS sort_id
   FROM remote_photo rp`;
 
-const REMOTE_ARM_WHERE = `rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0 AND rp.timestamp IS NOT NULL`;
+/**
+ * A remote row the server shows somewhere: dated, not hidden, trashed or
+ * removed. Archived or not: the camera-roll arm defers to it either way.
+ */
+const REMOTE_SHOWN = `rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0 AND rp.timestamp IS NOT NULL`;
+
+/** The remote arm's rows: shown, and not archived (#545). */
+const REMOTE_ARM_WHERE = `${REMOTE_SHOWN} AND rp.archived = 0`;
 
 const LOCAL_ARM = `
   SELECT NULL AS remote_id, la.id AS local_id, la.created_at AS timestamp, la.type AS type,
@@ -175,11 +265,19 @@ const LOCAL_ARM = `
  * user hid or trashed *on the server* comes back to the timeline as a plain
  * camera-roll photo for as long as the file is still on the phone. It is on the
  * device; the app must not pretend otherwise.
+ *
+ * Archiving is the one exception: it is not something the server failed to do
+ * but the user asking for the photo to leave the timeline, and the photo is
+ * still in the library (albums, search). So an archived remote row suppresses
+ * its camera-roll copy (`REMOTE_SHOWN`, not `REMOTE_ARM_WHERE`) and the photo
+ * leaves the phone's timeline just as it leaves the web's.
  */
+const LOCAL_ARM_SUPPRESSED = `la.hash IS NOT NULL
+   AND EXISTS (SELECT 1 FROM remote_photo rp
+               WHERE rp.image_hash = la.hash AND ${REMOTE_SHOWN})`;
+
 const LOCAL_ARM_WHERE = `
-  (la.hash IS NULL
-   OR NOT EXISTS (SELECT 1 FROM remote_photo rp
-                  WHERE rp.image_hash = la.hash AND ${REMOTE_ARM_WHERE}))
+  NOT (${LOCAL_ARM_SUPPRESSED})
   AND EXISTS (SELECT 1 FROM local_album_asset laa
               JOIN local_album l ON l.id = laa.album_id
               WHERE laa.asset_id = la.id AND l.backup_selection = 1)
@@ -188,17 +286,20 @@ const LOCAL_ARM_WHERE = `
               WHERE laa.asset_id = la.id AND l.backup_selection = 2)`;
 
 /** Unbounded merged view — aggregates only. */
-export const MERGED_SELECT = `
-  ${REMOTE_ARM}
-  WHERE ${REMOTE_ARM_WHERE}
+function mergedSelect(filter: TimelineFilter): SQL {
+  return sql`
+  ${sql.raw(REMOTE_ARM)}
+  WHERE ${sql.raw(REMOTE_ARM_WHERE)}${remoteFilter(filter, "rp.")}
   UNION ALL
-  ${LOCAL_ARM}
-  WHERE ${LOCAL_ARM_WHERE}
+  ${sql.raw(LOCAL_ARM)}
+  WHERE ${sql.raw(LOCAL_ARM_WHERE)}${localFilter(filter)}
 `;
+}
 
 /** The arm-limited merged page, as SQL (shared by the reader and EXPLAIN). */
 function mergedPageSql(opts: TimelinePageOptions): SQL {
   const { limit, cursor = null, direction = "older", inclusive = false } = opts;
+  const filter = opts.filter ?? NO_TIMELINE_FILTER;
   const dir = order(direction);
   return sql`
     SELECT remote_id, local_id, timestamp, type, aspect_ratio, is_favorite,
@@ -206,7 +307,7 @@ function mergedPageSql(opts: TimelinePageOptions): SQL {
     FROM (
       SELECT * FROM (
         ${sql.raw(REMOTE_ARM)}
-        WHERE ${sql.raw(REMOTE_ARM_WHERE)}
+        WHERE ${sql.raw(REMOTE_ARM_WHERE)}${remoteFilter(filter, "rp.")}
           AND ${keyset("rp.timestamp", "rp.id", cursor, direction, inclusive)}
         ORDER BY rp.timestamp ${dir}, rp.id ${dir}
         LIMIT ${limit}
@@ -214,7 +315,7 @@ function mergedPageSql(opts: TimelinePageOptions): SQL {
       UNION ALL
       SELECT * FROM (
         ${sql.raw(LOCAL_ARM)}
-        WHERE ${sql.raw(LOCAL_ARM_WHERE)}
+        WHERE ${sql.raw(LOCAL_ARM_WHERE)}${localFilter(filter)}
           AND ${keyset("la.created_at", "la.id", cursor, direction, inclusive)}
         ORDER BY la.created_at ${dir}, la.id ${dir}
         LIMIT ${limit}
@@ -229,9 +330,12 @@ export function mergedTimelinePage(db: AppDatabase, opts: TimelinePageOptions): 
   return page(rows, opts.limit, opts.direction ?? "older");
 }
 
-export function mergedTimelineBuckets(db: AppDatabase): TimelineBucket[] {
+export function mergedTimelineBuckets(
+  db: AppDatabase,
+  filter: TimelineFilter = NO_TIMELINE_FILTER
+): TimelineBucket[] {
   return db.all(
-    sql`SELECT bucket_day, COUNT(*) AS count FROM (${sql.raw(MERGED_SELECT)})
+    sql`SELECT bucket_day, COUNT(*) AS count FROM (${mergedSelect(filter)})
         GROUP BY bucket_day ORDER BY bucket_day DESC`
   ) as TimelineBucket[];
 }
@@ -243,9 +347,14 @@ export function timelinePage(db: AppDatabase, opts: TimelinePageOptions): Timeli
   return hasLocalTimelineAssets(db) ? mergedTimelinePage(db, opts) : remoteTimelinePage(db, opts);
 }
 
-/** Section headers / scrubber buckets over the timeline. */
-export function timelineBuckets(db: AppDatabase): TimelineBucket[] {
-  return hasLocalTimelineAssets(db) ? mergedTimelineBuckets(db) : remoteTimelineBuckets(db);
+/** Section headers / scrubber buckets over the (optionally filtered) timeline. */
+export function timelineBuckets(
+  db: AppDatabase,
+  filter: TimelineFilter = NO_TIMELINE_FILTER
+): TimelineBucket[] {
+  return hasLocalTimelineAssets(db)
+    ? mergedTimelineBuckets(db, filter)
+    : remoteTimelineBuckets(db, filter);
 }
 
 /**
@@ -267,6 +376,7 @@ export function timelineRowKey(r: MergedTimelineRow): string {
  * A camera-roll asset whose hash is already on the server is represented in the
  * timeline by its *remote* row (the local arm excludes it), so a local id
  * resolves through the hash first and only then falls back to the local arm.
+ * An archived photo is in neither arm, so it has no cursor at all.
  */
 export function timelineCursorFor(db: AppDatabase, id: string): TimelineCursor | null {
   const remote = db.get(
@@ -274,7 +384,7 @@ export function timelineCursorFor(db: AppDatabase, id: string): TimelineCursor |
         FROM remote_photo rp
         WHERE (rp.id = ${id} OR rp.image_hash = ${id}
                OR rp.image_hash = (SELECT la.hash FROM local_asset la WHERE la.id = ${id}))
-          AND rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0 AND rp.timestamp IS NOT NULL
+          AND ${sql.raw(REMOTE_ARM_WHERE)}
         LIMIT 1`
   ) as { timestamp: number; sort_id: string } | undefined;
   if (remote) return { timestamp: remote.timestamp, sortId: remote.sort_id };
@@ -283,6 +393,7 @@ export function timelineCursorFor(db: AppDatabase, id: string): TimelineCursor |
     sql`SELECT la.created_at AS timestamp, la.id AS sort_id
         FROM local_asset la
         WHERE (la.id = ${id} OR la.hash = ${id}) AND la.created_at IS NOT NULL
+          AND NOT (${sql.raw(LOCAL_ARM_SUPPRESSED)})
         ORDER BY la.id LIMIT 1`
   ) as { timestamp: number; sort_id: string } | undefined;
   return local ? { timestamp: local.timestamp, sortId: local.sort_id } : null;
@@ -290,20 +401,21 @@ export function timelineCursorFor(db: AppDatabase, id: string): TimelineCursor |
 
 /* ---- EXPLAIN helpers (test-only budget assertions) -------------------- */
 
-export function explainTimelinePage(db: AppDatabase): { detail: string }[] {
-  return db.all(
-    sql`EXPLAIN QUERY PLAN
-        SELECT id, timestamp, image_hash FROM remote_photo
-        WHERE ${VISIBLE} ORDER BY timestamp DESC, id DESC LIMIT 200`
-  ) as { detail: string }[];
+/** The plan of the remote fast-path page (the real query, optionally filtered). */
+export function explainTimelinePage(
+  db: AppDatabase,
+  filter: TimelineFilter = NO_TIMELINE_FILTER
+): { detail: string }[] {
+  return db.all(sql`EXPLAIN QUERY PLAN ${remotePageSql({ limit: 200, filter })}`) as {
+    detail: string;
+  }[];
 }
 
-export function explainTimelineBuckets(db: AppDatabase): { detail: string }[] {
-  return db.all(
-    sql`EXPLAIN QUERY PLAN
-        SELECT bucket_day, COUNT(*) AS count FROM remote_photo
-        WHERE ${VISIBLE} GROUP BY bucket_day ORDER BY bucket_day DESC`
-  ) as { detail: string }[];
+export function explainTimelineBuckets(
+  db: AppDatabase,
+  filter: TimelineFilter = NO_TIMELINE_FILTER
+): { detail: string }[] {
+  return db.all(sql`EXPLAIN QUERY PLAN ${remoteBucketsSql(filter)}`) as { detail: string }[];
 }
 
 /** The plan of the arm-limited merged page — the viewer's hot read. */
@@ -318,7 +430,7 @@ export function explainMergedTimelinePage(
 export function explainMergedTimelineUnbounded(db: AppDatabase): { detail: string }[] {
   return db.all(
     sql`EXPLAIN QUERY PLAN
-        SELECT * FROM (${sql.raw(MERGED_SELECT)}) ORDER BY timestamp DESC, sort_id DESC LIMIT 500`
+        SELECT * FROM (${mergedSelect(NO_TIMELINE_FILTER)}) ORDER BY timestamp DESC, sort_id DESC LIMIT 500`
   ) as { detail: string }[];
 }
 

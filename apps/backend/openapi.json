@@ -28776,6 +28776,14 @@
             "type": "boolean",
             "description": "Off the timeline and Memories, still in albums and search"
           },
+          "is_screenshot": {
+            "type": "boolean",
+            "description": "Detected or marked as a screenshot (the timeline filter's hide-screenshots)"
+          },
+          "is_document": {
+            "type": "boolean",
+            "description": "Detected or marked as a document (the timeline filter's hide-documents)"
+          },
           "in_trashcan": {
             "type": "boolean"
           },
@@ -28820,8 +28828,10 @@
           "id",
           "image_hash",
           "in_trashcan",
+          "is_document",
           "is_favorite",
           "is_public",
+          "is_screenshot",
           "last_modified",
           "latitude",
           "longitude",

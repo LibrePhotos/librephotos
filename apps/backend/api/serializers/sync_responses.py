@@ -59,6 +59,14 @@ class SyncPhotoItemSerializer(serializers.Serializer[None]):
     archived = serializers.BooleanField(
         help_text="Off the timeline and Memories, still in albums and search"
     )
+    is_screenshot = serializers.BooleanField(
+        help_text="Detected or marked as a screenshot (the timeline filter's "
+        "hide-screenshots)"
+    )
+    is_document = serializers.BooleanField(
+        help_text="Detected or marked as a document (the timeline filter's "
+        "hide-documents)"
+    )
     in_trashcan = serializers.BooleanField()
     removed = serializers.BooleanField()
     is_public = serializers.BooleanField()

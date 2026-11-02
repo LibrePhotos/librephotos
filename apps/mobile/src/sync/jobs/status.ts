@@ -204,7 +204,8 @@ export function thumbCounts(db: AppDatabase): { cached: number; total: number } 
     sql`SELECT COUNT(*) AS total,
                SUM(CASE WHEN EXISTS (SELECT 1 FROM thumb_cache tc WHERE tc.photo_id = rp.id) THEN 1 ELSE 0 END) AS cached
         FROM remote_photo rp
-        WHERE rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0 AND rp.timestamp IS NOT NULL`
+        WHERE rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0 AND rp.archived = 0
+          AND rp.timestamp IS NOT NULL`
   ) as { total: number; cached: number | null };
   return { cached: row?.cached ?? 0, total: row?.total ?? 0 };
 }

@@ -1,6 +1,11 @@
 import { useCallback, useState } from "react";
 import { useReactiveQuery } from "@/db/provider";
-import { timelinePage, timelineRowKey } from "@/db/queries/timeline";
+import {
+  NO_TIMELINE_FILTER,
+  timelinePage,
+  timelineRowKey,
+  type TimelineFilter,
+} from "@/db/queries/timeline";
 import type { MergedTimelineRow } from "@/db/types";
 import type { TimelineItem } from "@/components/TimelineList";
 
@@ -41,15 +46,29 @@ const TIMELINE_TABLES = [
   "upload_queue",
 ] as const;
 
-export function useMirrorTimeline() {
+/**
+ * `filter` narrows the timeline (the filter sheet). Its fields, not its
+ * identity, are the query's dependencies, so a filter rebuilt on every render
+ * does not re-run the query.
+ */
+export function useMirrorTimeline(filter: TimelineFilter = NO_TIMELINE_FILTER) {
   const [limit, setLimit] = useState(PAGE);
+  const { media, favorites, hideScreenshots, hideDocuments } = filter;
   const items = useReactiveQuery(
-    (db) => timelinePage(db, { limit }).rows.map(rowToItem),
-    [limit],
+    (db) =>
+      timelinePage(db, {
+        limit,
+        filter: { media, favorites, hideScreenshots, hideDocuments },
+      }).rows.map(rowToItem),
+    [limit, media, favorites, hideScreenshots, hideDocuments],
     TIMELINE_TABLES
   );
   const loadMore = useCallback(() => {
     if (items.length >= limit) setLimit((n) => n + PAGE);
   }, [items.length, limit]);
-  return { items, loadMore };
+  /** Grow the window to hold at least `count` rows (a scrubber jump), in whole pages. */
+  const loadAtLeast = useCallback((count: number) => {
+    setLimit((n) => (count > n ? Math.ceil(count / PAGE) * PAGE : n));
+  }, []);
+  return { items, loadMore, loadAtLeast };
 }

@@ -344,6 +344,33 @@ describe("loose objects keep the fields a newer server adds", () => {
     expect(CreateUserAlbumResponse.parse({ id: 9, photos: [] }).photos).toEqual([]);
   });
 
+  it("reads a sync photo's archive and media-category flags, absent on older servers", () => {
+    const flagged = SyncPhotosResponse.parse({
+      v: 1,
+      items: [{ ...photoRow, archived: true, is_screenshot: true, is_document: false }],
+      next_cursor: null,
+      server_time: "2024-06-15T00:00:00Z",
+    });
+    const item = defined(flagged.items[0]);
+    expect([item.archived, item.is_screenshot, item.is_document]).toEqual([true, true, false]);
+
+    const old = SyncPhotosResponse.parse({ v: 1, items: [photoRow], next_cursor: null, server_time: "" });
+    const oldItem = defined(old.items[0]);
+    expect([oldItem.archived, oldItem.is_screenshot, oldItem.is_document]).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(
+      SyncPhotosResponse.safeParse({
+        v: 1,
+        items: [{ ...photoRow, is_document: "yes" }],
+        next_cursor: null,
+        server_time: "",
+      }).success
+    ).toBe(false);
+  });
+
   it("still rejects a sync payload with the wrong version", () => {
     expect(() => SyncPhotosResponse.parse({ v: 2, items: [], next_cursor: null, server_time: "" })).toThrow();
   });

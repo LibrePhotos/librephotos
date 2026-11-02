@@ -41,6 +41,10 @@ export function syncPhotoToRow(item: SyncPhotoItem, now: number): RemotePhotoInp
     rating: item.rating,
     isFavorite: item.is_favorite,
     hidden: item.hidden,
+    // Older servers send none of these three: nothing is archived or categorised there.
+    archived: item.archived ?? false,
+    isScreenshot: item.is_screenshot ?? false,
+    isDocument: item.is_document ?? false,
     inTrashcan: item.in_trashcan,
     removed: item.removed,
     isPublic: item.is_public,

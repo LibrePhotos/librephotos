@@ -501,7 +501,11 @@ class PhotoEditSerializer(serializers.ModelSerializer):
         for field in category_fields:
             setattr(instance, field, validated_data.pop(field))
         instance.category_source = "user"
-        instance.save(update_fields=[*category_fields, "category_source"])
+        # last_modified named so auto_now reaches the row: the mobile delta
+        # sync only re-sends a photo whose last_modified moved.
+        instance.save(
+            update_fields=[*category_fields, "category_source", "last_modified"]
+        )
 
 
 class PhotoHashListSerializer(serializers.ModelSerializer):

@@ -27,8 +27,13 @@ describe("flag filters", () => {
   });
   afterEach(() => t.close());
 
-  it("favorites: only is_favorite, visible, timestamped, newest-first", () => {
+  it("favorites: only is_favorite and visible, newest-first", () => {
     expect(filterPhotos(t.db, "favorites").map((r) => r.id)).toEqual(["fav1", "fav2"]);
+  });
+
+  it("favorites: an undated favorite is listed after the dated ones", () => {
+    seedRemotePhotos(t.db, [remotePhoto({ id: "favNoDate", timestamp: null, rating: 5, isFavorite: true })]);
+    expect(filterPhotos(t.db, "favorites").map((r) => r.id)).toEqual(["fav1", "fav2", "favNoDate"]);
   });
 
   it("hidden: only hidden rows", () => {

@@ -13,6 +13,7 @@ from uuid import UUID
 import requests
 from django import db
 from django.db.models import F, Q, QuerySet
+from django.utils import timezone
 
 from api.classification import captioning
 from api.classification.documents import classify_document
@@ -623,8 +624,10 @@ def _derive_is_document(
 
     Skips photos the user has manually corrected (``category_source == "user"``)
     and only writes when the derived value actually changed, via a targeted
-    ``save(update_fields=["is_document"])``. Returns the value in force after the
-    call (unchanged for user-corrected photos).
+    ``save(update_fields=["is_document", "last_modified"])``: ``last_modified``
+    must be named for ``auto_now`` to reach the row, and the mobile delta sync
+    only re-sends a photo whose ``last_modified`` moved. Returns the value in
+    force after the call (unchanged for user-corrected photos).
     """
     if photo.category_source == "user":
         return photo.is_document
@@ -634,7 +637,7 @@ def _derive_is_document(
     )
     if new_value != photo.is_document:
         photo.is_document = new_value
-        photo.save(update_fields=["is_document"])
+        photo.save(update_fields=["is_document", "last_modified"])
     return new_value
 
 
@@ -755,16 +758,22 @@ def classify_media(user: User, job_id: UUID) -> None:
 
         # Two accumulators: is_document is only ever written for photos whose
         # value actually changed (which implies they have OCR), so OCR-less
-        # photos' is_document column is never touched.
+        # photos' is_document column is never touched. A changed photo gets a
+        # fresh ``last_modified`` by hand: bulk_update skips ``auto_now``, and
+        # the mobile delta sync only re-sends a photo whose last_modified moved.
         pending_screenshot: list[Photo] = []
         pending_document: list[Photo] = []
 
         def flush() -> None:
             if pending_screenshot:
-                Photo.objects.bulk_update(pending_screenshot, ["is_screenshot"])
+                Photo.objects.bulk_update(
+                    pending_screenshot, ["is_screenshot", "last_modified"]
+                )
                 pending_screenshot.clear()
             if pending_document:
-                Photo.objects.bulk_update(pending_document, ["is_document"])
+                Photo.objects.bulk_update(
+                    pending_document, ["is_document", "last_modified"]
+                )
                 pending_document.clear()
 
         for idx, photo in enumerate(existing_photos.iterator()):
@@ -780,11 +789,13 @@ def classify_media(user: User, job_id: UUID) -> None:
                 new_screenshot = classify(photo)
                 if new_screenshot != photo.is_screenshot:
                     photo.is_screenshot = new_screenshot
+                    photo.last_modified = timezone.now()
                     pending_screenshot.append(photo)
 
                 new_document = detect_document(photo)
                 if new_document is not None and new_document != photo.is_document:
                     photo.is_document = new_document
+                    photo.last_modified = timezone.now()
                     pending_document.append(photo)
 
                 if len(pending_screenshot) + len(pending_document) >= BATCH_SIZE:

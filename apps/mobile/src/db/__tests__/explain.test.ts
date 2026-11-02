@@ -82,6 +82,34 @@ describe("EXPLAIN QUERY PLAN budget (100k rows)", () => {
     expect(plansText(explainFilter(t.db, "deleted"))).toMatch(/USING INDEX idx_remote_photo_trash/);
   });
 
+  it("archived, screenshots and documents filters use their partial indexes", () => {
+    expect(plansText(explainFilter(t.db, "archived"))).toMatch(/USING INDEX idx_remote_photo_archived/);
+    expect(plansText(explainFilter(t.db, "screenshots"))).toMatch(/USING INDEX idx_remote_photo_screenshot/);
+    expect(plansText(explainFilter(t.db, "documents"))).toMatch(/USING INDEX idx_remote_photo_document/);
+  });
+
+  it("a filtered timeline page still walks the visible index, no temp sort", () => {
+    const text = plansText(
+      explainTimelinePage(t.db, {
+        media: "videos",
+        favorites: false,
+        hideScreenshots: true,
+        hideDocuments: true,
+      })
+    );
+    expect(text).toMatch(/USING INDEX idx_remote_photo_visible/);
+    expect(text).not.toMatch(/SCAN remote_photo\b(?!.*USING INDEX)/);
+    expect(text).not.toMatch(/USE TEMP B-TREE/);
+  });
+
+  it("filtered buckets stay index-covered", () => {
+    const text = plansText(
+      explainTimelineBuckets(t.db, { media: "photos", favorites: true, hideScreenshots: false, hideDocuments: false })
+    );
+    expect(text).toMatch(/USING INDEX idx_remote_photo/);
+    expect(text).not.toMatch(/SCAN remote_photo\b(?!.*USING INDEX)/);
+  });
+
   it("returns a correct first page fast", () => {
     const start = Date.now();
     const { rows, nextCursor } = timelinePage(t.db, { limit: 100 });

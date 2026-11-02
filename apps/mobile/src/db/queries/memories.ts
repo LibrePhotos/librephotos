@@ -22,10 +22,12 @@ export type MemoryPhoto = PhotoTileRow & { year: number };
 
 /**
  * The rows that are memories of `day`: taken on its month-day in an earlier
- * year, not hidden or trashed.
+ * year, not hidden, trashed or archived, and no screenshot or document (the
+ * web's Memories leave those out too: api/views/memories.py).
  */
 function memoriesOf(day: Date) {
-  return sql`hidden = 0 AND in_trashcan = 0 AND removed = 0
+  return sql`hidden = 0 AND in_trashcan = 0 AND removed = 0 AND archived = 0
+          AND is_screenshot = 0 AND is_document = 0
           AND timestamp IS NOT NULL
           AND substr(bucket_day, 6, 5) = ${monthDayOf(day)}
           AND CAST(substr(bucket_day, 1, 4) AS INTEGER) < ${day.getFullYear()}`;
@@ -33,7 +35,8 @@ function memoriesOf(day: Date) {
 
 /**
  * Photos taken on this month-day in earlier years, favorites first. `today` is
- * injectable for tests. Excludes hidden/trashed and the current year.
+ * injectable for tests. Excludes hidden/trashed/archived, screenshots,
+ * documents and the current year.
  */
 export function onThisDay(
   db: AppDatabase,
