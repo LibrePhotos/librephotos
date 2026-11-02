@@ -18,6 +18,9 @@ export const CountStats = z.object({
   num_albumauto: z.number(),
   num_albumdate: z.number(),
   num_albumuser: z.number(),
+  // The towns the user's photos were taken in, and the size of their files; older servers lack both.
+  num_places: z.number().optional(),
+  library_bytes: z.number().optional(),
 });
 export type CountStats = z.infer<typeof CountStats>;
 

@@ -281,6 +281,10 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   GeocodeResult: { schema: S.GeocodeResult, components: ["GeocodeSearchResult"] },
   Memory: { schema: S.Memory, components: ["Memory"] },
   FetchMemoriesResponse: { schema: S.FetchMemoriesResponse, components: ["Memories"] },
+  Rewind: { schema: S.Rewind, components: ["Rewind"] },
+  RewindDay: { schema: S.RewindDay, components: ["RewindDay"] },
+  RewindPerson: { schema: S.RewindPerson, components: ["RewindPerson"] },
+  RewindPlace: { schema: S.RewindPlace, components: ["RewindPlace"] },
   BulkMetadataUpdateResponse: { schema: S.BulkMetadataUpdateResponse, components: ["BulkMetadataUpdateResponse"] },
   // downloads, uploads
   PhotoDownloadStart: { schema: S.PhotoDownloadStart, components: ["ZipDownloadStarted"] },

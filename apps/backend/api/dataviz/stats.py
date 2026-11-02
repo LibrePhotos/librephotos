@@ -324,6 +324,16 @@ def get_count_stats(user: User) -> dict[str, int]:
         num_photos=Count("pk"),
         num_screenshots=Count("pk", filter=Q(is_screenshot=True)),
         num_documents=Count("pk", filter=Q(is_document=True)),
+        library_bytes=Sum("size"),
+    )
+    # The towns the user's photos were taken in, as the day albums name them.
+    num_places = (
+        Photo.visible.owned_by(user)
+        .exclude(town="")
+        .order_by()
+        .values("town")
+        .distinct()
+        .count()
     )
     # NOT EXISTS rather than a LEFT JOIN on the files: the join hashed every
     # photo of the library in shared memory (#2868), and counted a photo with
@@ -388,6 +398,8 @@ def get_count_stats(user: User) -> dict[str, int]:
         "num_albumauto": num_albumauto,
         "num_albumdate": num_albumdate,
         "num_albumuser": num_albumuser,
+        "num_places": num_places,
+        "library_bytes": photos["library_bytes"] or 0,
     }
     return res
 

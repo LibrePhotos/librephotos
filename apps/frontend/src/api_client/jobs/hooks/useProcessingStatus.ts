@@ -1,4 +1,4 @@
-import { endpoints, jobKeys, pollWhile } from "@librephotos/api-client";
+import { endpoints, jobKeys, POLL_SLOW_MS, pollWhile } from "@librephotos/api-client";
 import type { ProcessingStageKey, ProcessingStatus } from "@librephotos/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
@@ -29,6 +29,20 @@ export function useProcessingStatusQuery(queueBusy: boolean) {
     queryKey: jobKeys.processingStatus(),
     queryFn: () => endpoints.fetchProcessingStatus(apiClient),
     refetchInterval: pollWhile<ProcessingStatus>(anyStageRunning, false),
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * The processing status once a minute while `enabled` and until `done` holds: the thank-you dialog
+ * waits for the first library to be processed. Shares the cache with the Library page's card.
+ */
+export function useProcessingStatusUntil(enabled: boolean, done: (status: ProcessingStatus) => boolean) {
+  return useQuery({
+    queryKey: jobKeys.processingStatus(),
+    queryFn: () => endpoints.fetchProcessingStatus(apiClient),
+    enabled,
+    refetchInterval: query => (query.state.data && done(query.state.data) ? false : POLL_SLOW_MS),
     refetchOnWindowFocus: true,
   });
 }

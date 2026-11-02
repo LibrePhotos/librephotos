@@ -2575,6 +2575,14 @@ export async function fetchMemories(client: ApiClient, size?: number): Promise<S
   return parseResponse(S.FetchMemoriesResponse, res, "memories");
 }
 
+/* ---- rewind ------------------------------------------------------------- */
+
+/** The user's year in photos; without `year`, this year (last year in January). */
+export async function fetchRewind(client: ApiClient, year?: number): Promise<S.Rewind> {
+  const res = await client.get<unknown>(year ? `/rewind/${buildQuery({ year })}` : "/rewind/");
+  return parseResponse(S.Rewind, res, "rewind");
+}
+
 /* ---- delta sync (mobile app, backend api/views/sync.py) ----------------- */
 
 /** Pull parameters for a keyset-paginated delta feed. */

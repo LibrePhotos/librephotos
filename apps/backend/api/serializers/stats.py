@@ -24,6 +24,12 @@ class CountStatsSerializer(serializers.Serializer[None]):
     num_albumauto = serializers.IntegerField()
     num_albumdate = serializers.IntegerField()
     num_albumuser = serializers.IntegerField()
+    num_places = serializers.IntegerField(
+        help_text="The towns the user's photos were taken in"
+    )
+    library_bytes = serializers.IntegerField(
+        help_text="The size of the user's photo and video files, in bytes"
+    )
 
 
 class WordCloudEntrySerializer(serializers.Serializer[None]):

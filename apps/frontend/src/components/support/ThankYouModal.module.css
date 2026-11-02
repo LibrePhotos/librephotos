@@ -1,0 +1,29 @@
+.stat {
+  background: var(--mantine-color-default-hover);
+}
+
+.prices {
+  overflow: hidden;
+}
+
+.pricesHeader {
+  padding: 8px 14px;
+  background: var(--mantine-color-default-hover);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.priceRow {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.ours {
+  padding: 8px 14px;
+  color: light-dark(var(--mantine-color-green-9), var(--mantine-color-green-3));
+  background: light-dark(var(--mantine-color-green-0), rgba(64, 192, 87, 0.12));
+}
+
+.footer {
+  padding-top: 12px;
+  border-top: 1px solid var(--mantine-color-default-border);
+}

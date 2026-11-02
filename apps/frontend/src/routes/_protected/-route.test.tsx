@@ -66,6 +66,9 @@ vi.mock("../../components/upload", () => ({
 vi.mock("../../components/whatsnew/WhatsNewProvider", () => ({
   WhatsNewProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
+vi.mock("../../components/support/SupportProvider", () => ({
+  SupportProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 let root: Root | undefined;
 let container: HTMLDivElement;

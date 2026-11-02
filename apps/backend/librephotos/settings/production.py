@@ -474,6 +474,21 @@ CONSTANCE_CONFIG = {
         " release's highlights. The account menu opens it either way.",
         bool,
     ),
+    # Support prompts: a one-time thank-you dialog for admins once their
+    # library is processed, and the donation slide at the end of Rewind.
+    "SUPPORT_PROMPTS_ENABLED": (
+        True,
+        "Ask admins once, after their first library is processed, and at the"
+        " end of Rewind to star or sponsor LibrePhotos.",
+        bool,
+    ),
+    # Rewind: each user's year in photos, opened once around Christmas.
+    "REWIND_ENABLED": (
+        True,
+        "Show each user their Rewind (their year in photos) once around"
+        " Christmas. The account menu opens it during the season either way.",
+        bool,
+    ),
     "UPLOAD_FOLLOWUPS_BACKFILL_DONE": (
         False,
         "Written at startup, not a setting: whether the upload follow-ups (search"

@@ -11200,6 +11200,47 @@
         }
       }
     },
+    "/api/rewind/": {
+      "get": {
+        "operationId": "api_rewind_retrieve",
+        "description": "The caller's Rewind: their own photos of one year, never shared ones.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "year",
+            "schema": {
+              "type": "integer",
+              "maximum": 9999,
+              "minimum": 1900
+            },
+            "description": "The year to look back on (default: this year; last year in January, in the user's timezone)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rewind"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/rqavailable/": {
       "get": {
         "operationId": "api_rqavailable_retrieve",
@@ -16516,9 +16557,18 @@
           },
           "num_albumuser": {
             "type": "integer"
+          },
+          "num_places": {
+            "type": "integer",
+            "description": "The towns the user's photos were taken in"
+          },
+          "library_bytes": {
+            "type": "integer",
+            "description": "The size of the user's photo and video files, in bytes"
           }
         },
         "required": [
+          "library_bytes",
           "num_albumauto",
           "num_albumdate",
           "num_albumuser",
@@ -16529,6 +16579,7 @@
           "num_missing_photos",
           "num_people",
           "num_photos",
+          "num_places",
           "num_screenshots",
           "num_unknown_faces"
         ]
@@ -22612,6 +22663,14 @@
           },
           "show_whats_new": {
             "type": "boolean"
+          },
+          "support_prompt_seen": {
+            "type": "boolean"
+          },
+          "rewind_seen_year": {
+            "type": "integer",
+            "maximum": 9999,
+            "minimum": 0
           }
         }
       },
@@ -25958,6 +26017,145 @@
         "type": "string",
         "description": "* `pending` - Pending Review\n* `resolved` - Resolved\n* `dismissed` - Dismissed"
       },
+      "Rewind": {
+        "type": "object",
+        "description": "A user's year in photos: only their own, as their timeline shows them.",
+        "properties": {
+          "year": {
+            "type": "integer"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "Photos, without videos"
+          },
+          "video_count": {
+            "type": "integer"
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Photos and videos per month, January first (12 entries)"
+          },
+          "busiest_day": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RewindDay"
+              }
+            ],
+            "nullable": true,
+            "description": "The day with the most photos; null without any"
+          },
+          "busiest_day_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            },
+            "description": "A few photos of the busiest day, best first"
+          },
+          "cover_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            },
+            "description": "The best photo of each of the busiest days"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewindPerson"
+            },
+            "description": "The named people on the most photos, most first"
+          },
+          "place_count": {
+            "type": "integer",
+            "description": "Towns photos were taken in"
+          },
+          "country_count": {
+            "type": "integer"
+          },
+          "top_places": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewindPlace"
+            },
+            "description": "The towns with the most photos"
+          }
+        },
+        "required": [
+          "busiest_day",
+          "busiest_day_photos",
+          "country_count",
+          "cover_photos",
+          "months",
+          "people",
+          "photo_count",
+          "place_count",
+          "top_places",
+          "video_count",
+          "year"
+        ]
+      },
+      "RewindDay": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Photos and videos of the day"
+          }
+        },
+        "required": [
+          "count",
+          "date"
+        ]
+      },
+      "RewindPerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "photo_count": {
+            "type": "integer",
+            "description": "Photos of the year they are on"
+          },
+          "face_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "Their cover face's crop, null without one"
+          }
+        },
+        "required": [
+          "face_url",
+          "id",
+          "name",
+          "photo_count"
+        ]
+      },
+      "RewindPlace": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The town, as the day albums name it"
+          },
+          "photo_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "photo_count"
+        ]
+      },
       "RightsDefaultCountsResponse": {
         "type": "object",
         "description": "How many photos \"Apply\" in Settings > Metadata would reach.",
@@ -27993,6 +28191,14 @@
             "type": "boolean",
             "description": "Whether users see a What's new card once after an update (each user can also turn it off). Sent to everyone."
           },
+          "support_prompts_enabled": {
+            "type": "boolean",
+            "description": "Whether admins are asked once after their library is processed, and at the end of Rewind, to star or sponsor LibrePhotos. Sent to everyone."
+          },
+          "rewind_enabled": {
+            "type": "boolean",
+            "description": "Whether each user's Rewind opens once around Christmas. Sent to everyone."
+          },
           "public_gallery": {
             "type": "string",
             "description": "Who the public gallery (#434) is open to: off, members or everyone. Sent to everyone: the web app opens the gallery at / for a visitor without an account when it is everyone."
@@ -28024,8 +28230,10 @@
           "public_gallery",
           "public_gallery_indexable",
           "remember_me_days",
+          "rewind_enabled",
           "scan_missing_max_fraction",
           "skip_patterns",
+          "support_prompts_enabled",
           "tagging_model",
           "things_available",
           "trash_retention_days",
@@ -28150,6 +28358,14 @@
           "whats_new_enabled": {
             "type": "boolean",
             "description": "Show each user a What's new card once after an update."
+          },
+          "support_prompts_enabled": {
+            "type": "boolean",
+            "description": "Ask admins once after their library is processed, and at the end of Rewind, to star or sponsor LibrePhotos."
+          },
+          "rewind_enabled": {
+            "type": "boolean",
+            "description": "Show each user their Rewind once around Christmas."
           },
           "public_gallery": {
             "allOf": [
@@ -29985,6 +30201,14 @@
           },
           "show_whats_new": {
             "type": "boolean"
+          },
+          "support_prompt_seen": {
+            "type": "boolean"
+          },
+          "rewind_seen_year": {
+            "type": "integer",
+            "maximum": 9999,
+            "minimum": 0
           }
         },
         "required": [
@@ -30028,6 +30252,7 @@
           "public_sharing",
           "public_sharing_defaults",
           "rating_mode",
+          "rewind_seen_year",
           "save_face_tags_to_disk",
           "save_metadata_to_disk",
           "scan_directory",
@@ -30038,6 +30263,7 @@
           "skip_raw_files",
           "slideshow_interval",
           "stack_raw_jpeg",
+          "support_prompt_seen",
           "text_alignment",
           "transcode_videos",
           "upload_directory",
