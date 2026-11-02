@@ -22,3 +22,12 @@ export function people(db: AppDatabase): PersonRow[] {
         ORDER BY face_count DESC, name ASC`
   ) as PersonRow[];
 }
+
+/** One mirrored person (the person page's title and avatar), or null when not mirrored. */
+export function personById(db: AppDatabase, id: number): PersonRow | null {
+  return (
+    (db.get(
+      sql`SELECT id, name, kind, face_count, cover_photo_hash FROM person WHERE id = ${id}`
+    ) as PersonRow | undefined) ?? null
+  );
+}

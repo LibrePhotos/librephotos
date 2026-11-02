@@ -22,6 +22,8 @@ function directionsFor(filter: PhotoFilter): SelectionDirections {
       return { hidden: false };
     case "deleted":
       return { deleted: false };
+    case "archived":
+      return { archived: false };
     default:
       return {};
   }

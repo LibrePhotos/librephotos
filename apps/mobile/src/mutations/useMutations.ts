@@ -31,6 +31,8 @@ export function bindMutations(db: AppDatabase, notify: (db: AppDatabase) => void
       after(actions.hidePhotos(db, { imageHashes, hidden })),
     trash: (imageHashes: string[], deleted: boolean) =>
       after(actions.trashPhotos(db, { imageHashes, deleted })),
+    archive: (imageHashes: string[], archived: boolean) =>
+      after(actions.archivePhotos(db, { imageHashes, archived })),
     rate: (imageHash: string, rating: number) => after(actions.ratePhoto(db, { imageHash, rating })),
     caption: (imageHash: string, caption: string) =>
       after(actions.captionPhoto(db, { imageHash, caption })),
@@ -42,6 +44,9 @@ export function bindMutations(db: AppDatabase, notify: (db: AppDatabase) => void
       after(actions.createAlbum(db, { title, photoIds, ownerId: useAuthStore.getState().userId })),
     renameAlbum: (albumId: number, title: string) =>
       after(actions.renameAlbum(db, { albumId, title })),
+    deleteAlbum: (albumId: number) => after(actions.deleteAlbum(db, { albumId })),
+    setAlbumCover: (albumId: number, photoId: string | null, imageHash: string | null) =>
+      after(actions.setAlbumCover(db, { albumId, photoId, imageHash })),
     renamePerson: (personId: number, name: string) =>
       after(actions.renamePerson(db, { personId, name })),
   };

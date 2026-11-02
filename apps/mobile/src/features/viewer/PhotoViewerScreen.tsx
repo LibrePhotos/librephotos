@@ -5,14 +5,11 @@ import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Clipboard from "expo-clipboard";
 import {
   bigThumbnailUrl,
-  endpoints,
   mediaHeaders,
   photoUrl,
   squareThumbnailUrl,
-  useApiClient,
   videoUrl,
   type People,
 } from "@librephotos/api-client";
@@ -44,7 +41,16 @@ import { VideoSlide } from "./VideoSlide";
 import { FaceOverlay } from "./FaceOverlay";
 import { slideSource, type SlideSource } from "./originalSource";
 import { useOriginalOnZoom } from "./useOriginalOnZoom";
-import { parseEditableTimestamp, toEditableTimestamp } from "./timestamp";
+import { withVersion } from "./ViewerChrome";
+import { ViewerEditSheet, ViewerMoreSheet } from "./ViewerSheets";
+import type { ViewerActionBarProps } from "./ViewerActionBar";
+import { TimestampPickerModal } from "./TimestampPickerModal";
+import { LocationEditModal } from "./LocationEditModal";
+import { TagsEditModal } from "./TagsEditModal";
+import { usePhotoTags } from "./usePhotoTags";
+import { useViewerEdits } from "./useViewerEdits";
+import { filenameFromPaths } from "./exif";
+import type { TagsState } from "./InfoSections";
 
 /**
  * Full-screen viewer — the mobile answer to the web lightbox (see
@@ -83,7 +89,6 @@ export function PhotoViewerScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const db = useDb();
-  const client = useApiClient();
   const token = useAccessToken();
   const base = serverAddress();
   const mutations = useMutations();
@@ -98,6 +103,10 @@ export function PhotoViewerScreen() {
   const [currentKey, setCurrentKey] = useState<string | undefined>(undefined);
   const [pickingAlbum, setPickingAlbum] = useState(false);
   const [editingTimestamp, setEditingTimestamp] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [editingTags, setEditingTags] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [renamingPerson, setRenamingPerson] = useState<People | null>(null);
   const [highlightedFace, setHighlightedFace] = useState<number | null>(null);
 
@@ -151,6 +160,10 @@ export function PhotoViewerScreen() {
   // Zooming into the active slide loads its original (#2743).
   const zoom = useOriginalOnZoom(current?.key);
   const { zoomedOnce, attempt, onZoomChange, onProgress, onLoad, onError } = zoom;
+  const edits = useViewerEdits();
+  const versions = edits.thumbnailVersions;
+  // Tags are not mirrored: read them only while the sheet that shows them is open.
+  const tagsQuery = usePhotoTags(summary?.id ?? null, ready && isOnline && detent !== "hidden");
 
   /* ---- neighbour preloading -------------------------------------------- */
 
@@ -164,13 +177,15 @@ export function PhotoViewerScreen() {
     if (index < 0) return;
     const urls = [index - 2, index - 1, index + 1, index + 2].flatMap((i) => {
       const s: ViewerSlide | undefined = slides[i];
-      return s && !s.local_uri && s.image_hash ? [bigThumbnailUrl(base, s.image_hash)] : [];
+      return s && !s.local_uri && s.image_hash
+        ? [withVersion(bigThumbnailUrl(base, s.image_hash), versions[s.image_hash])]
+        : [];
     });
     if (urls.length === 0) return;
     // Guarded: the jest expo-image stub has no prefetch, and neither does an
     // older runtime — preloading is an optimization, never a requirement.
     void Image.prefetch?.(urls, { cachePolicy: "disk", headers });
-  }, [ready, slides, current?.key, base, headers]);
+  }, [ready, slides, current?.key, base, headers, versions]);
 
   /* ---- mutations ------------------------------------------------------- */
 
@@ -182,6 +197,9 @@ export function PhotoViewerScreen() {
   }, [hash, flags, mutations]);
   const toggleTrash = useCallback(() => {
     if (hash && flags) mutations.trash([hash], flags.in_trashcan === 0);
+  }, [hash, flags, mutations]);
+  const toggleArchive = useCallback(() => {
+    if (hash && flags) mutations.archive([hash], flags.archived === 0);
   }, [hash, flags, mutations]);
   const rate = useCallback(
     (r: number) => {
@@ -220,40 +238,22 @@ export function PhotoViewerScreen() {
 
   /* ---- online-only actions --------------------------------------------- */
 
-  const togglePublic = useCallback(async () => {
-    if (!hash || !flags) return;
-    const next = flags.is_public === 0;
-    try {
-      await endpoints.setPhotosPublic(client, [hash], next);
-      if (next) {
-        await Clipboard.setStringAsync(bigThumbnailUrl(base, hash));
-        pushToast({ level: "info", message: t("sharing.linkCopied") });
-      } else {
-        pushToast({ level: "info", message: t("sharing.shareSuccess") });
-      }
-    } catch {
-      pushToast({ level: "error", message: t("sharing.shareError") });
-    }
-  }, [hash, flags, client, base, pushToast, t]);
+  const share = useCallback(() => {
+    if (current) void edits.share(current, filenameFromPaths(detail.detail?.image_path));
+  }, [current, detail.detail, edits]);
 
-  const submitTimestamp = useCallback(
-    async (text: string) => {
-      setEditingTimestamp(false);
-      if (!hash) return;
-      const parsed = parseEditableTimestamp(text);
-      if (!parsed) {
-        pushToast({ level: "error", message: t("viewer.timestampInvalid") });
-        return;
-      }
-      try {
-        await endpoints.setPhotoTimestamp(client, hash, parsed);
-        pushToast({ level: "info", message: t("viewer.timestampSaved") });
-      } catch {
-        pushToast({ level: "error", message: t("viewer.timestampError") });
-      }
-    },
-    [hash, client, pushToast, t]
-  );
+  const deletePermanently = useCallback(() => {
+    // Gone for good: there is nothing left here to look at.
+    if (hash) edits.confirmDeletePermanently([hash], () => goBackOr(router, "/(tabs)/photos"));
+  }, [hash, edits, router]);
+
+  const tags: TagsState = !isOnline
+    ? { kind: "offline" }
+    : tagsQuery.isError
+      ? { kind: "error" }
+      : tagsQuery.data
+        ? { kind: "loaded", tags: tagsQuery.data }
+        : { kind: "loading" };
 
   /* ---- navigation ------------------------------------------------------ */
 
@@ -295,6 +295,25 @@ export function PhotoViewerScreen() {
   const title = formatFullDate(timestamp, { locale: i18n.language }) || t("viewer.withoutTimestamp");
   const sheetOpen = detent !== "hidden";
 
+  // A server row gets the full bar; a camera-roll-only item can still be shared.
+  const actionBar: ViewerActionBarProps | null = flags
+    ? {
+        mode: "remote",
+        isFavorite: flags.is_favorite === 1,
+        inTrashcan: flags.in_trashcan === 1,
+        hasLocalCopy: !!current?.local_uri,
+        isOnline,
+        bottomInset: insets.bottom,
+        onShare: share,
+        onToggleFavorite: toggleFavorite,
+        onEdit: () => setEditOpen(true),
+        onToggleTrash: toggleTrash,
+        onMore: () => setMoreOpen(true),
+      }
+    : current?.local_uri
+      ? { mode: "local", isOnline, bottomInset: insets.bottom, onShare: share }
+      : null;
+
   const renderSlide = useCallback(
     ({ item }: { item: ViewerSlide }) => {
       const active = item.key === current?.key;
@@ -329,8 +348,8 @@ export function PhotoViewerScreen() {
           width={width}
           height={height}
           onTap={toggleChrome}
-          source={sourceFor(item, base, headers, source, attempt)}
-          placeholder={placeholderFor(item, base, headers, source)}
+          source={sourceFor(item, base, headers, source, attempt, versions)}
+          placeholder={placeholderFor(item, base, headers, source, versions)}
           onZoomChange={active ? (zoomed) => onZoomChange(item.key, zoomed) : undefined}
           onProgress={zoomOriginal ? (event) => onProgress(item.key, event) : undefined}
           onLoad={zoomOriginal ? (event) => onLoad(item.key, event) : undefined}
@@ -340,7 +359,10 @@ export function PhotoViewerScreen() {
               <FaceOverlay
                 testID="viewer-face-overlay"
                 location={face.location}
-                faceSpace={{ uri: bigThumbnailUrl(base, item.image_hash), headers }}
+                faceSpace={{
+                  uri: withVersion(bigThumbnailUrl(base, item.image_hash), versions[item.image_hash]),
+                  headers,
+                }}
                 boxWidth={width}
                 boxHeight={height}
               />
@@ -357,6 +379,7 @@ export function PhotoViewerScreen() {
       height,
       highlightedFace,
       detail.detail,
+      versions,
       zoomedOnce,
       attempt,
       onZoomChange,
@@ -394,8 +417,8 @@ export function PhotoViewerScreen() {
         activeKey={current?.key}
         serverAddress={base}
         headers={headers}
-        flags={flags}
-        isOnline={isOnline}
+        thumbnailVersions={versions}
+        actionBar={actionBar}
         zoom={{
           source: current ? slideSource(current, true, zoomedOnce, detail.detail) : null,
           load: zoom.load,
@@ -408,13 +431,6 @@ export function PhotoViewerScreen() {
           listRef.current?.scrollToIndex({ index, animated: true });
           setCurrentKey(slides[index].key);
           setCurrentIndex(index);
-        }}
-        actions={{
-          onToggleFavorite: toggleFavorite,
-          onToggleHide: toggleHide,
-          onToggleTrash: toggleTrash,
-          onTogglePublic: () => void togglePublic(),
-          onRate: rate,
         }}
       />
 
@@ -433,6 +449,10 @@ export function PhotoViewerScreen() {
         mapsDisabled={mapsDisabled}
         onSaveCaption={saveCaption}
         onEditTimestamp={() => setEditingTimestamp(true)}
+        onEditLocation={() => setEditingLocation(true)}
+        tags={tags}
+        onEditTags={() => setEditingTags(true)}
+        onOpenTag={(tagId) => router.push(`/(tabs)/albums/tags/${tagId}`)}
         onAddToAlbum={() => setPickingAlbum(true)}
         onRemoveFromAlbum={removeFromAlbum}
         onOpenAlbum={openAlbum}
@@ -445,16 +465,32 @@ export function PhotoViewerScreen() {
         onOpenPhoto={openPhoto}
       />
 
-      <TextPromptModal
+      <TimestampPickerModal
         visible={editingTimestamp}
-        title={t("viewer.editDateTime")}
-        placeholder="YYYY-MM-DD HH:MM:SS"
-        initialValue={toEditableTimestamp(timestamp)}
-        submitLabel={t("common.save")}
-        testID="viewer-timestamp-prompt"
-        onSubmit={(value) => void submitTimestamp(value)}
+        value={timestamp}
+        locale={i18n.language}
+        onSave={(date) => {
+          setEditingTimestamp(false);
+          if (hash) void edits.saveTimestamp(hash, date);
+        }}
         onCancel={() => setEditingTimestamp(false)}
       />
+
+      <LocationEditModal
+        visible={editingLocation}
+        hasLocation={summary?.latitude != null || detail.detail?.exif_gps_lat != null}
+        onPick={(place) => {
+          setEditingLocation(false);
+          if (hash) void edits.setLocation(hash, place);
+        }}
+        onRemove={() => {
+          setEditingLocation(false);
+          if (hash) void edits.removeLocation(hash);
+        }}
+        onCancel={() => setEditingLocation(false)}
+      />
+
+      <TagsEditModal visible={editingTags} photoId={summary?.id ?? null} onClose={() => setEditingTags(false)} />
 
       <TextPromptModal
         visible={renamingPerson !== null}
@@ -485,6 +521,49 @@ export function PhotoViewerScreen() {
         }}
         onCancel={() => setPickingAlbum(false)}
       />
+
+      {/* The menus draw over everything above, so they come last. */}
+      {flags ? (
+        <>
+          <ViewerMoreSheet
+            visible={moreOpen}
+            onClose={() => setMoreOpen(false)}
+            isOnline={isOnline}
+            rating={flags.rating}
+            hidden={flags.hidden === 1}
+            archived={flags.archived === 1}
+            isPublic={flags.is_public === 1}
+            inTrashcan={flags.in_trashcan === 1}
+            canSaveToDevice={!current?.local_uri}
+            onRate={rate}
+            onSaveToDevice={() => {
+              if (hash) void edits.saveToDevice(hash);
+            }}
+            onAddToAlbum={() => setPickingAlbum(true)}
+            onToggleArchive={toggleArchive}
+            onToggleHide={toggleHide}
+            onTogglePublic={() => {
+              if (hash) void edits.togglePublic(hash, flags.is_public === 0);
+            }}
+            onDeletePermanently={deletePermanently}
+          />
+          <ViewerEditSheet
+            visible={editOpen}
+            onClose={() => setEditOpen(false)}
+            isOnline={isOnline}
+            canRotate={current?.type !== "video"}
+            onRotateLeft={() => {
+              if (hash) void edits.rotate(hash, "left");
+            }}
+            onRotateRight={() => {
+              if (hash) void edits.rotate(hash, "right");
+            }}
+            onEditDate={() => setEditingTimestamp(true)}
+            onEditLocation={() => setEditingLocation(true)}
+            onEditTags={() => setEditingTags(true)}
+          />
+        </>
+      ) : null}
     </View>
   );
 }
@@ -504,13 +583,17 @@ function sourceFor(
   base: string,
   headers: Record<string, string>,
   source: SlideSource,
-  attempt: number
+  attempt: number,
+  versions: Readonly<Record<string, number>>
 ) {
   if (slide.local_uri) return { uri: slide.local_uri };
   if (!slide.image_hash) return { uri: "" };
-  if (source.kind !== "original") return { uri: bigThumbnailUrl(base, slide.image_hash), headers };
+  const version = versions[slide.image_hash];
+  if (source.kind !== "original") {
+    return { uri: withVersion(bigThumbnailUrl(base, slide.image_hash), version), headers };
+  }
   const retry = source.zoom && attempt > 0 ? `?retry=${attempt}` : "";
-  return { uri: `${photoUrl(base, slide.image_hash)}${retry}`, headers };
+  return { uri: withVersion(`${photoUrl(base, slide.image_hash)}${retry}`, version), headers };
 }
 
 /**
@@ -523,11 +606,15 @@ function placeholderFor(
   slide: ViewerSlide,
   base: string,
   headers: Record<string, string>,
-  source: SlideSource
+  source: SlideSource,
+  versions: Readonly<Record<string, number>>
 ) {
   if (slide.local_uri || !slide.image_hash) return undefined;
+  const version = versions[slide.image_hash];
   // Zoomed into the original: the big thumbnail that was on screen stays until
   // the original has loaded, so nothing goes soft or blank in between.
-  if (source.kind === "original" && source.zoom) return { uri: bigThumbnailUrl(base, slide.image_hash), headers };
-  return { uri: squareThumbnailUrl(base, slide.image_hash), headers };
+  if (source.kind === "original" && source.zoom) {
+    return { uri: withVersion(bigThumbnailUrl(base, slide.image_hash), version), headers };
+  }
+  return { uri: withVersion(squareThumbnailUrl(base, slide.image_hash), version), headers };
 }

@@ -194,6 +194,57 @@ export async function fetchDateAlbum(
   return parseResponse(S.FetchDateAlbumResponse, res, "date album").results;
 }
 
+/** How many photos one page of a day group holds (the server's date-album page size). */
+export const DATE_ALBUM_PAGE_SIZE = 100;
+
+/** Where the next chunk of a date-album list's photos starts: a day group (its index in the list) and its page. */
+export type DateAlbumCursor = { group: number; page: number };
+
+/** One chunk of a date-album list's photos, in list order, and where the next one starts (null at the end). */
+export type DateAlbumPhotosChunk = { photos: S.PigPhoto[]; next: DateAlbumCursor | null };
+
+/**
+ * The next photos of a date-album list (`groups`, from fetchDateAlbumsList with the same `filter`) from
+ * `cursor` on: about `photos` of them, in at most `requests` day pages fetched at once. A day the list
+ * already sent whole is not fetched again. For a phone grid that reads a person's or a folder's photos
+ * as it scrolls, without one request per day up front.
+ */
+export async function fetchDateAlbumPhotosChunk(
+  client: ApiClient,
+  groups: readonly S.IncompleteDatePhotosGroup[],
+  cursor: DateAlbumCursor,
+  filter: DateAlbumFilter = {},
+  limits: { photos?: number; requests?: number } = {}
+): Promise<DateAlbumPhotosChunk> {
+  const maxPhotos = limits.photos ?? DATE_ALBUM_PAGE_SIZE;
+  const maxRequests = limits.requests ?? 8;
+  const reads: Promise<S.PigPhoto[]>[] = [];
+  let { group, page } = cursor;
+  let budget = maxPhotos;
+  while (group < groups.length && budget > 0 && reads.length < maxRequests) {
+    const day = groups[group];
+    if (!day) break;
+    if (!day.incomplete && day.items.length > 0) {
+      reads.push(Promise.resolve(day.items));
+      budget -= day.items.length;
+      group += 1;
+      page = 1;
+      continue;
+    }
+    const pages = Math.max(1, Math.ceil(day.numberOfItems / DATE_ALBUM_PAGE_SIZE));
+    reads.push(fetchDateAlbum(client, day.id, page, filter).then(album => album.items));
+    budget -= Math.max(1, Math.min(DATE_ALBUM_PAGE_SIZE, day.numberOfItems - (page - 1) * DATE_ALBUM_PAGE_SIZE));
+    if (page >= pages) {
+      group += 1;
+      page = 1;
+    } else {
+      page += 1;
+    }
+  }
+  const photos = (await Promise.all(reads)).flat();
+  return { photos, next: group < groups.length ? { group, page } : null };
+}
+
 /* ---- photos ------------------------------------------------------------ */
 
 /** The photos of the latest upload day; with a media filter, of the latest day a matching photo came in. */
@@ -2861,11 +2912,11 @@ export async function removePhotosFromUserAlbum(
   return parseResponse(S.UserAlbumEditResponse, res, "remove photos from user album");
 }
 
-/** Set a user album's cover photo. */
+/** Set a user album's cover photo by photo id, or null for the automatic cover. */
 export async function setUserAlbumCover(
   client: ApiClient,
   albumId: number | string,
-  coverPhoto: string
+  coverPhoto: string | null
 ): Promise<S.UserAlbumEditResponse> {
   const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { cover_photo: coverPhoto });
   return parseResponse(S.UserAlbumEditResponse, res, "set user album cover");

@@ -6,7 +6,14 @@ import { ApiError } from "@librephotos/api-client";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
 import { setMetaNumber, META_FAVORITE_MIN_RATING } from "@/db/queries/app-meta";
-import { favoritePhotos, createAlbum, addPhotosToAlbum } from "@/mutations/actions";
+import {
+  favoritePhotos,
+  createAlbum,
+  addPhotosToAlbum,
+  deleteAlbum,
+  setAlbumCover,
+  archivePhotos,
+} from "@/mutations/actions";
 import { enqueueOutbox, pendingOutboxCount, MAX_ATTEMPTS, INFLIGHT_STALE_MS } from "@/mutations/outbox";
 import { drainOutbox, reconcileTempAlbum, type OutboxExecutor } from "../outbox/replay";
 import { syncAll } from "../orchestrator";
@@ -25,6 +32,7 @@ function makeExecutor(over: Partial<OutboxExecutor> = {}): OutboxExecutor & { ca
     favorite: rec("favorite"),
     hide: rec("hide"),
     trash: rec("trash"),
+    archive: rec("archive"),
     rating: rec("rating"),
     caption: rec("caption"),
     albumAdd: rec("albumAdd"),
@@ -34,6 +42,8 @@ function makeExecutor(over: Partial<OutboxExecutor> = {}): OutboxExecutor & { ca
       return { id: 999 };
     },
     albumRename: rec("albumRename"),
+    albumDelete: rec("albumDelete"),
+    albumCover: rec("albumCover"),
     personRename: rec("personRename"),
     ...over,
   };
@@ -55,6 +65,19 @@ describe("drainOutbox", () => {
     expect(res).toMatchObject({ replayed: 1, dropped: 0, remaining: 0 });
     expect(exec.calls).toEqual(["favorite"]);
     expect(pendingOutboxCount(t.db)).toBe(0);
+  });
+
+  it("replays an archive through the executor", async () => {
+    archivePhotos(t.db, { imageHashes: ["hA"], archived: true });
+    const seen: { imageHashes: string[]; archived: boolean }[] = [];
+    const exec = makeExecutor({
+      archive: async (p) => {
+        seen.push(p);
+      },
+    });
+    const res = await drainOutbox(t.db, exec, { now: () => 1000 });
+    expect(res).toMatchObject({ replayed: 1, dropped: 0, remaining: 0 });
+    expect(seen).toEqual([{ imageHashes: ["hA"], archived: true }]);
   });
 
   it("drains in FIFO order", async () => {
@@ -194,6 +217,75 @@ describe("temp-id reconciliation", () => {
     reconcileTempAlbum(t.db, tempId, 77);
     const add = t.db.get(sql`SELECT payload FROM outbox WHERE kind = 'album_add'`) as { payload: string };
     expect(JSON.parse(add.payload)).toHaveProperty("albumId", 77);
+  });
+
+  it("an album created and deleted offline is deleted under its server id", async () => {
+    const { tempId } = createAlbum(t.db, { title: "Gone", photoIds: ["pa"], ownerId: 1 });
+    deleteAlbum(t.db, { albumId: tempId });
+    const deleted: number[] = [];
+    const exec = makeExecutor({
+      albumCreate: async () => ({ id: 55 }),
+      albumDelete: async (p) => {
+        deleted.push(p.albumId);
+      },
+    });
+    await drainOutbox(t.db, exec);
+    expect(deleted).toEqual([55]);
+    // The create's reconcile did not resurrect the deleted album.
+    expect(t.db.all(sql`SELECT id FROM user_album`)).toEqual([]);
+    expect(t.db.all(sql`SELECT album_id FROM user_album_photo`)).toEqual([]);
+    expect(pendingOutboxCount(t.db)).toBe(0);
+  });
+
+  it("a cover set on a temp album replays against the server id", async () => {
+    const { tempId } = createAlbum(t.db, { title: "New", photoIds: ["pa"], ownerId: 1 });
+    setAlbumCover(t.db, { albumId: tempId, photoId: "pa", imageHash: "hA" });
+    const covers: { albumId: number; photoId: string | null }[] = [];
+    const exec = makeExecutor({
+      albumCreate: async () => ({ id: 56 }),
+      albumCover: async (p) => {
+        covers.push(p);
+      },
+    });
+    await drainOutbox(t.db, exec);
+    expect(covers).toEqual([{ albumId: 56, photoId: "pa" }]);
+    expect(t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 56`)).toEqual({ cover_hash: "hA" });
+  });
+});
+
+describe("album delete + cover replay", () => {
+  let t: TestDb;
+  beforeEach(() => {
+    t = createTestDb();
+    seedRemotePhotos(t.db, [remotePhoto({ id: "pa", imageHash: "hA" })]);
+    t.db.run(
+      sql`INSERT INTO user_album (id, title, owner_id, shared, favorited, cover_hash, photo_count, created_on, last_modified)
+          VALUES (9, 'Trip', 1, 0, 0, NULL, 1, 1, 1)`
+    );
+    t.db.run(sql`INSERT INTO user_album_photo (album_id, photo_id, ordering) VALUES (9, 'pa', 0)`);
+  });
+  afterEach(() => t.close());
+
+  it("replays album_delete and album_cover through the executor", async () => {
+    setAlbumCover(t.db, { albumId: 9, photoId: null, imageHash: null });
+    deleteAlbum(t.db, { albumId: 9 });
+    const exec = makeExecutor();
+    const res = await drainOutbox(t.db, exec);
+    expect(res).toMatchObject({ replayed: 2, dropped: 0, remaining: 0 });
+    expect(exec.calls).toEqual(["albumCover", "albumDelete"]);
+  });
+
+  it("drops a delete the server refuses (4xx) with a toast", async () => {
+    deleteAlbum(t.db, { albumId: 9 });
+    const toasts: { kind: string }[] = [];
+    const exec = makeExecutor({
+      albumDelete: async () => {
+        throw new ApiError(404, "/albums/user/9/", "not found");
+      },
+    });
+    const res = await drainOutbox(t.db, exec, { onToast: (x) => toasts.push(x) });
+    expect(res).toMatchObject({ replayed: 0, dropped: 1, remaining: 0 });
+    expect(toasts).toEqual([expect.objectContaining({ kind: "album_delete" })]);
   });
 });
 

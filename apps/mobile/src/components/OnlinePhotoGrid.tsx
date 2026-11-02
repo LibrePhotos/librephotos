@@ -23,6 +23,8 @@ export function OnlinePhotoGrid({
   emptyMessage,
   testID = "online-grid",
   ListHeaderComponent,
+  onEndReached,
+  selection,
 }: {
   items: GridItem[];
   isLoading: boolean;
@@ -31,6 +33,15 @@ export function OnlinePhotoGrid({
   emptyMessage?: string;
   testID?: string;
   ListHeaderComponent?: React.ComponentType | React.ReactElement | null;
+  /** Load the next chunk (an infinite query) as the end comes into view. */
+  onEndReached?: () => void;
+  /** Multi-select (useGridSelection): long-press enters it, a tap then toggles. */
+  selection?: {
+    active: boolean;
+    isSelected: (key: string) => boolean;
+    enter: (item: GridItem) => void;
+    toggle: (item: GridItem) => void;
+  };
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -40,6 +51,10 @@ export function OnlinePhotoGrid({
   const isOnline = useOnlineStatus();
 
   const openPhoto = (item: GridItem) => {
+    if (selection?.active) {
+      selection.toggle(item);
+      return;
+    }
     // Never a dead tap: a camera-roll asset has no image hash until it is
       // hashed, and the old `if (item.imageHash)` guard silently swallowed the
       // press so the viewer looked unimplemented. The viewer resolves a remote
@@ -80,6 +95,10 @@ export function OnlinePhotoGrid({
       serverAddress={base}
       accessToken={token}
       onPressItem={openPhoto}
+      onLongPressItem={selection?.enter}
+      selectionActive={selection?.active ?? false}
+      isSelected={selection?.isSelected}
+      onEndReached={onEndReached}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={
         <View testID={`${testID}-empty`} style={{ padding: 32, alignItems: "center" }}>

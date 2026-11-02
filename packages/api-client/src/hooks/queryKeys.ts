@@ -1,4 +1,4 @@
-import type { MapBounds, SearchFilters, SelectAllPhotos, UserPlaceCircle } from "../endpoints";
+import type { DateAlbumFilter, MapBounds, SearchFilters, SelectAllPhotos, UserPlaceCircle } from "../endpoints";
 import type {
   DuplicateType,
   FaceAnalysisMethod,
@@ -85,6 +85,12 @@ export const photoGridKeys = {
   dateAlbumLists: (photoset: Photoset) => [...gridKind("dateAlbums"), photoset] as const,
   /** One photoset's day groups as the server sends them, without placeholders. */
   dateAlbumListRaw: (photoset: Photoset) => [...gridKind("dateAlbums"), photoset, "raw"] as const,
+  /**
+   * A filtered list of one photoset's day groups read a chunk of photos at a time (the phone's person
+   * and folder grids), under the photoset's lists so their refresh covers it.
+   */
+  dateAlbumPhotoChunks: (photoset: Photoset, filter: DateAlbumFilter) =>
+    [...photoGridKeys.dateAlbumLists(photoset), "chunks", filter] as const,
   /** Every loaded day page of one photoset's lists. */
   dateAlbumDays: (photoset: Photoset) => [...gridKind("dateAlbum"), photoset] as const,
   /**
@@ -200,6 +206,8 @@ export const albumKeys = {
   personSharingPending: (id: number) => [...albumKeys.peopleAlbums(), "sharing", id, "pending"] as const,
   /** One person (the person page's title), under the people list so a rename refreshes both. */
   person: (id: number) => [...albumKeys.peopleAlbums(), "person", id] as const,
+  /** One person as the server sends it, under the person the web shows. */
+  personRaw: (id: number) => [...albumKeys.person(id), "raw"] as const,
   /** The user's groups of people (#1126), under the people list so a person change refreshes the counts. */
   personGroups: () => [...albumKeys.peopleAlbums(), "groups"] as const,
   locationClusters: () => [...albumRoot, "locationClusters"] as const,

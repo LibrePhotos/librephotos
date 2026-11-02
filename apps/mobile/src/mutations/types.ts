@@ -22,6 +22,10 @@ export const TrashPayload = z.object({
   imageHashes: z.array(z.string()).min(1),
   deleted: z.boolean(),
 });
+export const ArchivePayload = z.object({
+  imageHashes: z.array(z.string()).min(1),
+  archived: z.boolean(),
+});
 export const RatingPayload = z.object({
   imageHash: z.string(),
   rating: z.number().int().min(0).max(5),
@@ -52,6 +56,19 @@ export const AlbumRenamePayload = z.object({
   albumId: z.number().int(),
   title: z.string().min(1),
 });
+/** Delete a user album; its photos stay (web: DELETE /albums/user/:id/). */
+export const AlbumDeletePayload = z.object({
+  albumId: z.number().int(),
+});
+/**
+ * Set (or, with nulls, reset to automatic) a user album's cover. The server
+ * takes the photo UUID; the mirror stores the image hash it renders.
+ */
+export const AlbumCoverPayload = z.object({
+  albumId: z.number().int(),
+  photoId: z.string().nullable(),
+  imageHash: z.string().nullable(),
+});
 export const PersonRenamePayload = z.object({
   personId: z.number().int(),
   name: z.string().min(1),
@@ -62,12 +79,15 @@ export const OUTBOX_SCHEMAS = {
   favorite: FavoritePayload,
   hide: HidePayload,
   trash: TrashPayload,
+  archive: ArchivePayload,
   rating: RatingPayload,
   caption: CaptionPayload,
   album_add: AlbumAddPayload,
   album_remove: AlbumRemovePayload,
   album_create: AlbumCreatePayload,
   album_rename: AlbumRenamePayload,
+  album_delete: AlbumDeletePayload,
+  album_cover: AlbumCoverPayload,
   person_rename: PersonRenamePayload,
 } as const;
 

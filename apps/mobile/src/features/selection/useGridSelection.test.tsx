@@ -82,6 +82,7 @@ describe("useGridSelection online actions", () => {
     fireEvent.press(getByTestId("pick-a"));
     fireEvent.press(getByTestId("pick-b"));
     fireEvent.press(getByTestId("pick-c"));
+    fireEvent.press(getByTestId("action-more"));
     fireEvent.press(getByTestId("action-download"));
 
     await waitFor(() => expect(messages()).toContain("Saved 1 item to your phone"));
@@ -99,6 +100,7 @@ describe("useGridSelection online actions", () => {
     fireEvent.press(getByTestId("pick-b"));
     fireEvent.press(getByTestId("pick-c"));
     expect(getByTestId("selection-action-bar")).toBeTruthy();
+    fireEvent.press(getByTestId("action-more"));
     expect(queryByTestId("action-download")).toBeNull();
   });
 
@@ -106,6 +108,7 @@ describe("useGridSelection online actions", () => {
     mockSaveToDevice.mockResolvedValue({ kind: "permissionDenied" });
     const { getByTestId } = await renderGrid(<Grid items={[serverOnly]} />, t.db);
     fireEvent.press(getByTestId("pick-a"));
+    fireEvent.press(getByTestId("action-more"));
     fireEvent.press(getByTestId("action-download"));
     await waitFor(() =>
       expect(messages()).toContain("Allow LibrePhotos to add photos to your gallery to save them")
@@ -115,11 +118,13 @@ describe("useGridSelection online actions", () => {
   it("offers Delete permanently only in the Trash", async () => {
     const timeline = await renderGrid(<Grid items={[serverOnly]} />, t.db);
     fireEvent.press(timeline.getByTestId("pick-a"));
+    fireEvent.press(timeline.getByTestId("action-more"));
     expect(timeline.queryByTestId("action-delete-permanent")).toBeNull();
     timeline.unmount();
 
     const trash = await renderGrid(<Grid items={[serverOnly]} directions={TRASH} />, t.db);
     fireEvent.press(trash.getByTestId("pick-a"));
+    fireEvent.press(trash.getByTestId("action-more"));
     expect(trash.getByTestId("action-delete-permanent")).toBeTruthy();
   });
 
@@ -144,6 +149,7 @@ describe("useGridSelection online actions", () => {
     );
     fireEvent.press(getByTestId("pick-a"));
     fireEvent.press(getByTestId("pick-b"));
+    fireEvent.press(getByTestId("action-more"));
     fireEvent.press(getByTestId("action-delete-permanent"));
 
     expect(alert).toHaveBeenCalledTimes(1);
@@ -180,6 +186,7 @@ describe("useGridSelection online actions", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
     const { getByTestId } = await renderGrid(<Grid items={[serverOnly]} directions={TRASH} />, t.db, client);
     fireEvent.press(getByTestId("pick-a"));
+    fireEvent.press(getByTestId("action-more"));
     fireEvent.press(getByTestId("action-delete-permanent"));
 
     const cancel = (alert.mock.calls[0]?.[2] ?? []).find((b: AlertButton) => b.style === "cancel");
@@ -195,6 +202,7 @@ describe("useGridSelection online actions", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
     const { getByTestId } = await renderGrid(<Grid items={[serverOnly]} directions={TRASH} />, t.db, client);
     fireEvent.press(getByTestId("pick-a"));
+    fireEvent.press(getByTestId("action-more"));
     fireEvent.press(getByTestId("action-delete-permanent"));
     const confirm = (alert.mock.calls[0]?.[2] ?? []).find((b: AlertButton) => b.style === "destructive");
     await act(async () => confirm?.onPress?.());
@@ -204,5 +212,93 @@ describe("useGridSelection online actions", () => {
     );
     expect(t.db.all(sql`SELECT id FROM remote_photo`)).toHaveLength(1);
     expect(mockRunSync).not.toHaveBeenCalled();
+  });
+});
+
+/** A grid inside a user album: the bar gains remove + set-as-cover. */
+function AlbumGrid({ items, albumId }: { items: SelectableItem[]; albumId: number }) {
+  const selection = useGridSelection({}, { albumId, title: "Trip" });
+  return (
+    <View>
+      {items.map((item) => (
+        <Pressable
+          key={item.key}
+          testID={`pick-${item.key}`}
+          onPress={() => (selection.active ? selection.toggle(item) : selection.enter(item))}
+        />
+      ))}
+      {selection.overlay}
+    </View>
+  );
+}
+
+/** A JSON outbox payload, as data. */
+const parsePayload = (payload: string): unknown => JSON.parse(payload);
+
+describe("useGridSelection More actions", () => {
+  let t: TestDb;
+  const outbox = () => t.db.all<{ kind: string; payload: string }>(sql`SELECT kind, payload FROM outbox ORDER BY id`);
+  beforeEach(() => {
+    t = createTestDb();
+    useAuthStore.setState({ userId: 1 });
+    useToastStore.setState({ toasts: [] });
+    seedRemotePhotos(t.db, [
+      remotePhoto({ id: "id-a", imageHash: "hash-a" }),
+      remotePhoto({ id: "id-b", imageHash: "hash-b", archived: true }),
+    ]);
+  });
+  afterEach(() => t.close());
+
+  it("archives the selection through the outbox", async () => {
+    const { getByTestId, queryByTestId } = await renderGrid(<Grid items={[serverOnly]} />, t.db);
+    fireEvent.press(getByTestId("pick-a"));
+    fireEvent.press(getByTestId("action-more"));
+    fireEvent.press(getByTestId("action-archive"));
+    expect(t.db.get(sql`SELECT archived FROM remote_photo WHERE id = 'id-a'`)).toEqual({ archived: 1 });
+    expect(outbox().map((r) => r.kind)).toEqual(["archive"]);
+    expect(queryByTestId("selection-action-bar")).toBeNull();
+  });
+
+  it("unarchives on the Archive grid", async () => {
+    const { getByTestId } = await renderGrid(<Grid items={[onBoth]} directions={{ archived: false }} />, t.db);
+    fireEvent.press(getByTestId("pick-b"));
+    fireEvent.press(getByTestId("action-more"));
+    expect(getByTestId("action-archive")).toHaveTextContent("Unarchive");
+    fireEvent.press(getByTestId("action-archive"));
+    expect(t.db.get(sql`SELECT archived FROM remote_photo WHERE id = 'id-b'`)).toEqual({ archived: 0 });
+  });
+
+  it("rates every selected photo, one rating row each", async () => {
+    const { getByTestId } = await renderGrid(<Grid items={[serverOnly, onBoth]} />, t.db);
+    fireEvent.press(getByTestId("pick-a"));
+    fireEvent.press(getByTestId("pick-b"));
+    fireEvent.press(getByTestId("action-more"));
+    fireEvent.press(getByTestId("action-rate-3"));
+    const ratings = t.db.all<{ rating: number }>(sql`SELECT rating FROM remote_photo ORDER BY id`);
+    expect(ratings).toEqual([{ rating: 3 }, { rating: 3 }]);
+    expect(outbox().map((r) => [r.kind, parsePayload(r.payload)])).toEqual([
+      ["rating", { imageHash: "hash-a", rating: 3 }],
+      ["rating", { imageHash: "hash-b", rating: 3 }],
+    ]);
+  });
+
+  it("sets the one selected photo as the album cover", async () => {
+    t.db.run(
+      sql`INSERT INTO user_album (id, title, owner_id, shared, favorited, cover_hash, photo_count) VALUES (7, 'Trip', 1, 0, 0, NULL, 2)`
+    );
+    const { getByTestId, queryByTestId } = await renderGrid(<AlbumGrid items={[serverOnly, onBoth]} albumId={7} />, t.db);
+    fireEvent.press(getByTestId("pick-a"));
+    fireEvent.press(getByTestId("pick-b"));
+    fireEvent.press(getByTestId("action-more"));
+    expect(queryByTestId("action-set-cover")).toBeNull();
+    fireEvent.press(getByTestId("selection-more-sheet-cancel"));
+    fireEvent.press(getByTestId("pick-b"));
+    fireEvent.press(getByTestId("action-more"));
+    fireEvent.press(getByTestId("action-set-cover"));
+    expect(t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 7`)).toEqual({ cover_hash: "hash-a" });
+    expect(outbox().map((r) => [r.kind, parsePayload(r.payload)])).toEqual([
+      ["album_cover", { albumId: 7, photoId: "id-a", imageHash: "hash-a" }],
+    ]);
+    expect(messages()).toContain("Cover updated");
   });
 });

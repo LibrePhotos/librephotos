@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
@@ -15,7 +15,14 @@ import { serverAddress } from "@/lib/apiClient";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 
-export type AlbumCard = { id: number; title: string; coverHash: string | null; photoCount: number };
+export type AlbumCard = {
+  id: number;
+  title: string;
+  coverHash: string | null;
+  photoCount: number;
+  /** User albums: who owns it (null for one made offline), for what long-press may offer. */
+  ownerId?: number | null;
+};
 
 /** A grid of album cover cards (My Albums, Events), rendered from the mirror. */
 export function AlbumsListScreen({
@@ -23,6 +30,9 @@ export function AlbumsListScreen({
   query,
   hrefFor,
   creatable = false,
+  queryDeps = [],
+  headerActions,
+  onLongPressItem,
   testID = "albums-list",
 }: {
   title: string;
@@ -30,6 +40,12 @@ export function AlbumsListScreen({
   hrefFor: (id: number) => Href;
   /** My Albums: show a "New album" affordance (empty album, offline-capable). */
   creatable?: boolean;
+  /** Re-run `query` when these change (e.g. the chosen sort). */
+  queryDeps?: readonly unknown[];
+  /** Extra header buttons, before "New album" (My Albums: the sort menu). */
+  headerActions?: ReactNode;
+  /** My Albums: long-press a card to delete the album. */
+  onLongPressItem?: (album: AlbumCard) => void;
   testID?: string;
 }) {
   const { t } = useTranslation();
@@ -41,7 +57,7 @@ export function AlbumsListScreen({
   const { width } = useWindowDimensions();
   const size = useMemo(() => Math.floor((width - 48) / 2), [width]);
   const headers = useMemo(() => mediaHeaders(token), [token]);
-  const albums = useReactiveQuery(query, []);
+  const albums = useReactiveQuery(query, queryDeps);
   const [creating, setCreating] = useState(false);
 
   return (
@@ -50,10 +66,15 @@ export function AlbumsListScreen({
         title={title}
         fallback="/albums"
         right={
-          creatable ? (
-            <Pressable testID="album-create-button" onPress={() => setCreating(true)} hitSlop={8} style={{ paddingHorizontal: 8 }}>
-              <Text style={{ color: theme.brand, fontWeight: "700" }}>+ {t("mutations.newAlbum")}</Text>
-            </Pressable>
+          headerActions || creatable ? (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {headerActions}
+              {creatable ? (
+                <Pressable testID="album-create-button" onPress={() => setCreating(true)} hitSlop={8} style={{ paddingHorizontal: 8 }}>
+                  <Text style={{ color: theme.brand, fontWeight: "700" }}>+ {t("mutations.newAlbum")}</Text>
+                </Pressable>
+              ) : null}
+            </View>
           ) : null
         }
       />
@@ -72,6 +93,7 @@ export function AlbumsListScreen({
           <Pressable
             testID={`album-${item.id}`}
             onPress={() => router.push(hrefFor(item.id))}
+            onLongPress={onLongPressItem ? () => onLongPressItem(item) : undefined}
             style={{ width: size, margin: 4 }}
           >
             <Image

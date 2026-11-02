@@ -12,6 +12,13 @@
 require("@testing-library/react-native").configure({ asyncUtilTimeout: 5000 });
 jest.setTimeout(30000);
 
+// React Native provides requestIdleCallback at runtime; Node does not.
+if (typeof globalThis.requestIdleCallback !== "function") {
+  globalThis.requestIdleCallback = (callback) =>
+    setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 50 }), 0);
+  globalThis.cancelIdleCallback = (handle) => clearTimeout(handle);
+}
+
 // expo-secure-store: an in-memory store so token-backed code paths run in Node.
 jest.mock("expo-secure-store", () => {
   const store = new Map();
@@ -118,6 +125,26 @@ jest.mock("expo-clipboard", () => ({
   setStringAsync: jest.fn(async () => true),
   getStringAsync: jest.fn(async () => ""),
 }));
+
+// expo-sharing → the system share sheet is native; record what would be shared.
+jest.mock("expo-sharing", () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  shareAsync: jest.fn(async () => {}),
+}));
+
+// @react-native-community/datetimepicker → the pickers are native; the iOS
+// inline picker becomes a plain view (fire its `onChange` in a test), and
+// Android's imperative dialog API records how it was opened.
+jest.mock("@react-native-community/datetimepicker", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  const DateTimePicker = props => React.createElement(View, props);
+  return {
+    __esModule: true,
+    default: DateTimePicker,
+    DateTimePickerAndroid: { open: jest.fn(), dismiss: jest.fn(async () => true) },
+  };
+});
 
 // expo-image → a plain RN Image-like stub exposing testID/source.
 // `prefetch` is a real (static) part of the API: the viewer warms its

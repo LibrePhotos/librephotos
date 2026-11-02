@@ -20,7 +20,9 @@ import { isRecord, parseJson } from "@/lib/guards";
 import type { SyncLogEntry } from "@/db/queries/sync-log";
 import {
   AlbumAddPayload,
+  AlbumCoverPayload,
   AlbumCreatePayload,
+  AlbumDeletePayload,
   AlbumRemovePayload,
   AlbumRenamePayload,
   CaptionPayload,
@@ -29,6 +31,7 @@ import {
   PersonRenamePayload,
   RatingPayload,
   TrashPayload,
+  ArchivePayload,
   type OutboxKind,
   type OutboxRow,
 } from "@/mutations/types";
@@ -49,6 +52,7 @@ export interface OutboxExecutor {
   favorite(p: { imageHashes: string[]; favorite: boolean }): Promise<void>;
   hide(p: { imageHashes: string[]; hidden: boolean }): Promise<void>;
   trash(p: { imageHashes: string[]; deleted: boolean }): Promise<void>;
+  archive(p: { imageHashes: string[]; archived: boolean }): Promise<void>;
   rating(p: { imageHash: string; rating: number }): Promise<void>;
   caption(p: { imageHash: string; caption: string }): Promise<void>;
   albumAdd(p: { albumId: number; title: string; photoIds: string[] }): Promise<void>;
@@ -56,6 +60,9 @@ export interface OutboxExecutor {
   /** Returns the server-assigned album id, for temp-id reconciliation. */
   albumCreate(p: { title: string; photoIds: string[] }): Promise<{ id: number }>;
   albumRename(p: { albumId: number; title: string }): Promise<void>;
+  albumDelete(p: { albumId: number }): Promise<void>;
+  /** `photoId` null resets the album to its automatic cover. */
+  albumCover(p: { albumId: number; photoId: string | null }): Promise<void>;
   personRename(p: { personId: number; name: string }): Promise<void>;
 }
 
@@ -127,7 +134,8 @@ export function reconcileTempAlbum(db: AppDatabase, tempId: number, realId: numb
   // Rewrite pending outbox rows still pointing at the temp album.
   const rows = db.all(
     sql`SELECT id, kind, payload FROM outbox
-        WHERE kind IN ('album_add', 'album_remove', 'album_rename') AND payload IS NOT NULL`
+        WHERE kind IN ('album_add', 'album_remove', 'album_rename', 'album_delete', 'album_cover')
+          AND payload IS NOT NULL`
   ) as { id: number; kind: string; payload: string }[];
   for (const r of rows) {
     try {
@@ -151,6 +159,8 @@ async function execRow(db: AppDatabase, executor: OutboxExecutor, row: OutboxRow
       return executor.hide(HidePayload.parse(raw));
     case "trash":
       return executor.trash(TrashPayload.parse(raw));
+    case "archive":
+      return executor.archive(ArchivePayload.parse(raw));
     case "rating":
       return executor.rating(RatingPayload.parse(raw));
     case "caption":
@@ -172,6 +182,12 @@ async function execRow(db: AppDatabase, executor: OutboxExecutor, row: OutboxRow
     case "album_rename": {
       const p = AlbumRenamePayload.parse(raw);
       return executor.albumRename(p);
+    }
+    case "album_delete":
+      return executor.albumDelete(AlbumDeletePayload.parse(raw));
+    case "album_cover": {
+      const p = AlbumCoverPayload.parse(raw);
+      return executor.albumCover({ albumId: p.albumId, photoId: p.photoId });
     }
     case "person_rename": {
       const p = PersonRenamePayload.parse(raw);

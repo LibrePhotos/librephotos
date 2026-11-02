@@ -10,8 +10,11 @@ import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toasts";
 import { useTheme, type ThemeColors } from "@/theme";
 import { sameFilter, toServerDefault } from "./timelineFilter";
+import { useDensityStore } from "./density";
 
 const MEDIA: readonly TimelineFilter["media"][] = ["all", "photos", "videos"];
+/** One label per entry of DENSITIES, in order. */
+const DENSITY_LABELS = ["timelineFilter.density.large", "timelineFilter.density.days", "timelineFilter.density.months", "timelineFilter.density.years"] as const;
 
 /**
  * The timeline filter, as a sheet from the bottom: what to show (all, photos,
@@ -42,6 +45,8 @@ export function TimelineFilterSheet({
   const pushToast = useToastStore((s) => s.push);
   const [saving, setSaving] = useState(false);
   const isDefault = sameFilter(filter, savedDefault);
+  const densityLevel = useDensityStore((s) => s.level);
+  const setDensityLevel = useDensityStore((s) => s.setLevel);
 
   const saveDefault = async () => {
     if (userId == null) return;
@@ -84,25 +89,13 @@ export function TimelineFilterSheet({
         <View style={{ alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: theme.border }} />
         <Text style={{ color: theme.text, fontSize: 18, fontWeight: "700" }}>{t("timelineFilter.title")}</Text>
 
-        <View style={{ flexDirection: "row", backgroundColor: theme.card, borderRadius: 12, padding: 4 }}>
-          {MEDIA.map((media) => {
-            const active = filter.media === media;
-            return (
-              <Pressable
-                key={media}
-                testID={`timeline-filter-media-${media}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                onPress={() => onChange({ ...filter, media })}
-                style={{ flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: "center", backgroundColor: active ? theme.background : "transparent" }}
-              >
-                <Text style={{ color: active ? theme.text : theme.muted, fontWeight: active ? "700" : "500" }}>
-                  {t(`timelineFilter.media.${media}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Segmented
+          testID="timeline-filter-media"
+          options={MEDIA.map((media) => ({ key: media, label: t(`timelineFilter.media.${media}`) }))}
+          selected={filter.media}
+          onSelect={(media) => onChange({ ...filter, media })}
+          theme={theme}
+        />
 
         <Toggle
           testID="timeline-filter-favorites"
@@ -125,6 +118,17 @@ export function TimelineFilterSheet({
           onChange={(hideDocuments) => onChange({ ...filter, hideDocuments })}
           theme={theme}
         />
+
+        {/* The pinch gesture's levels, reachable without two fingers. */}
+        <Text style={{ color: theme.text, fontSize: 15, fontWeight: "600", marginTop: 2 }}>{t("timelineFilter.grid")}</Text>
+        <Segmented
+          testID="timeline-density"
+          options={DENSITY_LABELS.map((label, level) => ({ key: String(level), label: t(label) }))}
+          selected={String(densityLevel)}
+          onSelect={(level) => setDensityLevel(Number(level))}
+          theme={theme}
+        />
+        <Text style={{ color: theme.muted, fontSize: 12, marginTop: -6 }}>{t("timelineFilter.pinchHint")}</Text>
 
         <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
           <Pressable
@@ -173,6 +177,40 @@ function Toggle({
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
       <Text style={{ color: theme.text, fontSize: 15 }}>{label}</Text>
       <Switch testID={testID} value={value} onValueChange={onChange} trackColor={{ true: theme.brand }} />
+    </View>
+  );
+}
+
+function Segmented<K extends string>({
+  options,
+  selected,
+  onSelect,
+  theme,
+  testID,
+}: {
+  options: readonly { key: K; label: string }[];
+  selected: K;
+  onSelect: (key: K) => void;
+  theme: ThemeColors;
+  testID: string;
+}) {
+  return (
+    <View style={{ flexDirection: "row", backgroundColor: theme.card, borderRadius: 12, padding: 4 }}>
+      {options.map((option) => {
+        const active = option.key === selected;
+        return (
+          <Pressable
+            key={option.key}
+            testID={`${testID}-${option.key}`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            onPress={() => onSelect(option.key)}
+            style={{ flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: "center", backgroundColor: active ? theme.background : "transparent" }}
+          >
+            <Text style={{ color: active ? theme.text : theme.muted, fontWeight: active ? "700" : "500" }}>{option.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

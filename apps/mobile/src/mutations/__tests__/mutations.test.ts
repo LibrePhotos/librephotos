@@ -9,6 +9,7 @@ import {
   favoritePhotos,
   hidePhotos,
   trashPhotos,
+  archivePhotos,
   ratePhoto,
   captionPhoto,
   addPhotosToAlbum,
@@ -16,6 +17,8 @@ import {
   createAlbum,
   renameAlbum,
   renamePerson,
+  deleteAlbum,
+  setAlbumCover,
 } from "../actions";
 import { enqueueOutbox, pendingOutboxCount, outboxSummary } from "../outbox";
 import type { OutboxRow } from "../types";
@@ -64,6 +67,17 @@ describe("mutation actions — optimistic write + outbox row", () => {
     expect(photo(t, "hashA")).toMatchObject({ hidden: 1 });
     expect(photo(t, "hashB")).toMatchObject({ hidden: 1, in_trashcan: 1 });
     expect(pendingOutboxCount(t.db)).toBe(2);
+  });
+
+  it("archive flips the mirror's archived flag and queues a row", () => {
+    archivePhotos(t.db, { imageHashes: ["hashA"], archived: true });
+    expect(t.db.get(sql`SELECT archived FROM remote_photo WHERE image_hash = 'hashA'`)).toEqual({ archived: 1 });
+    const rows = outboxRows(t);
+    expect(rows.map((r) => r.kind)).toEqual(["archive"]);
+    expect(JSON.parse(rows[0]?.payload ?? "{}")).toEqual({ imageHashes: ["hashA"], archived: true });
+
+    archivePhotos(t.db, { imageHashes: ["hashA"], archived: false });
+    expect(t.db.get(sql`SELECT archived FROM remote_photo WHERE image_hash = 'hashA'`)).toEqual({ archived: 0 });
   });
 
   it("rating materializes is_favorite from the threshold", () => {
@@ -155,6 +169,28 @@ describe("album + person mutations", () => {
     expect((t.db.get(sql`SELECT title FROM user_album WHERE id = 10`) as { title: string }).title).toBe("Trip 2024");
     expect((t.db.get(sql`SELECT name FROM person WHERE id = 5`) as { name: string }).name).toBe("New");
     expect(pendingOutboxCount(t.db)).toBe(2);
+  });
+
+  it("delete-album drops the album + its membership (photos stay) and queues album_delete", () => {
+    addPhotosToAlbum(t.db, { albumId: 10, title: "Trip", photoIds: ["pa", "pb"], imageHashes: ["hA", "hB"] });
+    deleteAlbum(t.db, { albumId: 10 });
+    expect(t.db.get(sql`SELECT id FROM user_album WHERE id = 10`)).toBeUndefined();
+    expect(t.db.all(sql`SELECT photo_id FROM user_album_photo WHERE album_id = 10`)).toEqual([]);
+    expect(t.db.all(sql`SELECT id FROM remote_photo ORDER BY id`)).toHaveLength(2);
+    const last = outboxRows(t).at(-1);
+    expect(last?.kind).toBe("album_delete");
+    expect(JSON.parse(defined(last?.payload ?? null))).toEqual({ albumId: 10 });
+  });
+
+  it("set-album-cover writes cover_hash and queues album_cover; null resets it", () => {
+    setAlbumCover(t.db, { albumId: 10, photoId: "pb", imageHash: "hB" });
+    const cover = () => (t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 10`) as { cover_hash: string | null }).cover_hash;
+    expect(cover()).toBe("hB");
+    setAlbumCover(t.db, { albumId: 10, photoId: null, imageHash: null });
+    expect(cover()).toBeNull();
+    const rows = outboxRows(t);
+    expect(rows.map((r) => r.kind)).toEqual(["album_cover", "album_cover"]);
+    expect(JSON.parse(defined(rows[0]?.payload ?? null))).toEqual({ albumId: 10, photoId: "pb", imageHash: "hB" });
   });
 });
 

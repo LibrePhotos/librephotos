@@ -356,11 +356,7 @@ describe("loose objects keep the fields a newer server adds", () => {
 
     const old = SyncPhotosResponse.parse({ v: 1, items: [photoRow], next_cursor: null, server_time: "" });
     const oldItem = defined(old.items[0]);
-    expect([oldItem.archived, oldItem.is_screenshot, oldItem.is_document]).toEqual([
-      undefined,
-      undefined,
-      undefined,
-    ]);
+    expect([oldItem.archived, oldItem.is_screenshot, oldItem.is_document]).toEqual([undefined, undefined, undefined]);
     expect(
       SyncPhotosResponse.safeParse({
         v: 1,

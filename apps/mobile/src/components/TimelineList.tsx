@@ -3,43 +3,47 @@ import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { FlashList, type FlashListRef, type ViewToken } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
 import { mediaHeaders } from "@librephotos/api-client";
-import { formatDayHeading } from "@/lib/format";
+import { formatDayHeading, formatMonthHeading } from "@/lib/format";
+import { groupKey, type GroupBy } from "@/features/timeline/density";
 import { noteScroll } from "@/sync/activity";
 import { PhotoTile, type GridItem } from "./PhotoTile";
+import { Icon } from "./Icon";
 import { useTheme } from "@/theme";
 
 export type TimelineItem = GridItem & { day: string };
 
-const NUM_COLUMNS = 3;
 const GAP = 2;
 
+/** A header's `day` is the group key: a day, a month (`YYYY-MM`) or a year. */
 type ListRow =
   | { kind: "header"; day: string; key: string; items: TimelineItem[] }
   | { kind: "row"; items: TimelineItem[]; key: string };
 
-/** Group day-ordered items into header rows + rows of up to 3 photos. */
-function toRows(items: TimelineItem[]): ListRow[] {
+/** Group day-ordered items into header rows + rows of `columns` photos. */
+export function toRows(items: TimelineItem[], columns = 3, groupBy: GroupBy = "day"): ListRow[] {
   const rows: ListRow[] = [];
-  const dayItems = new Map<string, TimelineItem[]>();
+  const groupItems = new Map<string, TimelineItem[]>();
   for (const item of items) {
-    const list = dayItems.get(item.day) ?? [];
+    const g = groupKey(item.day, groupBy);
+    const list = groupItems.get(g) ?? [];
     list.push(item);
-    dayItems.set(item.day, list);
+    groupItems.set(g, list);
   }
-  let currentDay: string | null = null;
+  let current: string | null = null;
   let bucket: TimelineItem[] = [];
   const flush = () => {
-    for (let i = 0; i < bucket.length; i += NUM_COLUMNS) {
-      const chunk = bucket.slice(i, i + NUM_COLUMNS);
+    for (let i = 0; i < bucket.length; i += columns) {
+      const chunk = bucket.slice(i, i + columns);
       rows.push({ kind: "row", items: chunk, key: `row-${chunk[0].key}` });
     }
     bucket = [];
   };
   for (const item of items) {
-    if (item.day !== currentDay) {
+    const g = groupKey(item.day, groupBy);
+    if (g !== current) {
       flush();
-      currentDay = item.day;
-      rows.push({ kind: "header", day: item.day, key: `h-${item.day}`, items: dayItems.get(item.day) ?? [] });
+      current = g;
+      rows.push({ kind: "header", day: g, key: `h-${g}`, items: groupItems.get(g) ?? [] });
     }
     bucket.push(item);
   }
@@ -66,6 +70,8 @@ export function TimelineList({
   ListHeaderComponent,
   ListEmptyComponent,
   topInset = 0,
+  columns = 3,
+  groupBy = "day",
   scrollTarget = null,
   onScrolledToTarget,
   onTopDayChange,
@@ -86,6 +92,9 @@ export function TimelineList({
   ListEmptyComponent?: React.ComponentType | React.ReactElement | null;
   /** Room left above the first row for a floating top bar. */
   topInset?: number;
+  /** Photos per row and how they are grouped (the pinch density). */
+  columns?: number;
+  groupBy?: GroupBy;
   /** A day to jump to (the scrubber); the list scrolls there once it is loaded. */
   scrollTarget?: string | null;
   onScrolledToTarget?: () => void;
@@ -97,30 +106,32 @@ export function TimelineList({
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const { width } = useWindowDimensions();
-  const size = useMemo(() => Math.floor((width - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS), [width]);
+  const size = useMemo(() => Math.floor((width - GAP * (columns - 1)) / columns), [width, columns]);
   const headers = useMemo(() => mediaHeaders(accessToken), [accessToken]);
-  const rows = useMemo(() => toRows(items), [items]);
+  const rows = useMemo(() => toRows(items, columns, groupBy), [items, columns, groupBy]);
   const listRef = useRef<FlashListRef<ListRow>>(null);
 
   useEffect(() => {
     if (!scrollTarget) return;
-    const index = rows.findIndex((r) => r.kind === "header" && r.day === scrollTarget);
+    const target = groupKey(scrollTarget, groupBy);
+    const index = rows.findIndex((r) => r.kind === "header" && r.day === target);
     if (index < 0) return; // not loaded yet; the caller grows the window
     // Land the day's header just below the floating top bar, not under it.
     // FlashList 2 adds viewOffset to the scroll position (FlatList subtracts
     // it), so moving the header down the screen takes a negative offset.
     listRef.current?.scrollToIndex({ index, animated: false, viewOffset: -topInset });
     onScrolledToTarget?.();
-  }, [scrollTarget, rows, onScrolledToTarget, topInset]);
+  }, [scrollTarget, rows, onScrolledToTarget, topInset, groupBy]);
 
   const onViewableItemsChanged = useMemo(
     () =>
       onTopDayChange
         ? ({ viewableItems }: { viewableItems: ViewToken<ListRow>[] }) => {
-            const first = viewableItems.find((v) => v.item != null);
-            if (!first?.item) return;
-            const row = first.item;
-            onTopDayChange(row.kind === "header" ? row.day : row.items[0].day);
+            const top = viewableItems.find((v) => v.item != null)?.item;
+            // A header's key is a month or year at the coarser densities; its
+            // first photo always names the day.
+            const day = top?.items[0]?.day;
+            if (day) onTopDayChange(day);
           }
         : undefined,
     [onTopDayChange]
@@ -150,7 +161,7 @@ export function TimelineList({
       }}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
-      extraData={selectionActive}
+      extraData={`${selectionActive}-${columns}-${groupBy}`}
       contentContainerStyle={topInset > 0 ? { paddingTop: topInset } : undefined}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={ListEmptyComponent}
@@ -161,13 +172,15 @@ export function TimelineList({
             onPress={selectionActive && onToggleDay ? () => onToggleDay(row.items) : undefined}
             style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12, paddingTop: 16, paddingBottom: 6 }}
           >
-            <Text style={{ color: theme.text, fontWeight: "600", fontSize: 15 }}>
-              {formatDayHeading(row.day, { locale: i18n.language, labels: dayLabels })}
+            <Text style={{ color: theme.text, fontWeight: groupBy === "day" ? "600" : "700", fontSize: groupBy === "year" ? 22 : groupBy === "month" ? 17 : 15 }}>
+              {groupBy === "year"
+                ? row.day
+                : groupBy === "month"
+                  ? formatMonthHeading(row.day, { locale: i18n.language })
+                  : formatDayHeading(row.day, { locale: i18n.language, labels: dayLabels })}
             </Text>
             {selectionActive ? (
-              <Text testID={`section-select-${row.day}`} style={{ color: theme.brand, fontSize: 13, fontWeight: "600" }}>
-                ⊟
-              </Text>
+              <Icon testID={`section-select-${row.day}`} name="select" size={20} color={theme.brand} />
             ) : null}
           </Pressable>
         ) : (

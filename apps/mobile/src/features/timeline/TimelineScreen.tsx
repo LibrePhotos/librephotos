@@ -9,6 +9,8 @@ import { isTimelineFilterActive, timelineBuckets } from "@/db/queries/timeline";
 import { TimelineScrubber } from "@/components/TimelineScrubber";
 import { photosBefore, scrubberIndex } from "@/components/scrubberMath";
 import { TimelineFilterSheet } from "./TimelineFilterSheet";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { DENSITIES, levelAfterPinch, useDensityStore } from "./density";
 import { fromServerDefault, useTimelineFilterStore } from "./timelineFilter";
 import type { GridItem } from "@/components/PhotoTile";
 import { MemoriesCard } from "@/features/memories/MemoriesCard";
@@ -47,6 +49,17 @@ export function TimelineScreen() {
     if (user.data) adoptDefault(savedDefault);
   }, [user.data, savedDefault, adoptDefault]);
   const [filterOpen, setFilterOpen] = useState(false);
+  const densityLevel = useDensityStore((s) => s.level);
+  const setDensityLevel = useDensityStore((s) => s.setLevel);
+  const density = DENSITIES[densityLevel];
+  // Two fingers change the grid one step per pinch: out for bigger photos by
+  // day, in for small tiles by month, then by year. One finger still scrolls.
+  const pinch = Gesture.Pinch()
+    .runOnJS(true)
+    .onEnd((e) => {
+      const next = levelAfterPinch(densityLevel, e.scale);
+      if (next !== densityLevel) setDensityLevel(next);
+    });
   const filtered = isTimelineFilterActive(filter);
   const { items, loadMore, loadAtLeast } = useMirrorTimeline(filter);
   const buckets = useReactiveQuery((d) => timelineBuckets(d, filter), [filter], [
@@ -126,25 +139,29 @@ export function TimelineScreen() {
           ) : null}
         </ScrollView>
       ) : (
-        <View style={{ flex: 1 }}>
-          <TimelineList
-            items={items}
-            serverAddress={base}
-            accessToken={token}
-            onPressItem={openPhoto}
-            onLongPressItem={selection.enter}
-            onToggleDay={(dayItems) => selection.toggleGroup(dayItems)}
-            selectionActive={selection.active}
-            isSelected={selection.isSelected}
-            onEndReached={loadMore}
-            topInset={topInset}
-            scrollTarget={scrollTarget}
-            onScrolledToTarget={clearScrollTarget}
-            onTopDayChange={setTopDay}
-            onScrollActivity={onScrollActivity}
-            ListHeaderComponent={selection.active ? undefined : <MemoriesCard />}
-          />
-        </View>
+        <GestureDetector gesture={pinch}>
+          <View testID="timeline-pinch" style={{ flex: 1 }} collapsable={false}>
+            <TimelineList
+              items={items}
+              serverAddress={base}
+              accessToken={token}
+              onPressItem={openPhoto}
+              onLongPressItem={selection.enter}
+              onToggleDay={(dayItems) => selection.toggleGroup(dayItems)}
+              selectionActive={selection.active}
+              isSelected={selection.isSelected}
+              onEndReached={loadMore}
+              topInset={topInset}
+              columns={density.columns}
+              groupBy={density.groupBy}
+              scrollTarget={scrollTarget}
+              onScrolledToTarget={clearScrollTarget}
+              onTopDayChange={setTopDay}
+              onScrollActivity={onScrollActivity}
+              ListHeaderComponent={selection.active ? undefined : <MemoriesCard />}
+            />
+          </View>
+        </GestureDetector>
       )}
       {items.length > 0 ? (
         <TimelineScrubber

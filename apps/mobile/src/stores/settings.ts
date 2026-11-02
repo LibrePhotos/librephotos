@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { AVAILABLE_LOCALES } from "@/i18n/locales";
 import { preferencesStorage } from "@/lib/preferencesStorage";
+import { DEFAULT_USER_ALBUM_SORT, isUserAlbumSort, type UserAlbumSort } from "@/lib/albumSort";
 import { serverStorage } from "@/lib/tokenStorage";
 
 export type ThemePreference = "system" | "light" | "dark";
@@ -26,12 +27,15 @@ export type Preferences = {
   locale: string;
   /** LRU cap for the on-device thumbnail cache (doc 01 / thumb_cache). */
   thumbCapBytes: number;
+  /** Order of the My Albums list (its header's sort menu). */
+  albumSort: UserAlbumSort;
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
   locale: "en",
   thumbCapBytes: DEFAULT_THUMB_CAP_BYTES,
+  albumSort: DEFAULT_USER_ALBUM_SORT,
 };
 
 type SettingsState = Preferences & {
@@ -43,6 +47,7 @@ type SettingsState = Preferences & {
   setTheme: (theme: ThemePreference) => void;
   setLocale: (locale: string) => void;
   setThumbCapBytes: (bytes: number) => void;
+  setAlbumSort: (sort: UserAlbumSort) => void;
 };
 
 /** Normalize a user-typed server URL: trim, add https:// if missing, drop trailing slashes. */
@@ -86,6 +91,7 @@ export function parsePreferences(raw: string | null): Preferences {
     theme: isThemePreference(parsed.theme) ? parsed.theme : DEFAULT_PREFERENCES.theme,
     locale: isKnownLocale(parsed.locale) ? parsed.locale : DEFAULT_PREFERENCES.locale,
     thumbCapBytes: isThumbCap(parsed.thumbCapBytes) ? parsed.thumbCapBytes : DEFAULT_PREFERENCES.thumbCapBytes,
+    albumSort: isUserAlbumSort(parsed.albumSort) ? parsed.albumSort : DEFAULT_PREFERENCES.albumSort,
   };
 }
 
@@ -93,8 +99,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
   /** Apply a preference change in memory, then write the whole set to disk. */
   const setPreference = (patch: Partial<Preferences>) => {
     set(patch);
-    const { theme, locale, thumbCapBytes } = get();
-    const prefs: Preferences = { theme, locale, thumbCapBytes };
+    const { theme, locale, thumbCapBytes, albumSort } = get();
+    const prefs: Preferences = { theme, locale, thumbCapBytes, albumSort };
     // Fire-and-forget like the server URL: this session already uses the
     // in-memory value; the write only has to land before the next cold start.
     void preferencesStorage.set(PREFERENCES_KEY, JSON.stringify(prefs));
@@ -120,5 +126,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setTheme: theme => setPreference({ theme }),
     setLocale: locale => setPreference({ locale }),
     setThumbCapBytes: bytes => setPreference({ thumbCapBytes: bytes }),
+    setAlbumSort: albumSort => setPreference({ albumSort }),
   };
 });

@@ -91,12 +91,13 @@ export type PhotoFlags = {
   in_trashcan: number;
   rating: number;
   is_public: number;
+  archived: number;
 };
 
 /** The mutable flags of one mirror photo (drives the viewer action bar state). */
 export function photoFlagsByHash(db: AppDatabase, imageHash: string): PhotoFlags | null {
   const row = db.get(
-    sql`SELECT id, image_hash, is_favorite, hidden, in_trashcan, rating, is_public
+    sql`SELECT id, image_hash, is_favorite, hidden, in_trashcan, rating, is_public, archived
         FROM remote_photo WHERE image_hash = ${imageHash} LIMIT 1`
   ) as PhotoFlags | undefined;
   return row ?? null;

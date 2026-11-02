@@ -37,7 +37,19 @@ describe("settings store: local preferences persist across restarts", () => {
     s.setLocale("de");
     s.setThumbCapBytes(5 * 1024 * 1024 * 1024);
     await Promise.resolve();
-    expect(persisted()).toEqual({ theme: "dark", locale: "de", thumbCapBytes: 5 * 1024 * 1024 * 1024 });
+    expect(persisted()).toEqual({
+      theme: "dark",
+      locale: "de",
+      thumbCapBytes: 5 * 1024 * 1024 * 1024,
+      albumSort: DEFAULT_PREFERENCES.albumSort,
+    });
+  });
+
+  it("writes and restores the My Albums sort", async () => {
+    useSettingsStore.getState().setAlbumSort("count_desc");
+    await Promise.resolve();
+    expect(persisted()).toMatchObject({ albumSort: "count_desc" });
+    expect(coldStartStore().getState()).toMatchObject({ albumSort: "count_desc" });
   });
 
   it("starts from the saved preferences on a cold start", () => {
@@ -64,12 +76,17 @@ describe("parsePreferences", () => {
       theme: "system",
       locale: "de",
       thumbCapBytes: DEFAULT_THUMB_CAP_BYTES,
+      albumSort: DEFAULT_PREFERENCES.albumSort,
     });
-    expect(parsePreferences(JSON.stringify({ theme: "dark", locale: "xx", thumbCapBytes: "big" }))).toEqual({
+    expect(
+      parsePreferences(JSON.stringify({ theme: "dark", locale: "xx", thumbCapBytes: "big", albumSort: "name" }))
+    ).toEqual({
       theme: "dark",
       locale: "en",
       thumbCapBytes: DEFAULT_THUMB_CAP_BYTES,
+      albumSort: "name",
     });
+    expect(parsePreferences(JSON.stringify({ albumSort: "date" })).albumSort).toBe(DEFAULT_PREFERENCES.albumSort);
   });
 
   it("ignores missing or corrupt data", () => {

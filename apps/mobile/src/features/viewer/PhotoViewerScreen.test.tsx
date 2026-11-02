@@ -7,7 +7,8 @@ import { createTestDb, type TestDb } from "@/db/test-db";
 import { insertLocalAlbum, insertLocalAsset, remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
 import { putPhotoDetail } from "@/db/queries/detail";
 import { notifyOutboxWrite } from "@/sync/triggers";
-import { Dimensions } from "react-native";
+import { Alert, Dimensions, type AlertButton } from "react-native";
+import * as Sharing from "expo-sharing";
 import { containedRect } from "./FaceOverlay";
 import { useImagePixelSize } from "./useImagePixelSize";
 
@@ -18,6 +19,48 @@ import { useImagePixelSize } from "./useImagePixelSize";
  * dragging the whole engine into a screen test.
  */
 jest.mock("@/sync/triggers", () => ({ notifyOutboxWrite: jest.fn<void, unknown[]>() }));
+
+/** A server-side edit pulls the edited row into the mirror; the engine itself is not under test here. */
+jest.mock("@/sync/run", () => ({ runSync: jest.fn(async () => null) }));
+
+type DownloadResult = { uri: string; status: number; headers: Record<string, string>; mimeType: string | null };
+// `mock`-prefixed so jest's hoisted factory may reference it.
+const mockDownloadAsync = jest.fn<Promise<DownloadResult>, [url: string, dest: string]>(async (_url, dest) => ({
+  uri: dest,
+  status: 200,
+  headers: {},
+  mimeType: "image/jpeg",
+}));
+jest.mock("expo-file-system/legacy", () => ({
+  cacheDirectory: "file:///cache/",
+  downloadAsync: (url: string, dest: string) => mockDownloadAsync(url, dest),
+  moveAsync: jest.fn(async () => {}),
+  deleteAsync: jest.fn(async () => {}),
+  makeDirectoryAsync: jest.fn(async () => {}),
+  getInfoAsync: jest.fn(async () => ({ exists: false })),
+}));
+
+/** Press the button of an `Alert.alert` the screen raised, by its label. */
+function pressAlertButton(spy: jest.SpyInstance<void, Parameters<typeof Alert.alert>>, label: string) {
+  const buttons: AlertButton[] = spy.mock.lastCall?.[2] ?? [];
+  const button = buttons.find((b) => b.text === label);
+  expect(button).toBeTruthy();
+  button?.onPress?.();
+}
+
+/** The last outbox row, its payload parsed. */
+function lastOutbox(t: TestDb): { kind: string; payload: unknown } | null {
+  const row = t.db.get(sql`SELECT kind, payload FROM outbox ORDER BY id DESC LIMIT 1`) as
+    | { kind: string; payload: string }
+    | undefined;
+  return row ? { kind: row.kind, payload: JSON.parse(row.payload) as unknown } : null;
+}
+
+/** The address an image slide asks for. */
+function imageUri(utils: Pick<RenderResult, "getByTestId">, testID: string): string {
+  const source: unknown = utils.getByTestId(testID).props.source;
+  return typeof source === "object" && source !== null && "uri" in source ? String(source.uri) : "";
+}
 
 /**
  * The big thumbnail of a 4032x3024 photo at the default BIG_THUMBNAIL_HEIGHT;
@@ -358,7 +401,8 @@ describe("PhotoViewerScreen", () => {
       expect(utils.getByTestId("viewer-timestamp-edit").props.accessibilityState).toHaveProperty("disabled", true);
     });
 
-    it("patches the timestamp through the API when online", async () => {
+    /** The free-text prompt is gone: the date and time come from the platform picker. */
+    it("patches the timestamp picked in the date-and-time picker", async () => {
       const seen: string[] = [];
       const client = makeMockClient(async (url, init) => {
         if (url.includes("/photos/edit/hashA/")) {
@@ -373,11 +417,207 @@ describe("PhotoViewerScreen", () => {
       await waitFor(() => expect(utils.getByTestId("viewer-timestamp-edit")).toBeTruthy());
 
       fireEvent.press(utils.getByTestId("viewer-timestamp-edit"));
-      fireEvent.changeText(utils.getByTestId("viewer-timestamp-prompt-input"), "2020-05-06 07:08:09");
-      fireEvent.press(utils.getByTestId("viewer-timestamp-prompt-submit"));
+      fireEvent(
+        utils.getByTestId("viewer-timestamp-picker-wheel"),
+        "onValueChange",
+        { type: "set", nativeEvent: { timestamp: 0, utcOffset: 0 } },
+        new Date(2020, 4, 6, 7, 8, 9)
+      );
+      fireEvent.press(utils.getByTestId("viewer-timestamp-picker-save"));
 
       await waitFor(() => expect(seen).toHaveLength(1));
       expect(JSON.parse(seen[0])).toEqual({ exif_timestamp: "2020-05-06T07:08:09" });
+    });
+  });
+
+  describe("the action bar and its sheets", () => {
+    beforeEach(() => {
+      mockDownloadAsync.mockClear();
+      jest.mocked(Sharing.shareAsync).mockClear();
+    });
+
+    it("shares a server original through the system share sheet", async () => {
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db, onlineClient());
+      fireEvent.press(utils.getByTestId("viewer-share"));
+      await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalled());
+      expect(mockDownloadAsync.mock.lastCall?.[0]).toContain("/media/photos/hashA");
+      const [uri, options] = jest.mocked(Sharing.shareAsync).mock.lastCall ?? [];
+      expect(uri).toMatch(/^file:\/\/\/cache\/share\/.+\.jpg$/);
+      expect(options).toMatchObject({ mimeType: "image/jpeg" });
+    });
+
+    /** The phone already has the file: nothing to download, and it works offline. */
+    it("shares the phone's own copy without the server", async () => {
+      insertLocalAsset(t.db, { id: "L7", hash: "hashA", uri: "file:///dcim/IMG_0001.jpg" });
+      insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["L7"] });
+      globalThis.__mockNetworkConnected = false;
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db);
+      fireEvent.press(utils.getByTestId("viewer-share"));
+      await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalled());
+      expect(jest.mocked(Sharing.shareAsync).mock.lastCall?.[0]).toBe("file:///dcim/IMG_0001.jpg");
+      expect(mockDownloadAsync).not.toHaveBeenCalled();
+    });
+
+    /** Archive has a mirror column and a bulk endpoint, so it rides the outbox like hide. */
+    it("archives through the outbox from the more sheet, offline too", async () => {
+      globalThis.__mockNetworkConnected = false;
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db);
+      fireEvent.press(utils.getByTestId("viewer-more"));
+      fireEvent.press(utils.getByTestId("viewer-menu-archive"));
+
+      expect(lastOutbox(t)).toEqual({ kind: "archive", payload: { imageHashes: ["hashA"], archived: true } });
+      expect(t.db.get(sql`SELECT archived FROM remote_photo WHERE id = ${PHOTO_ID}`)).toEqual({ archived: 1 });
+      expect(notifyOutboxWrite).toHaveBeenCalled();
+      // The sheet closed itself.
+      expect(utils.queryByTestId("viewer-more-sheet")).toBeNull();
+    });
+
+    it("rates from the more sheet", () => {
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db);
+      fireEvent.press(utils.getByTestId("viewer-more"));
+      fireEvent.press(utils.getByTestId("viewer-star-3"));
+      expect(lastOutbox(t)).toEqual({ kind: "rating", payload: { imageHash: "hashA", rating: 3 } });
+    });
+
+    /** The server turns the photo; the viewer asks for its thumbnail anew instead of the cached one. */
+    it("rotates on the server and re-fetches the image", async () => {
+      const bodies: string[] = [];
+      const client = makeMockClient(async (url, init) => {
+        if (url.includes("/photosedit/rotate/")) {
+          bodies.push(String(init?.body));
+          return jsonResponse({ status: true, image_hash: "hashA", local_orientation: 8, last_modified: "2024-01-03T10:00:00Z" });
+        }
+        if (url.includes("/photos/hashA/")) return jsonResponse(PHOTO_DETAIL);
+        return jsonResponse({}, 404);
+      });
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
+      expect(imageUri(utils, "viewer-image-hashA")).not.toContain("v=");
+
+      fireEvent.press(utils.getByTestId("viewer-edit"));
+      fireEvent.press(utils.getByTestId("viewer-menu-rotate-right"));
+
+      await waitFor(() => expect(bodies).toHaveLength(1));
+      // Clockwise is a negative angle for the server (#2595).
+      expect(JSON.parse(bodies[0])).toEqual({ image_hash: "hashA", angle: -90 });
+      await waitFor(() => expect(imageUri(utils, "viewer-image-hashA")).toMatch(/\?v=\d+$/));
+    });
+
+    it("sets the location to a place found by name", async () => {
+      const patches: string[] = [];
+      const client = makeMockClient(async (url, init) => {
+        if (url.includes("/geocode/search")) {
+          return jsonResponse([{ display_name: "Lisbon, Portugal", lat: 38.72, lon: -9.14 }]);
+        }
+        if (url.includes("/photos/edit/hashA/")) {
+          patches.push(String(init?.body));
+          return jsonResponse({ image_hash: "hashA", geocoded: true });
+        }
+        if (url.includes("/photos/hashA/")) return jsonResponse(PHOTO_DETAIL);
+        return jsonResponse({}, 404);
+      });
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
+      openSheet(utils);
+      await waitFor(() => expect(utils.getByTestId("viewer-location-edit")).toBeTruthy());
+      fireEvent.press(utils.getByTestId("viewer-location-edit"));
+      fireEvent.changeText(utils.getByTestId("viewer-location-search"), "Lisbon");
+
+      await waitFor(() => expect(utils.getByTestId("viewer-location-result-0")).toBeTruthy());
+      fireEvent.press(utils.getByTestId("viewer-location-result-0"));
+
+      await waitFor(() => expect(patches).toHaveLength(1));
+      expect(JSON.parse(patches[0])).toEqual({ exif_gps_lat: 38.72, exif_gps_lon: -9.14 });
+    });
+
+    it("removes the location after asking", async () => {
+      t.db.run(sql`UPDATE remote_photo SET latitude = 52.52, longitude = 13.405 WHERE id = ${PHOTO_ID}`);
+      const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+      const patches: string[] = [];
+      const client = makeMockClient(async (url, init) => {
+        if (url.includes("/photos/edit/hashA/")) {
+          patches.push(String(init?.body));
+          return jsonResponse({ image_hash: "hashA" });
+        }
+        if (url.includes("/photos/hashA/")) return jsonResponse(PHOTO_DETAIL);
+        return jsonResponse({}, 404);
+      });
+      try {
+        const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
+        fireEvent.press(utils.getByTestId("viewer-edit"));
+        fireEvent.press(utils.getByTestId("viewer-menu-location"));
+        fireEvent.press(utils.getByTestId("viewer-location-remove"));
+        expect(patches).toHaveLength(0);
+        pressAlertButton(alert, "Remove location");
+
+        await waitFor(() => expect(patches).toHaveLength(1));
+        expect(JSON.parse(patches[0])).toEqual({ exif_gps_lat: null, exif_gps_lon: null });
+      } finally {
+        alert.mockRestore();
+      }
+    });
+
+    it("shows the photo's tags and adds one", async () => {
+      const posts: { url: string; body: string }[] = [];
+      const client = makeMockClient(async (url, init) => {
+        if (init?.method === "POST" && url.includes("/tags/")) {
+          posts.push({ url, body: String(init.body) });
+          if (url.endsWith("/tags/")) return jsonResponse({ id: 5, name: "sunset", photo_count: 0 });
+          return jsonResponse({ id: 5, name: "sunset", photo_count: 1 });
+        }
+        if (url.includes("/tags/?photo=")) {
+          return jsonResponse({ results: [{ id: 1, name: "beach", photo_count: 3, cover_photos: [] }], next: null });
+        }
+        if (url.includes("/tags/")) return jsonResponse({ results: [], next: null });
+        if (url.includes("/photos/hashA/")) return jsonResponse(PHOTO_DETAIL);
+        return jsonResponse({}, 404);
+      });
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
+      openSheet(utils);
+      await waitFor(() => expect(utils.getByTestId("viewer-tag-1")).toBeTruthy());
+
+      fireEvent.press(utils.getByTestId("viewer-tags-edit"));
+      fireEvent.changeText(utils.getByTestId("viewer-tag-input"), "sunset");
+      fireEvent.press(utils.getByTestId("viewer-tag-add"));
+
+      await waitFor(() => expect(posts).toHaveLength(2));
+      expect(JSON.parse(posts[0].body)).toEqual({ name: "sunset" });
+      expect(posts[1].url).toContain("/tags/5/add/");
+      expect(JSON.parse(posts[1].body)).toEqual({ photos: [PHOTO_ID] });
+    });
+
+    /** Tags are not mirrored: offline the section says so instead of showing none. */
+    it("says tags need a connection while offline", async () => {
+      globalThis.__mockNetworkConnected = false;
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db);
+      openSheet(utils);
+      await waitFor(() => expect(utils.getByTestId("viewer-tags-offline")).toBeTruthy());
+      expect(utils.getByTestId("viewer-tags-edit").props.accessibilityState).toHaveProperty("disabled", true);
+      expect(utils.getByTestId("viewer-location-edit").props.accessibilityState).toHaveProperty("disabled", true);
+    });
+
+    it("deletes a trashed photo for good after asking", async () => {
+      t.db.run(sql`UPDATE remote_photo SET in_trashcan = 1 WHERE id = ${PHOTO_ID}`);
+      const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+      const deletes: string[] = [];
+      const client = makeMockClient(async (url, init) => {
+        if (init?.method === "DELETE" && url.includes("/photosedit/delete/")) {
+          deletes.push(String(init.body));
+          return jsonResponse({ status: true, deleted: ["hashA"], not_deleted: [] });
+        }
+        if (url.includes("/photos/hashA/")) return jsonResponse(PHOTO_DETAIL);
+        return jsonResponse({}, 404);
+      });
+      try {
+        const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
+        fireEvent.press(utils.getByTestId("viewer-more"));
+        fireEvent.press(utils.getByTestId("viewer-menu-delete-permanent"));
+        expect(deletes).toHaveLength(0);
+        pressAlertButton(alert, "Delete permanently");
+
+        await waitFor(() => expect(deletes).toHaveLength(1));
+        expect(JSON.parse(deletes[0])).toEqual({ image_hashes: ["hashA"] });
+      } finally {
+        alert.mockRestore();
+      }
     });
   });
 
@@ -451,8 +691,11 @@ describe("PhotoViewerScreen", () => {
 
     it("hides server-only affordances and says why", async () => {
       const utils = renderWithDb(<PhotoViewerScreen />, t.db);
-      // No server row → no action bar full of no-ops.
+      // No server row → no action bar full of no-ops: Share alone.
       expect(utils.queryByTestId("viewer-action-bar")).toBeNull();
+      expect(utils.getByTestId("viewer-local-action-bar")).toBeTruthy();
+      expect(utils.getByTestId("viewer-share")).toBeTruthy();
+      expect(utils.queryByTestId("viewer-favorite")).toBeNull();
       openSheet(utils);
       await waitFor(() => expect(utils.getByTestId("viewer-local-only")).toBeTruthy());
       // Server-backed sections are replaced by one explanation, not by blanks.

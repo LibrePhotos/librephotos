@@ -51,6 +51,12 @@ export type IconName =
   | "play"
   | "file"
   | "sparkle"
+  | "share"
+  | "more"
+  | "rotateLeft"
+  | "rotateRight"
+  | "download"
+  | "deleteForever"
   // grid tiles
   | "processing"
   // main screens / account
@@ -70,7 +76,12 @@ export type IconName =
   | "server"
   | "logout"
   | "close"
-  | "library";
+  | "library"
+  // album lists
+  | "sort"
+  | "check"
+  // person page
+  | "merge";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -111,6 +122,12 @@ const GLYPHS: Record<IconName, IoniconName> = {
   play: "play",
   file: "document-outline",
   sparkle: "sparkles-outline",
+  share: "share-outline",
+  more: "ellipsis-horizontal",
+  rotateLeft: "return-up-back-outline",
+  rotateRight: "return-up-forward-outline",
+  download: "download-outline",
+  deleteForever: "trash-bin-outline",
   processing: "hourglass-outline",
   filter: "options-outline",
   select: "checkmark-circle-outline",
@@ -129,6 +146,9 @@ const GLYPHS: Record<IconName, IoniconName> = {
   logout: "log-out-outline",
   close: "close",
   library: "library-outline",
+  sort: "swap-vertical-outline",
+  check: "checkmark",
+  merge: "git-merge-outline",
 };
 
 export function Icon({
