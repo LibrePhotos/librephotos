@@ -47,6 +47,11 @@ export const remotePhoto = sqliteTable(
     rating: integer("rating").notNull().default(0),
     isFavorite: integer("is_favorite", { mode: "boolean" }).notNull().default(false),
     hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
+    /** Off the timeline and Memories (#545), still in albums, search and the flag screens. */
+    archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+    /** Media categories, for the timeline filter's hide-screenshots / hide-documents. */
+    isScreenshot: integer("is_screenshot", { mode: "boolean" }).notNull().default(false),
+    isDocument: integer("is_document", { mode: "boolean" }).notNull().default(false),
     inTrashcan: integer("in_trashcan", { mode: "boolean" }).notNull().default(false),
     removed: integer("removed", { mode: "boolean" }).notNull().default(false),
     isPublic: integer("is_public", { mode: "boolean" }).notNull().default(false),
@@ -71,10 +76,20 @@ export const remotePhoto = sqliteTable(
       .where(sql`is_favorite = 1 AND hidden = 0 AND in_trashcan = 0 AND removed = 0`),
     index("idx_remote_photo_hidden").on(t.timestamp).where(sql`hidden = 1 AND removed = 0`),
     index("idx_remote_photo_trash").on(t.timestamp).where(sql`in_trashcan = 1 AND removed = 0`),
+    index("idx_remote_photo_archived")
+      .on(t.timestamp)
+      .where(sql`archived = 1 AND hidden = 0 AND in_trashcan = 0 AND removed = 0`),
+    index("idx_remote_photo_screenshot")
+      .on(t.timestamp)
+      .where(sql`is_screenshot = 1 AND hidden = 0 AND in_trashcan = 0 AND removed = 0 AND archived = 0`),
+    index("idx_remote_photo_document")
+      .on(t.timestamp)
+      .where(sql`is_document = 1 AND hidden = 0 AND in_trashcan = 0 AND removed = 0 AND archived = 0`),
     // Covers the hot "visible timeline" predicate for the merged view + buckets.
+    // Archived photos (#545) are off the timeline, so the index leaves them out.
     index("idx_remote_photo_visible")
       .on(t.timestamp, t.id)
-      .where(sql`hidden = 0 AND in_trashcan = 0 AND removed = 0 AND timestamp IS NOT NULL`),
+      .where(sql`hidden = 0 AND in_trashcan = 0 AND removed = 0 AND archived = 0 AND timestamp IS NOT NULL`),
   ]
 );
 

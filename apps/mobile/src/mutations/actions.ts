@@ -96,6 +96,27 @@ export function trashPhotos(
   });
 }
 
+/** Archive / unarchive (#545): archived photos leave the timeline but stay in albums and search. */
+export function archivePhotos(
+  db: AppDatabase,
+  args: { imageHashes: string[]; archived: boolean },
+  now = Date.now()
+): MutationResult {
+  return db.transaction((tx) => {
+    tx.run(
+      sql`UPDATE remote_photo SET archived = ${args.archived ? 1 : 0}
+          WHERE image_hash IN (${inList(args.imageHashes)})`
+    );
+    const outboxId = enqueueOutbox(
+      tx,
+      "archive",
+      { imageHashes: args.imageHashes, archived: args.archived },
+      now
+    );
+    return { outboxId };
+  });
+}
+
 export function ratePhoto(
   db: AppDatabase,
   args: { imageHash: string; rating: number },
@@ -236,6 +257,40 @@ export function renameAlbum(
   return db.transaction((tx) => {
     tx.run(sql`UPDATE user_album SET title = ${args.title} WHERE id = ${args.albumId}`);
     const outboxId = enqueueOutbox(tx, "album_rename", args, now);
+    return { outboxId };
+  });
+}
+
+/**
+ * Delete a user album: the album row and its membership leave the mirror at
+ * once (the photos stay), and the delete is queued. A still-temp album's id is
+ * rewritten to the server id when its create replays (reconcileTempAlbum).
+ */
+export function deleteAlbum(
+  db: AppDatabase,
+  args: { albumId: number },
+  now = Date.now()
+): MutationResult {
+  return db.transaction((tx) => {
+    tx.run(sql`DELETE FROM user_album_photo WHERE album_id = ${args.albumId}`);
+    tx.run(sql`DELETE FROM user_album WHERE id = ${args.albumId}`);
+    const outboxId = enqueueOutbox(tx, "album_delete", { albumId: args.albumId }, now);
+    return { outboxId };
+  });
+}
+
+/**
+ * Set a user album's cover to one of its photos, or (photo null) go back to the
+ * automatic cover, which the album lists derive from the newest photo.
+ */
+export function setAlbumCover(
+  db: AppDatabase,
+  args: { albumId: number; photoId: string | null; imageHash: string | null },
+  now = Date.now()
+): MutationResult {
+  return db.transaction((tx) => {
+    tx.run(sql`UPDATE user_album SET cover_hash = ${args.imageHash} WHERE id = ${args.albumId}`);
+    const outboxId = enqueueOutbox(tx, "album_cover", args, now);
     return { outboxId };
   });
 }

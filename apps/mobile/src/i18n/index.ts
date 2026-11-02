@@ -3,13 +3,16 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { en } from "./locales/en";
 import { isRTL } from "./locales";
+import { useSettingsStore } from "@/stores/settings";
 
 export { AVAILABLE_LOCALES, isRTL } from "./locales";
 
 /**
  * i18next scaffold. Only English is bundled today; additional locales are
  * pulled from Weblate in a later phase and registered here. `compatibilityJSON:
- * "v4"` keeps plural rules aligned with the web frontend.
+ * "v4"` keeps plural rules aligned with the web frontend. The initial language
+ * is the persisted preference (read synchronously by the settings store), so a
+ * restart comes back in the language the user picked, without an English frame.
  */
 export const defaultNS = "translation";
 
@@ -17,7 +20,7 @@ if (!i18n.isInitialized) {
   // eslint-disable-next-line import/no-named-as-default-member
   void i18n.use(initReactI18next).init({
     resources: { en: { translation: en } },
-    lng: "en",
+    lng: useSettingsStore.getState().locale,
     fallbackLng: "en",
     defaultNS,
     interpolation: { escapeValue: false },

@@ -1,7 +1,6 @@
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useRouter } from "expo-router";
 import {
   endpoints,
   useApiClient,
@@ -11,7 +10,7 @@ import {
 } from "@librephotos/api-client";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useToastStore } from "@/stores/toasts";
-import { goBackOr } from "@/lib/navigation";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme, type ThemeColors } from "@/theme";
 
 /**
@@ -22,7 +21,6 @@ import { useTheme, type ThemeColors } from "@/theme";
 export function AdminScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const router = useRouter();
   const client = useApiClient();
   const isOnline = useOnlineStatus();
   const pushToast = useToastStore((s) => s.push);
@@ -46,12 +44,7 @@ export function AdminScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
-        <Pressable testID="admin-back" onPress={() => goBackOr(router, "/profile")} hitSlop={8}>
-          <Text style={{ color: theme.brand, fontSize: 16 }}>‹</Text>
-        </Pressable>
-        <Text style={{ fontSize: 22, fontWeight: "700", color: theme.text, flex: 1 }}>{t("admin.title")}</Text>
-      </View>
+      <ScreenHeader title={t("admin.title")} fallback="/profile" testID="admin" />
 
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

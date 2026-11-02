@@ -57,6 +57,13 @@
       "when": 1792672300688,
       "tag": "0007_first_bill_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793609596617,
+      "tag": "0008_faithful_maximus",
+      "breakpoints": true
     }
   ]
 }

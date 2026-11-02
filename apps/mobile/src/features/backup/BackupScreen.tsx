@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useDb, useReactiveQuery } from "@/db/provider";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 import {
   cycleAlbumSelection,
@@ -24,7 +25,8 @@ import {
   type BackupConfig,
 } from "@/db/queries/backup";
 import { queueList, queueSummary, retryFailed, type QueueListRow, type QueueSummary } from "@/sync/upload/queue";
-import { backupState, type BackupBlocker, type BackupStage, type BackupState } from "@/sync/upload/status";
+import type { BackupBlocker, BackupState } from "@/sync/upload/status";
+import { stageText, useBackupState } from "./backupStatus";
 import { getMediaAccess } from "@/sync/device/media-store";
 import { clearDeferredHashes } from "@/sync/device/hasher";
 import { LIBRARY_ALBUM_ID } from "@/sync/device/media-sync";
@@ -51,7 +53,6 @@ export function BackupScreen() {
   const userId = useAuthStore((s) => s.userId);
   const running = useSyncStore((s) => s.running);
   const deviceProgress = useSyncStore((s) => s.deviceProgress);
-  const gate = useSyncStore((s) => s.gate);
 
   const config = useReactiveQuery<BackupConfig>((d) => getBackupConfig(d), []);
   const summary = useReactiveQuery<QueueSummary>((d) => queueSummary(d), []);
@@ -59,19 +60,7 @@ export function BackupScreen() {
   const queue = useReactiveQuery<QueueListRow[]>((d) => queueList(d, 100), []);
   const access = useReactiveQuery<MediaAccess | null>((d) => getMediaAccess(d), []);
   const jobs = useReactiveQuery<JobQueueSnapshot>((d) => jobQueueSnapshot(d), []);
-  // The job queue tells the screen which stage is actually running, so the
-  // headline can name the camera-roll scan instead of silently reporting a hash
-  // fraction over a library that has not finished being enumerated.
-  const state = useReactiveQuery<BackupState>(
-    (d) =>
-      backupState(d, {
-        config: getBackupConfig(d),
-        access: getMediaAccess(d),
-        gate,
-        jobs: jobQueueSnapshot(d),
-      }),
-    [gate]
-  );
+  const state = useBackupState();
 
   const [busy, setBusy] = useState(false);
 
@@ -117,10 +106,8 @@ export function BackupScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-        <Text testID="backup-title" style={{ fontSize: 22, fontWeight: "700", color: theme.text }}>
-          {t("backup.title")}
-        </Text>
+      <ScreenHeader title={t("backup.title")} fallback="/profile" testID="backup-title" />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20, gap: 16 }}>
 
         {/* Overall status. Three lines, in this order and never collapsed:
             what stage is running, how far each pipeline has got, and what (if
@@ -324,29 +311,6 @@ export function BackupScreen() {
 }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
-
-/** The headline: which stage is running, and how far along it is. */
-function stageText(t: Translate, stage: BackupStage): string {
-  switch (stage.kind) {
-    case "scanning":
-      return t("backup.statusScanning", { scanned: stage.done, total: stage.total });
-    case "hashing":
-      return t("backup.statusHashing", { done: stage.done, total: stage.total });
-    case "uploading":
-      return t("backup.statusUploading", { done: stage.done, total: stage.total });
-    case "waiting":
-      return t("backup.statusWaiting", { count: stage.pending });
-    case "icloud":
-      return t("backup.statusICloud", { count: stage.pending });
-    case "processing":
-      return t("backup.statusProcessing", { uploaded: stage.uploaded, count: stage.processing });
-    case "up_to_date":
-      return t("backup.statusUpToDate", { count: stage.total });
-    case "idle":
-    default:
-      return t("backup.statusIdle");
-  }
-}
 
 /**
  * What the server still has to do after the uploads (#2740). With nothing left

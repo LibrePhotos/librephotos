@@ -241,11 +241,13 @@ describe("user album edits", () => {
     await endpoints.addPhotosToUserAlbum(client, 4, "Berlin 2024", ["p1"]);
     await endpoints.removePhotosFromUserAlbum(client, "4", ["h1"]);
     await endpoints.setUserAlbumCover(client, "4", "h2");
+    await endpoints.setUserAlbumCover(client, "4", null);
     await expect(endpoints.setUserAlbumLocked(client, "4", true)).resolves.toMatchObject({ id: 4 });
     expect(requests.map(({ method, body }) => ({ method, body }))).toEqual([
       { method: "PATCH", body: { title: "Berlin 2024", photos: ["p1"] } },
       { method: "PATCH", body: { removedPhotos: ["h1"] } },
       { method: "PATCH", body: { cover_photo: "h2" } },
+      { method: "PATCH", body: { cover_photo: null } },
       { method: "PATCH", body: { locked: true } },
     ]);
     expect(new Set(requests.map(request => request.url))).toEqual(

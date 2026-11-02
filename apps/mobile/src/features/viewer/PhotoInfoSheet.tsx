@@ -17,7 +17,9 @@ import {
   PeopleSection,
   SceneSection,
   SimilarPhotosSection,
+  TagsSection,
   TimestampRow,
+  type TagsState,
 } from "./InfoSections";
 
 /**
@@ -50,6 +52,11 @@ export type PhotoInfoSheetProps = {
   mapsDisabled: boolean;
   onSaveCaption: (caption: string) => void;
   onEditTimestamp: () => void;
+  onEditLocation: () => void;
+  /** The photo's own tags, fetched online only (they are not mirrored). */
+  tags: TagsState;
+  onEditTags: () => void;
+  onOpenTag: (tagId: number) => void;
   onAddToAlbum: () => void;
   onRemoveFromAlbum: (album: PhotoAlbumRow) => void;
   onOpenAlbum: (album: PhotoAlbumRow) => void;
@@ -153,6 +160,12 @@ export function PhotoInfoSheet(props: PhotoInfoSheetProps) {
               editable={!isLocalOnly}
               onSave={props.onSaveCaption}
             />
+            <TagsSection
+              state={props.tags}
+              isOnline={props.isOnline}
+              onEdit={props.onEditTags}
+              onOpenTag={props.onOpenTag}
+            />
             <PeopleSection
               people={props.detail?.people ?? null}
               serverAddress={props.serverAddress}
@@ -170,6 +183,8 @@ export function PhotoInfoSheet(props: PhotoInfoSheetProps) {
               longitude={longitude}
               contentWidth={contentWidth}
               mapsDisabled={props.mapsDisabled}
+              isOnline={props.isOnline}
+              onEdit={props.onEditLocation}
             />
             <AlbumsSection
               albums={props.albums}

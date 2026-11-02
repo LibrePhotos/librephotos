@@ -45,6 +45,10 @@ export const SyncPhotoItem = z.looseObject({
   hidden: z.boolean(),
   // Off the timeline and Memories (#545). Older servers do not send it.
   archived: z.boolean().optional(),
+  // Media categories, for the timeline filter's hide-screenshots/-documents.
+  // Older servers do not send them.
+  is_screenshot: z.boolean().optional(),
+  is_document: z.boolean().optional(),
   in_trashcan: z.boolean(),
   removed: z.boolean(),
   is_public: z.boolean(),

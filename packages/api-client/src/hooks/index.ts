@@ -1,8 +1,22 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  infiniteQueryOptions,
+  queryOptions,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import * as endpoints from "../endpoints";
 import { pollWhile } from "../polling";
 import { Photoset } from "../schemas";
-import type { JobsResponse, LoginPost, MetadataValueField, WorkerAvailabilityResponse } from "../schemas";
+import type {
+  IncompleteDatePhotosGroup,
+  JobsResponse,
+  LoginPost,
+  MetadataValueField,
+  PigPhoto,
+  WorkerAvailabilityResponse,
+} from "../schemas";
 import type { ApiClient } from "../transport/types";
 import { useApiClient } from "./context";
 import {
@@ -223,6 +237,78 @@ export function usePhotosWithoutLocationQuery(page: number) {
 export function usePeopleAlbumsQuery() {
   const client = useApiClient();
   return useQuery({ queryKey: albumKeys.peopleAlbumsRaw(), queryFn: () => endpoints.fetchPeopleAlbums(client) });
+}
+
+/** One person (ApiError 404 for an unknown id or another user's person). */
+export function usePersonQuery(id: number | undefined, options: { enabled?: boolean } = {}) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: albumKeys.personRaw(id ?? 0),
+    queryFn: () => {
+      if (!hasId(id)) throw missing("person");
+      return endpoints.fetchPerson(client, id);
+    },
+    enabled: hasId(id) && (options.enabled ?? true),
+  });
+}
+
+/* ---- folders ----------------------------------------------------------- */
+
+/** Every subfolder of a folder, with its own and its parent's path; without `path`, of the scan directory. */
+export function useFolderSubfoldersQuery(path: string | undefined, options: { enabled?: boolean } = {}) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: albumKeys.folder(path),
+    queryFn: () => endpoints.fetchAllFolderSubfolders(client, { path }),
+    enabled: options.enabled ?? true,
+  });
+}
+
+/* ---- date-album photos, a chunk at a time ------------------------------ */
+
+/** Where a chunk of a date-album list's photos starts: the list read with the first chunk, and the cursor in it. */
+export type DateAlbumChunkParam = { groups: IncompleteDatePhotosGroup[]; cursor: endpoints.DateAlbumCursor } | null;
+
+/** One chunk: the whole list of day groups (for counts) and this chunk's photos. */
+export type DateAlbumChunkPage = {
+  groups: IncompleteDatePhotosGroup[];
+  photos: PigPhoto[];
+  next: endpoints.DateAlbumCursor | null;
+};
+
+/**
+ * The photos of a filtered date-album list (a person's, a folder's) as an infinite query, about one
+ * day page of photos per chunk. The first chunk reads the list itself, so a refresh starts from the
+ * server's current days; each later chunk carries the list it continues.
+ */
+export function dateAlbumPhotoChunksQueryOptions(
+  client: ApiClient,
+  photoset: Photoset,
+  filter: endpoints.DateAlbumFilter,
+  options: { enabled?: boolean } = {}
+) {
+  return infiniteQueryOptions({
+    queryKey: photoGridKeys.dateAlbumPhotoChunks(photoset, filter),
+    initialPageParam: null as DateAlbumChunkParam,
+    queryFn: async ({ pageParam }): Promise<DateAlbumChunkPage> => {
+      const groups = pageParam ? pageParam.groups : await endpoints.fetchDateAlbumsList(client, filter);
+      const cursor = pageParam ? pageParam.cursor : { group: 0, page: 1 };
+      const chunk = await endpoints.fetchDateAlbumPhotosChunk(client, groups, cursor, filter);
+      return { groups, photos: chunk.photos, next: chunk.next };
+    },
+    getNextPageParam: (last): DateAlbumChunkParam | undefined =>
+      last.next ? { groups: last.groups, cursor: last.next } : undefined,
+    enabled: options.enabled ?? true,
+  });
+}
+
+export function useDateAlbumPhotoChunksQuery(
+  photoset: Photoset,
+  filter: endpoints.DateAlbumFilter,
+  options: { enabled?: boolean } = {}
+) {
+  const client = useApiClient();
+  return useInfiniteQuery(dateAlbumPhotoChunksQueryOptions(client, photoset, filter, options));
 }
 
 /* ---- search ------------------------------------------------------------ */

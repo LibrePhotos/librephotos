@@ -12,6 +12,7 @@ import { TextPromptModal } from "@/components/TextPromptModal";
 import { useMutations } from "@/mutations/useMutations";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 
 /** The People album grid, rendered from the mirrored `person` list (doc 02). */
@@ -30,9 +31,7 @@ export function PeopleScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-        <Text style={{ fontSize: 24, fontWeight: "700", color: theme.text }}>{t("explore.people")}</Text>
-      </View>
+      <ScreenHeader title={t("explore.people")} fallback="/albums" />
       <FlashList
         testID="people-list"
         data={persons}

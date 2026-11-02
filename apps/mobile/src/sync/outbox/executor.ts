@@ -22,6 +22,9 @@ export function createApiOutboxExecutor(client = apiClient): OutboxExecutor {
     trash: async (p) => {
       await endpoints.setPhotosDeleted(client, p.imageHashes, p.deleted);
     },
+    archive: async (p) => {
+      await endpoints.setPhotosArchived(client, p.imageHashes, p.archived);
+    },
     rating: async (p) => {
       await endpoints.setPhotoRating(client, p.imageHash, p.rating);
     },
@@ -40,6 +43,12 @@ export function createApiOutboxExecutor(client = apiClient): OutboxExecutor {
     },
     albumRename: async (p) => {
       await endpoints.renameUserAlbum(client, p.albumId, p.title);
+    },
+    albumDelete: async (p) => {
+      await endpoints.deleteUserAlbum(client, p.albumId);
+    },
+    albumCover: async (p) => {
+      await endpoints.setUserAlbumCover(client, p.albumId, p.photoId);
     },
     personRename: async (p) => {
       await endpoints.renamePerson(client, p.personId, p.name);

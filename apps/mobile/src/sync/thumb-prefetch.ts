@@ -97,7 +97,7 @@ export async function prefetchNewThumbs(
         FROM remote_photo rp
         LEFT JOIN thumb_cache tc ON tc.photo_id = rp.id
         WHERE tc.photo_id IS NULL
-          AND rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0
+          AND rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0 AND rp.archived = 0
           AND rp.timestamp IS NOT NULL
         ORDER BY rp.timestamp DESC
         LIMIT ${limit}`

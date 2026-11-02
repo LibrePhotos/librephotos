@@ -9,6 +9,9 @@ export type GridAction =
   | "hide"
   | "trash"
   | "addToAlbum"
+  | "rating"
+  | "setCover"
+  | "archive"
   // online-only:
   | "download"
   | "shareLink"
@@ -31,9 +34,17 @@ export type ViewerAction =
   | "addToAlbum"
   | "removeFromAlbum"
   | "renamePerson"
+  | "archive"
   // online-only:
   | "timestamp"
-  | "makePublic";
+  | "makePublic"
+  /** Share a server original to another app (a phone copy shares offline: see the action bar). */
+  | "share"
+  | "saveToDevice"
+  | "rotate"
+  | "location"
+  | "tags"
+  | "deletePermanent";
 
 /** Actions the outbox can carry while offline (doc 03 §6 / doc 05). */
 const OFFLINE_CAPABLE_GRID: ReadonlySet<GridAction> = new Set([
@@ -41,6 +52,9 @@ const OFFLINE_CAPABLE_GRID: ReadonlySet<GridAction> = new Set([
   "hide",
   "trash",
   "addToAlbum",
+  "rating",
+  "setCover",
+  "archive",
 ]);
 
 export function isGridActionOfflineCapable(action: GridAction): boolean {
@@ -71,6 +85,7 @@ const OFFLINE_CAPABLE_VIEWER: ReadonlySet<ViewerAction> = new Set([
   "addToAlbum",
   "removeFromAlbum",
   "renamePerson",
+  "archive",
 ]);
 
 export function isViewerActionOfflineCapable(action: ViewerAction): boolean {

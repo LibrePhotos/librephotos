@@ -339,6 +339,8 @@ export function LocationSection({
   longitude,
   contentWidth,
   mapsDisabled,
+  isOnline,
+  onEdit,
   testID = "viewer-location-section",
 }: {
   placeName: string | null;
@@ -346,6 +348,9 @@ export function LocationSection({
   longitude: number | null;
   contentWidth: number;
   mapsDisabled: boolean;
+  /** Editing is a server-side lookup: online-only. */
+  isOnline: boolean;
+  onEdit: () => void;
   testID?: string;
 }) {
   const { t } = useTranslation();
@@ -353,7 +358,14 @@ export function LocationSection({
   const hasCoords = typeof latitude === "number" && typeof longitude === "number";
 
   return (
-    <Section testID={testID} title={t("viewer.location")} icon="location">
+    <Section
+      testID={testID}
+      title={t("viewer.location")}
+      icon="location"
+      action={
+        <OnlineOnlyButton testID="viewer-location-edit" label={t("viewer.edit")} isOnline={isOnline} onPress={onEdit} />
+      }
+    >
       {placeName ? (
         <Text testID="viewer-location-name" selectable style={{ color: theme.text, fontSize: 14 }}>
           {placeName}
@@ -631,6 +643,56 @@ export function TimestampRow({
         onPress={onEdit}
       />
     </View>
+  );
+}
+
+/* ---- tags -------------------------------------------------------------- */
+
+export type TagsState =
+  | { kind: "loading" }
+  | { kind: "error" }
+  /** Tags are not mirrored: offline, they cannot be shown at all. */
+  | { kind: "offline" }
+  | { kind: "loaded"; tags: { id: number; name: string }[] };
+
+/** The user's own tags on the photo (online-only, tier C in doc 07 §1.3). */
+export function TagsSection({
+  state,
+  isOnline,
+  onEdit,
+  onOpenTag,
+  testID = "viewer-tags-section",
+}: {
+  state: TagsState;
+  isOnline: boolean;
+  onEdit: () => void;
+  onOpenTag: (tagId: number) => void;
+  testID?: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Section
+      testID={testID}
+      title={t("viewer.tags")}
+      icon="tags"
+      action={<OnlineOnlyButton testID="viewer-tags-edit" label={t("viewer.edit")} isOnline={isOnline} onPress={onEdit} />}
+    >
+      {state.kind === "loading" ? <Note testID="viewer-tags-loading" text={t("common.loading")} /> : null}
+      {state.kind === "error" ? <Note testID="viewer-tags-error" text={t("viewer.tagsLoadError")} /> : null}
+      {state.kind === "offline" ? (
+        <Note testID="viewer-tags-offline" tone="offline" text={t("offline.needsConnection")} />
+      ) : null}
+      {state.kind === "loaded" && state.tags.length === 0 ? (
+        <Note testID="viewer-tags-empty" text={t("viewer.noTags")} />
+      ) : null}
+      {state.kind === "loaded" && state.tags.length > 0 ? (
+        <View style={chipRowStyle()}>
+          {state.tags.map((tag) => (
+            <Chip key={tag.id} testID={`viewer-tag-${tag.id}`} label={tag.name} onPress={() => onOpenTag(tag.id)} />
+          ))}
+        </View>
+      ) : null}
+    </Section>
   );
 }
 

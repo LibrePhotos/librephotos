@@ -2,6 +2,8 @@ import { useCallback } from "react";
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { MirrorGrid, type GridItem } from "@/components/MirrorGrid";
 import { useReactiveQuery } from "@/db/provider";
 import { filterPhotos, type PhotoFilter, type PhotoTileRow } from "@/db/queries/filters";
@@ -20,6 +22,8 @@ function directionsFor(filter: PhotoFilter): SelectionDirections {
       return { hidden: false };
     case "deleted":
       return { deleted: false };
+    case "archived":
+      return { archived: false };
     default:
       return {};
   }
@@ -42,6 +46,7 @@ export function tileRowToItem(r: PhotoTileRow): GridItem {
  */
 export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: string }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   const token = useAccessToken();
   const base = serverAddress();
@@ -66,11 +71,7 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-        <Text testID="filter-title" style={{ fontSize: 24, fontWeight: "700", color: theme.text }}>
-          {title}
-        </Text>
-      </View>
+      <ScreenHeader title={title} fallback="/albums" testID="filter-title" />
       <View style={{ flex: 1 }}>
         <MirrorGrid
           items={items}
@@ -82,7 +83,7 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
           isSelected={selection.isSelected}
           ListEmptyComponent={
             <View testID="filter-empty" style={{ padding: 32, alignItems: "center" }}>
-              <Text style={{ color: theme.muted }}>Nothing here yet.</Text>
+              <Text style={{ color: theme.muted }}>{t("library.empty")}</Text>
             </View>
           }
         />

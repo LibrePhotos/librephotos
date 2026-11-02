@@ -9,7 +9,7 @@ import { OFFLINE_KINDS } from "@/mutations/types";
 
 describe("offline availability", () => {
   it("favorite/hide/trash/add-to-album are offline-capable", () => {
-    for (const a of ["favorite", "hide", "trash", "addToAlbum"] as const) {
+    for (const a of ["favorite", "hide", "trash", "addToAlbum", "rating", "setCover", "archive"] as const) {
       expect(isGridActionOfflineCapable(a)).toBe(true);
       expect(isGridActionAvailable(a, false)).toBe(true);
     }
@@ -34,6 +34,7 @@ describe("offline availability", () => {
       "addToAlbum",
       "removeFromAlbum",
       "renamePerson",
+      "archive",
     ] as const) {
       expect(isViewerActionOfflineCapable(a)).toBe(true);
       expect(isViewerActionAvailable(a, false)).toBe(true);
@@ -46,8 +47,17 @@ describe("offline availability", () => {
    * server has not accepted. Make-public has no mirror-side representation at
    * all. Both are online-only, and must SAY so rather than no-op (doc 07 §4).
    */
-  it("timestamp edit and make-public are online-only", () => {
-    for (const a of ["timestamp", "makePublic"] as const) {
+  it("timestamp edit, make-public and the viewer's server edits are online-only", () => {
+    for (const a of [
+      "timestamp",
+      "makePublic",
+      "share",
+      "saveToDevice",
+      "rotate",
+      "location",
+      "tags",
+      "deletePermanent",
+    ] as const) {
       expect(isViewerActionOfflineCapable(a)).toBe(false);
       expect(isViewerActionAvailable(a, false)).toBe(false);
       expect(isViewerActionAvailable(a, true)).toBe(true);
@@ -70,6 +80,7 @@ describe("offline availability", () => {
       ["addToAlbum", "album_add"],
       ["removeFromAlbum", "album_remove"],
       ["renamePerson", "person_rename"],
+      ["archive", "archive"],
     ];
     for (const [action, kind] of kindFor) {
       expect(isViewerActionOfflineCapable(action)).toBe(true);

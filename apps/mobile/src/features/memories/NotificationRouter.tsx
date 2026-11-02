@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import * as Notifications from "expo-notifications";
-import { useRouter, type Href } from "expo-router";
+import { useRouter } from "expo-router";
+import { loadNotifications } from "@/lib/notificationsModule";
+import { MEMORIES_DEEP_LINK } from "./notifications";
 
 /**
  * Routes a tapped local notification to its deep-link target (the memories
@@ -11,19 +12,28 @@ export function NotificationRouter() {
   const router = useRouter();
 
   useEffect(() => {
+    let cancelled = false;
+    let remove: (() => void) | undefined;
     const go = (url: unknown) => {
-      // A deep link into the app, written by the reminder that scheduled it.
-      if (typeof url === "string" && url.startsWith("/")) router.push(url as Href);
+      // The memories reminder is the only notification that carries a link.
+      if (url === MEMORIES_DEEP_LINK) router.push(MEMORIES_DEEP_LINK);
     };
-    // Cold start: app opened from a notification tap.
-    void Notifications.getLastNotificationResponseAsync().then((res) => {
-      go(res?.notification.request.content.data?.url);
+    void loadNotifications().then((Notifications) => {
+      if (!Notifications || cancelled) return;
+      // Cold start: app opened from a notification tap.
+      void Notifications.getLastNotificationResponseAsync().then((res) => {
+        go(res?.notification.request.content.data?.url);
+      });
+      // Warm taps while the app is running.
+      const sub = Notifications.addNotificationResponseReceivedListener((res) => {
+        go(res.notification.request.content.data?.url);
+      });
+      remove = () => sub.remove();
     });
-    // Warm taps while the app is running.
-    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
-      go(res.notification.request.content.data?.url);
-    });
-    return () => sub.remove();
+    return () => {
+      cancelled = true;
+      remove?.();
+    };
   }, [router]);
 
   return null;

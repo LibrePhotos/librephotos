@@ -26,6 +26,10 @@ export type RemotePhotoInput = {
   rating: number;
   isFavorite: boolean;
   hidden: boolean;
+  /** Off the timeline and Memories (#545). */
+  archived: boolean;
+  isScreenshot: boolean;
+  isDocument: boolean;
   inTrashcan: boolean;
   removed: boolean;
   isPublic: boolean;
@@ -77,6 +81,10 @@ export function pigPhotoToRemoteRow(pig: PigPhoto, opts: MapOptions): RemotePhot
     rating: pig.rating,
     isFavorite: pig.rating >= opts.favoriteMinRating,
     hidden: opts.hidden ?? false,
+    archived: pig.archived ?? false,
+    // The timeline list does not carry the media categories; the delta feed does.
+    isScreenshot: false,
+    isDocument: false,
     inTrashcan: pig.in_trashcan ?? opts.inTrashcan ?? false,
     removed: pig.removed ?? false,
     isPublic: opts.isPublic ?? false,
@@ -111,17 +119,21 @@ export function writeRemotePhotos(tx: AppDatabase, rows: RemotePhotoInput[]): vo
     tx.run(
       sql`INSERT INTO remote_photo
         (id, image_hash, owner_id, timestamp, added_on, last_modified, type, video_length_ms,
-         rating, is_favorite, hidden, in_trashcan, removed, is_public, aspect_ratio,
-         latitude, longitude, search_location, dominant_color, bucket_day, bucket_month)
+         rating, is_favorite, hidden, archived, is_screenshot, is_document, in_trashcan, removed,
+         is_public, aspect_ratio, latitude, longitude, search_location, dominant_color, bucket_day,
+         bucket_month)
         VALUES (${r.id}, ${r.imageHash}, ${r.ownerId}, ${r.timestamp}, ${r.addedOn}, ${r.lastModified},
-         ${r.type}, ${r.videoLengthMs}, ${r.rating}, ${b(r.isFavorite)}, ${b(r.hidden)}, ${b(r.inTrashcan)},
+         ${r.type}, ${r.videoLengthMs}, ${r.rating}, ${b(r.isFavorite)}, ${b(r.hidden)}, ${b(r.archived)},
+         ${b(r.isScreenshot)}, ${b(r.isDocument)}, ${b(r.inTrashcan)},
          ${b(r.removed)}, ${b(r.isPublic)}, ${r.aspectRatio}, ${r.latitude}, ${r.longitude},
          ${r.searchLocation}, ${r.dominantColor}, ${r.bucketDay}, ${r.bucketMonth})
         ON CONFLICT(id) DO UPDATE SET
           image_hash = excluded.image_hash, owner_id = excluded.owner_id, timestamp = excluded.timestamp,
           added_on = excluded.added_on, last_modified = excluded.last_modified, type = excluded.type,
           video_length_ms = excluded.video_length_ms, rating = excluded.rating,
-          is_favorite = excluded.is_favorite, hidden = excluded.hidden, in_trashcan = excluded.in_trashcan,
+          is_favorite = excluded.is_favorite, hidden = excluded.hidden, archived = excluded.archived,
+          is_screenshot = excluded.is_screenshot, is_document = excluded.is_document,
+          in_trashcan = excluded.in_trashcan,
           removed = excluded.removed, is_public = excluded.is_public, aspect_ratio = excluded.aspect_ratio,
           latitude = excluded.latitude, longitude = excluded.longitude,
           search_location = excluded.search_location, dominant_color = excluded.dominant_color,
@@ -136,6 +148,34 @@ export function deleteRemotePhotos(tx: AppDatabase, ids: string[]): void {
     tx.run(sql`DELETE FROM remote_photo WHERE id = ${id}`);
     tx.run(sql`DELETE FROM remote_photo_detail WHERE photo_id = ${id}`);
   }
+}
+
+/**
+ * Drop the owner's photos with these image hashes from the mirror (and their
+ * detail cache), after the server deleted them for good. The server deletes
+ * every row of the requester's that carries the hash (image_hash is not unique),
+ * and only theirs, so this matches it: another user's shared photo with the same
+ * hash stays. The next delta pull brings the same tombstones; removing the rows
+ * now just spares the grid a stale moment. Returns how many rows went.
+ */
+export function deleteOwnedRemotePhotosByHash(db: AppDatabase, ownerId: number, imageHashes: string[]): number {
+  if (imageHashes.length === 0) return 0;
+  return db.transaction((tx) => {
+    const ids: string[] = [];
+    for (const batch of chunk(imageHashes, BATCH_SIZE)) {
+      const rows = tx.all<{ id: string }>(
+        sql`SELECT id FROM remote_photo
+            WHERE owner_id = ${ownerId}
+              AND image_hash IN (${sql.join(
+                batch.map((h) => sql`${h}`),
+                sql`, `
+              )})`
+      );
+      for (const r of rows) ids.push(r.id);
+    }
+    deleteRemotePhotos(tx, ids);
+    return ids.length;
+  });
 }
 
 /** Idempotent batched upsert of remote photos. Returns rows written. */

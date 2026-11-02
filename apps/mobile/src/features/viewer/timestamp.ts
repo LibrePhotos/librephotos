@@ -1,12 +1,10 @@
 /**
  * Timestamp editing helpers for the viewer.
  *
- * The web lightbox uses a calendar widget plus a time input. Mobile edits the
- * timestamp as text in the existing `TextPromptModal` instead — a native date
- * picker means `@react-native-community/datetimepicker`, and every new native
- * module is a risk against the "must open in Expo Go" constraint (README
- * "Dependency constraints"). A pre-filled, validated `YYYY-MM-DD HH:mm:ss` field
- * is a smaller promise that always works.
+ * The web lightbox uses a calendar widget plus a time input; mobile uses the
+ * platform pickers (`@react-native-community/datetimepicker`, bundled in Expo
+ * Go) in `TimestampPickerModal`. The text helpers below are what the picker's
+ * value is written as, and what an older text field read.
  *
  * Everything here is local-time and naive on purpose: LibrePhotos stores
  * `exif_timestamp` as a naive local timestamp (the moment the shutter fired
@@ -68,4 +66,19 @@ export function parseEditableTimestamp(text: string): string | null {
     return null;
   }
   return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+}
+
+/** The picker's starting value: the photo's own date, or now for a photo without one. */
+export function pickerInitialDate(value: number | string | null | undefined, now = new Date()): Date {
+  if (value == null || value === "") return now;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? now : date;
+}
+
+/** A picked local `Date` as the naive `YYYY-MM-DDTHH:mm:ss` the backend stores. */
+export function toNaiveTimestamp(date: Date): string {
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  );
 }

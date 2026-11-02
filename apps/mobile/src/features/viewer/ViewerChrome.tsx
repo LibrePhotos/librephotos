@@ -16,6 +16,15 @@ import type { ViewerSlide } from "@/db/queries/detail";
  */
 
 const ON_SCRIM = "#ffffff";
+
+/**
+ * A thumbnail address with a version, so a photo rotated here is fetched anew
+ * rather than served from expo-image's cache (the web lightbox does the same
+ * with `?v=`).
+ */
+export function withVersion(uri: string, version: number | undefined): string {
+  return version ? `${uri}${uri.includes("?") ? "&" : "?"}v=${version}` : uri;
+}
 const SCRIM = "rgba(0,0,0,0.45)";
 
 /** 44pt-square icon button, the platform minimum touch target. */
@@ -131,6 +140,7 @@ export function ThumbnailStrip({
   activeKey,
   serverAddress,
   headers,
+  versions = {},
   bottomOffset,
   onSelect,
   testID = "viewer-filmstrip",
@@ -139,6 +149,8 @@ export function ThumbnailStrip({
   activeKey: string | undefined;
   serverAddress: string;
   headers: Record<string, string>;
+  /** Image hashes rotated in this viewer → a version that busts their cached thumbnails. */
+  versions?: Readonly<Record<string, number>>;
   bottomOffset: number;
   onSelect: (index: number) => void;
   testID?: string;
@@ -177,7 +189,7 @@ export function ThumbnailStrip({
           const uri = slide.local_uri
             ? slide.local_uri
             : slide.image_hash
-              ? squareThumbnailSmallUrl(serverAddress, slide.image_hash)
+              ? withVersion(squareThumbnailSmallUrl(serverAddress, slide.image_hash), versions[slide.image_hash])
               : null;
           return (
             <Pressable

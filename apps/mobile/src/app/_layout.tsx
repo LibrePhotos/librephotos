@@ -1,7 +1,7 @@
 import "@/global.css";
 import "@/i18n";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, LogBox, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
@@ -13,6 +13,12 @@ import { NotificationRouter } from "@/features/memories/NotificationRouter";
 import { noteInteraction } from "@/sync/activity";
 import { useAuthStore } from "@/stores/auth";
 import { useResolvedScheme, useTheme } from "@/theme";
+
+// Expo Go on Android always says it cannot give full media-library access;
+// that is known (backup needs a dev build there) and the toast covers the
+// bottom bars on every launch. Development-only: LogBox does not exist in a
+// release build.
+LogBox.ignoreLogs(["Due to changes in Androids permission requirements"]);
 
 /**
  * Capture-phase touch sniffer. Returning false declines the responder, so the
@@ -75,6 +81,8 @@ function RootNavigator() {
         <Stack.Protected guard={isAuthed}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="photo/[id]" options={{ presentation: "modal" }} />
+          {/* The account screen opens from the avatar, as a sheet over the tabs. */}
+          <Stack.Screen name="profile" options={{ presentation: "modal" }} />
           <Stack.Screen name="sharing" />
           <Stack.Screen name="memories" />
           <Stack.Screen name="share" options={{ presentation: "modal" }} />

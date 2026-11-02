@@ -12,6 +12,13 @@
 require("@testing-library/react-native").configure({ asyncUtilTimeout: 5000 });
 jest.setTimeout(30000);
 
+// React Native provides requestIdleCallback at runtime; Node does not.
+if (typeof globalThis.requestIdleCallback !== "function") {
+  globalThis.requestIdleCallback = (callback) =>
+    setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 50 }), 0);
+  globalThis.cancelIdleCallback = (handle) => clearTimeout(handle);
+}
+
 // expo-secure-store: an in-memory store so token-backed code paths run in Node.
 jest.mock("expo-secure-store", () => {
   const store = new Map();
@@ -25,6 +32,30 @@ jest.mock("expo-secure-store", () => {
     }),
     __reset: () => store.clear(),
   };
+});
+
+// expo-sqlite/kv-store (local preferences): one in-memory map shared by every
+// SQLiteStorage instance, so a test can seed it and re-import the settings store.
+jest.mock("expo-sqlite/kv-store", () => {
+  const store = new Map();
+  class SQLiteStorage {
+    getItemSync(key) {
+      return store.has(key) ? store.get(key) : null;
+    }
+    async getItemAsync(key) {
+      return this.getItemSync(key);
+    }
+    setItemSync(key, value) {
+      store.set(key, value);
+    }
+    async setItemAsync(key, value) {
+      store.set(key, value);
+    }
+    async removeItemAsync(key) {
+      return store.delete(key);
+    }
+  }
+  return { SQLiteStorage, __store: store, __reset: () => store.clear() };
 });
 
 // FlashList → render as a plain list so item output is assertable in RNTL.
@@ -82,11 +113,38 @@ jest.mock("expo-notifications", () => ({
   getLastNotificationResponseAsync: jest.fn(async () => null),
 }));
 
+// The app loads expo-notifications with a dynamic import(), which Jest cannot
+// run without --experimental-vm-modules: hand it the stub above instead.
+jest.mock("./src/lib/notificationsModule", () => ({
+  ...jest.requireActual("./src/lib/notificationsModule"),
+  loadNotifications: async () => require("expo-notifications"),
+}));
+
 // expo-clipboard → capture copied strings in tests.
 jest.mock("expo-clipboard", () => ({
   setStringAsync: jest.fn(async () => true),
   getStringAsync: jest.fn(async () => ""),
 }));
+
+// expo-sharing → the system share sheet is native; record what would be shared.
+jest.mock("expo-sharing", () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  shareAsync: jest.fn(async () => {}),
+}));
+
+// @react-native-community/datetimepicker → the pickers are native; the iOS
+// inline picker becomes a plain view (fire its `onChange` in a test), and
+// Android's imperative dialog API records how it was opened.
+jest.mock("@react-native-community/datetimepicker", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  const DateTimePicker = props => React.createElement(View, props);
+  return {
+    __esModule: true,
+    default: DateTimePicker,
+    DateTimePickerAndroid: { open: jest.fn(), dismiss: jest.fn(async () => true) },
+  };
+});
 
 // expo-image → a plain RN Image-like stub exposing testID/source.
 // `prefetch` is a real (static) part of the API: the viewer warms its

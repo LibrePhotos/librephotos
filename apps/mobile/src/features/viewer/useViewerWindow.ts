@@ -24,6 +24,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDb } from "@/db/provider";
 import { viewerSlideById, type ViewerSlide } from "@/db/queries/detail";
 import { timelineCursorFor, timelinePage, timelineRowKey, type TimelineCursor } from "@/db/queries/timeline";
+import { useTimelineFilterStore } from "@/features/timeline/timelineFilter";
 import type { MergedTimelineRow } from "@/db/types";
 
 /** Slides loaded either side of the tapped photo. */
@@ -87,6 +88,9 @@ export function useViewerWindow({
   currentIndex: number;
 }): ViewerWindow {
   const db = useDb();
+  // Swipe through what the timeline shows: with its filter on, a swipe must
+  // not land on a video when the timeline shows photos only.
+  const filter = useTimelineFilterStore((s) => s.filter);
 
   // First frame: the seed if the caller gave us one, otherwise one indexed
   // row lookup. Either way this is O(1) and never touches the timeline.
@@ -121,8 +125,9 @@ export function useViewerWindow({
       cursor: anchor,
       direction: "older",
       inclusive: true,
+      filter,
     });
-    const newer = timelinePage(db, { limit: HALF, cursor: anchor, direction: "newer" });
+    const newer = timelinePage(db, { limit: HALF, cursor: anchor, direction: "newer", filter });
     const slides = [...newer.rows, ...older.rows].map(rowToSlide);
     if (slides.length === 0) {
       setState((s) => ({ ...s, atStart: true, atEnd: true }));
@@ -141,7 +146,7 @@ export function useViewerWindow({
       atEnd: older.nextCursor == null,
       restoreIndex: anchorIndex,
     });
-  }, [db, id]);
+  }, [db, id, filter]);
 
   /* ---- extension ------------------------------------------------------ */
 
@@ -159,7 +164,7 @@ export function useViewerWindow({
 
     if (nearEnd && !atEnd && tail && !spent.current.has(key("older", tail))) {
       spent.current.add(key("older", tail));
-      const page = timelinePage(db, { limit: EXTEND, cursor: tail, direction: "older" });
+      const page = timelinePage(db, { limit: EXTEND, cursor: tail, direction: "older", filter });
       setState((s) =>
         s.tail !== tail
           ? s
@@ -175,7 +180,7 @@ export function useViewerWindow({
 
     if (nearStart && !atStart && head && !spent.current.has(key("newer", head))) {
       spent.current.add(key("newer", head));
-      const page = timelinePage(db, { limit: EXTEND, cursor: head, direction: "newer" });
+      const page = timelinePage(db, { limit: EXTEND, cursor: head, direction: "newer", filter });
       const added = page.rows.length;
       setState((s) =>
         s.head !== head
@@ -190,7 +195,7 @@ export function useViewerWindow({
             }
       );
     }
-  }, [db, state, currentIndex]);
+  }, [db, state, currentIndex, filter]);
 
   const restored = useCallback(() => {
     setState((s) => (s.restoreIndex == null ? s : { ...s, restoreIndex: null }));

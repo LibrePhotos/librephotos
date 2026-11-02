@@ -5,6 +5,7 @@ import {
   isSelected,
   selectedImageHashes,
   selectedPhotoIds,
+  selectedDownloadableHashes,
   type SelectableItem,
 } from "./reducer";
 
@@ -60,5 +61,20 @@ describe("selectionReducer", () => {
     s = selectionReducer(s, { type: "toggle", item: { key: "b", photoId: null, imageHash: null } });
     expect(selectedImageHashes(s)).toEqual(["ha"]);
     expect(selectedPhotoIds(s)).toEqual(["pa"]);
+  });
+});
+
+describe("selectedDownloadableHashes", () => {
+  it("keeps server photos that are not on the phone, once per hash", () => {
+    let s = selectionReducer(emptySelection, { type: "enter", item: { key: "a", photoId: "a-id", imageHash: "h1" } });
+    // The same hash under a second photo id (a duplicate) is saved once.
+    s = selectionReducer(s, { type: "toggle", item: { key: "a2", photoId: "a2-id", imageHash: "h1", localUri: null } });
+    // On the phone already, server copy or not.
+    s = selectionReducer(s, { type: "toggle", item: { key: "b", photoId: "b-id", imageHash: "h2", localUri: "ph://b" } });
+    // Only on the phone: nothing on the server to fetch.
+    s = selectionReducer(s, { type: "toggle", item: { key: "c", photoId: null, imageHash: "h3", localUri: "ph://c" } });
+    // Not hashed yet.
+    s = selectionReducer(s, { type: "toggle", item: { key: "d", photoId: "d-id", imageHash: null } });
+    expect(selectedDownloadableHashes(s)).toEqual(["h1"]);
   });
 });

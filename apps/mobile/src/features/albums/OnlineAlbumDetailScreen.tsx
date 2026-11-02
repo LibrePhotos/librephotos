@@ -11,6 +11,7 @@ import {
 import { OnlinePhotoGrid } from "@/components/OnlinePhotoGrid";
 import { useReactiveQuery } from "@/db/provider";
 import { flattenGroupedPhotos } from "@/lib/pigPhoto";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 
 export type AlbumKind = "thing" | "place" | "tag";
@@ -56,11 +57,7 @@ export function OnlineAlbumDetailScreen({ kind, id }: { kind: AlbumKind; id: str
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-        <Text testID="album-detail-title" numberOfLines={1} style={{ fontSize: 22, fontWeight: "700", color: theme.text }}>
-          {title}
-        </Text>
-      </View>
+      <ScreenHeader title={title} fallback="/albums" testID="album-detail-title" />
       <View style={{ flex: 1 }}>
         <OnlinePhotoGrid
           testID="album-detail-grid"

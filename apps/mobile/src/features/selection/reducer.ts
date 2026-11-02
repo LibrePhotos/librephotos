@@ -9,6 +9,11 @@ export type SelectableItem = {
   key: string;
   photoId: string | null;
   imageHash: string | null;
+  /**
+   * The camera-roll file, when the photo is on this phone too (the merged
+   * timeline knows; server-only grids leave it unset). "Save to phone" skips it.
+   */
+  localUri?: string | null;
 };
 
 export type SelectionState = {
@@ -76,4 +81,19 @@ export function selectedImageHashes(state: SelectionState): string[] {
 /** Distinct photo ids of the selection (for album membership). */
 export function selectedPhotoIds(state: SelectionState): string[] {
   return [...new Set(selectedItems(state).map((i) => i.photoId).filter((p): p is string => !!p))];
+}
+/**
+ * Distinct image hashes worth saving to the phone: server photos (a photo id and
+ * a hash) that are not on this phone already. A camera-roll-only asset has no
+ * server original, and one with a `localUri` is in the gallery as it is.
+ */
+export function selectedDownloadableHashes(state: SelectionState): string[] {
+  return [
+    ...new Set(
+      selectedItems(state)
+        .filter((i) => i.photoId && !i.localUri)
+        .map((i) => i.imageHash)
+        .filter((h): h is string => !!h)
+    ),
+  ];
 }
