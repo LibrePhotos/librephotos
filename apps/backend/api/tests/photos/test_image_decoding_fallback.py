@@ -67,6 +67,14 @@ class ImageDecodingFallbackTests(unittest.TestCase):
             decoding.thumbnail(path, 100)
         self.assertFalse(decoding.can_decode(path))
 
+    def test_text_note_is_not_an_image(self):
+        # libvips' matrixload takes a text file whose first line is two numbers (#2913).
+        path = os.path.join(self.dir, "roll.txt")
+        with open(path, "w") as handle:
+            handle.write("13 20\nFilm roll, Kodak Gold\n")
+        self.assertFalse(decoding.can_decode(path))
+        self.assertFalse(is_valid_media(path, user=None))
+
     def test_is_valid_media_accepts_heic(self):
         self.assertTrue(is_valid_media(os.path.join(self.dir, "photo.heic"), user=None))
         self.assertFalse(
