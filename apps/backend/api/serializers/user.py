@@ -100,6 +100,8 @@ USER_UPDATE_FIELDS = (
     ),
     ("last_seen_release", None),
     ("show_whats_new", None),
+    ("support_prompt_seen", None),
+    ("rewind_seen_year", None),
     ("default_license", None),
     ("default_creator", None),
     ("default_copyright", None),
@@ -306,6 +308,10 @@ class UserSerializer(serializers.ModelSerializer):
             # characters (the model's max_length is the check).
             "last_seen_release": {"required": False},
             "show_whats_new": {"required": False},
+            # The thank-you dialog after the first processed library, and the
+            # last year whose Rewind the user saw.
+            "support_prompt_seen": {"required": False},
+            "rewind_seen_year": {"required": False, "min_value": 0, "max_value": 9999},
         }
         fields = (
             "id",
@@ -367,6 +373,8 @@ class UserSerializer(serializers.ModelSerializer):
             "default_timeline_filter",
             "last_seen_release",
             "show_whats_new",
+            "support_prompt_seen",
+            "rewind_seen_year",
         )
 
     def validate_nextcloud_app_password(self, value: str) -> str:

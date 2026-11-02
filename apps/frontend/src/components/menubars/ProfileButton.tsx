@@ -4,6 +4,7 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconAdjustments as Adjustments,
   IconBook as Book,
+  IconConfetti as Confetti,
   IconListDetails as ListDetails,
   IconLogout as Logout,
   IconSettings as Settings,
@@ -21,6 +22,8 @@ import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { CancelJobModal } from "../job/CancelJobModal";
 import { ShortcutHint } from "../shortcuts/ShortcutHint";
 import { ShortcutsMenuItem } from "../shortcuts/ShortcutsMenuItem";
+import { useSupport } from "../support/supportContext";
+import { rewindSeasonYear } from "../support/supportPrompts";
 import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
 import { useWhatsNew } from "../whatsnew/whatsNewContext";
 import { ImportJobMenuSection, importPercent } from "./ImportJobMenuSection";
@@ -34,6 +37,9 @@ export function ProfileButton(): React.ReactNode {
   const { requestLogout, modalProps } = useLogoutGuard(() => logout());
   const navigate = useNavigate();
   const whatsNew = useWhatsNew();
+  const support = useSupport();
+  // Rewind, the user's year in photos, around Christmas only.
+  const rewindYear = rewindSeasonYear(new Date());
   const { workerRunningJob, currentData } = useWorkerStatus();
   // Busy only once the worker has answered; no ring while the first poll is in flight.
   const workerBusy = currentData !== undefined && !currentData.queue_can_accept_job;
@@ -135,6 +141,12 @@ export function ProfileButton(): React.ReactNode {
           >
             {t("topmenu.jobs")}
           </Menu.Item>
+
+          {rewindYear === null ? null : (
+            <Menu.Item leftSection={<Confetti size={14} />} onClick={() => support.openRewind(rewindYear)}>
+              {t("rewind.menu", { year: rewindYear })}
+            </Menu.Item>
+          )}
 
           {/* The highlights of this release, also after the What's new card was closed (#2305). */}
           <Menu.Item leftSection={<Sparkles size={14} />} onClick={() => whatsNew.open()}>

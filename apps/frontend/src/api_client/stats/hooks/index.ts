@@ -4,3 +4,4 @@ export * from "./useLocationTimelineQuery";
 export * from "./useFetchWordCloudQuery";
 export * from "./useFetchLocationTreeQuery";
 export * from "./useFetchSocialGraphQuery";
+export * from "./useRewindQuery";

@@ -147,6 +147,16 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         required=False,
         help_text="Show each user a What's new card once after an update.",
     )
+    # The support prompts and Rewind.
+    support_prompts_enabled = JsonBooleanField(
+        required=False,
+        help_text="Ask admins once after their library is processed, and at the"
+        " end of Rewind, to star or sponsor LibrePhotos.",
+    )
+    rewind_enabled = JsonBooleanField(
+        required=False,
+        help_text="Show each user their Rewind once around Christmas.",
+    )
     # The public gallery (#434).
     public_gallery = serializers.ChoiceField(
         choices=("off", "members", "everyone"),
@@ -382,6 +392,15 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     whats_new_enabled = serializers.BooleanField(
         help_text="Whether users see a What's new card once after an update"
         " (each user can also turn it off). Sent to everyone."
+    )
+    support_prompts_enabled = serializers.BooleanField(
+        help_text="Whether admins are asked once after their library is"
+        " processed, and at the end of Rewind, to star or sponsor LibrePhotos."
+        " Sent to everyone."
+    )
+    rewind_enabled = serializers.BooleanField(
+        help_text="Whether each user's Rewind opens once around Christmas."
+        " Sent to everyone."
     )
     public_gallery = serializers.CharField(
         help_text="Who the public gallery (#434) is open to: off, members or"

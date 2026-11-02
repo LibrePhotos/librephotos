@@ -126,6 +126,10 @@ export const SiteSettings = z.object({
   // Whether users see the What's new card once after an update (#2305). Sent to everyone; older
   // backends lack it, and have no place to remember that a user closed the card either.
   whats_new_enabled: z.boolean().optional(),
+  // The support prompts: the admins' one-time thank-you dialog and Rewind's last slide, and whether
+  // each user's Rewind opens once around Christmas. Sent to everyone; older backends lack both.
+  support_prompts_enabled: z.boolean().optional(),
+  rewind_enabled: z.boolean().optional(),
   // Who the public gallery (#434) is open to: "off", "members" or "everyone". Sent to everyone: a
   // visitor without an account gets the gallery at / when it is "everyone". A string, so a stage a
   // newer server adds does not fail the anonymous answer; older backends lack it and have none.

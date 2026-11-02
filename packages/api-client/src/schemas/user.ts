@@ -130,6 +130,11 @@ export const User = z.object({
   // and the web app then shows no card, since it could not remember that it was closed.
   last_seen_release: z.string().optional(),
   show_whats_new: z.boolean().optional(),
+  // The support prompts: whether this user saw the one-time thank-you dialog after their library was
+  // processed, and the last year whose Rewind they saw (0 before the first). Optional: an older server
+  // has neither, and the web app then shows neither, since it could not remember that it was closed.
+  support_prompt_seen: z.boolean().optional(),
+  rewind_seen_year: z.number().optional(),
 });
 export type User = z.infer<typeof User>;
 

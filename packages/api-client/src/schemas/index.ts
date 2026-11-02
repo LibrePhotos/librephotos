@@ -27,5 +27,6 @@ export * from "./photoMoves";
 export * from "./photoRenames";
 export * from "./diagnostics";
 export * from "./memories";
+export * from "./rewind";
 export * from "./sync";
 export * from "./mutations";

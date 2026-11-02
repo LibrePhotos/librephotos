@@ -2,6 +2,9 @@ export const TOP_MENU_HEIGHT = 55; // don't change this
 export const LEFT_MENU_WIDTH = 200; // don't change this
 export const FOOTER_HEIGHT = 50;
 export const SUPPORT_LINK = "https://github.com/sponsors/derneuere";
+export const PAYPAL_DONATE_LINK = "https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96";
+export const GITHUB_REPO_LINK = "https://github.com/LibrePhotos/librephotos";
+export const TRANSLATE_LINK = "https://hosted.weblate.org/engage/librephotos/";
 export const DOCUMENTATION_LINK = "https://docs.librephotos.com";
 
 // Shared icon sizes (px). Use these instead of literals so toolbars line up.

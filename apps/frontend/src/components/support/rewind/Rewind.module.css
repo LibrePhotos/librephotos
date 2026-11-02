@@ -1,0 +1,220 @@
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+}
+
+.card {
+  position: relative;
+  width: min(360px, calc(100vw - 32px));
+  height: min(640px, calc(100dvh - 96px));
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  outline: none;
+}
+
+.progress {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+}
+
+.segment {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.segment[data-done] {
+  background: #fff;
+}
+
+.light .segment {
+  background: rgba(33, 37, 41, 0.2);
+}
+
+.light .segment[data-done] {
+  background: #212529;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 44px 24px 24px;
+  overflow-y: auto;
+}
+
+.intro {
+  background: var(--mantine-color-blue-9);
+  color: #fff;
+}
+
+.count {
+  background: var(--mantine-color-yellow-4);
+  color: #212529;
+}
+
+.people {
+  background: var(--mantine-color-pink-9);
+  color: #fff;
+  align-items: center;
+  text-align: center;
+}
+
+.places {
+  background: var(--mantine-color-green-9);
+  color: #fff;
+}
+
+.months {
+  background: var(--mantine-color-dark-7);
+  color: #fff;
+}
+
+.end {
+  background: #fff;
+  color: #212529;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.lead {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.huge {
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.title {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.body {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.bottom {
+  margin-top: auto;
+}
+
+.collage {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.collage4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+/* A square that crops its thumbnail evenly when the card is narrower than 360px. */
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.topFace {
+  margin-top: 16px;
+  border: 4px solid #fff;
+}
+
+.placeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.bars {
+  height: 160px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.bar {
+  flex: 1;
+  min-height: 2px;
+  border-radius: 3px;
+  background: var(--mantine-color-dark-3);
+}
+
+.bar[data-best] {
+  background: var(--mantine-color-yellow-4);
+}
+
+.barLabels {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--mantine-color-gray-4);
+}
+
+.barLabels > span {
+  flex: 1;
+}
+
+.saving {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--mantine-color-green-0);
+  color: var(--mantine-color-green-9);
+}
+
+.nav {
+  flex: none;
+}
+
+.close {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+}
+
+@media (max-width: 600px) {
+  .stage {
+    gap: 0;
+    padding: 8px;
+  }
+
+  .nav {
+    display: none;
+  }
+}

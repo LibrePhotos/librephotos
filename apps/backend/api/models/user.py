@@ -216,6 +216,12 @@ class User(AbstractUser):
     # after an update at all. The account menu opens it either way.
     last_seen_release = models.CharField(max_length=32, blank=True, default="")
     show_whats_new = models.BooleanField(default=True)
+    # Support prompts: whether this admin has seen the one-time thank-you
+    # dialog after their library was first processed, and the last year whose
+    # Rewind (the year in photos, shown around Christmas) this user saw; 0
+    # before the first. See SUPPORT_PROMPTS_ENABLED and REWIND_ENABLED.
+    support_prompt_seen = models.BooleanField(default=False)
+    rewind_seen_year = models.IntegerField(default=0)
 
     # Duplicate detection settings
     class DuplicateSensitivity(models.TextChoices):

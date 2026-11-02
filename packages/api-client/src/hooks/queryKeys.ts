@@ -420,6 +420,8 @@ export const statsKeys = {
   socialGraph: () => [...statsRoot, "socialGraph"] as const,
   wordCloud: () => [...statsRoot, "wordCloud"] as const,
   locationTimeline: () => [...statsRoot, "locationTimeline"] as const,
+  /** The user's year in photos (Rewind). */
+  rewind: (year: number) => [...statsRoot, "rewind", year] as const,
 };
 
 // A tag's photos are a grid: photoGridKeys.tagAlbum.

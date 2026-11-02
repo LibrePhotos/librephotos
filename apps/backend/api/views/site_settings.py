@@ -71,6 +71,8 @@ SETTING_KEYS = (
     "OIDC_ALLOW_SIGNUP",
     "UPDATE_CHECK",
     "WHATS_NEW_ENABLED",
+    "SUPPORT_PROMPTS_ENABLED",
+    "REWIND_ENABLED",
     "PUBLIC_GALLERY",
     "PUBLIC_GALLERY_INDEXABLE",
     *SCHEDULE_KEYS,
@@ -219,6 +221,10 @@ class SiteSettingsView(APIView):
         # Sent to everyone: every user's app decides whether to show the
         # What's new card after an update (#2305).
         out["whats_new_enabled"] = config["WHATS_NEW_ENABLED"]
+        # Sent to everyone: every user's app decides whether to open Rewind,
+        # and whether its last slide asks for support.
+        out["support_prompts_enabled"] = config["SUPPORT_PROMPTS_ENABLED"]
+        out["rewind_enabled"] = config["REWIND_ENABLED"]
         # Sent to everyone: the web app opens the public gallery (#434) at /
         # for a visitor without an account when it is open to everyone.
         out["public_gallery"] = config["PUBLIC_GALLERY"]

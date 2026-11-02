@@ -85,6 +85,8 @@ class UserTest(TestCase):
         "in_public_gallery",
         "last_seen_release",
         "show_whats_new",
+        "support_prompt_seen",
+        "rewind_seen_year",
     ]
 
     def setUp(self):

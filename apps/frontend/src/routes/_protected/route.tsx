@@ -8,6 +8,7 @@ import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
 import { KeyboardShortcuts } from "../../components/shortcuts/KeyboardShortcuts";
 import { SpotlightProvider } from "../../components/spotlight";
+import { SupportProvider } from "../../components/support/SupportProvider";
 import { UploadDropTarget, UploadProgressCard, UploadProvider } from "../../components/upload";
 import { WhatsNewProvider } from "../../components/whatsnew/WhatsNewProvider";
 import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../uiConstants";
@@ -39,37 +40,41 @@ function AppShellProtected() {
       {/* The What's new card after an update, and the dialog the account menu opens (#2305). Inside
           the upload provider: the card waits while the upload card is open. */}
       <WhatsNewProvider>
-        {/* Files dropped anywhere in the app are uploaded; not on login or public pages. */}
-        <UploadDropTarget>
-          {/* The g chords and the ? list (#2037); the account menu opens the list too. */}
-          <KeyboardShortcuts>
-            <AppShell
-              header={{ height: TOP_MENU_HEIGHT }}
-              navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
-              footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
-              transitionDuration={0}
-            >
-              <AppShell.Header>
-                <TopMenu />
-              </AppShell.Header>
-              <AppShell.Navbar>
-                <SideMenuNarrow />
-              </AppShell.Navbar>
-              <AppShell.Main
-                style={{
-                  backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
-                }}
+        {/* The thank-you dialog once the first library is processed, and Rewind around Christmas.
+            Inside the upload provider: neither shows while files upload. */}
+        <SupportProvider>
+          {/* Files dropped anywhere in the app are uploaded; not on login or public pages. */}
+          <UploadDropTarget>
+            {/* The g chords and the ? list (#2037); the account menu opens the list too. */}
+            <KeyboardShortcuts>
+              <AppShell
+                header={{ height: TOP_MENU_HEIGHT }}
+                navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
+                footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
+                transitionDuration={0}
               >
-                <Outlet />
-              </AppShell.Main>
-              {/* The footer is the phone navigation. A 0px footer on desktop still
+                <AppShell.Header>
+                  <TopMenu />
+                </AppShell.Header>
+                <AppShell.Navbar>
+                  <SideMenuNarrow />
+                </AppShell.Navbar>
+                <AppShell.Main
+                  style={{
+                    backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+                  }}
+                >
+                  <Outlet />
+                </AppShell.Main>
+                {/* The footer is the phone navigation. A 0px footer on desktop still
               drew a 1px border and left its links in the tab order. */}
-              <AppShell.Footer hiddenFrom="sm">
-                <FooterMenu />
-              </AppShell.Footer>
-            </AppShell>
-          </KeyboardShortcuts>
-        </UploadDropTarget>
+                <AppShell.Footer hiddenFrom="sm">
+                  <FooterMenu />
+                </AppShell.Footer>
+              </AppShell>
+            </KeyboardShortcuts>
+          </UploadDropTarget>
+        </SupportProvider>
       </WhatsNewProvider>
       <UploadProgressCard />
     </UploadProvider>
