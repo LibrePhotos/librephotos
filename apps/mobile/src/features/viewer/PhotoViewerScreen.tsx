@@ -438,7 +438,7 @@ export function PhotoViewerScreen() {
         onOpenAlbum={openAlbum}
         onRenamePerson={setRenamingPerson}
         onOpenPerson={openPerson}
-        onReviewFaces={() => router.push("/(tabs)/profile/faces")}
+        onReviewFaces={() => router.push("/profile/faces")}
         onHighlightFace={setHighlightedFace}
         highlightedFace={highlightedFace}
         onSearch={(term) => router.push(`/(tabs)/search?q=${encodeURIComponent(term)}`)}

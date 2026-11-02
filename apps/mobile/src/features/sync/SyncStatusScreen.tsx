@@ -29,6 +29,7 @@ import { localCounts, type LocalCounts } from "@/db/queries/counts";
 import { outboxSummary, type OutboxSummary } from "@/mutations/outbox";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 import { retryFailedJobs } from "@/sync/jobs/queue";
 import { jobQueueSnapshot, syncStages, type JobQueueSnapshot, type StageProgress } from "@/sync/jobs/status";
@@ -139,10 +140,8 @@ export function SyncStatusScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-        <Text testID="sync-status-title" style={{ fontSize: 22, fontWeight: "700", color: theme.text }}>
-          {t("sync.title")}
-        </Text>
+      <ScreenHeader title={t("sync.title")} fallback="/profile" testID="sync-status-title" />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20, gap: 16 }}>
 
         {/* Live progress */}
         <View style={{ gap: 6 }}>

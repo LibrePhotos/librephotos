@@ -32,6 +32,15 @@ describe("SelectionActionBar", () => {
     expect(handlers.onAddToAlbum).toHaveBeenCalled();
   });
 
+  it("names the flag buttons by the way they go", () => {
+    const { getByTestId: setting } = setup();
+    expect(setting("action-trash")).toHaveTextContent("Trash");
+    const { getByTestId: inTrash } = setup({ directions: { favorite: false, hidden: false, deleted: false } });
+    expect(inTrash("action-favorite")).toHaveTextContent("Unfavorite");
+    expect(inTrash("action-hide")).toHaveTextContent("Unhide");
+    expect(inTrash("action-trash")).toHaveTextContent("Restore");
+  });
+
   it("disables online-only actions when offline", () => {
     const onDownload = jest.fn<void, []>();
     const { getByTestId } = setup({ isOnline: false, onDownload });
@@ -46,6 +55,26 @@ describe("SelectionActionBar", () => {
     const { getByTestId } = setup({ isOnline: true, onDownload });
     fireEvent.press(getByTestId("action-download"));
     expect(onDownload).toHaveBeenCalled();
+  });
+
+  it("leaves out an online-only action that has no handler, instead of drawing a dead button", () => {
+    const { queryByTestId } = setup();
+    expect(queryByTestId("action-download")).toBeNull();
+    expect(queryByTestId("action-share-link")).toBeNull();
+    expect(queryByTestId("action-delete-permanent")).toBeNull();
+  });
+
+  it("offers delete-permanent when given, disabled while offline", () => {
+    const onDeletePermanent = jest.fn<void, []>();
+    const online = setup({ onDeletePermanent });
+    expect(online.getByText("Delete permanently")).toBeTruthy();
+    fireEvent.press(online.getByTestId("action-delete-permanent"));
+    expect(onDeletePermanent).toHaveBeenCalledTimes(1);
+
+    const offline = setup({ isOnline: false, onDeletePermanent });
+    fireEvent.press(offline.getByTestId("action-delete-permanent"));
+    expect(onDeletePermanent).toHaveBeenCalledTimes(1);
+    expect(offline.getByTestId("action-delete-permanent").props.accessibilityState).toHaveProperty("disabled", true);
   });
 
   it("renders a remove-from-album action only when provided", () => {

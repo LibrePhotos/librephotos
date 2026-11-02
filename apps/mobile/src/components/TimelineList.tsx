@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type FlashListRef, type ViewToken } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
 import { mediaHeaders } from "@librephotos/api-client";
 import { formatDayHeading } from "@/lib/format";
@@ -65,6 +65,11 @@ export function TimelineList({
   onEndReached,
   ListHeaderComponent,
   ListEmptyComponent,
+  topInset = 0,
+  scrollTarget = null,
+  onScrolledToTarget,
+  onTopDayChange,
+  onScrollActivity,
   testID = "timeline-list",
 }: {
   items: TimelineItem[];
@@ -79,6 +84,14 @@ export function TimelineList({
   onEndReached?: () => void;
   ListHeaderComponent?: React.ComponentType | React.ReactElement | null;
   ListEmptyComponent?: React.ComponentType | React.ReactElement | null;
+  /** Room left above the first row for a floating top bar. */
+  topInset?: number;
+  /** A day to jump to (the scrubber); the list scrolls there once it is loaded. */
+  scrollTarget?: string | null;
+  onScrolledToTarget?: () => void;
+  /** The day of the first row on screen, as the user scrolls. */
+  onTopDayChange?: (day: string) => void;
+  onScrollActivity?: () => void;
   testID?: string;
 }) {
   const theme = useTheme();
@@ -87,6 +100,31 @@ export function TimelineList({
   const size = useMemo(() => Math.floor((width - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS), [width]);
   const headers = useMemo(() => mediaHeaders(accessToken), [accessToken]);
   const rows = useMemo(() => toRows(items), [items]);
+  const listRef = useRef<FlashListRef<ListRow>>(null);
+
+  useEffect(() => {
+    if (!scrollTarget) return;
+    const index = rows.findIndex((r) => r.kind === "header" && r.day === scrollTarget);
+    if (index < 0) return; // not loaded yet; the caller grows the window
+    // Land the day's header just below the floating top bar, not under it.
+    // FlashList 2 adds viewOffset to the scroll position (FlatList subtracts
+    // it), so moving the header down the screen takes a negative offset.
+    listRef.current?.scrollToIndex({ index, animated: false, viewOffset: -topInset });
+    onScrolledToTarget?.();
+  }, [scrollTarget, rows, onScrolledToTarget, topInset]);
+
+  const onViewableItemsChanged = useMemo(
+    () =>
+      onTopDayChange
+        ? ({ viewableItems }: { viewableItems: ViewToken<ListRow>[] }) => {
+            const first = viewableItems.find((v) => v.item != null);
+            if (!first?.item) return;
+            const row = first.item;
+            onTopDayChange(row.kind === "header" ? row.day : row.items[0].day);
+          }
+        : undefined,
+    [onTopDayChange]
+  );
   // Section headers used to print the raw `bucket_day` key ("2026-07-24").
   // The testID keeps the key so tests and scroll targets stay stable.
   const dayLabels = useMemo(
@@ -96,7 +134,9 @@ export function TimelineList({
 
   return (
     <FlashList
+      ref={listRef}
       testID={testID}
+      onViewableItemsChanged={onViewableItemsChanged}
       data={rows}
       keyExtractor={(r) => r.key}
       getItemType={(r) => r.kind}
@@ -104,10 +144,14 @@ export function TimelineList({
       // momentum, so it keeps the interaction window alive for the whole gesture
       // — unlike a touch-start sniffer, which a native ScrollView never reports
       // for the frames that actually matter.
-      onScroll={() => noteScroll()}
+      onScroll={() => {
+        noteScroll();
+        onScrollActivity?.();
+      }}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
       extraData={selectionActive}
+      contentContainerStyle={topInset > 0 ? { paddingTop: topInset } : undefined}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={ListEmptyComponent}
       renderItem={({ item: row }) =>

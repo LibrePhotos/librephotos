@@ -75,6 +75,8 @@ function RootNavigator() {
         <Stack.Protected guard={isAuthed}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="photo/[id]" options={{ presentation: "modal" }} />
+          {/* The account screen opens from the avatar, as a sheet over the tabs. */}
+          <Stack.Screen name="profile" options={{ presentation: "modal" }} />
           <Stack.Screen name="sharing" />
           <Stack.Screen name="memories" />
           <Stack.Screen name="share" options={{ presentation: "modal" }} />

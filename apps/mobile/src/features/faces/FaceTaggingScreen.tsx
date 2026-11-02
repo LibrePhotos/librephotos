@@ -3,7 +3,6 @@ import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
-import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   endpoints,
@@ -20,7 +19,7 @@ import { serverAddress } from "@/lib/apiClient";
 import { useToastStore } from "@/stores/toasts";
 import { faceImageUrl } from "./faceImage";
 import { AssignNameSheet } from "./AssignNameSheet";
-import { goBackOr } from "@/lib/navigation";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 
 type Tab = "inferred" | "unknown";
@@ -35,7 +34,6 @@ type Tab = "inferred" | "unknown";
 export function FaceTaggingScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const router = useRouter();
   const client = useApiClient();
   const queryClient = useQueryClient();
   const token = useAccessToken();
@@ -100,15 +98,16 @@ export function FaceTaggingScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12, gap: 12 }}>
-        <Pressable testID="faces-back" onPress={() => goBackOr(router, "/profile")} hitSlop={8}>
-          <Text style={{ color: theme.brand, fontSize: 16 }}>‹</Text>
-        </Pressable>
-        <Text style={{ fontSize: 22, fontWeight: "700", color: theme.text, flex: 1 }}>{t("faces.title")}</Text>
-        <Pressable testID="faces-train" onPress={() => void train()} disabled={busy || !isOnline} hitSlop={8}>
-          <Text style={{ color: isOnline ? theme.brand : theme.muted, fontWeight: "600" }}>{t("faces.train")}</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title={t("faces.title")}
+        fallback="/profile"
+        testID="faces"
+        right={
+          <Pressable testID="faces-train" onPress={() => void train()} disabled={busy || !isOnline} hitSlop={8} style={{ paddingHorizontal: 8 }}>
+            <Text style={{ color: isOnline ? theme.brand : theme.muted, fontWeight: "600" }}>{t("faces.train")}</Text>
+          </Pressable>
+        }
+      />
 
       <View style={{ flexDirection: "row", backgroundColor: theme.card, borderRadius: 10, padding: 4, margin: 16 }}>
         {(["inferred", "unknown"] as const).map((key) => (

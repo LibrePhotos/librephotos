@@ -1,12 +1,14 @@
-import { useCallback, useReducer, useState, type ReactElement } from "react";
+import { useCallback, useMemo, useReducer, useState, type ReactElement } from "react";
 import { useMutations } from "@/mutations/useMutations";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { SelectionActionBar } from "@/components/SelectionActionBar";
 import { AlbumPickerSheet } from "@/components/AlbumPickerSheet";
 import { ShareSheet } from "@/features/sharing/ShareSheet";
+import { useOnlineSelectionActions } from "./useOnlineSelectionActions";
 import {
   emptySelection,
   isSelected as isSelectedSel,
+  selectedDownloadableHashes,
   selectedImageHashes,
   selectedItems,
   selectedPhotoIds,
@@ -15,7 +17,11 @@ import {
   type SelectableItem,
 } from "./reducer";
 
-/** Which boolean each flag action applies (a filter screen inverts its own). */
+/**
+ * Which boolean each flag action applies (a filter screen inverts its own).
+ * `deleted: false` makes the grid the Trash: its trash action restores, and it
+ * is the one grid that offers "Delete permanently".
+ */
 export type SelectionDirections = {
   favorite?: boolean;
   hidden?: boolean;
@@ -34,6 +40,7 @@ export function useGridSelection(
   album?: { albumId: number; title: string }
 ) {
   const mutations = useMutations();
+  const online = useOnlineSelectionActions();
   const isOnline = useOnlineStatus();
   const [state, dispatch] = useReducer(selectionReducer, emptySelection);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -107,6 +114,20 @@ export function useGridSelection(
     setShareOpen(true);
   }, [state]);
 
+  const downloadable = useMemo(() => selectedDownloadableHashes(state), [state]);
+  const runDownload = useCallback(() => {
+    if (downloadable.length === 0) return;
+    void online.saveToPhone(downloadable);
+    clear();
+  }, [downloadable, online, clear]);
+
+  // The server deletes for good only what is in its trash (as the web, which
+  // offers it in Trash only), so every other grid leaves the button out.
+  const inTrash = directions.deleted === false;
+  const runDeletePermanent = useCallback(() => {
+    online.confirmDeletePermanently(selectedImageHashes(state), clear);
+  }, [online, state, clear]);
+
   const count = selectionCount(state);
 
   const overlay: ReactElement | null = state.active ? (
@@ -120,7 +141,10 @@ export function useGridSelection(
         onAddToAlbum={() => setPickerOpen(true)}
         onRemoveFromAlbum={album ? runRemoveFromAlbum : undefined}
         onShareLink={runShare}
+        onDownload={downloadable.length > 0 ? runDownload : undefined}
+        onDeletePermanent={inTrash ? runDeletePermanent : undefined}
         onCancel={clear}
+        directions={dir}
       />
       <AlbumPickerSheet
         visible={pickerOpen}

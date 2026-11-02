@@ -9,11 +9,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useRouter, type Href } from "expo-router";
+import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { mediaHeaders, squareThumbnailUrl, useSearchPhotosQuery } from "@librephotos/api-client";
 import { Image } from "expo-image";
 import { Icon } from "@/components/Icon";
 import { SearchField } from "@/components/SearchField";
+import { AccountButton } from "@/features/account/AccountButton";
 import { MirrorGrid } from "@/components/MirrorGrid";
 import { useDb, useReactiveQuery } from "@/db/provider";
 import { pigPhotoToItem } from "@/lib/pigPhoto";
@@ -40,6 +41,11 @@ function useDebounced<T>(value: T, delayMs: number): T {
     return () => clearTimeout(id);
   }, [value, delayMs]);
   return debounced;
+}
+
+/** A route param as one string: the first of a repeated param, "" when absent. */
+function firstParam(value: string | string[] | undefined): string {
+  return (Array.isArray(value) ? value[0] : value) ?? "";
 }
 
 const ALBUM_HREF: Record<SearchAlbumHit["kind"], (id: number) => Href> = {
@@ -79,8 +85,20 @@ export function SearchScreen() {
   const db = useDb();
   const isOnline = useOnlineStatus();
 
-  const [text, setText] = useState("");
+  // `?q=` from links elsewhere in the app (the viewer's scene tags and people).
+  // The first value seeds the field and, as the debounce's initial value,
+  // searches at once; a later navigation with a different `q` replaces it.
+  const q = firstParam(useLocalSearchParams<{ q?: string | string[] }>().q);
+  const [text, setText] = useState(q);
   const query = useDebounced(text.trim(), 300);
+
+  // Adjust state while rendering (not in an effect) so the new term shows up
+  // in the same frame as the navigation that carried it.
+  const [routeQ, setRouteQ] = useState(q);
+  if (q !== routeQ) {
+    setRouteQ(q);
+    if (q) setText(q);
+  }
 
   const recent = useReactiveQuery(d => getRecentSearches(d), []);
   const offline = useReactiveQuery(d => offlineSearch(d, query), [query]);
@@ -100,15 +118,18 @@ export function SearchScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10, gap: 10 }}>
-        <Text style={{ fontSize: 24, fontWeight: "700", color: theme.text }}>{t("search.title")}</Text>
-        <SearchField
-          value={text}
-          onChangeText={setText}
-          onSubmit={() => query && pushRecentSearch(db, query)}
-          placeholder={t("search.placeholder")}
-          clearAccessibilityLabel={t("search.clearField")}
-        />
+      {/* No title: the search field is the header, with the avatar beside it. */}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingTop: 6, paddingBottom: 10, gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <SearchField
+            value={text}
+            onChangeText={setText}
+            onSubmit={() => query && pushRecentSearch(db, query)}
+            placeholder={t("search.placeholder")}
+            clearAccessibilityLabel={t("search.clearField")}
+          />
+        </View>
+        <AccountButton />
       </View>
 
       {query.length === 0 ? (

@@ -1,4 +1,4 @@
-import { formatBytes, formatDayHeading, formatFullDate, formatMonthHeading } from "./format";
+import { formatBytes, formatDayHeading, formatFullDate, formatMonthHeading, intlLocale } from "./format";
 
 describe("formatBytes", () => {
   it("formats byte sizes with sensible units", () => {
@@ -89,5 +89,29 @@ describe("formatFullDate", () => {
     expect(formatFullDate(undefined)).toBe("");
     expect(formatFullDate("")).toBe("");
     expect(formatFullDate("garbage")).toBe("");
+  });
+});
+
+/**
+ * The app's locale codes are Weblate's (`zh_Hans`, `pt_BR`), which `Intl`
+ * rejects with a RangeError. The language is persisted, so an unhandled one
+ * would break every timeline header on every start.
+ */
+describe("intlLocale", () => {
+  it("converts Weblate codes to BCP-47", () => {
+    expect(intlLocale("zh_Hans")).toBe("zh-Hans");
+    expect(intlLocale("pt_BR")).toBe("pt-BR");
+    expect(intlLocale("de")).toBe("de");
+  });
+
+  it("falls back to the runtime locale for missing or invalid codes", () => {
+    expect(intlLocale(undefined)).toBeUndefined();
+    expect(intlLocale("not a locale!")).toBeUndefined();
+  });
+
+  it("lets every formatter take a Weblate code without throwing", () => {
+    expect(formatMonthHeading("2026-07", { locale: "nb_NO" })).toMatch(/2026/);
+    expect(formatFullDate("2026-07-24", { locale: "zh_Hant" })).not.toBe("");
+    expect(formatDayHeading("2026-03-05", { locale: "pt_BR", now: new Date(2026, 6, 24) })).not.toBe("");
   });
 });

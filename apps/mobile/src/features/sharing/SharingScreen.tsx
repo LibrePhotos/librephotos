@@ -11,6 +11,7 @@ import {
 } from "@librephotos/api-client";
 import { OnlinePhotoGrid } from "@/components/OnlinePhotoGrid";
 import { pigPhotoToItem } from "@/lib/pigPhoto";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 
 type Tab = "byMe" | "withMe";
@@ -78,8 +79,8 @@ export function SharingScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
-        <Text style={{ fontSize: 24, fontWeight: "700", color: theme.text, marginBottom: 12 }}>{t("sharing.title")}</Text>
+      <ScreenHeader title={t("sharing.title")} fallback="/albums" />
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
         <View style={{ flexDirection: "row", backgroundColor: theme.card, borderRadius: 10, padding: 4 }}>
           {(["byMe", "withMe"] as const).map((key) => (
             <Pressable

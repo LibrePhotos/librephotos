@@ -45,13 +45,35 @@ describe("ExploreScreen", () => {
     setOnline(true);
   });
 
-  it("renders every category section", () => {
+  it("always shows albums, people and folders, and hides empty strips", () => {
+    markSeeded(t.db);
+    const { getByTestId, queryByTestId } = renderWithDb(<ExploreScreen />, t.db);
+
+    for (const key of ["user", "people", "folders"]) {
+      expect(getByTestId(`explore-section-${key}`)).toBeTruthy();
+    }
+    // Nothing in the mirror: these would only say "No … yet".
+    for (const key of ["things", "tags", "places", "events"]) {
+      expect(queryByTestId(`explore-section-${key}`)).toBeNull();
+    }
+  });
+
+  it("shows skeletons for a strip that is still syncing, even when empty", () => {
+    const { getByTestId } = renderWithDb(<ExploreScreen />, t.db);
+    expect(getByTestId("explore-section-things")).toBeTruthy();
+  });
+
+  it("opens the library views from the quick tiles and the More list", () => {
     markSeeded(t.db);
     const { getByTestId } = renderWithDb(<ExploreScreen />, t.db);
 
-    for (const key of ["user", "people", "things", "tags", "places", "events", "folders"]) {
-      expect(getByTestId(`explore-section-${key}`)).toBeTruthy();
-    }
+    expect(getByTestId("collections-quick-favorites")).toBeTruthy();
+    fireEvent.press(getByTestId("collections-quick-deleted"));
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/albums/library/[filter]", params: { filter: "deleted" } });
+    fireEvent.press(getByTestId("collections-more-archived"));
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/albums/library/[filter]", params: { filter: "archived" } });
+    fireEvent.press(getByTestId("collections-more-sharing"));
+    expect(router.push).toHaveBeenLastCalledWith("/sharing");
   });
 
   it("shows live counts and preview cards from the mirror", () => {

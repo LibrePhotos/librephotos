@@ -144,6 +144,54 @@ describe("SearchScreen", () => {
     expect(input.props.value).toBe("");
   });
 
+  describe("?q= route param (viewer scene-tag and person links)", () => {
+    afterEach(() => {
+      globalThis.__mockSearchParams = undefined;
+    });
+
+    it("opens with the linked term in the field and runs it", async () => {
+      globalThis.__mockSearchParams = { q: "berlin" };
+      const searched: string[] = [];
+      const client = makeMockClient(async (url) => {
+        if (url.includes("/photos/searchlist/")) {
+          searched.push(decodeURIComponent(/[?&]search=([^&]*)/.exec(url)?.[1] ?? ""));
+          return jsonResponse(SERVER_RESULTS);
+        }
+        return jsonResponse({}, 404);
+      });
+      const { getByTestId } = renderWithDb(<SearchScreen />, t.db, client);
+
+      expect(getByTestId("search-input").props.value).toBe("berlin");
+      await waitFor(() => expect(getByTestId("search-server-grid")).toBeTruthy());
+      expect(getByTestId("search-banner-online")).toHaveTextContent("Results for “berlin”");
+      expect(searched).toContain("berlin");
+    });
+
+    it("replaces the term when a later link carries a different q", async () => {
+      setOnline(false);
+      seedRemotePhotos(t.db, [remotePhoto({ id: "p1", imageHash: "oslo-hash", searchLocation: "Oslo, NO" })]);
+      globalThis.__mockSearchParams = { q: "zzzz" };
+      const { getByTestId, rerender } = renderWithDb(<SearchScreen />, t.db);
+      await waitFor(() => expect(getByTestId("search-offline-empty")).toHaveTextContent("No matches for “zzzz”"));
+
+      globalThis.__mockSearchParams = { q: "oslo" };
+      rerender(<SearchScreen />);
+
+      expect(getByTestId("search-input").props.value).toBe("oslo");
+      await waitFor(() => expect(getByTestId("search-offline-photo-oslo-hash")).toBeTruthy());
+    });
+
+    it("keeps what the user typed while q stays the same", async () => {
+      setOnline(false);
+      globalThis.__mockSearchParams = { q: "berlin" };
+      const { getByTestId, rerender } = renderWithDb(<SearchScreen />, t.db);
+
+      fireEvent.changeText(getByTestId("search-input"), "oslo");
+      rerender(<SearchScreen />);
+      expect(getByTestId("search-input").props.value).toBe("oslo");
+    });
+  });
+
   it("tapping a recent search runs it", async () => {
     setOnline(false);
     pushRecentSearch(t.db, "oslo");

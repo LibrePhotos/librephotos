@@ -68,7 +68,7 @@ export function ShareIntentScreen() {
     pushToast({ level: "info", message: t("shareIntent.queued") });
     if (userId != null) void runSync(db, { userId, reason: "manual" });
     void queued;
-    router.replace("/backup");
+    router.replace("/profile/backup");
   };
 
   return (

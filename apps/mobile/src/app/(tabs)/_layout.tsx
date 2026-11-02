@@ -5,7 +5,10 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/theme";
 
 /**
- * Bottom tabs: Photos, Albums, Search, Backup, Profile (matches doc 01).
+ * Bottom tabs: Photos, Collections, Search (doc 08). Backup and the profile
+ * moved behind the avatar in the top-right corner, like Google Photos and
+ * Apple Photos keep their tab bars short. The Collections tab keeps its
+ * `albums` route name so existing `/albums/...` links stay valid.
  *
  * Two device-run bugs are fixed here and are easy to reintroduce:
  *
@@ -31,9 +34,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: theme.brand,
         tabBarInactiveTintColor: theme.muted,
         tabBarStyle: { backgroundColor: theme.background, borderTopColor: theme.border },
-        // Five tabs on a 375pt-wide iPhone: shrink the label a touch and never
-        // let it wrap, so "Backup"/"Profile" stay fully readable.
-        tabBarLabelStyle: { fontSize: 10, marginBottom: 2 },
+        tabBarLabelStyle: { fontSize: 11, marginBottom: 2 },
         tabBarLabelPosition: "below-icon",
         tabBarAllowFontScaling: false,
       }}
@@ -49,8 +50,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="albums"
         options={{
-          title: t("tabs.albums"),
-          tabBarLabel: t("tabs.albums"),
+          title: t("tabs.collections"),
+          tabBarLabel: t("tabs.collections"),
           tabBarIcon: tabIcon("albums", "albums-outline"),
         }}
       />
@@ -60,22 +61,6 @@ export default function TabsLayout() {
           title: t("tabs.search"),
           tabBarLabel: t("tabs.search"),
           tabBarIcon: tabIcon("search", "search-outline"),
-        }}
-      />
-      <Tabs.Screen
-        name="backup"
-        options={{
-          title: t("tabs.backup"),
-          tabBarLabel: t("tabs.backup"),
-          tabBarIcon: tabIcon("cloud-upload", "cloud-upload-outline"),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: t("tabs.profile"),
-          tabBarLabel: t("tabs.profile"),
-          tabBarIcon: tabIcon("person-circle", "person-circle-outline"),
         }}
       />
     </Tabs>

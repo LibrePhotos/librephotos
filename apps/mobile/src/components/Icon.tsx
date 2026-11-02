@@ -52,7 +52,25 @@ export type IconName =
   | "file"
   | "sparkle"
   // grid tiles
-  | "processing";
+  | "processing"
+  // main screens / account
+  | "filter"
+  | "select"
+  | "heart"
+  | "video"
+  | "archive"
+  | "screenshot"
+  | "document"
+  | "noLocation"
+  | "noAlbum"
+  | "sharing"
+  | "settings"
+  | "backup"
+  | "sync"
+  | "server"
+  | "logout"
+  | "close"
+  | "library";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -94,6 +112,23 @@ const GLYPHS: Record<IconName, IoniconName> = {
   file: "document-outline",
   sparkle: "sparkles-outline",
   processing: "hourglass-outline",
+  filter: "options-outline",
+  select: "checkmark-circle-outline",
+  heart: "heart-outline",
+  video: "videocam-outline",
+  archive: "archive-outline",
+  screenshot: "phone-portrait-outline",
+  document: "receipt-outline",
+  noLocation: "navigate-circle-outline",
+  noAlbum: "file-tray-outline",
+  sharing: "share-social-outline",
+  settings: "settings-outline",
+  backup: "cloud-upload-outline",
+  sync: "sync-outline",
+  server: "server-outline",
+  logout: "log-out-outline",
+  close: "close",
+  library: "library-outline",
 };
 
 export function Icon({

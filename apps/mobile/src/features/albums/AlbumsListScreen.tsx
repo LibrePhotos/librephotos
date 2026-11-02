@@ -12,6 +12,7 @@ import { TextPromptModal } from "@/components/TextPromptModal";
 import { useMutations } from "@/mutations/useMutations";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 
 export type AlbumCard = { id: number; title: string; coverHash: string | null; photoCount: number };
@@ -45,14 +46,17 @@ export function AlbumsListScreen({
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ fontSize: 24, fontWeight: "700", color: theme.text }}>{title}</Text>
-        {creatable ? (
-          <Pressable testID="album-create-button" onPress={() => setCreating(true)} hitSlop={8}>
-            <Text style={{ color: theme.brand, fontWeight: "700" }}>+ {t("mutations.newAlbum")}</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      <ScreenHeader
+        title={title}
+        fallback="/albums"
+        right={
+          creatable ? (
+            <Pressable testID="album-create-button" onPress={() => setCreating(true)} hitSlop={8} style={{ paddingHorizontal: 8 }}>
+              <Text style={{ color: theme.brand, fontWeight: "700" }}>+ {t("mutations.newAlbum")}</Text>
+            </Pressable>
+          ) : null
+        }
+      />
       <FlashList
         testID={testID}
         data={albums}

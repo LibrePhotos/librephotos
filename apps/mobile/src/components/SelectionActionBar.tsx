@@ -7,8 +7,11 @@ import { isGridActionAvailable, type GridAction } from "@/features/mutations/off
  * Bottom action bar shown while a grid is in multi-select mode (doc 05). Offline
  * actions (favorite/hide/trash/add-to-album) are always enabled; online-only
  * actions (download/share-link/delete-permanent) render disabled with a clear
- * "needs a connection" affordance when offline. Purely presentational — it
- * dispatches to injected handlers, so it renders in isolation under test.
+ * "needs a connection" affordance when offline. An online-only action whose
+ * handler is left out is not offered at all (nothing to save to the phone,
+ * delete-permanent outside the Trash), so the bar never shows a dead button.
+ * Purely presentational — it dispatches to injected handlers, so it renders in
+ * isolation under test.
  */
 export type SelectionActionBarProps = {
   count: number;
@@ -19,16 +22,24 @@ export type SelectionActionBarProps = {
   onAddToAlbum: () => void;
   /** Only present in an album-detail context (remove selected from THIS album). */
   onRemoveFromAlbum?: () => void;
+  /** Save the selection to the phone's gallery; left out when none of it is a server-only photo. */
   onDownload?: () => void;
   onShareLink?: () => void;
+  /** Delete for good (asks first); only the Trash grid passes it. */
   onDeletePermanent?: () => void;
   onCancel: () => void;
+  /**
+   * Which way each flag button goes: on Favorites the button unfavorites, on
+   * Hidden it unhides, in Trash it restores. Defaults to setting the flag.
+   */
+  directions?: { favorite: boolean; hidden: boolean; deleted: boolean };
 };
 
 export function SelectionActionBar(props: SelectionActionBarProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const disabled = props.count === 0;
+  const dir = props.directions ?? { favorite: true, hidden: true, deleted: true };
 
   return (
     <View
@@ -57,16 +68,22 @@ export function SelectionActionBar(props: SelectionActionBarProps) {
       </View>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <BarButton testID="action-favorite" label={t("selection.favorite")} onPress={props.onFavorite} disabled={disabled} theme={theme} />
-        <BarButton testID="action-hide" label={t("selection.hide")} onPress={props.onHide} disabled={disabled} theme={theme} />
-        <BarButton testID="action-trash" label={t("selection.trash")} onPress={props.onTrash} disabled={disabled} theme={theme} />
+        <BarButton testID="action-favorite" label={dir.favorite ? t("selection.favorite") : t("selection.unfavorite")} onPress={props.onFavorite} disabled={disabled} theme={theme} />
+        <BarButton testID="action-hide" label={dir.hidden ? t("selection.hide") : t("selection.unhide")} onPress={props.onHide} disabled={disabled} theme={theme} />
+        <BarButton testID="action-trash" label={dir.deleted ? t("selection.trash") : t("selection.restore")} onPress={props.onTrash} disabled={disabled} theme={theme} />
         <BarButton testID="action-add-album" label={t("selection.addToAlbum")} onPress={props.onAddToAlbum} disabled={disabled} theme={theme} />
         {props.onRemoveFromAlbum ? (
           <BarButton testID="action-remove-album" label={t("mutations.remove")} onPress={props.onRemoveFromAlbum} disabled={disabled} theme={theme} />
         ) : null}
-        <OnlineOnlyButton action="download" testID="action-download" label={t("selection.download")} onPress={props.onDownload} isOnline={props.isOnline} disabled={disabled} theme={theme} />
-        <OnlineOnlyButton action="shareLink" testID="action-share-link" label={t("selection.shareLink")} onPress={props.onShareLink} isOnline={props.isOnline} disabled={disabled} theme={theme} />
-        <OnlineOnlyButton action="deletePermanent" testID="action-delete-permanent" label={t("selection.deletePermanent")} onPress={props.onDeletePermanent} isOnline={props.isOnline} disabled={disabled} theme={theme} />
+        {props.onDownload ? (
+          <OnlineOnlyButton action="download" testID="action-download" label={t("selection.download")} onPress={props.onDownload} isOnline={props.isOnline} disabled={disabled} theme={theme} />
+        ) : null}
+        {props.onShareLink ? (
+          <OnlineOnlyButton action="shareLink" testID="action-share-link" label={t("selection.shareLink")} onPress={props.onShareLink} isOnline={props.isOnline} disabled={disabled} theme={theme} />
+        ) : null}
+        {props.onDeletePermanent ? (
+          <OnlineOnlyButton action="deletePermanent" testID="action-delete-permanent" label={t("selection.deletePermanent")} onPress={props.onDeletePermanent} isOnline={props.isOnline} disabled={disabled} theme={theme} />
+        ) : null}
       </View>
     </View>
   );
@@ -117,7 +134,7 @@ function OnlineOnlyButton({
 }: {
   action: GridAction;
   label: string;
-  onPress?: () => void;
+  onPress: () => void;
   isOnline: boolean;
   disabled?: boolean;
   theme: ThemeColors;

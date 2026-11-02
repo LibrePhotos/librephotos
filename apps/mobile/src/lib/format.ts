@@ -40,6 +40,21 @@ function calendarDaysBetween(a: Date, b: Date): number {
   return Math.round((end - start) / 86_400_000);
 }
 
+/**
+ * The app's locale codes follow Weblate (`zh_Hans`, `pt_BR`, `nb_NO`), which
+ * `Intl` rejects with a RangeError. Convert to BCP-47 (`zh-Hans`) and fall back
+ * to the runtime locale for anything still invalid, so a language choice can
+ * never crash date rendering (it is persisted, so it would on every start).
+ */
+export function intlLocale(locale: string | undefined): string | undefined {
+  if (!locale) return undefined;
+  try {
+    return Intl.getCanonicalLocales(locale.replace(/_/g, "-"))[0];
+  } catch {
+    return undefined;
+  }
+}
+
 function toDate(value: string | number | Date): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
   if (typeof value === "number") {
@@ -68,7 +83,7 @@ export function formatDayHeading(day: string, opts: DateFormatOptions = {}): str
     if (delta === 1) return opts.labels.yesterday;
   }
   const sameYear = date.getFullYear() === now.getFullYear();
-  return date.toLocaleDateString(opts.locale, {
+  return date.toLocaleDateString(intlLocale(opts.locale), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -81,7 +96,7 @@ export function formatMonthHeading(month: string, opts: { locale?: string } = {}
   const m = /^(\d{4})-(\d{2})/.exec(month);
   if (!m) return month;
   const date = new Date(Number(m[1]), Number(m[2]) - 1, 1);
-  return date.toLocaleDateString(opts.locale, { month: "long", year: "numeric" });
+  return date.toLocaleDateString(intlLocale(opts.locale), { month: "long", year: "numeric" });
 }
 
 /**
@@ -96,7 +111,7 @@ export function formatFullDate(
   if (value == null || value === "") return "";
   const date = toDate(value);
   if (!date) return "";
-  return date.toLocaleString(opts.locale, {
+  return date.toLocaleString(intlLocale(opts.locale), {
     dateStyle: "long",
     ...(opts.withTime === false ? {} : { timeStyle: "short" }),
   });

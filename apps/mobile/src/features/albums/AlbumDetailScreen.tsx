@@ -14,6 +14,7 @@ import { useGridSelection } from "@/features/selection/useGridSelection";
 import { useMutations } from "@/mutations/useMutations";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 import { photoRoute } from "@/features/viewer/route";
 
@@ -72,16 +73,18 @@ export function AlbumDetailScreen({
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text testID="album-detail-title" numberOfLines={1} style={{ fontSize: 22, fontWeight: "700", color: theme.text, flex: 1 }}>
-          {liveTitle}
-        </Text>
-        {userAlbumId !== undefined ? (
-          <Pressable testID="album-rename-button" onPress={() => setRenaming(true)} hitSlop={8}>
-            <Text style={{ color: theme.brand, fontWeight: "600" }}>{t("mutations.rename")}</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      <ScreenHeader
+        title={liveTitle}
+        fallback="/albums"
+        testID="album-detail-title"
+        right={
+          userAlbumId !== undefined ? (
+            <Pressable testID="album-rename-button" onPress={() => setRenaming(true)} hitSlop={8} style={{ paddingHorizontal: 8 }}>
+              <Text style={{ color: theme.brand, fontWeight: "600" }}>{t("mutations.rename")}</Text>
+            </Pressable>
+          ) : null
+        }
+      />
       <View style={{ flex: 1 }}>
         <MirrorGrid
           items={items}

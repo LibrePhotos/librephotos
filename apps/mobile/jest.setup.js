@@ -27,6 +27,30 @@ jest.mock("expo-secure-store", () => {
   };
 });
 
+// expo-sqlite/kv-store (local preferences): one in-memory map shared by every
+// SQLiteStorage instance, so a test can seed it and re-import the settings store.
+jest.mock("expo-sqlite/kv-store", () => {
+  const store = new Map();
+  class SQLiteStorage {
+    getItemSync(key) {
+      return store.has(key) ? store.get(key) : null;
+    }
+    async getItemAsync(key) {
+      return this.getItemSync(key);
+    }
+    setItemSync(key, value) {
+      store.set(key, value);
+    }
+    async setItemAsync(key, value) {
+      store.set(key, value);
+    }
+    async removeItemAsync(key) {
+      return store.delete(key);
+    }
+  }
+  return { SQLiteStorage, __store: store, __reset: () => store.clear() };
+});
+
 // FlashList → render as a plain list so item output is assertable in RNTL.
 jest.mock("@shopify/flash-list", () => {
   const React = require("react");
