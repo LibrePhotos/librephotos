@@ -1912,6 +1912,12 @@
       "plain": "The job's record and result are deleted. Nothing in your library changes.",
       "confirm": "Remove job"
     },
+    "removefinishedjobs": {
+      "title": "Remove finished jobs?",
+      "message_one": "The record of {{count, number}} finished job is deleted. Jobs still running or queued stay, and so do the scan the next incremental scan builds on and finished Add Geolocation runs. Nothing in your library changes.",
+      "message_other": "The records of {{count, number}} finished jobs are deleted. Jobs still running or queued stay, and so do the scan the next incremental scan builds on and finished Add Geolocation runs. Nothing in your library changes.",
+      "confirm": "Remove jobs"
+    },
     "stopservice": {
       "title": "Stop the {{name}} service?",
       "message": "It stops for every user of this server until an admin starts it again on this page.",
@@ -1943,6 +1949,10 @@
     "faileditems": "Failed items",
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
     "removeentries": "Removing entries",
+    "removefinished": "Remove finished jobs",
+    "nothingtoremove": "There are no finished jobs to remove. Jobs still running or queued, the scan the next incremental scan builds on and finished Add Geolocation runs stay.",
+    "finishedremoved_one": "Removed {{count, number}} job",
+    "finishedremoved_other": "Removed {{count, number}} jobs",
     "scanbaseline": "This scan is the reference for the next incremental scan. It can be removed once a newer scan of the whole library has finished.",
     "cancel": "Cancel",
     "itemsprocessed_one": "{{count, number}} item processed",
