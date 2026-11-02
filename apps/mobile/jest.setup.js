@@ -82,6 +82,13 @@ jest.mock("expo-notifications", () => ({
   getLastNotificationResponseAsync: jest.fn(async () => null),
 }));
 
+// The app loads expo-notifications with a dynamic import(), which Jest cannot
+// run without --experimental-vm-modules: hand it the stub above instead.
+jest.mock("./src/lib/notificationsModule", () => ({
+  ...jest.requireActual("./src/lib/notificationsModule"),
+  loadNotifications: async () => require("expo-notifications"),
+}));
+
 // expo-clipboard → capture copied strings in tests.
 jest.mock("expo-clipboard", () => ({
   setStringAsync: jest.fn(async () => true),

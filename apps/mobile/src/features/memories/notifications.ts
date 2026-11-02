@@ -5,8 +5,8 @@
  * local scheduling — F-Droid-compatible, no FCM. The enable/time preference
  * lives in app_meta (db/queries/memories); `reminders.ts` decides when to plan.
  */
-import * as Notifications from "expo-notifications";
 import type { MemoryDay } from "@/db/queries/memories";
+import { loadNotifications } from "@/lib/notificationsModule";
 
 /**
  * Every memories reminder's identifier starts with this. The day is part of the
@@ -60,6 +60,8 @@ export function planMemoriesReminders(
 /** Cancel every scheduled memories reminder. */
 export async function cancelMemoriesReminder(): Promise<void> {
   try {
+    const Notifications = await loadNotifications();
+    if (!Notifications) return;
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     const ours = scheduled.filter((n) => n.identifier.startsWith(MEMORIES_NOTIFICATION_PREFIX));
     await Promise.all(ours.map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)));
@@ -70,12 +72,16 @@ export async function cancelMemoriesReminder(): Promise<void> {
 
 /** Whether local notifications may be shown, without asking. */
 export async function hasNotificationPermission(): Promise<boolean> {
+  const Notifications = await loadNotifications();
+  if (!Notifications) return false;
   return (await Notifications.getPermissionsAsync()).granted;
 }
 
 /** Whether local notifications may be shown, asking the user when not yet. */
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (await hasNotificationPermission()) return true;
+  const Notifications = await loadNotifications();
+  if (!Notifications) return false;
+  if ((await Notifications.getPermissionsAsync()).granted) return true;
   return (await Notifications.requestPermissionsAsync()).granted;
 }
 
@@ -85,6 +91,8 @@ export async function scheduleMemoriesReminders(
   content: ReminderContent
 ): Promise<void> {
   await cancelMemoriesReminder();
+  const Notifications = await loadNotifications();
+  if (!Notifications) return;
   for (const reminder of reminders) {
     await Notifications.scheduleNotificationAsync({
       identifier: reminder.id,
