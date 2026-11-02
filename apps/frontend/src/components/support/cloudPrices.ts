@@ -4,7 +4,8 @@
  * pages; update them (and CLOUD_PRICES_CHECKED) when a release goes out. Only storage is compared,
  * plan for plan: the smallest plan of each provider that holds the library.
  */
-export const CLOUD_PRICES_CHECKED = "2026-11";
+/** The month the prices were last checked (month 1 = January). */
+export const CLOUD_PRICES_CHECKED = { year: 2026, month: 11 } as const;
 
 type CloudPlan = Readonly<{
   provider: string;

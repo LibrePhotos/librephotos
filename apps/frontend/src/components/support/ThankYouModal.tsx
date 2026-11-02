@@ -50,7 +50,10 @@ function CloudPrices({ bytes }: Readonly<{ bytes: number }>) {
         </Text>
         <Text size="xs" c="dimmed">
           {t("support.listprices", {
-            date: DateTime.fromISO(CLOUD_PRICES_CHECKED).toLocaleString({ month: "long", year: "numeric" }),
+            date: DateTime.utc(CLOUD_PRICES_CHECKED.year, CLOUD_PRICES_CHECKED.month).toLocaleString({
+              month: "long",
+              year: "numeric",
+            }),
           })}
         </Text>
       </Group>
