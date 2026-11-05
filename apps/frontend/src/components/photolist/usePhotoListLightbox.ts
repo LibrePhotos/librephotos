@@ -1,6 +1,6 @@
 import type { Photo, PigPhoto } from "@librephotos/api-client";
 import { useLocation, useNavigate, useRouter, useSearch } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import type { LightboxItem } from "../lightbox/lightbox.types";
@@ -30,6 +30,19 @@ const aloneItem = (id: string, details: Photo): LightboxItem => ({
   date: details.exif_timestamp,
   location: details.search_location ?? undefined,
 });
+
+/** A photo's tile in Pig's layout, without flattening it: a big timeline has 200k of them. */
+function findTile<T extends { id: string }>(layout: readonly (T | { items: readonly T[] })[], id: string | undefined) {
+  for (const entry of layout) {
+    if ("items" in entry) {
+      const tile = entry.items.find(item => item.id === id);
+      if (tile) return tile;
+    } else if (entry.id === id) {
+      return entry;
+    }
+  }
+  return undefined;
+}
 
 /**
  * The lightbox over a photo list, and keeping the grid scrolled to the photo last viewed. The open
@@ -111,10 +124,7 @@ export const usePhotoListLightbox = (
           // tiles have no <img> to match on (the old index fallback then
           // pointed at an unrelated tile).
           const currentId = idx2hash[currentImageIndexRef.current]?.id;
-          const layout = pigRef.current?.imageData ?? [];
-          const tile = layout
-            .flatMap(entry => ("items" in entry ? entry.items : [entry]))
-            .find(entry => entry.id === currentId);
+          const tile = findTile(pigRef.current?.imageData ?? [], currentId);
           const { translateY, height: tileHeight } = tile?.style ?? {};
           const grid = gridRef.current;
           if (translateY === undefined || tileHeight === undefined || !grid) return;
@@ -146,12 +156,18 @@ export const usePhotoListLightbox = (
     [navigate]
   );
 
+  // The same object while the photo stays: the lightbox keeps the list it steps through by identity.
+  const lightboxAloneItem = useMemo(
+    () => (alone && details.data ? aloneItem(photo, details.data) : undefined),
+    [alone, photo, details.data]
+  );
+
   return {
     currentImageIndexRef,
     lightboxOpen,
     lightboxImageId: photo ?? "",
     // Set when the lightbox shows a photo the list does not hold: it steps through just that one.
-    lightboxAloneItem: alone && details.data ? aloneItem(photo, details.data) : undefined,
+    lightboxAloneItem,
     showLightbox,
     closeLightbox,
     handleLightboxIndexChange,

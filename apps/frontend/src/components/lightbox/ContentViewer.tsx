@@ -1,7 +1,6 @@
 import { Carousel, type CarouselProps } from "@mantine/carousel";
 import { Modal, Stack } from "@mantine/core";
 import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
-import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
@@ -28,7 +27,9 @@ import { liveTextBlocks, mainSlide } from "./lightboxSlide";
 import { MediaDisplay } from "./MediaDisplay";
 import { photoActionHotkeys } from "./photoActionHotkeys";
 import { Sidebar } from "./Sidebar";
+import { SlideTransition } from "./SlideTransition";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
+import { useAfterTrashToggle } from "./useAfterTrashToggle";
 import { useFaceDrawing } from "./useFaceDrawing";
 import { useLightboxZoom } from "./useLightboxZoom";
 import { usePhotoRotation } from "./usePhotoRotation";
@@ -69,6 +70,7 @@ export function ContentViewer({
   onPhotoSelect,
   startSlideshow,
   gridItem,
+  onTrashToggled,
 }: ContentViewerProps) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
@@ -171,19 +173,16 @@ export function ContentViewer({
     onCloseRequest();
   };
 
-  // A trashed (or, in the trash, restored) photo leaves the list it was opened
-  // from, so step to a neighbour rather than leave it on screen.
-  const shownHashRef = useRef(mainSrcHash);
-  shownHashRef.current = mainSrcHash;
-  const handleAfterTrashToggle = () => {
-    // This runs when the request succeeds, from the render the click was made
-    // in. If the user has moved on meanwhile, stepping from that photo would
-    // jump them back to its neighbour.
-    if (shownHashRef.current !== mainSrcHash) return;
-    if (nextSrc) onMoveNextRequest();
-    else if (prevSrc) onMovePrevRequest();
-    else handleClose();
-  };
+  const handleAfterTrashToggle = useAfterTrashToggle({
+    mainSrc,
+    mainSrcHash,
+    nextSrc,
+    prevSrc,
+    onMoveNextRequest,
+    onMovePrevRequest,
+    onClose: handleClose,
+    onTrashToggled,
+  });
 
   const handleEscape = (event: KeyboardEvent) => {
     if (!escapeTargetsLightbox(event.target, contentRef.current?.closest('[role="dialog"]') ?? null)) return;
@@ -364,50 +363,35 @@ export function ContentViewer({
 
                   {/* Current slide */}
                   <Carousel.Slide>
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={mainSrc}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.05 }}
-                        transition={{
-                          duration: 0.4,
-                          ease: [0.4, 0, 0.2, 1],
-                        }}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                        }}
-                      >
-                        <MediaDisplay
-                          id={mainSrc}
-                          image_hash={mainSrcHash}
-                          isMainContent
-                          type={mainType}
-                          bind={bind}
-                          faceLocation={faceLocation}
-                          toggleZoom={toggleZoom}
-                          scale={scale}
-                          offset={offset}
-                          handleDragStart={handleDragStart}
-                          playing={playing}
-                          onEnded={slideshow.handleVideoEnded}
-                          rotationAngle={rotationAngle}
-                          imageCacheKey={imageCacheKey}
-                          suppressRotationTransition={suppressRotationTransition}
-                          onImageLoad={onImageLoad}
-                          ocrBlocks={ocrBlocks}
-                          showOcrText={showOcrText}
-                          drawingFace={faceDrawing.isDrawing}
-                          onFaceDrawn={faceDrawing.onDrawn}
-                          onCancelDrawFace={faceDrawing.cancel}
-                          isPublic={isPublic}
-                          panoramaActive={panorama.active}
-                          onPanoramaError={panorama.fail}
-                          {...(photoDetails ? { photoDetails } : {})}
-                        />
-                      </motion.div>
-                    </AnimatePresence>
+                    <SlideTransition slideKey={mainSrc}>
+                      <MediaDisplay
+                        id={mainSrc}
+                        image_hash={mainSrcHash}
+                        isMainContent
+                        type={mainType}
+                        bind={bind}
+                        faceLocation={faceLocation}
+                        toggleZoom={toggleZoom}
+                        scale={scale}
+                        offset={offset}
+                        handleDragStart={handleDragStart}
+                        playing={playing}
+                        onEnded={slideshow.handleVideoEnded}
+                        rotationAngle={rotationAngle}
+                        imageCacheKey={imageCacheKey}
+                        suppressRotationTransition={suppressRotationTransition}
+                        onImageLoad={onImageLoad}
+                        ocrBlocks={ocrBlocks}
+                        showOcrText={showOcrText}
+                        drawingFace={faceDrawing.isDrawing}
+                        onFaceDrawn={faceDrawing.onDrawn}
+                        onCancelDrawFace={faceDrawing.cancel}
+                        isPublic={isPublic}
+                        panoramaActive={panorama.active}
+                        onPanoramaError={panorama.fail}
+                        {...(photoDetails ? { photoDetails } : {})}
+                      />
+                    </SlideTransition>
                   </Carousel.Slide>
 
                   {/* Next slide */}
