@@ -1,0 +1,5 @@
+/* The main photo fills its slide while it fades in or out. */
+.slide {
+  width: 100%;
+  height: 100%;
+}
