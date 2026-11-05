@@ -54,7 +54,7 @@ def day_rows(view: TimelineView) -> list[DayRow]:
     if view.undated_only:
         count = view.photos.count()
         return [_row(None, count, "")] if count else []
-    counts = dict(
+    counts: dict[datetime.date | None, int] = dict(
         view.photos.annotate(day=taken_day())
         .values("day")
         .annotate(count=Count("pk"))

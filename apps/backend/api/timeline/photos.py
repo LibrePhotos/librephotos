@@ -68,12 +68,12 @@ def _view_filters(user: User | AnonymousUser, params: Mapping[str, Any]) -> Q:
         files = Photo.files.through.objects.filter(
             folder_path_q("file__path", params["folder"]), photo_id=OuterRef("pk")
         )
-        q &= Exists(files)
+        q &= Q(Exists(files))
     if params.get("person") is not None:
         faces = Face.objects.filter(
             photo_id=OuterRef("pk"), person_id=params["person"], deleted=False
         )
-        q &= Exists(faces)
+        q &= Q(Exists(faces))
     return q
 
 

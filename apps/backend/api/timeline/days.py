@@ -18,6 +18,7 @@ the whole day to do that.
 from __future__ import annotations
 
 import datetime
+import uuid
 from enum import Enum
 from typing import Final
 
@@ -121,7 +122,7 @@ class StaleCursorError(Exception):
 
 
 def after(
-    photos: QuerySet[Photo], cursor: object, order: str, walk: Walk
+    photos: QuerySet[Photo], cursor: uuid.UUID | str, order: str, walk: Walk
 ) -> QuerySet[Photo]:
     """The photos of a day (``photos``, not yet ordered) that come after the
     photo ``cursor`` in ``order``.
