@@ -192,7 +192,7 @@ class User(AbstractUser):
     )
 
     # Which end of the date-grouped photo lists comes first (#2712): the
-    # newest day or the oldest, by date taken. See api.albums.photo_order.
+    # newest day or the oldest, by date taken. See api.timeline.days.
     class PhotoOrder(models.TextChoices):
         NEWEST = "newest"
         OLDEST = "oldest"

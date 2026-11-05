@@ -130,6 +130,9 @@ allow-star-arg-any = true
 # They pick DJANGO_SETTINGS_MODULE from DEBUG before any settings exist.
 "manage.py" = ["TID251"]
 "librephotos/wsgi.py" = ["TID251"]
+# The day rows keep the JSON keys every client reads (numberOfItems,
+# aspectRatios, as PigPhoto.aspectRatio).
+"api/serializers/days.py" = ["N815"]
 
 [tool.ruff.format]
 quote-style = "double"
