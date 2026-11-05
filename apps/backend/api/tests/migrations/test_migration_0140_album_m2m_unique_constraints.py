@@ -12,9 +12,9 @@ the fix. These tests drop it to reproduce the state a PostgreSQL install is
 in, and only then look at what the migration does.
 """
 
-import datetime
 import importlib
 import uuid
+from unittest import mock
 
 from django.db import connection
 from django.test import TestCase
@@ -22,7 +22,6 @@ from django.utils import timezone
 
 from ..utils import (
     create_test_album_auto,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -33,6 +32,15 @@ from ..utils import (
 migration_module = importlib.import_module(
     "api.migrations.0140_album_m2m_unique_constraints"
 )
+
+# AlbumDate is gone (0222) and its photo table with it. The migration still
+# names that table, since it ran on installs that had it; on a database
+# migrated to the end there is nothing left to repair there.
+DROPPED = {("api_albumdate_photos", "albumdate_id")}
+ALL_UNIQUE_INDEXES = migration_module.UNIQUE_INDEXES
+LIVE_UNIQUE_INDEXES = [
+    entry for entry in ALL_UNIQUE_INDEXES if (entry[1], entry[2]) not in DROPPED
+]
 
 
 def through_model(model, field_name):
@@ -84,14 +92,17 @@ class AlbumM2MUniqueConstraintTest(TestCase):
             ),
             (create_test_album_place(title="Haifa", owner=cls.user), "photos"),
             (
-                create_test_album_date(date=datetime.date(2020, 1, 1), owner=cls.user),
-                "photos",
-            ),
-            (
                 create_test_album_auto(timestamp=now, created_on=now, owner=cls.user),
                 "photos",
             ),
         ]
+
+    def setUp(self):
+        patcher = mock.patch.object(
+            migration_module, "UNIQUE_INDEXES", LIVE_UNIQUE_INDEXES
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def album_for(self, table):
         """The album instance whose M2M is stored in *table*."""
@@ -125,8 +136,8 @@ class AlbumM2MUniqueConstraintTest(TestCase):
             expected.add((through._meta.db_table, album_field.column))
 
         self.assertEqual(
-            {(table, column) for _, table, column in migration_module.UNIQUE_INDEXES},
-            expected,
+            {(table, column) for _, table, column in ALL_UNIQUE_INDEXES},
+            expected | DROPPED,
         )
 
     def test_restores_a_constraint_that_0099_dropped(self):

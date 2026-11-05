@@ -1,5 +1,5 @@
 """Unit tests for the functions moved out of ``Photo`` whose coverage was only
-indirect: day-album bookkeeping (``api.metadata.photo_datetime``), place-album
+indirect: the capture time (``api.metadata.photo_datetime``), place-album
 lookup (``api.geocode.photo_location``), face persistence
 (``api.faces.photo_faces``) and file detachment (``api.photos.files``).
 
@@ -14,17 +14,24 @@ from unittest.mock import patch
 import numpy as np
 import PIL.Image
 from django.test import TestCase
+from rest_framework.test import APIClient
 
 from api.faces.photo_faces import DetectedFace, save_detected_face
 from api.geocode.photo_location import find_album_places
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON, CaptureTime, RuleContext
-from api.metadata.photo_datetime import extract_date_time, find_album_date
+from api.metadata.photo_datetime import extract_date_time
 from api.metadata.reader import sidecar_files_for_photo
 from api.models import Face, Photo
-from api.models.album_date import AlbumDate, get_or_create_album_date
 from api.models.album_place import get_album_place
 from api.photos.files import detach_missing_files
-from api.tests.utils import create_test_file, create_test_photo, create_test_user
+from api.tests.utils import (
+    create_test_file,
+    create_test_photo,
+    create_test_user,
+    day_photo_ids,
+    list_days,
+)
+from api.timeline.days import UNDATED_DAY_ID, day_id
 
 JUNE_1 = datetime.datetime(2020, 6, 1, 12, 0, tzinfo=datetime.UTC)
 JULY_4 = datetime.datetime(2021, 7, 4, 9, 30, tzinfo=datetime.UTC)
@@ -37,41 +44,11 @@ def _extracted(value):
     )
 
 
-class FindAlbumDateTest(TestCase):
-    def setUp(self):
-        self.user = create_test_user()
-
-    def test_dated_photo_in_its_day_album(self):
-        photo = create_test_photo(owner=self.user, exif_timestamp=JUNE_1)
-        album = get_or_create_album_date(JUNE_1.date(), self.user)
-        album.photos.add(photo)
-
-        self.assertEqual(find_album_date(photo), album)
-
-    def test_dated_photo_not_in_its_day_album(self):
-        photo = create_test_photo(owner=self.user, exif_timestamp=JUNE_1)
-        get_or_create_album_date(JUNE_1.date(), self.user)
-
-        self.assertIsNone(find_album_date(photo))
-
-    def test_dated_photo_without_a_day_album(self):
-        photo = create_test_photo(owner=self.user, exif_timestamp=JUNE_1)
-
-        self.assertIsNone(find_album_date(photo))
-
-    def test_undated_photo_in_the_no_date_album(self):
-        photo = create_test_photo(owner=self.user, exif_timestamp=None)
-        album = get_or_create_album_date(None, self.user)
-        album.photos.add(photo)
-
-        self.assertEqual(find_album_date(photo), album)
-
-    def test_other_owners_album_is_not_found(self):
-        other = create_test_user()
-        photo = create_test_photo(owner=self.user, exif_timestamp=JUNE_1)
-        get_or_create_album_date(JUNE_1.date(), other).photos.add(photo)
-
-        self.assertIsNone(find_album_date(photo))
+def _days(user) -> dict[int, list[str]]:
+    """The photo ids of each day of ``user``'s timeline."""
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return {row["id"]: day_photo_ids(client, row["id"]) for row in list_days(client)}
 
 
 class ExtractDateTimeTest(TestCase):
@@ -86,29 +63,24 @@ class ExtractDateTimeTest(TestCase):
 
         photo.refresh_from_db()
         self.assertEqual(photo.exif_timestamp, JULY_4)
-        album = AlbumDate.objects.get(owner=self.user, date=JULY_4.date())
-        self.assertTrue(album.photos.filter(pk=photo.pk).exists())
+        self.assertEqual(_days(self.user), {day_id(JULY_4.date()): [str(photo.pk)]})
 
-    def test_moves_photo_out_of_its_old_day_album(self):
+    def test_moves_photo_out_of_its_old_day(self):
         photo = create_test_photo(owner=self.user, exif_timestamp=JUNE_1)
-        old = get_or_create_album_date(JUNE_1.date(), self.user)
-        old.photos.add(photo)
+        self.assertEqual(list(_days(self.user)), [day_id(JUNE_1.date())])
 
         with _extracted(JULY_4):
             extract_date_time(photo)
 
-        self.assertFalse(old.photos.filter(pk=photo.pk).exists())
-        new = AlbumDate.objects.get(owner=self.user, date=JULY_4.date())
-        self.assertTrue(new.photos.filter(pk=photo.pk).exists())
+        self.assertEqual(_days(self.user), {day_id(JULY_4.date()): [str(photo.pk)]})
 
-    def test_undated_result_goes_to_the_no_date_album(self):
-        photo = create_test_photo(owner=self.user, exif_timestamp=None)
+    def test_undated_result_goes_to_the_undated_group(self):
+        photo = create_test_photo(owner=self.user, exif_timestamp=JUNE_1)
 
         with _extracted(None):
             extract_date_time(photo)
 
-        album = AlbumDate.objects.get(owner=self.user, date=None)
-        self.assertTrue(album.photos.filter(pk=photo.pk).exists())
+        self.assertEqual(_days(self.user), {UNDATED_DAY_ID: [str(photo.pk)]})
 
     def test_commit_false_does_not_save_the_photo(self):
         photo = create_test_photo(owner=self.user, exif_timestamp=None)
@@ -118,9 +90,8 @@ class ExtractDateTimeTest(TestCase):
 
         self.assertEqual(photo.exif_timestamp, JULY_4)
         self.assertIsNone(Photo.objects.get(pk=photo.pk).exif_timestamp)
-        # The day album is still updated.
-        album = AlbumDate.objects.get(owner=self.user, date=JULY_4.date())
-        self.assertTrue(album.photos.filter(pk=photo.pk).exists())
+        # The day follows the stored timestamp: nothing moved yet.
+        self.assertEqual(_days(self.user), {UNDATED_DAY_ID: [str(photo.pk)]})
 
     def test_passes_the_owners_rules_and_photo_state_to_the_extractor(self):
         photo = create_test_photo(owner=self.user, exif_gps_lat=52.5, exif_gps_lon=13.4)

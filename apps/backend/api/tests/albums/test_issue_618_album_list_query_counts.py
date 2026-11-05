@@ -13,7 +13,7 @@ network, which is the signature of an N+1 query in the album *list* endpoints.
 Those endpoints paginate at 1000 entries, so a library of this size really does
 render in one request.
 
-The thing, place, auto and date list endpoints already load their covers with a
+The thing, place, auto and day list endpoints already load their covers with a
 fixed set of prefetches. Two did not:
 
 ``PersonViewSet`` (``/api/persons/``, the people page) selects ``cover_photo``
@@ -41,7 +41,6 @@ from rest_framework.test import APIClient
 
 from api.tests.utils import (
     create_test_album_auto,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -164,16 +163,16 @@ class AlbumPlaceListQueryCountTest(AlbumListQueryCountTestMixin, TestCase):
         album.photos.add(self._photo())
 
 
-class AlbumDateListQueryCountTest(AlbumListQueryCountTestMixin, TestCase):
-    URL = "/api/albums/date/list/"
+class DayListQueryCountTest(AlbumListQueryCountTestMixin, TestCase):
+    URL = "/api/days/"
 
     def _make_album(self, index):
         timestamp = self.now - timezone.timedelta(days=index)
-        album = create_test_album_date(
-            date=timestamp.date(), owner=self.user, location={"places": ["Lisbon"]}
-        )
-        album.photos.add(
-            create_test_photo(owner=self.user, video=False, exif_timestamp=timestamp)
+        create_test_photo(
+            owner=self.user,
+            video=False,
+            exif_timestamp=timestamp,
+            geolocation_json={"places": ["Main Street 1", "Lisbon", "Portugal"]},
         )
 
 

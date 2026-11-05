@@ -10,7 +10,6 @@ from api.jobs.queue import enqueue_task
 
 from .models import (
     AlbumAuto,
-    AlbumDate,
     AlbumPlace,
     AlbumThing,
     AlbumUser,
@@ -82,7 +81,6 @@ admin.site.register(Person)
 admin.site.register(AlbumAuto)
 admin.site.register(AlbumUser)
 admin.site.register(AlbumThing)
-admin.site.register(AlbumDate)
 admin.site.register(AlbumPlace)
 admin.site.register(Cluster)
 

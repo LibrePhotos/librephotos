@@ -1,0 +1,16 @@
+{
+  "results": [
+    {
+      "id": 20240615,
+      "date": "2024-06-15",
+      "location": "Berlin",
+      "numberOfItems": 42
+    },
+    {
+      "id": 1,
+      "date": null,
+      "location": "",
+      "numberOfItems": 3
+    }
+  ]
+}

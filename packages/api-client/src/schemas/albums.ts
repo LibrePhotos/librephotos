@@ -4,23 +4,52 @@ import {
   IncompleteDatePhotosGroup,
   IntegerId,
   PhotoHash,
+  PigPhoto,
   ProjectionType,
   SimpleUser,
   UuidString,
 } from "./common";
 import { Person } from "./persons";
 
-/* ---- Date albums (the timeline) ---------------------------------------- */
+/* ---- Days (the timeline and every date-grouped list) ------------------ */
 
-export const FetchDateAlbumsListResponse = z.object({
-  results: IncompleteDatePhotosGroup.array(),
+/** A day of `/api/days/`: `id` is YYYYMMDD, or 1 for the photos without a date. */
+export const Day = z.object({
+  id: IntegerId,
+  date: z.string().nullable(),
+  location: z.string(),
+  numberOfItems: z.number(),
 });
-export type FetchDateAlbumsListResponse = z.infer<typeof FetchDateAlbumsListResponse>;
+export type Day = z.infer<typeof Day>;
 
-export const FetchDateAlbumResponse = z.object({
-  results: IncompleteDatePhotosGroup,
+export const FetchDaysResponse = z.object({
+  results: Day.array(),
 });
-export type FetchDateAlbumResponse = z.infer<typeof FetchDateAlbumResponse>;
+export type FetchDaysResponse = z.infer<typeof FetchDaysResponse>;
+
+/** A page of a day's photos; `next` is the `after` of the next page (null on the last). */
+export const DayPhotosPage = z.object({
+  items: PigPhoto.array(),
+  next: UuidString.nullable(),
+});
+export type DayPhotosPage = z.infer<typeof DayPhotosPage>;
+
+/**
+ * What a day is laid out with before its photos load: every photo's aspect ratio in the day's
+ * order, and the `after` of each page (`page_after[i]` opens page i + 1; null for the first).
+ */
+export const DayLayout = z.object({
+  id: IntegerId,
+  numberOfItems: z.number(),
+  aspectRatios: z.number().nullable().array(),
+  page_after: UuidString.nullable().array(),
+});
+export type DayLayout = z.infer<typeof DayLayout>;
+
+/** A day as the photo grids hold it: its placeholders or loaded photos in `items`. */
+export function dayGroup(day: Day): IncompleteDatePhotosGroup {
+  return { ...day, incomplete: true, items: [] };
+}
 
 /* ---- User albums ------------------------------------------------------- */
 

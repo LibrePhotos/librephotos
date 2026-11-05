@@ -1,15 +1,12 @@
-"""The album views read their query strings through serializers (#2326).
+"""The album and day views read their query strings through serializers (#2326).
 
-``/api/albums/date/list/``, ``/api/albums/date/<id>/`` and
-``/api/albums/user/<id>/`` used to read every parameter by truthiness:
-``?public=false`` opened the public view, ``?person=abc`` and a malformed
-``?last_modified`` crashed with a 500. Well-formed input still behaves as
-before (the spellings the clients send, blank parameters ignored, the owner
-and public scopes); a false word is now false, and a malformed value is a 400
-naming the parameter.
+``/api/days/``, ``/api/days/<id>/photos/`` and ``/api/albums/user/<id>/``
+used to read every parameter by truthiness: ``?public=false`` opened the
+public view and ``?person=abc`` crashed with a 500. Well-formed input still
+behaves as before (the spellings the clients send, blank parameters ignored,
+the owner and public scopes); a false word is now false, and a malformed
+value is a 400 naming the parameter.
 """
-
-import datetime
 
 from django.test import TestCase
 from django.utils import timezone
@@ -18,26 +15,30 @@ from rest_framework.test import APIClient
 
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
-    create_test_album_date,
     create_test_album_user,
     create_test_face,
     create_test_person,
     create_test_photo,
     create_test_user,
+    every_public_switch_on,
 )
+from api.timeline.days import taken_day_id
 
-LIST_URL = "/api/albums/date/list/"
+LIST_URL = "/api/days/"
 
 
 def error_fields(response) -> list[str]:
     return [error["field"] for error in response.json()["errors"]]
 
 
-class DateAlbumQueryTest(TestCase):
+class DayQueryTest(TestCase):
     def setUp(self):
-        self.owner = create_test_user(public_sharing=True)
+        # Dates shared, so the public view lists the photos under their day.
+        self.owner = create_test_user(
+            public_sharing=True, public_sharing_defaults=every_public_switch_on()
+        )
         self.taken = timezone.now()
-        self.day = create_test_album_date(owner=self.owner, date=self.taken.date())
+        self.day = taken_day_id(self.taken)
         self.public_photo = self._photo(public=True)
         self.private_photo = self._photo()
         self.hidden_photo = self._photo(hidden=True)
@@ -48,12 +49,11 @@ class DateAlbumQueryTest(TestCase):
         self.anonymous = APIClient()
         self.signed_in = APIClient()
         self.signed_in.force_authenticate(user=self.owner)
-        self.detail_url = f"/api/albums/date/{self.day.id}/"
+        self.detail_url = f"/api/days/{self.day}/photos/"
+        self.layout_url = f"/api/days/{self.day}/layout/"
 
     def _photo(self, **kwargs):
-        photo = create_test_photo(owner=self.owner, exif_timestamp=self.taken, **kwargs)
-        self.day.photos.add(photo)
-        return photo
+        return create_test_photo(owner=self.owner, exif_timestamp=self.taken, **kwargs)
 
     def _list(self, client, params):
         response = client.get(LIST_URL, params)
@@ -63,7 +63,7 @@ class DateAlbumQueryTest(TestCase):
     def _items(self, client, params):
         response = client.get(self.detail_url, params)
         self.assertEqual(200, response.status_code, response.content)
-        return {item["id"] for item in response.json()["results"]["items"]}
+        return {item["id"] for item in response.json()["items"]}
 
     def _ids(self, *photos):
         return {str(photo.id) for photo in photos}
@@ -74,7 +74,7 @@ class DateAlbumQueryTest(TestCase):
         for value in ("true", "True", "1", "yes", "on"):
             with self.subTest(public=value):
                 params = {"public": value, "username": self.owner.username}
-                self.assertEqual({self.day.id: 1}, self._list(self.anonymous, params))
+                self.assertEqual({self.day: 1}, self._list(self.anonymous, params))
                 self.assertEqual(
                     self._ids(self.public_photo), self._items(self.anonymous, params)
                 )
@@ -85,10 +85,10 @@ class DateAlbumQueryTest(TestCase):
             with self.subTest(username=username):
                 params = {"public": "true", "username": username}
                 listed = self._list(self.anonymous, params)
-                self.assertEqual(expected, listed.get(self.day.id))
+                self.assertEqual(expected, listed.get(self.day))
 
     def test_no_parameters_is_the_owners_view(self):
-        self.assertEqual({self.day.id: 2}, self._list(self.signed_in, {}))
+        self.assertEqual({self.day: 2}, self._list(self.signed_in, {}))
         self.assertEqual(
             self._ids(self.public_photo, self.private_photo),
             self._items(self.signed_in, {}),
@@ -105,10 +105,11 @@ class DateAlbumQueryTest(TestCase):
                 "show_all_stack_photos",
                 "folder",
                 "person",
-                "last_modified",
+                "library",
+                "after",
             )
         }
-        self.assertEqual({self.day.id: 2}, self._list(self.signed_in, params))
+        self.assertEqual({self.day: 2}, self._list(self.signed_in, params))
         self.assertEqual(
             self._ids(self.public_photo, self.private_photo),
             self._items(self.signed_in, params),
@@ -122,35 +123,15 @@ class DateAlbumQueryTest(TestCase):
         ):
             with self.subTest(flag=flag):
                 params = {flag: "true"}
-                self.assertEqual({self.day.id: 1}, self._list(self.signed_in, params))
+                self.assertEqual({self.day: 1}, self._list(self.signed_in, params))
                 self.assertEqual(self._ids(photo), self._items(self.signed_in, params))
 
     def test_person_filter(self):
         params = {"person": str(self.person.id)}
-        self.assertEqual({self.day.id: 1}, self._list(self.signed_in, params))
+        self.assertEqual({self.day: 1}, self._list(self.signed_in, params))
         self.assertEqual(
             self._ids(self.private_photo), self._items(self.signed_in, params)
         )
-
-    def test_last_modified_takes_a_date_or_a_date_time(self):
-        yesterday = self.taken - datetime.timedelta(days=1)
-        tomorrow = self.taken + datetime.timedelta(days=1)
-        every_photo = self._ids(
-            self.public_photo, self.private_photo, self.hidden_photo, self.trashed_photo
-        )
-        for since in (
-            yesterday.date().isoformat(),
-            yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            yesterday.isoformat(),
-        ):
-            with self.subTest(last_modified=since):
-                params = {"last_modified": since}
-                # The owner shortcut drops the hidden and trash filters.
-                self.assertEqual({self.day.id: 4}, self._list(self.signed_in, params))
-                self.assertEqual(every_photo, self._items(self.signed_in, params))
-        params = {"last_modified": tomorrow.date().isoformat()}
-        self.assertEqual({}, self._list(self.signed_in, params))
-        self.assertEqual(set(), self._items(self.signed_in, params))
 
     # --- false words are false ------------------------------------------
 
@@ -158,21 +139,19 @@ class DateAlbumQueryTest(TestCase):
         for value in ("false", "False", "0", "no", "off"):
             with self.subTest(public=value):
                 params = {"public": value}
-                self.assertEqual({self.day.id: 2}, self._list(self.signed_in, params))
+                self.assertEqual({self.day: 2}, self._list(self.signed_in, params))
                 self.assertEqual(
                     self._ids(self.public_photo, self.private_photo),
                     self._items(self.signed_in, params),
                 )
-                self.assertEqual(401, self.anonymous.get(LIST_URL, params).status_code)
-                self.assertEqual(
-                    401, self.anonymous.get(self.detail_url, params).status_code
-                )
+                for url in (LIST_URL, self.detail_url, self.layout_url):
+                    self.assertEqual(401, self.anonymous.get(url, params).status_code)
 
     def test_a_false_hidden_or_trash_flag_is_the_default_view(self):
         for flag in ("hidden", "in_trashcan"):
             with self.subTest(flag=flag):
                 params = {flag: "false"}
-                self.assertEqual({self.day.id: 2}, self._list(self.signed_in, params))
+                self.assertEqual({self.day: 2}, self._list(self.signed_in, params))
                 self.assertEqual(
                     self._ids(self.public_photo, self.private_photo),
                     self._items(self.signed_in, params),
@@ -183,29 +162,42 @@ class DateAlbumQueryTest(TestCase):
     def test_malformed_values_are_a_400_naming_the_parameter(self):
         for params, field in (
             ({"person": "abc"}, "person"),
-            ({"last_modified": "yesterday"}, "last_modified"),
-            ({"last_modified": "2024-13-45"}, "last_modified"),
+            ({"library": "abc"}, "library"),
             ({"hidden": "maybe"}, "hidden"),
             ({"in_trashcan": "maybe"}, "in_trashcan"),
             ({"show_all_stack_photos": "maybe"}, "show_all_stack_photos"),
+            ({"libraries": "maybe"}, "libraries"),
             ({"public": "maybe"}, "public"),
+            ({"order": "random"}, "order"),
         ):
-            for url in (LIST_URL, self.detail_url):
+            for url in (LIST_URL, self.detail_url, self.layout_url):
                 with self.subTest(url=url, params=params):
                     response = self.signed_in.get(url, params)
                     self.assertEqual(400, response.status_code, response.content)
                     self.assertEqual([field], error_fields(response))
 
+    def test_malformed_page_parameters_are_a_400(self):
+        for params, field in (
+            ({"after": "not-a-uuid"}, "after"),
+            ({"limit": "x"}, "limit"),
+        ):
+            with self.subTest(params=params):
+                response = self.signed_in.get(self.detail_url, params)
+                self.assertEqual(400, response.status_code, response.content)
+                self.assertEqual([field], error_fields(response))
+
     def test_a_malformed_public_flag_is_a_400_for_anonymous_callers_too(self):
-        for url in (LIST_URL, self.detail_url):
+        for url in (LIST_URL, self.detail_url, self.layout_url):
             with self.subTest(url=url):
                 response = self.anonymous.get(url, {"public": "maybe"})
                 self.assertEqual(400, response.status_code)
                 self.assertEqual(["public"], error_fields(response))
 
     def test_anonymous_callers_without_public_are_refused_before_validation(self):
-        response = self.anonymous.get(LIST_URL, {"person": "abc"})
-        self.assertEqual(401, response.status_code)
+        for url in (LIST_URL, self.detail_url):
+            with self.subTest(url=url):
+                response = self.anonymous.get(url, {"person": "abc"})
+                self.assertEqual(401, response.status_code)
 
 
 class UserAlbumPublicQueryTest(TestCase):
@@ -255,16 +247,26 @@ class UserAlbumPublicQueryTest(TestCase):
         self.assertEqual(401, response.status_code)
 
 
-class DateAlbumQuerySchemaTest(TestCase):
-    def test_the_date_endpoints_document_their_query_serializers(self):
+class DayQuerySchemaTest(TestCase):
+    def query_parameters(self, schema, path):
+        return {
+            parameter["name"]: parameter["schema"]
+            for parameter in schema["paths"][path]["get"]["parameters"]
+            if parameter["in"] == "query"
+        }
+
+    def test_the_day_endpoints_document_their_query_serializers(self):
         schema = SchemaGenerator().get_schema(request=None, public=True)
-        for path in ("/api/albums/date/list/", "/api/albums/date/{id}/"):
+        for path in ("/api/days/", "/api/days/{id}/photos/", "/api/days/{id}/layout/"):
             with self.subTest(path=path):
-                parameters = {
-                    parameter["name"]: parameter["schema"]
-                    for parameter in schema["paths"][path]["get"]["parameters"]
-                    if parameter["in"] == "query"
-                }
+                parameters = self.query_parameters(schema, path)
                 self.assertEqual("integer", parameters["person"]["type"])
-                self.assertEqual("date-time", parameters["last_modified"]["format"])
                 self.assertEqual("boolean", parameters["public"]["type"])
+                # Gone with the day albums: no client sent them.
+                for gone in ("search", "last_modified", "page", "page_size"):
+                    self.assertNotIn(gone, parameters)
+        photos = self.query_parameters(schema, "/api/days/{id}/photos/")
+        self.assertEqual("uuid", photos["after"]["format"])
+        self.assertEqual(
+            (1, 500), (photos["limit"]["minimum"], photos["limit"]["maximum"])
+        )

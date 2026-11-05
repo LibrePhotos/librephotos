@@ -17,7 +17,6 @@ from api.dataviz.color_palettes import hex_palette
 from api.lazy_import import LazyModule
 from api.models import (
     AlbumAuto,
-    AlbumDate,
     AlbumPlace,
     AlbumThing,
     AlbumUser,
@@ -31,6 +30,7 @@ from api.models.place_names import place_name
 from api.models.user import get_deleted_user
 from api.runtime import binaries
 from api.search.semantic import OPENCLIP
+from api.timeline.days import taken_day
 
 if TYPE_CHECKING:
     import numpy as np
@@ -372,10 +372,13 @@ def get_count_stats(user: User) -> dict[str, int]:
         .filter(Q(photo_count__gt=0))
         .count()
     )
+    # The days of the timeline: every day one of the user's photos was taken on.
     num_albumdate = (
-        AlbumDate.objects.filter(owner=user)
-        .annotate(photo_count=Count("photos"))
-        .filter(Q(photo_count__gt=0))
+        Photo.objects.owned_by(user)
+        .filter(exif_timestamp__isnull=False)
+        .annotate(day=taken_day())
+        .values("day")
+        .distinct()
         .count()
     )
     num_albumuser = (

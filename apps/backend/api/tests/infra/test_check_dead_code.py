@@ -119,7 +119,7 @@ class PlantedDeadCodeTest(SimpleTestCase):
             (root / "api" / "tests" / "test_planted.py").write_text(
                 _TEST_CALLER, encoding="utf-8"
             )
-            model = root / "api" / "models" / "album_date.py"
+            model = root / "api" / "models" / "album_place.py"
             text = model.read_text(encoding="utf-8")
             anchor = "    def __str__(self) -> str:\n"
             assert anchor in text
@@ -139,7 +139,7 @@ class PlantedDeadCodeTest(SimpleTestCase):
         self.assertIn("unused function 'planted_unused_helper'", self.report)
 
     def test_unused_model_method_is_reported(self):
-        self.assertIn("api/models/album_date.py:", self.report)
+        self.assertIn("api/models/album_place.py:", self.report)
         self.assertIn("unused method 'planted_unused_method'", self.report)
 
     def test_function_only_a_test_calls_is_reported(self):

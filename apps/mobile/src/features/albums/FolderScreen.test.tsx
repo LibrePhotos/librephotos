@@ -37,20 +37,11 @@ function server(seen: string[] = []) {
     if (url.includes("/folders/subfolders/")) {
       return jsonResponse(listing(ROOT, null, [{ name: "trips", path: TRIPS, photo_count: 5 }]));
     }
-    if (url.includes("/albums/date/list/")) {
-      return jsonResponse({ results: [{ id: 3, date: "2024-05-01", location: "", incomplete: true, numberOfItems: 1, items: [] }] });
+    if (url.includes("/api/days/?")) {
+      return jsonResponse({ results: [{ id: 20240501, date: "2024-05-01", location: "", numberOfItems: 1 }] });
     }
-    if (url.includes("/albums/date/3/")) {
-      return jsonResponse({
-        results: {
-          id: 3,
-          date: "2024-05-01",
-          location: "",
-          incomplete: false,
-          numberOfItems: 1,
-          items: [{ id: PHOTO, image_hash: "hash-f", aspectRatio: 1 }],
-        },
-      });
+    if (url.includes("/api/days/20240501/photos/")) {
+      return jsonResponse({ items: [{ id: PHOTO, image_hash: "hash-f", aspectRatio: 1 }], next: null });
     }
     return jsonResponse({}, 404);
   });
@@ -83,7 +74,7 @@ describe("FolderScreen", () => {
     await waitFor(() => expect(getByTestId("folder-row-trips")).toBeTruthy());
     expect(getByTestId("folder-title").props.children).toBe("Folders");
     expect(getByTestId("folder-path").props.children).toBe(ROOT);
-    expect(seen.some((url) => url.includes("/albums/date/"))).toBe(false);
+    expect(seen.some((url) => url.includes("/days/"))).toBe(false);
 
     fireEvent.press(getByTestId("folder-row-trips"));
     expect(mockRouter().push).toHaveBeenCalledWith({ pathname: "/albums/folders/[id]", params: { id: TRIPS } });
@@ -96,7 +87,8 @@ describe("FolderScreen", () => {
     expect(getByTestId("folder-row-rome")).toBeTruthy();
     expect(getByTestId("folder-title").props.children).toBe("trips");
     expect(seen).toContain(`https://test.local/api/folders/subfolders/?path=${encodeURIComponent(TRIPS)}`);
-    expect(seen).toContain(`https://test.local/api/albums/date/list/?folder=${encodeURIComponent(TRIPS)}`);
+    expect(seen).toContain(`https://test.local/api/days/?folder=${encodeURIComponent(TRIPS)}`);
+    expect(seen).toContain(`https://test.local/api/days/20240501/photos/?folder=${encodeURIComponent(TRIPS)}&limit=100`);
 
     // A long press starts multi-select.
     fireEvent(getByTestId(`tile-${PHOTO}`), "longPress");
@@ -116,7 +108,7 @@ describe("FolderScreen", () => {
   it("says an empty folder is empty", async () => {
     const client = makeMockClient(async (url) => {
       if (url.includes("/folders/subfolders/")) return jsonResponse(listing(TRIPS, ROOT, []));
-      if (url.includes("/albums/date/list/")) return jsonResponse({ results: [] });
+      if (url.includes("/api/days/?")) return jsonResponse({ results: [] });
       return jsonResponse({}, 404);
     });
     const { getByTestId } = renderWithDb(<FolderScreen id={TRIPS} />, t.db, client);

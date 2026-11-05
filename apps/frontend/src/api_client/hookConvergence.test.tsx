@@ -12,7 +12,6 @@ import {
   photoGridKeys,
   Photoset,
   useAutoAlbumsQuery,
-  useDateAlbumQuery,
   useDateAlbumsQuery,
   useIncompleteFacesQuery,
   useJobsQuery as usePackageJobsQuery,
@@ -44,7 +43,6 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { useFetchAutoAlbumsQuery } from "./albums/hooks/useFetchAutoAlbumsQuery";
-import { useFetchDateAlbumQuery } from "./albums/hooks/useFetchDateAlbumQuery";
 import { useFetchDateAlbumsQuery } from "./albums/hooks/useFetchDateAlbumsQuery";
 import { useFetchPeopleAlbumsQuery } from "./albums/hooks/useFetchPeopleAlbumsQuery";
 import { useFetchPlaceAlbumQuery } from "./albums/hooks/useFetchPlaceAlbumQuery";
@@ -144,11 +142,6 @@ describe("a web hook and the package hook for the same answer", () => {
     ["the site settings", () => useGetSettingsQuery(), () => useSiteSettingsQuery()],
     ["a job list page", () => useJobsQuery({ page: 1, pageSize: 20 }), () => usePackageJobsQuery()],
     ["the worker", () => useWorkerQuery(), () => useWorkerAvailabilityQuery()],
-    [
-      "an unfiltered day page",
-      () => useFetchDateAlbumQuery({ photosetType: Photoset.FAVORITES, album_date_id: 4, page: 1 }),
-      () => useDateAlbumQuery(Photoset.FAVORITES, 4, 1),
-    ],
   ])("shares one cache entry: %s", async (_name, webHook, packageHook) => {
     expect(answers(await renderBoth(webHook, packageHook))).toHaveLength(1);
   });

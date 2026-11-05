@@ -37,7 +37,6 @@ from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import (
     create_test_album_auto,
     create_test_album_collection,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -51,6 +50,7 @@ from api.tests.utils import (
     create_test_tag,
     create_test_user,
 )
+from api.timeline.days import day_id
 
 THING_TYPE = "openclip_vitb32_tag"
 # A map view around v_photo2 (Porto)
@@ -112,8 +112,9 @@ class CrossTenantReadTest(TestCase):
             title="VictimPlaceTitle", geolocation_level=1, owner=self.victim
         )
         self.v_place.photos.add(*self.v_photos)
-        self.v_date = create_test_album_date(date=year_ago.date(), owner=self.victim)
-        self.v_date.photos.add(*self.v_photos)
+        # The victim's day: an id anyone can name (a date), so its pages must
+        # hold only the requester's photos.
+        self.v_day = day_id(year_ago.date())
 
         self.v_stack = create_test_stack(
             owner=self.victim, stack_type="manual", primary_photo=self.v_photo
@@ -180,18 +181,16 @@ class CrossTenantReadTest(TestCase):
             (f"/api/albums/thing/{v.v_thing.pk}/", "victimthingtitle"),
             ("/api/albums/place/list/", "VictimPlaceTitle"),
             (f"/api/albums/place/{v.v_place.pk}/", "VictimPlaceTitle"),
-            ("/api/albums/date/list/", str(v.v_date.pk)),
-            (f"/api/albums/date/{v.v_date.pk}/", v.v_photo.image_hash),
+            ("/api/days/", f'"id":{v.v_day},'),
+            (f"/api/days/{v.v_day}/photos/", v.v_photo.image_hash),
+            (f"/api/days/{v.v_day}/photos/?show_all_stack_photos=true", None),
+            (f"/api/days/{v.v_day}/layout/", '"numberOfItems":1,'),
+            (f"/api/days/?person={v.v_person.pk}", f'"id":{v.v_day},'),
+            (f"/api/days/{v.v_day}/photos/?person={v.v_person.pk}", None),
+            (f"/api/days/{v.v_day}/photos/?after={v.v_photo.pk}", None),
+            (f"/api/days/?public=true&username={v.victim.username}", None),
             (
-                f"/api/albums/date/list/?last_modified={_ago()}",
-                str(v.v_date.pk),
-            ),
-            (
-                f"/api/albums/date/{v.v_date.pk}/?last_modified={_ago()}",
-                v.v_photo.image_hash,
-            ),
-            (
-                f"/api/albums/date/list/?public=true&username={v.victim.username}",
+                f"/api/days/{v.v_day}/photos/?public=true&username={v.victim.username}",
                 None,
             ),
             ("/api/persons/", "VictimFriendName"),
@@ -296,6 +295,26 @@ class CrossTenantReadTest(TestCase):
                 )
                 self.assertEqual(leaked, [], f"{response.status_code}: {body[:300]}")
 
+    def test_another_users_day_is_empty_and_their_cursor_a_400(self):
+        """A day id is a date anyone can name: its pages hold the requester's
+        photos only, and a cursor on another user's photo must not tell
+        where that photo sorts among them."""
+        client = self.client_for(self.attacker)
+        days = client.get("/api/days/").json()["results"]
+        self.assertNotIn(self.v_day, [day["id"] for day in days])
+        page = client.get(f"/api/days/{self.v_day}/photos/").json()
+        self.assertEqual(page, {"items": [], "next": None})
+        layout = client.get(f"/api/days/{self.v_day}/layout/").json()
+        self.assertEqual(layout["numberOfItems"], 0)
+        own_day = days[0]["id"]
+        for day in (self.v_day, own_day):
+            with self.subTest(day=day):
+                response = client.get(
+                    f"/api/days/{day}/photos/", {"after": self.v_photo.pk}
+                )
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json()["errors"][0]["field"], "after")
+
     def test_the_owner_sees_their_own_rows(self):
         client = self.client_for(self.victim)
         for url, marker in self.cases():
@@ -329,12 +348,6 @@ class CrossTenantReadTest(TestCase):
                     m for m in self.victim_markers if m in body and m not in url
                 )
                 self.assertEqual(leaked, [], f"{response.status_code}: {body[:300]}")
-
-
-def _ago() -> str:
-    return (
-        (timezone.now() - datetime.timedelta(days=400)).isoformat().replace("+", "%2B")
-    )
 
 
 class SharedReadTest(TestCase):

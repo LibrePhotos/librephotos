@@ -6,7 +6,7 @@ The pure classifier and the scan/backfill hooks are covered by
 in work package A/2:
 
 * ``?is_screenshot=true`` / ``?is_document=true`` on the bulk-select helper, the
-  album-date detail + list endpoints and the semantic-search endpoint,
+  day list + day pages and the semantic-search endpoint,
 * ``type: screenshot`` / ``type: document`` tokens in recreated search captions,
 * the ``num_screenshots`` / ``num_documents`` count-stats tiles,
 * the PATCH override that flips a flag and pins ``category_source="user"`` so a
@@ -24,11 +24,11 @@ from api.directory_watcher.processing_jobs import classify_media
 from api.models.photo_search import PhotoSearch
 from api.photos.selection import build_photo_queryset
 from api.tests.utils import (
-    create_test_album_date,
     create_test_photo,
     create_test_photos,
     create_test_user,
 )
+from api.timeline.days import day_id
 
 
 class BuildPhotoQuerysetMediaCategoryTest(TestCase):
@@ -113,8 +113,8 @@ class SearchListMediaCategoryFilterTest(TestCase):
         self.assertEqual(hashes, {self.document.image_hash})
 
 
-class AlbumDateMediaCategoryFilterTest(TestCase):
-    """Both albums.py filter sites: the date-album detail and the date list."""
+class DayMediaCategoryFilterTest(TestCase):
+    """Both timeline reads: a day's photos and the day list."""
 
     def setUp(self):
         self.user = create_test_user()
@@ -125,15 +125,14 @@ class AlbumDateMediaCategoryFilterTest(TestCase):
             owner=self.user, is_screenshot=True, exif_timestamp=now
         )
         self.plain = create_test_photo(owner=self.user, exif_timestamp=now)
-        self.album = create_test_album_date(owner=self.user, date=now.date())
-        self.album.photos.add(self.screenshot, self.plain)
+        self.day = day_id(now.date())
 
     @staticmethod
     def _detail_hashes(response):
-        return {item["image_hash"] for item in response.json()["results"]["items"]}
+        return {item["image_hash"] for item in response.json()["items"]}
 
-    def test_date_album_detail_filter(self):
-        url = f"/api/albums/date/{self.album.id}/"
+    def test_day_photos_filter(self):
+        url = f"/api/days/{self.day}/photos/"
         # No filter -> both photos.
         self.assertEqual(
             self._detail_hashes(self.client.get(url)),
@@ -145,19 +144,18 @@ class AlbumDateMediaCategoryFilterTest(TestCase):
             {self.screenshot.image_hash},
         )
 
-    def test_date_album_list_filter(self):
-        # An album that only contains a non-screenshot must drop out of the
+    def test_day_list_filter(self):
+        # A day that only holds a non-screenshot must drop out of the
         # is_screenshot=true listing.
-        other_date = (timezone.now() - timezone.timedelta(days=30)).date()
-        plain_only = create_test_album_date(owner=self.user, date=other_date)
-        plain_only.photos.add(create_test_photo(owner=self.user))
+        earlier = timezone.now() - timezone.timedelta(days=30)
+        create_test_photo(owner=self.user, exif_timestamp=earlier)
 
-        resp = self.client.get("/api/albums/date/list/")
+        resp = self.client.get("/api/days/")
         self.assertEqual(len(resp.json()["results"]), 2)
 
-        resp = self.client.get("/api/albums/date/list/", {"is_screenshot": "true"})
+        resp = self.client.get("/api/days/", {"is_screenshot": "true"})
         ids = {row["id"] for row in resp.json()["results"]}
-        self.assertEqual(ids, {self.album.id})
+        self.assertEqual(ids, {self.day})
 
 
 class SearchCaptionMediaCategoryTest(TestCase):

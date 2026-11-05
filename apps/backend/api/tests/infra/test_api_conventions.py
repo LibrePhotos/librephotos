@@ -28,7 +28,6 @@ imports Django's ``Paginator``.
 """
 
 import ast
-import datetime
 import inspect
 import textwrap
 import types
@@ -55,17 +54,16 @@ from api.accounts.permissions import IsSuperUser
 from api.drf.pagination import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
-    DayAlbumPagination,
     DefaultPagination,
+    WholeListPagination,
 )
-from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Tag
+from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser, Tag
 from api.models.long_running_job import LongRunningJob
 from api.serializers.job import LongRunningJobSerializer
 from api.serializers.tag import TagSerializer
 from api.tests.infra.routes import ApiRoute, api_routes, router_verbs
 from api.tests.utils import (
     create_test_album_auto,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -93,7 +91,6 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/manage/user": {"PATCH partial_update"},
     "api/delete/user": {"DELETE destroy"},
     "api/albums/auto/list": {"GET list"},
-    "api/albums/date/list": {"GET list"},
     "api/albums/thing/list": {"GET list"},
     "api/albums/place/list": {"GET list"},
     "api/albums/user/list": {"GET list"},
@@ -108,7 +105,8 @@ ROUTER_VERBS: dict[str, set[str]] = {
         "POST delete_all",
     },
     "api/folders": {"GET subfolders"},
-    "api/albums/date": {"GET retrieve"},
+    # The timeline's days: the list, a day's photos (by cursor) and its layout.
+    "api/days": {"GET list", "GET photos", "GET layout"},
     "api/albums/thing": {"GET retrieve"},
     "api/albums/place": {"GET retrieve"},
     # PUT collections sets which of the owner's collections hold it (#1009).
@@ -316,11 +314,11 @@ class RouterVerbsTest(SimpleTestCase):
         )
 
     def test_a_viewset_dropping_a_pinned_verb_is_caught(self):
-        expected = {**ROUTER_VERBS, "api/albums/date": {"GET retrieve", "GET list"}}
+        expected = {**ROUTER_VERBS, "api/albums/thing": {"GET retrieve", "GET list"}}
 
         self.assertEqual(
             router_verb_drift(router, expected),
-            ["api/albums/date: no longer serves ['GET list']"],
+            ["api/albums/thing: no longer serves ['GET list']"],
         )
 
 
@@ -403,9 +401,7 @@ class RemovedVerbsTest(TestCase):
             "place": create_test_album_place(
                 title="Berlin", geolocation_level=1, owner=admin
             ).pk,
-            "date": create_test_album_date(
-                date=datetime.date(2021, 3, 4), owner=admin
-            ).pk,
+            "day": 20210304,
             "user_album": create_test_album_user(title="Trip", owner=admin).pk,
             "person": create_test_person(name="Ana", cluster_owner=admin).pk,
             "tag": create_test_tag(name="beach", owner=admin).pk,
@@ -445,11 +441,16 @@ class RemovedVerbsTest(TestCase):
             ("get", "/api/albums/user/", 404),
             ("post", "/api/albums/user/", 404),
             ("put", f"/api/albums/user/{ids['user_album']}/", 405),
-            ("post", "/api/albums/date/", 404),
-            ("post", "/api/albums/date/?public=1", 404),
-            ("put", f"/api/albums/date/{ids['date']}/", 405),
-            ("patch", f"/api/albums/date/{ids['date']}/", 405),
-            ("delete", f"/api/albums/date/{ids['date']}/", 405),
+            ("post", "/api/days/", 405),
+            ("post", "/api/days/?public=1", 405),
+            ("get", f"/api/days/{ids['day']}/", 404),
+            ("put", f"/api/days/{ids['day']}/photos/", 405),
+            ("patch", f"/api/days/{ids['day']}/photos/", 405),
+            ("delete", f"/api/days/{ids['day']}/photos/", 405),
+            ("post", f"/api/days/{ids['day']}/layout/", 405),
+            # The day albums are gone: a day is read from its photos (/api/days/).
+            ("get", "/api/albums/date/list/", 404),
+            ("get", "/api/albums/date/1/", 404),
             ("get", "/api/albums/user/edit/", 405),
             ("get", f"/api/albums/user/edit/{ids['user_album']}/", 405),
             ("put", f"/api/albums/user/edit/{ids['user_album']}/", 405),
@@ -476,7 +477,6 @@ class RemovedVerbsTest(TestCase):
                 AlbumAuto,
                 AlbumThing,
                 AlbumPlace,
-                AlbumDate,
                 AlbumUser,
                 Tag,
                 LongRunningJob,
@@ -497,7 +497,9 @@ class RemovedVerbsTest(TestCase):
         ids = self.ids
         for method, url in (
             ("get", f"/api/albums/auto/{ids['auto']}/"),
-            ("get", f"/api/albums/date/{ids['date']}/"),
+            ("get", "/api/days/"),
+            ("get", f"/api/days/{ids['day']}/photos/"),
+            ("get", f"/api/days/{ids['day']}/layout/"),
             ("get", f"/api/albums/user/{ids['user_album']}/"),
             ("get", "/api/persons/"),
             ("get", f"/api/persons/{ids['person']}/"),
@@ -1285,9 +1287,10 @@ class AccessByRoleTest(TestCase):
 # List routes that answer every row at once, and why. Every other list pages
 # with api.drf.pagination.DefaultPagination or one of its presets.
 UNPAGINATED_LIST_VIEWS: dict[str, str] = {
-    "api.views.albums.AlbumDateListViewSet": (
+    "api.views.days.DayViewSet": (
         "the timeline's index, one row per day without its photos; the "
-        "clients lay the whole timeline out from it"
+        "clients lay the whole timeline out from it, and a day's photos page "
+        "by cursor (/api/days/<id>/photos/)"
     ),
     "api.views.gallery.GalleryDayViewSet": (
         "the public gallery's timeline index, one row per day without its "
@@ -1539,7 +1542,7 @@ class PaginationConventionTest(SimpleTestCase):
 
     def test_presets_live_in_one_module_and_keep_the_one_envelope(self):
         presets = pagination_subclasses()
-        self.assertIn(DayAlbumPagination, presets)
+        self.assertIn(WholeListPagination, presets)
         self.assertEqual(preset_problems(presets), [])
 
     def test_a_preset_with_its_own_envelope_is_caught(self):

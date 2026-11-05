@@ -1,6 +1,7 @@
 """The public view of the day albums (``?public``) is one user's public profile.
 
-Up to the public gallery (#434), ``/api/albums/date/list/?public=true``
+Up to the public gallery (#434), ``/api/albums/date/list/?public=true`` (now
+``/api/days/?public=true``)
 without a ``username`` listed every user's public photos to anyone, whether
 they had a public profile or not: a combined timeline outside the gallery's
 switches (off by default, users opt in). Now the public view needs a
@@ -15,15 +16,23 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.tests.sharing_and_public.gallery_fixtures import gallery
-from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_user, every_public_switch_on
+from api.timeline.days import UNDATED_DAY_ID, day_id
 
 TAKEN = datetime.datetime(2024, 7, 14, 12, 0, tzinfo=datetime.UTC)
 
 
 class PublicViewIsPerUserTest(TestCase):
     def setUp(self):
-        self.profile = create_test_user(public_sharing=True)
-        self.private = create_test_user(public_sharing=False, in_public_gallery=False)
+        # Dates shared, so each day is its own (not the one undated group).
+        self.profile = create_test_user(
+            public_sharing=True, public_sharing_defaults=every_public_switch_on()
+        )
+        self.private = create_test_user(
+            public_sharing=False,
+            in_public_gallery=False,
+            public_sharing_defaults=every_public_switch_on(),
+        )
         self.days = {
             user.username: self.public_day(user)
             for user in (self.profile, self.private)
@@ -33,16 +42,14 @@ class PublicViewIsPerUserTest(TestCase):
         self.stranger.force_authenticate(create_test_user())
 
     def public_day(self, owner):
-        photo = create_test_photo(owner=owner, public=True, exif_timestamp=TAKEN)
-        day = create_test_album_date(owner, date=TAKEN.date())
-        day.photos.add(photo)
-        return day
+        create_test_photo(owner=owner, public=True, exif_timestamp=TAKEN)
+        return day_id(TAKEN.date())
 
     def list_status(self, client, **params):
-        return client.get("/api/albums/date/list/", {"public": "true", **params})
+        return client.get("/api/days/", {"public": "true", **params})
 
     def day_status(self, client, day, **params):
-        return client.get(f"/api/albums/date/{day.pk}/", {"public": "true", **params})
+        return client.get(f"/api/days/{day}/photos/", {"public": "true", **params})
 
     def test_no_combined_timeline_without_a_username_whatever_the_gallery(self):
         for stage in ("off", "members", "everyone"):
@@ -52,7 +59,7 @@ class PublicViewIsPerUserTest(TestCase):
             }.items():
                 with self.subTest(stage=stage, reader=name), gallery(stage):
                     self.assertEqual(self.list_status(client).status_code, 404)
-                    for day in self.days.values():
+                    for day in (*self.days.values(), UNDATED_DAY_ID):
                         self.assertEqual(self.day_status(client, day).status_code, 404)
 
     def test_a_user_without_a_public_profile_has_no_public_view(self):
@@ -65,13 +72,12 @@ class PublicViewIsPerUserTest(TestCase):
             self.assertEqual(
                 self.day_status(client, day, username=username).status_code, 404
             )
-        # Another user's username does not open this user's day either.
-        self.assertEqual(
-            self.day_status(
-                self.anonymous, day, username=self.profile.username
-            ).status_code,
-            404,
-        )
+        # Another user's username does not open this user's photos either:
+        # the same date under the profile's username holds the profile's.
+        response = self.day_status(self.anonymous, day, username=self.profile.username)
+        self.assertEqual(response.status_code, 200)
+        owners = {item["owner"]["username"] for item in response.json()["items"]}
+        self.assertEqual(owners, {self.profile.username})
 
     def test_the_user_themselves_still_reads_their_own_public_days(self):
         me = APIClient()
@@ -85,7 +91,7 @@ class PublicViewIsPerUserTest(TestCase):
         response = self.list_status(self.anonymous, username=username)
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(
-            [day["id"] for day in response.json()["results"]], [self.days[username].pk]
+            [day["id"] for day in response.json()["results"]], [self.days[username]]
         )
         self.assertEqual(
             self.day_status(

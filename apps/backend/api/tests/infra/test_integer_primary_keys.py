@@ -64,7 +64,7 @@ class IntegerPrimaryKeyFieldTest(SimpleTestCase):
     def test_the_walk_reaches_the_album_serializers(self):
         names = {cls.__name__ for cls in api_model_serializers()}
         self.assertTrue(
-            {"AlbumDateSerializer", "AlbumUserSerializer"} <= names, sorted(names)
+            {"AlbumThingSerializer", "AlbumUserSerializer"} <= names, sorted(names)
         )
 
     def test_no_serializer_sends_an_integer_pk_as_a_string(self):

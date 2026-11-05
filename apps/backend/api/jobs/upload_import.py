@@ -67,7 +67,7 @@ from api.directory_watcher.utils import (
     update_job_result,
 )
 from api.faces.photo_faces import extract_faces
-from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
+from api.geocode.photo_location import geolocate_photo
 from api.jobs.queue import tasks_are_waiting
 from api.jobs.upload_followups import request_upload_followups
 from api.metadata.datetime_rules import CaptureTime
@@ -264,7 +264,6 @@ def _tags(upload: UploadedPhoto) -> None:
 
 def _places(upload: UploadedPhoto) -> None:
     geolocate_photo(upload.photo)
-    add_location_to_album_dates(upload.photo)
 
 
 def _faces(upload: UploadedPhoto) -> None:

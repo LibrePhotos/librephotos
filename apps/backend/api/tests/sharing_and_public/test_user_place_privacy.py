@@ -10,18 +10,17 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models.album_date import AlbumDate
 from api.models.album_user_share import AlbumUserShare
 from api.places.membership import refresh_user_places
 from api.tests.utils import (
     create_test_album_auto,
-    create_test_album_date,
     create_test_album_user,
     create_test_library_share,
     create_test_photo,
     create_test_user,
     create_test_user_place,
 )
+from api.timeline.days import UNDATED_DAY_ID, day_id
 
 PLACE_NAME = "SecretHomeBase"
 CENTRE = (52.123456, 13.654321)
@@ -36,6 +35,7 @@ class UserPlacePrivacyTest(TestCase):
         self.recipient = create_test_user()
         self.stranger = create_test_user()
         now = timezone.now()
+        self.today = day_id(now.date())
         self.place = create_test_user_place(
             self.owner, PLACE_NAME, center=CENTRE, radius_m=200, icon="home"
         )
@@ -86,7 +86,9 @@ class UserPlacePrivacyTest(TestCase):
             f"/api/albums/auto/{self.event.pk}/",
             "/api/albums/auto/list/",
             "/api/albums/place/list/",
-            f"/api/albums/date/list/?public=true&username={self.owner.username}",
+            f"/api/days/?public=true&username={self.owner.username}",
+            f"/api/days/{UNDATED_DAY_ID}/photos/?public=true"
+            f"&username={self.owner.username}",
             "/api/photos/public/",
             f"/api/photos/searchlist/?search={PLACE_NAME}",
             "/api/searchtermexamples/",
@@ -107,15 +109,13 @@ class UserPlacePrivacyTest(TestCase):
         return [
             *self.reads(),
             "/api/library-shares/",
-            f"/api/albums/date/list/?library={owner}",
-            "/api/albums/date/list/?libraries=true",
-            *(f"/api/albums/date/{day}/?library={owner}" for day in self.owner_days()),
+            f"/api/days/?library={owner}",
+            "/api/days/?libraries=true",
+            f"/api/days/{self.today}/photos/?library={owner}",
+            f"/api/days/{self.today}/photos/?libraries=true",
             f"/api/photos/{self.shared.pk}/summary/",
             f"/api/photos/?search={PLACE_NAME}",
         ]
-
-    def owner_days(self):
-        return list(AlbumDate.objects.owned_by(self.owner).values_list("pk", flat=True))
 
     def assert_never_shown(self, user, urls=None):
         client = APIClient()
@@ -146,8 +146,6 @@ class UserPlacePrivacyTest(TestCase):
             share_captions=True,
             share_originals=True,
         )
-        day = create_test_album_date(owner=self.owner, date=timezone.now().date())
-        day.photos.add(self.shared, self.public)
         self.assert_never_shown(recipient, self.library_reads())
         client = APIClient()
         client.force_authenticate(recipient)

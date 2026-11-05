@@ -24,7 +24,7 @@ from api.metadata import edits
 from api.metadata.library_write import WRITE_TYPES
 from api.metadata.rights import PhotoRightsData, rights_of
 from api.mime import original_mime_type
-from api.models import AlbumDate, Face, File, Person, Photo, User
+from api.models import Face, File, Person, Photo, User
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
@@ -61,6 +61,7 @@ from api.sharing.grants import (
     viewer_grant,
 )
 from api.sharing.indirect import indirect_grants
+from api.timeline.days import UNDATED_DAY_ID, taken_day_id
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -516,12 +517,12 @@ class PhotoHashListSerializer(serializers.ModelSerializer):
 
 class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
     photo_summary = serializers.SerializerMethodField()
-    album_date_id = serializers.SerializerMethodField()
+    day_id = serializers.SerializerMethodField()
     processing = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
-        fields = ("photo_summary", "album_date_id", "processing")
+        fields = ("photo_summary", "day_id", "processing")
 
     # The view passes a queryset of photos (many=False), not a single photo.
     @extend_schema_field(PhotoSummarySerializer)
@@ -533,12 +534,16 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
     def get_processing(self, obj: QuerySet[Photo]) -> bool:
         return obj.get().thumbnail.aspect_ratio is None
 
-    def get_album_date_id(self, obj: QuerySet[Photo]) -> int | None:
-        return (
-            AlbumDate.objects.filter(photos__in=obj)
-            .values_list("id", flat=True)
-            .first()
-        )
+    def get_day_id(self, obj: QuerySet[Photo]) -> int:
+        """The id of the photo's day in ``/api/days/`` (YYYYMMDD, 1 undated)."""
+        taken, owner_id = obj.values_list("exif_timestamp", "owner_id").get()
+        # A reader who may not see when it was taken gets the undated group,
+        # where the public page of an owner who keeps dates to themselves
+        # lists it: a YYYYMMDD would tell the date.
+        grant = viewer_grant(self, owner_id)
+        if grant is not None and not grant.timestamps:
+            return UNDATED_DAY_ID
+        return taken_day_id(taken)
 
 
 def with_person_video_time(

@@ -2,8 +2,8 @@
 
 ``POST /api/photos/reapply-date-rules/`` and its job read each photo's date
 again with the owner's rules as they are now: a date set by hand stays
-(#2254), nothing is written to the files, and only the date, the day album
-and ``last_modified`` change.
+(#2254), nothing is written to the files, and only the date (so the day
+the photo is listed under) and ``last_modified`` change.
 """
 
 import datetime
@@ -23,15 +23,17 @@ from api.metadata.datetime_rules import RuleTypes
 from api.metadata.photo_datetime import reapply_date_rules
 from api.metadata.reader import MetadataReadError
 from api.metadata.tags import Tags
-from api.models import AlbumDate, LongRunningJob, Photo
+from api.models import LongRunningJob, Photo
 from api.tests.utils import (
     api_error,
-    create_test_album_date,
     create_test_file,
     create_test_job,
     create_test_photo,
     create_test_user,
+    day_photo_ids,
+    list_days,
 )
+from api.timeline.days import day_id
 
 URL = "/api/photos/reapply-date-rules/"
 
@@ -64,14 +66,20 @@ def _run_now(func, *args, **kwargs):
     func(*args, **kwargs)
 
 
-def _day_album_of(photo):
-    return AlbumDate.objects.filter(photos=photo).values_list("date", flat=True)
+def _days_of(photo):
+    """The ids of the days the owner's timeline lists ``photo`` under."""
+    client = APIClient()
+    client.force_authenticate(user=photo.owner)
+    return [
+        day["id"]
+        for day in list_days(client)
+        if str(photo.pk) in day_photo_ids(client, day["id"])
+    ]
 
 
 class ReapplyDateRulesJobTest(TestCase):
     def setUp(self):
         self.user = create_test_user(datetime_rules=json.dumps(CAMERA_RULES))
-        self.old_album = create_test_album_date(self.user, OLD_DATE.date())
 
     def photo(self, **fields):
         return create_test_photo(owner=self.user, **fields)
@@ -96,7 +104,6 @@ class ReapplyDateRulesJobTest(TestCase):
 
     def test_a_photo_moves_to_the_date_the_rules_read_now(self):
         photo = self.photo(exif_timestamp=OLD_DATE)
-        self.old_album.photos.add(photo)
         before = Photo.objects.get(pk=photo.pk).last_modified
 
         job = self.run_job()
@@ -104,7 +111,7 @@ class ReapplyDateRulesJobTest(TestCase):
         photo = Photo.objects.get(pk=photo.pk)
         self.assertEqual(photo.exif_timestamp, CAMERA_DATE)
         self.assertGreater(photo.last_modified, before)
-        self.assertEqual(list(_day_album_of(photo)), [CAMERA_DATE.date()])
+        self.assertEqual(_days_of(photo), [day_id(CAMERA_DATE.date())])
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
         self.assertEqual((job.progress_current, job.progress_target), (1, 1))
@@ -139,7 +146,7 @@ class ReapplyDateRulesJobTest(TestCase):
 
         self.assertFalse(moved)
         self.assertEqual(Photo.objects.get(pk=photo.pk).exif_timestamp, MANUAL_DATE)
-        self.assertEqual(list(_day_album_of(photo)), [])
+        self.assertEqual(_days_of(photo), [day_id(MANUAL_DATE.date())])
 
     def test_a_photo_whose_date_stays_is_not_saved(self):
         photo = self.photo(exif_timestamp=CAMERA_DATE)

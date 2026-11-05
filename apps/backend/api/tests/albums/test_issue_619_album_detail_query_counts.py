@@ -27,7 +27,7 @@ face, and the viewset carries a literal
 ``# TODO: This is a fetches with too many queries. We need to optimize this.``
 
 The correct behaviour is that the number of queries for an album detail response is
-O(1) in the album size - a fixed set of prefetches - exactly like ``AlbumDateViewSet``
+O(1) in the album size - a fixed set of prefetches - exactly like the day pages (``DayViewSet``)
 already does. These tests assert that and currently fail.
 """
 
@@ -261,7 +261,7 @@ class AlbumUserHiddenAndTrashedPhotosTest(TestCase):
     def test_a_share_recipient_sees_only_visible_photos(self):
         self.assertEqual(self._hashes(self.recipient), {self.visible.image_hash})
 
-    def test_the_album_date_is_the_newest_photo(self):
+    def test_the_albums_date_is_the_newest_photo(self):
         older = create_test_photo(
             owner=self.owner, exif_timestamp=timezone.now() - timezone.timedelta(30)
         )

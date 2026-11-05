@@ -5,7 +5,6 @@
 api/albums/auto_albums.py: 2
 api/directory_watcher/file_handlers.py: 1
 api/duplicates/detection.py: 1
-api/models/album_date.py: 3
 api/models/album_thing.py: 3
 api/models/cluster.py: 1
 api/models/duplicate.py: 1
@@ -15,6 +14,6 @@ api/models/photo_caption.py: 1
 api/models/photo_stack.py: 1
 api/models/tag.py: 1
 api/stacks/detection.py: 1
-api/dataviz/stats.py: 7
+api/dataviz/stats.py: 6
 api/sync_signals.py: 1
 api/accounts/deletion.py: 9

@@ -153,10 +153,7 @@ class WorkerLoadsPhotoByIdTest(TestCase):
 
     def test_geolocation_job_works_from_the_id(self):
         job = _job(self.user, LongRunningJob.JOB_ADD_GEOLOCATION)
-        with (
-            patch.object(processing_jobs, "geolocate_photo") as geolocate,
-            patch.object(processing_jobs, "add_location_to_album_dates"),
-        ):
+        with patch.object(processing_jobs, "geolocate_photo") as geolocate:
             geolocation_job(self.photo.pk, job.job_id)
         self.assertEqual(geolocate.call_args.args[0].pk, self.photo.pk)
         job.refresh_from_db()

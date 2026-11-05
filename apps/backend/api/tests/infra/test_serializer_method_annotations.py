@@ -27,7 +27,6 @@ SHAPELESS_NAMES = frozenset({"list", "dict", "Any", "object", "List", "Dict"})
 # @extend_schema_field, regenerate openapi.json, then delete its line here.
 SHAPELESS = frozenset(
     {
-        "api/serializers/album_date.py:IncompleteAlbumDateSerializer.get_items",
         "api/serializers/album_user.py:AlbumUserListSerializer.get_public_sharing_options",
         "api/serializers/album_user.py:AlbumUserSerializer.get_public_sharing_options",
         "api/serializers/photo_metadata.py:PhotoMetadataSerializer.get_edit_history",
