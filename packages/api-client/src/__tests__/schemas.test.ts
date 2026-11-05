@@ -3,7 +3,10 @@ import { photosetToFilter } from "../endpoints";
 import {
   AutoAlbum,
   CreateUserAlbumResponse,
-  FetchDateAlbumsListResponse,
+  DayLayout,
+  DayPhotosPage,
+  dayGroup,
+  FetchDaysResponse,
   FetchThingAlbumsListResponse,
   imageHashOf,
   IntegerId,
@@ -20,7 +23,8 @@ import {
   UserAlbum,
 } from "../schemas";
 import { defined } from "./defined";
-import dateAlbumsList from "./fixtures/dateAlbumsList.json";
+import dayPhotos from "./fixtures/dayPhotos.json";
+import days from "./fixtures/days.json";
 import loginResponse from "./fixtures/loginResponse.json";
 import userFixture from "./fixtures/user.json";
 
@@ -38,19 +42,48 @@ describe("IntegerId", () => {
 });
 
 describe("schema parsing against fixtures", () => {
-  it("parses a date-albums (timeline) list", () => {
-    const parsed = FetchDateAlbumsListResponse.parse(dateAlbumsList);
+  it("parses the days (timeline) list", () => {
+    const parsed = FetchDaysResponse.parse(days);
     expect(parsed.results).toHaveLength(2);
-    const first = defined(parsed.results[0]);
-    // Servers up to 1.3 send the date album id as a string, later ones as a number.
-    expect(first.id).toBe(12);
-    expect(defined(parsed.results[1]).id).toBe(13);
-    expect(defined(first.items[0]).type).toBe(Media.IMAGE);
+    // A day is named by its YYYYMMDD
+    expect(defined(parsed.results[0]).id).toBe(20240615);
+    // and the "no timestamp" bucket by 1, with a null date.
+    expect(defined(parsed.results[1])).toEqual({ id: 1, date: null, location: "", numberOfItems: 3 });
+  });
+
+  it("turns a day into a group of the grids, with its photos still to load", () => {
+    const day = defined(FetchDaysResponse.parse(days).results[0]);
+    expect(dayGroup(day)).toEqual({
+      id: 20240615,
+      date: "2024-06-15",
+      location: "Berlin",
+      numberOfItems: 42,
+      incomplete: true,
+      items: [],
+    });
+  });
+
+  it("parses a page of a day's photos with its cursor", () => {
+    const parsed = DayPhotosPage.parse(dayPhotos);
+    const first = defined(parsed.items[0]);
+    expect(first.type).toBe(Media.IMAGE);
     // defaults applied by zod
-    expect(defined(first.items[0]).isTemp).toBe(false);
-    expect(defined(first.items[0]).shared_to).toEqual([]);
-    // the null-date "no timestamp" bucket is allowed
-    expect(defined(parsed.results[1]).date).toBeNull();
+    expect(first.isTemp).toBe(false);
+    expect(first.shared_to).toEqual([]);
+    expect(defined(parsed.items[1]).type).toBe(Media.VIDEO);
+    expect(parsed.next).toBe("22222222-2222-2222-2222-222222222222");
+    expect(DayPhotosPage.parse({ items: [], next: null }).next).toBeNull();
+    expect(() => DayPhotosPage.parse({ items: [], next: "photo-7" })).toThrow();
+  });
+
+  it("parses a day's layout, a photo without dimensions as a null ratio", () => {
+    const layout = {
+      id: 20240615,
+      numberOfItems: 3,
+      aspectRatios: [1.5, null, 0.75],
+      page_after: [null, "22222222-2222-2222-2222-222222222222"],
+    };
+    expect(DayLayout.parse(layout)).toEqual(layout);
   });
 
   it("parses a login response", () => {
@@ -141,8 +174,8 @@ describe("schema parsing against fixtures", () => {
   });
 
   it("rejects malformed data loudly (server drift)", () => {
-    const bad = { results: [{ id: 5, items: "not-an-array" }] };
-    expect(() => FetchDateAlbumsListResponse.parse(bad)).toThrow();
+    const bad = { results: [{ id: 5, numberOfItems: "many" }] };
+    expect(() => FetchDaysResponse.parse(bad)).toThrow();
   });
 });
 

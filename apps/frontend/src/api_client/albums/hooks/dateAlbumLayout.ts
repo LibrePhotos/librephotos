@@ -1,6 +1,6 @@
 import { endpoints, photoGridKeys } from "@librephotos/api-client";
 import type { DateAlbumFilter, DateAlbumsListKey, DayLayout, IncompleteDatePhotosGroup } from "@librephotos/api-client";
-import type { QueryClient } from "@tanstack/react-query";
+import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../api";
 
 /** How many photos one page of a day holds; a day of more pages gets its layout. */
@@ -8,6 +8,23 @@ const DAY_PAGE_SIZE = endpoints.DATE_ALBUM_PAGE_SIZE;
 
 type Placeholder = { isTemp?: boolean; aspectRatio: number };
 type LayoutGroup<T> = Pick<IncompleteDatePhotosGroup, "id" | "numberOfItems"> & { items: T[] };
+
+/**
+ * The one query of a day's layout, whoever asks first (ensureDayLayout beside a day's first page, or
+ * a page's cursor lookup): cached until a grid change invalidates it, and kept a while unwatched so a
+ * scrubber jump later does not wait on a fresh one.
+ */
+export function dayLayoutQuery(listKey: DateAlbumsListKey, dayId: number, filter: DateAlbumFilter) {
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps -- the list key in the query key holds the filters
+  return queryOptions({
+    queryKey: photoGridKeys.dateAlbumLayout(listKey, dayId),
+    queryFn: () => endpoints.fetchDayLayout(apiClient, dayId, filter, DAY_PAGE_SIZE),
+    staleTime: Infinity,
+    gcTime: 30 * 60 * 1000,
+    // A day of 200k photos: comparing the arrays to share structure cost a frame for nothing.
+    structuralSharing: false,
+  });
+}
 
 /** Whether a day is worth its layout request: one that loads in more than one page. */
 export const needsDayLayout = (numberOfItems: number) => numberOfItems > DAY_PAGE_SIZE;
@@ -80,13 +97,7 @@ export async function ensureDayLayout(
   // Asked already: loaded, loading, or failed (a server without layouts) until the list refreshes.
   if (state && (state.fetchStatus === "fetching" || (state.status !== "pending" && !state.isInvalidated))) return;
 
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps -- the list key in layoutKey holds the filters
-  const layout = await queryClient.fetchQuery({
-    queryKey: layoutKey,
-    queryFn: () => endpoints.fetchDayLayout(apiClient, albumDateId, filter),
-    // A day of 200k photos: comparing the arrays to share structure cost a frame for nothing.
-    structuralSharing: false,
-  });
+  const layout = await queryClient.fetchQuery(dayLayoutQuery(listKey, albumDateId, filter));
   queryClient.setQueryData<IncompleteDatePhotosGroup[]>(listQueryKey, groups => {
     if (!groups) return groups;
     const index = groups.findIndex(g => g.id === albumDateId);

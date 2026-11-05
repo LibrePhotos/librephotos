@@ -54,14 +54,28 @@ describe("album detail endpoints", () => {
   });
 });
 
-describe("date album endpoints", () => {
+describe("day endpoints", () => {
+  const after = "00000000-0000-4000-8000-000000000007";
+
   // Without the slash the router answers each day page with a 301 first.
   it("fetches a day page with a trailing slash before the query", async () => {
-    const { client, calls } = harness({
-      results: { id: "12", date: "2024-04-02", location: "", items: [], incomplete: false, numberOfItems: 0 },
-    });
-    await endpoints.fetchDateAlbum(client, 12, 2, { video: true });
-    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/albums/date/12/?video=true&page=2");
+    const { client, calls } = harness({ items: [], next: null });
+    await endpoints.fetchDayPhotos(client, 20240402, after, { video: true }, 50);
+    expect(defined(calls[0]).url).toBe(
+      `https://demo.example.com/api/days/20240402/photos/?video=true&after=${after}&limit=50`
+    );
+  });
+
+  it("leaves after and limit out for the first page at the server's page size", async () => {
+    const { client, calls } = harness({ items: [], next: null });
+    await endpoints.fetchDayPhotos(client, 1, null);
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/days/1/photos/");
+  });
+
+  it("fetches a day's layout with a trailing slash before the query", async () => {
+    const { client, calls } = harness({ id: 20240402, numberOfItems: 0, aspectRatios: [], page_after: [] });
+    await endpoints.fetchDayLayout(client, 20240402, { favorite: true });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/days/20240402/layout/?favorite=true");
   });
 });
 
@@ -122,12 +136,10 @@ describe("photo list media filters", () => {
     expect(page.count).toBe(9);
   });
 
-  it("asks a date-album list for documents only", async () => {
+  it("asks a day list for documents only", async () => {
     const { client, calls } = harness({ results: [] });
-    await endpoints.fetchDateAlbumsList(client, { in_trashcan: true, is_document: true });
-    expect(defined(calls[0]).url).toBe(
-      "https://demo.example.com/api/albums/date/list/?in_trashcan=true&is_document=true"
-    );
+    await endpoints.fetchDays(client, { in_trashcan: true, is_document: true });
+    expect(defined(calls[0]).url).toBe("https://demo.example.com/api/days/?in_trashcan=true&is_document=true");
   });
 });
 
@@ -378,23 +390,19 @@ describe("library share endpoints (#2731)", () => {
 
   it("asks for a shared library's days and for the libraries in the timeline", async () => {
     const own = harness({ results: [] });
-    await endpoints.fetchDateAlbumsList(own.client, { library: 7 });
-    expect(defined(own.calls[0]).url).toBe("https://demo.example.com/api/albums/date/list/?library=7");
+    await endpoints.fetchDays(own.client, { library: 7 });
+    expect(defined(own.calls[0]).url).toBe("https://demo.example.com/api/days/?library=7");
     const timeline = harness({ results: [] });
-    await endpoints.fetchDateAlbumsList(timeline.client, { archived: false, libraries: true });
-    expect(defined(timeline.calls[0]).url).toBe(
-      "https://demo.example.com/api/albums/date/list/?archived=false&libraries=true"
-    );
+    await endpoints.fetchDays(timeline.client, { archived: false, libraries: true });
+    expect(defined(timeline.calls[0]).url).toBe("https://demo.example.com/api/days/?archived=false&libraries=true");
   });
 
   it("asks for oldest first only when it is not the newest-first default (#2712)", async () => {
     const newest = harness({ results: [] });
-    await endpoints.fetchDateAlbumsList(newest.client, { order: "newest" });
-    expect(defined(newest.calls[0]).url).toBe("https://demo.example.com/api/albums/date/list/");
-    const oldest = harness({
-      results: { id: 4, date: null, location: null, items: [], incomplete: false, numberOfItems: 0 },
-    });
-    await endpoints.fetchDateAlbum(oldest.client, 4, 2, { order: "oldest" });
-    expect(defined(oldest.calls[0]).url).toBe("https://demo.example.com/api/albums/date/4/?order=oldest&page=2");
+    await endpoints.fetchDays(newest.client, { order: "newest" });
+    expect(defined(newest.calls[0]).url).toBe("https://demo.example.com/api/days/");
+    const oldest = harness({ items: [], next: null });
+    await endpoints.fetchDayPhotos(oldest.client, 4, null, { order: "oldest" });
+    expect(defined(oldest.calls[0]).url).toBe("https://demo.example.com/api/days/4/photos/?order=oldest");
   });
 });

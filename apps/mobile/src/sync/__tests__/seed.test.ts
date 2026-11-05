@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { sql } from "drizzle-orm";
-import { Media, type IncompleteDatePhotosGroup, type PigPhoto } from "@librephotos/api-client";
+import { Media, type DayPhotosPage, type IncompleteDatePhotosGroup, type PigPhoto } from "@librephotos/api-client";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { seedAll, seedPeople, seedPhotos, type SeedSource } from "../remote/seed";
 import { getSyncState } from "@/db/queries/sync-state";
@@ -24,14 +24,22 @@ const item = (id: string, rating = 0, date: string | null = "2024-01-02T10:00:00
   has_raw_variant: false,
 });
 
-/** Date album ids of the fixture's buckets: two on the timeline, one hidden. */
+/** Day ids of the fixture's buckets: two on the timeline, one hidden. */
 const B1 = 1;
 const B2 = 2;
 const H1 = 3;
 
-/** One date bucket as the paginated date-album endpoints return it. */
-function bucket(id: number, items: PigPhoto[], numberOfItems: number, incomplete: boolean): IncompleteDatePhotosGroup {
-  return { id, date: "2024-01-02", location: null, items, incomplete, numberOfItems };
+/** One date bucket as fetchDays returns it: the day's count, its photos still to load. */
+function bucket(id: number, numberOfItems: number): IncompleteDatePhotosGroup {
+  return { id, date: "2024-01-02", location: "", items: [], incomplete: true, numberOfItems };
+}
+
+/** A day's photos in pages of `size`, as `/api/days/<id>/photos/?after=` answers them. */
+function pageOf(items: PigPhoto[], after: string | null, size = 100): DayPhotosPage {
+  const start = after === null ? 0 : items.findIndex((p) => p.id === after) + 1;
+  const page = items.slice(start, start + size);
+  const last = page[page.length - 1];
+  return { items: page, next: last && start + page.length < items.length ? last.id : null };
 }
 
 /** The lists here are empty, so the seeder never asks for one album's detail. */
@@ -47,15 +55,12 @@ function makeSource(overrides: Partial<SeedSource> = {}): SeedSource {
     [H1]: [item("p4", 0)],
   };
   return {
-    dateAlbumsList: async (filter) => {
-      if (filter.hidden) return [bucket(H1, [], 1, true)];
+    days: async (filter) => {
+      if (filter.hidden) return [bucket(H1, 1)];
       if (filter.in_trashcan) return [];
-      return [bucket(B1, [], 2, true), bucket(B2, [], 1, true)];
+      return [bucket(B1, 2), bucket(B2, 1)];
     },
-    dateAlbum: async (id, page) => {
-      const items = page === 1 ? (bucketItems[id] ?? []) : [];
-      return bucket(id, items, items.length, false);
-    },
+    dayPhotos: async (id, after) => pageOf(bucketItems[id] ?? [], after),
     photosWithoutTimestamp: async () => ({ results: [], next: null }),
     // GET /api/persons/ as PersonSerializer sends it: the cover's hash is in
     // face_photo_url ("" for a person without faces); cover_photo is write-only.
@@ -117,11 +122,10 @@ describe("seeder", () => {
     // First run fails while fetching b2 — b1 is ingested and recorded, status
     // stays "running" (interrupted).
     const failing = makeSource({
-      dateAlbum: async (id, page) => {
+      dayPhotos: async (id, after) => {
         fetched.push(id);
         if (id === B2) throw new Error("network drop");
-        const items = page === 1 ? bucketItems(id) : [];
-        return bucket(id, items, items.length, false);
+        return pageOf(bucketItems(id), after);
       },
     });
     await expect(seedPhotos(t.db, failing, OPTS)).rejects.toThrow("network drop");
@@ -131,10 +135,9 @@ describe("seeder", () => {
     // Resume: b1 is recorded done and must NOT be re-fetched; b2 onward is.
     fetched.length = 0;
     const ok = makeSource({
-      dateAlbum: async (id, page) => {
+      dayPhotos: async (id, after) => {
         fetched.push(id);
-        const items = page === 1 ? bucketItems(id) : [];
-        return bucket(id, items, items.length, false);
+        return pageOf(bucketItems(id), after);
       },
     });
     await seedPhotos(t.db, ok, OPTS);
@@ -142,6 +145,43 @@ describe("seeder", () => {
     expect(fetched).toContain(B2);
     const count = t.db.get(sql`SELECT COUNT(*) AS c FROM remote_photo`) as { c: number };
     expect(count.c).toBe(4);
+  });
+
+  it("walks a big day page by page through each page's next, until the last", async () => {
+    const big = Array.from({ length: 5 }, (_, n) => item(`b${n}`));
+    const asked: (string | null)[] = [];
+    const source = makeSource({
+      days: async (filter) => (filter.hidden || filter.in_trashcan ? [] : [bucket(B1, 5)]),
+      dayPhotos: async (_id, after) => {
+        asked.push(after);
+        return pageOf(big, after, 2);
+      },
+    });
+    expect(await seedPhotos(t.db, source, OPTS)).toBe(5);
+    expect(asked).toEqual([null, "b1", "b3"]);
+  });
+
+  it("stops a day at its count, and at the page cap, even when the server sends a next", async () => {
+    const endless = (_id: number, after: string | null): Promise<DayPhotosPage> => {
+      const n = after === null ? 0 : Number(after.slice(1)) + 1;
+      return Promise.resolve({ items: [item(`e${n}`)], next: `e${n}` });
+    };
+    const asked: (string | null)[] = [];
+    const counted = makeSource({
+      days: async (filter) => (filter.hidden || filter.in_trashcan ? [] : [bucket(B1, 3)]),
+      dayPhotos: async (id, after) => {
+        asked.push(after);
+        return endless(id, after);
+      },
+    });
+    expect(await seedPhotos(t.db, counted, OPTS)).toBe(3);
+    expect(asked).toEqual([null, "e0", "e1"]);
+
+    const capped = makeSource({
+      days: async (filter) => (filter.hidden || filter.in_trashcan ? [] : [bucket(B1, 1000)]),
+      dayPhotos: endless,
+    });
+    expect(await seedPhotos(t.db, capped, { ...OPTS, maxPagesPerBucket: 4 })).toBe(4);
   });
 
   it("seedAll returns per-entity counts and marks all entities done", async () => {

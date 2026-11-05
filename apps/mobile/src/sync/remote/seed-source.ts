@@ -10,8 +10,8 @@ import type { SeedSource } from "./seed";
 /** Build a SeedSource backed by the existing api-client endpoints. */
 export function createApiSeedSource(client: ApiClient): SeedSource {
   return {
-    dateAlbumsList: (filter) => endpoints.fetchDateAlbumsList(client, filter),
-    dateAlbum: (id, page, filter) => endpoints.fetchDateAlbum(client, id, page, filter),
+    days: (filter) => endpoints.fetchDays(client, filter),
+    dayPhotos: (id, after, filter) => endpoints.fetchDayPhotos(client, id, after, filter),
     photosWithoutTimestamp: (page) => endpoints.fetchPhotosWithoutTimestamp(client, page),
     people: () => endpoints.fetchPeopleAlbums(client),
     userAlbumsList: () => endpoints.fetchUserAlbumsList(client),

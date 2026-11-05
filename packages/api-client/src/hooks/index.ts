@@ -101,7 +101,7 @@ export function useUserListQuery() {
   });
 }
 
-/* ---- timeline (date albums) ------------------------------------------- */
+/* ---- timeline (days) --------------------------------------------------- */
 
 /** A photoset's list key without the web's person, user, folder, media and timeline filters. */
 function unfilteredDateAlbums(photoset: Photoset): DateAlbumsListKey {
@@ -112,20 +112,21 @@ export function useDateAlbumsQuery(photoset: Photoset = Photoset.TIMESTAMP) {
   const client = useApiClient();
   return useQuery({
     queryKey: photoGridKeys.dateAlbumListRaw(photoset),
-    queryFn: () => endpoints.fetchDateAlbumsList(client, endpoints.photosetToFilter(photoset)),
+    queryFn: () => endpoints.fetchDays(client, endpoints.photosetToFilter(photoset)),
   });
 }
 
-export function useDateAlbumQuery(
+/** The photos of a day after `after` (null: its first page), as `fetchDayPhotos` reads them. */
+export function useDayPhotosQuery(
   photoset: Photoset,
-  albumDateId: number,
-  page: number,
+  dayId: number,
+  after: string | null,
   options?: { enabled?: boolean }
 ) {
   const client = useApiClient();
   return useQuery({
-    queryKey: photoGridKeys.dateAlbumDay(unfilteredDateAlbums(photoset), albumDateId, page),
-    queryFn: () => endpoints.fetchDateAlbum(client, albumDateId, page, endpoints.photosetToFilter(photoset)),
+    queryKey: photoGridKeys.dayPhotos(unfilteredDateAlbums(photoset), dayId, after),
+    queryFn: () => endpoints.fetchDayPhotos(client, dayId, after, endpoints.photosetToFilter(photoset)),
     enabled: options?.enabled ?? true,
   });
 }
@@ -291,8 +292,8 @@ export function dateAlbumPhotoChunksQueryOptions(
     queryKey: photoGridKeys.dateAlbumPhotoChunks(photoset, filter),
     initialPageParam: null as DateAlbumChunkParam,
     queryFn: async ({ pageParam }): Promise<DateAlbumChunkPage> => {
-      const groups = pageParam ? pageParam.groups : await endpoints.fetchDateAlbumsList(client, filter);
-      const cursor = pageParam ? pageParam.cursor : { group: 0, page: 1 };
+      const groups = pageParam ? pageParam.groups : await endpoints.fetchDays(client, filter);
+      const cursor = pageParam ? pageParam.cursor : { group: 0, after: null };
       const chunk = await endpoints.fetchDateAlbumPhotosChunk(client, groups, cursor, filter);
       return { groups, photos: chunk.photos, next: chunk.next };
     },

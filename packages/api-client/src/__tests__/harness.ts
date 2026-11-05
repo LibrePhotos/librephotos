@@ -21,20 +21,31 @@ export function fakeServerByUrl(
   answer: (url: string) => unknown,
   status = 200
 ): { client: ApiClient; requests: SentRequest[] } {
+  return heldServerByUrl(answer, Promise.resolve(), status);
+}
+
+/**
+ * fakeServerByUrl that answers no request before `held` settles: the requests sent before then
+ * were sent at once, without waiting for each other.
+ */
+export function heldServerByUrl(
+  answer: (url: string) => unknown,
+  held: Promise<void>,
+  status = 200
+): { client: ApiClient; requests: SentRequest[] } {
   const requests: SentRequest[] = [];
-  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const raw = init?.body;
     requests.push({
       url: String(input),
       method: init?.method ?? "GET",
       body: typeof raw === "string" ? (JSON.parse(raw) as unknown) : raw,
     });
+    await held;
     const body = answer(String(input));
-    const response =
-      body === null
-        ? new Response(null, { status: 204 })
-        : new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-    return Promise.resolve(response);
+    return body === null
+      ? new Response(null, { status: 204 })
+      : new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
   });
   const client = createApiClient({
     baseUrl: "https://demo.example.com",

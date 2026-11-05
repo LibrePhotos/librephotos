@@ -22,19 +22,14 @@ jest.mock("@/sync/triggers", () => ({ notifyOutboxWrite: () => undefined }));
 const PHOTO_A = "00000000-0000-4000-8000-00000000000a";
 const PHOTO_B = "00000000-0000-4000-8000-00000000000b";
 
-const LIST = { results: [{ id: 1, date: null, location: "", incomplete: true, numberOfItems: 2, items: [] }] };
+/** Person 7's photos: one undated day (id 1) of two photos, on one page. */
+const LIST = { results: [{ id: 1, date: null, location: "", numberOfItems: 2 }] };
 const DAY = {
-  results: {
-    id: 1,
-    date: null,
-    location: "",
-    incomplete: false,
-    numberOfItems: 2,
-    items: [
-      { id: PHOTO_A, image_hash: "hash-a", aspectRatio: 1 },
-      { id: PHOTO_B, image_hash: "hash-b", aspectRatio: 1 },
-    ],
-  },
+  items: [
+    { id: PHOTO_A, image_hash: "hash-a", aspectRatio: 1 },
+    { id: PHOTO_B, image_hash: "hash-b", aspectRatio: 1 },
+  ],
+  next: null,
 };
 
 type Sent = { url: string; method: string; body: unknown };
@@ -44,8 +39,8 @@ function server(sent: Sent[] = []) {
   return makeMockClient(async (url, init) => {
     const method = init?.method ?? "GET";
     if (method !== "GET") sent.push({ url, method, body: JSON.parse(String(init?.body ?? "null")) });
-    if (url.includes("/albums/date/list/")) return jsonResponse(LIST);
-    if (url.includes("/albums/date/1/")) return jsonResponse(DAY);
+    if (url.includes("/api/days/?")) return jsonResponse(LIST);
+    if (url.includes("/api/days/1/photos/")) return jsonResponse(DAY);
     if (url.includes("/remove-photos/")) return jsonResponse({ removed: 1, photo_count: 1, write_error: null });
     if (url.includes("/merge/")) return jsonResponse({ moved: 3, photo_count: 2, write_queued: false });
     if (url.endsWith("/persons/7/") && method === "DELETE") return new Response(null, { status: 204 });

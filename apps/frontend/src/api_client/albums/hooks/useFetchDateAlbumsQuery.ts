@@ -5,7 +5,13 @@ import {
   type DateAlbumFilter,
   type DateAlbumsListKey,
 } from "@librephotos/api-client";
-import type { IncompleteDatePhotosGroup, MediaType, PhotoOrder, PigPhoto } from "@librephotos/api-client";
+import type {
+  DayPhotosPage,
+  IncompleteDatePhotosGroup,
+  MediaType,
+  PhotoOrder,
+  PigPhoto,
+} from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
 import {
   timelineFilterKey,
@@ -71,8 +77,8 @@ function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPag
     .findAll({ queryKey: photoGridKeys.dateAlbumDays(listKey[0]) })
     .flatMap(query => {
       const [, , , albumDateId, page] = query.queryKey;
-      // useFetchDateAlbumQuery is the only query under this key, and it caches the day's group.
-      const data = queryClient.getQueryData<IncompleteDatePhotosGroup>(query.queryKey);
+      // useFetchDateAlbumQuery is the only query under this key, and it caches the day's page.
+      const data = queryClient.getQueryData<DayPhotosPage>(query.queryKey);
       if (
         query.state.isInvalidated ||
         typeof albumDateId !== "number" ||
@@ -172,7 +178,7 @@ export const useFetchDateAlbumsQuery = (listOptions: AlbumDateListOptions, query
   return useQuery({
     queryKey: photoGridKeys.dateAlbumList(dateAlbumsListKey(options)),
     queryFn: async () => {
-      const results = await endpoints.fetchDateAlbumsList(apiClient, dateAlbumRequestFilter(options));
+      const results = await endpoints.fetchDays(apiClient, dateAlbumRequestFilter(options));
 
       addTempElementsToGroups(results);
       hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(dateAlbumsListKey(options)));

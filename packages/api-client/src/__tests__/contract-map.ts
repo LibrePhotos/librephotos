@@ -16,7 +16,6 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   Photo: { schema: S.Photo, components: ["Photo"] },
   PhotoMetadataSummary: { schema: S.PhotoMetadataSummary, components: ["PhotoMetadataSummary"] },
   PigPhoto: { schema: S.PigPhoto, components: ["PhotoSummary"] },
-  DayLayout: { schema: S.DayLayout, components: ["DayLayout"] },
   PhotoHash: { schema: S.PhotoHash, components: ["PhotoHashList"] },
   PhotosWithoutTimestampResponse: {
     schema: S.PhotosWithoutTimestampResponse,
@@ -55,10 +54,11 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   DateSummary: { schema: S.DateSummary, components: ["DateSummaryResponse"] },
   // date groups (timeline, albums)
   DatePhotosGroup: { schema: S.DatePhotosGroup, components: ["GroupedPhotos"] },
-  IncompleteDatePhotosGroup: {
-    schema: S.IncompleteDatePhotosGroup,
-    components: ["IncompleteAlbumDate", "AlbumDate"],
-  },
+  // days (/api/days/: the timeline and every date-grouped list)
+  Day: { schema: S.Day, components: ["Day"] },
+  FetchDaysResponse: { schema: S.FetchDaysResponse, components: ["DayList"] },
+  DayPhotosPage: { schema: S.DayPhotosPage, components: ["DayPhotos"] },
+  DayLayout: { schema: S.DayLayout, components: ["DayLayout"] },
   // albums
   PhotoSuperSimple: { schema: S.PhotoSuperSimple, components: ["PhotoSuperSimple"] },
   UserAlbumInfo: { schema: S.UserAlbumInfo, components: ["AlbumUserList"] },
@@ -336,10 +336,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   RecentlyAddedPhotosResponse:
     "a {date, results} envelope (component RecentlyAddedPhotos) around rows compared on their own (PigPhoto); comparing it would repeat PigPhoto's baselined differences",
   BulkPhotoQuery: "a request body",
-  FetchDateAlbumsListResponse:
-    "a {results} envelope around rows compared on their own (IncompleteDatePhotosGroup); the view's wrapper is not a component",
-  FetchDateAlbumResponse:
-    "a {results} envelope around rows compared on their own (IncompleteDatePhotosGroup); the view's wrapper is not a component",
+  IncompleteDatePhotosGroup:
+    "the day group the photo grids hold, built on the client from a Day (dayGroup) or a GalleryDay; no view answers it",
   FetchUserAlbumsListResponse:
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
   PublicAlbum: "compared where it is read, as the results of FetchPublicAlbumResponse (PublicAlbumResponse)",

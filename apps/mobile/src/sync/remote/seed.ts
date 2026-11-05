@@ -8,7 +8,7 @@
  * once the delta path has soaked.
  *
  * Full remote seed (Phase 1 groundwork). Populates the SQLite mirror from the
- * EXISTING server endpoints the frontend already uses (date albums / photo lists
+ * EXISTING server endpoints the frontend already uses (days / photo lists
  * / album lists / people) via @librephotos/api-client.
  *
  * Design:
@@ -28,6 +28,7 @@ import type {
   AutoAlbum,
   AutoAlbumInfo,
   DateAlbumFilter,
+  DayPhotosPage,
   IncompleteDatePhotosGroup,
   PersonList,
   PigPhoto,
@@ -56,8 +57,10 @@ import { getSyncState, upsertSyncState, type SyncEntity } from "@/db/queries/syn
 
 /** The data the seeder pulls, abstracted for injection/testing. */
 export interface SeedSource {
-  dateAlbumsList(filter: DateAlbumFilter): Promise<IncompleteDatePhotosGroup[]>;
-  dateAlbum(id: number, page: number, filter: DateAlbumFilter): Promise<IncompleteDatePhotosGroup>;
+  /** The days of a filtered list (`/api/days/`), without their photos. */
+  days(filter: DateAlbumFilter): Promise<IncompleteDatePhotosGroup[]>;
+  /** A page of a day's photos after `after` (null: the first page); its `next` opens the following one. */
+  dayPhotos(id: number, after: string | null, filter: DateAlbumFilter): Promise<DayPhotosPage>;
   photosWithoutTimestamp(page: number): Promise<{ results: PigPhoto[]; next?: string | null }>;
   people(): Promise<PersonList>;
   userAlbumsList(): Promise<UserAlbumInfo[]>;
@@ -108,7 +111,10 @@ function mapOpts(base: SeedOptions, flags: PhotoPass["flags"], now: number): Map
   };
 }
 
-/** Collect every item of one date bucket, following pagination defensively. */
+/**
+ * Collect every item of one date bucket, following its `next` cursors until the last page or the
+ * bucket's count, at most `maxPages` pages (defensive against a runaway server).
+ */
 async function collectBucket(
   source: SeedSource,
   bucket: IncompleteDatePhotosGroup,
@@ -116,11 +122,12 @@ async function collectBucket(
   maxPages: number
 ): Promise<PigPhoto[]> {
   const items: PigPhoto[] = [];
-  for (let page = 1; page <= maxPages; page++) {
-    const group = await source.dateAlbum(bucket.id, page, filter);
-    const pageItems = group.items ?? [];
+  let after: string | null = null;
+  for (let page = 0; page < maxPages; page++) {
+    const { items: pageItems, next } = await source.dayPhotos(bucket.id, after, filter);
     items.push(...pageItems);
-    if (pageItems.length === 0 || items.length >= bucket.numberOfItems) break;
+    if (next === null || pageItems.length === 0 || items.length >= bucket.numberOfItems) break;
+    after = next;
   }
   return items;
 }
@@ -145,7 +152,7 @@ export async function seedPhotos(
   // Compute the total up front for a determinate progress bar.
   const buckets: { pass: PhotoPass; bucket: IncompleteDatePhotosGroup }[] = [];
   for (const pass of PHOTO_PASSES) {
-    const list = await source.dateAlbumsList(pass.filter);
+    const list = await source.days(pass.filter);
     for (const bucket of list) buckets.push({ pass, bucket });
   }
   const total = buckets.reduce((acc, b) => acc + b.bucket.numberOfItems, 0);
