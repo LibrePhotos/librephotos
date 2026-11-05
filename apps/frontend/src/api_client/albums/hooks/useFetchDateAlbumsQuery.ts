@@ -15,6 +15,7 @@ import {
 import { addTempElementsToGroups } from "../../../util/util";
 import { apiClient, queryClient } from "../../api";
 import { usePhotoOrder } from "../../user/hooks/usePhotoOrder";
+import { hydrateGroupsFromCachedLayouts } from "./dateAlbumLayout";
 
 export const DATE_ALBUM_PAGE_SIZE = 100;
 
@@ -175,6 +176,7 @@ export const useFetchDateAlbumsQuery = (listOptions: AlbumDateListOptions, query
 
       addTempElementsToGroups(results);
       hydrateGroupsFromCachedPages(results, getCachedDateAlbumPages(dateAlbumsListKey(options)));
+      hydrateGroupsFromCachedLayouts(queryClient, results, dateAlbumsListKey(options));
       return results;
     },
     enabled: !queryOptions?.skip && photoOrder.ready,

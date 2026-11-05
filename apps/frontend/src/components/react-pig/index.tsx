@@ -23,6 +23,7 @@ import type {
   TileUrl,
 } from "./types";
 import { useGridResize } from "./useGridResize";
+import { useScrollAnchoredLayout } from "./useScrollAnchor";
 import getScrollSpeed from "./utils/getScrollSpeed";
 import getUrl from "./utils/getUrl";
 import sortByDate from "./utils/sortByDate";
@@ -89,12 +90,6 @@ export type PigHandle<T extends ImageItem = ImageItem> = {
 //   }
 //   return tempPhotos;
 // }
-
-// The entries of a layout, as Pig keeps them in imageDataRef and hands them out
-// through its ref: the layout's own array, so sorting one sorts the other.
-function entriesOf<T extends ImageItem>(layout: PigLayout<T>): PigEntry<T>[] {
-  return layout.grouped ? layout.groups : layout.tiles;
-}
 
 function Pig<T extends ImageItem>(
   {
@@ -269,11 +264,12 @@ function Pig<T extends ImageItem>(
     return { grouped: false, tiles: result.imageData };
   }, [settings]);
 
-  // Keeps a fresh layout, and the entries it placed, for the scroll handler and the ref handle.
-  const storeLayout = useCallback((layout: PigLayout<T> | null) => {
-    layoutRef.current = layout;
-    if (layout) imageDataRef.current = entriesOf(layout);
-  }, []);
+  // Keeps a fresh layout, and the entries it placed, for the scroll handler and the ref handle,
+  // and scrolls with it so the tile at the top of the screen keeps still.
+  const storeLayout = useScrollAnchoredLayout(
+    { containerRef, latestYOffsetRef, layoutRef, imageDataRef },
+    renderedItems
+  );
 
   const setRenderedItemsFunc = useCallback(
     (layout: PigLayout<T>) => {

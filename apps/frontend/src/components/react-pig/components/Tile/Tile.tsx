@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import React, { useMemo } from "react";
+import React, { useLayoutEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ImageItem, LaidOutTile, PigOverlay, PigSettings, ScrollSpeed, TileUrl } from "../../types";
 import getTileMeasurements from "../../utils/getTileMeasurements";
@@ -30,6 +30,22 @@ type TileProps<T extends ImageItem> = {
 };
 
 const springTransition = { type: "spring", mass: 1.5, stiffness: 400, damping: 40 } as const;
+// A new layout (a day's page arrived, the width changed) moves a tile at once: the grid keeps the
+// reader's place by scrolling in the same frame, and a spring would slide the tile away and back.
+const relayoutTransition = { duration: 0 } as const;
+
+type TilePlace = { x: number; y: number; width: number; height: number; expanded: boolean };
+
+/** Whether the layout, rather than selecting or expanding, moved or resized the tile. */
+function movedByLayout(previous: TilePlace | null, current: TilePlace): boolean {
+  if (previous === null || previous.expanded !== current.expanded) return false;
+  return (
+    previous.x !== current.x ||
+    previous.y !== current.y ||
+    previous.width !== current.width ||
+    previous.height !== current.height
+  );
+}
 
 function TileComponent<T extends ImageItem>({
   item,
@@ -57,6 +73,20 @@ function TileComponent<T extends ImageItem>({
   const isVideo = !isTemp && item.type !== undefined && item.type.includes("video");
   // A video with a poster mounts its clip only while it is pointed at or focused (#2026).
   const { previewing, handlers: previewHandlers } = useClipPreview(showsPoster(item));
+
+  // Where the layout put the tile at the last commit, to tell a new layout from a selection.
+  const place: TilePlace = {
+    x: item.style.translateX,
+    y: item.style.translateY,
+    width: item.style.width,
+    height: item.style.height,
+    expanded: isExpanded,
+  };
+  const placeRef = useRef<TilePlace | null>(null);
+  const transition = movedByLayout(placeRef.current, place) ? relayoutTransition : springTransition;
+  useLayoutEffect(() => {
+    placeRef.current = place;
+  });
 
   const TopRightOverlay = toprightoverlay;
   const BottomLeftOverlay = bottomleftoverlay;
@@ -110,7 +140,7 @@ function TileComponent<T extends ImageItem>({
         x: isExpanded ? offsetX : item.style.translateX,
         y: isExpanded ? offsetY : item.style.translateY,
       }}
-      transition={springTransition}
+      transition={transition}
       {...previewHandlers}
       style={{
         outline: isExpanded ? `${settings.gridGap}px solid ${settings.bgColor}` : undefined,

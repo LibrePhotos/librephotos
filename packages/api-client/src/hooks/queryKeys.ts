@@ -46,6 +46,7 @@ export type DateAlbumsListKey = [
 type PhotoGridKind =
   | "dateAlbums"
   | "dateAlbum"
+  | "dateAlbumLayout"
   | "recentlyAdded"
   | "userAlbum"
   | "publicAlbum"
@@ -99,6 +100,11 @@ export const photoGridKeys = {
    */
   dateAlbumDay: ([photoset, ...filters]: DateAlbumsListKey, albumDateId: number, page: number) =>
     [...photoGridKeys.dateAlbumDays(photoset), albumDateId, page, ...filters] as const,
+  /** Every loaded day layout (the aspect ratios of a day's photos) of one photoset's lists. */
+  dateAlbumLayouts: (photoset: Photoset) => [...gridKind("dateAlbumLayout"), photoset] as const,
+  /** The layout of one day of the list `listKey`: day id, then the list's filters, as dateAlbumDay. */
+  dateAlbumLayout: ([photoset, ...filters]: DateAlbumsListKey, albumDateId: number) =>
+    [...photoGridKeys.dateAlbumLayouts(photoset), albumDateId, ...filters] as const,
   /** Every view of the Recently added list. */
   recentlyAdded: () => gridKind("recentlyAdded"),
   recentlyAddedView: (mediaType: MediaType) => [...photoGridKeys.recentlyAdded(), mediaType] as const,

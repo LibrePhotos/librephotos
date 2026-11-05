@@ -194,6 +194,16 @@ export async function fetchDateAlbum(
   return parseResponse(S.FetchDateAlbumResponse, res, "date album").results;
 }
 
+/** The aspect ratio of every photo of a day, in page order, under `filter` (see S.DateAlbumLayout). */
+export async function fetchDateAlbumLayout(
+  client: ApiClient,
+  albumDateId: number,
+  filter: DateAlbumFilter = {}
+): Promise<S.DateAlbumLayout> {
+  const res = await client.get<unknown>(`/albums/date/${albumDateId}/layout/${buildQuery(dateAlbumParams(filter))}`);
+  return parseResponse(S.DateAlbumLayout, res, "date album layout");
+}
+
 /** How many photos one page of a day group holds (the server's date-album page size). */
 export const DATE_ALBUM_PAGE_SIZE = 100;
 

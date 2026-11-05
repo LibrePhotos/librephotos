@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { apiClient, queryClient } from "../../api";
 import { usePhotoOrder } from "../../user/hooks/usePhotoOrder";
+import { ensureDayLayout } from "./dateAlbumLayout";
 import { dateAlbumRequestFilter, dateAlbumsListKey } from "./useFetchDateAlbumsQuery";
 
 type AlbumDateOption = {
@@ -27,6 +28,9 @@ export const useFetchDateAlbumQuery = (dayOptions: AlbumDateOption, queryOptions
     queryKey: photoGridKeys.dateAlbumDay(dateAlbumsListKey(options), options.album_date_id, options.page),
     queryFn: async () => {
       const filter = dateAlbumRequestFilter(options);
+      // Beside the day's first page: the shapes of all its photos, so its pages arrive in place.
+      // Without it (an older server) the placeholders stay square, as before.
+      ensureDayLayout(queryClient, dateAlbumsListKey(options), options.album_date_id, filter).catch(() => undefined);
       const result = await endpoints.fetchDateAlbum(apiClient, options.album_date_id, options.page, filter);
 
       // Get the current data from cache
