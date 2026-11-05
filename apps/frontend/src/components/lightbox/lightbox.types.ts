@@ -28,6 +28,12 @@ export type ContentViewerProps = {
   startSlideshow?: boolean;
   /** The grid's entry for the photo shown. */
   gridItem?: LightboxItem;
+  /**
+   * The photo `id` was moved to (or restored from) the trash, so it leaves the list. The lightbox
+   * steps on by itself and answers false when nothing is left to show, to close. Without it the
+   * viewer steps to its own next or previous photo.
+   */
+  onTrashToggled?: (id: string) => boolean;
 };
 
 /**

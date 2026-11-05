@@ -1,4 +1,5 @@
 import type { PigPhoto } from "@librephotos/api-client";
+import { useMemo } from "react";
 import type { SelectionState } from "../../api_client/photos/types";
 import { AlbumThreadContext } from "../lightbox/albumThread";
 import { Lightbox } from "../lightbox/Lightbox";
@@ -60,6 +61,14 @@ export function PhotoListDialogs({
   selectionState,
   updateSelectionState,
 }: Props) {
+  // Mapped once per list, not on every render: a 200k-photo timeline is 200k new objects each time,
+  // and the lightbox keeps stepping through the same array while the grid behind it refills.
+  const { lightboxOpen, lightboxAloneItem } = lightbox;
+  const lightboxItems = useMemo(() => {
+    if (!lightboxOpen) return [];
+    return lightboxAloneItem ? [lightboxAloneItem] : toLightboxItems(idx2hash, title);
+  }, [lightboxOpen, lightboxAloneItem, idx2hash, title]);
+
   const closeAndClearSelection = (close: () => void) => {
     close();
     updateSelectionState({ selectedItems: [], selectMode: false, selectAllMode: false, selectAllQuery: undefined });
@@ -73,7 +82,7 @@ export function PhotoListDialogs({
           <Lightbox
             isPublic={isPublic}
             publicAlbumSlug={publicAlbumSlug}
-            idx2hash={lightbox.lightboxAloneItem ? [lightbox.lightboxAloneItem] : toLightboxItems(idx2hash, title)}
+            idx2hash={lightboxItems}
             selectedImage={lightbox.lightboxImageId}
             onChangedIndex={lightbox.handleLightboxIndexChange}
             onCloseRequest={slideshow.close}

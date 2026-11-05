@@ -22,7 +22,7 @@ vi.mock("../../api", () => ({
   apiClient: { post: mocks.post },
   queryClient: { invalidateQueries: mocks.invalidateQueries },
 }));
-vi.mock("../invalidatePhotoLists", () => ({ invalidatePhotoLists: vi.fn<() => void>() }));
+vi.mock("../removeFromDateAlbums", () => ({ applyTrashToggleToGrids: vi.fn<() => void>() }));
 vi.mock("../../../service/notifications", () => ({
   notification: { togglePhotoDelete: mocks.togglePhotoDelete },
 }));
