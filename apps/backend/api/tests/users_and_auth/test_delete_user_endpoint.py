@@ -13,7 +13,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.models import (
     AlbumAuto,
-    AlbumDate,
     AlbumPlace,
     AlbumThing,
     AlbumUser,
@@ -25,7 +24,6 @@ from api.models import (
 )
 from api.tests.utils import (
     create_test_album_auto,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -159,8 +157,6 @@ class DeleteUsersWithOverlappingAlbumsTest(TestCase):
             create_test_album_auto(
                 owner=owner, timestamp=self.when, created_on=self.when
             ),
-            create_test_album_date(owner=owner, date=self.when.date()),
-            create_test_album_date(owner=owner, date=None),
             create_test_album_place(owner=owner, title="Lisbon"),
             create_test_album_thing(
                 owner=owner, title="beach", thing_type="places365_attribute"
@@ -191,15 +187,12 @@ class DeleteUsersWithOverlappingAlbumsTest(TestCase):
         # Generated albums: the one already there stays as it was.
         for model, key in (
             (AlbumAuto, {"timestamp": self.when}),
-            (AlbumDate, {"date": self.when.date()}),
             (AlbumPlace, {"title": "Lisbon"}),
             (AlbumThing, {"title": "beach"}),
         ):
             with self.subTest(model=model.__name__):
                 row = model.objects.get(owner=deleted, **key)
                 self.assertEqual(self._photos(row), {first_photo})
-        # A null date never collides, so each undated album is kept.
-        self.assertEqual(AlbumDate.objects.filter(owner=deleted, date=None).count(), 2)
 
         # User albums are not mixed: the second keeps its photos and viewer
         # under a title naming its owner. Its public link is turned off.
@@ -301,9 +294,6 @@ class DeletedUsersPublicLinksTest(TestCase):
         self.public_photo = create_test_photo(
             owner=self.owner, public=True, exif_timestamp=when
         )
-        create_test_album_date(owner=self.owner, date=when.date()).photos.add(
-            self.public_photo
-        )
 
         self.linked_photo = create_test_photo(owner=self.owner)
         self.photo_slug = PhotoShare.objects.create(
@@ -329,7 +319,7 @@ class DeletedUsersPublicLinksTest(TestCase):
 
     def _public_timeline(self, username):
         response = self.anonymous.get(
-            "/api/albums/date/list/", {"public": "true", "username": username}
+            "/api/days/", {"public": "true", "username": username}
         )
         self.assertEqual(200, response.status_code)
         return response.json()["results"]
@@ -362,7 +352,7 @@ class DeletedUsersPublicLinksTest(TestCase):
                 self.assertEqual(refused, self.anonymous.get(url).status_code)
         # The placeholder user has no public profile: no public view at all.
         response = self.anonymous.get(
-            "/api/albums/date/list/", {"public": "true", "username": "deleted"}
+            "/api/days/", {"public": "true", "username": "deleted"}
         )
         self.assertEqual(404, response.status_code)
         self.assertFalse(Photo.objects.filter(public=True).exists())

@@ -33,6 +33,8 @@ from api.tests.utils import (
     create_test_person,
     create_test_photo,
     create_test_user,
+    day_photo_ids,
+    list_days,
 )
 
 
@@ -576,8 +578,12 @@ class NeverOutsideTheAlbumTest(CollaborativeAlbumBase):
         client = _client(self.anna)
         search = client.get("/api/photos/searchlist/?search=ben")
         self.assertNotIn(self.ben_photo.image_hash, search.content.decode())
-        days = client.get("/api/albums/date/list/")
-        self.assertNotIn(self.ben_photo.image_hash, days.content.decode())
+        for libraries in ("false", "true"):
+            params = {"libraries": libraries}
+            for day in list_days(client, params):
+                with self.subTest(day=day["id"], libraries=libraries):
+                    ids = day_photo_ids(client, day["id"], params)
+                    self.assertNotIn(str(self.ben_photo.pk), ids)
 
     def test_nobody_zips_a_contributors_photo(self):
         self.ben_adds()

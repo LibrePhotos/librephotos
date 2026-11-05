@@ -12,7 +12,6 @@ from api.albums.auto_albums import delete_missing_photos
 from api.models import File, LongRunningJob, Photo, Thumbnail
 from api.models.tag import Tag
 from api.tests.utils import (
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_file,
@@ -329,26 +328,12 @@ class DeleteMissingPhotosAlbumThingTest(TestCase):
 class DeleteMissingPhotosCascadeTest(TestCase):
     """Guards the move from per-photo ``.remove()`` loops to cascade deletion.
 
-    AlbumDate, AlbumPlace and AlbumUser have no ``m2m_changed`` receivers, so
+    AlbumPlace and AlbumUser have no ``m2m_changed`` receivers, so
     cascade through ``Photo.delete()`` cleans up their through-rows with the
     same observable result and far less work. These tests pin the cascade
     behaviour so a future contributor doesn't bring the explicit loops back
     by accident.
     """
-
-    def test_album_date_through_rows_cleaned_on_cascade(self):
-        user = create_test_user()
-        kept = create_test_photo(owner=user)
-        kept.files.add(kept.main_file)
-        missing = [create_test_photo(owner=user) for _ in range(3)]
-
-        album_date = create_test_album_date(owner=user)
-        album_date.photos.add(kept, *missing)
-
-        delete_missing_photos(user, str(uuid.uuid4()))
-
-        remaining = list(album_date.photos.values_list("pk", flat=True))
-        self.assertEqual(remaining, [kept.pk])
 
     def test_album_place_through_rows_cleaned_on_cascade(self):
         user = create_test_user()

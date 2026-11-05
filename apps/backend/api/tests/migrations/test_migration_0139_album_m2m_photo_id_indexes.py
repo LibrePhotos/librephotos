@@ -13,11 +13,12 @@ table alone.
 """
 
 import importlib
+from unittest import mock
 
 from django.db import connection
 from django.test import TestCase
 
-from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser
+from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser
 
 migration_module = importlib.import_module(
     "api.migrations.0139_album_m2m_photo_id_indexes"
@@ -35,9 +36,15 @@ M2M_TABLES = [
     through_table(AlbumThing, "photos"),
     through_table(AlbumThing, "cover_photos"),
     through_table(AlbumPlace, "photos"),
-    through_table(AlbumDate, "photos"),
     through_table(AlbumAuto, "photos"),
 ]
+
+# AlbumDate is gone (0222) and its photo table with it. The migration still
+# names that table, since it ran on installs that had it; on a database
+# migrated to the end there is nothing left to repair there.
+DROPPED_TABLES = ["api_albumdate_photos"]
+ALL_INDEXES = migration_module.INDEXES
+LIVE_INDEXES = [entry for entry in ALL_INDEXES if entry[1] not in DROPPED_TABLES]
 
 
 class CursorExecutor:
@@ -68,6 +75,11 @@ def photo_id_indexes(table):
 
 
 class AlbumM2MPhotoIdIndexTest(TestCase):
+    def setUp(self):
+        patcher = mock.patch.object(migration_module, "INDEXES", LIVE_INDEXES)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def drop_photo_id_indexes(self, table):
         with connection.cursor() as cursor:
             for name in photo_id_indexes(table):
@@ -75,8 +87,8 @@ class AlbumM2MPhotoIdIndexTest(TestCase):
 
     def test_migration_covers_exactly_the_album_m2m_tables(self):
         self.assertEqual(
-            sorted(table for _, table in migration_module.INDEXES),
-            sorted(M2M_TABLES),
+            sorted(table for _, table in ALL_INDEXES),
+            sorted(M2M_TABLES + DROPPED_TABLES),
         )
 
     def test_restores_an_index_that_0099_dropped(self):

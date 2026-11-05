@@ -43,8 +43,10 @@ def _places(view: TimelineView) -> dict[datetime.date, str]:
     where they were taken."""
     if not view.place_owners:
         return {}
-    # owner-scope: narrows the view's own photos
-    return first_towns(view.photos.filter(owner_id__in=sorted(view.place_owners)))
+    located = view.photos.filter(
+        owner_id__in=sorted(view.place_owners)  # owner-scope: narrows the view
+    )
+    return first_towns(located)
 
 
 def day_rows(view: TimelineView) -> list[DayRow]:

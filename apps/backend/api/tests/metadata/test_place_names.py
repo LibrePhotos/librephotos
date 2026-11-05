@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from api.dataviz.stats import get_location_sunburst
 from api.geocode.parsers.exiftool import parse as parse_exiftool
@@ -23,9 +24,7 @@ from api.geocode.parsers.mapbox import parse as parse_mapbox
 from api.geocode.parsers.nominatim import parse as parse_nominatim
 from api.geocode.parsers.opencage import parse as parse_opencage
 from api.geocode.parsers.tomtom import parse as parse_tomtom
-from api.geocode.photo_location import add_location_to_album_dates
 from api.models.place_names import place_name, short_place_name, town_name
-from api.serializers.album_date import _public_place
 from api.tests.fixtures.geocode.responses.mapbox import responses as mapbox_responses
 from api.tests.fixtures.geocode.responses.nominatim import (
     responses as nominatim_responses,
@@ -43,9 +42,10 @@ from api.tests.metadata.test_geocode_providers import (
 )
 from api.tests.utils import (
     create_test_album_auto,
-    create_test_album_date,
     create_test_photo,
     create_test_user,
+    every_public_switch_on,
+    list_days,
 )
 
 
@@ -206,38 +206,30 @@ class PlaceNameConsumersTest(TestCase):
             **fields,
         )
 
-    def test_day_album_names_the_town(self):
-        photo = self._photo(EXIFTOOL_ZERMATT)
-        album_date = create_test_album_date(
-            owner=self.user, date=photo.exif_timestamp.date()
-        )
-        album_date.photos.add(photo)
+    def _day_places(self, params: dict[str, str] | None = None) -> list[str]:
+        client = APIClient()
+        if params is None:
+            client.force_authenticate(user=self.user)
+        return [day["location"] for day in list_days(client, params)]
 
-        add_location_to_album_dates(photo)
+    def test_day_names_the_town(self):
+        self._photo(EXIFTOOL_ZERMATT)
 
-        album_date.refresh_from_db()
-        self.assertEqual(album_date.location, {"places": ["Zermatt"]})
+        self.assertEqual(self._day_places(), ["Zermatt"])
 
-    def test_day_album_of_a_stored_row_is_unchanged(self):
-        photo = self._photo(STORED_NOMINATIM_ZERMATT)
-        album_date = create_test_album_date(
-            owner=self.user, date=photo.exif_timestamp.date()
-        )
-        album_date.photos.add(photo)
+    def test_day_of_a_stored_row_is_unchanged(self):
+        self._photo(STORED_NOMINATIM_ZERMATT)
 
-        add_location_to_album_dates(photo)
-
-        album_date.refresh_from_db()
-        self.assertEqual(album_date.location, {"places": ["Valais/Wallis"]})
+        self.assertEqual(self._day_places(), ["Valais/Wallis"])
 
     def test_public_day_place_names_the_town(self):
-        photo = self._photo(EXIFTOOL_ZERMATT, public=True)
-        album_date = create_test_album_date(
-            owner=self.user, date=photo.exif_timestamp.date()
-        )
-        album_date.photos.add(photo)
+        self.user.public_sharing = True
+        self.user.public_sharing_defaults = every_public_switch_on()
+        self.user.save()
+        self._photo(EXIFTOOL_ZERMATT, public=True)
 
-        self.assertEqual(_public_place(album_date), "Zermatt")
+        public = {"public": "true", "username": self.user.username}
+        self.assertEqual(self._day_places(public), ["Zermatt"])
 
     def test_sunburst_keeps_two_level_places(self):
         self._photo(EXIFTOOL_LISBON)

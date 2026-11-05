@@ -445,13 +445,9 @@ class UploadStepsTest(TestCase):
         self.assertEqual(self.photo.pk, work.call_args.args[0].photo_id)
 
     def test_places(self):
-        with (
-            mock.patch.object(upload_import, "geolocate_photo") as geolocate,
-            mock.patch.object(upload_import, "add_location_to_album_dates") as dates,
-        ):
+        with mock.patch.object(upload_import, "geolocate_photo") as geolocate:
             upload_import._places(self.upload)
         geolocate.assert_called_once_with(self.photo)
-        dates.assert_called_once_with(self.photo)
 
     def test_faces(self):
         with mock.patch.object(upload_import, "extract_faces") as work:

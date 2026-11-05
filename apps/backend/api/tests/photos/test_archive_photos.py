@@ -2,7 +2,7 @@
 
 An archived photo leaves the timeline (the date list and its day pages with
 ``archived=false``) and Memories, but unlike a hidden one it stays everywhere
-else: albums, people, folders, search, and every date-album view that does not
+else: albums, people, folders, search, and every day view that does not
 ask for ``archived``. ``POST /api/photosedit/archive/`` sets it, with the same
 request shape as hide (``image_hashes`` or ``select_all``), on the requester's
 own photos only.
@@ -19,12 +19,12 @@ from api.models import Photo
 from api.models.photo import visible_photo_q
 from api.photos.selection import build_photo_queryset
 from api.tests.utils import (
-    create_test_album_date,
     create_test_album_user,
     create_test_photo,
     create_test_photos,
     create_test_user,
 )
+from api.timeline.days import day_id
 
 ARCHIVE_URL = "/api/photosedit/archive/"
 
@@ -154,36 +154,34 @@ class ArchivedOnTheTimelineTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         now = timezone.now()
-        self.mixed = create_test_album_date(owner=self.user, date=now.date())
+        self.mixed = day_id(now.date())
         self.kept = create_test_photo(owner=self.user, exif_timestamp=now)
         self.archived = create_test_photo(
             owner=self.user, exif_timestamp=now, archived=True
         )
-        self.mixed.photos.add(self.kept, self.archived)
 
         earlier = now - timedelta(days=3)
-        self.archived_only = create_test_album_date(
-            owner=self.user, date=earlier.date()
-        )
+        self.archived_only = day_id(earlier.date())
         self.old = create_test_photo(
             owner=self.user, exif_timestamp=earlier, archived=True
         )
-        self.archived_only.photos.add(self.old)
 
     def _list(self, params):
-        response = self.client.get("/api/albums/date/list/", params)
+        response = self.client.get("/api/days/", params)
         self.assertEqual(response.status_code, 200)
         return {row["id"]: row["numberOfItems"] for row in response.json()["results"]}
 
-    def _day(self, album, params):
-        response = self.client.get(f"/api/albums/date/{album.id}/", params)
+    def _day(self, day, params):
+        """The hashes a day's page shows, and the count its layout gives."""
+        response = self.client.get(f"/api/days/{day}/photos/", params)
         self.assertEqual(response.status_code, 200)
-        results = response.json()["results"]
-        hashes = {item["image_hash"] for item in results["items"]}
-        return hashes, results["numberOfItems"]
+        layout = self.client.get(f"/api/days/{day}/layout/", params)
+        self.assertEqual(layout.status_code, 200)
+        hashes = {item["image_hash"] for item in response.json()["items"]}
+        return hashes, layout.json()["numberOfItems"]
 
     def test_the_timeline_leaves_archived_photos_out(self):
-        self.assertEqual(self._list({"archived": "false"}), {self.mixed.id: 1})
+        self.assertEqual(self._list({"archived": "false"}), {self.mixed: 1})
         hashes, count = self._day(self.mixed, {"archived": "false"})
         self.assertEqual(hashes, {self.kept.image_hash})
         self.assertEqual(count, 1)
@@ -191,13 +189,13 @@ class ArchivedOnTheTimelineTest(TestCase):
     def test_the_archive_page_lists_only_archived_photos(self):
         self.assertEqual(
             self._list({"archived": "true"}),
-            {self.mixed.id: 1, self.archived_only.id: 1},
+            {self.mixed: 1, self.archived_only: 1},
         )
         hashes, _ = self._day(self.mixed, {"archived": "true"})
         self.assertEqual(hashes, {self.archived.image_hash})
 
     def test_without_the_param_archived_photos_stay(self):
-        self.assertEqual(self._list({}), {self.mixed.id: 2, self.archived_only.id: 1})
+        self.assertEqual(self._list({}), {self.mixed: 2, self.archived_only: 1})
 
     def test_list_and_day_agree(self):
         for params in ({}, {"archived": "false"}, {"archived": "true"}):
@@ -205,20 +203,20 @@ class ArchivedOnTheTimelineTest(TestCase):
                 days = self._list(params)
                 hashes, count = self._day(self.mixed, params)
                 self.assertEqual(len(hashes), count)
-                self.assertEqual(days.get(self.mixed.id, 0), count)
+                self.assertEqual(days.get(self.mixed, 0), count)
 
     def test_an_archived_photo_that_is_hidden_is_only_on_the_hidden_page(self):
         Photo.objects.filter(pk=self.old.pk).update(hidden=True)
-        self.assertEqual(self._list({"archived": "true"}), {self.mixed.id: 1})
-        self.assertEqual(self._list({"hidden": "true"}), {self.archived_only.id: 1})
+        self.assertEqual(self._list({"archived": "true"}), {self.mixed: 1})
+        self.assertEqual(self._list({"hidden": "true"}), {self.archived_only: 1})
 
     def test_select_all_on_the_timeline_spares_archived_photos(self):
         photos = build_photo_queryset(self.user, {"archived": False})
         self.assertEqual(set(photos), {self.kept})
 
     def test_summaries_carry_the_flag(self):
-        response = self.client.get(f"/api/albums/date/{self.mixed.id}/")
-        items = response.json()["results"]["items"]
+        response = self.client.get(f"/api/days/{self.mixed}/photos/")
+        items = response.json()["items"]
         flags = {item["image_hash"]: item["archived"] for item in items}
         self.assertEqual(
             flags, {self.kept.image_hash: False, self.archived.image_hash: True}

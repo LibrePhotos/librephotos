@@ -14,7 +14,6 @@ from django.test import TestCase
 from api.models import (
     AlbumAuto,
     AlbumCollection,
-    AlbumDate,
     AlbumPlace,
     AlbumThing,
     AlbumUser,
@@ -33,7 +32,6 @@ from api.models.scopes import OwnedQuerySet, SharedOwnedQuerySet
 from api.tests.utils import (
     create_test_album_auto,
     create_test_album_collection,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -141,7 +139,6 @@ class OwnedByTest(TestCase):
             Photo: "owner",
             AlbumAuto: "owner",
             AlbumCollection: "owner",
-            AlbumDate: "owner",
             AlbumPlace: "owner",
             AlbumThing: "owner",
             AlbumUser: "owner",
@@ -194,7 +191,6 @@ class OwnedOrSharedToTest(TestCase):
     def test_every_shared_album_kind(self):
         for album in (
             create_test_album_auto(owner=self.bob),
-            create_test_album_date(owner=self.bob),
             create_test_album_place(owner=self.bob),
             create_test_album_thing(owner=self.bob),
         ):

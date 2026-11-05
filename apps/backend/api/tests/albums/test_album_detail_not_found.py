@@ -56,7 +56,7 @@ class AlbumDetailNotFoundTest(TestCase):
         for url in (
             "/api/albums/thing/999999/",
             "/api/albums/place/999999/",
-            "/api/albums/date/999999/",
+            "/api/days/20231399/photos/",
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 404)
@@ -65,7 +65,7 @@ class AlbumDetailNotFoundTest(TestCase):
         for url in (
             "/api/albums/thing/abc/",
             "/api/albums/place/abc/",
-            "/api/albums/date/abc/",
+            "/api/days/abc/photos/",
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 404)

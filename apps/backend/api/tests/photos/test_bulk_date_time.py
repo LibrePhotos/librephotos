@@ -10,9 +10,9 @@ from rest_framework.test import APIClient
 from api.metadata import edits
 from api.metadata.jobs import write_photo_fields
 from api.models import Photo, User
-from api.models.album_date import AlbumDate
 from api.models.photo_metadata import MetadataEdit
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_user, day_photo_ids
+from api.timeline.days import day_id
 
 URL = "/api/photosedit/datetime/"
 SUMMARY_URL = "/api/photos/date-summary/"
@@ -84,13 +84,15 @@ class ShiftTest(BulkDateTimeTestCase):
         self.assertEqual("2025-10-09T07:14:02Z", first.new_value)
         self.assertEqual(self.user, first.user)
 
-    def test_the_photo_moves_to_its_new_day_album(self):
+    def test_the_photo_moves_to_its_new_day(self):
         self._post(self.trip[:1], mode="shift", seconds=-9 * 3600)
 
         photo = Photo.objects.get(pk=self.trip[0].pk)
         self.assertEqual(at(23, 14, 2, day=8), photo.exif_timestamp)
-        day = AlbumDate.objects.get(owner=self.user, date=datetime.date(2025, 10, 8))
-        self.assertTrue(day.photos.filter(pk=photo.pk).exists())
+        new_day = day_photo_ids(self.client, day_id(datetime.date(2025, 10, 8)))
+        old_day = day_photo_ids(self.client, day_id(datetime.date(2025, 10, 9)))
+        self.assertEqual(new_day, [str(photo.pk)])
+        self.assertNotIn(str(photo.pk), old_day)
 
     def test_a_hand_set_date_wins_over_any_rule_list(self):
         # #2254: the "Timestamp set by user" rule is gone (migration 0167); a

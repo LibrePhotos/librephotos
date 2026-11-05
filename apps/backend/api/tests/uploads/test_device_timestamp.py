@@ -15,15 +15,16 @@ import tempfile
 from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, SimpleTestCase, TestCase
+from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
 from api.metadata.datetime_rules import CaptureTime
 from api.metadata.photo_datetime import extract_date_time
 from api.models import Photo
-from api.models.album_date import AlbumDate
 from api.models.user import User
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_user, list_days
+from api.timeline.days import day_id
 from api.views.upload import (
     UploadPhotosChunkedComplete,
     parse_device_timestamp,
@@ -262,7 +263,9 @@ class UndatedUploadDayAlbumTest(TestCase):
                 photo.exif_timestamp_source,
             ),
         )
+        client = APIClient()
+        client.force_authenticate(user=photo.owner)
         self.assertEqual(
-            [datetime.date(2025, 10, 11)],
-            list(AlbumDate.objects.filter(photos=photo).values_list("date", flat=True)),
+            [(day_id(datetime.date(2025, 10, 11)), 1)],
+            [(day["id"], day["numberOfItems"]) for day in list_days(client)],
         )

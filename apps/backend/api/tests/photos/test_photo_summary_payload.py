@@ -13,13 +13,13 @@ from rest_framework.test import APIClient
 from api.models import File
 from api.models.photo_stack import PhotoStack
 from api.tests.utils import (
-    create_test_album_date,
     create_test_file,
     create_test_photo,
     create_test_stack,
     create_test_user,
     share_test_photos,
 )
+from api.timeline.days import day_id
 
 
 class PhotoSummaryPayloadTest(TestCase):
@@ -125,10 +125,9 @@ class PhotoSummaryPayloadTest(TestCase):
         ]
         self._assert_tiles(tiles)
 
-    def test_date_album(self):
-        album = create_test_album_date(owner=self.owner, date=self.now.date())
-        album.photos.add(*self.photos)
+    def test_day_photos(self):
         payload = self._get(
-            f"/api/albums/date/{album.id}/", params={"show_all_stack_photos": "true"}
+            f"/api/days/{day_id(self.now.date())}/photos/",
+            params={"show_all_stack_photos": "true"},
         )
-        self._assert_tiles(payload["results"]["items"])
+        self._assert_tiles(payload["items"])

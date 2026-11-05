@@ -61,7 +61,7 @@ from api.sharing.grants import (
     viewer_grant,
 )
 from api.sharing.indirect import indirect_grants
-from api.timeline.days import taken_day_id
+from api.timeline.days import UNDATED_DAY_ID, taken_day_id
 from api.video import color, playback
 
 logger = logging.getLogger(__name__)
@@ -536,7 +536,13 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
 
     def get_day_id(self, obj: QuerySet[Photo]) -> int:
         """The id of the photo's day in ``/api/days/`` (YYYYMMDD, 1 undated)."""
-        taken = obj.values_list("exif_timestamp", flat=True).get()
+        taken, owner_id = obj.values_list("exif_timestamp", "owner_id").get()
+        # A reader who may not see when it was taken gets the undated group,
+        # where the public page of an owner who keeps dates to themselves
+        # lists it: a YYYYMMDD would tell the date.
+        grant = viewer_grant(self, owner_id)
+        if grant is not None and not grant.timestamps:
+            return UNDATED_DAY_ID
         return taken_day_id(taken)
 
 
