@@ -27,7 +27,7 @@ from api.drf.params import parse_query
 from api.drf.request_user import request_user
 from api.models import Photo, User
 from api.serializers.days import (
-    DAY_PAGE_SIZE,
+    DayLayoutQuery,
     DayLayoutSerializer,
     DayListSerializer,
     DayPhotosQuery,
@@ -98,6 +98,9 @@ def public_view_owner(request: Request, username: str) -> User:
 
 
 class DayViewSet(viewsets.ViewSet):
+    # The day list is one {"results": [...]} object.
+    list_returns_object = True
+
     def get_permissions(self) -> list[BasePermission]:
         return public_view_permissions(self.request)
 
@@ -162,12 +165,12 @@ class DayViewSet(viewsets.ViewSet):
         more = len(rows) > limit
         return Response({"items": items, "next": rows[limit - 1].pk if more else None})
 
-    @extend_schema(parameters=[DAY_ID, DayPhotosQuery], responses=DayLayoutSerializer)
+    @extend_schema(parameters=[DAY_ID, DayLayoutQuery], responses=DayLayoutSerializer)
     @action(detail=True)
     def layout(self, request: Request, pk: str | None = None) -> Response:
         """Every photo's aspect ratio in the day's order, and ``page_after``:
         the ``after`` of each page of ``limit`` photos."""
-        params = self._params(DayPhotosQuery)
+        params = self._params(DayLayoutQuery)
         view = self._view(params)
         photos, walk = self._day(view, pk)
         rows = list(
@@ -175,7 +178,7 @@ class DayViewSet(viewsets.ViewSet):
                 "pk", "thumbnail__aspect_ratio"
             )
         )
-        limit = params.get("limit") or DAY_PAGE_SIZE
+        limit = params["limit"]
         return Response(
             {
                 "id": int(pk or 0),

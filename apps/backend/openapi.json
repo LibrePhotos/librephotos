@@ -472,465 +472,6 @@
         }
       }
     },
-    "/api/albums/date/{id}/": {
-      "get": {
-        "operationId": "api_albums_date_retrieve",
-        "description": "Returns the actual images, for a given day in chunks of 100 images. ``results`` is the day with one page of its photos in ``items`` and their total in ``numberOfItems``; the page fields of every paginated list sit next to it.",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "apply_default",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
-          },
-          {
-            "in": "query",
-            "name": "archived",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
-          },
-          {
-            "in": "query",
-            "name": "favorite",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only favorites (false turns a saved favorites default off)"
-          },
-          {
-            "in": "query",
-            "name": "folder",
-            "schema": {
-              "type": "string",
-              "default": ""
-            },
-            "description": "Only photos with a file under this folder"
-          },
-          {
-            "in": "query",
-            "name": "hidden",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Hidden photos instead of the visible ones"
-          },
-          {
-            "in": "query",
-            "name": "hide_documents",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "hide_screenshots",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "The day album's id (from /api/albums/date/list/)",
-            "required": true
-          },
-          {
-            "in": "query",
-            "name": "in_trashcan",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Photos in the trash (not yet removed)"
-          },
-          {
-            "in": "query",
-            "name": "is_document",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only documents (false: no documents)"
-          },
-          {
-            "in": "query",
-            "name": "is_screenshot",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only screenshots (false: no screenshots)"
-          },
-          {
-            "in": "query",
-            "name": "last_modified",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "description": "A date or date-time. For the owner it replaces every other filter; with public it narrows the public photos."
-          },
-          {
-            "in": "query",
-            "name": "libraries",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites, a search)"
-          },
-          {
-            "in": "query",
-            "name": "library",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
-          },
-          {
-            "in": "query",
-            "name": "media",
-            "schema": {
-              "type": "string"
-            },
-            "description": "all, photos or videos"
-          },
-          {
-            "in": "query",
-            "name": "order",
-            "schema": {
-              "enum": [
-                "newest",
-                "oldest"
-              ],
-              "type": "string",
-              "default": "newest",
-              "minLength": 1
-            },
-            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Page number (default 1)."
-          },
-          {
-            "in": "query",
-            "name": "page_size",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Rows per page (default 100, at most 1000)."
-          },
-          {
-            "in": "query",
-            "name": "person",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Only photos showing this person"
-          },
-          {
-            "in": "query",
-            "name": "photo",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only photos (false: no photos)"
-          },
-          {
-            "in": "query",
-            "name": "public",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "The public view: one user's public photos (with username)"
-          },
-          {
-            "in": "query",
-            "name": "show_all_stack_photos",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Also the photos of a stack that are not its primary"
-          },
-          {
-            "in": "query",
-            "name": "username",
-            "schema": {
-              "type": "string",
-              "default": ""
-            },
-            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
-          },
-          {
-            "in": "query",
-            "name": "video",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only videos (false: no videos)"
-          }
-        ],
-        "tags": [
-          "api"
-        ],
-        "security": [
-          {
-            "jwtAuth": []
-          },
-          {
-            "basicAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AlbumDate"
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/albums/date/list/": {
-      "get": {
-        "operationId": "api_albums_date_list_list",
-        "description": "Gives you a list of days with the number of elements. This is not paginated and can be large.",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "apply_default",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
-          },
-          {
-            "in": "query",
-            "name": "archived",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
-          },
-          {
-            "in": "query",
-            "name": "favorite",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only favorites (false turns a saved favorites default off)"
-          },
-          {
-            "in": "query",
-            "name": "folder",
-            "schema": {
-              "type": "string",
-              "default": ""
-            },
-            "description": "Only photos with a file under this folder"
-          },
-          {
-            "in": "query",
-            "name": "hidden",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Hidden photos instead of the visible ones"
-          },
-          {
-            "in": "query",
-            "name": "hide_documents",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "hide_screenshots",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "in_trashcan",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Photos in the trash (not yet removed)"
-          },
-          {
-            "in": "query",
-            "name": "is_document",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only documents (false: no documents)"
-          },
-          {
-            "in": "query",
-            "name": "is_screenshot",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only screenshots (false: no screenshots)"
-          },
-          {
-            "in": "query",
-            "name": "last_modified",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "description": "A date or date-time. For the owner it replaces every other filter; with public it narrows the public photos."
-          },
-          {
-            "in": "query",
-            "name": "libraries",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites, a search)"
-          },
-          {
-            "in": "query",
-            "name": "library",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
-          },
-          {
-            "in": "query",
-            "name": "media",
-            "schema": {
-              "type": "string"
-            },
-            "description": "all, photos or videos"
-          },
-          {
-            "in": "query",
-            "name": "order",
-            "schema": {
-              "enum": [
-                "newest",
-                "oldest"
-              ],
-              "type": "string",
-              "default": "newest",
-              "minLength": 1
-            },
-            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
-          },
-          {
-            "in": "query",
-            "name": "person",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Only photos showing this person"
-          },
-          {
-            "in": "query",
-            "name": "photo",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only photos (false: no photos)"
-          },
-          {
-            "in": "query",
-            "name": "public",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "The public view: one user's public photos (with username)"
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "schema": {
-              "type": "string",
-              "default": ""
-            },
-            "description": "Caption, location or person name"
-          },
-          {
-            "in": "query",
-            "name": "show_all_stack_photos",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Also the photos of a stack that are not its primary"
-          },
-          {
-            "in": "query",
-            "name": "username",
-            "schema": {
-              "type": "string",
-              "default": ""
-            },
-            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
-          },
-          {
-            "in": "query",
-            "name": "video",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Only videos (false: no videos)"
-          }
-        ],
-        "tags": [
-          "api"
-        ],
-        "security": [
-          {
-            "jwtAuth": []
-          },
-          {
-            "basicAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/IncompleteAlbumDate"
-                  }
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/albums/place/{id}/": {
       "get": {
         "operationId": "api_albums_place_retrieve",
@@ -2851,6 +2392,661 @@
         }
       }
     },
+    "/api/days/": {
+      "get": {
+        "operationId": "api_days_retrieve",
+        "description": "The days of the view, newest (or oldest) first, then the undated group.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "apply_default",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
+          },
+          {
+            "in": "query",
+            "name": "favorite",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only favorites (false turns a saved favorites default off)"
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "Only photos with a file under this folder"
+          },
+          {
+            "in": "query",
+            "name": "hidden",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Hidden photos instead of the visible ones"
+          },
+          {
+            "in": "query",
+            "name": "hide_documents",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hide_screenshots",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "in_trashcan",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Photos in the trash (not yet removed)"
+          },
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
+          {
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites)"
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
+          },
+          {
+            "in": "query",
+            "name": "media",
+            "schema": {
+              "type": "string"
+            },
+            "description": "all, photos or videos"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Only photos showing this person"
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: one user's public photos (with username)"
+          },
+          {
+            "in": "query",
+            "name": "show_all_stack_photos",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of a stack that are not its primary"
+          },
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/days/{id}/layout/": {
+      "get": {
+        "operationId": "api_days_layout_retrieve",
+        "description": "Every photo's aspect ratio in the day's order, and ``page_after``:\nthe ``after`` of each page of ``limit`` photos.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "apply_default",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
+          },
+          {
+            "in": "query",
+            "name": "favorite",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only favorites (false turns a saved favorites default off)"
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "Only photos with a file under this folder"
+          },
+          {
+            "in": "query",
+            "name": "hidden",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Hidden photos instead of the visible ones"
+          },
+          {
+            "in": "query",
+            "name": "hide_documents",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hide_screenshots",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The day's id from /api/days/ (YYYYMMDD, 1 for the undated group)",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "in_trashcan",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Photos in the trash (not yet removed)"
+          },
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
+          {
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites)"
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100
+            },
+            "description": "The page size the cursors in page_after are for"
+          },
+          {
+            "in": "query",
+            "name": "media",
+            "schema": {
+              "type": "string"
+            },
+            "description": "all, photos or videos"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Only photos showing this person"
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: one user's public photos (with username)"
+          },
+          {
+            "in": "query",
+            "name": "show_all_stack_photos",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of a stack that are not its primary"
+          },
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayLayout"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/days/{id}/photos/": {
+      "get": {
+        "operationId": "api_days_photos_retrieve",
+        "description": "A page of the day: ``limit`` photos after ``after``, and ``next``.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "description": "The id of the last photo of the previous page (a page's `next`, or a layout's `page_after`); absent for the first page"
+          },
+          {
+            "in": "query",
+            "name": "apply_default",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
+          },
+          {
+            "in": "query",
+            "name": "favorite",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only favorites (false turns a saved favorites default off)"
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "Only photos with a file under this folder"
+          },
+          {
+            "in": "query",
+            "name": "hidden",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Hidden photos instead of the visible ones"
+          },
+          {
+            "in": "query",
+            "name": "hide_documents",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hide_screenshots",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The day's id from /api/days/ (YYYYMMDD, 1 for the undated group)",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "in_trashcan",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Photos in the trash (not yet removed)"
+          },
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
+          {
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites)"
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "media",
+            "schema": {
+              "type": "string"
+            },
+            "description": "all, photos or videos"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Only photos showing this person"
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: one user's public photos (with username)"
+          },
+          {
+            "in": "query",
+            "name": "show_all_stack_photos",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of a stack that are not its primary"
+          },
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayPhotos"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/deduplicate-faces/": {
       "post": {
         "operationId": "api_deduplicate_faces_create",
@@ -4119,7 +4315,7 @@
     },
     "/api/gallery/days/": {
       "get": {
-        "operationId": "api_gallery_days_list",
+        "operationId": "api_gallery_days_retrieve",
         "description": "The gallery's timeline: its days, newest first, then one group of the\nphotos whose owners keep dates to themselves (or that have none).",
         "parameters": [
           {
@@ -4167,10 +4363,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GalleryDayList"
-                  }
+                  "$ref": "#/components/schemas/GalleryDayList"
                 }
               }
             },
@@ -15373,47 +15566,6 @@
           "text"
         ]
       },
-      "AlbumDate": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "readOnly": true
-          },
-          "date": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "location": {
-            "type": "string",
-            "readOnly": true
-          },
-          "incomplete": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "numberOfItems": {
-            "type": "integer",
-            "readOnly": true
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PhotoSummary"
-            },
-            "readOnly": true
-          }
-        },
-        "required": [
-          "date",
-          "id",
-          "incomplete",
-          "items",
-          "location",
-          "numberOfItems"
-        ]
-      },
       "AlbumLikes": {
         "type": "object",
         "description": "The hearts on a photo in one album.",
@@ -16993,6 +17145,107 @@
         "required": [
           "exif_timestamp",
           "image_hash"
+        ]
+      },
+      "Day": {
+        "type": "object",
+        "description": "A day of the list: ``id`` names it in ``/api/days/<id>/...``.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "YYYYMMDD of the day, or 1 for the photos without a date"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "The day; null for the undated group"
+          },
+          "location": {
+            "type": "string",
+            "description": "The town of its first located photo"
+          },
+          "numberOfItems": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "id",
+          "location",
+          "numberOfItems"
+        ]
+      },
+      "DayLayout": {
+        "type": "object",
+        "description": "What a client lays a day out with before its photos load.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "numberOfItems": {
+            "type": "integer"
+          },
+          "aspectRatios": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "description": "Every photo's aspect ratio, in the day's order"
+          },
+          "page_after": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "description": "``after`` for each page of ``limit`` photos: null for the first, then the id of the photo before the page"
+          }
+        },
+        "required": [
+          "aspectRatios",
+          "id",
+          "numberOfItems",
+          "page_after"
+        ]
+      },
+      "DayList": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Day"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "DayPhotos": {
+        "type": "object",
+        "description": "A page of a day's photos.",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            }
+          },
+          "next": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "``after`` for the next page; null on the last one"
+          }
+        },
+        "required": [
+          "items",
+          "next"
         ]
       },
       "DefaultTimezoneEnum": {
@@ -19233,45 +19486,6 @@
         "required": [
           "git_hash",
           "image_tag"
-        ]
-      },
-      "IncompleteAlbumDate": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "readOnly": true
-          },
-          "date": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "location": {
-            "type": "string",
-            "readOnly": true
-          },
-          "incomplete": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "numberOfItems": {
-            "type": "integer",
-            "readOnly": true
-          },
-          "items": {
-            "type": "array",
-            "items": {},
-            "readOnly": true
-          }
-        },
-        "required": [
-          "date",
-          "id",
-          "incomplete",
-          "items",
-          "location",
-          "numberOfItems"
         ]
       },
       "IncompletePersonFaceList": {
@@ -23458,9 +23672,9 @@
             ],
             "readOnly": true
           },
-          "album_date_id": {
+          "day_id": {
             "type": "integer",
-            "nullable": true,
+            "description": "The id of the photo's day in ``/api/days/`` (YYYYMMDD, 1 undated).",
             "readOnly": true
           },
           "processing": {
@@ -23469,7 +23683,7 @@
           }
         },
         "required": [
-          "album_date_id",
+          "day_id",
           "photo_summary",
           "processing"
         ]

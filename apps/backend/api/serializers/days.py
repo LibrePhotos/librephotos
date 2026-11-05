@@ -117,6 +117,17 @@ class DayPhotosQuery(DayQuery):
     )
 
 
+class DayLayoutQuery(DayQuery):
+    """A day's layout: the cursors of its pages of ``limit`` photos."""
+
+    limit = serializers.IntegerField(
+        default=DAY_PAGE_SIZE,
+        min_value=1,
+        max_value=MAX_DAY_PAGE_SIZE,
+        help_text="The page size the cursors in page_after are for",
+    )
+
+
 # What the public view ignores of a query: filters by what it does not show
 # (people, folders, favourites, archiving) and the photos it never lists
 # (hidden, in the trash, another library's).
