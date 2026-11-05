@@ -175,7 +175,10 @@ function dateAlbumParams(filter: DateAlbumFilter) {
 }
 
 /** The days of a date-grouped list (the timeline, favourites, a person, a folder, ...), newest first. */
-export async function fetchDays(client: ApiClient, filter: DateAlbumFilter = {}): Promise<S.IncompleteDatePhotosGroup[]> {
+export async function fetchDays(
+  client: ApiClient,
+  filter: DateAlbumFilter = {}
+): Promise<S.IncompleteDatePhotosGroup[]> {
   const res = await client.get<unknown>(`/days/${buildQuery(dateAlbumParams(filter))}`);
   return parseResponse(S.FetchDaysResponse, res, "days").results.map(S.dayGroup);
 }

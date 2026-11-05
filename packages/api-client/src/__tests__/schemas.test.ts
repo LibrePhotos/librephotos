@@ -3,9 +3,9 @@ import { photosetToFilter } from "../endpoints";
 import {
   AutoAlbum,
   CreateUserAlbumResponse,
+  dayGroup,
   DayLayout,
   DayPhotosPage,
-  dayGroup,
   FetchDaysResponse,
   FetchThingAlbumsListResponse,
   imageHashOf,

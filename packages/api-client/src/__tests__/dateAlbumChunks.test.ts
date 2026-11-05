@@ -134,7 +134,13 @@ describe("fetchDateAlbumPhotosChunk", () => {
   it("does not fetch a day the list sent whole, and caps the requests of one chunk", async () => {
     const { client, requests } = fakeServerByUrl(dayServer({ 2: 1, 3: 1, 4: 1 }));
     const groups = [day(1, 1, [photo(1, 0)]), day(2, 1), day(3, 1), day(4, 1)];
-    const chunk = await endpoints.fetchDateAlbumPhotosChunk(client, groups, { group: 0, after: null }, {}, { requests: 2 });
+    const chunk = await endpoints.fetchDateAlbumPhotosChunk(
+      client,
+      groups,
+      { group: 0, after: null },
+      {},
+      { requests: 2 }
+    );
     expect(hashes(chunk)).toEqual(["hash1-0", "hash2-0"]);
     expect(chunk.next).toEqual({ group: 2, after: null });
     expect(requests.map(r => r.url)).toEqual([`${API}/days/2/photos/?limit=100`]);
