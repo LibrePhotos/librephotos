@@ -31,7 +31,7 @@
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^5.0.0",
     "typescript": "~6.0.0",
     "zod": "4.6.7"
   },
