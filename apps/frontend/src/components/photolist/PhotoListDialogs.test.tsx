@@ -145,6 +145,14 @@ describe("PhotoListDialogs", () => {
     expect(items.map(item => item.videoStart)).toEqual([undefined, { seconds: 42, name: "Anna" }]);
   });
 
+  // A 200k-photo timeline: a copy of every tile cost about 10 MB per version of the list.
+  it("hands the lightbox the grid's own tiles, copying none without a video time", () => {
+    const items = [photo, { ...photo, id: "b" }];
+    render({ items });
+
+    expect(defined(rendered.lightbox, "the lightbox").idx2hash).toBe(items);
+  });
+
   it("mounts none of the owner's modals on a public list", () => {
     render({ isPublic: true });
 

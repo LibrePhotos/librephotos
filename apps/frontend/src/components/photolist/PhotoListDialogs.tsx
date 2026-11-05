@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { SelectionState } from "../../api_client/photos/types";
 import { AlbumThreadContext } from "../lightbox/albumThread";
 import { Lightbox } from "../lightbox/Lightbox";
+import type { LightboxItem } from "../lightbox/lightbox.types";
 import { videoStartOf } from "../lightbox/videoStart";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import { ModalTagEdit } from "../modals/ModalTagEdit";
@@ -12,22 +13,20 @@ import type { PhotoListDialogState } from "./usePhotoListDialogs";
 import type { PhotoListLightbox } from "./usePhotoListLightbox";
 import type { PhotoListSlideshow } from "./usePhotoListSlideshow";
 
-// The lightbox gets the fields it needs, not the whole tile. type lets public and shared views, which
-// have no photo details, play videos; isTemp marks placeholders that have not loaded yet; date and
-// location feed the details panel a non-owner sees (the server already leaves out what it may not share).
-const toLightboxItems = (idx2hash: PigPhoto[], title: string) =>
-  idx2hash.map(item => ({
-    id: item.id,
-    image_hash: item.image_hash,
-    type: item.type,
-    isTemp: item.isTemp,
-    date: item.date,
-    location: item.location,
-    projection_type: item.projection_type,
-    // A person's video opens where the person is (#2762). Only a person's photos carry the time,
-    // and their title is the person's name.
-    videoStart: videoStartOf(item.person_video_time, title),
-  }));
+// The lightbox steps through the grid's own tiles: type lets public and shared views, which have no
+// photo details, play videos; isTemp marks placeholders that have not loaded yet; date and location
+// feed the details panel a non-owner sees (the server already leaves out what it may not share).
+// Only a person's video gets a copy, with where the person is in it (#2762): only a person's photos
+// carry the time, and their title is the person's name. Copying every tile cost a 200k-photo
+// timeline about 10 MB per version of the list.
+const toLightboxItems = (idx2hash: PigPhoto[], title: string): LightboxItem[] => {
+  if (!idx2hash.some(item => typeof item.person_video_time === "number")) return idx2hash;
+  return idx2hash.map(item =>
+    typeof item.person_video_time === "number"
+      ? { ...item, videoStart: videoStartOf(item.person_video_time, title) }
+      : item
+  );
+};
 
 type Props = Readonly<{
   dialogs: PhotoListDialogState;
