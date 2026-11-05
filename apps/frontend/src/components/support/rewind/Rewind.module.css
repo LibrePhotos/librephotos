@@ -12,7 +12,7 @@
   height: min(640px, calc(100dvh - 96px));
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--mantine-color-black) 45%, transparent);
   outline: none;
 }
 
@@ -30,19 +30,19 @@
   flex: 1;
   height: 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.4);
+  background: color-mix(in srgb, var(--mantine-color-white) 40%, transparent);
 }
 
 .segment[data-done] {
-  background: #fff;
+  background: var(--mantine-color-white);
 }
 
 .light .segment {
-  background: rgba(33, 37, 41, 0.2);
+  background: color-mix(in srgb, var(--mantine-color-gray-9) 20%, transparent);
 }
 
 .light .segment[data-done] {
-  background: #212529;
+  background: var(--mantine-color-gray-9);
 }
 
 .slide {
@@ -57,34 +57,34 @@
 
 .intro {
   background: var(--mantine-color-blue-9);
-  color: #fff;
+  color: var(--mantine-color-white);
 }
 
 .count {
   background: var(--mantine-color-yellow-4);
-  color: #212529;
+  color: var(--mantine-color-gray-9);
 }
 
 .people {
   background: var(--mantine-color-pink-9);
-  color: #fff;
+  color: var(--mantine-color-white);
   align-items: center;
   text-align: center;
 }
 
 .places {
   background: var(--mantine-color-green-9);
-  color: #fff;
+  color: var(--mantine-color-white);
 }
 
 .months {
   background: var(--mantine-color-dark-7);
-  color: #fff;
+  color: var(--mantine-color-white);
 }
 
 .end {
-  background: #fff;
-  color: #212529;
+  background: var(--mantine-color-white);
+  color: var(--mantine-color-gray-9);
 }
 
 .eyebrow {
@@ -146,7 +146,7 @@
 
 .topFace {
   margin-top: 16px;
-  border: 4px solid #fff;
+  border: 4px solid var(--mantine-color-white);
 }
 
 .placeRow {
@@ -155,7 +155,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, var(--mantine-color-white) 14%, transparent);
 }
 
 .bars {

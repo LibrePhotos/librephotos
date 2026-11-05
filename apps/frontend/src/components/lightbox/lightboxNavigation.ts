@@ -5,7 +5,7 @@ import type { LightboxItem } from "./lightbox.types";
  * placeholder for a page that has not loaded yet has a made-up id ("0",
  * "temp-0") and no image hash, so stepping onto it requested /photos/0/.
  */
-export function navigableId(image: LightboxItem | undefined): string | null {
+function navigableId(image: LightboxItem | undefined): string | null {
   if (!image || image.isTemp || !image.image_hash) return null;
   return typeof image.id === "string" && image.id.length ? image.id : null;
 }
