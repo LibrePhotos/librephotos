@@ -1,10 +1,5 @@
 import { endpoints, photoGridKeys } from "@librephotos/api-client";
-import type {
-  DateAlbumFilter,
-  DateAlbumLayout,
-  DateAlbumsListKey,
-  IncompleteDatePhotosGroup,
-} from "@librephotos/api-client";
+import type { DateAlbumFilter, DateAlbumsListKey, DayLayout, IncompleteDatePhotosGroup } from "@librephotos/api-client";
 import type { QueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../api";
 
@@ -37,12 +32,12 @@ export function applyDayLayout<T extends Placeholder>(items: readonly T[], aspec
 }
 
 // The layouts of `listKey`'s days already in the query cache and still valid.
-function cachedDayLayouts(queryClient: QueryClient, listKey: DateAlbumsListKey): DateAlbumLayout[] {
+function cachedDayLayouts(queryClient: QueryClient, listKey: DateAlbumsListKey): DayLayout[] {
   return queryClient
     .getQueryCache()
     .findAll({ queryKey: photoGridKeys.dateAlbumLayouts(listKey[0]) })
     .flatMap(query => {
-      const layout = queryClient.getQueryData<DateAlbumLayout>(query.queryKey);
+      const layout = queryClient.getQueryData<DayLayout>(query.queryKey);
       const expected = photoGridKeys.dateAlbumLayout(listKey, layout?.id ?? -1);
       const sameList =
         query.queryKey.length === expected.length && expected.every((part, i) => query.queryKey[i] === part);
@@ -88,7 +83,7 @@ export async function ensureDayLayout(
   // eslint-disable-next-line @tanstack/query/exhaustive-deps -- the list key in layoutKey holds the filters
   const layout = await queryClient.fetchQuery({
     queryKey: layoutKey,
-    queryFn: () => endpoints.fetchDateAlbumLayout(apiClient, albumDateId, filter),
+    queryFn: () => endpoints.fetchDayLayout(apiClient, albumDateId, filter),
     // A day of 200k photos: comparing the arrays to share structure cost a frame for nothing.
     structuralSharing: false,
   });

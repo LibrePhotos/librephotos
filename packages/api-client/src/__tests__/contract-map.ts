@@ -16,7 +16,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   Photo: { schema: S.Photo, components: ["Photo"] },
   PhotoMetadataSummary: { schema: S.PhotoMetadataSummary, components: ["PhotoMetadataSummary"] },
   PigPhoto: { schema: S.PigPhoto, components: ["PhotoSummary"] },
-  DateAlbumLayout: { schema: S.DateAlbumLayout, components: ["AlbumDateLayout"] },
+  DayLayout: { schema: S.DayLayout, components: ["DayLayout"] },
   PhotoHash: { schema: S.PhotoHash, components: ["PhotoHashList"] },
   PhotosWithoutTimestampResponse: {
     schema: S.PhotosWithoutTimestampResponse,

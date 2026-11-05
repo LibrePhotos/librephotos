@@ -23,16 +23,18 @@ export const FetchDateAlbumResponse = z.object({
 export type FetchDateAlbumResponse = z.infer<typeof FetchDateAlbumResponse>;
 
 /**
- * `GET /albums/date/<id>/layout/`: the aspect ratio of every photo of a day, in the order of its
- * pages (the n-th is the n-th photo of the pages), under the same filters. Null for a photo without
- * one. The web grid lays out the photos it has not loaded yet with them.
+ * `GET /days/<id>/layout/`: the aspect ratio of every photo of a day, in the day's order (the n-th
+ * is the n-th photo of its pages), under the same filters; null for a photo without one. The web grid
+ * lays out the photos it has not loaded yet with them. `page_after` is the `after` cursor of each
+ * page of the day: null for the first.
  */
-export const DateAlbumLayout = z.object({
+export const DayLayout = z.object({
   id: IntegerId,
   numberOfItems: z.number(),
   aspectRatios: z.array(z.number().nullable()),
+  page_after: z.array(UuidString.nullable()),
 });
-export type DateAlbumLayout = z.infer<typeof DateAlbumLayout>;
+export type DayLayout = z.infer<typeof DayLayout>;
 
 /* ---- User albums ------------------------------------------------------- */
 
