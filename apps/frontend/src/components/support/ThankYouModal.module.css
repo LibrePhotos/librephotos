@@ -20,7 +20,10 @@
 .ours {
   padding: 8px 14px;
   color: light-dark(var(--mantine-color-green-9), var(--mantine-color-green-3));
-  background: light-dark(var(--mantine-color-green-0), color-mix(in srgb, var(--mantine-color-green-6) 12%, transparent));
+  background: light-dark(
+    var(--mantine-color-green-0),
+    color-mix(in srgb, var(--mantine-color-green-6) 12%, transparent)
+  );
 }
 
 .footer {
