@@ -255,7 +255,7 @@ def delete_missing_photos(user: User, job_id: uuid.UUID | str) -> int:
         target = len(missing_pks)
         lrj.update_progress(current=0, target=target)
 
-        # AlbumDate, AlbumPlace, AlbumUser have no m2m_changed receivers, so
+        # AlbumPlace, AlbumUser have no m2m_changed receivers, so
         # the original per-photo .remove() loops were pure overhead — cascade
         # on Photo.delete() handles the through-rows. Face.photo is
         # on_delete=CASCADE so Face rows (and their post_delete file cleanup)

@@ -45,6 +45,11 @@ def day_id(day: datetime.date | None) -> int:
     return day.year * 10000 + day.month * 100 + day.day
 
 
+def taken_day_id(taken: datetime.datetime | None) -> int:
+    """The id of the day a photo taken at ``taken`` is listed under."""
+    return day_id(taken.astimezone(datetime.UTC).date() if taken else None)
+
+
 def day_of(day_id: int) -> datetime.date | None:
     """The day an id names; None for the undated group. ``ValueError`` for an
     id that names no day."""
@@ -56,16 +61,25 @@ def day_of(day_id: int) -> datetime.date | None:
         raise ValueError(f"{day_id} names no day") from error
 
 
+def _midnight(day: datetime.date) -> datetime.datetime:
+    return datetime.datetime.combine(day, datetime.time(), tzinfo=datetime.UTC)
+
+
+def dates_q(first: datetime.date, last: datetime.date) -> Q:
+    """The photos taken from ``first`` to ``last`` (both included), as a range
+    the ``exif_timestamp`` index serves: a ``TruncDate`` on the column would
+    not."""
+    return Q(
+        exif_timestamp__gte=_midnight(first),
+        exif_timestamp__lt=_midnight(last) + datetime.timedelta(days=1),
+    )
+
+
 def day_q(day: datetime.date | None) -> Q:
-    """The photos taken on ``day`` (the undated ones for None), as a range the
-    ``exif_timestamp`` index serves: a ``TruncDate`` on the column would not."""
+    """The photos taken on ``day``; the undated ones for None."""
     if day is None:
         return Q(exif_timestamp__isnull=True)
-    start = datetime.datetime.combine(day, datetime.time(), tzinfo=datetime.UTC)
-    return Q(
-        exif_timestamp__gte=start,
-        exif_timestamp__lt=start + datetime.timedelta(days=1),
-    )
+    return dates_q(day, day)
 
 
 class Walk(Enum):

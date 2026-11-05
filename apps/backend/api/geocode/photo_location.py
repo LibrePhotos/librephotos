@@ -19,9 +19,8 @@ from django.db.models import Count, F, Max, Min, Q, QuerySet
 import api.models
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.metadata.photo_datetime import find_album_date
 from api.models.photo import LocationSource
-from api.models.place_names import short_place_name, town_name
+from api.models.place_names import short_place_name
 
 if TYPE_CHECKING:
     from api.models.album_place import AlbumPlace
@@ -273,29 +272,6 @@ def _move_to_album_places(photo: Photo, old_album_places: QuerySet[AlbumPlace]) 
             album_place.geolocation_level = len(features) - geolocation_level
         album_place.photos.add(photo)
         album_place.save()
-
-
-def add_location_to_album_dates(photo: Photo) -> None:
-    """Add the photo's town (``town_name``) to the location of its day album."""
-    city_name = town_name(photo.geolocation_json)
-    if city_name is None:
-        return
-
-    album_date = find_album_date(photo)
-    # find_album_date returns None when the photo is in no day album. That
-    # crashed here before the typing too (AttributeError), so it still does.
-    assert album_date is not None
-    if album_date.location and len(album_date.location) > 0:
-        prev_value = album_date.location
-        new_value = prev_value
-        if city_name not in prev_value["places"]:
-            new_value["places"].append(city_name)
-            new_value["places"] = list(set(new_value["places"]))
-            album_date.location = new_value
-    else:
-        album_date.location = {"places": [city_name]}
-    # Safe geolocation_json
-    album_date.save()
 
 
 class PlaceCount(TypedDict):

@@ -29,11 +29,11 @@ def filter_photos_by_media_type(
 ) -> QuerySet[Photo] | list[Photo]:
     """Narrow *photos* per the request's media-type query.
 
-    Mirrors the convention used by the search and album-date endpoints
+    Mirrors the convention used by the search and day endpoints
     (``api/search/filters.py``): a truthy ``video`` param keeps only videos, a truthy
     ``photo`` param keeps only photos, and ``video`` wins if both are present.
     ``is_screenshot`` and ``is_document`` then keep only that category, ANDed
-    like ``AlbumDateViewSet.MEDIA_FLAG_FILTERS``. Returns *photos* unchanged
+    like the timeline filter (``api.albums.timeline_filter``). Returns *photos* unchanged
     when none is set (or there is no request).
 
     Filtering is done in Python so it operates on the photos the caller already

@@ -5,9 +5,10 @@ from __future__ import annotations
 import datetime
 from typing import TypedDict
 
-from django.db.models import Count, F, Window
+from django.db.models import Count, F, QuerySet, Window
 from django.db.models.functions import RowNumber
 
+from api.models import Photo
 from api.timeline.days import OLDEST, day_id, taken_day
 from api.timeline.photos import TimelineView
 
@@ -19,27 +20,31 @@ class DayRow(TypedDict):
     numberOfItems: int
 
 
-def _places(view: TimelineView) -> dict[datetime.date, str]:
-    """The place of each day: the town of its first photo that has one, among
-    the photos of owners who let the requester see where they were taken."""
-    if not view.place_owners:
-        return {}
+def first_towns(photos: QuerySet[Photo]) -> dict[datetime.date, str]:
+    """The place of each day of ``photos``: the town of its first photo that
+    has one."""
     first = Window(
         RowNumber(),
         partition_by=[taken_day()],
         order_by=[F("exif_timestamp").asc(), "pk"],
     )
     rows = (
-        view.photos.filter(
-            owner_id__in=sorted(view.place_owners),  # owner-scope: within the view
-            exif_timestamp__isnull=False,
-        )
+        photos.filter(exif_timestamp__isnull=False)
         .exclude(town="")
         .annotate(day=taken_day(), first=first)
         .filter(first=1)
         .values_list("day", "town")
     )
     return dict(rows)
+
+
+def _places(view: TimelineView) -> dict[datetime.date, str]:
+    """``first_towns`` among the photos of owners who let the requester see
+    where they were taken."""
+    if not view.place_owners:
+        return {}
+    # owner-scope: narrows the view's own photos
+    return first_towns(view.photos.filter(owner_id__in=sorted(view.place_owners)))
 
 
 def day_rows(view: TimelineView) -> list[DayRow]:

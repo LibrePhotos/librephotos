@@ -3,14 +3,11 @@
 Issue #844 asks for tiles a user can explore, showing the images they took a
 year, two years, ... ago.
 
-The days come from :class:`~api.models.album_date.AlbumDate` rather than from
-``Photo.exif_timestamp`` directly, for two reasons. ``AlbumDate.date`` is the
-plain calendar day the timeline groups a photo under, so a memory covers exactly
-the days the timeline shows and no timezone conversion can shift it onto the
-neighbouring day. And ``AlbumDate`` holds one row per (day, owner), which makes
-the cost of this endpoint proportional to the number of years a library spans
-rather than to the number of photos in it -- a 200k-photo library is looked up
-through the same handful of indexed date ranges as a 200-photo one.
+A photo's day is the calendar day the timeline groups it under
+(``api.timeline``): the wall-clock date of ``exif_timestamp``, so a memory
+covers exactly the days the timeline shows and no timezone conversion can shift
+it onto the neighbouring day. Each window is a range of the ``exif_timestamp``
+index, so the cost follows the photos in the windows, not the library.
 
 An exact "on this day" match is empty on most days for most libraries, so the
 lookup covers a small window of days around the anniversary, and falls back to
@@ -32,7 +29,7 @@ from rest_framework.views import APIView
 
 from api.drf.params import parse_query
 from api.drf.request_user import request_user
-from api.models import AlbumDate, Photo, User
+from api.models import Photo, User
 from api.photos.selection import build_photo_queryset
 from api.serializers.memories import (
     TYPE_MONTH_YEARS_AGO,
@@ -41,6 +38,8 @@ from api.serializers.memories import (
     MemoriesSerializer,
 )
 from api.serializers.photos import PhotoSummarySerializer
+from api.timeline.days import dates_q, taken_day
+from api.timeline.rows import first_towns
 from api.views.albums import _with_photo_summary_relations
 
 # (years_ago, anchor, start, end): one candidate window of days for a memory.
@@ -58,7 +57,7 @@ class _PlannedMemory(TypedDict):
 def today_for_user(user: User) -> datetime.date:
     """Today as the user's own wall clock sees it.
 
-    ``AlbumDate.date`` is a local calendar day, so the anniversary has to be
+    A photo's day is a local calendar day, so the anniversary has to be
     taken from the user's calendar too -- otherwise memories flip over at the
     server's midnight instead of theirs.
     """
@@ -122,23 +121,6 @@ def month_windows(reference: datetime.date, first_year: int) -> list[Window]:
     return windows
 
 
-def album_date_place(location: object) -> str:
-    """The place name stored on an ``AlbumDate``, or "" when there is none.
-
-    ``AlbumDate.location`` is written by the geolocation job and is only ever
-    read for display, so anything unexpected in it degrades to no place rather
-    than to an error.
-    """
-    if not isinstance(location, dict):
-        return ""
-    places: object = location.get("places")
-    if isinstance(places, list) and places:
-        first: object = places[0]
-        if isinstance(first, str):
-            return first
-    return ""
-
-
 def pick_cover(photos: list[Photo]) -> Photo:
     """The photo that best represents a memory.
 
@@ -186,11 +168,10 @@ class MemoriesView(APIView):
         fallback = params["fallback"]
         size = params["size"]
 
-        first_date = (
-            AlbumDate.objects.owned_by(user)
-            .filter(date__isnull=False)
-            .aggregate(Min("date"))["date__min"]
-        )
+        first_taken = memory_candidates(user).aggregate(Min("exif_timestamp"))[
+            "exif_timestamp__min"
+        ]
+        first_date = first_taken.date() if first_taken is not None else None
 
         results: list[dict[str, object]] = []
         if first_date is not None:
@@ -224,37 +205,23 @@ class MemoriesView(APIView):
             return []
         context = {"request": self.request}
 
-        day_filter = Q()
+        in_windows = Q()
         for _, _, start, end in windows:
-            day_filter |= Q(date__range=(start, end))
-
-        # (date, location) for every candidate day, in one query. A library
-        # spanning 20 years contributes at most a few hundred rows here.
-        day_rows = list(
-            AlbumDate.objects.owned_by(user)
-            .filter(day_filter)
-            .values_list("date", "location")
-        )
-        if not day_rows:
-            return []
-
-        places: dict[datetime.date, str] = {}
-        for day, location in day_rows:
-            place = album_date_place(location)
-            # The date__range filter never returns a NULL date; the check narrows.
-            if place and day is not None:
-                places.setdefault(day, place)
-
-        candidates = memory_candidates(user)
+            in_windows |= dates_q(start, end)
+        candidates = memory_candidates(user).filter(in_windows)
 
         # How big each candidate day is, grouped in the database rather than
         # counted in Python: a day of 2000 burst frames costs the same here as a
         # day of two.
-        counts = dict(
-            candidates.filter(albumdate__date__in=[day for day, _ in day_rows])
-            .values_list("albumdate__date")
+        counts: dict[datetime.date, int] = dict(
+            candidates.annotate(day=taken_day())
+            .values_list("day")
             .annotate(total=Count("id", distinct=True))
+            .order_by()
         )
+        if not counts:
+            return []
+        places = first_towns(candidates)
 
         planned: list[_PlannedMemory] = []
         for years_ago, anchor, start, end in windows:
@@ -271,7 +238,7 @@ class MemoriesView(APIView):
             # endpoints use, because it lives on the photo row and saves this
             # query -- which runs once per year -- a join.
             photo_ids = list(
-                candidates.filter(albumdate__date__range=(start, end))
+                candidates.filter(dates_q(start, end))
                 .order_by("exif_timestamp", "image_hash")
                 .values_list("id", flat=True)[:size]
             )

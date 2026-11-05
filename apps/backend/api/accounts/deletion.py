@@ -18,7 +18,6 @@ from django.utils import timezone
 from api.jobs.upload_import import seal_upload_imports
 from api.models import (
     AlbumAuto,
-    AlbumDate,
     AlbumPlace,
     AlbumThing,
     AlbumUser,
@@ -34,12 +33,7 @@ from api.models.user import get_deleted_user
 
 # The models of GENERATED_ALBUMS plus the two that are handed over with them.
 type OwnedRowModel = (
-    type[AlbumAuto]
-    | type[AlbumDate]
-    | type[AlbumPlace]
-    | type[AlbumThing]
-    | type[AlbumUser]
-    | type[Tag]
+    type[AlbumAuto] | type[AlbumPlace] | type[AlbumThing] | type[AlbumUser] | type[Tag]
 )
 
 # Unique per owner: the second user deleted with, say, an album for a day the
@@ -47,7 +41,6 @@ type OwnedRowModel = (
 # whole delete failed.
 GENERATED_ALBUMS = (
     (AlbumAuto, ("timestamp",)),
-    (AlbumDate, ("date",)),
     (AlbumPlace, ("title",)),
     (AlbumThing, ("title", "thing_type")),
 )
