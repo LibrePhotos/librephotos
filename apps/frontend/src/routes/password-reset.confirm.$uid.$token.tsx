@@ -1,6 +1,5 @@
 import { Anchor, Button, PasswordInput, Stack } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
-import { IconLock as Lock } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -58,16 +57,14 @@ function PasswordResetConfirmPage(): React.JSX.Element {
         <Stack>
           <PasswordInput
             required
-            leftSection={<Lock />}
-            placeholder={t("passwordreset.newpasswordplaceholder")}
+            label={t("passwordreset.newpasswordplaceholder")}
             name="password"
             autoComplete="new-password"
             {...form.getInputProps("password")}
           />
           <PasswordInput
             required
-            leftSection={<Lock />}
-            placeholder={t("passwordreset.confirmpasswordplaceholder")}
+            label={t("passwordreset.confirmpasswordplaceholder")}
             name="passwordConfirm"
             autoComplete="new-password"
             {...form.getInputProps("passwordConfirm")}

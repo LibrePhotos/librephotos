@@ -1,8 +1,10 @@
 /* The toolbar over the top of the stage: back on the left, the photo's date and place in the middle,
    the actions on the right. The photo takes the whole height and runs under it, so the bar sits on
-   a 96px scrim fading from black, and the white title and icons read over a bright sky. The side columns share the
-   free width, so the title stays centred until one of them needs more. Only the buttons take the
-   pointer; a drag anywhere else still swipes or pans the photo. */
+   a 120px scrim fading from black, as Immich and Google Photos draw it, and the white title and
+   icons read over a bright sky. The scrim is the bar's own background, so it comes and goes with
+   the bar. The side columns share the free width, so the title stays centred until one of them
+   needs more. Only the buttons take the pointer; a drag anywhere else still swipes or pans the
+   photo. */
 .bar {
   position: absolute;
   top: 0;
@@ -13,13 +15,13 @@
   grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
   align-items: start;
   gap: 8px;
-  height: 96px;
+  height: 120px;
   padding: 8px 8px 0;
-  background: linear-gradient(var(--app-scrim-black-60), var(--app-scrim-black-30) 45%, transparent);
+  background: linear-gradient(var(--app-scrim-black-60), var(--app-scrim-black-25) 50%, transparent);
   pointer-events: none;
 }
 
-/* A phone: back, the date on one line beside it, favorite and ⋮ (useCompactViewer). */
+/* A phone: back, the date with the place and position under it, favorite and ⋮ (useCompactViewer). */
 .bar[data-compact] {
   grid-template-columns: max-content minmax(0, 1fr) max-content;
   gap: 4px;
@@ -31,6 +33,10 @@
 
 .bar[data-compact] .titleDate {
   font-size: 15px;
+}
+
+.bar[data-compact] .titleMeta {
+  justify-content: flex-start;
 }
 
 /* A phone's bottom bar: Share, Info and Delete under the thumb, as in Google Photos, on a dark

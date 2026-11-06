@@ -187,7 +187,7 @@ export function TimelineFilterPopover({
             <Button variant="subtle" size="compact-sm" disabled={isDefault} onClick={onReset}>
               {t("timelinefilter.reset")}
             </Button>
-            <Button size="compact-sm" disabled={isDefault} loading={saving} onClick={onSaveDefault}>
+            <Button size="compact-sm" variant="light" disabled={isDefault} loading={saving} onClick={onSaveDefault}>
               {t("timelinefilter.save")}
             </Button>
           </Group>

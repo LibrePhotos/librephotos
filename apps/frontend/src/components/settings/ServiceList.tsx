@@ -1,5 +1,5 @@
 import { serviceKeys } from "@librephotos/api-client";
-import { ActionIcon, Badge, Button, Card, Group, Loader, Table, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Button, Group, Loader, Table, Text, Title, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPlayerPlay as Play, IconRefresh as Refresh, IconPlayerStop as Stop } from "@tabler/icons-react";
 import React, { useState } from "react";
@@ -11,6 +11,7 @@ import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { serviceLabel } from "./serviceLabel";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 
 // English names; t("services.label_<name>") translates them, and a service the frontend does not
@@ -43,7 +44,7 @@ export function ServiceList() {
   };
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Group justify="space-between" mb={16}>
         <Group gap="xs">
           <Title order={4}>
@@ -172,6 +173,6 @@ export function ServiceList() {
         message={t("confirmdialog.stopservice.message")}
         confirmLabel={t("confirmdialog.stopservice.confirm")}
       />
-    </Card>
+    </SettingsCard>
   );
 }

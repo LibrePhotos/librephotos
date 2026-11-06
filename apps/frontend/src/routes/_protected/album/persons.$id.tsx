@@ -13,6 +13,7 @@ import { PersonMeta } from "../../../components/album/PersonMeta";
 import { PersonShareReviewBanner } from "../../../components/album/PersonShareReviewBanner";
 import { usePersonBirthDate } from "../../../components/album/usePersonBirthDate";
 import { useListFailure } from "../../../components/common/useListFailure";
+import type { CollectionHeader } from "../../../components/photolist/DefaultHeader";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../../components/photolist/photoGroup";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
@@ -24,6 +25,10 @@ export const Route = createFileRoute("/_protected/album/persons/$id")({
   component: AlbumPersonGallery,
   validateSearch: validateMediaSearch,
 });
+
+// A person's page heads like an album's: the collection title (34px) beside their face, and the
+// photo count alone on the meta line (PersonMeta under it has the days and the birth date).
+const PERSON_COLLECTION: CollectionHeader = {};
 
 function AlbumPersonGallery(): React.JSX.Element {
   const { id } = Route.useParams();
@@ -86,6 +91,7 @@ function AlbumPersonGallery(): React.JSX.Element {
         loading={isLoading || personLoading}
         // Their face before the name, as Immich and Google Photos head a person's page
         titleLeading={person ? <PersonHeaderAvatar person={person} /> : undefined}
+        collection={person ? PERSON_COLLECTION : undefined}
         headerMenu={
           person ? <PersonHeaderMenu person={person} photos={photosFlat} onBirthDate={birthDate.openFrom} /> : undefined
         }

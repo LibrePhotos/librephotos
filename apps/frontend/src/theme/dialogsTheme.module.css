@@ -1,0 +1,5 @@
+/* Dialogs (App.tsx's Modal defaults): a hairline edge in the dark scheme, where the dialog's surface
+   is close to the dimmed page behind it. */
+.content {
+  border: 1px solid light-dark(transparent, var(--app-scrim-white-8));
+}

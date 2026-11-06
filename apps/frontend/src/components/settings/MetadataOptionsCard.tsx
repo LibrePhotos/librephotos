@@ -1,9 +1,10 @@
 import { RatingMode, type User } from "@librephotos/api-client";
-import { Card, Flex, Group, Input, Radio, SegmentedControl, Select, Stack, Title } from "@mantine/core";
+import { Flex, Group, Input, Radio, SegmentedControl, Select, Stack, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useFetchTimezonesQuery } from "../../api_client/settings";
 import { listFields, WRITTEN_FIELDS, type WriteMode } from "./metadataWrite";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 import { WriteExistingEditsRow } from "./WriteExistingEditsRow";
@@ -48,7 +49,7 @@ export function MetadataOptionsCard({ user, saved, onChange }: MetadataOptionsCa
   const { data: timezoneList = [] } = useFetchTimezonesQuery();
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.metadata" />
         <SectionLink />
@@ -93,6 +94,6 @@ export function MetadataOptionsCard({ user, saved, onChange }: MetadataOptionsCa
           data={timezoneList}
         />
       </Flex>
-    </Card>
+    </SettingsCard>
   );
 }

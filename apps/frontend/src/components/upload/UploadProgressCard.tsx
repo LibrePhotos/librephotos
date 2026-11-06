@@ -28,7 +28,7 @@ function RetryAllButton({ summary, onRetry }: { summary: Summary; onRetry: () =>
   if (summary.cancelled === 0) label = t("upload.retry_failed", { count });
   if (summary.errors === 0) label = t("upload.retry_cancelled", { count });
   return (
-    <Group px="md" pt="sm">
+    <Group px="md">
       <Button
         fullWidth
         variant="default"
@@ -79,49 +79,52 @@ function StopOrCloseButton() {
 }
 
 /**
- * The card's bar: bytes sent while uploading; then, while the server processes the uploads, a
- * two-tone bar (green ready, blue uploaded and still processing); a moving full bar while the
- * search and face steps run; full green when done.
+ * The card's overall bar, 4px and rounded under the header: bytes sent while uploading; then, while
+ * the server processes the uploads, the ready share solid and the rest tinted; full (moving while
+ * the search and face steps run) when done. A cancelled upload's bar is grey.
  */
 function CardBar({ stage, summary, processing }: { stage: CardStage; summary: Summary; processing: UploadProcessing }) {
   const { t } = useTranslation();
   const { ready, total } = processing.counts;
+  let bar: React.ReactNode;
   if (stage === "processing") {
     const readyPct = total > 0 ? (ready / total) * 100 : 0;
-    return (
-      <Progress.Root size="sm" radius={0} aria-label={t("upload.server.processing_title")}>
-        <Progress.Section
-          value={readyPct}
-          color="green"
-          aria-label={t("upload.server.ready_count", { ready, total })}
-        />
-        <Progress.Section value={100 - readyPct} color="blue" />
+    bar = (
+      <Progress.Root
+        size={4}
+        radius="xl"
+        classNames={{ root: classes.overallTrack }}
+        aria-label={t("upload.server.processing_title")}
+      >
+        <Progress.Section value={readyPct} aria-label={t("upload.server.ready_count", { ready, total })} />
       </Progress.Root>
     );
-  }
-  if (stage === "followups" || stage === "done") {
+  } else if (stage === "followups" || stage === "done") {
     const busy = stage === "followups";
-    return (
+    bar = (
       <Progress
         value={100}
-        size="sm"
-        radius={0}
-        color="green"
+        size={4}
+        radius="xl"
+        classNames={{ root: classes.overallTrack }}
         striped={busy}
         animated={busy}
         aria-label={busy ? t("upload.server.followups_title") : t("upload.server.ready_count", { ready, total })}
       />
     );
+  } else {
+    bar = (
+      <Progress
+        value={summary.pct}
+        size={4}
+        radius="xl"
+        classNames={{ root: classes.overallTrack }}
+        color={stage === "untracked" && summary.cancelled > 0 ? "gray" : undefined}
+        aria-label={t("upload.uploading")}
+      />
+    );
   }
-  return (
-    <Progress
-      value={summary.pct}
-      size="sm"
-      radius={0}
-      color={stage === "untracked" && summary.cancelled > 0 ? "gray" : undefined}
-      aria-label={t("upload.uploading")}
-    />
-  );
+  return <div className={classes.overall}>{bar}</div>;
 }
 
 /** Said while the server makes no progress, so the card never spins without an explanation. */
@@ -129,7 +132,7 @@ function StallNote({ minutes }: { minutes: number | null }) {
   const { t } = useTranslation();
   if (minutes === null) return null;
   return (
-    <Text size="xs" c="orange" px="md" pt="xs" lh={1.3} data-testid="upload-stalled">
+    <Text size="xs" c="orange" px="md" pb="sm" lh={1.3} data-testid="upload-stalled">
       {t("upload.server.stalled", { count: minutes })}
     </Text>
   );
@@ -160,21 +163,23 @@ export function UploadProgressCard() {
       bottom={{ base: FOOTER_HEIGHT + 16, sm: 16 }}
       w="min(92vw, 360px)"
       shadow="xl"
-      radius="md"
+      radius="lg"
       withBorder
       className={classes.card}
       data-testid="upload-progress-card"
     >
-      <Group justify="space-between" wrap="nowrap" gap="xs" px="md" py="sm" className={classes.header}>
+      <Group justify="space-between" wrap="nowrap" gap="xs" px="md" pt="sm" pb={10}>
         <Stack gap={0} miw="0">
-          {/* Announces each stage ("Upload cancelled", "Processing your uploads") to screen readers. */}
+          {/* Announces each stage ("Uploading 2 of 4", "Processing your uploads") to screen readers. */}
           <Text size="sm" fw={600} aria-live="polite">
             {title}
           </Text>
           {/* The counts too, except while the server processes: they would chatter every poll. */}
-          <Text size="xs" c="dimmed" truncate aria-live={stage === "processing" ? "off" : "polite"}>
-            {detail}
-          </Text>
+          {detail ? (
+            <Text size="xs" c="dimmed" truncate aria-live={stage === "processing" ? "off" : "polite"}>
+              {detail}
+            </Text>
+          ) : null}
         </Stack>
         <Group gap={4} wrap="nowrap" className={classes.noShrink}>
           <ActionIcon
@@ -189,28 +194,26 @@ export function UploadProgressCard() {
         </Group>
       </Group>
 
-      <UploadAlbumStrip items={items} isUploading={isUploading} />
-
       <CardBar stage={stage} summary={summary} processing={processing} />
 
       <StallNote minutes={processing.stalledMinutes} />
+
+      <UploadAlbumStrip items={items} isUploading={isUploading} />
 
       {!isUploading && summary.errors + summary.cancelled > 0 && (
         <RetryAllButton summary={summary} onRetry={() => retry(items)} />
       )}
 
       {!collapsed && (
-        <Box mah={256} className={classes.rows}>
-          <Stack gap="xs" p="sm">
-            {items.map(item => (
-              <UploadRow
-                key={item.id}
-                item={item}
-                server={rowServerState(item, processing.outcomes)}
-                onRetry={it => retry([it])}
-              />
-            ))}
-          </Stack>
+        <Box mah={264} mt={summary.errors + summary.cancelled > 0 && !isUploading ? "sm" : 0} className={classes.rows}>
+          {items.map(item => (
+            <UploadRow
+              key={item.id}
+              item={item}
+              server={rowServerState(item, processing.outcomes)}
+              onRetry={it => retry([it])}
+            />
+          ))}
         </Box>
       )}
     </Paper>

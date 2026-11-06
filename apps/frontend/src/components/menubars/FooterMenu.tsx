@@ -1,33 +1,15 @@
-import {
-  Avatar,
-  Divider,
-  Flex,
-  Menu,
-  UnstyledButton,
-  useComputedColorScheme,
-  useMantineColorScheme,
-} from "@mantine/core";
-import {
-  IconAdjustments as Adjustments,
-  IconBook as Book,
-  IconListDetails as ListDetails,
-  IconLogout as Logout,
-  IconMoon as Moon,
-  IconSettings as Settings,
-  IconSun as Sun,
-  IconTrash as Trash,
-  IconUser as User,
-} from "@tabler/icons-react";
+import { Divider, Flex, Menu, UnstyledButton } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import React from "react";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { useLogoutMutation } from "../../api_client/auth";
-import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
+import { UserAvatar } from "../common/UserAvatar";
 import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
+import { AccountSheet } from "./AccountSheet";
 import classes from "./FooterMenu.module.css";
-import { ImportJobMenuSection } from "./ImportJobMenuSection";
 import { getNavigationItems, isNavItemActive, TRASH_LINK } from "./navigation";
 
 export function FooterMenu(): React.JSX.Element {
@@ -35,14 +17,12 @@ export function FooterMenu(): React.JSX.Element {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { t } = useTranslation();
-  const { toggleColorScheme } = useMantineColorScheme();
-  // The raw scheme is "auto" until the user picks one; show the one in effect.
-  const colorScheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
   const { data: user } = useCurrentUserSelfDetailsQuery();
   // Uploads still being imported (#2739), as at the top of the desktop account menu.
   const openImports = useOptionalUploadProcessing()?.openImports ?? [];
   const { mutate: logout } = useLogoutMutation();
   const { requestLogout, modalProps } = useLogoutGuard(() => logout());
+  const [sheetOpened, { open: openSheet, close: closeSheet }] = useDisclosure(false);
 
   // Trash is a rare destination: on a phone it sits in the account menu, so the bar keeps the
   // three sections people switch between (as Google Photos' and Immich's phone tabs do).
@@ -126,78 +106,21 @@ export function FooterMenu(): React.JSX.Element {
   return (
     <Flex className={classes.bar} justify="space-around" align="center">
       {links}
-      <Menu
-        // Nearly the screen's width with tall rows, like a phone's action sheet rather than a
-        // desktop popover.
-        width="calc(100vw - 16px)"
-        position="top-end"
-        offset={8}
-        classNames={{ dropdown: classes.sheet, item: classes.sheetItem }}
-      >
-        <Menu.Target>
-          <UnstyledButton className={classes.tab} aria-label={t("topmenu.accountmenu")}>
-            <span className={classes.pill} aria-hidden>
-              <Avatar
-                src={user && user.avatar_url ? serverAddress + user.avatar_url : "/unknown_user.jpg"}
-                size={26}
-                alt=""
-                radius="xl"
-              />
-            </span>
-            <span className={classes.label} aria-hidden>
-              {user ? user.username : ""}
-            </span>
-          </UnstyledButton>
-        </Menu.Target>
-
-        <Menu.Dropdown>
-          {openImports.length > 0 && <ImportJobMenuSection imports={openImports} />}
-          <Menu.Label>
-            <Trans i18nKey="topmenu.loggedin" /> {user ? user.username : ""}
-          </Menu.Label>
-
-          <Menu.Item
-            leftSection={colorScheme === "dark" ? <Moon size={14} /> : <Sun size={14} />}
-            onClick={() => toggleColorScheme()}
-          >
-            {colorScheme === "dark" ? t("settings.colorscheme.dark") : t("settings.colorscheme.light")}
-          </Menu.Item>
-
-          <Menu.Divider />
-
-          <Menu.Item leftSection={<Book size={14} />} onClick={() => void navigate({ to: "/library" })}>
-            {t("topmenu.library")}
-          </Menu.Item>
-
-          <Menu.Item leftSection={<User size={14} />} onClick={() => void navigate({ to: "/profile" })}>
-            {t("topmenu.profile")}
-          </Menu.Item>
-
-          <Menu.Item leftSection={<Settings size={14} />} onClick={() => void navigate({ to: "/settings" })}>
-            {t("topmenu.settings")}
-          </Menu.Item>
-
-          <Menu.Item leftSection={<ListDetails size={14} />} onClick={() => void navigate({ to: "/jobs" })}>
-            {t("topmenu.jobs")}
-          </Menu.Item>
-
-          <Menu.Item leftSection={<Trash size={14} />} onClick={() => void navigate({ to: TRASH_LINK })}>
-            {t("photos.deleted")}
-          </Menu.Item>
-
-          {user && user.is_superuser && <Menu.Divider />}
-
-          {user && user.is_superuser && (
-            <Menu.Item leftSection={<Adjustments size={14} />} onClick={() => void navigate({ to: "/admin" })}>
-              {t("topmenu.adminarea")}
-            </Menu.Item>
-          )}
-
-          <Menu.Item leftSection={<Logout size={14} />} onClick={requestLogout}>
-            {t("topmenu.logout")}
-          </Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
+      <UnstyledButton className={classes.tab} aria-label={t("topmenu.accountmenu")} onClick={openSheet}>
+        <span className={classes.pill} aria-hidden>
+          <UserAvatar user={user} size={26} />
+        </span>
+        <span className={classes.label} aria-hidden>
+          {user ? user.username : ""}
+        </span>
+      </UnstyledButton>
+      <AccountSheet
+        opened={sheetOpened}
+        onClose={closeSheet}
+        user={user}
+        imports={openImports}
+        onLogout={requestLogout}
+      />
       <LogoutWhileUploadingModal {...modalProps} />
     </Flex>
   );

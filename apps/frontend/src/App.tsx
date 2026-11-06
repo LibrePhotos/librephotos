@@ -14,6 +14,7 @@ import { loadDayjsLocale } from "./i18n";
 import { routeTree } from "./routeTree.gen";
 import { controlsTheme } from "./theme/controlsTheme";
 import { appCssVariablesResolver } from "./theme/cssVariables";
+import dialogClasses from "./theme/dialogsTheme.module.css";
 import { menuThemeComponents } from "./theme/menuTheme";
 import { BRAND_SCALE, DARK_SCALE } from "./theme/palette";
 import { appVariantColorResolver } from "./theme/variantColors";
@@ -70,7 +71,18 @@ const theme = createTheme({
     PasswordInput: PasswordInput.extend({ defaultProps: { size: "sm" } }),
     // One title look for every dialog: plain-text titles were 16px/400 next to
     // the bold ones in components/modals.
-    Modal: Modal.extend({ styles: modalTitleStyles }),
+    // One dialog look: centred, 16px corners, 24px padding, over a softly blurred page, with a
+    // hairline edge in the dark scheme where the surface is close to the page (dialogsTheme.module.css).
+    Modal: Modal.extend({
+      defaultProps: {
+        centered: true,
+        radius: "lg",
+        padding: 24,
+        overlayProps: { backgroundOpacity: 0.55, blur: 2 },
+      },
+      classNames: { content: dialogClasses.content },
+      styles: modalTitleStyles,
+    }),
     // Every menu and submenu fits the window and scrolls past it (#2707).
     ...menuThemeComponents,
     ...controlsTheme,

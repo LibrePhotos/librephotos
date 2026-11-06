@@ -61,15 +61,16 @@ function barLabel(container: HTMLElement) {
   return container.querySelector(".mantine-Progress-section")?.getAttribute("aria-label") ?? "";
 }
 
-// The bar is the primary colour unless the job failed outright or was cancelled: how it ended is
-// said by the status chip (JobStatusChip), not by a green or orange bar across the list.
+// Only a running job's bar is the primary colour and a hard failure's red: a finished one is a thin
+// dimmed line, and how it ended is said by its status (JobStatusChip), not a green or orange bar.
 describe("JobProgress finished states", () => {
-  it("renders a clean scan in the primary colour with the item count", async () => {
+  it("renders a clean scan as a dimmed line with the item count", async () => {
     const { container, unmount } = await render(
       <JobProgress finished target={150000} current={150000} failed={false} result={{}} />
     );
 
-    expect(barColor(container)).toContain("blue");
+    expect(barColor(container)).toContain("gray");
+    expect(barColor(container)).not.toContain("blue");
     expect(barColor(container)).not.toContain("green");
     expect(container.textContent).toContain("150,000 / 150,000");
     expect(barLabel(container)).toBe("joblist.itemsprocessed 150000");
@@ -92,7 +93,7 @@ describe("JobProgress finished states", () => {
       />
     );
 
-    expect(barColor(container)).toContain("blue");
+    expect(barColor(container)).toContain("gray");
     expect(barColor(container)).not.toContain("orange");
     expect(barColor(container)).not.toContain("red");
     await unmount();

@@ -1,0 +1,17 @@
+/*
+ * The photo's map fades in once its first tiles are drawn (LocationMap.tsx). Until then the frame
+ * is a quiet surface, never an empty map with a lone pin and its attribution.
+ */
+.frame {
+  z-index: 2;
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+.frame > * {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.frame[data-drawn] > * {
+  opacity: 1;
+}

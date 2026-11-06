@@ -93,7 +93,7 @@ export function EmptyState({
         {(actionLabel || secondaryActionLabel) && (
           <Stack gap="xs" mt="md">
             {actionLabel && (
-              <Button variant="filled" onClick={handlePrimaryClick} loading={actionLoading}>
+              <Button variant="light" onClick={handlePrimaryClick} loading={actionLoading}>
                 {actionLabel}
               </Button>
             )}

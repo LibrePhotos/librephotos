@@ -1,6 +1,7 @@
-import { Card, Flex, Select, Switch, Title } from "@mantine/core";
+import { Flex, Select, Switch, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
@@ -10,7 +11,7 @@ export function InterfaceCard({ user, onChange }: UserSettingsCardProps) {
   const { t } = useTranslation();
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.interface" />
         <SectionLink />
@@ -37,6 +38,6 @@ export function InterfaceCard({ user, onChange }: UserSettingsCardProps) {
           />
         )}
       </Flex>
-    </Card>
+    </SettingsCard>
   );
 }

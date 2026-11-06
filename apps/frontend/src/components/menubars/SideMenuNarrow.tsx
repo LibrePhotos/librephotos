@@ -17,7 +17,7 @@ import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../uiConstants";
 import { formatFileSize } from "../../util/fileSize";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 import { activePinnedLink, usePinnedDestinations } from "./pinnedDestinations";
-import { SidebarExtras } from "./SidebarExtras";
+import { SidebarExtras, useRecentAlbums, useShowRecentAlbums } from "./SidebarExtras";
 import classes from "./SideMenuNarrow.module.css";
 import { VersionItem } from "./VersionItem";
 
@@ -38,6 +38,8 @@ export function SideMenuNarrow(): React.JSX.Element {
   const locale = useFormatLocale();
   const matches = useIsDesktopLayout();
   const pins = usePinnedDestinations();
+  const [showRecent] = useShowRecentAlbums();
+  const recentAlbums = useRecentAlbums();
 
   // Update active state when location changes
   useEffect(() => {
@@ -48,6 +50,8 @@ export function SideMenuNarrow(): React.JSX.Element {
     return <div />;
   }
 
+  // One highlighted row: a pinned page, or a recent album, rather than its section as well.
+  const onRecentAlbum = showRecent && recentAlbums.some(album => active === `/album/user/${album.id}`);
   const activePinned = activePinnedLink(pins.pinned, active);
   const links = getNavigationItems(t, isAuthenticated).map(item => {
     if (item.display === false) {
@@ -57,7 +61,8 @@ export function SideMenuNarrow(): React.JSX.Element {
     // Check if this menu item or any submenu item is active
     const isSubmenuItemActive = item.submenu?.some(subitem => subitem.link && active.startsWith(subitem.link));
     // A pinned page the path is on is the one marked, not the section that also holds it.
-    const isItemActive = activePinned === null && (isNavItemActive(item, active) || isSubmenuItemActive);
+    const isItemActive =
+      activePinned === null && !onRecentAlbum && (isNavItemActive(item, active) || isSubmenuItemActive);
 
     const link = (
       <a
@@ -155,6 +160,7 @@ export function SideMenuNarrow(): React.JSX.Element {
             activePinned={activePinned}
             isPinned={pins.isPinned}
             onTogglePin={pins.toggle}
+            recentAlbums={recentAlbums}
           />
         )}
       </div>
@@ -210,15 +216,13 @@ export function SideMenuNarrow(): React.JSX.Element {
             </>
           )}
         </div>
-        {/* Version, docs and support as one quiet line, as Immich ends its sidebar with a status
-            line: secondary to the navigation above. */}
+        {/* Version, docs and support as a quiet stack of small links, as Immich ends its sidebar
+            with a status line: secondary to the navigation above. */}
         <div className={classes.footer_line}>
           <VersionItem />
-          <span aria-hidden>·</span>
           <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.footer_link}>
             {t("docs")}
           </a>
-          <span aria-hidden>·</span>
           <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={classes.footer_link}>
             <Heart size={12} stroke={2} aria-hidden />
             {t("supportus")}

@@ -85,7 +85,8 @@
     "colorscheme": {
       "title": "Color scheme",
       "light": "Light",
-      "dark": "Dark"
+      "dark": "Dark",
+      "auto": "Auto"
     },
     "library": "Library",
     "photos": "Photos",
@@ -441,15 +442,15 @@
   "modalalbum": {
     "title": "Add to album",
     "alreadyexists": "Album {{title}} already exists.",
-    "selectedimages": "Add selected {{count}} photo(s) to…",
     "newalbum": "New album",
     "placeholder": "Album title",
+    "search": "Search albums",
+    "itemsselected_one": "{{count}} item selected",
+    "itemsselected_other": "{{count}} items selected",
     "create": "Create",
     "items": "{{count}} item(s)",
     "updated": "Updated {{duration}}",
     "created": "Created {{duration}}",
-    "selectedimages_one": "Add the selected {{count}} item to…",
-    "selectedimages_other": "Add the selected {{count}} items to…",
     "items_one": "{{count}} item",
     "items_other": "{{count}} items"
   },
@@ -1642,6 +1643,7 @@
     "remembermehint_one": "Stay signed in on this browser for {{count}} day. Leave it off on a shared computer.",
     "remembermehint_other": "Stay signed in on this browser for {{count}} days. Leave it off on a shared computer.",
     "firsttimesetup": "First time setup",
+    "setupadmin": "Create the admin account for this server.",
     "setupdatadirectory": "Choose your scan directory",
     "sso": {
       "divider": "or",
@@ -3199,6 +3201,7 @@
   "upload": {
     "button": "Upload photos and videos",
     "uploading": "Uploading…",
+    "uploading_count": "Uploading {{current}} of {{total}}",
     "complete": "Upload complete",
     "processed": "{{finished}}/{{total}} processed",
     "duplicates_one": "{{count}} duplicate",
@@ -3227,9 +3230,10 @@
       "pending": "Waiting",
       "hashing": "Checking file",
       "uploading": "Uploading",
+      "uploading_percent": "Uploading {{percent}} %",
       "done": "Done",
       "duplicate": "Duplicate",
-      "error": "Error",
+      "error": "Failed",
       "cancelled": "Cancelled"
     },
     "empty_file": "The file is empty",

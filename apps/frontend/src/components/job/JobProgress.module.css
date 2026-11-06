@@ -23,3 +23,8 @@
   font-variant-numeric: tabular-nums;
   cursor: default;
 }
+
+/* A finished job's line: dimmed, not the accent (the colour is for running and failed jobs). */
+.quietSection {
+  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+}

@@ -1,5 +1,6 @@
 import type { Job } from "@librephotos/api-client";
 import { Badge, Stack, Text, Tooltip } from "@mantine/core";
+import { IconCheck } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { jobOutcome, type JobOutcome } from "./jobStatus";
@@ -9,19 +10,17 @@ type ChipJob = Pick<Job, "finished" | "failed" | "cancelled" | "started_at" | "r
   Partial<Pick<Job, "progress_current" | "progress_target">>;
 
 /**
- * A light tint per outcome: a finished job's chip is a subtle green, a running one primary, some
- * failed items amber and a failure red; queued and cancelled stay neutral.
+ * Colour only where it needs attention: a running job's chip is the primary tint and a failure's
+ * (all or some items) red. Completed, queued and cancelled are dimmed text, "✓ Completed" with no
+ * pill, so a page of finished jobs reads calm (Immich's job cards).
  */
-const CHIP_COLOR: Record<JobOutcome, string | undefined> = {
-  queued: "gray",
+const CHIP_COLOR: Partial<Record<JobOutcome, string | undefined>> = {
   running: undefined,
-  completed: "green",
-  partial_failure: "orange",
+  partial_failure: "red",
   failed: "red",
-  cancelled: "gray",
 };
 
-/** A job's state as a small chip ("Completed", "2 failed"); a failure's chip shows its error on hover. */
+/** A job's state: dimmed "✓ Completed", or a small chip ("Running", "2 failed"); a failure's shows its error on hover. */
 export function JobStatusChip({ job }: Readonly<{ job: ChipJob }>) {
   const { t } = useTranslation();
   const outcome = jobOutcome(job);
@@ -37,6 +36,14 @@ export function JobStatusChip({ job }: Readonly<{ job: ChipJob }>) {
     failed: t("joblist.failed"),
     cancelled: t("joblist.cancelled"),
   };
+  if (!(outcome in CHIP_COLOR)) {
+    return (
+      <Text component="span" className={classes.quiet}>
+        {outcome === "completed" ? <IconCheck size={14} aria-hidden /> : null}
+        {labels[outcome]}
+      </Text>
+    );
+  }
   const chip = (
     <Badge variant="light" color={CHIP_COLOR[outcome]} tt="none" className={classes.chip}>
       {labels[outcome]}

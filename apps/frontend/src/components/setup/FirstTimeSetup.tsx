@@ -1,21 +1,7 @@
 import { userKeys } from "@librephotos/api-client";
-import {
-  Button,
-  Card,
-  Container,
-  Group,
-  Image,
-  PasswordInput,
-  Stack,
-  Stepper,
-  Switch,
-  Text,
-  TextInput,
-  useComputedColorScheme,
-} from "@mantine/core";
+import { Button, Group, PasswordInput, Stack, Stepper, Switch, Text, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import type { UseFormReturnType } from "@mantine/form";
-import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -28,6 +14,7 @@ import { useUpdateSettingsMutation } from "../../api_client/settings/hooks/useUp
 import { useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } from "../../api_client/user/hooks";
 import { makeSignupSchema } from "../../routes/-signup.schema";
 import { reportSignupError, reportUserSaveError } from "../../util/apiErrors";
+import { AuthCard } from "../auth/AuthCard";
 import { DirectoryPicker } from "./DirectoryPicker";
 import { uploadLocation } from "./uploadLocation";
 
@@ -54,68 +41,58 @@ type SetupAccountFormProps = {
 function SetupAccountForm({ form, onSubmit, disabled }: SetupAccountFormProps): React.JSX.Element {
   const { t } = useTranslation();
   return (
-    <Stack mt="md">
-      <form onSubmit={onSubmit}>
-        <Stack>
+    <form onSubmit={onSubmit}>
+      <Stack>
+        <TextInput
+          required
+          label={t("login.usernameplaceholder")}
+          name="username"
+          autoComplete="username"
+          {...form.getInputProps("username")}
+        />
+        <TextInput
+          required
+          label={t("settings.emailplaceholder")}
+          name="email"
+          autoComplete="email"
+          {...form.getInputProps("email")}
+        />
+        <Group grow>
           <TextInput
             required
-            leftSection={<User />}
-            placeholder={t("login.usernameplaceholder")}
-            name="username"
-            autoComplete="username"
-            {...form.getInputProps("username")}
+            label={t("settings.firstnameplaceholder")}
+            name="firstname"
+            autoComplete="given-name"
+            {...form.getInputProps("first_name")}
           />
           <TextInput
             required
-            leftSection={<Mail />}
-            placeholder={t("settings.emailplaceholder")}
-            name="email"
-            autoComplete="email"
-            {...form.getInputProps("email")}
+            label={t("settings.lastnameplaceholder")}
+            name="lastname"
+            autoComplete="family-name"
+            {...form.getInputProps("last_name")}
           />
-          <Group grow>
-            <TextInput
-              required
-              leftSection={<User />}
-              placeholder={t("settings.firstnameplaceholder")}
-              name="firstname"
-              autoComplete="given-name"
-              {...form.getInputProps("first_name")}
-            />
-            <TextInput
-              required
-              leftSection={<User />}
-              placeholder={t("settings.lastnameplaceholder")}
-              name="lastname"
-              autoComplete="family-name"
-              {...form.getInputProps("last_name")}
-            />
-          </Group>
-          <Group grow>
-            <PasswordInput
-              required
-              leftSection={<Lock />}
-              placeholder={t("login.passwordplaceholder")}
-              name="password"
-              autoComplete="new-password"
-              {...form.getInputProps("password")}
-            />
-            <PasswordInput
-              required
-              leftSection={<Lock />}
-              placeholder={t("login.confirmpasswordplaceholder")}
-              name="passwordConfirm"
-              autoComplete="new-password"
-              {...form.getInputProps("passwordConfirm")}
-            />
-          </Group>
+        </Group>
+        <PasswordInput
+          required
+          label={t("login.passwordplaceholder")}
+          name="password"
+          autoComplete="new-password"
+          {...form.getInputProps("password")}
+        />
+        <PasswordInput
+          required
+          label={t("login.confirmpasswordplaceholder")}
+          name="passwordConfirm"
+          autoComplete="new-password"
+          {...form.getInputProps("passwordConfirm")}
+        />
 
-          <Button type="submit" disabled={disabled}>
-            {t("login.signup")}
-          </Button>
-        </Stack>
-      </form>
-    </Stack>
+        <Button type="submit" disabled={disabled}>
+          {t("login.signup")}
+        </Button>
+      </Stack>
+    </form>
   );
 }
 
@@ -153,9 +130,6 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
     },
     validate: schemaResolver(makeSignupSchema(t), { sync: true }),
   });
-
-  const colorScheme = useComputedColorScheme();
-  const dark = colorScheme === "dark";
 
   useEffect(() => {
     if (siteSettings) {
@@ -241,111 +215,99 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
     void navigate({ to: "/" });
   };
 
-  return (
-    <div
-      style={{
-        paddingTop: 150,
-        position: "fixed",
-        left: 0,
-        top: 0,
-        width: "100%",
-        height: "100%",
-        overflowY: "auto",
-        backgroundSize: "cover",
-      }}
-    >
-      <Stack align="center" justify="flex-end">
-        <Group gap="xs" justify="center">
-          {/* Decorative: the name is written right next to it */}
-          <Image height={80} width={80} fit="contain" src={dark ? "/logo-white.png" : "/logo.png"} alt="" />
-          <span style={{ fontSize: 18 }}>
-            <b>{t("login.name")}</b>
-          </span>
-        </Group>
+  // Each step's heading and the line under it; the steps above them show how far along the setup is.
+  const steps = [
+    { title: t("login.firsttimesetup"), subtitle: t("login.setupadmin") },
+    { title: t("adminarea.sitesettings"), subtitle: t("login.setupsitesettings") },
+    { title: t("settings.scandirectory"), subtitle: t("login.setupdatadirectory") },
+  ];
+  const step = steps[activeStep];
 
-        <Container size="xl" px="md" style={{ width: "100%" }}>
-          <Card shadow="xl" w="100%" maw={800} mx="auto">
-            <Stepper active={activeStep} onStepClick={setActiveStep} allowNextStepsSelect={false} size="sm">
-              {/* The account exists once this step is done: going back to it
-                  only led to a second sign-up that failed with "user exists". */}
-              <Stepper.Step label={t("login.firsttimesetup")} description={t("login.signup")} allowStepSelect={false}>
-                <SetupAccountForm
-                  form={form}
-                  onSubmit={form.onSubmit(onSignUp)}
-                  disabled={isSignupPending || isLoginPending}
-                />
-              </Stepper.Step>
-              <Stepper.Step label={t("adminarea.sitesettings")} description={t("login.setupsitesettings")}>
-                <Stack mt="md" gap="md">
-                  <Switch
-                    label={t("sitesettings.headerupload")}
-                    checked={!!allowUpload}
-                    onChange={event => setAllowUpload(event.currentTarget.checked)}
-                  />
-                  <Switch
-                    label={t("sitesettings.header")}
-                    checked={!!allowRegistration}
-                    onChange={event => setAllowRegistration(event.currentTarget.checked)}
-                  />
-                  <Group justify="flex-end">
-                    <Button
-                      onClick={handleSiteSettingsNext}
-                      disabled={isSavingSettings || allowUpload === null || allowRegistration === null}
-                    >
-                      {t("continue")}
-                    </Button>
-                  </Group>
-                </Stack>
-              </Stepper.Step>
-              <Stepper.Step label={t("settings.scandirectory")} description={t("login.setupdatadirectory")}>
-                <Stack mt="md" gap="md">
-                  <DirectoryPicker
-                    value={scanDirectory}
-                    onChange={setScanDirectory}
-                    onValidityChange={setIsPathValid}
-                    placeholder="/data"
-                    label={<Text fw="bold">{t("modalscandirectoryedit.currentdirectory")}</Text>}
-                    // Explanatory text, not a heading; matches the user dialog's picker.
-                    description={
-                      <Text size="sm" c="dimmed" mt="xs">
-                        {t("modalscandirectoryedit.explanation3")}
-                      </Text>
-                    }
-                    missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
-                    // Only where uploads are on and the path exists: the hint is about a
-                    // folder the server will really write to. Under the input it describes,
-                    // as in the user dialog, not below the folder tree.
-                    hint={
-                      allowUpload && isPathValid && webUploadLocation ? (
-                        <Text size="sm" c="dimmed" mt={4} style={{ overflowWrap: "anywhere" }}>
-                          {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
-                        </Text>
-                      ) : undefined
-                    }
-                  />
-                  <Group justify="space-between">
-                    <Button variant="default" onClick={() => void navigate({ to: "/" })}>
-                      {t("skip")}
-                    </Button>
-                    <Button
-                      onClick={handleFinish}
-                      disabled={
-                        isSavingDirectory ||
-                        !canSaveDirectory ||
-                        !currentUser ||
-                        allowUpload === null ||
-                        allowRegistration === null
-                      }
-                    >
-                      {scanDirectory ? t("save") : t("continue")}
-                    </Button>
-                  </Group>
-                </Stack>
-              </Stepper.Step>
-            </Stepper>
-          </Card>
-        </Container>
-      </Stack>
-    </div>
+  return (
+    <AuthCard
+      wide
+      title={step?.title}
+      subtitle={step?.subtitle}
+      top={
+        <Stepper active={activeStep} onStepClick={setActiveStep} allowNextStepsSelect={false} size="xs">
+          {/* The account exists once this step is done: going back to it
+              only led to a second sign-up that failed with "user exists". */}
+          {steps.map(({ title }, index) => (
+            <Stepper.Step key={title} aria-label={title} allowStepSelect={index === 0 ? false : undefined} />
+          ))}
+        </Stepper>
+      }
+    >
+      {activeStep === 0 && (
+        <SetupAccountForm form={form} onSubmit={form.onSubmit(onSignUp)} disabled={isSignupPending || isLoginPending} />
+      )}
+      {activeStep === 1 && (
+        <Stack gap="md">
+          <Switch
+            label={t("sitesettings.headerupload")}
+            checked={!!allowUpload}
+            onChange={event => setAllowUpload(event.currentTarget.checked)}
+          />
+          <Switch
+            label={t("sitesettings.header")}
+            checked={!!allowRegistration}
+            onChange={event => setAllowRegistration(event.currentTarget.checked)}
+          />
+          <Group justify="flex-end">
+            <Button
+              onClick={handleSiteSettingsNext}
+              disabled={isSavingSettings || allowUpload === null || allowRegistration === null}
+            >
+              {t("continue")}
+            </Button>
+          </Group>
+        </Stack>
+      )}
+      {activeStep === 2 && (
+        <Stack gap="md">
+          <DirectoryPicker
+            value={scanDirectory}
+            onChange={setScanDirectory}
+            onValidityChange={setIsPathValid}
+            placeholder="/data"
+            label={t("modalscandirectoryedit.currentdirectory")}
+            // Explanatory text, not a heading; matches the user dialog's picker.
+            description={
+              <Text size="sm" c="dimmed" mt="xs">
+                {t("modalscandirectoryedit.explanation3")}
+              </Text>
+            }
+            missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
+            // Only where uploads are on and the path exists: the hint is about a
+            // folder the server will really write to. Under the input it describes,
+            // as in the user dialog, not below the folder tree.
+            hint={
+              allowUpload && isPathValid && webUploadLocation ? (
+                <Text size="sm" c="dimmed" mt={4} style={{ overflowWrap: "anywhere" }}>
+                  {t("modalscandirectoryedit.uploadlocation", { path: webUploadLocation })}
+                </Text>
+              ) : undefined
+            }
+          />
+          <Group justify="space-between">
+            <Button variant="default" onClick={() => void navigate({ to: "/" })}>
+              {t("skip")}
+            </Button>
+            <Button
+              onClick={handleFinish}
+              disabled={
+                isSavingDirectory ||
+                !canSaveDirectory ||
+                !currentUser ||
+                allowUpload === null ||
+                allowRegistration === null
+              }
+            >
+              {scanDirectory ? t("save") : t("continue")}
+            </Button>
+          </Group>
+        </Stack>
+      )}
+    </AuthCard>
   );
 }

@@ -1,5 +1,5 @@
 import { userKeys, type User } from "@librephotos/api-client";
-import { Card, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
@@ -26,6 +26,7 @@ import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanOptionsCard } from "./ScanOptionsCard";
 import { SETTINGS_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
+import { SettingsCard } from "./SettingsCard";
 import { SettingsSection } from "./SettingsSection";
 import { UserSharingCard } from "./UserSharingCard";
 
@@ -97,7 +98,7 @@ export function Settings() {
             <FaceOptionsCard {...cardProps} />
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.datetime}>
-            <Card withBorder radius="lg" padding="lg">
+            <SettingsCard>
               <ConfigDateTime
                 value={editedUserDetails.datetime_rules}
                 onChange={value => edit({ datetime_rules: value || "[]" })}
@@ -107,15 +108,15 @@ export function Settings() {
                   )
                 }
               />
-            </Card>
+            </SettingsCard>
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.burst}>
-            <Card withBorder radius="lg" padding="lg">
+            <SettingsCard>
               <ConfigBurstDetection
                 value={editedUserDetails.burst_detection_rules}
                 onChange={value => edit({ burst_detection_rules: value })}
               />
-            </Card>
+            </SettingsCard>
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.experimental}>
             <ExperimentalOptionsCard {...cardProps} />

@@ -1,5 +1,5 @@
 import type { JobDetail } from "@librephotos/api-client";
-import { ActionIcon, Avatar, Badge, Box, Indicator, Menu, VisuallyHidden } from "@mantine/core";
+import { ActionIcon, Badge, Box, Indicator, Menu, VisuallyHidden } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconAdjustments as Adjustments,
@@ -16,9 +16,9 @@ import React, { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useLogoutMutation } from "../../api_client/auth";
 import { useOpenUpgradeTaskCount } from "../../api_client/jobs/hooks/useUpgradeTasks";
-import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
+import { UserAvatar } from "../common/UserAvatar";
 import { CancelJobModal } from "../job/CancelJobModal";
 import { ShortcutHint } from "../shortcuts/ShortcutHint";
 import { ShortcutsMenuItem } from "../shortcuts/ShortcutsMenuItem";
@@ -92,12 +92,7 @@ export function ProfileButton(): React.ReactNode {
                   .filter(Boolean)
                   .join(", ")}
               >
-                <Avatar
-                  src={user && user.avatar_url ? serverAddress + user.avatar_url : "/unknown_user.jpg"}
-                  size={28}
-                  alt=""
-                  radius="xl"
-                />
+                <UserAvatar user={user} size={28} />
               </ActionIcon>
             </Menu.Target>
           </Indicator>

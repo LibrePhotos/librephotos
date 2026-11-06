@@ -1,6 +1,6 @@
 import { Box, Flex, Group } from "@mantine/core";
 import React from "react";
-import { LEFT_MENU_WIDTH } from "../../uiConstants";
+import { LEFT_MENU_WIDTH, PAGE_GUTTER } from "../../uiConstants";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { SpotlightTrigger } from "../spotlight";
 import { ColorModeSwitch } from "./ColorModeSwitch";
@@ -14,10 +14,19 @@ export function TopMenu(): React.ReactNode {
   // the search field and the 30px tiles share one midline.
   return (
     <Flex h="100%" align="center">
-      <Group visibleFrom="sm" w={LEFT_MENU_WIDTH} flex="0 0 auto" px={10}>
+      {/* The logo on the sidebar's icon column (its rows' 10px margin plus 16px padding). */}
+      <Group visibleFrom="sm" w={LEFT_MENU_WIDTH} flex="0 0 auto" pl={26} pr={10}>
         <TopMenuLogo />
       </Group>
-      <Group wrap="nowrap" gap="xs" w="100%" px="xs" className={classes.topMenuGroup}>
+      {/* The search field starts on the page content's left edge (the page gutter). */}
+      <Group
+        wrap="nowrap"
+        gap="xs"
+        w="100%"
+        pl={{ base: "xs", sm: PAGE_GUTTER }}
+        pr="xs"
+        className={classes.topMenuGroup}
+      >
         <MobileBackButton />
         <SpotlightTrigger />
         {/* display: flex on the wrappers, so each tile is centred itself rather

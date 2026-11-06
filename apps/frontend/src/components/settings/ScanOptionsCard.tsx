@@ -1,6 +1,7 @@
-import { Card, Flex, Group, Radio, Title } from "@mantine/core";
+import { Flex, Group, Radio, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
@@ -8,7 +9,7 @@ export function ScanOptionsCard({ user, onChange }: UserSettingsCardProps) {
   const { t } = useTranslation();
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.scanoptions" />
         <SectionLink />
@@ -41,6 +42,6 @@ export function ScanOptionsCard({ user, onChange }: UserSettingsCardProps) {
           </Group>
         </Radio.Group>
       </Flex>
-    </Card>
+    </SettingsCard>
   );
 }

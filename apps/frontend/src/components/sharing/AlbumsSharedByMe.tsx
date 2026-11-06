@@ -1,5 +1,5 @@
 import type { UserAlbumInfo } from "@librephotos/api-client";
-import { Avatar, Box, Menu, Stack, Text } from "@mantine/core";
+import { Box, Menu, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPhoto, IconShare, IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -13,11 +13,11 @@ import { CollectionCard } from "../common/CollectionCard";
 import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
+import { UserAvatar } from "../common/UserAvatar";
 import { TileGrid } from "../virtual/TileGrid";
 import type { TileGroup } from "../virtual/TileGrid";
 import { useMeasuredTileSizing } from "../virtual/useMeasuredTileSizing";
 import classes from "./AlbumsShared.module.css";
-import { avatarSrc } from "./avatarSrc";
 import { ModalAlbumShare } from "./ModalAlbumShare";
 import { sharerName } from "./sharerGroups";
 
@@ -54,7 +54,7 @@ export function AlbumsSharedByMe() {
         header: (
           <Box h={`${DAY_HEADER_HEIGHT}px`} className={classes.ownerHeader}>
             <div className={classes.ownerRow}>
-              <Avatar size={36} radius="xl" src={avatarSrc(owner)} />
+              <UserAvatar user={owner} size={36} />
               <div>
                 <Text size="md" fw="bold">
                   {displayName}

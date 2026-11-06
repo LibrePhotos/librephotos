@@ -1,12 +1,12 @@
 import type { ListUser, PersonSharing } from "@librephotos/api-client";
-import { Avatar, Button, Divider, Group, Modal, ScrollArea, Stack, Switch, Text, Title } from "@mantine/core";
+import { Button, Divider, Group, Modal, ScrollArea, Stack, Switch, Text, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { usePersonSharingQuery, useSetPersonSharingMutation } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { PageLoader } from "../common/PageLoader";
-import { avatarSrc } from "../sharing/avatarSrc";
+import { UserAvatar } from "../common/UserAvatar";
 import { getDisplayName } from "../sharing/UserEntry";
 import filterUsers from "../sharing/utils";
 
@@ -51,7 +51,7 @@ export function SharePersonModal({ opened, onClose, person }: Props) {
               {filterUsers("", currentUser?.id ?? 0, users).map(user => (
                 <Group key={user.id} justify="space-between" wrap="nowrap">
                   <Group wrap="nowrap" gap="sm">
-                    <Avatar radius="xl" size={36} src={avatarSrc(user)} alt="" />
+                    <UserAvatar user={user} size={36} />
                     <Text size="sm">{getDisplayName(user)}</Text>
                   </Group>
                   <Switch

@@ -37,18 +37,23 @@ function progression({
 }
 
 /**
- * The bar is the primary colour whatever the outcome, except a hard failure (red) and a cancelled
- * job (grey). How a job ended is said by its status chip (JobStatusChip): a green or orange bar
- * across the whole list was louder than the photos.
+ * Only a running job's bar has the primary colour and a hard failure's is red: a finished one is a
+ * 2px dimmed line (and a cancelled one grey), so ten identical full-length bars down the list do
+ * not draw the eye from the one that needs it (Immich's job cards). How a job ended is said by its
+ * status (JobStatusChip).
  */
 const BAR_COLOR: Record<JobOutcome, string | undefined> = {
   queued: undefined,
   running: undefined,
-  completed: undefined,
-  partial_failure: undefined,
+  completed: "gray",
+  partial_failure: "gray",
   failed: "red",
   cancelled: "gray",
 };
+
+/** A job that ended without trouble: its bar is the thin dimmed line. */
+const isQuiet = (outcome: JobOutcome) =>
+  outcome === "completed" || outcome === "partial_failure" || outcome === "cancelled";
 
 /** How full the bar is: a finished job's is full, unless it was cancelled part way. */
 function barValue(outcome: JobOutcome, { current, target }: Progression): number {
@@ -60,7 +65,7 @@ function barValue(outcome: JobOutcome, { current, target }: Progression): number
 }
 
 /**
- * A job's progress: a 4px bar with "current / target" after it, and the job's own step under it
+ * A job's progress: a 4px bar (2px and dimmed once it ended well) with "current / target" after it, and the job's own step under it
  * while it runs. The count's tooltip says it as a sentence, with the percentage while it runs.
  */
 export function JobProgress({ finished, failed = false, cancelled = false, result, ...props }: IJobProgress) {
@@ -87,7 +92,8 @@ export function JobProgress({ finished, failed = false, cancelled = false, resul
       <div className={classes.row}>
         <Progress
           className={classes.bar}
-          size={4}
+          classNames={isQuiet(outcome) ? { section: classes.quietSection } : undefined}
+          size={isQuiet(outcome) ? 2 : 4}
           color={BAR_COLOR[outcome]}
           value={barValue(outcome, progress)}
           aria-label={sentence}

@@ -6,6 +6,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/urls";
 import { CollectionMeta, CollectionMetaSeparator } from "./CollectionMeta";
+import classes from "./EventSubHeader.module.css";
 
 type Props = Readonly<{
   people: AutoAlbum["people"];
@@ -26,6 +27,45 @@ export function eventMetaLine(daySpan: string | null, locationNames: readonly st
   return [daySpan, places.join(", ")].filter(Boolean).join(" · ");
 }
 
+const MAX_FACES = 5;
+
+/**
+ * The event's people as stacked 28px faces, each named on hover and linked to their page, then
+ * "+N" for the rest (named on hover too); a lone person's name stands beside their face.
+ */
+function EventPeople({ people }: Readonly<{ people: AutoAlbum["people"] }>) {
+  const rest = people.slice(MAX_FACES);
+  const only = people.length === 1 ? people[0] : undefined;
+  return (
+    <span className={classes.people}>
+      <Avatar.Group spacing={8}>
+        {people.slice(0, MAX_FACES).map(person => (
+          <Tooltip key={person.id} label={person.name} withArrow>
+            <Avatar
+              // A router link, not an <a href> that reloaded the app
+              renderRoot={props => <Link to="/album/persons/$id" params={{ id: String(person.id) }} {...props} />}
+              radius="xl"
+              src={serverAddress + person.face_url}
+              alt={person.name}
+              size={28}
+            />
+          </Tooltip>
+        ))}
+        {rest.length > 0 ? (
+          <Tooltip label={rest.map(person => person.name).join(", ")} withArrow multiline maw={240}>
+            <Avatar radius="xl" size={28} className={classes.more}>{`+${rest.length}`}</Avatar>
+          </Tooltip>
+        ) : null}
+      </Avatar.Group>
+      {only ? (
+        <Link to="/album/persons/$id" params={{ id: String(only.id) }} className={classes.name} tabIndex={-1}>
+          {only.name}
+        </Link>
+      ) : null}
+    </span>
+  );
+}
+
 /**
  * Under an event's title and meta line (`eventMetaLine`), like the album pages: its people and the
  * map chip. Nothing for an event with neither.
@@ -43,22 +83,7 @@ export function EventSubHeader({ people, hasGPSCoordinates, showMap, onToggleMap
     <CollectionMeta parts={[]}>
       {hasRow ? (
         <>
-          {people.length > 0 && (
-            <Avatar.Group spacing="xs">
-              {people.slice(0, 5).map(person => (
-                <Tooltip key={person.id} label={person.name} withArrow>
-                  <Avatar
-                    // A router link, not an <a href> that reloaded the app
-                    renderRoot={props => <Link to="/album/persons/$id" params={{ id: String(person.id) }} {...props} />}
-                    radius="xl"
-                    src={serverAddress + person.face_url}
-                    alt={person.name}
-                    size={28}
-                  />
-                </Tooltip>
-              ))}
-            </Avatar.Group>
-          )}
+          {people.length > 0 && <EventPeople people={people} />}
           {hasGPSCoordinates && (
             <>
               {people.length > 0 && <CollectionMetaSeparator />}

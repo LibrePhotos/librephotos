@@ -1,5 +1,5 @@
 import type { User } from "@librephotos/api-client";
-import { Anchor, Card, Stack, Title } from "@mantine/core";
+import { Anchor, Stack, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronRight } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -31,6 +31,7 @@ import { NextcloudSettings } from "./NextcloudSettings";
 import { ProcessingStatusCard } from "./ProcessingStatusCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanLibraryRow } from "./ScanLibraryRow";
+import { SettingsCard } from "./SettingsCard";
 
 export function Library() {
   const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
@@ -157,7 +158,7 @@ export function Library() {
         <CountStats />
         <LibraryFoldersCard user={userSelfDetails} isAdmin={isAdmin} />
         <ProcessingStatusCard busyReason={busyReason} uploadOnly={!hasScanDirectory} />
-        <Card withBorder radius="lg" padding="lg">
+        <SettingsCard>
           <Stack>
             <Title order={4}>
               <Trans i18nKey="settings.photos" />
@@ -200,7 +201,7 @@ export function Library() {
               />
             )}
           </Stack>
-        </Card>
+        </SettingsCard>
 
         <ModalUserEdit
           onRequestClose={() => closeScanDirectorySetup()}

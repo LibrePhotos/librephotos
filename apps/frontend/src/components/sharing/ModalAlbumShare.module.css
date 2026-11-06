@@ -1,0 +1,37 @@
+/*
+ * The share dialog: one surface, its sections told apart by space and one hairline, no cards
+ * inside it (Immich, Google). Section titles 16px/600 with a 13px dimmed line under them.
+ */
+.section[data-spaced] {
+  margin-top: 24px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionTitle.sectionTitle {
+  font-size: var(--mantine-font-size-md);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.sectionDesc {
+  margin-top: 2px;
+  color: var(--mantine-color-dimmed);
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  line-height: 1.45;
+}
+
+.note {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.45;
+}
+
+.settingsToggle {
+  align-self: flex-start;
+}

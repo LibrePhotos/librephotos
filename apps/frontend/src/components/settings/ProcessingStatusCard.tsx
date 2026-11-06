@@ -1,5 +1,5 @@
 import type { ProcessingStatus } from "@librephotos/api-client";
-import { Button, Card, Group, Stack, Text, Title } from "@mantine/core";
+import { Button, Group, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown as ChevronDown, IconCircleCheck as CircleCheck } from "@tabler/icons-react";
 import React from "react";
@@ -19,6 +19,7 @@ import { ProcessingStageRow } from "./ProcessingStageRow";
 import { isStageDone, knownStages } from "./processingStages";
 import type { KnownStage } from "./processingStages";
 import classes from "./ProcessingStatusCard.module.css";
+import { SettingsCard } from "./SettingsCard";
 
 type ProcessingStatusCardProps = Readonly<{
   /** Why Run now cannot be used: a job is running. Undefined while the queue takes jobs. */
@@ -163,11 +164,11 @@ export function ProcessingStatusCard({ busyReason, uploadOnly }: ProcessingStatu
     body = <StatusBody status={data} busyReason={busyReason} uploadOnly={uploadOnly} />;
   }
   return (
-    <Card withBorder radius="lg" padding="lg" component="section" aria-label={t("processingstatus.title")}>
+    <SettingsCard component="section" aria-label={t("processingstatus.title")}>
       <Stack gap="sm">
         <CardHeader status={data} />
         {body}
       </Stack>
-    </Card>
+    </SettingsCard>
   );
 }

@@ -13,6 +13,8 @@ type Props = Readonly<{
   people: readonly Person[] | undefined;
   isLoading: boolean;
   error?: ListFailure;
+  /** How many people there are in all, when `people` is a pick of them (Explore's most photographed). */
+  total?: number;
 }>;
 
 /** The hub row's narrowest card and gap (AlbumSection.module.css .peopleGrid): the People page's 3:4 portrait, smaller. */
@@ -25,10 +27,11 @@ function columnsFor(width: number, min: number, gap: number): number {
 }
 
 /**
- * The album hub's People: the People page's 3:4 portrait cards (PersonCard), smaller and in one
- * row of as many as fit, so a person looks the same on both and the row ends where the albums do. Managing faces lives on the People page's ⋯.
+ * The People row of the album hub and of Explore: the People page's 3:4 portrait cards
+ * (PersonCard), smaller and in one row of as many as fit, so a person looks the same everywhere and
+ * the row ends where the albums do. Managing faces lives on the People page's ⋯.
  */
-export function HubPeopleRow({ people, isLoading, error }: Props) {
+export function HubPeopleRow({ people, isLoading, error, total }: Props) {
   const { t } = useTranslation();
   const { ref, width } = useElementSize();
   const isPhone = useMediaQuery("(max-width: 47.99em)", undefined, { getInitialValueInEffect: false }) === true;
@@ -36,7 +39,7 @@ export function HubPeopleRow({ people, isLoading, error }: Props) {
   const gap = isPhone ? GAP.phone : GAP.desktop;
   // One row that ends on the grid's right edge; "View all" opens the People page with the rest
   const columns = width > 0 ? columnsFor(width, min, gap) : 0;
-  const count = people?.length ?? 0;
+  const count = total ?? people?.length ?? 0;
   let body: React.ReactNode;
   if (isLoading) {
     body = (

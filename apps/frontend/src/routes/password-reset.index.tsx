@@ -1,6 +1,5 @@
 import { Anchor, Button, Stack, Text, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
-import { IconMail as Mail } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -56,11 +55,12 @@ function PasswordResetRequestPage(): React.JSX.Element {
       ) : (
         <form onSubmit={form.onSubmit(onSubmit)}>
           <Stack>
-            <Text size="sm">{t("passwordreset.instructions")}</Text>
+            <Text size="sm" c="dimmed">
+              {t("passwordreset.instructions")}
+            </Text>
             <TextInput
               required
-              leftSection={<Mail />}
-              placeholder={t("passwordreset.emailplaceholder")}
+              label={t("passwordreset.emailplaceholder")}
               name="email"
               {...form.getInputProps("email")}
             />

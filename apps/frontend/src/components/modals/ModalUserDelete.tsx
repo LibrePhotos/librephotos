@@ -60,7 +60,7 @@ export function ModalUserDelete(props: Props) {
     >
       <Stack>
         <Text size="sm">{t("adminarea.deleteuserconfirmexplanation", { username: userToDelete.username })}</Text>
-        <Text size="sm" c="red">
+        <Text size="sm" c="dimmed">
           {t("adminarea.cannotbeundone")}
         </Text>
         <Group justify="flex-end" mt="md">

@@ -2,7 +2,6 @@ import {
   ActionIcon,
   Box,
   Button,
-  Card,
   Flex,
   Loader,
   NumberInput,
@@ -19,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { fetchServerLogFile, useFetchServerLogsViewQuery } from "../../api_client/server/hooks";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 
 function downloadLogsBlob(data: unknown) {
@@ -76,7 +76,7 @@ export function ServerLogsCard() {
   };
 
   return (
-    <Card withBorder radius="lg" padding={0}>
+    <SettingsCard padding={0}>
       <Stack gap={0}>
         <Flex
           align="center"
@@ -149,6 +149,6 @@ export function ServerLogsCard() {
           </ScrollArea>
         )}
       </Stack>
-    </Card>
+    </SettingsCard>
   );
 }

@@ -1,21 +1,22 @@
-import { Paper, Text, Title } from "@mantine/core";
+import { IconChevronRight } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React from "react";
 import type { ReactNode } from "react";
-import classes from "../album/AlbumSection.module.css";
+import { useTranslation } from "react-i18next";
 import overviewClasses from "./SharingOverview.module.css";
-import { SharePreviewSkeleton, SharingSectionHeading } from "./SharingPreviewCards";
+import { SharePreviewSkeleton } from "./SharingPreviewCards";
+import { SharingRow } from "./SharingRow";
 
-/** What the heading's link wraps: spread on a router Link to the section's page. */
-type HeadingLinkProps = Readonly<{ className: string; children: ReactNode }>;
+/** What "View all" wraps: spread on a router Link to the section's page. */
+type HeadingLinkProps = Readonly<{ className: string | undefined; children: ReactNode }>;
 
 type Props = Readonly<{
   /** The section's 24px icon. */
   icon: ReactNode;
   title: string;
-  /** "N photos, M albums", before the heading's "View all". */
+  /** "N photos, M albums", under the title. */
   summary: string;
-  /** The link to the section's page around its heading. */
+  /** The "View all" link to the section's page. */
   renderLink: (props: HeadingLinkProps) => ReactNode;
   loading: boolean;
   /** Says there is nothing in the section; null when there is. */
@@ -25,12 +26,10 @@ type Props = Readonly<{
   children: ReactNode;
 }>;
 
-const HEADING_LINK = `${classes.headerLeft} ${classes.headerReset}`;
-
 /**
- * One section of the Sharing overview, in the same bordered card as "Your library" above it: its
- * heading linking to its page, then a placeholder or the preview. With nothing in it the section is
- * one compact row (icon, title, a dimmed line) without the "View all" into an empty page.
+ * One section of the Sharing overview (SharingRow): its icon, title and "N photos, M albums", a
+ * "View all ›" to its page on the right, and the preview under it. With nothing in it the section
+ * is the row alone, its line saying so, without the "View all" into an empty page.
  */
 export function SharingPreviewSection({
   icon,
@@ -42,29 +41,27 @@ export function SharingPreviewSection({
   skeleton,
   children,
 }: Props) {
+  const { t } = useTranslation();
   if (!loading && emptyText !== null) {
-    return (
-      <Paper withBorder radius="md" px="md" className={overviewClasses.emptyRow}>
-        {icon}
-        <Title order={4} className={overviewClasses.emptyTitle}>
-          {title}
-        </Title>
-        <Text size="sm" c="dimmed" truncate>
-          {emptyText}
-        </Text>
-      </Paper>
-    );
+    return <SharingRow icon={icon} title={title} description={emptyText} />;
   }
   return (
-    <Paper withBorder radius="md" p="md">
-      <div className={classes.header}>
-        {renderLink({
-          className: HEADING_LINK,
-          children: <SharingSectionHeading icon={icon} title={title} summary={summary} />,
-        })}
-      </div>
+    <SharingRow
+      icon={icon}
+      title={title}
+      description={loading ? "" : summary}
+      action={renderLink({
+        className: overviewClasses.viewAll,
+        children: (
+          <>
+            {t("explore.viewAll")}
+            <IconChevronRight size={14} aria-hidden />
+          </>
+        ),
+      })}
+    >
       {loading ? (skeleton ?? <SharePreviewSkeleton />) : children}
-    </Paper>
+    </SharingRow>
   );
 }
 

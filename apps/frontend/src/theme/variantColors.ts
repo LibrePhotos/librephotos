@@ -12,5 +12,15 @@ export const appVariantColorResolver: VariantColorsResolver = input => {
   if (input.variant === "filled" && isPrimary) {
     return { ...colors, color: "var(--mantine-primary-color-contrast)" };
   }
+  // Destructive buttons: a deep red with white text in both schemes (the dark scheme's filled shade
+  // is a pastel, which made "Empty trash" pale pink).
+  if (input.variant === "filled" && input.color === "red") {
+    return {
+      ...colors,
+      background: "var(--mantine-color-red-8)",
+      hover: "var(--mantine-color-red-9)",
+      color: "var(--mantine-color-white)",
+    };
+  }
   return colors;
 };

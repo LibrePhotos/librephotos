@@ -1,17 +1,5 @@
 import type { BulkPhotoQuery } from "@librephotos/api-client";
-import {
-  ActionIcon,
-  Avatar,
-  Badge,
-  Divider,
-  Group,
-  Modal,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
+import { ActionIcon, Badge, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
 import { IconShare as Share, IconShareOff as ShareOff } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,8 +8,8 @@ import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { parseInstant } from "../../util/dateUtils";
 import { MediaThumbnail } from "../common/MediaThumbnail";
+import { UserAvatar } from "../common/UserAvatar";
 import { selectionLabel } from "../photolist/selectionLabel";
-import { avatarSrc } from "./avatarSrc";
 import filterUsers from "./utils";
 
 type Props = Readonly<{
@@ -115,7 +103,7 @@ export function ModalPhotosShare(props: Props) {
                 return (
                   <Group justify="space-between" key={item.id}>
                     <Group>
-                      <Avatar radius="xl" size={50} src={avatarSrc(item)} />
+                      <UserAvatar user={item} size={40} />
                       <div>
                         <Title order={4}>{displayName}</Title>
                         {item.date_joined && (

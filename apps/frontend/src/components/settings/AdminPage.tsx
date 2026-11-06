@@ -1,4 +1,4 @@
-import { Button, Card, Flex, Group, Modal, Stack, Text, Title } from "@mantine/core";
+import { Button, Flex, Group, Modal, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLock as Lock, IconTrash as Trash } from "@tabler/icons-react";
 import React from "react";
@@ -24,6 +24,7 @@ import { ADMIN_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
 import { ServerLogsCard } from "./ServerLogsCard";
 import { ServiceList } from "./ServiceList";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink, SettingsSection } from "./SettingsSection";
 import { SiteSettings } from "./SiteSettings";
 import { StripThumbnailMetadataTool } from "./StripThumbnailMetadataTool";
@@ -59,7 +60,7 @@ function AdminTools() {
   };
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Stack>
         <Title order={4}>
           {t("adminarea.admintools")}
@@ -119,7 +120,7 @@ function AdminTools() {
           </Group>
         </Stack>
       </Modal>
-    </Card>
+    </SettingsCard>
   );
 }
 

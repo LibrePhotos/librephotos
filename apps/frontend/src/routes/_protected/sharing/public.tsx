@@ -1,13 +1,13 @@
 import type { ListUserList } from "@librephotos/api-client";
-import { Avatar, NavLink, Stack, Text } from "@mantine/core";
+import { NavLink, Stack, Text } from "@mantine/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
 import { PageLoader } from "../../../components/common/PageLoader";
+import { UserAvatar } from "../../../components/common/UserAvatar";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
-import { avatarSrc } from "../../../components/sharing/avatarSrc";
 
 export const Route = createFileRoute("/_protected/sharing/public")({
   component: PublicUserList,
@@ -51,7 +51,7 @@ function PublicUserList() {
                 renderRoot={rootProps => <Link {...rootProps} to="/public/$users" params={{ users: el.username }} />}
                 label={displayName}
                 description={t("sharing.publicPhotoCount", { count: el.public_photo_count })}
-                leftSection={<Avatar size={40} radius="xl" src={avatarSrc(el)} />}
+                leftSection={<UserAvatar user={el} size={40} />}
                 styles={{ root: { borderRadius: "var(--mantine-radius-sm)" }, label: { fontWeight: 500 } }}
               />
             );

@@ -3,7 +3,6 @@ import {
   Alert,
   Anchor,
   Button,
-  Card,
   Grid,
   Group,
   PasswordInput,
@@ -28,6 +27,7 @@ import { notification } from "../../service/notifications";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { makeEmailSettingsSchema } from "./EmailSettings.schema";
 import { ADMIN_SECTIONS } from "./sectionIds";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink, SettingsSection } from "./SettingsSection";
 
 // "disabled" and "custom" are labelled with translated text at render time.
@@ -172,7 +172,7 @@ export function EmailSettings(): React.JSX.Element {
   return (
     // Names its own anchor on the admin page.
     <SettingsSection id={ADMIN_SECTIONS.email}>
-      <Card withBorder radius="lg" padding="lg" component="form" onSubmit={form.onSubmit(onSave)}>
+      <SettingsCard component="form" onSubmit={form.onSubmit(onSave)}>
         <Stack>
           <Title order={4} mb={4}>
             {t("emailsettings.header")}
@@ -314,7 +314,7 @@ export function EmailSettings(): React.JSX.Element {
           message={t("confirmdialog.clearsecret.message")}
           confirmLabel={t("confirmdialog.clearsecret.confirm")}
         />
-      </Card>
+      </SettingsCard>
     </SettingsSection>
   );
 }

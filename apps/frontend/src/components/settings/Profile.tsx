@@ -1,6 +1,6 @@
 import type { User as UserDetails } from "@librephotos/api-client";
 import { userKeys } from "@librephotos/api-client";
-import { Button, Card, Group, Radio, Select, SimpleGrid, Stack, TextInput, Title } from "@mantine/core";
+import { Button, Group, Radio, Select, SimpleGrid, Stack, TextInput, Title } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useEffectEvent } from "react";
@@ -15,6 +15,7 @@ import { PasswordEntry } from "./PasswordEntry";
 import { makeProfileSchema, type ProfileValues } from "./Profile.schema";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { SaveChangesDialog } from "./SaveChangesDialog";
+import { SettingsCard } from "./SettingsCard";
 
 /** The profile's form values: the stored details, and the password fields locked and empty. */
 const valuesOf = (user: Pick<UserDetails, "first_name" | "last_name" | "email" | "public_sharing">): ProfileValues => ({
@@ -89,15 +90,19 @@ export function Profile() {
   return (
     <SettingsPageFrame header={<PageHeader title={t("settings.profile")} />}>
       <Stack>
-        <Card withBorder radius="lg" padding="lg">
+        <SettingsCard>
           {/* One heading per card: the avatar and the name fields are the account */}
           <Title order={4} mb="md">
             {t("settings.account")}
           </Title>
           <ProfileAvatar
             userId={userSelfDetails.id}
-            firstName={form.values.first_name}
-            avatarUrl={userSelfDetails.avatar_url}
+            user={{
+              username: userSelfDetails.username,
+              first_name: form.values.first_name,
+              last_name: form.values.last_name,
+              avatar_url: userSelfDetails.avatar_url,
+            }}
           />
           <SimpleGrid cols={{ base: 1, sm: 3 }} mt="xl">
             <TextInput
@@ -116,13 +121,13 @@ export function Profile() {
               {...form.getInputProps("email")}
             />
           </SimpleGrid>
-        </Card>
+        </SettingsCard>
 
-        <Card withBorder radius="lg" padding="lg">
+        <SettingsCard>
           <PasswordEntry form={form} asHeading />
-        </Card>
+        </SettingsCard>
 
-        <Card withBorder radius="lg" padding="lg">
+        <SettingsCard>
           <Title order={4} mb={10}>
             {t("settings.appearance")}
           </Title>
@@ -176,7 +181,7 @@ export function Profile() {
               {t("settings.helptranslating")}
             </Button>
           </Group>
-        </Card>
+        </SettingsCard>
         <SaveChangesDialog
           opened={isEdited}
           saving={updateUser.isPending}

@@ -18,10 +18,13 @@ type Props = Readonly<{
   upload?: AlbumUpload | null;
 }>;
 
+/** The album's two actions: one 32px pair, 8px apart. */
+const ACTION_HEIGHT = 32;
+
 /**
  * A user album's people and its two main actions under its title, as Immich heads an album: the
- * members' faces, then Share (tonal; a link icon once the album has a public link) and Add photos
- * (subtle, the album upload). A recipient sees whose album it is.
+ * members' faces, then Share (a link icon once the album has a public link) and Add photos (the
+ * album upload), one matching tonal pair. A recipient sees whose album it is.
  */
 export function UserAlbumIdentity({ album, own, upload }: Props) {
   const { t } = useTranslation();
@@ -39,8 +42,8 @@ export function UserAlbumIdentity({ album, own, upload }: Props) {
       <div className={classes.actions}>
         <Button
           variant="light"
-          radius="xl"
-          size="compact-md"
+          size="sm"
+          h={ACTION_HEIGHT}
           leftSection={album.public ? <IconLink size={16} /> : <IconShare size={16} />}
           onClick={share.open}
         >
@@ -49,9 +52,9 @@ export function UserAlbumIdentity({ album, own, upload }: Props) {
         {upload ? (
           <DisabledReason reason={upload.reason}>
             <Button
-              variant="subtle"
-              radius="xl"
-              size="compact-md"
+              variant="light"
+              size="sm"
+              h={ACTION_HEIGHT}
               leftSection={<IconPlus size={16} />}
               onClick={upload.open}
             >

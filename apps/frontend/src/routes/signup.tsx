@@ -1,6 +1,5 @@
 import { Anchor, Button, PasswordInput, Stack, Text, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
-import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -68,48 +67,42 @@ function SignupPage(): React.JSX.Element {
           <Stack>
             <TextInput
               required
-              leftSection={<User />}
-              placeholder={t("login.usernameplaceholder")}
+              label={t("login.usernameplaceholder")}
               name="username"
               autoComplete="username"
               {...form.getInputProps("username")}
             />
             <TextInput
               required
-              leftSection={<Mail />}
-              placeholder={t("settings.emailplaceholder")}
+              label={t("settings.emailplaceholder")}
               name="email"
               autoComplete="email"
               {...form.getInputProps("email")}
             />
             <TextInput
               required
-              leftSection={<User />}
-              placeholder={t("settings.firstnameplaceholder")}
+              label={t("settings.firstnameplaceholder")}
               name="firstname"
               autoComplete="given-name"
               {...form.getInputProps("first_name")}
             />
             <TextInput
               required
-              leftSection={<User />}
-              placeholder={t("settings.lastnameplaceholder")}
+              label={t("settings.lastnameplaceholder")}
               name="lastname"
               autoComplete="family-name"
               {...form.getInputProps("last_name")}
             />
             <PasswordInput
               required
-              leftSection={<Lock />}
-              placeholder={t("login.passwordplaceholder")}
+              label={t("login.passwordplaceholder")}
               name="password"
               autoComplete="new-password"
               {...form.getInputProps("password")}
             />
             <PasswordInput
               required
-              leftSection={<Lock />}
-              placeholder={t("login.confirmpasswordplaceholder")}
+              label={t("login.confirmpasswordplaceholder")}
               name="passwordConfirm"
               autoComplete="new-password"
               {...form.getInputProps("passwordConfirm")}

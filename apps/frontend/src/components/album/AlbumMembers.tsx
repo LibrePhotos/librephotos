@@ -3,7 +3,7 @@ import { Avatar, Text, Tooltip } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { avatarSrc } from "../sharing/avatarSrc";
+import { UserAvatar } from "../common/UserAvatar";
 
 type Props = Readonly<{
   owner: SimpleUser;
@@ -29,11 +29,8 @@ export function AlbumMembers({ owner, sharedTo, own, contributor = false }: Prop
   const people = own ? sharedTo : [owner];
   if (people.length === 0) return null;
 
-  // The user list has the avatars; without one, the initials rather than the grey placeholder
-  const avatarOf = (user: SimpleUser) => {
-    const row = users?.find(candidate => candidate.id === user.id);
-    return row?.avatar_url ? avatarSrc(row) : null;
-  };
+  // The user list has the avatars; without one, the initials on the user's colour
+  const avatarUrlOf = (user: SimpleUser) => users?.find(candidate => candidate.id === user.id)?.avatar_url;
   const label = own
     ? t("useralbum.sharedwithcount", { count: sharedTo.length })
     : [t("useralbum.ownedby", { name: displayName(owner) }), contributor ? t("collab.youCanAdd") : null]
@@ -45,14 +42,7 @@ export function AlbumMembers({ owner, sharedTo, own, contributor = false }: Prop
       <Avatar.Group spacing="xs">
         {people.slice(0, MAX_AVATARS).map(user => (
           <Tooltip key={user.id} label={displayName(user)} withArrow>
-            <Avatar
-              radius="xl"
-              size={28}
-              src={avatarOf(user)}
-              name={displayName(user)}
-              color="initials"
-              alt={displayName(user)}
-            />
+            <UserAvatar user={{ ...user, avatar_url: avatarUrlOf(user) }} size={28} alt={displayName(user)} />
           </Tooltip>
         ))}
         {people.length > MAX_AVATARS ? (

@@ -98,7 +98,7 @@ type HeadingProps = Readonly<{
 }>;
 
 /**
- * The one section heading of the album hub and its rows (SectionHeader): a 15px/700 title with its
+ * The one section heading of the album hub and its rows (SectionHeader): a 17px/600 title with its
  * 13px dimmed count and "View all" under it, on the page's left edge like every row under it, the
  * same 12px above the row in every section, and an optional action on the right.
  */

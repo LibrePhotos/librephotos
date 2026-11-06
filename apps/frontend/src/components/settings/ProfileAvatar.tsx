@@ -7,10 +7,10 @@ import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/urls";
 import { useUpdateAvatarMutation } from "../../api_client/user/hooks";
 import { ICON_SIZE } from "../../uiConstants";
 import { dataUrlToFile } from "../../util/dataUrl";
+import { UserAvatar } from "../common/UserAvatar";
 import { AvatarFacePickerModal } from "./AvatarFacePickerModal";
 import classes from "./ProfileAvatar.module.css";
 
@@ -19,18 +19,18 @@ const AVATAR_SIZE = 96;
 
 type Props = Readonly<{
   userId: number;
-  /** Names the uploaded file. */
-  firstName: string;
-  /** The stored avatar, if the user has one. */
-  avatarUrl: string | null | undefined;
+  /** The user as edited so far: their stored avatar, or the initials of their name; the first name
+      names the uploaded file. */
+  user: NonNullable<React.ComponentProps<typeof UserAvatar>["user"]>;
 }>;
 
 /**
- * The profile's avatar: a round picture, then in one row beside it the Change menu (upload an
- * image, or pick one of the faces) with the size limit under it. A new picture can be moved into
- * place and is only stored with Save.
+ * The profile's avatar: a round picture (or the user's initials on their colour, as everywhere a
+ * user is shown), then in one row beside it the Change menu (upload an image, or pick one of the
+ * faces) with the size limit under it. A new picture can be moved into place and is only stored
+ * with Upload.
  */
-export function ProfileAvatar({ userId, firstName, avatarUrl }: Props) {
+export function ProfileAvatar({ userId, user }: Props) {
   const { t } = useTranslation();
   const updateAvatar = useUpdateAvatarMutation();
   const editorRef = useRef<AvatarEditorRef>(null);
@@ -39,7 +39,6 @@ export function ProfileAvatar({ userId, firstName, avatarUrl }: Props) {
   // A picture chosen here: shown instead of the stored one, and unsaved until Save
   const [picked, setPicked] = useState<string | null>(null);
   const [unsaved, setUnsaved] = useState(false);
-  const stored = avatarUrl ? serverAddress + avatarUrl : "/unknown_user.jpg";
 
   const pick = (image: string) => {
     setPicked(image);
@@ -50,7 +49,7 @@ export function ProfileAvatar({ userId, firstName, avatarUrl }: Props) {
     const editor = editorRef.current;
     if (!editor) return;
     const formData = new FormData();
-    const name = `${firstName}avatar.png`;
+    const name = `${user.first_name ?? ""}avatar.png`;
     const file = await dataUrlToFile(editor.getImageScaledToCanvas().toDataURL(), name);
     formData.append("avatar", file, name);
     updateAvatar.mutate({ id: userId.toString(), data: formData }, { onSuccess: () => setUnsaved(false) });
@@ -72,13 +71,11 @@ export function ProfileAvatar({ userId, firstName, avatarUrl }: Props) {
           {({ getRootProps, getInputProps }) => (
             <div {...getRootProps({ className: classes.picture })}>
               <input {...getInputProps()} />
-              <AvatarEditor
-                ref={editorRef}
-                width={AVATAR_SIZE}
-                height={AVATAR_SIZE}
-                border={0}
-                image={picked ?? stored}
-              />
+              {picked ? (
+                <AvatarEditor ref={editorRef} width={AVATAR_SIZE} height={AVATAR_SIZE} border={0} image={picked} />
+              ) : (
+                <UserAvatar user={user} size={AVATAR_SIZE} />
+              )}
             </div>
           )}
         </Dropzone>
@@ -87,7 +84,7 @@ export function ProfileAvatar({ userId, firstName, avatarUrl }: Props) {
         <Group gap="xs">
           <Menu position="bottom-start" shadow="md">
             <Menu.Target>
-              <Button size="xs" variant="default" aria-label={t("settings.changeavatar")}>
+              <Button size="sm" variant="light" aria-label={t("settings.changeavatar")}>
                 {t("settings.change")}
               </Button>
             </Menu.Target>
@@ -102,11 +99,11 @@ export function ProfileAvatar({ userId, firstName, avatarUrl }: Props) {
           </Menu>
           {unsaved && (
             <>
-              <Button size="xs" loading={updateAvatar.isPending} onClick={() => void save()}>
+              <Button size="sm" variant="light" loading={updateAvatar.isPending} onClick={() => void save()}>
                 {t("settings.upload")}
               </Button>
               <Button
-                size="xs"
+                size="sm"
                 variant="subtle"
                 color="gray"
                 onClick={() => {

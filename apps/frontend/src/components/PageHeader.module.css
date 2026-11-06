@@ -29,17 +29,22 @@
   min-width: 0;
 }
 
-.title {
+.title.title {
   overflow-wrap: anywhere;
-  line-height: 1.25;
+  /* Every top-level page: 28px/700 on a 34px line (two classes: they win over Title's own size) */
+  font-size: calc(1.75rem * var(--mantine-scale));
+  font-weight: 700;
+  line-height: calc(2.125rem * var(--mantine-scale));
+  letter-spacing: -0.01em;
 }
 
-/* A collection's own title: larger, so an album or event has an identity of its own (two classes:
-   it wins over Title's own font size). */
+/* A collection's own title (album, event, place, thing, person): 34px/750, so it reads as a place
+   of its own rather than a filtered timeline, as Apple's large titles and Immich's album title. */
 .title.collectionTitle {
-  font-size: calc(2rem * var(--mantine-scale));
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: calc(2.125rem * var(--mantine-scale));
+  font-weight: 750;
+  line-height: calc(2.5rem * var(--mantine-scale));
+  letter-spacing: -0.015em;
 }
 
 .subtitle.collectionSubtitle {
@@ -71,8 +76,14 @@
 /* A phone keeps the title row: a long title wraps within its own column, beside at most two icons
    and the ⋯. */
 @media (max-width: 48em) {
+  .title.title {
+    font-size: calc(1.5rem * var(--mantine-scale));
+    line-height: calc(1.875rem * var(--mantine-scale));
+  }
+
   .title.collectionTitle {
-    font-size: calc(1.625rem * var(--mantine-scale));
+    font-size: calc(1.75rem * var(--mantine-scale));
+    line-height: calc(2.125rem * var(--mantine-scale));
   }
 
   .root {

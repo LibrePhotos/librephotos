@@ -23,8 +23,9 @@ type Props = Readonly<{
   // Under the title row, in the text's column: what the page adds to its header (an event's
   // description, the timeline filter's summary). The actions stay centred on the title row.
   below?: ReactNode;
-  // "collection" for an album, event, place or thing: a larger title (32px/700), so a collection
-  // reads as a place of its own rather than a filtered timeline (Immich, Apple).
+  // "collection" for an album, event, place, thing or person: a larger title (34px/750, a page's is
+  // 28px/700), so a collection reads as a place of its own rather than a filtered timeline (Immich,
+  // Apple).
   size?: "page" | "collection";
 }>;
 

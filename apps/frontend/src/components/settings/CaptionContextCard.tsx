@@ -1,6 +1,7 @@
-import { Card, Stack, Switch, Title } from "@mantine/core";
+import { Stack, Switch, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
@@ -34,7 +35,7 @@ export function CaptionContextCard({ user, onChange }: UserSettingsCardProps) {
     onChange({ llm_settings: withLlmSwitch(user.llm_settings, key, value) });
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Stack>
         <Title order={4}>
           <Trans i18nKey="settings.captioncontext" />
@@ -58,6 +59,6 @@ export function CaptionContextCard({ user, onChange }: UserSettingsCardProps) {
           onChange={event => setSwitch("add_location", event.currentTarget.checked)}
         />
       </Stack>
-    </Card>
+    </SettingsCard>
   );
 }

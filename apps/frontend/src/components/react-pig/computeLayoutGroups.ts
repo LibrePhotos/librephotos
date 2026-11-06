@@ -18,18 +18,20 @@ const INLINE_GROUP_MIN_WIDTH = 170;
 
 type Settings = ComputeLayoutGroupsParams<ImageItem>["settings"];
 
+// The header's line plus about 10px down to its photos: a day header belongs to the photos under
+// it (Google Photos, Immich), with the larger space above it, between days (groupGapFor).
 function groupTitleHeightFor(settings: Settings, wrapperWidth: number): number {
   const narrow = wrapperWidth < settings.breakpoint;
-  if (settings.headerSize === "small") return narrow ? 25 : 30; // Small headers are more compact
-  if (settings.headerSize === "normal") return narrow ? 35 : 40; // Normal headers are medium
-  return narrow ? 45 : 50; // Large headers are full size
+  if (settings.headerSize === "small") return narrow ? 28 : 30;
+  if (settings.headerSize === "normal") return narrow ? 30 : 34;
+  return narrow ? 38 : 44;
 }
 
 function groupGapFor(settings: Settings, wrapperWidth: number): number {
-  // More compact spacing with smaller headers
-  if (settings.headerSize === "small") return 5;
-  if (settings.headerSize === "normal") return 20;
-  return wrapperWidth < settings.breakpoint ? settings.groupGapSm : settings.groupGapLg;
+  const narrow = wrapperWidth < settings.breakpoint;
+  if (settings.headerSize === "small") return narrow ? 14 : 18;
+  if (settings.headerSize === "normal") return narrow ? 22 : 28;
+  return narrow ? settings.groupGapSm : settings.groupGapLg;
 }
 
 /** Justified rows of a whole-width group whose first row starts at `top`; returns the rows' height. */

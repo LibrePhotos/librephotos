@@ -1,5 +1,5 @@
 import type { GalleryPreview } from "@librephotos/api-client";
-import { Anchor, Card, SegmentedControl, Stack, Switch, Text, Title } from "@mantine/core";
+import { Anchor, SegmentedControl, Stack, Switch, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
@@ -9,6 +9,7 @@ import { useGalleryPreviewQuery } from "../../api_client/gallery/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { sharerName } from "../sharing/sharerGroups";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import { useSaveSiteSettings } from "./useSaveSiteSettings";
 
@@ -75,7 +76,7 @@ export function PublicGallerySetting() {
     pending === "everyone" ? "sitesettings.publicGalleryToEveryone" : "sitesettings.publicGalleryToMembers";
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Stack gap="sm">
         <Title order={4}>
           {t("sitesettings.publicGallery")}
@@ -118,6 +119,6 @@ export function PublicGallerySetting() {
           confirmColor="blue"
         />
       </Stack>
-    </Card>
+    </SettingsCard>
   );
 }

@@ -1,10 +1,11 @@
 import { PublicSharingDefaults } from "@librephotos/api-client";
-import { Anchor, Badge, Card, Group, Stack, Switch, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Group, Stack, Switch, Text, Title } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
@@ -52,7 +53,7 @@ export function PublicGalleryCard({ user, onChange }: UserSettingsCardProps) {
   const defaults = user.public_sharing_defaults ?? PublicSharingDefaults.parse({});
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Stack>
         <Title order={4}>
           {t("settings.galleryTitle")}
@@ -90,6 +91,6 @@ export function PublicGalleryCard({ user, onChange }: UserSettingsCardProps) {
           )}
         </Stack>
       </Stack>
-    </Card>
+    </SettingsCard>
   );
 }

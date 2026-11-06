@@ -8,3 +8,13 @@
   font-size: var(--mantine-font-size-xs);
   font-weight: 500;
 }
+
+/* A state that needs nothing: 13px dimmed text, a check before "Completed". */
+.quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--mantine-color-dimmed);
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  white-space: nowrap;
+}

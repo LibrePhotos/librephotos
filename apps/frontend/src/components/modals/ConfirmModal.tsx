@@ -20,7 +20,7 @@ type Props = Readonly<{
   cancelLabel?: string;
   /** The confirm button's colour: red for a destructive action, the theme's for a long one (#524). */
   confirmColor?: MantineColor;
-  /** Adds the red "This action cannot be undone." line. */
+  /** Adds the dimmed "This action cannot be undone." line (the red button already warns). */
   irreversible?: boolean;
   /**
    * The action is running: both buttons, Escape and the overlay are locked, and the
@@ -69,7 +69,7 @@ export function ConfirmModal({
       <Stack gap="sm">
         <Text size="sm">{message}</Text>
         {irreversible && (
-          <Text size="sm" c="red">
+          <Text size="sm" c="dimmed">
             {t("confirmdialog.cannotbeundone")}
           </Text>
         )}

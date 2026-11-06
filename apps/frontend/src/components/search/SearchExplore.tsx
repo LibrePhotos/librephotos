@@ -1,5 +1,5 @@
 import type { SearchFilters } from "@librephotos/api-client";
-import { Avatar, Skeleton, Stack, Text } from "@mantine/core";
+import { Skeleton, Stack } from "@mantine/core";
 import { IconMap2, IconSearch, IconTag } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React, { useMemo } from "react";
@@ -10,6 +10,7 @@ import {
   useFetchThingsAlbumsQuery,
 } from "../../api_client/albums/hooks";
 import { AlbumSectionHeading } from "../album/AlbumSection";
+import { HubPeopleRow } from "../album/HubPeopleRow";
 import { CollectionCard } from "../common/CollectionCard";
 import { EmptyState } from "../common/EmptyState";
 import { ErrorState } from "../common/ErrorState";
@@ -17,7 +18,6 @@ import { useListFailure } from "../common/useListFailure";
 import { PageBody } from "../PageBody";
 import { PageHeader } from "../PageHeader";
 import { displayLabel, explorePeople, explorePlaces, exploreThings } from "./exploreLists";
-import { faceSource } from "./PeopleFilter";
 import classes from "./SearchExplore.module.css";
 import { SearchFilterButton, type FilterPanelState } from "./SearchFilterButton";
 import { useFavoriteRating } from "./useSearchFilters";
@@ -35,45 +35,13 @@ function TileSkeletons() {
   );
 }
 
+/** The people with the most photos, drawn as everywhere else: the 3:4 portrait cards of the hub. */
 function PeopleRow() {
-  const { t } = useTranslation();
   const query = useFetchPeopleAlbumsQuery();
   const failure = useListFailure(query);
   const people = useMemo(() => explorePeople(query.data ?? []), [query.data]);
   if (!query.isLoading && !failure && people.length === 0) return null;
-  return (
-    <section>
-      <AlbumSectionHeading
-        title={t("sidemenu.people")}
-        summary={t("explore.peopleCount", { count: query.data?.length ?? 0 })}
-        viewAllLink="/album/persons"
-      />
-      {failure ? (
-        <ErrorState failure={failure} compact />
-      ) : (
-        <div className={classes.people}>
-          {query.isLoading
-            ? [1, 2, 3, 4, 5, 6, 7, 8].map(i => <Skeleton key={i} circle height={64} width={64} />)
-            : people.map(person => (
-                <Link
-                  key={person.id}
-                  to="/album/persons/$id"
-                  params={{ id: person.id }}
-                  className={classes.person}
-                  title={person.name}
-                >
-                  <Avatar src={faceSource(person)} alt="" size={64} radius="xl" className={classes.face}>
-                    {person.name.charAt(0).toLocaleUpperCase()}
-                  </Avatar>
-                  <Text component="span" className={classes.personName}>
-                    {person.name}
-                  </Text>
-                </Link>
-              ))}
-        </div>
-      )}
-    </section>
-  );
+  return <HubPeopleRow people={people} isLoading={query.isLoading} error={failure} total={query.data?.length ?? 0} />;
 }
 
 function PlacesTiles() {
@@ -172,7 +140,7 @@ type Props = Readonly<{
 
 /**
  * /search with no words and no filters: an Explore page, as Google Photos and Immich have one. A row
- * of the people with the most photos, then the top places and things as tiles, each with View all.
+ * of the people with the most photos (portrait cards), then the top places and things as tiles, each with View all.
  * Filter (the header's button) still lists photos by camera, date, rating and the rest.
  */
 export function SearchExplore({ filters, onChange, onClear, filterPanel }: Props) {
@@ -195,9 +163,10 @@ export function SearchExplore({ filters, onChange, onClear, filterPanel }: Props
           />
         }
       />
-      <PageBody gap={0}>
+      {/* 24px from the header block to the first section (its 12px and these), 40px between sections */}
+      <PageBody gap={0} pt={12}>
         {hasAnything ? (
-          <Stack gap={28}>
+          <Stack gap={40}>
             <PeopleRow />
             <PlacesTiles />
             <ThingsTiles />

@@ -1,5 +1,5 @@
 import type { PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
-import { Avatar, Skeleton, Text } from "@mantine/core";
+import { Skeleton, Text } from "@mantine/core";
 import { IconDownload, IconUpload, IconWorld } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React from "react";
@@ -9,7 +9,7 @@ import { useFetchSharedAlbumsByMeQuery, useFetchSharedAlbumsWithMeQuery } from "
 import { useFetchSharedPhotosByMeQuery, useFetchSharedPhotosWithMeQuery } from "../../api_client/photos/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import classes from "../album/AlbumSection.module.css";
-import { avatarSrc } from "./avatarSrc";
+import { UserAvatar, userDisplayName } from "../common/UserAvatar";
 import overviewClasses from "./SharingOverview.module.css";
 import { AlbumPreviewCard, SharedPhotoCard } from "./SharingPreviewCards";
 import { itemSummary, SharingPreviewSection } from "./SharingPreviewSection";
@@ -39,7 +39,7 @@ export function PublicUsersSection() {
   const publicUsers = (users ?? []).filter(user => user.public_sharing);
   return (
     <SharingPreviewSection
-      icon={<IconWorld size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
+      icon={<IconWorld size={24} stroke={1.5} />}
       title={t("sidemenu.publicphotos")}
       summary={t("sharing.userCount", { count: publicUsers.length })}
       renderLink={props => <Link to="/sharing/public" {...props} />}
@@ -49,14 +49,11 @@ export function PublicUsersSection() {
     >
       <div className={classes.avatarGrid}>
         {publicUsers.slice(0, PUBLIC_USERS_SHOWN).map(user => {
-          const displayName =
-            user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username;
+          const displayName = userDisplayName(user);
           return (
             <Link key={user.id} to="/public/$users" params={{ users: user.username }} className={classes.avatarItem}>
               <div className={classes.avatar}>
-                <Avatar size={52} radius="xl" src={avatarSrc(user)}>
-                  {displayName.charAt(0).toUpperCase()}
-                </Avatar>
+                <UserAvatar user={user} size={52} />
               </div>
               <Text className={classes.avatarName} title={displayName}>
                 {displayName}
@@ -128,7 +125,7 @@ export function SharedWithYouSection() {
   });
   return (
     <SharingPreviewSection
-      icon={<IconDownload size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
+      icon={<IconDownload size={24} stroke={1.5} />}
       title={t("sidemenu.sharedwithyou")}
       summary={itemSummary(t, items.photoCount, items.albumCount)}
       renderLink={props => <Link to="/sharing/withme/$tab" params={{ tab: "photos" }} {...props} />}
@@ -156,7 +153,7 @@ export function YouSharedSection() {
   });
   return (
     <SharingPreviewSection
-      icon={<IconUpload size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
+      icon={<IconUpload size={24} stroke={1.5} />}
       title={t("sidemenu.youshared")}
       summary={itemSummary(t, items.photoCount, items.albumCount)}
       renderLink={props => <Link to="/sharing/byme/$tab" params={{ tab: "photos" }} {...props} />}

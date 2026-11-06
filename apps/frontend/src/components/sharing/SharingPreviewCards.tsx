@@ -1,6 +1,6 @@
 import type { PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
-import { Group, Skeleton, Text, Title } from "@mantine/core";
-import { IconChevronRight, IconPhoto } from "@tabler/icons-react";
+import { Skeleton } from "@mantine/core";
+import { IconPhoto } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React from "react";
@@ -11,36 +11,8 @@ import { ROW_CARD_SIZE } from "../album/AlbumSection";
 import classes from "../album/AlbumSection.module.css";
 import { CollectionCard, collectionCardImageClass } from "../common/CollectionCard";
 import { Tile } from "../Tile";
-import overviewClasses from "./SharingOverview.module.css";
 
 /** The building blocks of the Sharing overview's preview rows (routes/_protected/sharing/index.tsx). */
-
-type HeadingProps = Readonly<{ icon: ReactNode; title: string; summary: string }>;
-
-/** A section's icon, title and "N photos, M albums · View all", inside the link to its page. */
-export function SharingSectionHeading({ icon, title, summary }: HeadingProps) {
-  const { t } = useTranslation();
-  return (
-    <>
-      {icon}
-      <div>
-        <Title order={4}>{title}</Title>
-        <Group gap={6}>
-          <Text size="sm" c="dimmed">
-            {summary}
-          </Text>
-          <Text size="sm" c="dimmed">
-            ·
-          </Text>
-          <Text size="sm" className={overviewClasses.viewAll}>
-            {t("explore.viewAll")}
-          </Text>
-          <IconChevronRight size={14} className={overviewClasses.viewAll} />
-        </Group>
-      </div>
-    </>
-  );
-}
 
 /** A row of card placeholders while a section loads. */
 export function SharePreviewSkeleton() {

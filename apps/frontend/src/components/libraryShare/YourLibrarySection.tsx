@@ -1,11 +1,13 @@
 import type { LibraryShare } from "@librephotos/api-client";
-import { Avatar, Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Button, Group, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLibraryPhoto } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
+import { UserAvatar } from "../common/UserAvatar";
+import { SharingRow } from "../sharing/SharingRow";
 import { LibraryRecipientModal } from "./LibraryRecipientModal";
 import { LibraryShareChips } from "./LibraryShareChips";
 import { firstName, personName, shareDate, switchesOf } from "./libraryShareFields";
@@ -19,7 +21,7 @@ function RecipientRow({ share, onOpen }: Readonly<{ share: LibraryShare; onOpen:
   return (
     <Group justify="space-between" wrap="wrap" gap="xs">
       <Group gap="sm" wrap="nowrap" miw={0}>
-        <Avatar radius="xl" name={name} color="initials" />
+        <UserAvatar user={share.recipient} />
         <Stack gap={2} miw={0}>
           <Text fw={500} size="sm">
             {name}
@@ -51,37 +53,40 @@ export function YourLibrarySection() {
   const [openShareId, setOpenShareId] = useState<number | null>(null);
   const openShare = given.find(share => share.id === openShareId);
 
+  const hasBody = Boolean(failure) || given.length > 0;
   return (
-    <Paper withBorder radius="md" p="md">
-      <Stack gap="sm">
-        <Group justify="space-between" wrap="wrap" gap="xs">
-          <Group gap="sm" wrap="nowrap">
-            <IconLibraryPhoto size={24} stroke={1.5} color="var(--mantine-color-dimmed)" aria-hidden />
-            <div>
-              <Title order={4}>{t("librarySharing.yourLibrary")}</Title>
-              <Text size="sm" c="dimmed">
-                {given.length > 0
-                  ? t("librarySharing.yourLibrarySummary", { count: given.length })
-                  : t("librarySharing.yourLibraryIntro")}
-              </Text>
-            </div>
-          </Group>
+    <>
+      <SharingRow
+        icon={<IconLibraryPhoto size={24} stroke={1.5} />}
+        title={t("librarySharing.yourLibrary")}
+        description={
+          given.length > 0
+            ? t("librarySharing.yourLibrarySummary", { count: given.length })
+            : t("librarySharing.yourLibraryIntro")
+        }
+        // The page's create action: tonal
+        action={
           <Button size="sm" variant="light" onClick={shareDialog.open}>
             {t("librarySharing.shareMyLibrary")}
           </Button>
-        </Group>
-        {failure && <ErrorState failure={failure} compact />}
-        {given.map(share => (
-          <RecipientRow key={share.id} share={share} onOpen={() => setOpenShareId(share.id)} />
-        ))}
-        {given.length > 0 && (
-          <Text size="xs" c="dimmed">
-            {t("librarySharing.footnote")}
-          </Text>
-        )}
-      </Stack>
+        }
+      >
+        {hasBody ? (
+          <Stack gap="sm">
+            {failure && <ErrorState failure={failure} compact />}
+            {given.map(share => (
+              <RecipientRow key={share.id} share={share} onOpen={() => setOpenShareId(share.id)} />
+            ))}
+            {given.length > 0 && (
+              <Text size="xs" c="dimmed">
+                {t("librarySharing.footnote")}
+              </Text>
+            )}
+          </Stack>
+        ) : null}
+      </SharingRow>
       <ShareLibraryModal opened={shareOpened} onClose={shareDialog.close} given={given} />
       {openShare && <LibraryRecipientModal opened onClose={() => setOpenShareId(null)} share={openShare} />}
-    </Paper>
+    </>
   );
 }

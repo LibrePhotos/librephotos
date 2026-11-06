@@ -48,7 +48,7 @@ function NavRow({ link, active, icon, label, onNavigate }: NavRowProps) {
 }
 
 /** The user's own albums and those shared with them, newest change first (AlbumUser.created_on is auto_now). */
-function useRecentAlbums(): UserAlbumInfo[] {
+export function useRecentAlbums(): UserAlbumInfo[] {
   const { data: own } = useFetchUserAlbumsQuery();
   const { data: sharedGroups } = useFetchSharedAlbumsWithMeQuery();
   const shared = (sharedGroups ?? []).flatMap(group => group.albums);
@@ -70,17 +70,30 @@ type Props = Readonly<{
   activePinned: string | null;
   isPinned: (id: PinnableDestination["id"]) => boolean;
   onTogglePin: (id: PinnableDestination["id"]) => void;
+  /** useRecentAlbums(), read by the sidebar too to mark only the deepest row. */
+  recentAlbums: UserAlbumInfo[];
 }>;
 
 /**
  * Below the sidebar's sections: the pages the user pinned, their recent albums (as Apple Photos
  * lists albums with small covers), and the menu that picks what is pinned.
  */
-export function SidebarExtras({ pathname, pinned, activePinned, isPinned, onTogglePin }: Props) {
+/** Whether the sidebar lists the recent albums (the customize menu's switch), kept in this browser. */
+export function useShowRecentAlbums() {
+  return useStoredState(STORAGE_KEYS.sidebarRecentAlbums, z.boolean(), true);
+}
+
+export function SidebarExtras({
+  pathname,
+  pinned,
+  activePinned,
+  isPinned,
+  onTogglePin,
+  recentAlbums: allRecentAlbums,
+}: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const allRecentAlbums = useRecentAlbums();
-  const [showRecent, setShowRecent] = useStoredState(STORAGE_KEYS.sidebarRecentAlbums, z.boolean(), true);
+  const [showRecent, setShowRecent] = useShowRecentAlbums();
   const recentAlbums = showRecent ? allRecentAlbums : [];
   const go = (link: string) => void navigate({ to: link });
 

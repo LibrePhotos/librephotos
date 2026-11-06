@@ -1,6 +1,5 @@
 import { Button, Divider, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconLock as Lock, IconUser as User } from "@tabler/icons-react";
 import { Navigate } from "@tanstack/react-router";
 import React from "react";
 import type { FormEvent } from "react";
@@ -61,16 +60,14 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
                     browser is left guessing at a form the SPA mounted after load. */}
           <TextInput
             required
-            leftSection={<User />}
-            placeholder={t("login.usernameplaceholder")}
+            label={t("login.usernameplaceholder")}
             name="username"
             autoComplete="username"
             {...form.getInputProps("username")}
           />
           <PasswordInput
             required
-            leftSection={<Lock />}
-            placeholder={t("login.passwordplaceholder")}
+            label={t("login.passwordplaceholder")}
             name="password"
             autoComplete="current-password"
             {...form.getInputProps("password")}

@@ -109,7 +109,7 @@ export function PublicLinksSection() {
   return (
     <>
       <SharingPreviewSection
-        icon={<IconLink size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
+        icon={<IconLink size={24} stroke={1.5} />}
         title={t("sharing.publicLinks")}
         summary={itemSummary(t, photoCount, publicAlbums.length)}
         renderLink={props => <Link to="/sharing/links" {...props} />}

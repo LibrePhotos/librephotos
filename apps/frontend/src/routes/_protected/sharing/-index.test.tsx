@@ -197,15 +197,19 @@ async function render() {
   );
 }
 
-/** The section under the heading `title`. */
+/** The section (SharingRow) under the heading `title`. */
 function sectionOf(title: string): HTMLElement {
-  const heading = Array.from(document.body.querySelectorAll("h4")).find(h => h.textContent === title);
-  return defined(defined(heading, `the ${title} heading`).closest("a")?.parentElement?.parentElement);
+  const heading = Array.from(document.body.querySelectorAll("h2")).find(h => h.textContent === title);
+  return defined(defined(heading, `the ${title} heading`).closest("section"));
 }
 
-/** The cards of a section, in order: every link in it but the heading's. */
+/** The section's "View all" link to its page, if it has one. */
+const viewAllOf = (title: string) =>
+  Array.from(sectionOf(title).querySelectorAll("a")).find(link => link.textContent === "View all");
+
+/** The cards of a section, in order: every link in it but its "View all". */
 function cardsOf(title: string): HTMLAnchorElement[] {
-  return Array.from(sectionOf(title).querySelectorAll("a")).filter(link => !link.querySelector("h4"));
+  return Array.from(sectionOf(title).querySelectorAll("a")).filter(link => link.textContent !== "View all");
 }
 
 const publicLinkCards = () => cardsOf("Public links");
@@ -314,10 +318,9 @@ describe("the Sharing overview's other sections", () => {
     expect(text).toContain("No one has shared anything with you yet");
     expect(text).toContain("You haven't made anything public via link yet");
     expect(text).toContain("No users with public photos");
-    // An empty section is one row: no heading link with a "View all" into an empty page
-    const headingLinks = Array.from(document.body.querySelectorAll("a h4"), heading => heading.textContent);
-    expect(headingLinks).not.toContain("Public photos");
-    expect(headingLinks).not.toContain("Shared with you");
+    // An empty section is one row: no "View all" into an empty page
+    expect(viewAllOf("Public photos")).toBeUndefined();
+    expect(viewAllOf("Shared with you")).toBeUndefined();
   });
 
   it("shows placeholders, not empty notes, while loading", async () => {
@@ -332,6 +335,7 @@ describe("the Sharing overview's other sections", () => {
     stubs.users = [user(2, "mara", true, "Mara", "Lopes"), user(3, "tom", true), user(4, "hidden", false)];
     await render();
 
-    expect(cardsOf("Public photos").map(card => card.textContent)).toEqual(["Mara Lopes", "tom"]);
+    // The name under each face (a user without a picture shows their initials in it)
+    expect(cardsOf("Public photos").map(card => card.querySelector("p")?.textContent)).toEqual(["Mara Lopes", "tom"]);
   });
 });

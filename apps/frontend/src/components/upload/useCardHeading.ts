@@ -44,14 +44,17 @@ export function cardStage(isUploading: boolean, isCancelling: boolean, phase: Pr
 
 type Heading = { title: string; detail: string };
 
-/** "· 2 duplicates · 1 error · 3 cancelled", for what the upload itself left. */
-const problems = (summary: Summary, t: TFunction): string =>
+/** "2 duplicates", "1 error", "3 cancelled": what the upload itself left. */
+const problemList = (summary: Summary, t: TFunction): string[] =>
   [
     summary.duplicates > 0 && t("upload.duplicates", { count: summary.duplicates }),
     summary.errors > 0 && t("upload.errors", { count: summary.errors }),
     summary.cancelled > 0 && t("upload.cancelled_count", { count: summary.cancelled }),
-  ]
-    .filter(Boolean)
+  ].filter((text): text is string => typeof text === "string");
+
+/** "· 2 duplicates · 1 error · 3 cancelled", after a count. */
+const problems = (summary: Summary, t: TFunction): string =>
+  problemList(summary, t)
     .map(text => ` · ${text}`)
     .join("");
 
@@ -79,9 +82,19 @@ function processingHeading(stage: ProcessingPhase, summary: Summary, processing:
 /** The card's title and the counts under it, for each stage of the upload and its import (#2739). */
 export function useCardHeading(stage: CardStage, summary: Summary, processing: UploadProcessing): Heading {
   const { t } = useTranslation();
-  if (stage === "cancelling" || stage === "uploading") {
+  if (stage === "uploading") {
+    // "Uploading 2 of 4": the file on its way, then only what went wrong so far under it
     return {
-      title: stage === "cancelling" ? t("upload.cancelling") : t("upload.uploading"),
+      title: t("upload.uploading_count", {
+        current: Math.min(summary.finished + 1, summary.total),
+        total: summary.total,
+      }),
+      detail: problemList(summary, t).join(" · "),
+    };
+  }
+  if (stage === "cancelling") {
+    return {
+      title: t("upload.cancelling"),
       detail: t("upload.processed", { finished: summary.finished, total: summary.total }) + problems(summary, t),
     };
   }

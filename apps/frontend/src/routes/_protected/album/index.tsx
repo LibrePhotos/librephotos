@@ -117,9 +117,10 @@ function AlbumExplore() {
   return (
     <>
       <PageHeader title={t("explore.title")} />
-      <PageBody gap={0}>
-        {/* One left edge for every section, 32px between them */}
-        <Stack gap={32}>
+      {/* 24px from the header block to the first section (its 12px and these), 40px between sections */}
+      <PageBody gap={0} pt={12}>
+        {/* One left edge for every section */}
+        <Stack gap={40}>
           {/* My Albums - using UserAlbumCard component */}
           <div className={classes.section}>
             <AlbumSectionHeading

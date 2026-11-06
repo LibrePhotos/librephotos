@@ -1,5 +1,5 @@
 import type { ListUser } from "@librephotos/api-client";
-import { ActionIcon, Button, Card, Flex, Group, Loader, Table, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Flex, Group, Loader, Table, Text, Title, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconEdit as Edit, IconPlus as Plus, IconTrash as Trash } from "@tabler/icons-react";
 import React, { useState } from "react";
@@ -11,6 +11,7 @@ import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import classes from "./AdminUserTable.module.css";
 import { ScanUserButton } from "./ScanUserButton";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 
 /** The scan directory on one line, cut at the start so its last folders stay in view. */
@@ -110,7 +111,7 @@ export function AdminUserTable() {
   };
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <SettingsCard>
       <Group gap="xs" mb={16}>
         <Title order={4}>
           {t("adminarea.users")}
@@ -165,6 +166,6 @@ export function AdminUserTable() {
         createNew={createNewUser}
       />
       <ModalUserDelete onRequestClose={closeDeleteModal} isOpen={deleteModalOpen} userToDelete={userToDelete} />
-    </Card>
+    </SettingsCard>
   );
 }

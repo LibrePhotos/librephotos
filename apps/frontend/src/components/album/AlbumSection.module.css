@@ -12,10 +12,11 @@
   margin-bottom: 12px;
 }
 
-/* SectionHeader: 15px/700 title, a 13px dimmed meta line with the accent "View all" */
+/* SectionHeader: 17px/600 title, a 13px dimmed meta line with the accent "View all" (a page title is
+   28px, so the step down is clear) */
 .headingTitle.headingTitle {
-  font-size: calc(0.9375rem * var(--mantine-scale));
-  font-weight: 700;
+  font-size: calc(1.0625rem * var(--mantine-scale));
+  font-weight: 600;
   line-height: 1.3;
 }
 

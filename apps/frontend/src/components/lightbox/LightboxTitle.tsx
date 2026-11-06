@@ -21,24 +21,18 @@ type Props = Readonly<{
 /**
  * The centred title of the lightbox toolbar, as Apple Photos has it: the day the photo was taken,
  * and under it, dimmed, where and which of how many ("Baixa, Lisbon · 12 of 198"), so stepping
- * through a long list does not lose the reader. Nothing when none of it is known.
+ * through a long list does not lose the reader; a phone has the same two lines, left-aligned. Nothing
+ * when none of it is known.
  */
 export function LightboxTitle({ timestamp, place, position }: Props) {
   const { t } = useTranslation();
   const locale = useFormatLocale();
-  // A phone has room for one line: "Oct 17, 2026". The place is in the info sheet.
+  // A phone has the short date ("Oct 17, 2026"), left-aligned beside back, over the same dimmed line.
   const compact = useCompactViewer();
   const taken = timestamp ? parsePhotoTimestamp(timestamp) : null;
   const date = taken?.isValid
     ? taken.toLocaleString(compact ? DateTime.DATE_MED : DateTime.DATE_MED_WITH_WEEKDAY)
     : null;
-  if (compact) {
-    return date ? (
-      <div className={classes.title}>
-        <div className={classes.titleDate}>{date}</div>
-      </div>
-    ) : null;
-  }
   // "Baixa, Lisbon, Portugal" as "Baixa, Lisbon": the neighbourhood and town say enough up here.
   const where = place ? shortPlace(place) || null : null;
   const which =

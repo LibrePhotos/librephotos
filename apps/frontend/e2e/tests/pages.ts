@@ -9,8 +9,8 @@ export class LoginPage {
   readonly submit: Locator;
 
   constructor(readonly page: Page) {
-    this.username = page.getByPlaceholder("Username");
-    this.password = page.getByPlaceholder("Password");
+    this.username = page.getByLabel("Username", { exact: true });
+    this.password = page.getByLabel("Password", { exact: true });
     this.submit = page.getByRole("button", { name: "Sign in", exact: true });
   }
 
