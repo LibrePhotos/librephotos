@@ -103,7 +103,7 @@ jobs:
             --user "$(id -u):$(id -g)" -e HOME=/tmp \
             -e CI=true -e E2E_BASE_URL=http://localhost:8080 -e SHOTS \
             -v "$GITHUB_WORKSPACE:/repo" -w /repo/apps/frontend/e2e \
-            mcr.microsoft.com/playwright:v1.64.1-noble \
+            mcr.microsoft.com/playwright:v1.65.0-noble \
             node node_modules/@playwright/test/cli.js test -c playwright.screens.config.ts --project screens
 
       # Every run, also when no file changed or a shot failed: the images to look at.
