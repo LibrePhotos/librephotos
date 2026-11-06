@@ -51,7 +51,9 @@ const theme = createTheme({
   primaryShade: { light: 6, dark: 2 },
   autoContrast: true,
   variantColorResolver: appVariantColorResolver,
-  colors: { dark: DARK_SCALE, brand: BRAND_SCALE },
+  // `blue` is the accent too: components that name blue (35 of them) then match the primary in both
+  // schemes instead of bringing a second blue.
+  colors: { dark: DARK_SCALE, brand: BRAND_SCALE, blue: BRAND_SCALE },
   defaultRadius: "md",
   headings: {
     fontWeight: "700",

@@ -9,6 +9,7 @@ import { useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useFetchPhotoSharesQuery } from "../../../api_client/photos/hooks";
 import { ListEmptyState } from "../../../components/common/ListEmptyState";
 import { PageLoader } from "../../../components/common/PageLoader";
+import { PageTabs } from "../../../components/common/PageTabs";
 import { useListFailure } from "../../../components/common/useListFailure";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
@@ -75,19 +76,20 @@ function PublicLinksPage() {
     <>
       <PageHeader title={t("sharing.publicLinks")} subtitle={t("sharing.publicLinksDescription")} />
       <PageBody gap={0}>
-        <Tabs
+        <PageTabs
           value={activeTab}
-          onChange={value => navigate({ search: { tab: value === "photos" ? "photos" : undefined }, replace: true })}
+          onChange={value =>
+            void navigate({ search: { tab: value === "photos" ? "photos" : undefined }, replace: true })
+          }
+          tabs={[
+            { value: "albums", label: t("sidemenu.albums"), count: isLoadingAlbums ? undefined : publicAlbums.length },
+            {
+              value: "photos",
+              label: t("photos.photos"),
+              count: isLoadingPhotos || isLoadingShares ? undefined : totalPhotos + photoShares.length,
+            },
+          ]}
         >
-          <Tabs.List>
-            <Tabs.Tab value="albums">
-              {t("sidemenu.albums")} ({publicAlbums.length})
-            </Tabs.Tab>
-            <Tabs.Tab value="photos">
-              {t("photos.photos")} ({totalPhotos + photoShares.length})
-            </Tabs.Tab>
-          </Tabs.List>
-
           <Tabs.Panel value="albums">
             {isLoadingAlbums ? (
               <PageLoader label={t("loading")} />
@@ -131,7 +133,7 @@ function PublicLinksPage() {
               )}
             </Stack>
           </Tabs.Panel>
-        </Tabs>
+        </PageTabs>
 
         <ModalAlbumShare
           isOpen={isShareDialogOpen}

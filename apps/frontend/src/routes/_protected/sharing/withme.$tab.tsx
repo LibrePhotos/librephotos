@@ -5,6 +5,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsWithMeQuery } from "../../../api_client/albums/hooks";
 import { useFetchSharedPhotosWithMeQuery } from "../../../api_client/photos/hooks";
+import { PageTabs } from "../../../components/common/PageTabs";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { validatePhotoSearch } from "../../../components/photolist/photoSearch";
@@ -12,7 +13,6 @@ import { AlbumsSharedWithMe } from "../../../components/sharing/AlbumsSharedWith
 import { PeopleSharedWithMe } from "../../../components/sharing/PeopleSharedWithMe";
 import { PhotosSharedWithMe } from "../../../components/sharing/PhotosSharedWithMe";
 import { SharedGroupsWithMe } from "../../../components/sharing/SharedGroupsWithMe";
-import classes from "../../../components/sharing/SharedWithMe.module.css";
 
 export const Route = createFileRoute("/_protected/sharing/withme/$tab")({
   component: SharedWithMe,
@@ -74,15 +74,17 @@ function SharedWithMe() {
       <PageBody gap={0}>
         {/* Controlled by the route: with defaultValue, Back changed the title
             but left the other tab showing. */}
-        <Tabs value={tab} onChange={value => value && navigate({ to: `/sharing/withme/${value}/` })}>
-          <Tabs.List className={classes.tabList}>
-            <Tabs.Tab value="photos">{t("sidemenu.photos")}</Tabs.Tab>
-            <Tabs.Tab value="albums">{t("sidemenu.albums")}</Tabs.Tab>
-            <Tabs.Tab value="places">{t("sidemenu.places")}</Tabs.Tab>
-            <Tabs.Tab value="things">{t("sidemenu.things")}</Tabs.Tab>
-            <Tabs.Tab value="people">{t("sidemenu.people")}</Tabs.Tab>
-          </Tabs.List>
-
+        <PageTabs
+          value={tab}
+          onChange={value => void navigate({ to: `/sharing/withme/${value}/` })}
+          tabs={[
+            { value: "photos", label: t("sidemenu.photos") },
+            { value: "albums", label: t("sidemenu.albums") },
+            { value: "places", label: t("sidemenu.places") },
+            { value: "things", label: t("sidemenu.things") },
+            { value: "people", label: t("sidemenu.people") },
+          ]}
+        >
           <Tabs.Panel value="photos" pt="md">
             <PhotosSharedWithMe />
           </Tabs.Panel>
@@ -102,7 +104,7 @@ function SharedWithMe() {
           <Tabs.Panel value="people" pt="md">
             <PeopleSharedWithMe />
           </Tabs.Panel>
-        </Tabs>
+        </PageTabs>
       </PageBody>
     </>
   );

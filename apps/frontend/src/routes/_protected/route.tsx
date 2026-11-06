@@ -60,7 +60,9 @@ function AppShellProtected() {
                   <SideMenuNarrow />
                 </AppShell.Navbar>
                 <AppShell.Main>
-                  <Outlet />
+                  <div className={shellClasses.content}>
+                    <Outlet />
+                  </div>
                 </AppShell.Main>
                 {/* The footer is the phone navigation. A 0px footer on desktop still
               drew a 1px border and left its links in the tab order. */}

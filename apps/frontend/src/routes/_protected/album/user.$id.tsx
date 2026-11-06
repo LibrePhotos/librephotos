@@ -1,17 +1,17 @@
 import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
 import { IconBookmark as Bookmark, IconCloudUpload } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumQuery } from "../../../api_client/albums/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { AlbumMembers } from "../../../components/album/AlbumMembers";
 import { albumNotFoundState } from "../../../components/album/albumNotFound";
-import { CollectionMeta } from "../../../components/album/CollectionMeta";
+import { EditableAlbumTitle } from "../../../components/album/EditableAlbumTitle";
 import { emptyAlbumState } from "../../../components/album/emptyAlbumState";
 import { LockedAlbumBadge } from "../../../components/album/LockedAlbumBadge";
 import { SharedAlbumHeaderMenu } from "../../../components/album/SharedAlbumHeaderMenu";
 import { UserAlbumHeaderMenu } from "../../../components/album/UserAlbumHeaderMenu";
+import { UserAlbumIdentity } from "../../../components/album/UserAlbumIdentity";
 import { DEFAULT_MEDIA_TYPE, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView, type EmptyStateConfig } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
@@ -57,20 +57,23 @@ function AlbumUserGallery() {
     headerMenu = <UserAlbumHeaderMenu album={album} upload={upload} photos={flatPhotos} />;
   else if (album && ownAlbum === false) headerMenu = <SharedAlbumHeaderMenu album={album} />;
 
-  // Under the title: the days its photos span (not `location`, one photo's full address), then its people (the owner's for a recipient, the
-  // recipients' for the owner).
-  const subHeader = album ? (
-    <CollectionMeta parts={[formatPhotoDaySpan(groupedPhotos.map(group => group.date))]}>
-      {ownAlbum === false || (ownAlbum && (album.shared_to ?? []).length > 0) ? (
-        <AlbumMembers
-          owner={album.owner}
-          sharedTo={album.shared_to ?? []}
-          own={ownAlbum}
-          contributor={album.my_role === "contributor"}
-        />
-      ) : null}
-    </CollectionMeta>
-  ) : null;
+  // Under the title: its people (the owner's for a recipient, the recipients' for the owner), then
+  // the owner's Share and Add photos. The meta line says the days its photos span (not `location`,
+  // one photo's full address) and their count.
+  const subHeader =
+    album && ownAlbum !== undefined ? <UserAlbumIdentity album={album} own={ownAlbum} upload={upload} /> : null;
+
+  // A stable object: the list is memoised
+  const albumKey = album ? `${album.id}` : "";
+  const albumTitle = album?.title ?? "";
+  const collection = useMemo(
+    () => ({
+      dateSpan: formatPhotoDaySpan(groupedPhotos.map(group => group.date)),
+      // The owner renames the album by clicking its title
+      title: albumKey && ownAlbum ? <EditableAlbumTitle albumId={albumKey} title={albumTitle} /> : undefined,
+    }),
+    [groupedPhotos, albumKey, albumTitle, ownAlbum]
+  );
 
   let emptyStateConfig: EmptyStateConfig | undefined;
   if (notFound) emptyStateConfig = albumNotFoundState(t, <Bookmark size={40} />, "/album/user");
@@ -84,6 +87,7 @@ function AlbumUserGallery() {
       <PhotoListView
         title={album ? album.title : notFound ? t("myalbums") : t("loading")}
         additionalSubHeader={subHeader}
+        collection={collection}
         loading={isLoading}
         emptyStateConfig={emptyStateConfig}
         titleBadge={ownAlbum && album?.locked ? <LockedAlbumBadge /> : undefined}
@@ -92,7 +96,6 @@ function AlbumUserGallery() {
         photoset={groupedPhotos}
         idx2hash={flatPhotos}
         isPublic={isPublic}
-        isAlbumPubliclyShared={album?.public ?? false}
         albumID={albumID}
         ownerUsername={album?.owner.username}
         albumLocked={album?.locked ?? false}

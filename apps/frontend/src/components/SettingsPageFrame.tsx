@@ -12,20 +12,20 @@ type Props = Readonly<{
 }>;
 
 /**
- * The frame of a settings-type page (Settings, Profile, Library, Admin, Jobs, a job): the header
- * and the cards keep the page gutter like every other page, the column stops at a reading width,
- * and every one of them sits in the same centred frame, with or without SectionNav's list, so
- * the title and the cards' left edge do not move from one settings page to the next.
+ * The frame of a settings-type page (Settings, Profile, Library, Admin, Jobs, a job). The header
+ * spans the page like every other page's, so the title sits at the same place everywhere and its
+ * actions on the right edge; only the cards below stop at a reading width, left-aligned on the
+ * page gutter, with SectionNav's list beside them where there is one.
  */
 export function SettingsPageFrame({ header, children, withSectionNav = false }: Props) {
   return (
-    <Box className={classes.frame}>
-      <Box className={withSectionNav ? undefined : classes.column}>
-        {header}
+    <>
+      {header}
+      <Box className={withSectionNav ? classes.wide : classes.narrow}>
         <PageBody gap="md" pb="xl">
           {children}
         </PageBody>
       </Box>
-    </Box>
+    </>
   );
 }

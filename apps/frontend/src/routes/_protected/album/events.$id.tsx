@@ -10,7 +10,7 @@ import { albumNotFoundState } from "../../../components/album/albumNotFound";
 import { eventPhotoGroups } from "../../../components/album/eventGrid";
 import { EventHeaderMenu } from "../../../components/album/EventHeaderMenu";
 import { eventLocationNames } from "../../../components/album/eventLocations";
-import { EventSubHeader } from "../../../components/album/EventSubHeader";
+import { eventMetaLine, EventSubHeader } from "../../../components/album/EventSubHeader";
 import { AlbumLocationMap } from "../../../components/AlbumLocationMap";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { validatePhotoSearch } from "../../../components/photolist/photoSearch";
@@ -53,6 +53,7 @@ function AlbumAutoGalleryView() {
   const title = eventTitle(album);
   // The grid's own items in its order: the photos are sorted by time, so the days are too
   const gridPhotos = groupedPhotos.flatMap(group => group.items);
+  const locationNames = eventLocationNames(photos);
 
   return (
     <div>
@@ -75,11 +76,12 @@ function AlbumAutoGalleryView() {
             hasGPSCoordinates={hasGPSCoordinates}
             showMap={showMap}
             onToggleMap={toggleMap}
-            locationNames={eventLocationNames(photos)}
-            daySpan={formatPhotoDaySpan(photos.map(photo => photo.exif_timestamp))}
-            title={title}
+            locationNames={locationNames}
           />
         }
+        collection={{
+          dateSpan: eventMetaLine(formatPhotoDaySpan(photos.map(photo => photo.exif_timestamp)), locationNames, title),
+        }}
         headerMenu={
           <EventHeaderMenu
             event={{ id: String(album.id), title, coverPhoto: album.cover_photo ?? null }}

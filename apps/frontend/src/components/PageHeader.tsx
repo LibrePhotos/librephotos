@@ -23,26 +23,48 @@ type Props = Readonly<{
   // Under the title row, in the text's column: what the page adds to its header (an event's
   // description, the timeline filter's summary). The actions stay centred on the title row.
   below?: ReactNode;
+  // "collection" for an album, event, place or thing: a larger title (32px/700), so a collection
+  // reads as a place of its own rather than a filtered timeline (Immich, Apple).
+  size?: "page" | "collection";
 }>;
 
 /**
  * The header of every routed page: the one h1 on the page (an h2 when nested under another one,
  * `titleOrder`), a dimmed subtitle and the page's actions. No page icon: the title is the same
- * size on every page, so switching pages does not make the header jump, and its left edge is the
+ * size on every page (a collection's is larger, `size`), so switching pages does not make the header jump, and its left edge is the
  * content's (PAGE_GUTTER).
  */
-export function PageHeader({ title, subtitle, actions, loading = false, titleOrder = 1, leading, below }: Props) {
+export function PageHeader({
+  title,
+  subtitle,
+  actions,
+  loading = false,
+  titleOrder = 1,
+  leading,
+  below,
+  size = "page",
+}: Props) {
   return (
     <Box px={PAGE_GUTTER_PX} className={clsx(classes.root, leading ? classes.withLeading : undefined)} data-page-header>
       {leading ? <div className={classes.leading}>{leading}</div> : null}
       <div className={classes.text}>
-        <Title order={titleOrder} size="h2" ta="left" className={classes.title}>
+        <Title
+          order={titleOrder}
+          size="h2"
+          ta="left"
+          className={clsx(classes.title, size === "collection" && classes.collectionTitle)}
+        >
           {title}
           {loading ? <Loader size={18} className={classes.loader} /> : null}
         </Title>
         {subtitle ? (
           // A div, not Text: callers may put block content (the photo counts) in it
-          <Text component="div" c="dimmed" size="sm" className={classes.subtitle}>
+          <Text
+            component="div"
+            c="dimmed"
+            size="sm"
+            className={clsx(classes.subtitle, size === "collection" && classes.collectionSubtitle)}
+          >
             {subtitle}
           </Text>
         ) : null}

@@ -401,11 +401,6 @@
       "count": 1
     }
   },
-  "src/components/charts/StatisticsNav.tsx": {
-    "@typescript-eslint/no-misused-promises": {
-      "count": 1
-    }
-  },
   "src/components/charts/WordCloud.tsx": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
@@ -511,26 +506,6 @@
   },
   "src/index.tsx": {
     "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    }
-  },
-  "src/routes/_protected/organizing.$tab.tsx": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    }
-  },
-  "src/routes/_protected/sharing/byme.$tab.tsx": {
-    "@typescript-eslint/no-misused-promises": {
-      "count": 1
-    }
-  },
-  "src/routes/_protected/sharing/links.tsx": {
-    "@typescript-eslint/no-misused-promises": {
-      "count": 1
-    }
-  },
-  "src/routes/_protected/sharing/withme.$tab.tsx": {
-    "@typescript-eslint/no-misused-promises": {
       "count": 1
     }
   },

@@ -1,17 +1,12 @@
 /*
- * Every settings-type page has one frame: a reading-width column of cards (920px with the page
- * gutter) and SectionNav's 220px "On this page" list with its xl gap beside it, the frame centred in
- * the space beside the sidebar. A page without the list (Profile, Library, Jobs, a job) keeps its
- * column where Settings and Admin have theirs and leaves the list's place empty, so the title and
- * the cards do not move between the settings pages, and a wide window has its room on both sides
- * rather than all on the right.
+ * The cards of a settings-type page: a reading-width column (920px with the page gutter),
+ * left-aligned like every page's content, plus SectionNav's 220px "On this page" list and its xl
+ * gap where the page has one.
  */
-.frame {
-  width: 100%;
-  max-width: calc(920px + 220px + var(--mantine-spacing-xl));
-  margin-inline: auto;
+.narrow {
+  max-width: 920px;
 }
 
-.column {
-  max-width: 920px;
+.wide {
+  max-width: calc(920px + 220px + var(--mantine-spacing-xl));
 }

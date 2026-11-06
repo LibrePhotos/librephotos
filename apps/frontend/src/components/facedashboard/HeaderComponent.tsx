@@ -1,19 +1,8 @@
-import {
-  ActionIcon,
-  Avatar,
-  Button,
-  Checkbox,
-  Group,
-  Menu,
-  Modal,
-  Stack,
-  Text,
-  Tooltip,
-  UnstyledButton,
-} from "@mantine/core";
+import { ActionIcon, Avatar, Checkbox, Menu, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconChevronDown as ChevronDown,
+  IconChevronUp as ChevronUp,
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
   IconPencil as Pencil,
@@ -34,7 +23,10 @@ import {
 import { useRestoreFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
 import type { CompletePersonFace } from "../../api_client/faces/types";
 import { PersonRenameModal } from "../album/PersonRenameModal";
+import { DeletePersonModal } from "./DeletePersonModal";
 import { canConfirmFace, canRestoreAll, hasPersonMenu, isNamedPerson } from "./faceActionRules";
+import type { HeaderVariant } from "./FaceGridRow";
+import { isFoldable } from "./faceGridRows";
 import { isUnknownGroup } from "./facesTab";
 import classes from "./HeaderComponent.module.css";
 import { useFocusOnMount } from "./hooks/useFocusOnMount";
@@ -44,11 +36,16 @@ import type { FaceSelection } from "./hooks/useVirtualizedGrid";
 type Props = {
   cell: CompletePersonFace;
   style: React.CSSProperties;
+  /**
+   * `tile`: the name and count under a tile's faces, with an Expand button when the group has more
+   * faces than the tile shows. `section` (the default): the header line of an open group.
+   */
+  variant?: HeaderVariant;
   setSelectedFaces: (faces: FaceSelection[]) => void;
   selectedFaces: readonly FaceSelection[];
-  /** Folds the person into a single cell of the grid of people (PersonCell). */
+  /** Folds an open group into a tile, or opens a tile into a section. */
   onToggleCollapse: () => void;
-  /** The face that stands for the person (#860); the avatar's placeholder while there is none. */
+  /** The face that stands for an open group (#860); the avatar's placeholder while there is none. */
   coverUrl: string | undefined;
   /** The person was just unfolded: the toggle takes the focus their collapsed cell had. */
   takeFocus: boolean;
@@ -62,6 +59,7 @@ const routeApi = getRouteApi("/_protected/faces");
 export function HeaderComponent({
   cell,
   style,
+  variant = "section",
   setSelectedFaces,
   selectedFaces,
   onToggleCollapse,
@@ -191,27 +189,24 @@ export function HeaderComponent({
     );
   }
 
-  return (
-    <div className={classes.row} style={rowStyle}>
-      <ActionIcon
-        ref={toggleRef}
-        variant="subtle"
-        color="gray"
-        size="sm"
-        onClick={onToggleCollapse}
-        aria-expanded
-        aria-label={t("facesdashboard.collapseperson", { name: cell.name })}
-      >
-        <ChevronDown size={16} />
-      </ActionIcon>
-      {/* The name says who it is, so the face is decoration */}
-      <Avatar src={coverUrl} alt="" radius="xl" size={32} className={classes.cover} />
-      {/* The name over its count, so a card's narrow header keeps room for the name */}
-      <div className={classes.titles}>
-        {nameElement()}
-        {/* count picks the plural form */}
-        <span className={classes.count}>{faceCount}</span>
-      </div>
+  const open = variant === "section";
+  // Only a group with more faces than its tile shows can be opened, so only it folds back
+  const toggle = (open || isFoldable(cell)) && (
+    <ActionIcon
+      ref={toggleRef}
+      variant="subtle"
+      color="gray"
+      size="sm"
+      onClick={onToggleCollapse}
+      aria-expanded={open}
+      aria-label={t(open ? "facesdashboard.collapseperson" : "facesdashboard.expandperson", { name: cell.name })}
+    >
+      {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+    </ActionIcon>
+  );
+
+  const controls = (
+    <>
       <Checkbox
         size="xs"
         className={classes.groupCheck}
@@ -265,6 +260,11 @@ export function HeaderComponent({
           </Menu.Dropdown>
         </Menu>
       )}
+    </>
+  );
+
+  const dialogs = (
+    <>
       <PersonRenameModal
         opened={renameDialogVisible}
         onClose={closeRenameDialog}
@@ -280,30 +280,45 @@ export function HeaderComponent({
         people={albums ?? []}
         onSubmit={newPersonName => renamePerson({ id: personID, personName, newPersonName })}
       />
-      <Modal
+      <DeletePersonModal
         opened={deleteDialogVisible}
-        title={t("personalbum.deleteperson")}
         onClose={closeDeleteDialog}
-        returnFocus={false}
-      >
-        <Stack>
-          <Text size="sm">{t("personalbum.deletepersondescription")}</Text>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={closeDeleteDialog}>
-              {t("cancel")}
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                deletePerson(personID);
-                closeDeleteDialog();
-              }}
-            >
-              {t("delete")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        onDelete={() => {
+          deletePerson(personID);
+          closeDeleteDialog();
+        }}
+      />
+    </>
+  );
+
+  if (!open) {
+    return (
+      <div className={classes.tile} style={rowStyle}>
+        <div className={classes.tileLine}>
+          {nameElement()}
+          {controls}
+          {toggle}
+        </div>
+        {/* count picks the plural form */}
+        <span className={classes.count}>{faceCount}</span>
+        {dialogs}
+      </div>
+    );
+  }
+
+  return (
+    <div className={classes.row} style={rowStyle}>
+      {toggle}
+      {/* The name says who it is, so the face is decoration */}
+      <Avatar src={coverUrl} alt="" radius="xl" size={32} className={classes.cover} />
+      {/* The name over its count, so a narrow header keeps room for the name */}
+      <div className={classes.titles}>
+        {nameElement()}
+        {/* count picks the plural form */}
+        <span className={classes.count}>{faceCount}</span>
+      </div>
+      {controls}
+      {dialogs}
     </div>
   );
 }

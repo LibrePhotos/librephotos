@@ -1,6 +1,7 @@
 /* The info panel. It sits in the viewer's dark scope (ViewerDarkScope), so the theme's dark values
-   apply in either colour scheme: near-black like the stage, set apart by a hairline. On a phone it
-   is a sheet over the lower part of the photo; from md on, a 360px column beside it. */
+   apply in either colour scheme. On a phone it is a raised near-black sheet over the lower part of
+   the photo; from md on, a 360px column beside it on the stage's own black, set apart by a faint
+   hairline, as Immich has it (two different blacks side by side read as a seam). */
 .panel {
   position: fixed;
   left: 0;
@@ -13,7 +14,7 @@
   white-space: normal;
   padding: var(--mantine-spacing-md);
   background-color: var(--mantine-color-dark-8);
-  border-top: 1px solid var(--mantine-color-dark-5);
+  border-top: 1px solid var(--app-scrim-white-8);
   border-radius: 16px 16px 0 0;
 }
 
@@ -24,8 +25,10 @@
     flex: 0 0 360px;
     width: 360px;
     height: 100%;
+    /* The viewer's black shows through (ContentViewer's .viewer). */
+    background-color: transparent;
     border-top: 0;
-    border-left: 1px solid var(--mantine-color-dark-6);
+    border-left: 1px solid var(--app-scrim-white-8);
     border-radius: 0;
   }
 }
@@ -171,4 +174,11 @@
 
 .fileName {
   word-break: break-all;
+}
+
+/* A line of the place row: one line, cut short with an ellipsis (the whole name is its hover). */
+.placeLine {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

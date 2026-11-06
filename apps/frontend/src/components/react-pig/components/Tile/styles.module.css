@@ -116,10 +116,13 @@
   width: 22px;
   height: 22px;
   margin: 8px;
-  border: 2px solid var(--app-scrim-white-90);
+  border: 2px solid var(--app-scrim-white-95);
   border-radius: 50%;
-  background-color: var(--app-scrim-black-20);
-  box-shadow: 0 0 3px var(--app-scrim-black-40);
+  background-color: transparent;
+  /* A dark rim and shadow keep the white ring visible on bright photos. */
+  box-shadow:
+    0 0 0 1px var(--app-scrim-black-25),
+    0 1px 3px var(--app-scrim-black-40);
   cursor: pointer;
   opacity: 0;
   transition: opacity 150ms linear;
@@ -169,23 +172,26 @@
   z-index: 2;
 }
 
-/* A selected tile (it also shrinks a little, Tile.tsx): rounded, with a light primary tint and a
-   primary ring drawn inside it (the tile's strict containment clips anything outside), so a
-   selection reads at a glance across the grid, as in Google Photos. */
-.pigTile:has(.checkbox:checked) {
-  border-radius: var(--mantine-radius-md);
-  overflow: hidden;
-}
-
-.pigTile:has(.checkbox:checked)::after {
+/* A selected tile, as in Google Photos: the cell turns a light accent tint and the photo shrinks
+   inside it with rounded corners; the cell keeps its size, so the grid never moves. The tint is
+   opaque so the tile's dominant-colour fill does not show through. */
+.pigTile:has(.checkbox:checked)::before {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  border-radius: inherit;
-  background-color: var(--mantine-primary-color-light);
-  box-shadow: inset 0 0 0 3px var(--mantine-primary-color-filled);
+  background-color: color-mix(in srgb, var(--mantine-primary-color-filled) 16%, var(--mantine-color-body));
+}
+
+.pigBtn {
+  transition:
+    transform 150ms ease,
+    border-radius 150ms ease;
+}
+
+.pigTile:has(.checkbox:checked) .pigBtn {
+  overflow: hidden;
+  border-radius: 10px;
+  transform: scale(0.86);
 }
 
 /* Inset like the bottom overlays' 5px padding; display: flex drops the gap

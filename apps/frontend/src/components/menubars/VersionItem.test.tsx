@@ -50,7 +50,7 @@ beforeEach(() => {
 describe("VersionItem", () => {
   it("shows the version, and nothing about updates to a user who is not an admin", async () => {
     const { container } = await renderInMantine(<VersionItem />);
-    expect(container.querySelector("p")?.textContent).toBe("Version: 1.4.0");
+    expect(container.querySelector("button")?.textContent).toBe("Version: 1.4.0");
     expect(container.querySelector("a")).toBeNull();
     expect(stubs.asked).not.toContain(true);
   });
@@ -58,7 +58,7 @@ describe("VersionItem", () => {
   it("says dev without an image tag", async () => {
     stubs.imageTag = undefined;
     const { container } = await renderInMantine(<VersionItem />);
-    expect(container.querySelector("p")?.textContent).toBe("Version: dev");
+    expect(container.querySelector("button")?.textContent).toBe("Version: dev");
   });
 
   it("marks a newer release for an admin and opens its card", async () => {

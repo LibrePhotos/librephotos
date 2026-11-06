@@ -1,7 +1,7 @@
 /*
- * A group's header at the top of its card (FaceGridRow): chevron, 32px face, name and count on one
- * 32px line; the card keeps the space around it. A long name is cut short instead of wrapping: the
- * grid row has a fixed height.
+ * A group's name line (FaceGridRow). On an open group: chevron, 32px face, name and count on one
+ * 32px line. Under a tile's faces: the name and its buttons on one 24px line, the count under it.
+ * A long name is cut short instead of wrapping: the grid row has a fixed height.
  */
 .row {
   display: flex;
@@ -10,6 +10,26 @@
   box-sizing: border-box;
   height: 32px;
   min-width: 0;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The name takes the room its buttons leave */
+.tileLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  min-width: 0;
+
+  & > :first-child {
+    flex: 0 1 auto;
+    margin-inline-end: auto;
+  }
 }
 
 /* The cover face keeps its size when a long name squeezes the row */

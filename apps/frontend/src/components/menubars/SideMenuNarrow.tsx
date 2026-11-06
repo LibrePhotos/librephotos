@@ -1,6 +1,5 @@
 import { ActionIcon, Loader, Menu, Progress, Text, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import {
-  IconBook as Book,
   IconChevronRight as ChevronRight,
   IconCloud as Cloud,
   IconCopy as Copy,
@@ -211,28 +210,20 @@ export function SideMenuNarrow(): React.JSX.Element {
             </>
           )}
         </div>
-        <VersionItem />
-        <a
-          href={DOCUMENTATION_LINK}
-          target="_blank"
-          rel="noreferrer"
-          className={`${classes.link} ${classes.link_secondary}`}
-        >
-          <span className={classes.link_icon} aria-hidden>
-            <Book size={18} stroke={1.75} />
-          </span>
-          <Text className={classes.link_text} size="sm">
+        {/* Version, docs and support as one quiet line, as Immich ends its sidebar with a status
+            line: secondary to the navigation above. */}
+        <div className={classes.footer_line}>
+          <VersionItem />
+          <span aria-hidden>·</span>
+          <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.footer_link}>
             {t("docs")}
-          </Text>
-        </a>
-        <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={`${classes.link} ${classes.link_secondary}`}>
-          <span className={`${classes.link_icon} ${classes.link_icon_support}`} aria-hidden>
-            <Heart size={18} stroke={1.75} />
-          </span>
-          <Text className={classes.link_text} size="sm">
+          </a>
+          <span aria-hidden>·</span>
+          <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={classes.footer_link}>
+            <Heart size={12} stroke={2} aria-hidden />
             {t("supportus")}
-          </Text>
-        </a>
+          </a>
+        </div>
       </div>
     </nav>
   );

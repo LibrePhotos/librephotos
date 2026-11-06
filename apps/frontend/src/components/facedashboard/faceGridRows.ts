@@ -3,107 +3,96 @@ import type { GridRows } from "./hooks/useVirtualizedGrid";
 import { isPersonCell } from "./hooks/useVirtualizedGrid";
 
 /*
- * The faces grid as rows of cards. Every open group is a card (radius 12, a subtle surface): a small
- * group's card holds its header and one line of faces, and small cards share a row (a "shelf"), so
- * a two-face cluster no longer takes the whole width. A group too wide for one line is a card the
- * width of the grid, cut into a header row and rows of faces so the grid still virtualizes it.
- * Folded people are cells of a row of people (#860).
+ * The faces grid: columns like `repeat(auto-fill, minmax(220px, 1fr))` with a 12px gap, laid out
+ * here so the grid still virtualizes by row. A group of up to four faces is a borderless tile in
+ * one column: its faces two by two, then its name and count. A bigger group is the same tile while
+ * folded, and a section the width of the grid while open: a header row, then rows of its faces,
+ * two to a column, so every face on the page lines up with the tiles' faces.
  */
 
-/** A face's cell: the 72px face and the 4px around it. */
-export const FACE_CELL = 80;
-/** A folded person's cell: their round cover, name and count. */
-export const PERSON_CELL = 112;
+/** The faces a tile shows; a group with more can be opened into a section. */
+export const TILE_FACES = 4;
+/** Faces side by side in one column. */
+const FACES_PER_COLUMN = 2;
+/** Between two faces, across and down. */
+const FACE_GAP = 4;
+/** Between two columns. */
+const COLUMN_GAP = 12;
+/** Under a row of tiles, and under a section's last faces. */
+const ROW_GAP = 20;
+/** The narrowest column: two 96px faces and more. A phone has two columns of smaller faces. */
+const MIN_COLUMN = 220;
+const MIN_COLUMN_PHONE = 150;
+/** Faces grow with their column up to here, so a wide column does not show giant crops. */
+const MAX_FACE = 128;
+const MIN_FACE = 48;
+/** Under a tile's faces: 8px, its name line (with its buttons) and its count. */
+const TILE_CAPTION = 8 + 24 + 16;
+/** A section's header line and the space under it. */
+const SECTION_HEADER = 32 + 12;
 /** Room for a scrollbar that takes width (Windows): the rows stop short of it. Not on a phone,
  * where scrollbars overlay the content and the room would only widen the right margin. */
 const SCROLLBAR_ROOM = 16;
 const PHONE_WIDTH = 576;
-/** The card's side padding around its face cells: with the cell's 4px, 12px to a face. */
-const CARD_PAD_X = 8;
-/** Between two cards, across and down. */
-const CARD_GAP = 12;
-/** Wide enough for the header: chevron, avatar, name, count and the group's buttons. */
-const CARD_MIN_WIDTH = 264;
 
-/** A card's header: 12px padding above the 32px avatar row and 4px (8 with the cell's) to the faces. */
-const HEADER_ROW = 48;
-/** Under a card's last faces: 8px padding (12 with the cell's) and the gap to the next card. */
-const CARD_BOTTOM = 8 + CARD_GAP;
-
-/**
- * What a grid row is. `shelf`: small cards side by side. `header`: the top of a wide card, `faces`
- * its rows of faces and `lastFaces` the last one. `lone`: a group with no faces. `people`: folded
- * people.
- */
-export type FaceRowKind = "shelf" | "header" | "lone" | "faces" | "lastFaces" | "people";
-
-const ROW_HEIGHT: Readonly<Record<FaceRowKind, number>> = {
-  shelf: HEADER_ROW + FACE_CELL + CARD_BOTTOM,
-  header: HEADER_ROW,
-  lone: HEADER_ROW + CARD_BOTTOM,
-  faces: FACE_CELL,
-  lastFaces: FACE_CELL + CARD_BOTTOM,
-  people: PERSON_CELL,
-};
-
-export const rowHeightOf = (kind: FaceRowKind): number => ROW_HEIGHT[kind];
+/** The grid's columns and the size of every face in it, for one width. */
+export type FaceGridLayout = Readonly<{ columns: number; faceSize: number }>;
 
 /** The width the rows are laid out in: the grid's, less a scrollbar's. */
 export const layoutWidthOf = (gridWidth: number): number =>
   gridWidth < PHONE_WIDTH ? gridWidth : gridWidth - SCROLLBAR_ROOM;
 
-/** A card holding all of a group's faces in one line. */
-export const cardWidthOf = (faceCount: number): number =>
-  Math.max(CARD_MIN_WIDTH, 2 * CARD_PAD_X + faceCount * FACE_CELL);
+/** As many columns as fit at their narrowest; the faces fill their column two by two. */
+export function faceGridLayout(layoutWidth: number): FaceGridLayout {
+  const minColumn = layoutWidth < PHONE_WIDTH ? MIN_COLUMN_PHONE : MIN_COLUMN;
+  const columns = Math.max(1, Math.floor((layoutWidth + COLUMN_GAP) / (minColumn + COLUMN_GAP)));
+  const columnWidth = (layoutWidth - (columns - 1) * COLUMN_GAP) / columns;
+  const fill = Math.floor((columnWidth - (FACES_PER_COLUMN - 1) * FACE_GAP) / FACES_PER_COLUMN);
+  return { columns, faceSize: Math.max(MIN_FACE, Math.min(MAX_FACE, fill)) };
+}
 
-const facesPerLine = (width: number) => Math.max(1, Math.floor((width - 2 * CARD_PAD_X) / FACE_CELL));
-const peoplePerRow = (width: number) => Math.max(1, Math.floor(width / PERSON_CELL));
+/** Whether a group can be opened into a section: it has more faces than a tile shows. */
+export const isFoldable = (group: { faces: readonly unknown[] }): boolean => group.faces.length > TILE_FACES;
+
+/**
+ * What a grid row is. `tiles`: tiles side by side, each a group and the faces it shows. `header`:
+ * an open group's header, `faces` a row of its faces and `lastFaces` the last one.
+ */
+export type FaceRowKind = "tiles" | "header" | "faces" | "lastFaces";
 
 type Group = { id: number; faces: readonly unknown[] };
 
 /**
- * The grid's rows for a tab's groups, in their order. A shelf row lists each of its groups followed
- * by that group's faces; a wide group is a row holding just the group, then rows of its faces. A
- * folded group's faces are left out, so the row count, the scrubber and the page loader shrink with it.
+ * The grid's rows for a tab's groups, in their order. A tiles row lists each of its groups followed
+ * by the faces its tile shows; an open group is a row holding just the group, then rows of its
+ * faces. A folded group's other faces are left out, so the row count, the scrubber and the page
+ * loader shrink with it.
  */
 export function buildFaceGridRows<Person extends Group>(
   groups: readonly Person[],
-  layoutWidth: number,
+  layout: FaceGridLayout,
   collapsed: ReadonlySet<number>
 ): Array<Array<Person | Person["faces"][number]>> {
   const rows: Array<Array<Person | Person["faces"][number]>> = [];
-  let shelf: Array<Person | Person["faces"][number]> = [];
-  let shelfWidth = 0;
-  let folded: Person[] = [];
-  const flushShelf = () => {
-    if (shelf.length > 0) rows.push(shelf);
-    shelf = [];
-    shelfWidth = 0;
-  };
-  const flushFolded = () => {
-    rows.push(...chunk(folded, peoplePerRow(layoutWidth)));
-    folded = [];
+  let tiles: Array<Person | Person["faces"][number]> = [];
+  let tileCount = 0;
+  const flushTiles = () => {
+    if (tiles.length > 0) rows.push(tiles);
+    tiles = [];
+    tileCount = 0;
   };
 
   for (const group of groups) {
-    if (collapsed.has(group.id)) {
-      flushShelf();
-      folded.push(group);
+    if (isFoldable(group) && !collapsed.has(group.id)) {
+      flushTiles();
+      rows.push([group], ...chunk(group.faces, layout.columns * FACES_PER_COLUMN));
       continue;
     }
-    flushFolded();
-    const width = cardWidthOf(group.faces.length);
-    if (group.faces.length > 0 && width <= layoutWidth) {
-      if (shelf.length > 0 && shelfWidth + CARD_GAP + width > layoutWidth) flushShelf();
-      shelfWidth = shelf.length > 0 ? shelfWidth + CARD_GAP + width : width;
-      shelf.push(group, ...group.faces);
-      continue;
-    }
-    flushShelf();
-    rows.push([group], ...chunk(group.faces, facesPerLine(layoutWidth)));
+    tiles.push(group, ...group.faces.slice(0, TILE_FACES));
+    tileCount += 1;
+    if (tileCount === layout.columns) flushTiles();
   }
-  flushShelf();
-  flushFolded();
+  flushTiles();
   return rows;
 }
 
@@ -113,18 +102,46 @@ const isFaceRow = (row: GridRows[number] | undefined): boolean => {
 };
 
 /** The kind of each row, read off the rows themselves (see FaceRowKind). */
-export function faceRowKinds(rows: GridRows, collapsed: ReadonlySet<number>): FaceRowKind[] {
+export function faceRowKinds(rows: GridRows): FaceRowKind[] {
   return rows.map((row, index): FaceRowKind => {
     const first = row[0];
     const nextIsFaces = isFaceRow(rows[index + 1]);
     if (first === undefined || !isPersonCell(first)) return nextIsFaces ? "faces" : "lastFaces";
-    if (collapsed.has(first.id)) return "people";
-    if (row.length > 1) return "shelf";
-    return nextIsFaces ? "header" : "lone";
+    return row.length === 1 && nextIsFaces ? "header" : "tiles";
   });
 }
 
+/** The lines of faces of a tiles row's tallest tile. */
+function tileLines(row: GridRows[number]): number {
+  let lines = 0;
+  let faces = 0;
+  for (const cell of [...row, undefined]) {
+    if (cell === undefined || isPersonCell(cell)) {
+      lines = Math.max(lines, Math.ceil(Math.min(faces, TILE_FACES) / FACES_PER_COLUMN));
+      faces = 0;
+    } else {
+      faces += 1;
+    }
+  }
+  return lines;
+}
+
+/** How tall `lines` lines of faces are. */
+const facesHeight = (lines: number, faceSize: number): number =>
+  lines > 0 ? lines * faceSize + (lines - 1) * FACE_GAP : 0;
+
 /** The heights of the grid's rows, in order. */
-export function faceRowHeights(rows: GridRows, collapsed: ReadonlySet<number>): number[] {
-  return faceRowKinds(rows, collapsed).map(rowHeightOf);
+export function faceRowHeights(rows: GridRows, layout: FaceGridLayout): number[] {
+  return faceRowKinds(rows).map((kind, index) => {
+    switch (kind) {
+      case "tiles":
+        return facesHeight(tileLines(rows[index] ?? []), layout.faceSize) + TILE_CAPTION + ROW_GAP;
+      case "header":
+        return SECTION_HEADER;
+      case "faces":
+        return layout.faceSize + FACE_GAP;
+      case "lastFaces":
+        return layout.faceSize + ROW_GAP;
+    }
+  });
 }

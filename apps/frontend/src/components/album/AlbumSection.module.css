@@ -9,7 +9,28 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--mantine-spacing-sm);
-  margin-bottom: 0.5rem;
+  margin-bottom: 12px;
+}
+
+/* SectionHeader: 15px/700 title, a 13px dimmed meta line with the accent "View all" */
+.headingTitle.headingTitle {
+  font-size: calc(0.9375rem * var(--mantine-scale));
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.headingMeta {
+  margin-top: 2px;
+  color: var(--mantine-color-dimmed);
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  line-height: 1.4;
+}
+
+.viewAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--mantine-primary-color-light-color);
 }
 
 .headerLeft {
@@ -152,17 +173,23 @@
   aspect-ratio: 1;
 }
 
-/* The hub's people (HubPeopleRow): the People page's portrait cards, 120px, in the scrolling row */
-.personCard {
-  flex: 0 0 auto;
-  width: 120px;
-  scroll-snap-align: start;
+/* The hub's people (HubPeopleRow): the People page's portrait cards in one row of a grid that
+   ends on the page's right edge like the album rows; HubPeopleRow shows as many as fit one row.
+   Keep the minimum widths in step with HubPeopleRow's. */
+.peopleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+
+  @media (max-width: 47.99em) {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 12px;
+  }
 }
 
 .personSkeleton {
-  flex: 0 0 auto;
-  width: 120px;
-  height: 160px;
+  height: auto;
+  aspect-ratio: 3 / 4;
 }
 
 /* Round faces in a grid that fills the row, names in 12px under them, cut to their cell (the

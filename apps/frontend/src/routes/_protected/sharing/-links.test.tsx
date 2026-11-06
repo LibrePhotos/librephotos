@@ -195,7 +195,7 @@ describe("public links page Photos tab (#2686)", () => {
     await renderTab("photos");
 
     expect(container.querySelector('[data-testid="pig"]')).not.toBeNull();
-    expect(container.textContent).toContain(`${i18n.t("photos.photos")} (3)`);
+    expect(container.textContent).toContain(`${i18n.t("photos.photos")}3`);
     expect(container.textContent).not.toContain(i18n.t("sharing.noPublicPhotos"));
   });
 

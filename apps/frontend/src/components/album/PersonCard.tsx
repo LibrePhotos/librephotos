@@ -58,8 +58,9 @@ function PersonPicture({ person, size }: Readonly<{ person: PersonShown; size: n
 }
 
 /**
- * A person on the People page: a 3:4 portrait of their face with the name and face count on it,
- * like the album covers (CollectionCard). It opens the person unless they have no faces to show.
+ * A person on the People page: a 3:4 portrait of their face with their name on it, like the album
+ * covers (CollectionCard). No count, as Apple: the card's face_count counts faces, not the photos
+ * the person page counts, and two numbers for one person read as a contradiction. It opens the person unless they have no faces to show.
  */
 export function PersonCard({ person, size, menuItems, onMenuOpen }: Props) {
   const { t } = useTranslation();
@@ -68,8 +69,6 @@ export function PersonCard({ person, size, menuItems, onMenuOpen }: Props) {
       shape="portrait"
       size={size}
       title={person.name}
-      // face_count counts faces, not photos
-      meta={t("facesdashboard.numberoffaces", { count: person.face_count, number: person.face_count })}
       media={<PersonPicture person={person} size={size} />}
       renderLink={
         person.face_count === 0

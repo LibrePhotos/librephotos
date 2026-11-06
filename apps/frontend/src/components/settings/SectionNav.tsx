@@ -8,7 +8,7 @@ import { useActiveSection } from "./useActiveSection";
 import { useSectionLinks } from "./useSectionLinks";
 
 // A section counts as reached once its top passes this far below the viewport top: under the top
-// bar and, on phones, under the chip row.
+// bar and, on tablets, under the chip row.
 const SPY_OFFSET = TOP_MENU_HEIGHT + 72;
 
 type SectionLinksProps = {
@@ -72,7 +72,13 @@ function SectionChips({ sections, active, onPick }: SectionLinksProps) {
   }, [active]);
 
   return (
-    <Box component="nav" aria-label={t("sectionnav.onthispage")} className={classes.chipBar} hiddenFrom="lg">
+    <Box
+      component="nav"
+      aria-label={t("sectionnav.onthispage")}
+      className={classes.chipBar}
+      visibleFrom="sm"
+      hiddenFrom="lg"
+    >
       <ScrollArea type="never" scrollbars="x" viewportRef={viewport} className={classes.chipScroll}>
         <Flex gap="xs" wrap="nowrap" w="max-content" pr="lg">
           {sections.map(({ id, label }) => (
@@ -98,8 +104,10 @@ function SectionChips({ sections, active, onPick }: SectionLinksProps) {
 
 /**
  * Hash links to a page's cards (#2226): a sticky "On this page" list beside the cards from the lg
- * breakpoint up, a sticky chip row above them below it. The entry of the card in view is
- * highlighted, and a link with a hash scrolls to its card (useSectionLinks).
+ * breakpoint up, a sticky chip row above them between sm and lg. A phone has neither: its cards'
+ * titles are the section headers, as in a phone's own settings, and a chip row over them only
+ * repeated the title under it. The entry of the card in view is highlighted, and a link with a
+ * hash scrolls to its card (useSectionLinks).
  */
 export function SectionNav({ sections, children }: { sections: readonly NavSection[]; children: ReactNode }) {
   const actions = useSectionLinks();

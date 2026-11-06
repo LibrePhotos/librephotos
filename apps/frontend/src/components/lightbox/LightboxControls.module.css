@@ -1,6 +1,6 @@
 /* The toolbar over the top of the stage: back on the left, the photo's date and place in the middle,
    the actions on the right. The photo takes the whole height and runs under it, so the bar sits on
-   an 80px gradient from black, and white icons read over a bright sky. The side columns share the
+   a 96px scrim fading from black, and the white title and icons read over a bright sky. The side columns share the
    free width, so the title stays centred until one of them needs more. Only the buttons take the
    pointer; a drag anywhere else still swipes or pans the photo. */
 .bar {
@@ -13,9 +13,9 @@
   grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
   align-items: start;
   gap: 8px;
-  height: 80px;
+  height: 96px;
   padding: 8px 8px 0;
-  background: linear-gradient(var(--app-scrim-black-60), var(--app-scrim-black-25) 55%, transparent);
+  background: linear-gradient(var(--app-scrim-black-60), var(--app-scrim-black-30) 45%, transparent);
   pointer-events: none;
 }
 
@@ -48,6 +48,12 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
   background-color: var(--app-scrim-black-75);
   backdrop-filter: blur(12px);
+}
+
+/* The info sheet covers the bottom of the screen: the bar gives way to it (the stage's data-info,
+   ContentViewer). */
+[data-info] > .bottomBar {
+  display: none;
 }
 
 .bar > * {

@@ -1,0 +1,12 @@
+/* A tiny face: a rounded square like the grid's faces, faded like an unsure one */
+.swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background-color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-1));
+
+  &[data-unsure] {
+    opacity: 0.5;
+  }
+}

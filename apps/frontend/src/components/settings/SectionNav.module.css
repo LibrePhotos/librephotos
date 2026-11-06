@@ -25,15 +25,17 @@
   font-weight: 500;
 }
 
-/* Below lg, a row of chips under the top bar that scrolls sideways on its own, never the page. */
+/* Between sm and lg, a row of chips under the top bar that scrolls sideways on its own, never the
+   page. */
 .chipBar {
   position: sticky;
   top: var(--app-shell-header-height, 0px);
   z-index: 2;
-  /* Edge to edge across the page gutter (PAGE_GUTTER, SettingsPageFrame), the chips on its line */
-  margin-inline: -10px;
+  /* Edge to edge across the page gutter (PAGE_GUTTER, 20px from sm up), the chips on its line and
+     the divider under them full-bleed */
+  margin-inline: -20px;
   margin-bottom: var(--mantine-spacing-md);
-  padding: var(--mantine-spacing-xs) 10px;
+  padding: var(--mantine-spacing-xs) 20px;
   background-color: var(--mantine-color-body);
   border-bottom: 1px solid var(--mantine-color-default-border);
 }
@@ -53,9 +55,34 @@
   outline: none;
 }
 
-@media (max-width: 74.99em) {
+@media (min-width: 48em) and (max-width: 74.99em) {
   .section {
     scroll-margin-top: calc(var(--app-shell-header-height, 0px) + 64px);
+  }
+}
+
+/* A setting's description (Mantine's InputWrapper, Switch, Radio, Checkbox ...): 13px at a reading
+   width, so it reads as text rather than fine print and its lines stay short on a wide card. */
+.section [class*="mantine-"][class*="-description"] {
+  max-width: 72ch;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* A phone: 16px inside the cards (their padding="lg" reads the spacing token, and so do their
+   stacks), so the text gets the width. */
+@media (max-width: 47.99em) {
+  .section {
+    --mantine-spacing-lg: var(--mantine-spacing-md);
+  }
+}
+
+/* A narrow phone: a radio group's choices one under the other, so none wraps alone onto a row. */
+@media (max-width: 29.99em) {
+  .section :global(.mantine-RadioGroup-root) :global(.mantine-Group-root) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--mantine-spacing-sm);
   }
 }
 

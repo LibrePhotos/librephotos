@@ -13,8 +13,12 @@ import { useTimestampEditor } from "./useTimestampEditor";
 type Props = Readonly<{
   photoDetail: TimestampPhoto;
   isPublic: boolean;
-  /** Beside the edit actions, level with the date: the owner's ⓘ "Why this date?" (#2272). */
-  extra?: React.ReactNode;
+  /**
+   * Right after the date, level with it: the owner's ⓘ "Why this date?" (#2272). Its hover also
+   * says "Set by you" (WhyThisDate), so the row then leaves that line out and keeps one trailing
+   * action, the pencil.
+   */
+  dateInfo?: React.ReactNode;
 }>;
 
 export function TimestampItem(props: Props) {
@@ -82,7 +86,7 @@ function UtcOffset({ photo }: Readonly<{ photo: TimestampPhoto }>) {
   return <span className={classes.offset}> ({formatUtcOffset(offset)})</span>;
 }
 
-function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
+function TimestampEditor({ photoDetail, isPublic, dateInfo }: Props) {
   const editor = useTimestampEditor(photoDetail);
   const { t } = useTranslation();
   const { exifTimestamp } = editor;
@@ -104,8 +108,9 @@ function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
             {dayOfWeek}, {time}
             <UtcOffset photo={photoDetail} />
           </Text>
-          {/* It wins over the date rules, so say why the date ignores them (#2254). */}
-          {photoDetail.date_set_by_user && (
+          {/* It wins over the date rules, so say why the date ignores them (#2254); with the
+              owner's ⓘ, its hover says it. */}
+          {photoDetail.date_set_by_user && !dateInfo && (
             <Text size="xs" c="dimmed">
               {t("lightbox.sidebar.datesetbyuser")}
             </Text>
@@ -131,17 +136,15 @@ function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
         {isPublic ? (
           <Box fz="sm">{getDateTimeLabel()}</Box>
         ) : (
-          <UnstyledButton fz="sm" onClick={editor.open}>
-            {getDateTimeLabel()}
-          </UnstyledButton>
+          <Group gap={2} wrap="nowrap" align="flex-start">
+            <UnstyledButton fz="sm" onClick={editor.open}>
+              {getDateTimeLabel()}
+            </UnstyledButton>
+            {dateInfo}
+          </Group>
         )}
       </Group>
-      {!isPublic && (
-        <Group gap={4} wrap="nowrap">
-          {extra}
-          <TimestampEditActions editor={editor} />
-        </Group>
-      )}
+      {!isPublic && <TimestampEditActions editor={editor} />}
     </Group>
   );
 }

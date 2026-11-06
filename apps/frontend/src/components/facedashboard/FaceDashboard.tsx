@@ -17,6 +17,7 @@ import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { PageHeader } from "../PageHeader";
 import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { FaceActionDialogs } from "./FaceActionDialogs";
+import { isFoldable } from "./faceGridRows";
 import { FacesEmptyState } from "./FacesEmptyState";
 import type { FacesTab } from "./facesTab";
 import toolbarClasses from "./FacesToolbar.module.css";
@@ -248,11 +249,13 @@ export function FaceDashboard() {
   const currentTabList = lists[activeTab];
   const hasFaces = currentTabList.length > 0;
   const collapsedInActiveTab = collapsedPersons[activeTab];
-  const allCollapsed = hasFaces && currentTabList.every(person => collapsedInActiveTab.has(person.id));
+  // Only a group with more faces than its tile shows folds
+  const foldable = useMemo(() => currentTabList.filter(isFoldable), [currentTabList]);
+  const allCollapsed = foldable.length > 0 && foldable.every(person => collapsedInActiveTab.has(person.id));
 
   const toggleAllCollapsed = useCallback(() => {
-    setCollapsedForTab(activeTab, allCollapsed ? [] : currentTabList.map(person => person.id));
-  }, [activeTab, allCollapsed, currentTabList, setCollapsedForTab]);
+    setCollapsedForTab(activeTab, allCollapsed ? [] : foldable.map(person => person.id));
+  }, [activeTab, allCollapsed, foldable, setCollapsedForTab]);
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
@@ -276,7 +279,7 @@ export function FaceDashboard() {
             restoreFaces={restoreSelectedFaces}
             allCollapsed={allCollapsed}
             toggleAllCollapsed={toggleAllCollapsed}
-            canCollapse={hasFaces}
+            canCollapse={foldable.length > 0}
             personGroups={personGroups}
             groupId={groupId}
           />
@@ -291,7 +294,6 @@ export function FaceDashboard() {
           <VirtualizedGridComponent
             containerRef={ref}
             gridRef={virtualGrid.gridRef}
-            entrySquareSize={virtualGrid.entrySquareSize}
             gridHeight={virtualGrid.gridHeight}
             getCellContentsForTab={virtualGrid.getCellContentsForTab}
             getScrollPositions={virtualGrid.getScrollPositions}
@@ -305,7 +307,7 @@ export function FaceDashboard() {
             selectedFaces={virtualGrid.selectedFaces}
             setSelectedFaces={virtualGrid.setSelectedFaces}
             activeTab={activeTab}
-            collapsedPersons={collapsedInActiveTab}
+            layout={virtualGrid.layout}
             onToggleCollapse={handleToggleCollapse}
             faceActions={faceActions.actions}
             pendingFaceIds={faceActions.pendingFaceIds}

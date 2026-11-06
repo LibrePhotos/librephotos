@@ -34,6 +34,18 @@
   line-height: 1.25;
 }
 
+/* A collection's own title: larger, so an album or event has an identity of its own (two classes:
+   it wins over Title's own font size). */
+.title.collectionTitle {
+  font-size: calc(2rem * var(--mantine-scale));
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.subtitle.collectionSubtitle {
+  margin-top: 4px;
+}
+
 .loader {
   margin-left: 8px;
   vertical-align: middle;
@@ -59,6 +71,10 @@
 /* A phone keeps the title row: a long title wraps within its own column, beside at most two icons
    and the ⋯. */
 @media (max-width: 48em) {
+  .title.collectionTitle {
+    font-size: calc(1.625rem * var(--mantine-scale));
+  }
+
   .root {
     column-gap: 8px;
   }

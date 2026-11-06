@@ -22,6 +22,8 @@ export const STORAGE_KEYS = {
   recentlyTaggedPeople: "lp:people.recentlyTagged.v1",
   // The pages the user pinned to the sidebar (components/menubars/pinnedDestinations.ts)
   sidebarPinned: "lp:sidebar.pinned.v1",
+  // Whether the sidebar lists the recent albums
+  sidebarRecentAlbums: "lp:sidebar.recentAlbums.v1",
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

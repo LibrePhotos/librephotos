@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import classes from "./LightboxControls.module.css";
+import { shortPlace } from "./placeName";
 import { useCompactViewer } from "./useCompactViewer";
 
 /** Where the shown photo is in the list the lightbox steps through, counted from 1. */
@@ -16,16 +17,6 @@ type Props = Readonly<{
   place?: string | null;
   position?: LightboxPosition;
 }>;
-
-/** "Baixa, Lisbon, Portugal" as "Baixa, Lisbon": the neighbourhood and town say enough up here. */
-function shortPlace(place: string): string {
-  return place
-    .split(",")
-    .map(part => part.trim())
-    .filter(Boolean)
-    .slice(0, 2)
-    .join(", ");
-}
 
 /**
  * The centred title of the lightbox toolbar, as Apple Photos has it: the day the photo was taken,
@@ -48,7 +39,8 @@ export function LightboxTitle({ timestamp, place, position }: Props) {
       </div>
     ) : null;
   }
-  const where = place ? shortPlace(place) : null;
+  // "Baixa, Lisbon, Portugal" as "Baixa, Lisbon": the neighbourhood and town say enough up here.
+  const where = place ? shortPlace(place) || null : null;
   const which =
     position && position.total > 1
       ? t("lightbox.position", {

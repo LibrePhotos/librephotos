@@ -23,7 +23,8 @@ export const appCssVariablesResolver: CSSVariablesResolver = theme => {
           `--mantine-color-${color}-light-hover`,
           `color-mix(in srgb, var(--mantine-color-${color}-filled) 24%, transparent)`,
         ],
-        [`--mantine-color-${color}-light-color`, `var(--mantine-color-${color}-3)`],
+        [`--mantine-color-${color}-light-color`, `var(--mantine-color-${color}-2)`],
+        [`--mantine-color-${color}-text`, `var(--mantine-color-${color}-2)`],
       ])
   );
   return {

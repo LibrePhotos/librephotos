@@ -4,6 +4,7 @@ import { LEFT_MENU_WIDTH } from "../../uiConstants";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { SpotlightTrigger } from "../spotlight";
 import { ColorModeSwitch } from "./ColorModeSwitch";
+import { MobileBackButton } from "./MobileBackButton";
 import { ProfileButton } from "./ProfileButton";
 import classes from "./TopMenu.module.css";
 import { TopMenuLogo } from "./TopMenuLogo";
@@ -17,6 +18,7 @@ export function TopMenu(): React.ReactNode {
         <TopMenuLogo />
       </Group>
       <Group wrap="nowrap" gap="xs" w="100%" px="xs" className={classes.topMenuGroup}>
+        <MobileBackButton />
         <SpotlightTrigger />
         {/* display: flex on the wrappers, so each tile is centred itself rather
             than sitting on a text baseline (the avatar sat 3px higher). */}

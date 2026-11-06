@@ -8,7 +8,6 @@
   "src/components/charts/WordCloud.tsx": { "inlineStyles": 2 },
   "src/components/job/JobDetailView.tsx": { "inlineStyles": 7 },
   "src/components/lightbox/FaceDrawLayer.tsx": { "inlineStyles": 1 },
-  "src/components/lightbox/LocationSection.tsx": { "inlineStyles": 1 },
   "src/components/lightbox/MediaDisplay.tsx": { "inlineStyles": 2 },
   "src/components/lightbox/MentionList.tsx": { "inlineStyles": 3 },
   "src/components/lightbox/OcrTextOverlay.tsx": { "inlineStyles": 2 },

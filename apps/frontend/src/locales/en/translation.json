@@ -742,6 +742,8 @@
   "explore": {
     "title": "Albums",
     "collections": "Collections",
+    "collectionCount_one": "{{count}} collection",
+    "collectionCount_other": "{{count}} collections",
     "viewAll": "View all",
     "albumCount_one": "{{count}} album",
     "albumCount_other": "{{count}} albums",
@@ -2189,7 +2191,7 @@
     "sso_label_description": "The text on the login page button.",
     "sso_label_too_long": "At most {{max}} characters.",
     "sso_allow_signup": "Allow sign-ups over single sign-on",
-    "sso_allow_signup_description": "A first SSO login with an email no account has creates a new account. Off: only existing accounts can log in.",
+    "sso_allow_signup_description": "When someone signs in with SSO for the first time and no account matches their email, LibrePhotos creates one. Off: only existing accounts can sign in.",
     "sso_signup_needs_email": "Sign-ups over SSO stay closed until email is set up, because LibrePhotos cannot trust the provider's email otherwise.",
     "sso_set_up_email": "Set up email",
     "sso_providers": "Providers: {{names}}. Add or change them in the <admin>Django admin</admin> · <guide>Single sign-on guide</guide>",
@@ -2222,13 +2224,13 @@
   },
   "countstats": {
     "photos": "Photos",
-    "explorecharts": "Explore charts",
     "viewstatistics": "View statistics",
     "days": "days",
     "faces": "faces"
   },
   "statistics": {
     "title": "Statistics",
+    "subtitle": "Your library at a glance",
     "photocount_one": "{{count, number}} photo",
     "photocount_other": "{{count, number}} photos",
     "facecount_one": "{{name}}: {{count, number}} face",
@@ -2425,7 +2427,10 @@
       "description_library": "Select photos anywhere in your library, open the + menu and choose Album to add them here.",
       "action": "Upload photos"
     },
-    "newalbumincollection": "It goes into the collection {{name}}."
+    "newalbumincollection": "It goes into the collection {{name}}.",
+    "share": "Share",
+    "addphotos": "Add photos",
+    "clicktorename": "Click to rename"
   },
   "albumcollections": {
     "title": "Collections",
@@ -2532,7 +2537,7 @@
     "confidentsuffix": "% confident",
     "numberoffaces_one": "{{count}} face",
     "numberoffaces_other": "{{count}} faces",
-    "nogroups": "There are no groups on this tab",
+    "nofoldablegroups": "No group on this tab has more than {{number}} faces",
     "deletedtab": "Deleted",
     "deletedfacescounter_one": "{{count}} deleted face",
     "deletedfacescounter_other": "{{count}} deleted faces",
@@ -2541,6 +2546,7 @@
     "legendtitle": "How sure each suggestion is",
     "legendover": "Over {{percent}}",
     "legendatmost": "{{percent}} or less",
+    "legendhover": "Point at a face for its exact score",
     "renameperson": "Rename {{name}}",
     "addname": "Add a name",
     "addnamefor": "Add a name for {{name}}",

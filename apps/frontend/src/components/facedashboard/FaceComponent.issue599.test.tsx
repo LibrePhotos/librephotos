@@ -109,7 +109,7 @@ async function renderFace({
           pending={pending}
           isScrollingFast={false}
           selectMode={selectMode}
-          entrySquareSize={131}
+          faceSize={96}
           isSelected={isSelected}
           handleClick={handleClick}
           handleShowClick={handleShowClick}

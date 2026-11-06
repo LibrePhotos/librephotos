@@ -62,7 +62,9 @@ function LoadingOther({ title }: { title: string }) {
       <div className={classes.header}>
         <div className={classes.headerLeft}>
           <div>
-            <Title order={4}>{title}</Title>
+            <Title order={2} className={classes.headingTitle}>
+              {title}
+            </Title>
             <Skeleton height={14} width={80} mt={4} />
           </div>
         </div>
@@ -96,28 +98,27 @@ type HeadingProps = Readonly<{
 }>;
 
 /**
- * A section heading of the album hub and its rows: the title with its count and "View all" under
- * it, on the page's left edge like every row under it, and an optional action on the right.
+ * The one section heading of the album hub and its rows (SectionHeader): a 15px/700 title with its
+ * 13px dimmed count and "View all" under it, on the page's left edge like every row under it, the
+ * same 12px above the row in every section, and an optional action on the right.
  */
 export function AlbumSectionHeading({ title, summary, viewAllLink, action }: HeadingProps) {
   const { t } = useTranslation();
   const heading = (
     <div>
-      <Title order={4}>{title}</Title>
+      <Title order={2} className={classes.headingTitle}>
+        {title}
+      </Title>
       {summary !== undefined && (
-        <Group gap={6}>
-          <Text size="sm" c="dimmed">
-            {summary}
-          </Text>
+        <Group gap={6} className={classes.headingMeta}>
+          <span>{summary}</span>
           {viewAllLink && (
             <>
-              <Text size="sm" c="dimmed">
-                ·
-              </Text>
-              <Text size="sm" c="blue">
+              <span aria-hidden>·</span>
+              <span className={classes.viewAll}>
                 {t("explore.viewAll")}
-              </Text>
-              <IconChevronRight size={14} color="var(--mantine-color-blue-6)" />
+                <IconChevronRight size={14} aria-hidden />
+              </span>
             </>
           )}
         </Group>

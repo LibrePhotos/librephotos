@@ -40,3 +40,8 @@
   height: 10px;
   border-radius: 2px;
 }
+
+/* The timeline chart's box: measured before the chart draws, so it holds its height meanwhile. */
+.timelinePlot {
+  height: 280px;
+}

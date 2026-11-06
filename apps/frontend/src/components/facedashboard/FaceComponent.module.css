@@ -35,6 +35,21 @@
     filter: brightness(0.92);
   }
 
+  /* An unsure suggestion (FaceComponent's UNSURE_PROBABILITY) is faded until it is pointed at,
+   * focused or selected; the toolbar's ⋯ menu explains it */
+  .box[data-unsure] & {
+    opacity: 0.5;
+    transition:
+      filter 120ms ease,
+      opacity 120ms ease;
+  }
+
+  .box[data-unsure]:hover &,
+  .box[data-unsure]:focus-within &,
+  .box[data-unsure][data-selected="true"] & {
+    opacity: 1;
+  }
+
   /*
    * A primary ring between two body-coloured ones, lighter in dark mode: a plain primary outline
    * vanished into the selected cell's blue there (#2228). The transparent outline is what
@@ -83,6 +98,22 @@
   position: absolute;
   top: 6px;
   left: 6px;
+
+  /* Always shown on a touch screen: a small glyph on a scrim, so a grid of faces is not a grid of
+   * buttons (a long press opens the menu too). Two classes: Mantine sizes the button with one. */
+  @media (hover: none) {
+    .actions & {
+      top: 4px;
+      left: 4px;
+      width: 24px;
+      min-width: 24px;
+      height: 24px;
+      min-height: 24px;
+      border: 0;
+      background-color: var(--app-scrim-black-40);
+      color: var(--mantine-color-white);
+    }
+  }
 }
 
 .confirmButton {

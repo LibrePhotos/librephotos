@@ -10,6 +10,7 @@ import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
 import { PLACE_ICONS } from "../places/placeIcons";
 import { CoordinatesLine } from "./CoordinatesLine";
+import { placeRegion, shortPlace } from "./placeName";
 import { ROW_ICON } from "./SectionTitle";
 import classes from "./Sidebar.module.css";
 
@@ -81,6 +82,7 @@ function PlaceLabel({
   }
 
   const label = place || formatCoordinates(lat, lon, locale) || t("lightbox.sidebar.no_location");
+  const region = place ? placeRegion(place) : "";
   return (
     <>
       {yourPlaceLine}
@@ -89,14 +91,21 @@ function PlaceLabel({
         <Text size="sm" c={place ? undefined : "dimmed"}>
           {label}
         </Text>
+      ) : place ? (
+        // The panel's row: the neighbourhood and town in bold, the region and country dimmed under
+        // them, as Immich lists a place, and the whole name on hover.
+        <div title={place}>
+          <Text size="sm" fw={500} className={classes.placeLine}>
+            {shortPlace(place) || place}
+          </Text>
+          {region && (
+            <Text size="xs" c="dimmed" className={classes.placeLine}>
+              {region}
+            </Text>
+          )}
+        </div>
       ) : (
-        <Text
-          size="sm"
-          fw={place ? 500 : undefined}
-          c={place ? undefined : "dimmed"}
-          title={label}
-          style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-        >
+        <Text size="sm" c="dimmed" title={label} className={classes.placeLine}>
           {label}
         </Text>
       )}

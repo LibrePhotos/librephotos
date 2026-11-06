@@ -1,3 +1,4 @@
+import { Photoset } from "@librephotos/api-client";
 import { Group, HoverCard, SimpleGrid, Stack, Text } from "@mantine/core";
 import {
   IconFaceId as FaceId,
@@ -9,13 +10,25 @@ import {
   IconUsers as Users,
 } from "@tabler/icons-react";
 import { Trans, useTranslation } from "react-i18next";
+import { useFetchDateAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchCountStatsQuery } from "../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../api_client/stats/types";
 import { i18nResolvedLanguage } from "../i18n";
 import { formatCount } from "../util/formatCount";
 import { StatCount, StatTile, statTileFillClass } from "./StatTile";
 
-const TILE_ICON = { size: 16, stroke: 1.75 } as const;
+const TILE_ICON = { size: 18, stroke: 1.75 } as const;
+
+/**
+ * The photos the timeline shows: the server's count of visible photos (not hidden, not in the
+ * trash) still holds the archived ones, which the timeline leaves out, so "199" here read against
+ * "198 photos" there. The archived photos are the Archived page's own list, cached with it.
+ */
+function useTimelinePhotoCount(visiblePhotos: number) {
+  const { data: archivedDays } = useFetchDateAlbumsQuery({ photosetType: Photoset.ARCHIVED });
+  const archived = archivedDays?.reduce((sum, day) => sum + day.numberOfItems, 0) ?? 0;
+  return Math.max(0, visiblePhotos - archived);
+}
 
 /**
  * The library at a glance, the same tiles on the Library page and above the Statistics charts:
@@ -26,6 +39,7 @@ export function CountStats() {
   const { t } = useTranslation();
   const locale = i18nResolvedLanguage();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
+  const photos = useTimelinePhotoCount(countStats.num_photos);
   const places = countStats.num_places;
 
   return (
@@ -33,7 +47,7 @@ export function CountStats() {
       <StatTile
         icon={<Photo {...TILE_ICON} />}
         label={t("countstats.photos")}
-        value={<StatCount value={countStats.num_photos} />}
+        value={<StatCount value={photos} />}
         detail={
           <>
             / <StatCount value={countStats.num_albumdate} /> {t("countstats.days")}

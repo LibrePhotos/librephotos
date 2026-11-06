@@ -118,8 +118,8 @@ function AlbumExplore() {
     <>
       <PageHeader title={t("explore.title")} />
       <PageBody gap={0}>
-        {/* One left edge for every section, 24px between them */}
-        <Stack gap={24}>
+        {/* One left edge for every section, 32px between them */}
+        <Stack gap={32}>
           {/* My Albums - using UserAlbumCard component */}
           <div className={classes.section}>
             <AlbumSectionHeading
@@ -169,7 +169,10 @@ function AlbumExplore() {
 
           {/* Category cards: five of them, so one row on large screens, in My Albums' grid */}
           <div className={classes.section}>
-            <AlbumSectionHeading title={t("explore.collections")} />
+            <AlbumSectionHeading
+              title={t("explore.collections")} // The five cards below
+              summary={t("explore.collectionCount", { count: 5 })}
+            />
             <div className={classes.hubGrid}>
               <AlbumSection
                 title={t("sidemenu.things")}

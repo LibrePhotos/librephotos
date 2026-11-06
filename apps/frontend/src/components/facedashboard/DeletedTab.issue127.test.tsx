@@ -201,7 +201,7 @@ describe("a deleted face's menu", () => {
         pending={false}
         isScrollingFast={false}
         selectMode={false}
-        entrySquareSize={131}
+        faceSize={96}
         isSelected={false}
         handleClick={() => {}}
         handleShowClick={() => {}}

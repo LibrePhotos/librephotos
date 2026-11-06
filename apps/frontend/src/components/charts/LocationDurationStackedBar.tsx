@@ -1,5 +1,5 @@
 import { BarChart } from "@mantine/charts";
-import { Loader, Stack, Title } from "@mantine/core";
+import { Loader, Stack, Title, useComputedColorScheme } from "@mantine/core";
 import { IconMapPin } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,7 +18,12 @@ export function LocationDurationStackedBar() {
   const { t } = useTranslation();
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
 
-  const { data: chartData, series, legend } = locationTimelineChart(fetchedLocationTimeline ? locationTimeline : []);
+  const scheme = useComputedColorScheme("light");
+  const {
+    data: chartData,
+    series,
+    legend,
+  } = locationTimelineChart(fetchedLocationTimeline ? locationTimeline : [], scheme);
 
   function getTooltipContent(active?: boolean) {
     if (!active || !hoveredSegment) return null;
@@ -61,7 +66,7 @@ export function LocationDurationStackedBar() {
       {fetchedLocationTimeline && locationTimeline.length > 0 && (
         <>
           <BarChart
-            h={80}
+            h={56}
             data={chartData}
             dataKey="label"
             orientation="vertical"
@@ -76,8 +81,12 @@ export function LocationDurationStackedBar() {
             // One <Bar> per series, so the hovered segment is the series the
             // props were built for. Recharts 3 no longer passes the
             // tooltipPayload this used to read the name from.
+            // A hairline of the page between two stays, so neighbouring tints read as two places
             barProps={segment => ({
               radius: 2,
+              stroke: "var(--mantine-color-body)",
+              strokeWidth: 2,
+              strokeOpacity: 1,
               onMouseMove: () => {
                 if (segment.name !== hoveredSegment) {
                   setHoveredSegment(segment.name);
@@ -90,7 +99,7 @@ export function LocationDurationStackedBar() {
             vars={() => ({ root: { "--chart-cursor-fill": "var(--mantine-color-gray-light)" } })}
             tooltipProps={{ content: ({ active }) => getTooltipContent(active) }}
           />
-          {/* One entry per place, the places past the palette as "Other" */}
+          {/* One entry per place in the bar's order, the places past the tints as "Other" */}
           <div className={classes.legend}>
             {legend.map(entry => {
               const swatch = { backgroundColor: entry.color };

@@ -1,4 +1,5 @@
 import { Skeleton, Text } from "@mantine/core";
+import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Person } from "../../api_client/albums/hooks";
@@ -14,23 +15,33 @@ type Props = Readonly<{
   error?: ListFailure;
 }>;
 
-/** The hub row's card width: the People page's 3:4 portrait, smaller. */
-const CARD_WIDTH = 120;
-/** The row's people; "View all" opens the People page with the rest. */
-const MAX_PEOPLE = 16;
+/** The hub row's narrowest card and gap (AlbumSection.module.css .peopleGrid): the People page's 3:4 portrait, smaller. */
+const CARD_MIN = { desktop: 120, phone: 96 };
+const GAP = { desktop: 16, phone: 12 };
+
+/** How many cards of at least `min` px fit one row of `width` px, as `auto-fill` lays them out. */
+function columnsFor(width: number, min: number, gap: number): number {
+  return Math.max(1, Math.floor((width + gap) / (min + gap)));
+}
 
 /**
  * The album hub's People: the People page's 3:4 portrait cards (PersonCard), smaller and in one
- * scrolling row, so a person looks the same on both. Managing faces lives on the People page's ⋯.
+ * row of as many as fit, so a person looks the same on both and the row ends where the albums do. Managing faces lives on the People page's ⋯.
  */
 export function HubPeopleRow({ people, isLoading, error }: Props) {
   const { t } = useTranslation();
+  const { ref, width } = useElementSize();
+  const isPhone = useMediaQuery("(max-width: 47.99em)", undefined, { getInitialValueInEffect: false }) === true;
+  const min = isPhone ? CARD_MIN.phone : CARD_MIN.desktop;
+  const gap = isPhone ? GAP.phone : GAP.desktop;
+  // One row that ends on the grid's right edge; "View all" opens the People page with the rest
+  const columns = width > 0 ? columnsFor(width, min, gap) : 0;
   const count = people?.length ?? 0;
   let body: React.ReactNode;
   if (isLoading) {
     body = (
-      <div className={classes.scrollContainer}>
-        {Array.from({ length: 8 }, (_, i) => (
+      <div className={classes.peopleGrid}>
+        {Array.from({ length: columns }, (_, i) => (
           <Skeleton key={i} className={classes.personSkeleton} radius={12} />
         ))}
       </div>
@@ -45,17 +56,15 @@ export function HubPeopleRow({ people, isLoading, error }: Props) {
     );
   } else {
     body = (
-      <div className={classes.scrollContainer}>
-        {people.slice(0, MAX_PEOPLE).map(person => (
-          <div key={person.id} className={classes.personCard}>
-            <PersonCard person={person} size={CARD_WIDTH} />
-          </div>
+      <div className={classes.peopleGrid}>
+        {people.slice(0, columns).map(person => (
+          <PersonCard key={person.id} person={person} size={Math.round(width / Math.max(columns, 1))} />
         ))}
       </div>
     );
   }
   return (
-    <div className={classes.section}>
+    <div className={classes.section} ref={ref}>
       <AlbumSectionHeading
         title={t("sidemenu.people")}
         summary={isLoading ? undefined : t("explore.peopleCount", { count })}

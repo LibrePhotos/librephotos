@@ -1,0 +1,39 @@
+/*
+ * PageTabs: an underline row on a hairline, one line on every width (a phone scrolls it sideways
+ * rather than wrapping, which left the underline under the first row only).
+ */
+.list {
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::before {
+    border-bottom-width: 1px;
+  }
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 10px 12px;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  color: var(--mantine-color-dimmed);
+
+  &:hover {
+    background-color: transparent;
+    color: var(--mantine-color-text);
+  }
+
+  &[data-active] {
+    color: var(--mantine-color-text);
+    font-weight: 600;
+  }
+}
+
+.label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}

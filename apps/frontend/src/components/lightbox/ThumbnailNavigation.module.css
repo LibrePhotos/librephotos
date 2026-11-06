@@ -1,5 +1,5 @@
 /* The previous, current and next thumbnails at the bottom of the lightbox, over the photo on a dark
-   blurred pill. Hidden until the pointer moves over the stage or a key steps (data-revealed, set by
+   blurred pill. Hidden until the pointer moves near the stage's bottom or a key steps (data-revealed, set by
    ThumbnailNavigation), and kept while pointed at or focused, so a still photo has the whole stage.
    The stage is black in both colour schemes, and so is the pill. */
 .strip {

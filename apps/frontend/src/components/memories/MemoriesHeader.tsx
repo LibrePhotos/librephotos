@@ -1,16 +1,15 @@
 import { MAX_MEMORY_ITEMS } from "@librephotos/api-client";
-import { ActionIcon, Button, SegmentedControl, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconPlayerPlay as PlayerPlay } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { Segmented } from "../common/Segmented";
 import { PageHeader } from "../PageHeader";
 
 export type MemoriesView = "tiles" | "gallery";
-
-const isMemoriesView = (value: string): value is MemoriesView => value === "tiles" || value === "gallery";
 
 type Props = {
   view: MemoriesView;
@@ -46,12 +45,10 @@ export function MemoriesHeader({ view, onViewChange, onPlayAll, photoCount, capp
       subtitle={`${t("memories.subtitle")}${counts}`}
       actions={
         <>
-          <SegmentedControl
+          <Segmented<MemoriesView>
             value={view}
-            onChange={value => {
-              if (isMemoriesView(value)) onViewChange(value);
-            }}
-            data={[
+            onChange={onViewChange}
+            segments={[
               { value: "tiles", label: t("memories.tiles") },
               { value: "gallery", label: t("memories.gallery") },
             ]}

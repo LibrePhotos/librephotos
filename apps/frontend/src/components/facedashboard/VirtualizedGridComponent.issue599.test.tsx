@@ -101,7 +101,7 @@ beforeEach(async () => {
         <VirtualizedGridComponent
           containerRef={null}
           gridRef={createRef<VirtualGridHandle>()}
-          entrySquareSize={131}
+          layout={{ columns: 4, faceSize: 96 }}
           gridHeight={ROWS.length * 131}
           getCellContentsForTab={() => ROWS}
           getScrollPositions={() => []}
@@ -115,7 +115,6 @@ beforeEach(async () => {
           selectedFaces={[]}
           setSelectedFaces={() => {}}
           activeTab="inferred"
-          collapsedPersons={new Set()}
           onToggleCollapse={() => {}}
           faceActions={actions}
           pendingFaceIds={new Set([21])}

@@ -264,7 +264,7 @@ export function ContentViewer({
             className={classes.body}
           >
             <ViewerDarkScope className={classes.viewer}>
-              <div className={classes.stage}>
+              <div className={classes.stage} data-info={lightboxSidebarShow || undefined}>
                 {/* Preload images */}
                 <ImagePreloader prevSrc={prevSrcHash} mainSrc={mainSrcHash} nextSrc={nextSrcHash} />
 

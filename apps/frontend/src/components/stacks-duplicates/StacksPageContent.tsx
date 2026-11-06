@@ -51,6 +51,7 @@ import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { DisabledReason } from "../common/DisabledReason";
 import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { TabCount } from "../common/TabCount";
 import { toolbarLook } from "../common/toolbarLook";
 import { useListFailure } from "../common/useListFailure";
 import { ConfirmModal } from "../modals/ConfirmModal";
@@ -283,11 +284,7 @@ export function StacksPageContent() {
                 >
                   <Group justify="space-between" style={{ width: "100%" }}>
                     <Text>{type.label}</Text>
-                    {type.value && (
-                      <Badge size="xs" variant="light">
-                        {type.count}
-                      </Badge>
-                    )}
+                    {type.value && <TabCount count={type.count} />}
                   </Group>
                 </Menu.Item>
               ))}

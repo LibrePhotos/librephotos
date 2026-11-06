@@ -25,7 +25,7 @@ import { DeleteDuplicatesModal } from "./DeleteDuplicatesModal";
 import { DetectDuplicatesMenu } from "./DetectDuplicatesMenu";
 import { DuplicateCard } from "./DuplicateCard";
 import { DuplicateModal } from "./DuplicateModal";
-import { ALL_STATUSES, DuplicatesFilters } from "./DuplicatesFilters";
+import { ALL_STATUSES, DuplicatesFilters, type StatusOption } from "./DuplicatesFilters";
 import { useStepBackFromMissingPage } from "./useStepBackFromMissingPage";
 
 export function DuplicatesPageContent() {
@@ -150,10 +150,10 @@ export function DuplicatesPageContent() {
     ...DuplicateType.options.map(type => ({ value: type, label: t(`duplicates.types.${type}`) })),
   ];
 
-  const statusOptions = [
-    { value: "pending", label: `${t("duplicates.pending")} (${stats?.pending_duplicates ?? 0})` },
-    { value: "resolved", label: `${t("duplicates.resolved")} (${stats?.resolved_duplicates ?? 0})` },
-    { value: "dismissed", label: `${t("duplicates.dismissed")} (${stats?.dismissed_duplicates ?? 0})` },
+  const statusOptions: StatusOption[] = [
+    { value: "pending", label: t("duplicates.pending"), count: stats?.pending_duplicates },
+    { value: "resolved", label: t("duplicates.resolved"), count: stats?.resolved_duplicates },
+    { value: "dismissed", label: t("duplicates.dismissed"), count: stats?.dismissed_duplicates },
     { value: ALL_STATUSES, label: t("duplicates.all") },
   ];
   // "All" is no status, so it parses to undefined

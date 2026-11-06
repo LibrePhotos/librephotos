@@ -1,5 +1,6 @@
 import { BarChart } from "@mantine/charts";
 import { Loader, Stack, Title } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import { IconChartBar } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +8,7 @@ import { useFetchPhotoMonthCountQuery } from "../../api_client/stats/hooks";
 import { EmptyState } from "../common/EmptyState";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
-import { photoMonthChart } from "./photoMonthChart";
+import { BAR_GAP, photoMonthChart } from "./photoMonthChart";
 import type { MonthBar } from "./photoMonthChart";
 import classes from "./StatisticsCharts.module.css";
 
@@ -29,12 +30,11 @@ export function EventCountMonthGraph() {
   const monthCountsQuery = useFetchPhotoMonthCountQuery();
   const { data: photoMonthCounts, isSuccess: fetchedPhotoMonthCounts, isLoading } = monthCountsQuery;
   const listFailure = useListFailure(monthCountsQuery);
+  // The bars are months, quarters or years, whichever keeps them at least 6px wide on this width
+  const { ref: plotRef, width } = useElementSize();
 
-  const {
-    bars: chartData,
-    ticks: yearTicks,
-    yearOf,
-  } = photoMonthChart(fetchedPhotoMonthCounts && photoMonthCounts ? photoMonthCounts : []);
+  const counts = fetchedPhotoMonthCounts && photoMonthCounts ? photoMonthCounts : [];
+  const { bars: chartData, ticks: yearTicks, yearOf } = photoMonthChart(counts, width);
 
   const hasData = chartData.length > 0;
 
@@ -51,7 +51,7 @@ export function EventCountMonthGraph() {
   }
 
   return (
-    <Stack>
+    <Stack gap="sm">
       <Title order={3}>{t("sidemenu.timeline")}</Title>
       {isLoading && <Loader />}
       {listFailure && <ErrorState failure={listFailure} />}
@@ -65,27 +65,32 @@ export function EventCountMonthGraph() {
         />
       )}
       {fetchedPhotoMonthCounts && hasData && (
-        <BarChart
-          h={350}
-          data={chartData}
-          dataKey="key"
-          series={[{ name: "Photos", color: "var(--mantine-primary-color-filled)" }]}
-          // Years under the bars, horizontal hairlines behind them, nothing vertical
-          xAxisProps={{ ticks: yearTicks, interval: 0, tickFormatter: (key: string) => yearOf.get(key) ?? "" }}
-          tickLine="none"
-          gridAxis="x"
-          strokeDasharray="0"
-          gridColor="var(--mantine-color-default-border)"
-          // Half a pixel each side of a month: bars about 4px wide over 18 years, never fat on a short span
-          barChartProps={{ barCategoryGap: 0.5 }}
-          maxBarWidth={16}
-          barProps={{ radius: [2, 2, 0, 0] }}
-          withTooltip
-          tooltipAnimationDuration={200}
-          // Mantine 8.3 forwards cursorFill to the DOM (React warning); the CSS variable is the same setting
-          vars={() => ({ root: { "--chart-cursor-fill": "var(--mantine-primary-color-light)" } })}
-          tooltipProps={{ content: ({ payload }) => getTooltipContent(payload) }}
-        />
+        // Measured first, drawn once the width is known, so the bars never start as needles
+        <div ref={plotRef} className={classes.timelinePlot}>
+          {width > 0 && (
+            <BarChart
+              h="100%"
+              data={chartData}
+              dataKey="key"
+              series={[{ name: "Photos", color: "var(--mantine-primary-color-filled)" }]}
+              // Years under the bars, horizontal hairlines behind them, nothing vertical
+              xAxisProps={{ ticks: yearTicks, interval: 0, tickFormatter: (key: string) => yearOf.get(key) ?? "" }}
+              yAxisProps={{ width: 36, allowDecimals: false }}
+              tickLine="none"
+              gridAxis="x"
+              strokeDasharray="0"
+              gridColor="var(--mantine-color-default-border)"
+              barChartProps={{ barCategoryGap: BAR_GAP }}
+              maxBarWidth={28}
+              barProps={{ radius: [2, 2, 0, 0] }}
+              withTooltip
+              tooltipAnimationDuration={150}
+              // Mantine 8.3 forwards cursorFill to the DOM (React warning); the CSS variable is the same setting
+              vars={() => ({ root: { "--chart-cursor-fill": "var(--mantine-primary-color-light)" } })}
+              tooltipProps={{ content: ({ payload }) => getTooltipContent(payload) }}
+            />
+          )}
+        </div>
       )}
     </Stack>
   );

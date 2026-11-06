@@ -1,11 +1,12 @@
-import { Loader, Tabs, Text } from "@mantine/core";
+import { Box, Loader, Tabs } from "@mantine/core";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { segmentedTabsClassNames } from "../common/Segmented";
+import { TabCount } from "../common/TabCount";
 import { countFaces, type FacesTabLists } from "./facesCounters";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 import { FacesTab } from "./facesTab";
-import classes from "./TabComponent.module.css";
 
 type Props = Readonly<{
   fetchingLabeledFacesList: boolean;
@@ -16,14 +17,14 @@ type Props = Readonly<{
 }>;
 
 /**
- * A tab's face count, the faces its grid shows, dimmed after its name. Not on phones: with it the
- * four tabs no longer fit in one row there.
+ * A tab's face count, the faces its grid shows, dimmed after its name like every tab count. Not on
+ * phones: with it the four tabs no longer fit in one row there.
  */
 function CountBadge({ count }: Readonly<{ count: number }>) {
   return (
-    <Text span size="xs" className={classes.count} visibleFrom="xs">
-      {count}
-    </Text>
+    <Box component="span" visibleFrom="xs">
+      <TabCount count={count} />
+    </Box>
   );
 }
 
@@ -46,7 +47,8 @@ export function TabComponent({
       defaultValue={activeTab}
       value={activeTab}
       variant="pills"
-      classNames={{ tab: classes.tab, list: classes.list }}
+      // The shared capsule look of Segmented, kept as tabs for the hover cards and the keyboard
+      classNames={segmentedTabsClassNames}
       onChange={value => {
         navigate({ to: "/faces", search: { ...search, tab: FacesTab.safeParse(value).data } });
       }}

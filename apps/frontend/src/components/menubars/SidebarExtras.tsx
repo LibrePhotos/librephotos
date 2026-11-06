@@ -4,7 +4,9 @@ import { IconAdjustmentsHorizontal, IconCheck, IconLibraryPhoto } from "@tabler/
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 import { useFetchSharedAlbumsWithMeQuery, useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
+import { STORAGE_KEYS, useStoredState } from "../../util/storage";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import type { PinnableDestination } from "./pinnedDestinations";
 import { PINNABLE_DESTINATIONS } from "./pinnedDestinations";
@@ -53,6 +55,15 @@ function useRecentAlbums(): UserAlbumInfo[] {
   return [...(own ?? []), ...shared].sort((a, b) => b.created_on.localeCompare(a.created_on)).slice(0, RECENT_ALBUMS);
 }
 
+/** A row's on/off state: a filled check when shown in the sidebar, an empty box when not. */
+function PinState({ on }: Readonly<{ on: boolean }>) {
+  return (
+    <span className={classes.pin_state} data-on={on} aria-hidden>
+      {on && <IconCheck size={12} stroke={3} />}
+    </span>
+  );
+}
+
 type Props = Readonly<{
   pathname: string;
   pinned: readonly PinnableDestination[];
@@ -68,7 +79,9 @@ type Props = Readonly<{
 export function SidebarExtras({ pathname, pinned, activePinned, isPinned, onTogglePin }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const recentAlbums = useRecentAlbums();
+  const allRecentAlbums = useRecentAlbums();
+  const [showRecent, setShowRecent] = useStoredState(STORAGE_KEYS.sidebarRecentAlbums, z.boolean(), true);
+  const recentAlbums = showRecent ? allRecentAlbums : [];
   const go = (link: string) => void navigate({ to: link });
 
   return (
@@ -120,13 +133,13 @@ export function SidebarExtras({ pathname, pinned, activePinned, isPinned, onTogg
           })}
         </div>
       )}
-      <Menu position="right-start" width={220} closeOnItemClick={false}>
+      <Menu position="right-start" offset={8} width={240} closeOnItemClick={false}>
         <Menu.Target>
-          <UnstyledButton className={`${classes.link} ${classes.link_secondary} ${classes.customize}`}>
+          <UnstyledButton className={`${classes.link} ${classes.customize}`}>
             <span className={classes.link_icon} aria-hidden>
-              <IconAdjustmentsHorizontal size={18} stroke={1.75} />
+              <IconAdjustmentsHorizontal size={20} stroke={1.75} />
             </span>
-            <Text className={classes.link_text} size="xs">
+            <Text className={classes.link_text} size="sm">
               {t("sidemenu.customize")}
             </Text>
           </UnstyledButton>
@@ -139,12 +152,22 @@ export function SidebarExtras({ pathname, pinned, activePinned, isPinned, onTogg
               role="menuitemcheckbox"
               aria-checked={isPinned(destination.id)}
               leftSection={<destination.icon size={16} stroke={1.75} />}
-              rightSection={isPinned(destination.id) ? <IconCheck size={16} /> : null}
+              rightSection={<PinState on={isPinned(destination.id)} />}
               onClick={() => onTogglePin(destination.id)}
             >
               {t(destination.label)}
             </Menu.Item>
           ))}
+          <Menu.Divider />
+          <Menu.Item
+            role="menuitemcheckbox"
+            aria-checked={showRecent}
+            leftSection={<IconLibraryPhoto size={16} stroke={1.75} />}
+            rightSection={<PinState on={showRecent} />}
+            onClick={() => setShowRecent(previous => !previous)}
+          >
+            {t("sidemenu.recentalbums")}
+          </Menu.Item>
         </Menu.Dropdown>
       </Menu>
     </>

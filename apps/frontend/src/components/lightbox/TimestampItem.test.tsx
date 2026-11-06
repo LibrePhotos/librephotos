@@ -275,6 +275,24 @@ describe("TimestampItem removing and saving (#2280)", () => {
     expect(container.textContent).not.toContain("Set by you");
   });
 
+  it("leaves 'Set by you' to the owner's date info, beside the date, and keeps one trailing action", async () => {
+    const { container, root } = mount();
+    await act(async () => {
+      root.render(
+        <MantineProvider>
+          <TimestampItem photoDetail={SET_BY_USER} isPublic={false} dateInfo={<span data-date-info="" />} />
+        </MantineProvider>
+      );
+    });
+
+    expect(container.textContent).not.toContain("Set by you");
+    const info = defined(container.querySelector("[data-date-info]"));
+    const edit = defined(button(container, "Edit date and time"));
+    // The ⓘ follows the date; the pencil is the row's only action on the right.
+    expect(info.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(info.parentElement?.contains(edit)).toBe(false);
+  });
+
   it("keeps the editor open while the change is saved", async () => {
     updatePhoto.mockImplementation(() => {});
     const { container, root } = mount();

@@ -15,36 +15,32 @@ type Props = Readonly<{
   onToggleMap: () => void;
   /** The places of the event's photos (`eventLocationNames`); the first names the map button. */
   locationNames: string[];
-  /** The days its photos span ("Oct 17 – 18, 2026"), when they have dates. */
-  daySpan?: string | null;
-  /** The event's title: a place it already names is not repeated on the meta line. */
-  title?: string;
 }>;
 
 /**
- * Under an event's title, like the album pages: the days it spans and the places its title does
- * not name, then its people and the map chip. Nothing for an event with none of them.
+ * An event's meta line before its photo count: the days it spans and up to three places its title
+ * does not name ("Oct 17 – 18, 2026 · Sintra"). Empty parts drop out.
  */
-export function EventSubHeader({
-  people,
-  hasGPSCoordinates,
-  showMap,
-  onToggleMap,
-  locationNames,
-  daySpan,
-  title = "",
-}: Props) {
+export function eventMetaLine(daySpan: string | null, locationNames: readonly string[], title: string): string {
+  const places = locationNames.filter(name => !title.includes(name)).slice(0, 3);
+  return [daySpan, places.join(", ")].filter(Boolean).join(" · ");
+}
+
+/**
+ * Under an event's title and meta line (`eventMetaLine`), like the album pages: its people and the
+ * map chip. Nothing for an event with neither.
+ */
+export function EventSubHeader({ people, hasGPSCoordinates, showMap, onToggleMap, locationNames }: Props) {
   const { t } = useTranslation();
 
   let mapLabel = t("autoalbumgallery.showmap");
   if (showMap) mapLabel = t("autoalbumgallery.hidemap");
   else if (locationNames[0]) mapLabel = t("autoalbumgallery.showonmap", { place: locationNames[0] });
 
-  const places = locationNames.filter(name => !title.includes(name)).slice(0, 3);
   const hasRow = people.length > 0 || hasGPSCoordinates;
 
   return (
-    <CollectionMeta parts={[daySpan, places.join(", ")]}>
+    <CollectionMeta parts={[]}>
       {hasRow ? (
         <>
           {people.length > 0 && (

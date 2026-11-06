@@ -148,7 +148,8 @@ function SharedSections({
       <PublicRightsSection rights={rights} />
       {sharing.share_timestamps && <TimestampItem photoDetail={photo} isPublic />}
       {sharing.share_location && <LocationSection photoDetail={photo} mapHeight={200} isPublic />}
-      {sharing.share_camera_info && photo.camera && <CameraInfoSection photoDetail={photo} />}
+      {/* Left out by itself when the album shares none of it: a lens or an exposure alone still shows. */}
+      {sharing.share_camera_info && <CameraInfoSection photoDetail={photo} />}
       {sharing.share_captions && <Description photoDetail={photo} isPublic />}
       {sharing.share_faces && photo.people.length > 0 && (
         <PeopleSection
@@ -343,7 +344,7 @@ function OwnerSidebar({
         />
         <Stack gap="md">
           <SectionTitle>{t("lightbox.sidebar.details")}</SectionTitle>
-          <TimestampItem photoDetail={photoDetail} isPublic={false} extra={<WhyThisDate photo={photoDetail} />} />
+          <TimestampItem photoDetail={photoDetail} isPublic={false} dateInfo={<WhyThisDate photo={photoDetail} />} />
           <VersionComponent
             photoDetail={photoDetail}
             isPublic={false}

@@ -46,7 +46,8 @@ function FeatureDescription({ row, checked, parentOff }: { row: Row; checked: bo
   const off = !checked && !parentOff;
   return (
     <>
-      <Text fz="xs" c="dimmed">
+      {/* A setting's description: 13px at a reading width, as SectionNav.module.css sets Mantine's. */}
+      <Text fz={13} c="dimmed" maw="72ch">
         {t(row.description)}
         {off && ` ${t(row.off)}`}
       </Text>

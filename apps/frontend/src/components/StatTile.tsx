@@ -52,7 +52,7 @@ export function StatCount({ value, withTooltip = true }: { value: number; withTo
 }
 
 type Props = Readonly<{
-  /** A 16px icon before the label. */
+  /** An 18px icon before the label, drawn in the accent. */
   icon: ReactNode;
   label: string;
   /** The number, usually a StatCount. */
@@ -62,22 +62,22 @@ type Props = Readonly<{
 }>;
 
 /**
- * One neutral stat tile, as on the Library page and above the Statistics charts: icon and a 12px
- * dimmed label, then the number at 24px/700, so a row of them reads as one band.
+ * One stat tile, as on the Library page and above the Statistics charts: the icon in the accent and
+ * a 13px dimmed label, then the number at 28px/700, so a row of them reads as one band.
  */
 export function StatTile({ icon, label, value, detail }: Props) {
   return (
     <Paper withBorder radius="lg" px="md" py="sm" h="100%" className={classes.tile}>
-      <Group gap={6} wrap="nowrap" className={classes.label}>
-        {icon}
-        <span>{label}</span>
+      <Group gap={8} wrap="nowrap" className={classes.label}>
+        <span className={classes.icon}>{icon}</span>
+        <span className={classes.labelText}>{label}</span>
       </Group>
       <Group gap={6} align="baseline" wrap="nowrap">
         <Text span className={classes.value}>
           {value}
         </Text>
         {detail ? (
-          <Text span size="xs" c="dimmed" truncate>
+          <Text span c="dimmed" truncate className={classes.detail}>
             {detail}
           </Text>
         ) : null}

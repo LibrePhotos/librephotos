@@ -1,4 +1,4 @@
-import { Button, Checkbox, Input, Radio, Switch } from "@mantine/core";
+import { Button, Checkbox, Input, Pagination, Radio, Switch } from "@mantine/core";
 import classes from "./controlsTheme.module.css";
 
 /**
@@ -23,4 +23,9 @@ export const controlsTheme = {
   Checkbox: Checkbox.extend({ classNames: { input: classes.checkbox } }),
   Input: Input.extend({ classNames: { wrapper: classes.inputWrapper } }),
   Button: Button.extend({ classNames: { root: classes.button } }),
+  // The current page's number in the scheme's contrast colour: white on the pastel dark accent was
+  // 1.6:1.
+  Pagination: Pagination.extend({
+    vars: () => ({ root: { "--pagination-active-color": "var(--mantine-primary-color-contrast)" } }),
+  }),
 };

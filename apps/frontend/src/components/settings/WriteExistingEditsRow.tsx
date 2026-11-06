@@ -82,7 +82,8 @@ export function WriteExistingEditsRow({ saved, edited }: Props) {
     <Flex className={classes.row} justify="space-between" align="center" gap="md" wrap="wrap">
       <Stack gap={2} flex="1 1 260px">
         <Text size="sm">{t("settings.writeexisting.title")}</Text>
-        <Text size="xs" c="dimmed">
+        {/* A setting's description: 13px at a reading width, as SectionNav.module.css sets Mantine's. */}
+        <Text fz={13} c="dimmed" maw="72ch">
           {description}
         </Text>
         {job && !job.finished ? <RunningLine job={job} /> : null}

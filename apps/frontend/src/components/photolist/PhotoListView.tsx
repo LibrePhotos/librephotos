@@ -14,7 +14,7 @@ import type { PigHandle, PigVisibleGroup } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
-import { DefaultHeader } from "./DefaultHeader";
+import { DefaultHeader, type CollectionHeader } from "./DefaultHeader";
 import { MediaTypeHint } from "./MediaTypeHint";
 import { PhotoListDialogs } from "./PhotoListDialogs";
 import { PhotoListFallback } from "./PhotoListFallback";
@@ -85,7 +85,6 @@ type Props = Readonly<{
   idx2hash: PigPhoto[];
   selectable: boolean;
   isPublic?: boolean;
-  isAlbumPubliclyShared?: boolean;
   publicAlbumSlug?: string;
   numberOfItems?: number;
   // Pig reports the groups (date views) or tiles (flat views) on screen, so
@@ -142,6 +141,8 @@ type Props = Readonly<{
   onSlideshowClose?: () => void;
   // An event's days, which always read oldest first: the display menu shows the order fixed (#2712).
   eventOrder?: boolean;
+  // An album, event, place or thing: the larger title and one "dates · N photos" meta line.
+  collection?: CollectionHeader;
 }>;
 
 // An admin's empty timeline before a scan directory is set: DefaultHeader shows the setup
@@ -184,7 +185,6 @@ function PhotoListViewComponent({
   idx2hash,
   selectable,
   isPublic = false,
-  isAlbumPubliclyShared = false,
   publicAlbumSlug,
   numberOfItems = 0,
   updateGroups,
@@ -212,6 +212,7 @@ function PhotoListViewComponent({
   slideshow = false,
   onSlideshowClose,
   eventOrder,
+  collection,
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
@@ -308,6 +309,7 @@ function PhotoListViewComponent({
                 titleOrder={titleOrder}
                 filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
                 oldestFirst={showsOldestFirst(photoOrder, preferences.photoOrder)}
+                collection={collection}
                 actions={
                   isFirstTimeSetup ? undefined : (
                     <PhotoListToolbar
@@ -316,8 +318,6 @@ function PhotoListViewComponent({
                       listControls={!isLoading && canSelect}
                       hasPhotos={getNumPhotos() > 0}
                       mediaFilter={mediaType !== undefined}
-                      publicLink={isAlbumPubliclyShared && isUserAlbum}
-                      onOpenSharing={() => dialogs.albumShare.open()}
                       preferences={preferences}
                       photoOrder={photoOrder}
                       selectMode={

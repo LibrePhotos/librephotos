@@ -4,9 +4,8 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
 import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
 import type { ScrollerData } from "../../scrollscrubber/scrollScrubberTypes";
 import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
-import { buildFaceGridRows, FACE_CELL, faceRowHeights, layoutWidthOf } from "../faceGridRows";
+import { buildFaceGridRows, faceGridLayout, faceRowHeights, layoutWidthOf } from "../faceGridRows";
 import { FacesTab } from "../facesTab";
-import { needsCoverPage } from "../personCover";
 import { PAGE_SIZE } from "./useFaceDataFetching";
 import type { FaceGroupPage } from "./useFaceDataFetching";
 
@@ -44,15 +43,12 @@ export function isLoadedFace(cell: GridCell): cell is FaceCell {
 type RenderedSection = SectionRenderedParams;
 
 /**
- * The page (of its person's faces) that a rendered cell needs: a placeholder face its own page, a
- * collapsed cluster the first page, for its cover face (#860).
+ * The page (of its person's faces) that a rendered placeholder face needs. A folded group's tile
+ * shows its first faces, so it pages in its first page like any other face (#860).
  */
-function pageNeededBy(cell: GridCell, collapsed: ReadonlySet<number>): { page: number; person: number } | null {
-  if (isPersonCell(cell)) {
-    return collapsed.has(cell.id) && needsCoverPage(cell) ? { page: 1, person: cell.id } : null;
-  }
+function pageNeededBy(cell: GridCell): { page: number; person: number } | null {
   // fetchIncompleteFaces gives each placeholder its person's id, and its index as its id
-  if (!cell.isTemp || typeof cell.person !== "number") return null;
+  if (isPersonCell(cell) || !cell.isTemp || typeof cell.person !== "number") return null;
   return { page: Math.ceil((cell.id + 1) / PAGE_SIZE), person: cell.person };
 }
 
@@ -73,8 +69,8 @@ export function useVirtualizedGrid(
   collapsedPersons: Record<FacesTab, ReadonlySet<number>>
 ) {
   const gridRef = useRef<VirtualGridHandle>(null);
-  // The cards follow the grid's measured width
-  const layoutWidth = layoutWidthOf(width);
+  // The columns and the face size follow the grid's measured width
+  const layout = useMemo(() => faceGridLayout(layoutWidthOf(width)), [width]);
 
   // Handle scroll from scrubber
   const handleScrubberScroll = useCallback(
@@ -90,16 +86,12 @@ export function useVirtualizedGrid(
   // Calculate cell contents for each tab - MEMOIZED to prevent recalculation on every render
   const cellContents = useMemo(
     (): Record<FacesTab, GridRows> => ({
-      [FacesTab.enum.labeled]: buildFaceGridRows(lists.labeled, layoutWidth, collapsedPersons[FacesTab.enum.labeled]),
-      [FacesTab.enum.inferred]: buildFaceGridRows(
-        lists.inferred,
-        layoutWidth,
-        collapsedPersons[FacesTab.enum.inferred]
-      ),
-      [FacesTab.enum.unknown]: buildFaceGridRows(lists.unknown, layoutWidth, collapsedPersons[FacesTab.enum.unknown]),
-      [FacesTab.enum.deleted]: buildFaceGridRows(lists.deleted, layoutWidth, collapsedPersons[FacesTab.enum.deleted]),
+      [FacesTab.enum.labeled]: buildFaceGridRows(lists.labeled, layout, collapsedPersons[FacesTab.enum.labeled]),
+      [FacesTab.enum.inferred]: buildFaceGridRows(lists.inferred, layout, collapsedPersons[FacesTab.enum.inferred]),
+      [FacesTab.enum.unknown]: buildFaceGridRows(lists.unknown, layout, collapsedPersons[FacesTab.enum.unknown]),
+      [FacesTab.enum.deleted]: buildFaceGridRows(lists.deleted, layout, collapsedPersons[FacesTab.enum.deleted]),
     }),
-    [lists.labeled, lists.inferred, lists.unknown, lists.deleted, layoutWidth, collapsedPersons]
+    [lists.labeled, lists.inferred, lists.unknown, lists.deleted, layout, collapsedPersons]
   );
 
   // Get cell contents for the active tab - stable reference due to memoized cellContents
@@ -107,7 +99,7 @@ export function useVirtualizedGrid(
 
   // Where each row of the active tab starts, and the whole grid's height
   const rowOffsets = useMemo(() => {
-    const heights = faceRowHeights(cellContents[activeTab], collapsedPersons[activeTab]);
+    const heights = faceRowHeights(cellContents[activeTab], layout);
     const offsets: number[] = [];
     let top = 0;
     for (const height of heights) {
@@ -115,7 +107,7 @@ export function useVirtualizedGrid(
       top += height;
     }
     return { offsets, total: top };
-  }, [cellContents, activeTab, collapsedPersons]);
+  }, [cellContents, activeTab, layout]);
   const gridHeight = rowOffsets.total;
 
   // Generate scroll positions for the scrubber
@@ -138,7 +130,7 @@ export function useVirtualizedGrid(
       const sectionCells = flatten<GridCell>(cells.slice(rowOverscanStartIndex, rowOverscanStopIndex + 1));
 
       const relevantInfos = sectionCells.flatMap(cell => {
-        const needed = pageNeededBy(cell, collapsedPersons[activeTab]);
+        const needed = pageNeededBy(cell);
         return needed
           ? [
               {
@@ -154,7 +146,7 @@ export function useVirtualizedGrid(
 
       onSectionChange(uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
     },
-    [activeTab, analysisMethod, collapsedPersons, getCellContentsForTab, onSectionChange]
+    [activeTab, analysisMethod, getCellContentsForTab, onSectionChange]
   );
 
   // Handle section rendering and detect visible cells
@@ -196,7 +188,7 @@ export function useVirtualizedGrid(
 
   return {
     gridRef,
-    entrySquareSize: FACE_CELL,
+    layout,
     gridHeight,
     getCellContentsForTab,
     getFlattenedCells,

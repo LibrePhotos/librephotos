@@ -21,6 +21,7 @@ import { DisabledReason } from "../common/DisabledReason";
 import { toolbarLook } from "../common/toolbarLook";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { ConfidenceLegend } from "./ConfidenceLegend";
+import { TILE_FACES } from "./faceGridRows";
 import { FacesFilterPopover } from "./FacesFilterPopover";
 import { FacesSortMenu } from "./FacesSortMenu";
 import classes from "./FacesToolbar.module.css";
@@ -182,7 +183,7 @@ export function HeaderButtons({
           </Button>
         )}
       </Tooltip>
-      {/* The rarely used tools: fold every group, and what the dots on a suggestion mean */}
+      {/* The rarely used tools: fold every group, and what a faded suggestion means */}
       <Menu position="bottom-end" width={260}>
         <Menu.Target>
           <ActionIcon {...toolbarLook()} size={TOOLBAR_ACTION_SIZE} aria-label={t("moreactions")}>
@@ -190,7 +191,10 @@ export function HeaderButtons({
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>
-          <DisabledReason reason={!canCollapse && t("facesdashboard.nogroups")} position="left">
+          <DisabledReason
+            reason={!canCollapse && t("facesdashboard.nofoldablegroups", { number: TILE_FACES })}
+            position="left"
+          >
             <Menu.Item
               leftSection={allCollapsed ? <ChevronsDown size={ICON_SIZE.menu} /> : <ChevronsUp size={ICON_SIZE.menu} />}
               onClick={toggleAllCollapsed}
@@ -198,8 +202,8 @@ export function HeaderButtons({
               {collapseLabel}
             </Menu.Item>
           </DisabledReason>
-          {/* The dots only mark suggestions */}
-          {(activeTab === "inferred" || activeTab === "unknown") && (
+          {/* How sure a suggestion is only means something for a suggestion */}
+          {activeTab === "inferred" && (
             <>
               <Menu.Divider />
               <ConfidenceLegend />

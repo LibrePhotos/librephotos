@@ -21,13 +21,20 @@ export type ThumbnailNavigationProps = {
 const THUMB = 56;
 /** How long the strip stays after the pointer stops or a key steps. */
 const REVEAL_MS = 2500;
+/**
+ * How far above the stage's bottom edge a moving pointer shows the strip (px): the strip's own
+ * 80px and some approach. A pointer on the toolbar or the photo's middle leaves the whole photo
+ * visible, in the plain view and beside the info panel alike.
+ */
+const REVEAL_BAND = 160;
 
 /** The keys that step to another photo: stepping shows where you are. */
 const STEP_KEYS = new Set([PREVIOUS_KEY, NEXT_KEY]);
 
 /**
- * Whether the strip shows: for a while after the pointer moves over the stage (the strip's parent)
- * or an arrow key steps, so a still photo has the whole stage. The strip's own :hover and
+ * Whether the strip shows: for a while after the pointer moves over the lower band of the stage
+ * (the strip's parent, REVEAL_BAND) or an arrow key steps, so a still photo has the whole stage
+ * and the strip never covers it while the toolbar is used. The strip's own :hover and
  * :focus-within keep it while it is used (the CSS module).
  */
 function useReveal(stripRef: React.RefObject<HTMLDivElement | null>) {
@@ -43,10 +50,13 @@ function useReveal(stripRef: React.RefObject<HTMLDivElement | null>) {
       if (STEP_KEYS.has(event.key)) reveal();
     };
     const stage = stripRef.current?.parentElement;
-    stage?.addEventListener("pointermove", reveal, { passive: true });
+    const onPointerMove = (event: PointerEvent) => {
+      if (stage && event.clientY >= stage.getBoundingClientRect().bottom - REVEAL_BAND) reveal();
+    };
+    stage?.addEventListener("pointermove", onPointerMove, { passive: true });
     document.addEventListener("keydown", onKey);
     return () => {
-      stage?.removeEventListener("pointermove", reveal);
+      stage?.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("keydown", onKey);
       clearTimeout(timer);
     };
@@ -56,7 +66,7 @@ function useReveal(stripRef: React.RefObject<HTMLDivElement | null>) {
 
 /**
  * The previous, current and next photos at the bottom of the lightbox, over the photo, shown only
- * while the pointer moves or the keys step (useReveal). Hidden on a touch screen and a phone, where
+ * while the pointer moves near the bottom or the keys step (useReveal). Hidden on a touch screen and a phone, where
  * a swipe steps.
  */
 export function ThumbnailNavigation({

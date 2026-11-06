@@ -1,9 +1,6 @@
-import { ActionIcon, Group, Tooltip } from "@mantine/core";
-import { IconLink } from "@tabler/icons-react";
+import { Group } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
-import { toolbarLook } from "../common/toolbarLook";
 import { HeaderActionsMenu } from "./HeaderActionsMenu";
 import { MediaTypeSelector } from "./MediaTypeSelector";
 import { PhotoListDisplayOptions } from "./PhotoListDisplayOptions";
@@ -24,9 +21,6 @@ type Props = Readonly<{
   hasPhotos: boolean;
   /** The page filters by media type (PhotoListView's `mediaType` is set). */
   mediaFilter: boolean;
-  /** A user album with a public link: a button opens its sharing dialog. */
-  publicLink: boolean;
-  onOpenSharing: () => void;
   preferences: ReturnType<typeof usePhotoListPreferences>;
   /** On a list of days: they follow the user's photo order, or always read oldest first (events). */
   photoOrder?: "setting" | "events";
@@ -58,7 +52,7 @@ function DisplayOptions({ preferences, photoOrder }: Readonly<Pick<Props, "prefe
 
 /**
  * The right-hand side of a photo list's header, in the order every page header keeps: the
- * media-type dropdown, the page's Filter, a public album's link, Select, then the ⋯ holding the
+ * media-type dropdown, the page's Filter, Select, then the ⋯ holding the
  * page's actions and "View options…" (the display options, so there is no second "adjust" icon
  * beside a Filter).
  *
@@ -73,8 +67,6 @@ export function PhotoListToolbar({
   listControls,
   hasPhotos,
   mediaFilter,
-  publicLink,
-  onOpenSharing,
   preferences,
   photoOrder,
   selectMode,
@@ -90,20 +82,6 @@ export function PhotoListToolbar({
           filter yields no photos, so the user is never trapped. */}
       {listControls && mediaFilter && <MediaTypeSelector />}
       {headerActions}
-      {withPhotos && publicLink && (
-        // A phone keeps two icons beside the ⋯: the album's ⋯ shares it there
-        <Tooltip label={t("sidemenu.sharing")} position="bottom">
-          <ActionIcon
-            {...toolbarLook()}
-            visibleFrom="sm"
-            size={TOOLBAR_ACTION_SIZE}
-            aria-label={t("sidemenu.sharing")}
-            onClick={onOpenSharing}
-          >
-            <IconLink size={ICON_SIZE.toolbar} />
-          </ActionIcon>
-        </Tooltip>
-      )}
       {withPhotos && selectMode && <SelectModeButton {...selectMode} />}
       <ViewOptionsContext
         value={withPhotos ? <DisplayOptions preferences={preferences} photoOrder={photoOrder} /> : null}

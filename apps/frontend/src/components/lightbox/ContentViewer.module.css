@@ -28,6 +28,18 @@
   overflow: hidden;
 }
 
+/* A phone with the info sheet open (65dvh, Sidebar.module.css): the photo moves into the space
+   above the sheet rather than staying under it, as Google Photos lifts it. */
+@media (max-width: 61.99em) {
+  .stage[data-info] {
+    flex: none;
+    width: 100%;
+    height: 35dvh;
+    /* The photo's height (MediaDisplay) follows the stage. */
+    --lightbox-media-height: 35dvh;
+  }
+}
+
 .media {
   position: absolute;
   inset: 0;
