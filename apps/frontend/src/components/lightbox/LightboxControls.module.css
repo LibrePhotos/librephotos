@@ -1,15 +1,17 @@
-/* The toolbar floats over the top of the photo: back on the left, the actions on the right, on a
-   soft scrim so white icons read over a bright sky. Only the buttons take the pointer; a drag
-   anywhere else still swipes or pans the photo. */
+/* The toolbar over the top of the stage: back on the left, the photo's date and place in the middle,
+   the actions on the right, on a soft scrim so white icons read over a bright sky where the photo
+   runs under it (a touch screen). The side columns share the free width, so the title stays centred
+   until one of them needs more. Only the buttons take the pointer; a drag anywhere else still
+   swipes or pans the photo. */
 .bar {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 5;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  align-items: start;
   gap: 8px;
   height: 96px;
   padding: 8px 8px 0;
@@ -21,11 +23,71 @@
   pointer-events: auto;
 }
 
+/* Back, in the first column */
+.bar > :first-child {
+  grid-column: 1;
+  justify-self: start;
+}
+
 .actions {
+  grid-column: 3;
+  justify-self: end;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 2px;
   min-width: 0;
+}
+
+/* The centred title: the date in white, place and position dimmed under it, each cut short with an
+   ellipsis rather than pushing into the buttons. It takes no pointer, so a drag over it still
+   swipes the photo. */
+.title {
+  grid-column: 2;
+  min-width: 0;
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  color: var(--mantine-color-white);
+}
+
+.bar > .title {
+  pointer-events: none;
+}
+
+.titleDate,
+.titleMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleDate {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.titleMeta {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--app-scrim-white-80);
+}
+
+.titlePlace {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titlePosition {
+  flex: none;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Every toolbar button: a white icon in a 40px round hit area with a light tint on hover. Nested

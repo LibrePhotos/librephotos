@@ -1,5 +1,5 @@
 import { ActionIcon, Box, Menu, SegmentedControl, Slider, Stack, Switch, Text, Tooltip } from "@mantine/core";
-import { IconSettings } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal } from "@tabler/icons-react";
 import type React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
@@ -56,7 +56,7 @@ export function PhotoListDisplayMenu({
             size={TOOLBAR_ACTION_SIZE}
             aria-label={t("photodisplay.settings")}
           >
-            <IconSettings size={ICON_SIZE.toolbar} />
+            <IconAdjustmentsHorizontal size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Tooltip>
       </Menu.Target>

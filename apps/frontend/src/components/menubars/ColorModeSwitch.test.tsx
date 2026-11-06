@@ -57,20 +57,18 @@ afterEach(async () => {
 });
 
 describe("shell colour scheme on the default 'auto' setting", () => {
-  it("shows the white logo and the dark state when the OS is dark", async () => {
+  it("shows the dark state when the OS is dark", async () => {
     mockOsScheme(true);
     await render();
 
-    expect(container.querySelector("img")?.getAttribute("src")).toBe("/logo-white.png");
     expect(container.querySelector(".tabler-icon-moon")).not.toBeNull();
     expect(container.querySelector(".tabler-icon-sun")).toBeNull();
   });
 
-  it("shows the dark logo and the light state when the OS is light", async () => {
+  it("shows the light state when the OS is light", async () => {
     mockOsScheme(false);
     await render();
 
-    expect(container.querySelector("img")?.getAttribute("src")).toBe("/logo.png");
     expect(container.querySelector(".tabler-icon-sun")).not.toBeNull();
   });
 
@@ -78,9 +76,9 @@ describe("shell colour scheme on the default 'auto' setting", () => {
     mockOsScheme(false);
     await render();
 
-    // The wordmark names the link; the logo beside it is decorative.
+    // The wordmark names the link; the accent mark beside it is decorative (one mark in both schemes).
     expect(container.querySelector("a")?.textContent).toBe("LibrePhotos");
-    expect(container.querySelector("img")?.getAttribute("alt")).toBe("");
+    expect(container.querySelector("a [aria-hidden]")).not.toBeNull();
     expect(container.querySelector("button")?.getAttribute("aria-label")).toBe("Toggle color scheme");
   });
 });

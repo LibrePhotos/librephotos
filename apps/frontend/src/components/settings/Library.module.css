@@ -1,0 +1,6 @@
+/* "View statistics ›" in the Library page header: the link and its chevron on one line */
+.statisticsLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}

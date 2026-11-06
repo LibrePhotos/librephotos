@@ -16,8 +16,12 @@ import { useZoomOriginal } from "./useZoomOriginal";
 import { VideoPlayer } from "./VideoPlayer";
 import { VideoStartContext } from "./videoStart";
 
-/** The lightbox's photo fills the stage; the toolbar and the strip float over it. */
-const LIGHTBOX_PHOTO_HEIGHT = "100dvh";
+/**
+ * The lightbox's photo fills the area the stage leaves it: the whole window on a touch screen, where
+ * the toolbar floats over it, and between the toolbar and the thumbnail strip elsewhere
+ * (`--lightbox-media-height`, ContentViewer.module.css), so neither covers the photo.
+ */
+const LIGHTBOX_PHOTO_HEIGHT = "var(--lightbox-media-height, 100dvh)";
 // A video's native seek bar is at its bottom edge and the toolbar over its top, so the video
 // stops short of both: 64px for the toolbar, 96px for the thumbnail strip.
 const LIGHTBOX_VIDEO_HEIGHT = "calc(100dvh - 160px)";
@@ -28,7 +32,7 @@ const LIGHTBOX_VIDEO_HEIGHT = "calc(100dvh - 160px)";
  */
 const PAGE_MEDIA_MAX_HEIGHT = "var(--page-media-max-height, 70vh)";
 /** The tallest a photo gets: the page's mat, or the whole stage in the lightbox. */
-const PHOTO_MAX_HEIGHT = "var(--page-media-max-height, 100dvh)";
+const PHOTO_MAX_HEIGHT = `var(--page-media-max-height, ${LIGHTBOX_PHOTO_HEIGHT})`;
 
 /**
  * What MediaDisplay reads from the photo's details. The neighbouring slides and

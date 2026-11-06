@@ -1,5 +1,5 @@
 /**
- * The Sharing overview. Its Public Links row (#2241): photo share links and public photos had a
+ * The Sharing overview. Its Public links row (#2241): photo share links and public photos had a
  * cover and nothing else, so they were shorter than the album cards beside them and did not say
  * what they were. Every card now has a caption: "Share link" and when it was made, "Public photo"
  * and when it was taken. The other sections keep their previews, placeholders and empty notes.
@@ -208,12 +208,12 @@ function cardsOf(title: string): HTMLAnchorElement[] {
   return Array.from(sectionOf(title).querySelectorAll("a")).filter(link => !link.querySelector("h4"));
 }
 
-const publicLinkCards = () => cardsOf("Public Links");
+const publicLinkCards = () => cardsOf("Public links");
 
 /** A card's caption lines, without the cover. */
 const captionOf = (card: HTMLElement) => Array.from(card.querySelectorAll("p"), line => line.textContent);
 
-describe("the Sharing overview's Public Links row (#2241)", () => {
+describe("the Sharing overview's Public links row (#2241)", () => {
   it("gives a photo share link card the 'Share link' caption and its age", async () => {
     await render();
 
@@ -234,7 +234,7 @@ describe("the Sharing overview's Public Links row (#2241)", () => {
   it("keeps the album card's title and photo count", async () => {
     await render();
 
-    expect(captionOf(defined(publicLinkCards()[0]))).toEqual(["Porto 2025", "4 Photos"]);
+    expect(captionOf(defined(publicLinkCards()[0]))).toEqual(["Porto 2025", "4 photos"]);
   });
 
   it("gives every card in the row a caption", async () => {
@@ -255,7 +255,7 @@ describe("the Sharing overview's Public Links row (#2241)", () => {
     const publicPhotoCards = publicLinkCards().filter(card => captionOf(card)[0] === "Public photo");
     expect(publicPhotoCards).toHaveLength(2);
     // 9 public photos and 1 share link; 1 public album
-    expect(sectionOf("Public Links").textContent).toContain("10 photos, 1 album");
+    expect(sectionOf("Public links").textContent).toContain("10 photos, 1 album");
   });
 
   it("counts public photos alone as public links", async () => {
@@ -264,13 +264,13 @@ describe("the Sharing overview's Public Links row (#2241)", () => {
     stubs.publicPhotos = publicPage(3, [photo("p1", null)]);
     await render();
 
-    expect(sectionOf("Public Links").textContent).toContain("3 photos, 0 albums");
+    expect(sectionOf("Public links").textContent).toContain("3 photos, 0 albums");
     expect(document.body.textContent).not.toContain("You haven't made anything public via link yet");
   });
 
   it("opens the share dialog of a public album from its card", async () => {
     await render();
-    const button = sectionOf("Public Links").querySelector<HTMLButtonElement>('button[aria-label^="Album actions"]');
+    const button = sectionOf("Public links").querySelector<HTMLButtonElement>('button[aria-label^="Album actions"]');
     await act(async () => defined(button, "the album's menu button").click());
     const item = Array.from(document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
       element => element.textContent === "Sharing"
@@ -313,7 +313,11 @@ describe("the Sharing overview's other sections", () => {
     const text = document.body.textContent;
     expect(text).toContain("No one has shared anything with you yet");
     expect(text).toContain("You haven't made anything public via link yet");
-    expect(sectionOf("Public photos").textContent).toContain("0 users");
+    expect(text).toContain("No users with public photos");
+    // An empty section is one row: no heading link with a "View all" into an empty page
+    const headingLinks = Array.from(document.body.querySelectorAll("a h4"), heading => heading.textContent);
+    expect(headingLinks).not.toContain("Public photos");
+    expect(headingLinks).not.toContain("Shared with you");
   });
 
   it("shows placeholders, not empty notes, while loading", async () => {

@@ -14,6 +14,8 @@ type Props = Readonly<{
   // 2 for a header nested under its page's own PageHeader (a photo list inside a tab), so the
   // page keeps one h1. It looks the same either way.
   titleOrder?: 1 | 2;
+  // Before the title and subtitle, centred on them: a person's face.
+  leading?: ReactNode;
 }>;
 
 /**
@@ -22,21 +24,31 @@ type Props = Readonly<{
  * size on every page, so switching pages does not make the header jump, and its left edge is the
  * content's (PAGE_GUTTER).
  */
-export function PageHeader({ title, subtitle, actions, loading = false, titleOrder = 1 }: Props) {
+export function PageHeader({ title, subtitle, actions, loading = false, titleOrder = 1, leading }: Props) {
+  const text = (
+    <Stack gap={0} className={classes.text}>
+      <Title order={titleOrder} size="h2" ta="left" className={classes.title}>
+        {title}
+        {loading ? <Loader size={18} className={classes.loader} /> : null}
+      </Title>
+      {subtitle ? (
+        // A div, not Text: callers may put block content (the photo counts) in it
+        <Text component="div" c="dimmed" size="sm" className={classes.subtitle}>
+          {subtitle}
+        </Text>
+      ) : null}
+    </Stack>
+  );
   return (
     <Group justify="space-between" align="center" gap="xs" px={PAGE_GUTTER_PX} className={classes.root}>
-      <Stack gap={0} className={classes.text}>
-        <Title order={titleOrder} size="h2" ta="left" className={classes.title}>
-          {title}
-          {loading ? <Loader size={18} className={classes.loader} /> : null}
-        </Title>
-        {subtitle ? (
-          // A div, not Text: callers may put block content (the photo counts) in it
-          <Text component="div" c="dimmed" size="sm" className={classes.subtitle}>
-            {subtitle}
-          </Text>
-        ) : null}
-      </Stack>
+      {leading ? (
+        <Group gap="md" wrap="nowrap" className={classes.text}>
+          {leading}
+          {text}
+        </Group>
+      ) : (
+        text
+      )}
       {actions ? (
         <Group gap={4} justify="flex-end" className={classes.actions}>
           {actions}

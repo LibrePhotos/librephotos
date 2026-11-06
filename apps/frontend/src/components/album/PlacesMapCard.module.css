@@ -1,8 +1,10 @@
-/* The map fills the card (CollectionCard) like a cover; the title sits on it */
+/* The map fills the card (CollectionCard) like a cover; the title sits on it. Its own stacking
+   context keeps MapLibre's layered canvas and controls under the card's gradient and title. */
 .mapContainer {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  isolation: isolate;
 }
 
 /* While the places load: the card's 4:3 shape */

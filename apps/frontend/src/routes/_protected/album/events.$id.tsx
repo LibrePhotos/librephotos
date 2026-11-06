@@ -79,7 +79,7 @@ function AlbumAutoGalleryView() {
             />
           ) : null
         }
-        headerActions={
+        headerMenu={
           <EventHeaderMenu
             event={{ id: String(album.id), title, coverPhoto: album.cover_photo ?? null }}
             photos={gridPhotos}

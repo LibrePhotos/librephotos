@@ -3,20 +3,19 @@ import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLink, IconShare } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { DateTime } from "luxon";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
 import { useFetchMyPublicPhotosQuery, useFetchPhotoSharesQuery } from "../../api_client/photos/hooks";
 import { ICON_SIZE } from "../../uiConstants";
-import { parseInstant, parsePhotoTimestamp } from "../../util/dateUtils";
+import { parseInstant } from "../../util/dateUtils";
 import { ROW_CARD_SIZE } from "../album/AlbumSection";
 import classes from "../album/AlbumSection.module.css";
 import { collectionCardImageClass } from "../common/CollectionCard";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import { Tile } from "../Tile";
 import { ModalAlbumShare } from "./ModalAlbumShare";
-import { AlbumPreviewCard, PhotoLinkCard, SharingSectionHeading } from "./SharingPreviewCards";
+import { AlbumPreviewCard, PhotoLinkCard, photoTakenDate } from "./SharingPreviewCards";
 import { itemSummary, SharingPreviewSection } from "./SharingPreviewSection";
 
 const PREVIEW_SIZE = 6;
@@ -24,16 +23,6 @@ const PREVIEW_SIZE = 6;
 /** When a photo link was made, relative to now in the UI language ("3 days ago"). */
 function shareLinkAge(share: Pick<PhotoShareLink, "created_at">): string {
   return parseInstant(share.created_at).toRelative() ?? "";
-}
-
-/**
- * When a public photo was taken, as a date in the UI language. A photo is made public without a
- * timestamp of its own, so its own date is what tells two public photos apart.
- */
-function publicPhotoDate(photo: Pick<PigPhoto, "date">): string {
-  if (!photo.date) return "";
-  const taken = parsePhotoTimestamp(photo.date);
-  return taken.isValid ? taken.toLocaleString(DateTime.DATE_MED) : "";
 }
 
 type RowProps = Readonly<{
@@ -83,7 +72,7 @@ function PublicLinksRow({ albums, photoShares, publicPhotos, onShareAlbum }: Row
         <PhotoLinkCard
           key={photo.id}
           title={t("sharing.publicPhoto")}
-          detail={publicPhotoDate(photo)}
+          detail={photoTakenDate(photo)}
           media={
             <Tile
               video={photo.type === "video"}
@@ -120,15 +109,10 @@ export function PublicLinksSection() {
   return (
     <>
       <SharingPreviewSection
-        heading={
-          <Link to="/sharing/links" className={`${classes.headerLeft} ${classes.headerReset}`}>
-            <SharingSectionHeading
-              icon={<IconLink size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
-              title={t("sharing.publicLinks")}
-              summary={itemSummary(t, photoCount, publicAlbums.length)}
-            />
-          </Link>
-        }
+        icon={<IconLink size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
+        title={t("sharing.publicLinks")}
+        summary={itemSummary(t, photoCount, publicAlbums.length)}
+        renderLink={props => <Link to="/sharing/links" {...props} />}
         loading={isLoadingUserAlbums || isLoadingPublicPhotos || isLoadingPhotoShares}
         emptyText={photoCount + publicAlbums.length === 0 ? t("sharing.noPublicLinks") : null}
       >

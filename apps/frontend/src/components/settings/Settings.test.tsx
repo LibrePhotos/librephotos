@@ -2,7 +2,7 @@
  * The Settings page no longer offers the two face confidence inputs (#2196):
  * nothing on the server read them. The face options card stays.
  *
- * The Caption Context card reads its title and main switch from the
+ * The Caption context card reads its title and main switch from the
  * settings.captioncontext* keys (#2219), so translations made for the old
  * "Large Language Model" wording no longer show up there.
  *
@@ -137,8 +137,8 @@ describe("Settings section anchors", () => {
 
 describe("Settings face options", () => {
   it("still renders the face options card", () => {
-    expect(container.textContent).toContain("Minimum Samples");
-    expect(container.textContent).toContain("Cluster Selection Epsilon");
+    expect(container.textContent).toContain("Minimum samples");
+    expect(container.textContent).toContain("Cluster selection epsilon");
   });
 
   it("no longer offers the inferred faces confidence input", () => {
@@ -153,7 +153,7 @@ describe("Settings face options", () => {
 
 describe("Settings caption context", () => {
   it("labels the card and its main switch with the caption context strings", () => {
-    expect(container.textContent).toContain("Caption Context");
+    expect(container.textContent).toContain("Caption context");
     expect(container.textContent).toContain("Tell the captioning model what LibrePhotos knows about a photo");
     expect(container.textContent).not.toContain("settings.");
   });
@@ -251,7 +251,7 @@ describe("Settings public sharing (#2273)", () => {
       element => element.textContent
     );
     expect(descriptions).toEqual([
-      "Only the people you named. Unnamed faces and suggestions are never shown. Public links use the switches under Public Sharing Defaults.",
+      "Only the people you named. Unnamed faces and suggestions are never shown. Public links use the switches under Public sharing defaults.",
       "Show when photos were taken",
       "Show where photos were taken",
       "Show camera make, model, and settings",

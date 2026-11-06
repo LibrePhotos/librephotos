@@ -34,7 +34,9 @@
   flex-shrink: 0;
 }
 
+/* The date never gives way: on a narrow day sharing a line, the place is cut instead. */
 .date {
+  flex-shrink: 0;
   font-weight: 600;
   text-align: right;
   min-width: 0;
@@ -142,19 +144,13 @@
     justify-content: flex-end;
   }
 
+  /* Each as wide as its text; on a narrow day sharing a line the place is cut, never the date. */
   .date {
-    flex: inherit;
+    flex: none;
   }
 
   .location {
-    flex: inherit;
-  }
-
-  .leftAligned .date,
-  .leftAligned .location,
-  .rightAligned .date,
-  .rightAligned .location {
-    flex: inherit;
+    flex: 0 1 auto;
   }
 
   /* For right alignment on large screens, adjust margins */

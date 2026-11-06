@@ -80,7 +80,7 @@ describe("the Folders page", () => {
     expect(container.querySelector("h3")?.textContent).toBe("No folders with photos");
   });
 
-  it("says 1 Photo, not 1 Photos, under a folder of one", async () => {
+  it("says 1 photo, not 1 photos, under a folder of one", async () => {
     stubs.folders = {
       subfolders: [
         { name: "single", path: "/photos/single", photo_count: 1 },
@@ -91,9 +91,9 @@ describe("the Folders page", () => {
     };
     await renderPage();
 
-    expect(container.textContent).toContain("1 Photo");
-    expect(container.textContent).not.toContain("1 Photos");
-    expect(container.textContent).toContain("3 Photos");
+    expect(container.textContent).toContain("1 photo");
+    expect(container.textContent).not.toContain("1 photos");
+    expect(container.textContent).toContain("3 photos");
   });
 
   it("shows each folder's newest photo with a folder badge, the icon without one (#2233)", async () => {

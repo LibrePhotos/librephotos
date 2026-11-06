@@ -1,4 +1,4 @@
-/* A 96px round avatar with the Change button sitting on its lower edge. */
+/* A 96px round avatar; the Change button and the size limit sit beside it (ProfileAvatar.tsx). */
 .avatar {
   position: relative;
   flex-shrink: 0;
@@ -16,14 +16,4 @@
 
 .picture canvas {
   display: block;
-}
-
-.change {
-  position: absolute;
-  bottom: -8px;
-  left: 0;
-  right: 0;
-  width: fit-content;
-  margin-inline: auto;
-  box-shadow: var(--mantine-shadow-xs);
 }

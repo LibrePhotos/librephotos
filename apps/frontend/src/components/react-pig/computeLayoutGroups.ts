@@ -9,13 +9,12 @@ type ComputeLayoutGroupsParams<T extends ImageItem> = {
   scaleOfImages: number;
 };
 
-// A day whose photos fill at most this share of a line at the target row height is "short": it
-// shares a line with the short days next to it (each under its own header), as in Immich, instead
-// of leaving the rest of the line empty.
-const SHORT_GROUP_SHARE = 0.6;
+// A day whose photos fit on one line at the target row height shares that line with the days next
+// to it while they fit (each under its own header), as in Immich, instead of leaving the rest of the
+// line empty. Longer days get justified rows of their own.
 // The space between two days on one line, and the least width a day takes there so its header fits.
 const INLINE_GROUP_GAP = 24;
-const INLINE_GROUP_MIN_WIDTH = 140;
+const INLINE_GROUP_MIN_WIDTH = 170;
 
 type Settings = ComputeLayoutGroupsParams<ImageItem>["settings"];
 
@@ -96,7 +95,7 @@ export default function computeLayoutGroups<T extends ImageItem>({
 
     const aspectRatioSum = g.items.reduce((sum, item) => sum + item.aspectRatio, 0);
     const shortWidth = aspectRatioSum * targetRowHeight + gridGap * (g.items.length - 1);
-    if (shortWidth <= wrapperWidth * SHORT_GROUP_SHARE) {
+    if (shortWidth <= wrapperWidth) {
       const width = Math.max(shortWidth, INLINE_GROUP_MIN_WIDTH);
       if (lineRight !== null && lineRight + INLINE_GROUP_GAP + width > wrapperWidth) closeLine();
       const left = lineRight === null ? 0 : lineRight + INLINE_GROUP_GAP;

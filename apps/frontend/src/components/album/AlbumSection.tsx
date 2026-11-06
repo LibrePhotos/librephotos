@@ -25,8 +25,8 @@ type AlbumSectionVariant = "scroll" | "avatarGrid" | "card";
 
 /** The width of a card in a scrolling row, the size of an album cover on the album lists. */
 export const ROW_CARD_SIZE = 180;
-// About the width of a category card on the hub, for its covers' size attributes
-const CATEGORY_CARD_WIDTH = 240;
+/** About the width of a card in the hub's grid (My Albums, Collections), for its covers' size attributes. */
+export const HUB_CARD_WIDTH = 240;
 
 type AlbumSectionProps = {
   title: string;
@@ -109,7 +109,14 @@ function LoadingOther({ title }: { title: string }) {
 function AvatarPreview({ album }: { album: AlbumPreview }) {
   if (album.faceUrl) {
     return (
-      <Image src={album.faceUrl} w={64} h={64} className={classes.avatarImage} fallbackSrc="/unknown_user.jpg" alt="" />
+      <Image
+        src={album.faceUrl}
+        w="100%"
+        h="100%"
+        className={classes.avatarImage}
+        fallbackSrc="/unknown_user.jpg"
+        alt=""
+      />
     );
   }
 
@@ -126,7 +133,7 @@ function AvatarPreview({ album }: { album: AlbumPreview }) {
   }
 
   return (
-    <Avatar size={64} radius="xl" color="gray">
+    <Avatar size="100%" radius="xl" color="gray">
       {album.title.charAt(0).toUpperCase()}
     </Avatar>
   );
@@ -233,7 +240,7 @@ export function AlbumSection({
     return (
       <CollectionCard
         shape="wide"
-        size={CATEGORY_CARD_WIDTH}
+        size={HUB_CARD_WIDTH}
         title={title}
         meta={countText}
         covers={covers.slice(0, 3)}
@@ -272,7 +279,7 @@ export function AlbumSection({
           <div className={classes.avatarGrid}>
             {albums.slice(0, itemLimit).map(album => (
               <Link key={album.id} to={album.linkTo} className={classes.avatarItem}>
-                <div className={classes.avatar}>
+                <div className={clsx(classes.avatar, classes.avatarLarge)}>
                   <AvatarPreview album={album} />
                 </div>
                 <Text className={classes.avatarName} title={album.title}>

@@ -1,6 +1,8 @@
 import type { User } from "@librephotos/api-client";
-import { Card, Stack, Title } from "@mantine/core";
+import { Anchor, Card, Stack, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconChevronRight } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
@@ -22,6 +24,7 @@ import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
 import { SettingsPageFrame } from "../SettingsPageFrame";
 import { JobQueueBusyNotice } from "./JobQueueBusyNotice";
+import classes from "./Library.module.css";
 import { LibraryActions } from "./LibraryActions";
 import { MissingPhotosBadge } from "./MissingPhotosBadge";
 import { NextcloudSettings } from "./NextcloudSettings";
@@ -137,7 +140,19 @@ export function Library() {
   }
 
   return (
-    <SettingsPageFrame header={<PageHeader title={t("settings.library")} />}>
+    <SettingsPageFrame
+      header={
+        <PageHeader
+          title={t("settings.library")}
+          actions={
+            <Anchor component={Link} to="/statistics" size="sm" className={classes.statisticsLink}>
+              {t("countstats.viewstatistics")}
+              <IconChevronRight size={14} />
+            </Anchor>
+          }
+        />
+      }
+    >
       <Stack>
         <CountStats />
         <LibraryFoldersCard user={userSelfDetails} isAdmin={isAdmin} />

@@ -7,12 +7,15 @@ import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { toolbarLook } from "../common/toolbarLook";
 import { MediaTypeSelector } from "./MediaTypeSelector";
 import { PhotoListDisplayMenu } from "./PhotoListDisplayMenu";
+import classes from "./PhotoListToolbar.module.css";
 import { SelectModeButton } from "./SelectModeButton";
 import type { usePhotoListPreferences } from "./usePhotoListPreferences";
 
 type Props = Readonly<{
   /** The page's own controls (PhotoListView's `headerActions`). */
   headerActions?: React.ReactNode;
+  /** The page's ⋮ menu (PhotoListView's `headerMenu`), after Select. */
+  headerMenu?: React.ReactNode;
   /**
    * The list's own controls can show: the photos are loaded and the view is not read-only
    * (`isPublic`). headerActions show either way.
@@ -42,6 +45,7 @@ type Props = Readonly<{
  */
 export function PhotoListToolbar({
   headerActions,
+  headerMenu,
   listControls,
   hasPhotos,
   mediaFilter,
@@ -55,10 +59,12 @@ export function PhotoListToolbar({
   const [displayMenuOpened, { open: openDisplayMenu, close: closeDisplayMenu }] = useDisclosure(false);
   const withPhotos = listControls && hasPhotos;
 
-  if (!headerActions && !withPhotos && !(listControls && mediaFilter)) return null;
+  if (!headerActions && !headerMenu && !withPhotos && !(listControls && mediaFilter)) return null;
 
+  // One order on every page: media type, the page's actions, Select, the page's ⋮, then the
+  // display options. Its top padding centres the 34px controls on the title's first line.
   return (
-    <Box ml="auto">
+    <Box ml="auto" className={classes.toolbar}>
       <Group gap={4} wrap="nowrap">
         {/* The media-type filter stays visible even when the current
           filter yields no photos, so the user is never trapped. */}
@@ -77,6 +83,7 @@ export function PhotoListToolbar({
           </Tooltip>
         )}
         {withPhotos && selectMode && <SelectModeButton {...selectMode} />}
+        {headerMenu}
         {withPhotos && (
           <PhotoListDisplayMenu
             displayMenuOpened={displayMenuOpened}

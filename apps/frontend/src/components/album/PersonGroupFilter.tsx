@@ -81,24 +81,43 @@ export function PersonGroupFilter({ groups, value, onChange }: Props) {
           </Menu.Target>
         )}
         <Menu.Dropdown aria-label={t("persongroups.title")}>
-          <GroupItem label={t("persongroups.all")} checked={!filtered} onClick={() => onChange(undefined)} />
-          {groups.length > 0 && <Menu.Divider />}
-          {groups.map(group => (
-            <GroupItem
-              key={group.id}
-              label={group.name}
-              count={group.person_count}
-              checked={group.id === value}
-              onClick={() => onChange(group.id)}
-            />
-          ))}
-          <Menu.Divider />
-          <Menu.Item leftSection={<IconSettings size={ICON_SIZE.menu} />} onClick={manage.open}>
-            {t("persongroups.manage")}
-          </Menu.Item>
+          <PersonGroupMenuItems groups={groups} value={value} onChange={onChange} onManage={manage.open} />
         </Menu.Dropdown>
       </Menu>
       <ManagePersonGroupsModal opened={manageOpened} onClose={manage.close} />
+    </>
+  );
+}
+
+type ItemsProps = Props & Readonly<{ onManage: () => void }>;
+
+/**
+ * The group filter's items: everybody, each group with its count, and Manage groups. Also the
+ * group section of the People page's single overflow menu on a phone (PeopleHeader).
+ */
+export function PersonGroupMenuItems({ groups, value, onChange, onManage }: ItemsProps) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <GroupItem
+        label={t("persongroups.all")}
+        checked={!groups.some(group => group.id === value)}
+        onClick={() => onChange(undefined)}
+      />
+      {groups.length > 0 && <Menu.Divider />}
+      {groups.map(group => (
+        <GroupItem
+          key={group.id}
+          label={group.name}
+          count={group.person_count}
+          checked={group.id === value}
+          onClick={() => onChange(group.id)}
+        />
+      ))}
+      <Menu.Divider />
+      <Menu.Item leftSection={<IconSettings size={ICON_SIZE.menu} />} onClick={onManage}>
+        {t("persongroups.manage")}
+      </Menu.Item>
     </>
   );
 }

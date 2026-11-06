@@ -17,7 +17,6 @@ import {
 } from "../../../api_client/albums/hooks";
 import type { Person, PersonList } from "../../../api_client/albums/hooks";
 import { PEOPLE_SORT } from "../../../components/album/albumSortConfigs";
-import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { PeopleHeader } from "../../../components/album/PeopleHeader";
 import { PersonCard } from "../../../components/album/PersonCard";
 import { PersonDeleteModal } from "../../../components/album/PersonDeleteModal";
@@ -136,7 +135,7 @@ function AlbumPeople() {
         groups={groups}
         group={group}
         onGroupChange={showGroup}
-        sortMenu={<AlbumSortMenu {...personSort.menu} />}
+        sort={personSort.menu}
       />
       {listFailure ? (
         <ErrorState failure={listFailure} />

@@ -1,9 +1,9 @@
-/* The previous, current and next thumbnails at the bottom of the lightbox: small and quiet, so they
-   do not compete with the photo they float over. They sit on the photo, so the scrim and outline
-   are the same in both colour schemes (src/theme/colors.css). */
+/* The previous, current and next thumbnails at the bottom of the lightbox: small and quiet, in the
+   band of black the stage keeps for them under the photo (ContentViewer.module.css), so they never
+   cover it. The stage is black in both colour schemes, and so is the outline. */
 .strip {
   position: absolute;
-  bottom: 12px;
+  bottom: calc((var(--lightbox-bottom-band, 72px) - 56px) / 2);
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
@@ -11,8 +11,6 @@
   justify-content: center;
   align-items: center;
   padding: 4px;
-  border-radius: 8px;
-  background: var(--app-scrim-black-35);
   width: fit-content;
 }
 

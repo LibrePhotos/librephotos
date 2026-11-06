@@ -1,0 +1,10 @@
+/*
+ * A readable chip: 12px/500 text in a 22px pill. Mantine sets its size variables inline, so the
+ * sizes are set as properties (doubled class: above Mantine's own single-class rule).
+ */
+.chip.chip {
+  height: 22px;
+  padding-inline: var(--mantine-spacing-xs);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+}

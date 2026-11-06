@@ -1,40 +1,69 @@
-import { Paper, Text } from "@mantine/core";
+import { Paper, Text, Title } from "@mantine/core";
 import type { TFunction } from "i18next";
 import React from "react";
 import type { ReactNode } from "react";
 import classes from "../album/AlbumSection.module.css";
 import overviewClasses from "./SharingOverview.module.css";
-import { SharePreviewSkeleton } from "./SharingPreviewCards";
+import { SharePreviewSkeleton, SharingSectionHeading } from "./SharingPreviewCards";
+
+/** What the heading's link wraps: spread on a router Link to the section's page. */
+type HeadingLinkProps = Readonly<{ className: string; children: ReactNode }>;
 
 type Props = Readonly<{
-  /** The link to the section's page, holding its SharingSectionHeading. */
-  heading: ReactNode;
+  /** The section's 24px icon. */
+  icon: ReactNode;
+  title: string;
+  /** "N photos, M albums", before the heading's "View all". */
+  summary: string;
+  /** The link to the section's page around its heading. */
+  renderLink: (props: HeadingLinkProps) => ReactNode;
   loading: boolean;
-  /** Shown instead of the preview when there is nothing in it. */
+  /** Says there is nothing in the section; null when there is. */
   emptyText: string | null;
   /** The placeholder while loading; a row of cards by default. */
   skeleton?: ReactNode;
   children: ReactNode;
 }>;
 
+const HEADING_LINK = `${classes.headerLeft} ${classes.headerReset}`;
+
 /**
  * One section of the Sharing overview, in the same bordered card as "Your library" above it: its
- * heading, then a placeholder, the preview, or with nothing in it one dimmed line under the heading
- * instead of a reserved empty box.
+ * heading linking to its page, then a placeholder or the preview. With nothing in it the section is
+ * one compact row (icon, title, a dimmed line) without the "View all" into an empty page.
  */
-export function SharingPreviewSection({ heading, loading, emptyText, skeleton, children }: Props) {
-  return (
-    <Paper withBorder radius="md" p="md">
-      <div className={classes.header}>{heading}</div>
-      {loading ? (
-        (skeleton ?? <SharePreviewSkeleton />)
-      ) : emptyText !== null ? (
-        <Text fz={13} c="dimmed" className={overviewClasses.emptyLine}>
+export function SharingPreviewSection({
+  icon,
+  title,
+  summary,
+  renderLink,
+  loading,
+  emptyText,
+  skeleton,
+  children,
+}: Props) {
+  if (!loading && emptyText !== null) {
+    return (
+      <Paper withBorder radius="md" px="md" className={overviewClasses.emptyRow}>
+        {icon}
+        <Title order={4} className={overviewClasses.emptyTitle}>
+          {title}
+        </Title>
+        <Text size="sm" c="dimmed" truncate>
           {emptyText}
         </Text>
-      ) : (
-        children
-      )}
+      </Paper>
+    );
+  }
+  return (
+    <Paper withBorder radius="md" p="md">
+      <div className={classes.header}>
+        {renderLink({
+          className: HEADING_LINK,
+          children: <SharingSectionHeading icon={icon} title={title} summary={summary} />,
+        })}
+      </div>
+      {loading ? (skeleton ?? <SharePreviewSkeleton />) : children}
     </Paper>
   );
 }

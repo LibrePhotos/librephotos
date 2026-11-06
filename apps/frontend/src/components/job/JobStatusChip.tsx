@@ -3,19 +3,20 @@ import { Badge, Stack, Text, Tooltip } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { jobOutcome, type JobOutcome } from "./jobStatus";
+import classes from "./JobStatusChip.module.css";
 
 type ChipJob = Pick<Job, "finished" | "failed" | "cancelled" | "started_at" | "result" | "error"> &
   Partial<Pick<Job, "progress_current" | "progress_target">>;
 
 /**
- * Colour only where it says something: a finished job's chip is neutral, a running one primary,
- * some failed items yellow and a failure red.
+ * A light tint per outcome: a finished job's chip is a subtle green, a running one primary, some
+ * failed items amber and a failure red; queued and cancelled stay neutral.
  */
-const CHIP_COLOR: Record<JobOutcome, string> = {
+const CHIP_COLOR: Record<JobOutcome, string | undefined> = {
   queued: "gray",
-  running: "blue",
-  completed: "gray",
-  partial_failure: "yellow",
+  running: undefined,
+  completed: "green",
+  partial_failure: "orange",
   failed: "red",
   cancelled: "gray",
 };
@@ -37,7 +38,7 @@ export function JobStatusChip({ job }: Readonly<{ job: ChipJob }>) {
     cancelled: t("joblist.cancelled"),
   };
   const chip = (
-    <Badge size="sm" variant="light" color={CHIP_COLOR[outcome]} tt="none" fw={500}>
+    <Badge variant="light" color={CHIP_COLOR[outcome]} tt="none" className={classes.chip}>
       {labels[outcome]}
     </Badge>
   );

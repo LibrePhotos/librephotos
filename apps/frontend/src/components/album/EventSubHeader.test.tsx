@@ -73,13 +73,13 @@ describe("EventSubHeader", () => {
     expect(scroll).toHaveBeenCalledTimes(1);
   });
 
-  it("says Show Map without a place, and Hide Map while it is open", async () => {
+  it("says Show map without a place, and Hide map while it is open", async () => {
     const scroll = scrollTo();
     const { rerender } = await renderInMantine(header());
-    expect(mapButton()?.textContent).toBe("Show Map");
+    expect(mapButton()?.textContent).toBe("Show map");
 
     await rerender(header({ showMap: true }));
-    expect(mapButton()?.textContent).toBe("Hide Map");
+    expect(mapButton()?.textContent).toBe("Hide map");
     await click(mapButton() ?? document.body);
     expect(onToggleMap).toHaveBeenCalledTimes(1);
     expect(scroll).not.toHaveBeenCalled();

@@ -1,12 +1,15 @@
-import { Stack, Tabs, Text } from "@mantine/core";
+import { Stack, Tabs } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconLink, IconPhoto } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useFetchPhotoSharesQuery } from "../../../api_client/photos/hooks";
+import { ListEmptyState } from "../../../components/common/ListEmptyState";
 import { PageLoader } from "../../../components/common/PageLoader";
+import { useListFailure } from "../../../components/common/useListFailure";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
@@ -42,7 +45,11 @@ function PublicLinksPage() {
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
 
   // Fetch public albums (albums with public=true)
-  const { data: userAlbums = [], isLoading: isLoadingAlbums } = useFetchUserAlbumsQuery();
+  const userAlbumsQuery = useFetchUserAlbumsQuery();
+  const { data: userAlbums = [], isLoading: isLoadingAlbums } = userAlbumsQuery;
+  const albumsFailure = useListFailure(userAlbumsQuery);
+  const sharesQuery = useFetchPhotoSharesQuery();
+  const sharesFailure = useListFailure(sharesQuery);
   const publicAlbums = useMemo(() => userAlbums.filter(album => album.public), [userAlbums]);
 
   const openShareDialog = (id: string, _title: string, ownerUsername: string) => {
@@ -62,7 +69,7 @@ function PublicLinksPage() {
   } = useMyPublicPhotoDays();
   // The per-photo share links belong here too, as the docs say; they were only
   // listed under "You shared".
-  const { data: photoShares = [], isLoading: isLoadingShares } = useFetchPhotoSharesQuery();
+  const { data: photoShares = [], isLoading: isLoadingShares } = sharesQuery;
 
   return (
     <>
@@ -85,10 +92,12 @@ function PublicLinksPage() {
             {isLoadingAlbums ? (
               <PageLoader label={t("loading")} />
             ) : publicAlbums.length === 0 ? (
-              // One dimmed line under the tabs, like an empty section on the Sharing overview
-              <Text fz={13} c="dimmed" mt="md">
-                {t("sharing.noPublicAlbums")}
-              </Text>
+              <ListEmptyState
+                failure={albumsFailure}
+                icon={<IconLink size={40} stroke={1.5} />}
+                title={t("sharing.noPublicAlbums")}
+                description={t("sharing.noPublicAlbumsHint")}
+              />
             ) : (
               <PublicAlbumsGrid albums={publicAlbums} onShare={openShareDialog} />
             )}
@@ -101,9 +110,12 @@ function PublicLinksPage() {
                 <PageLoader label={t("loading")} />
               ) : totalPhotos === 0 ? (
                 photoShares.length === 0 && (
-                  <Text fz={13} c="dimmed">
-                    {t("sharing.noPublicPhotos")}
-                  </Text>
+                  <ListEmptyState
+                    failure={sharesFailure}
+                    icon={<IconPhoto size={40} stroke={1.5} />}
+                    title={t("sharing.noPublicPhotos")}
+                    description={t("sharing.noPublicPhotosHint")}
+                  />
                 )
               ) : (
                 <PhotoListView

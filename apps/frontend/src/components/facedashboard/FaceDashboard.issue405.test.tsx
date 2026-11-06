@@ -291,7 +291,7 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     const { toggle, container, cleanup } = await renderPersonCell(ALICE, () => toggled.push(ALICE.id));
 
     // Collapsed, the count is the only remaining signal of how big the group is
-    expect(container.textContent).toContain("9 Faces");
+    expect(container.textContent).toContain("9 faces");
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
     expect(toggle?.getAttribute("aria-label")).toBe("Expand Alice");
 

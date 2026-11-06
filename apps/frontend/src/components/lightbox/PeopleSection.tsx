@@ -1,5 +1,5 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
-import { ActionIcon, Alert, Button, Group, Stack, Text } from "@mantine/core";
+import { ActionIcon, Alert, Box, Button, Group, Text } from "@mantine/core";
 import { IconUserPlus } from "@tabler/icons-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { DetectFacesStatus, DrawnFaceStatus } from "./FaceSearchStatus";
 import type { FaceLocationType } from "./lightbox.types";
 import { PersonDetail } from "./PersonDetailComponent";
 import { SectionTitle } from "./SectionTitle";
+import classes from "./Sidebar.module.css";
 
 type PeopleSectionProps = {
   /**
@@ -98,7 +99,7 @@ export function PeopleSection({
           {t("lightbox.addface.nofaces")}
         </Text>
       )}
-      <Stack gap={2} mt="xs">
+      <Box mt="sm" className={classes.faceGrid}>
         {people.map(person => (
           <PersonDetail
             key={person.face_id}
@@ -110,7 +111,7 @@ export function PeopleSection({
             isNew={newFaceIds.has(person.face_id)}
           />
         ))}
-      </Stack>
+      </Box>
     </div>
   );
 }

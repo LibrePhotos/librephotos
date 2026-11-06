@@ -104,14 +104,65 @@
   height: 180px;
 }
 
-/* Avatar Grid variant for People: plain 64px faces, names in 12px under them */
+/* The hub's card rows (My Albums, Collections): one grid, so every card has the same width and the
+   rows share their left and right edges. Two columns on a phone, three from sm, five from lg. */
+.hubGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--hub-columns), minmax(0, 1fr));
+  gap: 16px;
+  --hub-columns: 2;
+
+  @media (min-width: 48em) {
+    --hub-columns: 3;
+  }
+
+  @media (min-width: 75em) {
+    --hub-columns: 5;
+  }
+}
+
+/* A row of the grid that shows its first line only (My Albums); "View all" has the rest */
+.hubRow > :nth-child(n + 3) {
+  display: none;
+}
+
+@media (min-width: 48em) {
+  .hubRow > :nth-child(n + 3) {
+    display: block;
+  }
+
+  .hubRow > :nth-child(n + 4) {
+    display: none;
+  }
+}
+
+@media (min-width: 75em) {
+  .hubRow > :nth-child(n + 4) {
+    display: block;
+  }
+
+  .hubRow > :nth-child(n + 6) {
+    display: none;
+  }
+}
+
+/* An album cover while the row loads: the cards' square */
+.hubSkeleton {
+  height: auto;
+  aspect-ratio: 1;
+}
+
+/* Avatar Grid variant for People: round faces in a grid that fills the row, names in 12px under
+   them, cut to their cell. Four columns on a phone. */
 .avatarGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 0.5rem;
-  /* The first face, not its wider name slot, on the page edge */
-  margin: 0 -6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 16px 8px;
   padding: 0.5rem 0;
+
+  @media (max-width: 47.99em) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .avatarItem {
@@ -119,9 +170,9 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   text-decoration: none;
   color: inherit;
-  width: 76px;
   border-radius: var(--mantine-radius-md);
 
   &:focus-visible {
@@ -142,6 +193,14 @@
   transition: transform 150ms ease;
 }
 
+/* The hub's people: larger faces from sm on, to fill their wider cells */
+@media (min-width: 48em) {
+  .avatarLarge {
+    width: 80px;
+    height: 80px;
+  }
+}
+
 .avatarItem:hover .avatar {
   transform: scale(1.05);
 }
@@ -154,10 +213,10 @@
 }
 
 .avatarName {
+  width: 100%;
   text-align: center;
   font-size: 12px;
   line-height: 1.25;
-  max-width: 76px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -167,7 +226,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 76px;
+  min-width: 0;
 }
 
 /* Loading states for variants */

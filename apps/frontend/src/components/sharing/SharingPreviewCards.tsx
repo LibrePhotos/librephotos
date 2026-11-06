@@ -1,14 +1,17 @@
-import type { UserAlbumInfo } from "@librephotos/api-client";
+import type { PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
 import { Group, Skeleton, Text, Title } from "@mantine/core";
 import { IconChevronRight, IconPhoto } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { DateTime } from "luxon";
 import React from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { ROW_CARD_SIZE } from "../album/AlbumSection";
 import classes from "../album/AlbumSection.module.css";
-import { CollectionCard } from "../common/CollectionCard";
+import { CollectionCard, collectionCardImageClass } from "../common/CollectionCard";
 import { Tile } from "../Tile";
+import overviewClasses from "./SharingOverview.module.css";
 
 /** The building blocks of the Sharing overview's preview rows (routes/_protected/sharing/index.tsx). */
 
@@ -29,10 +32,10 @@ export function SharingSectionHeading({ icon, title, summary }: HeadingProps) {
           <Text size="sm" c="dimmed">
             ·
           </Text>
-          <Text size="sm" c="blue">
+          <Text size="sm" className={overviewClasses.viewAll}>
             {t("explore.viewAll")}
           </Text>
-          <IconChevronRight size={14} color="var(--mantine-color-blue-6)" />
+          <IconChevronRight size={14} className={overviewClasses.viewAll} />
         </Group>
       </div>
     </>
@@ -50,20 +53,48 @@ export function SharePreviewSkeleton() {
   );
 }
 
-type PhotoCoverProps = Readonly<{ imageHash: string; video: boolean }>;
+/**
+ * When a photo was taken, as a date in the UI language. A photo is shared or made public without a
+ * timestamp of its own, so its own date is what tells two of them apart.
+ */
+export function photoTakenDate(photo: Pick<PigPhoto, "date">): string {
+  if (!photo.date) return "";
+  const taken = parsePhotoTimestamp(photo.date);
+  return taken.isValid ? taken.toLocaleString(DateTime.DATE_MED) : "";
+}
 
-/** A photo's square cover in a preview row, with the collection cards' size and corners. */
-export function PhotoPreviewCover({ imageHash, video }: PhotoCoverProps) {
+/** What a shared photo's link wraps: spread on a router Link to the section's photo tab. */
+type SharedPhotoLinkProps = Readonly<{ className: string | undefined; "aria-label": string; children: ReactNode }>;
+
+type SharedPhotoCardProps = Readonly<{
+  photo: Pick<PigPhoto, "id" | "type" | "date">;
+  renderLink: (props: SharedPhotoLinkProps) => ReactNode;
+}>;
+
+/**
+ * A shared photo in a "shared with you" or "you shared" row: the album cards' look, captioned
+ * "Photo" or "Video" and its date, so a row of photos and albums is one kind of card.
+ */
+export function SharedPhotoCard({ photo, renderLink }: SharedPhotoCardProps) {
+  const { t } = useTranslation();
+  const video = photo.type === "video";
   return (
-    <div className={classes.albumCover}>
-      <Tile
-        video={video}
-        width={ROW_CARD_SIZE}
-        height={ROW_CARD_SIZE}
-        image_hash={imageHash}
-        className={classes.albumCoverImage}
-      />
-    </div>
+    <CollectionCard
+      className={classes.rowCard}
+      size={ROW_CARD_SIZE}
+      title={video ? t("phototile.video") : t("phototile.photo")}
+      meta={photoTakenDate(photo)}
+      media={
+        <Tile
+          video={video}
+          width={ROW_CARD_SIZE}
+          height={ROW_CARD_SIZE}
+          image_hash={photo.id}
+          className={collectionCardImageClass}
+        />
+      }
+      renderLink={renderLink}
+    />
   );
 }
 

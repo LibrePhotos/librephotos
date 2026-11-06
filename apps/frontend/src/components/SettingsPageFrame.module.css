@@ -1,12 +1,10 @@
-/* A 960px column of cards plus the page gutter, centred in the space beside the sidebar so a wide
-   window has no empty band on one side only. */
+/* A reading-width column of cards plus the page gutter, left-aligned like every other page so the
+   title does not move between pages. */
 .narrow {
-  max-width: 1000px;
-  margin-inline: auto;
+  max-width: 920px;
 }
 
 /* The same column with SectionNav's 220px list and its xl gap beside it. */
 .wide {
-  max-width: calc(1000px + 220px + var(--mantine-spacing-xl));
-  margin-inline: auto;
+  max-width: calc(920px + 220px + var(--mantine-spacing-xl));
 }

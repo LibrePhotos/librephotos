@@ -53,20 +53,84 @@
   overflow: hidden;
 }
 
-/* A face's actions (confirm, rename, not this person, delete) show on hover or focus, so the list
-   reads as faces and names, not as rows of coloured buttons. A touch screen has no hover: there
-   they stay. */
-.faceActions {
+/* The faces of the photo: 64px rounded crops with the name in 12px under them, four to a row in the
+   panel, as Immich shows them. */
+.faceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 12px 8px;
+}
+
+.faceTile {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  min-width: 0;
+}
+
+.faceButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px;
+  border-radius: var(--mantine-radius-md);
+  color: inherit;
+}
+
+.faceButton:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}
+
+.faceName {
+  width: 100%;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Detect faces again found it just now (#1117): a small tag on the crop's lower edge */
+.faceNew {
+  position: absolute;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* A face's ⋮ (confirm, rename, not this person, delete) on the crop's top-right corner, shown on
+   hover or focus, so the list reads as faces and names. A touch screen has no hover: there it
+   stays. */
+.faceActions {
+  position: absolute;
+  top: 0;
+  right: calc(50% - 36px);
   opacity: 0;
   transition: opacity 120ms ease;
 }
 
-.faceRow:hover .faceActions,
-.faceRow:focus-within .faceActions {
+.faceTile:hover .faceActions,
+.faceTile:focus-within .faceActions,
+.faceActions:has([aria-expanded="true"]) {
   opacity: 1;
+}
+
+/* Nested to outrank ActionIcon's own colours whatever order the stylesheets load in */
+.faceActions .faceMenuButton {
+  background-color: var(--app-scrim-black-60);
+  color: var(--mantine-color-white);
+}
+
+.faceActions .faceMenuButton:hover {
+  background-color: var(--app-scrim-black-90);
 }
 
 @media (hover: none) {

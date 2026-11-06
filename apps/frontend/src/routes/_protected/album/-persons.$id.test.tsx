@@ -109,7 +109,7 @@ describe("the person page", () => {
 
     expect(stubs.personIds).toContain(5);
     expect(props.title).toBe("Anna Becker");
-    const menu = props.headerActions;
+    const menu = props.headerMenu;
     if (!React.isValidElement<{ person: Person }>(menu)) throw new Error("no person menu");
     expect(menu.props.person).toBe(anna);
     expect(props.emptyStateConfig).toBeUndefined();
@@ -124,7 +124,7 @@ describe("the person page", () => {
 
     expect(props.title).toBe("");
     expect(props.loading).toBe(true);
-    expect(props.headerActions).toBeUndefined();
+    expect(props.headerMenu).toBeUndefined();
   });
 
   it.each([
@@ -139,7 +139,7 @@ describe("the person page", () => {
     expect(props.emptyStateConfig?.title).toBe("Person not found");
     expect(props.emptyStateConfig?.actionLink).toBe("/album/persons");
     expect(props.title).toBe("People");
-    expect(props.headerActions).toBeUndefined();
+    expect(props.headerMenu).toBeUndefined();
     expect(props.mediaType).toBeUndefined();
   });
 

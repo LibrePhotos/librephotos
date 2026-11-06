@@ -107,6 +107,8 @@ type Props = Readonly<{
   additionalSubHeader?: React.ReactNode;
   // After the title, inside the heading: a user album's "Locked" badge.
   titleBadge?: React.ReactNode;
+  /** Before the title and its subtitle in the header, e.g. a person's face. */
+  titleLeading?: React.ReactNode;
   albumID?: string;
   ownerUsername?: string;
   albumLocked?: boolean;
@@ -127,6 +129,8 @@ type Props = Readonly<{
   // empty, so a filter that matches nothing can always be changed back, and on
   // a view that is otherwise read-only (`isPublic`): leaving a shared album.
   headerActions?: React.ReactNode;
+  /** The page's ⋮ menu: always after Select in the toolbar, so it sits in one place on every page. */
+  headerMenu?: React.ReactNode;
   // Under the title row, full width, also while the view loads or is empty: the search page's
   // active filter chips, so a filter that matches nothing can be removed where it shows.
   filterBar?: React.ReactNode;
@@ -192,6 +196,7 @@ function PhotoListViewComponent({
   titleOrder,
   additionalSubHeader,
   titleBadge,
+  titleLeading,
   albumID,
   ownerUsername,
   albumLocked = false,
@@ -201,6 +206,7 @@ function PhotoListViewComponent({
   photosetQuery,
   mediaType,
   headerActions,
+  headerMenu,
   filterBar,
   banner,
   slideshow = false,
@@ -288,7 +294,14 @@ function PhotoListViewComponent({
               // absolutely positioned over it). The 220px basis wraps a wide action
               // group onto its own row on phones instead of squeezing the title, and
               // keeps the timeline's three icons (Filter, Select, display) beside it.
-              <Flex justify="space-between" align="center" columnGap="xs" rowGap={4} wrap="wrap" pr={PAGE_GUTTER_PX}>
+              <Flex
+                justify="space-between"
+                align="flex-start"
+                columnGap="xs"
+                rowGap={4}
+                wrap="wrap"
+                pr={PAGE_GUTTER_PX}
+              >
                 <Box flex="1 1 220px" miw={0}>
                   <DefaultHeader
                     loading={isLoading}
@@ -296,6 +309,7 @@ function PhotoListViewComponent({
                     numPhotos={getNumPhotos()}
                     title={title}
                     titleBadge={titleBadge}
+                    titleLeading={titleLeading}
                     dayHeaderPrefix={dayHeaderPrefix}
                     date={date}
                     additionalSubHeader={additionalSubHeader}
@@ -310,6 +324,7 @@ function PhotoListViewComponent({
                 {!isFirstTimeSetup && (
                   <PhotoListToolbar
                     headerActions={headerActions}
+                    headerMenu={headerMenu}
                     listControls={!isLoading && canSelect}
                     hasPhotos={getNumPhotos() > 0}
                     mediaFilter={mediaType !== undefined}

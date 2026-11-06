@@ -8,8 +8,21 @@
   width: 70px;
 }
 
-/* A section with nothing in it: one line under its title, past the heading's 24px icon */
-.emptyLine {
-  margin: 0;
-  padding-left: calc(24px + 0.75rem);
+/* A section with nothing in it: one 48px row of icon, title and a dimmed line, not an empty card */
+.emptyRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  min-width: 0;
+}
+
+.emptyTitle {
+  flex-shrink: 0;
+  font-size: var(--mantine-font-size-md);
+}
+
+/* "View all ›" in a section's heading: the link colour of the theme */
+.viewAll {
+  color: var(--mantine-color-anchor);
 }

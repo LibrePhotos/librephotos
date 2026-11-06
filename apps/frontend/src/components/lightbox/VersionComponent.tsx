@@ -208,11 +208,12 @@ export function VersionComponent(
         <PhotoInfoSection photoDetail={photoDetail} category={category} t={t} />
         <CameraInfoSection photoDetail={photoDetail} />
         {location ? <Box w="100%">{location}</Box> : null}
-        {/* One link ends the Details: the rest of the facts, and every tag of the file under them */}
+        {/* One link ends the Details: the rest of the facts, and every tag of the file under them. On
+            the panel's content edge, like the map above it. */}
         {hasMore && (
           <>
             <Collapse expanded={showMore}>
-              <Stack ml={TEXT_COLUMN} align="flex-start">
+              <Stack align="flex-start">
                 <AdditionalInfoSection folder={folder} rows={moreRows} t={t} />
                 {duplicates.length > 0 && <DuplicatesSection duplicates={duplicates} t={t} />}
                 {/* The owner's only, as the editors are (#2277). */}
@@ -223,7 +224,6 @@ export function VersionComponent(
               component="button"
               type="button"
               size="xs"
-              ml={TEXT_COLUMN}
               aria-expanded={showMore}
               onClick={() => setShowMore(!showMore)}
             >

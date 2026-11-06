@@ -8,6 +8,7 @@ import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchPersonQuery } 
 import { personNotFoundState } from "../../../components/album/albumNotFound";
 import { PersonBirthDateLine } from "../../../components/album/PersonBirthDateLine";
 import { PersonBirthDateModal } from "../../../components/album/PersonBirthDateModal";
+import { PersonHeaderAvatar } from "../../../components/album/PersonHeaderAvatar";
 import { PersonHeaderMenu } from "../../../components/album/PersonHeaderMenu";
 import { PersonShareReviewBanner } from "../../../components/album/PersonShareReviewBanner";
 import { usePersonBirthDate } from "../../../components/album/usePersonBirthDate";
@@ -83,7 +84,9 @@ function AlbumPersonGallery(): React.JSX.Element {
         // Empty while the person loads, under it the header says it is loading
         title={person ? person.name : notFound || personFailure ? t("people") : ""}
         loading={isLoading || personLoading}
-        headerActions={
+        // Their face before the name, as Immich and Google Photos head a person's page
+        titleLeading={person ? <PersonHeaderAvatar person={person} /> : undefined}
+        headerMenu={
           person ? <PersonHeaderMenu person={person} photos={photosFlat} onBirthDate={birthDate.openFrom} /> : undefined
         }
         // The birth date and age under the name, and the age beside each day (#2751): none without one

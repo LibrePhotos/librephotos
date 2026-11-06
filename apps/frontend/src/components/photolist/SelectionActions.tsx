@@ -37,6 +37,7 @@ import { SelectionFileItems } from "./FileActionItems";
 import { SelectionEditDialogs } from "./SelectionEditDialogs";
 import { SelectionEditItems } from "./SelectionEditItems";
 import { selectionLabel } from "./selectionLabel";
+import { SelectionQuickActions } from "./SelectionQuickActions";
 import { SelectionRatingItems } from "./SelectionRatingItems";
 import { SelectionVisibilityItems } from "./SelectionVisibilityItems";
 import { StackSelectionActions } from "./StackSelectionActions";
@@ -147,26 +148,12 @@ export function SelectionActions(props: Readonly<Props>) {
     : getImageHashes().length;
 
   const handleDownloadConfirm = (options: { includeStackedPhotos: boolean }) => {
-    if (selectAllMode) {
-      downloadPhotoArchive.mutate({
-        select_all: true,
-        query: selectAllQuery ?? {},
-        excluded_hashes: getExcludedHashes(),
-        userId,
-        includeStackedPhotos: options.includeStackedPhotos,
-      });
-    } else {
-      downloadPhotoArchive.mutate({
-        image_hashes: getImageHashes(),
-        userId,
-        includeStackedPhotos: options.includeStackedPhotos,
-      });
-    }
+    downloadPhotoArchive.mutate({ ...photoSelection(), userId, includeStackedPhotos: options.includeStackedPhotos });
     resetSelection();
   };
 
   return (
-    <Group>
+    <Group gap={4} wrap="nowrap">
       <ModalDownloadOptions
         isOpen={isDownloadModalOpen}
         photoCount={downloadPhotoCount}
@@ -189,6 +176,13 @@ export function SelectionActions(props: Readonly<Props>) {
           onRemoved={resetSelection}
         />
       )}
+      <SelectionQuickActions
+        disabledReason={noSelection}
+        selection={photoSelection}
+        onShare={onSharePhotos}
+        onDownload={openDownloadModal}
+        onDone={resetSelection}
+      />
       <AddToMenu reason={noSelection} selection={selection} onAddToAlbum={onAddToAlbum} onAddTags={onAddTags} />
 
       {/* Wide enough for the one-line notes under Hide and Archive. */}

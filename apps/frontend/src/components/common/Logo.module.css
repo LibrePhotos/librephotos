@@ -1,0 +1,7 @@
+/* The logo's alpha channel cuts the shape out of the accent colour (Logo.tsx). */
+.mark {
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: var(--mantine-primary-color-filled);
+  mask: url("/logo.png") center / contain no-repeat;
+}

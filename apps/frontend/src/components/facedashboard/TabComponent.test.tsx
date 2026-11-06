@@ -153,18 +153,18 @@ describe("faces tabs' counters (#2236)", () => {
   it("counts the inferred tab's hover card from the page's list, the unknown group apart", async () => {
     await renderTabs();
     const text = await hover("Inferred");
-    expect(text).toContain("3 Inferred persons (41 faces)");
-    expect(text).toContain("4 Clusters (66 faces)");
+    expect(text).toContain("3 inferred persons (41 faces)");
+    expect(text).toContain("4 clusters (66 faces)");
   });
 
   it("counts labeled people without the unknown group", async () => {
     await renderTabs();
-    expect(await hover("Labeled")).toContain("2 Persons (310 faces)");
+    expect(await hover("Labeled")).toContain("2 persons (310 faces)");
   });
 
   it("counts the unknown faces", async () => {
     await renderTabs();
-    expect(await hover("Unknown")).toContain("25 Unknown Faces");
+    expect(await hover("Unknown")).toContain("25 unknown faces");
   });
 
   it("counts the deleted faces, of every person and of no one (#127)", async () => {

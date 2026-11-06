@@ -8,6 +8,9 @@
 }
 
 .viewer {
+  /* The toolbar's band and the thumbnail strip's */
+  --lightbox-top-band: 56px;
+  --lightbox-bottom-band: 72px;
   display: flex;
   align-items: stretch;
   width: 100%;
@@ -15,7 +18,9 @@
   background: var(--mantine-color-black);
 }
 
-/* The photo runs edge to edge; the toolbar and the strip float over it. */
+/* On a touch screen the photo runs edge to edge under the floating toolbar. With a pointer, the
+   toolbar (and its title) and the thumbnail strip each keep a band of the black stage, and the photo
+   fits between them, so neither covers it. */
 .stage {
   position: relative;
   flex: 1 1 auto;
@@ -27,6 +32,15 @@
 .media {
   position: absolute;
   inset: 0;
+}
+
+@media (hover: hover) {
+  .media {
+    top: var(--lightbox-top-band);
+    bottom: var(--lightbox-bottom-band);
+    /* MediaDisplay sizes the photo by it */
+    --lightbox-media-height: calc(100dvh - var(--lightbox-top-band) - var(--lightbox-bottom-band));
+  }
 }
 
 .carousel,

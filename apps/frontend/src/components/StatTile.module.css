@@ -1,0 +1,26 @@
+/* A neutral stat tile (StatTile.tsx): a small dimmed label over a large number. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.label {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.3;
+}
+
+.value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A HoverCard target around a tile keeps the tile's full height in its grid cell */
+.fill {
+  height: 100%;
+}

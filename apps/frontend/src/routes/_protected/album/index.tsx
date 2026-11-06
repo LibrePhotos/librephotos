@@ -1,7 +1,8 @@
-import { SimpleGrid, Skeleton, Stack, Text } from "@mantine/core";
+import { Skeleton, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconFaceId, IconFolder, IconSettingsAutomation, IconTag, IconTags } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
+import clsx from "clsx";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -12,7 +13,7 @@ import {
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
 import { useFetchTagsQuery } from "../../../api_client/tags/hooks";
-import { AlbumSection, AlbumSectionHeading, ROW_CARD_SIZE } from "../../../components/album/AlbumSection";
+import { AlbumSection, AlbumSectionHeading, HUB_CARD_WIDTH } from "../../../components/album/AlbumSection";
 import classes from "../../../components/album/AlbumSection.module.css";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
@@ -137,9 +138,9 @@ function AlbumExplore() {
             />
 
             {isLoadingUser ? (
-              <div className={classes.loadingContainer}>
+              <div className={clsx(classes.hubGrid, classes.hubRow)}>
                 {[1, 2, 3, 4, 5].map(i => (
-                  <Skeleton key={i} className={classes.skeleton} radius={12} />
+                  <Skeleton key={i} className={classes.hubSkeleton} radius={12} />
                 ))}
               </div>
             ) : userAlbumsFailure ? (
@@ -155,13 +156,13 @@ function AlbumExplore() {
                 </Stack>
               </div>
             ) : (
-              <div className={classes.scrollContainer}>
-                {userAlbums.slice(0, 12).map(album => (
+              // The same grid as the Collections under it, first line only: one card width on the hub
+              <div className={clsx(classes.hubGrid, classes.hubRow)}>
+                {userAlbums.slice(0, 5).map(album => (
                   <UserAlbumCard
                     key={album.id}
                     album={album}
-                    size={ROW_CARD_SIZE}
-                    className={classes.rowCard}
+                    size={HUB_CARD_WIDTH}
                     showActions
                     onRename={openRenameDialog}
                     onShare={openShareDialog}
@@ -189,10 +190,10 @@ function AlbumExplore() {
             actionIcon={<IconFaceId size={16} />}
           />
 
-          {/* Category cards: five of them, so one row on large screens */}
+          {/* Category cards: five of them, so one row on large screens, in My Albums' grid */}
           <div className={classes.section}>
             <AlbumSectionHeading title={t("explore.collections")} />
-            <SimpleGrid cols={{ base: 2, sm: 3, lg: 5 }} spacing="md">
+            <div className={classes.hubGrid}>
               <AlbumSection
                 title={t("sidemenu.things")}
                 icon={<IconTags size={20} stroke={1.5} />}
@@ -234,7 +235,7 @@ function AlbumExplore() {
                 countLabel={t("explore.folderCount", { count: folders.length })}
                 variant="card"
               />
-            </SimpleGrid>
+            </div>
           </div>
         </Stack>
 

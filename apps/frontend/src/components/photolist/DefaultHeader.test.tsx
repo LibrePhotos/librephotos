@@ -87,12 +87,12 @@ describe("DefaultHeader counter", () => {
   });
 
   it("pluralises days and photos", async () => {
-    expect((await render({ numPhotosetItems: 1, numPhotos: 3 })).textContent).toContain("1 day, 3 photos");
+    expect((await render({ numPhotosetItems: 1, numPhotos: 3 })).textContent).toContain("3 photos · 1 day");
   });
 
   it("counts videos as videos", async () => {
     expect((await render({ numPhotosetItems: 2, numPhotos: 4, countsVideos: true })).textContent).toContain(
-      "2 days, 4 videos"
+      "4 videos · 2 days"
     );
   });
 
@@ -104,13 +104,13 @@ describe("DefaultHeader counter", () => {
 
   it("says when the days are oldest first (#2712)", async () => {
     expect((await render({ numPhotosetItems: 2, numPhotos: 3, oldestFirst: true })).textContent).toContain(
-      "2 days, 3 photos · Oldest first"
+      "3 photos · 2 days · Oldest first"
     );
   });
 
   it("groups the digits of large counts", async () => {
     expect((await render({ numPhotosetItems: 1200, numPhotos: 25123 })).textContent).toContain(
-      "1,200 days, 25,123 photos"
+      "25,123 photos · 1,200 days"
     );
   });
 });
@@ -133,9 +133,9 @@ describe("DefaultHeader view switcher", () => {
 
     const items = [...document.querySelectorAll('[role="menuitem"]')];
     const labels = items.map(item => item.textContent);
-    expect(labels.indexOf("Not in an album")).toBe(labels.indexOf("Without Location") + 1);
+    expect(labels.indexOf(i18n.t("sidemenu.notinalbum"))).toBe(labels.indexOf(i18n.t("sidemenu.withoutlocation")) + 1);
     const current = items.filter(item => item.querySelector(".tabler-icon-check"));
-    expect(current.map(item => item.textContent)).toEqual(["Not in an album"]);
+    expect(current.map(item => item.textContent)).toEqual([i18n.t("sidemenu.notinalbum")]);
   });
 });
 

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import type { MapProps, MapRef } from "react-map-gl/maplibre";
 import MapGL from "react-map-gl/maplibre";
 import { FeatureBoundary } from "../common/FeatureBoundary";
-import { flattenBasemap, foldAttribution } from "./basemap";
+import { calmBasemap, flattenBasemap, foldAttribution } from "./basemap";
 import classes from "./ThemedMap.module.css";
 
 type Props = Readonly<
@@ -20,7 +20,7 @@ type Props = Readonly<
 
 /**
  * Every map in the app: MapLibre in a frame that darkens it in dark mode (ThemedMap.module.css),
- * a flat basemap without satellite imagery (basemap.ts), its attribution folded to an ⓘ, a skeleton
+ * a flat, calm basemap without satellite imagery (basemap.ts), its attribution folded to an ⓘ, a skeleton
  * until its style has loaded, and a boundary that keeps a WebGL failure inside the frame. Layers
  * painted on it take their colours from useMapLayerColors.
  */
@@ -29,6 +29,7 @@ export function ThemedMap({ h, className, children, ref, onLoad, onError, ...map
 
   const handleLoad: MapProps["onLoad"] = event => {
     flattenBasemap(event.target);
+    calmBasemap(event.target);
     foldAttribution(event.target);
     setLoaded(true);
     onLoad?.(event);

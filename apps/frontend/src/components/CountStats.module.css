@@ -1,9 +1,0 @@
-/* The statistics link card: its border takes the primary colour on hover, like a link. */
-.datavizCard {
-  cursor: pointer;
-  transition: border-color 150ms ease;
-}
-
-.datavizCard:hover {
-  border-color: var(--mantine-primary-color-filled);
-}

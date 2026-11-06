@@ -534,7 +534,7 @@ describe("PhotoListView photo page", () => {
 
 describe("PhotoListView display preferences", () => {
   async function openSettingsMenu() {
-    const toggle = document.querySelector<HTMLButtonElement>('button[aria-label="Photo Display Settings"]');
+    const toggle = document.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("photodisplay.settings")}"]`);
     expect(toggle).not.toBeNull();
     await act(async () => defined(toggle).click());
     // let the menu's open transition mount the dropdown
@@ -579,7 +579,9 @@ describe("PhotoListView display preferences", () => {
 describe("PhotoListView photo order (#2712)", () => {
   async function openSettingsMenu() {
     await act(async () =>
-      defined(document.querySelector<HTMLButtonElement>('button[aria-label="Photo Display Settings"]')).click()
+      defined(
+        document.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("photodisplay.settings")}"]`)
+      ).click()
     );
     await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
   }

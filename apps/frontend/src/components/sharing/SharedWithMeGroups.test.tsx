@@ -88,7 +88,7 @@ describe("the places and things shared with you", () => {
     expect(container.querySelector("a[aria-label='São Paulo']")?.getAttribute("href")).toBe(
       "/sharing/withme/places/S%C3%A3o%20Paulo"
     );
-    expect(container.textContent).toContain("23 Photos");
+    expect(container.textContent).toContain("23 photos");
   });
 
   it("links things to the things page", async () => {
@@ -122,8 +122,8 @@ describe("the people shared with you", () => {
 
     const faces = Array.from(container.querySelectorAll("img"), img => img.getAttribute("alt"));
     expect(faces).toEqual(["Mom, shared by Alice Lang", "Mom, shared by jonas"]);
-    expect(container.textContent).toContain("shared by Alice Lang1 Photo");
-    expect(container.textContent).toContain("shared by jonas4 Photos");
+    expect(container.textContent).toContain("shared by Alice Lang1 photo");
+    expect(container.textContent).toContain("shared by jonas4 photos");
     expect(container.querySelector("a[href='/sharing/withme/people/9']")).not.toBeNull();
   });
 

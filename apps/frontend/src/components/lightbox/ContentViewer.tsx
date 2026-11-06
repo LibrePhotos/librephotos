@@ -74,6 +74,7 @@ export function ContentViewer({
   startSlideshow,
   gridItem,
   onTrashToggled,
+  toolbarTitle,
 }: ContentViewerProps) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
@@ -242,9 +243,7 @@ export function ContentViewer({
   const holdsDrag = isMagnified || panorama.active;
 
   useEffect(() => {
-    if (embla) {
-      embla.reInit();
-    }
+    if (embla) embla.reInit();
   }, [lightboxSidebarShow, embla]);
 
   const handleDragStart = (event: React.DragEvent) => {
@@ -297,6 +296,7 @@ export function ContentViewer({
                   toggleOcrText={toggleOcrText}
                   onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
                   onAfterTrashToggle={handleAfterTrashToggle}
+                  title={toolbarTitle}
                 />
 
                 {/* Main photo/video with swipe navigation */}

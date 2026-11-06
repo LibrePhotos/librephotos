@@ -5,7 +5,25 @@
 
 /* An off switch: a track that reads as a control on white and on near-black, with a white thumb. */
 input:not(:checked):not(:disabled) + .switchTrack {
-  --switch-bg: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
+  --switch-bg: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+/* A plain white thumb that lifts off the track with a soft shadow, as on iOS and Material 3. */
+.switchThumb {
+  border: 0;
+  box-shadow:
+    0 1px 2px var(--app-scrim-black-25),
+    0 0 1px var(--app-scrim-black-20);
+}
+
+/* The md track with the sm label and description text of the other form labels, centred on the 22px track */
+.switchText {
+  --label-fz: var(--mantine-font-size-sm);
+  --label-lh: calc(1.375rem * var(--mantine-scale));
+}
+
+.switchDescription.switchDescription {
+  font-size: var(--mantine-font-size-xs);
 }
 
 /* Unchecked radios and checkboxes: a 1.5px ring two steps darker than the old one. */

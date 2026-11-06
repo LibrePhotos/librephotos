@@ -34,6 +34,8 @@ export type ContentViewerProps = {
    * viewer steps to its own next or previous photo.
    */
   onTrashToggled?: (id: string) => boolean;
+  /** In the middle of the toolbar: the photo's date, place and position in the list (LightboxTitle). */
+  toolbarTitle?: React.ReactNode;
 };
 
 /**
@@ -105,6 +107,8 @@ export type LightboxControlsProps = {
   onAfterTrashToggle?: () => void;
   /** The 360° view of a photo sphere (#483). */
   panorama?: PanoramaMode;
+  /** In the middle of the toolbar: the photo's date, place and position (LightboxTitle). */
+  title?: React.ReactNode;
 };
 
 export type FaceOverlayProps = {

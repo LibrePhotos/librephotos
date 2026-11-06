@@ -1,12 +1,20 @@
 import type { PhotoPerson } from "@librephotos/api-client";
-import { ActionIcon, Avatar, Badge, Button, Group, Indicator, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Avatar, Badge, Indicator, Menu, Text, UnstyledButton } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconEdit, IconTrash, IconUserCheck, IconUserOff, IconUserQuestion } from "@tabler/icons-react";
+import {
+  IconDotsVertical,
+  IconEdit,
+  IconTrash,
+  IconUserCheck,
+  IconUserOff,
+  IconUserQuestion,
+} from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/urls";
+import { ICON_SIZE } from "../../uiConstants";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import { ConfirmModal } from "../modals/ConfirmModal";
@@ -35,24 +43,11 @@ type FaceActionsProps = Readonly<{
   onDelete: () => void;
 }>;
 
-/** A small grey icon button of a face row, with its tooltip. */
-function FaceAction({
-  tooltip,
-  label,
-  onClick,
-  children,
-}: Readonly<{ tooltip: string; label: string; onClick: () => void; children: React.ReactNode }>) {
-  return (
-    <Tooltip label={tooltip}>
-      <ActionIcon variant="subtle" color="gray" size="sm" aria-label={label} onClick={onClick}>
-        {children}
-      </ActionIcon>
-    </Tooltip>
-  );
-}
-
-/** Confirm the guess, name or rename, not this person, delete: what the owner can do with a face. */
-function FaceActions({
+/**
+ * Confirm the guess, name or rename, not this person, delete: what the owner can do with a face, in
+ * its ⋮ menu, each item saying what it does.
+ */
+function FaceActionsMenu({
   person,
   isUnnamed,
   isClusterLabel,
@@ -63,46 +58,53 @@ function FaceActions({
 }: FaceActionsProps) {
   const { t } = useTranslation();
   return (
-    <>
-      {!isUnnamed && !isClusterLabel && person.type !== "user" && (
-        <FaceAction
-          tooltip={t("facesdashboard.explanationadding")}
-          label={t("facesdashboard.confirmface", { name: person.name })}
-          onClick={onConfirm}
+    // In the panel, not a portal: it stays in the viewer's dark scope.
+    <Menu position="bottom-end" withinPortal={false} width={220}>
+      <Menu.Target>
+        <ActionIcon
+          variant="transparent"
+          size="sm"
+          radius="xl"
+          className={classes.faceMenuButton}
+          aria-label={
+            isUnnamed
+              ? t("lightbox.sidebar.faceactionsunnamed")
+              : t("lightbox.sidebar.faceactions", { name: person.name })
+          }
         >
-          <IconUserCheck size={FACE_ACTION_ICON} />
-        </FaceAction>
-      )}
-      <FaceAction
-        tooltip={isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.explanationadding")}
-        label={isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.labelas")}
-        onClick={onRename}
-      >
-        {isUnnamed ? <IconUserQuestion size={FACE_ACTION_ICON} /> : <IconEdit size={FACE_ACTION_ICON} />}
-      </FaceAction>
-      {!isUnnamed && (
-        <FaceAction
-          tooltip={t("facesdashboard.notthisperson")}
-          label={t("facesdashboard.notperson", { name: person.name })}
-          onClick={onNotThisPerson}
+          <IconDotsVertical size={FACE_ACTION_ICON} />
+        </ActionIcon>
+      </Menu.Target>
+      <Menu.Dropdown>
+        {!isUnnamed && !isClusterLabel && person.type !== "user" && (
+          <Menu.Item leftSection={<IconUserCheck size={ICON_SIZE.menu} />} onClick={onConfirm}>
+            {t("facesdashboard.confirmface", { name: person.name })}
+          </Menu.Item>
+        )}
+        <Menu.Item
+          leftSection={isUnnamed ? <IconUserQuestion size={ICON_SIZE.menu} /> : <IconEdit size={ICON_SIZE.menu} />}
+          onClick={onRename}
         >
-          <IconUserOff size={FACE_ACTION_ICON} />
-        </FaceAction>
-      )}
-      {person.type !== "user" && (
-        <FaceAction
-          tooltip={t("facesdashboard.explanationdeleting")}
-          label={t("facesdashboard.deleteface")}
-          onClick={onDelete}
-        >
-          <IconTrash size={FACE_ACTION_ICON} />
-        </FaceAction>
-      )}
-    </>
+          {isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.labelas")}
+        </Menu.Item>
+        {!isUnnamed && (
+          <Menu.Item leftSection={<IconUserOff size={ICON_SIZE.menu} />} onClick={onNotThisPerson}>
+            {t("facesdashboard.notperson", { name: person.name })}
+          </Menu.Item>
+        )}
+        {person.type !== "user" && (
+          <Menu.Item color="red" leftSection={<IconTrash size={ICON_SIZE.menu} />} onClick={onDelete}>
+            {t("facesdashboard.deleteface")}
+          </Menu.Item>
+        )}
+      </Menu.Dropdown>
+    </Menu>
   );
 }
 
-const FACE_ACTION_ICON = 16;
+const FACE_ACTION_ICON = 14;
+/** The face crop: a rounded square, as Immich shows the faces of a photo. */
+const FACE_SIZE = 64;
 
 export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson, isNew = false }: Props) {
   const { t } = useTranslation();
@@ -140,16 +142,15 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         size={12}
         offset={4}
       >
-        {/* The name is right next to it */}
-        <Avatar radius="xl" src={`${serverAddress}${person.face_url}`} alt="" />
+        {/* The name is right under it */}
+        <Avatar size={FACE_SIZE} radius={12} src={`${serverAddress}${person.face_url}`} alt="" />
       </Indicator>
     </FaceTooltip>
   );
 
   const label = (
     <Text
-      size="sm"
-      truncate
+      className={classes.faceName}
       title={isUnnamed ? undefined : person.name}
       c={isUnnamed ? "dimmed" : undefined}
       fs={isUnnamed ? "italic" : undefined}
@@ -159,56 +160,46 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
   );
 
   return (
-    // One row per face: a long name is cut short rather than pushing the
-    // actions onto a line of their own.
-    <Group
-      align="center"
-      gap="xs"
-      wrap="nowrap"
-      maw="100%"
-      className={classes.faceRow}
+    // One tile per face: the crop with its name under it, the actions in a ⋮ on the crop's corner
+    // that shows on hover or focus (always on a touch screen).
+    <div
+      className={classes.faceTile}
       onMouseEnter={() => setFaceLocation(person.location)}
       onMouseLeave={() => setFaceLocation(null)}
     >
       {isPublic ? (
-        // Search needs a login, so a public page's names are just labels, laid
-        // out like the button below (its padding and section gap).
-        <Group gap="xs" wrap="nowrap" miw={0} p={3}>
+        // Search needs a login, so a public page's names are just labels, laid out like the button.
+        <div className={classes.faceButton}>
           {face}
           {label}
-        </Group>
+        </div>
       ) : (
-        <Button
-          variant="subtle"
-          color="gray"
-          fw={400}
-          h="auto"
-          p={3}
-          miw={0}
-          leftSection={face}
+        <UnstyledButton
+          className={classes.faceButton}
           // An unnamed face has no person album and no search term to navigate to,
-          // so the whole row is the affordance for naming it instead.
+          // so the whole tile is the affordance for naming it instead.
           onClick={() => {
             if (isUnnamed) {
               openPersonPicker();
             } else {
-              navigate({ to: `/search/${encodeURIComponent(person.name)}` });
+              void navigate({ to: `/search/${encodeURIComponent(person.name)}` });
             }
           }}
         >
+          {face}
           {label}
-        </Button>
+        </UnstyledButton>
       )}
       {isNew && (
-        <Badge size="xs" color="green" variant="light" miw="auto">
+        <Badge size="xs" color="green" variant="filled" className={classes.faceNew}>
           {t("lightbox.detectfaces.new")}
         </Badge>
       )}
       {typeof person.video_time === "number" && <VideoTimeButton seconds={person.video_time} name={person.name} />}
       {!isPublic && (
-        // Neutral and quiet until the row is pointed at: the faces and names are what the panel shows.
+        // Neutral and quiet until the tile is pointed at: the faces and names are what the panel shows.
         <div className={classes.faceActions}>
-          <FaceActions
+          <FaceActionsMenu
             person={person}
             isUnnamed={isUnnamed}
             isClusterLabel={isClusterLabel}
@@ -233,6 +224,6 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         } ${t("confirmdialog.deleteface.restorable")}`}
         confirmLabel={t("confirmdialog.deleteface.confirm")}
       />
-    </Group>
+    </div>
   );
 }

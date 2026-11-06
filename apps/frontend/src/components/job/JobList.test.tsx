@@ -7,7 +7,7 @@
  *   - the row link must follow the surface it is rendered on. Hardcoding the admin
  *     detail route would send a regular user to /admin/job/<id>, an admin-area URL
  *     whose page renders "Unauthorized" for them.
- *   - "Started By" is every row's own viewer on the per-user list, so it is dropped
+ *   - "Started by" is every row's own viewer on the per-user list, so it is dropped
  *     there and must stay on the admin list.
  *   - on a phone every row must have as many cells as the header. A stray
  *     "waiting" Duration cell used to shift Cancel and Remove one column right,
@@ -51,7 +51,7 @@ const job = {
   finished: true,
   failed: false,
   cancelled: false,
-  job_type_str: "Scan Photos",
+  job_type_str: "Scan photos",
   job_type: 1,
   progress_current: 10,
   progress_target: 10,
@@ -87,7 +87,7 @@ vi.mock("../../api_client/jobs/hooks", () => ({
 }));
 
 // jsdom ships no matchMedia; MantineProvider and useMediaQuery both need it.
-// Reporting a wide viewport keeps the desktop-only columns (incl. Started By) in.
+// Reporting a wide viewport keeps the desktop-only columns (incl. Started by) in.
 function mockViewport(wide: boolean) {
   window.matchMedia = (query: string): MediaQueryList => ({
     matches: wide && query.includes("min-width"),
@@ -170,7 +170,7 @@ describe("JobList", () => {
     const { container, unmount } = await render(<JobList variant={variant} />);
 
     const links = [...container.querySelectorAll("tbody a")];
-    expect(links.map(link => [link.textContent, link.getAttribute("href")])).toEqual([["Scan Photos", href]]);
+    expect(links.map(link => [link.textContent, link.getAttribute("href")])).toEqual([["Scan photos", href]]);
     await unmount();
   });
 
@@ -186,7 +186,7 @@ describe("JobList", () => {
     await unmount();
   });
 
-  it("shows Started By on the admin list and drops it on a single-user list", async () => {
+  it("shows Started by on the admin list and drops it on a single-user list", async () => {
     const admin = await render(<JobList />);
     expect(admin.container.textContent).toContain("dotan");
     await admin.unmount();

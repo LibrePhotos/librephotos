@@ -5,6 +5,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { NewPasswordFields } from "../../util/formSchemas";
 import { toolbarLook } from "../common/toolbarLook";
+import classes from "./PasswordEntry.module.css";
 
 type Props = Readonly<{
   /**
@@ -25,6 +26,9 @@ export function PasswordEntry({ form, createNew = false, asHeading = false }: Pr
   const unlocked = createNew || changePassword;
   const passwordProps = form.getInputProps("password");
   const confirmProps = form.getInputProps("passwordConfirm");
+  // Locked fields keep the normal input look: greyed out they read as broken, and the lock button
+  // beside the title already says why they cannot be typed in.
+  const lockedLook = unlocked ? undefined : { input: classes.locked };
 
   // Keeps what is shown true while typing: a "cannot be blank" on screen goes once either field
   // has text, and "must match" follows both fields. "Cannot be blank" first shows when a field is
@@ -39,7 +43,7 @@ export function PasswordEntry({ form, createNew = false, asHeading = false }: Pr
   };
 
   return (
-    <Stack style={{ display: "flex", alignContent: "stretch" }} gap="xs">
+    <Stack gap="xs">
       {createNew ? (
         <Text fw={700}>{t("settings.password.titlesetpassword")}</Text>
       ) : (
@@ -73,6 +77,7 @@ export function PasswordEntry({ form, createNew = false, asHeading = false }: Pr
         name="password"
         disabled={!unlocked}
         required={changePassword}
+        classNames={lockedLook}
         {...passwordProps}
         onChange={event => {
           form.setFieldValue("password", event.currentTarget.value);
@@ -86,6 +91,7 @@ export function PasswordEntry({ form, createNew = false, asHeading = false }: Pr
         name="passwordConfirm"
         disabled={!unlocked}
         required={changePassword}
+        classNames={lockedLook}
         {...confirmProps}
         onChange={event => {
           form.setFieldValue("passwordConfirm", event.currentTarget.value);

@@ -15,7 +15,8 @@ import { routeTree } from "./routeTree.gen";
 import { controlsTheme } from "./theme/controlsTheme";
 import { appCssVariablesResolver } from "./theme/cssVariables";
 import { menuThemeComponents } from "./theme/menuTheme";
-import { DARK_SCALE } from "./theme/palette";
+import { BRAND_SCALE, DARK_SCALE } from "./theme/palette";
+import { appVariantColorResolver } from "./theme/variantColors";
 import { TOP_MENU_HEIGHT } from "./uiConstants";
 import { firstDayOfWeek } from "./util/dateUtils";
 
@@ -44,12 +45,13 @@ declare module "@tanstack/react-router" {
 }
 
 const theme = createTheme({
-  // One accent, softened in the dark scheme (blue 4 with dark text where it fills), on near-black
-  // surfaces: the photos supply the colour, as in Google Photos and Immich.
-  primaryColor: "blue",
-  primaryShade: { light: 6, dark: 4 },
+  // One accent of the app's own (theme/palette.ts), a pastel with dark text in the dark scheme, on
+  // near-black surfaces: the photos supply the colour, as in Google Photos and Immich.
+  primaryColor: "brand",
+  primaryShade: { light: 6, dark: 2 },
   autoContrast: true,
-  colors: { dark: DARK_SCALE },
+  variantColorResolver: appVariantColorResolver,
+  colors: { dark: DARK_SCALE, brand: BRAND_SCALE },
   defaultRadius: "md",
   headings: {
     fontWeight: "700",

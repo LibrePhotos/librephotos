@@ -1,0 +1,8 @@
+/* PageHeader's 16px top padding plus half of the 28px title line, less half of the 34px controls:
+   the toolbar's middle is the title's middle, whatever lines the header has below the title. On a
+   phone the toolbar wraps under the title and needs none. */
+@media (min-width: 48em) {
+  .toolbar {
+    padding-top: 13px;
+  }
+}

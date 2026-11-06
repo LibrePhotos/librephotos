@@ -251,11 +251,11 @@ describe("issue #860 - person cells", () => {
 
     const anna = button("Expand Anna");
     expect(anna.getAttribute("aria-expanded")).toBe("false");
-    expect(anna.textContent).toContain("2 Faces");
+    expect(anna.textContent).toContain("2 faces");
     expect(anna.querySelector("img")?.getAttribute("src")).toMatch(/anna\.jpg$/);
     // The count is read out with the name
     expect(container.querySelector(`#${CSS.escape(anna.getAttribute("aria-describedby") ?? "")}`)?.textContent).toBe(
-      "2 Faces"
+      "2 faces"
     );
     expect(container.querySelectorAll("button[aria-label^='Expand']")).toHaveLength(PEOPLE.length);
   });

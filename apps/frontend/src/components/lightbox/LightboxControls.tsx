@@ -94,7 +94,8 @@ function RunningSlideshow({
 }
 
 /**
- * The lightbox toolbar, over the top of the photo: back on the left; on the right the few buttons
+ * The lightbox toolbar, over the top of the photo: back on the left, the photo's date, place and
+ * position in the middle (`title`); on the right the few buttons
  * used most (360° view and live text when the photo has them, zoom, favorite or stars, info, trash)
  * and a ⋮ with the rest, labelled. Every action keeps its keyboard shortcut.
  */
@@ -123,6 +124,7 @@ export function LightboxControls({
   onCopyToClipboard,
   onAfterTrashToggle,
   panorama,
+  title,
 }: LightboxControlsProps) {
   const { t } = useTranslation();
 
@@ -162,6 +164,7 @@ export function LightboxControls({
       <LightboxToolbarButton label={t("lightbox.controls.close")} onClick={onCloseRequest}>
         <ArrowLeft size={TOOLBAR_ICON_SIZE} />
       </LightboxToolbarButton>
+      {title}
 
       <div className={classes.actions}>
         {isSlideshowActive && (

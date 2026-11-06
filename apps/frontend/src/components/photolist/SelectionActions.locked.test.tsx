@@ -87,7 +87,10 @@ async function openActionsMenu(props: Partial<Props>) {
     );
   });
   await act(async () => {
-    defined(container.querySelectorAll("button")[1], "the second button").click();
+    defined(
+      container.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("selectionactions.photoactions")}"]`),
+      "the photo actions button"
+    ).click();
   });
   await act(async () => {
     await new Promise(resolve => setTimeout(resolve, 250));

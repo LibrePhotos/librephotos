@@ -18,3 +18,24 @@ export const DARK_SCALE: MantineColorsTuple = [
   "#0d0d0f",
   "#08080a",
 ];
+
+/**
+ * The app's accent, used as the primary colour. Stock Mantine blue put white text on #228be6
+ * (3.6:1) and, in the dark scheme, on #4dabf7 (2.5:1). Light buttons fill with 6 (#1a66d2, 5.4:1
+ * with white); dark ones with 2, a pastel that takes dark text (12:1), as Immich's does.
+ */
+export const BRAND_SCALE: MantineColorsTuple = [
+  "#eaf2fe",
+  "#d4e4fd",
+  "#a8c7fa",
+  "#7cacf8",
+  "#4c8df6",
+  "#2b74ee",
+  "#1a66d2",
+  "#1557b5",
+  "#114894",
+  "#0b3670",
+];
+
+/** Secondary text in the light scheme: Mantine's gray 6 is 3.2:1 on the page, this is 5.5:1. */
+export const LIGHT_DIMMED = "#5f6670";

@@ -6,9 +6,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
-import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { parseInstant } from "../../util/dateUtils";
-import { formatUnitList } from "../../util/formatCount";
 import { PageHeader } from "../PageHeader";
 import { isPhotosView, PhotosViewSwitcher } from "./PhotosViewSwitcher";
 import { ScanDirectoryWelcome } from "./ScanDirectoryWelcome";
@@ -20,6 +18,8 @@ type Props = Readonly<{
   title: string;
   // See PhotoListView's `titleBadge`.
   titleBadge?: React.ReactNode;
+  // See PhotoListView's `titleLeading`.
+  titleLeading?: React.ReactNode;
   additionalSubHeader: React.ReactNode;
   dayHeaderPrefix?: string;
   date?: string;
@@ -51,10 +51,9 @@ type PhotoCounterProps = Readonly<
   >
 >;
 
-// "12 days, 340 photos", or only "340 photos" when every item is its own group.
+// "340 photos · 12 days", or only "340 photos" when every item is its own group.
 function photoCountLine(
   t: TFunction,
-  locale: string,
   {
     numPhotosetItems,
     numPhotos,
@@ -63,16 +62,16 @@ function photoCountLine(
 ): string {
   const items = t(countsVideos ? "defaultheader.videoscount" : "defaultheader.photoscount", { count: numPhotos });
   if (numPhotosetItems === numPhotos) return items;
-  return formatUnitList([t("defaultheader.dayscount", { count: numPhotosetItems }), items], locale);
+  // Photos first, as the count people look for: "3 photos · 1 day"
+  return `${items} · ${t("defaultheader.dayscount", { count: numPhotosetItems })}`;
 }
 
 // The count line, with "· Oldest first" when the days are in that order.
 function countLineWithOrder(
   t: TFunction,
-  locale: string,
   props: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos" | "oldestFirst">
 ): string {
-  const line = photoCountLine(t, locale, props);
+  const line = photoCountLine(t, props);
   return props.oldestFirst ? t("defaultheader.oldestfirst", { counts: line }) : line;
 }
 
@@ -89,7 +88,6 @@ function PhotoCounter({
   oldestFirst,
 }: PhotoCounterProps) {
   const { t } = useTranslation();
-  const locale = useFormatLocale();
   if (loading) {
     return (
       <Group gap={6} wrap="nowrap">
@@ -119,7 +117,7 @@ function PhotoCounter({
   return (
     <div>
       <Text ta="left" c="dimmed">
-        {countLineWithOrder(t, locale, { numPhotosetItems, numPhotos, countsVideos, oldestFirst })}
+        {countLineWithOrder(t, { numPhotosetItems, numPhotos, countsVideos, oldestFirst })}
       </Text>
       {filterHint}
       {additionalSubHeader}
@@ -150,6 +148,7 @@ export function DefaultHeader(props: Props) {
     numPhotos,
     title,
     titleBadge,
+    titleLeading,
     additionalSubHeader,
     date,
     dayHeaderPrefix,
@@ -189,6 +188,7 @@ export function DefaultHeader(props: Props) {
         </>
       }
       titleOrder={titleOrder}
+      leading={titleLeading}
       subtitle={
         <PhotoCounter
           loading={loading}

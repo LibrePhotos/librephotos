@@ -26,8 +26,9 @@ type Props = Readonly<{
 }>;
 
 /**
- * The profile's avatar: a round picture with one Change menu (upload an image, or pick one of the
- * faces). A new picture can be moved into place and is only stored with Save.
+ * The profile's avatar: a round picture, then in one row beside it the Change menu (upload an
+ * image, or pick one of the faces) with the size limit under it. A new picture can be moved into
+ * place and is only stored with Save.
  */
 export function ProfileAvatar({ userId, firstName, avatarUrl }: Props) {
   const { t } = useTranslation();
@@ -81,50 +82,46 @@ export function ProfileAvatar({ userId, firstName, avatarUrl }: Props) {
             </div>
           )}
         </Dropzone>
-        <Menu position="bottom" shadow="md">
-          <Menu.Target>
-            <Button
-              size="compact-xs"
-              variant="default"
-              radius="xl"
-              className={classes.change}
-              aria-label={t("settings.changeavatar")}
-            >
-              {t("settings.change")}
-            </Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item leftSection={<Photo size={ICON_SIZE.menu} />} onClick={() => dropzoneRef.current?.open()}>
-              {t("settings.uploadimage")}
-            </Menu.Item>
-            <Menu.Item leftSection={<Face size={ICON_SIZE.menu} />} onClick={openFacePicker}>
-              {t("settings.choosefromface")}
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
       </div>
-      <Stack gap={6}>
+      <Stack gap={6} align="flex-start">
+        <Group gap="xs">
+          <Menu position="bottom-start" shadow="md">
+            <Menu.Target>
+              <Button size="xs" variant="default" aria-label={t("settings.changeavatar")}>
+                {t("settings.change")}
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<Photo size={ICON_SIZE.menu} />} onClick={() => dropzoneRef.current?.open()}>
+                {t("settings.uploadimage")}
+              </Menu.Item>
+              <Menu.Item leftSection={<Face size={ICON_SIZE.menu} />} onClick={openFacePicker}>
+                {t("settings.choosefromface")}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+          {unsaved && (
+            <>
+              <Button size="xs" loading={updateAvatar.isPending} onClick={() => void save()}>
+                {t("settings.upload")}
+              </Button>
+              <Button
+                size="xs"
+                variant="subtle"
+                color="gray"
+                onClick={() => {
+                  setPicked(null);
+                  setUnsaved(false);
+                }}
+              >
+                {t("cancel")}
+              </Button>
+            </>
+          )}
+        </Group>
         <Text size="xs" c="dimmed">
           {unsaved ? t("settings.avatarunsaved") : t("settings.filesize")}
         </Text>
-        {unsaved && (
-          <Group gap="xs">
-            <Button size="xs" loading={updateAvatar.isPending} onClick={() => void save()}>
-              {t("settings.upload")}
-            </Button>
-            <Button
-              size="xs"
-              variant="subtle"
-              color="gray"
-              onClick={() => {
-                setPicked(null);
-                setUnsaved(false);
-              }}
-            >
-              {t("cancel")}
-            </Button>
-          </Group>
-        )}
       </Stack>
       <AvatarFacePickerModal opened={facePickerOpen} onClose={closeFacePicker} onPick={pick} />
     </Group>

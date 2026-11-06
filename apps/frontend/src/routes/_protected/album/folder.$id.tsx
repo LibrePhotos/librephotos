@@ -234,7 +234,7 @@ function FolderDetail() {
       title={title}
       additionalSubHeader={getSubheader()}
       // An empty folder has no photos to detect faces in.
-      headerActions={
+      headerMenu={
         photosFlat.length > 0 ? (
           <FolderActionsMenu folderPath={folderPath} folderName={title} photoCount={photosFlat.length} />
         ) : undefined

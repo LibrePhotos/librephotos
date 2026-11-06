@@ -92,7 +92,9 @@ export function JobProgress({ finished, failed = false, cancelled = false, resul
           value={barValue(outcome, progress)}
           aria-label={sentence}
         />
-        {outcome === "queued" ? null : (
+        {outcome === "queued" ? (
+          <span className={classes.count} data-count />
+        ) : (
           <Tooltip label={sentence}>
             <Text size="xs" c="dimmed" className={classes.count} data-count>
               {count}

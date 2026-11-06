@@ -1,7 +1,14 @@
-/* The sign-in, sign-up and password-reset pages: one card in the middle of the window. */
+/*
+ * The sign-in, sign-up and password-reset pages: one card in the middle of the window, over two
+ * soft glows of the accent colour (its 10-15 % tint), so the page carries the brand without a photo.
+ */
 .page {
   min-height: 100dvh;
   padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  background-color: var(--mantine-color-body);
+  background-image:
+    radial-gradient(60% 55% at 15% 0%, var(--mantine-primary-color-light), transparent 70%),
+    radial-gradient(55% 50% at 90% 100%, var(--mantine-primary-color-light), transparent 70%);
 }
 
 /* No border: a soft shadow sets the card off the page, and in dark mode its raised surface does */
@@ -15,8 +22,8 @@
 }
 
 .title {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1.3;
   text-align: center;
 }

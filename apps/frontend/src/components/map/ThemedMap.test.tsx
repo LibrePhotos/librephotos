@@ -8,7 +8,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
-import { BASEMAP_WATER_COLOR } from "../../theme/mapColors";
+import { BASEMAP_COLORS, BASEMAP_WATER_COLOR } from "../../theme/mapColors";
 import { ThemedMap } from "./ThemedMap";
 
 type MapEvent = { type: string; error?: Error; target?: unknown };
@@ -18,12 +18,15 @@ const map = vi.hoisted(() => ({ throws: false }));
 /** What the load event's map records: the layers it was asked to change, and its DOM. */
 const loaded = vi.hoisted(() => ({
   layers: ["natural_earth", "water"],
+  /** The style's layers as getStyle lists them, for the calm restyle. */
+  styleLayers: [] as { id: string; type: string; "source-layer"?: string }[],
   changes: [] as string[],
   container: null as HTMLElement | null,
 }));
 
 const fakeMap = {
   getLayer: (id: string) => (loaded.layers.includes(id) ? { id } : undefined),
+  getStyle: () => ({ layers: loaded.styleLayers }),
   setLayoutProperty: (layer: string, name: string, value: unknown) => {
     loaded.changes.push(`${layer} ${name}=${String(value)}`);
   },
@@ -84,6 +87,7 @@ beforeAll(() => {
 beforeEach(() => {
   map.throws = false;
   loaded.layers = ["natural_earth", "water"];
+  loaded.styleLayers = [];
   loaded.changes = [];
   loaded.container = null;
   consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -147,6 +151,43 @@ describe("ThemedMap", () => {
     ]);
     expect(loaded.container.querySelector(".maplibregl-compact-show")).toBeNull();
     expect(loaded.container.querySelector(".maplibregl-compact")).not.toBeNull();
+  });
+
+  it("calms the basemap: neutral land, faint landcover, grey buildings, white roads and thin label halos, not the app's layers", async () => {
+    loaded.layers = [];
+    loaded.styleLayers = [
+      { id: "background", type: "background" },
+      { id: "landcover-wood", type: "fill", "source-layer": "landcover" },
+      { id: "building", type: "fill", "source-layer": "building" },
+      { id: "building-3d", type: "fill-extrusion", "source-layer": "building" },
+      { id: "highway-primary-casing", type: "line", "source-layer": "transportation" },
+      { id: "highway-primary", type: "line", "source-layer": "transportation" },
+      { id: "railway", type: "line", "source-layer": "transportation" },
+      { id: "place-country-1", type: "symbol", "source-layer": "place" },
+      { id: "water-name-ocean", type: "symbol", "source-layer": "water_name" },
+      // The app's own cluster counts, from GeoJSON: left as they are
+      { id: "cluster-count", type: "symbol" },
+    ];
+    await render();
+
+    await click("load");
+
+    expect(loaded.changes).toEqual([
+      `background background-color=${BASEMAP_COLORS.land}`,
+      "landcover-wood fill-opacity=0.35",
+      `building fill-color=${BASEMAP_COLORS.building}`,
+      `building-3d fill-extrusion-color=${BASEMAP_COLORS.building}`,
+      `highway-primary-casing line-color=${BASEMAP_COLORS.roadCasing}`,
+      `highway-primary line-color=${BASEMAP_COLORS.road}`,
+      `place-country-1 text-color=${BASEMAP_COLORS.label}`,
+      `place-country-1 text-halo-color=${BASEMAP_COLORS.land}`,
+      "place-country-1 text-halo-width=1",
+      "place-country-1 text-halo-blur=0",
+      `water-name-ocean text-color=${BASEMAP_COLORS.waterLabel}`,
+      `water-name-ocean text-halo-color=${BASEMAP_WATER_COLOR}`,
+      "water-name-ocean text-halo-width=1",
+      "water-name-ocean text-halo-blur=0",
+    ]);
   });
 
   it("leaves a style without those layers as it is", async () => {

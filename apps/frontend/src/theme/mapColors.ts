@@ -52,3 +52,19 @@ export function mapLayerColors(scheme: "light" | "dark"): MapLayerColors {
  * value for both schemes: it is painted under the dark mode filter like the rest of the basemap.
  */
 export const BASEMAP_WATER_COLOR = "#c3daef";
+
+/**
+ * The calm basemap (components/map/basemap.ts), after Positron: a neutral land colour instead of the
+ * style's cream, white roads on soft grey casings instead of yellow and orange, and one grey for
+ * place names with a thin halo of the land colour (the style drew pale names on dark halos for the
+ * satellite imagery we hide, which read as embossed). Painted under the dark mode filter like the
+ * rest of the basemap, so one value serves both schemes. Buildings are a neutral grey, not beige.
+ */
+export const BASEMAP_COLORS = {
+  land: "#f3f2ef",
+  label: "#5c5f66",
+  waterLabel: "#4f7399",
+  road: "#ffffff",
+  roadCasing: "#dcd9d3",
+  building: "#e4e2de",
+} as const;

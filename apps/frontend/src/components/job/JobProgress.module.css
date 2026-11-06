@@ -12,8 +12,14 @@
   --progress-root-bg: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
 }
 
+/*
+ * A fixed, right-aligned counter cell, so every bar in a list ends at the same x whether the count
+ * reads "2 / 2" or "200 / 200".
+ */
 .count {
-  flex-shrink: 0;
+  flex: 0 0 5.5rem;
+  text-align: right;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
   cursor: default;
 }

@@ -135,9 +135,15 @@ async function render(props: Partial<Props>) {
   );
 }
 
+// The "+" and "⋮" menu buttons, by name: the bar's direct actions come before them.
+const menuButton = (menu: 0 | 1) =>
+  container.querySelector<HTMLButtonElement>(
+    `button[aria-label="${i18n.t(menu === 0 ? "selectionactions.addto" : "selectionactions.photoactions")}"]`
+  );
+
 /** Opens the first ("+") or second ("⋮") menu and clicks the item with `label`. */
 async function pick(menu: 0 | 1, label: string) {
-  await act(async () => defined(container.querySelectorAll("button")[menu]).click());
+  await act(async () => defined(menuButton(menu)).click());
   const item = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
     // The label without the shortcut hint ("t") some items carry on the right, or the name of an
     // item with a note under its label (Hide, Archive)
@@ -155,8 +161,8 @@ const items: [string, Call, object][] = [
   ["Unhide", stubs.hidden, { hidden: false }],
   ["Archive", stubs.archived, { archived: true }],
   ["Unarchive", stubs.archived, { archived: false }],
-  ["Make Public", stubs.public, { val_public: true }],
-  ["Make Private", stubs.public, { val_public: false }],
+  ["Make public", stubs.public, { val_public: true }],
+  ["Make private", stubs.public, { val_public: false }],
   ["Move to trash", stubs.deleted, { deleted: true }],
   ["Mark as screenshot", stubs.category, { category: "screenshot" }],
 ];
@@ -224,7 +230,7 @@ describe("the stack actions", () => {
   it("stacks the selection", async () => {
     await render({});
 
-    await pick(1, "Create Stack");
+    await pick(1, "Create stack");
 
     expect(stubs.createStack).toHaveBeenCalledWith({ photo_hashes: ["hash1", "hash2"] }, expect.anything());
   });
@@ -232,7 +238,7 @@ describe("the stack actions", () => {
   it("merges the stacks of the selection", async () => {
     await render({});
 
-    await pick(1, "Merge Stacks");
+    await pick(1, "Merge stacks");
 
     expect(stubs.mergeStacks).toHaveBeenCalledWith({ photo_hashes: ["hash1", "hash2"] }, expect.anything());
   });
@@ -240,7 +246,7 @@ describe("the stack actions", () => {
   it("takes the selection out of its stacks, one request per stack", async () => {
     await render({});
 
-    await pick(1, "Break Apart Stacks");
+    await pick(1, "Break apart stacks");
 
     expect(stubs.removeFromStack).toHaveBeenCalledWith({
       stackId: stack.id,
@@ -279,7 +285,7 @@ describe("the add-to menu", () => {
 
 /** Opens the photo actions ("⋮") menu and returns the item with `label`. */
 async function photoAction(label: string): Promise<HTMLButtonElement> {
-  await act(async () => defined(container.querySelectorAll("button")[1]).click());
+  await act(async () => defined(menuButton(1)).click());
   const item = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
     button =>
       (button.getAttribute("aria-label") ?? button.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim()) ===
@@ -296,7 +302,7 @@ function expectReachableWithReason(item: HTMLElement, reason: string) {
 
 const SELECT_FIRST = "Select at least one photo first";
 const NOT_WITH_SELECT_ALL = "Not available with Select all: select the photos one by one";
-const stackActions = ["Create Stack", "Merge Stacks", "Break Apart Stacks"];
+const stackActions = ["Create stack", "Merge stacks", "Break apart stacks"];
 
 // #2608: these items were plain `disabled`: greyed out with no reason, and skipped by the arrow keys.
 describe("a disabled item says why", () => {
@@ -328,12 +334,12 @@ describe("a disabled item says why", () => {
   it("Create Stack needs two photos", async () => {
     await render({ selectedItems: [photo(1)] });
 
-    const item = await photoAction("Create Stack");
+    const item = await photoAction("Create stack");
     expectReachableWithReason(item, "Select at least two photos to stack them");
     expect(await focusAndReadTooltip(item)).toContain("Select at least two photos to stack them");
   });
 
-  it.each(["Merge Stacks", "Break Apart Stacks"])("%s needs a photo in a manual stack", async label => {
+  it.each(["Merge stacks", "Break apart stacks"])("%s needs a photo in a manual stack", async label => {
     await render({ selectedItems: [photo(1), photo(2)] });
 
     expectReachableWithReason(await photoAction(label), "None of the selected photos is in a manual stack");
