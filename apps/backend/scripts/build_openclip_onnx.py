@@ -45,12 +45,16 @@ import argparse
 import hashlib
 import importlib.metadata
 import json
+import os
 import platform
 import shutil
 import sys
 from pathlib import Path
 
 import numpy as np
+
+# ONNX Runtime 1.29+ reports to Microsoft unless this is set before it loads.
+os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))

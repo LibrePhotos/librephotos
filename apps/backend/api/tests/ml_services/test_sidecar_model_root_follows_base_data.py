@@ -242,3 +242,20 @@ class ServiceEnvironmentVulkanTest(SimpleTestCase):
             ):
                 env = _service_environment()
                 self.assertEqual(env["VK_LOADER_DRIVERS_DISABLE"], value)
+
+
+class ServiceEnvironmentOnnxTelemetryTest(SimpleTestCase):
+    """ONNX Runtime 1.29+ sends Microsoft telemetry unless ORT_DISABLE_TELEMETRY
+    is set before it loads, and three sidecars import it before our code runs.
+    Off unless the host chose otherwise."""
+
+    def test_off_by_default(self):
+        with patch.dict(os.environ):
+            os.environ.pop("ORT_DISABLE_TELEMETRY", None)
+            env = _service_environment()
+        self.assertEqual(env["ORT_DISABLE_TELEMETRY"], "1")
+
+    def test_an_explicit_setting_wins(self):
+        with patch.dict(os.environ, {"ORT_DISABLE_TELEMETRY": "0"}):
+            env = _service_environment()
+        self.assertEqual(env["ORT_DISABLE_TELEMETRY"], "0")

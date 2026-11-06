@@ -199,6 +199,26 @@ def startup_page_problems(script: str) -> list[str]:
     return problems
 
 
+def final_stage_env(text: str) -> dict[str, str]:
+    """The ``ENV`` values the image a Dockerfile builds starts with.
+
+    Only its own instructions: what the base image sets is not seen.
+    """
+    stages = dockerfile_stages(text)
+    env: dict[str, str] = {}
+    for keyword, arguments in stages[-1][2] if stages else []:
+        if keyword != "ENV":
+            continue
+        words = shlex.split(arguments)
+        if words and "=" not in words[0]:
+            env[words[0]] = " ".join(words[1:])  # legacy `ENV KEY value`
+            continue
+        for word in words:
+            key, _, value = word.partition("=")
+            env[key] = value
+    return env
+
+
 def workflow_path_filters(workflow_text: str) -> list[list[str]]:
     """Every `paths:` list of a workflow's triggers."""
     data = yaml.safe_load(workflow_text)
@@ -354,6 +374,24 @@ class DeployImageDetectionTest(SimpleTestCase):
         )
         self.assertEqual([], workflows_missing_entrypoint(fixed, dockerfiles))
 
+    def test_final_stage_env_reads_both_env_forms_of_the_last_stage_only(self):
+        text = (
+            "FROM node:24-slim as builder\n"
+            "ENV ORT_DISABLE_TELEMETRY=0\n"
+            "FROM reallibrephotos/librephotos-base:${BASE_TAG}\n"
+            "ENV IMAGE_TAG ${IMAGE_TAG}\n"
+            "# ENV COMMENTED=1\n"
+            'ENV ORT_DISABLE_TELEMETRY=1 WEB_CONCURRENCY="4"\n'
+        )
+        self.assertEqual(
+            {
+                "IMAGE_TAG": "${IMAGE_TAG}",
+                "ORT_DISABLE_TELEMETRY": "1",
+                "WEB_CONCURRENCY": "4",
+            },
+            final_stage_env(text),
+        )
+
 
 @unittest.skipUnless(
     repository_present(), "needs the repository checkout (deploy/ and the docs page)"
@@ -397,6 +435,20 @@ class DeployImagesTest(SimpleTestCase):
         ):
             with self.subTest(path=path):
                 self.assertTrue(copies_backend_entrypoint(dockerfiles[path]))
+
+    def test_every_backend_image_turns_onnx_runtime_telemetry_off(self):
+        """ONNX Runtime 1.29+ reports to Microsoft unless this is set before it loads.
+
+        api.runtime.supervisor sets it for the sidecars too; the image ENV also
+        covers manage.py, the shell and anything else run in the container.
+        """
+        problems = [
+            path
+            for path, text in self.dockerfiles().items()
+            if copies_backend_entrypoint(text)
+            and final_stage_env(text).get("ORT_DISABLE_TELEMETRY") != "1"
+        ]
+        self.assertEqual([], problems, "backend images without ORT_DISABLE_TELEMETRY=1")
 
     def test_no_entrypoint_runs_manage_py_shell(self):
         """The admin account is created and updated by createadmin only."""
