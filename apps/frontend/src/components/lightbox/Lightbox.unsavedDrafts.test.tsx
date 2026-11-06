@@ -42,8 +42,6 @@ vi.mock("motion/react", () => ({
   motion: { div: ({ children }: { children?: React.ReactNode }) => <div>{children}</div> },
 }));
 vi.mock("./MediaDisplay", () => ({
-  LIGHTBOX_PHOTO_HEIGHT: "82vh",
-  LIGHTBOX_VIDEO_HEIGHT: "80vh",
   MediaDisplay: () => null,
 }));
 vi.mock("./LightboxControls", () => ({

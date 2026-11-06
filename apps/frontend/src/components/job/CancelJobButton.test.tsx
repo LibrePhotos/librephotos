@@ -37,7 +37,7 @@ describe("CancelJobButton", () => {
   it("asks first, naming the job and how long it has run", async () => {
     await clickCancel();
 
-    expect(openDialog()?.textContent).toContain("Scan Photos has been running for");
+    expect(openDialog()?.textContent).toContain("Scan photos has been running for");
     expect(stubs.cancelJob).not.toHaveBeenCalled();
   });
 
@@ -65,7 +65,7 @@ describe("CancelJobButton", () => {
   it("says a queued job only leaves the queue", async () => {
     await clickCancel(jobFixture({ started_at: null }));
 
-    expect(openDialog()?.textContent).toContain("Scan Photos has not started yet.");
+    expect(openDialog()?.textContent).toContain("Scan photos has not started yet.");
     expect(dialogButton("Keep in queue")).toBeTruthy();
   });
 

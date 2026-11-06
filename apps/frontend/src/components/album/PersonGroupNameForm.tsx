@@ -62,7 +62,7 @@ export function PersonGroupNameForm({
           data-autofocus={autoFocus || undefined}
           {...form.getInputProps("name")}
         />
-        <Button type="submit" variant="default" size="sm" leftSection={submitIcon} loading={pending}>
+        <Button type="submit" variant="light" size="sm" leftSection={submitIcon} loading={pending}>
           {submitLabel}
         </Button>
         {onCancel && (

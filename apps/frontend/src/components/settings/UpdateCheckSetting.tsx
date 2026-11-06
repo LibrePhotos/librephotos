@@ -89,7 +89,8 @@ export function UpdateCheckSetting() {
           ) : null}
         </Group>
         <Stack gap={4} id={`${id}-description`}>
-          <Text fz="xs" c="dimmed">
+          {/* A setting's description: 13px at a reading width, as SectionNav.module.css sets Mantine's. */}
+          <Text fz={13} c="dimmed" maw="72ch">
             {locked ? (
               <Trans i18nKey="sitesettings.updatecheck_locked" components={{ code: <Code fz="xs" /> }} />
             ) : (

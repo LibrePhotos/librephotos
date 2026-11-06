@@ -14,6 +14,8 @@ export function importPercent(imports: ImportJob[]): number | null {
 type Props = Readonly<{
   // The user's unfinished import jobs, from this browser and other devices.
   imports: ImportJob[];
+  /** The menu divider under it; off in the phone's account sheet, which is not a menu. */
+  divider?: boolean;
 }>;
 
 /**
@@ -21,7 +23,7 @@ type Props = Readonly<{
  * also after the upload card was closed and for the phone's backups. Its own section, beside the
  * running job: an import never holds the queue, and it has no Cancel (it finishes by itself).
  */
-export function ImportJobMenuSection({ imports }: Props) {
+export function ImportJobMenuSection({ imports, divider = true }: Props) {
   const { t } = useTranslation();
   const { ready, total } = importCounts(imports);
   const percent = importPercent(imports) ?? 0;
@@ -46,7 +48,7 @@ export function ImportJobMenuSection({ imports }: Props) {
           {t("topmenu.importingprogress", { ready, total })}
         </Text>
       </Stack>
-      <Menu.Divider />
+      {divider && <Menu.Divider />}
     </>
   );
 }

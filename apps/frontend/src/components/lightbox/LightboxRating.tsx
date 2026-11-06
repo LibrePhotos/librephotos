@@ -1,11 +1,12 @@
-import { ActionIcon, Rating, Tooltip } from "@mantine/core";
+import { Rating, Tooltip } from "@mantine/core";
 import { IconStar as Star, IconStarFilled as StarFilled } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
+import { FAVORITE_COLOR } from "../../uiConstants";
 import { MAX_RATING } from "../../util/rating";
 import classes from "./LightboxRating.module.css";
+import { LightboxToolbarButton, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
 import type { PhotoActions } from "./usePhotoActions";
 
 function starLabel(t: TFunction, value: number) {
@@ -25,7 +26,7 @@ export function starSymbols(size: number, emptyColor: string) {
   };
 }
 
-const LIGHTBOX_STARS = starSymbols(ICON_SIZE.lightbox, "var(--app-scrim-white-60)");
+const LIGHTBOX_STARS = starSymbols(TOOLBAR_ICON_SIZE, "var(--app-scrim-white-60)");
 
 type StarRowProps = Readonly<{
   rating: number;
@@ -102,14 +103,12 @@ export function LightboxRating({ actions }: Readonly<{ actions: PhotoActions }>)
   }
   const label = actions.isFavorite ? t("lightbox.toolbar.removeFromFavorites") : t("lightbox.toolbar.addToFavorites");
   return (
-    <Tooltip label={label} position="bottom" withArrow>
-      <ActionIcon variant="subtle" color="gray" size={28} aria-label={label} onClick={actions.toggleFavorite}>
-        {actions.isFavorite ? (
-          <StarFilled size={ICON_SIZE.lightbox} color={FAVORITE_COLOR} />
-        ) : (
-          <Star size={ICON_SIZE.lightbox} />
-        )}
-      </ActionIcon>
-    </Tooltip>
+    <LightboxToolbarButton label={label} onClick={actions.toggleFavorite}>
+      {actions.isFavorite ? (
+        <StarFilled size={TOOLBAR_ICON_SIZE} color={FAVORITE_COLOR} />
+      ) : (
+        <Star size={TOOLBAR_ICON_SIZE} />
+      )}
+    </LightboxToolbarButton>
   );
 }

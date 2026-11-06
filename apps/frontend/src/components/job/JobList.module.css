@@ -1,0 +1,39 @@
+/* A row opens its job; the job name is the link the keyboard reaches (#2228). */
+.row {
+  cursor: pointer;
+}
+
+.table {
+  --table-vertical-spacing: 10px;
+}
+
+.table th {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  color: var(--mantine-color-dimmed);
+}
+
+/* The progress column takes what the name, chip and menu leave. */
+.progressCell {
+  width: 40%;
+
+  /* A phone has room for the bar, not for "64 / 64" too (its tooltip and the bar's name keep it) */
+  @media (max-width: 47.99em) {
+    width: 20%;
+
+    [data-count] {
+      display: none;
+    }
+  }
+}
+
+.chipCell,
+.actionsCell {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* The chip keeps its whole word: its label truncates, which in a 1% cell left "C…" */
+.chipCell > * {
+  min-width: max-content;
+}

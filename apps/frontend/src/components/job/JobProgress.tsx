@@ -1,9 +1,10 @@
-import { Box, Center, Progress, Text, Tooltip } from "@mantine/core";
+import { Progress, Text, Tooltip } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
-import { formatPercent } from "../../util/formatCount";
-import { JOB_OUTCOME_COLOR, jobOutcome, type JobOutcome } from "./jobStatus";
+import { formatCount, formatPercent } from "../../util/formatCount";
+import classes from "./JobProgress.module.css";
+import { jobOutcome, type JobOutcome } from "./jobStatus";
 
 type IJobProgress = Readonly<{
   target?: number;
@@ -11,7 +12,6 @@ type IJobProgress = Readonly<{
   finished: boolean;
   failed?: boolean;
   cancelled?: boolean;
-  error?: unknown;
   result?: Record<string, unknown> | null;
   progressStep?: string | null;
 }>;
@@ -36,112 +36,83 @@ function progression({
   };
 }
 
-// "Asset(s) added" was wrong for most job types (geolocation, OCR, model
-// downloads add nothing), so counts read as items processed.
-function RunningProgress({ current, target, step }: Progression) {
+/**
+ * Only a running job's bar has the primary colour and a hard failure's is red: a finished one is a
+ * 2px dimmed line (and a cancelled one grey), so ten identical full-length bars down the list do
+ * not draw the eye from the one that needs it (Immich's job cards). How a job ended is said by its
+ * status (JobStatusChip).
+ */
+const BAR_COLOR: Record<JobOutcome, string | undefined> = {
+  queued: undefined,
+  running: undefined,
+  completed: "gray",
+  partial_failure: "gray",
+  failed: "red",
+  cancelled: "gray",
+};
+
+/** A job that ended without trouble: its bar is the thin dimmed line. */
+const isQuiet = (outcome: JobOutcome) =>
+  outcome === "completed" || outcome === "partial_failure" || outcome === "cancelled";
+
+/** How full the bar is: a finished job's is full, unless it was cancelled part way. */
+function barValue(outcome: JobOutcome, { current, target }: Progression): number {
+  if (outcome === "queued") return 0;
+  if (outcome === "running" || outcome === "cancelled") {
+    return target ? Math.min(100, (current / target) * 100) : 0;
+  }
+  return 100;
+}
+
+/**
+ * A job's progress: a 4px bar (2px and dimmed once it ended well) with "current / target" after it, and the job's own step under it
+ * while it runs. The count's tooltip says it as a sentence, with the percentage while it runs.
+ */
+export function JobProgress({ finished, failed = false, cancelled = false, result, ...props }: IJobProgress) {
   const { t } = useTranslation();
   const locale = useFormatLocale();
-  const fraction = current / target;
+  const progress = progression({ ...props, result });
+  const { current, target, step } = progress;
+  // Unfinished, a job with a target is under way: the list has no start time to go by here
+  const outcome: JobOutcome = finished
+    ? jobOutcome({ finished, failed, cancelled, result })
+    : target > 0
+      ? "running"
+      : "queued";
+  const running = outcome === "running" && target > 0;
+  const sentence = running
+    ? t("joblist.itemsprocessedpercent", { count: current, percent: formatPercent(current / target, locale) })
+    : t("joblist.itemsprocessed", { count: current });
+  const count = target
+    ? `${formatCount(current, locale)} / ${formatCount(target, locale)}`
+    : formatCount(current, locale);
+
   return (
     <div>
-      <Progress size={10} value={fraction * 100} />
-      <Center>
-        <Text size="sm" ta="center">
-          {step || t("joblist.itemsprocessedpercent", { count: current, percent: formatPercent(fraction, locale) })}
-        </Text>
-      </Center>
-    </div>
-  );
-}
-
-type FinishedProps = Readonly<{
-  outcome: JobOutcome;
-  current: number;
-  target: number;
-  errorCount: number;
-  errorMessage: string | null;
-}>;
-
-function FinishedLabel({ outcome, current, target, errorCount }: Omit<FinishedProps, "errorMessage">) {
-  const { t } = useTranslation();
-  switch (outcome) {
-    case "failed":
-      return (
-        <Text size="sm" c="red">
-          {t("joblist.failed")}
-        </Text>
-      );
-    case "partial_failure":
-      return (
-        <Text size="sm" c="orange" ta="center">
-          {t("joblist.partialfailure", { errorCount, total: target || current })}
-        </Text>
-      );
-    case "cancelled":
-      return (
-        <Text size="sm" c="dimmed">
-          {t("joblist.cancelled")}
-        </Text>
-      );
-    case "queued":
-    case "running":
-    case "completed":
-      return (
-        <Text size="sm" ta="center">
-          {t("joblist.itemsprocessed", { count: current })}
-        </Text>
-      );
-  }
-}
-
-function FinishedProgress(props: FinishedProps) {
-  const { outcome, current, target, errorMessage } = props;
-  // A cancelled job shows how far it got instead of a full bar.
-  const value = outcome === "cancelled" && target ? Math.min(100, (current / target) * 100) : 100;
-  const label = <FinishedLabel {...props} />;
-  const withErrorTooltip = !!errorMessage && (outcome === "failed" || outcome === "partial_failure");
-  return (
-    <div>
-      <Progress size={10} color={JOB_OUTCOME_COLOR[outcome]} value={value} />
-      <Center>
-        {withErrorTooltip ? (
-          <Tooltip label={errorMessage} multiline w={300}>
-            <Box style={{ cursor: "help" }}>{label}</Box>
-          </Tooltip>
+      <div className={classes.row}>
+        <Progress
+          className={classes.bar}
+          classNames={isQuiet(outcome) ? { section: classes.quietSection } : undefined}
+          size={isQuiet(outcome) ? 2 : 4}
+          color={BAR_COLOR[outcome]}
+          value={barValue(outcome, progress)}
+          aria-label={sentence}
+        />
+        {outcome === "queued" ? (
+          <span className={classes.count} data-count />
         ) : (
-          label
+          <Tooltip label={sentence}>
+            <Text size="xs" c="dimmed" className={classes.count} data-count>
+              {count}
+            </Text>
+          </Tooltip>
         )}
-      </Center>
-    </div>
-  );
-}
-
-export function JobProgress({ finished, failed = false, cancelled = false, error, result, ...props }: IJobProgress) {
-  const { t } = useTranslation();
-  const { current, target, step } = progression({ ...props, result });
-
-  if (target && !finished) {
-    return <RunningProgress current={current} target={target} step={step} />;
-  }
-  if (finished) {
-    // Extract error message from result if available
-    const errorMessage = result?.error ? String(result.error) : error ? String(error) : null;
-    return (
-      <FinishedProgress
-        outcome={jobOutcome({ finished, failed, cancelled, result })}
-        current={current}
-        target={target}
-        errorCount={result?.error_count != null ? Number(result.error_count) : 0}
-        errorMessage={errorMessage}
-      />
-    );
-  }
-  return (
-    <div>
-      <Progress size={10} color="blue" value={0} />
-      <Center>
-        <Text size="sm">{t("joblist.waiting")}</Text>
-      </Center>
+      </div>
+      {running && step ? (
+        <Text size="xs" c="dimmed" truncate>
+          {step}
+        </Text>
+      ) : null}
     </div>
   );
 }

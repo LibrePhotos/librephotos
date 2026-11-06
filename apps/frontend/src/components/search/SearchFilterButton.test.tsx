@@ -94,7 +94,7 @@ describe("SearchFilterButton", () => {
     expect(stubs.peopleSkipped).not.toContain(false);
     expect(defined(document.querySelector('[aria-label="2 filters active"]')).textContent).toBe("2");
 
-    await act(async () => button(/^Filters/).click());
+    await act(async () => button(/^Filter/).click());
     expect(document.querySelector('[data-testid="panel"]')).not.toBeNull();
     expect(stubs.panelActive.at(-1)).toBe(true);
     expect(stubs.peopleSkipped.at(-1)).toBe(false);
@@ -106,7 +106,7 @@ describe("SearchFilterButton", () => {
   it("offers no Clear all without filters", async () => {
     stubs.phone = false;
     await renderButton({});
-    await act(async () => button("Filters").click());
+    await act(async () => button("Filter").click());
     expect(Array.from(document.body.querySelectorAll("button")).map(item => item.textContent)).not.toContain(
       "Clear all"
     );
@@ -116,7 +116,7 @@ describe("SearchFilterButton", () => {
     stubs.phone = true;
     await renderButton({ person: [3, 7] });
 
-    await act(async () => button("Filters, 2 filters active").click());
+    await act(async () => button("Filter, 2 filters active").click());
     expect(document.body.textContent).toContain("Search filters");
     expect(document.querySelector('[data-testid="panel"]')).not.toBeNull();
 

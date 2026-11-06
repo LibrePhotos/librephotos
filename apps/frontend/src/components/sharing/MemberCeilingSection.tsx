@@ -15,10 +15,12 @@ export function MemberCeilingSection({ albumID, album }: Props) {
   const { t } = useTranslation();
   const setCeiling = useSetAlbumMemberCeilingMutation();
   return (
-    <Stack gap="xs">
+    <Stack gap="sm">
       <div>
-        <Title order={5}>{t("collab.membersSee")}</Title>
-        <Text size="xs" c="dimmed">
+        <Title order={3} size="h4" fw={600}>
+          {t("collab.membersSee")}
+        </Title>
+        <Text fz={13} lh={1.45} c="dimmed" mt={2}>
           {t("collab.membersSeeDesc")}
         </Text>
       </div>

@@ -11,6 +11,7 @@ import { ICON_SIZE } from "../../uiConstants";
 import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { AlbumCollectionNameForm } from "./AlbumCollectionNameForm";
 
 type Props = Readonly<{
@@ -87,9 +88,7 @@ function Checklist({ albumId, collectionIds, onClose }: Omit<Props, "opened" | "
         {t("albumcollections.savedastyoutick")}
       </Text>
       <Group justify="flex-end">
-        <Button variant="default" onClick={onClose}>
-          {t("albumcollections.done")}
-        </Button>
+        <Button onClick={onClose}>{t("albumcollections.done")}</Button>
       </Group>
     </Stack>
   );
@@ -99,7 +98,12 @@ function Checklist({ albumId, collectionIds, onClose }: Omit<Props, "opened" | "
 export function AlbumCollectionsModal({ opened, onClose, albumTitle, ...props }: Props) {
   const { t } = useTranslation();
   return (
-    <Modal size="sm" opened={opened} onClose={onClose} title={t("albumcollections.dialogtitle", { title: albumTitle })}>
+    <Modal
+      size={DIALOG_SIZE.md}
+      opened={opened}
+      onClose={onClose}
+      title={t("albumcollections.dialogtitle", { title: albumTitle })}
+    >
       <Checklist onClose={onClose} {...props} />
     </Modal>
   );

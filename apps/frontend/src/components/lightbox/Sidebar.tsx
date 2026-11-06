@@ -1,18 +1,7 @@
 import type { PublicPhotoDetail, PublicPhotoDetailResponse } from "@librephotos/api-client";
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
-import {
-  ActionIcon,
-  Box,
-  Group,
-  Loader,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-  useComputedColorScheme,
-  useMantineTheme,
-} from "@mantine/core";
-import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { ActionIcon, Group, Loader, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,7 +22,9 @@ import { LibraryPhotoDetails } from "./LibraryPhotoDetails";
 import type { FaceLocationType, LightboxItem } from "./lightbox.types";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
+import { SectionTitle } from "./SectionTitle";
 import { SharedPhotoDetails } from "./SharedPhotoDetails";
+import classes from "./Sidebar.module.css";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
 import { StackSection } from "./StackSection";
 import { TagsSection } from "./TagsSection";
@@ -64,45 +55,9 @@ type SelectedFace = {
   face_url: string;
 };
 
-const sidebarStyles = {
-  container: {
-    whiteSpace: "normal" as const,
-    zIndex: 250,
-    overflowY: "auto" as const,
-    overflowX: "hidden" as const,
-    boxShadow: "0 -4px 8px var(--app-scrim-black-10)",
-  },
-};
-
 /** The panel every state of the sidebar renders in. */
 function SidebarPanel({ children }: { children: React.ReactNode }) {
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme();
-  // Below md the panel is a fixed overlay on the photo and needs the shadow. md is the
-  // same breakpoint the width and position styles below switch on.
-  const isSideBySide = useMediaQuery(`(min-width: ${theme.breakpoints.md})`, undefined, {
-    getInitialValueInEffect: false,
-  });
-  const shadowStyle = {
-    ...sidebarStyles.container,
-    boxShadow: isSideBySide ? "none" : sidebarStyles.container.boxShadow,
-  };
-
-  return (
-    <Box
-      w={{ base: "100%", md: "400px" }}
-      h="100%"
-      pos={{ base: "fixed", md: "relative" }}
-      top={{ base: 0, md: "auto" }}
-      right={{ base: 0, md: "auto" }}
-      bottom={{ base: 0, md: "auto" }}
-      style={shadowStyle}
-      p="sm"
-      bg={colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0]}
-    >
-      {children}
-    </Box>
-  );
+  return <aside className={classes.panel}>{children}</aside>;
 }
 
 type SidebarHeaderProps = {
@@ -112,16 +67,19 @@ type SidebarHeaderProps = {
 function SidebarHeader({ closeSidepanel }: SidebarHeaderProps) {
   const { t } = useTranslation();
   return (
-    <Group justify="space-between">
-      <Title order={3}>{t("lightbox.sidebar.details")}</Title>
+    <Group justify="space-between" wrap="nowrap">
+      <Title order={3} className={classes.header}>
+        {t("lightbox.sidebar.info")}
+      </Title>
       <Tooltip label={t("lightbox.toolbar.hideInfoPanel")}>
         <ActionIcon
           variant="subtle"
           color="gray"
+          radius="xl"
           aria-label={t("lightbox.toolbar.hideInfoPanel")}
           onClick={closeSidepanel}
         >
-          <X />
+          <X size={20} />
         </ActionIcon>
       </Tooltip>
     </Group>
@@ -190,7 +148,8 @@ function SharedSections({
       <PublicRightsSection rights={rights} />
       {sharing.share_timestamps && <TimestampItem photoDetail={photo} isPublic />}
       {sharing.share_location && <LocationSection photoDetail={photo} mapHeight={200} isPublic />}
-      {sharing.share_camera_info && photo.camera && <CameraInfoSection photoDetail={photo} />}
+      {/* Left out by itself when the album shares none of it: a lens or an exposure alone still shows. */}
+      {sharing.share_camera_info && <CameraInfoSection photoDetail={photo} />}
       {sharing.share_captions && <Description photoDetail={photo} isPublic />}
       {sharing.share_faces && photo.people.length > 0 && (
         <PeopleSection
@@ -217,7 +176,7 @@ function PublicAlbumSidebar({ slug, id, closeSidepanel }: PublicAlbumSidebarProp
 
   return (
     <SidebarPanel>
-      <Stack>
+      <Stack gap="lg">
         <SidebarHeader closeSidepanel={closeSidepanel} />
         {isLoading && <Loader size="sm" />}
         {!isLoading && publicPhotoData && (
@@ -256,7 +215,7 @@ function ViewerSidebar(props: SharedViewerSidebarProps) {
   if (!photo || !isLibraryPhoto(photo)) return <SharedViewerSidebar {...props} rights={photo?.rights} />;
   return (
     <SidebarPanel>
-      <Stack>
+      <Stack gap="lg">
         <SidebarHeader closeSidepanel={props.closeSidepanel} />
         <LibraryPhotoDetails photo={photo} setFaceLocation={props.setFaceLocation} />
       </Stack>
@@ -273,7 +232,7 @@ function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation, ri
   const location = gridItem?.location || null;
   return (
     <SidebarPanel>
-      <Stack>
+      <Stack gap="lg">
         <SidebarHeader closeSidepanel={closeSidepanel} />
         {date && <TimestampItem photoDetail={{ image_hash: id, exif_timestamp: date }} isPublic />}
         {/* The grid has the place name, never the coordinates: no map. */}
@@ -335,7 +294,7 @@ function OwnerSidebar({
     // details for this user, instead of an empty strip next to the photo.
     return (
       <SidebarPanel>
-        <Stack>
+        <Stack gap="lg">
           <SidebarHeader closeSidepanel={closeSidepanel} />
           {isPhotoDetailError ? (
             <Text size="sm" c="dimmed">
@@ -367,17 +326,11 @@ function OwnerSidebar({
 
   return (
     <SidebarPanel>
-      <Stack>
+      <Stack gap="lg">
         <SidebarHeader closeSidepanel={closeSidepanel} />
-        <TimestampItem photoDetail={photoDetail} isPublic={false} extra={<WhyThisDate photo={photoDetail} />} />
         {photoDetail.in_trashcan && <TrashedItem trashedAt={photoDetail.trashed_at} />}
-        <VersionComponent
-          photoDetail={photoDetail}
-          isPublic={false}
-          category={<CategoryBadge key={photoDetail.image_hash} photoDetail={photoDetail} />}
-        />
-        <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
-        <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} yourPlace={yourPlace} />
+        {/* What the owner writes first, then who is in it, then the facts: Google Photos' and Immich's order. */}
+        <Description photoDetail={photoDetail} isPublic={false} />
         <PeopleSection
           photoDetail={photoDetail}
           isPublic={false}
@@ -389,7 +342,19 @@ function OwnerSidebar({
           isDrawingFace={isDrawingFace}
           addFaceBlockedReason={addFaceBlockedReason}
         />
-        <Description photoDetail={photoDetail} isPublic={false} />
+        <Stack gap="md">
+          <SectionTitle>{t("lightbox.sidebar.details")}</SectionTitle>
+          <TimestampItem photoDetail={photoDetail} isPublic={false} dateInfo={<WhyThisDate photo={photoDetail} />} />
+          <VersionComponent
+            photoDetail={photoDetail}
+            isPublic={false}
+            category={<CategoryBadge key={photoDetail.image_hash} photoDetail={photoDetail} look="text" />}
+            location={
+              <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} yourPlace={yourPlace} />
+            }
+          />
+        </Stack>
+        <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
         {/* Tags stay owner-only: public shares have no flag for them. The file's
             keywords are tags too (a scan makes one of each), marked as such. */}
         <TagsSection photoDetail={photoDetail} />

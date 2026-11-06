@@ -58,8 +58,6 @@ vi.mock("motion/react", () => ({
   motion: { div: ({ children }: { children?: React.ReactNode }) => <div>{children}</div> },
 }));
 vi.mock("./MediaDisplay", () => ({
-  LIGHTBOX_PHOTO_HEIGHT: "82vh",
-  LIGHTBOX_VIDEO_HEIGHT: "80vh",
   MediaDisplay: (props: MediaDisplayProps) => {
     if (props.isMainContent) stubs.media.push(props);
     return null;
@@ -185,8 +183,8 @@ async function press(key: string, target: Element = document.body, init: Keyboar
 /** The step to the next item, where the carousel and the list both move on. */
 const NEXT_ITEM = { mainSrc: "c", mainSrcHash: "hc", prevSrc: "b", prevSrcHash: "hb", nextSrc: "d", nextSrcHash: "hd" };
 
-/** What the overlay paints: the theme black, none of it transparent. */
-const OPAQUE_BLACK = "color-mix(in srgb, var(--mantine-color-black), transparent 0%)";
+/** What the overlay paints: pure black (the theme's "black" is the near-black text colour), opaque. */
+const OPAQUE_BLACK = "rgba(0, 0, 0, 1)";
 
 describe("escapeTargetsLightbox", () => {
   it("claims a key pressed on the page or inside the lightbox", () => {

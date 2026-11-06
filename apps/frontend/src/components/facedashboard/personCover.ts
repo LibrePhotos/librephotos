@@ -21,12 +21,3 @@ export function coverFaceUrl(group: CompletePersonFace, ownCover: string | undef
   const image = group.faces[0]?.image;
   return image ? faceImageUrl(image) : undefined;
 }
-
-/**
- * A collapsed group shows no faces, so nothing pages its faces in. A cluster has no cover of its
- * own, so it needs its first page for its cover face. People have their own cover, and "Unknown -
- * Other" shows none.
- */
-export function needsCoverPage(group: CompletePersonFace): boolean {
-  return group.kind === "CLUSTER" && group.faces[0]?.isTemp === true;
-}

@@ -1,6 +1,6 @@
-import { Button, Card, Container, Flex, Group, Modal, Space, Stack, Text, Title } from "@mantine/core";
+import { Button, Flex, Group, Modal, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconAdjustments as Adjustments, IconLock as Lock, IconTrash as Trash } from "@tabler/icons-react";
+import { IconLock as Lock, IconTrash as Trash } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
@@ -11,6 +11,7 @@ import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { JobList } from "../job/JobList";
 import { PageHeader } from "../PageHeader";
+import { SettingsPageFrame } from "../SettingsPageFrame";
 import { AdminUserTable } from "./AdminUserTable";
 import { CheckFileContentsTool } from "./CheckFileContentsTool";
 import { DeduplicateFacesTool } from "./DeduplicateFacesTool";
@@ -23,6 +24,7 @@ import { ADMIN_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
 import { ServerLogsCard } from "./ServerLogsCard";
 import { ServiceList } from "./ServiceList";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink, SettingsSection } from "./SettingsSection";
 import { SiteSettings } from "./SiteSettings";
 import { StripThumbnailMetadataTool } from "./StripThumbnailMetadataTool";
@@ -58,7 +60,7 @@ function AdminTools() {
   };
 
   return (
-    <Card shadow="md">
+    <SettingsCard>
       <Stack>
         <Title order={4}>
           {t("adminarea.admintools")}
@@ -118,7 +120,7 @@ function AdminTools() {
           </Group>
         </Stack>
       </Modal>
-    </Card>
+    </SettingsCard>
   );
 }
 
@@ -163,9 +165,7 @@ export function AdminPage() {
   ];
 
   return (
-    <Container size="lg">
-      {/* Outside the Stack, so the first card starts where it does on the other settings pages. */}
-      <PageHeader icon={Adjustments} title={t("adminarea.header")} />
+    <SettingsPageFrame withSectionNav header={<PageHeader title={t("adminarea.header")} />}>
       <SectionNav sections={sections}>
         <Stack>
           {update ? (
@@ -204,9 +204,8 @@ export function AdminPage() {
           <SettingsSection id={ADMIN_SECTIONS.jobs}>
             <JobList />
           </SettingsSection>
-          <Space h="xl" />
         </Stack>
       </SectionNav>
-    </Container>
+    </SettingsPageFrame>
   );
 }

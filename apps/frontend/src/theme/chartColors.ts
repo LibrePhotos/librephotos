@@ -1,7 +1,7 @@
 // The statistics charts' own colours. They are deliberate, not theme colours: a chart needs more
 // distinct hues than the theme has, and canvas and d3 drawing takes plain values rather than CSS
-// variables. This file and brandGradients.ts are the named homes for colour literals, so
-// src/architecture/styles.test.ts does not count them (AGENTS.md, Styling).
+// variables. This file is a named home for colour literals, so src/architecture/styles.test.ts
+// does not count them (AGENTS.md, Styling).
 
 /** One colour per person in the face cluster graph, assigned in order and repeated. */
 export const FACE_CLUSTER_COLORS = [
@@ -39,25 +39,29 @@ export const FACE_CLUSTER_CANVAS_COLORS = {
   pointBorder: { dark: "rgba(255, 255, 255, 0.3)", light: "rgba(0, 0, 0, 0.2)" },
 } as const;
 
-/** Word cloud words, assigned in order and repeated. */
+/**
+ * Word cloud words, assigned in order and repeated: the theme's blue accent in mid shades and two
+ * greys, so the cloud stays in the app's one accent and reads on light and dark cards alike.
+ */
 export const WORD_CLOUD_COLORS = [
-  "#6366f1", // indigo
-  "#8b5cf6", // violet
-  "#a855f7", // purple
-  "#d946ef", // fuchsia
-  "#ec4899", // pink
-  "#f43f5e", // rose
-  "#0ea5e9", // sky
-  "#14b8a6", // teal
-  "#10b981", // emerald
-  "#84cc16", // lime
+  "#228be6", // blue 6
+  "#868e96", // gray 6
+  "#339af0", // blue 5
+  "#1c7ed6", // blue 7
+  "#adb5bd", // gray 5
+  "#4dabf7", // blue 4
+  "#1971c2", // blue 8
+  "#74c0fc", // blue 3
 ] as const;
 
-/** The location tree's node gradients: the root, places with children, and leaves. */
+/**
+ * The location tree's node gradients: the root in the accent, places with children in a dark grey
+ * and leaves in a lighter one, so only the root carries colour. White text reads on all three.
+ */
 export const LOCATION_NODE_GRADIENTS = {
-  root: { from: "#6366f1", to: "#8b5cf6" }, // Indigo to violet
-  branch: { from: "#0ea5e9", to: "#06b6d4" }, // Sky to cyan
-  leaf: { from: "#10b981", to: "#34d399" }, // Emerald shades
+  root: { from: "#228be6", to: "#1c7ed6" }, // Blue 6 to 7: the accent
+  branch: { from: "#495057", to: "#343a40" }, // Gray 7 to 8
+  leaf: { from: "#868e96", to: "#6c757d" }, // Gray 6 to a step darker
 } as const;
 
 /** The location tree's links (slate with transparency, in both colour schemes). */
@@ -71,6 +75,6 @@ export const LOCATION_NODE_TEXT_COLORS = {
 
 /** The social graph: links between people and the ring around a person. */
 export const SOCIAL_GRAPH_COLORS = {
-  link: "#12939A",
+  link: "#adb5bd", // gray 5: links are structure, the faces are the content
   nodeStroke: "#fff",
 } as const;

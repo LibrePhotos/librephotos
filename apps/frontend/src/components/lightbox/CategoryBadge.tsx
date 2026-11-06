@@ -1,5 +1,5 @@
 import type { PhotoCategory, Photo as PhotoType } from "@librephotos/api-client";
-import { Badge, Box, Button, Group, Menu, Text } from "@mantine/core";
+import { Badge, Box, Button, Group, Menu, Text, UnstyledButton } from "@mantine/core";
 import {
   IconCheck as Check,
   IconChevronDown as ChevronDown,
@@ -19,6 +19,7 @@ import { notification } from "../../service/notifications";
 import { isFavorite } from "../../util/rating";
 import { DisabledReason } from "../common/DisabledReason";
 import { savedTimelineFilter, timelineFilterShows } from "../photolist/timelineFilter";
+import classes from "./CategoryBadge.module.css";
 
 // What the control shows for one photo: the category, who set it, and the
 // two flags behind it (both can be set; the control then shows Screenshot).
@@ -32,6 +33,11 @@ type CategoryState = {
 
 type Props = Readonly<{
   photoDetail: PhotoType;
+  /**
+   * "badge" (the photo page's file card): a tinted chip. "text" (the viewer's info panel): plain
+   * dimmed text with a small chevron, part of the "JPEG · Photo" line under the file name.
+   */
+  look?: "badge" | "text";
 }>;
 
 const CATEGORIES: readonly PhotoCategory[] = ["photo", "screenshot", "document"];
@@ -88,7 +94,7 @@ function pickedState(imageHash: string, category: PhotoCategory): CategoryState 
 // touches the requester's photos, so the control is not offered on anyone
 // else's. A video gets it only to clear a wrong flag: it can never become a
 // screenshot or document.
-export function CategoryBadge({ photoDetail }: Props) {
+export function CategoryBadge({ photoDetail, look = "badge" }: Props) {
   const { t } = useTranslation();
   const { userId } = useAuth();
   const { data: user } = useCurrentUserSelfDetailsQuery();
@@ -154,24 +160,33 @@ export function CategoryBadge({ photoDetail }: Props) {
   };
 
   const Icon = ICONS[state.category];
+  const label = t(`lightbox.category.${state.category}`);
+  const name = t("lightbox.category.change", { category: label });
+  const target =
+    look === "text" ? (
+      <UnstyledButton className={classes.text} aria-label={name}>
+        {label}
+        <ChevronDown size={12} aria-hidden />
+      </UnstyledButton>
+    ) : (
+      <Badge
+        component="button"
+        type="button"
+        variant="light"
+        color={COLORS[state.category]}
+        leftSection={<Icon size={12} />}
+        rightSection={<ChevronDown size={12} />}
+        aria-label={name}
+        className={classes.badge}
+      >
+        {label}
+      </Badge>
+    );
   return (
-    <Menu position="bottom-end" width={260} shadow="md">
+    <Menu position={look === "text" ? "bottom-start" : "bottom-end"} width={260} shadow="md">
       {/* Outside Menu.Target, so its click handler replaces the one that opens the menu. */}
       <DisabledReason reason={setCategory.isPending && t("lightbox.sidebar.saving")}>
-        <Menu.Target>
-          <Badge
-            component="button"
-            type="button"
-            variant="light"
-            color={COLORS[state.category]}
-            leftSection={<Icon size={12} />}
-            rightSection={<ChevronDown size={12} />}
-            aria-label={t("lightbox.category.change", { category: t(`lightbox.category.${state.category}`) })}
-            style={{ flex: "none", cursor: "pointer" }}
-          >
-            {t(`lightbox.category.${state.category}`)}
-          </Badge>
-        </Menu.Target>
+        <Menu.Target>{target}</Menu.Target>
       </DisabledReason>
       <Menu.Dropdown>
         <Menu.Label>

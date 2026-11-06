@@ -1,0 +1,50 @@
+/* The title looks like the title until it is pointed at: then a soft pill and a pencil. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin-inline: -6px;
+  padding-inline: 6px;
+  border-radius: var(--mantine-radius-md);
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  }
+}
+
+.pencil {
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  .button:hover &,
+  .button:focus-visible & {
+    opacity: 1;
+  }
+}
+
+/* The field keeps the title's size and weight, on the same soft pill. */
+.input {
+  height: auto;
+  min-height: 0;
+  margin-inline: -6px;
+  padding-inline: 6px;
+  border-radius: var(--mantine-radius-md);
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: 1.25;
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+.error {
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 400;
+  letter-spacing: normal;
+}

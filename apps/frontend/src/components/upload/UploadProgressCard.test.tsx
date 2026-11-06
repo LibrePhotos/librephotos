@@ -105,11 +105,15 @@ describe("UploadProgressCard", () => {
     await render([item("a.jpg", "done", 100), item("b.mp4", "uploading", 50), item("c.jpg", "error", 0, "Boom")], true);
 
     const card = defined(byTestId("upload-progress-card"));
-    expect(card.textContent).toContain("Uploading…");
-    expect(card.textContent).toContain("2/3 processed");
+    // "Uploading 3 of 3": the file on its way; under it only what went wrong so far
+    expect(card.textContent).toContain("Uploading 3 of 3");
     expect(card.textContent).toContain("1 error");
     expect(card.textContent).toContain("Boom");
-    expect(container.querySelectorAll('[data-testid="upload-row"]')).toHaveLength(3);
+    const rows = [...container.querySelectorAll<HTMLElement>('[data-testid="upload-row"]')];
+    expect(rows).toHaveLength(3);
+    // Each file's state in sentence case under its name, a picked image as its own thumbnail
+    expect(rows.map(row => row.textContent)).toEqual(["a.jpgDone", "b.mp4Uploading 50 %", "c.jpgFailedBoomRetry"]);
+    expect(defined(rows[0]).querySelector("img")?.getAttribute("src")).toMatch(/^blob:/);
     expect(byTestId("upload-close")).toBeNull();
     expect(byTestId("upload-retry-all")).toBeNull();
 
@@ -314,7 +318,7 @@ describe("UploadProgressCard", () => {
       stubs.processing = following({});
       await render([...files, item("d.jpg", "uploading", 40)], true);
 
-      expect(defined(byTestId("upload-progress-card")).textContent).toContain("Uploading…");
+      expect(defined(byTestId("upload-progress-card")).textContent).toContain("Uploading 4 of 4");
     });
   });
 });

@@ -9,7 +9,6 @@ import {
   ScrollArea,
   Stack,
   Text,
-  Title,
   Tooltip,
   useComputedColorScheme,
 } from "@mantine/core";
@@ -46,16 +45,16 @@ function extractPhotoHashFromFaceUrl(faceUrl: string): string | null {
   return match?.[1] ?? null;
 }
 
-/** The graph's title and what it shows, above the graph and above its empty or error state. */
+/**
+ * What the graph shows, above the graph and above its empty or error state. No heading: the tab
+ * right above already says "Face clusters".
+ */
 function ClusterGraphTitle() {
   const { t } = useTranslation();
   return (
-    <div>
-      <Title order={3}>{t("facecluster")}</Title>
-      <Text c="dimmed" size="sm">
-        {t("faceclusterexplanation")}
-      </Text>
-    </div>
+    <Text c="dimmed" size="sm">
+      {t("faceclusterexplanation")}
+    </Text>
   );
 }
 

@@ -1,6 +1,6 @@
 import { photoLicenseUrl, type PhotoLicenseId, type PhotoMetadata } from "@librephotos/api-client";
-import { ActionIcon, Anchor, Button, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
-import { IconCopyright, IconExternalLink, IconPencil } from "@tabler/icons-react";
+import { ActionIcon, Anchor, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { IconExternalLink, IconPencil } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -9,6 +9,7 @@ import {
   useUpdatePhotoMetadataMutation,
 } from "../../api_client/photos/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { SectionTitle } from "../lightbox/SectionTitle";
 import { LicenseBadge } from "./LicenseBadge";
 import { asLicense, LICENSES } from "./photoLicenses";
 import { FromFileBadge, RightsForm } from "./RightsForm";
@@ -130,12 +131,7 @@ function RightsEditor({ photo, heading }: Props) {
   const [editing, setEditing] = useState(false);
   const { data: metadata } = useFetchPhotoMetadataQuery(photo.id);
   const { mutate, isPending } = useUpdatePhotoMetadataMutation();
-  const title = heading ?? (
-    <Group gap="xs" wrap="nowrap">
-      <IconCopyright aria-hidden />
-      <Title order={4}>{t("rights.title")}</Title>
-    </Group>
-  );
+  const title = heading ?? <SectionTitle>{t("rights.title")}</SectionTitle>;
 
   if (!metadata) return null;
   if (editing) {

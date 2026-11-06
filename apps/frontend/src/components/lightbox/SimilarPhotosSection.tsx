@@ -1,10 +1,10 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
-import { Anchor, Flex, Group, Title } from "@mantine/core";
-import { IconPhoto as Photo } from "@tabler/icons-react";
+import { Anchor, Flex } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Tile } from "../Tile";
+import { SectionTitle } from "./SectionTitle";
 
 type SimilarPhotosSectionProps = {
   photoDetail: Pick<PhotoType, "image_hash" | "similar_photos">;
@@ -25,12 +25,7 @@ export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = tr
 
   return (
     <div>
-      {showTitle && (
-        <Group>
-          <Photo />
-          <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
-        </Group>
-      )}
+      {showTitle && <SectionTitle>{t("lightbox.sidebar.similarphotos")}</SectionTitle>}
       <Flex gap="xs" wrap="wrap" mt="xs">
         {shownPhotos.map((el, index) => (
           <Anchor

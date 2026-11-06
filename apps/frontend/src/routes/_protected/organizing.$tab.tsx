@@ -6,14 +6,13 @@
  * - Stacks: Organizing related photos together (bursts, brackets, manual stacks)
  */
 import { countListedStacks } from "@librephotos/api-client";
-import { Badge, Tabs } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
-import { IconCopy, IconLayersSubtract } from "@tabler/icons-react";
+import { Tabs } from "@mantine/core";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
 import { useStackStatsQuery } from "../../api_client/stacks";
+import { PageTabs } from "../../components/common/PageTabs";
 import { PageBody } from "../../components/PageBody";
 import { PageHeader } from "../../components/PageHeader";
 import { DuplicatesPageContent } from "../../components/stacks-duplicates/DuplicatesPageContent";
@@ -39,77 +38,37 @@ function StacksDuplicatesPage() {
   const { tab } = Route.useParams();
   const { data: duplicateStats } = useDuplicateStatsQuery();
   const { data: stackStats } = useStackStatsQuery();
-  // Phones drop the tab icons so both labels and counts fit on one row. Read synchronously
-  // (no SSR here) so the icons do not flash in on the first frame
-  const isPhone = useMediaQuery("(max-width: 36em)", undefined, { getInitialValueInEffect: false });
 
   // Validate tab parameter
   if (tab !== "duplicates" && tab !== "stacks") {
     return <Navigate to="/organizing/$tab" params={{ tab: "duplicates" }} replace />;
   }
 
-  const getSubtitle = () => {
-    if (tab === "duplicates") {
-      return t("duplicates.subtitle");
-    }
-    return t("stacks.subtitle");
-  };
-
-  const handleTabChange = (value: string | null) => {
-    if (value && (value === "duplicates" || value === "stacks")) {
-      navigate({
-        to: "/organizing/$tab",
-        params: { tab: value },
-      });
-    }
-  };
+  // The groups waiting for review, or all of them once none are
+  let duplicateCount: number | undefined;
+  if (duplicateStats)
+    duplicateCount =
+      duplicateStats.pending_duplicates > 0 ? duplicateStats.pending_duplicates : duplicateStats.total_duplicates;
 
   return (
     <>
-      <PageHeader icon={IconLayersSubtract} title={t("sidemenu.organizing")} subtitle={getSubtitle()} />
+      <PageHeader
+        title={t("sidemenu.organizing")}
+        subtitle={tab === "duplicates" ? t("duplicates.subtitle") : t("stacks.subtitle")}
+      />
       <PageBody gap="lg">
-        {/* Tab Navigation */}
-        {/* Kept on one row on phones: a wrapped tab leaves the active underline under the first row only */}
-        <Tabs
+        <PageTabs
           value={tab}
-          onChange={handleTabChange}
-          styles={{
-            list: { flexWrap: "nowrap" },
-            tab: { minWidth: 0 },
-            tabLabel: { overflow: "hidden", textOverflow: "ellipsis" },
-          }}
+          onChange={value => void navigate({ to: "/organizing/$tab", params: { tab: value } })}
+          tabs={[
+            { value: "duplicates", label: t("duplicates.title"), count: duplicateCount },
+            {
+              value: "stacks",
+              label: t("stacks.title"),
+              count: stackStats ? countListedStacks(stackStats) : undefined,
+            },
+          ]}
         >
-          <Tabs.List>
-            <Tabs.Tab
-              value="duplicates"
-              leftSection={isPhone ? undefined : <IconCopy size={18} />}
-              rightSection={
-                duplicateStats ? (
-                  <Badge size="sm" variant="light" color="gray">
-                    {duplicateStats.pending_duplicates > 0
-                      ? duplicateStats.pending_duplicates
-                      : duplicateStats.total_duplicates}
-                  </Badge>
-                ) : null
-              }
-            >
-              {t("duplicates.title")}
-            </Tabs.Tab>
-            <Tabs.Tab
-              value="stacks"
-              leftSection={isPhone ? undefined : <IconLayersSubtract size={18} />}
-              rightSection={
-                stackStats ? (
-                  <Badge size="sm" variant="light" color="gray">
-                    {countListedStacks(stackStats)}
-                  </Badge>
-                ) : null
-              }
-            >
-              {t("stacks.title")}
-            </Tabs.Tab>
-          </Tabs.List>
-
           <Tabs.Panel value="duplicates">
             <DuplicatesPageContent />
           </Tabs.Panel>
@@ -117,7 +76,7 @@ function StacksDuplicatesPage() {
           <Tabs.Panel value="stacks">
             <StacksPageContent />
           </Tabs.Panel>
-        </Tabs>
+        </PageTabs>
       </PageBody>
     </>
   );

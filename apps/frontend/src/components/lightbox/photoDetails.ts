@@ -128,19 +128,25 @@ function present(values: (string | null)[]): string[] {
   return values.filter((value): value is string => !!value);
 }
 
+/** One value of the info panel's exposure strip, with the longer form a hover shows. */
+export type ExposureChip = { key: string; value: string; title?: string };
+
 /**
- * The panel's two rows, as on a camera's own info screen: the camera with what it
- * set (shutter, ISO, bias) and the lens with what it did (aperture, focal length).
- * Without a lens name, the lens values join the camera row.
+ * The info panel's exposure strip, as on Apple Photos' info: ISO, focal length, exposure bias,
+ * aperture and shutter speed, each the camera recorded. The focal length's 35 mm equivalent is
+ * its hover text.
  */
-export function cameraRows(details: CameraDetails, t: TFunction): { camera: string[]; lens: string[] } {
-  const lensValues = present([details.aperture, focalWithEquivalent(details, t)]);
-  const cameraValues = present([details.shutter, details.iso, details.bias]);
-  if (details.lens) return { camera: cameraValues, lens: lensValues };
-  return {
-    camera: present([details.aperture, details.shutter, focalWithEquivalent(details, t), details.iso, details.bias]),
-    lens: [],
-  };
+export function exposureChips(details: CameraDetails, t: TFunction): ExposureChip[] {
+  const chips: [string, string | null, string | null][] = [
+    ["iso", details.iso, null],
+    ["focal", details.focalLength, focalWithEquivalent(details, t)],
+    ["bias", details.bias, null],
+    ["aperture", details.aperture, null],
+    ["shutter", details.shutter, null],
+  ];
+  return chips.flatMap(([key, value, title]) =>
+    value ? [title && title !== value ? { key, value, title } : { key, value }] : []
+  );
 }
 
 /** What the file facts read. */

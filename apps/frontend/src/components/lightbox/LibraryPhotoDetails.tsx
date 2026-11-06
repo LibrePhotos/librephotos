@@ -84,7 +84,7 @@ export function LibraryPhotoDetails({ photo, setFaceLocation }: Props) {
         />
       )}
       {!grant.camera && <HiddenNote icon={IconCamera} text={t("librarySharing.hiddenCamera", { name: first })} />}
-      {grant.camera && photo.camera && <CameraInfoSection photoDetail={photo} />}
+      {grant.camera && <CameraInfoSection photoDetail={photo} />}
       {grant.captions ? (
         <Description photoDetail={photo} isPublic />
       ) : (

@@ -1,5 +1,5 @@
 import { PhotoOrder } from "@librephotos/api-client";
-import { Box, Menu, SegmentedControl, Stack, Text } from "@mantine/core";
+import { Box, Divider, SegmentedControl, Stack, Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { DisabledReason } from "../common/DisabledReason";
 
@@ -13,7 +13,7 @@ type Props = Readonly<{
 }>;
 
 /**
- * The Order section at the top of the photo display menu (#2712): newest or oldest day first, by
+ * The Order section at the top of the photo display options (#2712): newest or oldest day first, by
  * date taken, saved on the user and followed by every date-grouped photo list but events.
  */
 export function PhotoOrderSection({ order, onChange, eventOrder }: Props) {
@@ -35,7 +35,9 @@ export function PhotoOrderSection({ order, onChange, eventOrder }: Props) {
   );
   return (
     <>
-      <Menu.Label>{t("photodisplay.order")}</Menu.Label>
+      <Text size="xs" fw={500} c="dimmed" px="xs" pt="xs">
+        {t("photodisplay.order")}
+      </Text>
       <Box p="xs">
         <Stack gap={6}>
           {eventOrder ? <DisabledReason reason={t("photodisplay.orderEvents")}>{control}</DisabledReason> : control}
@@ -44,7 +46,7 @@ export function PhotoOrderSection({ order, onChange, eventOrder }: Props) {
           </Text>
         </Stack>
       </Box>
-      <Menu.Divider />
+      <Divider my={4} />
     </>
   );
 }

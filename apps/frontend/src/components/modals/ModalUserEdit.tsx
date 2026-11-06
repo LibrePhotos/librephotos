@@ -1,5 +1,5 @@
 import type { ListUser, User } from "@librephotos/api-client";
-import { Box, Button, Group, Modal, ScrollArea, SimpleGrid, TextInput } from "@mantine/core";
+import { Box, Button, FocusTrap, Group, Modal, ScrollArea, SimpleGrid, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { IconUser, IconMail as Mail } from "@tabler/icons-react";
@@ -12,6 +12,7 @@ import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
 import { notification } from "../../service/notifications";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PasswordEntry } from "../settings/PasswordEntry";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 import { makeUserEditSchema, type UserEditValues } from "./ModalUserEdit.schema";
 import { photosToTrash } from "./photosToTrash";
@@ -211,17 +212,18 @@ export function ModalUserEdit(props: Props) {
 
   return (
     <Modal
+      size={DIALOG_SIZE.lg}
       styles={modalTitleStyles}
       opened={isOpen}
-      centered
       scrollAreaComponent={ScrollArea.Autosize}
-      size="xl"
       closeOnEscape={!folderDialogOpened}
       onClose={() => {
         closeModal();
       }}
       title={createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <form onSubmit={form.onSubmit(validateAndClose)}>
         <Box pb="md">
           <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
@@ -280,7 +282,7 @@ export function ModalUserEdit(props: Props) {
           />
         )}
         <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={() => closeModal()}>
+          <Button variant="light" onClick={() => closeModal()}>
             {t("cancel")}
           </Button>
           {/* Red, and saying so, when Save also moves photos to the trash (#2036). */}

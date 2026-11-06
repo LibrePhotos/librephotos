@@ -1,8 +1,21 @@
-import { Button, Divider, Group, Modal, Paper, ScrollArea, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import {
+  Button,
+  Divider,
+  FocusTrap,
+  Group,
+  Modal,
+  ScrollArea,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconChevronDown as ChevronDown,
   IconChevronUp as ChevronUp,
+  IconSearch,
   IconSettings as SettingsIcon,
 } from "@tabler/icons-react";
 import React, { useState } from "react";
@@ -11,10 +24,12 @@ import { useFetchUserAlbumQuery, useToggleUserAlbumPublicMutation } from "../../
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { ConfirmModal } from "../modals/ConfirmModal";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { AlbumSlugSection } from "./AlbumSlugSection";
 import { MemberCeilingSection } from "./MemberCeilingSection";
 import { MemberRoleConfirmModal } from "./MemberRoleConfirmModal";
 import { memberRoleOf } from "./memberRoles";
+import classes from "./ModalAlbumShare.module.css";
 import { publicAlbumLink } from "./publicAlbum";
 import { useMemberRoleChange } from "./useMemberRoleChange";
 import { UserEntry } from "./UserEntry";
@@ -56,6 +71,7 @@ export function ModalAlbumShare(props: Props) {
   return (
     <>
       <Modal
+        size={DIALOG_SIZE.md}
         opened={isOpen}
         title={t("modalalbumsshare.title")}
         // Escape belongs to the confirmation while it is open; both would close otherwise.
@@ -65,31 +81,27 @@ export function ModalAlbumShare(props: Props) {
           setUserNameFilter("");
         }}
       >
-        <Stack>
-          <Paper withBorder p="sm" radius="md">
-            <Group justify="space-between" align="center">
-              <Group gap="sm">
-                <div>
-                  <Title order={4}>{t("modalalbumsshare.publicsharing")}</Title>
-                  <Text size="xs" c="dimmed">
-                    {t("modalalbumsshare.publicsharingdesc")}
-                  </Text>
-                </div>
-              </Group>
-              <Group gap="xs" align="center">
-                <Switch
-                  aria-label={t("modalalbumsshare.publicsharing")}
-                  checked={isPublic}
-                  onChange={e => (e.currentTarget.checked ? setPublic(true) : turnOffDialog.open())}
-                />
-                <Text size="sm" c={isPublic ? "green" : "dimmed"} fw={500}>
-                  {isPublic ? t("settings.on") : t("settings.off")}
-                </Text>
-              </Group>
-            </Group>
+        {/* No focus ring at open: nothing is focused until Tab */}
+        <FocusTrap.InitialFocus />
+        {/* One surface: the public link, a hairline, then who it is shared with and what they see */}
+        <Stack gap={0}>
+          <section className={classes.section}>
+            <div className={classes.sectionHead}>
+              <div>
+                <Title order={3} className={classes.sectionTitle}>
+                  {t("modalalbumsshare.publicsharing")}
+                </Title>
+                <Text className={classes.sectionDesc}>{t("modalalbumsshare.publicsharingdesc")}</Text>
+              </div>
+              <Switch
+                aria-label={t("modalalbumsshare.publicsharing")}
+                checked={isPublic}
+                onChange={e => (e.currentTarget.checked ? setPublic(true) : turnOffDialog.open())}
+              />
+            </div>
 
             {isPublic && (
-              <Stack>
+              <Stack gap="sm" mt="sm">
                 <AlbumSlugSection
                   albumID={albumID}
                   album={album}
@@ -99,61 +111,66 @@ export function ModalAlbumShare(props: Props) {
                 />
                 <Button
                   size="xs"
-                  variant="light"
+                  variant="subtle"
+                  className={classes.settingsToggle}
                   leftSection={<SettingsIcon size={14} />}
                   rightSection={showSettings ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   onClick={() => setShowSettings(s => !s)}
                 >
                   {showSettings ? t("modalalbumsshare.hidesettings") : t("modalalbumsshare.showsettings")}
                 </Button>
-                <Text size="xs" c="dimmed">
-                  {t("collab.publicLinkOwnOnly")}
-                </Text>
+                <Text className={classes.note}>{t("collab.publicLinkOwnOnly")}</Text>
               </Stack>
             )}
+          </section>
 
-            <Divider my="sm" />
-            <Stack>
-              <div>
-                <Title order={4}>{t("modalalbumsshare.sharewithusers")}</Title>
-                <Text size="xs" c="dimmed" mb={4}>
-                  {t("modalalbumsshare.sharewithusersdesc")}
-                </Text>
-                <Text size="xs" c="dimmed" mb={4}>
-                  {t("sharing.whatRecipientsSee")}
-                </Text>
-              </div>
-              <TextInput
-                onChange={event => {
-                  setUserNameFilter(event.currentTarget.value);
-                }}
-                placeholder={t("modalalbumsshare.name")}
-              />
-              <Divider />
+          <Divider my="lg" />
 
-              {isUsersFetching && <div>{t("modalphotosshare.loading")}</div>}
-              {isUsersLoaded && (
-                <ScrollArea>
-                  <Stack>
-                    {filterUsers(userNameFilter, currentUser?.id ?? 0, users).map(item => (
-                      <UserEntry
-                        key={item.id}
-                        item={item}
-                        role={memberRoleOf(album, item)}
-                        onChange={role => roleChange.request(item, role)}
-                      />
-                    ))}
-                  </Stack>
-                </ScrollArea>
-              )}
-              <Divider />
-              <MemberCeilingSection albumID={albumID} album={album} />
-            </Stack>
-          </Paper>
-          <Group justify="flex-end">
-            <Button variant="default" onClick={onRequestClose}>
-              {t("modalalbumsshare.done")}
-            </Button>
+          <section className={classes.section}>
+            <Title order={3} className={classes.sectionTitle}>
+              {t("modalalbumsshare.sharewithusers")}
+            </Title>
+            <Text className={classes.sectionDesc}>{t("modalalbumsshare.sharewithusersdesc")}</Text>
+            <Text className={classes.note} mt={6}>
+              {t("sharing.whatRecipientsSee")}
+            </Text>
+            <TextInput
+              mt="md"
+              variant="filled"
+              leftSection={<IconSearch size={16} />}
+              onChange={event => {
+                setUserNameFilter(event.currentTarget.value);
+              }}
+              placeholder={t("modalalbumsshare.name")}
+              aria-label={t("modalalbumsshare.name")}
+            />
+            {isUsersFetching && (
+              <Text className={classes.note} mt="sm">
+                {t("modalphotosshare.loading")}
+              </Text>
+            )}
+            {isUsersLoaded && (
+              <ScrollArea.Autosize mah={280} mt="xs">
+                <Stack gap={0}>
+                  {filterUsers(userNameFilter, currentUser?.id ?? 0, users).map(item => (
+                    <UserEntry
+                      key={item.id}
+                      item={item}
+                      role={memberRoleOf(album, item)}
+                      onChange={role => roleChange.request(item, role)}
+                    />
+                  ))}
+                </Stack>
+              </ScrollArea.Autosize>
+            )}
+          </section>
+
+          <section className={classes.section} data-spaced>
+            <MemberCeilingSection albumID={albumID} album={album} />
+          </section>
+
+          <Group justify="flex-end" mt="xl">
+            <Button onClick={onRequestClose}>{t("modalalbumsshare.done")}</Button>
           </Group>
         </Stack>
       </Modal>

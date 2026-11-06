@@ -1,6 +1,6 @@
 import type { StackProps } from "@mantine/core";
 import { Stack } from "@mantine/core";
-import { PAGE_GUTTER } from "../uiConstants";
+import { PAGE_GUTTER, PAGE_GUTTER_PX } from "../uiConstants";
 
 type Props = Readonly<Omit<StackProps, "p" | "px" | "pl" | "pr" | "ps" | "pe">>;
 
@@ -11,7 +11,7 @@ type Props = Readonly<Omit<StackProps, "p" | "px" | "pl" | "pr" | "ps" | "pe">>;
  */
 export function PageBody({ children, ...props }: Props) {
   return (
-    <Stack px={PAGE_GUTTER} pb={PAGE_GUTTER} {...props}>
+    <Stack px={PAGE_GUTTER_PX} pb={PAGE_GUTTER} {...props}>
       {children}
     </Stack>
   );

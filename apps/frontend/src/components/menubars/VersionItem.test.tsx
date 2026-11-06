@@ -49,21 +49,21 @@ beforeEach(() => {
 
 describe("VersionItem", () => {
   it("shows the version, and nothing about updates to a user who is not an admin", async () => {
-    const { container } = await renderInMantine(<VersionItem iconColor="gray" />);
-    expect(container.querySelector("p")?.textContent).toBe("Version: 1.4.0");
+    const { container } = await renderInMantine(<VersionItem />);
+    expect(container.querySelector("button")?.textContent).toBe("Version: 1.4.0");
     expect(container.querySelector("a")).toBeNull();
     expect(stubs.asked).not.toContain(true);
   });
 
   it("says dev without an image tag", async () => {
     stubs.imageTag = undefined;
-    const { container } = await renderInMantine(<VersionItem iconColor="gray" />);
-    expect(container.querySelector("p")?.textContent).toBe("Version: dev");
+    const { container } = await renderInMantine(<VersionItem />);
+    expect(container.querySelector("button")?.textContent).toBe("Version: dev");
   });
 
   it("marks a newer release for an admin and opens its card", async () => {
     stubs.isSuperuser = true;
-    const { container } = await renderInMantine(<VersionItem iconColor="gray" />);
+    const { container } = await renderInMantine(<VersionItem />);
     const line = defined(container.querySelector("a"), "the version link");
     expect(line.getAttribute("href")).toBe("/admin#admin-update");
     expect(line.getAttribute("aria-label")).toBe("Version 1.4.0, update available");
@@ -75,7 +75,7 @@ describe("VersionItem", () => {
 
   it("leaves a Ctrl-click to the browser", async () => {
     stubs.isSuperuser = true;
-    const { container } = await renderInMantine(<VersionItem iconColor="gray" />);
+    const { container } = await renderInMantine(<VersionItem />);
     const line = defined(container.querySelector("a"), "the version link");
     line.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }));
     expect(stubs.navigate).not.toHaveBeenCalled();
@@ -84,7 +84,7 @@ describe("VersionItem", () => {
   it("opens What's new when there is no update notice (#2305)", async () => {
     const { container } = await renderInMantine(
       <WhatsNewContext.Provider value={{ open: stubs.openWhatsNew }}>
-        <VersionItem iconColor="gray" />
+        <VersionItem />
       </WhatsNewContext.Provider>
     );
     const line = defined(container.querySelector("button"), "the version button");
@@ -97,7 +97,7 @@ describe("VersionItem", () => {
   it("stays plain for an admin without a notice", async () => {
     stubs.isSuperuser = true;
     stubs.notice = null;
-    const { container } = await renderInMantine(<VersionItem iconColor="gray" />);
+    const { container } = await renderInMantine(<VersionItem />);
     expect(container.querySelector("a")).toBeNull();
   });
 });

@@ -62,7 +62,6 @@ function OnlyVideos() {
     <PhotoListView
       title={t("photos.videos")}
       loading={isLoading}
-      icon={Video}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

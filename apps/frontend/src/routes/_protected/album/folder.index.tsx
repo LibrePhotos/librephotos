@@ -1,6 +1,5 @@
-import { Flex, Text } from "@mantine/core";
 import { IconFolder as Folder } from "@tabler/icons-react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAllFolderSubfolders } from "../../../api_client/albums/hooks";
@@ -29,7 +28,6 @@ function AlbumFolder() {
   return (
     <div>
       <PageHeader
-        icon={Folder}
         title={t("folders")}
         loading={isFetching}
         subtitle={t("folders_count", { count: subfolders.length })}
@@ -54,25 +52,7 @@ function AlbumFolder() {
           orderKey={folderSort.orderKey}
           getKey={subfolder => subfolder.path}
           sizing={sizing}
-          renderItem={(subfolder, size) => (
-            <Link
-              to="/album/folder/$id"
-              params={{ id: encodeURIComponent(subfolder.path) }}
-              aria-label={subfolder.name}
-            >
-              <FolderCoverTile folder={subfolder} size={size} />
-            </Link>
-          )}
-          renderCaption={subfolder => (
-            <Flex gap={0} justify="flex-start" direction="column" px={8}>
-              <Text size="sm" fw={500} lineClamp={1} title={subfolder.path}>
-                {subfolder.name}
-              </Text>
-              <Text size="xs">
-                {t("numberofphotos", { count: subfolder.photo_count, number: subfolder.photo_count })}
-              </Text>
-            </Flex>
-          )}
+          renderItem={(subfolder, size) => <FolderCoverTile folder={subfolder} size={size} />}
         />
       )}
     </div>

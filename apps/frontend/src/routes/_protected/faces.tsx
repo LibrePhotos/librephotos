@@ -1,24 +1,20 @@
-import { FaceAnalysisMethod, FaceOrderBy } from "@librephotos/api-client";
+import { FaceAnalysisMethod } from "@librephotos/api-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { PersonGroupParam } from "../../components/album/personGroupSearch";
 import { FaceDashboard } from "../../components/facedashboard/FaceDashboard";
-import { FacesPersonOrder, FacesRouteOrder, FacesTab } from "../../components/facedashboard/facesTab";
-
-// Default values for URL parameters
-const DEFAULT_VALUES = {
-  activeTab: FacesTab.enum.inferred,
-  analysisMethod: FaceAnalysisMethod.enum.clustering,
-  orderBy: FaceOrderBy.enum.confidence,
-  minConfidence: 0.7,
-  personOrder: FacesPersonOrder.enum.name,
-};
+import {
+  FACES_SEARCH_DEFAULTS as DEFAULT_VALUES,
+  FacesPersonOrder,
+  FacesRouteOrder,
+  FacesTab,
+} from "../../components/facedashboard/facesTab";
 
 // Every parameter may be left out of a link, and one that is missing or invalid gets its
 // default.
 const FacesSearch = z.object({
-  tab: FacesTab.default(DEFAULT_VALUES.activeTab).catch(DEFAULT_VALUES.activeTab),
-  method: FaceAnalysisMethod.default(DEFAULT_VALUES.analysisMethod).catch(DEFAULT_VALUES.analysisMethod),
+  tab: FacesTab.default(DEFAULT_VALUES.tab).catch(DEFAULT_VALUES.tab),
+  method: FaceAnalysisMethod.default(DEFAULT_VALUES.method).catch(DEFAULT_VALUES.method),
   // The backend matches "date" in any case, so a hand-typed ?orderBy=DATE still sorts by date
   orderBy: z
     .string()

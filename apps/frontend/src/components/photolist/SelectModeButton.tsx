@@ -4,6 +4,7 @@ import { IconCheckbox } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 
 type Props = Readonly<{
   selecting: boolean;
@@ -20,9 +21,7 @@ export function SelectModeButton({ selecting, onToggle, ref }: Props) {
   const theme = useMantineTheme();
   const compact = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
   const label = t("selectionbar.selectmode");
-  const look = selecting
-    ? ({ variant: "light", color: "blue" } as const)
-    : ({ variant: "subtle", color: "gray" } as const);
+  const look = toolbarLook(selecting);
 
   return (
     <Tooltip label={t("selectionbar.selectphotos")} position="bottom">

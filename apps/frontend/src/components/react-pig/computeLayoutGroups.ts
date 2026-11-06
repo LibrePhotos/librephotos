@@ -9,121 +9,128 @@ type ComputeLayoutGroupsParams<T extends ImageItem> = {
   scaleOfImages: number;
 };
 
+// A day whose photos fit on one line at the target row height shares that line with the days next
+// to it while they fit (each under its own header), as in Immich, instead of leaving the rest of the
+// line empty. Longer days get justified rows of their own.
+// The space between two days on one line, and the least width a day takes there so its header fits.
+const INLINE_GROUP_GAP = 24;
+const INLINE_GROUP_MIN_WIDTH = 170;
+
+type Settings = ComputeLayoutGroupsParams<ImageItem>["settings"];
+
+// The header's line plus about 10px down to its photos: a day header belongs to the photos under
+// it (Google Photos, Immich), with the larger space above it, between days (groupGapFor).
+function groupTitleHeightFor(settings: Settings, wrapperWidth: number): number {
+  const narrow = wrapperWidth < settings.breakpoint;
+  if (settings.headerSize === "small") return narrow ? 28 : 30;
+  if (settings.headerSize === "normal") return narrow ? 30 : 32;
+  return narrow ? 38 : 44;
+}
+
+function groupGapFor(settings: Settings, wrapperWidth: number): number {
+  const narrow = wrapperWidth < settings.breakpoint;
+  if (settings.headerSize === "small") return narrow ? 14 : 18;
+  if (settings.headerSize === "normal") return narrow ? 22 : 28;
+  return narrow ? settings.groupGapSm : settings.groupGapLg;
+}
+
+/** Justified rows of a whole-width group whose first row starts at `top`; returns the rows' height. */
+function layOutRows<T extends ImageItem>(
+  items: readonly T[],
+  top: number,
+  wrapperWidth: number,
+  minAspectRatio: number,
+  gridGap: number,
+  out: LaidOutTile<T>[]
+): number {
+  let row: T[] = [];
+  let rowAspectRatio = 0;
+  let height = 0;
+  items.forEach((image, index) => {
+    row.push(image);
+    rowAspectRatio += image.aspectRatio;
+    // When the row's aspect ratio reaches the minimum, or the images run out, the row is complete.
+    if (rowAspectRatio < minAspectRatio && index + 1 < items.length) return;
+    const totalDesiredWidthOfImages = wrapperWidth - gridGap * (row.length - 1);
+    // A last row too short to fill the width keeps the target height instead of growing.
+    const rowHeight = totalDesiredWidthOfImages / Math.max(rowAspectRatio, minAspectRatio);
+    let translateX = 0;
+    row.forEach(img => {
+      const imageWidth = rowHeight * img.aspectRatio;
+      out.push({ ...img, style: { width: imageWidth, height: rowHeight, translateX, translateY: top + height } });
+      translateX += Math.round(imageWidth + gridGap);
+    });
+    row = [];
+    rowAspectRatio = 0;
+    height += Math.round(rowHeight + gridGap);
+  });
+  return height;
+}
+
 export default function computeLayoutGroups<T extends ImageItem>({
   imageData,
   settings,
   wrapperWidth,
   scaleOfImages,
 }: ComputeLayoutGroupsParams<T>): { imageData: LaidOutGroup<T>[]; newTotalHeight: number } {
-  // Compute the minimum aspect ratio that should be applied to the rows.
+  // The minimum aspect ratio of a row; a lone row at it is the target row height.
   const minAspectRatio = getMinAspectRatio(wrapperWidth, scaleOfImages);
+  const targetRowHeight = wrapperWidth / minAspectRatio;
+  const groupTitleHeight = groupTitleHeightFor(settings, wrapperWidth);
+  const groupGap = groupGapFor(settings, wrapperWidth);
+  const { gridGap } = settings;
 
-  // Calculate group title height based on header size setting
-  let groupTitleHeight: number;
-  if (settings.headerSize === "small") {
-    groupTitleHeight = wrapperWidth < settings.breakpoint ? 25 : 30; // Small headers are more compact
-  } else if (settings.headerSize === "normal") {
-    groupTitleHeight = wrapperWidth < settings.breakpoint ? 35 : 40; // Normal headers are medium
-  } else {
-    groupTitleHeight = wrapperWidth < settings.breakpoint ? 45 : 50; // Large headers (default) are full size
-  }
-
-  const tempGroupData: LaidOutGroup<T>[] = [];
-  let translateY = 0;
+  const groups: LaidOutGroup<T>[] = [];
+  // The top of the next group's header.
+  let top = 0;
+  // The open line of short groups: its right edge so far, or null when there is none.
+  let lineRight: number | null = null;
+  const closeLine = () => {
+    if (lineRight === null) return;
+    top += groupTitleHeight + Math.round(targetRowHeight + gridGap) + groupGap;
+    lineRight = null;
+  };
 
   imageData.forEach(g => {
     // Skip empty groups (and an entry from untyped data whose `items` is unset)
     if (!g.items || g.items.length === 0) return;
 
-    let groupHeight = 0;
-    let groupTranslateY = 0;
-    let row: T[] = []; // The list of images in the current row.
-    let translateX = 0; // The current translateX value that we are at
-    let rowAspectRatio = 0; // The aspect ratio of the row we are building
-    const tempImgData: LaidOutTile<T>[] = [];
-
-    // Loop through all our images, building them up into rows and computing
-    // the working rowAspectRatio.
-    g.items.forEach((image, index) => {
-      if (index === 0) {
-        groupTranslateY = translateY;
-      }
-      row.push(image);
-
-      // When the rowAspectRatio exceeeds the minimum acceptable aspect ratio,
-      // or when we're out of images, we say that we have all the images we
-      // need for that row, and compute the style values for each of these
-      // images.
-      rowAspectRatio += image.aspectRatio;
-      if (rowAspectRatio >= minAspectRatio || index + 1 === g.items.length) {
-        // Compute that row's height.
-        const totalDesiredWidthOfImages = wrapperWidth - settings.gridGap * (row.length - 1);
-        let rowHeight = totalDesiredWidthOfImages / rowAspectRatio;
-
-        // Handles cases where we don't have enough images to fill a row
-        if (rowAspectRatio < minAspectRatio) {
-          rowHeight = totalDesiredWidthOfImages / minAspectRatio;
-        }
-
-        // For each image in the row, compute the width, height, translateX,
-        // and translateY values, and set them (and the transition value we
-        // found above) on each image.
-        //
-        // NOTE: that does not manipulate the DOM, rather it just sets the
-        //       style values on the ProgressiveImage instance. The DOM nodes
-        //       will be updated in doLayout.
-
-        row.forEach(img => {
-          const imageWidth = rowHeight * img.aspectRatio;
-
-          tempImgData.push({
-            ...img,
-            style: {
-              width: imageWidth,
-              height: rowHeight,
-              translateX,
-              translateY: translateY + groupTitleHeight,
-            },
-          });
-
-          // The next image is settings.gridGap pixels to the right of that image
-          translateX += Math.round(imageWidth + settings.gridGap);
+    const aspectRatioSum = g.items.reduce((sum, item) => sum + item.aspectRatio, 0);
+    const shortWidth = aspectRatioSum * targetRowHeight + gridGap * (g.items.length - 1);
+    if (shortWidth <= wrapperWidth) {
+      const width = Math.max(shortWidth, INLINE_GROUP_MIN_WIDTH);
+      if (lineRight !== null && lineRight + INLINE_GROUP_GAP + width > wrapperWidth) closeLine();
+      const left = lineRight === null ? 0 : lineRight + INLINE_GROUP_GAP;
+      const items: LaidOutTile<T>[] = [];
+      let translateX = left;
+      g.items.forEach(img => {
+        const imageWidth = targetRowHeight * img.aspectRatio;
+        items.push({
+          ...img,
+          style: { width: imageWidth, height: targetRowHeight, translateX, translateY: top + groupTitleHeight },
         });
-
-        // Reset our state variables for next row.
-        row = [];
-        rowAspectRatio = 0;
-        translateX = 0;
-
-        translateY += Math.round(rowHeight + settings.gridGap);
-        groupHeight += Math.round(rowHeight + settings.gridGap);
-      }
-    });
-
-    // Calculate group gap based on header size for more compact spacing with smaller headers
-    let groupGap: number;
-    if (settings.headerSize === "small") {
-      groupGap = 5; // Much more compact for small headers
-    } else if (settings.headerSize === "normal") {
-      groupGap = 20; // Medium spacing for normal headers
-    } else {
-      groupGap = wrapperWidth < settings.breakpoint ? settings.groupGapSm : settings.groupGapLg; // Use default for large headers
+        translateX += Math.round(imageWidth + gridGap);
+      });
+      groups.push({
+        ...g,
+        groupTranslateY: top,
+        groupTranslateX: left,
+        width: Math.min(width, wrapperWidth - left),
+        items,
+        height: groupTitleHeight + Math.round(targetRowHeight + gridGap),
+      });
+      lineRight = left + width;
+      return;
     }
-    translateY += groupGap + groupTitleHeight; // create space between groups to insert the title
 
-    tempGroupData.push({
-      ...g,
-      groupTranslateY,
-      items: tempImgData,
-      height: groupHeight + groupTitleHeight,
-    });
+    closeLine();
+    const items: LaidOutTile<T>[] = [];
+    const rowsHeight = layOutRows(g.items, top + groupTitleHeight, wrapperWidth, minAspectRatio, gridGap, items);
+    groups.push({ ...g, groupTranslateY: top, items, height: rowsHeight + groupTitleHeight });
+    top += groupTitleHeight + rowsHeight + groupGap;
   });
+  closeLine();
 
   // No space below the last image
-  const totalHeight = translateY - settings.gridGap;
-
-  return {
-    imageData: tempGroupData,
-    newTotalHeight: totalHeight,
-  };
+  return { imageData: groups, newTotalHeight: top - groupGap - gridGap };
 }

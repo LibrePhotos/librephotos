@@ -289,6 +289,8 @@ export function useSpotlightActions(query: string = "") {
     return {
       id: "search-query",
       label: t("spotlight.searchFor", { query: trimmedQuery }),
+      // The whole label contains the query: highlighting would bold it inside "Search for" too.
+      highlightQuery: false,
       leftSection: React.createElement(IconSearch, { size: SPOTLIGHT_ICON_SIZE, stroke: 1.5 }),
       onClick: () => navigate({ to: `/search/${encodeURIComponent(trimmedQuery)}` }),
       keywords: [trimmedQuery.toLowerCase()],

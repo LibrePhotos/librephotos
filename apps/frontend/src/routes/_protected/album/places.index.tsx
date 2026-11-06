@@ -1,7 +1,7 @@
 import type { UserPlace } from "@librephotos/api-client";
-import { Button, Group, Text } from "@mantine/core";
+import { Box, Group, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconMapPinPlus, IconMap2 as Map2 } from "@tabler/icons-react";
+import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,14 +16,14 @@ import {
 import { PLACE_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { useAlbumSort } from "../../../components/album/useAlbumSort";
-import { DisabledReason } from "../../../components/common/DisabledReason";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { PageLoader } from "../../../components/common/PageLoader";
 import { useListFailure } from "../../../components/common/useListFailure";
-import { PLACES_MAP_HEIGHTS } from "../../../components/map/PlacesPhotoMap";
+import { defaultPlacesMapHeight, PLACES_MAP_HEIGHTS } from "../../../components/map/PlacesPhotoMap";
 import { usePlacesMap } from "../../../components/map/usePlacesMap";
 import { PageHeader } from "../../../components/PageHeader";
+import { AddPlaceButton } from "../../../components/places/AddPlaceButton";
 import { PlaceAlbumGrid } from "../../../components/places/PlaceAlbumGrid";
 import { boxAround } from "../../../components/places/placeGeometry";
 import { PlacesMapSection } from "../../../components/places/PlacesMapSection";
@@ -31,6 +31,7 @@ import { validatePlacesSearch } from "../../../components/places/placesSearch";
 import { addPlaceBlocked, usePlaceEditor } from "../../../components/places/usePlaceEditor";
 import { YourPlacesRow } from "../../../components/places/YourPlacesRow";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { PAGE_GUTTER_PX } from "../../../uiConstants";
 import { useMapStyle } from "../../../util/mapStyle";
 import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
 
@@ -76,7 +77,11 @@ function AlbumPlace({ height = 0 }: Props) {
   const { data: mapPoints, isFetching: isFetchingPoints, isLoading: isLoadingPoints } = useFetchPhotoMapPointsQuery();
   const userPlaces = useUserPlacesQuery().data ?? NO_USER_PLACES;
   const { mapStyle, mapsDisabled } = useMapStyle();
-  const [storedHeight, setMapHeight] = useStoredState(STORAGE_KEYS.placesMapHeight, MapHeight, PLACES_MAP_HEIGHTS.min);
+  const [storedHeight, setMapHeight] = useStoredState(
+    STORAGE_KEYS.placesMapHeight,
+    MapHeight,
+    defaultPlacesMapHeight(window.innerHeight)
+  );
   const placeEditor = usePlaceEditor();
   const { start: startEditing, editor } = placeEditor;
   const wide = useMediaQuery("(min-width: 48em)", true);
@@ -113,7 +118,6 @@ function AlbumPlace({ height = 0 }: Props) {
   return (
     <div>
       <PageHeader
-        icon={Map2}
         title={t("places")}
         loading={isFetchingPoints || isFetchingAlbums}
         // Without a map nothing filters the list, so there is no "on the map" to speak of
@@ -123,13 +127,9 @@ function AlbumPlace({ height = 0 }: Props) {
             : `${t("placealbum.photosOnMap", { count: mapPoints?.photo_count ?? 0 })} · ${t("placealbum.placesInView", { count: shownAlbums.length })}`
         }
         actions={
-          <Group gap="xs" wrap="nowrap">
-            <DisabledReason reason={blocked}>
-              <Button variant="light" leftSection={<IconMapPinPlus size={18} />} onClick={() => startEditing()}>
-                {t("yourplaces.add")}
-              </Button>
-            </DisabledReason>
+          <Group gap={4} wrap="nowrap">
             {hasPlaces && <AlbumSortMenu {...placeSort.menu} />}
+            <AddPlaceButton blocked={blocked} onAdd={() => startEditing()} />
           </Group>
         }
       />
@@ -146,7 +146,7 @@ function AlbumPlace({ height = 0 }: Props) {
       ) : (
         <>
           {/* Inset like the header above it, rather than pulled into the menu's edge */}
-          <div style={{ padding: "0 10px 4px" }}>
+          <Box px={PAGE_GUTTER_PX} pb={4}>
             <PlacesMapSection
               placesMap={placesMap}
               mapStyle={mapStyle}
@@ -156,11 +156,11 @@ function AlbumPlace({ height = 0 }: Props) {
               placeEditor={placeEditor}
               onOpenPlace={place => void navigate({ to: "/album/places/mine/$id", params: { id: String(place.id) } })}
             />
-          </div>
+          </Box>
           {userPlaces.length > 0 && (
             <>
               <YourPlacesRow places={userPlaces} addDisabledReason={blocked} onAdd={() => startEditing()} />
-              <Text size="sm" fw={600} px={10}>
+              <Text size="sm" fw={600} px={PAGE_GUTTER_PX}>
                 {t("yourplaces.inView")}
               </Text>
             </>

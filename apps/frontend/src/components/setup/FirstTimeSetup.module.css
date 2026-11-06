@@ -1,0 +1,25 @@
+/*
+ * First-time setup's steps (FirstTimeSetup.tsx): each dot with its 12px label under it, the lines
+ * between the dots level with their centres, so the three steps fit the 400px auth card.
+ */
+.step {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stepBody {
+  margin-inline-start: 0;
+  align-items: center;
+}
+
+.stepLabel {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.separator {
+  align-self: flex-start;
+  margin-top: calc(var(--stepper-icon-size) / 2 - 1px);
+  margin-inline: 8px;
+}

@@ -1,0 +1,12 @@
+/*
+ * The cards of a settings-type page: a reading-width column (920px with the page gutter),
+ * left-aligned like every page's content, plus SectionNav's 220px "On this page" list and its xl
+ * gap where the page has one.
+ */
+.narrow {
+  max-width: 920px;
+}
+
+.wide {
+  max-width: calc(920px + 220px + var(--mantine-spacing-xl));
+}

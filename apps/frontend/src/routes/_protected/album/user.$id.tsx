@@ -1,20 +1,22 @@
 import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
-import { Text } from "@mantine/core";
 import { IconBookmark as Bookmark, IconCloudUpload } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumQuery } from "../../../api_client/albums/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { albumNotFoundState } from "../../../components/album/albumNotFound";
+import { EditableAlbumTitle } from "../../../components/album/EditableAlbumTitle";
 import { emptyAlbumState } from "../../../components/album/emptyAlbumState";
 import { LockedAlbumBadge } from "../../../components/album/LockedAlbumBadge";
 import { SharedAlbumHeaderMenu } from "../../../components/album/SharedAlbumHeaderMenu";
 import { UserAlbumHeaderMenu } from "../../../components/album/UserAlbumHeaderMenu";
+import { UserAlbumIdentity } from "../../../components/album/UserAlbumIdentity";
 import { DEFAULT_MEDIA_TYPE, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView, type EmptyStateConfig } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import { useAlbumUpload } from "../../../components/upload/useAlbumUpload";
+import { formatPhotoDaySpan } from "../../../util/dateUtils";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/user/$id")({
@@ -50,21 +52,28 @@ function AlbumUserGallery() {
   const ownAlbum = album && currentUser ? album.owner.id === currentUser.id : undefined;
   // The owner uploads into the album from its "⋮", its empty state, or by dropping files (#612)
   const upload = useAlbumUpload(album && ownAlbum ? { id: album.id, title: album.title, locked: album.locked } : null);
-  let headerActions: React.ReactNode;
+  let headerMenu: React.ReactNode;
   if (album && ownAlbum === true)
-    headerActions = <UserAlbumHeaderMenu album={album} upload={upload} photos={flatPhotos} />;
-  else if (album && ownAlbum === false) headerActions = <SharedAlbumHeaderMenu album={album} />;
+    headerMenu = <UserAlbumHeaderMenu album={album} upload={upload} photos={flatPhotos} />;
+  else if (album && ownAlbum === false) headerMenu = <SharedAlbumHeaderMenu album={album} />;
 
-  // Only for an album someone shared with you; it sits on its own line under the photo count.
-  function getSubheader(showHeader: boolean) {
-    if (showHeader && album) {
-      const owner = t("useralbum.ownedby", { name: album.owner.first_name || album.owner.username });
-      // A contributor (#464) adds from the timeline's "Add to album".
-      const canAdd = album.my_role === "contributor" ? ` · ${t("collab.youCanAdd")}` : "";
-      return <Text c="dimmed">{`${owner}${canAdd}`}</Text>;
-    }
-    return null;
-  }
+  // Under the title: its people (the owner's for a recipient, the recipients' for the owner), then
+  // the owner's Share and Add photos. The meta line says the days its photos span (not `location`,
+  // one photo's full address) and their count.
+  const subHeader =
+    album && ownAlbum !== undefined ? <UserAlbumIdentity album={album} own={ownAlbum} upload={upload} /> : null;
+
+  // A stable object: the list is memoised
+  const albumKey = album ? `${album.id}` : "";
+  const albumTitle = album?.title ?? "";
+  const collection = useMemo(
+    () => ({
+      dateSpan: formatPhotoDaySpan(groupedPhotos.map(group => group.date)),
+      // The owner renames the album by clicking its title
+      title: albumKey && ownAlbum ? <EditableAlbumTitle albumId={albumKey} title={albumTitle} /> : undefined,
+    }),
+    [groupedPhotos, albumKey, albumTitle, ownAlbum]
+  );
 
   let emptyStateConfig: EmptyStateConfig | undefined;
   if (notFound) emptyStateConfig = albumNotFoundState(t, <Bookmark size={40} />, "/album/user");
@@ -77,17 +86,16 @@ function AlbumUserGallery() {
       {upload && <input {...upload.inputProps} data-testid="album-upload-input" />}
       <PhotoListView
         title={album ? album.title : notFound ? t("myalbums") : t("loading")}
-        additionalSubHeader={getSubheader(isPublic)}
+        additionalSubHeader={subHeader}
+        collection={collection}
         loading={isLoading}
         emptyStateConfig={emptyStateConfig}
-        icon={Bookmark}
         titleBadge={ownAlbum && album?.locked ? <LockedAlbumBadge /> : undefined}
         // Outside isPublic's read-only header: a recipient gets "Leave album" there too
-        headerActions={headerActions}
+        headerMenu={headerMenu}
         photoset={groupedPhotos}
         idx2hash={flatPhotos}
         isPublic={isPublic}
-        isAlbumPubliclyShared={album?.public ?? false}
         albumID={albumID}
         ownerUsername={album?.owner.username}
         albumLocked={album?.locked ?? false}

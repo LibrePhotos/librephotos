@@ -27,6 +27,7 @@ import type { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { click, dialogButton } from "../modals/confirmModal.test-utils";
+import { openFaceMenu } from "./faceMenu.test-utils";
 import { PersonDetail } from "./PersonDetailComponent";
 
 type SetFacesPersonLabel = ReturnType<typeof useSetFacesPersonLabelMutation>["mutate"];
@@ -119,10 +120,16 @@ function buttons(container: HTMLElement): HTMLButtonElement[] {
   return Array.from(container.querySelectorAll("button"));
 }
 
+/** Presses the tile, then every action in its ⋮ in turn. */
 async function clickAll(container: HTMLElement) {
-  for (const button of buttons(container)) {
+  await act(async () => {
+    defined(buttons(container)[0]).click();
+  });
+  const count = (await openFaceMenu(container)).length;
+  for (let i = 0; i < count; i++) {
+    const item = defined((await openFaceMenu(container))[i]);
     await act(async () => {
-      button.click();
+      item.click();
     });
   }
 }
@@ -136,6 +143,7 @@ describe("an unnamed face in the lightbox sidebar", () => {
 
   it("offers no confirm button - there is no name to confirm", async () => {
     const container = await renderRow(unnamedFace);
+    await openFaceMenu(container);
 
     expect(container.querySelector(".tabler-icon-user-check")).toBeNull();
     expect(container.querySelector(".tabler-icon-user-off")).toBeNull();
@@ -175,6 +183,7 @@ describe("an unnamed face in the lightbox sidebar", () => {
 describe("a face the algorithms did name", () => {
   it("shows the name and keeps its confirm button", async () => {
     const container = await renderRow(inferredFace);
+    await openFaceMenu(container);
 
     expect(container.textContent).toContain("Alice");
     expect(container.querySelector(".tabler-icon-user-check")).not.toBeNull();
@@ -182,7 +191,7 @@ describe("a face the algorithms did name", () => {
 
   it("confirms under the inferred name", async () => {
     const container = await renderRow(inferredFace);
-    const confirm = defined(buttons(container).find(b => b.querySelector(".tabler-icon-user-check")));
+    const confirm = defined((await openFaceMenu(container)).find(b => b.querySelector(".tabler-icon-user-check")));
 
     await act(async () => {
       confirm.click();
@@ -225,6 +234,7 @@ describe("a face the algorithms did name", () => {
 describe("a face that carries only a cluster's label", () => {
   it("offers no confirm button - there is no person by that name to confirm it onto", async () => {
     const container = await renderRow(clusterFace);
+    await openFaceMenu(container);
 
     expect(container.textContent).toContain("Unknown 001");
     expect(container.querySelector(".tabler-icon-user-check")).toBeNull();
@@ -241,7 +251,7 @@ describe("a face that carries only a cluster's label", () => {
 
   it("can still be named, through the person picker", async () => {
     const container = await renderRow(clusterFace);
-    const edit = defined(buttons(container).find(b => b.querySelector(".tabler-icon-edit")));
+    const edit = defined((await openFaceMenu(container)).find(b => b.querySelector(".tabler-icon-edit")));
 
     await act(async () => {
       edit.click();

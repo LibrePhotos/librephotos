@@ -1,5 +1,5 @@
 import type { PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
-import { Avatar, Skeleton, Text } from "@mantine/core";
+import { Skeleton, Text } from "@mantine/core";
 import { IconDownload, IconUpload, IconWorld } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React from "react";
@@ -9,14 +9,13 @@ import { useFetchSharedAlbumsByMeQuery, useFetchSharedAlbumsWithMeQuery } from "
 import { useFetchSharedPhotosByMeQuery, useFetchSharedPhotosWithMeQuery } from "../../api_client/photos/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import classes from "../album/AlbumSection.module.css";
-import { avatarSrc } from "./avatarSrc";
+import { UserAvatar, userDisplayName } from "../common/UserAvatar";
 import overviewClasses from "./SharingOverview.module.css";
-import { AlbumPreviewCard, PhotoPreviewCover, SharingSectionHeading } from "./SharingPreviewCards";
+import { AlbumPreviewCard, SharedPhotoCard } from "./SharingPreviewCards";
 import { itemSummary, SharingPreviewSection } from "./SharingPreviewSection";
 
 /** The Sharing overview's sections above Public Links (routes/_protected/sharing/index.tsx). */
 
-const HEADING_LINK = `${classes.headerLeft} ${classes.headerReset}`;
 const PREVIEW_SIZE = 6;
 const PUBLIC_USERS_SHOWN = 14;
 
@@ -40,29 +39,21 @@ export function PublicUsersSection() {
   const publicUsers = (users ?? []).filter(user => user.public_sharing);
   return (
     <SharingPreviewSection
-      heading={
-        <Link to="/sharing/public" className={HEADING_LINK}>
-          <SharingSectionHeading
-            icon={<IconWorld size={24} stroke={1.5} />}
-            title={t("sidemenu.publicphotos")}
-            summary={t("sharing.userCount", { count: publicUsers.length })}
-          />
-        </Link>
-      }
+      icon={<IconWorld size={24} stroke={1.5} />}
+      title={t("sidemenu.publicphotos")}
+      summary={t("sharing.userCount", { count: publicUsers.length })}
+      renderLink={props => <Link to="/sharing/public" {...props} />}
       loading={isLoading}
       emptyText={publicUsers.length === 0 ? t("sharing.noPublicUsers") : null}
       skeleton={<AvatarSkeleton />}
     >
       <div className={classes.avatarGrid}>
         {publicUsers.slice(0, PUBLIC_USERS_SHOWN).map(user => {
-          const displayName =
-            user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username;
+          const displayName = userDisplayName(user);
           return (
             <Link key={user.id} to="/public/$users" params={{ users: user.username }} className={classes.avatarItem}>
               <div className={classes.avatar}>
-                <Avatar size={52} radius="xl" src={avatarSrc(user)}>
-                  {displayName.charAt(0).toUpperCase()}
-                </Avatar>
+                <UserAvatar user={user} size={52} />
               </div>
               <Text className={classes.avatarName} title={displayName}>
                 {displayName}
@@ -77,20 +68,27 @@ export function PublicUsersSection() {
 
 type PreviewAlbum = Pick<UserAlbumInfo, "id" | "title" | "photo_count" | "cover_photo">;
 
+type PreviewPhoto = Pick<PigPhoto, "id" | "type" | "date">;
+
 type RowProps = Readonly<{
-  photos: readonly Pick<PigPhoto, "id" | "type">[];
+  photos: readonly PreviewPhoto[];
   albums: readonly PreviewAlbum[];
   /** Each photo card's link to the section's photo tab. */
-  photoLink: (photoId: string, cover: ReactNode) => ReactNode;
+  photoLink: (
+    props: Readonly<{ className: string | undefined; "aria-label": string; children: ReactNode }>
+  ) => ReactNode;
 }>;
 
-/** The first photos, then the first albums, of a "shared with you" or "you shared" section. */
+/**
+ * The first photos, then the first albums, of a "shared with you" or "you shared" section, all in
+ * the album cards' look.
+ */
 function SharedPreviewRow({ photos, albums, photoLink }: RowProps) {
   return (
     <div className={classes.scrollContainer}>
-      {photos
-        .slice(0, PREVIEW_SIZE)
-        .map(photo => photoLink(photo.id, <PhotoPreviewCover imageHash={photo.id} video={photo.type === "video"} />))}
+      {photos.slice(0, PREVIEW_SIZE).map(photo => (
+        <SharedPhotoCard key={photo.id} photo={photo} renderLink={photoLink} />
+      ))}
       {albums.slice(0, PREVIEW_SIZE).map(album => (
         <AlbumPreviewCard key={album.id} album={album} />
       ))}
@@ -99,7 +97,7 @@ function SharedPreviewRow({ photos, albums, photoLink }: RowProps) {
 }
 
 type Grouped = Readonly<{
-  photos: readonly (readonly Pick<PigPhoto, "id" | "type">[])[];
+  photos: readonly (readonly PreviewPhoto[])[];
   albums: readonly (readonly PreviewAlbum[])[];
 }>;
 
@@ -127,15 +125,10 @@ export function SharedWithYouSection() {
   });
   return (
     <SharingPreviewSection
-      heading={
-        <Link to="/sharing/withme/$tab" params={{ tab: "photos" }} className={HEADING_LINK}>
-          <SharingSectionHeading
-            icon={<IconDownload size={24} stroke={1.5} color="var(--mantine-color-green-6)" />}
-            title={t("sidemenu.sharedwithyou")}
-            summary={itemSummary(t, items.photoCount, items.albumCount)}
-          />
-        </Link>
-      }
+      icon={<IconDownload size={24} stroke={1.5} />}
+      title={t("sidemenu.sharedwithyou")}
+      summary={itemSummary(t, items.photoCount, items.albumCount)}
+      renderLink={props => <Link to="/sharing/withme/$tab" params={{ tab: "photos" }} {...props} />}
       // Until both answer: one empty list alone said "nothing shared yet".
       loading={photosQuery.isLoading || albumsQuery.isLoading}
       emptyText={items.photos.length + items.albums.length === 0 ? t("sharing.nothingSharedWithYou") : null}
@@ -143,11 +136,7 @@ export function SharedWithYouSection() {
       <SharedPreviewRow
         photos={items.photos}
         albums={items.albums}
-        photoLink={(id, cover) => (
-          <Link key={id} to="/sharing/withme/$tab" params={{ tab: "photos" }} className={classes.albumCard}>
-            {cover}
-          </Link>
-        )}
+        photoLink={props => <Link to="/sharing/withme/$tab" params={{ tab: "photos" }} {...props} />}
       />
     </SharingPreviewSection>
   );
@@ -164,26 +153,17 @@ export function YouSharedSection() {
   });
   return (
     <SharingPreviewSection
-      heading={
-        <Link to="/sharing/byme/$tab" params={{ tab: "photos" }} className={HEADING_LINK}>
-          <SharingSectionHeading
-            icon={<IconUpload size={24} stroke={1.5} color="var(--mantine-color-red-6)" />}
-            title={t("sidemenu.youshared")}
-            summary={itemSummary(t, items.photoCount, items.albumCount)}
-          />
-        </Link>
-      }
+      icon={<IconUpload size={24} stroke={1.5} />}
+      title={t("sidemenu.youshared")}
+      summary={itemSummary(t, items.photoCount, items.albumCount)}
+      renderLink={props => <Link to="/sharing/byme/$tab" params={{ tab: "photos" }} {...props} />}
       loading={photosQuery.isLoading || albumsQuery.isLoading}
       emptyText={items.photos.length + items.albums.length === 0 ? t("sharing.nothingSharedByYou") : null}
     >
       <SharedPreviewRow
         photos={items.photos}
         albums={items.albums}
-        photoLink={(id, cover) => (
-          <Link key={id} to="/sharing/byme/$tab" params={{ tab: "photos" }} className={classes.albumCard}>
-            {cover}
-          </Link>
-        )}
+        photoLink={props => <Link to="/sharing/byme/$tab" params={{ tab: "photos" }} {...props} />}
       />
     </SharingPreviewSection>
   );

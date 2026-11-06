@@ -6,12 +6,14 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchPersonQuery } from "../../../api_client/albums/hooks";
 import { personNotFoundState } from "../../../components/album/albumNotFound";
-import { PersonBirthDateLine } from "../../../components/album/PersonBirthDateLine";
 import { PersonBirthDateModal } from "../../../components/album/PersonBirthDateModal";
+import { PersonHeaderAvatar } from "../../../components/album/PersonHeaderAvatar";
 import { PersonHeaderMenu } from "../../../components/album/PersonHeaderMenu";
+import { PersonMeta } from "../../../components/album/PersonMeta";
 import { PersonShareReviewBanner } from "../../../components/album/PersonShareReviewBanner";
 import { usePersonBirthDate } from "../../../components/album/usePersonBirthDate";
 import { useListFailure } from "../../../components/common/useListFailure";
+import type { CollectionHeader } from "../../../components/photolist/DefaultHeader";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../../components/photolist/photoGroup";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
@@ -23,6 +25,10 @@ export const Route = createFileRoute("/_protected/album/persons/$id")({
   component: AlbumPersonGallery,
   validateSearch: validateMediaSearch,
 });
+
+// A person's page heads like an album's: the collection title (34px) beside their face, and the
+// photo count alone on the meta line (PersonMeta under it has the days and the birth date).
+const PERSON_COLLECTION: CollectionHeader = {};
 
 function AlbumPersonGallery(): React.JSX.Element {
   const { id } = Route.useParams();
@@ -83,14 +89,16 @@ function AlbumPersonGallery(): React.JSX.Element {
         // Empty while the person loads, under it the header says it is loading
         title={person ? person.name : notFound || personFailure ? t("people") : ""}
         loading={isLoading || personLoading}
-        icon={User}
-        headerActions={
+        // Their face before the name, as Immich and Google Photos head a person's page
+        titleLeading={person ? <PersonHeaderAvatar person={person} /> : undefined}
+        collection={person ? PERSON_COLLECTION : undefined}
+        headerMenu={
           person ? <PersonHeaderMenu person={person} photos={photosFlat} onBirthDate={birthDate.openFrom} /> : undefined
         }
-        // The birth date and age under the name, and the age beside each day (#2751): none without one
+        // The days of their photos, and the birth date and age under the name (#2751), or "Add birth date"
         additionalSubHeader={
-          person?.birth_date ? (
-            <PersonBirthDateLine name={person.name} birthDate={person.birth_date} onEdit={birthDate.openFrom} />
+          person ? (
+            <PersonMeta person={person} groups={photosGroupedByDate ?? []} onBirthDate={birthDate.openFrom} />
           ) : undefined
         }
         groupNote={birthDate.groupNote}

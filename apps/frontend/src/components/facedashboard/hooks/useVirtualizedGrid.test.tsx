@@ -39,7 +39,7 @@ const collapsed = {
   deleted: new Set<number>(),
 };
 
-let layout: { width: number; columns: number; cellSize: number } | undefined;
+let layout: { width: number; columns: number; faceSize: number } | undefined;
 
 // FaceDashboard's wiring: the container's measured width drives the grid's column count
 function Harness() {
@@ -59,20 +59,21 @@ function Harness() {
     width,
     collapsed
   );
-  layout = { width, columns: grid.numEntrySquaresPerRow, cellSize: grid.entrySquareSize };
+  layout = { width, ...grid.layout };
   return <div ref={ref} className={classes.container} style={{ padding: "0px 15px" }} />;
 }
 
 describe("faces grid sizing", () => {
-  it("fits every column inside the padded container's content box", async () => {
+  it("lays the tiles out in the padded container's content box, in columns of at least 220px", async () => {
     await act(async () => {
       root.render(<Harness />);
     });
 
     if (!layout) throw new Error("the grid did not render");
     expect(layout.width).toBe(1170);
-    expect(layout.columns).toBe(8);
-    expect(layout.columns * layout.cellSize).toBeLessThanOrEqual(1170);
+    // 1154px once a scrollbar's room is left: five 221px columns, each two 108px faces wide
+    expect(layout.columns).toBe(5);
+    expect(layout.faceSize).toBe(108);
   });
 });
 
@@ -136,12 +137,13 @@ describe("paging in the faces a fold reveals", () => {
   });
 
   it("replays the last section on a fold, and only on a fold", async () => {
-    const people = [unloadedPerson(1, 2), unloadedPerson(2, 2)];
+    // More faces than a tile shows, and open: each person is a header row and rows of faces
+    const people = [unloadedPerson(1, 20), unloadedPerson(2, 20)];
     await render(people);
     // Nothing has been rendered yet, so there is nothing to replay
     expect(onSectionChange).not.toHaveBeenCalled();
 
-    // Rows: [person 1], [its 2 faces], [person 2], [its 2 faces]; rows 0-2 show person 1's faces
+    // Rows: [person 1], [10 faces], [10 faces], [person 2], ...; rows 0-2 show person 1's faces
     act(() => {
       grid?.onSectionRendered({
         rowOverscanStartIndex: 0,
@@ -155,10 +157,12 @@ describe("paging in the faces a fold reveals", () => {
       { page: 1, person: 1, inferred: false, method: "clustering", deleted: false },
     ]);
 
-    // Folding person 1 moves person 2's faces into the same rows; the Grid reports nothing
+    // Folding person 1 into a tile of their first faces moves person 2's faces into the same
+    // rows; the Grid reports nothing
     await render(people, { ...collapsed, labeled: new Set([1]) });
     expect(onSectionChange).toHaveBeenCalledTimes(2);
     expect(onSectionChange).toHaveBeenLastCalledWith([
+      { page: 1, person: 1, inferred: false, method: "clustering", deleted: false },
       { page: 1, person: 2, inferred: false, method: "clustering", deleted: false },
     ]);
 
@@ -166,7 +170,7 @@ describe("paging in the faces a fold reveals", () => {
     const foldedOne = { ...collapsed, labeled: new Set([1]) };
     await render(people, foldedOne);
     onSectionChange.mockReset();
-    await render([unloadedPerson(1, 2), unloadedPerson(2, 2)], foldedOne);
+    await render([unloadedPerson(1, 20), unloadedPerson(2, 20)], foldedOne);
     expect(onSectionChange).not.toHaveBeenCalled();
   });
 });

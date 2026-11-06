@@ -2,6 +2,7 @@ import { Button, Group, Modal, Stack, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import React, { useEffect, useEffectEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { makeTagRenameSchema } from "./TagRenameModal.schema";
 
 type Props = Readonly<{
@@ -33,11 +34,16 @@ export function TagRenameModal({ opened, onClose, tagName, existingNames, onSubm
   });
 
   return (
-    <Modal size="sm" opened={opened} onClose={onClose} title={t("tagalbum.renametag")}>
+    <Modal size={DIALOG_SIZE.sm} opened={opened} onClose={onClose} title={t("tagalbum.renametag")}>
       <Stack>
-        <TextInput label={tagName} placeholder={t("tagalbum.tagplaceholder")} {...form.getInputProps("name")} />
+        <TextInput
+          data-autofocus
+          label={tagName}
+          placeholder={t("tagalbum.tagplaceholder")}
+          {...form.getInputProps("name")}
+        />
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="light" onClick={onClose}>
             {t("cancel")}
           </Button>
           <Button disabled={!form.isValid()} onClick={() => rename()}>

@@ -178,8 +178,8 @@ describe("PersonHeaderMenu", () => {
       "Share…",
       "Groups…",
       "Merge into…",
-      "Manage Faces",
-      "Delete Person",
+      "Manage faces",
+      "Delete person",
     ]);
   });
 
@@ -253,7 +253,7 @@ describe("PersonHeaderMenu", () => {
     expect(document.body.textContent).toContain("The 3 faces labelled Anna Becker go back to unknown faces");
     const dialog = defined(document.body.querySelector('[role="dialog"]'), "the confirmation");
     const confirm = Array.from(dialog.querySelectorAll("button")).find(
-      el => el.textContent?.trim() === "Delete Person"
+      el => el.textContent?.trim() === "Delete person"
     );
     await act(async () => defined(confirm, "the confirm button").click());
 

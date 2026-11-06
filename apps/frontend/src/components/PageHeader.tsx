@@ -1,61 +1,94 @@
-import { Group, Loader, Stack, Text, Title } from "@mantine/core";
-import type { TablerIcon } from "@tabler/icons-react";
+import { Box, Group, Loader, Text, Title } from "@mantine/core";
+import clsx from "clsx";
 import type { ReactNode } from "react";
-import { PAGE_GUTTER, PAGE_HEADER_ICON_SIZE } from "../uiConstants";
+import { PAGE_GUTTER_PX } from "../uiConstants";
+import { DetailBackButton, isDetailPath } from "./DetailBackButton";
+import classes from "./PageHeader.module.css";
 
 type Props = Readonly<{
-  icon: TablerIcon;
-  iconColor?: string;
   // ReactNode so the photo lists can put their view switcher menu here
   title: ReactNode;
+  // The one dimmed meta line under the title ("198 photos · 48 days")
   subtitle?: ReactNode;
-  // Right side of the header. Wraps below the title on a phone.
+  // Right side of the header, in one order on every page: the view control (media type or sort),
+  // Filter, Select, the page's one create action, then the ⋯ (HeaderActionsMenu). Centred on the
+  // title and subtitle, on a phone too, where it stays on the title's row.
   actions?: ReactNode;
   // Spinner next to the title while the page's data is loading
   loading?: boolean;
   // 2 for a header nested under its page's own PageHeader (a photo list inside a tab), so the
   // page keeps one h1. It looks the same either way.
   titleOrder?: 1 | 2;
+  // Before the title and subtitle, centred on them: a person's face.
+  leading?: ReactNode;
+  // Under the title row, in the text's column: what the page adds to its header (an event's
+  // description, the timeline filter's summary). The actions stay centred on the title row.
+  below?: ReactNode;
+  // "collection" for an album, event, place, thing or person: a larger title (34px/700, a page's is
+  // 26px/700), so a collection reads as a place of its own rather than a filtered timeline (Immich,
+  // Apple).
+  size?: "page" | "collection";
 }>;
 
 /**
- * The header of every routed page: the one h1 on the page, with the icon beside it (an h2 when
- * nested under another one, `titleOrder`).
- * The title and icon never change size from one page to the next, so switching pages does not
- * make the header jump.
+ * The header of every routed page: the one h1 on the page (an h2 when nested under another one,
+ * `titleOrder`), a dimmed subtitle and the page's actions. No page icon: the title is the same
+ * size on every page (a collection's is larger, `size`), so switching pages does not make the header jump, and its left edge is the
+ * content's (PAGE_GUTTER).
  */
 export function PageHeader({
-  icon: Icon,
-  iconColor,
   title,
   subtitle,
   actions,
   loading = false,
   titleOrder = 1,
+  leading,
+  below,
+  size = "page",
 }: Props) {
+  // The page's own header (not one nested under it) gets the detail pages' back chevron.
+  const back = titleOrder === 1 ? <DetailBackButton /> : null;
+  const hasLeading = Boolean(leading) || (titleOrder === 1 && isDetailPath(window.location.pathname));
   return (
-    <Group justify="space-between" align="flex-start" gap="xs" p={PAGE_GUTTER} mb={10}>
-      {/* The text column takes the free space; the icon never shrinks, so a long title cannot squeeze it */}
-      <Group gap="sm" wrap="nowrap" align="center" style={{ flex: "1 1 260px", minWidth: 0 }}>
-        <Icon size={PAGE_HEADER_ICON_SIZE} stroke={1.5} color={iconColor} style={{ flexShrink: 0 }} />
-        <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
-          <Title order={titleOrder} size="h2" ta="left" style={{ overflowWrap: "anywhere" }}>
-            {title}
-            {loading ? <Loader size={20} ml={8} style={{ verticalAlign: "middle" }} /> : null}
-          </Title>
-          {subtitle ? (
-            // A div, not Text: callers may put block content (the photo counts) in it
-            <Text component="div" c="dimmed" size="sm">
-              {subtitle}
-            </Text>
-          ) : null}
-        </Stack>
-      </Group>
+    <Box
+      px={PAGE_GUTTER_PX}
+      className={clsx(classes.root, hasLeading ? classes.withLeading : undefined)}
+      data-page-header
+    >
+      {hasLeading ? (
+        <div className={classes.leading}>
+          {back}
+          {leading}
+        </div>
+      ) : null}
+      <div className={classes.text}>
+        <Title
+          order={titleOrder}
+          size="h2"
+          ta="left"
+          className={clsx(classes.title, size === "collection" && classes.collectionTitle)}
+        >
+          {title}
+          {loading ? <Loader size={18} className={classes.loader} /> : null}
+        </Title>
+        {subtitle ? (
+          // A div, not Text: callers may put block content (the photo counts) in it
+          <Text
+            component="div"
+            c="dimmed"
+            size="sm"
+            className={clsx(classes.subtitle, size === "collection" && classes.collectionSubtitle)}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </div>
       {actions ? (
-        <Group gap="sm" justify="flex-end" style={{ marginLeft: "auto" }}>
+        <Group gap={4} wrap="nowrap" justify="flex-end" className={classes.actions}>
           {actions}
         </Group>
       ) : null}
-    </Group>
+      {below ? <div className={classes.below}>{below}</div> : null}
+    </Box>
   );
 }

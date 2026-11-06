@@ -37,9 +37,9 @@ async function renderPage(job: JobDetail) {
   return container;
 }
 
-/** The header's buttons, by label. */
+/** The header's buttons, by label: those in the PageHeader row, not the Back link above it. */
 function headerButtons(container: HTMLElement): string[] {
-  const header = defined(container.querySelector("h1")?.closest(".mantine-Group-root")?.parentElement);
+  const header = defined(container.querySelector("[data-page-header]"));
   return [...header.querySelectorAll("button")].map(button => button.textContent?.trim() ?? "");
 }
 

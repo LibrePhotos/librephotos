@@ -8,6 +8,7 @@ import { ContentViewer } from "./ContentViewer";
 import { DiscardDraftsModal } from "./DiscardDraftsModal";
 import type { LightboxItem, LightBoxProps } from "./lightbox.types";
 import { adoptsLive, indexOfId, neighbour } from "./lightboxNavigation";
+import { LightboxTitle } from "./LightboxTitle";
 import { UnsavedDraftsContext } from "./unsavedDrafts";
 import { useLightboxDraftsGuard } from "./useUnsavedDraftsGuard";
 import { VideoStartContext, videoStartFor } from "./videoStart";
@@ -162,6 +163,8 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
   // Handle photo selection from stack thumbnails in the sidebar
   const handlePhotoSelect = useCallback((photoId: string) => guard(() => goTo(photoId)), [guard, goTo]);
 
+  const position = useListPosition(items, index, removed);
+
   // A viewer who is not the owner gets no photo details, only what the grid knows.
   const gridItem = readOnly ? currentItem : undefined;
 
@@ -186,6 +189,14 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
           onTrashToggled={handleTrashToggled}
           startSlideshow={startSlideshow}
           gridItem={gridItem}
+          toolbarTitle={
+            <LightboxTitle
+              // A viewer who is not the owner has no details: the grid's date and place
+              timestamp={photoDetails?.exif_timestamp ?? currentItem?.date}
+              place={photoDetails?.search_location ?? currentItem?.location}
+              position={position}
+            />
+          }
         />
       </VideoStartContext.Provider>
       <DiscardDraftsModal
@@ -232,4 +243,24 @@ function useLightboxList(idx2hash: LightboxItem[], shownId: string) {
   }, []);
 
   return { items: current.items, index: current.index, liveIndex, removed, markRemoved };
+}
+
+/**
+ * Where the shown photo is in the list, counted from 1, as the toolbar's title says it ("12 of
+ * 198"): the photos trashed here are no longer counted. A grid placeholder for a page that has not
+ * loaded yet still counts, as the photo it stands for is there.
+ */
+function useListPosition(items: LightboxItem[], index: number, removed: ReadonlySet<string>) {
+  return useMemo(() => {
+    if (index === -1) return undefined;
+    let removedBefore = 0;
+    let removedListed = 0;
+    for (const id of removed) {
+      const at = indexOfId(items, id);
+      if (at === -1) continue;
+      removedListed += 1;
+      if (at < index) removedBefore += 1;
+    }
+    return { current: index + 1 - removedBefore, total: items.length - removedListed };
+  }, [items, index, removed]);
 }

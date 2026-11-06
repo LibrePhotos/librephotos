@@ -117,7 +117,7 @@ async function render(): Promise<PhotoListViewProps> {
 }
 
 function menuOf(props: PhotoListViewProps) {
-  const menu = props.headerActions;
+  const menu = props.headerMenu;
   if (
     !React.isValidElement<{ album: UserAlbum; upload?: AlbumUpload | null }>(menu) ||
     typeof menu.type !== "function"
@@ -161,7 +161,7 @@ describe("the user album page", () => {
 
     const props = await render();
 
-    expect(props.headerActions).toBeUndefined();
+    expect(props.headerMenu).toBeUndefined();
   });
 
   it("offers no menu for an album that is not there", async () => {
@@ -170,7 +170,7 @@ describe("the user album page", () => {
 
     const props = await render();
 
-    expect(props.headerActions).toBeUndefined();
+    expect(props.headerMenu).toBeUndefined();
     expect(props.emptyStateConfig?.actionLink).toBe("/album/user");
   });
 

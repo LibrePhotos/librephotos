@@ -1,6 +1,6 @@
 export const TOP_MENU_HEIGHT = 55; // don't change this
 export const LEFT_MENU_WIDTH = 200; // don't change this
-export const FOOTER_HEIGHT = 50;
+export const FOOTER_HEIGHT = 64;
 export const SUPPORT_LINK = "https://github.com/sponsors/derneuere";
 export const PAYPAL_DONATE_LINK = "https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96";
 export const GITHUB_REPO_LINK = "https://github.com/LibrePhotos/librephotos";
@@ -26,11 +26,11 @@ export const TOOLBAR_CONTROL_HEIGHT = "calc(2.125rem * var(--mantine-scale))";
 // Horizontal inset (px) of a page's content from the edge of the app shell, which adds none:
 // PageHeader's padding, PageBody (components/PageBody.tsx), PhotoListView's grid and TileGrid's
 // gutter plus cell padding all keep it, so content edges stay put from one route to the next.
-export const PAGE_GUTTER = 10;
-
-// Icon size (px) of the page header (components/PageHeader.tsx): between the 50px album icons
-// and the 35px settings icons, so one page-title icon reads the same size on every page.
-export const PAGE_HEADER_ICON_SIZE = 40;
+// 20px on a desktop like Google Photos' and Immich's insets, 12px on a phone.
+export const PAGE_GUTTER = 20;
+export const PAGE_GUTTER_MOBILE = 12;
+// The gutter as a responsive Mantine padding prop (the phone layout is below sm).
+export const PAGE_GUTTER_PX = { base: PAGE_GUTTER_MOBILE, sm: PAGE_GUTTER } as const;
 
 // Colour of the favourite star everywhere it appears.
 export const FAVORITE_COLOR = "var(--mantine-color-yellow-5)";

@@ -1,9 +1,10 @@
-import { ActionIcon, Box, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, Group, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconArrowBackUp as ArrowBackUp, IconCalendar as Calendar, IconPencil } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { formatUtcOffset, parsePhotoTimestamp } from "../../util/dateUtils";
+import { ROW_ICON } from "./SectionTitle";
 import { TimestampForm } from "./TimestampForm";
 import classes from "./TimestampItem.module.css";
 import type { TimestampEditor as Editor, TimestampPhoto } from "./useTimestampEditor";
@@ -12,8 +13,12 @@ import { useTimestampEditor } from "./useTimestampEditor";
 type Props = Readonly<{
   photoDetail: TimestampPhoto;
   isPublic: boolean;
-  /** Under the date, in its text column: the owner's "Why this date?" (#2272). */
-  extra?: React.ReactNode;
+  /**
+   * Right after the date, level with it: the owner's ⓘ "Why this date?" (#2272). Its hover also
+   * says "Set by you" (WhyThisDate), so the row then leaves that line out and keeps one trailing
+   * action, the pencil.
+   */
+  dateInfo?: React.ReactNode;
 }>;
 
 export function TimestampItem(props: Props) {
@@ -81,7 +86,7 @@ function UtcOffset({ photo }: Readonly<{ photo: TimestampPhoto }>) {
   return <span className={classes.offset}> ({formatUtcOffset(offset)})</span>;
 }
 
-function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
+function TimestampEditor({ photoDetail, isPublic, dateInfo }: Props) {
   const editor = useTimestampEditor(photoDetail);
   const { t } = useTranslation();
   const { exifTimestamp } = editor;
@@ -96,13 +101,16 @@ function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
       const time = photoDateTime.toLocaleString(DateTime.TIME_SIMPLE);
       return (
         <div>
-          <Text fw={800}>{date}</Text>
+          <Text size="sm" fw={500}>
+            {date}
+          </Text>
           <Text size="xs" c="dimmed">
             {dayOfWeek}, {time}
             <UtcOffset photo={photoDetail} />
           </Text>
-          {/* It wins over the date rules, so say why the date ignores them (#2254). */}
-          {photoDetail.date_set_by_user && (
+          {/* It wins over the date rules, so say why the date ignores them (#2254); with the
+              owner's ⓘ, its hover says it. */}
+          {photoDetail.date_set_by_user && !dateInfo && (
             <Text size="xs" c="dimmed">
               {t("lightbox.sidebar.datesetbyuser")}
             </Text>
@@ -119,21 +127,22 @@ function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
 
   return (
     // Laid out like the file and camera rows below (icon, then the text
-    // column), with the edit action on the right like every other section.
-    <Group justify="space-between" wrap="nowrap" w="100%">
-      <Group wrap="nowrap">
-        <Calendar />
+    // column), with the edit actions on the right like every other section,
+    // level with the date rather than the middle of its lines.
+    <Group justify="space-between" wrap="nowrap" w="100%" align="flex-start">
+      <Group wrap="nowrap" align="flex-start">
+        <Calendar {...ROW_ICON} />
         {/* Not a button on a public share: there is nothing to activate. */}
-        <Stack gap={2} align="flex-start">
-          {isPublic ? (
-            <Box fz="sm">{getDateTimeLabel()}</Box>
-          ) : (
+        {isPublic ? (
+          <Box fz="sm">{getDateTimeLabel()}</Box>
+        ) : (
+          <Group gap={2} wrap="nowrap" align="flex-start">
             <UnstyledButton fz="sm" onClick={editor.open}>
               {getDateTimeLabel()}
             </UnstyledButton>
-          )}
-          {extra}
-        </Stack>
+            {dateInfo}
+          </Group>
+        )}
       </Group>
       {!isPublic && <TimestampEditActions editor={editor} />}
     </Group>

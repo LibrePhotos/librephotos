@@ -1,6 +1,7 @@
 import type { BulkPhotoQuery, PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
-import { Badge, Button, Divider, Group, Modal, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
-import { schemaResolver, useForm } from "@mantine/form";
+import { FocusTrap, Modal, TextInput } from "@mantine/core";
+import { IconSearch } from "@tabler/icons-react";
+import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,14 +11,15 @@ import {
 } from "../../../api_client/albums/hooks";
 import type { SelectAllAlbumFields } from "../../../api_client/albums/types";
 import { useAuth } from "../../../hooks/useAuth";
+import { parseInstant } from "../../../util/dateUtils";
 import { fuzzyMatch } from "../../../util/util";
-import { AlbumListItem } from "../../album/AlbumListItem";
 import { selectionLabel } from "../../photolist/selectionLabel";
-import { Tile } from "../../Tile";
+import { DIALOG_SIZE } from "../dialogSize";
 import { modalTitleStyles } from "../modalTitleStyles";
 import classes from "./AlbumEditModal.module.css";
-import { makeNewAlbumSchema } from "./AlbumEditModal.schema";
+import { AlbumPickerRow } from "./AlbumPickerRow";
 import { ContributeStep } from "./ContributeStep";
+import { NewAlbumRow, useNewAlbumForm } from "./NewAlbumRow";
 import { SharedAlbumsYouCanAdd } from "./SharedAlbumsYouCanAdd";
 
 type Props = Readonly<{
@@ -30,6 +32,21 @@ type Props = Readonly<{
   totalCount?: number;
 }>;
 
+/** More albums than this and the picker starts with a search field (Immich). */
+const SEARCH_FROM = 6;
+
+/** "7 items · Created 7 hours ago", in full words: one meta line for an album of one's own. */
+function albumMeta(t: TFunction, album: UserAlbumInfo): string {
+  const created = parseInstant(album.created_on).toRelative();
+  const items = t("modalalbum.items", { count: album.photo_count });
+  return created ? `${items} · ${t("modalalbum.created", { duration: created })}` : items;
+}
+
+/**
+ * Add to album (Google Photos' picker): "2 items selected" under the title, a filled search field
+ * for a long list, then one list whose first row makes a new album in place, then your albums and
+ * the shared ones you may add to.
+ */
 export function AlbumEditModal(props: Props) {
   const { isOpen, onRequestClose, selectedImages, selectAllMode = false, selectAllQuery, totalCount } = props;
   const { t } = useTranslation();
@@ -40,22 +57,9 @@ export function AlbumEditModal(props: Props) {
   // An album someone shared with you as a contributor (#464): the second step says who will see
   // the photos and what of them before anything is added.
   const [contributeTo, setContributeTo] = useState<UserAlbumInfo | null>(null);
-  // The new album's title, which also filters the list of albums below it. The server refuses a
-  // blank title (400) and the modal closes before the request settles, so an empty or duplicate
-  // name must not be submittable.
-  const form = useForm({
-    initialValues: { title: "" },
-    validate: schemaResolver(
-      makeNewAlbumSchema(
-        t,
-        albumsUserList.map(album => album.title)
-      ),
-      { sync: true }
-    ),
-    validateInputOnChange: ["title"],
-    transformValues: ({ title }) => ({ title: title.trim() }),
-  });
-  const trimmedTitle = form.values.title.trim();
+  const [search, setSearch] = useState("");
+  const [creating, setCreating] = useState(false);
+  const form = useNewAlbumForm(albumsUserList.map(album => album.title));
 
   const excludedHashes = selectAllMode ? selectedImages.map(i => i.image_hash) : [];
   const effectiveCount = selectAllMode ? Math.max(0, (totalCount ?? 0) - selectedImages.length) : selectedImages.length;
@@ -68,21 +72,31 @@ export function AlbumEditModal(props: Props) {
     excluded_hashes: excludedHashes,
     photoCount: effectiveCount,
   };
+  const photos = selectAllMode ? [] : selectedImages.map(i => i.id);
 
-  // The parent keeps this component mounted, so every way out must clear the
-  // title: a leftover filter would otherwise reopen hidden behind an empty input.
+  // The parent keeps this component mounted, so every way out must clear the search and the new
+  // album's title: a leftover filter would otherwise reopen with albums missing.
   const close = () => {
     onRequestClose();
     form.reset();
+    setSearch("");
+    setCreating(false);
     setContributeTo(null);
   };
 
   if (contributeTo) {
     return (
-      <Modal styles={modalTitleStyles} zIndex={1500} opened={isOpen} title={t("modalalbum.title")} onClose={close}>
+      <Modal
+        size={DIALOG_SIZE.md}
+        styles={modalTitleStyles}
+        zIndex={1500}
+        opened={isOpen}
+        title={t("modalalbum.title")}
+        onClose={close}
+      >
         <ContributeStep
           album={contributeTo}
-          photoIds={selectAllMode ? [] : selectedImages.map(i => i.id)}
+          photoIds={photos}
           selectAll={selectAllMode ? { query: selectAllQuery ?? {}, excludedHashes } : undefined}
           count={effectiveCount}
           myId={userId}
@@ -93,85 +107,80 @@ export function AlbumEditModal(props: Props) {
     );
   }
 
+  const query = search.trim();
+  const albums = albumsUserList.filter(album => fuzzyMatch(query, album.title));
+  const subtitle = selectAllMode
+    ? selectionLabel(t, {
+        selectAllMode,
+        total: totalCount ?? 0,
+        excluded: excludedHashes.length,
+        selected: selectedImages.length,
+      })
+    : t("modalalbum.itemsselected", { count: effectiveCount });
+
   return (
-    <Modal styles={modalTitleStyles} zIndex={1500} opened={isOpen} title={t("modalalbum.title")} onClose={close}>
-      <Stack>
-        <Text c="dimmed">{t("modalalbum.selectedimages", { count: effectiveCount })}</Text>
-        {selectAllMode ? (
-          <Badge color="blue" size="lg" variant="light">
-            {selectionLabel(t, {
-              selectAllMode,
-              total: totalCount ?? 0,
-              excluded: excludedHashes.length,
-              selected: selectedImages.length,
-            })}
-          </Badge>
-        ) : (
-          <Group>
-            {selectedImages.map(image => (
-              <Tile
-                key={`si-${image.id}`}
-                className={classes.tile}
-                height={40}
-                width={40}
-                image_hash={image.image_hash}
-                video={image.type === "video"}
-              />
-            ))}
-          </Group>
-        )}
-        <Divider />
-        <Title order={4}>{t("modalalbum.newalbum")}</Title>
-        <Group>
-          <TextInput placeholder={t("modalalbum.placeholder")} {...form.getInputProps("title")} />
-          {/* No <form>, as before: the field also filters the list, so Enter does not create an album */}
-          <Button
-            onClick={() =>
-              form.onSubmit(({ title }) => {
-                createUserAlbum.mutate({
-                  title,
-                  photos: selectAllMode ? [] : selectedImages.map(i => i.id),
-                  ...(selectAllMode ? selectAllFields : {}),
-                });
-                close();
-              })()
-            }
-            disabled={!form.isValid()}
-            type="submit"
-          >
-            {t("modalalbum.create")}
-          </Button>
-        </Group>
-        <Divider />
-        <Stack className={classes.albums}>
-          {albumsUserList
-            .filter(el => fuzzyMatch(trimmedTitle, el.title))
-            .map(item => (
-              <div key={`ub-${item.id}`}>
-                <UnstyledButton
-                  disabled={item.locked}
-                  aria-label={item.locked ? t("useralbum.lockedCannotAdd", { title: item.title }) : undefined}
-                  onClick={() => {
-                    if (item.locked) return;
-                    addPhotoToUserAlbum.mutate({
-                      id: `${item.id}`,
-                      title: item.title,
-                      photos: selectAllMode ? [] : selectedImages.map(i => i.id),
-                      ...(selectAllMode ? selectAllFields : {}),
-                    });
-                    close();
-                  }}
-                >
-                  <Group gap="xs" wrap="nowrap">
-                    <AlbumListItem album={item} showUpdatedTime />
-                    {item.locked && <Badge color="gray">{t("useralbum.locked")}</Badge>}
-                  </Group>
-                </UnstyledButton>
-              </div>
-            ))}
-          <SharedAlbumsYouCanAdd filter={trimmedTitle} onPick={setContributeTo} />
-        </Stack>
-      </Stack>
+    <Modal
+      size={DIALOG_SIZE.md}
+      styles={modalTitleStyles}
+      zIndex={1500}
+      opened={isOpen}
+      // "2 items selected" under the title, inside the heading (spans: valid in its h2)
+      title={
+        <>
+          {t("modalalbum.title")}
+          <span className={classes.subtitle}>{subtitle}</span>
+        </>
+      }
+      onClose={close}
+    >
+      {albumsUserList.length > SEARCH_FROM ? (
+        <TextInput
+          data-autofocus
+          variant="filled"
+          size="sm"
+          radius="md"
+          className={classes.search}
+          leftSection={<IconSearch size={18} />}
+          placeholder={t("modalalbum.search")}
+          aria-label={t("modalalbum.search")}
+          value={search}
+          onChange={event => setSearch(event.currentTarget.value)}
+        />
+      ) : (
+        // No focus ring at open: nothing is focused until Tab
+        <FocusTrap.InitialFocus />
+      )}
+      {/* One list: the new album first, then your albums, then the shared ones you can add to */}
+      <div className={classes.list}>
+        <NewAlbumRow
+          form={form}
+          editing={creating}
+          onEdit={setCreating}
+          onCreate={title => {
+            createUserAlbum.mutate({ title, photos, ...(selectAllMode ? selectAllFields : {}) });
+            close();
+          }}
+        />
+        {albums.map(item => (
+          <AlbumPickerRow
+            key={`ub-${item.id}`}
+            title={item.title}
+            meta={albumMeta(t, item)}
+            cover={item.cover_photo}
+            locked={item.locked}
+            onPick={() => {
+              addPhotoToUserAlbum.mutate({
+                id: `${item.id}`,
+                title: item.title,
+                photos,
+                ...(selectAllMode ? selectAllFields : {}),
+              });
+              close();
+            }}
+          />
+        ))}
+        <SharedAlbumsYouCanAdd filter={query} onPick={setContributeTo} />
+      </div>
     </Modal>
   );
 }

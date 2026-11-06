@@ -1,17 +1,40 @@
 /**
  * The shared map frame (#2232): a skeleton covers the map until its style has loaded, so a map
  * never shows the style's light background first, and a style that fails takes the skeleton
- * away too. A render failure stays inside the frame.
+ * away too. A render failure stays inside the frame. A loaded map drops the style's satellite
+ * imagery and folds its attribution.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
+import { BASEMAP_COLORS, BASEMAP_WATER_COLOR } from "../../theme/mapColors";
 import { ThemedMap } from "./ThemedMap";
 
-type MapEvent = { type: string; error?: Error };
+type MapEvent = { type: string; error?: Error; target?: unknown };
 
 const map = vi.hoisted(() => ({ throws: false }));
+
+/** What the load event's map records: the layers it was asked to change, and its DOM. */
+const loaded = vi.hoisted(() => ({
+  layers: ["natural_earth", "water"],
+  /** The style's layers as getStyle lists them, for the calm restyle. */
+  styleLayers: [] as { id: string; type: string; "source-layer"?: string }[],
+  changes: [] as string[],
+  container: null as HTMLElement | null,
+}));
+
+const fakeMap = {
+  getLayer: (id: string) => (loaded.layers.includes(id) ? { id } : undefined),
+  getStyle: () => ({ layers: loaded.styleLayers }),
+  setLayoutProperty: (layer: string, name: string, value: unknown) => {
+    loaded.changes.push(`${layer} ${name}=${String(value)}`);
+  },
+  setPaintProperty: (layer: string, name: string, value: unknown) => {
+    loaded.changes.push(`${layer} ${name}=${String(value)}`);
+  },
+  getContainer: () => loaded.container ?? document.createElement("div"),
+};
 
 // Stands in for react-map-gl's <Map>: two buttons fire its load and error events.
 vi.mock("react-map-gl/maplibre", async () => {
@@ -29,7 +52,7 @@ vi.mock("react-map-gl/maplibre", async () => {
         react.createElement("button", {
           type: "button",
           "data-testid": "load",
-          onClick: () => props.onLoad?.({ type: "load" }),
+          onClick: () => props.onLoad?.({ type: "load", target: fakeMap }),
         }),
         react.createElement("button", {
           type: "button",
@@ -63,6 +86,10 @@ beforeAll(() => {
 
 beforeEach(() => {
   map.throws = false;
+  loaded.layers = ["natural_earth", "water"];
+  loaded.styleLayers = [];
+  loaded.changes = [];
+  loaded.container = null;
   consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -107,6 +134,69 @@ describe("ThemedMap", () => {
 
     expect(busy()).toBeNull();
     expect(onLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the satellite imagery, shows the water at every zoom and folds the attribution", async () => {
+    loaded.container = document.createElement("div");
+    loaded.container.innerHTML =
+      '<details class="maplibregl-ctrl-attrib maplibregl-compact maplibregl-compact-show"></details>';
+    await render();
+
+    await click("load");
+
+    expect(loaded.changes).toEqual([
+      "natural_earth visibility=none",
+      "water fill-opacity=1",
+      `water fill-color=${BASEMAP_WATER_COLOR}`,
+    ]);
+    expect(loaded.container.querySelector(".maplibregl-compact-show")).toBeNull();
+    expect(loaded.container.querySelector(".maplibregl-compact")).not.toBeNull();
+  });
+
+  it("calms the basemap: neutral land, faint landcover, grey buildings, white roads and thin label halos, not the app's layers", async () => {
+    loaded.layers = [];
+    loaded.styleLayers = [
+      { id: "background", type: "background" },
+      { id: "landcover-wood", type: "fill", "source-layer": "landcover" },
+      { id: "building", type: "fill", "source-layer": "building" },
+      { id: "building-3d", type: "fill-extrusion", "source-layer": "building" },
+      { id: "highway-primary-casing", type: "line", "source-layer": "transportation" },
+      { id: "highway-primary", type: "line", "source-layer": "transportation" },
+      { id: "railway", type: "line", "source-layer": "transportation" },
+      { id: "place-country-1", type: "symbol", "source-layer": "place" },
+      { id: "water-name-ocean", type: "symbol", "source-layer": "water_name" },
+      // The app's own cluster counts, from GeoJSON: left as they are
+      { id: "cluster-count", type: "symbol" },
+    ];
+    await render();
+
+    await click("load");
+
+    expect(loaded.changes).toEqual([
+      `background background-color=${BASEMAP_COLORS.land}`,
+      "landcover-wood fill-opacity=0.35",
+      `building fill-color=${BASEMAP_COLORS.building}`,
+      `building-3d fill-extrusion-color=${BASEMAP_COLORS.building}`,
+      `highway-primary-casing line-color=${BASEMAP_COLORS.roadCasing}`,
+      `highway-primary line-color=${BASEMAP_COLORS.road}`,
+      `place-country-1 text-color=${BASEMAP_COLORS.label}`,
+      `place-country-1 text-halo-color=${BASEMAP_COLORS.land}`,
+      "place-country-1 text-halo-width=1",
+      "place-country-1 text-halo-blur=0",
+      `water-name-ocean text-color=${BASEMAP_COLORS.waterLabel}`,
+      `water-name-ocean text-halo-color=${BASEMAP_WATER_COLOR}`,
+      "water-name-ocean text-halo-width=1",
+      "water-name-ocean text-halo-blur=0",
+    ]);
+  });
+
+  it("leaves a style without those layers as it is", async () => {
+    loaded.layers = [];
+    await render();
+
+    await click("load");
+
+    expect(loaded.changes).toEqual([]);
   });
 
   it("takes the skeleton away when the style fails, and logs the error nobody else handles", async () => {

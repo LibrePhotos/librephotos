@@ -1,29 +1,35 @@
-import { Tabs } from "@mantine/core";
-import {
-  IconChartBar,
-  IconChartLine,
-  IconCloud,
-  IconMoodSmile,
-  IconShare,
-  IconVectorTriangle,
-} from "@tabler/icons-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import type { ParseKeys } from "i18next";
 import { useTranslation } from "react-i18next";
 import { FeatureBoundary } from "../common/FeatureBoundary";
+import { PageTabs } from "../common/PageTabs";
+import { CountStats } from "../CountStats";
+import { PageBody } from "../PageBody";
 import { PageHeader } from "../PageHeader";
 
 type StatisticsNavProps = {
   children: React.ReactNode;
 };
 
-const views: ReadonlyArray<{ path: string; labelKey: ParseKeys; icon: typeof IconChartBar }> = [
-  { path: "/statistics/placetree", labelKey: "sidemenu.placetree", icon: IconVectorTriangle },
-  { path: "/statistics/timeline", labelKey: "sidemenu.timeline", icon: IconChartBar },
-  { path: "/statistics/wordclouds", labelKey: "sidemenu.wordclouds", icon: IconCloud },
-  { path: "/statistics/socialgraph", labelKey: "sidemenu.socialgraph", icon: IconShare },
-  { path: "/statistics/faceclusters", labelKey: "sidemenu.facecluster", icon: IconMoodSmile },
+type StatisticsView =
+  | "/statistics/timeline"
+  | "/statistics/placetree"
+  | "/statistics/wordclouds"
+  | "/statistics/socialgraph"
+  | "/statistics/faceclusters";
+
+// The timeline first: it is where /statistics opens, with charts that fill the page from the start
+const views: ReadonlyArray<{ path: StatisticsView; labelKey: ParseKeys }> = [
+  { path: "/statistics/timeline", labelKey: "sidemenu.timeline" },
+  { path: "/statistics/placetree", labelKey: "sidemenu.placetree" },
+  { path: "/statistics/wordclouds", labelKey: "sidemenu.wordclouds" },
+  { path: "/statistics/socialgraph", labelKey: "sidemenu.socialgraph" },
+  { path: "/statistics/faceclusters", labelKey: "sidemenu.facecluster" },
 ];
+
+function isStatisticsView(path: string): path is StatisticsView {
+  return views.some(view => view.path === path);
+}
 
 export function StatisticsNav({ children }: StatisticsNavProps) {
   const { t } = useTranslation();
@@ -33,38 +39,23 @@ export function StatisticsNav({ children }: StatisticsNavProps) {
 
   return (
     <>
-      <PageHeader
-        icon={IconChartLine}
-        iconColor="var(--mantine-color-yellow-6)"
-        title={t("statistics.title")}
-        subtitle={t("countstats.explorecharts")}
-      />
+      <PageHeader title={t("statistics.title")} subtitle={t("statistics.subtitle")} />
 
-      <div style={{ padding: 10 }}>
-        <Tabs value={currentPath} onChange={value => value && navigate({ to: value })} color="yellow" variant="default">
-          <Tabs.List mb="md">
-            {views.map(view => (
-              <Tabs.Tab
-                key={view.path}
-                value={view.path}
-                leftSection={
-                  <view.icon
-                    size={18}
-                    color={currentPath === view.path ? "var(--mantine-color-yellow-6)" : undefined}
-                  />
-                }
-              >
-                {t(view.labelKey)}
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-        </Tabs>
+      {/* The page gutter like every other page; the counts first, then the charts */}
+      <PageBody gap="lg">
+        {/* The Library page's tiles, so the two pages count the same things the same way */}
+        <CountStats />
+        <PageTabs
+          value={isStatisticsView(currentPath) ? currentPath : "/statistics/timeline"}
+          onChange={path => void navigate({ to: path })}
+          tabs={views.map(view => ({ value: view.path, label: t(view.labelKey) }))}
+        />
 
         {/* A chart that fails keeps the tabs; switching tabs tries again. */}
         <FeatureBoundary name="statistics" resetKeys={[currentPath]}>
           {children}
         </FeatureBoundary>
-      </div>
+      </PageBody>
     </>
   );
 }

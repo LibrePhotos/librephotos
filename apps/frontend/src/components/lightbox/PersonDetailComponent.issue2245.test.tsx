@@ -1,13 +1,15 @@
 /**
  * #2245: the face actions next to a face in the lightbox had their label only in a Tooltip, which is
- * not an accessible name, so a screen reader announced four buttons called "button".
+ * not an accessible name, so a screen reader announced four buttons called "button". They are now
+ * the items of the face's ⋮, which is named after the face.
  */
 import type { PhotoPerson } from "@librephotos/api-client";
 import type { UseNavigateResult } from "@tanstack/react-router";
-import React from "react";
+import React, { act } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { renderInMantine, setUpMantineDom } from "../modals/confirmModal.test-utils";
+import { faceMenuItem, openFaceMenu } from "./faceMenu.test-utils";
 import { PersonDetail } from "./PersonDetailComponent";
 
 type SetLabel = (variables: { faceIds: number[]; personName: string }) => void;
@@ -46,10 +48,9 @@ async function buttonNames(person: PhotoPerson) {
       notThisPerson={() => {}}
     />
   );
-  return {
-    container,
-    names: Array.from(container.querySelectorAll("button[aria-label]"), button => button.getAttribute("aria-label")),
-  };
+  const menu = container.querySelector("button[aria-label]")?.getAttribute("aria-label");
+  const items = await openFaceMenu(container);
+  return { container, menu, names: items.map(item => item.textContent?.trim()) };
 }
 
 beforeAll(async () => {
@@ -63,19 +64,21 @@ beforeEach(() => {
 });
 
 describe("face actions in the lightbox", () => {
-  it("names each action of a suggested face", async () => {
-    const { names } = await buttonNames(face);
+  it("names the ⋮ after the face and each action of a suggested face", async () => {
+    const { menu, names } = await buttonNames(face);
+    expect(menu).toBe("Actions for Anna Berg");
     expect(names).toEqual(["Confirm as Anna Berg", "Label as…", "Not Anna Berg", "Delete face"]);
   });
 
   it("finds the confirm action by its name", async () => {
     const { container } = await buttonNames(face);
-    container.querySelector<HTMLButtonElement>('button[aria-label="Confirm as Anna Berg"]')?.click();
+    await act(async () => (await faceMenuItem(container, "Confirm as Anna Berg")).click());
     expect(stubs.setLabel).toHaveBeenCalledWith({ faceIds: [7], personName: "Anna Berg" });
   });
 
   it("names the one action of a face nobody named yet", async () => {
-    const { names } = await buttonNames({ ...face, name: "", type: "" });
+    const { menu, names } = await buttonNames({ ...face, name: "", type: "" });
+    expect(menu).toBe("Actions for this face");
     expect(names).toEqual(["Name this face", "Delete face"]);
   });
 

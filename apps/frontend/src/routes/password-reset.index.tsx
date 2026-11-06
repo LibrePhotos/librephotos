@@ -1,26 +1,13 @@
-import {
-  Anchor,
-  Button,
-  Card,
-  Group,
-  Image,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-  useComputedColorScheme,
-} from "@mantine/core";
+import { Anchor, Button, Stack, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
-import { IconMail as Mail } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRequestPasswordResetMutation } from "../api_client/auth";
 import { passwordResetError } from "../api_client/auth/passwordResetErrors";
+import { AuthCard } from "../components/auth/AuthCard";
 import { notification } from "../service/notifications";
-import { SIGN_IN_GRADIENT } from "../theme/brandGradients";
 import { makePasswordResetRequestSchema } from "./-passwordReset.schema";
-import classes from "./auth.module.css";
 
 export const Route = createFileRoute("/password-reset/")({
   component: PasswordResetRequestPage,
@@ -28,7 +15,6 @@ export const Route = createFileRoute("/password-reset/")({
 
 function PasswordResetRequestPage(): React.JSX.Element {
   const { t } = useTranslation();
-  const colorScheme = useComputedColorScheme("dark");
   const { mutate: requestReset, isPending } = useRequestPasswordResetMutation({ reportsErrors: true });
   const [submitted, setSubmitted] = useState(false);
 
@@ -59,53 +45,29 @@ function PasswordResetRequestPage(): React.JSX.Element {
     );
   }
 
+  const backToSignIn = <Anchor href="/login">{t("passwordreset.backtologin")}</Anchor>;
+
   return (
-    <Stack align="center" justify="flex-end" pt={150}>
-      <Group gap="xs" justify="center">
-        {/* Decorative: the name is written right next to it */}
-        <Image
-          height={80}
-          width={80}
-          fit="contain"
-          src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"}
-          alt=""
-        />
-        <span style={{ fontSize: 18 }}>
-          <b>{t("login.name")}</b>
-        </span>
-      </Group>
-      <div className={classes.loginForm}>
-        <Card>
+    <AuthCard
+      title={t("passwordreset.title")}
+      description={t(submitted ? "passwordreset.checkemail" : "passwordreset.instructions")}
+      links={backToSignIn}
+    >
+      {submitted ? null : (
+        <form onSubmit={form.onSubmit(onSubmit)}>
           <Stack>
-            <Title order={3}>{t("passwordreset.title")}</Title>
-            {submitted ? (
-              <>
-                <Text>{t("passwordreset.checkemail")}</Text>
-                <Anchor href="/login">{t("passwordreset.backtologin")}</Anchor>
-              </>
-            ) : (
-              <form onSubmit={form.onSubmit(onSubmit)}>
-                <Stack>
-                  <Text size="sm">{t("passwordreset.instructions")}</Text>
-                  <TextInput
-                    required
-                    leftSection={<Mail />}
-                    placeholder={t("passwordreset.emailplaceholder")}
-                    name="email"
-                    {...form.getInputProps("email")}
-                  />
-                  <Button loading={isPending} variant="gradient" gradient={SIGN_IN_GRADIENT} type="submit">
-                    {t("passwordreset.sendlink")}
-                  </Button>
-                  <Anchor href="/login" size="sm" ta="center">
-                    {t("passwordreset.backtologin")}
-                  </Anchor>
-                </Stack>
-              </form>
-            )}
+            <TextInput
+              required
+              label={t("passwordreset.emailplaceholder")}
+              name="email"
+              {...form.getInputProps("email")}
+            />
+            <Button loading={isPending} type="submit" fullWidth>
+              {t("passwordreset.sendlink")}
+            </Button>
           </Stack>
-        </Card>
-      </div>
-    </Stack>
+        </form>
+      )}
+    </AuthCard>
   );
 }

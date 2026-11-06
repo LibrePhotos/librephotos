@@ -93,7 +93,9 @@ function AlbumThread({ albumId, photoId }: Readonly<{ albumId: string; photoId: 
     <Stack gap="xs">
       <Divider />
       <Group justify="space-between" wrap="nowrap">
-        <Title order={5}>{t("collab.comments")}</Title>
+        <Title order={5} fz={13} fw={600} lh={1.4} c="dimmed">
+          {t("collab.comments")}
+        </Title>
         <LikeButton albumId={albumId} photoId={photoId} enabled={enabled} />
       </Group>
       {comments.length > SHOWN_COMMENTS && (

@@ -1,10 +1,10 @@
 /**
  * Organizing > Duplicates.
  *
- * - "Delete Group" and "Delete Selected" ran at once. Deleting a resolved group
+ * - "Delete group" and "Delete selected" ran at once. Deleting a resolved group
  *   also throws away its Revert history, so both ask first now.
- * - The selection outlived page and filter changes, so Select All showed the
- *   wrong state and Delete Selected hit groups that were no longer on screen.
+ * - The selection outlived page and filter changes, so Select all showed the
+ *   wrong state and Delete selected hit groups that were no longer on screen.
  * - The empty state said "All duplicate groups have been reviewed" even when
  *   detection had never found anything.
  * - A page past the end is a 404 (backend api/drf/pagination.py): emptying the last
@@ -38,9 +38,9 @@ vi.mock("../../api_client/user/hooks", () => ({ useFetchUserSelfDetailsQuery: ()
 const duplicate = (id: string) => ({
   id,
   duplicate_type: "exact_copy",
-  duplicate_type_display: "Exact Copies",
+  duplicate_type_display: "Exact copies",
   review_status: "pending",
-  review_status_display: "Pending Review",
+  review_status_display: "Pending review",
   photo_count: 2,
   potential_savings: 0,
   similarity_score: null,
@@ -151,9 +151,9 @@ const click = async (element: HTMLElement) => {
 const selectAll = () =>
   rendered(
     Array.from(container.querySelectorAll<HTMLInputElement>("input[type=checkbox]")).find(input =>
-      input.closest("label, .mantine-Checkbox-root")?.textContent?.includes("Select All")
+      input.closest("label, .mantine-Checkbox-root")?.textContent?.includes("Select all")
     ),
-    "the Select All checkbox"
+    "the Select all checkbox"
   );
 
 // The whole page with its menus and confirmation dialogs, and the first test of the file also pays
@@ -161,12 +161,12 @@ const selectAll = () =>
 describe("deleting duplicate groups", { timeout: 15_000 }, () => {
   it("asks before deleting a single group", async () => {
     await render();
-    // Each card's icon-only "..." menu holds Delete Group (the filter menus have labels)
+    // Each card's icon-only "..." menu holds Delete group (the filter menus have labels)
     const cardMenus = Array.from(container.querySelectorAll<HTMLButtonElement>("button[aria-haspopup=menu]")).filter(
       target => !target.textContent
     );
     await click(rendered(cardMenus[0], "the first card menu"));
-    await click(button("Delete Group"));
+    await click(button("Delete group"));
 
     expect(stubs.deleteDuplicate).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Delete duplicate group?");
@@ -181,7 +181,7 @@ describe("deleting duplicate groups", { timeout: 15_000 }, () => {
     await click(selectAll());
     expect(container.textContent).toContain("2 selected");
 
-    await click(button("Delete Selected"));
+    await click(button("Delete selected"));
     expect(container.textContent).toContain("Delete 2 duplicate groups?");
     expect(stubs.deleteDuplicate).not.toHaveBeenCalled();
 
@@ -193,7 +193,7 @@ describe("deleting duplicate groups", { timeout: 15_000 }, () => {
   it("does nothing when the confirmation is cancelled", async () => {
     await render();
     await click(selectAll());
-    await click(button("Delete Selected"));
+    await click(button("Delete selected"));
     await click(button("Cancel"));
 
     expect(stubs.deleteDuplicate).not.toHaveBeenCalled();
@@ -224,7 +224,7 @@ describe("the empty state", () => {
     expect(container.textContent).toContain(i18n.t("duplicates.empty"));
     expect(container.textContent).not.toContain(i18n.t("duplicates.nopending"));
     // Nothing to select
-    expect(container.textContent).not.toContain("Select All");
+    expect(container.textContent).not.toContain("Select all");
   });
 
   it("says everything was reviewed when only reviewed groups are left", async () => {

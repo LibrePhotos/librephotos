@@ -1,17 +1,8 @@
-import { Group, SimpleGrid, Skeleton, Stack, Text, Title } from "@mantine/core";
+import { Skeleton, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconAlbum,
-  IconBookmark,
-  IconChevronRight,
-  IconFaceId,
-  IconFolder,
-  IconSettingsAutomation,
-  IconTag,
-  IconTags,
-  IconUsers,
-} from "@tabler/icons-react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { IconFolder, IconSettingsAutomation, IconTag, IconTags } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
+import clsx from "clsx";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,8 +13,9 @@ import {
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
 import { useFetchTagsQuery } from "../../../api_client/tags/hooks";
-import { AlbumSection } from "../../../components/album/AlbumSection";
+import { AlbumSection, AlbumSectionHeading, HUB_CARD_WIDTH } from "../../../components/album/AlbumSection";
 import classes from "../../../components/album/AlbumSection.module.css";
+import { HubPeopleRow } from "../../../components/album/HubPeopleRow";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
@@ -85,16 +77,6 @@ function AlbumExplore() {
   };
 
   // Transform albums to AlbumPreview format
-  const peoplePreview = (peopleAlbums ?? []).map(album => ({
-    id: album.id,
-    title: album.name,
-    photoCount: album.face_count,
-    coverUrl: album.face_photo_url || undefined,
-    faceUrl: album.face_url || undefined,
-    isVideo: album.video,
-    linkTo: `/album/persons/${album.id}`,
-  }));
-
   const thingsPreview = (thingsAlbums ?? []).map(album => ({
     id: album.id,
     title: album.title,
@@ -104,13 +86,14 @@ function AlbumExplore() {
     linkTo: `/album/things/${album.id}`,
   }));
 
+  // Each folder's newest photo, so the Folders card is a collage like the others
   const foldersPreview = folders.map(folder => ({
     id: folder.path,
     title: folder.name,
     photoCount: folder.photo_count,
-    coverUrl: undefined,
+    coverUrl: folder.cover_photo?.image_hash,
+    isVideo: folder.cover_photo?.video,
     linkTo: `/album/folder/${encodeURIComponent(folder.path)}`,
-    icon: <IconFolder size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />,
   }));
 
   const tagsPreview = (tags ?? []).map(tag => ({
@@ -133,44 +116,23 @@ function AlbumExplore() {
 
   return (
     <>
-      <PageHeader icon={IconAlbum} title={t("explore.title")} subtitle={t("explore.subtitle")} />
-      <PageBody gap={0}>
-        <Stack gap="md">
+      <PageHeader title={t("explore.title")} />
+      {/* 24px from the header block to the first section (its 12px and these), 40px between sections */}
+      <PageBody gap={0} pt={12}>
+        {/* One left edge for every section */}
+        <Stack gap={40}>
           {/* My Albums - using UserAlbumCard component */}
           <div className={classes.section}>
-            <div className={classes.header}>
-              <Link
-                to="/album/user"
-                className={classes.headerLeft}
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <IconBookmark size={24} stroke={1.5} />
-                <div>
-                  <Title order={4}>{t("sidemenu.myalbums")}</Title>
-                  <Group gap={6}>
-                    <Text size="sm" c="dimmed">
-                      {t("explore.albumCount", { count: userAlbums?.length ?? 0 })}
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      ·
-                    </Text>
-                    <Text size="sm" c="blue">
-                      {t("explore.viewAll")}
-                    </Text>
-                    <IconChevronRight size={14} color="var(--mantine-color-blue-6)" />
-                  </Group>
-                </div>
-              </Link>
-            </div>
+            <AlbumSectionHeading
+              title={t("sidemenu.myalbums")}
+              summary={t("explore.albumCount", { count: userAlbums?.length ?? 0 })}
+              viewAllLink="/album/user"
+            />
 
             {isLoadingUser ? (
-              <div className={classes.loadingContainer}>
+              <div className={clsx(classes.hubGrid, classes.hubRow)}>
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className={classes.skeleton}>
-                    <Skeleton height={140} radius="md" />
-                    <Skeleton height={16} mt={8} width="80%" />
-                    <Skeleton height={12} mt={4} width="50%" />
-                  </div>
+                  <Skeleton key={i} className={classes.hubSkeleton} radius={12} />
                 ))}
               </div>
             ) : userAlbumsFailure ? (
@@ -186,12 +148,13 @@ function AlbumExplore() {
                 </Stack>
               </div>
             ) : (
-              <div className={classes.scrollContainer}>
-                {userAlbums.slice(0, 12).map(album => (
+              // The same grid as the Collections under it, first line only: one card width on the hub
+              <div className={clsx(classes.hubGrid, classes.hubRow)}>
+                {userAlbums.slice(0, 5).map(album => (
                   <UserAlbumCard
                     key={album.id}
                     album={album}
-                    size={140}
+                    size={HUB_CARD_WIDTH}
                     showActions
                     onRename={openRenameDialog}
                     onShare={openShareDialog}
@@ -202,60 +165,47 @@ function AlbumExplore() {
             )}
           </div>
 
-          {/* People - avatar grid, full section */}
-          <AlbumSection
-            title={t("sidemenu.people")}
-            icon={<IconUsers size={24} stroke={1.5} />}
-            albums={peoplePreview}
-            viewAllLink="/album/persons"
-            isLoading={isLoadingPeople}
-            error={peopleFailure}
-            count={peopleAlbums?.length}
-            countLabel={t("explore.peopleCount", { count: peopleAlbums?.length ?? 0 })}
-            emptyMessage={t("emptystate.people.title")}
-            variant="avatarGrid"
-            maxItems={16}
-            actionLink="/faces"
-            actionLabel={t("personalbum.managefaces")}
-            actionIcon={<IconFaceId size={16} />}
-            actionColor="orange"
-          />
+          {/* People: the People page's portrait cards, in one row */}
+          <HubPeopleRow people={peopleAlbums} isLoading={isLoadingPeople} error={peopleFailure} />
 
-          {/* Category cards: five of them, so one row on large screens */}
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 5 }} spacing="md">
-            <AlbumSection
-              title={t("sidemenu.things")}
-              icon={<IconTags size={20} stroke={1.5} />}
-              albums={thingsPreview}
-              viewAllLink="/album/things"
-              isLoading={isLoadingThings}
-              count={thingsAlbums?.length}
-              countLabel={t("explore.thingCount", { count: thingsAlbums?.length ?? 0 })}
-              variant="card"
+          {/* Category cards: five of them, so one row on large screens, in My Albums' grid */}
+          <div className={classes.section}>
+            <AlbumSectionHeading
+              title={t("explore.collections")} // The five cards below
+              summary={t("explore.collectionCount", { count: 5 })}
             />
-            <AlbumSection
-              title={t("tags")}
-              icon={<IconTag size={20} stroke={1.5} />}
-              albums={tagsPreview}
-              viewAllLink="/album/tags"
-              isLoading={isLoadingTags}
-              count={tags?.length}
-              countLabel={t("explore.tagCount", { count: tags?.length ?? 0 })}
-              variant="card"
-            />
-            <PlacesMapCard />
-            <AlbumSection
-              title={t("events")}
-              icon={<IconSettingsAutomation size={20} stroke={1.5} />}
-              albums={autoAlbumsPreview}
-              viewAllLink="/album/events"
-              isLoading={isLoadingAuto}
-              count={autoAlbums?.length}
-              countLabel={t("explore.eventCount", { count: autoAlbums?.length ?? 0 })}
-              variant="card"
-            />
-            {/* Spans the row when two columns would leave it on its own */}
-            <div className={classes.lastCategoryCard}>
+            <div className={classes.hubGrid}>
+              <AlbumSection
+                title={t("sidemenu.things")}
+                icon={<IconTags size={20} stroke={1.5} />}
+                albums={thingsPreview}
+                viewAllLink="/album/things"
+                isLoading={isLoadingThings}
+                count={thingsAlbums?.length}
+                countLabel={t("explore.thingCount", { count: thingsAlbums?.length ?? 0 })}
+                variant="card"
+              />
+              <AlbumSection
+                title={t("tags")}
+                icon={<IconTag size={20} stroke={1.5} />}
+                albums={tagsPreview}
+                viewAllLink="/album/tags"
+                isLoading={isLoadingTags}
+                count={tags?.length}
+                countLabel={t("explore.tagCount", { count: tags?.length ?? 0 })}
+                variant="card"
+              />
+              <PlacesMapCard />
+              <AlbumSection
+                title={t("events")}
+                icon={<IconSettingsAutomation size={20} stroke={1.5} />}
+                albums={autoAlbumsPreview}
+                viewAllLink="/album/events"
+                isLoading={isLoadingAuto}
+                count={autoAlbums?.length}
+                countLabel={t("explore.eventCount", { count: autoAlbums?.length ?? 0 })}
+                variant="card"
+              />
               <AlbumSection
                 title={t("folders")}
                 icon={<IconFolder size={20} stroke={1.5} />}
@@ -267,7 +217,7 @@ function AlbumExplore() {
                 variant="card"
               />
             </div>
-          </SimpleGrid>
+          </div>
         </Stack>
 
         <RenameUserAlbumModal

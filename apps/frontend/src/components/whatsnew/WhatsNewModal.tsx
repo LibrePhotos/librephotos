@@ -1,11 +1,13 @@
-import { Anchor, Button, Group, Modal, Paper, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Button, FocusTrap, Group, Modal, SegmentedControl, Stack, Text, Title } from "@mantine/core";
 import { IconExternalLink as ExternalLink } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchImageTagQuery } from "../../api_client/server";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { releasesForMenu, withHighlights } from "./selectUnseen";
+import classes from "./WhatsNewModal.module.css";
 import { WHATS_NEW_RELEASES, type WhatsNewHighlight, type WhatsNewRelease } from "./whatsNewReleases";
 
 type WhatsNewModalProps = Readonly<{
@@ -32,15 +34,15 @@ function AfterUpdateSection({ release, onOpen }: Readonly<{ release: WhatsNewRel
   const { t } = useTranslation();
   if (release.after_update.length === 0) return null;
   return (
-    <Stack gap="xs">
-      <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+    <Stack gap={0}>
+      <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb={4}>
         {t("whatsnew.afterupdate")}
       </Text>
       {release.after_update.map(step => (
         <HighlightItem key={step.id} highlight={step} onOpen={onOpen} />
       ))}
       {release.highlights.length > 0 ? (
-        <Text size="xs" fw={700} tt="uppercase" c="dimmed" mt="xs">
+        <Text size="xs" fw={700} tt="uppercase" c="dimmed" mt="lg">
           {t("whatsnew.highlights")}
         </Text>
       ) : null}
@@ -53,9 +55,10 @@ function HighlightItem({ highlight, onOpen }: Readonly<{ highlight: WhatsNewHigh
   const navigate = useNavigate();
   const path = highlight.open_in_app;
   return (
-    <Paper withBorder radius="md" p="sm">
+    // A flat row of the dialog's one surface, a hairline between rows: no card inside the card
+    <div className={classes.item}>
       <Stack gap={4}>
-        <Title order={3} size="h5">
+        <Title order={3} size="h5" fw={600}>
           {highlight.title}
         </Title>
         <Text size="sm">{highlight.body}</Text>
@@ -78,7 +81,7 @@ function HighlightItem({ highlight, onOpen }: Readonly<{ highlight: WhatsNewHigh
           </Anchor>
         </Group>
       </Stack>
-    </Paper>
+    </div>
   );
 }
 
@@ -94,7 +97,9 @@ export function WhatsNewModal({ opened, onClose, releases: tags }: WhatsNewModal
   const release = releases.find(candidate => candidate.release === selected) ?? releases[0];
 
   return (
-    <Modal opened={opened} onClose={onClose} title={t("whatsnew.dialogtitle")} size="lg">
+    <Modal size={DIALOG_SIZE.lg} opened={opened} onClose={onClose} title={t("whatsnew.dialogtitle")}>
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack>
         {releases.length > 1 ? (
           <SegmentedControl
@@ -110,17 +115,20 @@ export function WhatsNewModal({ opened, onClose, releases: tags }: WhatsNewModal
               {release.summary}
             </Text>
             <AfterUpdateSection release={release} onOpen={onClose} />
-            {release.highlights.map(highlight => (
-              <HighlightItem key={highlight.id} highlight={highlight} onOpen={onClose} />
-            ))}
+            <div>
+              {release.highlights.map(highlight => (
+                <HighlightItem key={highlight.id} highlight={highlight} onOpen={onClose} />
+              ))}
+            </div>
           </>
         ) : (
           <Text c="dimmed">{t("whatsnew.nothing")}</Text>
         )}
         <Group justify="space-between">
           {release ? (
+            // The dialog's one primary is Close; the release notes are a quiet link out
             <Button
-              variant="default"
+              variant="subtle"
               component="a"
               href={release.url}
               target="_blank"

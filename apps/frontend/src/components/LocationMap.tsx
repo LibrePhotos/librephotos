@@ -1,5 +1,5 @@
 import type { Photo } from "@librephotos/api-client";
-import { Box } from "@mantine/core";
+import { Box, getPrimaryShade, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
@@ -7,6 +7,7 @@ import type { MapRef } from "react-map-gl/maplibre";
 import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
 import { MediaThumbnail } from "./common/MediaThumbnail";
+import classes from "./LocationMap.module.css";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "./map/mapImages";
 import { ThemedMap } from "./map/ThemedMap";
@@ -34,7 +35,17 @@ export function LocationMap({ photos }: Props) {
   const { mapStyle } = useMapStyle();
 
   const photosWithGPS = useMemo(() => photos.filter(isLocated), [photos]);
+  // The pin is HTML over the map, which the dark map filter leaves alone: the app's accent as this
+  // colour scheme draws it, not maplibre's own teal.
+  const theme = useMantineTheme();
+  const scheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
+  const markerColor = theme.colors[theme.primaryColor]?.[getPrimaryShade(theme, scheme)];
   const { avgLat, avgLon } = getAveragedCoordinates(photosWithGPS);
+
+  // Hidden until the first tiles are drawn: between the style's load and the tiles the map was an
+  // empty box with a lone pin and its attribution.
+  const [drawn, setDrawn] = useState(false);
+  const reveal = useCallback(() => setDrawn(true), []);
 
   const mapRef = useRef<MapRef | null>(null);
   const setMapRef = useCallback((ref: MapRef | null) => {
@@ -59,13 +70,15 @@ export function LocationMap({ photos }: Props) {
           longitude={photo.exif_gps_lon}
           latitude={photo.exif_gps_lat}
           anchor="bottom"
+          color={markerColor}
+          className={classes.pin}
           onClick={e => {
             e.originalEvent.stopPropagation();
             setPopupInfo(photo);
           }}
         />
       )),
-    [photosWithGPS]
+    [photosWithGPS, markerColor]
   );
 
   if (photosWithGPS.length > 0 && mapStyle === null) {
@@ -74,7 +87,7 @@ export function LocationMap({ photos }: Props) {
 
   if (photosWithGPS.length > 0 && mapStyle !== null) {
     return (
-      <Box style={{ zIndex: 2 }}>
+      <Box className={classes.frame} data-drawn={drawn || undefined}>
         <ThemedMap
           ref={setMapRef}
           h={height}
@@ -85,8 +98,15 @@ export function LocationMap({ photos }: Props) {
           }}
           mapStyle={mapStyle}
           attributionControl={false}
+          // "idle": the style and the tiles in view are drawn (or failed), nothing left to load.
+          onLoad={event => event.target.once("idle", reveal)}
+          onError={event => {
+            reveal();
+            console.error(event.error);
+          }}
         >
-          <NavigationControl position="top-right" />
+          {/* Zoom only: a compass on a 200px tile was mostly clutter */}
+          <NavigationControl position="top-right" showCompass={false} />
           <AttributionControl compact={true} />
           {markers}
           {popupInfo && (

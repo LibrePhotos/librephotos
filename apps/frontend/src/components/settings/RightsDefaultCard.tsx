@@ -1,5 +1,5 @@
 import type { User } from "@librephotos/api-client";
-import { Button, Card, Group, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Group, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,7 @@ import { DisabledReason } from "../common/DisabledReason";
 import { LicenseSelect } from "../rights/LicenseSelect";
 import { asLicense } from "../rights/photoLicenses";
 import { ApplyRightsDefaultModal } from "./ApplyRightsDefaultModal";
+import { SettingsCard } from "./SettingsCard";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
 type Props = UserSettingsCardProps & {
@@ -37,7 +38,7 @@ export function RightsDefaultCard({ user, saved, onChange }: Props) {
   const { t } = useTranslation();
   const [applyOpened, { open: openApply, close: closeApply }] = useDisclosure(false);
   return (
-    <Card shadow="md">
+    <SettingsCard>
       <Title order={4} mb={4}>
         {t("rights.default.title")}
       </Title>
@@ -74,6 +75,6 @@ export function RightsDefaultCard({ user, saved, onChange }: Props) {
         </Group>
       </Stack>
       {applyOpened && <ApplyRightsDefaultModal opened onClose={closeApply} />}
-    </Card>
+    </SettingsCard>
   );
 }

@@ -1,0 +1,28 @@
+/*
+ * The app shell's surfaces, layered the same way in both schemes (Google Photos' 2024 web layout):
+ * the header and sidebar on a chrome colour (light grey; in the dark scheme a shade darker than the
+ * page), the page itself one step up with a rounded corner, and no hairlines between them.
+ */
+.chrome {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+  border-color: transparent;
+}
+
+/* Under the content's rounded corner the chrome's colour shows. */
+.main {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+}
+
+/* The page itself: white with a rounded top-left corner set into the chrome on a desktop. The clip
+   keeps a sticky page header inside that corner (clip, unlike hidden, leaves sticky working). */
+.content {
+  min-height: calc(100dvh - var(--app-shell-header-height, 0px) - var(--app-shell-footer-height, 0px));
+  background-color: var(--mantine-color-body);
+}
+
+@media (min-width: 48em) {
+  .content {
+    overflow: clip;
+    border-top-left-radius: 16px;
+  }
+}

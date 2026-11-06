@@ -107,28 +107,91 @@
   z-index: -1;
 } */
 
-.pigTile:hover .checkbox {
-  opacity: 0.5;
-  transition: all 200ms linear;
+/* The selection mark: a round check like Google Photos', drawn by CSS on the native checkbox (so it
+   stays a real, labelled checkbox). Hidden until the tile is pointed at or selected. */
+.checkbox {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 8px;
+  border: 2px solid var(--app-scrim-white-95);
+  border-radius: 50%;
+  background-color: transparent;
+  /* A dark rim and shadow keep the white ring visible on bright photos. */
+  box-shadow:
+    0 0 0 1px var(--app-scrim-black-25),
+    0 1px 3px var(--app-scrim-black-40);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 150ms linear;
 }
 
-.pigTile:hover .checkbox:checked,
+.checkbox::after {
+  content: "";
+  width: 10px;
+  height: 5px;
+  margin-top: -2px;
+  border-left: 2px solid var(--app-scrim-white-95);
+  border-bottom: 2px solid var(--app-scrim-white-95);
+  transform: rotate(-45deg);
+  opacity: 0;
+}
+
+.pigTile:hover .checkbox,
+:global([data-selecting="true"]) .checkbox {
+  opacity: 0.85;
+}
+
+.pigTile:hover .checkbox:hover,
+.checkbox:checked,
 .checkbox:focus-visible {
   opacity: 1;
 }
 
-.checkbox {
-  opacity: 0;
+.checkbox:checked {
+  border-color: var(--app-scrim-white-95);
+  background-color: var(--mantine-primary-color-filled);
 }
 
-.checkbox:checked {
+.checkbox:checked::after {
   opacity: 1;
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
 }
 
 .overlaysTopLeft {
   position: absolute;
   top: 0px;
   left: 0px;
+  /* Over the selected tint below */
+  z-index: 2;
+}
+
+/* A selected tile, as in Google Photos: the cell turns a light accent tint and the photo shrinks
+   inside it with rounded corners; the cell keeps its size, so the grid never moves. The tint is
+   opaque so the tile's dominant-colour fill does not show through. */
+.pigTile:has(.checkbox:checked)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--mantine-primary-color-filled) 16%, var(--mantine-color-body));
+}
+
+.pigBtn {
+  transition:
+    transform 150ms ease,
+    border-radius 150ms ease;
+}
+
+.pigTile:has(.checkbox:checked) .pigBtn {
+  overflow: hidden;
+  border-radius: 10px;
+  transform: scale(0.86);
 }
 
 /* Inset like the bottom overlays' 5px padding; display: flex drops the gap
@@ -150,14 +213,6 @@
   position: absolute;
   bottom: 0px;
   right: 0px;
-}
-
-/* The overlay icons and text are white (the star gold): a soft shadow keeps
-   them visible on bright photos and video frames. */
-.overlaysTopRight,
-.overlaysBottomLeft,
-.overlaysBottomRight {
-  filter: drop-shadow(0 0 2px var(--app-scrim-black-75));
 }
 
 /* A video's clip over its poster while the tile is pointed at (#2026): it fades

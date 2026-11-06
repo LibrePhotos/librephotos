@@ -1,9 +1,9 @@
 import type { ListUser } from "@librephotos/api-client";
-import { Avatar, Group, Select, Text, Title } from "@mantine/core";
+import { Group, Select, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { parseInstant } from "../../util/dateUtils";
-import { avatarSrc } from "./avatarSrc";
+import { UserAvatar } from "../common/UserAvatar";
 import type { MemberRole } from "./memberRoles";
 
 type UserEntryProps = Readonly<{
@@ -29,13 +29,15 @@ export function UserEntry({ item: user, role, onChange }: UserEntryProps) {
 
   return (
     // On a phone the role goes under the name, full width, so its label is never cut.
-    <Group justify="space-between" gap="xs" key={user.id}>
-      <Group wrap="nowrap" miw={0}>
-        <Avatar radius="xl" size={50} src={avatarSrc(user)} />
+    <Group justify="space-between" gap="xs" py={8} key={user.id}>
+      <Group wrap="nowrap" gap="sm" miw={0}>
+        <UserAvatar user={user} size={36} />
         <div>
-          <Title order={4}>{name}</Title>
+          <Text size="sm" fw={500}>
+            {name}
+          </Text>
           {user.date_joined && (
-            <Text size="sm" c="dimmed">
+            <Text size="xs" c="dimmed">
               {t("modalphotosshare.joined")} {parseInstant(user.date_joined).toRelative()}
             </Text>
           )}
@@ -44,6 +46,7 @@ export function UserEntry({ item: user, role, onChange }: UserEntryProps) {
       <Select
         aria-label={t("collab.roleFor", { name })}
         w={{ base: "100%", xs: 170 }}
+        size="sm"
         allowDeselect={false}
         comboboxProps={{ withinPortal: true, zIndex: 2000 }}
         data={[

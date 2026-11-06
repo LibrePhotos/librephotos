@@ -1,4 +1,4 @@
-import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
+import { FaceAnalysisMethod, FaceOrderBy, UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { z } from "zod";
 
 /**
@@ -31,3 +31,15 @@ export function isUnknownGroup(group: Readonly<{ name: string }>): boolean {
  */
 export const FacesPersonOrder = z.enum(["name", "count", "similar"]);
 export type FacesPersonOrder = z.infer<typeof FacesPersonOrder>;
+
+/**
+ * The dashboard's URL parameters when a link leaves them out (routes/_protected/faces.tsx). The Sort
+ * and Filter buttons are tinted while a value differs from these.
+ */
+export const FACES_SEARCH_DEFAULTS = {
+  tab: FacesTab.enum.inferred,
+  method: FaceAnalysisMethod.enum.clustering,
+  orderBy: FaceOrderBy.enum.confidence,
+  minConfidence: 0.7,
+  personOrder: FacesPersonOrder.enum.name,
+} as const;

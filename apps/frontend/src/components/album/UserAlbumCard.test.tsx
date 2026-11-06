@@ -48,7 +48,8 @@ async function renderCard(locked: boolean, onToggleLocked = vi.fn<(id: string, l
   const root = createRoot(container);
   await act(async () => {
     root.render(
-      <MantineProvider>
+      // env="test": no transitions, so the menu's items are there as soon as it opens
+      <MantineProvider env="test">
         <UserAlbumCard album={album(locked)} showActions onToggleLocked={onToggleLocked} />
       </MantineProvider>
     );

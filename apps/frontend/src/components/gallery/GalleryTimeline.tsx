@@ -57,7 +57,6 @@ export function GalleryTimeline({ filter, filtered }: Props) {
       <PhotoListView
         title={t("gallery.title")}
         loading={query.isLoading}
-        icon={IconWorld}
         photoset={days}
         idx2hash={idx2hash}
         updateGroups={updateGroups}

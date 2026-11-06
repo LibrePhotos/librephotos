@@ -84,8 +84,7 @@ function Harness() {
     <VirtualizedGridComponent
       containerRef={null}
       gridRef={createRef<VirtualGridHandle>()}
-      entrySquareSize={131}
-      numEntrySquaresPerRow={4}
+      layout={{ columns: 4, faceSize: 96 }}
       gridHeight={ROWS.length * 131}
       getCellContentsForTab={() => ROWS}
       getScrollPositions={() => []}
@@ -99,7 +98,6 @@ function Harness() {
       selectedFaces={selectedFaces}
       setSelectedFaces={setSelectedFaces}
       activeTab="inferred"
-      collapsedPersons={new Set()}
       onToggleCollapse={() => {}}
       faceActions={actions}
       pendingFaceIds={new Set()}

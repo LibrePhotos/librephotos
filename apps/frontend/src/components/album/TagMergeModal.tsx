@@ -1,7 +1,8 @@
-import { Button, Group, Modal, Select, Stack, Text } from "@mantine/core";
+import { Button, FocusTrap, Group, Modal, Select, Stack, Text } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import React, { useEffect, useEffectEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { makeTagMergeSchema } from "./TagMergeModal.schema";
 
 type Tag = { id: number; name: string };
@@ -35,7 +36,9 @@ export function TagMergeModal({ opened, onClose, target, tags, onSubmit }: Props
   });
 
   return (
-    <Modal size="sm" opened={opened} onClose={onClose} title={t("tagalbum.mergetag")}>
+    <Modal size={DIALOG_SIZE.sm} opened={opened} onClose={onClose} title={t("tagalbum.mergetag")}>
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack>
         <Text>{t("tagalbum.mergeexplanation", { name: target?.name ?? "" })}</Text>
         <Select
@@ -45,7 +48,7 @@ export function TagMergeModal({ opened, onClose, target, tags, onSubmit }: Props
           {...form.getInputProps("source")}
         />
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="light" onClick={onClose}>
             {t("cancel")}
           </Button>
           <Button disabled={!form.isValid()} onClick={() => merge()}>

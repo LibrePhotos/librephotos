@@ -31,7 +31,10 @@ export function clusterLayers(colors: MapLayerColors): ClusterLayers {
       filter: SEVERAL,
       paint: {
         "circle-color": ["step", PHOTOS, colors.clusters.small, 10, colors.clusters.medium, 50, colors.clusters.large],
-        "circle-radius": ["step", PHOTOS, 15, 10, 20, 50, 25],
+        "circle-radius": ["step", PHOTOS, 14, 10, 17, 50, 21],
+        // A ring in the count's colour sets the accent off any basemap
+        "circle-stroke-width": 2,
+        "circle-stroke-color": colors.clusterText,
       },
     },
     clusterCount: {
@@ -53,7 +56,7 @@ export function clusterLayers(colors: MapLayerColors): ClusterLayers {
       filter: ["!", SEVERAL],
       paint: {
         "circle-color": colors.point,
-        "circle-radius": 8,
+        "circle-radius": 7,
         "circle-stroke-width": 2,
         "circle-stroke-color": colors.pointStroke,
       },

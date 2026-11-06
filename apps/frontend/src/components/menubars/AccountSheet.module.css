@@ -1,0 +1,43 @@
+/* The phone's account sheet (AccountSheet.tsx): rounded top corners, a grab handle, 48px rows. */
+/* As tall as its content (Mantine's bottom drawer filled the screen), up to 90% of it. */
+.sheet {
+  height: auto;
+  max-height: 90dvh;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.body {
+  padding: 0 0 var(--mantine-spacing-sm);
+}
+
+.handle {
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 12px;
+  border-radius: 2px;
+  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+}
+
+.rows {
+  padding: 4px 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-md);
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--mantine-spacing-md);
+  font-size: var(--mantine-font-size-md);
+
+  &:hover,
+  &:focus-visible {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  }
+
+  & svg {
+    color: var(--mantine-color-dimmed);
+  }
+}

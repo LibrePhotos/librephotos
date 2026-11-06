@@ -1,4 +1,4 @@
-import { ActionIcon, Menu, Tooltip } from "@mantine/core";
+import { Menu } from "@mantine/core";
 import {
   IconArchive as Archive,
   IconArchiveOff as ArchiveOff,
@@ -44,19 +44,7 @@ function visibilityActions(actions: PhotoActions, t: TFunction): VisibilityActio
   ];
 }
 
-/** The two toggles as toolbar buttons. */
-export function VisibilityButtons({ actions }: Props) {
-  const { t } = useTranslation();
-  return visibilityActions(actions, t).map(({ key, label, icon, onClick }) => (
-    <Tooltip key={key} label={label} position="bottom" withArrow>
-      <ActionIcon variant="subtle" color="gray" size={28} aria-label={label} onClick={onClick}>
-        {icon}
-      </ActionIcon>
-    </Tooltip>
-  ));
-}
-
-/** The two toggles as items of the phone's actions menu. */
+/** The two toggles as items of the toolbar's ⋮ menu. */
 export function VisibilityMenuItems({ actions }: Props) {
   const { t } = useTranslation();
   return visibilityActions(actions, t).map(({ key, label, icon, onClick }) => (

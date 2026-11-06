@@ -67,7 +67,6 @@ function FavoritePhotos() {
     <PhotoListView
       title={t("photos.favorite")}
       loading={isLoading}
-      icon={Star}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

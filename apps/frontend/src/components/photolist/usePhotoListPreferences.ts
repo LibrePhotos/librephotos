@@ -25,8 +25,8 @@ export const usePhotoListPreferences = (userSelfDetails: User | undefined) => {
   const queryClient = useQueryClient();
 
   const imageScale = userSelfDetails?.image_scale ?? 1;
-  const textAlignment = userSelfDetails?.text_alignment ?? "right";
-  const headerSize = userSelfDetails?.header_size ?? "large";
+  const textAlignment = userSelfDetails?.text_alignment ?? "left";
+  const headerSize = userSelfDetails?.header_size ?? "normal";
   // An older server does not send it.
   const scrubberStyle = userSelfDetails?.scrubber_style ?? "thumb";
 

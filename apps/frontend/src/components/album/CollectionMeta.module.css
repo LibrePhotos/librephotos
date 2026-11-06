@@ -1,0 +1,28 @@
+/*
+ * A collection page's identity under its title (album, event, person, place, thing): a dimmed meta
+ * line ("Oct 17 – 18, 2026 · Lisbon"), then the people in it and its chips on one row.
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 2px;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.4;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}

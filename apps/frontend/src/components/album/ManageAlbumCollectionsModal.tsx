@@ -15,6 +15,7 @@ import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
 import { ConfirmModal } from "../modals/ConfirmModal";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { AlbumCollectionNameForm } from "./AlbumCollectionNameForm";
 
 type Props = Readonly<{
@@ -133,9 +134,7 @@ function CollectionList({ counts, onClose, onDelete }: ListProps) {
         {t("albumcollections.explanation")}
       </Text>
       <Group justify="flex-end">
-        <Button variant="default" onClick={onClose}>
-          {t("albumcollections.done")}
-        </Button>
+        <Button onClick={onClose}>{t("albumcollections.done")}</Button>
       </Group>
     </Stack>
   );
@@ -153,7 +152,7 @@ export function ManageAlbumCollectionsModal({ opened, onClose, counts }: Props) 
     <>
       {/* Escape closes only the confirmation while it is open */}
       <Modal
-        size="md"
+        size={DIALOG_SIZE.md}
         opened={opened}
         onClose={onClose}
         closeOnEscape={!confirmOpened}

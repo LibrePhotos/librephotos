@@ -31,9 +31,10 @@ export function ScanDirectoryWelcome({ userSelfDetails, userList }: Props) {
             {t("defaultheader.setup")}
           </Text>
         </Box>
+        {/* The page's one main action: tonal */}
         <Button
           size="md"
-          color="green"
+          variant="light"
           leftSection={<Photo size={18} />}
           onClick={() => {
             setUserToEdit({ ...userSelfDetails });

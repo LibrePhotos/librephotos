@@ -47,7 +47,6 @@ export function SharedGroupPhotos({ group, title }: Props) {
   return (
     <>
       <PageHeader
-        icon={Icon}
         title={title}
         loading={isLoading}
         subtitle={
@@ -62,7 +61,6 @@ export function SharedGroupPhotos({ group, title }: Props) {
       <PhotoListView
         title={title}
         loading={isLoading}
-        icon={Icon}
         photoset={photoset}
         idx2hash={idx2hash}
         isPublic

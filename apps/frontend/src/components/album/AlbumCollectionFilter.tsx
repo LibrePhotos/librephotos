@@ -1,10 +1,8 @@
 import type { AlbumCollection } from "@librephotos/api-client";
-import { ActionIcon, Button, Chip, Group, Menu, Text } from "@mantine/core";
-import { IconDotsVertical, IconPlus, IconSettings } from "@tabler/icons-react";
+import { Chip, Group, Text } from "@mantine/core";
 import React from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE } from "../../uiConstants";
 import classes from "./AlbumCollectionFilter.module.css";
 import { NOT_IN_A_COLLECTION, type CollectionFilter } from "./collectionFilter";
 
@@ -16,7 +14,6 @@ type Props = Readonly<{
   counts: { byCollection: ReadonlyMap<number, number>; none: number; all: number };
   value: CollectionFilter;
   onChange: (filter: CollectionFilter) => void;
-  onManage: () => void;
 }>;
 
 function chipValue(filter: CollectionFilter): string {
@@ -43,33 +40,16 @@ function Label({ name, count }: Readonly<{ name: ReactNode; count: number }>) {
 
 /**
  * My Albums' collection row (#1009): All, one chip per collection with its album count, and "Not
- * in a collection"; picking one filters the grid. Without collections it offers to make one.
+ * in a collection"; picking one filters the grid. Nothing without collections: the header's ⋯
+ * makes the first one (MyAlbumsHeaderMenu), and manages them once there are some.
  */
-export function AlbumCollectionFilter({ collections, counts, value, onChange, onManage }: Props) {
+export function AlbumCollectionFilter({ collections, counts, value, onChange }: Props) {
   const { t } = useTranslation();
 
-  if (collections.length === 0) {
-    return (
-      <Group gap="xs" wrap="nowrap" className={classes.row}>
-        <Button
-          variant="default"
-          radius="xl"
-          size="compact-sm"
-          className={classes.newCollection}
-          leftSection={<IconPlus size={ICON_SIZE.menu} />}
-          onClick={onManage}
-        >
-          {t("albumcollections.new")}
-        </Button>
-        <Text size="xs" c="dimmed" visibleFrom="sm">
-          {t("albumcollections.hint")}
-        </Text>
-      </Group>
-    );
-  }
+  if (collections.length === 0) return null;
 
   return (
-    <Group gap="xs" wrap="nowrap" className={classes.row}>
+    <div className={classes.row}>
       <Chip.Group multiple={false} value={chipValue(value)} onChange={next => onChange(filterOf(next))}>
         <Group gap="xs" className={classes.chips} role="radiogroup" aria-label={t("albumcollections.title")}>
           <Chip value={ALL} size="sm">
@@ -85,18 +65,6 @@ export function AlbumCollectionFilter({ collections, counts, value, onChange, on
           </Chip>
         </Group>
       </Chip.Group>
-      <Menu position="bottom-end">
-        <Menu.Target>
-          <ActionIcon variant="subtle" color="gray" aria-label={t("albumcollections.actions")}>
-            <IconDotsVertical size={ICON_SIZE.inline} />
-          </ActionIcon>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Item leftSection={<IconSettings size={ICON_SIZE.menu} />} onClick={onManage}>
-            {t("albumcollections.manage")}
-          </Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
-    </Group>
+    </div>
   );
 }

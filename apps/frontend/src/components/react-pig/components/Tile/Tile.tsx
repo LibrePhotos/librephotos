@@ -100,24 +100,14 @@ function TileComponent<T extends ImageItem>({
     containerOffsetTop,
   });
 
-  function getWidth(exp: boolean, sel: boolean) {
-    if (exp) {
-      return `${Math.ceil(calcWidth)}px`;
-    }
-    if (sel) {
-      return `${item.style.width - item.style.width * 0.1}px`;
-    }
-    return `${item.style.width}px`;
+  // A selected tile keeps its cell: the photo inside it shrinks onto a tinted cell (styles.module.css),
+  // as in Google Photos, so neighbours never move.
+  function getWidth(exp: boolean) {
+    return exp ? `${Math.ceil(calcWidth)}px` : `${item.style.width}px`;
   }
 
-  function getHeight(exp: boolean, sel: boolean) {
-    if (exp) {
-      return `${Math.ceil(calcHeight)}px`;
-    }
-    if (sel) {
-      return `${item.style.height - item.style.height * 0.1}px`;
-    }
-    return `${item.style.height}px`;
+  function getHeight(exp: boolean) {
+    return exp ? `${Math.ceil(calcHeight)}px` : `${item.style.height}px`;
   }
 
   const label = useMemo(() => tileLabel(item, isVideo, t), [item, isVideo, t]);
@@ -130,13 +120,9 @@ function TileComponent<T extends ImageItem>({
       className={styles.pigTile}
       initial={false}
       animate={{
-        width: getWidth(isExpanded, isSelected),
-        height: getHeight(isExpanded, isSelected),
+        width: getWidth(isExpanded),
+        height: getHeight(isExpanded),
         zIndex: isExpanded ? 10 : 0,
-        marginLeft: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
-        marginRight: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
-        marginTop: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
-        marginBottom: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
         x: isExpanded ? offsetX : item.style.translateX,
         y: isExpanded ? offsetY : item.style.translateY,
       }}

@@ -1,7 +1,8 @@
-import { Card, Group, Radio, Stack, Switch, Title } from "@mantine/core";
+import { Group, Radio, Stack, Switch, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { MinFaceSizeField } from "./MinFaceSizeField";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import { choiceOf, type UserSettingsCardProps } from "./userSettingsCard";
 
@@ -11,7 +12,7 @@ export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
   const metadataSyncOff = (user.save_metadata_to_disk ?? "OFF") === "OFF";
 
   return (
-    <Card shadow="md">
+    <SettingsCard>
       <Title order={4} mb={16}>
         {t("settings.face_options")}
         <SectionLink />
@@ -81,6 +82,6 @@ export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
           onChange={event => onChange({ save_face_tags_to_disk: event.currentTarget.checked })}
         />
       </Stack>
-    </Card>
+    </SettingsCard>
   );
 }

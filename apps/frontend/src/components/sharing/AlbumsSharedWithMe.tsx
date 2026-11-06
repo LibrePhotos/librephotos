@@ -1,42 +1,37 @@
 import type { UserAlbumInfo } from "@librephotos/api-client";
-import { Anchor, Avatar, Box, Stack, Text } from "@mantine/core";
+import { Box, Menu, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconPolaroid as Polaroid } from "@tabler/icons-react";
+import { IconDoorExit, IconPhoto, IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import cx from "clsx";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { calculateGridCellSize } from "../../util/gridUtils";
-import gridClasses from "../album/AlbumGridCell.module.css";
+import { albumColumnsFor } from "../../hooks/useAlbumListGridConfig";
+import { ICON_SIZE } from "../../uiConstants";
 import { LeaveSharedAlbumModal, type LeavableAlbum } from "../album/LeaveSharedAlbumModal";
+import { CollectionCard } from "../common/CollectionCard";
 import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
-import { Tile } from "../Tile";
+import { UserAvatar } from "../common/UserAvatar";
 import { TileGrid } from "../virtual/TileGrid";
 import type { TileGroup } from "../virtual/TileGrid";
 import { useMeasuredTileSizing } from "../virtual/useMeasuredTileSizing";
 import classes from "./AlbumsShared.module.css";
-import { avatarSrc } from "./avatarSrc";
-import { SharedAlbumTileMenu } from "./SharedAlbumTileMenu";
 import { sharerName } from "./sharerGroups";
 
 const DAY_HEADER_HEIGHT = 70;
-// Below the cover: a one-line title (md, 24.8px) and the photo count (sm, 20.3px).
-const CAPTION_HEIGHT = 52;
-
-const columnsFor = (width: number) => calculateGridCellSize(width).numEntrySquaresPerRow;
 
 export function AlbumsSharedWithMe() {
   const { t } = useTranslation();
   // Sized from the width the grid actually gets, less room for its scrollbar, so the columns fit
   // it and follow a resize.
   const { ref: containerRef, sizing } = useMeasuredTileSizing({
-    columnsFor,
-    cellPadding: 1,
-    captionHeight: CAPTION_HEIGHT,
+    // The album lists' columns and gaps; the title sits on the cover
+    columnsFor: albumColumnsFor,
+    cellPadding: 8,
+    captionHeight: 0,
     reservedHeight: 45 + 60 + 40,
   });
   const albumsQuery = useFetchSharedAlbumsWithMeQuery();
@@ -59,7 +54,7 @@ export function AlbumsSharedWithMe() {
         header: (
           <Box h={`${DAY_HEADER_HEIGHT}px`} className={classes.ownerHeader}>
             <div className={classes.ownerRow}>
-              <Avatar size={36} radius="xl" src={avatarSrc(owner)} />
+              <UserAvatar user={owner} size={36} />
               <div>
                 <Text size="md" fw="bold">
                   {displayName}
@@ -99,44 +94,28 @@ export function AlbumsSharedWithMe() {
             getKey={album => album.id}
             sizing={sizing}
             renderItem={(album, size) => (
-              <>
-                <div className={classes.tile}>
-                  <Anchor
-                    aria-label={album.title}
-                    renderRoot={rootProps => (
-                      <Link {...rootProps} to="/album/user/$id" params={{ id: String(album.id) }} />
-                    )}
-                  >
-                    {album.cover_photo ? (
-                      <Tile
-                        className={cx(gridClasses.cover, classes.coverTile)}
-                        width={size}
-                        height={size}
-                        image_hash={album.cover_photo.image_hash}
-                        video={album.cover_photo.video}
-                      />
-                    ) : (
-                      <div
-                        className={cx(gridClasses.cover, classes.emptyCover)}
-                        style={{ width: size, height: size }}
-                      />
-                    )}
-                  </Anchor>
-                  <SharedAlbumTileMenu
-                    title={album.title}
-                    onLeave={() => {
+              <CollectionCard
+                size={size}
+                title={album.title}
+                meta={t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
+                covers={album.cover_photo ? [album.cover_photo] : []}
+                placeholder={<IconPhoto />}
+                renderLink={props => <Link {...props} to="/album/user/$id" params={{ id: String(album.id) }} />}
+                // The one thing a recipient can do (#2210): leave the album, which asks first
+                menuLabel={`${t("useralbum.albumActions")}: ${album.title}`}
+                menuItems={
+                  <Menu.Item
+                    color="red"
+                    leftSection={<IconDoorExit size={ICON_SIZE.menu} />}
+                    onClick={() => {
                       setLeaving(album);
                       leaveDialog.open();
                     }}
-                  />
-                </div>
-                <Text fw={700} mt={4} lineClamp={1} title={album.title}>
-                  {album.title}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
-                </Text>
-              </>
+                  >
+                    {t("useralbum.leavealbum")}
+                  </Menu.Item>
+                }
+              />
             )}
           />
         </div>

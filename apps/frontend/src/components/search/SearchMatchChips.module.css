@@ -1,0 +1,46 @@
+/* The matching people, places and things over the results: one row of outlined pills that scrolls
+   sideways on a phone rather than wrapping into a block above the photos. */
+.row {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 14px 0 4px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 16px;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--mantine-color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 120ms ease;
+}
+
+/* A place or a thing: an icon instead of a face, so less room on the left. */
+.chip[data-icon] {
+  padding-left: 10px;
+  gap: 6px;
+}
+
+.chip:hover {
+  background-color: var(--mantine-color-default-hover);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.icon {
+  color: var(--mantine-color-dimmed);
+}

@@ -1,0 +1,6 @@
+.count {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

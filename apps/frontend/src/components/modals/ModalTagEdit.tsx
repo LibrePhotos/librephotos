@@ -7,6 +7,7 @@ import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
 import { selectionLabel } from "../photolist/selectionLabel";
 import { Tile } from "../Tile";
+import { DIALOG_SIZE } from "./dialogSize";
 import classes from "./ModalTagEdit.module.css";
 import { modalTitleStyles } from "./modalTitleStyles";
 
@@ -72,7 +73,14 @@ export function ModalTagEdit(props: Props) {
   }
 
   return (
-    <Modal styles={modalTitleStyles} zIndex={1500} opened={isOpen} title={t("modaltag.title")} onClose={close}>
+    <Modal
+      size={DIALOG_SIZE.md}
+      styles={modalTitleStyles}
+      zIndex={1500}
+      opened={isOpen}
+      title={t("modaltag.title")}
+      onClose={close}
+    >
       <Stack>
         <Text c="dimmed">{t("modaltag.selectedimages", { count: photoCount })}</Text>
 
@@ -133,7 +141,7 @@ export function ModalTagEdit(props: Props) {
         />
 
         <Group justify="flex-end">
-          <Button variant="default" onClick={close} disabled={isPending}>
+          <Button variant="light" onClick={close} disabled={isPending}>
             {t("cancel")}
           </Button>
           <Button onClick={handleSubmit} loading={isPending} disabled={names.length === 0 || photoCount === 0}>

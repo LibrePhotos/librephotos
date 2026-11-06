@@ -1,5 +1,4 @@
-import { ActionIcon, Text, Tooltip } from "@mantine/core";
-import { IconInfoCircle as InfoCircle } from "@tabler/icons-react";
+import { Tooltip } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -14,7 +13,7 @@ import classes from "./SideMenuNarrow.module.css";
  * (#2311), admins see a blue dot after it and "Update available: 1.5.0"; the line then opens the
  * Update available card on the Admin page. Otherwise the line opens What's new (#2305).
  */
-export function VersionItem({ iconColor }: Readonly<{ iconColor: string }>) {
+export function VersionItem() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: imageInfos } = useFetchImageTagQuery();
@@ -22,16 +21,7 @@ export function VersionItem({ iconColor }: Readonly<{ iconColor: string }>) {
   const update = useUpdateNotice(user?.is_superuser === true);
   const whatsNew = useWhatsNew();
   const version = imageInfos?.image_tag || "dev";
-  const content = (
-    <>
-      <ActionIcon component="span" className={classes.link_icon} variant="transparent" color={iconColor}>
-        <InfoCircle />
-      </ActionIcon>
-      <Text className={classes.link_text} size="sm">
-        {t("version", { version })}
-      </Text>
-    </>
-  );
+  const content = t("version", { version });
 
   if (!update) {
     // Opens What's new (#2305), the highlights of the version it names.
@@ -39,7 +29,7 @@ export function VersionItem({ iconColor }: Readonly<{ iconColor: string }>) {
       <Tooltip label={t("sidemenu.backendversion", { hash: imageInfos?.git_hash })} disabled={!imageInfos?.git_hash}>
         <button
           type="button"
-          className={`${classes.link} ${classes.link_button}`}
+          className={`${classes.footer_link} ${classes.link_button}`}
           aria-label={t("whatsnew.versionlabel", { version })}
           onClick={() => whatsNew.open()}
         >
@@ -52,7 +42,7 @@ export function VersionItem({ iconColor }: Readonly<{ iconColor: string }>) {
   return (
     <Tooltip label={t("updates.sidebar", { version: update.latest })}>
       <a
-        className={classes.link}
+        className={classes.footer_link}
         href={`/admin#${ADMIN_SECTIONS.update}`}
         aria-label={t("updates.versionlabel", { version })}
         onClick={event => {

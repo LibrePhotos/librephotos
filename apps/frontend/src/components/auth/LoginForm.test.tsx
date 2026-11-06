@@ -1,7 +1,7 @@
 /**
  * "Remember me" on the login page (#2024): a checkbox in the password form, offered when the
- * server sends a day count, whose choice goes along with the credentials. It shares a row with
- * "Forgot your password?", and says what it does only while it is ticked.
+ * server sends a day count, whose choice goes along with the credentials. "Forgot password?" sits
+ * with the links under the button, and the box says what it does only while it is ticked.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
@@ -12,7 +12,7 @@ import { defined } from "../../util/defined.test-utils";
 import { LoginForm } from "./LoginForm";
 
 type Credentials = { username: string; password: string; remember_me?: boolean };
-type Settings = { remember_me_days?: number; email_configured?: boolean };
+type Settings = { remember_me_days?: number; email_configured?: boolean; allow_registration?: boolean };
 type SsoConfig = { enabled: boolean; label: string; providers: { id: string; name: string; login_url: string }[] };
 
 const stubs = vi.hoisted(() => {
@@ -128,27 +128,27 @@ describe("LoginForm: Remember me", () => {
       const host = render();
 
       expect(checkbox(host)).toBeNull();
-      expect(host.textContent).toContain("Forgot your password?");
+      expect(host.textContent).toContain("Forgot password?");
       expect(submit(host)).not.toHaveProperty("remember_me");
       act(() => root?.unmount());
       host.remove();
     }
   });
 
-  it("shares the row with Forgot your password? only when e-mail is configured", () => {
+  it("links to Forgot password? only when e-mail is configured", () => {
     stubs.settings.current = { remember_me_days: 30, email_configured: false };
     const host = render();
 
     expect(checkbox(host)).not.toBeNull();
-    expect(host.textContent).not.toContain("Forgot your password?");
+    expect(host.textContent).not.toContain("Forgot password?");
   });
 
-  it("leaves the row out when there is neither", () => {
+  it("offers neither while the settings load", () => {
     stubs.settings.current = undefined;
     const host = render();
 
     expect(checkbox(host)).toBeNull();
-    expect(host.textContent).not.toContain("Forgot your password?");
+    expect(host.textContent).not.toContain("Forgot password?");
   });
 
   it("sits in the password form, above the single sign-on buttons", () => {
@@ -163,5 +163,25 @@ describe("LoginForm: Remember me", () => {
     expect(form.contains(checkbox(host))).toBe(true);
     const sso = defined(host.querySelector('a[href="/accounts/oidc/kc/login/"]'));
     expect(form.contains(sso)).toBe(false);
+  });
+});
+
+describe("LoginForm: links under the button", () => {
+  it("offers sign-up as a link, not a second button, when sign-ups are open", () => {
+    stubs.settings.current = { allow_registration: true };
+    const host = render();
+
+    const signup = defined(host.querySelector<HTMLAnchorElement>('a[href="/signup"]'));
+    expect(signup.textContent).toBe("Sign up");
+    expect(host.textContent).toContain("No account? Sign up");
+    expect([...host.querySelectorAll("button")].some(button => button.textContent === "Sign up")).toBe(false);
+  });
+
+  it("leaves sign-up out when sign-ups are closed", () => {
+    stubs.settings.current = { allow_registration: false, email_configured: true };
+    const host = render();
+
+    expect(host.querySelector('a[href="/signup"]')).toBeNull();
+    expect(host.querySelector('a[href="/password-reset"]')).not.toBeNull();
   });
 });

@@ -10,11 +10,12 @@ import { albumNotFoundState } from "../../../components/album/albumNotFound";
 import { eventPhotoGroups } from "../../../components/album/eventGrid";
 import { EventHeaderMenu } from "../../../components/album/EventHeaderMenu";
 import { eventLocationNames } from "../../../components/album/eventLocations";
-import { EventSubHeader } from "../../../components/album/EventSubHeader";
+import { eventMetaLine, EventSubHeader } from "../../../components/album/EventSubHeader";
 import { AlbumLocationMap } from "../../../components/AlbumLocationMap";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { validatePhotoSearch } from "../../../components/photolist/photoSearch";
 import { useEventTitle } from "../../../hooks/useEventTitle";
+import { formatPhotoDaySpan } from "../../../util/dateUtils";
 
 export const Route = createFileRoute("/_protected/album/events/$id")({
   component: AlbumAutoGalleryView,
@@ -35,7 +36,6 @@ function AlbumAutoGalleryView() {
       <PhotoListView
         title={isError ? t("events") : t("loading")}
         loading={isLoading}
-        icon={SettingsAutomation}
         photoset={[]}
         idx2hash={[]}
         emptyStateConfig={
@@ -53,6 +53,7 @@ function AlbumAutoGalleryView() {
   const title = eventTitle(album);
   // The grid's own items in its order: the photos are sorted by time, so the days are too
   const gridPhotos = groupedPhotos.flatMap(group => group.items);
+  const locationNames = eventLocationNames(photos);
 
   return (
     <div>
@@ -65,23 +66,23 @@ function AlbumAutoGalleryView() {
       <PhotoListView
         title={title}
         loading={false}
-        icon={SettingsAutomation}
         photoset={groupedPhotos}
         idx2hash={gridPhotos}
         // An event reads as it happened, whatever the photo order (#2712).
         eventOrder
         additionalSubHeader={
-          album.people.length > 0 || hasGPSCoordinates ? (
-            <EventSubHeader
-              people={album.people}
-              hasGPSCoordinates={hasGPSCoordinates}
-              showMap={showMap}
-              onToggleMap={toggleMap}
-              locationNames={eventLocationNames(photos)}
-            />
-          ) : null
+          <EventSubHeader
+            people={album.people}
+            hasGPSCoordinates={hasGPSCoordinates}
+            showMap={showMap}
+            onToggleMap={toggleMap}
+            locationNames={locationNames}
+          />
         }
-        headerActions={
+        collection={{
+          dateSpan: eventMetaLine(formatPhotoDaySpan(photos.map(photo => photo.exif_timestamp)), locationNames, title),
+        }}
+        headerMenu={
           <EventHeaderMenu
             event={{ id: String(album.id), title, coverPhoto: album.cover_photo ?? null }}
             photos={gridPhotos}

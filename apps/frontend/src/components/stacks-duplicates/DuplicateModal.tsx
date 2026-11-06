@@ -202,16 +202,11 @@ export function DuplicateModal({
 
             {isReviewed ? (
               <Group justify="flex-end">
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="default" onClick={onClose}>
                   {t("close")}
                 </Button>
                 {isResolved && (
-                  <Button
-                    color="blue"
-                    leftSection={<IconArrowBackUp size={16} />}
-                    onClick={handleRevert}
-                    loading={isReverting}
-                  >
+                  <Button leftSection={<IconArrowBackUp size={16} />} onClick={handleRevert} loading={isReverting}>
                     {t("duplicates.revert")}
                   </Button>
                 )}
@@ -229,11 +224,10 @@ export function DuplicateModal({
                 </Button>
 
                 <Group>
-                  <Button variant="outline" onClick={onClose}>
+                  <Button variant="default" onClick={onClose}>
                     {t("cancel")}
                   </Button>
                   <Button
-                    color="blue"
                     leftSection={<IconCheck size={16} />}
                     onClick={handleResolve}
                     loading={isResolving}

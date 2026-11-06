@@ -1,12 +1,12 @@
-import { Avatar, Button, Group, Image, Skeleton, Stack, Text, Title } from "@mantine/core";
+import { Group, Skeleton, Text, Title } from "@mantine/core";
 import { IconChevronRight } from "@tabler/icons-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { CollectionCard } from "../common/CollectionCard";
 import { ErrorState } from "../common/ErrorState";
 import type { ListFailure } from "../common/useListFailure";
-import { Tile } from "../Tile";
 import classes from "./AlbumSection.module.css";
 
 type AlbumPreview = {
@@ -14,17 +14,22 @@ type AlbumPreview = {
   title: string;
   photoCount: number;
   coverUrl?: string;
-  faceUrl?: string; // Direct URL for face images
   isVideo?: boolean;
   linkTo: string;
   icon?: React.ReactNode;
 };
 
-type AlbumSectionVariant = "scroll" | "avatarGrid" | "card";
+type AlbumSectionVariant = "scroll" | "card";
+
+/** The width of a card in a scrolling row, the size of an album cover on the album lists. */
+export const ROW_CARD_SIZE = 180;
+/** About the width of a card in the hub's grid (My Albums, Collections), for its covers' size attributes. */
+export const HUB_CARD_WIDTH = 240;
 
 type AlbumSectionProps = {
   title: string;
-  icon: React.ReactNode;
+  /** The glyph of a category card without covers. */
+  icon?: React.ReactNode;
   albums: AlbumPreview[];
   viewAllLink: string;
   isLoading?: boolean;
@@ -36,16 +41,10 @@ type AlbumSectionProps = {
   countLabel?: string;
   variant?: AlbumSectionVariant;
   maxItems?: number;
-  actionLink?: string;
-  actionLabel?: string;
-  actionIcon?: React.ReactNode;
-  actionColor?: string;
 };
 
 function getDetfaultMaxItems(variant: AlbumSectionVariant): number {
   switch (variant) {
-    case "avatarGrid":
-      return 14;
     case "card":
       return 6;
     case "scroll":
@@ -54,136 +53,90 @@ function getDetfaultMaxItems(variant: AlbumSectionVariant): number {
 }
 
 function LoadingCard() {
-  return (
-    <div className={classes.sectionCompact}>
-      <div className={classes.cardLoading}>
-        <Skeleton height={120} />
-        <Stack p="xs" gap="xs">
-          <Skeleton height={20} width="60%" />
-          <Skeleton height={14} width="40%" />
-        </Stack>
-      </div>
-    </div>
-  );
+  return <Skeleton className={classes.cardLoading} radius={12} />;
 }
 
-function LoadingAvararGrid({ icon, title }: { icon: React.ReactNode; title: string }) {
+function LoadingOther({ title }: { title: string }) {
   return (
     <div className={classes.section}>
       <div className={classes.header}>
         <div className={classes.headerLeft}>
-          {icon}
           <div>
-            <Title order={4}>{title}</Title>
-            <Skeleton height={14} width={80} mt={4} />
-          </div>
-        </div>
-      </div>
-      <div className={classes.avatarGridLoading}>
-        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-          <div key={i} className={classes.avatarSkeleton}>
-            <Skeleton height={56} width={56} circle />
-            <Skeleton height={10} width={50} mt={4} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function LoadingOther({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <div className={classes.section}>
-      <div className={classes.header}>
-        <div className={classes.headerLeft}>
-          {icon}
-          <div>
-            <Title order={4}>{title}</Title>
+            <Title order={2} className={classes.headingTitle}>
+              {title}
+            </Title>
             <Skeleton height={14} width={80} mt={4} />
           </div>
         </div>
       </div>
       <div className={classes.loadingContainer}>
         {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className={classes.skeleton}>
-            <Skeleton height={140} radius="md" />
-            <Skeleton height={16} mt={8} width="80%" />
-            <Skeleton height={12} mt={4} width="50%" />
-          </div>
+          <Skeleton key={i} className={classes.skeleton} radius={12} />
         ))}
       </div>
     </div>
   );
 }
 
-function AvatarPreview({ album }: { album: AlbumPreview }) {
-  if (album.faceUrl) {
-    return (
-      <Image src={album.faceUrl} w={56} h={56} className={classes.avatarImage} fallbackSrc="/unknown_user.jpg" alt="" />
-    );
-  }
-
-  if (album.coverUrl) {
-    return (
-      <Tile
-        video={album.isVideo ?? false}
-        width={56}
-        height={56}
-        image_hash={album.coverUrl}
-        className={classes.avatarImage}
-      />
-    );
-  }
-
-  return (
-    <Avatar size={52} radius="xl" color="gray">
-      {album.title.charAt(0).toUpperCase()}
-    </Avatar>
-  );
-}
-
-function ScrollPreview({ album }: { album: AlbumPreview }) {
-  const { t } = useTranslation();
-
-  if (album.coverUrl) {
-    return (
-      <Tile
-        video={album.isVideo ?? false}
-        width={140}
-        height={140}
-        image_hash={album.coverUrl}
-        className={classes.albumCoverImage}
-      />
-    );
-  }
-  if (album.icon) {
-    return album.icon;
-  }
-
-  return (
-    <Text c="dimmed" size="xs">
-      {t("explore.noCover")}
-    </Text>
-  );
-}
-
-function LoadingComponent({
-  variant,
-  icon,
-  title,
-}: {
-  variant: AlbumSectionVariant;
-  icon: React.ReactNode;
-  title: string;
-}) {
+function LoadingComponent({ variant, title }: { variant: AlbumSectionVariant; title: string }) {
   switch (variant) {
-    case "avatarGrid":
-      return <LoadingAvararGrid icon={icon} title={title} />;
     case "card":
       return <LoadingCard />;
     case "scroll":
-      return <LoadingOther icon={icon} title={title} />;
+      return <LoadingOther title={title} />;
   }
+}
+
+type HeadingProps = Readonly<{
+  title: string;
+  /** "6 albums": with `viewAllLink`, followed by "· View all ›". */
+  summary?: string;
+  /** The heading links here. */
+  viewAllLink?: string;
+  /** On the right, level with the title: a quiet button. */
+  action?: React.ReactNode;
+}>;
+
+/**
+ * The one section heading of the album hub and its rows (SectionHeader): a 17px/600 title with its
+ * 13px dimmed count and "View all" under it, on the page's left edge like every row under it, the
+ * same 12px above the row in every section, and an optional action on the right.
+ */
+export function AlbumSectionHeading({ title, summary, viewAllLink, action }: HeadingProps) {
+  const { t } = useTranslation();
+  const heading = (
+    <div>
+      <Title order={2} className={classes.headingTitle}>
+        {title}
+      </Title>
+      {summary !== undefined && (
+        <Group gap={6} className={classes.headingMeta}>
+          <span>{summary}</span>
+          {viewAllLink && (
+            <>
+              <span aria-hidden>·</span>
+              <span className={classes.viewAll}>
+                {t("explore.viewAll")}
+                <IconChevronRight size={14} aria-hidden />
+              </span>
+            </>
+          )}
+        </Group>
+      )}
+    </div>
+  );
+  return (
+    <div className={classes.header}>
+      {viewAllLink ? (
+        <Link to={viewAllLink} className={clsx(classes.headerLeft, classes.headerReset)}>
+          {heading}
+        </Link>
+      ) : (
+        <div className={classes.headerLeft}>{heading}</div>
+      )}
+      {action}
+    </div>
+  );
 }
 
 export function AlbumSection({
@@ -198,13 +151,8 @@ export function AlbumSection({
   countLabel,
   variant = "scroll",
   maxItems,
-  actionLink,
-  actionLabel,
-  actionIcon,
-  actionColor = "blue",
 }: AlbumSectionProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const displayCount = count ?? albums.length;
   const countText = countLabel ?? t("explore.albumCount", { count: displayCount });
 
@@ -213,142 +161,31 @@ export function AlbumSection({
   const itemLimit = maxItems ?? defaultMaxItems;
 
   if (isLoading) {
-    return <LoadingComponent variant={variant} icon={icon} title={title} />;
+    return <LoadingComponent variant={variant} title={title} />;
   }
 
-  // Card variant - compact dashboard tile with multiple thumbnails
+  // Card variant: a category on the hub, up to three of its covers side by side
   if (variant === "card") {
-    const previewAlbums = albums.slice(0, 6).filter(a => a.coverUrl || a.icon);
-    const hasCovers = previewAlbums.some(a => a.coverUrl);
-    const shownCovers = previewAlbums.slice(0, 3);
-
-    return (
-      <Link to={viewAllLink} className={classes.cardContainer}>
-        <div
-          className={classes.cardCover}
-          // As many columns as thumbnails, so two covers fill the tile instead of two thirds of it
-          style={hasCovers ? { gridTemplateColumns: `repeat(${shownCovers.length}, 1fr)` } : undefined}
-        >
-          {hasCovers ? (
-            // Show up to 3 thumbnails in a row
-            shownCovers.map(album =>
-              album.coverUrl ? (
-                <Tile
-                  key={album.id}
-                  video={album.isVideo ?? false}
-                  width={200}
-                  height={120}
-                  image_hash={album.coverUrl}
-                  className={classes.cardCoverThumbnail}
-                />
-              ) : (
-                <div key={album.id} className={classes.cardCoverSingle}>
-                  {album.icon || icon}
-                </div>
-              )
-            )
-          ) : (
-            <div className={classes.cardCoverSingle}>{icon}</div>
-          )}
-        </div>
-        <div className={classes.cardBody}>
-          <div className={classes.cardTitle}>
-            {icon}
-            <Text fw={600} size="sm">
-              {title}
-            </Text>
-          </div>
-          <Text size="xs" c="dimmed" mt={4}>
-            {countText}
-          </Text>
-        </div>
-      </Link>
+    const covers = albums.flatMap(album =>
+      album.coverUrl ? [{ image_hash: album.coverUrl, video: album.isVideo }] : []
     );
-  }
-
-  // Avatar Grid variant - for People
-  if (variant === "avatarGrid") {
     return (
-      <div className={classes.section}>
-        <Group justify="space-between" align="flex-start" pr="md" className={classes.header}>
-          <Link to={viewAllLink} className={clsx(classes.headerLeft, classes.headerReset)}>
-            {icon}
-            <div>
-              <Title order={4}>{title}</Title>
-              <Group gap={6}>
-                <Text size="sm" c="dimmed">
-                  {countText}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  ·
-                </Text>
-                <Text size="sm" c="blue">
-                  {t("explore.viewAll")}
-                </Text>
-                <IconChevronRight size={14} color="var(--mantine-color-blue-6)" />
-              </Group>
-            </div>
-          </Link>
-          {actionLink && actionLabel && (
-            <Button
-              leftSection={actionIcon}
-              variant="light"
-              color={actionColor}
-              size="xs"
-              onClick={() => navigate({ to: actionLink })}
-            >
-              {actionLabel}
-            </Button>
-          )}
-        </Group>
-
-        {error ? (
-          <ErrorState failure={error} compact />
-        ) : albums.length === 0 ? (
-          <div className={classes.emptyState}>
-            <Text c="dimmed">{emptyMessage ?? t("explore.noAlbums")}</Text>
-          </div>
-        ) : (
-          <div className={classes.avatarGrid}>
-            {albums.slice(0, itemLimit).map(album => (
-              <Link key={album.id} to={album.linkTo} className={classes.avatarItem}>
-                <div className={classes.avatar}>
-                  <AvatarPreview album={album} />
-                </div>
-                <Text className={classes.avatarName} title={album.title}>
-                  {album.title}
-                </Text>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      <CollectionCard
+        shape="wide"
+        size={HUB_CARD_WIDTH}
+        title={title}
+        meta={countText}
+        covers={covers.slice(0, 3)}
+        placeholder={icon}
+        renderLink={props => <Link {...props} to={viewAllLink} />}
+      />
     );
   }
 
   // Default scroll variant
   return (
     <div className={classes.section}>
-      <div className={classes.header}>
-        <Link to={viewAllLink} className={clsx(classes.headerLeft, classes.headerReset)}>
-          {icon}
-          <div>
-            <Title order={4}>{title}</Title>
-            <Group gap={6}>
-              <Text size="sm" c="dimmed">
-                {countText}
-              </Text>
-              <Text size="sm" c="dimmed">
-                ·
-              </Text>
-              <Text size="sm" c="blue">
-                {t("explore.viewAll")}
-              </Text>
-              <IconChevronRight size={14} color="var(--mantine-color-blue-6)" />
-            </Group>
-          </div>
-        </Link>
-      </div>
+      <AlbumSectionHeading title={title} summary={countText} viewAllLink={viewAllLink} />
 
       {error ? (
         <ErrorState failure={error} compact />
@@ -359,19 +196,16 @@ export function AlbumSection({
       ) : (
         <div className={classes.scrollContainer}>
           {albums.slice(0, itemLimit).map(album => (
-            <Link key={album.id} to={album.linkTo} className={classes.albumCard}>
-              <div className={classes.albumCover}>
-                <ScrollPreview album={album} />
-              </div>
-              <div className={classes.albumInfo}>
-                <Text size="sm" fw={500} lineClamp={1} title={album.title}>
-                  {album.title}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {t("numberofphotos", { count: album.photoCount, number: album.photoCount })}
-                </Text>
-              </div>
-            </Link>
+            <CollectionCard
+              key={album.id}
+              className={classes.rowCard}
+              size={ROW_CARD_SIZE}
+              title={album.title}
+              meta={t("numberofphotos", { count: album.photoCount, number: album.photoCount })}
+              covers={album.coverUrl ? [{ image_hash: album.coverUrl, video: album.isVideo }] : []}
+              placeholder={album.icon}
+              renderLink={props => <Link {...props} to={album.linkTo} />}
+            />
           ))}
         </div>
       )}

@@ -4,8 +4,13 @@
   overflow: hidden;
 }
 
-.header {
-  border-bottom: 1px solid var(--mantine-color-default-border);
+/* The overall bar under the header: 4px, rounded, on a quiet track inside the card's padding. */
+.overall {
+  padding: 0 16px 12px;
+}
+
+.overallTrack {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
 }
 
 /* Badges, icons and buttons keep their size; the file name gives way and is truncated. */
@@ -20,9 +25,87 @@
 
 .rows {
   overflow-y: auto;
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+/* A file: one flat 44px row of the card's list, a hairline above the next one (Google Photos'
+   upload list), its progress as a 2px line along the bottom. */
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 16px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.thumb {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.thumbPlaceholder {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--mantine-color-dimmed);
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.status,
+.statusFailed {
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.35;
+  color: var(--mantine-color-dimmed);
+}
+
+.statusFailed {
+  color: var(--mantine-color-error);
+}
+
+.rowCheck {
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+}
+
+.rowProgress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: transparent;
 }
 
 /* The album the upload goes into (#612), between the header and the progress bar. */
 .albumStrip {
   background-color: var(--mantine-color-default-hover);
+}
+
+.rowEnd {
+  display: inline-flex;
+  flex-shrink: 0;
 }

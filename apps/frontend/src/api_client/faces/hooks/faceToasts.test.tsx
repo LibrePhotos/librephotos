@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { faceMenuItem } from "../../../components/lightbox/faceMenu.test-utils";
 import { PersonDetail } from "../../../components/lightbox/PersonDetailComponent";
 import i18n from "../../../i18n";
 import type { ToastOptions } from "../../../service/notifications/toast";
@@ -166,8 +167,8 @@ describe("deleting faces", () => {
         </QueryClientProvider>
       );
     });
-    const buttons = container.querySelectorAll("button");
-    await act(async () => defined(buttons[buttons.length - 1]).click());
+    const remove = await faceMenuItem(container, "Delete face");
+    await act(async () => remove.click());
     await settle();
 
     expect(toasts.success).not.toHaveBeenCalled();

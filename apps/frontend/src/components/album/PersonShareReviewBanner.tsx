@@ -23,7 +23,7 @@ export function PersonShareReviewBanner({ person }: Props) {
       <Alert variant="light" color="yellow" icon={<IconEyeQuestion size={ICON_SIZE.menu} />} mx={10} mb="xs">
         <Group justify="space-between" gap="xs">
           <Text size="sm">{t("personshare.pendingBanner", { count: sharing.pending_count, name: person.name })}</Text>
-          <Button size="xs" onClick={dialog.open}>
+          <Button size="xs" variant="light" color="yellow" onClick={dialog.open}>
             {t("personshare.review")}
           </Button>
         </Group>

@@ -1,9 +1,9 @@
-import { Badge, Group, Stack, Text, Title } from "@mantine/core";
-import { IconTags as Tags } from "@tabler/icons-react";
+import { Badge, Group, Stack, Text } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useThingLabel } from "../../hooks/useThingLabel";
+import { SectionTitle } from "./SectionTitle";
 import classes from "./ThingBadges.module.css";
 
 type Props = Readonly<{
@@ -33,10 +33,7 @@ export function ThingBadges({ things, imageHash, isPublic, inCard }: Props) {
           {t("things")}
         </Text>
       ) : (
-        <Group>
-          <Tags />
-          <Title order={4}>{t("things")}</Title>
-        </Group>
+        <SectionTitle>{t("things")}</SectionTitle>
       )}
       <Group gap="xs">
         {things.map(thing => {

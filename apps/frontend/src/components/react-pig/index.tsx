@@ -95,14 +95,14 @@ function Pig<T extends ImageItem>(
   {
     imageData,
     useLqip = true,
-    gridGap = 8,
+    gridGap = 4,
     getUrl: propGetUrl = null,
     primaryImageBufferHeight = 2500,
     secondaryImageBufferHeight = 100,
     sortByDate: propSortByDate = false,
     groupByDate = false,
-    groupGapSm = 50,
-    groupGapLg = 50,
+    groupGapSm = 28,
+    groupGapLg = 36,
     breakpoint = 800,
     sortFunc = null,
     expandedSize = 1000,
@@ -120,8 +120,8 @@ function Pig<T extends ImageItem>(
     bottomleftoverlay = null,
     bottomrightoverlay = null,
     className = "",
-    textAlignment = "right",
-    headerSize = "large",
+    textAlignment = "left",
+    headerSize = "normal",
   }: PigProps<T>,
   ref: React.ForwardedRef<PigHandle<T>>
 ) {

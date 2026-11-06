@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_protected/statistics/placetree")({
 function PlaceTree() {
   return (
     <StatisticsNav>
-      <LocationLink height={window.innerHeight - 220} />
+      <LocationLink height={window.innerHeight - 310} />
     </StatisticsNav>
   );
 }

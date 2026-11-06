@@ -11,6 +11,7 @@ import { ICON_SIZE } from "../../uiConstants";
 import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { PersonGroupNameForm } from "./PersonGroupNameForm";
 
 type GroupedPerson = Readonly<{ id: string; name: string; group_ids: readonly number[] }>;
@@ -87,9 +88,7 @@ function Checklist({ person, onClose }: Omit<Props, "opened">) {
         {t("persongroups.savedastyoutick")}
       </Text>
       <Group justify="flex-end">
-        <Button variant="default" onClick={onClose}>
-          {t("persongroups.done")}
-        </Button>
+        <Button onClick={onClose}>{t("persongroups.done")}</Button>
       </Group>
     </Stack>
   );
@@ -99,7 +98,12 @@ function Checklist({ person, onClose }: Omit<Props, "opened">) {
 export function PersonGroupsModal({ opened, onClose, person }: Props) {
   const { t } = useTranslation();
   return (
-    <Modal size="sm" opened={opened} onClose={onClose} title={t("persongroups.dialogtitle", { name: person.name })}>
+    <Modal
+      size={DIALOG_SIZE.md}
+      opened={opened}
+      onClose={onClose}
+      title={t("persongroups.dialogtitle", { name: person.name })}
+    >
       <Checklist person={person} onClose={onClose} />
     </Modal>
   );

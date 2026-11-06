@@ -1,8 +1,8 @@
 /**
  * The lightbox toolbar: every button is named (a tooltip is no accessible
  * name), the trash button restores a photo that is already in the trash
- * instead of trashing it again, and a phone gets one row with the owner's
- * actions in a menu. The rating control follows the user's rating style
+ * instead of trashing it again, and the less used actions are labelled items
+ * of one ⋮ menu, on a phone as on a wide screen. The rating control follows the user's rating style
  * (#2202): the favorite toggle (F) or five stars (0-5), never both.
  */
 import type { Photo, User } from "@librephotos/api-client";
@@ -29,7 +29,6 @@ const stubs = vi.hoisted(() => ({
   setRating: vi.fn<(variables: { image_hashes: string[]; rating: number }) => void>(),
   setArchived: vi.fn<(variables: { image_hashes: string[]; archived: boolean }) => void>(),
   user: undefined as StubUser | undefined,
-  narrow: false,
 }));
 
 // The Files items have their own tests (FileActionItems.test.tsx); here they show what they got.
@@ -62,7 +61,7 @@ beforeAll(() => {
   };
   Element.prototype.scrollIntoView = () => {};
   window.matchMedia = (query: string): MediaQueryList => ({
-    matches: stubs.narrow && query.includes("max-width"),
+    matches: false,
     media: query,
     onchange: null,
     addListener: () => {},
@@ -82,7 +81,6 @@ afterEach(async () => {
   stubs.setRating.mockClear();
   stubs.setArchived.mockClear();
   stubs.user = FAVORITE_USER;
-  stubs.narrow = false;
 });
 
 const photo: Partial<Photo> = { id: "p1", image_hash: "h1", hidden: false, rating: 0, in_trashcan: false };
@@ -140,21 +138,75 @@ async function renderControls(props: Partial<LightboxControlsProps> & { photo?: 
 const labels = (container: HTMLElement) =>
   [...container.querySelectorAll("button")].map(button => button.getAttribute("aria-label"));
 
+/** Opens the toolbar's ⋮ and returns the labels of its items. */
+async function openMenu(container: HTMLElement) {
+  await act(async () => {
+    defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.moreActions"]')).click();
+  });
+  return [...container.querySelectorAll('[role="menuitem"]')].map(item => item.textContent);
+}
+
+const menuItem = (container: HTMLElement, label: string) =>
+  defined(
+    [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(item => item.textContent === label),
+    label
+  );
+
 describe("LightboxControls", () => {
-  it("names every button", async () => {
+  it("names every button, and keeps the row to back, share, favorite, info, trash and ⋮", async () => {
     const container = await renderControls();
 
-    expect(labels(container).length).toBeGreaterThan(8);
     expect(labels(container).every(Boolean)).toBe(true);
-    expect(labels(container)).toEqual(
-      expect.arrayContaining([
-        "lightbox.toolbar.hidePhoto",
-        "lightbox.toolbar.archivePhoto",
-        "lightbox.toolbar.deletePhoto",
-        "lightbox.toolbar.showInfoPanel",
+    expect(labels(container)).toEqual([
+      "lightbox.controls.close",
+      "sharing.shareLinkShortcut",
+      "lightbox.toolbar.addToFavorites",
+      "lightbox.toolbar.showInfoPanel",
+      "lightbox.toolbar.deletePhoto",
+      "lightbox.toolbar.moreActions",
+    ]);
+  });
+
+  it("keeps the rest in the ⋮ menu, with labels", async () => {
+    const container = await renderControls();
+
+    expect(await openMenu(container)).toEqual([
+      "lightbox.controls.zoomin",
+      "lightbox.controls.slideshow",
+      "lightbox.controls.copy",
+      "lightbox.controls.fullscreen",
+      "lightbox.toolbar.hidePhoto",
+      "lightbox.toolbar.archivePhoto",
+      "lightbox.toolbar.rotateCCW",
+      "lightbox.toolbar.rotateCW",
+    ]);
+  });
+
+  it("on a phone keeps back, favorite and ⋮ on top and puts share, info and delete in a bottom bar", async () => {
+    const desktop = window.matchMedia;
+    window.matchMedia = (query: string): MediaQueryList => ({
+      matches: query === "(max-width: 599px)",
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    });
+    try {
+      const container = await renderControls();
+      expect(labels(container)).toEqual([
         "lightbox.controls.close",
-      ])
-    );
+        "lightbox.toolbar.addToFavorites",
+        "lightbox.toolbar.moreActions",
+        "sharing.shareLinkShortcut",
+        "lightbox.toolbar.showInfoPanel",
+        "lightbox.toolbar.deletePhoto",
+      ]);
+    } finally {
+      window.matchMedia = desktop;
+    }
   });
 
   it("moves a photo to the trash and then lets the viewer move on", async () => {
@@ -187,11 +239,10 @@ describe("LightboxControls", () => {
     );
   });
 
-  it("archives a photo by button and by A, and unarchives an archived one (#545)", async () => {
+  it("archives a photo from the menu and by A, and unarchives an archived one (#545)", async () => {
     const container = await renderControls();
-    await act(async () => {
-      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.archivePhoto"]')).click();
-    });
+    await openMenu(container);
+    await act(async () => menuItem(container, "lightbox.toolbar.archivePhoto").click());
     await act(async () => {
       lightbox.emit("archive");
     });
@@ -201,69 +252,62 @@ describe("LightboxControls", () => {
     ]);
 
     const archived = await renderControls({ photo: { archived: true } });
-    await act(async () => {
-      defined(archived.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.unarchivePhoto"]')).click();
-    });
+    await openMenu(archived);
+    await act(async () => menuItem(archived, "lightbox.toolbar.unarchivePhoto").click());
     expect(stubs.setArchived).toHaveBeenLastCalledWith({ image_hashes: ["h1"], archived: false });
   });
 
   it("offers no rotation for a video, which the server refuses to rotate", async () => {
     const container = await renderControls({ type: "video", enableZoom: false, onCopyToClipboard: undefined });
 
-    expect(labels(container)).not.toContain("lightbox.toolbar.rotateCW");
-    expect(labels(container)).not.toContain("lightbox.toolbar.rotateCCW");
+    const items = await openMenu(container);
+    expect(items).not.toContain("lightbox.toolbar.rotateCW");
+    expect(items).not.toContain("lightbox.toolbar.rotateCCW");
+    expect(items).not.toContain("lightbox.controls.copy");
   });
 
-  it("puts the owner's actions in a menu on a phone", async () => {
-    stubs.narrow = true;
-    const container = await renderControls();
-
-    expect(labels(container)).toContain("lightbox.toolbar.moreActions");
-    expect(labels(container)).not.toContain("lightbox.toolbar.deletePhoto");
-    expect(labels(container)).not.toContain("lightbox.controls.fullscreen");
-    // What stays in the row.
-    expect(labels(container)).toEqual(
-      expect.arrayContaining([
-        "lightbox.controls.slideshow",
-        "lightbox.controls.zoom",
-        "lightbox.toolbar.addToFavorites",
-        "lightbox.toolbar.showInfoPanel",
-        "lightbox.controls.close",
-      ])
-    );
-  });
-
-  it("puts a divider between every two groups of the row", async () => {
-    // Slideshow | view | photo actions | info and close.
-    const photoRow = await renderControls();
-    expect(photoRow.querySelectorAll('[role="separator"]')).toHaveLength(3);
-
-    // A video on a phone has no view group left: slideshow | favourite and menu | info and close.
-    stubs.narrow = true;
-    const videoRow = await renderControls({ type: "video", enableZoom: false, onCopyToClipboard: undefined });
-    expect(labels(videoRow)).not.toContain("lightbox.controls.zoom");
-    expect(videoRow.querySelectorAll('[role="separator"]')).toHaveLength(2);
-  });
-
-  it("drops the photo-actions group, not just its buttons, when there are no details", async () => {
-    // Details that failed to load left two dividers side by side: slideshow | view | info and close.
+  it("shows the photo actions only once the details are in", async () => {
     const noDetails = await renderControls({ photoDetail: undefined });
-    expect(labels(noDetails)).not.toContain("lightbox.toolbar.addToFavorites");
-    expect(noDetails.querySelectorAll('[role="separator"]')).toHaveLength(2);
 
-    // A public page has no such group either, and still sets info and close apart.
-    const publicRow = await renderControls({ isPublic: true, photoDetail: undefined });
-    expect(publicRow.querySelectorAll('[role="separator"]')).toHaveLength(2);
+    expect(labels(noDetails)).toEqual([
+      "lightbox.controls.close",
+      "lightbox.toolbar.showInfoPanel",
+      "lightbox.toolbar.moreActions",
+    ]);
+    expect(await openMenu(noDetails)).toEqual([
+      "lightbox.controls.zoomin",
+      "lightbox.controls.slideshow",
+      "lightbox.controls.copy",
+      "lightbox.controls.fullscreen",
+    ]);
   });
 
-  it("reports a toggle's state once: in the label, or with aria-pressed for zoom", async () => {
+  it("reports a toggle's state in its label", async () => {
     const container = await renderControls({ photo: { rating: 5 }, lightboxSidebarShow: true, isZoomed: true });
     const button = (label: string) => defined(container.querySelector(`[aria-label="${label}"]`));
 
     expect(button("lightbox.toolbar.removeFromFavorites").hasAttribute("aria-pressed")).toBe(false);
     expect(button("lightbox.toolbar.hideInfoPanel").hasAttribute("aria-pressed")).toBe(false);
-    expect(button("lightbox.controls.slideshow").hasAttribute("aria-pressed")).toBe(false);
-    expect(button("lightbox.controls.zoom").getAttribute("aria-pressed")).toBe("true");
+    expect(await openMenu(container)).toContain("lightbox.controls.zoomout");
+  });
+
+  it("zooms from the ⋮, which keyboard and double click also do", async () => {
+    const toggleZoom = vi.fn<() => void>();
+    const container = await renderControls({ toggleZoom });
+    await openMenu(container);
+    await act(async () => menuItem(container, "lightbox.controls.zoomin").click());
+
+    expect(toggleZoom).toHaveBeenCalledOnce();
+  });
+
+  it("pauses a running slideshow from the toolbar", async () => {
+    const toggleSlideshow = vi.fn<() => void>();
+    const container = await renderControls({ isSlideshowActive: true, toggleSlideshow });
+    const pause = defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.controls.stopslideshow"]'));
+
+    expect(pause.hasAttribute("aria-pressed")).toBe(false);
+    await act(async () => pause.click());
+    expect(toggleSlideshow).toHaveBeenCalledOnce();
   });
 
   it("hands focus back to the lightbox once a slideshow interval is picked", async () => {
@@ -285,45 +329,33 @@ describe("LightboxControls", () => {
     expect(document.activeElement).toBe(container);
   });
 
-  it("gives the owner a ⋮ after rotate with Rescan file and Detect faces again (#2214, #524)", async () => {
+  it("gives the owner Rescan file and Detect faces again in the ⋮ (#2214, #524)", async () => {
     const container = await renderControls();
-    const more = defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.moreActions"]'));
-
-    await act(async () => more.click());
-
-    expect(container.querySelector("[data-file-actions]")?.getAttribute("data-file-actions")).toBe("p1");
-  });
-
-  it("puts the file actions in the phone's menu too", async () => {
-    stubs.narrow = true;
-    const container = await renderControls();
-
-    await act(async () => {
-      defined(container.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.moreActions"]')).click();
-    });
+    await openMenu(container);
 
     expect(container.querySelector("[data-file-actions]")?.getAttribute("data-file-actions")).toBe("p1");
   });
 
   it("offers no file actions on a photo shared with you", async () => {
     stubs.user = { ...FAVORITE_USER, id: 2 };
-    const wide = await renderControls();
-    expect(labels(wide)).not.toContain("lightbox.toolbar.moreActions");
+    const container = await renderControls();
+    await openMenu(container);
 
-    stubs.narrow = true;
-    const phone = await renderControls();
-    await act(async () => {
-      defined(phone.querySelector<HTMLButtonElement>('[aria-label="lightbox.toolbar.moreActions"]')).click();
-    });
-    expect(phone.querySelector("[data-file-actions]")).toBeNull();
+    expect(container.querySelector("[data-file-actions]")).toBeNull();
   });
 
-  it("needs no menu on a public page, which has no owner's actions", async () => {
-    stubs.narrow = true;
+  it("gives a public page only the view items, and no trash or rating", async () => {
     const container = await renderControls({ isPublic: true });
 
-    expect(labels(container)).not.toContain("lightbox.toolbar.moreActions");
-    expect(labels(container)).toContain("lightbox.controls.fullscreen");
+    expect(labels(container)).not.toContain("lightbox.toolbar.deletePhoto");
+    expect(labels(container)).not.toContain("lightbox.toolbar.addToFavorites");
+    expect(labels(container)).not.toContain("sharing.shareLinkShortcut");
+    expect(await openMenu(container)).toEqual([
+      "lightbox.controls.zoomin",
+      "lightbox.controls.slideshow",
+      "lightbox.controls.copy",
+      "lightbox.controls.fullscreen",
+    ]);
   });
 });
 
@@ -425,20 +457,19 @@ describe("LightboxControls 360° view (#483)", () => {
     expect(labels(container)).not.toContain("lightbox.panorama.toggle");
   });
 
-  it("puts the toggle before live text and zoom, also on a phone", async () => {
-    stubs.narrow = true;
+  it("puts the toggle before live text", async () => {
     const container = await renderControls({ panorama: panorama(false), hasOcrText: true });
 
     const names = labels(container);
     expect(names.indexOf("lightbox.panorama.toggle")).toBeLessThan(names.indexOf("lightbox.controls.livetext"));
-    expect(button(container, "lightbox.controls.zoom").getAttribute("aria-disabled")).toBeNull();
   });
 
   it("keeps live text and zoom in place in the 360° view, saying why they do nothing", async () => {
     const toggleZoom = vi.fn<() => void>();
     const container = await renderControls({ panorama: panorama(true), hasOcrText: true, toggleZoom });
 
-    const zoom = button(container, "lightbox.controls.zoom");
+    await openMenu(container);
+    const zoom = menuItem(container, "lightbox.controls.zoomin");
     await act(async () => zoom.click());
 
     expect(zoom.getAttribute("aria-disabled")).toBe("true");

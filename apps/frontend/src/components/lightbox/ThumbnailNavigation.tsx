@@ -1,9 +1,9 @@
 import { Box, Group, Skeleton, UnstyledButton } from "@mantine/core";
-import cx from "clsx";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks/useFetchPhotoDetailsQuery";
 import { Tile } from "../Tile";
+import { NEXT_KEY, PREVIOUS_KEY } from "./lightbox.hotkeys";
 import classes from "./ThumbnailNavigation.module.css";
 
 export type ThumbnailNavigationProps = {
@@ -17,6 +17,58 @@ export type ThumbnailNavigationProps = {
   isPublic?: boolean;
 };
 
+/** The thumbnail size: 56px, as in Google Photos' strip. */
+const THUMB = 56;
+/** How long the strip stays after the pointer stops or a key steps. */
+const REVEAL_MS = 2500;
+/**
+ * How far above the stage's bottom edge a moving pointer shows the strip (px): the strip's own
+ * 80px and some approach. A pointer on the toolbar or the photo's middle leaves the whole photo
+ * visible, in the plain view and beside the info panel alike.
+ */
+const REVEAL_BAND = 160;
+
+/** The keys that step to another photo: stepping shows where you are. */
+const STEP_KEYS = new Set([PREVIOUS_KEY, NEXT_KEY]);
+
+/**
+ * Whether the strip shows: for a while after the pointer moves over the lower band of the stage
+ * (the strip's parent, REVEAL_BAND) or an arrow key steps, so a still photo has the whole stage
+ * and the strip never covers it while the toolbar is used. The strip's own :hover and
+ * :focus-within keep it while it is used (the CSS module).
+ */
+function useReveal(stripRef: React.RefObject<HTMLDivElement | null>) {
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const reveal = () => {
+      setRevealed(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setRevealed(false), REVEAL_MS);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (STEP_KEYS.has(event.key)) reveal();
+    };
+    const stage = stripRef.current?.parentElement;
+    const onPointerMove = (event: PointerEvent) => {
+      if (stage && event.clientY >= stage.getBoundingClientRect().bottom - REVEAL_BAND) reveal();
+    };
+    stage?.addEventListener("pointermove", onPointerMove, { passive: true });
+    document.addEventListener("keydown", onKey);
+    return () => {
+      stage?.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("keydown", onKey);
+      clearTimeout(timer);
+    };
+  }, [stripRef]);
+  return revealed;
+}
+
+/**
+ * The previous, current and next photos at the bottom of the lightbox, over the photo, shown only
+ * while the pointer moves near the bottom or the keys step (useReveal). Hidden on a touch screen and a phone, where
+ * a swipe steps.
+ */
 export function ThumbnailNavigation({
   prevSrc,
   prevSrcHash,
@@ -28,6 +80,8 @@ export function ThumbnailNavigation({
   isPublic = false,
 }: ThumbnailNavigationProps) {
   const { t } = useTranslation();
+  const stripRef = useRef<HTMLDivElement>(null);
+  const revealed = useReveal(stripRef);
   // Use image_hash for API calls since backend still uses image_hash for lookup
   // Skip these queries on public pages
   const { data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading } = useFetchPhotoDetailsQuery(
@@ -44,21 +98,21 @@ export function ThumbnailNavigation({
   );
 
   return (
-    <div className={classes.strip}>
-      <Group justify="center" align="center" h="100%">
+    <div ref={stripRef} className={classes.strip} data-revealed={revealed || undefined}>
+      <Group justify="center" align="center" gap={4} wrap="nowrap">
         {prevSrc && (
           <UnstyledButton
             onClick={onMovePrevRequest}
-            className={cx(classes.neighbour, classes.previous)}
+            className={classes.neighbour}
             aria-label={t("lightbox.controls.previous")}
           >
             {isPrevPhotoDetailLoading ? (
-              <Skeleton height={64} width={64} />
+              <Skeleton height={THUMB} width={THUMB} />
             ) : (
               <Tile
                 image_hash={prevSrcHash || ""}
-                width={64}
-                height={64}
+                width={THUMB}
+                height={THUMB}
                 video={prevPhotoDetail?.video}
                 className={classes.tile}
               />
@@ -68,12 +122,12 @@ export function ThumbnailNavigation({
 
         <Box className={classes.current}>
           {isMainPhotoDetailLoading ? (
-            <Skeleton height={72} width={72} />
+            <Skeleton height={THUMB} width={THUMB} />
           ) : (
             <Tile
               image_hash={mainSrcHash}
-              width={72}
-              height={72}
+              width={THUMB}
+              height={THUMB}
               video={mainPhotoDetail?.video}
               className={classes.tile}
             />
@@ -83,16 +137,16 @@ export function ThumbnailNavigation({
         {nextSrc && (
           <UnstyledButton
             onClick={onMoveNextRequest}
-            className={cx(classes.neighbour, classes.next)}
+            className={classes.neighbour}
             aria-label={t("lightbox.controls.next")}
           >
             {isNextPhotoDetailLoading ? (
-              <Skeleton height={64} width={64} />
+              <Skeleton height={THUMB} width={THUMB} />
             ) : (
               <Tile
                 image_hash={nextSrcHash || ""}
-                width={64}
-                height={64}
+                width={THUMB}
+                height={THUMB}
                 video={nextPhotoDetail?.video}
                 className={classes.tile}
               />

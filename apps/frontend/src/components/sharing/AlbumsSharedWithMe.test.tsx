@@ -103,7 +103,8 @@ async function renderAt(width: number) {
   const mounted = root;
   await act(async () => {
     mounted.render(
-      <MantineProvider>
+      // env="test": no transitions, so a menu's items are there as soon as it opens
+      <MantineProvider env="test">
         <AlbumsSharedWithMe />
       </MantineProvider>
     );

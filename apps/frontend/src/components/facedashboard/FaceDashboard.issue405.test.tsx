@@ -32,7 +32,6 @@ import { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
 import { isPersonCell, useVirtualizedGrid, type GridCell } from "./hooks/useVirtualizedGrid";
-import { PersonCell } from "./PersonCell";
 
 const stubs = vi.hoisted(() => ({
   noopMutation: { mutate: () => {}, mutateAsync: async () => {}, isPending: false },
@@ -87,8 +86,8 @@ function person(id: number, name: string, faceCount: number): CompletePersonFace
 }
 
 const ITEMS_PER_ROW = 4;
-// calculateFaceGridCellSize puts ITEMS_PER_ROW faces in a row at this width
-const GRID_WIDTH = 700;
+// A phone's two columns at this width: four faces a row. Both have more faces than a tile shows
+const GRID_WIDTH = 450;
 const PEOPLE = [person(1, "Alice", 9), person(2, "Bob", 5)];
 const ALICE = defined(PEOPLE[0], "Alice");
 const LISTS = { labeled: PEOPLE, inferred: [], unknown: [], deleted: [] };
@@ -122,19 +121,23 @@ async function renderInContainer(element: React.ReactElement) {
   };
 }
 
-async function renderPersonCell(cell: CompletePersonFace, onExpand: () => void) {
+/** A folded group: its tile's name line, under the first faces. */
+async function renderTile(cell: CompletePersonFace, onExpand: () => void) {
   const view = await renderInContainer(
-    <PersonCell
-      person={cell}
-      coverUrl={undefined}
+    <HeaderComponent
+      cell={cell}
       style={{}}
-      entrySquareSize={131}
-      onExpand={onExpand}
+      variant="tile"
+      selectedFaces={[]}
+      setSelectedFaces={() => {}}
+      onToggleCollapse={onExpand}
+      coverUrl={undefined}
       takeFocus={false}
       onFocused={() => {}}
     />
   );
-  return { ...view, toggle: view.container.querySelector<HTMLButtonElement>("button[aria-expanded]") };
+  // The ⋮ menu's button has an aria-expanded too
+  return { ...view, toggle: view.container.querySelector<HTMLButtonElement>("button[aria-label^='Expand']") };
 }
 
 async function renderHeader(
@@ -287,10 +290,10 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
 
   it("shows the face count and an expandable toggle while collapsed", async () => {
     const toggled: number[] = [];
-    const { toggle, container, cleanup } = await renderPersonCell(ALICE, () => toggled.push(ALICE.id));
+    const { toggle, container, cleanup } = await renderTile(ALICE, () => toggled.push(ALICE.id));
 
-    // Collapsed, the count is the only remaining signal of how big the group is
-    expect(container.textContent).toContain("9 Faces");
+    // Collapsed, the tile shows four faces: the count says how big the group is
+    expect(container.textContent).toContain("9 faces");
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
     expect(toggle?.getAttribute("aria-label")).toBe("Expand Alice");
 
@@ -341,9 +344,9 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     const requests: SectionRequest[][] = [];
     const view = await renderGrid(infos => requests.push(infos));
 
-    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(
-      1 + Math.ceil(9 / ITEMS_PER_ROW) + 1 + Math.ceil(5 / ITEMS_PER_ROW)
-    );
+    // Alice's header and three rows of faces, then Bob's header and two
+    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 3 + 1 + 2);
+    const openHeight = view.grid.gridHeight;
 
     // The viewport covers the first three rows, all of them Alice's
     await act(async () => {
@@ -361,10 +364,12 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     // Folding Alice pulls Bob's faces into those same rows without moving the row range
     await view.render({ ...NOTHING_COLLAPSED, labeled: new Set([1]) });
 
-    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 1 + Math.ceil(5 / ITEMS_PER_ROW));
-    expect(view.grid.gridHeight).toBe(4 * (GRID_WIDTH / ITEMS_PER_ROW));
+    // Alice's tile of four faces, then Bob's header and faces
+    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 1 + 2);
+    expect(view.grid.gridHeight).toBeLessThan(openHeight);
     expect(requests).toHaveLength(2);
-    expect(defined(requests[1], "the second request batch").map(request => request.person)).toEqual([2]);
+    // Alice's tile still pages in her first faces
+    expect(defined(requests[1], "the second request batch").map(request => request.person)).toEqual([1, 2]);
 
     await view.cleanup();
   });

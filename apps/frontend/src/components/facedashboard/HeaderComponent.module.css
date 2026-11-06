@@ -1,25 +1,128 @@
-/* A long name is cut short instead of wrapping the row: the grid row has a fixed
-   height, so a wrapped header spilled above it and hid the collapse chevron */
-.nameChip {
+/*
+ * A group's name line (FaceGridRow). On an open group: chevron, 32px face, name and count on one
+ * 32px line. Under a tile's faces: the name and its buttons on one 24px line, the count under it.
+ * A long name is cut short instead of wrapping: the grid row has a fixed height.
+ */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 32px;
   min-width: 0;
 }
 
-.nameChipLabel {
-  max-width: 100%;
+.tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-/* Chip puts the name in a span after the check icon */
-.nameChipLabel > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* The name takes the room its buttons leave */
+.tileLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  min-width: 0;
 
-/* Only the name gives way: the selected person's check icon was squeezed too */
-.nameChipIcon {
-  flex-shrink: 0;
+  & > :first-child {
+    flex: 0 1 auto;
+    margin-inline-end: auto;
+  }
 }
 
 /* The cover face keeps its size when a long name squeezes the row */
 .cover {
   flex-shrink: 0;
+}
+
+/* The name and the count under it; takes the room the buttons leave */
+.titles {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.nameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* The name as text that edits in place: no box, a pencil on hover and keyboard focus */
+.nameButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 6px;
+  margin-inline: -6px;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-text);
+
+  &:hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 1px;
+  }
+}
+
+.pencil {
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  .nameButton:hover &,
+  .nameButton:focus-visible & {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    opacity: 1;
+  }
+}
+
+/* "Add a name" on a cluster nobody has named: a dimmed placeholder, its pencil always shown */
+.placeholder {
+  color: var(--mantine-color-dimmed);
+  font-weight: 500;
+
+  .pencil {
+    opacity: 1;
+  }
+}
+
+.count {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--mantine-color-dimmed);
+  white-space: nowrap;
+}
+
+/* Selecting the whole group: shown on hover and focus, while it is ticked and while faces are selected */
+.groupCheck {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  .row:hover &,
+  .row:focus-within &,
+  &:has(input[data-shown]) {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 }

@@ -1,0 +1,28 @@
+.text {
+  min-width: 0;
+}
+
+/* The exposure strip: one hairline pill split into cells, like Apple Photos' EXIF row */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 6px;
+}
+
+.chip {
+  padding: 2px 8px;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.chip + .chip {
+  border-left: 1px solid var(--mantine-color-default-border);
+}

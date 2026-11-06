@@ -21,7 +21,10 @@ const stubs = vi.hoisted(() => ({
   openWhatsNew: vi.fn<(releases?: readonly string[]) => void>(),
 }));
 
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn<(options: { to: string }) => void>(),
+  useRouterState: () => false,
+}));
 vi.mock("../../api_client/auth", () => ({ useLogoutMutation: () => ({ mutate: vi.fn<() => void>() }) }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: { username: "admin", is_superuser: stubs.isAdmin } }),
@@ -49,7 +52,7 @@ const job = (overrides: Partial<JobDetail> = {}): JobDetail => ({
   started_at: "2026-10-10T10:00:01Z",
   failed: false,
   cancelled: false,
-  job_type_str: "Scan Photos",
+  job_type_str: "Scan photos",
   job_type: 1,
   started_by: { id: 1, username: "admin", first_name: "", last_name: "" },
   progress_target: 200,
@@ -122,7 +125,7 @@ afterEach(async () => {
 
 describe("ProfileButton upload imports (#2739)", () => {
   const importJob = (overrides: Partial<ImportJob> = {}): ImportJob => ({
-    ...job({ job_type: 20, job_type_str: "Import Uploads", progress_current: 12, progress_target: 40 }),
+    ...job({ job_type: 20, job_type_str: "Import uploads", progress_current: 12, progress_target: 40 }),
     result: { stages: {} },
     ...overrides,
   });
@@ -177,7 +180,7 @@ describe("ProfileButton worker status", () => {
     expect(arcOffset()).toBe("75");
     expect(avatarButton().getAttribute("aria-label")).toContain(i18n.t("topmenu.workerstatusbusy"));
     await openMenu();
-    expect(jobSection()?.textContent).toContain("Scan Photos");
+    expect(jobSection()?.textContent).toContain("Scan photos");
     expect(jobSection()?.textContent).toContain("50 / 200");
   });
 
@@ -190,7 +193,7 @@ describe("ProfileButton worker status", () => {
 
     // The menu closed, the question stays, and nothing is cancelled yet.
     expect(jobSection()).toBeNull();
-    expect(dialog()?.textContent).toContain("Scan Photos has been running for");
+    expect(dialog()?.textContent).toContain("Scan photos has been running for");
     expect(stubs.cancelJob).not.toHaveBeenCalled();
 
     await act(async () => dialogButton("Keep running")?.click());
@@ -204,7 +207,7 @@ describe("ProfileButton worker status", () => {
     await act(async () => cancel?.click());
 
     // Another job took over while the dialog was open.
-    await render({ queue_can_accept_job: false, job_detail: job({ id: 8, job_type: 7, job_type_str: "Scan Faces" }) });
+    await render({ queue_can_accept_job: false, job_detail: job({ id: 8, job_type: 7, job_type_str: "Scan faces" }) });
     await act(async () => dialogButton("Cancel job")?.click());
 
     expect(stubs.cancelJob).toHaveBeenCalledWith(7, expect.anything());
@@ -226,7 +229,7 @@ describe("ProfileButton upgrade tasks (#2322)", () => {
     );
   const dot = () => container.querySelector(".mantine-Indicator-indicator");
 
-  it("puts a dot on the avatar and the count on Admin Area while tasks are left", async () => {
+  it("puts a dot on the avatar and the count on Admin area while tasks are left", async () => {
     stubs.isAdmin = true;
     stubs.upgradeTasksLeft = 2;
     await render({ queue_can_accept_job: true, job_detail: null });

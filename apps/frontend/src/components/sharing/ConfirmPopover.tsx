@@ -67,7 +67,7 @@ export function ConfirmPopover({ message, confirmLabel, color, tooltip, onConfir
               on window first and closes the whole dialog unless the focused
               element opts out; it should only close this popover. */}
           <Group justify="flex-end" gap="xs">
-            <Button size="xs" variant="default" onClick={() => close()} data-mantine-stop-propagation>
+            <Button size="xs" variant="light" onClick={() => close()} data-mantine-stop-propagation>
               {t("cancel")}
             </Button>
             <Button

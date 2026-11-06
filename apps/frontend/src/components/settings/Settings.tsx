@@ -1,7 +1,6 @@
 import { userKeys, type User } from "@librephotos/api-client";
-import { Card, Container, Space, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +9,7 @@ import { useApplyDateRules } from "../../api_client/jobs/hooks";
 import { useFetchUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { PageHeader } from "../PageHeader";
+import { SettingsPageFrame } from "../SettingsPageFrame";
 import { ApplyDateRulesOffer } from "./ApplyDateRulesOffer";
 import { CaptionContextCard } from "./CaptionContextCard";
 import { ConfigBurstDetection } from "./ConfigBurstDetection";
@@ -26,6 +26,7 @@ import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanOptionsCard } from "./ScanOptionsCard";
 import { SETTINGS_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
+import { SettingsCard } from "./SettingsCard";
 import { SettingsSection } from "./SettingsSection";
 import { UserSharingCard } from "./UserSharingCard";
 
@@ -83,8 +84,7 @@ export function Settings() {
   ];
 
   return (
-    <Container size="lg">
-      <PageHeader icon={SettingIcon} title={t("settings.header")} />
+    <SettingsPageFrame withSectionNav header={<PageHeader title={t("settings.header")} />}>
       <SectionNav sections={sections}>
         <Stack>
           <SettingsSection id={SETTINGS_SECTIONS.scan}>
@@ -98,7 +98,7 @@ export function Settings() {
             <FaceOptionsCard {...cardProps} />
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.datetime}>
-            <Card shadow="md">
+            <SettingsCard>
               <ConfigDateTime
                 value={editedUserDetails.datetime_rules}
                 onChange={value => edit({ datetime_rules: value || "[]" })}
@@ -108,15 +108,15 @@ export function Settings() {
                   )
                 }
               />
-            </Card>
+            </SettingsCard>
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.burst}>
-            <Card shadow="md">
+            <SettingsCard>
               <ConfigBurstDetection
                 value={editedUserDetails.burst_detection_rules}
                 onChange={value => edit({ burst_detection_rules: value })}
               />
-            </Card>
+            </SettingsCard>
           </SettingsSection>
           <SettingsSection id={SETTINGS_SECTIONS.experimental}>
             <ExperimentalOptionsCard {...cardProps} />
@@ -135,7 +135,6 @@ export function Settings() {
           <SettingsSection id={SETTINGS_SECTIONS.duplicates}>
             <DuplicateDetectionCard {...cardProps} />
           </SettingsSection>
-          <Space h="xl" />
         </Stack>
       </SectionNav>
       <SaveChangesDialog
@@ -160,6 +159,6 @@ export function Settings() {
           closeUpdateDialog();
         }}
       />
-    </Container>
+    </SettingsPageFrame>
   );
 }

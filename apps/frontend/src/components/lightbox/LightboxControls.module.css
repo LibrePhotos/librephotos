@@ -1,3 +1,177 @@
+/* The toolbar over the top of the stage: back on the left, the photo's date and place in the middle,
+   the actions on the right. The photo takes the whole height and runs under it, so the bar sits on
+   a 120px scrim fading from black, as Immich and Google Photos draw it, and the white title and
+   icons read over a bright sky. The scrim is the bar's own background, so it comes and goes with
+   the bar. The side columns share the free width, so the title stays centred until one of them
+   needs more. Only the buttons take the pointer; a drag anywhere else still swipes or pans the
+   photo. */
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  align-items: start;
+  gap: 8px;
+  height: 120px;
+  padding: 8px 8px 0;
+  background: linear-gradient(var(--app-scrim-black-60), var(--app-scrim-black-25) 50%, transparent);
+  pointer-events: none;
+}
+
+/* A phone: back, the date with the place and position under it, favorite and ⋮ (useCompactViewer). */
+.bar[data-compact] {
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 4px;
+}
+
+.bar[data-compact] .title {
+  text-align: left;
+}
+
+.bar[data-compact] .titleDate {
+  font-size: 15px;
+}
+
+.bar[data-compact] .titleMeta {
+  justify-content: flex-start;
+}
+
+/* A phone's bottom bar: Share, Info and Delete under the thumb, as in Google Photos, on a dark
+   blurred band over the photo. */
+.bottomBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background-color: var(--app-scrim-black-75);
+  backdrop-filter: blur(12px);
+}
+
+/* The info sheet covers the bottom of the screen: the bar gives way to it (the stage's data-info,
+   ContentViewer). */
+[data-info] > .bottomBar {
+  display: none;
+}
+
+.bar > * {
+  pointer-events: auto;
+}
+
+/* Back, in the first column */
+.bar > :first-child {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.actions {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* The centred title: the date in white, place and position dimmed under it, each cut short with an
+   ellipsis rather than pushing into the buttons. It takes no pointer, so a drag over it still
+   swipes the photo. */
+.title {
+  grid-column: 2;
+  min-width: 0;
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  color: var(--mantine-color-white);
+}
+
+.bar > .title {
+  pointer-events: none;
+}
+
+.titleDate,
+.titleMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleDate {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.titleMeta {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--app-scrim-white-80);
+}
+
+.titlePlace {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titlePosition {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every toolbar button: a white icon in a 40px round hit area with a light tint on hover. Nested
+   under the bars to outrank ActionIcon's own colours whatever order the stylesheets load in. */
+.bar .button,
+.bottomBar .button {
+  color: var(--app-scrim-white-90);
+  background-color: transparent;
+}
+
+.bar .button:hover,
+.bottomBar .button:hover {
+  color: var(--mantine-color-white);
+  background-color: var(--app-scrim-white-12);
+}
+
+.bar .button[data-active],
+.bottomBar .button[data-active] {
+  color: var(--mantine-color-white);
+  background-color: var(--app-scrim-white-16);
+}
+
+/* The running slideshow's pause button, inside its progress ring. */
+.ring {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringProgress {
+  position: absolute;
+  inset: 0;
+}
+
+.ring .button {
+  z-index: 1;
+}
+
 /* The slideshow interval picker sits on the dark lightbox in either colour
    scheme, so its options keep white text. Mantine's light-scheme hover would
    put that text on a near-white background; nesting under the dropdown class

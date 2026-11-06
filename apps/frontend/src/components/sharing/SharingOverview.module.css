@@ -1,11 +1,83 @@
 /* The Sharing overview (routes/_protected/sharing/index.tsx) */
 
-/* A public album's 140px card with its share button over the cover's corner */
-.albumWithButton {
-  position: relative;
-  flex-shrink: 0;
-  width: 140px;
-  scroll-snap-align: start;
+/* The sections: one list, a hairline between them, no boxes (SharingRow). */
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.list > * + * {
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.section {
+  padding-block: 20px;
+}
+
+.list > :first-child {
+  padding-top: 4px;
+}
+
+/* Icon, title and its line, then the action on the right, level with the title */
+.row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 16px;
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--mantine-color-dimmed);
+}
+
+.text {
+  min-width: 0;
+}
+
+.title.title {
+  font-size: calc(0.9375rem * var(--mantine-scale));
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.description {
+  margin-top: 2px;
+  color: var(--mantine-color-dimmed);
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  line-height: 1.4;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* What the section holds, under the row: in the text's column, so the icon column stays clear */
+.body {
+  margin-top: 12px;
+  padding-left: 40px;
+
+  @media (max-width: 47.99em) {
+    padding-left: 0;
+  }
+}
+
+/* "View all ›": the link colour of the theme, 13px */
+.viewAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--mantine-color-anchor);
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 /* A user's placeholder while the public users load: an avatar over a name */

@@ -1,4 +1,4 @@
-import { DateTime, Duration, Info, Settings } from "luxon";
+import { DateTime, Duration, Info, Interval, Settings } from "luxon";
 
 /**
  * The date helpers. Parse and format dates only through this module: the UI
@@ -230,4 +230,23 @@ export function calendarYear(yearsAgo: number): { first: string; last: string } 
 /** The day `days` days before today, in the viewer's zone, as `YYYY-MM-DD`. */
 export function calendarDaysAgo(days: number): string {
   return DateTime.now().minus({ days }).toFormat(CALENDAR_DAY_FORMAT);
+}
+
+/**
+ * The days a set of `exif_timestamp`s spans, in the UI language: "Oct 17 – 18, 2026", one day as
+ * "Oct 17, 2026"; null when none is a valid timestamp. Read as wall-clock time (`parsePhotoTimestamp`).
+ */
+export function formatPhotoDaySpan(timestamps: ReadonlyArray<string | null | undefined>): string | null {
+  let first: DateTime | null = null;
+  let last: DateTime | null = null;
+  for (const timestamp of timestamps) {
+    if (!timestamp) continue;
+    const taken = parsePhotoTimestamp(timestamp);
+    if (!taken.isValid) continue;
+    if (!first || taken < first) first = taken;
+    if (!last || taken > last) last = taken;
+  }
+  if (!first || !last) return null;
+  if (first.hasSame(last, "day")) return first.toLocaleString(DateTime.DATE_MED);
+  return Interval.fromDateTimes(first, last).toLocaleString(DateTime.DATE_MED);
 }

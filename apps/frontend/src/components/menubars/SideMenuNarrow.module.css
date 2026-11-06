@@ -18,26 +18,28 @@
 .bottom_links {
   padding-top: var(--mantine-spacing-xs);
   padding-bottom: var(--mantine-spacing-sm);
-  /* Same token as the navbar's own edge, so the divider reads as part of the
-     shell. A light-dark() colour fell back to black (currentColor) wherever
-     the browser does not support light-dark(). */
-  border-top: 1px solid var(--mantine-color-default-border);
 }
 
+/* Rows are full pills like Google Photos' and Immich's navigation: neutral text and outline
+   icons, and the current section in the primary colour's light tint. */
 .link {
   display: flex;
   align-items: center;
+  min-height: 40px;
+  margin: 2px var(--mantine-spacing-xs);
   text-decoration: none;
   font-weight: 500;
   font-size: var(--mantine-font-size-sm);
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
-  border-radius: var(--mantine-radius-sm);
-  color: light-dark(var(--mantine-color-dark-9), var(--mantine-color-gray-3));
+  padding: 0 var(--mantine-spacing-md);
+  border-radius: 999px;
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
   background-color: transparent;
   &[data-active="true"] {
-    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    font-weight: 600;
+    color: var(--mantine-primary-color-light-color);
+    background-color: var(--mantine-primary-color-light);
   }
-  &:not([data-hover="no"]):hover {
+  &:not([data-hover="no"], [data-active="true"]):hover {
     background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
   }
   .nav-item-link-action {
@@ -46,7 +48,14 @@
 }
 
 .link_icon {
+  display: inline-flex;
+  flex-shrink: 0;
   margin-right: var(--mantine-spacing-sm);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.link[data-active="true"] .link_icon {
+  color: inherit;
 }
 
 .link_text {
@@ -62,9 +71,20 @@
   background-color: var(--mantine-color-blue-filled);
 }
 
-.progress {
-  /* Line up with the link rows (icon edge) instead of a fixed 10px inset. */
-  margin: 0 var(--mantine-spacing-sm) var(--mantine-spacing-xs);
+.storage {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 var(--mantine-spacing-xs) var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-lg);
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+}
+
+.storage_title {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
 }
 
 .cleanup {
@@ -93,4 +113,70 @@
   font-family: inherit;
   text-align: start;
   cursor: pointer;
+}
+
+/* A labelled group under the sections: pinned pages, recent albums. */
+.group {
+  margin-top: var(--mantine-spacing-sm);
+}
+
+.group_label {
+  padding: 4px calc(var(--mantine-spacing-xs) + var(--mantine-spacing-md)) 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mantine-color-dimmed);
+}
+
+.customize {
+  width: calc(100% - 2 * var(--mantine-spacing-xs));
+  margin-top: var(--mantine-spacing-xs);
+  color: var(--mantine-color-dimmed);
+}
+
+/* The customize menu's check box: empty when the page is not in the sidebar, filled when it is. */
+.pin_state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  border-radius: 5px;
+  color: var(--mantine-primary-color-contrast);
+
+  &[data-on="true"] {
+    border-color: var(--mantine-primary-color-filled);
+    background-color: var(--mantine-primary-color-filled);
+  }
+}
+
+/* The last line of the sidebar: version, docs and support in small dimmed text. */
+.footer_line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px calc(var(--mantine-spacing-xs) + var(--mantine-spacing-md)) 0;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+}
+
+.footer_link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--mantine-color-text);
+    text-decoration: underline;
+  }
 }

@@ -201,7 +201,7 @@ describe("a deleted face's menu", () => {
         pending={false}
         isScrollingFast={false}
         selectMode={false}
-        entrySquareSize={131}
+        faceSize={96}
         isSelected={false}
         handleClick={() => {}}
         handleShowClick={() => {}}
@@ -253,15 +253,12 @@ describe("the toolbar on the Deleted tab", () => {
     expect(restoreFaces).toHaveBeenCalledTimes(1);
   });
 
-  it("says why Restore does nothing before a face is selected", async () => {
-    const restoreFaces = vi.fn<() => void>();
-    await renderToolbar([], restoreFaces);
+  // The selection's actions only show once faces are selected, so no Restore that does nothing
+  it("offers Restore only once a face is selected", async () => {
+    await renderToolbar([], vi.fn<() => void>());
 
-    const restore = defined(buttonNamed("Restore"), "the Restore button");
-    await click(restore);
-
-    expect(restore.getAttribute("aria-disabled")).toBe("true");
-    expect(restoreFaces).not.toHaveBeenCalled();
+    expect(buttonNamed("Restore")).toBeUndefined();
+    expect(buttonNamed("Restore 1 face")).toBeUndefined();
   });
 
   it("keeps add, not this person and delete on the other tabs", async () => {

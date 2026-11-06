@@ -62,7 +62,6 @@ function OnlyScreenshots() {
     <PhotoListView
       title={t("photos.screenshots")}
       loading={isLoading}
-      icon={Screenshot}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
