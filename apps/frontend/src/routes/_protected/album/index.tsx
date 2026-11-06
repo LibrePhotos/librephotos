@@ -1,6 +1,6 @@
 import { Skeleton, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconFaceId, IconFolder, IconSettingsAutomation, IconTag, IconTags } from "@tabler/icons-react";
+import { IconFolder, IconSettingsAutomation, IconTag, IconTags } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import clsx from "clsx";
 import React, { useState } from "react";
@@ -15,6 +15,7 @@ import {
 import { useFetchTagsQuery } from "../../../api_client/tags/hooks";
 import { AlbumSection, AlbumSectionHeading, HUB_CARD_WIDTH } from "../../../components/album/AlbumSection";
 import classes from "../../../components/album/AlbumSection.module.css";
+import { HubPeopleRow } from "../../../components/album/HubPeopleRow";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
@@ -76,16 +77,6 @@ function AlbumExplore() {
   };
 
   // Transform albums to AlbumPreview format
-  const peoplePreview = (peopleAlbums ?? []).map(album => ({
-    id: album.id,
-    title: album.name,
-    photoCount: album.face_count,
-    coverUrl: album.face_photo_url || undefined,
-    faceUrl: album.face_url || undefined,
-    isVideo: album.video,
-    linkTo: `/album/persons/${album.id}`,
-  }));
-
   const thingsPreview = (thingsAlbums ?? []).map(album => ({
     id: album.id,
     title: album.title,
@@ -173,22 +164,8 @@ function AlbumExplore() {
             )}
           </div>
 
-          {/* People - avatar grid, full section */}
-          <AlbumSection
-            title={t("sidemenu.people")}
-            albums={peoplePreview}
-            viewAllLink="/album/persons"
-            isLoading={isLoadingPeople}
-            error={peopleFailure}
-            count={peopleAlbums?.length}
-            countLabel={t("explore.peopleCount", { count: peopleAlbums?.length ?? 0 })}
-            emptyMessage={t("emptystate.people.title")}
-            variant="avatarGrid"
-            maxItems={16}
-            actionLink="/faces"
-            actionLabel={t("personalbum.managefaces")}
-            actionIcon={<IconFaceId size={16} />}
-          />
+          {/* People: the People page's portrait cards, in one row */}
+          <HubPeopleRow people={peopleAlbums} isLoading={isLoadingPeople} error={peopleFailure} />
 
           {/* Category cards: five of them, so one row on large screens, in My Albums' grid */}
           <div className={classes.section}>

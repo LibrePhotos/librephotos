@@ -72,18 +72,22 @@ type SharedPhotoCardProps = Readonly<{
 }>;
 
 /**
- * A shared photo in a "shared with you" or "you shared" row: the album cards' look, captioned
- * "Photo" or "Video" and its date, so a row of photos and albums is one kind of card.
+ * A shared photo in a "shared with you" or "you shared" row: the album cards' look, titled by the
+ * day it was taken (what tells two photos apart) with "Photo" or "Video" as its dimmed line, so a
+ * row of photos and albums is one kind of card. Undated, the kind is the title.
  */
 export function SharedPhotoCard({ photo, renderLink }: SharedPhotoCardProps) {
   const { t } = useTranslation();
   const video = photo.type === "video";
+  const kind = video ? t("phototile.video") : t("phototile.photo");
+  const taken = photoTakenDate(photo);
   return (
     <CollectionCard
       className={classes.rowCard}
       size={ROW_CARD_SIZE}
-      title={video ? t("phototile.video") : t("phototile.photo")}
-      meta={photoTakenDate(photo)}
+      title={taken || kind}
+      meta={taken ? kind : undefined}
+      linkLabel={taken ? `${kind}, ${taken}` : kind}
       media={
         <Tile
           video={video}

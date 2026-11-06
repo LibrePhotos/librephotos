@@ -1,0 +1,86 @@
+/*
+ * The faces grid's cards (faceGridRows.ts has the heights these paddings add up to): a subtle
+ * surface with a 12px radius, 12px from its edge to the header and to the faces (8px here plus the
+ * 4px each face cell keeps around its face), and 12px between cards.
+ */
+.card {
+  box-sizing: border-box;
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  border: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+/* Small cards side by side, 12px apart and 12px above the next row */
+.shelf {
+  display: flex;
+  gap: 12px;
+  box-sizing: border-box;
+  padding-bottom: 12px;
+}
+
+.shelfCard {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: 4px;
+  padding: 11px 7px 7px;
+  border-radius: 12px;
+}
+
+/* A phone fits one small card a row: it takes the row's width */
+@media (max-width: 35.99em) {
+  .shelfCard {
+    flex: 1 1 auto;
+  }
+}
+
+.header {
+  padding-inline: 4px;
+}
+
+/* A wide card is cut into rows: each slice fills its row, the last one stops 12px short */
+.slot {
+  display: flex;
+  flex-direction: column;
+}
+
+.top {
+  height: 100%;
+  padding: 11px 11px 4px;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+}
+
+.middle {
+  height: 100%;
+  padding-inline: 7px;
+  border-block: 0;
+}
+
+.bottom {
+  height: calc(100% - 12px);
+  padding: 0 7px 7px;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+}
+
+.lone {
+  height: calc(100% - 12px);
+  padding: 11px;
+  border-radius: 12px;
+}
+
+.faces {
+  display: flex;
+}
+
+.faceCell {
+  display: grid;
+  flex: none;
+  width: 80px;
+  height: 80px;
+}
+
+/* Folded people: cells of their own, on the page, not on a card */
+.people {
+  display: flex;
+}

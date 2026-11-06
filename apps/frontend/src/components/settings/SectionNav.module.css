@@ -34,7 +34,7 @@
   margin-inline: -10px;
   margin-bottom: var(--mantine-spacing-md);
   padding: var(--mantine-spacing-xs) 10px;
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-body));
+  background-color: var(--mantine-color-body);
   border-bottom: 1px solid var(--mantine-color-default-border);
 }
 

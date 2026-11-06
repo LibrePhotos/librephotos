@@ -9,12 +9,12 @@
   min-height: 40px;
   padding: 0 var(--mantine-spacing-xs) 0 var(--mantine-spacing-md);
   border-radius: 999px;
-  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
   color: var(--mantine-color-dimmed);
   transition: background-color 120ms ease;
 
   &:hover {
-    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+    background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
   }
 }
 
@@ -49,6 +49,7 @@
 
 .action.action[data-selected] {
   color: var(--mantine-color-text);
+  --action-description-color: var(--mantine-color-dimmed);
   background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
 }
 
@@ -57,4 +58,9 @@
   color: inherit;
   font-weight: 700;
   background: none;
+}
+
+/* Icons in the selected row keep the text colour (they were white, for the old blue bar). */
+.action.action[data-selected] svg {
+  color: var(--mantine-color-text);
 }

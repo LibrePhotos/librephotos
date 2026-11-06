@@ -66,7 +66,7 @@ export function YourLibrarySection() {
               </Text>
             </div>
           </Group>
-          <Button size="sm" onClick={shareDialog.open}>
+          <Button size="sm" variant="light" onClick={shareDialog.open}>
             {t("librarySharing.shareMyLibrary")}
           </Button>
         </Group>

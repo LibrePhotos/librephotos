@@ -85,7 +85,6 @@ function Harness() {
       containerRef={null}
       gridRef={createRef<VirtualGridHandle>()}
       entrySquareSize={131}
-      numEntrySquaresPerRow={4}
       gridHeight={ROWS.length * 131}
       getCellContentsForTab={() => ROWS}
       getScrollPositions={() => []}

@@ -4,7 +4,6 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconCopy as Copy,
   IconDotsVertical as Dots,
-  IconLink as Link,
   IconArrowsMaximize as Maximize,
   IconArrowsMinimize as Minimize,
   IconPlayerPause as Pause,
@@ -12,11 +11,15 @@ import {
   IconArrowBackUp as Restore,
   IconRotate2 as RotateCCW,
   IconRotateClockwise2 as RotateCW,
+  IconShare as Share,
   IconTrash as Trash,
+  IconZoomIn as ZoomIn,
+  IconZoomOut as ZoomOut,
 } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../uiConstants";
+import { DisabledReason } from "../common/DisabledReason";
 import { FileActionItems } from "../photolist/FileActionItems";
 import { LightboxToolbarButton, TOOLBAR_BUTTON, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
 import { VisibilityMenuItems } from "./LightboxVisibilityActions";
@@ -36,10 +39,30 @@ export function TrashButton({ actions }: Readonly<{ actions: PhotoActions }>) {
   );
 }
 
+/** The owner's share link (P): the first of the toolbar's buttons, as in Google Photos and Immich. */
+export function ShareButton({ actions }: Readonly<{ actions: PhotoActions }>) {
+  const { t } = useTranslation();
+  return (
+    <LightboxToolbarButton label={t("sharing.shareLinkShortcut")} onClick={actions.openShareLink}>
+      <Share size={TOOLBAR_ICON_SIZE} color={actions.isShared ? "var(--mantine-color-green-4)" : undefined} />
+    </LightboxToolbarButton>
+  );
+}
+
 type MenuItemProps = Readonly<{ label: string; icon: React.ReactNode; onClick: () => void }>;
+
+/** Zoom of a still photo, in the ⋮ (Z and a double click on the photo do the same). */
+type ZoomItem = Readonly<{
+  isZoomed: boolean;
+  toggle: () => void;
+  /** Why it does nothing now (the 360° view zooms itself); false when it works. */
+  blockedReason: string | false;
+}>;
 
 type MoreMenuProps = Readonly<{
   actions: PhotoActions;
+  /** Absent for a video and anything else that does not zoom. */
+  zoom?: ZoomItem;
   /** The viewer's own photo with its details loaded, whose actions join the menu; else null. */
   ownPhoto: Photo | null;
   /** The server refuses to rotate a video, and the player would not show it. */
@@ -56,15 +79,10 @@ type MoreMenuProps = Readonly<{
   fullscreenLabel: string;
 }>;
 
-/** Hide, archive, the share link and the two rotations of the owner's photo. */
-function usePhotoItems({ actions, canRotate, onRotate }: MoreMenuProps): MenuItemProps[] {
+/** The two rotations of the owner's photo (hide and archive are VisibilityMenuItems). */
+function useRotationItems({ canRotate, onRotate }: MoreMenuProps): MenuItemProps[] {
   const { t } = useTranslation();
-  const share: MenuItemProps = {
-    label: t("sharing.shareLinkShortcut"),
-    icon: <Link size={ICON_SIZE.lightbox} color={actions.isShared ? "var(--mantine-color-green-6)" : undefined} />,
-    onClick: actions.openShareLink,
-  };
-  const rotations: MenuItemProps[] = canRotate
+  return canRotate
     ? [
         {
           label: t("lightbox.toolbar.rotateCCW"),
@@ -78,20 +96,20 @@ function usePhotoItems({ actions, canRotate, onRotate }: MoreMenuProps): MenuIte
         },
       ]
     : [];
-  return [share, ...rotations];
 }
 
 /**
- * The toolbar's ⋮: what is used less often, with labels. The slideshow, copy and fullscreen for
- * everyone; for the owner's photo also hide, archive, the share link, the rotations and the file
- * actions (rescan, faces). Their shortcuts (S, Ctrl+C, G, H, A, P) work with the menu closed.
+ * The toolbar's ⋮: what is used less often, with labels. Zoom, the slideshow, copy and fullscreen
+ * for everyone; for the owner's photo also hide, archive, the rotations and the file actions
+ * (rescan, faces). Their shortcuts (Z, S, Ctrl+C, G, H, A) work with the menu closed.
  */
 export function LightboxMoreMenu(props: MoreMenuProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
-  const { actions, ownPhoto, isSlideshowActive, toggleSlideshow, slideshowLabel } = props;
+  const { actions, ownPhoto, isSlideshowActive, toggleSlideshow, slideshowLabel, zoom } = props;
   const { onCopyToClipboard, copyLabel, isFullscreen, toggleFullscreen, fullscreenLabel } = props;
-  const photoItems = usePhotoItems(props);
+  const photoItems = useRotationItems(props);
+  const zoomLabel = zoom?.isZoomed ? t("lightbox.controls.zoomout") : t("lightbox.controls.zoomin");
   const label = t("lightbox.toolbar.moreActions");
   return (
     // Kept inside the lightbox: a portal would not show in fullscreen.
@@ -111,6 +129,16 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
         </Tooltip>
       </Menu.Target>
       <Menu.Dropdown>
+        {zoom && (
+          <DisabledReason reason={zoom.blockedReason} position="left">
+            <Menu.Item
+              leftSection={zoom.isZoomed ? <ZoomOut size={ICON_SIZE.lightbox} /> : <ZoomIn size={ICON_SIZE.lightbox} />}
+              onClick={zoom.toggle}
+            >
+              {zoomLabel}
+            </Menu.Item>
+          </DisabledReason>
+        )}
         <Menu.Item
           leftSection={isSlideshowActive ? <Pause size={ICON_SIZE.lightbox} /> : <Play size={ICON_SIZE.lightbox} />}
           onClick={toggleSlideshow}

@@ -42,7 +42,7 @@ function SharedLibrary() {
       isPublic
       titleBadge={<ReadOnlyBadge />}
       additionalSubHeader={<LibrarySubHeader share={share} />}
-      headerActions={<LibraryMenu share={share} />}
+      headerMenu={<LibraryMenu share={share} />}
       emptyStateConfig={{ title: t("librarySharing.emptyLibrary", { name }), description: "" }}
       error={library.failure}
     />

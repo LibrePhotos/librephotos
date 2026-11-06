@@ -146,6 +146,29 @@
 }
 
 /* The file name: up to two lines, broken anywhere, and the whole of it on hover. */
+/* "JPEG · Photo ⌄" under the file name: dimmed 12px, a dot between whichever parts there are. */
+.formatLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 2px;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.4;
+  color: var(--mantine-color-dimmed);
+}
+
+.formatLine:empty {
+  display: none;
+}
+
+.formatLine > * + *::before {
+  content: "·";
+  display: inline-block;
+  /* The category's button adds its 2px gap after the dot. */
+  margin: 0 2px 0 4px;
+  color: var(--mantine-color-dimmed);
+}
+
 .fileName {
   word-break: break-all;
 }

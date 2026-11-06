@@ -1,20 +1,20 @@
-import { ActionIcon, Box, Group, Tooltip } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { ActionIcon, Group, Tooltip } from "@mantine/core";
 import { IconLink } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { toolbarLook } from "../common/toolbarLook";
+import { HeaderActionsMenu } from "./HeaderActionsMenu";
 import { MediaTypeSelector } from "./MediaTypeSelector";
-import { PhotoListDisplayMenu } from "./PhotoListDisplayMenu";
-import classes from "./PhotoListToolbar.module.css";
+import { PhotoListDisplayOptions } from "./PhotoListDisplayOptions";
 import { SelectModeButton } from "./SelectModeButton";
 import type { usePhotoListPreferences } from "./usePhotoListPreferences";
+import { ViewOptionsContext } from "./viewOptionsContext";
 
 type Props = Readonly<{
-  /** The page's own controls (PhotoListView's `headerActions`). */
+  /** The page's own controls (PhotoListView's `headerActions`): a Filter, after the media type. */
   headerActions?: React.ReactNode;
-  /** The page's ⋮ menu (PhotoListView's `headerMenu`), after Select. */
+  /** The page's ⋯ (PhotoListView's `headerMenu`, a HeaderActionsMenu), always last. */
   headerMenu?: React.ReactNode;
   /**
    * The list's own controls can show: the photos are loaded and the view is not read-only
@@ -34,9 +34,33 @@ type Props = Readonly<{
   selectMode?: React.ComponentProps<typeof SelectModeButton>;
 }>;
 
+function DisplayOptions({ preferences, photoOrder }: Readonly<Pick<Props, "preferences" | "photoOrder">>) {
+  return (
+    <PhotoListDisplayOptions
+      localImageScale={preferences.localImageScale}
+      localTextAlignment={preferences.localTextAlignment}
+      localHeaderSize={preferences.localHeaderSize}
+      localScrubberStyle={preferences.localScrubberStyle}
+      onThumbnailSizeChange={preferences.handleThumbnailSizeChange}
+      onTextAlignmentChange={preferences.handleTextAlignmentChange}
+      onHeaderSizeChange={preferences.handleHeaderSizeChange}
+      onScrubberStyleChange={preferences.handleScrubberStyleChange}
+      photoOrder={
+        photoOrder && {
+          order: preferences.photoOrder,
+          onChange: preferences.handlePhotoOrderChange,
+          eventOrder: photoOrder === "events",
+        }
+      }
+    />
+  );
+}
+
 /**
- * The right-hand toolbar of a photo list's header: the media-type filter, the page's actions, a
- * public album's link button, the Select button and the display settings.
+ * The right-hand side of a photo list's header, in the order every page header keeps: the
+ * media-type dropdown, the page's Filter, a public album's link, Select, then the ⋯ holding the
+ * page's actions and "View options…" (the display options, so there is no second "adjust" icon
+ * beside a Filter).
  *
  * headerActions stay mounted while the view reloads: changing the timeline filter refetches, and
  * an open filter popover must not close under the pointer. The other controls wait for the
@@ -56,57 +80,36 @@ export function PhotoListToolbar({
   selectMode,
 }: Props) {
   const { t } = useTranslation();
-  const [displayMenuOpened, { open: openDisplayMenu, close: closeDisplayMenu }] = useDisclosure(false);
   const withPhotos = listControls && hasPhotos;
 
   if (!headerActions && !headerMenu && !withPhotos && !(listControls && mediaFilter)) return null;
 
-  // One order on every page: media type, the page's actions, Select, the page's ⋮, then the
-  // display options. Its top padding centres the 34px controls on the title's first line.
   return (
-    <Box ml="auto" className={classes.toolbar}>
-      <Group gap={4} wrap="nowrap">
-        {/* The media-type filter stays visible even when the current
+    <Group gap={4} wrap="nowrap">
+      {/* The media-type filter stays visible even when the current
           filter yields no photos, so the user is never trapped. */}
-        {listControls && mediaFilter && <MediaTypeSelector />}
-        {headerActions}
-        {withPhotos && publicLink && (
-          <Tooltip label={t("sidemenu.sharing")} position="bottom">
-            <ActionIcon
-              {...toolbarLook()}
-              size={TOOLBAR_ACTION_SIZE}
-              aria-label={t("sidemenu.sharing")}
-              onClick={onOpenSharing}
-            >
-              <IconLink size={ICON_SIZE.toolbar} />
-            </ActionIcon>
-          </Tooltip>
-        )}
-        {withPhotos && selectMode && <SelectModeButton {...selectMode} />}
-        {headerMenu}
-        {withPhotos && (
-          <PhotoListDisplayMenu
-            displayMenuOpened={displayMenuOpened}
-            openDisplayMenu={openDisplayMenu}
-            closeDisplayMenu={closeDisplayMenu}
-            localImageScale={preferences.localImageScale}
-            localTextAlignment={preferences.localTextAlignment}
-            localHeaderSize={preferences.localHeaderSize}
-            localScrubberStyle={preferences.localScrubberStyle}
-            onThumbnailSizeChange={preferences.handleThumbnailSizeChange}
-            onTextAlignmentChange={preferences.handleTextAlignmentChange}
-            onHeaderSizeChange={preferences.handleHeaderSizeChange}
-            onScrubberStyleChange={preferences.handleScrubberStyleChange}
-            photoOrder={
-              photoOrder && {
-                order: preferences.photoOrder,
-                onChange: preferences.handlePhotoOrderChange,
-                eventOrder: photoOrder === "events",
-              }
-            }
-          />
-        )}
-      </Group>
-    </Box>
+      {listControls && mediaFilter && <MediaTypeSelector />}
+      {headerActions}
+      {withPhotos && publicLink && (
+        // A phone keeps two icons beside the ⋯: the album's ⋯ shares it there
+        <Tooltip label={t("sidemenu.sharing")} position="bottom">
+          <ActionIcon
+            {...toolbarLook()}
+            visibleFrom="sm"
+            size={TOOLBAR_ACTION_SIZE}
+            aria-label={t("sidemenu.sharing")}
+            onClick={onOpenSharing}
+          >
+            <IconLink size={ICON_SIZE.toolbar} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+      {withPhotos && selectMode && <SelectModeButton {...selectMode} />}
+      <ViewOptionsContext
+        value={withPhotos ? <DisplayOptions preferences={preferences} photoOrder={photoOrder} /> : null}
+      >
+        {headerMenu ?? <HeaderActionsMenu label={t("photodisplay.more")} />}
+      </ViewOptionsContext>
+    </Group>
   );
 }

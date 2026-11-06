@@ -126,7 +126,14 @@ export function FooterMenu(): React.JSX.Element {
   return (
     <Flex className={classes.bar} justify="space-around" align="center">
       {links}
-      <Menu width={200} position="top-end">
+      <Menu
+        // Nearly the screen's width with tall rows, like a phone's action sheet rather than a
+        // desktop popover.
+        width="calc(100vw - 16px)"
+        position="top-end"
+        offset={8}
+        classNames={{ dropdown: classes.sheet, item: classes.sheetItem }}
+      >
         <Menu.Target>
           <UnstyledButton className={classes.tab} aria-label={t("topmenu.accountmenu")}>
             <span className={classes.pill} aria-hidden>

@@ -8,11 +8,11 @@ import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
-import { EmptyTrashButton } from "../../components/photolist/EmptyTrashButton";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import { TrashHeaderMenu } from "../../components/photolist/TrashHeaderMenu";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
@@ -77,8 +77,9 @@ function DeletedPhotos() {
           {retentionDays > 0 ? t("trash.retentionOn", { count: retentionDays }) : t("trash.retentionOff")}
         </Text>
       }
-      // The whole trash, whatever the media filter shows; it waits for the job it starts.
-      headerActions={<EmptyTrashButton shownCount={photosFlat.length} />}
+      // Empty trash, in the ⋯: the whole trash, whatever the media filter shows; it waits for the
+      // job it starts.
+      headerMenu={<TrashHeaderMenu shownCount={photosFlat.length} />}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

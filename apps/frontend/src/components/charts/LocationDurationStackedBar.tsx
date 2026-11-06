@@ -1,5 +1,5 @@
 import { BarChart } from "@mantine/charts";
-import { Loader, ScrollArea, Stack, Title } from "@mantine/core";
+import { Loader, Stack, Title } from "@mantine/core";
 import { IconMapPin } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { EmptyState } from "../common/EmptyState";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
 import { locationTimelineChart, stayForSeries } from "./locationTimelineChart";
+import classes from "./StatisticsCharts.module.css";
 
 export function LocationDurationStackedBar() {
   const timelineQuery = useLocationTimelineQuery();
@@ -17,7 +18,7 @@ export function LocationDurationStackedBar() {
   const { t } = useTranslation();
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
 
-  const { data: chartData, series } = locationTimelineChart(fetchedLocationTimeline ? locationTimeline : []);
+  const { data: chartData, series, legend } = locationTimelineChart(fetchedLocationTimeline ? locationTimeline : []);
 
   function getTooltipContent(active?: boolean) {
     if (!active || !hoveredSegment) return null;
@@ -25,33 +26,18 @@ export function LocationDurationStackedBar() {
     const locData = stayForSeries(locationTimeline, hoveredSegment);
     if (!locData) return null;
 
-    const segmentColor = locData.color;
+    // The place's colour, as the bar and the legend show it
+    const swatch = { backgroundColor: series.find(entry => entry.name === hoveredSegment)?.color };
     const startDate = fromUnixSeconds(locData.start).toLocaleString({ year: "numeric", month: "short" });
     const endDate = fromUnixSeconds(locData.end).toLocaleString({ year: "numeric", month: "short" });
 
     return (
-      <div
-        style={{
-          background: "var(--mantine-color-body)",
-          border: "1px solid var(--mantine-color-default-border)",
-          borderRadius: "var(--mantine-radius-sm)",
-          padding: "8px 12px",
-          boxShadow: "var(--mantine-shadow-md)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 2,
-              backgroundColor: segmentColor,
-              flexShrink: 0,
-            }}
-          />
-          <div style={{ fontWeight: 500 }}>{locData.loc}</div>
+      <div className={classes.tooltip}>
+        <div className={classes.tooltipTitle}>
+          <span className={classes.swatch} style={swatch} />
+          {locData.loc}
         </div>
-        <div style={{ color: "var(--mantine-color-dimmed)", fontSize: "0.875rem", marginTop: 4 }}>
+        <div className={classes.tooltipValue}>
           {startDate} – {endDate}
         </div>
       </div>
@@ -91,7 +77,7 @@ export function LocationDurationStackedBar() {
             // props were built for. Recharts 3 no longer passes the
             // tooltipPayload this used to read the name from.
             barProps={segment => ({
-              radius: 4,
+              radius: 2,
               onMouseMove: () => {
                 if (segment.name !== hoveredSegment) {
                   setHoveredSegment(segment.name);
@@ -104,23 +90,18 @@ export function LocationDurationStackedBar() {
             vars={() => ({ root: { "--chart-cursor-fill": "var(--mantine-color-gray-light)" } })}
             tooltipProps={{ content: ({ active }) => getTooltipContent(active) }}
           />
-          <ScrollArea type="auto" offsetScrollbars>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", paddingTop: 8 }}>
-              {series.map(s => (
-                <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 2,
-                      backgroundColor: s.color,
-                    }}
-                  />
-                  <span style={{ fontSize: "0.75rem" }}>{s.label}</span>
+          {/* One entry per place, the places past the palette as "Other" */}
+          <div className={classes.legend}>
+            {legend.map(entry => {
+              const swatch = { backgroundColor: entry.color };
+              return (
+                <div key={entry.label ?? ""} className={classes.legendItem}>
+                  <span className={classes.swatch} style={swatch} />
+                  <span>{entry.label ?? t("statistics.otherplaces")}</span>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+              );
+            })}
+          </div>
         </>
       )}
     </Stack>

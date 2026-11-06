@@ -152,8 +152,21 @@
   aspect-ratio: 1;
 }
 
-/* Avatar Grid variant for People: round faces in a grid that fills the row, names in 12px under
-   them, cut to their cell. Four columns on a phone. */
+/* The hub's people (HubPeopleRow): the People page's portrait cards, 120px, in the scrolling row */
+.personCard {
+  flex: 0 0 auto;
+  width: 120px;
+  scroll-snap-align: start;
+}
+
+.personSkeleton {
+  flex: 0 0 auto;
+  width: 120px;
+  height: 160px;
+}
+
+/* Round faces in a grid that fills the row, names in 12px under them, cut to their cell (the
+   Sharing overview's people). Four columns on a phone. */
 .avatarGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
@@ -193,23 +206,8 @@
   transition: transform 150ms ease;
 }
 
-/* The hub's people: larger faces from sm on, to fill their wider cells */
-@media (min-width: 48em) {
-  .avatarLarge {
-    width: 80px;
-    height: 80px;
-  }
-}
-
 .avatarItem:hover .avatar {
   transform: scale(1.05);
-}
-
-.avatarImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
 }
 
 .avatarName {
@@ -222,14 +220,6 @@
   white-space: nowrap;
 }
 
-.avatarSkeleton {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-}
-
-/* Loading states for variants */
 .avatarGridLoading {
   display: flex;
   flex-wrap: wrap;

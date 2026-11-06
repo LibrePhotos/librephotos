@@ -347,7 +347,7 @@ function OwnerSidebar({
           <VersionComponent
             photoDetail={photoDetail}
             isPublic={false}
-            category={<CategoryBadge key={photoDetail.image_hash} photoDetail={photoDetail} />}
+            category={<CategoryBadge key={photoDetail.image_hash} photoDetail={photoDetail} look="text" />}
             location={
               <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} yourPlace={yourPlace} />
             }

@@ -11,6 +11,7 @@ import { USER_ALBUM_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { validateCollectionSearch } from "../../../components/album/collectionFilter";
 import { ManageAlbumCollectionsModal } from "../../../components/album/ManageAlbumCollectionsModal";
+import { MyAlbumsHeaderMenu } from "../../../components/album/MyAlbumsHeaderMenu";
 import { NewAlbumButton } from "../../../components/album/NewAlbumButton";
 import { useAlbumCollectionFilter } from "../../../components/album/useAlbumCollectionFilter";
 import { useAlbumSort } from "../../../components/album/useAlbumSort";
@@ -102,6 +103,9 @@ function AlbumUser() {
           <>
             {hasAlbums ? <AlbumSortMenu {...albumSort.menu} /> : null}
             <NewAlbumButton existingTitles={titles} collection={collection} />
+            {hasAlbums ? (
+              <MyAlbumsHeaderMenu hasCollections={collections.length > 0} onManage={manageDialog.open} />
+            ) : null}
           </>
         }
       />
@@ -111,7 +115,6 @@ function AlbumUser() {
           counts={counts}
           value={filter}
           onChange={next => void navigate({ search: next === undefined ? {} : { collection: next } })}
-          onManage={manageDialog.open}
         />
       )}
       <AlbumCollectionsModal

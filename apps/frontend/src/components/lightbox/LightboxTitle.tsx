@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import classes from "./LightboxControls.module.css";
+import { useCompactViewer } from "./useCompactViewer";
 
 /** Where the shown photo is in the list the lightbox steps through, counted from 1. */
 type LightboxPosition = Readonly<{ current: number; total: number }>;
@@ -34,8 +35,19 @@ function shortPlace(place: string): string {
 export function LightboxTitle({ timestamp, place, position }: Props) {
   const { t } = useTranslation();
   const locale = useFormatLocale();
+  // A phone has room for one line: "Oct 17, 2026". The place is in the info sheet.
+  const compact = useCompactViewer();
   const taken = timestamp ? parsePhotoTimestamp(timestamp) : null;
-  const date = taken?.isValid ? taken.toLocaleString(DateTime.DATE_MED_WITH_WEEKDAY) : null;
+  const date = taken?.isValid
+    ? taken.toLocaleString(compact ? DateTime.DATE_MED : DateTime.DATE_MED_WITH_WEEKDAY)
+    : null;
+  if (compact) {
+    return date ? (
+      <div className={classes.title}>
+        <div className={classes.titleDate}>{date}</div>
+      </div>
+    ) : null;
+  }
   const where = place ? shortPlace(place) : null;
   const which =
     position && position.total > 1

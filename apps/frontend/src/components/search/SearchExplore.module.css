@@ -1,0 +1,80 @@
+/* The Explore page's people: 64px faces with the name under them, one row that scrolls sideways,
+   pulled out by its padding so a face's hover ring is not clipped. */
+.people {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  margin: 0 -4px;
+  padding: 4px 4px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4)) transparent;
+}
+
+.person {
+  flex: 0 0 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--mantine-radius-md);
+}
+
+.person:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.face {
+  transition: transform 150ms ease;
+}
+
+.person:hover .face {
+  transform: scale(1.05);
+}
+
+.personName {
+  width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Places and things: six square tiles in a row on a wide screen, three per row from a tablet, and on
+   a phone a row that scrolls sideways, so each section stays one band high. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 75em) {
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 48em) {
+  .tiles {
+    display: flex;
+    overflow-x: auto;
+    margin: 0 -4px;
+    padding: 0 4px 8px;
+    scrollbar-width: none;
+  }
+
+  .tiles > * {
+    flex: 0 0 140px;
+  }
+}
+
+.tileSkeleton {
+  height: auto;
+  aspect-ratio: 1;
+}

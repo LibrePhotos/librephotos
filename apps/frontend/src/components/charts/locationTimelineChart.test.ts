@@ -29,6 +29,36 @@ describe("locationTimelineChart", () => {
   });
 
   it("has no data row without stays", () => {
-    expect(locationTimelineChart([])).toEqual({ data: [], series: [] });
+    expect(locationTimelineChart([])).toEqual({ data: [], series: [], legend: [] });
+  });
+});
+
+describe("the location timeline's colours", () => {
+  it("gives a place one colour on every stay and names it once in the legend", () => {
+    const { series, legend } = locationTimelineChart(timeline);
+
+    const colorOf = (place: string) => new Set(series.filter(s => s.label === place).map(s => s.color));
+    expect(colorOf("Canada").size).toBe(1);
+    expect(colorOf("France").size).toBe(1);
+    // The places with the most time first
+    expect(legend.map(entry => entry.label)).toEqual(["Germany", "France", "Canada"]);
+    expect(new Set(legend.map(entry => entry.color)).size).toBe(3);
+  });
+
+  it("groups the places past the palette as Other", () => {
+    const places = Array.from({ length: 11 }, (_unused, i) => ({
+      loc: `Place ${i}`,
+      data: [100 - i],
+      color: "#0",
+      start: i,
+      end: i + 1,
+    }));
+    const { series, legend } = locationTimelineChart(places);
+
+    expect(legend).toHaveLength(9);
+    expect(legend.at(-1)?.label).toBeNull();
+    const other = defined(legend.at(-1)).color;
+    expect(series.slice(8).every(s => s.color === other)).toBe(true);
+    expect(series.slice(0, 8).some(s => s.color === other)).toBe(false);
   });
 });

@@ -39,3 +39,6 @@ export const BRAND_SCALE: MantineColorsTuple = [
 
 /** Secondary text in the light scheme: Mantine's gray 6 is 3.2:1 on the page, this is 5.5:1. */
 export const LIGHT_DIMMED = "#5f6670";
+
+/** Main text in the light scheme: a soft near-black like Apple's #1d1d1f, not pure black. */
+export const LIGHT_TEXT = "#1b1b1f";

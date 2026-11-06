@@ -71,7 +71,6 @@ export function PhotoListSelectionBar({
             </ActionIcon>
           </Tooltip>
           <SelectionBar
-            selectMode={selectionState.selectMode}
             selectAllMode={selectionState.selectAllMode}
             selectedItems={selectionState.selectedItems}
             idx2hash={idx2hash}

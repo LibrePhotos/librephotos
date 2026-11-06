@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Indicator, Menu, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, Indicator, Menu, Tooltip, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
   IconArrowsSort as ArrowsSort,
@@ -37,9 +37,11 @@ export function AlbumSortMenu({ options, sort, defaultSort, onChange }: AlbumSor
       <Menu.Target>
         {isPhone ? (
           <Indicator size={8} offset={4} disabled={isDefault}>
-            <ActionIcon {...look} size={TOOLBAR_ACTION_SIZE} aria-label={name} title={name}>
-              <ArrowsSort size={ICON_SIZE.toolbar} />
-            </ActionIcon>
+            <Tooltip label={name} position="bottom">
+              <ActionIcon {...look} size={TOOLBAR_ACTION_SIZE} aria-label={name}>
+                <ArrowsSort size={ICON_SIZE.toolbar} />
+              </ActionIcon>
+            </Tooltip>
           </Indicator>
         ) : (
           <Button

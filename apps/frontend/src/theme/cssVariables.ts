@@ -1,6 +1,6 @@
 import type { CSSVariablesResolver } from "@mantine/core";
 import { v8CssVariablesResolver } from "@mantine/core";
-import { LIGHT_DIMMED } from "./palette";
+import { LIGHT_DIMMED, LIGHT_TEXT } from "./palette";
 
 /**
  * Mantine 8's variables (transparent light variants), with the dark scheme's primary tint
@@ -31,6 +31,9 @@ export const appCssVariablesResolver: CSSVariablesResolver = theme => {
     light: {
       ...base.light,
       "--mantine-color-dimmed": LIGHT_DIMMED,
+      // Text and headings in a soft near-black; --mantine-color-black stays black for scrims and
+      // the viewer's stage.
+      "--mantine-color-text": LIGHT_TEXT,
       "--mantine-primary-color-contrast": "var(--mantine-color-white)",
     },
     dark: {

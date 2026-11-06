@@ -54,3 +54,14 @@
 .tab[data-active="true"] .label {
   font-weight: 600;
 }
+
+/* The account menu on a phone: a wide, rounded sheet above the tab bar with finger-sized rows. */
+.sheet {
+  border-radius: var(--mantine-radius-lg);
+  padding: 6px;
+}
+
+.sheetItem {
+  min-height: 44px;
+  font-size: var(--mantine-font-size-md);
+}

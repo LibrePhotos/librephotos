@@ -18,7 +18,7 @@ export function PlaySlideshowButton({ onPlay }: Props) {
     <>
       <Button
         visibleFrom="sm"
-        variant="filled"
+        variant="light"
         h={TOOLBAR_CONTROL_HEIGHT}
         leftSection={<IconPlayerPlay size={ICON_SIZE.toolbar} />}
         onClick={onPlay}
@@ -26,7 +26,7 @@ export function PlaySlideshowButton({ onPlay }: Props) {
         {label}
       </Button>
       <Tooltip label={label} hiddenFrom="sm">
-        <ActionIcon hiddenFrom="sm" variant="filled" size={TOOLBAR_ACTION_SIZE} aria-label={label} onClick={onPlay}>
+        <ActionIcon hiddenFrom="sm" variant="light" size={TOOLBAR_ACTION_SIZE} aria-label={label} onClick={onPlay}>
           <IconPlayerPlay size={ICON_SIZE.toolbar} />
         </ActionIcon>
       </Tooltip>

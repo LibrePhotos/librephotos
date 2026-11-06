@@ -28,10 +28,11 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { calculateFaceGridCells } from "../../util/gridUtils";
 import { STORAGE_KEYS } from "../../util/storage";
+import { rowHeightOf } from "./faceGridRows";
 import { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
-import { FACE_HEADER_ROW_HEIGHT, isPersonCell, useVirtualizedGrid, type GridCell } from "./hooks/useVirtualizedGrid";
+import { isPersonCell, useVirtualizedGrid, type GridCell } from "./hooks/useVirtualizedGrid";
 import { PersonCell } from "./PersonCell";
 
 const stubs = vi.hoisted(() => ({
@@ -87,9 +88,8 @@ function person(id: number, name: string, faceCount: number): CompletePersonFace
 }
 
 const ITEMS_PER_ROW = 4;
-// calculateFaceGridCellSize puts ITEMS_PER_ROW faces of 104px in a row at this width
+// At this width Alice's nine faces need a wide card (rows of five), Bob's five fit a small one
 const GRID_WIDTH = 450;
-const CELL_SIZE = 104;
 const PEOPLE = [person(1, "Alice", 9), person(2, "Bob", 5)];
 const ALICE = defined(PEOPLE[0], "Alice");
 const LISTS = { labeled: PEOPLE, inferred: [], unknown: [], deleted: [] };
@@ -342,9 +342,8 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     const requests: SectionRequest[][] = [];
     const view = await renderGrid(infos => requests.push(infos));
 
-    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(
-      1 + Math.ceil(9 / ITEMS_PER_ROW) + 1 + Math.ceil(5 / ITEMS_PER_ROW)
-    );
+    // Alice's header and two rows of faces, then Bob's small card
+    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 2 + 1);
 
     // The viewport covers the first three rows, all of them Alice's
     await act(async () => {
@@ -362,9 +361,9 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     // Folding Alice pulls Bob's faces into those same rows without moving the row range
     await view.render({ ...NOTHING_COLLAPSED, labeled: new Set([1]) });
 
-    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 1 + Math.ceil(5 / ITEMS_PER_ROW));
-    // Alice's cell and Bob's two rows of faces are one cell high, Bob's header row is shorter
-    expect(view.grid.gridHeight).toBe(3 * CELL_SIZE + FACE_HEADER_ROW_HEIGHT);
+    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 1);
+    // Alice's cell in a row of people, then Bob's card
+    expect(view.grid.gridHeight).toBe(rowHeightOf("people") + rowHeightOf("shelf"));
     expect(requests).toHaveLength(2);
     expect(defined(requests[1], "the second request batch").map(request => request.person)).toEqual([2]);
 

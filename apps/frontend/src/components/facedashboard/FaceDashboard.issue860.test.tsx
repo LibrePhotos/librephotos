@@ -142,7 +142,7 @@ describe("issue #860 - pages a collapsed dashboard loads", () => {
         [],
         () => {},
         FaceAnalysisMethod.enum.clustering,
-        // Four people per row at this width (calculateFaceGridCellSize)
+        // Three people per row at this width (faceGridRows.ts)
         450,
         { labeled: new Set(), inferred: ALL, unknown: new Set(), deleted: new Set() }
       );
@@ -188,7 +188,6 @@ describe("issue #860 - person cells", () => {
             containerRef={null}
             gridRef={createRef<VirtualGridHandle>()}
             entrySquareSize={131}
-            numEntrySquaresPerRow={4}
             gridHeight={rows.length * 131}
             getCellContentsForTab={() => rows}
             getScrollPositions={() => [

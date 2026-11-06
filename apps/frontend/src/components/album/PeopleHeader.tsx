@@ -1,13 +1,14 @@
 import type { PersonGroup } from "@librephotos/api-client";
-import { ActionIcon, Button, Group, Indicator, Menu, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Group, Indicator, Menu, Tooltip, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
-import { IconDotsVertical, IconFaceId } from "@tabler/icons-react";
+import { IconDots, IconFaceId } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { toolbarLook } from "../common/toolbarLook";
 import { PageHeader } from "../PageHeader";
+import { HeaderActionsMenu } from "../photolist/HeaderActionsMenu";
 import { sameSort } from "./albumSort";
 import { AlbumSortMenu, AlbumSortMenuItems } from "./AlbumSortMenu";
 import { ManagePersonGroupsModal } from "./ManagePersonGroupsModal";
@@ -41,9 +42,11 @@ function PeopleOverflowMenu({ total, groups, group, onGroupChange, sort }: Contr
       <Menu position="bottom-end" shadow="md">
         <Indicator size={8} offset={4} disabled={!changed}>
           <Menu.Target>
-            <ActionIcon {...toolbarLook()} size={TOOLBAR_ACTION_SIZE} aria-label={t("personalbum.peopleoptions")}>
-              <IconDotsVertical size={ICON_SIZE.toolbar} />
-            </ActionIcon>
+            <Tooltip label={t("personalbum.peopleoptions")} position="bottom">
+              <ActionIcon {...toolbarLook()} size={TOOLBAR_ACTION_SIZE} aria-label={t("personalbum.peopleoptions")}>
+                <IconDots size={ICON_SIZE.toolbar} />
+              </ActionIcon>
+            </Tooltip>
           </Menu.Target>
         </Indicator>
         <Menu.Dropdown>
@@ -66,7 +69,7 @@ function PeopleOverflowMenu({ total, groups, group, onGroupChange, sort }: Contr
   );
 }
 
-/** The sort, the group filter and Manage faces as labelled buttons in a desktop header. */
+/** The sort and the group filter as labelled buttons in a desktop header, then the ⋯ with Manage faces. */
 function PeopleToolbar({ total, groups, group, onGroupChange, sort }: ControlsProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -74,21 +77,18 @@ function PeopleToolbar({ total, groups, group, onGroupChange, sort }: ControlsPr
     <Group gap={4} wrap="nowrap">
       {total > 0 && <AlbumSortMenu {...sort} />}
       {total > 0 && <PersonGroupFilter groups={groups} value={group?.id} onChange={onGroupChange} />}
-      <Button
-        {...toolbarLook()}
-        h={TOOLBAR_CONTROL_HEIGHT}
-        leftSection={<IconFaceId size={ICON_SIZE.toolbar} />}
-        onClick={() => void navigate({ to: "/faces" })}
-      >
-        {t("personalbum.managefaces")}
-      </Button>
+      <HeaderActionsMenu label={t("personalbum.peopleoptions")}>
+        <Menu.Item leftSection={<IconFaceId size={ICON_SIZE.menu} />} onClick={() => void navigate({ to: "/faces" })}>
+          {t("personalbum.managefaces")}
+        </Menu.Item>
+      </HeaderActionsMenu>
     </Group>
   );
 }
 
 /**
- * The People page's header: the count of the people shown, then the sort, the group filter and
- * Manage faces as the header's actions, folded into one ⋮ beside the title on a phone.
+ * The People page's header: the count of the people shown, then the sort, the group filter and the
+ * ⋯ with Manage faces as the header's actions, folded into one ⋮ beside the title on a phone.
  */
 export function PeopleHeader({ loading, shown, ...controls }: Props) {
   const { t } = useTranslation();

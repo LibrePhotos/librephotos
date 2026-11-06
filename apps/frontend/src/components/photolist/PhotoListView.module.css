@@ -10,5 +10,5 @@
   width: 100%;
   /* None: PageHeader brings the page's spacing, so the title sits where every page has it. */
   padding: 0;
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-body));
+  background-color: var(--mantine-color-body);
 }

@@ -153,7 +153,7 @@ describe("the faces toolbar", () => {
 
   it("trains the faces", async () => {
     await renderToolbar([]);
-    await act(async () => buttonLabelled(i18n.t("facesdashboard.explanationtraining")).click());
+    await act(async () => buttonWithText(i18n.t("facesdashboard.train")).click());
     expect(stubs.train).toHaveBeenCalledOnce();
   });
 });

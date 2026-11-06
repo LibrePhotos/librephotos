@@ -1,5 +1,5 @@
 import type { Photo } from "@librephotos/api-client";
-import { Box } from "@mantine/core";
+import { Box, getPrimaryShade, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
@@ -34,6 +34,11 @@ export function LocationMap({ photos }: Props) {
   const { mapStyle } = useMapStyle();
 
   const photosWithGPS = useMemo(() => photos.filter(isLocated), [photos]);
+  // The pin is HTML over the map, which the dark map filter leaves alone: the app's accent as this
+  // colour scheme draws it, not maplibre's own teal.
+  const theme = useMantineTheme();
+  const scheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
+  const markerColor = theme.colors[theme.primaryColor]?.[getPrimaryShade(theme, scheme)];
   const { avgLat, avgLon } = getAveragedCoordinates(photosWithGPS);
 
   const mapRef = useRef<MapRef | null>(null);
@@ -59,13 +64,14 @@ export function LocationMap({ photos }: Props) {
           longitude={photo.exif_gps_lon}
           latitude={photo.exif_gps_lat}
           anchor="bottom"
+          color={markerColor}
           onClick={e => {
             e.originalEvent.stopPropagation();
             setPopupInfo(photo);
           }}
         />
       )),
-    [photosWithGPS]
+    [photosWithGPS, markerColor]
   );
 
   if (photosWithGPS.length > 0 && mapStyle === null) {

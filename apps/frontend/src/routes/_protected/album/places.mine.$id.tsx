@@ -47,7 +47,7 @@ function YourPlaceGallery() {
           </Text>
         )
       }
-      headerActions={place && <YourPlaceActions place={place} />}
+      headerMenu={place && <YourPlaceActions place={place} />}
       banner={place && <YourPlaceMap place={place} />}
       selectable
     />

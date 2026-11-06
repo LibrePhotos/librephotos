@@ -98,7 +98,7 @@ describe("the things page", () => {
     const links = page.links("/album/things/2");
     // One card: the placeholder with the title on it
     expect(links).toHaveLength(1);
-    expect(links.some(link => link.textContent?.includes("harbour"))).toBe(true);
+    expect(links.some(link => link.textContent?.includes("Harbour"))).toBe(true);
     await page.unmount();
   });
 
@@ -128,7 +128,7 @@ describe("the things page", () => {
     // One card: the cover with the title on it
     expect(links).toHaveLength(1);
     expect(links.some(link => link.querySelector("img") !== null)).toBe(true);
-    expect(links.some(link => link.textContent?.includes("beach"))).toBe(true);
+    expect(links.some(link => link.textContent?.includes("Beach"))).toBe(true);
     await page.unmount();
   });
 });

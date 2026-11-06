@@ -17,9 +17,8 @@ import { VideoPlayer } from "./VideoPlayer";
 import { VideoStartContext } from "./videoStart";
 
 /**
- * The lightbox's photo fills the area the stage leaves it: the whole window on a touch screen, where
- * the toolbar floats over it, and between the toolbar and the thumbnail strip elsewhere
- * (`--lightbox-media-height`, ContentViewer.module.css), so neither covers the photo.
+ * The lightbox's photo fills the whole stage: the toolbar floats over its top on a gradient, and the
+ * thumbnail strip over its bottom only while the pointer moves (ContentViewer.module.css).
  */
 const LIGHTBOX_PHOTO_HEIGHT = "var(--lightbox-media-height, 100dvh)";
 // A video's native seek bar is at its bottom edge and the toolbar over its top, so the video

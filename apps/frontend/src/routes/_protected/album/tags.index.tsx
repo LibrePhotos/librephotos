@@ -18,6 +18,7 @@ import {
 } from "../../../api_client/tags/hooks";
 import { TAG_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
+import { cardTitle } from "../../../components/album/cardTitle";
 import { TagDeleteModal } from "../../../components/album/TagDeleteModal";
 import { TagMergeModal } from "../../../components/album/TagMergeModal";
 import { TagRenameModal } from "../../../components/album/TagRenameModal";
@@ -77,7 +78,7 @@ function AlbumTag() {
     return (
       <CollectionCard
         size={size}
-        title={tag.name}
+        title={cardTitle(tag.name)}
         meta={t("numberofphotos", { count: tag.photo_count, number: tag.photo_count })}
         covers={tag.cover_photos.slice(0, 1)}
         placeholder={<Tag />}

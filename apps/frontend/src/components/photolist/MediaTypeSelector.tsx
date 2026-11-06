@@ -1,5 +1,5 @@
 import type { MediaType } from "@librephotos/api-client";
-import { ActionIcon, Button, Indicator, Menu, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, Indicator, Menu, Tooltip, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import React from "react";
@@ -54,9 +54,11 @@ export function MediaTypeSelector() {
         // itself carries the menu's aria attributes.
         <Indicator size={8} disabled={!filtered}>
           <Menu.Target>
-            <ActionIcon {...look} size="lg" aria-label={t("mediafilter.button", { current: t(labelKey) })}>
-              <Icon size={ICON_SIZE.toolbar} />
-            </ActionIcon>
+            <Tooltip label={t("mediafilter.button", { current: t(labelKey) })} position="bottom">
+              <ActionIcon {...look} size="lg" aria-label={t("mediafilter.button", { current: t(labelKey) })}>
+                <Icon size={ICON_SIZE.toolbar} />
+              </ActionIcon>
+            </Tooltip>
           </Menu.Target>
         </Indicator>
       ) : (

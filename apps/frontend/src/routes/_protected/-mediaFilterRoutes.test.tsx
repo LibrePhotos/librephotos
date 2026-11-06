@@ -142,7 +142,8 @@ describe("the trash page's retention (#2203)", () => {
     expect(props.emptyStateConfig?.description).toBe(
       "Photos you move to the trash appear here. They are deleted for good after 30 days."
     );
-    expect(props.headerActions).toBeTruthy();
+    // Empty trash, in the header's ⋯
+    expect(props.headerMenu).toBeTruthy();
   });
 
   it("says photos stay until emptied while the retention is off or unknown", async () => {

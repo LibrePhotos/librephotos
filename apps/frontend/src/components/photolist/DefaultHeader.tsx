@@ -35,6 +35,8 @@ type Props = Readonly<{
   filterHint?: React.ReactNode;
   // The days are oldest first (#2712): the count line says so, as it is not the usual order.
   oldestFirst?: boolean;
+  // The header's right side: the photo list's toolbar.
+  actions?: React.ReactNode;
 }>;
 
 type PhotoCounterProps = Readonly<
@@ -45,9 +47,9 @@ type PhotoCounterProps = Readonly<
     | "numPhotos"
     | "hasEmptyState"
     | "countsVideos"
-    | "filterHint"
-    | "additionalSubHeader"
     | "oldestFirst"
+    | "date"
+    | "dayHeaderPrefix"
   >
 >;
 
@@ -75,23 +77,29 @@ function countLineWithOrder(
   return props.oldestFirst ? t("defaultheader.oldestfirst", { counts: line }) : line;
 }
 
-// The subtitle: loading, "No images found", or the day and photo counts, with
-// the media filter's hint and the page's own sub-header.
+// The day of a one-day list (Recently added), after its count: "· Added on Friday, …".
+function dayDate(date: string | undefined, prefix: string | undefined): string {
+  if (!date) return "";
+  const instant = parseInstant(date);
+  return ` · ${prefix ?? ""}${instant.isValid ? instant.toLocaleString(DateTime.DATE_HUGE) : date}`;
+}
+
+// The subtitle, one dimmed line: loading, "No images found", or the day and photo counts.
 function PhotoCounter({
   loading,
   numPhotosetItems,
   numPhotos,
   hasEmptyState,
   countsVideos,
-  filterHint,
-  additionalSubHeader,
   oldestFirst,
+  date,
+  dayHeaderPrefix,
 }: PhotoCounterProps) {
   const { t } = useTranslation();
   if (loading) {
     return (
       <Group gap={6} wrap="nowrap">
-        <Text ta="left" c="dimmed">
+        <Text ta="left" c="dimmed" size="sm">
           {t("defaultheader.loading")}
         </Text>
         <Loader size="xs" />
@@ -105,36 +113,35 @@ function PhotoCounter({
       return null;
     }
     return (
-      <div>
-        <Text ta="left" c="dimmed">
-          {t("defaultheader.noimages")}
-        </Text>
-        {filterHint}
-      </div>
+      <Text ta="left" c="dimmed" size="sm">
+        {t("defaultheader.noimages")}
+      </Text>
     );
   }
 
   return (
-    <div>
-      <Text ta="left" c="dimmed">
-        {countLineWithOrder(t, { numPhotosetItems, numPhotos, countsVideos, oldestFirst })}
-      </Text>
-      {filterHint}
-      {additionalSubHeader}
-    </div>
+    <Text ta="left" c="dimmed" size="sm">
+      {countLineWithOrder(t, { numPhotosetItems, numPhotos, countsVideos, oldestFirst })}
+      {dayDate(date, dayHeaderPrefix)}
+    </Text>
   );
 }
 
-// The date beside the title of a one-day list (Recently added).
-function DayDate({ date, prefix }: Readonly<{ date: string; prefix?: string }>) {
-  const instant = parseInstant(date);
+// Under the title row: the media filter's hint, and once there are photos the page's own lines.
+function belowHeader({
+  loading,
+  numPhotosetItems,
+  filterHint,
+  additionalSubHeader,
+}: Pick<Props, "loading" | "numPhotosetItems" | "filterHint" | "additionalSubHeader">): React.ReactNode {
+  if (loading) return null;
+  const extra = numPhotosetItems > 0 ? additionalSubHeader : null;
+  if (!filterHint && !extra) return null;
   return (
-    <Text style={{ whiteSpace: "nowrap" }}>
-      <b>
-        {prefix}
-        {instant.isValid ? instant.toLocaleString(DateTime.DATE_HUGE) : date}
-      </b>
-    </Text>
+    <>
+      {filterHint}
+      {extra}
+    </>
   );
 }
 
@@ -158,6 +165,7 @@ export function DefaultHeader(props: Props) {
     titleOrder,
     filterHint,
     oldestFirst,
+    actions,
   } = props;
 
   // Don't fetch user data on public pages
@@ -196,14 +204,13 @@ export function DefaultHeader(props: Props) {
           numPhotos={numPhotos}
           hasEmptyState={hasEmptyState}
           countsVideos={countsVideos}
-          filterHint={filterHint}
-          additionalSubHeader={additionalSubHeader}
           oldestFirst={oldestFirst}
+          date={(!hasEmptyState || numPhotosetItems > 0) && date ? date : undefined}
+          dayHeaderPrefix={dayHeaderPrefix}
         />
       }
-      actions={
-        (!hasEmptyState || numPhotosetItems > 0) && date ? <DayDate date={date} prefix={dayHeaderPrefix} /> : undefined
-      }
+      below={belowHeader({ loading, numPhotosetItems, filterHint, additionalSubHeader })}
+      actions={actions}
     />
   );
 }

@@ -8,19 +8,18 @@
 }
 
 .viewer {
-  /* The toolbar's band and the thumbnail strip's */
-  --lightbox-top-band: 56px;
-  --lightbox-bottom-band: 72px;
   display: flex;
   align-items: stretch;
   width: 100%;
   height: 100%;
-  background: var(--mantine-color-black);
+  /* Pure black, as Google Photos, Apple Photos and Immich show a photo: the theme's "black" is the
+     near-black text colour, which reads grey around a photo. */
+  background: black;
 }
 
-/* On a touch screen the photo runs edge to edge under the floating toolbar. With a pointer, the
-   toolbar (and its title) and the thumbnail strip each keep a band of the black stage, and the photo
-   fits between them, so neither covers it. */
+/* The photo takes the whole stage, as in Immich and Google Photos: the toolbar floats over its top
+   on a gradient, and the thumbnail strip shows over its bottom only while the pointer moves or the
+   keys step (ThumbnailNavigation). */
 .stage {
   position: relative;
   flex: 1 1 auto;
@@ -32,15 +31,6 @@
 .media {
   position: absolute;
   inset: 0;
-}
-
-@media (hover: hover) {
-  .media {
-    top: var(--lightbox-top-band);
-    bottom: var(--lightbox-bottom-band);
-    /* MediaDisplay sizes the photo by it */
-    --lightbox-media-height: calc(100dvh - var(--lightbox-top-band) - var(--lightbox-bottom-band));
-  }
 }
 
 .carousel,

@@ -4,10 +4,12 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumQuery } from "../../../api_client/albums/hooks";
 import { albumNotFoundState } from "../../../components/album/albumNotFound";
+import { CollectionMeta } from "../../../components/album/CollectionMeta";
 import { validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import { useThingLabel } from "../../../hooks/useThingLabel";
+import { formatPhotoDaySpan } from "../../../util/dateUtils";
 
 export const Route = createFileRoute("/_protected/album/things/$id")({
   component: AlbumThingGallery,
@@ -30,6 +32,12 @@ function AlbumThingGallery() {
   return (
     <PhotoListView
       title={groupedPhotos ? thingLabel(groupedPhotos.title) : notFound ? t("things") : t("loading")}
+      // The days its photos span, under the count
+      additionalSubHeader={
+        groupedPhotos ? (
+          <CollectionMeta parts={[formatPhotoDaySpan(groupedPhotos.grouped_photos.map(group => group.date))]} />
+        ) : null
+      }
       loading={fetchingAlbumsThing}
       emptyStateConfig={notFound ? albumNotFoundState(t, <Tags size={40} />, "/album/things") : undefined}
       photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}

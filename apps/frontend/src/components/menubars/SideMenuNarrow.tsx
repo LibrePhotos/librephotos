@@ -17,6 +17,8 @@ import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../uiConstants";
 import { formatFileSize } from "../../util/fileSize";
 import { getNavigationItems, isNavItemActive } from "./navigation";
+import { activePinnedLink, usePinnedDestinations } from "./pinnedDestinations";
+import { SidebarExtras } from "./SidebarExtras";
 import classes from "./SideMenuNarrow.module.css";
 import { VersionItem } from "./VersionItem";
 
@@ -36,6 +38,7 @@ export function SideMenuNarrow(): React.JSX.Element {
   const { t } = useTranslation();
   const locale = useFormatLocale();
   const matches = useIsDesktopLayout();
+  const pins = usePinnedDestinations();
 
   // Update active state when location changes
   useEffect(() => {
@@ -46,6 +49,7 @@ export function SideMenuNarrow(): React.JSX.Element {
     return <div />;
   }
 
+  const activePinned = activePinnedLink(pins.pinned, active);
   const links = getNavigationItems(t, isAuthenticated).map(item => {
     if (item.display === false) {
       return null;
@@ -53,7 +57,8 @@ export function SideMenuNarrow(): React.JSX.Element {
 
     // Check if this menu item or any submenu item is active
     const isSubmenuItemActive = item.submenu?.some(subitem => subitem.link && active.startsWith(subitem.link));
-    const isItemActive = isNavItemActive(item, active) || isSubmenuItemActive;
+    // A pinned page the path is on is the one marked, not the section that also holds it.
+    const isItemActive = activePinned === null && (isNavItemActive(item, active) || isSubmenuItemActive);
 
     const link = (
       <a
@@ -142,7 +147,18 @@ export function SideMenuNarrow(): React.JSX.Element {
   // use the same Text as the links above so weight and alignment match.
   return (
     <nav className={classes.nav}>
-      <div className={classes.links}>{links}</div>
+      <div className={classes.links}>
+        {links}
+        {isAuthenticated && (
+          <SidebarExtras
+            pathname={active}
+            pinned={pins.pinned}
+            activePinned={activePinned}
+            isPinned={pins.isPinned}
+            onTogglePin={pins.toggle}
+          />
+        )}
+      </div>
       <div className={classes.bottom_links}>
         {showCleanupCard && (
           <a

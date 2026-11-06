@@ -90,7 +90,7 @@
   margin: 0 var(--mantine-spacing-xs) var(--mantine-spacing-xs);
   padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
   border-radius: var(--mantine-radius-lg);
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
 }
 
 .storage_title {
@@ -125,4 +125,23 @@
   font-family: inherit;
   text-align: start;
   cursor: pointer;
+}
+
+/* A labelled group under the sections: pinned pages, recent albums. */
+.group {
+  margin-top: var(--mantine-spacing-sm);
+}
+
+.group_label {
+  padding: 4px calc(var(--mantine-spacing-xs) + var(--mantine-spacing-md)) 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mantine-color-dimmed);
+}
+
+.customize {
+  width: calc(100% - 2 * var(--mantine-spacing-xs));
+  margin-top: var(--mantine-spacing-xs);
 }

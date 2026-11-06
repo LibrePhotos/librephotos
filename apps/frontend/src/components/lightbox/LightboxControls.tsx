@@ -12,10 +12,11 @@ import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { useLightboxCommands } from "./lightboxCommands";
 import classes from "./LightboxControls.module.css";
-import { LightboxMoreMenu, TrashButton } from "./LightboxPhotoActions";
+import { LightboxMoreMenu, ShareButton, TrashButton } from "./LightboxPhotoActions";
 import { LightboxRating } from "./LightboxRating";
 import { LightboxToolbarButton, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
 import { LightboxViewControls } from "./LightboxViewControls";
+import { useCompactViewer } from "./useCompactViewer";
 import { usePhotoActions } from "./usePhotoActions";
 
 // Interval options for slideshow
@@ -94,10 +95,12 @@ function RunningSlideshow({
 }
 
 /**
- * The lightbox toolbar, over the top of the photo: back on the left, the photo's date, place and
- * position in the middle (`title`); on the right the few buttons
- * used most (360° view and live text when the photo has them, zoom, favorite or stars, info, trash)
- * and a ⋮ with the rest, labelled. Every action keeps its keyboard shortcut.
+ * The lightbox toolbar, over the top of the photo on a soft gradient: back on the left, the photo's
+ * date, place and position in the middle (`title`); on the right the buttons used most, in Google
+ * Photos' and Immich's order (360° view and live text when the photo has them, then Share,
+ * favorite or stars, Info, Delete) and a ⋮ with the rest, labelled, zoom included. On a phone
+ * (useCompactViewer) the top keeps back, a one-line date, favorite and ⋮, and Share, Info and
+ * Delete move to a bar at the bottom, under the thumb. Every action keeps its keyboard shortcut.
  */
 export function LightboxControls({
   photoDetail,
@@ -127,6 +130,7 @@ export function LightboxControls({
   title,
 }: LightboxControlsProps) {
   const { t } = useTranslation();
+  const compact = useCompactViewer();
 
   // Favourite, hide, archive, share link and trash, as the photo page has them too.
   const actions = usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle });
@@ -158,62 +162,82 @@ export function LightboxControls({
   const fullscreenLabel = isFullscreen ? t("lightbox.controls.exitfullscreen") : t("lightbox.controls.fullscreen");
   const infoLabel = lightboxSidebarShow ? t("lightbox.toolbar.hideInfoPanel") : t("lightbox.toolbar.showInfoPanel");
   const ownPhoto = !isPublic && photoDetail ? photoDetail : null;
+  const activePanorama = panorama?.available ? panorama : undefined;
+  // The 360° view zooms itself: the item stays, saying why it does nothing.
+  const zoom =
+    enableZoom && type === "photo"
+      ? {
+          isZoomed,
+          toggle: toggleZoom,
+          blockedReason: !!activePanorama?.active && t("lightbox.panorama.zoominviewer"),
+        }
+      : undefined;
+
+  const share = ownPhoto && <ShareButton actions={actions} />;
+  const info = (
+    <LightboxToolbarButton label={infoLabel} onClick={() => setLightBoxSidebarShow(!lightboxSidebarShow)}>
+      {lightboxSidebarShow ? <InfoCircleFilled size={TOOLBAR_ICON_SIZE} /> : <InfoCircle size={TOOLBAR_ICON_SIZE} />}
+    </LightboxToolbarButton>
+  );
+  const trash = ownPhoto && <TrashButton actions={actions} />;
 
   return (
-    <div className={classes.bar}>
-      <LightboxToolbarButton label={t("lightbox.controls.close")} onClick={onCloseRequest}>
-        <ArrowLeft size={TOOLBAR_ICON_SIZE} />
-      </LightboxToolbarButton>
-      {title}
-
-      <div className={classes.actions}>
-        {isSlideshowActive && (
-          <RunningSlideshow
-            label={slideshowLabel}
-            toggleSlideshow={toggleSlideshow}
-            slideshowInterval={slideshowInterval}
-            setSlideshowInterval={setSlideshowInterval}
-            slideshowProgress={slideshowProgress}
-          />
-        )}
-        <LightboxViewControls
-          hasOcrText={hasOcrText}
-          showOcrText={showOcrText}
-          toggleOcrText={toggleOcrText}
-          canZoom={enableZoom && type === "photo"}
-          isZoomed={isZoomed}
-          toggleZoom={toggleZoom}
-          panorama={panorama?.available ? panorama : undefined}
-        />
-        {!isPublic && isPhotoDetailsLoading && (
-          // Not a button: nothing to press while the details load. The 40px slot keeps the row still.
-          <Loader size={TOOLBAR_ICON_SIZE} color="gray" mx={10} />
-        )}
-        {ownPhoto && <LightboxRating actions={actions} />}
-        <LightboxToolbarButton label={infoLabel} onClick={() => setLightBoxSidebarShow(!lightboxSidebarShow)}>
-          {lightboxSidebarShow ? (
-            <InfoCircleFilled size={TOOLBAR_ICON_SIZE} />
-          ) : (
-            <InfoCircle size={TOOLBAR_ICON_SIZE} />
-          )}
+    <>
+      <div className={classes.bar} data-compact={compact || undefined}>
+        <LightboxToolbarButton label={t("lightbox.controls.close")} onClick={onCloseRequest}>
+          <ArrowLeft size={TOOLBAR_ICON_SIZE} />
         </LightboxToolbarButton>
-        {ownPhoto && <TrashButton actions={actions} />}
-        <LightboxMoreMenu
-          actions={actions}
-          ownPhoto={ownPhoto}
-          canRotate={type !== "video"}
-          onRotate={onRotate}
-          slideshowLabel={slideshowLabel}
-          isSlideshowActive={isSlideshowActive}
-          toggleSlideshow={toggleSlideshow}
-          onCopyToClipboard={onCopyToClipboard}
-          copyLabel={copyLabel}
-          isFullscreen={isFullscreen}
-          toggleFullscreen={toggleFullscreen}
-          fullscreenLabel={fullscreenLabel}
-        />
+        {title}
+
+        <div className={classes.actions}>
+          {isSlideshowActive && (
+            <RunningSlideshow
+              label={slideshowLabel}
+              toggleSlideshow={toggleSlideshow}
+              slideshowInterval={slideshowInterval}
+              setSlideshowInterval={setSlideshowInterval}
+              slideshowProgress={slideshowProgress}
+            />
+          )}
+          <LightboxViewControls
+            hasOcrText={hasOcrText}
+            showOcrText={showOcrText}
+            toggleOcrText={toggleOcrText}
+            panorama={activePanorama}
+          />
+          {!isPublic && isPhotoDetailsLoading && (
+            // Not a button: nothing to press while the details load. The 40px slot keeps the row still.
+            <Loader size={TOOLBAR_ICON_SIZE} color="gray" mx={10} />
+          )}
+          {!compact && share}
+          {ownPhoto && <LightboxRating actions={actions} />}
+          {!compact && info}
+          {!compact && trash}
+          <LightboxMoreMenu
+            actions={actions}
+            ownPhoto={ownPhoto}
+            zoom={zoom}
+            canRotate={type !== "video"}
+            onRotate={onRotate}
+            slideshowLabel={slideshowLabel}
+            isSlideshowActive={isSlideshowActive}
+            toggleSlideshow={toggleSlideshow}
+            onCopyToClipboard={onCopyToClipboard}
+            copyLabel={copyLabel}
+            isFullscreen={isFullscreen}
+            toggleFullscreen={toggleFullscreen}
+            fullscreenLabel={fullscreenLabel}
+          />
+        </div>
+        {!isPublic && <PhotoShareLinkModal photoId={actions.sharingPhotoId} onClose={actions.closeShareLink} />}
       </div>
-      {!isPublic && <PhotoShareLinkModal photoId={actions.sharingPhotoId} onClose={actions.closeShareLink} />}
-    </div>
+      {compact && (
+        <div className={classes.bottomBar}>
+          {share}
+          {info}
+          {trash}
+        </div>
+      )}
+    </>
   );
 }

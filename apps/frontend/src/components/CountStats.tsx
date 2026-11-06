@@ -1,6 +1,7 @@
 import { Group, HoverCard, SimpleGrid, Stack, Text } from "@mantine/core";
 import {
   IconFaceId as FaceId,
+  IconMapPin as MapPin,
   IconPhoto as Photo,
   IconQuestionMark as QuestionMark,
   IconSettingsAutomation as SettingsAutomation,
@@ -17,16 +18,18 @@ import { StatCount, StatTile, statTileFillClass } from "./StatTile";
 const TILE_ICON = { size: 16, stroke: 1.75 } as const;
 
 /**
- * The Library page's counts: photos and days, people and faces (with the face breakdown on hover)
- * and events, as neutral stat tiles. The Statistics link is in the page header.
+ * The library at a glance, the same tiles on the Library page and above the Statistics charts:
+ * photos and days, people and faces (with the face breakdown on hover), events and places. A server
+ * too old to count places leaves that tile out.
  */
 export function CountStats() {
   const { t } = useTranslation();
   const locale = i18nResolvedLanguage();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
+  const places = countStats.num_places;
 
   return (
-    <SimpleGrid cols={{ base: 2, md: 3 }} spacing="xs">
+    <SimpleGrid cols={{ base: 2, sm: places === undefined ? 3 : 4 }} spacing="xs">
       <StatTile
         icon={<Photo {...TILE_ICON} />}
         label={t("countstats.photos")}
@@ -92,6 +95,9 @@ export function CountStats() {
         label={t("events")}
         value={<StatCount value={countStats.num_albumauto} />}
       />
+      {places === undefined ? null : (
+        <StatTile icon={<MapPin {...TILE_ICON} />} label={t("places")} value={<StatCount value={places} />} />
+      )}
     </SimpleGrid>
   );
 }

@@ -89,7 +89,13 @@ vi.mock("../../components/sharing/ModalPhotosShare", () => ({ ModalPhotosShare: 
 vi.mock("../../components/photolist/SelectionActions", () => ({ SelectionActions: () => null }));
 vi.mock("../../components/photolist/SelectionBar", () => ({ SelectionBar: () => null }));
 vi.mock("../../components/photolist/DefaultHeader", () => ({
-  DefaultHeader: ({ title }: { title: string }) => <h1>{title}</h1>,
+  // The header holds the list's toolbar (Play slideshow) as its actions
+  DefaultHeader: ({ title, actions }: { title: string; actions?: React.ReactNode }) => (
+    <div>
+      <h1>{title}</h1>
+      {actions}
+    </div>
+  ),
 }));
 vi.mock("../../components/photolist/TrashcanActions", () => ({ TrashcanActions: () => null }));
 

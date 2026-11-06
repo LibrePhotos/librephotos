@@ -1,10 +1,11 @@
 import type { AutoAlbum } from "@librephotos/api-client";
-import { Avatar, Button, Divider, Group, Tooltip } from "@mantine/core";
+import { Avatar, Button, Tooltip } from "@mantine/core";
 import { IconMap2 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/urls";
+import { CollectionMeta, CollectionMetaSeparator } from "./CollectionMeta";
 
 type Props = Readonly<{
   people: AutoAlbum["people"];
@@ -14,56 +15,75 @@ type Props = Readonly<{
   onToggleMap: () => void;
   /** The places of the event's photos (`eventLocationNames`); the first names the map button. */
   locationNames: string[];
+  /** The days its photos span ("Oct 17 – 18, 2026"), when they have dates. */
+  daySpan?: string | null;
+  /** The event's title: a place it already names is not repeated on the meta line. */
+  title?: string;
 }>;
 
 /**
- * Under an event's title, like the folder and album pages: its people and the map button. The
- * page leaves it out for an event with neither.
+ * Under an event's title, like the album pages: the days it spans and the places its title does
+ * not name, then its people and the map chip. Nothing for an event with none of them.
  */
-export function EventSubHeader({ people, hasGPSCoordinates, showMap, onToggleMap, locationNames }: Props) {
+export function EventSubHeader({
+  people,
+  hasGPSCoordinates,
+  showMap,
+  onToggleMap,
+  locationNames,
+  daySpan,
+  title = "",
+}: Props) {
   const { t } = useTranslation();
 
   let mapLabel = t("autoalbumgallery.showmap");
   if (showMap) mapLabel = t("autoalbumgallery.hidemap");
   else if (locationNames[0]) mapLabel = t("autoalbumgallery.showonmap", { place: locationNames[0] });
 
-  return (
-    <Group align="center" wrap="nowrap" gap="sm" mt="xs">
-      {people.length > 0 && (
-        <Avatar.Group>
-          {people.slice(0, 5).map(person => (
-            <Tooltip key={person.id} label={person.name} withArrow>
-              <Avatar
-                // A router link, not an <a href> that reloaded the app
-                renderRoot={props => <Link to="/album/persons/$id" params={{ id: String(person.id) }} {...props} />}
-                radius="xl"
-                src={serverAddress + person.face_url}
-                alt={person.name}
-                size="sm"
-              />
-            </Tooltip>
-          ))}
-        </Avatar.Group>
-      )}
+  const places = locationNames.filter(name => !title.includes(name)).slice(0, 3);
+  const hasRow = people.length > 0 || hasGPSCoordinates;
 
-      {hasGPSCoordinates && (
+  return (
+    <CollectionMeta parts={[daySpan, places.join(", ")]}>
+      {hasRow ? (
         <>
-          {people.length > 0 && <Divider orientation="vertical" />}
-          <Button
-            variant={showMap ? "filled" : "light"}
-            color={showMap ? "blue" : "gray"}
-            onClick={() => {
-              // The map opens above the (sticky) header: bring it into view
-              if (!showMap) window.scrollTo({ top: 0, behavior: "smooth" });
-              onToggleMap();
-            }}
-            leftSection={<IconMap2 size={16} />}
-            size="xs"
-          >
-            {mapLabel}
-          </Button>
+          {people.length > 0 && (
+            <Avatar.Group spacing="xs">
+              {people.slice(0, 5).map(person => (
+                <Tooltip key={person.id} label={person.name} withArrow>
+                  <Avatar
+                    // A router link, not an <a href> that reloaded the app
+                    renderRoot={props => <Link to="/album/persons/$id" params={{ id: String(person.id) }} {...props} />}
+                    radius="xl"
+                    src={serverAddress + person.face_url}
+                    alt={person.name}
+                    size={28}
+                  />
+                </Tooltip>
+              ))}
+            </Avatar.Group>
+          )}
+          {hasGPSCoordinates && (
+            <>
+              {people.length > 0 && <CollectionMetaSeparator />}
+              {/* Body text on a quiet surface with a hairline (default), tonal while the map is open */}
+              <Button
+                variant={showMap ? "light" : "default"}
+                radius="xl"
+                onClick={() => {
+                  // The map opens above the (sticky) header: bring it into view
+                  if (!showMap) window.scrollTo({ top: 0, behavior: "smooth" });
+                  onToggleMap();
+                }}
+                leftSection={<IconMap2 size={16} />}
+                size="compact-sm"
+              >
+                {mapLabel}
+              </Button>
+            </>
+          )}
         </>
-      )}
-    </Group>
+      ) : null}
+    </CollectionMeta>
   );
 }

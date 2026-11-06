@@ -1,0 +1,13 @@
+/*
+ * The app shell's surfaces. Light: photos sit on white, the header and sidebar on a quiet grey with
+ * no hairlines between them and the page (Google Photos' 2024 web layout). Dark: one near-black
+ * surface everywhere, with hairlines to keep the chrome apart.
+ */
+.chrome {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-body));
+  border-color: light-dark(transparent, var(--mantine-color-dark-5));
+}
+
+.main {
+  background-color: var(--mantine-color-body);
+}

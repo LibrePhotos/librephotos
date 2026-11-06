@@ -32,6 +32,14 @@ export function getVariantBadgeProps(variant: FileVariant): { color: string; lab
   return typeMap[variant.type] || unknownBadge;
 }
 
+/** "JPEG", "HEIC", "MP4": the file's format, from its extension; null without one. */
+function fileFormat(fileName: string): string | null {
+  const dot = fileName.lastIndexOf(".");
+  if (dot <= 0 || dot === fileName.length - 1) return null;
+  const extension = fileName.slice(dot + 1).toUpperCase();
+  return extension === "JPG" ? "JPEG" : extension;
+}
+
 /**
  * Basic photo information (filename, dimensions, file size)
  * Includes file variants with a dedicated toggle
@@ -52,6 +60,7 @@ function PhotoInfoSection({
   const hasVariants = nonMainVariants.length > 0;
   const firstImagePath = photoDetail.image_path?.[0];
   const fileName = firstImagePath !== undefined ? fileNameOf(firstImagePath) : t("exif.unknownFilename");
+  const format = firstImagePath !== undefined ? fileFormat(fileName) : null;
 
   return (
     <Stack gap="xs" w="100%">
@@ -59,7 +68,7 @@ function PhotoInfoSection({
         {photoDetail.video ? <Movie {...ROW_ICON} /> : <Photo {...ROW_ICON} />}
         <Box miw={0}>
           {/* Plain text that opens the file: a file name, not a call to action. Two lines, so a
-              long camera or stock-site name still reads; the category chip sits under it. */}
+              long camera or stock-site name still reads; the format and category sit under it. */}
           <Anchor
             href={mediaUrl.photo(photoDetail.image_hash)}
             target="_blank"
@@ -90,7 +99,11 @@ function PhotoInfoSection({
               </Anchor>
             )}
           </Group>
-          {category ? <Box mt={6}>{category}</Box> : null}
+          {/* "JPEG · Photo ⌄", dimmed: the category is the owner's to change (CategoryBadge). */}
+          <div className={classes.formatLine}>
+            {format && <span>{format}</span>}
+            {category}
+          </div>
         </Box>
       </Group>
 
@@ -180,7 +193,7 @@ export function VersionComponent(
   props: Readonly<{
     photoDetail: PhotoType;
     isPublic: boolean;
-    /** Shown under the file name: the owner's category badge. */
+    /** After the file's format under its name: the owner's category control (CategoryBadge, look "text"). */
     category?: React.ReactNode;
     /** After the camera rows and before "Show more", which then ends the Details: the place. */
     location?: React.ReactNode;

@@ -1,14 +1,15 @@
 import { Photoset } from "@librephotos/api-client";
-import { ActionIcon, Button, Tooltip } from "@mantine/core";
+import { Loader, Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconTrashX } from "@tabler/icons-react";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useEmptyTrashMutation, useFollowEmptyTrashJob } from "../../api_client/photos/hooks";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
-import { toolbarLook } from "../common/toolbarLook";
+import { ICON_SIZE } from "../../uiConstants";
+import { DisabledReason } from "../common/DisabledReason";
 import { ConfirmModal } from "../modals/ConfirmModal";
+import { HeaderActionsMenu } from "./HeaderActionsMenu";
 
 type Props = Readonly<{
   /** What the page shows: fewer than the trash holds while a media filter is on. */
@@ -22,12 +23,12 @@ function useWholeTrashCount(): number | undefined {
 }
 
 /**
- * The trash page's Empty trash (#2203): after a confirmation naming the count and the files on
- * disk, a background job deletes every photo in the trash. The button waits for that job, which
- * says how it went. Labelled, so it is not mistaken for the selection's Delete permanently; an
- * icon on a phone, where the label would push the title off.
+ * The trash page's ⋯, with Empty trash (#2203) in it: after a confirmation naming the count and
+ * the files on disk, a background job deletes every photo in the trash. The item waits for that
+ * job, which says how it went. Named apart from the selection's Delete permanently, and out of the
+ * header row, where a destructive button sat beside Select.
  */
-export function EmptyTrashButton({ shownCount }: Props) {
+export function TrashHeaderMenu({ shownCount }: Props) {
   const { t } = useTranslation();
   const [confirmOpen, { open, close }] = useDisclosure(false);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -36,43 +37,32 @@ export function EmptyTrashButton({ shownCount }: Props) {
   const stopFollowing = useCallback(() => setJobId(null), []);
   useFollowEmptyTrashJob(jobId, stopFollowing);
 
-  if (!total) return null;
   const running = jobId !== null || emptyTrash.isPending;
-  const label = running ? t("trash.emptying") : t("trash.emptyTrash");
-  const hidden = total - shownCount;
+  const hidden = (total ?? 0) - shownCount;
 
-  const confirm = () =>
+  const confirm = () => {
+    if (!total) return;
     emptyTrash.mutate(total, {
       onSuccess: id => {
         setJobId(id);
         close();
       },
     });
+  };
+
+  const item = running ? (
+    <DisabledReason reason={t("trash.emptying")}>
+      <Menu.Item leftSection={<Loader size={ICON_SIZE.menu} />}>{t("trash.emptying")}</Menu.Item>
+    </DisabledReason>
+  ) : (
+    <Menu.Item color="red" leftSection={<IconTrashX size={ICON_SIZE.menu} />} onClick={open}>
+      {t("trash.emptyTrash")}
+    </Menu.Item>
+  );
 
   return (
     <>
-      <Button
-        visibleFrom="sm"
-        {...toolbarLook()}
-        h={TOOLBAR_CONTROL_HEIGHT}
-        leftSection={<IconTrashX size={ICON_SIZE.toolbar} />}
-        loading={running}
-        onClick={open}
-      >
-        {label}
-      </Button>
-      <Tooltip label={label} hiddenFrom="sm">
-        <ActionIcon
-          hiddenFrom="sm"
-          {...toolbarLook()}
-          size={TOOLBAR_ACTION_SIZE}
-          aria-label={label}
-          loading={running}
-          onClick={open}
-        >
-          <IconTrashX size={ICON_SIZE.toolbar} />
-        </ActionIcon>
-      </Tooltip>
+      <HeaderActionsMenu label={t("trash.actions")}>{total ? item : null}</HeaderActionsMenu>
       <ConfirmModal
         opened={confirmOpen}
         onClose={close}
@@ -80,7 +70,7 @@ export function EmptyTrashButton({ shownCount }: Props) {
         loading={emptyTrash.isPending}
         title={t("trash.emptyConfirmTitle")}
         message={[
-          t("trash.emptyConfirmMessage", { count: total }),
+          t("trash.emptyConfirmMessage", { count: total ?? 0 }),
           hidden > 0 ? t("trash.emptyConfirmFiltered", { count: hidden }) : null,
           t("trash.emptyConfirmJob"),
         ]

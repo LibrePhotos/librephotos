@@ -15,6 +15,7 @@ import { AlbumLocationMap } from "../../../components/AlbumLocationMap";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { validatePhotoSearch } from "../../../components/photolist/photoSearch";
 import { useEventTitle } from "../../../hooks/useEventTitle";
+import { formatPhotoDaySpan } from "../../../util/dateUtils";
 
 export const Route = createFileRoute("/_protected/album/events/$id")({
   component: AlbumAutoGalleryView,
@@ -69,15 +70,15 @@ function AlbumAutoGalleryView() {
         // An event reads as it happened, whatever the photo order (#2712).
         eventOrder
         additionalSubHeader={
-          album.people.length > 0 || hasGPSCoordinates ? (
-            <EventSubHeader
-              people={album.people}
-              hasGPSCoordinates={hasGPSCoordinates}
-              showMap={showMap}
-              onToggleMap={toggleMap}
-              locationNames={eventLocationNames(photos)}
-            />
-          ) : null
+          <EventSubHeader
+            people={album.people}
+            hasGPSCoordinates={hasGPSCoordinates}
+            showMap={showMap}
+            onToggleMap={toggleMap}
+            locationNames={eventLocationNames(photos)}
+            daySpan={formatPhotoDaySpan(photos.map(photo => photo.exif_timestamp))}
+            title={title}
+          />
         }
         headerMenu={
           <EventHeaderMenu

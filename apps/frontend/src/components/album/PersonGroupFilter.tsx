@@ -1,5 +1,5 @@
 import type { PersonGroup } from "@librephotos/api-client";
-import { ActionIcon, Button, Indicator, Menu, Text, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, Indicator, Menu, Text, Tooltip, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconCheck, IconChevronDown, IconSettings, IconUsers, IconUsersGroup } from "@tabler/icons-react";
 import React from "react";
@@ -62,9 +62,11 @@ export function PersonGroupFilter({ groups, value, onChange }: Props) {
           // the menu's aria attributes.
           <Indicator size={8} disabled={!filtered}>
             <Menu.Target>
-              <ActionIcon {...look} size="lg" aria-label={t("persongroups.button", { current: label })}>
-                <Icon size={ICON_SIZE.toolbar} />
-              </ActionIcon>
+              <Tooltip label={t("persongroups.button", { current: label })} position="bottom">
+                <ActionIcon {...look} size="lg" aria-label={t("persongroups.button", { current: label })}>
+                  <Icon size={ICON_SIZE.toolbar} />
+                </ActionIcon>
+              </Tooltip>
             </Menu.Target>
           </Indicator>
         ) : (

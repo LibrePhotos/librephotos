@@ -99,18 +99,3 @@ export const calculateFaceGridCells = <Person extends { id: number; faces: reado
   flushCollapsedRun();
   return { cellContents: gridContents };
 };
-
-/** A face cell of the faces grid: a 96px face and the 8px gap around it. */
-const FACE_CELL_SIZE = 104;
-
-/**
- * The faces grid's cells: as many fixed 104px cells as fit, left-aligned like a photo grid, so a
- * face is 96px on every screen instead of growing with the window. Two per row at the least: a
- * narrower grid shares its width between two.
- */
-export const calculateFaceGridCellSize = (gridWidth: number) => {
-  const numEntrySquaresPerRow = Math.max(2, Math.floor(gridWidth / FACE_CELL_SIZE));
-  const entrySquareSize = Math.min(FACE_CELL_SIZE, gridWidth / numEntrySquaresPerRow);
-
-  return { entrySquareSize, numEntrySquaresPerRow };
-};

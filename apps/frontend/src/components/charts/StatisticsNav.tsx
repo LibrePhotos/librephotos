@@ -4,9 +4,9 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import type { ParseKeys } from "i18next";
 import { useTranslation } from "react-i18next";
 import { FeatureBoundary } from "../common/FeatureBoundary";
+import { CountStats } from "../CountStats";
 import { PageBody } from "../PageBody";
 import { PageHeader } from "../PageHeader";
-import { StatisticsSummary } from "./StatisticsSummary";
 
 type StatisticsNavProps = {
   children: React.ReactNode;
@@ -33,7 +33,8 @@ export function StatisticsNav({ children }: StatisticsNavProps) {
 
       {/* The page gutter like every other page; the counts first, then the charts */}
       <PageBody gap="md">
-        <StatisticsSummary />
+        {/* The Library page's tiles, so the two pages count the same things the same way */}
+        <CountStats />
         <Tabs value={currentPath} onChange={value => value && navigate({ to: value })} variant="default">
           <Tabs.List>
             {views.map(view => (

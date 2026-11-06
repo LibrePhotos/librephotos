@@ -11,7 +11,7 @@ import {
   Stack,
   useMantineTheme,
 } from "@mantine/core";
-import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { useMediaQuery, useUncontrolled } from "@mantine/hooks";
 import { IconFilter } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -22,26 +22,45 @@ import { countSearchFilters } from "./searchFilter";
 import classes from "./SearchFilterButton.module.css";
 import { SearchFilterPanel } from "./SearchFilterPanel";
 
-type Props = Readonly<{
-  filters: SearchFilters;
-  onChange: (patch: SearchFilters) => void;
-  onClear: () => void;
-  /** See RatingFilter. */
-  favoriteRating: number | undefined;
-  /** The photos the search lists now, for the phone sheet's "Show N photos". */
-  resultCount: number;
+/**
+ * The panel's open state when its parent keeps it: /search swaps its Explore page for the results as
+ * soon as a filter is set, and the panel stays open across the swap. Left out, the button keeps it.
+ */
+export type FilterPanelState = Readonly<{
+  opened?: boolean;
+  onOpenedChange?: (opened: boolean) => void;
 }>;
+
+type Props = FilterPanelState &
+  Readonly<{
+    filters: SearchFilters;
+    onChange: (patch: SearchFilters) => void;
+    onClear: () => void;
+    /** See RatingFilter. */
+    favoriteRating: number | undefined;
+    /** The photos the search lists now, for the phone sheet's "Show N photos". */
+    resultCount: number;
+  }>;
 
 const PANEL_WIDTH = 440;
 
 // The search page's Filters button (#2259), the timeline filter's look on another page: a popover
 // with every filter on a desktop, a bottom sheet on a phone. Changes apply at once.
-export function SearchFilterButton({ filters, onChange, onClear, favoriteRating, resultCount }: Props) {
+export function SearchFilterButton(props: Props) {
+  const { filters, onChange, onClear, favoriteRating, resultCount } = props;
   const { t } = useTranslation();
   const theme = useMantineTheme();
   // On a phone the header has no room for a labelled button next to the title.
   const compact = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
-  const [opened, { open, close, toggle }] = useDisclosure(false);
+  const [opened, setOpened] = useUncontrolled({
+    value: props.opened,
+    defaultValue: false,
+    finalValue: false,
+    onChange: props.onOpenedChange,
+  });
+  const open = () => setOpened(true);
+  const close = () => setOpened(false);
+  const toggle = () => setOpened(!opened);
   const { data: people = [] } = useFetchPeopleAlbumsQuery(!opened);
   const active = countSearchFilters(filters);
   const activeLabel = active > 0 ? t("searchfilter.activecount", { count: active }) : undefined;

@@ -206,9 +206,12 @@ export function HeaderComponent({
       </ActionIcon>
       {/* The name says who it is, so the face is decoration */}
       <Avatar src={coverUrl} alt="" radius="xl" size={32} className={classes.cover} />
-      {nameElement()}
-      {/* count picks the plural form */}
-      <span className={classes.count}>{faceCount}</span>
+      {/* The name over its count, so a card's narrow header keeps room for the name */}
+      <div className={classes.titles}>
+        {nameElement()}
+        {/* count picks the plural form */}
+        <span className={classes.count}>{faceCount}</span>
+      </div>
       <Checkbox
         size="xs"
         className={classes.groupCheck}

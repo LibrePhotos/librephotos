@@ -3,6 +3,8 @@ import { Button, Checkbox, Group, Menu, SegmentedControl, Select } from "@mantin
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
+import { TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 
 // Select options cannot be "", so "all statuses" gets a sentinel value
 export const ALL_STATUSES = "all";
@@ -67,7 +69,11 @@ export function DuplicatesFilters({
       {/* Type filter */}
       <Menu shadow="md" width={200}>
         <Menu.Target>
-          <Button variant="light" size="sm" rightSection={<IconChevronDown size={14} />}>
+          <Button
+            {...toolbarLook(typeFilter !== undefined)}
+            h={TOOLBAR_CONTROL_HEIGHT}
+            rightSection={<IconChevronDown size={14} />}
+          >
             {typeFilter ? t(`duplicates.types.${typeFilter}`) : t("duplicates.allTypes")}
           </Button>
         </Menu.Target>

@@ -78,3 +78,22 @@ export const SOCIAL_GRAPH_COLORS = {
   link: "#adb5bd", // gray 5: links are structure, the faces are the content
   nodeStroke: "#fff",
 } as const;
+
+/**
+ * The location timeline: one colour per place, for the places with the most time (the rest share
+ * LOCATION_TIMELINE_OTHER_COLOR). Tableau 10's calm, distinguishable hues, so the bar reads as a
+ * few countries instead of a rainbow of stays.
+ */
+export const LOCATION_TIMELINE_COLORS = [
+  "#4E79A7", // Blue
+  "#F28E2B", // Orange
+  "#59A14F", // Green
+  "#E15759", // Red
+  "#76B7B2", // Teal
+  "#EDC948", // Yellow
+  "#B07AA1", // Purple
+  "#FF9DA7", // Pink
+] as const;
+
+/** The places past the palette, grouped as "Other". */
+export const LOCATION_TIMELINE_OTHER_COLOR = "#BAB0AC";

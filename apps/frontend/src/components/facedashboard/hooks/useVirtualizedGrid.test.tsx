@@ -2,6 +2,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useContentBoxSize } from "../../virtual/useContentBoxSize";
+import { FACE_CELL } from "../faceGridRows";
 import { FacesTab } from "../facesTab";
 import classes from "../VirtualizedGridComponent.module.css";
 import { useVirtualizedGrid } from "./useVirtualizedGrid";
@@ -39,7 +40,7 @@ const collapsed = {
   deleted: new Set<number>(),
 };
 
-let layout: { width: number; columns: number; cellSize: number } | undefined;
+let layout: { width: number; cellSize: number } | undefined;
 
 // FaceDashboard's wiring: the container's measured width drives the grid's column count
 function Harness() {
@@ -59,22 +60,20 @@ function Harness() {
     width,
     collapsed
   );
-  layout = { width, columns: grid.numEntrySquaresPerRow, cellSize: grid.entrySquareSize };
+  layout = { width, cellSize: grid.entrySquareSize };
   return <div ref={ref} className={classes.container} style={{ padding: "0px 15px" }} />;
 }
 
 describe("faces grid sizing", () => {
-  it("fits every column inside the padded container's content box", async () => {
+  it("lays the cards out in the padded container's content box, with fixed face cells", async () => {
     await act(async () => {
       root.render(<Harness />);
     });
 
     if (!layout) throw new Error("the grid did not render");
     expect(layout.width).toBe(1170);
-    // Fixed 104px cells (a 96px face and its gap), as many as fit
-    expect(layout.columns).toBe(11);
-    expect(layout.cellSize).toBe(104);
-    expect(layout.columns * layout.cellSize).toBeLessThanOrEqual(1170);
+    // A 72px face and the 4px around it, on every screen
+    expect(layout.cellSize).toBe(FACE_CELL);
   });
 });
 
@@ -138,12 +137,13 @@ describe("paging in the faces a fold reveals", () => {
   });
 
   it("replays the last section on a fold, and only on a fold", async () => {
-    const people = [unloadedPerson(1, 2), unloadedPerson(2, 2)];
+    // Too many faces for one line: each person is a header row and rows of faces
+    const people = [unloadedPerson(1, 20), unloadedPerson(2, 20)];
     await render(people);
     // Nothing has been rendered yet, so there is nothing to replay
     expect(onSectionChange).not.toHaveBeenCalled();
 
-    // Rows: [person 1], [its 2 faces], [person 2], [its 2 faces]; rows 0-2 show person 1's faces
+    // Rows: [person 1], [14 faces], [6 faces], [person 2], ...; rows 0-2 show person 1's faces
     act(() => {
       grid?.onSectionRendered({
         rowOverscanStartIndex: 0,
@@ -168,7 +168,7 @@ describe("paging in the faces a fold reveals", () => {
     const foldedOne = { ...collapsed, labeled: new Set([1]) };
     await render(people, foldedOne);
     onSectionChange.mockReset();
-    await render([unloadedPerson(1, 2), unloadedPerson(2, 2)], foldedOne);
+    await render([unloadedPerson(1, 20), unloadedPerson(2, 20)], foldedOne);
     expect(onSectionChange).not.toHaveBeenCalled();
   });
 });

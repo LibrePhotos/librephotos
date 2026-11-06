@@ -1,10 +1,11 @@
 import type { PersonGroup } from "@librephotos/api-client";
-import { ActionIcon, Button, Group, Tooltip, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, Group, Menu, Tooltip, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
-  IconBarbell as Barbell,
   IconChevronsDown as ChevronsDown,
   IconChevronsUp as ChevronsUp,
+  IconDots as Dots,
+  IconFaceId as FaceId,
   IconRestore as Restore,
   IconTag as Tag,
   IconTrash as Trash,
@@ -67,8 +68,8 @@ function ToolbarAction({
 }
 
 /**
- * The right side of the faces toolbar. Nothing selected: Sort, Filter, the dots' legend, fold all
- * and train. Faces selected: the count (a click clears it) and what can be done with them (#2237),
+ * The right side of the faces toolbar. Nothing selected: Sort, Filter, Train faces and a ⋯ menu
+ * with fold all and the dots' legend. Faces selected: the count (a click clears it) and what can be done with them (#2237),
  * so the selection's actions only show when they can be used.
  */
 export function HeaderButtons({
@@ -155,29 +156,57 @@ export function HeaderButtons({
         onGroup={group => void navigate({ to: "/faces", search: { ...search, group } })}
         compact={compact}
       />
-      {/* The dots only mark suggestions */}
-      {(activeTab === "inferred" || activeTab === "unknown") && <ConfidenceLegend />}
-      <DisabledReason label={collapseLabel} reason={!canCollapse && t("facesdashboard.nogroups")}>
-        <ActionIcon
-          {...toolbarLook()}
-          size={TOOLBAR_ACTION_SIZE}
-          aria-label={collapseLabel}
-          onClick={toggleAllCollapsed}
-        >
-          {allCollapsed ? <ChevronsDown size={ICON_SIZE.toolbar} /> : <ChevronsUp size={ICON_SIZE.toolbar} />}
-        </ActionIcon>
-      </DisabledReason>
+      {/* The page's one action: tonal, labelled where there is room */}
       <Tooltip label={t("facesdashboard.explanationtraining")}>
-        <ActionIcon
-          {...toolbarLook()}
-          size={TOOLBAR_ACTION_SIZE}
-          loading={trainFacesMutation.isPending}
-          aria-label={t("facesdashboard.explanationtraining")}
-          onClick={() => trainFacesMutation.mutate()}
-        >
-          <Barbell size={ICON_SIZE.toolbar} />
-        </ActionIcon>
+        {compact ? (
+          <ActionIcon
+            variant="light"
+            radius="xl"
+            size={TOOLBAR_ACTION_SIZE}
+            loading={trainFacesMutation.isPending}
+            aria-label={t("facesdashboard.train")}
+            onClick={() => trainFacesMutation.mutate()}
+          >
+            <FaceId size={ICON_SIZE.toolbar} />
+          </ActionIcon>
+        ) : (
+          <Button
+            variant="light"
+            radius="xl"
+            h={TOOLBAR_CONTROL_HEIGHT}
+            leftSection={<FaceId size={ICON_SIZE.toolbar} />}
+            loading={trainFacesMutation.isPending}
+            onClick={() => trainFacesMutation.mutate()}
+          >
+            {t("facesdashboard.train")}
+          </Button>
+        )}
       </Tooltip>
+      {/* The rarely used tools: fold every group, and what the dots on a suggestion mean */}
+      <Menu position="bottom-end" width={260}>
+        <Menu.Target>
+          <ActionIcon {...toolbarLook()} size={TOOLBAR_ACTION_SIZE} aria-label={t("moreactions")}>
+            <Dots size={ICON_SIZE.toolbar} />
+          </ActionIcon>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <DisabledReason reason={!canCollapse && t("facesdashboard.nogroups")} position="left">
+            <Menu.Item
+              leftSection={allCollapsed ? <ChevronsDown size={ICON_SIZE.menu} /> : <ChevronsUp size={ICON_SIZE.menu} />}
+              onClick={toggleAllCollapsed}
+            >
+              {collapseLabel}
+            </Menu.Item>
+          </DisabledReason>
+          {/* The dots only mark suggestions */}
+          {(activeTab === "inferred" || activeTab === "unknown") && (
+            <>
+              <Menu.Divider />
+              <ConfidenceLegend />
+            </>
+          )}
+        </Menu.Dropdown>
+      </Menu>
     </Group>
   );
 

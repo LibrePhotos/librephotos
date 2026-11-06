@@ -1,7 +1,7 @@
 import type { UserPlace } from "@librephotos/api-client";
-import { Box, Button, Group, Text } from "@mantine/core";
+import { Box, Group, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconMapPinPlus, IconMap2 as Map2 } from "@tabler/icons-react";
+import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,6 @@ import {
 import { PLACE_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { useAlbumSort } from "../../../components/album/useAlbumSort";
-import { DisabledReason } from "../../../components/common/DisabledReason";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { PageLoader } from "../../../components/common/PageLoader";
@@ -24,6 +23,7 @@ import { useListFailure } from "../../../components/common/useListFailure";
 import { defaultPlacesMapHeight, PLACES_MAP_HEIGHTS } from "../../../components/map/PlacesPhotoMap";
 import { usePlacesMap } from "../../../components/map/usePlacesMap";
 import { PageHeader } from "../../../components/PageHeader";
+import { AddPlaceButton } from "../../../components/places/AddPlaceButton";
 import { PlaceAlbumGrid } from "../../../components/places/PlaceAlbumGrid";
 import { boxAround } from "../../../components/places/placeGeometry";
 import { PlacesMapSection } from "../../../components/places/PlacesMapSection";
@@ -31,7 +31,7 @@ import { validatePlacesSearch } from "../../../components/places/placesSearch";
 import { addPlaceBlocked, usePlaceEditor } from "../../../components/places/usePlaceEditor";
 import { YourPlacesRow } from "../../../components/places/YourPlacesRow";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-import { ICON_SIZE, PAGE_GUTTER_PX, TOOLBAR_CONTROL_HEIGHT } from "../../../uiConstants";
+import { PAGE_GUTTER_PX } from "../../../uiConstants";
 import { useMapStyle } from "../../../util/mapStyle";
 import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
 
@@ -128,16 +128,8 @@ function AlbumPlace({ height = 0 }: Props) {
         }
         actions={
           <Group gap={4} wrap="nowrap">
-            <DisabledReason reason={blocked}>
-              <Button
-                h={TOOLBAR_CONTROL_HEIGHT}
-                leftSection={<IconMapPinPlus size={ICON_SIZE.toolbar} />}
-                onClick={() => startEditing()}
-              >
-                {t("yourplaces.add")}
-              </Button>
-            </DisabledReason>
             {hasPlaces && <AlbumSortMenu {...placeSort.menu} />}
+            <AddPlaceButton blocked={blocked} onAdd={() => startEditing()} />
           </Group>
         }
       />

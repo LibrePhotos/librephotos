@@ -1,43 +1,50 @@
-/* The faces tabs: quiet pills in one row, the current one in the primary tint (not a filled pill). */
+/*
+ * The faces tabs drawn like Mantine's SegmentedControl (the Organizing page's status filter): a grey
+ * track with the current tab raised on it. Still tabs underneath, for the keyboard and screen readers.
+ */
 .list {
-  gap: 2px;
+  display: inline-flex;
   flex-wrap: nowrap;
+  gap: 0;
+  padding: 4px;
+  border-radius: var(--mantine-radius-md);
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-8));
 }
 
 .tab {
-  height: 34px;
-  padding-inline: 12px;
+  height: 28px;
+  padding-inline: 10px;
+  border-radius: calc(var(--mantine-radius-md) - 4px);
   font-size: var(--mantine-font-size-sm);
   font-weight: 500;
-  color: var(--mantine-color-text);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  transition: color 150ms ease;
 
   &:where(:not([data-active])):hover {
-    background-color: var(--mantine-color-default-hover);
+    background-color: transparent;
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
   }
 
-  &[data-active] {
-    background-color: var(--mantine-primary-color-light);
-    color: var(--mantine-primary-color-light-color);
-  }
-
+  &[data-active],
   &[data-active]:hover {
-    background-color: var(--mantine-primary-color-light-hover);
+    background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-5));
+    box-shadow: var(--mantine-shadow-xs);
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+
+    :where([data-mantine-color-scheme="dark"]) & {
+      box-shadow: none;
+    }
   }
 }
 
 .count {
   color: var(--mantine-color-dimmed);
   font-variant-numeric: tabular-nums;
-
-  .tab[data-active] & {
-    color: inherit;
-    opacity: 0.8;
-  }
 }
 
 /* Four tabs fit one row on a phone only with tighter padding (the counts are hidden there) */
 @media (max-width: 35.99em) {
   .tab {
-    padding-inline: var(--mantine-spacing-xs);
+    padding-inline: 8px;
   }
 }

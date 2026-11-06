@@ -100,11 +100,22 @@ vi.mock("../react-pig", () => ({
   }),
 }));
 vi.mock("./DefaultHeader", () => ({
-  DefaultHeader: ({ title, titleBadge }: { title: string; titleBadge?: React.ReactNode }) => (
-    <h1 data-testid="title">
-      {title}
-      {titleBadge}
-    </h1>
+  DefaultHeader: ({
+    title,
+    titleBadge,
+    actions,
+  }: {
+    title: string;
+    titleBadge?: React.ReactNode;
+    actions?: React.ReactNode;
+  }) => (
+    <div>
+      <h1 data-testid="title">
+        {title}
+        {titleBadge}
+      </h1>
+      {actions}
+    </div>
   ),
 }));
 vi.mock("../scrollscrubber/ScrollScrubber", () => ({
@@ -532,15 +543,21 @@ describe("PhotoListView photo page", () => {
   });
 });
 
-describe("PhotoListView display preferences", () => {
-  async function openSettingsMenu() {
-    const toggle = document.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("photodisplay.settings")}"]`);
-    expect(toggle).not.toBeNull();
-    await act(async () => defined(toggle).click());
-    // let the menu's open transition mount the dropdown
-    await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
-  }
+// The display options open from the header's ⋯: "View options…" (no second "adjust" button).
+async function openSettingsMenu() {
+  const more = document.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("photodisplay.more")}"]`);
+  expect(more).not.toBeNull();
+  await act(async () => defined(more).click());
+  // let the menu's open transition mount the dropdown
+  await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
+  const item = Array.from(document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
+    entry => entry.textContent === i18n.t("photodisplay.viewoptions")
+  );
+  await act(async () => defined(item).click());
+  await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
+}
 
+describe("PhotoListView display preferences", () => {
   // The header sizes are a SegmentedControl: a radio input per option, picked
   // through its label.
   function headerSizeButton(label: string) {
@@ -577,14 +594,6 @@ describe("PhotoListView display preferences", () => {
 });
 
 describe("PhotoListView photo order (#2712)", () => {
-  async function openSettingsMenu() {
-    await act(async () =>
-      defined(
-        document.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("photodisplay.settings")}"]`)
-      ).click()
-    );
-    await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
-  }
   const orderControl = () => document.querySelector('[aria-label="Order"]');
   const option = (label: string) => Array.from(document.querySelectorAll("label")).find(o => o.textContent === label);
 
@@ -642,7 +651,7 @@ describe("PhotoListView header actions", () => {
 
   // A shared album is read-only for its recipient, yet "Leave album" lives in its toolbar (#2210).
   it("shows headerActions on a read-only view, without the list's own controls", async () => {
-    const display = `[aria-label="${i18n.t("photodisplay.settings")}"]`;
+    const display = `[aria-label="${i18n.t("photodisplay.more")}"]`;
     const mediaFilter = '[data-testid="media-filter"]';
     const props = { mediaType: "all", headerActions: <span data-testid="leave-menu" /> } as const;
     // The owner's view: the list's controls next to the actions
@@ -699,7 +708,7 @@ describe("PhotoListView selection bar on demand (#2240)", () => {
 
     await act(async () => selectButton().click());
     expect(selectionToolbar()).not.toBeNull();
-    expect(selectionBar.props?.selectMode).toBe(true);
+    expect(selectionBar.props).toBeDefined();
     expect(document.activeElement).toBe(doneButton());
 
     await act(async () => doneButton().click());

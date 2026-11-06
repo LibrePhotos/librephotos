@@ -16,7 +16,7 @@ import i18n from "../../../i18n";
 
 type PhotoListProps = Pick<
   React.ComponentProps<typeof PhotoListView>,
-  "title" | "emptyStateConfig" | "error" | "additionalSubHeader" | "headerActions" | "banner"
+  "title" | "emptyStateConfig" | "error" | "additionalSubHeader" | "headerMenu" | "banner"
 >;
 type Query = {
   data: { id: number; name: string; grouped_photos: never[] } | undefined;
@@ -57,7 +57,7 @@ vi.mock("../../../components/photolist/PhotoListView", () => ({
     <div>
       <h1>{props.title}</h1>
       {props.additionalSubHeader}
-      {props.headerActions}
+      {props.headerMenu}
       {props.banner}
       {props.emptyStateConfig ? <p data-testid="empty">{props.emptyStateConfig.title}</p> : null}
       {props.error ? <p data-testid="error">failed</p> : null}

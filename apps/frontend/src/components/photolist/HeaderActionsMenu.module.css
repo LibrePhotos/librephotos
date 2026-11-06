@@ -1,0 +1,4 @@
+/* The ⋯ wrapped for the view options panel to open under: as tall as the button, no taller. */
+.anchor {
+  display: inline-flex;
+}

@@ -4,9 +4,11 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPlaceAlbumQuery } from "../../../api_client/albums/hooks";
 import { albumNotFoundState } from "../../../components/album/albumNotFound";
+import { CollectionMeta } from "../../../components/album/CollectionMeta";
 import { validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
+import { formatPhotoDaySpan } from "../../../util/dateUtils";
 
 export const Route = createFileRoute("/_protected/album/places/$id")({
   component: AlbumPlaceGallery,
@@ -25,6 +27,10 @@ function AlbumPlaceGallery() {
   return (
     <PhotoListView
       title={album?.title ?? (notFound ? t("places") : t("loading"))}
+      // The days its photos span, under the count
+      additionalSubHeader={
+        album ? <CollectionMeta parts={[formatPhotoDaySpan(album.grouped_photos.map(group => group.date))]} /> : null
+      }
       loading={isLoading}
       emptyStateConfig={notFound ? albumNotFoundState(t, <Map size={40} />, "/album/places") : undefined}
       photoset={album?.grouped_photos ?? []}

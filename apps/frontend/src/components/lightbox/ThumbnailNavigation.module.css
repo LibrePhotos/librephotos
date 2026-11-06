@@ -1,17 +1,31 @@
-/* The previous, current and next thumbnails at the bottom of the lightbox: small and quiet, in the
-   band of black the stage keeps for them under the photo (ContentViewer.module.css), so they never
-   cover it. The stage is black in both colour schemes, and so is the outline. */
+/* The previous, current and next thumbnails at the bottom of the lightbox, over the photo on a dark
+   blurred pill. Hidden until the pointer moves over the stage or a key steps (data-revealed, set by
+   ThumbnailNavigation), and kept while pointed at or focused, so a still photo has the whole stage.
+   The stage is black in both colour schemes, and so is the pill. */
 .strip {
   position: absolute;
-  bottom: calc((var(--lightbox-bottom-band, 72px) - 56px) / 2);
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 4px;
+  padding: 6px;
   width: fit-content;
+  border-radius: 12px;
+  background-color: var(--app-scrim-black-60);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.strip[data-revealed],
+.strip:hover,
+.strip:focus-within {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* The previous and next photos: dimmed until pointed at. */
@@ -19,9 +33,9 @@
   cursor: pointer;
   opacity: 0.6;
   transition: opacity 150ms ease;
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
 }
 
 .neighbour:hover,
@@ -31,10 +45,10 @@
 
 /* The photo shown: a thin white outline. */
 .current {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   margin: 0 4px;
-  border-radius: 4px;
+  border-radius: 6px;
   outline: 2px solid var(--mantine-color-white);
   outline-offset: 1px;
 }
@@ -43,14 +57,15 @@
    order the stylesheets load in. */
 .neighbour .tile,
 .current .tile {
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
   width: 100%;
   height: 100%;
 }
 
-/* On a touch screen a swipe steps through the photos; the strip would only cover the photo. */
-@media (hover: none) {
+/* On a touch screen or a phone a swipe steps through the photos; the strip would only cover the
+   photo, and the phone's bottom bar is there. */
+@media (hover: none), (max-width: 599px) {
   .strip {
     display: none;
   }

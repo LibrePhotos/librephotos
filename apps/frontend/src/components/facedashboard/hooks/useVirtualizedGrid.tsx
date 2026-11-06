@@ -2,10 +2,9 @@ import type { FaceAnalysisMethod } from "@librephotos/api-client";
 import { flatten, uniqBy } from "lodash-es";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
 import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
-import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
-import type { GroupedGridRows } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/scrollScrubberTypes";
 import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
+import { buildFaceGridRows, FACE_CELL, faceRowHeights, layoutWidthOf } from "../faceGridRows";
 import { FacesTab } from "../facesTab";
 import { needsCoverPage } from "../personCover";
 import { PAGE_SIZE } from "./useFaceDataFetching";
@@ -13,7 +12,8 @@ import type { FaceGroupPage } from "./useFaceDataFetching";
 
 /** A cell of the faces grid: a person's header, or one of their faces. */
 export type GridCell = CompletePersonFace | PersonFace;
-export type GridRows = GroupedGridRows<CompletePersonFace, PersonFace>;
+/** The grid's rows (see faceGridRows.ts): a shelf row mixes groups and their faces. */
+export type GridRows = GridCell[][];
 
 /**
  * A face that has been paged in. Until then a face is a placeholder (`isTemp`): no image or URL yet,
@@ -42,23 +42,6 @@ export function isLoadedFace(cell: GridCell): cell is FaceCell {
 }
 
 type RenderedSection = SectionRenderedParams;
-
-/**
- * The height of a person's header row: 12px above it to the group before, the 32px avatar and the
- * name, and 8px down to the faces. A face row and a row of folded people are one cell high.
- */
-export const FACE_HEADER_ROW_HEIGHT = 52;
-
-/** Whether a grid row is an open person's header (a folded person is a cell in a row of people). */
-function isHeaderRow(row: GridRows[number], collapsed: ReadonlySet<number>): boolean {
-  const first = row[0];
-  return row.length === 1 && first !== undefined && isPersonCell(first) && !collapsed.has(first.id);
-}
-
-/** The heights of the grid's rows, in order: header rows are short, the others one cell high. */
-export function faceRowHeights(rows: GridRows, collapsed: ReadonlySet<number>, cellSize: number): number[] {
-  return rows.map(row => (isHeaderRow(row, collapsed) ? FACE_HEADER_ROW_HEIGHT : cellSize));
-}
 
 /**
  * The page (of its person's faces) that a rendered cell needs: a placeholder face its own page, a
@@ -90,11 +73,8 @@ export function useVirtualizedGrid(
   collapsedPersons: Record<FacesTab, ReadonlySet<number>>
 ) {
   const gridRef = useRef<VirtualGridHandle>(null);
-  // The cells follow the grid's measured width; nothing is laid out before it is known
-  const { entrySquareSize, numEntrySquaresPerRow } = useMemo(
-    () => (width > 0 ? calculateFaceGridCellSize(width) : { entrySquareSize: 0, numEntrySquaresPerRow: 0 }),
-    [width]
-  );
+  // The cards follow the grid's measured width
+  const layoutWidth = layoutWidthOf(width);
 
   // Handle scroll from scrubber
   const handleScrubberScroll = useCallback(
@@ -109,29 +89,17 @@ export function useVirtualizedGrid(
 
   // Calculate cell contents for each tab - MEMOIZED to prevent recalculation on every render
   const cellContents = useMemo(
-    () => ({
-      [FacesTab.enum.labeled]: calculateFaceGridCells(
-        lists.labeled,
-        numEntrySquaresPerRow,
-        collapsedPersons[FacesTab.enum.labeled]
-      ).cellContents,
-      [FacesTab.enum.inferred]: calculateFaceGridCells(
+    (): Record<FacesTab, GridRows> => ({
+      [FacesTab.enum.labeled]: buildFaceGridRows(lists.labeled, layoutWidth, collapsedPersons[FacesTab.enum.labeled]),
+      [FacesTab.enum.inferred]: buildFaceGridRows(
         lists.inferred,
-        numEntrySquaresPerRow,
+        layoutWidth,
         collapsedPersons[FacesTab.enum.inferred]
-      ).cellContents,
-      [FacesTab.enum.unknown]: calculateFaceGridCells(
-        lists.unknown,
-        numEntrySquaresPerRow,
-        collapsedPersons[FacesTab.enum.unknown]
-      ).cellContents,
-      [FacesTab.enum.deleted]: calculateFaceGridCells(
-        lists.deleted,
-        numEntrySquaresPerRow,
-        collapsedPersons[FacesTab.enum.deleted]
-      ).cellContents,
+      ),
+      [FacesTab.enum.unknown]: buildFaceGridRows(lists.unknown, layoutWidth, collapsedPersons[FacesTab.enum.unknown]),
+      [FacesTab.enum.deleted]: buildFaceGridRows(lists.deleted, layoutWidth, collapsedPersons[FacesTab.enum.deleted]),
     }),
-    [lists.labeled, lists.inferred, lists.unknown, lists.deleted, numEntrySquaresPerRow, collapsedPersons]
+    [lists.labeled, lists.inferred, lists.unknown, lists.deleted, layoutWidth, collapsedPersons]
   );
 
   // Get cell contents for the active tab - stable reference due to memoized cellContents
@@ -139,7 +107,7 @@ export function useVirtualizedGrid(
 
   // Where each row of the active tab starts, and the whole grid's height
   const rowOffsets = useMemo(() => {
-    const heights = faceRowHeights(cellContents[activeTab], collapsedPersons[activeTab], entrySquareSize);
+    const heights = faceRowHeights(cellContents[activeTab], collapsedPersons[activeTab]);
     const offsets: number[] = [];
     let top = 0;
     for (const height of heights) {
@@ -147,23 +115,8 @@ export function useVirtualizedGrid(
       top += height;
     }
     return { offsets, total: top };
-  }, [cellContents, activeTab, collapsedPersons, entrySquareSize]);
+  }, [cellContents, activeTab, collapsedPersons]);
   const gridHeight = rowOffsets.total;
-
-  // Get endpoint cell for section rendering
-  const getEndpointCell = useCallback(
-    (cells: GridRows, rowStopIndex: number, columnStopIndex: number): GridCell | undefined => {
-      if (columnStopIndex < 0) {
-        return undefined;
-      }
-      const cell: GridCell | undefined = cells[rowStopIndex]?.[columnStopIndex];
-      if (cell) {
-        return cell;
-      }
-      return getEndpointCell(cells, rowStopIndex, columnStopIndex - 1);
-    },
-    []
-  );
 
   // Generate scroll positions for the scrubber
   const getScrollPositions = useCallback((): ScrollerData[] => {
@@ -177,25 +130,14 @@ export function useVirtualizedGrid(
     }, []);
   }, [activeTab, getCellContentsForTab, rowOffsets]);
 
-  // Request the pages backing the placeholder cells of a rendered section
+  // Request the pages backing the placeholder cells of a rendered section. A row is rendered whole
+  // (a shelf of cards is one row), so the section is its rows, whatever its columns.
   const requestPagesForSection = useCallback(
-    ({
-      rowOverscanStartIndex,
-      columnOverscanStartIndex,
-      rowOverscanStopIndex,
-      columnOverscanStopIndex,
-    }: RenderedSection) => {
+    ({ rowOverscanStartIndex, rowOverscanStopIndex }: RenderedSection) => {
       const cells = getCellContentsForTab(activeTab);
-      const startPoint: GridCell | undefined = cells[rowOverscanStartIndex]?.[columnOverscanStartIndex];
-      const endPoint = getEndpointCell(cells, rowOverscanStopIndex, columnOverscanStopIndex);
+      const sectionCells = flatten<GridCell>(cells.slice(rowOverscanStartIndex, rowOverscanStopIndex + 1));
 
-      if (!startPoint || !endPoint) return;
-
-      const flatCells = flatten<GridCell>(cells);
-      const startIndex = flatCells.indexOf(startPoint);
-      const endIndex = flatCells.indexOf(endPoint);
-
-      const relevantInfos = flatCells.slice(startIndex, endIndex + 1).flatMap(cell => {
+      const relevantInfos = sectionCells.flatMap(cell => {
         const needed = pageNeededBy(cell, collapsedPersons[activeTab]);
         return needed
           ? [
@@ -212,7 +154,7 @@ export function useVirtualizedGrid(
 
       onSectionChange(uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
     },
-    [activeTab, analysisMethod, collapsedPersons, getCellContentsForTab, getEndpointCell, onSectionChange]
+    [activeTab, analysisMethod, collapsedPersons, getCellContentsForTab, onSectionChange]
   );
 
   // Handle section rendering and detect visible cells
@@ -254,8 +196,7 @@ export function useVirtualizedGrid(
 
   return {
     gridRef,
-    entrySquareSize,
-    numEntrySquaresPerRow,
+    entrySquareSize: FACE_CELL,
     gridHeight,
     getCellContentsForTab,
     getFlattenedCells,

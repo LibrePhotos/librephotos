@@ -46,7 +46,6 @@ export function TabComponent({
       defaultValue={activeTab}
       value={activeTab}
       variant="pills"
-      radius="xl"
       classNames={{ tab: classes.tab, list: classes.list }}
       onChange={value => {
         navigate({ to: "/faces", search: { ...search, tab: FacesTab.safeParse(value).data } });

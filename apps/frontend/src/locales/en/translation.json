@@ -690,6 +690,10 @@
     "people": "People",
     "places": "Places",
     "things": "Things",
+    "pinned": "Pinned",
+    "recentalbums": "Recent albums",
+    "customize": "Customize sidebar",
+    "pinpages": "Show in the sidebar",
     "myalbums": "My albums",
     "autoalbums": "Auto created albums",
     "dataviz": "Data visualization",
@@ -966,7 +970,6 @@
     "download": "Download"
   },
   "selectionbar": {
-    "toggle": "Toggle select mode",
     "deselect": "Deselect all",
     "select": "Select all",
     "selectloaded": "Select the loaded photos",
@@ -1243,7 +1246,8 @@
     "controls": {
       "fullscreen": "Fullscreen (G)",
       "exitfullscreen": "Exit fullscreen (G)",
-      "zoom": "Zoom (Z)",
+      "zoomin": "Zoom in (Z)",
+      "zoomout": "Zoom out (Z)",
       "close": "Close (Escape)",
       "slideshow": "Slideshow (S)",
       "stopslideshow": "Stop slideshow (S)",
@@ -1413,8 +1417,8 @@
     "photosingroups": "Photos in groups",
     "scanned": "Scanned photos",
     "noduplicates": "No duplicate groups found",
-    "nopending": "All duplicate groups have been reviewed. Click 'Detect Duplicates' to scan for more.",
-    "empty": "Click 'Detect Duplicates' to scan your library for duplicate photos.",
+    "nopending": "All duplicate groups have been reviewed. Click “Detect duplicates” to scan for more.",
+    "empty": "Click “Detect duplicates” to scan your library for duplicate photos.",
     "reviewgroup": "Review duplicate group",
     "loading": "Loading duplicates...",
     "selectbest": "Select the photo you want to keep. Others will be moved to trash.",
@@ -1477,8 +1481,8 @@
     "photosingroups": "Photos in stacks",
     "potentialsavings": "Potential savings",
     "nostacks": "No photo stacks found",
-    "nopending": "All stacks have been reviewed. Click 'Detect Photo Stacks' to scan for more.",
-    "empty": "Click 'Detect Photo Stacks' to find related photos in your library.",
+    "nopending": "All stacks have been reviewed. Click “Detect photo stacks” to scan for more.",
+    "empty": "Click “Detect photo stacks” to find related photos in your library.",
     "reviewstack": "Review photo stack",
     "loading": "Loading stacks...",
     "selectbest": "Select the photo you want to keep as the primary. Others can be trashed or kept hidden.",
@@ -1543,7 +1547,7 @@
     "showing_one": "Showing {{count}} stack",
     "showing_other": "Showing {{count}} stacks",
     "view": "View stack",
-    "coverInfo": "The cover photo represents this stack in the gallery. Click 'Set as Cover' to change it.",
+    "coverInfo": "The cover photo represents this stack in the gallery. Click “Set as cover” to change it.",
     "cover": "Cover",
     "photoalt": "Stack photo",
     "filetype": {
@@ -1594,6 +1598,7 @@
     "deleteConfirmTitle_other": "Delete {{count}} photos permanently?",
     "permanentDeleteWarning": "They are removed from your library, and their original files are deleted from disk.",
     "emptyTrash": "Empty trash",
+    "actions": "Trash actions",
     "emptying": "Emptying the trash",
     "emptyConfirmTitle": "Empty the trash?",
     "emptyConfirmMessage_one": "The {{count}} photo or video in the trash is deleted for good, together with its original file on disk.",
@@ -1707,7 +1712,10 @@
     "search": "Search",
     "default": "Search...",
     "loading": "Loading...",
-    "resultsfor": "Results for “{{query}}”"
+    "resultsfor": "Results for “{{query}}”",
+    "explore": "Explore",
+    "exploresubtitle": "People, places and things in your library",
+    "matches": "Matching people, places and things"
   },
   "spotlight": {
     "placeholder": "Search photos, run commands...",
@@ -2224,7 +2232,8 @@
     "photocount_one": "{{count, number}} photo",
     "photocount_other": "{{count, number}} photos",
     "facecount_one": "{{name}}: {{count, number}} face",
-    "facecount_other": "{{name}}: {{count, number}} faces"
+    "facecount_other": "{{name}}: {{count, number}} faces",
+    "otherplaces": "Other"
   },
   "autoalbum": {
     "subtitle": "Showing {{ autoalbumlength }} events",
@@ -2293,6 +2302,7 @@
   },
   "personbirthdate": {
     "menuadd": "Add birth date…",
+    "add": "Add birth date",
     "menuedit": "Birth date…",
     "title": "Birth date of {{name}}",
     "label": "Birth date",
@@ -2403,6 +2413,8 @@
     "numberof_one": "{{count}} album",
     "numberof_other": "{{count}} albums",
     "ownedby": "Owned by {{name}}",
+    "sharedwithcount_one": "Shared with {{count}} person",
+    "sharedwithcount_other": "Shared with {{count}} people",
     "newalbum": "New album",
     "newalbumtitle": "New album",
     "create": "Create album",
@@ -2421,7 +2433,6 @@
     "notinany": "Not in a collection",
     "new": "New collection",
     "add": "Add",
-    "hint": "Group albums by theme, like Travel or Family",
     "actions": "Collection actions",
     "manage": "Manage collections…",
     "managetitle": "Manage collections",
@@ -2478,6 +2489,7 @@
     "explanationadding": "Add to an existing face ID or create a new face ID",
     "explanationdeleting": "Delete the face and its thumbnails",
     "explanationtraining": "Identify similar faces and try to find matches",
+    "train": "Train faces",
     "explanationvalidate": "Confirm that all faces from this group match with this person and add them to the corresponding face ID",
     "notthisperson": "Move the faces back to 'Unknown - Other'",
     "collapseperson": "Collapse {{name}}",
@@ -2963,6 +2975,8 @@
   },
   "photodisplay": {
     "settings": "Photo display settings",
+    "viewoptions": "View options…",
+    "more": "More options",
     "photoSize": "Photo size",
     "lowerBigger": "Lower = bigger thumbnails",
     "current": "Current: {{value}}",

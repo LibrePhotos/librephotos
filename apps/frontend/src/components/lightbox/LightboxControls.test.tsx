@@ -153,13 +153,13 @@ const menuItem = (container: HTMLElement, label: string) =>
   );
 
 describe("LightboxControls", () => {
-  it("names every button, and keeps the row to back, zoom, favorite, info, trash and ⋮", async () => {
+  it("names every button, and keeps the row to back, share, favorite, info, trash and ⋮", async () => {
     const container = await renderControls();
 
     expect(labels(container).every(Boolean)).toBe(true);
     expect(labels(container)).toEqual([
       "lightbox.controls.close",
-      "lightbox.controls.zoom",
+      "sharing.shareLinkShortcut",
       "lightbox.toolbar.addToFavorites",
       "lightbox.toolbar.showInfoPanel",
       "lightbox.toolbar.deletePhoto",
@@ -171,15 +171,42 @@ describe("LightboxControls", () => {
     const container = await renderControls();
 
     expect(await openMenu(container)).toEqual([
+      "lightbox.controls.zoomin",
       "lightbox.controls.slideshow",
       "lightbox.controls.copy",
       "lightbox.controls.fullscreen",
       "lightbox.toolbar.hidePhoto",
       "lightbox.toolbar.archivePhoto",
-      "sharing.shareLinkShortcut",
       "lightbox.toolbar.rotateCCW",
       "lightbox.toolbar.rotateCW",
     ]);
+  });
+
+  it("on a phone keeps back, favorite and ⋮ on top and puts share, info and delete in a bottom bar", async () => {
+    const desktop = window.matchMedia;
+    window.matchMedia = (query: string): MediaQueryList => ({
+      matches: query === "(max-width: 599px)",
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    });
+    try {
+      const container = await renderControls();
+      expect(labels(container)).toEqual([
+        "lightbox.controls.close",
+        "lightbox.toolbar.addToFavorites",
+        "lightbox.toolbar.moreActions",
+        "sharing.shareLinkShortcut",
+        "lightbox.toolbar.showInfoPanel",
+        "lightbox.toolbar.deletePhoto",
+      ]);
+    } finally {
+      window.matchMedia = desktop;
+    }
   });
 
   it("moves a photo to the trash and then lets the viewer move on", async () => {
@@ -244,24 +271,33 @@ describe("LightboxControls", () => {
 
     expect(labels(noDetails)).toEqual([
       "lightbox.controls.close",
-      "lightbox.controls.zoom",
       "lightbox.toolbar.showInfoPanel",
       "lightbox.toolbar.moreActions",
     ]);
     expect(await openMenu(noDetails)).toEqual([
+      "lightbox.controls.zoomin",
       "lightbox.controls.slideshow",
       "lightbox.controls.copy",
       "lightbox.controls.fullscreen",
     ]);
   });
 
-  it("reports a toggle's state once: in the label, or with aria-pressed for zoom", async () => {
+  it("reports a toggle's state in its label", async () => {
     const container = await renderControls({ photo: { rating: 5 }, lightboxSidebarShow: true, isZoomed: true });
     const button = (label: string) => defined(container.querySelector(`[aria-label="${label}"]`));
 
     expect(button("lightbox.toolbar.removeFromFavorites").hasAttribute("aria-pressed")).toBe(false);
     expect(button("lightbox.toolbar.hideInfoPanel").hasAttribute("aria-pressed")).toBe(false);
-    expect(button("lightbox.controls.zoom").getAttribute("aria-pressed")).toBe("true");
+    expect(await openMenu(container)).toContain("lightbox.controls.zoomout");
+  });
+
+  it("zooms from the ⋮, which keyboard and double click also do", async () => {
+    const toggleZoom = vi.fn<() => void>();
+    const container = await renderControls({ toggleZoom });
+    await openMenu(container);
+    await act(async () => menuItem(container, "lightbox.controls.zoomin").click());
+
+    expect(toggleZoom).toHaveBeenCalledOnce();
   });
 
   it("pauses a running slideshow from the toolbar", async () => {
@@ -313,7 +349,9 @@ describe("LightboxControls", () => {
 
     expect(labels(container)).not.toContain("lightbox.toolbar.deletePhoto");
     expect(labels(container)).not.toContain("lightbox.toolbar.addToFavorites");
+    expect(labels(container)).not.toContain("sharing.shareLinkShortcut");
     expect(await openMenu(container)).toEqual([
+      "lightbox.controls.zoomin",
       "lightbox.controls.slideshow",
       "lightbox.controls.copy",
       "lightbox.controls.fullscreen",
@@ -419,19 +457,19 @@ describe("LightboxControls 360° view (#483)", () => {
     expect(labels(container)).not.toContain("lightbox.panorama.toggle");
   });
 
-  it("puts the toggle before live text and zoom", async () => {
+  it("puts the toggle before live text", async () => {
     const container = await renderControls({ panorama: panorama(false), hasOcrText: true });
 
     const names = labels(container);
     expect(names.indexOf("lightbox.panorama.toggle")).toBeLessThan(names.indexOf("lightbox.controls.livetext"));
-    expect(button(container, "lightbox.controls.zoom").getAttribute("aria-disabled")).toBeNull();
   });
 
   it("keeps live text and zoom in place in the 360° view, saying why they do nothing", async () => {
     const toggleZoom = vi.fn<() => void>();
     const container = await renderControls({ panorama: panorama(true), hasOcrText: true, toggleZoom });
 
-    const zoom = button(container, "lightbox.controls.zoom");
+    await openMenu(container);
+    const zoom = menuItem(container, "lightbox.controls.zoomin");
     await act(async () => zoom.click());
 
     expect(zoom.getAttribute("aria-disabled")).toBe("true");

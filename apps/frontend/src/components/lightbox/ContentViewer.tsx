@@ -253,7 +253,7 @@ export function ContentViewer({
   return (
     <LightboxCommandsContext.Provider value={commands}>
       <Modal.Root opened onClose={handleClose} fullScreen closeOnEscape={false}>
-        <Modal.Overlay color="var(--mantine-color-black)" backgroundOpacity={1} />
+        <Modal.Overlay color="black" backgroundOpacity={1} />
         <Modal.Content bg="transparent">
           <Modal.Body
             ref={contentRef}

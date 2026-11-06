@@ -1,16 +1,31 @@
 /*
  * The page header: a compact title row whose left edge is the content's (PAGE_GUTTER, set from
- * PageHeader.tsx), with the actions on the right of the same row and below the title on a phone.
+ * PageHeader.tsx). One grid on every page and every width: [face] [title + meta] [actions], the
+ * actions centred on the title and its meta line and kept on that row on a phone too, and what
+ * the page adds below (`below`) in the text's column underneath.
  */
 /* The same 16px above every page's title and 12px below its header, so the title sits at one
    height on every page. */
 .root {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
   padding-block: 16px 12px;
 }
 
-/* The text column takes the free space, so a long title wraps instead of pushing the actions out */
+.withLeading {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 16px;
+}
+
+.leading {
+  grid-row: 1;
+  display: flex;
+}
+
 .text {
-  flex: 1 1 260px;
+  grid-row: 1;
   min-width: 0;
 }
 
@@ -29,5 +44,26 @@
 }
 
 .actions {
-  margin-left: auto;
+  grid-row: 1;
+  grid-column: -2;
+}
+
+/* The text's column and the actions' under it, so it lines up with the title, not the face. */
+.below {
+  grid-row: 2;
+  grid-column: -3 / -1;
+  min-width: 0;
+  margin-top: 4px;
+}
+
+/* A phone keeps the title row: a long title wraps within its own column, beside at most two icons
+   and the ⋯. */
+@media (max-width: 48em) {
+  .root {
+    column-gap: 8px;
+  }
+
+  .withLeading {
+    column-gap: 12px;
+  }
 }

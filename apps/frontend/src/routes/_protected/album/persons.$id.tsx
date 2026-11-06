@@ -6,10 +6,10 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchPersonQuery } from "../../../api_client/albums/hooks";
 import { personNotFoundState } from "../../../components/album/albumNotFound";
-import { PersonBirthDateLine } from "../../../components/album/PersonBirthDateLine";
 import { PersonBirthDateModal } from "../../../components/album/PersonBirthDateModal";
 import { PersonHeaderAvatar } from "../../../components/album/PersonHeaderAvatar";
 import { PersonHeaderMenu } from "../../../components/album/PersonHeaderMenu";
+import { PersonMeta } from "../../../components/album/PersonMeta";
 import { PersonShareReviewBanner } from "../../../components/album/PersonShareReviewBanner";
 import { usePersonBirthDate } from "../../../components/album/usePersonBirthDate";
 import { useListFailure } from "../../../components/common/useListFailure";
@@ -89,10 +89,10 @@ function AlbumPersonGallery(): React.JSX.Element {
         headerMenu={
           person ? <PersonHeaderMenu person={person} photos={photosFlat} onBirthDate={birthDate.openFrom} /> : undefined
         }
-        // The birth date and age under the name, and the age beside each day (#2751): none without one
+        // The days of their photos, and the birth date and age under the name (#2751), or "Add birth date"
         additionalSubHeader={
-          person?.birth_date ? (
-            <PersonBirthDateLine name={person.name} birthDate={person.birth_date} onEdit={birthDate.openFrom} />
+          person ? (
+            <PersonMeta person={person} groups={photosGroupedByDate ?? []} onBirthDate={birthDate.openFrom} />
           ) : undefined
         }
         groupNote={birthDate.groupNote}

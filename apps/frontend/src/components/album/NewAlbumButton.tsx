@@ -29,10 +29,10 @@ export function NewAlbumButton({ existingTitles, collection }: Props) {
   const label = t("useralbum.newalbum");
   return (
     <>
-      {/* My Albums' one primary action, so the one filled button in its header */}
+      {/* My Albums' one create action: tonal, in the header's fixed slot before the ⋯ */}
       <Button
         visibleFrom="sm"
-        variant="filled"
+        variant="light"
         h={TOOLBAR_CONTROL_HEIGHT}
         leftSection={<IconPlus size={ICON_SIZE.toolbar} />}
         onClick={open}
@@ -40,7 +40,7 @@ export function NewAlbumButton({ existingTitles, collection }: Props) {
         {label}
       </Button>
       <Tooltip label={label} hiddenFrom="sm">
-        <ActionIcon hiddenFrom="sm" variant="filled" size={TOOLBAR_ACTION_SIZE} aria-label={label} onClick={open}>
+        <ActionIcon hiddenFrom="sm" variant="light" size={TOOLBAR_ACTION_SIZE} aria-label={label} onClick={open}>
           <IconPlus size={ICON_SIZE.toolbar} />
         </ActionIcon>
       </Tooltip>

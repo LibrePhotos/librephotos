@@ -292,7 +292,6 @@ export function FaceDashboard() {
             containerRef={ref}
             gridRef={virtualGrid.gridRef}
             entrySquareSize={virtualGrid.entrySquareSize}
-            numEntrySquaresPerRow={virtualGrid.numEntrySquaresPerRow}
             gridHeight={virtualGrid.gridHeight}
             getCellContentsForTab={virtualGrid.getCellContentsForTab}
             getScrollPositions={virtualGrid.getScrollPositions}

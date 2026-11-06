@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../../api_client/albums/hooks";
 import { THING_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
+import { cardTitle } from "../../../components/album/cardTitle";
 import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { CollectionCard } from "../../../components/common/CollectionCard";
 import { EmptyState } from "../../../components/common/EmptyState";
@@ -71,7 +72,7 @@ function AlbumThing() {
           renderItem={(album, size) => (
             <CollectionCard
               size={size}
-              title={album.title}
+              title={cardTitle(album.title)}
               meta={t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
               covers={album.cover_photos.slice(0, 1)}
               placeholder={<Tags />}

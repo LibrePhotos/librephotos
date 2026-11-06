@@ -1,13 +1,13 @@
 import type { LibraryShare } from "@librephotos/api-client";
-import { ActionIcon, Badge, Menu, Stack } from "@mantine/core";
+import { Badge, Menu, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconDoorExit, IconDots, IconLibraryPhoto, IconLock } from "@tabler/icons-react";
+import { IconDoorExit, IconLibraryPhoto, IconLock } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
+import { ICON_SIZE } from "../../uiConstants";
 import { EmptyState } from "../common/EmptyState";
-import { toolbarLook } from "../common/toolbarLook";
+import { HeaderActionsMenu } from "../photolist/HeaderActionsMenu";
 import { LeaveLibraryModal } from "./LeaveLibraryModal";
 import { LibraryShareChips } from "./LibraryShareChips";
 import { firstName, switchesOf } from "./libraryShareFields";
@@ -21,18 +21,11 @@ export function LibraryMenu({ share }: Readonly<{ share: LibraryShare }>) {
   const label = t("librarySharing.leaveLibrary", { name: firstName(share.owner) });
   return (
     <>
-      <Menu position="bottom-end">
-        <Menu.Target>
-          <ActionIcon {...toolbarLook()} size={TOOLBAR_ACTION_SIZE} aria-label={label}>
-            <IconDots size={ICON_SIZE.toolbar} />
-          </ActionIcon>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Item color="red" leftSection={<IconDoorExit size={16} />} onClick={leaveDialog.open}>
-            {label}
-          </Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
+      <HeaderActionsMenu label={label}>
+        <Menu.Item color="red" leftSection={<IconDoorExit size={ICON_SIZE.menu} />} onClick={leaveDialog.open}>
+          {label}
+        </Menu.Item>
+      </HeaderActionsMenu>
       <LeaveLibraryModal
         opened={leaveOpened}
         onClose={leaveDialog.close}
