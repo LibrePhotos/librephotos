@@ -1,5 +1,5 @@
 /**
- * Every page keeps the same horizontal gutter, PAGE_GUTTER (10px) from the edge of the app shell,
+ * Every page keeps the same horizontal gutter, PAGE_GUTTER (20px, 12px on a phone) from the edge of the app shell,
  * which adds none: PageHeader and PageBody keep it, and so do PhotoListView's grid and TileGrid.
  * The sharing pages wrapped themselves in `p="md"` and the photo page in a `Container`, so the
  * title and the content jumped sideways between routes.

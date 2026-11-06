@@ -31,7 +31,7 @@ import { STORAGE_KEYS } from "../../util/storage";
 import { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
-import { isPersonCell, useVirtualizedGrid, type GridCell } from "./hooks/useVirtualizedGrid";
+import { FACE_HEADER_ROW_HEIGHT, isPersonCell, useVirtualizedGrid, type GridCell } from "./hooks/useVirtualizedGrid";
 import { PersonCell } from "./PersonCell";
 
 const stubs = vi.hoisted(() => ({
@@ -87,8 +87,9 @@ function person(id: number, name: string, faceCount: number): CompletePersonFace
 }
 
 const ITEMS_PER_ROW = 4;
-// calculateFaceGridCellSize puts ITEMS_PER_ROW faces in a row at this width
-const GRID_WIDTH = 700;
+// calculateFaceGridCellSize puts ITEMS_PER_ROW faces of 104px in a row at this width
+const GRID_WIDTH = 450;
+const CELL_SIZE = 104;
 const PEOPLE = [person(1, "Alice", 9), person(2, "Bob", 5)];
 const ALICE = defined(PEOPLE[0], "Alice");
 const LISTS = { labeled: PEOPLE, inferred: [], unknown: [], deleted: [] };
@@ -362,7 +363,8 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     await view.render({ ...NOTHING_COLLAPSED, labeled: new Set([1]) });
 
     expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 1 + Math.ceil(5 / ITEMS_PER_ROW));
-    expect(view.grid.gridHeight).toBe(4 * (GRID_WIDTH / ITEMS_PER_ROW));
+    // Alice's cell and Bob's two rows of faces are one cell high, Bob's header row is shorter
+    expect(view.grid.gridHeight).toBe(3 * CELL_SIZE + FACE_HEADER_ROW_HEIGHT);
     expect(requests).toHaveLength(2);
     expect(defined(requests[1], "the second request batch").map(request => request.person)).toEqual([2]);
 

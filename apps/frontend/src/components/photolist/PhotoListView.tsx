@@ -6,7 +6,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
-import { TOP_MENU_HEIGHT } from "../../uiConstants";
+import { PAGE_GUTTER_PX, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { formatDateForPhotoGroups, type GroupNote } from "../../util/util";
 import type { ListFailure } from "../common/useListFailure";
 import Pig from "../react-pig";
@@ -274,60 +274,64 @@ function PhotoListViewComponent({
   // Read-only views select nothing, except a contributor's album, where they remove their own.
   const canSelect = canSelectPhotos(isPublic, contributor);
   const isUserAlbum = location.pathname.startsWith("/album/user/");
+  // While selecting, the selection bar takes the header's place (Google Photos, Immich): the
+  // title and toolbar come back when select mode ends.
+  const showsSelectionBar = !isLoading && canSelect && getNumPhotos() > 0 && selectMode.selecting;
 
   return (
     <RemoveScroll enabled={lightbox.lightboxOpen}>
       {header !== null && (
         <Box className={classes.header} ref={headerRef}>
-          {header || (
-            // The actions sit beside the title in the normal flow (they used to be
-            // absolutely positioned over it). The 220px basis wraps a wide action
-            // group onto its own row on phones instead of squeezing the title, and
-            // keeps the timeline's three icons (Filter, Select, display) beside it.
-            <Flex justify="space-between" align="flex-start" columnGap="xs" rowGap={4} wrap="wrap">
-              <Box flex="1 1 220px" miw={0}>
-                <DefaultHeader
-                  loading={isLoading}
-                  numPhotosetItems={photos.length || 0}
-                  numPhotos={getNumPhotos()}
-                  title={title}
-                  titleBadge={titleBadge}
-                  dayHeaderPrefix={dayHeaderPrefix}
-                  date={date}
-                  additionalSubHeader={additionalSubHeader}
-                  hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
-                  isPublic={isPublic}
-                  countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
-                  titleOrder={titleOrder}
-                  filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
-                  oldestFirst={showsOldestFirst(photoOrder, preferences.photoOrder)}
-                />
-              </Box>
-              {!isFirstTimeSetup && (
-                <PhotoListToolbar
-                  headerActions={headerActions}
-                  listControls={!isLoading && canSelect}
-                  hasPhotos={getNumPhotos() > 0}
-                  mediaFilter={mediaType !== undefined}
-                  publicLink={isAlbumPubliclyShared && isUserAlbum}
-                  onOpenSharing={() => dialogs.albumShare.open()}
-                  preferences={preferences}
-                  photoOrder={photoOrder}
-                  selectMode={
-                    selectable
-                      ? {
-                          selecting: selectMode.selecting,
-                          onToggle: selectMode.toggle,
-                          ref: selectMode.selectButtonRef,
-                        }
-                      : undefined
-                  }
-                />
-              )}
-            </Flex>
-          )}
-          {header === undefined && filterBar}
-          {!isLoading && canSelect && getNumPhotos() > 0 && selectMode.selecting && (
+          {header ??
+            (showsSelectionBar ? null : (
+              // The actions sit beside the title in the normal flow (they used to be
+              // absolutely positioned over it). The 220px basis wraps a wide action
+              // group onto its own row on phones instead of squeezing the title, and
+              // keeps the timeline's three icons (Filter, Select, display) beside it.
+              <Flex justify="space-between" align="center" columnGap="xs" rowGap={4} wrap="wrap" pr={PAGE_GUTTER_PX}>
+                <Box flex="1 1 220px" miw={0}>
+                  <DefaultHeader
+                    loading={isLoading}
+                    numPhotosetItems={photos.length || 0}
+                    numPhotos={getNumPhotos()}
+                    title={title}
+                    titleBadge={titleBadge}
+                    dayHeaderPrefix={dayHeaderPrefix}
+                    date={date}
+                    additionalSubHeader={additionalSubHeader}
+                    hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
+                    isPublic={isPublic}
+                    countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
+                    titleOrder={titleOrder}
+                    filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
+                    oldestFirst={showsOldestFirst(photoOrder, preferences.photoOrder)}
+                  />
+                </Box>
+                {!isFirstTimeSetup && (
+                  <PhotoListToolbar
+                    headerActions={headerActions}
+                    listControls={!isLoading && canSelect}
+                    hasPhotos={getNumPhotos() > 0}
+                    mediaFilter={mediaType !== undefined}
+                    publicLink={isAlbumPubliclyShared && isUserAlbum}
+                    onOpenSharing={() => dialogs.albumShare.open()}
+                    preferences={preferences}
+                    photoOrder={photoOrder}
+                    selectMode={
+                      selectable
+                        ? {
+                            selecting: selectMode.selecting,
+                            onToggle: selectMode.toggle,
+                            ref: selectMode.selectButtonRef,
+                          }
+                        : undefined
+                    }
+                  />
+                )}
+              </Flex>
+            ))}
+          {header === undefined && !showsSelectionBar && filterBar}
+          {showsSelectionBar && (
             <PhotoListSelectionBar
               selectionState={selectionState}
               idx2hash={idx2hash}
@@ -357,7 +361,7 @@ function PhotoListViewComponent({
           variant={localScrubberStyle}
           stickyHeader={headerRef}
         >
-          <Box p={10} ref={gridRef}>
+          <Box px={PAGE_GUTTER_PX} py={10} ref={gridRef} data-selecting={selectMode.selecting}>
             <Pig<PigPhoto>
               ref={pigRef}
               className={SCROLL_SCRUBBER_TARGET}

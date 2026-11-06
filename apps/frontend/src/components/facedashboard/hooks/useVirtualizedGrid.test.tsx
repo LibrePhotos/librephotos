@@ -71,7 +71,9 @@ describe("faces grid sizing", () => {
 
     if (!layout) throw new Error("the grid did not render");
     expect(layout.width).toBe(1170);
-    expect(layout.columns).toBe(8);
+    // Fixed 104px cells (a 96px face and its gap), as many as fit
+    expect(layout.columns).toBe(11);
+    expect(layout.cellSize).toBe(104);
     expect(layout.columns * layout.cellSize).toBeLessThanOrEqual(1170);
   });
 });

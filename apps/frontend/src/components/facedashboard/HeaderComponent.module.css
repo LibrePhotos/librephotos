@@ -1,25 +1,99 @@
-/* A long name is cut short instead of wrapping the row: the grid row has a fixed
-   height, so a wrapped header spilled above it and hid the collapse chevron */
-.nameChip {
+/*
+ * A person's header row in the faces grid: chevron, 32px face, name and count on one line, 12px
+ * below the group before it and 8px above its faces, with no rule between groups. A long name is
+ * cut short instead of wrapping: the grid row has a fixed height.
+ */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 12px 4px 8px;
   min-width: 0;
-}
-
-.nameChipLabel {
-  max-width: 100%;
-}
-
-/* Chip puts the name in a span after the check icon */
-.nameChipLabel > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Only the name gives way: the selected person's check icon was squeezed too */
-.nameChipIcon {
-  flex-shrink: 0;
 }
 
 /* The cover face keeps its size when a long name squeezes the row */
 .cover {
   flex-shrink: 0;
+}
+
+.nameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* The name as text that edits in place: no box, a pencil on hover and keyboard focus */
+.nameButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 6px;
+  margin-inline: -6px;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-text);
+
+  &:hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 1px;
+  }
+}
+
+.pencil {
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  .nameButton:hover &,
+  .nameButton:focus-visible & {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    opacity: 1;
+  }
+}
+
+/* "Add a name" on a cluster nobody has named: a dimmed placeholder, its pencil always shown */
+.placeholder {
+  color: var(--mantine-color-dimmed);
+  font-weight: 500;
+
+  .pencil {
+    opacity: 1;
+  }
+}
+
+.count {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+  white-space: nowrap;
+}
+
+/* Selecting the whole group: shown on hover and focus, while it is ticked and while faces are selected */
+.groupCheck {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  .row:hover &,
+  .row:focus-within &,
+  &:has(input[data-shown]) {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    opacity: 1;
+  }
 }

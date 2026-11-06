@@ -86,7 +86,8 @@ export function LocationMap({ photos }: Props) {
           mapStyle={mapStyle}
           attributionControl={false}
         >
-          <NavigationControl position="top-right" />
+          {/* Zoom only: a compass on a 200px tile was mostly clutter */}
+          <NavigationControl position="top-right" showCompass={false} />
           <AttributionControl compact={true} />
           {markers}
           {popupInfo && (

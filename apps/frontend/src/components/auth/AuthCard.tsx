@@ -1,10 +1,9 @@
-import { Card, Group, Image, Stack, Text, Title, useComputedColorScheme } from "@mantine/core";
+import { Card, Image, Stack, Text, Title, useComputedColorScheme } from "@mantine/core";
 import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import classes from "./AuthCard.module.css";
 
 type Props = Readonly<{
-  /** The form's heading ("Login", "Sign up"). */
+  /** The form's heading ("Sign in to LibrePhotos", "Sign Up"). */
   title: ReactNode;
   children: ReactNode;
   /** A line under the card (the login page's tagline). */
@@ -12,26 +11,22 @@ type Props = Readonly<{
 }>;
 
 /**
- * The card of the sign-in, sign-up and password-reset pages: the logo and the name on top, the
- * form's heading, then the form, centred in the window on the plain page background.
+ * The card of the sign-in, sign-up and password-reset pages: the logo, the form's heading centred
+ * under it, then the form, on a borderless card with a soft shadow in the middle of the window.
  */
 export function AuthCard({ title, children, footer }: Props) {
-  const { t } = useTranslation();
   const colorScheme = useComputedColorScheme("light");
   return (
     <Stack align="center" justify="center" className={classes.page}>
-      <Card withBorder radius="lg" padding="xl" className={classes.card}>
+      <Card radius={16} padding={24} className={classes.card}>
         <Stack gap="lg">
-          <Group gap="sm" justify="center" wrap="nowrap">
-            {/* Decorative: the name is written right next to it */}
-            <Image h={36} w={36} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} alt="" />
-            <Text fw={700} size="xl">
-              {t("login.name")}
-            </Text>
-          </Group>
-          <Title order={3} size="h3">
-            {title}
-          </Title>
+          <Stack gap="sm" align="center">
+            {/* Decorative: the heading under it names the app */}
+            <Image h={40} w={40} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} alt="" />
+            <Title order={3} className={classes.title}>
+              {title}
+            </Title>
+          </Stack>
           {children}
         </Stack>
       </Card>

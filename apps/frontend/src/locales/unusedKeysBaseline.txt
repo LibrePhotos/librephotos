@@ -2,16 +2,12 @@
 # delete a key from en/translation.json, or use it again, and remove its line here. Never add a line.
 autoalbumgallery.dateRange
 autoalbumgallery.day
-clear
 dataviz
 emptystate.dataviz.description
 emptystate.dataviz.title
 exif.deleteduplicate
 exif.deleteduplicatetitle
 facesdashboard.clusteredfacescounter
-facesdashboard.minconfidence
-facesdashboard.show
-facesdashboard.sortby
 favoritesyncoptions.mediafile
 favoritesyncoptions.off
 favoritesyncoptions.sidecar
@@ -70,7 +66,6 @@ selectionactions.stacksmerged
 settings.accountinformation
 settings.big
 settings.cancel
-settings.change
 settings.colorscheme.title
 settings.confidencelevel
 settings.experimentalupdate

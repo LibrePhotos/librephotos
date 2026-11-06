@@ -1,6 +1,7 @@
-import { Button, Group, Kbd, Modal, Stack, Text, UnstyledButton } from "@mantine/core";
+import { Button, CloseButton, Group, Kbd, Modal, Stack, Text, UnstyledButton } from "@mantine/core";
 import { Spotlight as MantineSpotlight, spotlight } from "@mantine/spotlight";
 import { IconSearch } from "@tabler/icons-react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
@@ -14,32 +15,58 @@ type SpotlightTriggerProps = {
   className?: string;
 };
 
+// The words of the search page being shown (/search/<words>), so the header field keeps them.
+function useShownSearchTerm(): string | null {
+  const pathname = useRouterState({ select: state => state.location.pathname });
+  const match = /^\/search\/([^/]+)\/?$/.exec(pathname);
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
 export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [isMac, setIsMac] = useState(false);
+  const term = useShownSearchTerm();
 
   useEffect(() => {
     setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent));
   }, []);
 
+  // On a search page the field shows the words searched for, with a button that clears them, as
+  // Google Photos keeps the query in its search field.
   return (
-    <UnstyledButton
-      className={className ? `${classes.trigger} ${className}` : classes.trigger}
-      onClick={() => spotlight.open()}
-    >
-      <IconSearch size={18} stroke={1.75} />
-      {/* Phones have no keyboard shortcut to hint at, and need the header room */}
-      <Text size="sm" c="dimmed" className={classes.label} truncate visibleFrom="sm">
-        {t("spotlight.triggerPlaceholder")}
-      </Text>
-      <Text size="sm" c="dimmed" className={classes.label} truncate hiddenFrom="sm">
-        {t("search.search")}
-      </Text>
-      <Group gap={4} wrap="nowrap" visibleFrom="sm">
-        <Kbd size="xs">{isMac ? "⌘" : "Ctrl"}</Kbd>
-        <Kbd size="xs">K</Kbd>
-      </Group>
-    </UnstyledButton>
+    <div className={className ? `${classes.trigger} ${className}` : classes.trigger}>
+      <UnstyledButton className={classes.open} onClick={() => spotlight.open()}>
+        <IconSearch size={18} stroke={1.75} />
+        {term !== null ? (
+          <Text size="sm" className={classes.label} truncate>
+            {term}
+          </Text>
+        ) : (
+          <>
+            {/* Phones have no keyboard shortcut to hint at, and need the header room */}
+            <Text size="sm" c="dimmed" className={classes.label} truncate visibleFrom="sm">
+              {t("spotlight.triggerPlaceholder")}
+            </Text>
+            <Text size="sm" c="dimmed" className={classes.label} truncate hiddenFrom="sm">
+              {t("search.search")}
+            </Text>
+            <Group gap={4} wrap="nowrap" visibleFrom="sm">
+              <Kbd size="xs">{isMac ? "⌘" : "Ctrl"}</Kbd>
+              <Kbd size="xs">K</Kbd>
+            </Group>
+          </>
+        )}
+      </UnstyledButton>
+      {term !== null && (
+        <CloseButton size="sm" radius="xl" aria-label={t("clear")} onClick={() => void navigate({ to: "/" })} />
+      )}
+    </div>
   );
 }
 

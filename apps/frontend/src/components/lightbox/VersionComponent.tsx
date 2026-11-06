@@ -38,12 +38,10 @@ export function getVariantBadgeProps(variant: FileVariant): { color: string; lab
  */
 function PhotoInfoSection({
   photoDetail,
-  isPublic,
   category,
   t,
 }: {
   photoDetail: PhotoType;
-  isPublic: boolean;
   category: React.ReactNode;
   t: TFunction;
 }) {
@@ -56,49 +54,44 @@ function PhotoInfoSection({
   const fileName = firstImagePath !== undefined ? fileNameOf(firstImagePath) : t("exif.unknownFilename");
 
   return (
-    // Full width, so the category badge lines up with the edit icons of the
-    // rows around it.
     <Stack gap="xs" w="100%">
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <Group justify="flex-start" wrap="nowrap" align="flex-start" miw={0}>
-          {photoDetail.video ? <Movie {...ROW_ICON} /> : <Photo {...ROW_ICON} />}
-          <Box miw={0}>
-            {/* Plain text that opens the file: a file name, not a call to action. */}
-            <Anchor
-              href={mediaUrl.photo(photoDetail.image_hash)}
-              target="_blank"
-              c="var(--mantine-color-text)"
-              underline="hover"
-              size="sm"
-              fw={500}
-              lineClamp={1}
-              className={classes.fileName}
-              title={fileName}
-            >
-              {fileName}
-            </Anchor>
-            <Group gap="xs">
-              <Text size="xs" c="dimmed">
-                {fileFacts(photoDetail, locale).join(" · ")}
-              </Text>
-              {hasVariants && (
-                <Anchor
-                  component="button"
-                  type="button"
-                  size="xs"
-                  c="blue"
-                  onClick={() => setShowVariants(!showVariants)}
-                  style={{ cursor: "pointer" }}
-                >
-                  {showVariants ? t("exif.hideFormats") : t("exif.showFormats", { count: nonMainVariants.length })}
-                </Anchor>
-              )}
-              {/* The owner's only, as the editors are (#2277). */}
-              {!isPublic && <AllMetadataButton photo={photoDetail} variant="link" />}
-            </Group>
-          </Box>
-        </Group>
-        {category}
+      <Group justify="flex-start" wrap="nowrap" align="flex-start" miw={0}>
+        {photoDetail.video ? <Movie {...ROW_ICON} /> : <Photo {...ROW_ICON} />}
+        <Box miw={0}>
+          {/* Plain text that opens the file: a file name, not a call to action. Two lines, so a
+              long camera or stock-site name still reads; the category chip sits under it. */}
+          <Anchor
+            href={mediaUrl.photo(photoDetail.image_hash)}
+            target="_blank"
+            c="var(--mantine-color-text)"
+            underline="hover"
+            size="sm"
+            fw={500}
+            lineClamp={2}
+            className={classes.fileName}
+            title={fileName}
+          >
+            {fileName}
+          </Anchor>
+          <Group gap="xs" mt={2}>
+            <Text size="xs" c="dimmed">
+              {fileFacts(photoDetail, locale).join(" · ")}
+            </Text>
+            {hasVariants && (
+              <Anchor
+                component="button"
+                type="button"
+                size="xs"
+                c="blue"
+                onClick={() => setShowVariants(!showVariants)}
+                style={{ cursor: "pointer" }}
+              >
+                {showVariants ? t("exif.hideFormats") : t("exif.showFormats", { count: nonMainVariants.length })}
+              </Anchor>
+            )}
+          </Group>
+          {category ? <Box mt={6}>{category}</Box> : null}
+        </Box>
       </Group>
 
       {/* File variants shown when toggled */}
@@ -187,11 +180,13 @@ export function VersionComponent(
   props: Readonly<{
     photoDetail: PhotoType;
     isPublic: boolean;
-    /** Shown at the end of the file name row: the owner's category badge. */
+    /** Shown under the file name: the owner's category badge. */
     category?: React.ReactNode;
+    /** After the camera rows and before "Show more", which then ends the Details: the place. */
+    location?: React.ReactNode;
   }>
 ) {
-  const { photoDetail, isPublic, category } = props;
+  const { photoDetail, isPublic, category, location } = props;
 
   const [showMore, setShowMore] = useState(false);
   const { t } = useTranslation();
@@ -204,20 +199,24 @@ export function VersionComponent(
   const folder = !isPublic && firstImagePath !== undefined ? folderOf(firstImagePath) : null;
   const locale = useFormatLocale();
   const moreRows = cameraDetails(photoDetail, t, locale).more;
-  // No toggle that would open on nothing.
-  const hasMore = folder !== null || moreRows.length > 0 || duplicates.length > 0;
+  // No toggle that would open on nothing. The owner always has All metadata (#2277).
+  const hasMore = !isPublic || folder !== null || moreRows.length > 0 || duplicates.length > 0;
 
   return (
     <div>
       <Stack align="flex-start">
-        <PhotoInfoSection photoDetail={photoDetail} isPublic={isPublic} category={category} t={t} />
+        <PhotoInfoSection photoDetail={photoDetail} category={category} t={t} />
         <CameraInfoSection photoDetail={photoDetail} />
+        {location ? <Box w="100%">{location}</Box> : null}
+        {/* One link ends the Details: the rest of the facts, and every tag of the file under them */}
         {hasMore && (
           <>
             <Collapse expanded={showMore}>
-              <Stack ml={TEXT_COLUMN}>
+              <Stack ml={TEXT_COLUMN} align="flex-start">
                 <AdditionalInfoSection folder={folder} rows={moreRows} t={t} />
                 {duplicates.length > 0 && <DuplicatesSection duplicates={duplicates} t={t} />}
+                {/* The owner's only, as the editors are (#2277). */}
+                {!isPublic && <AllMetadataButton photo={photoDetail} variant="link" />}
               </Stack>
             </Collapse>
             <Anchor

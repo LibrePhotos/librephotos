@@ -1,14 +1,28 @@
-import { ActionIcon, Avatar, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Avatar,
+  Button,
+  Checkbox,
+  Group,
+  Menu,
+  Modal,
+  Stack,
+  Text,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconChevronDown as ChevronDown,
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
+  IconPencil as Pencil,
   IconRestore as Restore,
   IconTrash as Trash,
   IconUserCheck as UserCheck,
 } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
+import cx from "clsx";
 import { uniqBy } from "lodash-es";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,7 +34,8 @@ import {
 import { useRestoreFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
 import type { CompletePersonFace } from "../../api_client/faces/types";
 import { PersonRenameModal } from "../album/PersonRenameModal";
-import { canConfirmFace, canRestoreAll, hasPersonMenu } from "./faceActionRules";
+import { canConfirmFace, canRestoreAll, hasPersonMenu, isNamedPerson } from "./faceActionRules";
+import { isUnknownGroup } from "./facesTab";
 import classes from "./HeaderComponent.module.css";
 import { useFocusOnMount } from "./hooks/useFocusOnMount";
 import { isLoadedFace, selectionOf } from "./hooks/useVirtualizedGrid";
@@ -38,6 +53,8 @@ type Props = {
   /** The person was just unfolded: the toggle takes the focus their collapsed cell had. */
   takeFocus: boolean;
   onFocused: () => void;
+  /** "Add a name" on a cluster: label all of its faces. Without it a cluster shows its own name. */
+  onNameGroup?: (faces: FaceSelection[]) => void;
 };
 
 const routeApi = getRouteApi("/_protected/faces");
@@ -51,6 +68,7 @@ export function HeaderComponent({
   coverUrl,
   takeFocus,
   onFocused,
+  onNameGroup,
 }: Readonly<Props>) {
   const { tab: activeTab } = routeApi.useSearch();
   const { t } = useTranslation();
@@ -67,11 +85,14 @@ export function HeaderComponent({
   // The dialogs open from menu items that are gone when they close, so the Modal's own
   // focus return dropped focus on the page body: it goes back to the ⋮ button instead
   const menuTrigger = useRef<HTMLButtonElement>(null);
+  // The name opens the rename dialog too, and gets the focus back when it closes
+  const nameButton = useRef<HTMLButtonElement>(null);
+  const renameOpener = useRef<HTMLButtonElement | null>(null);
   const toggleRef = useFocusOnMount<HTMLButtonElement>(takeFocus, onFocused);
 
   function closeRenameDialog() {
     hideRenameDialog();
-    menuTrigger.current?.focus();
+    (renameOpener.current ?? menuTrigger.current)?.focus();
   }
 
   function closeDeleteDialog() {
@@ -84,7 +105,8 @@ export function HeaderComponent({
     showDeleteDialog();
   }
 
-  function openRenameDialog(id: string, name: string) {
+  function openRenameDialog(id: string, name: string, opener: HTMLButtonElement | null = menuTrigger.current) {
+    renameOpener.current = opener;
     setPersonID(id);
     setPersonName(name);
     showRenameDialog();
@@ -128,85 +150,118 @@ export function HeaderComponent({
     }
   }, [cell.faces, selectedFaces]);
 
+  const faceCount = t("facesdashboard.facescounter", { count: cell.faces.length });
+  // The grid places the header as its row's one cell, a face wide: the header spans the row
+  const rowStyle: React.CSSProperties = { ...style, width: "100%" };
+  // A cluster nobody has named (not "Unknown - Other", where rejected faces go) offers a name
+  const unnamed = !isNamedPerson(cell) && !isUnknownGroup(cell) && activeTab !== "deleted" && !!onNameGroup;
+
+  function nameElement() {
+    if (hasPersonMenu(activeTab, cell)) {
+      return (
+        <UnstyledButton
+          ref={nameButton}
+          className={classes.nameButton}
+          aria-label={t("facesdashboard.renameperson", { name: cell.name })}
+          title={cell.name}
+          onClick={() => openRenameDialog(String(cell.id), cell.name, nameButton.current)}
+        >
+          <span className={classes.nameText}>{cell.name}</span>
+          <Pencil size={14} className={classes.pencil} aria-hidden />
+        </UnstyledButton>
+      );
+    }
+    if (unnamed) {
+      return (
+        <UnstyledButton
+          className={cx(classes.nameButton, classes.placeholder)}
+          aria-label={t("facesdashboard.addnamefor", { name: cell.name })}
+          title={cell.name}
+          onClick={() => onNameGroup?.(loadedFaces.map(selectionOf))}
+        >
+          <span className={classes.nameText}>{t("facesdashboard.addname")}</span>
+          <Pencil size={14} className={classes.pencil} aria-hidden />
+        </UnstyledButton>
+      );
+    }
+    return (
+      <Text component="span" className={classes.nameText} title={cell.name}>
+        {cell.name}
+      </Text>
+    );
+  }
+
   return (
-    <Stack w="100%" justify="end" pb="xl" style={style}>
-      <Group wrap="nowrap">
-        <ActionIcon
-          ref={toggleRef}
-          variant="subtle"
-          color="gray"
-          onClick={onToggleCollapse}
-          aria-expanded
-          aria-label={t("facesdashboard.collapseperson", { name: cell.name })}
-        >
-          <ChevronDown />
-        </ActionIcon>
-        {/* The chip names the person, so the face is decoration */}
-        <Avatar src={coverUrl} alt="" radius="xl" size={36} className={classes.cover} />
-        <Chip
-          variant="filled"
-          radius="xs"
-          size="lg"
-          checked={checked}
-          onChange={handleClick}
-          classNames={{ root: classes.nameChip, label: classes.nameChipLabel, iconWrapper: classes.nameChipIcon }}
-          wrapperProps={{ title: cell.name }}
-        >
-          {cell.name}
-        </Chip>
-        {canConfirmFace(activeTab, cell) && (
-          <Tooltip label={t("facesdashboard.explanationvalidate")}>
-            <ActionIcon
-              variant="light"
-              color="green"
-              aria-label={t("facesdashboard.explanationvalidate")}
-              onClick={() => confirmFacesAssociation()}
-            >
-              <UserCheck />
+    <div className={classes.row} style={rowStyle}>
+      <ActionIcon
+        ref={toggleRef}
+        variant="subtle"
+        color="gray"
+        size="sm"
+        onClick={onToggleCollapse}
+        aria-expanded
+        aria-label={t("facesdashboard.collapseperson", { name: cell.name })}
+      >
+        <ChevronDown size={16} />
+      </ActionIcon>
+      {/* The name says who it is, so the face is decoration */}
+      <Avatar src={coverUrl} alt="" radius="xl" size={32} className={classes.cover} />
+      {nameElement()}
+      {/* count picks the plural form */}
+      <span className={classes.count}>{faceCount}</span>
+      <Checkbox
+        size="xs"
+        className={classes.groupCheck}
+        data-shown={checked || selectedFaces.length > 0 || undefined}
+        checked={checked}
+        onChange={handleClick}
+        aria-label={t("facesdashboard.selectgroup", { name: cell.name })}
+      />
+      {canConfirmFace(activeTab, cell) && (
+        <Tooltip label={t("facesdashboard.explanationvalidate")}>
+          <ActionIcon
+            variant="subtle"
+            color="green"
+            size="sm"
+            aria-label={t("facesdashboard.explanationvalidate")}
+            onClick={() => confirmFacesAssociation()}
+          >
+            <UserCheck size={16} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+      {canRestoreAll(activeTab, cell) && (
+        <Tooltip label={t("facesdashboard.restoreall", { name: cell.name })}>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            aria-label={t("facesdashboard.restoreall", { name: cell.name })}
+            onClick={restoreAll}
+          >
+            <Restore size={16} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+      {hasPersonMenu(activeTab, cell) && (
+        // Its items open dialogs: handing focus back to the trigger took it from the dialog's input
+        <Menu position="bottom-end" returnFocus={false}>
+          <Menu.Target>
+            <ActionIcon ref={menuTrigger} variant="subtle" color="gray" size="sm" aria-label={t("moreactions")}>
+              <DotsVertical size={16} />
             </ActionIcon>
-          </Tooltip>
-        )}
-        {canRestoreAll(activeTab, cell) && (
-          <Tooltip label={t("facesdashboard.restoreall", { name: cell.name })}>
-            <ActionIcon
-              variant="light"
-              color="green"
-              aria-label={t("facesdashboard.restoreall", { name: cell.name })}
-              onClick={restoreAll}
-            >
-              <Restore />
-            </ActionIcon>
-          </Tooltip>
-        )}
-        {hasPersonMenu(activeTab, cell) && (
-          // Its items open dialogs: handing focus back to the trigger took it from the dialog's input
-          <Menu position="bottom-end" returnFocus={false}>
-            <Menu.Target>
-              <ActionIcon ref={menuTrigger} variant="subtle" color="gray" aria-label={t("moreactions")}>
-                <DotsVertical />
-              </ActionIcon>
-            </Menu.Target>
+          </Menu.Target>
 
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(String(cell.id), cell.name)}>
-                {t("rename")}
-              </Menu.Item>
-              <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(String(cell.id))}>
-                {t("delete")}
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        )}
-        <Text c="dimmed" style={{ flexShrink: 0 }}>
-          {/* count picks the plural form; number keeps older translations of the key working */}
-          {t("facesdashboard.numberoffaces", {
-            count: cell.faces.length,
-            number: cell.faces.length,
-          })}
-        </Text>
-      </Group>
-
-      <Divider />
+          <Menu.Dropdown>
+            <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(String(cell.id), cell.name)}>
+              {t("rename")}
+            </Menu.Item>
+            <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(String(cell.id))}>
+              {t("delete")}
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      )}
       <PersonRenameModal
         opened={renameDialogVisible}
         onClose={closeRenameDialog}
@@ -246,6 +301,6 @@ export function HeaderComponent({
           </Group>
         </Stack>
       </Modal>
-    </Stack>
+    </div>
   );
 }

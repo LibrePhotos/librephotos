@@ -26,7 +26,11 @@ export const TOOLBAR_CONTROL_HEIGHT = "calc(2.125rem * var(--mantine-scale))";
 // Horizontal inset (px) of a page's content from the edge of the app shell, which adds none:
 // PageHeader's padding, PageBody (components/PageBody.tsx), PhotoListView's grid and TileGrid's
 // gutter plus cell padding all keep it, so content edges stay put from one route to the next.
-export const PAGE_GUTTER = 10;
+// 20px on a desktop like Google Photos' and Immich's insets, 12px on a phone.
+export const PAGE_GUTTER = 20;
+export const PAGE_GUTTER_MOBILE = 12;
+// The gutter as a responsive Mantine padding prop (the phone layout is below sm).
+export const PAGE_GUTTER_PX = { base: PAGE_GUTTER_MOBILE, sm: PAGE_GUTTER } as const;
 
 // Colour of the favourite star everywhere it appears.
 export const FAVORITE_COLOR = "var(--mantine-color-yellow-5)";

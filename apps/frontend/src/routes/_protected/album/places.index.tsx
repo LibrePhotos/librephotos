@@ -1,5 +1,5 @@
 import type { UserPlace } from "@librephotos/api-client";
-import { Button, Group, Text } from "@mantine/core";
+import { Box, Button, Group, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconMapPinPlus, IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -21,7 +21,7 @@ import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { PageLoader } from "../../../components/common/PageLoader";
 import { useListFailure } from "../../../components/common/useListFailure";
-import { PLACES_MAP_HEIGHTS } from "../../../components/map/PlacesPhotoMap";
+import { defaultPlacesMapHeight, PLACES_MAP_HEIGHTS } from "../../../components/map/PlacesPhotoMap";
 import { usePlacesMap } from "../../../components/map/usePlacesMap";
 import { PageHeader } from "../../../components/PageHeader";
 import { PlaceAlbumGrid } from "../../../components/places/PlaceAlbumGrid";
@@ -31,7 +31,7 @@ import { validatePlacesSearch } from "../../../components/places/placesSearch";
 import { addPlaceBlocked, usePlaceEditor } from "../../../components/places/usePlaceEditor";
 import { YourPlacesRow } from "../../../components/places/YourPlacesRow";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../../uiConstants";
+import { ICON_SIZE, PAGE_GUTTER_PX, TOOLBAR_CONTROL_HEIGHT } from "../../../uiConstants";
 import { useMapStyle } from "../../../util/mapStyle";
 import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
 
@@ -77,7 +77,11 @@ function AlbumPlace({ height = 0 }: Props) {
   const { data: mapPoints, isFetching: isFetchingPoints, isLoading: isLoadingPoints } = useFetchPhotoMapPointsQuery();
   const userPlaces = useUserPlacesQuery().data ?? NO_USER_PLACES;
   const { mapStyle, mapsDisabled } = useMapStyle();
-  const [storedHeight, setMapHeight] = useStoredState(STORAGE_KEYS.placesMapHeight, MapHeight, PLACES_MAP_HEIGHTS.min);
+  const [storedHeight, setMapHeight] = useStoredState(
+    STORAGE_KEYS.placesMapHeight,
+    MapHeight,
+    defaultPlacesMapHeight(window.innerHeight)
+  );
   const placeEditor = usePlaceEditor();
   const { start: startEditing, editor } = placeEditor;
   const wide = useMediaQuery("(min-width: 48em)", true);
@@ -150,7 +154,7 @@ function AlbumPlace({ height = 0 }: Props) {
       ) : (
         <>
           {/* Inset like the header above it, rather than pulled into the menu's edge */}
-          <div style={{ padding: "0 10px 4px" }}>
+          <Box px={PAGE_GUTTER_PX} pb={4}>
             <PlacesMapSection
               placesMap={placesMap}
               mapStyle={mapStyle}
@@ -160,11 +164,11 @@ function AlbumPlace({ height = 0 }: Props) {
               placeEditor={placeEditor}
               onOpenPlace={place => void navigate({ to: "/album/places/mine/$id", params: { id: String(place.id) } })}
             />
-          </div>
+          </Box>
           {userPlaces.length > 0 && (
             <>
               <YourPlacesRow places={userPlaces} addDisabledReason={blocked} onAdd={() => startEditing()} />
-              <Text size="sm" fw={600} px={10}>
+              <Text size="sm" fw={600} px={PAGE_GUTTER_PX}>
                 {t("yourplaces.inView")}
               </Text>
             </>

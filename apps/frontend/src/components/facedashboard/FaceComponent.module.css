@@ -5,15 +5,13 @@
   align-content: center;
   justify-items: center;
   cursor: pointer;
-  border-radius: var(--mantine-radius-md);
+  border-radius: 12px;
   padding: 0;
+  transition: background-color 120ms ease;
 
-  &:hover {
-    background-color: var(--mantine-color-blue-4);
-  }
-
+  /* Selected: the face draws in (FaceComponent) inside a primary-tinted cell */
   &[data-selected="true"] {
-    background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-blue-9));
+    background-color: var(--mantine-primary-color-light);
   }
 
   /* Confirmed, rejected or deleted: on its way out of the grid */
@@ -30,7 +28,12 @@
 
 .faceButton {
   display: block;
-  border-radius: var(--mantine-radius-md);
+  border-radius: 12px;
+  transition: filter 120ms ease;
+
+  &:hover {
+    filter: brightness(0.92);
+  }
 
   /*
    * A primary ring between two body-coloured ones, lighter in dark mode: a plain primary outline
@@ -52,7 +55,7 @@
  * cover (#2234), one step darker so it stands out from the page's gray-0 background.
  */
 .noThumbnail {
-  border-radius: var(--mantine-radius-md);
+  border-radius: 12px;
   background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
   color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
 }

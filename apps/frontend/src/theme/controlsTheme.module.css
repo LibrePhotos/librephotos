@@ -1,0 +1,41 @@
+/*
+ * App-wide looks of the form controls (controlsTheme.ts). Mantine's defaults left an unchecked
+ * switch or radio almost invisible, most of all in the dark scheme, and mixed two input looks.
+ */
+
+/* An off switch: a track that reads as a control on white and on near-black, with a white thumb. */
+input:not(:checked):not(:disabled) + .switchTrack {
+  --switch-bg: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
+}
+
+/* Unchecked radios and checkboxes: a 1.5px ring two steps darker than the old one. */
+[data-mantine-color-scheme] .radio,
+[data-mantine-color-scheme] .checkbox {
+  border-width: calc(0.09375rem * var(--mantine-scale));
+}
+
+.radio:not(:checked):not(:disabled),
+.checkbox:not(:checked):not(:disabled):not([data-indeterminate]) {
+  border-color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+/*
+ * One input look: a light grey (dark-6) field with a 1px border, for the default and the filled
+ * variants alike. The focus border and an error border still win: focus sets the variable on the
+ * input itself, and a field with an error is left out here.
+ */
+[data-mantine-color-scheme] .inputWrapper:not([data-error], [data-variant="unstyled"])[data-variant] {
+  --input-bd: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  --input-bg: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+/*
+ * A disabled button keeps its shape: the outline of its variant and only fainter text, instead of
+ * a pale grey block that read like a missing element.
+ */
+[data-mantine-color-scheme] .button:where(:disabled:not([data-loading]), [data-disabled]:not([data-loading])) {
+  border-color: var(--mantine-color-default-border);
+  background: transparent;
+  color: var(--mantine-color-text);
+  opacity: 0.45;
+}

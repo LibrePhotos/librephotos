@@ -1,9 +1,12 @@
-/* A 960px column of cards plus the page gutter on both sides (PAGE_GUTTER, 10px). */
+/* A 960px column of cards plus the page gutter, centred in the space beside the sidebar so a wide
+   window has no empty band on one side only. */
 .narrow {
-  max-width: 980px;
+  max-width: 1000px;
+  margin-inline: auto;
 }
 
 /* The same column with SectionNav's 220px list and its xl gap beside it. */
 .wide {
-  max-width: calc(980px + 220px + var(--mantine-spacing-xl));
+  max-width: calc(1000px + 220px + var(--mantine-spacing-xl));
+  margin-inline: auto;
 }

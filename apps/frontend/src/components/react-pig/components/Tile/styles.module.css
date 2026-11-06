@@ -136,7 +136,8 @@
   opacity: 0;
 }
 
-.pigTile:hover .checkbox {
+.pigTile:hover .checkbox,
+:global([data-selecting="true"]) .checkbox {
   opacity: 0.85;
 }
 

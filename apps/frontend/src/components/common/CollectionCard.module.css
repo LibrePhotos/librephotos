@@ -77,12 +77,12 @@ a.frame:hover .image {
   stroke-width: 1.5;
 }
 
-/* The gradient the white title sits on */
+/* The gradient the white title sits on: dark enough at the bottom that a title reads on a light
+   cover too (snow, sky, a pale wall), gone by the upper third */
 .scrim {
   position: absolute;
-  inset: auto 0 0;
-  height: 55%;
-  background: linear-gradient(to top, var(--app-scrim-black-60), var(--app-scrim-black-25) 55%, transparent);
+  inset: 0;
+  background: linear-gradient(to top, var(--app-scrim-black-65) 0, var(--app-scrim-black-25) 45%, transparent 70%);
   pointer-events: none;
 }
 
@@ -99,14 +99,15 @@ a.frame:hover .image {
   font-weight: 600;
   line-height: 1.25;
   overflow-wrap: anywhere;
-  text-shadow: 0 1px 2px var(--app-scrim-black-30);
+  text-shadow: 0 1px 2px var(--app-scrim-black-40);
 }
 
 .meta {
   margin-top: 2px;
-  color: var(--app-scrim-white-80);
+  color: var(--app-scrim-white-90);
   font-size: 12px;
   line-height: 1.3;
+  text-shadow: 0 1px 2px var(--app-scrim-black-40);
 }
 
 /* Small white status glyphs in the top-left corner (shared, public, locked, folder) */
@@ -158,12 +159,13 @@ a.frame:hover .image {
   background-color: var(--app-scrim-black-60);
 }
 
-/* Touch screens have no hover: the button stays, but smaller and quieter */
+/* Touch screens have no hover and the cards no long-press menu: the button stays, but as a small
+   bare glyph on the photo rather than a dark disc on every card */
 @media (hover: none) {
   .menu {
-    top: 4px;
-    right: 4px;
-    opacity: 0.85;
+    top: 2px;
+    right: 2px;
+    opacity: 0.9;
   }
 
   .menuButton,
@@ -172,6 +174,8 @@ a.frame:hover .image {
     height: 24px;
     min-width: 24px;
     min-height: 24px;
-    background-color: var(--app-scrim-black-30);
+    background-color: transparent;
+    backdrop-filter: none;
+    filter: drop-shadow(0 1px 2px var(--app-scrim-black-60));
   }
 }

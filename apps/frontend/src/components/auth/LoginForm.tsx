@@ -51,7 +51,7 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
   }
 
   return (
-    <AuthCard title={t("login.login")} footer={t("login.tagline")}>
+    <AuthCard title={t("login.signintitle")} footer={t("login.tagline")}>
       <SsoErrorAlert />
 
       <form onSubmit={onSubmit}>
@@ -82,7 +82,7 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
             showForgotPassword={!!siteSettings?.email_configured}
           />
           <Button type="submit" loading={isLoading}>
-            {t("login.login")}
+            {t("login.signin")}
           </Button>
           {siteSettings && siteSettings.allow_registration && (
             <Button

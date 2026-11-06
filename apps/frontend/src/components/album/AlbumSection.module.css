@@ -1,13 +1,15 @@
+/* A section of the album hub. Its heading and its row start on the page's left edge, like the
+   category cards under them; the page spaces the sections. */
 .section {
-  margin-bottom: 1.5rem;
+  margin: 0;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
-  padding: 0 0.5rem;
+  gap: var(--mantine-spacing-sm);
+  margin-bottom: 0.5rem;
 }
 
 .headerLeft {
@@ -21,13 +23,15 @@
   }
 }
 
-/* Scroll variant (default) */
+/* Scroll variant (default). Pulled out by its padding, so the first card sits on the page edge while
+   the cards' shadow still has room on every side. */
 .scrollContainer {
   display: flex;
   gap: 1rem;
   overflow-x: auto;
-  /* Room below for the cards' shadow, which the scroller would clip */
+  margin: 0 -0.5rem;
   padding: 0.5rem 0.5rem 0.875rem;
+  scroll-padding-inline: 0.5rem;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
   scrollbar-color: var(--mantine-color-gray-4) transparent;
@@ -91,7 +95,7 @@
 .loadingContainer {
   display: flex;
   gap: 1rem;
-  padding: 0.5rem;
+  padding: 0.5rem 0;
 }
 
 .skeleton {
@@ -105,7 +109,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 0.5rem;
-  padding: 0.5rem;
+  /* The first face, not its wider name slot, on the page edge */
+  margin: 0 -6px;
+  padding: 0.5rem 0;
 }
 
 .avatarItem {
@@ -169,7 +175,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 0.5rem;
+  padding: 0.5rem 0;
 }
 
 /* A category card while it loads: the card's 4:3 shape */

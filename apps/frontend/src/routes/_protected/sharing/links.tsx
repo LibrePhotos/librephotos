@@ -85,9 +85,10 @@ function PublicLinksPage() {
             {isLoadingAlbums ? (
               <PageLoader label={t("loading")} />
             ) : publicAlbums.length === 0 ? (
-              <Stack align="center" mt="xl">
-                <Text c="dimmed">{t("sharing.noPublicAlbums")}</Text>
-              </Stack>
+              // One dimmed line under the tabs, like an empty section on the Sharing overview
+              <Text fz={13} c="dimmed" mt="md">
+                {t("sharing.noPublicAlbums")}
+              </Text>
             ) : (
               <PublicAlbumsGrid albums={publicAlbums} onShare={openShareDialog} />
             )}
@@ -100,9 +101,9 @@ function PublicLinksPage() {
                 <PageLoader label={t("loading")} />
               ) : totalPhotos === 0 ? (
                 photoShares.length === 0 && (
-                  <Stack align="center" mt="xl">
-                    <Text c="dimmed">{t("sharing.noPublicPhotos")}</Text>
-                  </Stack>
+                  <Text fz={13} c="dimmed">
+                    {t("sharing.noPublicPhotos")}
+                  </Text>
                 )
               ) : (
                 <PhotoListView

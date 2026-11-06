@@ -47,9 +47,9 @@ describe("memoryMonthLabel", () => {
 });
 
 describe("memoryDayLabel", () => {
-  test("spells out the day of a day memory", () => {
+  test("gives the day of a day memory, without the year its title already says", () => {
     Settings.defaultLocale = "en";
-    expect(memoryDayLabel(dayMemory)).toBe("Aug 24, 2019");
+    expect(memoryDayLabel(dayMemory)).toBe("Aug 24");
   });
 
   test("says nothing for a month memory, which is already named by its month", () => {

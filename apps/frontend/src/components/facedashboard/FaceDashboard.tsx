@@ -1,5 +1,5 @@
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
-import { RemoveScroll, Stack } from "@mantine/core";
+import { Group, RemoveScroll, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { getRouteApi } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
@@ -10,7 +10,7 @@ import {
   useRestoreFacesMutation,
   useSetFacesPersonLabelMutation,
 } from "../../api_client/faces";
-import { TOP_MENU_HEIGHT } from "../../uiConstants";
+import { PAGE_GUTTER_PX, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { usePersonGroupFilter } from "../album/usePersonGroupFilter";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
@@ -19,6 +19,7 @@ import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { FaceActionDialogs } from "./FaceActionDialogs";
 import { FacesEmptyState } from "./FacesEmptyState";
 import type { FacesTab } from "./facesTab";
+import toolbarClasses from "./FacesToolbar.module.css";
 import { faceVideoStart, withFaceVideoStart } from "./faceVideoStart";
 import type { FaceVideoStart } from "./faceVideoStart";
 import { HeaderButtons } from "./HeaderButtons";
@@ -29,7 +30,7 @@ import type { FaceGroupPage } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
-import type { FaceCell, GridCell } from "./hooks/useVirtualizedGrid";
+import type { FaceCell, FaceSelection, GridCell } from "./hooks/useVirtualizedGrid";
 import { TabComponent } from "./TabComponent";
 import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 
@@ -198,6 +199,15 @@ export function FaceDashboard() {
     }
   }, [selectedFaces, restoreFacesMutate, clearSelection]);
 
+  // "Add a name" on a cluster: its faces become the selection the Label faces dialog names
+  const nameGroup = useCallback(
+    (faces: FaceSelection[]) => {
+      setSelectedFaces(faces);
+      openModalPersonEdit();
+    },
+    [setSelectedFaces, openModalPersonEdit]
+  );
+
   const notThisPersonFunc = useCallback(() => {
     if (selectedFaces.length > 0) {
       setFacesPersonLabelMutate({
@@ -246,28 +256,31 @@ export function FaceDashboard() {
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
-      <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
+      <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`} gap="xs">
         <PageHeader title={t("sidemenu.facerecognition")} />
-        <TabComponent
-          fetchingLabeledFacesList={fetchingLabeledFacesList}
-          fetchingInferredFacesList={fetchingInferredFacesList}
-          fetchingDeletedFacesList={fetchingDeletedFacesList}
-          lists={lists}
-        />
-        <HeaderButtons
-          selectMode={selectedFaces.length > 0}
-          selectedFaces={selectedFaces}
-          changeSelectMode={clearSelection}
-          addFaces={() => selectedFaces.length > 0 && openModalPersonEdit()}
-          deleteFaces={deleteSelectedFaces}
-          notThisPerson={notThisPersonFunc}
-          restoreFaces={restoreSelectedFaces}
-          allCollapsed={allCollapsed}
-          toggleAllCollapsed={toggleAllCollapsed}
-          canCollapse={hasFaces}
-          personGroups={personGroups}
-          groupId={groupId}
-        />
+        {/* One toolbar row: the tabs, then Sort, Filter and the tools, or what to do with a selection */}
+        <Group px={PAGE_GUTTER_PX} justify="space-between" gap="xs" className={toolbarClasses.toolbar}>
+          <TabComponent
+            fetchingLabeledFacesList={fetchingLabeledFacesList}
+            fetchingInferredFacesList={fetchingInferredFacesList}
+            fetchingDeletedFacesList={fetchingDeletedFacesList}
+            lists={lists}
+          />
+          <HeaderButtons
+            selectMode={selectedFaces.length > 0}
+            selectedFaces={selectedFaces}
+            changeSelectMode={clearSelection}
+            addFaces={() => selectedFaces.length > 0 && openModalPersonEdit()}
+            deleteFaces={deleteSelectedFaces}
+            notThisPerson={notThisPersonFunc}
+            restoreFaces={restoreSelectedFaces}
+            allCollapsed={allCollapsed}
+            toggleAllCollapsed={toggleAllCollapsed}
+            canCollapse={hasFaces}
+            personGroups={personGroups}
+            groupId={groupId}
+          />
+        </Group>
         {!isFetching && !hasFaces ? (
           <FacesEmptyState
             activeTab={activeTab}
@@ -298,6 +311,7 @@ export function FaceDashboard() {
             faceActions={faceActions.actions}
             pendingFaceIds={faceActions.pendingFaceIds}
             showScrubber={personOrder === "name"}
+            onNameGroup={nameGroup}
           />
         )}
         <ModalPersonEdit

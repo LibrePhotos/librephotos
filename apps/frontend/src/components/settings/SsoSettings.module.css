@@ -10,18 +10,24 @@
   padding-left: calc(2.375rem * var(--mantine-scale) + var(--mantine-spacing-sm));
 }
 
-/* Darker than the filled shades, so the text passes AA contrast on the card. */
-.warning {
-  color: light-dark(var(--mantine-color-orange-9), var(--mantine-color-yellow-4));
-}
-
+/* A warning or an error reads as dimmed help text; only its icon takes the status colour, darker
+   than the filled shades so it passes contrast on the card. */
+.warning,
 .error {
-  color: light-dark(var(--mantine-color-red-8), var(--mantine-color-red-4));
+  color: var(--mantine-color-dimmed);
 }
 
 .icon {
   flex-shrink: 0;
   margin-top: 1px;
+}
+
+.warning .icon {
+  color: light-dark(var(--mantine-color-orange-7), var(--mantine-color-yellow-4));
+}
+
+.error .icon {
+  color: light-dark(var(--mantine-color-red-7), var(--mantine-color-red-4));
 }
 
 .counter {

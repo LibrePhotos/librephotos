@@ -2,6 +2,11 @@
 /* Tinted with the accent, as Google Photos' bar turns blue while selecting, so select mode is
    obvious at a glance. */
 .bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 52px;
+  margin-block: 12px 8px;
   padding: 4px 8px;
   border-radius: var(--mantine-radius-lg);
   background-color: var(--mantine-primary-color-light);

@@ -1,4 +1,41 @@
-/* Four tabs fit one row on a phone only with tighter padding (the count badges are hidden there) */
+/* The faces tabs: quiet pills in one row, the current one in the primary tint (not a filled pill). */
+.list {
+  gap: 2px;
+  flex-wrap: nowrap;
+}
+
+.tab {
+  height: 34px;
+  padding-inline: 12px;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  color: var(--mantine-color-text);
+
+  &:where(:not([data-active])):hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  &[data-active] {
+    background-color: var(--mantine-primary-color-light);
+    color: var(--mantine-primary-color-light-color);
+  }
+
+  &[data-active]:hover {
+    background-color: var(--mantine-primary-color-light-hover);
+  }
+}
+
+.count {
+  color: var(--mantine-color-dimmed);
+  font-variant-numeric: tabular-nums;
+
+  .tab[data-active] & {
+    color: inherit;
+    opacity: 0.8;
+  }
+}
+
+/* Four tabs fit one row on a phone only with tighter padding (the counts are hidden there) */
 @media (max-width: 35.99em) {
   .tab {
     padding-inline: var(--mantine-spacing-xs);

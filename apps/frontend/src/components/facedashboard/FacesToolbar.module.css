@@ -1,0 +1,18 @@
+/* The faces dashboard's one toolbar row: tabs on the left, Sort, Filter and the tools on the right. */
+.toolbar {
+  min-height: 40px;
+}
+
+/* The popover never runs off a phone's screen */
+.dropdown {
+  max-width: calc(100vw - 2rem);
+}
+
+.manage {
+  align-self: flex-start;
+}
+
+/* "3 selected": the selection's count in the text colour, like the other selection bars */
+.count {
+  font-weight: 600;
+}

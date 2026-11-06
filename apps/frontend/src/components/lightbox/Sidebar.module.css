@@ -81,7 +81,7 @@
   margin-top: 1px;
 }
 
-/* The file name: one line, cut short, and the whole of it on hover. */
+/* The file name: up to two lines, broken anywhere, and the whole of it on hover. */
 .fileName {
-  overflow-wrap: anywhere;
+  word-break: break-all;
 }

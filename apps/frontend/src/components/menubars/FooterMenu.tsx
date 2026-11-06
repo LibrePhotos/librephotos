@@ -15,6 +15,7 @@ import {
   IconMoon as Moon,
   IconSettings as Settings,
   IconSun as Sun,
+  IconTrash as Trash,
   IconUser as User,
 } from "@tabler/icons-react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
@@ -27,7 +28,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
 import classes from "./FooterMenu.module.css";
 import { ImportJobMenuSection } from "./ImportJobMenuSection";
-import { getNavigationItems, isNavItemActive } from "./navigation";
+import { getNavigationItems, isNavItemActive, TRASH_LINK } from "./navigation";
 
 export function FooterMenu(): React.JSX.Element {
   const { isAuthenticated } = useAuth();
@@ -43,7 +44,9 @@ export function FooterMenu(): React.JSX.Element {
   const { mutate: logout } = useLogoutMutation();
   const { requestLogout, modalProps } = useLogoutGuard(() => logout());
 
-  const navigationItems = getNavigationItems(t, isAuthenticated);
+  // Trash is a rare destination: on a phone it sits in the account menu, so the bar keeps the
+  // three sections people switch between (as Google Photos' and Immich's phone tabs do).
+  const navigationItems = getNavigationItems(t, isAuthenticated).filter(item => item.link !== TRASH_LINK);
 
   const links = navigationItems.map(item => {
     const key = item.label;
@@ -104,7 +107,7 @@ export function FooterMenu(): React.JSX.Element {
                   leftSection={submenuIcon}
                   onClick={() => {
                     if (submenuLink !== undefined) {
-                      navigate({ to: submenuLink });
+                      void navigate({ to: submenuLink });
                     }
                   }}
                 >
@@ -155,26 +158,30 @@ export function FooterMenu(): React.JSX.Element {
 
           <Menu.Divider />
 
-          <Menu.Item leftSection={<Book size={14} />} onClick={() => navigate({ to: "/library" })}>
+          <Menu.Item leftSection={<Book size={14} />} onClick={() => void navigate({ to: "/library" })}>
             {t("topmenu.library")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<User size={14} />} onClick={() => navigate({ to: "/profile" })}>
+          <Menu.Item leftSection={<User size={14} />} onClick={() => void navigate({ to: "/profile" })}>
             {t("topmenu.profile")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<Settings size={14} />} onClick={() => navigate({ to: "/settings" })}>
+          <Menu.Item leftSection={<Settings size={14} />} onClick={() => void navigate({ to: "/settings" })}>
             {t("topmenu.settings")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<ListDetails size={14} />} onClick={() => navigate({ to: "/jobs" })}>
+          <Menu.Item leftSection={<ListDetails size={14} />} onClick={() => void navigate({ to: "/jobs" })}>
             {t("topmenu.jobs")}
+          </Menu.Item>
+
+          <Menu.Item leftSection={<Trash size={14} />} onClick={() => void navigate({ to: TRASH_LINK })}>
+            {t("photos.deleted")}
           </Menu.Item>
 
           {user && user.is_superuser && <Menu.Divider />}
 
           {user && user.is_superuser && (
-            <Menu.Item leftSection={<Adjustments size={14} />} onClick={() => navigate({ to: "/admin" })}>
+            <Menu.Item leftSection={<Adjustments size={14} />} onClick={() => void navigate({ to: "/admin" })}>
               {t("topmenu.adminarea")}
             </Menu.Item>
           )}

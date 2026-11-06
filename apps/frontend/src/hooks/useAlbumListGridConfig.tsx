@@ -1,7 +1,7 @@
 import { useViewportSize } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import type { TileGridSizing } from "../components/virtual/TileGrid";
-import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, PAGE_GUTTER, TOP_MENU_HEIGHT } from "../uiConstants";
+import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, PAGE_GUTTER, PAGE_GUTTER_MOBILE, TOP_MENU_HEIGHT } from "../uiConstants";
 import { useIsDesktopLayout } from "./useIsDesktopLayout";
 
 // Around each cover inside its column, so the covers sit 16px apart
@@ -9,9 +9,9 @@ const ALBUM_CELL_PADDING = 8;
 
 /**
  * Left padding the album grids give their scroll container. With the cell padding the covers
- * sit 10px from the edges, in line with PageHeader's p={10}.
+ * sit on the page gutter, in line with PageHeader (12px on a phone, 20px beside the sidebar).
  */
-const ALBUM_GRID_GUTTER = PAGE_GUTTER - ALBUM_CELL_PADDING;
+const albumGridGutter = (navbarShown: boolean) => (navbarShown ? PAGE_GUTTER : PAGE_GUTTER_MOBILE) - ALBUM_CELL_PADDING;
 
 // PageHeader above each grid: an icon beside the title and subtitle, 10px padding
 // and 10px margin. The grid fills the rest, so the page itself does not scroll as well.
@@ -59,7 +59,7 @@ function calculateGridValues(
   const entries = shape === "portrait" ? personColumnsFor(width) : albumColumnsFor(width);
   // The gutter on both sides, and room for the grid's own scrollbar only where it takes any:
   // a fixed 15px left the last column 30px short of the edge on phones.
-  let columnWidth = width - 2 * ALBUM_GRID_GUTTER - getScrollbarWidth();
+  let columnWidth = width - 2 * albumGridGutter(navbarShown) - getScrollbarWidth();
   if (navbarShown) {
     columnWidth -= LEFT_MENU_WIDTH;
   }
@@ -101,6 +101,6 @@ export function useAlbumListGridConfig({
     cellPadding: ALBUM_CELL_PADDING,
     captionHeight,
     height: reservedHeight === undefined ? gridHeight : Math.max(gridHeight - reservedHeight, rowHeight),
-    gutter: ALBUM_GRID_GUTTER,
+    gutter: albumGridGutter(navbarShown),
   };
 }

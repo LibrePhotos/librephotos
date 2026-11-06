@@ -14,6 +14,17 @@
   flex-shrink: 0;
 }
 
+/* A TOC entry: a rounded pill like the sidebar's, the current card's in the primary tint. */
+.tocItem {
+  border-radius: 8px;
+}
+
+.aside .tocItem[data-active] {
+  background-color: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
+  font-weight: 500;
+}
+
 /* Below lg, a row of chips under the top bar that scrolls sideways on its own, never the page. */
 .chipBar {
   position: sticky;
@@ -89,9 +100,10 @@
   opacity: 1;
 }
 
-/* No hover on touch screens, so the link stays visible there. */
+/* No hover on touch screens: a permanent "#" beside every title read as clutter, so it is not shown
+   there (the page's section menu still jumps to each card). */
 @media (hover: none) {
   .link {
-    opacity: 0.6;
+    display: none;
   }
 }

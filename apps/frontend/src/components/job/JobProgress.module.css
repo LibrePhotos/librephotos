@@ -1,0 +1,19 @@
+/* A thin bar on a neutral track with the count after it: "64 / 64". */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  min-width: 0;
+}
+
+.bar {
+  flex: 1;
+  min-width: 48px;
+  --progress-root-bg: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.count {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}

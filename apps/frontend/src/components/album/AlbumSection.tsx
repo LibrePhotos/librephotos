@@ -30,7 +30,8 @@ const CATEGORY_CARD_WIDTH = 240;
 
 type AlbumSectionProps = {
   title: string;
-  icon: React.ReactNode;
+  /** The glyph of a category card without covers. */
+  icon?: React.ReactNode;
   albums: AlbumPreview[];
   viewAllLink: string;
   isLoading?: boolean;
@@ -45,7 +46,6 @@ type AlbumSectionProps = {
   actionLink?: string;
   actionLabel?: string;
   actionIcon?: React.ReactNode;
-  actionColor?: string;
 };
 
 function getDetfaultMaxItems(variant: AlbumSectionVariant): number {
@@ -63,12 +63,11 @@ function LoadingCard() {
   return <Skeleton className={classes.cardLoading} radius={12} />;
 }
 
-function LoadingAvararGrid({ icon, title }: { icon: React.ReactNode; title: string }) {
+function LoadingAvararGrid({ title }: { title: string }) {
   return (
     <div className={classes.section}>
       <div className={classes.header}>
         <div className={classes.headerLeft}>
-          {icon}
           <div>
             <Title order={4}>{title}</Title>
             <Skeleton height={14} width={80} mt={4} />
@@ -87,12 +86,11 @@ function LoadingAvararGrid({ icon, title }: { icon: React.ReactNode; title: stri
   );
 }
 
-function LoadingOther({ icon, title }: { icon: React.ReactNode; title: string }) {
+function LoadingOther({ title }: { title: string }) {
   return (
     <div className={classes.section}>
       <div className={classes.header}>
         <div className={classes.headerLeft}>
-          {icon}
           <div>
             <Title order={4}>{title}</Title>
             <Skeleton height={14} width={80} mt={4} />
@@ -134,23 +132,68 @@ function AvatarPreview({ album }: { album: AlbumPreview }) {
   );
 }
 
-function LoadingComponent({
-  variant,
-  icon,
-  title,
-}: {
-  variant: AlbumSectionVariant;
-  icon: React.ReactNode;
-  title: string;
-}) {
+function LoadingComponent({ variant, title }: { variant: AlbumSectionVariant; title: string }) {
   switch (variant) {
     case "avatarGrid":
-      return <LoadingAvararGrid icon={icon} title={title} />;
+      return <LoadingAvararGrid title={title} />;
     case "card":
       return <LoadingCard />;
     case "scroll":
-      return <LoadingOther icon={icon} title={title} />;
+      return <LoadingOther title={title} />;
   }
+}
+
+type HeadingProps = Readonly<{
+  title: string;
+  /** "6 albums": with `viewAllLink`, followed by "· View all ›". */
+  summary?: string;
+  /** The heading links here. */
+  viewAllLink?: string;
+  /** On the right, level with the title: a quiet button. */
+  action?: React.ReactNode;
+}>;
+
+/**
+ * A section heading of the album hub and its rows: the title with its count and "View all" under
+ * it, on the page's left edge like every row under it, and an optional action on the right.
+ */
+export function AlbumSectionHeading({ title, summary, viewAllLink, action }: HeadingProps) {
+  const { t } = useTranslation();
+  const heading = (
+    <div>
+      <Title order={4}>{title}</Title>
+      {summary !== undefined && (
+        <Group gap={6}>
+          <Text size="sm" c="dimmed">
+            {summary}
+          </Text>
+          {viewAllLink && (
+            <>
+              <Text size="sm" c="dimmed">
+                ·
+              </Text>
+              <Text size="sm" c="blue">
+                {t("explore.viewAll")}
+              </Text>
+              <IconChevronRight size={14} color="var(--mantine-color-blue-6)" />
+            </>
+          )}
+        </Group>
+      )}
+    </div>
+  );
+  return (
+    <div className={classes.header}>
+      {viewAllLink ? (
+        <Link to={viewAllLink} className={clsx(classes.headerLeft, classes.headerReset)}>
+          {heading}
+        </Link>
+      ) : (
+        <div className={classes.headerLeft}>{heading}</div>
+      )}
+      {action}
+    </div>
+  );
 }
 
 export function AlbumSection({
@@ -168,7 +211,6 @@ export function AlbumSection({
   actionLink,
   actionLabel,
   actionIcon,
-  actionColor = "blue",
 }: AlbumSectionProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -180,7 +222,7 @@ export function AlbumSection({
   const itemLimit = maxItems ?? defaultMaxItems;
 
   if (isLoading) {
-    return <LoadingComponent variant={variant} icon={icon} title={title} />;
+    return <LoadingComponent variant={variant} title={title} />;
   }
 
   // Card variant: a category on the hub, up to three of its covers side by side
@@ -205,37 +247,20 @@ export function AlbumSection({
   if (variant === "avatarGrid") {
     return (
       <div className={classes.section}>
-        <Group justify="space-between" align="flex-start" pr="md" className={classes.header}>
-          <Link to={viewAllLink} className={clsx(classes.headerLeft, classes.headerReset)}>
-            {icon}
-            <div>
-              <Title order={4}>{title}</Title>
-              <Group gap={6}>
-                <Text size="sm" c="dimmed">
-                  {countText}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  ·
-                </Text>
-                <Text size="sm" c="blue">
-                  {t("explore.viewAll")}
-                </Text>
-                <IconChevronRight size={14} color="var(--mantine-color-blue-6)" />
-              </Group>
-            </div>
-          </Link>
-          {actionLink && actionLabel && (
-            <Button
-              leftSection={actionIcon}
-              variant="light"
-              color={actionColor}
-              size="xs"
-              onClick={() => navigate({ to: actionLink })}
-            >
-              {actionLabel}
-            </Button>
-          )}
-        </Group>
+        <AlbumSectionHeading
+          title={title}
+          summary={countText}
+          viewAllLink={viewAllLink}
+          action={
+            actionLink &&
+            actionLabel && (
+              // A quiet default button: the hub's one accent stays on the links
+              <Button leftSection={actionIcon} variant="default" size="xs" onClick={() => navigate({ to: actionLink })}>
+                {actionLabel}
+              </Button>
+            )
+          }
+        />
 
         {error ? (
           <ErrorState failure={error} compact />
@@ -264,26 +289,7 @@ export function AlbumSection({
   // Default scroll variant
   return (
     <div className={classes.section}>
-      <div className={classes.header}>
-        <Link to={viewAllLink} className={clsx(classes.headerLeft, classes.headerReset)}>
-          {icon}
-          <div>
-            <Title order={4}>{title}</Title>
-            <Group gap={6}>
-              <Text size="sm" c="dimmed">
-                {countText}
-              </Text>
-              <Text size="sm" c="dimmed">
-                ·
-              </Text>
-              <Text size="sm" c="blue">
-                {t("explore.viewAll")}
-              </Text>
-              <IconChevronRight size={14} color="var(--mantine-color-blue-6)" />
-            </Group>
-          </div>
-        </Link>
-      </div>
+      <AlbumSectionHeading title={title} summary={countText} viewAllLink={viewAllLink} />
 
       {error ? (
         <ErrorState failure={error} compact />

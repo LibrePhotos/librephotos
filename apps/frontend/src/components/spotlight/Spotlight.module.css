@@ -2,21 +2,34 @@
 .trigger {
   display: flex;
   align-items: center;
-  gap: var(--mantine-spacing-sm);
+  gap: 4px;
   flex: 1;
   min-width: 0;
   max-width: 560px;
   min-height: 40px;
-  padding: 0 var(--mantine-spacing-md);
+  padding: 0 var(--mantine-spacing-xs) 0 var(--mantine-spacing-md);
   border-radius: 999px;
   background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
   color: var(--mantine-color-dimmed);
-  cursor: pointer;
   transition: background-color 120ms ease;
 
   &:hover {
     background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
   }
+}
+
+/* The part that opens the palette: everything but the clear button. */
+.open {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding-right: var(--mantine-spacing-xs);
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
 
   &:focus-visible {
     outline: 2px solid var(--mantine-primary-color-filled);

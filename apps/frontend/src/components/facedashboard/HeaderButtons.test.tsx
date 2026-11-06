@@ -1,6 +1,7 @@
 /**
  * The faces toolbar: its select button counts the selection in one translated sentence (#2201),
- * and the controls follow the tab (#127, #2237).
+ * and the controls follow the tab (#127, #2237). Sort and Filter are a menu and a popover, so a
+ * test opens them first.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
@@ -113,11 +114,23 @@ describe("the faces toolbar", () => {
 
   it("offers the analysis method and the confidence only on the Inferred tab", async () => {
     await renderToolbar([]);
+    await act(async () => buttonWithText(i18n.t("facesdashboard.filter")).click());
     expect(container.querySelector("input[inputmode]")).toBeNull();
 
     stubs.tab = "inferred";
     await renderToolbar([]);
     expect(container.querySelector("input[inputmode]")).not.toBeNull();
+  });
+
+  it("shows the selection's actions only while faces are selected", async () => {
+    await renderToolbar([]);
+    expect(
+      document.body.querySelector(`button[aria-label="${i18n.t("facesdashboard.explanationdeleting")}"]`)
+    ).toBeNull();
+
+    await renderToolbar(faces(1));
+    expect(buttonLabelled(i18n.t("facesdashboard.explanationdeleting"))).toBeDefined();
+    expect([...document.body.querySelectorAll("button")].some(button => button.textContent === "Sort")).toBe(false);
   });
 
   it("asks before deleting the selected faces", async () => {
@@ -132,10 +145,10 @@ describe("the faces toolbar", () => {
 
   it("orders the people by name, by face count or with similar faces together (#622)", async () => {
     await renderToolbar([]);
+    await act(async () => buttonWithText(i18n.t("facesdashboard.sort")).click());
 
-    const orders = [...container.querySelectorAll<HTMLInputElement>('input[type="radio"]')].map(input => input.value);
-    expect(orders).toEqual(expect.arrayContaining(["name", "count", "similar"]));
-    expect(container.textContent).toContain("Similar faces together");
+    const orders = [...container.querySelectorAll('[role="menuitemradio"]')].map(item => item.textContent);
+    expect(orders).toEqual(expect.arrayContaining(["A–Z", "Most faces", "Similar faces together"]));
   });
 
   it("trains the faces", async () => {

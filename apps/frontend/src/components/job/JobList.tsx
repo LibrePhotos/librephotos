@@ -1,19 +1,32 @@
-import { Alert, Anchor, Card, Center, Flex, Group, Loader, Pagination, Table, Text, Title } from "@mantine/core";
-import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";
+import type { Job } from "@librephotos/api-client";
+import {
+  Anchor,
+  Card,
+  Center,
+  Flex,
+  Group,
+  Loader,
+  Pagination,
+  Table,
+  Text,
+  Title,
+  VisuallyHidden,
+} from "@mantine/core";
 import { Link, useNavigate } from "@tanstack/react-router";
+import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
-import { useIsDesktopLayout } from "../../hooks/useIsDesktopLayout";
 import { parseInstant } from "../../util/dateUtils";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
 import { SectionLink } from "../settings/SettingsSection";
 import { CancelJobButton } from "./CancelJobButton";
-import { DeleteJobButton } from "./DeleteJobButton";
-import { JobDuration } from "./JobDuration";
-import { JobIndicator } from "./JobIndicator";
+import { JobActionsMenu } from "./JobActionsMenu";
+import { jobDurationLabel } from "./JobDuration";
+import classes from "./JobList.module.css";
 import { JobProgress } from "./JobProgress";
+import { JobStatusChip } from "./JobStatusChip";
 import { jobTypeLabel } from "./jobTypeLabel";
 
 type IJobList = Readonly<{
@@ -23,7 +36,7 @@ type IJobList = Readonly<{
    *
    * These travel as one prop rather than separate flags because they are not
    * independent — asking the backend to narrow the list is what makes dropping
-   * the "Started By" column correct. Set apart, they could be combined into a
+   * whose job it is correct. Set apart, they could be combined into a
    * list that hides whose jobs it is showing.
    */
   variant?: "admin" | "mine";
@@ -32,15 +45,23 @@ type IJobList = Readonly<{
 /** A job's detail page on each surface: the admin area's, or the user's own at /jobs. */
 const DETAIL_ROUTE = { admin: "/admin/job/$id", mine: "/jobs/$id" } as const;
 
+/** Every row has the same four cells on every screen: job, progress, status and its menu. */
+const COLUMNS = 4;
+
 /** A click on the row itself, not on a control inside it that does its own thing. */
 function isPlainRowClick(target: EventTarget) {
   return !(target instanceof Element && target.closest('a, button, [role="button"]'));
 }
 
+/** "1 hour ago · 482 ms", and on the admin list whose job it is. */
+function jobMeta(job: Job, t: TFunction, withUser: boolean): string {
+  const when = parseInstant(job.started_at ?? job.queued_at).toRelative();
+  return [when, jobDurationLabel(job, t), withUser ? job.started_by.username : null].filter(Boolean).join(" · ");
+}
+
 export function JobList({ variant = "admin" }: IJobList) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const matches = useIsDesktopLayout();
   const [jobCount, setJobCount] = useState(0);
   const [activePage, setActivePage] = useState(1);
   const [pageSize] = useState(10);
@@ -50,7 +71,6 @@ export function JobList({ variant = "admin" }: IJobList) {
   const jobsQuery = useJobsQuery({ page: activePage, pageSize, mine });
   const { data: jobs, isLoading } = jobsQuery;
   const listFailure = useListFailure(jobsQuery);
-  const columns = matches ? (mine ? 7 : 8) : 4;
 
   useEffect(() => {
     if (!jobs) {
@@ -68,100 +88,79 @@ export function JobList({ variant = "admin" }: IJobList) {
           <SectionLink /> {isLoading ? <Loader size="xs" /> : null}
         </Title>
       )}
-      <Alert icon={<AlertCircle />} title={t("joblist.removeentries")} mb={16}>
-        {t("joblist.removeexplanation")}
-      </Alert>
-      {/* Scrolls sideways on a phone instead of clipping the action buttons at the card edge */}
-      <Table.ScrollContainer minWidth={280} type="native">
-        {/* Tighter cells on a phone so the four columns fit without scrolling */}
-        <Table striped highlightOnHover verticalSpacing="xs" horizontalSpacing={matches ? "xs" : 6}>
+      {/* Scrolls sideways on a phone instead of clipping the menu at the card edge */}
+      <Table.ScrollContainer minWidth={320} type="native">
+        <Table highlightOnHover className={classes.table} horizontalSpacing="xs">
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>{t("joblist.status")}</Table.Th>
               <Table.Th>{t("joblist.jobtype")}</Table.Th>
               <Table.Th>{t("joblist.progress")}</Table.Th>
-              {matches && (
-                <>
-                  <Table.Th>{t("joblist.queued")}</Table.Th>
-                  <Table.Th>{t("joblist.started")}</Table.Th>
-                  <Table.Th>{t("joblist.duration")}</Table.Th>
-                  {!mine && <Table.Th>{t("joblist.startedby")}</Table.Th>}
-                </>
-              )}
-              {/* One column for Cancel and Remove: Cancel only exists while a job runs, so its own column was empty on almost every row */}
-              <Table.Th>{t("joblist.actions")}</Table.Th>
+              <Table.Th>{t("joblist.status")}</Table.Th>
+              {/* Cancel (while a job runs) and the ⋮ menu */}
+              <Table.Th>
+                <VisuallyHidden>{t("joblist.actions")}</VisuallyHidden>
+              </Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {jobs?.results.map(job => (
               <Table.Tr
                 key={job.job_id}
-                style={{ cursor: "pointer" }}
+                className={classes.row}
                 // A mouse convenience: the job type is the link the keyboard reaches (#2228)
                 onClick={e => {
                   if (isPlainRowClick(e.target)) {
-                    navigate({ to: detailRoute, params: { id: String(job.id) } });
+                    void navigate({ to: detailRoute, params: { id: String(job.id) } });
                   }
                 }}
               >
                 <Table.Td>
-                  <JobIndicator job={job} />
-                </Table.Td>
-                <Table.Td>
                   <Anchor
                     c="inherit"
-                    inherit
+                    size="sm"
+                    fw={500}
                     underline="hover"
                     // renderRoot, not component={Link}: only this way are `to` and `params` type-checked
                     renderRoot={props => <Link to={detailRoute} params={{ id: String(job.id) }} {...props} />}
                   >
                     {jobTypeLabel(job, t)}
                   </Anchor>
+                  <Text size="xs" c="dimmed">
+                    {jobMeta(job, t, !mine)}
+                  </Text>
                 </Table.Td>
-                <Table.Td>
+                <Table.Td className={classes.progressCell}>
                   <JobProgress
                     target={job.progress_target}
                     current={job.progress_current}
                     failed={job.failed}
                     cancelled={job.cancelled}
-                    error={job.error}
                     finished={job.finished}
                     result={job.result}
                     progressStep={job.progress_step}
                   />
                 </Table.Td>
-                {matches && (
-                  <>
-                    <Table.Td>{parseInstant(job.queued_at).toRelative()}</Table.Td>
-                    <Table.Td>{job.started_at ? parseInstant(job.started_at).toRelative() : ""}</Table.Td>
-                  </>
-                )}
-
-                <JobDuration
-                  matches={!!matches}
-                  finished={job.finished}
-                  finishedAt={job.finished_at}
-                  startedAt={job.started_at}
-                />
-                {matches && !mine && <Table.Td>{job.started_by.username}</Table.Td>}
-                <Table.Td onClick={e => e.stopPropagation()}>
-                  <Group gap="xs" wrap="nowrap">
+                <Table.Td className={classes.chipCell}>
+                  <JobStatusChip job={job} />
+                </Table.Td>
+                <Table.Td className={classes.actionsCell} onClick={e => e.stopPropagation()}>
+                  <Group gap={4} wrap="nowrap" justify="flex-end">
                     <CancelJobButton job={job} />
-                    <DeleteJobButton job={job} />
+                    <JobActionsMenu job={job} />
                   </Group>
                 </Table.Td>
               </Table.Tr>
             ))}
             {listFailure && (
               <Table.Tr>
-                <Table.Td colSpan={columns}>
+                <Table.Td colSpan={COLUMNS}>
                   <ErrorState failure={listFailure} compact />
                 </Table.Td>
               </Table.Tr>
             )}
             {(isLoading || jobs?.results.length === 0) && (
               <Table.Tr>
-                <Table.Td colSpan={columns}>
+                <Table.Td colSpan={COLUMNS}>
                   <Center py="md">
                     {isLoading ? (
                       <Loader size="sm" />

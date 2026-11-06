@@ -706,15 +706,15 @@ describe("PhotoListView selection bar on demand (#2240)", () => {
     expect(document.activeElement).toBe(selectButton());
   });
 
-  it("puts the bar away on Select again and on Escape", async () => {
+  it("shows the bar in the header's place and puts it away on Escape", async () => {
     await render({});
     await act(async () => selectButton().click());
-    await act(async () => selectButton().click());
-    expect(selectionToolbar()).toBeNull();
+    // The bar replaces the title row (Google Photos, Immich): no second Select button under it
+    expect(Array.from(document.body.querySelectorAll("h1"))).toHaveLength(0);
 
-    await act(async () => selectButton().click());
     await pressEscape();
     expect(selectionToolbar()).toBeNull();
+    expect(document.body.querySelectorAll("h1")).toHaveLength(1);
   });
 
   it("leaves Escape to an open menu or dialog", async () => {

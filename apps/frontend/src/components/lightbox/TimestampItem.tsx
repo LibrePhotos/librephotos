@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, Group, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconArrowBackUp as ArrowBackUp, IconCalendar as Calendar, IconPencil } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React from "react";
@@ -13,7 +13,7 @@ import { useTimestampEditor } from "./useTimestampEditor";
 type Props = Readonly<{
   photoDetail: TimestampPhoto;
   isPublic: boolean;
-  /** Under the date, in its text column: the owner's "Why this date?" (#2272). */
+  /** Beside the edit actions, level with the date: the owner's ⓘ "Why this date?" (#2272). */
   extra?: React.ReactNode;
 }>;
 
@@ -122,23 +122,26 @@ function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
 
   return (
     // Laid out like the file and camera rows below (icon, then the text
-    // column), with the edit action on the right like every other section.
-    <Group justify="space-between" wrap="nowrap" w="100%">
+    // column), with the edit actions on the right like every other section,
+    // level with the date rather than the middle of its lines.
+    <Group justify="space-between" wrap="nowrap" w="100%" align="flex-start">
       <Group wrap="nowrap" align="flex-start">
         <Calendar {...ROW_ICON} />
         {/* Not a button on a public share: there is nothing to activate. */}
-        <Stack gap={2} align="flex-start">
-          {isPublic ? (
-            <Box fz="sm">{getDateTimeLabel()}</Box>
-          ) : (
-            <UnstyledButton fz="sm" onClick={editor.open}>
-              {getDateTimeLabel()}
-            </UnstyledButton>
-          )}
-          {extra}
-        </Stack>
+        {isPublic ? (
+          <Box fz="sm">{getDateTimeLabel()}</Box>
+        ) : (
+          <UnstyledButton fz="sm" onClick={editor.open}>
+            {getDateTimeLabel()}
+          </UnstyledButton>
+        )}
       </Group>
-      {!isPublic && <TimestampEditActions editor={editor} />}
+      {!isPublic && (
+        <Group gap={4} wrap="nowrap">
+          {extra}
+          <TimestampEditActions editor={editor} />
+        </Group>
+      )}
     </Group>
   );
 }

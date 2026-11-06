@@ -1,0 +1,29 @@
+/* A 96px round avatar with the Change button sitting on its lower edge. */
+.avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+}
+
+.picture {
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: 50%;
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.picture canvas {
+  display: block;
+}
+
+.change {
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  right: 0;
+  width: fit-content;
+  margin-inline: auto;
+  box-shadow: var(--mantine-shadow-xs);
+}

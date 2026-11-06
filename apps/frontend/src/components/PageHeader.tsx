@@ -1,6 +1,6 @@
 import { Group, Loader, Stack, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
-import { PAGE_GUTTER } from "../uiConstants";
+import { PAGE_GUTTER_PX } from "../uiConstants";
 import classes from "./PageHeader.module.css";
 
 type Props = Readonly<{
@@ -24,7 +24,7 @@ type Props = Readonly<{
  */
 export function PageHeader({ title, subtitle, actions, loading = false, titleOrder = 1 }: Props) {
   return (
-    <Group justify="space-between" align="center" gap="xs" px={PAGE_GUTTER} className={classes.root}>
+    <Group justify="space-between" align="center" gap="xs" px={PAGE_GUTTER_PX} className={classes.root}>
       <Stack gap={0} className={classes.text}>
         <Title order={titleOrder} size="h2" ta="left" className={classes.title}>
           {title}

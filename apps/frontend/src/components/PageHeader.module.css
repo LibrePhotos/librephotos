@@ -2,8 +2,10 @@
  * The page header: a compact title row whose left edge is the content's (PAGE_GUTTER, set from
  * PageHeader.tsx), with the actions on the right of the same row and below the title on a phone.
  */
+/* The same 16px above every page's title and 12px below its header, so the title sits at one
+   height on every page. */
 .root {
-  padding-block: 8px;
+  padding-block: 16px 12px;
 }
 
 /* The text column takes the free space, so a long title wraps instead of pushing the actions out */

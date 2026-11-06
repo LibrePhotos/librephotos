@@ -348,8 +348,10 @@ function OwnerSidebar({
             photoDetail={photoDetail}
             isPublic={false}
             category={<CategoryBadge key={photoDetail.image_hash} photoDetail={photoDetail} />}
+            location={
+              <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} yourPlace={yourPlace} />
+            }
           />
-          <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} yourPlace={yourPlace} />
         </Stack>
         <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
         {/* Tags stay owner-only: public shares have no flag for them. The file's

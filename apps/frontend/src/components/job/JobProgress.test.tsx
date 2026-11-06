@@ -2,7 +2,7 @@
  * A scan that hit an I/O error on a few files reports status "partial_failure"
  * and still sets result.error (issue #167). The finished state used to go red on
  * any result.error, which painted a 4-in-150k scan as "Failed"; these pin the
- * three distinct finished states apart.
+ * finished states apart. The words for each state are the status chip's.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
@@ -57,19 +57,26 @@ function barColor(container: HTMLElement) {
   return container.querySelector(".mantine-Progress-section")?.getAttribute("style") ?? "";
 }
 
+function barLabel(container: HTMLElement) {
+  return container.querySelector(".mantine-Progress-section")?.getAttribute("aria-label") ?? "";
+}
+
+// The bar is the primary colour unless the job failed outright or was cancelled: how it ended is
+// said by the status chip (JobStatusChip), not by a green or orange bar across the list.
 describe("JobProgress finished states", () => {
-  it("renders a clean scan green with the item count", async () => {
+  it("renders a clean scan in the primary colour with the item count", async () => {
     const { container, unmount } = await render(
       <JobProgress finished target={150000} current={150000} failed={false} result={{}} />
     );
 
-    expect(barColor(container)).toContain("green");
-    expect(container.textContent).toContain("joblist.itemsprocessed 150000");
-    expect(container.textContent).not.toContain("joblist.failed");
+    expect(barColor(container)).toContain("blue");
+    expect(barColor(container)).not.toContain("green");
+    expect(container.textContent).toContain("150,000 / 150,000");
+    expect(barLabel(container)).toBe("joblist.itemsprocessed 150000");
     await unmount();
   });
 
-  it("renders a mostly-successful scan orange, not red", async () => {
+  it("renders a mostly-successful scan like a clean one, not orange or red", async () => {
     const { container, unmount } = await render(
       <JobProgress
         finished
@@ -85,11 +92,9 @@ describe("JobProgress finished states", () => {
       />
     );
 
-    // Orange like the detail page and the list icon, not yellow.
-    expect(barColor(container)).toContain("orange");
+    expect(barColor(container)).toContain("blue");
+    expect(barColor(container)).not.toContain("orange");
     expect(barColor(container)).not.toContain("red");
-    // errorCount out of progress_target, so the user can see how small it is.
-    expect(container.textContent).toContain("joblist.partialfailure 4/150000");
     await unmount();
   });
 
@@ -105,7 +110,6 @@ describe("JobProgress finished states", () => {
     );
 
     expect(barColor(container)).toContain("red");
-    expect(container.textContent).toContain("joblist.failed");
     await unmount();
   });
 
@@ -117,8 +121,7 @@ describe("JobProgress finished states", () => {
 
     expect(barColor(container)).toContain("gray");
     expect(barColor(container)).toContain("40%");
-    expect(container.textContent).toContain("joblist.cancelled");
-    expect(container.textContent).not.toContain("joblist.itemsprocessed");
+    expect(container.textContent).toContain("40 / 100");
     await unmount();
   });
 
@@ -138,29 +141,30 @@ describe("JobProgress while running", () => {
     await i18n.changeLanguage("en");
   });
 
-  it("shows the items processed with the percentage in one sentence", async () => {
+  it("counts against the target and says the percentage in one sentence", async () => {
     await i18n.changeLanguage("en");
     const { container, unmount } = await render(<JobProgress finished={false} target={1000} current={123} />);
 
-    expect(container.textContent).toContain("joblist.itemsprocessedpercent 123/12.3%");
+    expect(container.textContent).toContain("123 / 1,000");
+    expect(barLabel(container)).toBe("joblist.itemsprocessedpercent 123/12.3%");
     await unmount();
   });
 
-  it("writes the percentage the UI language's way", async () => {
+  it("writes the numbers the UI language's way", async () => {
     await i18n.changeLanguage("de");
     const { container, unmount } = await render(<JobProgress finished={false} target={1000} current={123} />);
 
-    expect(container.textContent?.replace(/\s/g, " ")).toContain("joblist.itemsprocessedpercent 123/12,3 %");
+    expect(container.textContent).toContain("123 / 1.000");
+    expect(barLabel(container).replace(/\s/g, " ")).toBe("joblist.itemsprocessedpercent 123/12,3 %");
     await unmount();
   });
 
-  it("shows the job's own step instead when it reports one", async () => {
+  it("shows the job's own step under the bar when it reports one", async () => {
     const { container, unmount } = await render(
       <JobProgress finished={false} target={1000} current={123} progressStep="Extracting faces" />
     );
 
     expect(container.textContent).toContain("Extracting faces");
-    expect(container.textContent).not.toContain("joblist.itemsprocessedpercent");
     await unmount();
   });
 });

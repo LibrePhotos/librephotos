@@ -11,12 +11,12 @@ export class LoginPage {
   constructor(readonly page: Page) {
     this.username = page.getByPlaceholder("Username");
     this.password = page.getByPlaceholder("Password");
-    this.submit = page.getByRole("button", { name: "Login", exact: true });
+    this.submit = page.getByRole("button", { name: "Sign in", exact: true });
   }
 
   async goto() {
     await this.page.goto("/login");
-    await expect(this.page.getByRole("heading", { name: "Login" })).toBeVisible();
+    await expect(this.page.getByRole("heading", { name: "Sign in to LibrePhotos" })).toBeVisible();
   }
 
   async login(username: string, password: string) {

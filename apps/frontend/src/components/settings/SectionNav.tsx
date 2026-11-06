@@ -45,6 +45,7 @@ function SectionToc({ sections, active, onPick }: SectionLinksProps) {
           aria-current={id === active ? "location" : undefined}
           variant="light"
           py={6}
+          className={classes.tocItem}
           onClick={pickHandler(id, onPick)}
         />
       ))}

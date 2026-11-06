@@ -1,6 +1,6 @@
 import type { FaceAnalysisMethod } from "@librephotos/api-client";
 import { flatten, uniqBy } from "lodash-es";
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
 import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
 import type { GroupedGridRows } from "../../../util/gridUtils";
@@ -44,6 +44,23 @@ export function isLoadedFace(cell: GridCell): cell is FaceCell {
 type RenderedSection = SectionRenderedParams;
 
 /**
+ * The height of a person's header row: 12px above it to the group before, the 32px avatar and the
+ * name, and 8px down to the faces. A face row and a row of folded people are one cell high.
+ */
+export const FACE_HEADER_ROW_HEIGHT = 52;
+
+/** Whether a grid row is an open person's header (a folded person is a cell in a row of people). */
+function isHeaderRow(row: GridRows[number], collapsed: ReadonlySet<number>): boolean {
+  const first = row[0];
+  return row.length === 1 && first !== undefined && isPersonCell(first) && !collapsed.has(first.id);
+}
+
+/** The heights of the grid's rows, in order: header rows are short, the others one cell high. */
+export function faceRowHeights(rows: GridRows, collapsed: ReadonlySet<number>, cellSize: number): number[] {
+  return rows.map(row => (isHeaderRow(row, collapsed) ? FACE_HEADER_ROW_HEIGHT : cellSize));
+}
+
+/**
  * The page (of its person's faces) that a rendered cell needs: a placeholder face its own page, a
  * collapsed cluster the first page, for its cover face (#860).
  */
@@ -73,24 +90,11 @@ export function useVirtualizedGrid(
   collapsedPersons: Record<FacesTab, ReadonlySet<number>>
 ) {
   const gridRef = useRef<VirtualGridHandle>(null);
-  const [gridHeight, setGridHeight] = useState(0);
-  const [entrySquareSize, setEntrySquareSize] = useState(0);
-  const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(0);
-
-  // Calculate grid dimensions
-  useEffect(() => {
-    if (width > 0) {
-      const { entrySquareSize: size } = calculateFaceGridCellSize(width);
-      setEntrySquareSize(size);
-      setNumEntrySquaresPerRow(Math.floor(width / size));
-      const { cellContents } = calculateFaceGridCells(
-        lists[activeTab],
-        numEntrySquaresPerRow,
-        collapsedPersons[activeTab]
-      );
-      setGridHeight(cellContents.length * size);
-    }
-  }, [width, lists, activeTab, numEntrySquaresPerRow, collapsedPersons]);
+  // The cells follow the grid's measured width; nothing is laid out before it is known
+  const { entrySquareSize, numEntrySquaresPerRow } = useMemo(
+    () => (width > 0 ? calculateFaceGridCellSize(width) : { entrySquareSize: 0, numEntrySquaresPerRow: 0 }),
+    [width]
+  );
 
   // Handle scroll from scrubber
   const handleScrubberScroll = useCallback(
@@ -133,6 +137,19 @@ export function useVirtualizedGrid(
   // Get cell contents for the active tab - stable reference due to memoized cellContents
   const getCellContentsForTab = useCallback((tab: FacesTab): GridRows => cellContents[tab] || [], [cellContents]);
 
+  // Where each row of the active tab starts, and the whole grid's height
+  const rowOffsets = useMemo(() => {
+    const heights = faceRowHeights(cellContents[activeTab], collapsedPersons[activeTab], entrySquareSize);
+    const offsets: number[] = [];
+    let top = 0;
+    for (const height of heights) {
+      offsets.push(top);
+      top += height;
+    }
+    return { offsets, total: top };
+  }, [cellContents, activeTab, collapsedPersons, entrySquareSize]);
+  const gridHeight = rowOffsets.total;
+
   // Get endpoint cell for section rendering
   const getEndpointCell = useCallback(
     (cells: GridRows, rowStopIndex: number, columnStopIndex: number): GridCell | undefined => {
@@ -154,11 +171,11 @@ export function useVirtualizedGrid(
     return rows.reduce<ScrollerData[]>((positions, row, index) => {
       const first: GridCell | undefined = row[0];
       if (first && isPersonCell(first) && first.name) {
-        positions.push({ label: first.name, targetY: index * entrySquareSize });
+        positions.push({ label: first.name, targetY: rowOffsets.offsets[index] ?? 0 });
       }
       return positions;
     }, []);
-  }, [activeTab, getCellContentsForTab, entrySquareSize]);
+  }, [activeTab, getCellContentsForTab, rowOffsets]);
 
   // Request the pages backing the placeholder cells of a rendered section
   const requestPagesForSection = useCallback(

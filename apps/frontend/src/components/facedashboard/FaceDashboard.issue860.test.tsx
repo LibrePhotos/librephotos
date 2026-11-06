@@ -143,7 +143,7 @@ describe("issue #860 - pages a collapsed dashboard loads", () => {
         () => {},
         FaceAnalysisMethod.enum.clustering,
         // Four people per row at this width (calculateFaceGridCellSize)
-        700,
+        450,
         { labeled: new Set(), inferred: ALL, unknown: new Set(), deleted: new Set() }
       );
       return null;

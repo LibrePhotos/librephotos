@@ -84,7 +84,7 @@ describe("useAlbumListGridConfig", () => {
     expect(defined(config).cellPadding).toBe(8);
     expect(defined(config).captionHeight).toBe(0);
     // 2px of gutter and 8px of cell padding: the covers sit 10px in, like the page header
-    expect(defined(config).gutter).toBe(2);
+    expect(defined(config).gutter).toBe(12);
   });
 
   it("makes a portrait row a third taller than wide, with more people per row", async () => {
@@ -97,7 +97,7 @@ describe("useAlbumListGridConfig", () => {
     });
 
     expect(defined(config).columnCount).toBe(8);
-    const columnWidth = (1400 - 200 - 4) / 8;
+    const columnWidth = (1400 - 200 - 24) / 8;
     expect(defined(config).columnWidth).toBe(columnWidth);
     expect(defined(config).captionHeight).toBeCloseTo((columnWidth - 16) / 3);
   });
@@ -111,14 +111,14 @@ describe("useAlbumListGridConfig", () => {
     await act(async () => {
       window.dispatchEvent(new Event("resize"));
     });
-    expect(defined(config).height).toBe((1400 - 200 - 4) / 6);
+    expect(defined(config).height).toBe((1400 - 200 - 24) / 6);
   });
 
   // jsdom scrollbars take no room, like a phone's or macOS's overlay ones
-  it("fills the width beside the menu, 2px in from either edge", async () => {
+  it("fills the width beside the menu, 12px in from either edge", async () => {
     await render();
 
-    expect(defined(config).columnWidth).toBe((1400 - 200 - 4) / 6);
+    expect(defined(config).columnWidth).toBe((1400 - 200 - 24) / 6);
     expect(defined(config).height).toBe(900 - 55 - 90);
   });
 
@@ -128,7 +128,7 @@ describe("useAlbumListGridConfig", () => {
     await render();
 
     expect(defined(config).columnCount).toBe(3);
-    expect(defined(config).columnWidth).toBe((740 - 4) / 3);
+    expect(defined(config).columnWidth).toBe((740 - 8) / 3);
     expect(defined(config).height).toBe(900 - 55 - 90 - FOOTER_HEIGHT);
   });
 
@@ -137,7 +137,7 @@ describe("useAlbumListGridConfig", () => {
     window.innerWidth = 800;
     await render({ breakpoints: { sm: "60em" } });
 
-    expect(defined(config).columnWidth).toBe((800 - 4) / 4);
+    expect(defined(config).columnWidth).toBe((800 - 8) / 4);
     expect(defined(config).height).toBe(900 - 55 - 90 - FOOTER_HEIGHT);
   });
 
@@ -145,14 +145,14 @@ describe("useAlbumListGridConfig", () => {
     window.innerWidth = 375;
     await render();
 
-    expect(defined(config).columnWidth).toBe((375 - 4) / 2);
+    expect(defined(config).columnWidth).toBe((375 - 8) / 2);
   });
 
   it("keeps a classic scrollbar's width free for the grid's own scrollbar", async () => {
     stubScrollbar(15);
     await render();
 
-    expect(defined(config).columnWidth).toBe((1400 - 200 - 4 - 15) / 6);
+    expect(defined(config).columnWidth).toBe((1400 - 200 - 24 - 15) / 6);
   });
 
   it("measures the scrollbar again on resize, since page zoom changes its CSS width", async () => {
@@ -166,6 +166,6 @@ describe("useAlbumListGridConfig", () => {
       window.dispatchEvent(new Event("resize"));
     });
 
-    expect(defined(config).columnWidth).toBe((1556 - 200 - 4 - 17) / 6);
+    expect(defined(config).columnWidth).toBe((1556 - 200 - 24 - 17) / 6);
   });
 });

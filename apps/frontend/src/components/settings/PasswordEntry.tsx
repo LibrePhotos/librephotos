@@ -1,4 +1,4 @@
-import { ActionIcon, Group, PasswordInput, Stack, Text } from "@mantine/core";
+import { ActionIcon, Group, PasswordInput, Stack, Text, Title } from "@mantine/core";
 import type { UseFormReturnType } from "@mantine/form";
 import { IconLock as Lock, IconLockOpen as LockOpen } from "@tabler/icons-react";
 import React from "react";
@@ -14,10 +14,12 @@ type Props = Readonly<{
   form: UseFormReturnType<NewPasswordFields>;
   /** "Create user": a password is set, so there is no lock. */
   createNew?: boolean;
+  /** The title is its card's heading (the Profile page), not a label inside a dialog. */
+  asHeading?: boolean;
 }>;
 
 /** The new-password fields of a parent form, behind a lock unless a new user is created. */
-export function PasswordEntry({ form, createNew = false }: Props): React.JSX.Element {
+export function PasswordEntry({ form, createNew = false, asHeading = false }: Props): React.JSX.Element {
   const { t } = useTranslation();
   const { changePassword } = form.values;
   const unlocked = createNew || changePassword;
@@ -42,7 +44,11 @@ export function PasswordEntry({ form, createNew = false }: Props): React.JSX.Ele
         <Text fw={700}>{t("settings.password.titlesetpassword")}</Text>
       ) : (
         <Group gap="xs" wrap="nowrap">
-          <Text fw={700}>{t("settings.password.titlechangepassword")}</Text>
+          {asHeading ? (
+            <Title order={4}>{t("settings.password.titlechangepassword")}</Title>
+          ) : (
+            <Text fw={700}>{t("settings.password.titlechangepassword")}</Text>
+          )}
           {/* A real button, so keyboard and screen reader users can unlock the fields too. */}
           <ActionIcon
             title={t("settings.password.tooltipeditbutton")}

@@ -2,30 +2,18 @@ import type { User as UserDetails } from "@librephotos/api-client";
 import { userKeys } from "@librephotos/api-client";
 import { Button, Card, Group, Radio, Select, SimpleGrid, Stack, TextInput, Title } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
-import { useDisclosure } from "@mantine/hooks";
-import { IconUserSquare as Face, IconPhoto as Photo, IconUpload as Upload } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useEffectEvent, useRef, useState } from "react";
-import type { AvatarEditorRef } from "react-avatar-editor";
-import AvatarEditor from "react-avatar-editor";
-import type { DropzoneRef } from "react-dropzone";
-import Dropzone from "react-dropzone";
-import { Trans, useTranslation } from "react-i18next";
+import React, { useEffect, useEffectEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
-import { serverAddress } from "../../api_client/urls";
-import {
-  useFetchUserSelfDetailsQuery,
-  useUpdateAvatarMutation,
-  useUpdateUserMutation,
-} from "../../api_client/user/hooks";
+import { useFetchUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { reportUserSaveError } from "../../util/apiErrors";
-import { dataUrlToFile } from "../../util/dataUrl";
 import { PageHeader } from "../PageHeader";
 import { SettingsPageFrame } from "../SettingsPageFrame";
-import { AvatarFacePickerModal } from "./AvatarFacePickerModal";
 import { LANGUAGE_OPTIONS } from "./languageOptions";
 import { PasswordEntry } from "./PasswordEntry";
 import { makeProfileSchema, type ProfileValues } from "./Profile.schema";
+import { ProfileAvatar } from "./ProfileAvatar";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 
 /** The profile's form values: the stored details, and the password fields locked and empty. */
@@ -43,7 +31,6 @@ const valuesOf = (user: Pick<UserDetails, "first_name" | "last_name" | "email" |
 const EDITABLE_FIELDS = ["first_name", "last_name", "email", "public_sharing", "password", "passwordConfirm"] as const;
 
 export function Profile() {
-  const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const { data: auth } = useAccessToken();
   const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? "");
   const { t, i18n } = useTranslation();
@@ -52,12 +39,8 @@ export function Profile() {
     initialValues: valuesOf(userSelfDetails ?? { first_name: "", last_name: "", email: "", public_sharing: false }),
     validate: schemaResolver(makeProfileSchema(t), { sync: true }),
   });
-  const updateAvatar = useUpdateAvatarMutation();
   const updateUser = useUpdateUserMutation({ reportsErrors: true });
-  const editorRef = useRef<AvatarEditorRef>(null);
   const queryClient = useQueryClient();
-  const dropzoneRef = useRef<DropzoneRef>(null);
-  const [facePickerOpen, { open: openFacePicker, close: closeFacePicker }] = useDisclosure(false);
 
   // What the form starts from and what an edit is measured against: the stored profile, or what
   // was just saved.
@@ -81,12 +64,6 @@ export function Profile() {
       loadStored(userSelfDetails);
     }
   }, [userSelfDetails]);
-
-  useEffect(() => {
-    if (avatarImgSrc === "/unknown_user.jpg" && userSelfDetails?.avatar_url) {
-      setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
-    }
-  }, [avatarImgSrc, userSelfDetails]);
 
   if (!userSelfDetails) {
     return null;
@@ -113,71 +90,16 @@ export function Profile() {
     <SettingsPageFrame header={<PageHeader title={t("settings.profile")} />}>
       <Stack>
         <Card withBorder radius="lg" padding="lg">
-          <Title order={4} mb={10}>
-            {t("settings.user")}
+          {/* One heading per card: the avatar and the name fields are the account */}
+          <Title order={4} mb="md">
+            {t("settings.account")}
           </Title>
-          <Title order={5}>{t("settings.avatar")}</Title>
-          <Group align="flex-start" gap="xl" mb="lg">
-            <div>
-              {/* noDragEventsBubbling: an avatar dropped here is not also an upload to the library. */}
-              <Dropzone
-                noClick
-                noDragEventsBubbling
-                ref={dropzoneRef}
-                onDrop={accepted => {
-                  const [avatarFile] = accepted;
-                  if (avatarFile) setAvatarImgSrc(URL.createObjectURL(avatarFile));
-                }}
-              >
-                {({ getRootProps, getInputProps }) => (
-                  <div {...getRootProps()}>
-                    <input {...getInputProps()} />
-                    <AvatarEditor ref={editorRef} width={150} height={150} border={0} image={avatarImgSrc} />
-                  </div>
-                )}
-              </Dropzone>
-            </div>
-            <div>
-              <Title order={4} mb={10}>
-                <Trans i18nKey="settings.uploadheader" />
-              </Title>
-              <Group>
-                <Button
-                  size="sm"
-                  variant="default"
-                  leftSection={<Photo size={16} />}
-                  onClick={() => dropzoneRef.current?.open()}
-                >
-                  <Trans i18nKey="settings.image" />
-                </Button>
-                <Button size="sm" variant="default" leftSection={<Face size={16} />} onClick={openFacePicker}>
-                  {t("settings.choosefromface")}
-                </Button>
-                <Button
-                  size="sm"
-                  leftSection={<Upload size={16} />}
-                  onClick={async () => {
-                    const editor = editorRef.current;
-                    if (!editor) return;
-                    const formData = new FormData();
-                    const file = await dataUrlToFile(
-                      editor.getImageScaledToCanvas().toDataURL(),
-                      `${form.values.first_name}avatar.png`
-                    );
-                    formData.append("avatar", file, `${form.values.first_name}avatar.png`);
-                    updateAvatar.mutate({ id: userSelfDetails.id.toString(), data: formData });
-                  }}
-                >
-                  <Trans i18nKey="settings.upload" />
-                </Button>
-              </Group>
-              <p>
-                <Trans i18nKey="settings.filesize" />
-              </p>
-            </div>
-          </Group>
-          <Title order={5}>{t("settings.account")}</Title>
-          <SimpleGrid cols={{ base: 1, sm: 3 }}>
+          <ProfileAvatar
+            userId={userSelfDetails.id}
+            firstName={form.values.first_name}
+            avatarUrl={userSelfDetails.avatar_url}
+          />
+          <SimpleGrid cols={{ base: 1, sm: 3 }} mt="xl">
             <TextInput
               label={t("settings.firstname")}
               placeholder={t("settings.firstnameplaceholder")}
@@ -197,8 +119,7 @@ export function Profile() {
         </Card>
 
         <Card withBorder radius="lg" padding="lg">
-          <Title order={4}>{t("settings.security")}</Title>
-          <PasswordEntry form={form} />
+          <PasswordEntry form={form} asHeading />
         </Card>
 
         <Card withBorder radius="lg" padding="lg">
@@ -256,7 +177,6 @@ export function Profile() {
             </Button>
           </Group>
         </Card>
-        <AvatarFacePickerModal opened={facePickerOpen} onClose={closeFacePicker} onPick={setAvatarImgSrc} />
         <SaveChangesDialog
           opened={isEdited}
           saving={updateUser.isPending}

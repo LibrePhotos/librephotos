@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchMemoriesQuery } from "../../api_client/memories";
+import { PAGE_GUTTER_PX } from "../../uiConstants";
 import classes from "./MemoriesStrip.module.css";
 import { MemoryCard } from "./MemoryCard";
 import { MemorySlideshow } from "./MemorySlideshow";
@@ -59,14 +60,16 @@ export function MemoriesStrip() {
   };
 
   return (
-    <Box component="section" aria-label={t("memories.title")} px={10} pt={10} className={classes.strip}>
-      <Group justify="space-between" mb={8}>
-        <Group gap={6}>
-          <Sparkles size={18} />
-          <Text fw={600}>{t("memories.title")}</Text>
-        </Group>
-        <Anchor component={Link} to="/memories" size="sm">
+    <Box component="section" aria-label={t("memories.title")} px={PAGE_GUTTER_PX} pt={10} className={classes.strip}>
+      <Group gap={6} mb={8}>
+        <Sparkles size={18} />
+        <Text fw={600}>{t("memories.title")}</Text>
+        <Text c="dimmed" aria-hidden>
+          ·
+        </Text>
+        <Anchor component={Link} to="/memories" size="sm" className={classes.seeAll}>
           {t("memories.seeall")}
+          <IconChevronRight size={14} aria-hidden />
         </Anchor>
       </Group>
       <div className={classes.scroller}>

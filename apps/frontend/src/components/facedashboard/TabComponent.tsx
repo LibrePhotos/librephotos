@@ -1,8 +1,7 @@
-import { Badge, Group, Loader, Tabs } from "@mantine/core";
+import { Loader, Tabs, Text } from "@mantine/core";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { PAGE_GUTTER } from "../../uiConstants";
 import { countFaces, type FacesTabLists } from "./facesCounters";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 import { FacesTab } from "./facesTab";
@@ -17,14 +16,14 @@ type Props = Readonly<{
 }>;
 
 /**
- * A tab's face count, the faces its grid shows (the Organizing page's tab badge). Not on phones:
- * with it the four tabs no longer fit in one row there.
+ * A tab's face count, the faces its grid shows, dimmed after its name. Not on phones: with it the
+ * four tabs no longer fit in one row there.
  */
 function CountBadge({ count }: Readonly<{ count: number }>) {
   return (
-    <Badge size="sm" variant="light" color="gray" visibleFrom="xs">
+    <Text span size="xs" className={classes.count} visibleFrom="xs">
       {count}
-    </Badge>
+    </Text>
   );
 }
 
@@ -43,40 +42,39 @@ export function TabComponent({
   const counters = useMemo(() => countFaces(lists), [lists]);
 
   return (
-    <Group justify="space-between" px={PAGE_GUTTER}>
-      <Tabs
-        defaultValue={activeTab}
-        value={activeTab}
-        w="100%"
-        classNames={{ tab: classes.tab }}
-        onChange={value => {
-          navigate({ to: "/faces", search: { ...search, tab: FacesTab.safeParse(value).data } });
-        }}
-      >
-        <Tabs.List>
-          <FacesCountersHoverCard tab={FacesTab.enum.inferred} counters={counters}>
-            <Tabs.Tab value={FacesTab.enum.inferred} rightSection={<CountBadge count={counters.inferred.faces} />}>
-              {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="sm" /> : null}
-            </Tabs.Tab>
-          </FacesCountersHoverCard>
-          <FacesCountersHoverCard tab={FacesTab.enum.unknown} counters={counters}>
-            <Tabs.Tab value={FacesTab.enum.unknown} rightSection={<CountBadge count={counters.unknown.faces} />}>
-              {t("settings.unknown")}
-            </Tabs.Tab>
-          </FacesCountersHoverCard>
-          <FacesCountersHoverCard tab={FacesTab.enum.labeled} counters={counters}>
-            <Tabs.Tab value={FacesTab.enum.labeled} rightSection={<CountBadge count={counters.labeled.faces} />}>
-              {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
-            </Tabs.Tab>
-          </FacesCountersHoverCard>
-          {/* Deleted faces, so a face deleted by mistake can be restored (#127) */}
-          <FacesCountersHoverCard tab={FacesTab.enum.deleted} counters={counters}>
-            <Tabs.Tab value={FacesTab.enum.deleted} rightSection={<CountBadge count={counters.deleted.faces} />}>
-              {t("facesdashboard.deletedtab")} {fetchingDeletedFacesList ? <Loader size="sm" /> : null}
-            </Tabs.Tab>
-          </FacesCountersHoverCard>
-        </Tabs.List>
-      </Tabs>
-    </Group>
+    <Tabs
+      defaultValue={activeTab}
+      value={activeTab}
+      variant="pills"
+      radius="xl"
+      classNames={{ tab: classes.tab, list: classes.list }}
+      onChange={value => {
+        navigate({ to: "/faces", search: { ...search, tab: FacesTab.safeParse(value).data } });
+      }}
+    >
+      <Tabs.List>
+        <FacesCountersHoverCard tab={FacesTab.enum.inferred} counters={counters}>
+          <Tabs.Tab value={FacesTab.enum.inferred} rightSection={<CountBadge count={counters.inferred.faces} />}>
+            {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="xs" /> : null}
+          </Tabs.Tab>
+        </FacesCountersHoverCard>
+        <FacesCountersHoverCard tab={FacesTab.enum.unknown} counters={counters}>
+          <Tabs.Tab value={FacesTab.enum.unknown} rightSection={<CountBadge count={counters.unknown.faces} />}>
+            {t("settings.unknown")}
+          </Tabs.Tab>
+        </FacesCountersHoverCard>
+        <FacesCountersHoverCard tab={FacesTab.enum.labeled} counters={counters}>
+          <Tabs.Tab value={FacesTab.enum.labeled} rightSection={<CountBadge count={counters.labeled.faces} />}>
+            {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="xs" /> : null}
+          </Tabs.Tab>
+        </FacesCountersHoverCard>
+        {/* Deleted faces, so a face deleted by mistake can be restored (#127) */}
+        <FacesCountersHoverCard tab={FacesTab.enum.deleted} counters={counters}>
+          <Tabs.Tab value={FacesTab.enum.deleted} rightSection={<CountBadge count={counters.deleted.faces} />}>
+            {t("facesdashboard.deletedtab")} {fetchingDeletedFacesList ? <Loader size="xs" /> : null}
+          </Tabs.Tab>
+        </FacesCountersHoverCard>
+      </Tabs.List>
+    </Tabs>
   );
 }

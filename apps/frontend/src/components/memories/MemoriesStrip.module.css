@@ -36,6 +36,20 @@
   width: 180px;
 }
 
+/* A phone: smaller cards (about 128 × 160), so the strip takes less than a third of the screen */
+@media (max-width: 48em) {
+  .slot {
+    width: 128px;
+  }
+}
+
+/* "See all" right after the heading, not across the page from it */
+.seeAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
 /* The arrows show on hover over the row (and on keyboard focus) */
 .arrow {
   position: absolute;

@@ -5,7 +5,7 @@ import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { SelectionState } from "../../api_client/photos/types";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
+import { ICON_SIZE, PAGE_GUTTER_PX, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { ContributorSelectionActions } from "./ContributorSelectionActions";
 import classes from "./PhotoListSelectionBar.module.css";
 import { SelectionActions } from "./SelectionActions";
@@ -55,8 +55,8 @@ export function PhotoListSelectionBar({
   const location = useLocation();
   const { t } = useTranslation();
   return (
-    <Box className={classes.bar} role="toolbar" aria-label={t("selectionbar.toolbar")}>
-      <Group justify="space-between" gap="xs">
+    <Box className={classes.bar} mx={PAGE_GUTTER_PX} role="toolbar" aria-label={t("selectionbar.toolbar")}>
+      <Group justify="space-between" gap="xs" wrap="nowrap">
         <Group gap="xs">
           <Tooltip label={t("selectionbar.done")} position="bottom">
             <ActionIcon

@@ -43,7 +43,10 @@ vi.mock("../../api_client/faces", () => ({
 vi.mock("../LocationMap", () => ({ LocationMap: () => null }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
 // The owner's sections have hooks of their own; only which sections render matters here.
-vi.mock("./VersionComponent", () => ({ VersionComponent: () => null }));
+// The place is handed to it, to end the Details under the camera
+vi.mock("./VersionComponent", () => ({
+  VersionComponent: ({ location }: { location?: React.ReactNode }) => location ?? null,
+}));
 vi.mock("./CameraInfoSection", () => ({ CameraInfoSection: () => null }));
 vi.mock("./CategoryBadge", () => ({ CategoryBadge: () => null }));
 // WhyThisDate.test.tsx covers it; it reads the signed-in user.

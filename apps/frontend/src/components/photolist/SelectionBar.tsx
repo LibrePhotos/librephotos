@@ -1,6 +1,6 @@
 import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
 import { ActionIcon, Button, Group, Tooltip } from "@mantine/core";
-import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
+import { IconChecks as Checks } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { SelectionState } from "../../api_client/photos/types";
@@ -92,12 +92,12 @@ export function SelectionBar(props: Readonly<Props>) {
       <Tooltip label={t("selectionbar.toggle")} withArrow position="bottom">
         <Button
           variant="subtle"
-          size="sm"
+          size="md"
           h={TOOLBAR_CONTROL_HEIGHT}
           px="xs"
           fw={600}
-          leftSection={<Check size={ICON_SIZE.toolbar} />}
-          color={selectMode ? undefined : "gray"}
+          color="gray"
+          c="var(--mantine-color-text)"
           onClick={() => {
             if (selectMode) {
               // Exit selection mode

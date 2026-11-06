@@ -270,14 +270,15 @@ describe("the places page on first mount", () => {
   it("has a grip that makes the map taller, and remembers it", async () => {
     const page = await renderPage();
     const grip = page.container.querySelector<HTMLElement>('[role="separator"]');
-    expect(grip?.getAttribute("aria-valuenow")).toBe("240");
+    // 40 % of jsdom's 768px window, at least 320
+    expect(grip?.getAttribute("aria-valuenow")).toBe("320");
 
     await act(async () => {
       grip?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     });
 
-    expect(grip?.getAttribute("aria-valuenow")).toBe("260");
-    expect(localStorage.getItem(STORAGE_KEYS.placesMapHeight)).toBe("260");
+    expect(grip?.getAttribute("aria-valuenow")).toBe("340");
+    expect(localStorage.getItem(STORAGE_KEYS.placesMapHeight)).toBe("340");
     await page.unmount();
   });
 

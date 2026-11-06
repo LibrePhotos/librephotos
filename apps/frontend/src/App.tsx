@@ -12,6 +12,7 @@ import { modalTitleStyles } from "./components/modals/modalTitleStyles";
 import { photoListScrollRestorationKey } from "./components/photolist/photoSearch";
 import { loadDayjsLocale } from "./i18n";
 import { routeTree } from "./routeTree.gen";
+import { controlsTheme } from "./theme/controlsTheme";
 import { appCssVariablesResolver } from "./theme/cssVariables";
 import { menuThemeComponents } from "./theme/menuTheme";
 import { DARK_SCALE } from "./theme/palette";
@@ -68,6 +69,7 @@ const theme = createTheme({
     Modal: Modal.extend({ styles: modalTitleStyles }),
     // Every menu and submenu fits the window and scrolls past it (#2707).
     ...menuThemeComponents,
+    ...controlsTheme,
   },
 });
 

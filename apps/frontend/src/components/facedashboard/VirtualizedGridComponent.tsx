@@ -14,7 +14,7 @@ import type { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
 import { usePeopleCovers } from "./hooks/usePeopleCovers";
 import type { FaceCell, FaceSelection, GridCell, GridRows } from "./hooks/useVirtualizedGrid";
-import { isLoadedFace, isPersonCell } from "./hooks/useVirtualizedGrid";
+import { faceRowHeights, isLoadedFace, isPersonCell } from "./hooks/useVirtualizedGrid";
 import { PersonCell } from "./PersonCell";
 import { coverFaceUrl } from "./personCover";
 import classes from "./VirtualizedGridComponent.module.css";
@@ -43,6 +43,8 @@ type VirtualizedGridComponentProps = {
   pendingFaceIds: ReadonlySet<number>;
   /** The A-Z scrubber only fits the name order (#764). */
   showScrubber: boolean;
+  /** "Add a name" on a cluster: label all of its faces (the dashboard's Label faces dialog). */
+  onNameGroup?: (faces: FaceSelection[]) => void;
 };
 
 const NO_SCROLL_POSITIONS: ScrollerData[] = [];
@@ -70,8 +72,18 @@ export function VirtualizedGridComponent({
   faceActions,
   pendingFaceIds,
   showScrubber,
+  onNameGroup,
 }: VirtualizedGridComponentProps) {
   const rows = getCellContentsForTab(activeTab);
+  // A person's header row is short, a row of faces or of folded people one cell high
+  const rowHeights = useMemo(
+    () => faceRowHeights(rows, collapsedPersons, entrySquareSize),
+    [rows, collapsedPersons, entrySquareSize]
+  );
+  const rowHeight = useCallback(
+    ({ index }: { index: number }) => rowHeights[index] ?? entrySquareSize,
+    [rowHeights, entrySquareSize]
+  );
   // The People page's cover of each person, for the headers and the grid of people (#860)
   const ownCovers = usePeopleCovers();
   // Folding swaps a person's header for a cell (and back): the person whose new control takes focus
@@ -118,6 +130,7 @@ export function VirtualizedGridComponent({
             coverUrl={coverUrl}
             takeFocus={focusPerson === cell.id}
             onFocused={focusTaken}
+            onNameGroup={onNameGroup}
           />
         );
       }
@@ -162,6 +175,7 @@ export function VirtualizedGridComponent({
       ownCovers,
       faceActions,
       pendingFaceIds,
+      onNameGroup,
     ]
   );
 
@@ -181,7 +195,7 @@ export function VirtualizedGridComponent({
               cellRenderer={cellRenderer}
               columnWidth={entrySquareSize}
               columnCount={numEntrySquaresPerRow}
-              rowHeight={entrySquareSize}
+              rowHeight={rowHeight}
               onSectionRendered={onSectionRendered}
               height={height}
               width={gridWidth}

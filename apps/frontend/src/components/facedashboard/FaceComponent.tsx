@@ -30,6 +30,9 @@ type Props = Readonly<{
   handleShowClick: (e: React.MouseEvent, cell: FaceCell) => void;
 }>;
 
+/** The corner radius of a face, as of the photo tiles' rounded cards. */
+const FACE_RADIUS = 12;
+
 export const calculateProbabiltyColor = (labelProbability: number) => {
   if (labelProbability > 0.9) return "green";
   if (labelProbability > 0.8) return "yellow";
@@ -61,13 +64,14 @@ export function FaceComponent({
   const { t } = useTranslation();
   const [tooltipOpened, { open: openTooltip, close: closeTooltip }] = useDisclosure(false);
   const [menuOpened, { set: setMenuOpened, open: openMenu }] = useDisclosure(false);
-  const entrySize = entrySquareSize - (selectMode ? 30 : 10);
+  // A 96px face in its 104px cell; a selected one draws in a little, inside its tinted cell
+  const entrySize = entrySquareSize - (isSelected ? 20 : 8);
   // The face list always sends it; only a placeholder could lack it.
   const probability = cell.person_label_probability ?? 0;
   const labelProbabilityColor = calculateProbabiltyColor(probability);
 
   if (isScrollingFast) {
-    return <Avatar radius="md" src="/thumbnail_placeholder.png" size={entrySize} />;
+    return <Avatar radius={FACE_RADIUS} src="/thumbnail_placeholder.png" size={entrySize} />;
   }
 
   return (
@@ -75,14 +79,14 @@ export function FaceComponent({
       <div className={classes.face}>
         <FaceTooltip tooltipOpened={tooltipOpened} probability={probability} timestamp={cell.timestamp}>
           <Indicator
-            offset={10}
+            offset={9}
             withBorder
             color={labelProbabilityColor}
             onMouseEnter={() => openTooltip()}
             onMouseLeave={() => closeTooltip()}
             // A confidence only means something for a suggestion
             disabled={tab === "labeled" || tab === "deleted"}
-            size={15}
+            size={11}
           >
             {/* A button, so a keyboard reaches and selects every face, not only its photo (#2228) */}
             <UnstyledButton
@@ -100,7 +104,7 @@ export function FaceComponent({
               }}
             >
               {cell.image ? (
-                <Avatar radius="md" src={faceImageUrl(cell.image)} size={entrySize} />
+                <Avatar radius={FACE_RADIUS} src={faceImageUrl(cell.image)} size={entrySize} />
               ) : (
                 // A face whose crop is missing still gets a tile, so it can be relabelled or deleted
                 // (#2636). The placeholder is the one of a thing album without a cover (#2234).

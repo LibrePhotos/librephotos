@@ -1,7 +1,12 @@
 .container {
   flex-grow: 1;
-  /* PAGE_GUTTER (uiConstants.ts), as above and below the dashboard */
-  padding: 0 10px;
+  /* The page gutter (PAGE_GUTTER_PX, uiConstants.ts) less the 4px each face cell keeps around its
+     face, so the faces and the group headers line up with the toolbar above */
+  padding: 0 8px;
+
+  @media (min-width: 48em) {
+    padding: 0 16px;
+  }
 }
 
 .grid {

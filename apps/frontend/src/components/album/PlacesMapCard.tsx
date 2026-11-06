@@ -57,6 +57,7 @@ export function PlacesMapCard() {
               initialViewState={initialViewState}
               mapStyle={mapStyle}
               interactive={false}
+              renderWorldCopies={false}
               attributionControl={false}
             >
               <Source id="locations" type="geojson" data={geojsonData}>

@@ -1,0 +1,4 @@
+/* The Places map: a rounded tile like the cards under it */
+.map {
+  border-radius: 12px;
+}

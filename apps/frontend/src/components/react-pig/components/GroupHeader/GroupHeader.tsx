@@ -6,6 +6,9 @@ import styles from "./styles.module.css";
 type Group = {
   groupTranslateY: number;
   height: number;
+  // Set for a short day that shares its line with other days.
+  groupTranslateX?: number;
+  width?: number;
   location?: string | null;
   date: string | null;
   note?: string | null;
@@ -37,6 +40,8 @@ export default function GroupHeader({
       className={styles.headerPositioner}
       style={{
         top: `${group.groupTranslateY}px`,
+        left: `${group.groupTranslateX ?? 0}px`,
+        width: group.width === undefined ? "100%" : `${group.width}px`,
         height: `${group.height - settings.gridGap}px`,
       }}
     >

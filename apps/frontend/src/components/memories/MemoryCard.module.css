@@ -99,8 +99,9 @@
   background-color: var(--app-scrim-white-35);
 }
 
-/* The timeline's strip: smaller cards, smaller type, and the place and day may take two lines.
-   No shadow: the strip's scroller would clip it into a band under the row. */
+/* The timeline's strip: smaller cards and type. The place and day stay on one line, cut short,
+   with 44px kept clear for the play button. No shadow: the strip's scroller would clip it into a
+   band under the row. */
 .compact {
   box-shadow: none;
 }
@@ -110,20 +111,47 @@
 }
 
 .compact .text {
-  inset: auto 46px 0 0;
+  inset: auto 44px 0 0;
   padding: 0 0 12px 12px;
-}
-
-.compact .details {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  white-space: normal;
 }
 
 .compact .play {
   right: 10px;
   bottom: 12px;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
+}
+
+/* A phone: the strip's cards are about 128 × 160, so the first photos show above the fold */
+@media (max-width: 48em) {
+  .compact {
+    border-radius: 12px;
+  }
+
+  .compact .title {
+    font-size: 13px;
+  }
+
+  .compact .details {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  .compact .text {
+    inset: auto 34px 0 0;
+    gap: 2px;
+    padding: 0 0 8px 8px;
+  }
+
+  .compact .play {
+    right: 6px;
+    bottom: 7px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .compact .play svg {
+    width: 12px;
+    height: 12px;
+  }
 }
