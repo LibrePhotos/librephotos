@@ -18,6 +18,8 @@ pillow_heif.register_heif_opener()
 # Pillow warns above this many pixels and raises DecompressionBombError above twice
 # it. 250 MP keeps every real camera (200 MP phones, medium format) well inside.
 Image.MAX_IMAGE_PIXELS = 250_000_000
+# libvips loaders that read plain text, never a photo.
+_TEXT_LOADERS = ("matrixload", "csvload")
 
 
 def _pillow_to_vips(path: str) -> pyvips.Image:
@@ -128,8 +130,10 @@ def raw_preview(path: str, height: int) -> pyvips.Image | None:
 def can_decode(path: str) -> bool:
     """Whether some loader recognises the file, from its header alone (no pixel decode)."""
     try:
-        pyvips.Image.new_from_file(path)
-        return True
+        loader = pyvips.Image.new_from_file(path).get("vips-loader")
+        # A text note whose first line is two numbers loads as a matrix (#2913).
+        if not loader.startswith(_TEXT_LOADERS):
+            return True
     except pyvips.Error:
         pass
     try:
