@@ -8,6 +8,10 @@ ARG DEBUG
 ARG MLVALIDATION
 ARG IMAGE_TAG
 ENV IMAGE_TAG ${IMAGE_TAG}
+# ONNX Runtime 1.29+ sends usage telemetry to Microsoft by default (model and
+# graph names and hashes, hardware, a persistent device id). Off for every
+# process in the image, set before ONNX Runtime loads; 0 turns it back on.
+ENV ORT_DISABLE_TELEMETRY=1
 
 WORKDIR /code
 # Build context is the monorepo root; source lives under apps/backend/.

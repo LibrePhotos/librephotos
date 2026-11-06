@@ -432,3 +432,30 @@ class NoPinnedProvidersTest(SimpleTestCase):
             and pinned.search(path.read_text(encoding="utf-8"))
         ]
         self.assertEqual(offenders, [])
+
+
+class QuietTelemetryTest(SimpleTestCase):
+    """ORT's own switch, for the Windows ETW events ORT_DISABLE_TELEMETRY misses."""
+
+    def _quiet(self, value):
+        with (
+            patch.dict(os.environ),
+            patch.object(onnx_session.ort, "disable_telemetry_events") as disable,
+        ):
+            os.environ.pop("ORT_DISABLE_TELEMETRY", None)
+            if value is not None:
+                os.environ["ORT_DISABLE_TELEMETRY"] = value
+            onnx_session.quiet_telemetry()
+        return disable.called
+
+    def test_off_unless_opted_in(self):
+        for value in (None, "", "1", "true"):
+            with self.subTest(value=value):
+                self.assertTrue(self._quiet(value))
+
+    def test_zero_leaves_onnxruntime_alone(self):
+        self.assertFalse(self._quiet("0"))
+
+    def test_the_real_api_exists(self):
+        # A rename in an onnxruntime bump must fail here, not in every sidecar.
+        self.assertTrue(callable(onnx_session.ort.disable_telemetry_events))
