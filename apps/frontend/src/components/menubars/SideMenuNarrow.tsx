@@ -1,14 +1,4 @@
-import {
-  ActionIcon,
-  Center,
-  Loader,
-  Menu,
-  Progress,
-  Text,
-  Tooltip,
-  useComputedColorScheme,
-  useMantineTheme,
-} from "@mantine/core";
+import { ActionIcon, Loader, Menu, Progress, Text, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import {
   IconBook as Book,
   IconChevronRight as ChevronRight,
@@ -84,14 +74,9 @@ export function SideMenuNarrow(): React.JSX.Element {
           }
         }}
       >
-        <ActionIcon
-          component="span"
-          className={classes.link_icon}
-          color={item.color ? item.color : defaultIconColor}
-          variant="light"
-        >
-          <item.icon />
-        </ActionIcon>
+        <span className={classes.link_icon} aria-hidden>
+          <item.icon size={20} stroke={1.75} />
+        </span>
         <Text className={classes.link_text} size="sm">
           {item.label}
         </Text>
@@ -184,47 +169,50 @@ export function SideMenuNarrow(): React.JSX.Element {
             )}
           </a>
         )}
-        <div className={classes.link} data-hover="no">
-          <ActionIcon component="span" className={classes.link_icon} variant="transparent" color={defaultIconColor}>
-            <Cloud />
-          </ActionIcon>
-          <Text className={classes.link_text} size="sm">
+        {/* Storage as a quiet card, like the storage meter at the bottom of Google Photos' and
+            Immich's navigation: the numbers are on the card, not in a tooltip. */}
+        <div className={classes.storage}>
+          <Text size="sm" fw={500} className={classes.storage_title}>
+            <Cloud size={18} stroke={1.75} aria-hidden />
             {t("storage")}
           </Text>
+          {isLoading && <Loader size="xs" />}
+          {!isLoading && storageStats && (
+            <>
+              <Progress
+                size="sm"
+                value={usedStoragePercent}
+                // Warn before the disk fills up and scans or uploads start failing.
+                color={usedStoragePercent >= 90 ? "red" : usedStoragePercent >= 75 ? "orange" : undefined}
+                aria-label={t("storage")}
+              />
+              <Text size="xs" c="dimmed">
+                {t("storagetooltip", {
+                  usedstorage: formatFileSize(storageStats.used_storage, locale),
+                  totalstorage: formatFileSize(storageStats.total_storage, locale),
+                })}
+              </Text>
+            </>
+          )}
         </div>
-        {isLoading && (
-          <Center>
-            <Loader size="xs" />
-          </Center>
-        )}
-        {!isLoading && storageStats && (
-          <Tooltip
-            label={t("storagetooltip", {
-              usedstorage: formatFileSize(storageStats.used_storage, locale),
-              totalstorage: formatFileSize(storageStats.total_storage, locale),
-            })}
-          >
-            <Progress
-              className={classes.progress}
-              value={usedStoragePercent}
-              // Warn before the disk fills up and scans or uploads start failing.
-              color={usedStoragePercent >= 90 ? "red" : usedStoragePercent >= 75 ? "orange" : "gray"}
-            />
-          </Tooltip>
-        )}
-        <VersionItem iconColor={defaultIconColor} />
-        <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
-          <ActionIcon component="span" className={classes.link_icon} variant="transparent">
-            <Book />
-          </ActionIcon>
+        <VersionItem />
+        <a
+          href={DOCUMENTATION_LINK}
+          target="_blank"
+          rel="noreferrer"
+          className={`${classes.link} ${classes.link_secondary}`}
+        >
+          <span className={classes.link_icon} aria-hidden>
+            <Book size={18} stroke={1.75} />
+          </span>
           <Text className={classes.link_text} size="sm">
             {t("docs")}
           </Text>
         </a>
-        <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={classes.link}>
-          <ActionIcon component="span" className={classes.link_icon} variant="transparent" color="pink">
-            <Heart />
-          </ActionIcon>
+        <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={`${classes.link} ${classes.link_secondary}`}>
+          <span className={`${classes.link_icon} ${classes.link_icon_support}`} aria-hidden>
+            <Heart size={18} stroke={1.75} />
+          </span>
           <Text className={classes.link_text} size="sm">
             {t("supportus")}
           </Text>

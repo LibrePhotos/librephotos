@@ -6,6 +6,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteJobMutation } from "../../api_client/jobs/hooks";
 import { DisabledReason } from "../common/DisabledReason";
+import { toolbarLook } from "../common/toolbarLook";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { jobTypeLabel } from "./jobTypeLabel";
 
@@ -65,7 +66,7 @@ export function DeleteJobButton({ job, onDeleted }: DeleteJobButtonProps) {
     <>
       {/* The server refuses it too (409 scan_baseline): without it the next scan rereads every file. */}
       <DisabledReason reason={job.is_scan_baseline === true && t("joblist.scanbaseline")}>
-        <Button onClick={open} color="red" variant="outline" size="xs">
+        <Button onClick={open} {...toolbarLook()} size="xs">
           {t("adminarea.remove")}
         </Button>
       </DisabledReason>

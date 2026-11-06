@@ -83,7 +83,6 @@ function AlbumPersonGallery(): React.JSX.Element {
         // Empty while the person loads, under it the header says it is loading
         title={person ? person.name : notFound || personFailure ? t("people") : ""}
         loading={isLoading || personLoading}
-        icon={User}
         headerActions={
           person ? <PersonHeaderMenu person={person} photos={photosFlat} onBirthDate={birthDate.openFrom} /> : undefined
         }

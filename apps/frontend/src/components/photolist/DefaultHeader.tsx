@@ -1,5 +1,4 @@
 import { Group, Loader, Text } from "@mantine/core";
-import type { TablerIcon } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
 import { DateTime } from "luxon";
@@ -18,7 +17,6 @@ type Props = Readonly<{
   loading: boolean;
   numPhotosetItems: number;
   numPhotos: number;
-  icon: TablerIcon;
   title: string;
   // See PhotoListView's `titleBadge`.
   titleBadge?: React.ReactNode;
@@ -149,7 +147,6 @@ export function DefaultHeader(props: Props) {
   const {
     loading,
     numPhotosetItems,
-    icon,
     numPhotos,
     title,
     titleBadge,
@@ -185,7 +182,6 @@ export function DefaultHeader(props: Props) {
 
   return (
     <PageHeader
-      icon={icon}
       title={
         <>
           {titleNode}

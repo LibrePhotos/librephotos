@@ -240,7 +240,6 @@ function FolderDetail() {
         ) : undefined
       }
       loading={isLoading}
-      icon={Folder}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

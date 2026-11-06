@@ -72,7 +72,6 @@ function DeletedPhotos() {
     <PhotoListView
       title={t("photos.deleted")}
       loading={isLoading}
-      icon={Trash}
       additionalSubHeader={
         <Text size="sm" c="dimmed">
           {retentionDays > 0 ? t("trash.retentionOn", { count: retentionDays }) : t("trash.retentionOff")}

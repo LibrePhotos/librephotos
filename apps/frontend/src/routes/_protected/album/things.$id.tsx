@@ -32,7 +32,6 @@ function AlbumThingGallery() {
       title={groupedPhotos ? thingLabel(groupedPhotos.title) : notFound ? t("things") : t("loading")}
       loading={fetchingAlbumsThing}
       emptyStateConfig={notFound ? albumNotFoundState(t, <Tags size={40} />, "/album/things") : undefined}
-      icon={Tags}
       photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}
       idx2hash={groupedPhotos ? groupedPhotos.grouped_photos.flatMap(el => el.items) : []}
       // No photo filter for an album that is not there

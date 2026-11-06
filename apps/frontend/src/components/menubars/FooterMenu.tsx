@@ -1,4 +1,12 @@
-import { ActionIcon, Avatar, Divider, Flex, Menu, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import {
+  Avatar,
+  Divider,
+  Flex,
+  Menu,
+  UnstyledButton,
+  useComputedColorScheme,
+  useMantineColorScheme,
+} from "@mantine/core";
 import {
   IconAdjustments as Adjustments,
   IconBook as Book,
@@ -17,6 +25,7 @@ import { serverAddress } from "../../api_client/urls";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useAuth } from "../../hooks/useAuth";
 import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
+import classes from "./FooterMenu.module.css";
 import { ImportJobMenuSection } from "./ImportJobMenuSection";
 import { getNavigationItems, isNavItemActive } from "./navigation";
 
@@ -43,32 +52,34 @@ export function FooterMenu(): React.JSX.Element {
       return null;
     }
 
-    // Icon-only tiles: the label names them, and a filled tile marks the
-    // current section, as the highlighted row does in the desktop side menu
-    // (autoContrast keeps the icon readable on the filled yellow one).
+    // A Material-style bottom bar: icon over a short label, the current
+    // section marked by a tinted pill behind its icon (one accent for every tab).
     const active = isNavItemActive(item, pathname);
-    const variant = active ? "filled" : "light";
-    const icon = <item.icon size={24} />;
+    const content = (
+      <>
+        <span className={classes.pill} aria-hidden>
+          <item.icon size={22} stroke={1.75} />
+        </span>
+        <span className={classes.label}>{item.label}</span>
+      </>
+    );
     const link = item.submenu ? (
-      <ActionIcon variant={variant} color={item.color} autoContrast key={key} size="lg" aria-label={item.label}>
-        {icon}
-      </ActionIcon>
+      <UnstyledButton key={key} className={classes.tab} data-active={active}>
+        {content}
+      </UnstyledButton>
     ) : (
-      <ActionIcon
-        variant={variant}
-        color={item.color}
-        autoContrast
+      <UnstyledButton
         key={key}
         component={Link}
         to={item.link}
         // Fuzzy matching would mark "/" as the current page everywhere.
         activeOptions={{ exact: true }}
         aria-current={active ? "page" : undefined}
-        size="lg"
-        aria-label={item.label}
+        className={classes.tab}
+        data-active={active}
       >
-        {icon}
-      </ActionIcon>
+        {content}
+      </UnstyledButton>
     );
 
     if (item.submenu) {
@@ -110,18 +121,23 @@ export function FooterMenu(): React.JSX.Element {
   });
 
   return (
-    <Flex p="xs" justify="space-between">
+    <Flex className={classes.bar} justify="space-around" align="center">
       {links}
       <Menu width={200} position="top-end">
         <Menu.Target>
-          <ActionIcon variant="light" size="lg" aria-label={t("topmenu.accountmenu")}>
-            <Avatar
-              src={user && user.avatar_url ? serverAddress + user.avatar_url : "/unknown_user.jpg"}
-              size={24}
-              alt=""
-              radius="xl"
-            />
-          </ActionIcon>
+          <UnstyledButton className={classes.tab} aria-label={t("topmenu.accountmenu")}>
+            <span className={classes.pill} aria-hidden>
+              <Avatar
+                src={user && user.avatar_url ? serverAddress + user.avatar_url : "/unknown_user.jpg"}
+                size={26}
+                alt=""
+                radius="xl"
+              />
+            </span>
+            <span className={classes.label} aria-hidden>
+              {user ? user.username : ""}
+            </span>
+          </UnstyledButton>
         </Menu.Target>
 
         <Menu.Dropdown>

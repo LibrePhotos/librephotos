@@ -37,7 +37,7 @@ export function RightsDefaultCard({ user, saved, onChange }: Props) {
   const { t } = useTranslation();
   const [applyOpened, { open: openApply, close: closeApply }] = useDisclosure(false);
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Title order={4} mb={4}>
         {t("rights.default.title")}
       </Title>

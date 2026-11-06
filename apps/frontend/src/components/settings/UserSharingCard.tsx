@@ -12,7 +12,7 @@ import type { UserSettingsCardProps } from "./userSettingsCard";
 export function UserSharingCard({ user, onChange }: UserSettingsCardProps) {
   const { t } = useTranslation();
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Stack>
         <Title order={4}>
           {t("settings.usersharing")}

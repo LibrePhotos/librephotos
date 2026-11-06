@@ -1,5 +1,5 @@
 import type { FileVariant, Photo as PhotoType } from "@librephotos/api-client";
-import { Anchor, Badge, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
+import { Anchor, Badge, Box, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
 import { IconMovie as Movie, IconPhoto as Photo } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
@@ -12,10 +12,12 @@ import { fileNameOf, folderOf } from "../photopage/photoPageText";
 import { CameraInfoSection } from "./CameraInfoSection";
 import { DetailsList } from "./DetailsList";
 import { cameraDetails, fileFacts } from "./photoDetails";
+import { ROW_ICON } from "./SectionTitle";
+import classes from "./Sidebar.module.css";
 
-// Where the text next to a 24px row icon starts (icon plus the Group's default
+// Where the text next to a 20px row icon starts (icon plus the Group's default
 // md gap), so the toggles and expanded details line up with the rows above.
-const TEXT_COLUMN = "calc(24px + var(--mantine-spacing-md))";
+const TEXT_COLUMN = "calc(20px + var(--mantine-spacing-md))";
 
 /** The badge colour and label of a file variant's type (JPG, RAW, VIDEO, META). */
 export function getVariantBadgeProps(variant: FileVariant): { color: string; label: string } {
@@ -51,19 +53,29 @@ function PhotoInfoSection({
   const nonMainVariants = fileVariants.filter(v => !v.is_main);
   const hasVariants = nonMainVariants.length > 0;
   const firstImagePath = photoDetail.image_path?.[0];
+  const fileName = firstImagePath !== undefined ? fileNameOf(firstImagePath) : t("exif.unknownFilename");
 
   return (
     // Full width, so the category badge lines up with the edit icons of the
     // rows around it.
     <Stack gap="xs" w="100%">
       <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <Group justify="flex-start" wrap="nowrap">
-          {photoDetail.video ? <Movie /> : <Photo />}
-          <div>
-            <Anchor href={mediaUrl.photo(photoDetail.image_hash)} target="_blank">
-              <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
-                {firstImagePath !== undefined ? fileNameOf(firstImagePath) : t("exif.unknownFilename")}
-              </Text>
+        <Group justify="flex-start" wrap="nowrap" align="flex-start" miw={0}>
+          {photoDetail.video ? <Movie {...ROW_ICON} /> : <Photo {...ROW_ICON} />}
+          <Box miw={0}>
+            {/* Plain text that opens the file: a file name, not a call to action. */}
+            <Anchor
+              href={mediaUrl.photo(photoDetail.image_hash)}
+              target="_blank"
+              c="var(--mantine-color-text)"
+              underline="hover"
+              size="sm"
+              fw={500}
+              lineClamp={1}
+              className={classes.fileName}
+              title={fileName}
+            >
+              {fileName}
             </Anchor>
             <Group gap="xs">
               <Text size="xs" c="dimmed">
@@ -84,7 +96,7 @@ function PhotoInfoSection({
               {/* The owner's only, as the editors are (#2277). */}
               {!isPublic && <AllMetadataButton photo={photoDetail} variant="link" />}
             </Group>
-          </div>
+          </Box>
         </Group>
         {category}
       </Group>
@@ -150,7 +162,9 @@ function DuplicatesSection({ duplicates, t }: { duplicates: string[]; t: TFuncti
 
   return (
     <>
-      <Text fw={800}>{t("exif.duplicates")}</Text>
+      <Text size="sm" fw={500}>
+        {t("exif.duplicates")}
+      </Text>
       <Text size="sm" c="dimmed" mb="xs">
         {t("exif.duplicatesManaged")}
       </Text>

@@ -133,10 +133,17 @@ describe("Description", () => {
     expect(warn.mock.calls.flat().join(" ")).not.toContain("renderLabel");
   });
 
-  it("says so when there is no caption", async () => {
+  it("offers the owner a quiet Add a caption that opens the editor, and tells others there is none", async () => {
     const { container, root } = mount();
     await render(root, photo("a", ""));
 
+    const add = defined(
+      [...container.querySelectorAll<HTMLButtonElement>("button")].find(b => b.textContent === "Add a caption")
+    );
+    await act(async () => add.click());
+    expect(container.querySelector('[aria-label="Save"]')).not.toBeNull();
+
+    await render(root, photo("b", ""), true);
     expect(container.textContent).toContain("No caption");
   });
 

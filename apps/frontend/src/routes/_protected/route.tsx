@@ -61,7 +61,7 @@ function AppShellProtected() {
                 </AppShell.Navbar>
                 <AppShell.Main
                   style={{
-                    backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+                    backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[0],
                   }}
                 >
                   <Outlet />

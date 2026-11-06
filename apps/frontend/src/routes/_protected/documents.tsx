@@ -62,7 +62,6 @@ function OnlyDocuments() {
     <PhotoListView
       title={t("photos.documents")}
       loading={isLoading}
-      icon={FileText}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

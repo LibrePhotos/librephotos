@@ -1,26 +1,9 @@
 import type { User as UserDetails } from "@librephotos/api-client";
 import { userKeys } from "@librephotos/api-client";
-import {
-  Button,
-  Card,
-  Container,
-  Group,
-  Radio,
-  Select,
-  SimpleGrid,
-  Space,
-  Stack,
-  TextInput,
-  Title,
-} from "@mantine/core";
+import { Button, Card, Group, Radio, Select, SimpleGrid, Stack, TextInput, Title } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconUserSquare as Face,
-  IconPhoto as Photo,
-  IconUpload as Upload,
-  IconUser as User,
-} from "@tabler/icons-react";
+import { IconUserSquare as Face, IconPhoto as Photo, IconUpload as Upload } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { AvatarEditorRef } from "react-avatar-editor";
@@ -35,10 +18,10 @@ import {
   useUpdateAvatarMutation,
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
-import { SIGN_IN_GRADIENT } from "../../theme/brandGradients";
 import { reportUserSaveError } from "../../util/apiErrors";
 import { dataUrlToFile } from "../../util/dataUrl";
 import { PageHeader } from "../PageHeader";
+import { SettingsPageFrame } from "../SettingsPageFrame";
 import { AvatarFacePickerModal } from "./AvatarFacePickerModal";
 import { LANGUAGE_OPTIONS } from "./languageOptions";
 import { PasswordEntry } from "./PasswordEntry";
@@ -127,10 +110,9 @@ export function Profile() {
   });
 
   return (
-    <Container>
-      <PageHeader icon={User} title={t("settings.profile")} />
+    <SettingsPageFrame header={<PageHeader title={t("settings.profile")} />}>
       <Stack>
-        <Card shadow="md">
+        <Card withBorder radius="lg" padding="lg">
           <Title order={4} mb={10}>
             {t("settings.user")}
           </Title>
@@ -160,10 +142,15 @@ export function Profile() {
                 <Trans i18nKey="settings.uploadheader" />
               </Title>
               <Group>
-                <Button size="sm" leftSection={<Photo size={16} />} onClick={() => dropzoneRef.current?.open()}>
+                <Button
+                  size="sm"
+                  variant="default"
+                  leftSection={<Photo size={16} />}
+                  onClick={() => dropzoneRef.current?.open()}
+                >
                   <Trans i18nKey="settings.image" />
                 </Button>
-                <Button size="sm" variant="light" leftSection={<Face size={16} />} onClick={openFacePicker}>
+                <Button size="sm" variant="default" leftSection={<Face size={16} />} onClick={openFacePicker}>
                   {t("settings.choosefromface")}
                 </Button>
                 <Button
@@ -209,12 +196,12 @@ export function Profile() {
           </SimpleGrid>
         </Card>
 
-        <Card shadow="md">
+        <Card withBorder radius="lg" padding="lg">
           <Title order={4}>{t("settings.security")}</Title>
           <PasswordEntry form={form} />
         </Card>
 
-        <Card shadow="md">
+        <Card withBorder radius="lg" padding="lg">
           <Title order={4} mb={10}>
             {t("settings.appearance")}
           </Title>
@@ -263,14 +250,12 @@ export function Profile() {
               component="a"
               href="https://hosted.weblate.org/engage/librephotos/"
               target="_blank"
-              variant="gradient"
-              gradient={SIGN_IN_GRADIENT}
+              variant="default"
             >
               {t("settings.helptranslating")}
             </Button>
           </Group>
         </Card>
-        <Space h="xl" />
         <AvatarFacePickerModal opened={facePickerOpen} onClose={closeFacePicker} onPick={setAvatarImgSrc} />
         <SaveChangesDialog
           opened={isEdited}
@@ -280,6 +265,6 @@ export function Profile() {
           onCancel={() => form.reset()}
         />
       </Stack>
-    </Container>
+    </SettingsPageFrame>
   );
 }

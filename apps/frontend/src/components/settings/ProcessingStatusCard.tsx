@@ -163,7 +163,7 @@ export function ProcessingStatusCard({ busyReason, uploadOnly }: ProcessingStatu
     body = <StatusBody status={data} busyReason={busyReason} uploadOnly={uploadOnly} />;
   }
   return (
-    <Card shadow="md" component="section" aria-label={t("processingstatus.title")}>
+    <Card withBorder radius="lg" padding="lg" component="section" aria-label={t("processingstatus.title")}>
       <Stack gap="sm">
         <CardHeader status={data} />
         {body}

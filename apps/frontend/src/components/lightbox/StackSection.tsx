@@ -10,7 +10,6 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Title,
   Tooltip,
 } from "@mantine/core";
 import {
@@ -30,6 +29,7 @@ import { buttonRoleProps } from "../../util/a11y";
 import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackModal } from "../stacks/StackModal";
+import { SectionTitle } from "./SectionTitle";
 
 type StackSectionProps = {
   photoDetail: Pick<Photo, "id" | "stacks">;
@@ -184,10 +184,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
       <>
         <Stack gap="xs">
           <Group justify="space-between">
-            <Group>
-              <IconStack2 />
-              <Title order={4}>{t("lightbox.sidebar.stack")}</Title>
-            </Group>
+            <SectionTitle>{t("lightbox.sidebar.stack")}</SectionTitle>
             <Tooltip label={t("lightbox.sidebar.openStack")}>
               <ActionIcon
                 variant="subtle"
@@ -214,14 +211,11 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
   return (
     <>
       <Stack gap="xs">
-        <Group>
-          <IconStack2 />
-          <Group gap="xs">
-            <Title order={4}>{t("lightbox.sidebar.stacks")}</Title>
-            <Badge size="sm" variant="light" color="gray">
-              {stacks.length}
-            </Badge>
-          </Group>
+        <Group gap="xs">
+          <SectionTitle>{t("lightbox.sidebar.stacks")}</SectionTitle>
+          <Badge size="sm" variant="light" color="gray">
+            {stacks.length}
+          </Badge>
         </Group>
 
         <Text size="xs" c="dimmed">

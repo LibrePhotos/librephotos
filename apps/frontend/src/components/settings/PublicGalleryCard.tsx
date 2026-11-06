@@ -52,7 +52,7 @@ export function PublicGalleryCard({ user, onChange }: UserSettingsCardProps) {
   const defaults = user.public_sharing_defaults ?? PublicSharingDefaults.parse({});
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Stack>
         <Title order={4}>
           {t("settings.galleryTitle")}

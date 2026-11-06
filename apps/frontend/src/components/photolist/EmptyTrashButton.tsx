@@ -6,6 +6,8 @@ import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useEmptyTrashMutation, useFollowEmptyTrashJob } from "../../api_client/photos/hooks";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import { ConfirmModal } from "../modals/ConfirmModal";
 
 type Props = Readonly<{
@@ -51,9 +53,9 @@ export function EmptyTrashButton({ shownCount }: Props) {
     <>
       <Button
         visibleFrom="sm"
-        variant="light"
-        color="red"
-        leftSection={<IconTrashX size={18} />}
+        {...toolbarLook()}
+        h={TOOLBAR_CONTROL_HEIGHT}
+        leftSection={<IconTrashX size={ICON_SIZE.toolbar} />}
         loading={running}
         onClick={open}
       >
@@ -62,14 +64,13 @@ export function EmptyTrashButton({ shownCount }: Props) {
       <Tooltip label={label} hiddenFrom="sm">
         <ActionIcon
           hiddenFrom="sm"
-          variant="light"
-          color="red"
-          size="lg"
+          {...toolbarLook()}
+          size={TOOLBAR_ACTION_SIZE}
           aria-label={label}
           loading={running}
           onClick={open}
         >
-          <IconTrashX size={20} />
+          <IconTrashX size={ICON_SIZE.toolbar} />
         </ActionIcon>
       </Tooltip>
       <ConfirmModal

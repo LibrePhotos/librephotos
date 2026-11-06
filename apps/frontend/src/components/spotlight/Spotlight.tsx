@@ -7,6 +7,7 @@ import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { notification } from "../../service/notifications";
 import { MissingPhotosConfirmText } from "../settings/MissingPhotosBadge";
+import classes from "./Spotlight.module.css";
 import { AVATAR_SIZE, useSpotlightActions } from "./useSpotlightActions";
 
 type SpotlightTriggerProps = {
@@ -23,31 +24,15 @@ export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
 
   return (
     <UnstyledButton
-      className={className}
+      className={className ? `${classes.trigger} ${className}` : classes.trigger}
       onClick={() => spotlight.open()}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--mantine-spacing-sm)",
-        // As tall as the header's inputs, not the 44px that vertical padding gave
-        padding: "0 var(--mantine-spacing-md)",
-        minHeight: 36,
-        borderRadius: "var(--mantine-radius-md)",
-        border: "1px solid var(--mantine-color-default-border)",
-        backgroundColor: "var(--mantine-color-body)",
-        color: "var(--mantine-color-placeholder)",
-        cursor: "pointer",
-        minWidth: 0,
-        flex: 1,
-        maxWidth: 400,
-      }}
     >
-      <IconSearch size={16} stroke={1.5} />
+      <IconSearch size={18} stroke={1.75} />
       {/* Phones have no keyboard shortcut to hint at, and need the header room */}
-      <Text size="sm" c="dimmed" style={{ flex: 1 }} truncate visibleFrom="sm">
+      <Text size="sm" c="dimmed" className={classes.label} truncate visibleFrom="sm">
         {t("spotlight.triggerPlaceholder")}
       </Text>
-      <Text size="sm" c="dimmed" style={{ flex: 1 }} truncate hiddenFrom="sm">
+      <Text size="sm" c="dimmed" className={classes.label} truncate hiddenFrom="sm">
         {t("search.search")}
       </Text>
       <Group gap={4} wrap="nowrap" visibleFrom="sm">
@@ -117,8 +102,9 @@ export function SpotlightProvider() {
         // and it grew to the full window height. Hand the classes back.
         classNames={{
           root: MantineSpotlight.classes.root,
-          content: MantineSpotlight.classes.content,
+          content: `${MantineSpotlight.classes.content} ${classes.palette}`,
           body: MantineSpotlight.classes.body,
+          action: classes.action,
         }}
         // One width for icons and avatars, so every label starts at the same x
         styles={{

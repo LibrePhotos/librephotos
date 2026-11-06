@@ -5,14 +5,17 @@ import { useTranslation } from "react-i18next";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
 import type { CameraPhoto } from "./photoDetails";
 import { cameraDetails, cameraRows } from "./photoDetails";
+import { ROW_ICON } from "./SectionTitle";
 
-/** One row of the panel: an icon, a bold title and its values on one dimmed line. */
+/** One row of the panel: a dimmed icon, a title and its values on one dimmed line. */
 function InfoRow({ icon, title, values }: Readonly<{ icon: React.ReactNode; title: string; values: string[] }>) {
   return (
     <Group justify="flex-start" wrap="nowrap" align="flex-start">
       {icon}
       <div>
-        <Text fw={800}>{title}</Text>
+        <Text size="sm" fw={500}>
+          {title}
+        </Text>
         {values.length > 0 && (
           <Text size="xs" c="dimmed">
             {values.join(" · ")}
@@ -37,9 +40,13 @@ export function CameraInfoSection({ photoDetail }: Readonly<{ photoDetail: Camer
   return (
     <>
       {(details.camera || rows.camera.length > 0) && (
-        <InfoRow icon={<Camera />} title={details.camera ?? t("photopage.camera.title")} values={rows.camera} />
+        <InfoRow
+          icon={<Camera {...ROW_ICON} />}
+          title={details.camera ?? t("photopage.camera.title")}
+          values={rows.camera}
+        />
       )}
-      {details.lens && <InfoRow icon={<Aperture />} title={details.lens} values={rows.lens} />}
+      {details.lens && <InfoRow icon={<Aperture {...ROW_ICON} />} title={details.lens} values={rows.lens} />}
     </>
   );
 }

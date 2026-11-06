@@ -10,6 +10,8 @@ import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
 import { PLACE_ICONS } from "../places/placeIcons";
 import { CoordinatesLine } from "./CoordinatesLine";
+import { ROW_ICON } from "./SectionTitle";
+import classes from "./Sidebar.module.css";
 
 type LocationSectionProps = {
   /** The coordinates are null where the viewer may not see them; the map then stays hidden. */
@@ -89,6 +91,8 @@ function PlaceLabel({
         </Text>
       ) : (
         <Text
+          size="sm"
+          fw={place ? 500 : undefined}
           c={place ? undefined : "dimmed"}
           title={label}
           style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
@@ -141,8 +145,8 @@ export function LocationSection({
             </div>
           </>
         ) : (
-          <Group wrap="nowrap" align="center">
-            <MapPin />
+          <Group wrap="nowrap" align="flex-start">
+            <MapPin {...ROW_ICON} />
             <Box flex={1} miw={0}>
               <PlaceLabel photoDetail={photoDetail} isPublic={isPublic} inCard={false} yourPlace={yourPlace} />
             </Box>
@@ -151,7 +155,7 @@ export function LocationSection({
         )}
         {/* != null: a photo on the equator or the prime meridian has a map too (#2283). */}
         {lat != null && lon != null && (
-          <Box h={mapHeight}>
+          <Box h={mapHeight} className={classes.map}>
             {/* No key per photo: LocationMap recentres on new coordinates itself, and a
                 remount would rebuild the WebGL map on every arrow-key step. */}
             <LocationMap photos={[photoDetail]} />

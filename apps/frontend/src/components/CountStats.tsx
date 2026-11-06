@@ -82,9 +82,9 @@ export function CountStats() {
     <Grid gap="xs">
       {/* Photos & Days combined */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
-        <Card withBorder p="xs" h="100%">
+        <Card withBorder radius="lg" p="sm" h="100%">
           <Group justify="flex-start" gap="xs" wrap="nowrap" h="100%">
-            <Photo size={40} strokeWidth={1} />
+            <Photo size={32} stroke={1.5} color="var(--mantine-color-dimmed)" />
             <div>
               <Text c="dimmed" size="xs">
                 {t("countstats.photos")}
@@ -106,9 +106,9 @@ export function CountStats() {
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
         <HoverCard width={200} shadow="md" withinPortal withArrow>
           <HoverCard.Target>
-            <Card withBorder p="xs" h="100%">
+            <Card withBorder radius="lg" p="sm" h="100%">
               <Group justify="flex-start" gap="xs" wrap="nowrap" h="100%">
-                <Users size={40} strokeWidth={1} />
+                <Users size={32} stroke={1.5} color="var(--mantine-color-dimmed)" />
                 <div>
                   <Text c="dimmed" size="xs">
                     {t("people")}
@@ -161,9 +161,9 @@ export function CountStats() {
 
       {/* Events */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
-        <Card withBorder p="xs" h="100%">
+        <Card withBorder radius="lg" p="sm" h="100%">
           <Group justify="flex-start" gap="xs" wrap="nowrap" h="100%">
-            <SettingsAutomation size={40} strokeWidth={1} />
+            <SettingsAutomation size={32} stroke={1.5} color="var(--mantine-color-dimmed)" />
             <div>
               <Text c="dimmed" size="xs">
                 {t("events")}
@@ -179,12 +179,12 @@ export function CountStats() {
       {/* Data Visualization link */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
         <UnstyledButton component={Link} to="/statistics" display="block" w="100%" h="100%">
-          <Card withBorder p="xs" h="100%" className={classes.datavizCard}>
+          <Card withBorder radius="lg" p="sm" h="100%" className={classes.datavizCard}>
             <Group justify="space-between" gap="xs" wrap="nowrap" h="100%">
               <Group gap="xs" wrap="nowrap">
-                <ChartLine size={40} strokeWidth={1} color="var(--mantine-color-yellow-6)" />
+                <ChartLine size={32} stroke={1.5} color="var(--mantine-color-dimmed)" />
                 <div>
-                  <Text c="var(--mantine-color-yellow-7)" size="xs" fw={600}>
+                  <Text c="var(--mantine-primary-color-filled)" size="xs" fw={600}>
                     {t("sidemenu.statistics")}
                   </Text>
                   <Text c="dimmed" size="xs">
@@ -192,7 +192,7 @@ export function CountStats() {
                   </Text>
                 </div>
               </Group>
-              <ArrowRight size={20} color="var(--mantine-color-yellow-6)" />
+              <ArrowRight size={20} color="var(--mantine-color-dimmed)" />
             </Group>
           </Card>
         </UnstyledButton>

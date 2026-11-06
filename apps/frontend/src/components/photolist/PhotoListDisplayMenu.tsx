@@ -3,6 +3,7 @@ import { IconSettings } from "@tabler/icons-react";
 import type React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import type { ScrubberStyle } from "../scrollscrubber/scrollScrubberTypes";
 import { PhotoOrderSection } from "./PhotoOrderSection";
 import { isHeaderSize, isScrubberStyle, type HeaderSize } from "./usePhotoListPreferences";
@@ -50,7 +51,11 @@ export function PhotoListDisplayMenu({
       <Menu.Target>
         {/* Hidden while the menu is open: it would sit over the menu's first label. */}
         <Tooltip label={t("photodisplay.settings")} position="bottom" disabled={displayMenuOpened}>
-          <ActionIcon variant="default" size={TOOLBAR_ACTION_SIZE} aria-label={t("photodisplay.settings")}>
+          <ActionIcon
+            {...toolbarLook(displayMenuOpened)}
+            size={TOOLBAR_ACTION_SIZE}
+            aria-label={t("photodisplay.settings")}
+          >
             <IconSettings size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Tooltip>

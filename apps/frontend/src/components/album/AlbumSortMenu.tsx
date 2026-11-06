@@ -9,7 +9,8 @@ import {
 import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import { DIRECTION_LABELS, DIRECTIONS, sameSort, SORT_KEY_LABELS, sortForKey } from "./albumSort";
 import type { AlbumSort } from "./albumSort";
 import type { AlbumSortMenuState } from "./useAlbumSort";
@@ -29,7 +30,7 @@ export function AlbumSortMenu({ options, sort, defaultSort, onChange }: AlbumSor
   const keyLabel = t(labelOf(sort.key));
   const name = t("albumsort.current", { key: keyLabel, direction: t(DIRECTION_LABELS[sort.key][sort.direction]) });
   const isDefault = sameSort(sort, defaultSort);
-  const variant = isDefault ? "default" : "light";
+  const look = toolbarLook(!isDefault);
   const check = <Check size={ICON_SIZE.menu} />;
 
   return (
@@ -37,13 +38,14 @@ export function AlbumSortMenu({ options, sort, defaultSort, onChange }: AlbumSor
       <Menu.Target>
         {isPhone ? (
           <Indicator size={8} offset={4} disabled={isDefault}>
-            <ActionIcon variant={variant} size="lg" aria-label={name} title={name}>
+            <ActionIcon {...look} size={TOOLBAR_ACTION_SIZE} aria-label={name} title={name}>
               <ArrowsSort size={ICON_SIZE.toolbar} />
             </ActionIcon>
           </Indicator>
         ) : (
           <Button
-            variant={variant}
+            {...look}
+            h={TOOLBAR_CONTROL_HEIGHT}
             leftSection={<ArrowsSort size={ICON_SIZE.toolbar} />}
             rightSection={<ChevronDown size={ICON_SIZE.inline} />}
             aria-label={name}

@@ -44,7 +44,7 @@ export function LibrariesSharedWithYouSection() {
     <Paper withBorder radius="md" p="md">
       <Stack gap="sm">
         <Group gap="sm" wrap="nowrap">
-          <IconLibraryPhoto size={24} stroke={1.5} color="var(--mantine-color-green-6)" aria-hidden />
+          <IconLibraryPhoto size={24} stroke={1.5} color="var(--mantine-color-dimmed)" aria-hidden />
           <div>
             <Title order={4}>{t("librarySharing.librariesWithYou")}</Title>
             <Text size="sm" c="dimmed">

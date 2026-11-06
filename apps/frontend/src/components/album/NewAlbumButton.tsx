@@ -6,7 +6,7 @@ import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useSetUserAlbumCollectionsMutation } from "../../api_client/albums/hooks";
-import { ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 import { CreateUserAlbumModal } from "./UserAlbumModals";
 
 type Props = Readonly<{
@@ -29,12 +29,19 @@ export function NewAlbumButton({ existingTitles, collection }: Props) {
   const label = t("useralbum.newalbum");
   return (
     <>
-      <Button visibleFrom="sm" variant="light" leftSection={<IconPlus size={ICON_SIZE.toolbar} />} onClick={open}>
+      {/* My Albums' one primary action, so the one filled button in its header */}
+      <Button
+        visibleFrom="sm"
+        variant="filled"
+        h={TOOLBAR_CONTROL_HEIGHT}
+        leftSection={<IconPlus size={ICON_SIZE.toolbar} />}
+        onClick={open}
+      >
         {label}
       </Button>
       <Tooltip label={label} hiddenFrom="sm">
-        <ActionIcon hiddenFrom="sm" variant="light" size="lg" aria-label={label} onClick={open}>
-          <IconPlus size={20} />
+        <ActionIcon hiddenFrom="sm" variant="filled" size={TOOLBAR_ACTION_SIZE} aria-label={label} onClick={open}>
+          <IconPlus size={ICON_SIZE.toolbar} />
         </ActionIcon>
       </Tooltip>
       <CreateUserAlbumModal

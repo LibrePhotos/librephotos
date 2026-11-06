@@ -1,5 +1,4 @@
 import { Tabs } from "@mantine/core";
-import { IconDownload } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { ParseKeys } from "i18next";
 import React from "react";
@@ -71,12 +70,7 @@ function SharedWithMe() {
 
   return (
     <>
-      <PageHeader
-        icon={IconDownload}
-        iconColor="var(--mantine-color-green-6)"
-        title={t(TAB_TITLES[tab] ?? "sharing.photosOthersShared")}
-        subtitle={getSubHeader(tab)}
-      />
+      <PageHeader title={t(TAB_TITLES[tab] ?? "sharing.photosOthersShared")} subtitle={getSubHeader(tab)} />
       <PageBody gap={0}>
         {/* Controlled by the route: with defaultValue, Back changed the title
             but left the other tab showing. */}

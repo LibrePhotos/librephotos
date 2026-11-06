@@ -1,0 +1,9 @@
+/* The sign-in, sign-up and password-reset pages: one card in the middle of the window. */
+.page {
+  min-height: 100dvh;
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+}
+
+.card {
+  width: min(420px, 100%);
+}

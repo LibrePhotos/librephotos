@@ -20,7 +20,7 @@
 .location {
   margin-right: 1rem;
   flex: 1;
-  opacity: 0.5;
+  color: var(--mantine-color-dimmed);
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -29,13 +29,13 @@
 
 /* The note beside the date (a person's age, #2751): dimmed like the place, never cut. */
 .note {
-  opacity: 0.5;
+  color: var(--mantine-color-dimmed);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .date {
-  font-weight: bold;
+  font-weight: 600;
   text-align: right;
   min-width: 0;
   white-space: nowrap;
@@ -44,72 +44,59 @@
 }
 
 /* Header sizes: every date and location carries one of these (GroupHeader's headerSize), and they
-   are the only rules that set its font size. */
+   are the only rules that set its font size. The date is a quiet semibold label like Google
+   Photos' and Immich's day headers; the place sits next to it, dimmed. */
 .large.date {
   font-size: 18px;
 }
 
-.large.location {
-  font-size: 15px;
-}
-
 .normal.date {
-  font-size: 16px;
-}
-
-.normal.location {
   font-size: 15px;
 }
 
 .small.date {
-  font-size: 15px;
-}
-
-.small.location {
   font-size: 14px;
 }
 
-.large.note,
+.large.location,
+.large.note {
+  font-size: 15px;
+}
+
+.normal.location,
 .normal.note {
-  font-size: 15px;
+  font-size: 13px;
 }
 
+.small.location,
 .small.note {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 @media (min-width: 36em) {
   .large.date {
-    font-size: 32px;
-  }
-
-  .large.location {
-    font-size: 16px;
+    font-size: 22px;
+    letter-spacing: -0.01em;
   }
 
   .normal.date {
-    font-size: 20px;
-  }
-
-  .normal.location {
     font-size: 16px;
   }
 
   .small.date {
-    font-size: 16px;
-  }
-
-  .small.location {
     font-size: 15px;
   }
 
-  .large.note,
-  .normal.note {
-    font-size: 16px;
+  .large.location,
+  .large.note {
+    font-size: 15px;
   }
 
+  .normal.location,
+  .normal.note,
+  .small.location,
   .small.note {
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 
@@ -123,12 +110,12 @@
 }
 
 .leftAligned .date {
-  margin-right: 1rem;
+  margin-right: 0.625rem;
   text-align: left;
 }
 
 .leftAligned .note {
-  margin-right: 1rem;
+  margin-right: 0.625rem;
 }
 
 /* Right alignment styles - Date first, then Location */

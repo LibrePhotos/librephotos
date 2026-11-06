@@ -72,7 +72,7 @@ async function render(overrides: Partial<Photo>, isPublic = false) {
     container,
     /** The panel's lines, " | " between them. */
     lines: () =>
-      Array.from(container.querySelectorAll("p, button"))
+      Array.from(container.querySelectorAll("p, a, button"))
         .map(element => element.textContent)
         .join(" | "),
     async unmount() {

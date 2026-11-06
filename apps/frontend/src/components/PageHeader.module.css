@@ -1,0 +1,31 @@
+/*
+ * The page header: a compact title row whose left edge is the content's (PAGE_GUTTER, set from
+ * PageHeader.tsx), with the actions on the right of the same row and below the title on a phone.
+ */
+.root {
+  padding-block: 8px;
+}
+
+/* The text column takes the free space, so a long title wraps instead of pushing the actions out */
+.text {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.title {
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.loader {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.subtitle {
+  margin-top: 2px;
+}
+
+.actions {
+  margin-left: auto;
+}

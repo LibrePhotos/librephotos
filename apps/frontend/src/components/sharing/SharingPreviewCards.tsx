@@ -1,11 +1,13 @@
 import type { UserAlbumInfo } from "@librephotos/api-client";
 import { Group, Skeleton, Text, Title } from "@mantine/core";
-import { IconChevronRight } from "@tabler/icons-react";
+import { IconChevronRight, IconPhoto } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { ROW_CARD_SIZE } from "../album/AlbumSection";
 import classes from "../album/AlbumSection.module.css";
+import { CollectionCard } from "../common/CollectionCard";
 import { Tile } from "../Tile";
 
 /** The building blocks of the Sharing overview's preview rows (routes/_protected/sharing/index.tsx). */
@@ -42,11 +44,7 @@ export function SharePreviewSkeleton() {
   return (
     <div className={classes.loadingContainer}>
       {[1, 2, 3, 4, 5].map(i => (
-        <div key={i} className={classes.skeleton}>
-          <Skeleton height={140} radius="md" />
-          <Skeleton height={16} mt={8} width="80%" />
-          <Skeleton height={12} mt={4} width="50%" />
-        </div>
+        <Skeleton key={i} className={classes.skeleton} radius={12} />
       ))}
     </div>
   );
@@ -54,56 +52,64 @@ export function SharePreviewSkeleton() {
 
 type PhotoCoverProps = Readonly<{ imageHash: string; video: boolean }>;
 
-/** A photo's square cover on a preview card. */
+/** A photo's square cover in a preview row, with the collection cards' size and corners. */
 export function PhotoPreviewCover({ imageHash, video }: PhotoCoverProps) {
   return (
     <div className={classes.albumCover}>
-      <Tile video={video} width={140} height={140} image_hash={imageHash} className={classes.albumCoverImage} />
+      <Tile
+        video={video}
+        width={ROW_CARD_SIZE}
+        height={ROW_CARD_SIZE}
+        image_hash={imageHash}
+        className={classes.albumCoverImage}
+      />
     </div>
   );
 }
 
-type InfoProps = Readonly<{ title: string; detail: string }>;
+type PhotoCardProps = Readonly<{
+  /** What kind of link it is: "Photo link", "Public photo". */
+  title: string;
+  /** Its age or date; may be empty. */
+  detail: string;
+  /** The photo, drawn with `collectionCardImageClass`. */
+  media: ReactNode;
+}>;
 
-const NO_BREAK_SPACE = "\u00a0";
-
-/** The caption under a card's cover: what it is, then a dimmed detail line. */
-export function SharePreviewInfo({ title, detail }: InfoProps) {
+/** A photo with a caption in the Public Links row, opening the photo links page. */
+export function PhotoLinkCard({ title, detail, media }: PhotoCardProps) {
   return (
-    <div className={classes.albumInfo}>
-      <Text size="sm" fw={500} lineClamp={1} title={title}>
-        {title}
-      </Text>
-      {/* A blank line when there is no detail, so every card in a row has one height */}
-      <Text size="xs" c="dimmed" lineClamp={1}>
-        {detail || NO_BREAK_SPACE}
-      </Text>
-    </div>
+    <CollectionCard
+      className={classes.rowCard}
+      size={ROW_CARD_SIZE}
+      title={title}
+      meta={detail}
+      media={media}
+      renderLink={props => <Link {...props} to="/sharing/links" search={{ tab: "photos" }} />}
+    />
   );
 }
 
 type AlbumCardProps = Readonly<{
   album: Pick<UserAlbumInfo, "id" | "title" | "photo_count" | "cover_photo">;
+  /** Its ⋮ menu's items, if it has one. */
+  menuItems?: ReactNode;
 }>;
 
-/** An album's card: its cover (or "No cover"), title and photo count, linking to the album. */
-export function AlbumPreviewCard({ album }: AlbumCardProps) {
+/** An album's card: its cover, title and photo count, linking to the album. */
+export function AlbumPreviewCard({ album, menuItems }: AlbumCardProps) {
   const { t } = useTranslation();
   return (
-    <Link to="/album/user/$id" params={{ id: album.id.toString() }} className={classes.albumCard}>
-      {album.cover_photo ? (
-        <PhotoPreviewCover imageHash={album.cover_photo.image_hash} video={album.cover_photo.video ?? false} />
-      ) : (
-        <div className={classes.albumCover}>
-          <Text c="dimmed" size="xs">
-            {t("explore.noCover")}
-          </Text>
-        </div>
-      )}
-      <SharePreviewInfo
-        title={album.title}
-        detail={t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
-      />
-    </Link>
+    <CollectionCard
+      menuItems={menuItems}
+      menuLabel={`${t("useralbum.albumActions")}: ${album.title}`}
+      className={classes.rowCard}
+      size={ROW_CARD_SIZE}
+      title={album.title}
+      meta={t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
+      covers={album.cover_photo ? [album.cover_photo] : []}
+      placeholder={<IconPhoto />}
+      renderLink={props => <Link {...props} to="/album/user/$id" params={{ id: album.id.toString() }} />}
+    />
   );
 }

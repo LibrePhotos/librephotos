@@ -1,7 +1,6 @@
 import type { BulkPhotoQuery, DatePhotosGroup, MediaType, PhotoOrder, PigPhoto, User } from "@librephotos/api-client";
 import { Box, Flex, RemoveScroll } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import type { TablerIcon } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useRef } from "react";
 import { useAccessToken } from "../../api_client/auth/hooks";
@@ -82,7 +81,6 @@ export type EmptyStateConfig = {
 type Props = Readonly<{
   title: string;
   loading: boolean;
-  icon: TablerIcon;
   photoset: DatePhotosGroup[] | PigPhoto[];
   idx2hash: PigPhoto[];
   selectable: boolean;
@@ -178,7 +176,6 @@ function isListLoading(loading: boolean, isPublic: boolean, userDetailsLoading: 
 function PhotoListViewComponent({
   title,
   loading,
-  icon,
   photoset,
   idx2hash,
   selectable,
@@ -293,7 +290,6 @@ function PhotoListViewComponent({
                   loading={isLoading}
                   numPhotosetItems={photos.length || 0}
                   numPhotos={getNumPhotos()}
-                  icon={icon}
                   title={title}
                   titleBadge={titleBadge}
                   dayHeaderPrefix={dayHeaderPrefix}

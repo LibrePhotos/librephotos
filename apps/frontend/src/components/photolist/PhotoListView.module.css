@@ -8,6 +8,7 @@
   top: var(--app-shell-header-height, 55px);
   z-index: 10;
   width: 100%;
-  padding: 6px;
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  /* Only vertical: PageHeader keeps the page gutter, so the title lines up with the grid. */
+  padding: 6px 0;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-body));
 }

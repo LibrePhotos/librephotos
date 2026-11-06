@@ -34,7 +34,7 @@ export function CaptionContextCard({ user, onChange }: UserSettingsCardProps) {
     onChange({ llm_settings: withLlmSwitch(user.llm_settings, key, value) });
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Stack>
         <Title order={4}>
           <Trans i18nKey="settings.captioncontext" />

@@ -13,7 +13,7 @@ function AppShellPublicWithoutHeader() {
   return (
     <div
       style={{
-        backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+        backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[0],
         // min-height: login/signup can be taller than a short screen, and a
         // fixed height left the page below it in the body colour.
         minHeight: "100dvh",

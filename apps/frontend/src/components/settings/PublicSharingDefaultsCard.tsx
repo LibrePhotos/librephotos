@@ -23,7 +23,7 @@ export function PublicSharingDefaultsCard({ user, onChange }: UserSettingsCardPr
   );
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Stack>
         <Title order={4}>
           <Trans i18nKey="settings.publicsharingdefaults" />

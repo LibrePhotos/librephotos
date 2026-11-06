@@ -145,7 +145,7 @@ export function FeaturesCard() {
   };
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Stack>
         <Stack gap={4}>
           <Title order={4}>

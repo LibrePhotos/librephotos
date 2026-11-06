@@ -1,8 +1,8 @@
 /*
  * The app's own colour variables, for colours that are deliberate but not theme colours. Loaded
  * once, as theme setup, from src/index.tsx; src/architecture/styles.test.ts does not count the
- * colours here (AGENTS.md, Styling). Chart palettes, map layers and the gradient buttons need JS
- * values and live in chartColors.ts, mapColors.ts and brandGradients.ts next to this file.
+ * colours here (AGENTS.md, Styling). Chart palettes and map layers need JS values and live in
+ * chartColors.ts and mapColors.ts next to this file.
  */
 :root {
   /* Neutral black and white shades for scrims, borders and shadows: on photos (the lightbox, tile
@@ -56,10 +56,6 @@
   --app-ai-red: #ef4444;
   --app-ai-violet-30: rgba(139, 69, 255, 0.3);
   --app-ai-violet-40: rgba(139, 69, 255, 0.4);
-
-  /* The gold shimmer that runs over the statistics card on hover. */
-  --app-shimmer-amber-15: rgba(255, 193, 7, 0.15);
-  --app-shimmer-gold-25: rgba(255, 215, 0, 0.25);
 }
 
 /*

@@ -35,7 +35,6 @@ function AlbumAutoGalleryView() {
       <PhotoListView
         title={isError ? t("events") : t("loading")}
         loading={isLoading}
-        icon={SettingsAutomation}
         photoset={[]}
         idx2hash={[]}
         emptyStateConfig={
@@ -65,7 +64,6 @@ function AlbumAutoGalleryView() {
       <PhotoListView
         title={title}
         loading={false}
-        icon={SettingsAutomation}
         photoset={groupedPhotos}
         idx2hash={gridPhotos}
         // An event reads as it happened, whatever the photo order (#2712).

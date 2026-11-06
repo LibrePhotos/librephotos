@@ -26,7 +26,15 @@ export const LEGACY_UNDATED_GROUP_DATE = "No timestamp";
 /** A note for a dated group's heading, from its day (a person's age on the person page, #2751). */
 export type GroupNote = (day: DateTime) => string | null;
 
-// TODO: Add ordinal suffix to day of month when implemented in luxon (NB, is it still valid?)
+// "Sat, Oct 17" for this year's days, "Sat, Oct 17, 2024" for older ones: the short label Google
+// Photos and Immich put over a day.
+const DAY_THIS_YEAR = { weekday: "short", month: "short", day: "numeric" } as const;
+const DAY_OTHER_YEAR = { ...DAY_THIS_YEAR, year: "numeric" } as const;
+
+function formatGroupDay(date: DateTime): string {
+  return date.toLocaleString(date.year === DateTime.now().year ? DAY_THIS_YEAR : DAY_OTHER_YEAR);
+}
+
 export function formatDateForPhotoGroups(
   photoGroups: DatePhotosGroup[],
   note?: GroupNote
@@ -43,7 +51,7 @@ export function formatDateForPhotoGroups(
         ...photoGroup,
         year: date.year,
         month: date.month,
-        date: date.toLocaleString(DateTime.DATE_HUGE),
+        date: formatGroupDay(date),
         note: note?.(date),
       };
     }

@@ -6,6 +6,8 @@ import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteUserPlaceMutation } from "../../api_client/albums/hooks";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import { ConfirmModal } from "../modals/ConfirmModal";
 
 type Props = Readonly<{ place: UserPlace }>;
@@ -18,19 +20,19 @@ export function YourPlaceActions({ place }: Props) {
   const remove = useDeleteUserPlaceMutation();
 
   return (
-    <Group gap="xs" wrap="nowrap">
+    <Group gap={4} wrap="nowrap">
       <Button
         onClick={() => void navigate({ to: "/album/places", search: { edit: place.id } })}
-        variant="default"
-        size="xs"
-        leftSection={<IconPencil size={16} />}
+        {...toolbarLook()}
+        h={TOOLBAR_CONTROL_HEIGHT}
+        leftSection={<IconPencil size={ICON_SIZE.toolbar} />}
       >
         {t("yourplaces.edit")}
       </Button>
       <Menu position="bottom-end">
         <Menu.Target>
-          <ActionIcon variant="subtle" color="gray" aria-label={t("moreactions")}>
-            <IconDots size={18} />
+          <ActionIcon {...toolbarLook()} size={TOOLBAR_ACTION_SIZE} aria-label={t("moreactions")}>
+            <IconDots size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>

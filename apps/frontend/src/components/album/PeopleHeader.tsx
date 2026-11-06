@@ -1,11 +1,12 @@
 import type { PersonGroup } from "@librephotos/api-client";
 import { Button, Group } from "@mantine/core";
-import { IconFaceId, IconUsers } from "@tabler/icons-react";
+import { IconFaceId } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import { PageHeader } from "../PageHeader";
 import { PersonGroupFilter } from "./PersonGroupFilter";
 
@@ -28,7 +29,6 @@ export function PeopleHeader({ loading, total, shown, groups, group, onGroupChan
   const navigate = useNavigate();
   return (
     <PageHeader
-      icon={IconUsers}
       title={t("people")}
       loading={loading}
       subtitle={
@@ -37,13 +37,13 @@ export function PeopleHeader({ loading, total, shown, groups, group, onGroupChan
           : t("personalbum.numberofpeople", { count: total, peoplelength: total })
       }
       actions={
-        <Group gap="xs" wrap="nowrap">
+        <Group gap={4} wrap="nowrap">
           {total > 0 && sortMenu}
           {total > 0 && <PersonGroupFilter groups={groups} value={group?.id} onChange={onGroupChange} />}
           <Button
+            {...toolbarLook()}
+            h={TOOLBAR_CONTROL_HEIGHT}
             leftSection={<IconFaceId size={ICON_SIZE.toolbar} />}
-            variant="light"
-            color="orange"
             onClick={() => void navigate({ to: "/faces" })}
           >
             {t("personalbum.managefaces")}

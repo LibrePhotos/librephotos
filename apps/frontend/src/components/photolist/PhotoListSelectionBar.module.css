@@ -1,6 +1,8 @@
 /* The selection bar, inside the photo list's sticky header: it shows only while selecting (#2240). */
+/* Tinted with the accent, as Google Photos' bar turns blue while selecting, so select mode is
+   obvious at a glance. */
 .bar {
-  padding: 4px;
-  border-radius: 10px;
-  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-7));
+  padding: 4px 8px;
+  border-radius: var(--mantine-radius-lg);
+  background-color: var(--mantine-primary-color-light);
 }

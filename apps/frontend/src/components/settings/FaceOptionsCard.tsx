@@ -11,7 +11,7 @@ export function FaceOptionsCard({ user, onChange }: UserSettingsCardProps) {
   const metadataSyncOff = (user.save_metadata_to_disk ?? "OFF") === "OFF";
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Title order={4} mb={16}>
         {t("settings.face_options")}
         <SectionLink />

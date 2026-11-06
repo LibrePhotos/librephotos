@@ -1,6 +1,5 @@
 import { Stack, Tabs, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconLink } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -67,12 +66,7 @@ function PublicLinksPage() {
 
   return (
     <>
-      <PageHeader
-        icon={IconLink}
-        iconColor="var(--mantine-color-violet-6)"
-        title={t("sharing.publicLinks")}
-        subtitle={t("sharing.publicLinksDescription")}
-      />
+      <PageHeader title={t("sharing.publicLinks")} subtitle={t("sharing.publicLinksDescription")} />
       <PageBody gap={0}>
         <Tabs
           value={activeTab}
@@ -114,7 +108,6 @@ function PublicLinksPage() {
                 <PhotoListView
                   title={t("sharing.publicPhotos")}
                   loading={isLoadingPhotos}
-                  icon={IconLink}
                   photoset={publicPhotoDays}
                   updateGroups={updateGroups}
                   idx2hash={photosFlat}

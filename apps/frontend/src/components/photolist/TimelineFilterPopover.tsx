@@ -23,7 +23,8 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { i18nResolvedLanguage } from "../../i18n";
-import { FAVORITE_COLOR, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { FAVORITE_COLOR, ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import {
   countActiveFilters,
   describeTimelineFilter,
@@ -85,23 +86,21 @@ export function TimelineFilterPopover({
         <Indicator label={active} size={16} disabled={active === 0}>
           <Popover.Target>
             <ActionIcon
-              variant={active > 0 ? "light" : "subtle"}
-              color={active > 0 ? "blue" : "gray"}
-              size="lg"
+              {...toolbarLook(active > 0)}
+              size={TOOLBAR_ACTION_SIZE}
               disabled={!ready}
               aria-label={activeLabel ? `${t("timelinefilter.button")}, ${activeLabel}` : t("timelinefilter.button")}
             >
-              <Filter size={20} />
+              <Filter size={ICON_SIZE.toolbar} />
             </ActionIcon>
           </Popover.Target>
         </Indicator>
       ) : (
         <Popover.Target>
           <Button
-            variant={active > 0 ? "light" : "subtle"}
-            color={active > 0 ? "blue" : "gray"}
+            {...toolbarLook(active > 0)}
             h={TOOLBAR_CONTROL_HEIGHT}
-            leftSection={<Filter size={18} />}
+            leftSection={<Filter size={ICON_SIZE.toolbar} />}
             disabled={!ready}
             rightSection={
               active > 0 ? (

@@ -71,27 +71,28 @@ function render() {
 const box = (className: string | undefined) =>
   defined(container.querySelector<HTMLElement>(`.${defined(className)}`), `.${String(className)}`);
 
+const neighbour = (name: string) =>
+  defined(container.querySelector<HTMLElement>(`[aria-label="${name}"]`), `[aria-label="${name}"]`);
+
 describe("ThumbnailNavigation", () => {
   it("styles the neighbours from its CSS module, with no inline style to override a :hover", () => {
     render();
+    const previous = neighbour("Previous");
+    const next = neighbour("Next");
 
-    const previous = box(classes.previous);
-    const next = box(classes.next);
     expect(previous.classList).toContain(classes.neighbour);
     expect(next.classList).toContain(classes.neighbour);
     for (const element of [previous, next, box(classes.current), box(classes.strip)]) {
       expect(element.getAttribute("style")).toBeNull();
     }
-    expect(getComputedStyle(previous).opacity).toBe("0.85");
-    expect(getComputedStyle(previous).transform).toBe("scale(0.85) translateX(10px)");
-    expect(getComputedStyle(next).transform).toBe("scale(0.85) translateX(-10px)");
+    // Dimmed until pointed at, so the strip stays quiet over the photo.
+    expect(getComputedStyle(previous).opacity).toBe("0.6");
   });
 
   it("moves to the previous and next photo on click", () => {
     render();
-
-    act(() => box(classes.previous).click());
-    act(() => box(classes.next).click());
+    act(() => neighbour("Previous").click());
+    act(() => neighbour("Next").click());
 
     expect(onMovePrevRequest).toHaveBeenCalledOnce();
     expect(onMoveNextRequest).toHaveBeenCalledOnce();
@@ -100,16 +101,12 @@ describe("ThumbnailNavigation", () => {
   // #2245: two unnamed images that reacted to clicks; now named buttons Tab reaches
   it("makes the neighbours named buttons", () => {
     render();
-
-    for (const [className, name] of [
-      [classes.previous, "Previous"],
-      [classes.next, "Next"],
-    ] as const) {
-      const element = box(className);
+    for (const element of container.querySelectorAll<HTMLElement>(`.${defined(classes.neighbour)}`)) {
       expect(element.tagName).toBe("BUTTON");
       expect(element.getAttribute("type")).toBe("button");
-      expect(element.getAttribute("aria-label")).toBe(name);
+      expect(["Previous", "Next"]).toContain(element.getAttribute("aria-label"));
     }
+    expect(container.querySelectorAll(`.${defined(classes.neighbour)}`)).toHaveLength(2);
   });
 
   it("has no mouse handlers that write style", () => {

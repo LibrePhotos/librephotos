@@ -1,5 +1,4 @@
 import { Stack, Text } from "@mantine/core";
-import { IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoSharesQuery, useFetchSharedPhotosByMeQuery } from "../../api_client/photos/hooks";
@@ -45,7 +44,6 @@ export function PhotosSharedByMe() {
     <PhotoListView
       title={t("sidemenu.photos")}
       loading={false}
-      icon={Photo}
       photoset={photoset}
       idx2hash={idx2hash}
       isPublic

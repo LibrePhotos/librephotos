@@ -27,7 +27,6 @@
 import { Media } from "@librephotos/api-client";
 import type { DatePhotosGroup, Photo, PhotoOrder, PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
-import { IconPhoto } from "@tabler/icons-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import React, { act } from "react";
@@ -198,17 +197,7 @@ const queryClient = new QueryClient();
 const ListProps = React.createContext<Partial<PhotoListViewProps>>({});
 function ListPage() {
   const props = React.useContext(ListProps);
-  return (
-    <PhotoListView
-      title="Photos"
-      loading={false}
-      icon={IconPhoto}
-      photoset={photoset}
-      idx2hash={items}
-      selectable
-      {...props}
-    />
-  );
+  return <PhotoListView title="Photos" loading={false} photoset={photoset} idx2hash={items} selectable {...props} />;
 }
 
 const theRouter = () => defined(router, "the router");

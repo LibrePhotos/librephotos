@@ -1,6 +1,7 @@
 import { Carousel, type CarouselProps } from "@mantine/carousel";
-import { Modal, Stack } from "@mantine/core";
+import { Modal } from "@mantine/core";
 import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
+import { IconChevronLeft as ChevronLeft, IconChevronRight as ChevronRight } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
@@ -8,6 +9,7 @@ import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { isPhotoSphere } from "../panorama/photoSphere";
 import { usePanoramaMode } from "../panorama/usePanoramaMode";
+import classes from "./ContentViewer.module.css";
 import { ImagePreloader } from "./ImagePreloader";
 import {
   COPY_KEY,
@@ -35,6 +37,7 @@ import { useLightboxZoom } from "./useLightboxZoom";
 import { usePhotoRotation } from "./usePhotoRotation";
 import { useSlideshow } from "./useSlideshow";
 import { SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./videoFailure";
+import { ViewerDarkScope } from "./ViewerDarkScope";
 
 /** The Embla carousel API that Mantine's Carousel hands to getEmblaApi. */
 type EmblaApi = Parameters<NonNullable<CarouselProps["getEmblaApi"]>>[0];
@@ -90,7 +93,7 @@ export function ContentViewer({
   // Use image_hash for API calls since backend still uses image_hash for lookup
   // Skip this query on public pages since we don't have authenticated access to photo details
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash, isPublic);
-  const { mainType, mediaBoxHeight } = mainSlide(type, isPublic, isPhotoDetailsLoading);
+  const { mainType } = mainSlide(type, isPublic, isPhotoDetailsLoading);
   const { isZoomed, scale, offset, toggleZoom, isMagnified, bind } = useLightboxZoom(mainSrc);
   const { t } = useTranslation();
   // A photo sphere opens flat; "360° view" (V) shows it in the panorama viewer (#483). A public
@@ -114,13 +117,9 @@ export function ContentViewer({
   const isRotated = rotationAngle % 360 !== 0;
   const addFaceBlockedReason = isRotated ? t("lightbox.addface.rotated") : undefined;
 
-  // Copy to clipboard: a toolbar button and Ctrl/Cmd+C, for still photos on
+  // Copy to clipboard: the toolbar menu and Ctrl/Cmd+C, for still photos on
   // pages that have an image clipboard at all (secure contexts only).
-  const {
-    supported: canCopyToClipboard,
-    isCopying: isCopyingToClipboard,
-    copy: copyPhotoToClipboard,
-  } = useCopyPhotoToClipboard();
+  const { supported: canCopyToClipboard, copy: copyPhotoToClipboard } = useCopyPhotoToClipboard();
   const canCopyPhoto = canCopyToClipboard && type === "photo";
   const handleCopyPhoto = useCallback(() => {
     if (canCopyPhoto) copyPhotoToClipboard({ imageHash: mainSrcHash, cacheKey: imageCacheKey });
@@ -256,190 +255,175 @@ export function ContentViewer({
     <LightboxCommandsContext.Provider value={commands}>
       <Modal.Root opened onClose={handleClose} fullScreen closeOnEscape={false}>
         <Modal.Overlay color="var(--mantine-color-black)" backgroundOpacity={1} />
-        <Modal.Content style={{ background: "transparent" }}>
+        <Modal.Content bg="transparent">
           <Modal.Body
             ref={contentRef}
             // The focus trap otherwise lands on the first toolbar button, which
             // then shows a focus ring as soon as a shortcut key is pressed.
             data-autofocus
             tabIndex={-1}
-            style={{
-              outline: "none",
-              width: `100vw`,
-              height: "100vh",
-              display: "flex",
-              alignItems: "stretch",
-              padding: 0,
-              position: "relative", // For absolute positioning
-              background: isFullscreen ? "black" : "transparent",
-            }}
+            className={classes.body}
           >
-            <Stack
-              w={lightboxSidebarShow ? { base: "100%", md: "calc(100vw - 400px)" } : "100%"}
-              style={{
-                padding: 16,
-                gap: 0,
-                position: "relative", // For the thumbnail navigation
-                height: "100%",
-              }}
-            >
-              {/* Preload images */}
-              <ImagePreloader prevSrc={prevSrcHash} mainSrc={mainSrcHash} nextSrc={nextSrcHash} />
+            <ViewerDarkScope className={classes.viewer}>
+              <div className={classes.stage}>
+                {/* Preload images */}
+                <ImagePreloader prevSrc={prevSrcHash} mainSrc={mainSrcHash} nextSrc={nextSrcHash} />
 
-              {/* Top toolbar */}
-              <LightboxControls
-                isPhotoDetailsLoading={isPhotoDetailsLoading}
-                photoDetail={photoDetails}
-                lightboxSidebarShow={lightboxSidebarShow}
-                setLightBoxSidebarShow={setLightBoxSidebarShow}
-                isPublic={isPublic}
-                enableZoom={enableZoom}
-                type={type}
-                isZoomed={isZoomed}
-                toggleZoom={toggleZoom}
-                onCloseRequest={handleClose}
-                onRotate={rotate}
-                playing={playing}
-                setPlaying={setPlaying}
-                isFullscreen={isFullscreen}
-                toggleFullscreen={toggleFullscreen}
-                isSlideshowActive={slideshow.isSlideshowActive}
-                toggleSlideshow={slideshow.toggleSlideshow}
-                slideshowInterval={slideshow.slideshowInterval}
-                setSlideshowInterval={slideshow.setSlideshowInterval}
-                slideshowProgress={slideshow.slideshowProgress}
-                panorama={panorama}
-                hasOcrText={hasOcrText}
-                showOcrText={showOcrText}
-                toggleOcrText={toggleOcrText}
-                onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
-                isCopyingToClipboard={isCopyingToClipboard}
-                onAfterTrashToggle={handleAfterTrashToggle}
-              />
+                {/* Top toolbar */}
+                <LightboxControls
+                  isPhotoDetailsLoading={isPhotoDetailsLoading}
+                  photoDetail={photoDetails}
+                  lightboxSidebarShow={lightboxSidebarShow}
+                  setLightBoxSidebarShow={setLightBoxSidebarShow}
+                  isPublic={isPublic}
+                  enableZoom={enableZoom}
+                  type={type}
+                  isZoomed={isZoomed}
+                  toggleZoom={toggleZoom}
+                  onCloseRequest={handleClose}
+                  onRotate={rotate}
+                  playing={playing}
+                  setPlaying={setPlaying}
+                  isFullscreen={isFullscreen}
+                  toggleFullscreen={toggleFullscreen}
+                  isSlideshowActive={slideshow.isSlideshowActive}
+                  toggleSlideshow={slideshow.toggleSlideshow}
+                  slideshowInterval={slideshow.slideshowInterval}
+                  setSlideshowInterval={slideshow.setSlideshowInterval}
+                  slideshowProgress={slideshow.slideshowProgress}
+                  panorama={panorama}
+                  hasOcrText={hasOcrText}
+                  showOcrText={showOcrText}
+                  toggleOcrText={toggleOcrText}
+                  onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
+                  onAfterTrashToggle={handleAfterTrashToggle}
+                />
 
-              {/* Main photo/video with swipe navigation */}
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}
-              >
-                <Carousel
-                  getEmblaApi={setEmbla}
-                  initialSlide={1}
-                  style={{ width: "100%", height: "100%" }}
-                  slideSize="100%"
-                  slideGap={0}
-                  orientation="horizontal"
-                  // Mantine 8 takes Embla options only here (loop: false and
-                  // containScroll: "trimSnaps" are its defaults); the old
-                  // `draggable` prop was silently dropped.
-                  emblaOptions={{ watchDrag: !holdsDrag }}
-                  // The media box sits at the top of the slide: centre the arrows
-                  // on it, not on the taller carousel.
-                  styles={{ controls: { top: `calc(${mediaBoxHeight} / 2 - var(--carousel-control-size) / 2)` } }}
-                  // Mantine leaves the arrow buttons unnamed.
-                  previousControlProps={{ "aria-label": t("lightbox.controls.previous") }}
-                  nextControlProps={{ "aria-label": t("lightbox.controls.next") }}
-                >
-                  {/* Previous slide */}
-                  <Carousel.Slide>
-                    <MediaDisplay
-                      id={prevSrc ?? undefined}
-                      image_hash={prevSrcHash ?? undefined}
-                      type={type}
-                      bind={bind}
-                      faceLocation={faceLocation}
-                      toggleZoom={toggleZoom}
-                      scale={scale}
-                      offset={offset}
-                      handleDragStart={handleDragStart}
-                      playing={false}
-                    />
-                  </Carousel.Slide>
-
-                  {/* Current slide */}
-                  <Carousel.Slide>
-                    <SlideTransition slideKey={mainSrc}>
+                {/* Main photo/video with swipe navigation */}
+                <div className={classes.media}>
+                  <Carousel
+                    getEmblaApi={setEmbla}
+                    initialSlide={1}
+                    height="100%"
+                    classNames={{
+                      root: classes.carousel,
+                      viewport: classes.viewport,
+                      container: classes.container,
+                      slide: classes.slide,
+                      controls: classes.controls,
+                      control: classes.control,
+                    }}
+                    controlSize={44}
+                    controlsOffset="md"
+                    previousControlIcon={<ChevronLeft size={24} />}
+                    nextControlIcon={<ChevronRight size={24} />}
+                    slideSize="100%"
+                    slideGap={0}
+                    orientation="horizontal"
+                    // Mantine 8 takes Embla options only here (loop: false and
+                    // containScroll: "trimSnaps" are its defaults); the old
+                    // `draggable` prop was silently dropped.
+                    emblaOptions={{ watchDrag: !holdsDrag }}
+                    // Mantine leaves the arrow buttons unnamed.
+                    previousControlProps={{ "aria-label": t("lightbox.controls.previous") }}
+                    nextControlProps={{ "aria-label": t("lightbox.controls.next") }}
+                  >
+                    {/* Previous slide */}
+                    <Carousel.Slide>
                       <MediaDisplay
-                        id={mainSrc}
-                        image_hash={mainSrcHash}
-                        isMainContent
-                        type={mainType}
+                        id={prevSrc ?? undefined}
+                        image_hash={prevSrcHash ?? undefined}
+                        type={type}
                         bind={bind}
                         faceLocation={faceLocation}
                         toggleZoom={toggleZoom}
                         scale={scale}
                         offset={offset}
                         handleDragStart={handleDragStart}
-                        playing={playing}
-                        onEnded={slideshow.handleVideoEnded}
-                        rotationAngle={rotationAngle}
-                        imageCacheKey={imageCacheKey}
-                        suppressRotationTransition={suppressRotationTransition}
-                        onImageLoad={onImageLoad}
-                        ocrBlocks={ocrBlocks}
-                        showOcrText={showOcrText}
-                        drawingFace={faceDrawing.isDrawing}
-                        onFaceDrawn={faceDrawing.onDrawn}
-                        onCancelDrawFace={faceDrawing.cancel}
-                        isPublic={isPublic}
-                        panoramaActive={panorama.active}
-                        onPanoramaError={panorama.fail}
-                        {...(photoDetails ? { photoDetails } : {})}
+                        playing={false}
                       />
-                    </SlideTransition>
-                  </Carousel.Slide>
+                    </Carousel.Slide>
 
-                  {/* Next slide */}
-                  <Carousel.Slide>
-                    <MediaDisplay
-                      id={nextSrc ?? undefined}
-                      image_hash={nextSrcHash ?? undefined}
-                      type={type}
-                      bind={bind}
-                      faceLocation={faceLocation}
-                      toggleZoom={toggleZoom}
-                      scale={scale}
-                      offset={offset}
-                      handleDragStart={handleDragStart}
-                      playing={false}
-                    />
-                  </Carousel.Slide>
-                </Carousel>
+                    {/* Current slide */}
+                    <Carousel.Slide>
+                      <SlideTransition slideKey={mainSrc}>
+                        <MediaDisplay
+                          id={mainSrc}
+                          image_hash={mainSrcHash}
+                          isMainContent
+                          type={mainType}
+                          bind={bind}
+                          faceLocation={faceLocation}
+                          toggleZoom={toggleZoom}
+                          scale={scale}
+                          offset={offset}
+                          handleDragStart={handleDragStart}
+                          playing={playing}
+                          onEnded={slideshow.handleVideoEnded}
+                          rotationAngle={rotationAngle}
+                          imageCacheKey={imageCacheKey}
+                          suppressRotationTransition={suppressRotationTransition}
+                          onImageLoad={onImageLoad}
+                          ocrBlocks={ocrBlocks}
+                          showOcrText={showOcrText}
+                          drawingFace={faceDrawing.isDrawing}
+                          onFaceDrawn={faceDrawing.onDrawn}
+                          onCancelDrawFace={faceDrawing.cancel}
+                          isPublic={isPublic}
+                          panoramaActive={panorama.active}
+                          onPanoramaError={panorama.fail}
+                          {...(photoDetails ? { photoDetails } : {})}
+                        />
+                      </SlideTransition>
+                    </Carousel.Slide>
+
+                    {/* Next slide */}
+                    <Carousel.Slide>
+                      <MediaDisplay
+                        id={nextSrc ?? undefined}
+                        image_hash={nextSrcHash ?? undefined}
+                        type={type}
+                        bind={bind}
+                        faceLocation={faceLocation}
+                        toggleZoom={toggleZoom}
+                        scale={scale}
+                        offset={offset}
+                        handleDragStart={handleDragStart}
+                        playing={false}
+                      />
+                    </Carousel.Slide>
+                  </Carousel>
+                </div>
+
+                {/* Bottom preview thumbnails */}
+                <ThumbnailNavigation
+                  prevSrc={prevSrc}
+                  prevSrcHash={prevSrcHash}
+                  mainSrcHash={mainSrcHash}
+                  nextSrc={nextSrc}
+                  nextSrcHash={nextSrcHash}
+                  onMovePrevRequest={onMovePrevRequest}
+                  onMoveNextRequest={onMoveNextRequest}
+                  isPublic={isPublic}
+                />
               </div>
 
-              {/* Bottom preview thumbnails */}
-              <ThumbnailNavigation
-                prevSrc={prevSrc}
-                prevSrcHash={prevSrcHash}
-                mainSrcHash={mainSrcHash}
-                nextSrc={nextSrc}
-                nextSrcHash={nextSrcHash}
-                onMovePrevRequest={onMovePrevRequest}
-                onMoveNextRequest={onMoveNextRequest}
-                isPublic={isPublic}
-              />
-            </Stack>
-
-            {lightboxSidebarShow && (
-              <Sidebar
-                id={mainSrcHash}
-                closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
-                isPublic={isPublic}
-                publicAlbumSlug={publicAlbumSlug}
-                gridItem={gridItem}
-                setFaceLocation={setFaceLocation}
-                onPhotoSelect={onPhotoSelect}
-                onAddFaceRequest={type === "photo" ? faceDrawing.start : undefined}
-                onCancelAddFace={faceDrawing.cancel}
-                isDrawingFace={faceDrawing.isDrawing}
-                addFaceBlockedReason={addFaceBlockedReason}
-              />
-            )}
+              {lightboxSidebarShow && (
+                <Sidebar
+                  id={mainSrcHash}
+                  closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
+                  isPublic={isPublic}
+                  publicAlbumSlug={publicAlbumSlug}
+                  gridItem={gridItem}
+                  setFaceLocation={setFaceLocation}
+                  onPhotoSelect={onPhotoSelect}
+                  onAddFaceRequest={type === "photo" ? faceDrawing.start : undefined}
+                  onCancelAddFace={faceDrawing.cancel}
+                  isDrawingFace={faceDrawing.isDrawing}
+                  addFaceBlockedReason={addFaceBlockedReason}
+                />
+              )}
+            </ViewerDarkScope>
             {/* Only an owner adds faces; mounted on a public page, its people query would 401. */}
             {!isPublic && (
               <ModalPersonEdit

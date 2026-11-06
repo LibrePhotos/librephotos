@@ -1,0 +1,73 @@
+/* The lightbox's dialog body: the whole window, the stage beside the info panel. */
+.body {
+  outline: none;
+  width: 100vw;
+  height: 100dvh;
+  padding: 0;
+  position: relative;
+}
+
+.viewer {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  background: var(--mantine-color-black);
+}
+
+/* The photo runs edge to edge; the toolbar and the strip float over it. */
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.media {
+  position: absolute;
+  inset: 0;
+}
+
+.carousel,
+.viewport,
+.container {
+  height: 100%;
+}
+
+/* A video (shorter than the stage, to clear the toolbar and the strip) sits in the middle. */
+.slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+/* Previous and next: quiet dark circles that show while the pointer is on the stage. Nested under
+   the controls' class to outrank Mantine's white disc whatever order the stylesheets load in. */
+.controls .control {
+  background-color: var(--app-scrim-black-35);
+  border: 0;
+  box-shadow: none;
+  color: var(--mantine-color-white);
+  opacity: 0;
+  transition:
+    opacity 150ms ease,
+    background-color 150ms ease;
+}
+
+.stage:hover .controls .control,
+.controls .control:focus-visible {
+  opacity: 1;
+}
+
+.controls .control:hover {
+  background-color: var(--app-scrim-black-60);
+}
+
+/* On a touch screen a swipe steps; the circles would only cover the photo. */
+@media (hover: none) {
+  .controls {
+    display: none;
+  }
+}

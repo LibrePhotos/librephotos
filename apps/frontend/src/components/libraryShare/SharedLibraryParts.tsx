@@ -5,7 +5,9 @@ import { IconDoorExit, IconDots, IconLibraryPhoto, IconLock } from "@tabler/icon
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { EmptyState } from "../common/EmptyState";
+import { toolbarLook } from "../common/toolbarLook";
 import { LeaveLibraryModal } from "./LeaveLibraryModal";
 import { LibraryShareChips } from "./LibraryShareChips";
 import { firstName, switchesOf } from "./libraryShareFields";
@@ -21,8 +23,8 @@ export function LibraryMenu({ share }: Readonly<{ share: LibraryShare }>) {
     <>
       <Menu position="bottom-end">
         <Menu.Target>
-          <ActionIcon variant="subtle" color="gray" aria-label={label}>
-            <IconDots size={18} />
+          <ActionIcon {...toolbarLook()} size={TOOLBAR_ACTION_SIZE} aria-label={label}>
+            <IconDots size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>

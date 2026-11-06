@@ -27,7 +27,6 @@ import { useGetSettingsQuery } from "../../api_client/settings";
 import { useUpdateSettingsMutation } from "../../api_client/settings/hooks/useUpdateSettingsMutation";
 import { useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } from "../../api_client/user/hooks";
 import { makeSignupSchema } from "../../routes/-signup.schema";
-import { SIGN_UP_GRADIENT } from "../../theme/brandGradients";
 import { reportSignupError, reportUserSaveError } from "../../util/apiErrors";
 import { DirectoryPicker } from "./DirectoryPicker";
 import { uploadLocation } from "./uploadLocation";
@@ -111,7 +110,7 @@ function SetupAccountForm({ form, onSubmit, disabled }: SetupAccountFormProps): 
             />
           </Group>
 
-          <Button variant="gradient" gradient={SIGN_UP_GRADIENT} type="submit" disabled={disabled}>
+          <Button type="submit" disabled={disabled}>
             {t("login.signup")}
           </Button>
         </Stack>
@@ -290,8 +289,6 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
                   />
                   <Group justify="flex-end">
                     <Button
-                      variant="gradient"
-                      gradient={SIGN_UP_GRADIENT}
                       onClick={handleSiteSettingsNext}
                       disabled={isSavingSettings || allowUpload === null || allowRegistration === null}
                     >
@@ -331,8 +328,6 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
                       {t("skip")}
                     </Button>
                     <Button
-                      variant="gradient"
-                      gradient={SIGN_UP_GRADIENT}
                       onClick={handleFinish}
                       disabled={
                         isSavingDirectory ||

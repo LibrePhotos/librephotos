@@ -11,6 +11,7 @@ import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import type { FaceLocationType } from "./lightbox.types";
+import classes from "./Sidebar.module.css";
 import { VideoTimeButton } from "./VideoTimeButton";
 
 type Props = {
@@ -23,6 +24,85 @@ type Props = {
   /** Found by the Detect faces again just run on this photo (#1117). */
   isNew?: boolean;
 };
+
+type FaceActionsProps = Readonly<{
+  person: PhotoPerson;
+  isUnnamed: boolean;
+  isClusterLabel: boolean;
+  onConfirm: () => void;
+  onRename: () => void;
+  onNotThisPerson: () => void;
+  onDelete: () => void;
+}>;
+
+/** A small grey icon button of a face row, with its tooltip. */
+function FaceAction({
+  tooltip,
+  label,
+  onClick,
+  children,
+}: Readonly<{ tooltip: string; label: string; onClick: () => void; children: React.ReactNode }>) {
+  return (
+    <Tooltip label={tooltip}>
+      <ActionIcon variant="subtle" color="gray" size="sm" aria-label={label} onClick={onClick}>
+        {children}
+      </ActionIcon>
+    </Tooltip>
+  );
+}
+
+/** Confirm the guess, name or rename, not this person, delete: what the owner can do with a face. */
+function FaceActions({
+  person,
+  isUnnamed,
+  isClusterLabel,
+  onConfirm,
+  onRename,
+  onNotThisPerson,
+  onDelete,
+}: FaceActionsProps) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {!isUnnamed && !isClusterLabel && person.type !== "user" && (
+        <FaceAction
+          tooltip={t("facesdashboard.explanationadding")}
+          label={t("facesdashboard.confirmface", { name: person.name })}
+          onClick={onConfirm}
+        >
+          <IconUserCheck size={FACE_ACTION_ICON} />
+        </FaceAction>
+      )}
+      <FaceAction
+        tooltip={isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.explanationadding")}
+        label={isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.labelas")}
+        onClick={onRename}
+      >
+        {isUnnamed ? <IconUserQuestion size={FACE_ACTION_ICON} /> : <IconEdit size={FACE_ACTION_ICON} />}
+      </FaceAction>
+      {!isUnnamed && (
+        <FaceAction
+          tooltip={t("facesdashboard.notthisperson")}
+          label={t("facesdashboard.notperson", { name: person.name })}
+          onClick={onNotThisPerson}
+        >
+          <IconUserOff size={FACE_ACTION_ICON} />
+        </FaceAction>
+      )}
+      {person.type !== "user" && (
+        <FaceAction
+          tooltip={t("facesdashboard.explanationdeleting")}
+          label={t("facesdashboard.deleteface")}
+          onClick={onDelete}
+        >
+          <IconTrash size={FACE_ACTION_ICON} />
+        </FaceAction>
+      )}
+    </>
+  );
+}
+
+const FACE_ACTION_ICON = 16;
 
 export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson, isNew = false }: Props) {
   const { t } = useTranslation();
@@ -86,6 +166,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
       gap="xs"
       wrap="nowrap"
       maw="100%"
+      className={classes.faceRow}
       onMouseEnter={() => setFaceLocation(person.location)}
       onMouseLeave={() => setFaceLocation(null)}
     >
@@ -99,6 +180,8 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
       ) : (
         <Button
           variant="subtle"
+          color="gray"
+          fw={400}
           h="auto"
           p={3}
           miw={0}
@@ -122,47 +205,19 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         </Badge>
       )}
       {typeof person.video_time === "number" && <VideoTimeButton seconds={person.video_time} name={person.name} />}
-      {!isPublic && !isUnnamed && !isClusterLabel && person.type !== "user" && (
-        <Tooltip label={t("facesdashboard.explanationadding")}>
-          <ActionIcon
-            onClick={() => setFacesPersonLabel({ faceIds: [person.face_id], personName: person.name })}
-            variant="light"
-            color="green"
-            aria-label={t("facesdashboard.confirmface", { name: person.name })}
-          >
-            <IconUserCheck />
-          </ActionIcon>
-        </Tooltip>
-      )}
       {!isPublic && (
-        <Tooltip label={isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.explanationadding")}>
-          <ActionIcon
-            onClick={openPersonPicker}
-            variant={isUnnamed ? "filled" : "light"}
-            aria-label={isUnnamed ? t("lightbox.sidebar.nameface") : t("facesdashboard.labelas")}
-          >
-            {isUnnamed ? <IconUserQuestion /> : <IconEdit />}
-          </ActionIcon>
-        </Tooltip>
-      )}
-      {!isPublic && !isUnnamed && (
-        <Tooltip label={t("facesdashboard.notthisperson")}>
-          <ActionIcon
-            variant="light"
-            color="orange"
-            aria-label={t("facesdashboard.notperson", { name: person.name })}
-            onClick={() => notThisPerson(person.face_id)}
-          >
-            <IconUserOff />
-          </ActionIcon>
-        </Tooltip>
-      )}
-      {!isPublic && person.type !== "user" && (
-        <Tooltip label={t("facesdashboard.explanationdeleting")}>
-          <ActionIcon variant="light" color="red" aria-label={t("facesdashboard.deleteface")} onClick={openDelete}>
-            <IconTrash />
-          </ActionIcon>
-        </Tooltip>
+        // Neutral and quiet until the row is pointed at: the faces and names are what the panel shows.
+        <div className={classes.faceActions}>
+          <FaceActions
+            person={person}
+            isUnnamed={isUnnamed}
+            isClusterLabel={isClusterLabel}
+            onConfirm={() => setFacesPersonLabel({ faceIds: [person.face_id], personName: person.name })}
+            onRename={openPersonPicker}
+            onNotThisPerson={() => notThisPerson(person.face_id)}
+            onDelete={openDelete}
+          />
+        </div>
       )}
       <ConfirmModal
         opened={deleteOpened}

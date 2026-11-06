@@ -43,7 +43,7 @@ export function PublicUsersSection() {
       heading={
         <Link to="/sharing/public" className={HEADING_LINK}>
           <SharingSectionHeading
-            icon={<IconWorld size={24} stroke={1.5} />}
+            icon={<IconWorld size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
             title={t("sidemenu.publicphotos")}
             summary={t("sharing.userCount", { count: publicUsers.length })}
           />
@@ -130,7 +130,7 @@ export function SharedWithYouSection() {
       heading={
         <Link to="/sharing/withme/$tab" params={{ tab: "photos" }} className={HEADING_LINK}>
           <SharingSectionHeading
-            icon={<IconDownload size={24} stroke={1.5} color="var(--mantine-color-green-6)" />}
+            icon={<IconDownload size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
             title={t("sidemenu.sharedwithyou")}
             summary={itemSummary(t, items.photoCount, items.albumCount)}
           />
@@ -167,7 +167,7 @@ export function YouSharedSection() {
       heading={
         <Link to="/sharing/byme/$tab" params={{ tab: "photos" }} className={HEADING_LINK}>
           <SharingSectionHeading
-            icon={<IconUpload size={24} stroke={1.5} color="var(--mantine-color-red-6)" />}
+            icon={<IconUpload size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
             title={t("sidemenu.youshared")}
             summary={itemSummary(t, items.photoCount, items.albumCount)}
           />

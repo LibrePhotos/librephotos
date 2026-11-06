@@ -1,7 +1,6 @@
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconFaceId } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -248,7 +247,7 @@ export function FaceDashboard() {
   return (
     <RemoveScroll enabled={lightboxOpen}>
       <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
-        <PageHeader icon={IconFaceId} title={t("sidemenu.facerecognition")} />
+        <PageHeader title={t("sidemenu.facerecognition")} />
         <TabComponent
           fetchingLabeledFacesList={fetchingLabeledFacesList}
           fetchingInferredFacesList={fetchingInferredFacesList}

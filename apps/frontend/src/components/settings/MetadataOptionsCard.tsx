@@ -48,7 +48,7 @@ export function MetadataOptionsCard({ user, saved, onChange }: MetadataOptionsCa
   const { data: timezoneList = [] } = useFetchTimezonesQuery();
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.metadata" />
         <SectionLink />

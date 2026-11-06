@@ -227,8 +227,8 @@ describe("the Sharing overview's Public Links row (#2241)", () => {
 
     const [, , dated, undated] = publicLinkCards();
     expect(captionOf(defined(dated))).toEqual(["Public photo", "Mar 1, 2024"]);
-    // No date: still two lines, so the card keeps the row's height
-    expect(captionOf(defined(undated))).toEqual(["Public photo", "\u00a0"]);
+    // No date: the title alone; it sits on the cover, so the card keeps the row's height
+    expect(captionOf(defined(undated))).toEqual(["Public photo"]);
   });
 
   it("keeps the album card's title and photo count", async () => {
@@ -243,7 +243,7 @@ describe("the Sharing overview's Public Links row (#2241)", () => {
 
     const captions = publicLinkCards().map(captionOf);
     expect(captions).toHaveLength(5);
-    for (const caption of captions) expect(caption).toHaveLength(2);
+    for (const caption of captions) expect(caption[0]).toBeTruthy();
   });
 
   it("shows the latest public photos and counts every one, not only those on the first page (#2686)", async () => {
@@ -270,8 +270,12 @@ describe("the Sharing overview's Public Links row (#2241)", () => {
 
   it("opens the share dialog of a public album from its card", async () => {
     await render();
-    const button = sectionOf("Public Links").querySelector<HTMLButtonElement>('button[aria-label="Sharing"]');
-    await act(async () => defined(button, "the share button").click());
+    const button = sectionOf("Public Links").querySelector<HTMLButtonElement>('button[aria-label^="Album actions"]');
+    await act(async () => defined(button, "the album's menu button").click());
+    const item = Array.from(document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
+      element => element.textContent === "Sharing"
+    );
+    await act(async () => defined(item, "the Sharing item").click());
 
     expect(document.body.querySelector('[data-testid="share-dialog"]')?.textContent).toBe("7 of anna");
   });

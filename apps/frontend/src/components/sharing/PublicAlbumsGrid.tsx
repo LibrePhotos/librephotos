@@ -1,23 +1,19 @@
 import type { UserAlbumInfo } from "@librephotos/api-client";
-import { Anchor, Box, Text } from "@mantine/core";
-import { IconLink } from "@tabler/icons-react";
+import { Box, Menu } from "@mantine/core";
+import { IconLink, IconShare } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { albumColumnsFor } from "../../hooks/useAlbumListGridConfig";
-import gridClasses from "../album/AlbumGridCell.module.css";
-import { Tile } from "../Tile";
+import { ICON_SIZE } from "../../uiConstants";
+import { CollectionCard } from "../common/CollectionCard";
 import { TileGrid } from "../virtual/TileGrid";
 import { useMeasuredTileSizing } from "../virtual/useMeasuredTileSizing";
-import { AlbumShareButton } from "./AlbumShareButton";
 
 type PublicAlbumsGridProps = {
   albums: UserAlbumInfo[];
   onShare?: (albumId: string, albumTitle: string, ownerUsername: string) => void;
 };
-
-// Below the cover, inside the cell: a one-line title (md, 24.8px) and the photo count (sm, 20.3px).
-const CAPTION_HEIGHT = 56;
 
 /**
  * Every album made public via link. Virtualized: the list grows with the library. Columns as on
@@ -29,7 +25,8 @@ export function PublicAlbumsGrid({ albums, onShare }: PublicAlbumsGridProps) {
   const { ref, sizing } = useMeasuredTileSizing({
     columnsFor: albumColumnsFor,
     cellPadding: 8,
-    captionHeight: CAPTION_HEIGHT,
+    // The title sits on the cover
+    captionHeight: 0,
     reservedHeight: 45 + 60 + 40,
   });
 
@@ -41,51 +38,25 @@ export function PublicAlbumsGrid({ albums, onShare }: PublicAlbumsGridProps) {
         getKey={album => album.id}
         sizing={sizing}
         renderItem={(album, size) => (
-          // The share button's corner is the cover's
-          <div style={{ position: "relative" }}>
-            <Anchor
-              aria-label={album.title}
-              renderRoot={rootProps => <Link {...rootProps} to="/album/user/$id" params={{ id: String(album.id) }} />}
-              underline="never"
-            >
-              {album.cover_photo ? (
-                <Tile
-                  className={gridClasses.cover}
-                  style={{ objectFit: "cover" }}
-                  width={size}
-                  height={size}
-                  image_hash={album.cover_photo.image_hash}
-                  video={album.cover_photo.video}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: size,
-                    height: size,
-                    borderRadius: "var(--mantine-radius-md)",
-                    backgroundColor: "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+          <CollectionCard
+            size={size}
+            title={album.title}
+            meta={t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
+            covers={album.cover_photo ? [album.cover_photo] : []}
+            placeholder={<IconLink />}
+            renderLink={props => <Link {...props} to="/album/user/$id" params={{ id: String(album.id) }} />}
+            menuLabel={`${t("useralbum.albumActions")}: ${album.title}`}
+            menuItems={
+              onShare ? (
+                <Menu.Item
+                  leftSection={<IconShare size={ICON_SIZE.menu} />}
+                  onClick={() => onShare(`${album.id}`, album.title, album.owner.username)}
                 >
-                  <IconLink size={40} color="var(--mantine-color-dimmed)" />
-                </div>
-              )}
-              <Text fw={700} mt={4} lineClamp={1} title={album.title}>
-                {album.title}
-              </Text>
-              <Text size="sm" c="dimmed">
-                {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
-              </Text>
-            </Anchor>
-            {onShare && (
-              <AlbumShareButton
-                label={t("sidemenu.sharing")}
-                onClick={() => onShare(`${album.id}`, album.title, album.owner.username)}
-              />
-            )}
-          </div>
+                  {t("sidemenu.sharing")}
+                </Menu.Item>
+              ) : null
+            }
+          />
         )}
       />
     </Box>

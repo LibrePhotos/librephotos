@@ -172,7 +172,7 @@ export function EmailSettings(): React.JSX.Element {
   return (
     // Names its own anchor on the admin page.
     <SettingsSection id={ADMIN_SECTIONS.email}>
-      <Card shadow="md" component="form" onSubmit={form.onSubmit(onSave)}>
+      <Card withBorder radius="lg" padding="lg" component="form" onSubmit={form.onSubmit(onSave)}>
         <Stack>
           <Title order={4} mb={4}>
             {t("emailsettings.header")}

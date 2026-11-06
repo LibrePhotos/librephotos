@@ -43,7 +43,7 @@ export function ServiceList() {
   };
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Group justify="space-between" mb={16}>
         <Group gap="xs">
           <Title order={4}>

@@ -1,5 +1,4 @@
 import { Box, Group, Skeleton, UnstyledButton } from "@mantine/core";
-import cx from "clsx";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks/useFetchPhotoDetailsQuery";
@@ -45,20 +44,20 @@ export function ThumbnailNavigation({
 
   return (
     <div className={classes.strip}>
-      <Group justify="center" align="center" h="100%">
+      <Group justify="center" align="center" gap={4} wrap="nowrap">
         {prevSrc && (
           <UnstyledButton
             onClick={onMovePrevRequest}
-            className={cx(classes.neighbour, classes.previous)}
+            className={classes.neighbour}
             aria-label={t("lightbox.controls.previous")}
           >
             {isPrevPhotoDetailLoading ? (
-              <Skeleton height={64} width={64} />
+              <Skeleton height={40} width={40} />
             ) : (
               <Tile
                 image_hash={prevSrcHash || ""}
-                width={64}
-                height={64}
+                width={40}
+                height={40}
                 video={prevPhotoDetail?.video}
                 className={classes.tile}
               />
@@ -68,12 +67,12 @@ export function ThumbnailNavigation({
 
         <Box className={classes.current}>
           {isMainPhotoDetailLoading ? (
-            <Skeleton height={72} width={72} />
+            <Skeleton height={48} width={48} />
           ) : (
             <Tile
               image_hash={mainSrcHash}
-              width={72}
-              height={72}
+              width={48}
+              height={48}
               video={mainPhotoDetail?.video}
               className={classes.tile}
             />
@@ -83,16 +82,16 @@ export function ThumbnailNavigation({
         {nextSrc && (
           <UnstyledButton
             onClick={onMoveNextRequest}
-            className={cx(classes.neighbour, classes.next)}
+            className={classes.neighbour}
             aria-label={t("lightbox.controls.next")}
           >
             {isNextPhotoDetailLoading ? (
-              <Skeleton height={64} width={64} />
+              <Skeleton height={40} width={40} />
             ) : (
               <Tile
                 image_hash={nextSrcHash || ""}
-                width={64}
-                height={64}
+                width={40}
+                height={40}
                 video={nextPhotoDetail?.video}
                 className={classes.tile}
               />

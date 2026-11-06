@@ -80,7 +80,7 @@
     "nextcloudsetup": "Missing credentials",
     "nextcloudchange": "Change",
     "security": "Security",
-    "appearance": "Appearance",
+    "appearance": "Preferences",
     "thumbnailsize": "Thumbnail size",
     "big": "Big",
     "small": "Small",
@@ -733,7 +733,9 @@
     "capped": "showing the first {{count}} photos of each year",
     "emptytitle": "No memories yet",
     "emptydescription": "Memories show photos taken around this date in earlier years. Your library has none from this month in past years, so check back next month or scan older photos.",
-    "seeall": "See all"
+    "seeall": "See all",
+    "scrollback": "Earlier memories",
+    "scrollon": "More memories"
   },
   "explore": {
     "title": "Explore Albums",
@@ -742,7 +744,6 @@
     "albumCount_one": "{{count}} album",
     "albumCount_other": "{{count}} albums",
     "noAlbums": "No albums yet",
-    "noCover": "No cover",
     "peopleCount_one": "{{count}} person",
     "peopleCount_other": "{{count}} people",
     "tagCount_one": "{{count}} tag",
@@ -1116,6 +1117,9 @@
   "lightbox": {
     "sidebar": {
       "details": "Details",
+      "info": "Info",
+      "addCaption": "Add a caption",
+      "addTags": "Add tags",
       "timetaken": "Time taken",
       "filepath": "File path",
       "location": "Location",
@@ -1152,7 +1156,6 @@
       "tags": "Tags",
       "editTags": "Edit tags",
       "addTag": "Add tag…",
-      "noTags": "No tags",
       "tagFromFile": "From the file's keywords",
       "tagsFromFileHint": "Tags with this icon came from the file's keywords. Removing one here leaves it in the file, and a rescan adds it back.",
       "tagsFromFileHintWritten": "Tags with this icon came from the file's keywords. Your changes to them are written back.",
@@ -1703,7 +1706,7 @@
   },
   "spotlight": {
     "placeholder": "Search photos, run commands...",
-    "triggerPlaceholder": "Search or press",
+    "triggerPlaceholder": "Search photos, people and places",
     "nothingFound": "No results found",
     "searchFor": "Search for \"{{query}}\"",
     "groups": {

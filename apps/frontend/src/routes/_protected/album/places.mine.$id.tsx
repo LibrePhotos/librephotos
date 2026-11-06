@@ -10,7 +10,6 @@ import { useListFailure } from "../../../components/common/useListFailure";
 import { validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
-import { PLACE_ICONS } from "../../../components/places/placeIcons";
 import { YourPlaceActions } from "../../../components/places/YourPlaceActions";
 import { YourPlaceMap } from "../../../components/places/YourPlaceMap";
 
@@ -37,7 +36,6 @@ function YourPlaceGallery() {
       title={album?.name ?? (notFound ? t("places") : t("loading"))}
       loading={isLoading}
       emptyStateConfig={notFound ? albumNotFoundState(t, <IconMapPin size={40} />, "/album/places") : undefined}
-      icon={place ? PLACE_ICONS[place.icon] : IconMapPin}
       photoset={album?.grouped_photos ?? []}
       idx2hash={album?.grouped_photos.flatMap(group => group.items) ?? []}
       mediaType={notFound ? undefined : mediaType}

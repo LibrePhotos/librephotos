@@ -4,7 +4,7 @@ import { IconArchiveFilled as ArchiveFilled, IconStarFilled as StarFilled } from
 import React, { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE } from "../../uiConstants";
 import { isFavorite, ratesWithStars } from "../../util/rating";
 import { sharerName } from "../sharing/sharerGroups";
 import { OwnerMarksContext } from "./ownerMarks";
@@ -78,14 +78,11 @@ function RatingMark({ item }: { item: PigPhoto }) {
   if (ratesWithStars(userDetails)) {
     return rating > 0 && <RatingBadge rating={rating} />;
   }
-  // Same filled star as the lightbox. The shadow keeps it visible on light photos.
+  // A plain white glyph like the other tile marks, not a coloured badge; the soft shadow keeps it
+  // visible on light photos.
   return (
     isFavorite(rating, userDetails) && (
-      <StarFilled
-        size={ICON_SIZE.overlay}
-        color={FAVORITE_COLOR}
-        style={{ filter: "drop-shadow(0 0 1px var(--app-scrim-black-60))" }}
-      />
+      <StarFilled size={ICON_SIZE.overlay} color="white" className={classes.favoriteMark} />
     )
   );
 }

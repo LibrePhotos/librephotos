@@ -3,6 +3,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconDotsVertical } from "@tabler/icons-react";
 import React from "react";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 
 type Props = Readonly<{
   /** What the actions act on ("Person actions"): the button's label and tooltip. */
@@ -28,7 +29,7 @@ export function HeaderActionsMenu({ label, children, triggerRef }: Props) {
       <Menu.Target>
         {/* Hidden while the menu is open: it would sit over the first item. */}
         <Tooltip label={label} position="bottom" disabled={opened}>
-          <ActionIcon ref={triggerRef} variant="default" size={TOOLBAR_ACTION_SIZE} aria-label={label}>
+          <ActionIcon ref={triggerRef} {...toolbarLook(opened)} size={TOOLBAR_ACTION_SIZE} aria-label={label}>
             <IconDotsVertical size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Tooltip>

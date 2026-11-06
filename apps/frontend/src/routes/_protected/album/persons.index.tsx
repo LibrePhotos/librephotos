@@ -1,7 +1,6 @@
-import { ActionIcon, Menu, Stack, Text } from "@mantine/core";
+import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
-  IconDotsVertical as DotsVertical,
   IconEdit as Edit,
   IconTrash as Trash,
   IconUsers as Users,
@@ -20,9 +19,8 @@ import type { Person, PersonList } from "../../../api_client/albums/hooks";
 import { PEOPLE_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { PeopleHeader } from "../../../components/album/PeopleHeader";
+import { PersonCard } from "../../../components/album/PersonCard";
 import { PersonDeleteModal } from "../../../components/album/PersonDeleteModal";
-import { PersonFace } from "../../../components/album/PersonFace";
-import personFaceClasses from "../../../components/album/PersonFace.module.css";
 import { PersonGroupParam } from "../../../components/album/personGroupSearch";
 import { PersonGroupsModal } from "../../../components/album/PersonGroupsModal";
 import { PersonRenameModal } from "../../../components/album/PersonRenameModal";
@@ -65,7 +63,7 @@ function AlbumPeople() {
   const albumsQuery = useFetchPeopleAlbumsQuery();
   const { data: albums, isFetching } = albumsQuery;
   const listFailure = useListFailure(albumsQuery);
-  const sizing = useAlbumListGridConfig();
+  const sizing = useAlbumListGridConfig({ shape: "portrait" });
   const renamePersonMutation = useRenamePersonAlbumMutation();
   const deletePersonMutation = useDeletePersonAlbumMutation();
   const hasAlbums = albums && albums.length > 0;
@@ -106,56 +104,26 @@ function AlbumPeople() {
 
   function renderPerson(album: Person, size: number) {
     return (
-      <>
-        <PersonFace person={album} size={size} />
-        <div className={personFaceClasses.menu}>
-          {/* Its items open dialogs: handing focus back to the trigger took it from the
-              dialog's input. Escape still returns it, and the dialogs do when they close. */}
-          <Menu position="bottom-end" returnFocus={false}>
-            <Menu.Target>
-              {/* A solid chip: a bare icon vanished on light faces */}
-              <ActionIcon
-                variant="default"
-                radius="xl"
-                size="sm"
-                aria-label={t("moreactions")}
-                onClick={e => {
-                  menuTrigger.current = e.currentTarget;
-                }}
-              >
-                <DotsVertical size={16} />
-              </ActionIcon>
-            </Menu.Target>
-
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(album)}>
-                {t("rename")}
-              </Menu.Item>
-              <Menu.Item leftSection={<UsersGroup size={14} />} onClick={() => openGroupsDialog(album)}>
-                {t("persongroups.menu")}
-              </Menu.Item>
-              <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(album)}>
-                {t("delete")}
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </div>
-      </>
-    );
-  }
-
-  function renderCaption(album: Person) {
-    return (
-      // Centred under the round face (#2241)
-      <Stack gap={0} align="center" px={8} ta="center">
-        <Text size="sm" fw={500} lineClamp={1} title={album.name}>
-          {album.name}
-        </Text>
-        {/* face_count counts faces, not photos */}
-        <Text size="xs">
-          {t("facesdashboard.numberoffaces", { count: album.face_count, number: album.face_count })}
-        </Text>
-      </Stack>
+      <PersonCard
+        person={album}
+        size={size}
+        onMenuOpen={trigger => {
+          menuTrigger.current = trigger;
+        }}
+        menuItems={
+          <>
+            <Menu.Item leftSection={<Edit size={14} />} onClick={() => openRenameDialog(album)}>
+              {t("rename")}
+            </Menu.Item>
+            <Menu.Item leftSection={<UsersGroup size={14} />} onClick={() => openGroupsDialog(album)}>
+              {t("persongroups.menu")}
+            </Menu.Item>
+            <Menu.Item leftSection={<Trash size={14} />} onClick={() => openDeleteDialog(album)}>
+              {t("delete")}
+            </Menu.Item>
+          </>
+        }
+      />
     );
   }
 
@@ -196,7 +164,6 @@ function AlbumPeople() {
           getKey={album => album.id}
           sizing={sizing}
           renderItem={renderPerson}
-          renderCaption={renderCaption}
         />
       )}
 

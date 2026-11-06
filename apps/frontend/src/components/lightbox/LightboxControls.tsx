@@ -1,20 +1,20 @@
-import { ActionIcon, Divider, Group, RingProgress, Select, Tooltip, useMantineTheme } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { Loader, RingProgress, Select } from "@mantine/core";
 import {
+  IconArrowLeft as ArrowLeft,
   IconInfoCircle as InfoCircle,
+  IconInfoCircleFilled as InfoCircleFilled,
   IconPlayerPause as Pause,
-  IconPlayerPlay as Play,
-  IconX as X,
 } from "@tabler/icons-react";
 import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE } from "../../uiConstants";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { useLightboxCommands } from "./lightboxCommands";
 import classes from "./LightboxControls.module.css";
-import { LightboxPhotoActions } from "./LightboxPhotoActions";
+import { LightboxMoreMenu, TrashButton } from "./LightboxPhotoActions";
+import { LightboxRating } from "./LightboxRating";
+import { LightboxToolbarButton, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
 import { LightboxViewControls } from "./LightboxViewControls";
 import { usePhotoActions } from "./usePhotoActions";
 
@@ -27,6 +27,77 @@ const INTERVAL_OPTIONS = [
   { value: "30", label: "30s" },
 ];
 
+type SlideshowProps = Pick<
+  LightboxControlsProps,
+  "toggleSlideshow" | "slideshowInterval" | "setSlideshowInterval" | "slideshowProgress"
+> & { label: string };
+
+/**
+ * A running slideshow: pause, inside its progress ring, and the interval picker. Starting one is in
+ * the ⋮ menu (and S).
+ */
+function RunningSlideshow({
+  label,
+  toggleSlideshow,
+  slideshowInterval,
+  setSlideshowInterval,
+  slideshowProgress,
+}: SlideshowProps) {
+  const intervalRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <Select
+        ref={intervalRef}
+        size="xs"
+        value={slideshowInterval.toString()}
+        onChange={value => setSlideshowInterval(parseInt(value || "5", 10))}
+        // Focus would stay in the picker's input, where the lightbox's
+        // shortcuts (Escape, the arrows, S) are ignored; hand it back.
+        onOptionSubmit={() => intervalRef.current?.closest<HTMLElement>(".mantine-Modal-body")?.focus()}
+        data={INTERVAL_OPTIONS}
+        styles={{
+          input: {
+            width: 56,
+            minHeight: 26,
+            height: 26,
+            backgroundColor: "transparent",
+            border: "1px solid var(--app-scrim-white-20)",
+            color: "white",
+            fontSize: 12,
+            paddingLeft: 8,
+            paddingRight: 24,
+          },
+          dropdown: {
+            backgroundColor: "var(--app-scrim-black-90)",
+            border: "1px solid var(--app-scrim-white-20)",
+          },
+        }}
+        // Hover cannot be styled inline, so the options live in a module.
+        classNames={{ dropdown: classes.intervalDropdown, option: classes.intervalOption }}
+        comboboxProps={{ withinPortal: false }}
+        withCheckIcon={false}
+      />
+      <div className={classes.ring}>
+        <RingProgress
+          size={40}
+          thickness={2}
+          sections={[{ value: slideshowProgress, color: "blue" }]}
+          className={classes.ringProgress}
+          rootColor="var(--app-scrim-white-20)"
+        />
+        <LightboxToolbarButton label={label} onClick={toggleSlideshow}>
+          <Pause size={TOOLBAR_ICON_SIZE} />
+        </LightboxToolbarButton>
+      </div>
+    </>
+  );
+}
+
+/**
+ * The lightbox toolbar, over the top of the photo: back on the left; on the right the few buttons
+ * used most (360° view and live text when the photo has them, zoom, favorite or stars, info, trash)
+ * and a ⋮ with the rest, labelled. Every action keeps its keyboard shortcut.
+ */
 export function LightboxControls({
   photoDetail,
   isPhotoDetailsLoading,
@@ -50,19 +121,13 @@ export function LightboxControls({
   showOcrText,
   toggleOcrText,
   onCopyToClipboard,
-  isCopyingToClipboard = false,
   onAfterTrashToggle,
   panorama,
 }: LightboxControlsProps) {
   const { t } = useTranslation();
-  const theme = useMantineTheme();
-  // A phone cannot fit every button in one row; the owner's photo actions move
-  // into a menu there instead of wrapping the toolbar onto a second row.
-  const isNarrow = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
   // Favourite, hide, archive, share link and trash, as the photo page has them too.
   const actions = usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle });
-  const intervalRef = useRef<HTMLInputElement>(null);
 
   // The keyboard shortcuts of the lightbox that owns this toolbar
   const commands = useLightboxCommands();
@@ -90,160 +155,62 @@ export function LightboxControls({
   const copyLabel = t("lightbox.controls.copy", { shortcut: copyKeyLabel() });
   const fullscreenLabel = isFullscreen ? t("lightbox.controls.exitfullscreen") : t("lightbox.controls.fullscreen");
   const infoLabel = lightboxSidebarShow ? t("lightbox.toolbar.hideInfoPanel") : t("lightbox.toolbar.showInfoPanel");
-  // The server refuses to rotate a video, and the player would not show it.
-  const canRotate = type !== "video";
-  // Copy and fullscreen join the menu on a phone too, to leave room for it.
-  const actionsInMenu = !!isNarrow && !isPublic;
-  const canZoom = enableZoom && type === "photo";
-  const showPanorama = !!panorama?.available;
-  // A video on a phone has nothing left in this group; no group, no divider.
-  const showViewGroup = hasOcrText || canZoom || showPanorama || !actionsInMenu;
-  // Details that failed to load leave the photo-actions group empty, and an
-  // empty group put two dividers side by side. The phone menu still holds copy
-  // and fullscreen.
-  const showMetaGroup = isPhotoDetailsLoading || !!photoDetail || actionsInMenu;
+  const ownPhoto = !isPublic && photoDetail ? photoDetail : null;
 
   return (
-    <Group gap="xs" justify="flex-end" align="center" style={{ background: "transparent" }}>
-      {/* Group 1: Slideshow controls */}
-      <Group gap={4} align="center">
-        <Tooltip label={slideshowLabel} position="bottom" withArrow>
-          <div
-            style={{
-              position: "relative",
-              width: 32,
-              height: 32,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {isSlideshowActive && (
-              <RingProgress
-                size={32}
-                thickness={2}
-                sections={[{ value: slideshowProgress, color: "blue" }]}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                }}
-                rootColor="var(--app-scrim-white-20)"
-              />
-            )}
-            <ActionIcon
-              variant="subtle"
-              color={isSlideshowActive ? "blue" : "gray"}
-              onClick={toggleSlideshow}
-              size={28}
-              radius="xl"
-              aria-label={slideshowLabel}
-              style={{ zIndex: 1 }}
-            >
-              {isSlideshowActive ? <Pause size={ICON_SIZE.lightbox} /> : <Play size={ICON_SIZE.lightbox} />}
-            </ActionIcon>
-          </div>
-        </Tooltip>
+    <div className={classes.bar}>
+      <LightboxToolbarButton label={t("lightbox.controls.close")} onClick={onCloseRequest}>
+        <ArrowLeft size={TOOLBAR_ICON_SIZE} />
+      </LightboxToolbarButton>
+
+      <div className={classes.actions}>
         {isSlideshowActive && (
-          <Select
-            ref={intervalRef}
-            size="xs"
-            value={slideshowInterval.toString()}
-            onChange={value => setSlideshowInterval(parseInt(value || "5", 10))}
-            // Focus would stay in the picker's input, where the lightbox's
-            // shortcuts (Escape, the arrows, S) are ignored; hand it back.
-            onOptionSubmit={() => intervalRef.current?.closest<HTMLElement>(".mantine-Modal-body")?.focus()}
-            data={INTERVAL_OPTIONS}
-            styles={{
-              input: {
-                width: 56,
-                minHeight: 26,
-                height: 26,
-                backgroundColor: "transparent",
-                border: "1px solid var(--app-scrim-white-20)",
-                color: "white",
-                fontSize: 12,
-                paddingLeft: 8,
-                paddingRight: 24,
-              },
-              dropdown: {
-                backgroundColor: "var(--app-scrim-black-90)",
-                border: "1px solid var(--app-scrim-white-20)",
-              },
-            }}
-            // Hover cannot be styled inline, so the options live in a module.
-            classNames={{ dropdown: classes.intervalDropdown, option: classes.intervalOption }}
-            comboboxProps={{ withinPortal: false }}
-            withCheckIcon={false}
+          <RunningSlideshow
+            label={slideshowLabel}
+            toggleSlideshow={toggleSlideshow}
+            slideshowInterval={slideshowInterval}
+            setSlideshowInterval={setSlideshowInterval}
+            slideshowProgress={slideshowProgress}
           />
         )}
-      </Group>
-
-      {/* Group 2: View controls - Live text, Zoom & Fullscreen */}
-      {showViewGroup && (
         <LightboxViewControls
           hasOcrText={hasOcrText}
           showOcrText={showOcrText}
           toggleOcrText={toggleOcrText}
-          canZoom={canZoom}
+          canZoom={enableZoom && type === "photo"}
           isZoomed={isZoomed}
           toggleZoom={toggleZoom}
-          onCopyToClipboard={actionsInMenu ? undefined : onCopyToClipboard}
-          isCopyingToClipboard={isCopyingToClipboard}
-          copyLabel={copyLabel}
-          showFullscreen={!actionsInMenu}
-          isFullscreen={isFullscreen}
-          toggleFullscreen={toggleFullscreen}
-          fullscreenLabel={fullscreenLabel}
-          panorama={showPanorama ? panorama : undefined}
+          panorama={panorama?.available ? panorama : undefined}
         />
-      )}
-
-      {/* Group 3: Metadata controls - Hide, Archive, Favorite or stars, Public, Delete (only for authenticated users) */}
-      {!isPublic && showMetaGroup && (
-        <LightboxPhotoActions
+        {!isPublic && isPhotoDetailsLoading && (
+          // Not a button: nothing to press while the details load. The 40px slot keeps the row still.
+          <Loader size={TOOLBAR_ICON_SIZE} color="gray" mx={10} />
+        )}
+        {ownPhoto && <LightboxRating actions={actions} />}
+        <LightboxToolbarButton label={infoLabel} onClick={() => setLightBoxSidebarShow(!lightboxSidebarShow)}>
+          {lightboxSidebarShow ? (
+            <InfoCircleFilled size={TOOLBAR_ICON_SIZE} />
+          ) : (
+            <InfoCircle size={TOOLBAR_ICON_SIZE} />
+          )}
+        </LightboxToolbarButton>
+        {ownPhoto && <TrashButton actions={actions} />}
+        <LightboxMoreMenu
           actions={actions}
-          photoDetail={photoDetail}
-          isPhotoDetailsLoading={isPhotoDetailsLoading}
-          actionsInMenu={actionsInMenu}
-          canRotate={canRotate}
+          ownPhoto={ownPhoto}
+          canRotate={type !== "video"}
           onRotate={onRotate}
+          slideshowLabel={slideshowLabel}
+          isSlideshowActive={isSlideshowActive}
+          toggleSlideshow={toggleSlideshow}
           onCopyToClipboard={onCopyToClipboard}
           copyLabel={copyLabel}
           isFullscreen={isFullscreen}
           toggleFullscreen={toggleFullscreen}
           fullscreenLabel={fullscreenLabel}
         />
-      )}
+      </div>
       {!isPublic && <PhotoShareLinkModal photoId={actions.sharingPhotoId} onClose={actions.closeShareLink} />}
-
-      {/* Group 4: Panel controls - Info toggle & Close (sidebar toggle right next to X).
-          Its divider is not part of group 3, which a public page and a photo
-          without details do not have. */}
-      <Divider orientation="vertical" color="var(--app-scrim-white-20)" />
-      <Group gap={4} align="center">
-        <Tooltip label={infoLabel} position="bottom" withArrow>
-          <ActionIcon
-            variant="subtle"
-            color={lightboxSidebarShow ? "blue" : "gray"}
-            size={28}
-            aria-label={infoLabel}
-            onClick={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
-          >
-            <InfoCircle size={ICON_SIZE.lightbox} />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label={t("lightbox.controls.close")} position="bottom" withArrow>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size={28}
-            aria-label={t("lightbox.controls.close")}
-            onClick={onCloseRequest}
-          >
-            <X size={ICON_SIZE.lightbox} />
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-    </Group>
+    </div>
   );
 }

@@ -8,3 +8,17 @@
     justify-content: space-between;
   }
 }
+
+.logoLink {
+  display: flex;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--mantine-radius-md);
+}
+
+.wordmark {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--mantine-color-text);
+}

@@ -1,6 +1,6 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
-import { ActionIcon, Alert, Button, Group, Text, Title } from "@mantine/core";
-import { IconUserPlus, IconUsers } from "@tabler/icons-react";
+import { ActionIcon, Alert, Button, Group, Stack, Text } from "@mantine/core";
+import { IconUserPlus } from "@tabler/icons-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useDetectFacesReport, useDrawnFaceResult } from "../../api_client/faces";
@@ -8,6 +8,7 @@ import { DisabledReason } from "../common/DisabledReason";
 import { DetectFacesStatus, DrawnFaceStatus } from "./FaceSearchStatus";
 import type { FaceLocationType } from "./lightbox.types";
 import { PersonDetail } from "./PersonDetailComponent";
+import { SectionTitle } from "./SectionTitle";
 
 type PeopleSectionProps = {
   /**
@@ -66,21 +67,17 @@ export function PeopleSection({
     <div>
       {showTitle && (
         <Group justify="space-between" wrap="nowrap">
-          {heading ?? (
-            <Group>
-              <IconUsers />
-              <Title order={4}>{t("lightbox.sidebar.people")}</Title>
-            </Group>
-          )}
+          {heading ?? <SectionTitle>{t("lightbox.sidebar.people")}</SectionTitle>}
           {canAddFace && !isDrawingFace && (
             <DisabledReason label={t("lightbox.addface.tooltip")} reason={addFaceBlockedReason}>
               <ActionIcon
-                variant="light"
-                color="green"
+                variant="subtle"
+                color="gray"
+                size="sm"
                 aria-label={t("lightbox.addface.tooltip")}
                 onClick={onAddFaceRequest}
               >
-                <IconUserPlus />
+                <IconUserPlus size={16} />
               </ActionIcon>
             </DisabledReason>
           )}
@@ -101,7 +98,7 @@ export function PeopleSection({
           {t("lightbox.addface.nofaces")}
         </Text>
       )}
-      <Group mt="xs">
+      <Stack gap={2} mt="xs">
         {people.map(person => (
           <PersonDetail
             key={person.face_id}
@@ -113,7 +110,7 @@ export function PeopleSection({
             isNew={newFaceIds.has(person.face_id)}
           />
         ))}
-      </Group>
+      </Stack>
     </div>
   );
 }

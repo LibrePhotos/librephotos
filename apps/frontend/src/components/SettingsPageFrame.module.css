@@ -1,0 +1,9 @@
+/* A 960px column of cards plus the page gutter on both sides (PAGE_GUTTER, 10px). */
+.narrow {
+  max-width: 980px;
+}
+
+/* The same column with SectionNav's 220px list and its xl gap beside it. */
+.wide {
+  max-width: calc(980px + 220px + var(--mantine-spacing-xl));
+}

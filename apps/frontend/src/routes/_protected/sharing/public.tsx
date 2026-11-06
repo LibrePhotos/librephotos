@@ -1,6 +1,5 @@
 import type { ListUserList } from "@librephotos/api-client";
 import { Avatar, NavLink, Stack, Text } from "@mantine/core";
-import { IconWorld } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -27,7 +26,6 @@ function PublicUserList() {
     <>
       {/* Named like the section on the sharing overview that links here. */}
       <PageHeader
-        icon={IconWorld}
         title={t("sidemenu.publicphotos")}
         subtitle={isLoading ? undefined : t("sharing.userCount", { count: list.length })}
       />

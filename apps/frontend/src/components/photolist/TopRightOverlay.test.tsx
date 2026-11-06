@@ -8,7 +8,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE } from "../../uiConstants";
 import { TopRightOverlay } from "./TopRightOverlay";
 
 type StubUser = Pick<User, "favorite_min_rating" | "rating_mode"> & { id?: number };
@@ -45,11 +45,12 @@ async function render(rating: number) {
 }
 
 describe("TopRightOverlay favourite star", () => {
-  it("shows the filled star in the lightbox colour and size at the threshold", async () => {
+  it("shows the filled star as a white glyph in the overlay size at the threshold", async () => {
     const { star } = await render(4);
     expect(star).not.toBeNull();
     expect(star?.classList.contains("tabler-icon-star-filled")).toBe(true);
-    expect(star?.getAttribute("fill")).toBe(FAVORITE_COLOR);
+    // White like the other tile marks, not the lightbox's yellow (review r0 #16)
+    expect(star?.getAttribute("fill")).toBe("white");
     expect(star?.getAttribute("width")).toBe(String(ICON_SIZE.overlay));
   });
 

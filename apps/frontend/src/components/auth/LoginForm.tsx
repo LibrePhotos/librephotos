@@ -1,16 +1,4 @@
-import {
-  Button,
-  Card,
-  Center,
-  Divider,
-  Group,
-  Image,
-  PasswordInput,
-  Stack,
-  TextInput,
-  Title,
-  useComputedColorScheme,
-} from "@mantine/core";
+import { Button, Divider, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconLock as Lock, IconUser as User } from "@tabler/icons-react";
 import { Navigate } from "@tanstack/react-router";
@@ -19,8 +7,7 @@ import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsAuthenticatedQuery, useLoginMutation, useSsoConfigQuery } from "../../api_client/auth";
 import { useGetSettingsQuery } from "../../api_client/settings";
-import classes from "../../routes/auth.module.css";
-import { SIGN_IN_GRADIENT, SIGN_UP_GRADIENT } from "../../theme/brandGradients";
+import { AuthCard } from "./AuthCard";
 import { RememberMeRow } from "./RememberMeRow";
 import { SsoErrorAlert } from "./SsoErrorAlert";
 
@@ -30,7 +17,6 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
-  const colorScheme = useComputedColorScheme("dark");
   const { t } = useTranslation();
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
   const { data: siteSettings } = useGetSettingsQuery();
@@ -65,92 +51,69 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
   }
 
   return (
-    <Stack align="center" justify="flex-end" pt={150}>
-      <Group gap="xs" justify="center">
-        {/* Decorative: the name is written right next to it */}
-        <Image
-          height={80}
-          width={80}
-          fit="contain"
-          src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"}
-          alt=""
-        />
-        <span style={{ fontSize: 18 }}>
-          <b>{t("login.name")}</b>
-        </span>
-      </Group>
-      <div className={classes.loginForm}>
-        <Card>
-          <Stack>
-            <Title order={3}>{t("login.login")}</Title>
+    <AuthCard title={t("login.login")} footer={t("login.tagline")}>
+      <SsoErrorAlert />
 
-            <SsoErrorAlert />
-
-            <form onSubmit={onSubmit}>
-              <Stack>
-                {/* The autocomplete tokens are what lets a password manager recognize
+      <form onSubmit={onSubmit}>
+        <Stack>
+          {/* The autocomplete tokens are what lets a password manager recognize
                     this pair as a sign-in and offer to remember it; without them the
                     browser is left guessing at a form the SPA mounted after load. */}
-                <TextInput
-                  required
-                  leftSection={<User />}
-                  placeholder={t("login.usernameplaceholder")}
-                  name="username"
-                  autoComplete="username"
-                  {...form.getInputProps("username")}
-                />
-                <PasswordInput
-                  required
-                  leftSection={<Lock />}
-                  placeholder={t("login.passwordplaceholder")}
-                  name="password"
-                  autoComplete="current-password"
-                  {...form.getInputProps("password")}
-                />
-                <RememberMeRow
-                  rememberMeDays={rememberMeDays}
-                  rememberMe={form.values.rememberMe}
-                  onRememberMeChange={checked => form.setFieldValue("rememberMe", checked)}
-                  showForgotPassword={!!siteSettings?.email_configured}
-                />
-                <Button variant="gradient" gradient={SIGN_IN_GRADIENT} type="submit" loading={isLoading}>
-                  {t("login.login")}
-                </Button>
-                {siteSettings && siteSettings.allow_registration && (
-                  <Button
-                    disabled={!siteSettings.allow_registration || isLoading}
-                    component="a"
-                    href="/signup"
-                    variant="gradient"
-                    gradient={SIGN_UP_GRADIENT}
-                  >
-                    {t("login.signup")}
-                  </Button>
-                )}
-              </Stack>
-            </form>
+          <TextInput
+            required
+            leftSection={<User />}
+            placeholder={t("login.usernameplaceholder")}
+            name="username"
+            autoComplete="username"
+            {...form.getInputProps("username")}
+          />
+          <PasswordInput
+            required
+            leftSection={<Lock />}
+            placeholder={t("login.passwordplaceholder")}
+            name="password"
+            autoComplete="current-password"
+            {...form.getInputProps("password")}
+          />
+          <RememberMeRow
+            rememberMeDays={rememberMeDays}
+            rememberMe={form.values.rememberMe}
+            onRememberMeChange={checked => form.setFieldValue("rememberMe", checked)}
+            showForgotPassword={!!siteSettings?.email_configured}
+          />
+          <Button type="submit" loading={isLoading}>
+            {t("login.login")}
+          </Button>
+          {siteSettings && siteSettings.allow_registration && (
+            <Button
+              disabled={!siteSettings.allow_registration || isLoading}
+              component="a"
+              href="/signup"
+              variant="default"
+            >
+              {t("login.signup")}
+            </Button>
+          )}
+        </Stack>
+      </form>
 
-            {ssoConfig?.enabled && (
-              <>
-                <Divider label={t("login.sso.divider")} labelPosition="center" />
-                <Stack gap="xs">
-                  {ssoConfig.providers.map(provider => (
-                    // A plain anchor, not a router link: the browser has to leave
-                    // the SPA and hit the backend to start the redirect to the IdP.
-                    <Button key={provider.id} component="a" href={provider.login_url} variant="default" fullWidth>
-                      {/* The configured label reads as one button ("Sign in with
+      {ssoConfig?.enabled && (
+        <>
+          <Divider label={t("login.sso.divider")} labelPosition="center" />
+          <Stack gap="xs">
+            {ssoConfig.providers.map(provider => (
+              // A plain anchor, not a router link: the browser has to leave
+              // the SPA and hit the backend to start the redirect to the IdP.
+              <Button key={provider.id} component="a" href={provider.login_url} variant="default" fullWidth>
+                {/* The configured label reads as one button ("Sign in with
                           Keycloak"); with several providers it stops being
                           descriptive, so name each one instead. */}
-                      {ssoConfig.providers.length > 1 ? provider.name : ssoConfig.label || t("login.sso.button")}
-                    </Button>
-                  ))}
-                </Stack>
-              </>
-            )}
+                {ssoConfig.providers.length > 1 ? provider.name : ssoConfig.label || t("login.sso.button")}
+              </Button>
+            ))}
           </Stack>
-        </Card>
-      </div>
-      <Center>{t("login.tagline")}</Center>
-    </Stack>
+        </>
+      )}
+    </AuthCard>
   );
 }

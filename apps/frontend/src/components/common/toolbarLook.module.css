@@ -1,0 +1,17 @@
+/*
+ * The one look of a page header's toolbar buttons (toolbarLook.ts). Mantine's subtle gray paints
+ * the label and icon gray-6, which reads as disabled: these keep them in the readable secondary
+ * text colour, with Mantine's gray hover fill.
+ */
+.control :global(.tabler-icon) {
+  stroke-width: 1.75;
+}
+
+.neutral {
+  color: light-dark(var(--mantine-color-gray-8), var(--mantine-color-dark-0));
+  font-weight: 500;
+}
+
+.active {
+  font-weight: 500;
+}

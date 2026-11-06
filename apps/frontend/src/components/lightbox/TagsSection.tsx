@@ -1,7 +1,7 @@
 import type { Photo as PhotoType, Tag } from "@librephotos/api-client";
 import type { ComboboxRenderPillInput } from "@mantine/core";
-import { ActionIcon, Badge, Group, Pill, Stack, TagsInput, Text, Title, Tooltip } from "@mantine/core";
-import { IconCheck, IconFileImport, IconPencil, IconTag, IconX } from "@tabler/icons-react";
+import { ActionIcon, Badge, Group, Pill, Stack, TagsInput, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { IconCheck, IconFileImport, IconPencil, IconX } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,8 @@ import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
 import { DisabledReason } from "../common/DisabledReason";
 import { writeDestination, writeModeOf } from "../settings/metadataWrite";
+import { SectionTitle } from "./SectionTitle";
+import sectionClasses from "./Sidebar.module.css";
 import classes from "./TagsSection.module.css";
 import { UnsavedBadge } from "./UnsavedBadge";
 import { useRegisterDraft } from "./unsavedDrafts";
@@ -191,12 +193,7 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
     <Stack gap="xs">
       <Group justify="space-between" wrap="nowrap">
         <Group gap="xs" wrap="nowrap">
-          {heading ?? (
-            <Group>
-              <IconTag />
-              <Title order={4}>{t("lightbox.sidebar.tags")}</Title>
-            </Group>
-          )}
+          {heading ?? <SectionTitle>{t("lightbox.sidebar.tags")}</SectionTitle>}
           {dirty && <UnsavedBadge />}
         </Group>
         {!editing ? (
@@ -263,9 +260,10 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
           ))}
         </Group>
       ) : (
-        <Text size="sm" c="dimmed">
-          {t("lightbox.sidebar.noTags")}
-        </Text>
+        // A quiet "Add tags" that opens the editor, like the caption's "Add a caption".
+        <UnstyledButton className={sectionClasses.placeholder} onClick={handleEditOpen}>
+          {t("lightbox.sidebar.addTags")}
+        </UnstyledButton>
       )}
     </Stack>
   );

@@ -1,19 +1,22 @@
 import type { PhotoShareLink, PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
+import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconLink } from "@tabler/icons-react";
+import { IconLink, IconShare } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
 import { useFetchMyPublicPhotosQuery, useFetchPhotoSharesQuery } from "../../api_client/photos/hooks";
+import { ICON_SIZE } from "../../uiConstants";
 import { parseInstant, parsePhotoTimestamp } from "../../util/dateUtils";
+import { ROW_CARD_SIZE } from "../album/AlbumSection";
 import classes from "../album/AlbumSection.module.css";
+import { collectionCardImageClass } from "../common/CollectionCard";
 import { MediaThumbnail } from "../common/MediaThumbnail";
-import { AlbumShareButton } from "./AlbumShareButton";
+import { Tile } from "../Tile";
 import { ModalAlbumShare } from "./ModalAlbumShare";
-import overviewClasses from "./SharingOverview.module.css";
-import { AlbumPreviewCard, PhotoPreviewCover, SharePreviewInfo, SharingSectionHeading } from "./SharingPreviewCards";
+import { AlbumPreviewCard, PhotoLinkCard, SharingSectionHeading } from "./SharingPreviewCards";
 import { itemSummary, SharingPreviewSection } from "./SharingPreviewSection";
 
 const PREVIEW_SIZE = 6;
@@ -50,31 +53,47 @@ function PublicLinksRow({ albums, photoShares, publicPhotos, onShareAlbum }: Row
   return (
     <div className={classes.scrollContainer}>
       {albums.map(album => (
-        // The wrapper is the 140px card: a plain inline link inside it ignored the card width,
-        // so a long title widened the card and pushed the share button off the cover.
-        <div key={album.id} className={overviewClasses.albumWithButton}>
-          <AlbumPreviewCard album={album} />
-          <AlbumShareButton label={t("sidemenu.sharing")} onClick={() => onShareAlbum(album)} />
-        </div>
+        <AlbumPreviewCard
+          key={album.id}
+          album={album}
+          menuItems={
+            <Menu.Item leftSection={<IconShare size={ICON_SIZE.menu} />} onClick={() => onShareAlbum(album)}>
+              {t("sidemenu.sharing")}
+            </Menu.Item>
+          }
+        />
       ))}
       {photoShares.map(share => (
-        <Link key={share.slug} to="/sharing/links" search={{ tab: "photos" }} className={classes.albumCard}>
-          <div className={classes.albumCover}>
+        <PhotoLinkCard
+          key={share.slug}
+          title={t("sharing.photoLink")}
+          detail={shareLinkAge(share)}
+          media={
             <MediaThumbnail
               imageHash={share.image_hash}
-              size={140}
+              size={ROW_CARD_SIZE}
               kind="square_thumbnails"
-              className={classes.albumCoverImage}
+              radius={0}
+              className={collectionCardImageClass}
             />
-          </div>
-          <SharePreviewInfo title={t("sharing.photoLink")} detail={shareLinkAge(share)} />
-        </Link>
+          }
+        />
       ))}
       {publicPhotos.map(photo => (
-        <Link key={photo.id} to="/sharing/links" search={{ tab: "photos" }} className={classes.albumCard}>
-          <PhotoPreviewCover imageHash={photo.id} video={photo.type === "video"} />
-          <SharePreviewInfo title={t("sharing.publicPhoto")} detail={publicPhotoDate(photo)} />
-        </Link>
+        <PhotoLinkCard
+          key={photo.id}
+          title={t("sharing.publicPhoto")}
+          detail={publicPhotoDate(photo)}
+          media={
+            <Tile
+              video={photo.type === "video"}
+              width={ROW_CARD_SIZE}
+              height={ROW_CARD_SIZE}
+              image_hash={photo.id}
+              className={collectionCardImageClass}
+            />
+          }
+        />
       ))}
     </div>
   );
@@ -104,7 +123,7 @@ export function PublicLinksSection() {
         heading={
           <Link to="/sharing/links" className={`${classes.headerLeft} ${classes.headerReset}`}>
             <SharingSectionHeading
-              icon={<IconLink size={24} stroke={1.5} color="var(--mantine-color-violet-6)" />}
+              icon={<IconLink size={24} stroke={1.5} color="var(--mantine-color-dimmed)" />}
               title={t("sharing.publicLinks")}
               summary={itemSummary(t, photoCount, publicAlbums.length)}
             />

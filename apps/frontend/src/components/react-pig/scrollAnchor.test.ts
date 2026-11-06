@@ -26,7 +26,7 @@ describe("scroll anchor", () => {
       { id: 1, date: "2024-05-02", items: tiles("a", 40, 1.5) },
       { id: 2, date: "2024-05-01", items: tiles("b", 400) },
     ]);
-    const viewTop = 30_000;
+    const viewTop = 10_000;
     const anchor = findScrollAnchor(before, viewTop);
     expect(anchor?.groupKey).toBe("id:2");
     const shift = anchor ? anchorShift(after, anchor) : 0;
@@ -44,7 +44,7 @@ describe("scroll anchor", () => {
   it("follows a photo by its index in a day when that day's own placeholders change shape", () => {
     const before = layOut([{ id: 9, date: null, items: tiles("t", 2000) }]);
     const after = layOut([{ id: 9, date: null, items: tiles("t", 2000, 1.5) }]);
-    const anchor = findScrollAnchor(before, 100_000);
+    const anchor = findScrollAnchor(before, 50_000);
     expect(anchor).not.toBeNull();
     if (!anchor || !after.grouped) return;
     const tile = after.groups[0]?.items[anchor.index];

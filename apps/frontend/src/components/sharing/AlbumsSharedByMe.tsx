@@ -1,42 +1,37 @@
 import type { UserAlbumInfo } from "@librephotos/api-client";
-import { Anchor, Avatar, Box, Stack, Text } from "@mantine/core";
+import { Avatar, Box, Menu, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconShare, IconPolaroid as Polaroid } from "@tabler/icons-react";
+import { IconPhoto, IconShare, IconPolaroid as Polaroid } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import cx from "clsx";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { calculateGridCellSize } from "../../util/gridUtils";
-import gridClasses from "../album/AlbumGridCell.module.css";
+import { albumColumnsFor } from "../../hooks/useAlbumListGridConfig";
+import { ICON_SIZE } from "../../uiConstants";
+import { CollectionCard } from "../common/CollectionCard";
 import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
-import { Tile } from "../Tile";
 import { TileGrid } from "../virtual/TileGrid";
 import type { TileGroup } from "../virtual/TileGrid";
 import { useMeasuredTileSizing } from "../virtual/useMeasuredTileSizing";
-import { AlbumShareButton } from "./AlbumShareButton";
 import classes from "./AlbumsShared.module.css";
 import { avatarSrc } from "./avatarSrc";
 import { ModalAlbumShare } from "./ModalAlbumShare";
 import { sharerName } from "./sharerGroups";
 
 const DAY_HEADER_HEIGHT = 70;
-// Below the cover: a one-line title (md, 24.8px) and the photo count (sm, 20.3px).
-const CAPTION_HEIGHT = 52;
-
-const columnsFor = (width: number) => calculateGridCellSize(width).numEntrySquaresPerRow;
 
 export function AlbumsSharedByMe() {
   const { t } = useTranslation();
   // Sized from the width the grid actually gets, less room for its scrollbar, so the columns fit
   // it and follow a resize.
   const { ref: containerRef, sizing } = useMeasuredTileSizing({
-    columnsFor,
-    cellPadding: 1,
-    captionHeight: CAPTION_HEIGHT,
+    // The album lists' columns and gaps; the title sits on the cover
+    columnsFor: albumColumnsFor,
+    cellPadding: 8,
+    captionHeight: 0,
     reservedHeight: 45 + 60 + 40,
   });
   const albumsQuery = useFetchSharedAlbumsByMeQuery();
@@ -101,40 +96,27 @@ export function AlbumsSharedByMe() {
             getKey={album => album.id}
             sizing={sizing}
             renderItem={(album, size) => (
-              <>
-                <Anchor
-                  aria-label={album.title}
-                  renderRoot={rootProps => (
-                    <Link {...rootProps} to="/album/user/$id" params={{ id: String(album.id) }} />
-                  )}
-                >
-                  {album.cover_photo ? (
-                    <Tile
-                      className={cx(gridClasses.cover, classes.coverTile)}
-                      width={size}
-                      height={size}
-                      image_hash={album.cover_photo.image_hash}
-                      video={album.cover_photo.video}
-                    />
-                  ) : (
-                    <div className={cx(gridClasses.cover, classes.emptyCover)} style={{ width: size, height: size }} />
-                  )}
-                </Anchor>
-                <AlbumShareButton
-                  label={t("sidemenu.sharing")}
-                  icon={<IconShare size={16} color="white" />}
-                  onClick={() => {
-                    setShareAlbumId(`${album.id}`);
-                    openShareDialog();
-                  }}
-                />
-                <Text fw={700} mt={4} lineClamp={1} title={album.title}>
-                  {album.title}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
-                </Text>
-              </>
+              <CollectionCard
+                size={size}
+                title={album.title}
+                meta={t("numberofphotos", { count: album.photo_count, number: album.photo_count })}
+                covers={album.cover_photo ? [album.cover_photo] : []}
+                placeholder={<IconPhoto />}
+                renderLink={props => <Link {...props} to="/album/user/$id" params={{ id: String(album.id) }} />}
+                // Stop or change the share from here instead of opening the album
+                menuLabel={`${t("useralbum.albumActions")}: ${album.title}`}
+                menuItems={
+                  <Menu.Item
+                    leftSection={<IconShare size={ICON_SIZE.menu} />}
+                    onClick={() => {
+                      setShareAlbumId(`${album.id}`);
+                      openShareDialog();
+                    }}
+                  >
+                    {t("sidemenu.sharing")}
+                  </Menu.Item>
+                }
+              />
             )}
           />
         </div>

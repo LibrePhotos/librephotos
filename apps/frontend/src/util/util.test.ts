@@ -171,10 +171,10 @@ describe("adjust date for photo list group", () => {
       },
     ];
     const actual = formatDateForPhotoGroups(photoGroups);
-    expect(defined(actual[0], "the first group").date).toEqual("Friday, March 3, 2023");
+    expect(defined(actual[0], "the first group").date).toEqual("Fri, Mar 3, 2023");
     expect(defined(actual[0], "the first group").year).toEqual(2023);
     expect(defined(actual[0], "the first group").month).toEqual(3);
-    expect(defined(actual[1], "the second group").date).toEqual("Saturday, May 6, 2023");
+    expect(defined(actual[1], "the second group").date).toEqual("Sat, May 6, 2023");
     expect(defined(actual[1], "the second group").year).toEqual(2023);
     expect(defined(actual[1], "the second group").month).toEqual(5);
   });
@@ -186,7 +186,7 @@ describe("adjust date for photo list group", () => {
     Settings.defaultZone = "Europe/Berlin";
     try {
       const actual = formatDateForPhotoGroups([{ date: "2024-04-02T23:05:00Z", location: "", items: [] }]);
-      expect(defined(actual[0], "the first group").date).toEqual("Tuesday, April 2, 2024");
+      expect(defined(actual[0], "the first group").date).toEqual("Tue, Apr 2, 2024");
       expect(defined(actual[0], "the first group").month).toEqual(4);
     } finally {
       Settings.defaultZone = previousZone;

@@ -398,7 +398,7 @@
   },
   "src/components/album/AlbumSection.tsx": {
     "@typescript-eslint/no-misused-promises": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/album/FolderListModal.tsx": {

@@ -101,7 +101,6 @@ export type LightboxControlsProps = {
   toggleOcrText: () => void;
   /** Copy the photo to the clipboard; absent when the page has no image clipboard or the item is a video. */
   onCopyToClipboard?: () => void;
-  isCopyingToClipboard?: boolean;
   /** Called once the photo was moved to (or restored from) the trash. */
   onAfterTrashToggle?: () => void;
   /** The 360° view of a photo sphere (#483). */

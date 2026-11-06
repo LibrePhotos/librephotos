@@ -56,7 +56,7 @@ export function YourLibrarySection() {
       <Stack gap="sm">
         <Group justify="space-between" wrap="wrap" gap="xs">
           <Group gap="sm" wrap="nowrap">
-            <IconLibraryPhoto size={24} stroke={1.5} color="var(--mantine-color-blue-6)" aria-hidden />
+            <IconLibraryPhoto size={24} stroke={1.5} color="var(--mantine-color-dimmed)" aria-hidden />
             <div>
               <Title order={4}>{t("librarySharing.yourLibrary")}</Title>
               <Text size="sm" c="dimmed">

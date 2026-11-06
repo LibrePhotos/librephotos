@@ -78,11 +78,12 @@ describe("PublicAlbumsGrid", () => {
       );
     });
 
-    const titles = Array.from(container.querySelectorAll("[data-line-clamp]"), title => title.textContent);
+    const titles = Array.from(container.querySelectorAll("[data-line-clamp][title]"), title => title.textContent);
     expect(titles).toContain("Trip 1");
     expect(titles).not.toContain("Trip 500");
     expect(titles.length).toBeGreaterThan(0);
     expect(titles.length).toBeLessThan(100);
-    expect(container.querySelectorAll("button[aria-label='Sharing']").length).toBe(titles.length);
+    // Each card's ⋮ menu holds its Sharing item
+    expect(container.querySelectorAll("button[aria-label^='Album actions: ']").length).toBe(titles.length);
   });
 });

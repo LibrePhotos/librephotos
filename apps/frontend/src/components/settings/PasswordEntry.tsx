@@ -4,6 +4,7 @@ import { IconLock as Lock, IconLockOpen as LockOpen } from "@tabler/icons-react"
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { NewPasswordFields } from "../../util/formSchemas";
+import { toolbarLook } from "../common/toolbarLook";
 
 type Props = Readonly<{
   /**
@@ -47,8 +48,7 @@ export function PasswordEntry({ form, createNew = false }: Props): React.JSX.Ele
             title={t("settings.password.tooltipeditbutton")}
             aria-label={t("settings.password.tooltipeditbutton")}
             aria-pressed={changePassword}
-            color="blue"
-            variant={changePassword ? "outline" : "filled"}
+            {...toolbarLook(changePassword)}
             onClick={() => {
               // Locking again abandons the change: the typed password must not be saved later (#2197).
               form.setFieldValue("password", "");

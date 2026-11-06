@@ -1,4 +1,3 @@
-import { IconUsers } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -23,7 +22,7 @@ function SharingExplore() {
   const { t } = useTranslation();
   return (
     <>
-      <PageHeader icon={IconUsers} title={t("sidemenu.sharing")} subtitle={t("sharing.subtitle")} />
+      <PageHeader title={t("sidemenu.sharing")} subtitle={t("sharing.subtitle")} />
       <PageBody gap="md">
         <YourLibrarySection />
         <LibrariesSharedWithYouSection />

@@ -78,7 +78,9 @@ describe("shell colour scheme on the default 'auto' setting", () => {
     mockOsScheme(false);
     await render();
 
-    expect(container.querySelector("img")?.getAttribute("alt")).toBe("LibrePhotos");
+    // The wordmark names the link; the logo beside it is decorative.
+    expect(container.querySelector("a")?.textContent).toBe("LibrePhotos");
+    expect(container.querySelector("img")?.getAttribute("alt")).toBe("");
     expect(container.querySelector("button")?.getAttribute("aria-label")).toBe("Toggle color scheme");
   });
 });

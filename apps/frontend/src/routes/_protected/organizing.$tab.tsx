@@ -66,7 +66,7 @@ function StacksDuplicatesPage() {
 
   return (
     <>
-      <PageHeader icon={IconLayersSubtract} title={t("sidemenu.organizing")} subtitle={getSubtitle()} />
+      <PageHeader title={t("sidemenu.organizing")} subtitle={getSubtitle()} />
       <PageBody gap="lg">
         {/* Tab Navigation */}
         {/* Kept on one row on phones: a wrapped tab leaves the active underline under the first row only */}

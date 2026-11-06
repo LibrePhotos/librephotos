@@ -13,13 +13,14 @@ export function ColorModeSwitch(): React.ReactNode {
     <Tooltip label={colorScheme === "dark" ? t("settings.colorscheme.dark") : t("settings.colorscheme.light")}>
       <ActionIcon
         onClick={() => toggleColorScheme()}
-        variant="light"
+        variant="subtle"
         color="gray"
-        size={30}
+        size={36}
+        radius="xl"
         // The action, not just the noun: the state is only in the tooltip.
         aria-label={t("settings.togglecolorscheme")}
       >
-        {colorScheme === "dark" ? <Moon size="1.1rem" /> : <Sun size="1.1rem" />}
+        {colorScheme === "dark" ? <Moon size={20} stroke={1.75} /> : <Sun size={20} stroke={1.75} />}
       </ActionIcon>
     </Tooltip>
   );

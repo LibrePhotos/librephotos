@@ -40,7 +40,6 @@ function AlbumTagGallery() {
     <PhotoListView
       title={tagAlbum ? tagAlbum.name : notFound ? t("tags") : t("loading")}
       loading={fetchingTagAlbum}
-      icon={Tag}
       photoset={tagAlbum ? tagAlbum.grouped_photos : []}
       idx2hash={tagAlbum ? tagAlbum.grouped_photos.flatMap(el => el.items) : []}
       // No photo filter for an album that is not there

@@ -107,22 +107,57 @@
   z-index: -1;
 } */
 
-.pigTile:hover .checkbox {
-  opacity: 0.5;
-  transition: all 200ms linear;
+/* The selection mark: a round check like Google Photos', drawn by CSS on the native checkbox (so it
+   stays a real, labelled checkbox). Hidden until the tile is pointed at or selected. */
+.checkbox {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 8px;
+  border: 2px solid var(--app-scrim-white-90);
+  border-radius: 50%;
+  background-color: var(--app-scrim-black-20);
+  box-shadow: 0 0 3px var(--app-scrim-black-40);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 150ms linear;
 }
 
-.pigTile:hover .checkbox:checked,
+.checkbox::after {
+  content: "";
+  width: 10px;
+  height: 5px;
+  margin-top: -2px;
+  border-left: 2px solid var(--app-scrim-white-95);
+  border-bottom: 2px solid var(--app-scrim-white-95);
+  transform: rotate(-45deg);
+  opacity: 0;
+}
+
+.pigTile:hover .checkbox {
+  opacity: 0.85;
+}
+
+.pigTile:hover .checkbox:hover,
+.checkbox:checked,
 .checkbox:focus-visible {
   opacity: 1;
 }
 
-.checkbox {
-  opacity: 0;
+.checkbox:checked {
+  border-color: var(--app-scrim-white-95);
+  background-color: var(--mantine-primary-color-filled);
 }
 
-.checkbox:checked {
+.checkbox:checked::after {
   opacity: 1;
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
 }
 
 .overlaysTopLeft {

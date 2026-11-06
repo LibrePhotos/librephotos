@@ -5,6 +5,7 @@ import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import { DEFAULT_MEDIA_TYPE, MEDIA_TYPES } from "./mediaTypeFilter";
 import { MEDIA_TYPE_OPTIONS } from "./mediaTypeOptions";
 import { useMediaTypeFilter, useSetMediaTypeFilter } from "./useMediaTypeFilter";
@@ -44,8 +45,7 @@ export function MediaTypeSelector() {
   const current = useMediaTypeFilter();
   const filtered = current !== DEFAULT_MEDIA_TYPE;
   const { icon: Icon, labelKey } = MEDIA_TYPE_OPTIONS[current];
-  const variant = filtered ? "light" : "subtle";
-  const color = filtered ? "blue" : "gray";
+  const look = toolbarLook(filtered);
 
   return (
     <Menu position="bottom-end" shadow="md">
@@ -54,12 +54,7 @@ export function MediaTypeSelector() {
         // itself carries the menu's aria attributes.
         <Indicator size={8} disabled={!filtered}>
           <Menu.Target>
-            <ActionIcon
-              variant={variant}
-              color={color}
-              size="lg"
-              aria-label={t("mediafilter.button", { current: t(labelKey) })}
-            >
+            <ActionIcon {...look} size="lg" aria-label={t("mediafilter.button", { current: t(labelKey) })}>
               <Icon size={ICON_SIZE.toolbar} />
             </ActionIcon>
           </Menu.Target>
@@ -67,8 +62,7 @@ export function MediaTypeSelector() {
       ) : (
         <Menu.Target>
           <Button
-            variant={variant}
-            color={color}
+            {...look}
             h={TOOLBAR_CONTROL_HEIGHT}
             leftSection={<Icon size={18} />}
             rightSection={<IconChevronDown size={ICON_SIZE.menu} />}

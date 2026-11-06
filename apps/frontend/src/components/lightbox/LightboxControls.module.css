@@ -1,3 +1,69 @@
+/* The toolbar floats over the top of the photo: back on the left, the actions on the right, on a
+   soft scrim so white icons read over a bright sky. Only the buttons take the pointer; a drag
+   anywhere else still swipes or pans the photo. */
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  height: 96px;
+  padding: 8px 8px 0;
+  background: linear-gradient(var(--app-scrim-black-50), transparent);
+  pointer-events: none;
+}
+
+.bar > * {
+  pointer-events: auto;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Every toolbar button: a white icon in a 40px round hit area with a light tint on hover. Nested
+   under the bar to outrank ActionIcon's own colours whatever order the stylesheets load in. */
+.bar .button {
+  color: var(--app-scrim-white-90);
+  background-color: transparent;
+}
+
+.bar .button:hover {
+  color: var(--mantine-color-white);
+  background-color: var(--app-scrim-white-12);
+}
+
+.bar .button[data-active] {
+  color: var(--mantine-color-white);
+  background-color: var(--app-scrim-white-16);
+}
+
+/* The running slideshow's pause button, inside its progress ring. */
+.ring {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringProgress {
+  position: absolute;
+  inset: 0;
+}
+
+.ring .button {
+  z-index: 1;
+}
+
 /* The slideshow interval picker sits on the dark lightbox in either colour
    scheme, so its options keep white text. Mantine's light-scheme hover would
    put that text on a near-white background; nesting under the dropdown class

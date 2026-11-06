@@ -1,4 +1,4 @@
-import { createTheme, MantineProvider, Modal, PasswordInput, useMatches, v8CssVariablesResolver } from "@mantine/core";
+import { createTheme, MantineProvider, Modal, PasswordInput, useMatches } from "@mantine/core";
 import { DatesProvider } from "@mantine/dates";
 import { Notifications, type NotificationsProps } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
@@ -12,7 +12,9 @@ import { modalTitleStyles } from "./components/modals/modalTitleStyles";
 import { photoListScrollRestorationKey } from "./components/photolist/photoSearch";
 import { loadDayjsLocale } from "./i18n";
 import { routeTree } from "./routeTree.gen";
+import { appCssVariablesResolver } from "./theme/cssVariables";
 import { menuThemeComponents } from "./theme/menuTheme";
+import { DARK_SCALE } from "./theme/palette";
 import { TOP_MENU_HEIGHT } from "./uiConstants";
 import { firstDayOfWeek } from "./util/dateUtils";
 
@@ -41,11 +43,22 @@ declare module "@tanstack/react-router" {
 }
 
 const theme = createTheme({
-  // Mantine 9 changed two defaults that restyle the whole app: the default radius
-  // went from sm to md, and light variants use solid colours instead of
-  // transparent ones (v8CssVariablesResolver below). Keep the Mantine 8 look
-  // until the UI is reviewed for 9.
-  defaultRadius: "sm",
+  // One accent, softened in the dark scheme (blue 4 with dark text where it fills), on near-black
+  // surfaces: the photos supply the colour, as in Google Photos and Immich.
+  primaryColor: "blue",
+  primaryShade: { light: 6, dark: 4 },
+  autoContrast: true,
+  colors: { dark: DARK_SCALE },
+  defaultRadius: "md",
+  headings: {
+    fontWeight: "700",
+    sizes: {
+      h1: { fontSize: "26px", lineHeight: "1.25" },
+      h2: { fontSize: "22px", lineHeight: "1.3" },
+      h3: { fontSize: "18px", lineHeight: "1.35" },
+      h4: { fontSize: "16px", lineHeight: "1.4" },
+    },
+  },
   components: {
     // PasswordInput has no default size, so its text fell back to 16px next to
     // the 14px of every TextInput in the same form.
@@ -108,7 +121,7 @@ export function App() {
   // No ColorSchemeScript here: React never runs a <script> it renders, so the
   // equivalent inline script lives in index.html's <head>.
   return (
-    <MantineProvider defaultColorScheme="auto" theme={theme} cssVariablesResolver={v8CssVariablesResolver}>
+    <MantineProvider defaultColorScheme="auto" theme={theme} cssVariablesResolver={appCssVariablesResolver}>
       <AppNotifications />
       <LocalizedDatesProvider>
         <RouterProvider router={router} />

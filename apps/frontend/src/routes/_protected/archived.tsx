@@ -68,7 +68,6 @@ function ArchivedPhotos() {
     <PhotoListView
       title={t("photos.archived")}
       loading={isLoading}
-      icon={Archive}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

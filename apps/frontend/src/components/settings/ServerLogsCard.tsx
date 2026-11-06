@@ -76,7 +76,7 @@ export function ServerLogsCard() {
   };
 
   return (
-    <Card shadow="md" padding={0}>
+    <Card withBorder radius="lg" padding={0}>
       <Stack gap={0}>
         <Flex
           align="center"

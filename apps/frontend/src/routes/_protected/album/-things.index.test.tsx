@@ -92,12 +92,12 @@ async function renderPage() {
 }
 
 describe("the things page", () => {
-  it("links an album without a cover photo from its tile and its title", async () => {
+  it("links an album without a cover photo from its card, title included", async () => {
     const page = await renderPage();
 
     const links = page.links("/album/things/2");
-    // The placeholder tile and the title
-    expect(links).toHaveLength(2);
+    // One card: the placeholder with the title on it
+    expect(links).toHaveLength(1);
     expect(links.some(link => link.textContent?.includes("harbour"))).toBe(true);
     await page.unmount();
   });
@@ -121,11 +121,12 @@ describe("the things page", () => {
     }
   });
 
-  it("links an album with a cover from its cover and its title", async () => {
+  it("links an album with a cover from its card, cover and title included", async () => {
     const page = await renderPage();
 
     const links = page.links("/album/things/1");
-    expect(links).toHaveLength(2);
+    // One card: the cover with the title on it
+    expect(links).toHaveLength(1);
     expect(links.some(link => link.querySelector("img") !== null)).toBe(true);
     expect(links.some(link => link.textContent?.includes("beach"))).toBe(true);
     await page.unmount();

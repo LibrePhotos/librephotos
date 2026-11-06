@@ -1,0 +1,87 @@
+/* The info panel. It sits in the viewer's dark scope (ViewerDarkScope), so the theme's dark values
+   apply in either colour scheme: near-black like the stage, set apart by a hairline. On a phone it
+   is a sheet over the lower part of the photo; from md on, a 360px column beside it. */
+.panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 250;
+  height: 65dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: normal;
+  padding: var(--mantine-spacing-md);
+  background-color: var(--mantine-color-dark-8);
+  border-top: 1px solid var(--mantine-color-dark-5);
+  border-radius: 16px 16px 0 0;
+}
+
+/* md, Mantine's 62em: where the panel used to switch too. */
+@media (min-width: 62em) {
+  .panel {
+    position: relative;
+    flex: 0 0 360px;
+    width: 360px;
+    height: 100%;
+    border-top: 0;
+    border-left: 1px solid var(--mantine-color-dark-6);
+    border-radius: 0;
+  }
+}
+
+.header {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* An empty field the owner can fill: "Add a caption", "Add tags". */
+.placeholder {
+  font-size: var(--mantine-font-size-sm);
+  color: var(--mantine-color-dimmed);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.placeholder:hover {
+  color: var(--mantine-color-text);
+  text-decoration: underline;
+}
+
+/* The location's map: a rounded tile, as in Apple Photos. */
+.map {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* A face's actions (confirm, rename, not this person, delete) show on hover or focus, so the list
+   reads as faces and names, not as rows of coloured buttons. A touch screen has no hover: there
+   they stay. */
+.faceActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.faceRow:hover .faceActions,
+.faceRow:focus-within .faceActions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .faceActions {
+    opacity: 1;
+  }
+}
+
+/* A detail row's icon (date, file, camera, place): small and dimmed, level with the first line. */
+.rowIcon {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* The file name: one line, cut short, and the whole of it on hover. */
+.fileName {
+  overflow-wrap: anywhere;
+}

@@ -48,7 +48,8 @@ export function SelectionBar(props: Readonly<Props>) {
     <Group gap="xs">
       <Tooltip label={isAllSelected ? t("selectionbar.deselect") : selectAllLabel} withArrow position="bottom">
         <ActionIcon
-          variant="light"
+          variant="subtle"
+          color="gray"
           size={TOOLBAR_ACTION_SIZE}
           aria-label={isAllSelected ? t("selectionbar.deselect") : selectAllLabel}
           onClick={() => {
@@ -85,16 +86,18 @@ export function SelectionBar(props: Readonly<Props>) {
             }
           }}
         >
-          <Checks size={ICON_SIZE.toolbar} color={isAllSelected ? "green" : "gray"} />
+          <Checks size={ICON_SIZE.toolbar} stroke={isAllSelected ? 2.25 : 1.75} />
         </ActionIcon>
       </Tooltip>
       <Tooltip label={t("selectionbar.toggle")} withArrow position="bottom">
         <Button
-          variant="light"
-          size="xs"
+          variant="subtle"
+          size="sm"
           h={TOOLBAR_CONTROL_HEIGHT}
-          leftSection={<Check size={ICON_SIZE.toolbar} color={selectMode ? "green" : "gray"} />}
-          color={selectMode ? "blue" : "gray"}
+          px="xs"
+          fw={600}
+          leftSection={<Check size={ICON_SIZE.toolbar} />}
+          color={selectMode ? undefined : "gray"}
           onClick={() => {
             if (selectMode) {
               // Exit selection mode

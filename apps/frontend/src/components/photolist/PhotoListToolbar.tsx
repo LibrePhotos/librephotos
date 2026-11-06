@@ -4,6 +4,7 @@ import { IconLink } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import { MediaTypeSelector } from "./MediaTypeSelector";
 import { PhotoListDisplayMenu } from "./PhotoListDisplayMenu";
 import { SelectModeButton } from "./SelectModeButton";
@@ -58,7 +59,7 @@ export function PhotoListToolbar({
 
   return (
     <Box ml="auto">
-      <Group gap="xs" wrap="nowrap">
+      <Group gap={4} wrap="nowrap">
         {/* The media-type filter stays visible even when the current
           filter yields no photos, so the user is never trapped. */}
         {listControls && mediaFilter && <MediaTypeSelector />}
@@ -66,7 +67,7 @@ export function PhotoListToolbar({
         {withPhotos && publicLink && (
           <Tooltip label={t("sidemenu.sharing")} position="bottom">
             <ActionIcon
-              variant="default"
+              {...toolbarLook()}
               size={TOOLBAR_ACTION_SIZE}
               aria-label={t("sidemenu.sharing")}
               onClick={onOpenSharing}

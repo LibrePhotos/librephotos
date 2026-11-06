@@ -1,5 +1,4 @@
 import { Stack, Tabs } from "@mantine/core";
-import { IconUpload } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -46,8 +45,6 @@ function SharedByMe() {
   return (
     <>
       <PageHeader
-        icon={IconUpload}
-        iconColor="var(--mantine-color-red-6)"
         title={tab === "photos" ? t("sharing.photosYouShared") : t("sharing.albumsYouShared")}
         subtitle={getSubHeader(tab)}
       />

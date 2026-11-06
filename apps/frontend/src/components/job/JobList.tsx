@@ -60,7 +60,7 @@ export function JobList({ variant = "admin" }: IJobList) {
   }, [jobs]);
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       {/* On /jobs the page heading already says "My Jobs"; a card title repeating it read as a second page title. */}
       {!mine && (
         <Title order={4} mb={16}>

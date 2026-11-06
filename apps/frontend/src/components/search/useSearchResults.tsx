@@ -101,7 +101,6 @@ export function useSearchResults(term: string): PhotoListViewProps {
     // No trailing "...": the header shows its own loading state.
     title: term ? t("search.resultsfor", { query: term }) : t("searchfilter.filteredtitle"),
     loading: isPending && (term.length > 0 || filtered),
-    icon: term ? IconSearch : IconFilter,
     photoset: currentUser?.semantic_search_topk ? photosFlat : photosGroupedByDate,
     idx2hash: photosFlat,
     mediaType,

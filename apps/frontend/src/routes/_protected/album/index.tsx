@@ -1,7 +1,6 @@
 import { Group, SimpleGrid, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
-  IconAlbum,
   IconBookmark,
   IconChevronRight,
   IconFaceId,
@@ -22,7 +21,7 @@ import {
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
 import { useFetchTagsQuery } from "../../../api_client/tags/hooks";
-import { AlbumSection } from "../../../components/album/AlbumSection";
+import { AlbumSection, ROW_CARD_SIZE } from "../../../components/album/AlbumSection";
 import classes from "../../../components/album/AlbumSection.module.css";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
@@ -133,7 +132,7 @@ function AlbumExplore() {
 
   return (
     <>
-      <PageHeader icon={IconAlbum} title={t("explore.title")} subtitle={t("explore.subtitle")} />
+      <PageHeader title={t("explore.title")} subtitle={t("explore.subtitle")} />
       <PageBody gap={0}>
         <Stack gap="md">
           {/* My Albums - using UserAlbumCard component */}
@@ -166,11 +165,7 @@ function AlbumExplore() {
             {isLoadingUser ? (
               <div className={classes.loadingContainer}>
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className={classes.skeleton}>
-                    <Skeleton height={140} radius="md" />
-                    <Skeleton height={16} mt={8} width="80%" />
-                    <Skeleton height={12} mt={4} width="50%" />
-                  </div>
+                  <Skeleton key={i} className={classes.skeleton} radius={12} />
                 ))}
               </div>
             ) : userAlbumsFailure ? (
@@ -191,7 +186,8 @@ function AlbumExplore() {
                   <UserAlbumCard
                     key={album.id}
                     album={album}
-                    size={140}
+                    size={ROW_CARD_SIZE}
+                    className={classes.rowCard}
                     showActions
                     onRename={openRenameDialog}
                     onShare={openShareDialog}
@@ -222,7 +218,7 @@ function AlbumExplore() {
           />
 
           {/* Category cards: five of them, so one row on large screens */}
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 5 }} spacing="md">
+          <SimpleGrid cols={{ base: 2, sm: 3, lg: 5 }} spacing="md">
             <AlbumSection
               title={t("sidemenu.things")}
               icon={<IconTags size={20} stroke={1.5} />}
@@ -254,19 +250,16 @@ function AlbumExplore() {
               countLabel={t("explore.eventCount", { count: autoAlbums?.length ?? 0 })}
               variant="card"
             />
-            {/* Spans the row when two columns would leave it on its own */}
-            <div className={classes.lastCategoryCard}>
-              <AlbumSection
-                title={t("folders")}
-                icon={<IconFolder size={20} stroke={1.5} />}
-                albums={foldersPreview}
-                viewAllLink="/album/folder"
-                isLoading={isLoadingFolders}
-                count={folders.length}
-                countLabel={t("explore.folderCount", { count: folders.length })}
-                variant="card"
-              />
-            </div>
+            <AlbumSection
+              title={t("folders")}
+              icon={<IconFolder size={20} stroke={1.5} />}
+              albums={foldersPreview}
+              viewAllLink="/album/folder"
+              isLoading={isLoadingFolders}
+              count={folders.length}
+              countLabel={t("explore.folderCount", { count: folders.length })}
+              variant="card"
+            />
           </SimpleGrid>
         </Stack>
 

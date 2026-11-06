@@ -110,7 +110,7 @@ export function AdminUserTable() {
   };
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Group gap="xs" mb={16}>
         <Title order={4}>
           {t("adminarea.users")}

@@ -1,0 +1,67 @@
+/* The timeline's row of memory story cards */
+.strip {
+  position: relative;
+}
+
+.scroller {
+  position: relative;
+}
+
+/* The edge a row scrolls out of fades instead of cutting a card off */
+.viewport {
+  --strip-fade: 40px;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black var(--strip-fade),
+    black calc(100% - var(--strip-fade)),
+    transparent
+  );
+}
+
+.viewport[data-at-start] {
+  mask-image: linear-gradient(to right, black calc(100% - var(--strip-fade)), transparent);
+}
+
+.viewport[data-at-end] {
+  mask-image: linear-gradient(to right, transparent, black var(--strip-fade));
+}
+
+.viewport[data-at-start][data-at-end] {
+  mask-image: none;
+}
+
+.slot {
+  flex: 0 0 auto;
+  width: 180px;
+}
+
+/* The arrows show on hover over the row (and on keyboard focus) */
+.arrow {
+  position: absolute;
+  top: calc(50% - 4px);
+  z-index: 1;
+  translate: 0 -50%;
+  opacity: 0;
+  box-shadow: 0 2px 8px var(--app-scrim-black-20);
+  transition: opacity 150ms ease;
+}
+
+.arrow[data-side="start"] {
+  left: 6px;
+}
+
+.arrow[data-side="end"] {
+  right: 6px;
+}
+
+.scroller:hover .arrow,
+.arrow:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .arrow {
+    display: none;
+  }
+}

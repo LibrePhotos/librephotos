@@ -1,7 +1,6 @@
 import type { User } from "@librephotos/api-client";
-import { Card, Container, Space, Stack, Title } from "@mantine/core";
+import { Card, Stack, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconBook as Book } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
@@ -21,6 +20,7 @@ import { CountStats } from "../CountStats";
 import { LibraryFoldersCard } from "../libraryfolders/LibraryFoldersCard";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
+import { SettingsPageFrame } from "../SettingsPageFrame";
 import { JobQueueBusyNotice } from "./JobQueueBusyNotice";
 import { LibraryActions } from "./LibraryActions";
 import { MissingPhotosBadge } from "./MissingPhotosBadge";
@@ -137,14 +137,12 @@ export function Library() {
   }
 
   return (
-    <Container>
-      <PageHeader icon={Book} title={t("settings.library")} />
-
+    <SettingsPageFrame header={<PageHeader title={t("settings.library")} />}>
       <Stack>
         <CountStats />
         <LibraryFoldersCard user={userSelfDetails} isAdmin={isAdmin} />
         <ProcessingStatusCard busyReason={busyReason} uploadOnly={!hasScanDirectory} />
-        <Card shadow="md">
+        <Card withBorder radius="lg" padding="lg">
           <Stack>
             <Title order={4}>
               <Trans i18nKey="settings.photos" />
@@ -206,7 +204,6 @@ export function Library() {
           onCancel={handleCancel}
         />
       </Stack>
-      <Space h="xl" />
-    </Container>
+    </SettingsPageFrame>
   );
 }

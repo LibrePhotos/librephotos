@@ -11,7 +11,7 @@ export function DuplicateDetectionCard({ user, onChange }: UserSettingsCardProps
   const { t } = useTranslation();
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.duplicatedetection" />
         <SectionLink />

@@ -2,8 +2,8 @@ import { ActionIcon } from "@mantine/core";
 import { IconView360 } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { TOOLBAR_BUTTON, TOOLBAR_ICON_SIZE } from "../lightbox/LightboxToolbarButton";
 import type { PanoramaMode } from "./usePanoramaMode";
 
 type Props = Readonly<{
@@ -21,15 +21,14 @@ export function PanoramaToggle({ panorama, look }: Props) {
   return (
     <DisabledReason reason={panorama.blockedReason} label={label} position="bottom">
       <ActionIcon
-        variant={toolbar ? "subtle" : panorama.active ? "filled" : "default"}
-        color={toolbar ? (panorama.active ? "blue" : "gray") : undefined}
-        size={toolbar ? 28 : "lg"}
-        radius={toolbar ? undefined : "xl"}
+        {...(toolbar
+          ? { ...TOOLBAR_BUTTON, mod: { active: panorama.active } }
+          : { variant: panorama.active ? "filled" : "default", size: "lg", radius: "xl" })}
         onClick={panorama.toggle}
         aria-label={label}
         aria-pressed={panorama.active}
       >
-        <IconView360 size={toolbar ? ICON_SIZE.lightbox : 18} />
+        <IconView360 size={toolbar ? TOOLBAR_ICON_SIZE : 18} />
       </ActionIcon>
     </DisabledReason>
   );

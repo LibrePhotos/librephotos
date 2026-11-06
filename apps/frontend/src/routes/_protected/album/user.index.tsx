@@ -94,7 +94,6 @@ function AlbumUser() {
   return (
     <div>
       <PageHeader
-        icon={Bookmark}
         title={t("myalbums")}
         loading={isFetching}
         subtitle={subtitle()}

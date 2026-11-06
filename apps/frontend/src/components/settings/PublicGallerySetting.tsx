@@ -75,7 +75,7 @@ export function PublicGallerySetting() {
     pending === "everyone" ? "sitesettings.publicGalleryToEveryone" : "sitesettings.publicGalleryToMembers";
 
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Stack gap="sm">
         <Title order={4}>
           {t("sitesettings.publicGallery")}

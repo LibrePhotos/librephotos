@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { formatUtcOffset, parsePhotoTimestamp } from "../../util/dateUtils";
+import { ROW_ICON } from "./SectionTitle";
 import { TimestampForm } from "./TimestampForm";
 import classes from "./TimestampItem.module.css";
 import type { TimestampEditor as Editor, TimestampPhoto } from "./useTimestampEditor";
@@ -96,7 +97,9 @@ function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
       const time = photoDateTime.toLocaleString(DateTime.TIME_SIMPLE);
       return (
         <div>
-          <Text fw={800}>{date}</Text>
+          <Text size="sm" fw={500}>
+            {date}
+          </Text>
           <Text size="xs" c="dimmed">
             {dayOfWeek}, {time}
             <UtcOffset photo={photoDetail} />
@@ -121,8 +124,8 @@ function TimestampEditor({ photoDetail, isPublic, extra }: Props) {
     // Laid out like the file and camera rows below (icon, then the text
     // column), with the edit action on the right like every other section.
     <Group justify="space-between" wrap="nowrap" w="100%">
-      <Group wrap="nowrap">
-        <Calendar />
+      <Group wrap="nowrap" align="flex-start">
+        <Calendar {...ROW_ICON} />
         {/* Not a button on a public share: there is nothing to activate. */}
         <Stack gap={2} align="flex-start">
           {isPublic ? (

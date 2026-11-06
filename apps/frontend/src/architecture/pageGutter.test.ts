@@ -9,13 +9,14 @@
  * and uses no `Container`: its content goes in `PageBody`. Vertical padding (`pt`, `pb`, `py`) is
  * free, and so is the padding inside a card (`Paper`, `Card`) or inside a component.
  *
- * The settings-type pages (Settings, Profile, Library, Admin, Jobs, job detail) are the one
- * deliberate exception: a centred `Container` (960px, 16px padding) for forms and tables, rendered
- * from their components. ALLOW_LIST holds the route file among them; it only shrinks.
+ * The settings-type pages (Settings, Profile, Library, Admin, Jobs, job detail) keep the same
+ * gutter through `SettingsPageFrame`, which only caps the column's width, so their title sits where
+ * every other page's does. ALLOW_LIST holds a route file that still sets its own gutter; it only
+ * shrinks.
  */
 import { describe, expect, it } from "vitest";
 
-const ALLOW_LIST = new Set<string>(["/src/routes/_protected/jobs/index.tsx"]);
+const ALLOW_LIST = new Set<string>([]);
 
 const SIZE = "(xs|sm|md|lg|xl)";
 const SIDE = "(p|px|pl|pr|ps|pe)";

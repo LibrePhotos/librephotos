@@ -5,6 +5,7 @@ import { IconCheck, IconChevronDown, IconSettings, IconUsers, IconUsersGroup } f
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import { ManagePersonGroupsModal } from "./ManagePersonGroupsModal";
 
 type Props = Readonly<{
@@ -50,8 +51,7 @@ export function PersonGroupFilter({ groups, value, onChange }: Props) {
   const current = groups.find(group => group.id === value);
   const label = current?.name ?? t("persongroups.all");
   const filtered = current !== undefined;
-  const variant = filtered ? "light" : "subtle";
-  const color = filtered ? "blue" : "gray";
+  const look = toolbarLook(filtered);
   const Icon = filtered ? IconUsersGroup : IconUsers;
 
   return (
@@ -62,12 +62,7 @@ export function PersonGroupFilter({ groups, value, onChange }: Props) {
           // the menu's aria attributes.
           <Indicator size={8} disabled={!filtered}>
             <Menu.Target>
-              <ActionIcon
-                variant={variant}
-                color={color}
-                size="lg"
-                aria-label={t("persongroups.button", { current: label })}
-              >
+              <ActionIcon {...look} size="lg" aria-label={t("persongroups.button", { current: label })}>
                 <Icon size={ICON_SIZE.toolbar} />
               </ActionIcon>
             </Menu.Target>
@@ -75,8 +70,7 @@ export function PersonGroupFilter({ groups, value, onChange }: Props) {
         ) : (
           <Menu.Target>
             <Button
-              variant={variant}
-              color={color}
+              {...look}
               h={TOOLBAR_CONTROL_HEIGHT}
               leftSection={<Icon size={18} />}
               rightSection={<IconChevronDown size={ICON_SIZE.menu} />}

@@ -1,9 +1,9 @@
 import { MAX_MEMORY_ITEMS } from "@librephotos/api-client";
 import { Button, SegmentedControl } from "@mantine/core";
-import { IconPlayerPlay as PlayerPlay, IconSparkles as Sparkles } from "@tabler/icons-react";
+import { IconPlayerPlay as PlayerPlay } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 import { PageHeader } from "../PageHeader";
 
 export type MemoriesView = "tiles" | "gallery";
@@ -29,7 +29,6 @@ export function MemoriesHeader({ view, onViewChange, onPlayAll, photoCount, capp
 
   return (
     <PageHeader
-      icon={Sparkles}
       title={t("memories.title")}
       subtitle={
         <>
@@ -46,7 +45,7 @@ export function MemoriesHeader({ view, onViewChange, onPlayAll, photoCount, capp
         <>
           <Button
             leftSection={<PlayerPlay size={ICON_SIZE.toolbar} />}
-            variant="light"
+            h={TOOLBAR_CONTROL_HEIGHT}
             disabled={photoCount === 0}
             loading={loading}
             onClick={onPlayAll}

@@ -1,9 +1,8 @@
 import type { TagList } from "@librephotos/api-client";
-import { ActionIcon, Flex, Group, Menu, Text } from "@mantine/core";
+import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconArrowMerge as ArrowMerge,
-  IconDotsVertical as DotsVertical,
   IconEdit as Edit,
   IconTag as Tag,
   IconTrash as Trash,
@@ -17,18 +16,17 @@ import {
   useMergeTagsMutation,
   useRenameTagMutation,
 } from "../../../api_client/tags/hooks";
-import gridClasses from "../../../components/album/AlbumGridCell.module.css";
 import { TAG_SORT } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { TagDeleteModal } from "../../../components/album/TagDeleteModal";
 import { TagMergeModal } from "../../../components/album/TagMergeModal";
 import { TagRenameModal } from "../../../components/album/TagRenameModal";
 import { useAlbumSort } from "../../../components/album/useAlbumSort";
+import { CollectionCard } from "../../../components/common/CollectionCard";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
 import { PageHeader } from "../../../components/PageHeader";
-import { Tile } from "../../../components/Tile";
 import { TileGrid } from "../../../components/virtual/TileGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
@@ -76,42 +74,17 @@ function AlbumTag() {
   }
 
   function renderCover(tag: TagListEntry, size: number) {
-    const cover = tag.cover_photos[0];
-    return cover ? (
-      <Link to="/album/tags/$id" params={{ id: String(tag.id) }} aria-label={tag.name}>
-        <Tile
-          className={gridClasses.cover}
-          video={cover.video === true}
-          height={size}
-          width={size}
-          image_hash={cover.image_hash}
-        />
-      </Link>
-    ) : (
-      <Link to="/album/tags/$id" params={{ id: String(tag.id) }} aria-label={tag.name}>
-        <Flex align="center" justify="center" h={size} w={size} bg="var(--mantine-color-default-hover)">
-          <Tag size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />
-        </Flex>
-      </Link>
-    );
-  }
-
-  function renderCaption(tag: TagListEntry) {
     return (
-      <Group justify="space-between" wrap="nowrap">
-        <Flex gap={0} justify="left" direction="column" px={8}>
-          <Text size="sm" fw={500} lineClamp={1} title={tag.name}>
-            {tag.name}
-          </Text>
-          <Text size="xs">{t("numberofphotos", { count: tag.photo_count, number: tag.photo_count })}</Text>
-        </Flex>
-        <Menu position="bottom-end">
-          <Menu.Target>
-            <ActionIcon variant="subtle" c="gray" size="sm" aria-label={t("moreactions")}>
-              <DotsVertical size={16} />
-            </ActionIcon>
-          </Menu.Target>
-          <Menu.Dropdown>
+      <CollectionCard
+        size={size}
+        title={tag.name}
+        meta={t("numberofphotos", { count: tag.photo_count, number: tag.photo_count })}
+        covers={tag.cover_photos.slice(0, 1)}
+        placeholder={<Tag />}
+        renderLink={props => <Link {...props} to="/album/tags/$id" params={{ id: String(tag.id) }} />}
+        menuLabel={t("moreactions")}
+        menuItems={
+          <>
             <Menu.Item leftSection={<Edit size={14} />} onClick={() => startRename(tag)}>
               {t("rename")}
             </Menu.Item>
@@ -121,16 +94,15 @@ function AlbumTag() {
             <Menu.Item leftSection={<Trash size={14} />} onClick={() => startDelete(tag)}>
               {t("delete")}
             </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
+          </>
+        }
+      />
     );
   }
 
   return (
     <div>
       <PageHeader
-        icon={Tag}
         title={t("tags")}
         loading={isFetching}
         subtitle={t("tagalbum.showingtags", { count: tags.length, number: tags.length })}
@@ -154,7 +126,6 @@ function AlbumTag() {
           getKey={tag => tag.id}
           sizing={sizing}
           renderItem={renderCover}
-          renderCaption={renderCaption}
         />
       )}
 

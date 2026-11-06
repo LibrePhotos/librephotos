@@ -169,9 +169,9 @@ describe("react-pig photo size", () => {
       return Number(defined(container).querySelector("img")?.getAttribute("width"));
     };
 
-    // 1000px wide: a row needs an aspect ratio of 3 at scale 1, of 6 at scale 2
-    expect(tileWidth(1)).toBeCloseTo(500);
-    expect(tileWidth(2)).toBeCloseTo(250);
+    // 1000px wide: a row needs an aspect ratio of 5 at scale 1 (200px tall), of 10 at scale 2
+    expect(tileWidth(1)).toBeCloseTo(300);
+    expect(tileWidth(2)).toBeCloseTo(150);
   });
 });
 
@@ -296,19 +296,20 @@ describe("react-pig container width", () => {
 
   it("lays the grid out again when its container narrows without a window resize", async () => {
     const tileWidths = renderTiles();
-    // Two 1.5 tiles share a row (above 800px wide) less the 8px gap between them.
-    expect(tileWidths()[0]).toBeCloseTo(496);
+    // Two 1.5 tiles do not fill a row (above 800px wide it needs an aspect ratio of 5), so the
+    // row is (width - the 4px gap) / 5 tall.
+    expect(tileWidths()[0]).toBeCloseTo(298.8);
 
     await resizeContainer(900);
 
-    expect(tileWidths()[0]).toBeCloseTo(446);
+    expect(tileWidths()[0]).toBeCloseTo(268.8);
   });
 
   it("keeps the layout while the container is hidden (0px wide) and stops observing on unmount", async () => {
     const tileWidths = renderTiles();
 
     await resizeContainer(0);
-    expect(tileWidths()[0]).toBeCloseTo(496);
+    expect(tileWidths()[0]).toBeCloseTo(298.8);
 
     act(() => defined(root).unmount());
     root = null;

@@ -1,7 +1,7 @@
 // The statistics charts' own colours. They are deliberate, not theme colours: a chart needs more
 // distinct hues than the theme has, and canvas and d3 drawing takes plain values rather than CSS
-// variables. This file and brandGradients.ts are the named homes for colour literals, so
-// src/architecture/styles.test.ts does not count them (AGENTS.md, Styling).
+// variables. This file is a named home for colour literals, so src/architecture/styles.test.ts
+// does not count them (AGENTS.md, Styling).
 
 /** One colour per person in the face cluster graph, assigned in order and repeated. */
 export const FACE_CLUSTER_COLORS = [

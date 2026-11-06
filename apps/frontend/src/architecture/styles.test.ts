@@ -18,11 +18,12 @@ type Counts = Partial<Record<Metric, number>>;
 type CountsByFile = Record<string, Counts>;
 
 // The named homes for colours that are deliberate but not theme colours: chart palettes, map layers,
-// the brand gradients, and the app's CSS variables (scrims, shadows; loaded from src/index.tsx).
+// the theme's dark scale, and the app's CSS variables (scrims, shadows; loaded
+// from src/index.tsx).
 const COLOUR_HOMES = new Set([
   "src/theme/chartColors.ts",
   "src/theme/mapColors.ts",
-  "src/theme/brandGradients.ts",
+  "src/theme/palette.ts",
   "src/theme/colors.css",
 ]);
 

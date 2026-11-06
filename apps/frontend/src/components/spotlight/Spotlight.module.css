@@ -1,0 +1,47 @@
+/* The header search: a wide filled pill, as in Google Photos and Immich, that opens the palette. */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  flex: 1;
+  min-width: 0;
+  max-width: 560px;
+  min-height: 40px;
+  padding: 0 var(--mantine-spacing-md);
+  border-radius: 999px;
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  color: var(--mantine-color-dimmed);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+  }
+}
+
+.label {
+  flex: 1;
+}
+
+/* The palette: rounded like the app's menus; the selected row a neutral fill instead of a solid
+   blue bar, and matched letters in bold instead of yellow marks. */
+.palette {
+  border-radius: var(--mantine-radius-lg);
+}
+
+.action.action[data-selected] {
+  color: var(--mantine-color-text);
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.action mark {
+  padding: 0;
+  color: inherit;
+  font-weight: 700;
+  background: none;
+}

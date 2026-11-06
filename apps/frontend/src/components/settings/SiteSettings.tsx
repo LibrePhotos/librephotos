@@ -126,7 +126,7 @@ export function SiteSettings() {
     return <SiteSettingsForm />;
   }
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Title order={4}>
         {t("adminarea.sitesettings")}
         <SectionLink />
@@ -219,7 +219,7 @@ function SiteSettingsForm() {
         </Stack>
       </Modal>
 
-      <Card shadow="md">
+      <Card withBorder radius="lg" padding="lg">
         <Stack>
           <Title order={4}>
             {t("adminarea.sitesettings")}

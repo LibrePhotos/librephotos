@@ -1,19 +1,17 @@
 import { useViewportSize } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import type { TileGridSizing } from "../components/virtual/TileGrid";
-import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../uiConstants";
+import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, PAGE_GUTTER, TOP_MENU_HEIGHT } from "../uiConstants";
 import { useIsDesktopLayout } from "./useIsDesktopLayout";
 
-/**
- * Left padding the album grids give their scroll container. Each cell pads its tile by 5px,
- * so the tiles sit 10px from the edges, in line with PageHeader's p={10}.
- */
-const ALBUM_GRID_GUTTER = 5;
+// Around each cover inside its column, so the covers sit 16px apart
+const ALBUM_CELL_PADDING = 8;
 
-// Around each cover inside its column, so the covers sit 10px apart
-const ALBUM_CELL_PADDING = 5;
-// Under each cover: the title and the count
-const ALBUM_CAPTION_HEIGHT = 60;
+/**
+ * Left padding the album grids give their scroll container. With the cell padding the covers
+ * sit 10px from the edges, in line with PageHeader's p={10}.
+ */
+const ALBUM_GRID_GUTTER = PAGE_GUTTER - ALBUM_CELL_PADDING;
 
 // PageHeader above each grid: an icon beside the title and subtitle, 10px padding
 // and 10px margin. The grid fills the rest, so the page itself does not scroll as well.
@@ -42,8 +40,23 @@ export function albumColumnsFor(width: number): number {
   return 6;
 }
 
-function calculateGridValues(width: number, navbarShown: boolean): { entries: number; squareSize: number } {
-  const entries = albumColumnsFor(width);
+/** People per row: their portrait cards are narrower than album covers, so a face crop is not blown up. */
+function personColumnsFor(width: number): number {
+  if (width < 600) return 3;
+  if (width < 800) return 4;
+  if (width < 1000) return 5;
+  if (width < 1200) return 6;
+  return 8;
+}
+
+type TileShape = "square" | "portrait";
+
+function calculateGridValues(
+  width: number,
+  navbarShown: boolean,
+  shape: TileShape
+): { entries: number; squareSize: number } {
+  const entries = shape === "portrait" ? personColumnsFor(width) : albumColumnsFor(width);
   // The gutter on both sides, and room for the grid's own scrollbar only where it takes any:
   // a fixed 15px left the last column 30px short of the edge on phones.
   let columnWidth = width - 2 * ALBUM_GRID_GUTTER - getScrollbarWidth();
@@ -56,9 +69,14 @@ function calculateGridValues(width: number, navbarShown: boolean): { entries: nu
 /**
  * The layout of an album index grid (TileGrid): columns from the viewport width beside the
  * navbar, and the height below the page header. `reservedHeight` is taken off for whatever else
- * sits above the grid (the places map), keeping room for at least one row.
+ * sits above the grid (the places map), keeping room for at least one row. The cards carry their
+ * title on the cover (CollectionCard), so a square row is as tall as it is wide; a portrait (3:4)
+ * row, for people, a third taller.
  */
-export function useAlbumListGridConfig({ reservedHeight }: { reservedHeight?: number } = {}): TileGridSizing {
+export function useAlbumListGridConfig({
+  reservedHeight,
+  shape = "square",
+}: { reservedHeight?: number; shape?: TileShape } = {}): TileGridSizing {
   const { width, height } = useViewportSize();
   // The AppShell's own test for its navbar (and, below it, the phone footer)
   const navbarShown = useIsDesktopLayout();
@@ -67,19 +85,21 @@ export function useAlbumListGridConfig({ reservedHeight }: { reservedHeight?: nu
   const [gridHeight, setGridHeight] = useState(0);
 
   useEffect(() => {
-    const { entries, squareSize } = calculateGridValues(width, navbarShown);
+    const { entries, squareSize } = calculateGridValues(width, navbarShown, shape);
     setEntriesPerRow(entries);
     setEntrySquareSize(squareSize);
     const footer = navbarShown ? 0 : FOOTER_HEIGHT;
     setGridHeight(height - TOP_MENU_HEIGHT - PAGE_HEADER_HEIGHT - footer);
-  }, [width, height, navbarShown]);
+  }, [width, height, navbarShown, shape]);
 
-  const rowHeight = entrySquareSize + ALBUM_CAPTION_HEIGHT;
+  // The part of a portrait card below the square cell
+  const captionHeight = shape === "portrait" ? Math.max(entrySquareSize - 2 * ALBUM_CELL_PADDING, 0) / 3 : 0;
+  const rowHeight = entrySquareSize + captionHeight;
   return {
     columnCount: entriesPerRow,
     columnWidth: entrySquareSize,
     cellPadding: ALBUM_CELL_PADDING,
-    captionHeight: ALBUM_CAPTION_HEIGHT,
+    captionHeight,
     height: reservedHeight === undefined ? gridHeight : Math.max(gridHeight - reservedHeight, rowHeight),
     gutter: ALBUM_GRID_GUTTER,
   };

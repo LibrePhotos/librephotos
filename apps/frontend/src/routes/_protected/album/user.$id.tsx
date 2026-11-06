@@ -80,7 +80,6 @@ function AlbumUserGallery() {
         additionalSubHeader={getSubheader(isPublic)}
         loading={isLoading}
         emptyStateConfig={emptyStateConfig}
-        icon={Bookmark}
         titleBadge={ownAlbum && album?.locked ? <LockedAlbumBadge /> : undefined}
         // Outside isPublic's read-only header: a recipient gets "Leave album" there too
         headerActions={headerActions}

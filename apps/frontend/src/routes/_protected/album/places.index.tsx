@@ -31,6 +31,7 @@ import { validatePlacesSearch } from "../../../components/places/placesSearch";
 import { addPlaceBlocked, usePlaceEditor } from "../../../components/places/usePlaceEditor";
 import { YourPlacesRow } from "../../../components/places/YourPlacesRow";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../../uiConstants";
 import { useMapStyle } from "../../../util/mapStyle";
 import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
 
@@ -113,7 +114,6 @@ function AlbumPlace({ height = 0 }: Props) {
   return (
     <div>
       <PageHeader
-        icon={Map2}
         title={t("places")}
         loading={isFetchingPoints || isFetchingAlbums}
         // Without a map nothing filters the list, so there is no "on the map" to speak of
@@ -123,9 +123,13 @@ function AlbumPlace({ height = 0 }: Props) {
             : `${t("placealbum.photosOnMap", { count: mapPoints?.photo_count ?? 0 })} · ${t("placealbum.placesInView", { count: shownAlbums.length })}`
         }
         actions={
-          <Group gap="xs" wrap="nowrap">
+          <Group gap={4} wrap="nowrap">
             <DisabledReason reason={blocked}>
-              <Button variant="light" leftSection={<IconMapPinPlus size={18} />} onClick={() => startEditing()}>
+              <Button
+                h={TOOLBAR_CONTROL_HEIGHT}
+                leftSection={<IconMapPinPlus size={ICON_SIZE.toolbar} />}
+                onClick={() => startEditing()}
+              >
                 {t("yourplaces.add")}
               </Button>
             </DisabledReason>

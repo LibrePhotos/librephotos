@@ -19,10 +19,11 @@
   position: sticky;
   top: var(--app-shell-header-height, 0px);
   z-index: 2;
-  margin-inline: calc(var(--mantine-spacing-md) * -1);
+  /* Edge to edge across the page gutter (PAGE_GUTTER, SettingsPageFrame), the chips on its line */
+  margin-inline: -10px;
   margin-bottom: var(--mantine-spacing-md);
-  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+  padding: var(--mantine-spacing-xs) 10px;
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-body));
   border-bottom: 1px solid var(--mantine-color-default-border);
 }
 

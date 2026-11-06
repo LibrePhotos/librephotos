@@ -17,6 +17,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 import { countSearchFilters } from "./searchFilter";
 import classes from "./SearchFilterButton.module.css";
 import { SearchFilterPanel } from "./SearchFilterPanel";
@@ -45,8 +46,7 @@ export function SearchFilterButton({ filters, onChange, onClear, favoriteRating,
   const active = countSearchFilters(filters);
   const activeLabel = active > 0 ? t("searchfilter.activecount", { count: active }) : undefined;
   const name = activeLabel ? `${t("searchfilter.button")}, ${activeLabel}` : t("searchfilter.button");
-  const variant = active > 0 ? "light" : "subtle";
-  const color = active > 0 ? "blue" : "gray";
+  const look = toolbarLook(active > 0);
 
   const panel = (
     <SearchFilterPanel
@@ -62,7 +62,7 @@ export function SearchFilterButton({ filters, onChange, onClear, favoriteRating,
     return (
       <>
         <Indicator label={active} size={16} disabled={active === 0}>
-          <ActionIcon variant={variant} color={color} size="lg" aria-label={name} onClick={toggle}>
+          <ActionIcon {...look} size="lg" aria-label={name} onClick={toggle}>
             <IconFilter size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Indicator>
@@ -102,8 +102,7 @@ export function SearchFilterButton({ filters, onChange, onClear, favoriteRating,
     >
       <Popover.Target>
         <Button
-          variant={variant}
-          color={color}
+          {...look}
           h={TOOLBAR_CONTROL_HEIGHT}
           leftSection={<IconFilter size={18} />}
           onClick={toggle}
