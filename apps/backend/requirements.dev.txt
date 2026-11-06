@@ -11,7 +11,7 @@ ruff==0.15.22
 # Dead-code check (scripts/check_dead_code.py); lint-backend.yml installs this pin.
 vulture==2.16
 # Import contracts ([tool.importlinter] in pyproject.toml); lint-backend.yml installs this pin.
-import-linter==2.15
+import-linter==2.16
 # Type checking (scripts/typecheck.py). mypy stays below 2.4 because
 # djangorestframework-stubs 3.18.1 declares mypy<2.4.
 mypy==2.3.1
