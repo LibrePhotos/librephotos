@@ -17,7 +17,7 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { useCancelJobMutation, useDeleteJobMutation } from "../../api_client/jobs/hooks";
+import type { useCancelJobMutation, useDeleteJobMutation, useRemoveJobsMutation } from "../../api_client/jobs/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { JobList } from "./JobList";
@@ -82,6 +82,12 @@ vi.mock("../../api_client/jobs/hooks", () => ({
   }),
   useDeleteJobMutation: () => ({
     mutate: vi.fn<ReturnType<typeof useDeleteJobMutation>["mutate"]>(),
+    isPending: false,
+  }),
+  // The Remove finished jobs button of My Jobs, covered in RemoveFinishedJobsButton.test.tsx
+  useAllJobsQuery: () => ({ data: [], isFetching: false }),
+  useRemoveJobsMutation: () => ({
+    mutate: vi.fn<ReturnType<typeof useRemoveJobsMutation>["mutate"]>(),
     isPending: false,
   }),
 }));
@@ -193,6 +199,17 @@ describe("JobList", () => {
 
     const mine = await render(<JobList variant="mine" />);
     expect(mine.container.textContent).not.toContain("dotan");
+    await mine.unmount();
+  });
+
+  // #2908: removing finished jobs in bulk is for a user's own jobs; the admin list holds everyone's.
+  it("offers Remove finished jobs on a single-user list only", async () => {
+    const admin = await render(<JobList />);
+    expect(admin.container.textContent).not.toContain(i18n.t("joblist.removefinished"));
+    await admin.unmount();
+
+    const mine = await render(<JobList variant="mine" />);
+    expect(mine.container.textContent).toContain(i18n.t("joblist.removefinished"));
     await mine.unmount();
   });
 

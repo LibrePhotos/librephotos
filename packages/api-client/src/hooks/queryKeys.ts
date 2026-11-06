@@ -342,6 +342,8 @@ export const jobKeys = {
   /** The job lists and every job's detail. */
   all: jobRoot,
   list: (request: JobListParams) => [...jobRoot, "list", request] as const,
+  /** Every job of the list, all its pages (the bulk remove of finished jobs): under `all`, so a job change refreshes it. */
+  every: (mine: boolean) => [...jobRoot, "every", { mine }] as const,
   detail: (id: number) => [...jobRoot, "detail", id] as const,
   /** The Library page's processing status (#2741): under `all`, so a job change refreshes it. */
   processingStatus: () => [...jobRoot, "processingStatus"] as const,

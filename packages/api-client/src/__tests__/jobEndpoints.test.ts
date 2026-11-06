@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import * as endpoints from "../endpoints";
 import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
-import { fakeServer } from "./harness";
+import { fakeServer, fakeServerByUrl } from "./harness";
 
 const API = "https://demo.example.com/api";
 
@@ -45,6 +45,37 @@ describe("job list and detail", () => {
       `${API}/jobs/?page=2&page_size=10&mine=true`,
     ]);
     expect(defined(jobs.results[0]).job_type_str).toBe("Scan Photos");
+  });
+
+  it("follows the next links to every job, 1000 a page, and narrows to the caller's own", async () => {
+    const page = (results: unknown[], next: string | null) => ({
+      count: 2,
+      next,
+      previous: null,
+      results,
+      page: 1,
+      page_size: 1000,
+      num_pages: 2,
+    });
+    const { client, requests } = fakeServerByUrl(url =>
+      url.includes("page=2")
+        ? page([{ ...job, id: 2 }], null)
+        : page([job], "http://backend:8001/api/jobs/?page=2&page_size=1000&mine=true")
+    );
+
+    const jobs = await endpoints.fetchAllJobs(client, { mine: true });
+
+    expect(jobs.map(row => row.id)).toEqual([1, 2]);
+    expect(requests.map(request => request.url)).toEqual([
+      `${API}/jobs/?page_size=1000&mine=true`,
+      `${API}/jobs/?page=2&page_size=1000&mine=true`,
+    ]);
+  });
+
+  it("asks for everyone's jobs unless narrowing", async () => {
+    const { client, requests } = fakeServer({ count: 0, next: null, previous: null, results: [] });
+    expect(await endpoints.fetchAllJobs(client)).toEqual([]);
+    expect(requests.map(request => request.url)).toEqual([`${API}/jobs/?page_size=1000`]);
   });
 
   it("reads which job is the scan baseline, and a server that does not say", async () => {

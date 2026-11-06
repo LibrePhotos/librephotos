@@ -15,6 +15,7 @@ import { JobDuration } from "./JobDuration";
 import { JobIndicator } from "./JobIndicator";
 import { JobProgress } from "./JobProgress";
 import { jobTypeLabel } from "./jobTypeLabel";
+import { RemoveFinishedJobsButton } from "./RemoveFinishedJobsButton";
 
 type IJobList = Readonly<{
   /**
@@ -71,6 +72,12 @@ export function JobList({ variant = "admin" }: IJobList) {
       <Alert icon={<AlertCircle />} title={t("joblist.removeentries")} mb={16}>
         {t("joblist.removeexplanation")}
       </Alert>
+      {/* Only on My Jobs: the admin list holds everyone's jobs, and removing those in bulk is not this button's job. */}
+      {mine && (
+        <Flex justify="flex-end" mb={16}>
+          <RemoveFinishedJobsButton />
+        </Flex>
+      )}
       {/* Scrolls sideways on a phone instead of clipping the action buttons at the card edge */}
       <Table.ScrollContainer minWidth={280} type="native">
         {/* Tighter cells on a phone so the four columns fit without scrolling */}
