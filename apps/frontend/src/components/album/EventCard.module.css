@@ -1,0 +1,19 @@
+/*
+ * An event card (EventCard.tsx) on CollectionCard's frame: CollectionCard draws the cover, then its
+ * gradient, then the caption (the title, then the meta line), each a child of this link.
+ */
+
+/* A stronger gradient: long generated titles stay readable on snow, sky and pale walls. */
+.frame > :nth-child(2) {
+  background: linear-gradient(to top, var(--app-scrim-black-75) 0, var(--app-scrim-black-25) 50%, transparent 65%);
+}
+
+/* The date and count: 11px/600 small caps, as on the Memories cards. */
+.frame p + p {
+  margin-top: 4px;
+  color: var(--app-scrim-white-80);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

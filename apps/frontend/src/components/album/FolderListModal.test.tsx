@@ -68,7 +68,7 @@ async function renderDialog() {
   await act(async () => {
     dialogRoot.render(
       <MantineProvider>
-        <FolderListModal opened onClose={() => {}} folderPath="/photos" isMobile={false} />
+        <FolderListModal opened onClose={() => {}} folderPath="/photos" />
       </MantineProvider>
     );
   });

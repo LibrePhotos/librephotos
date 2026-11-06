@@ -1,8 +1,9 @@
 import type { SimpleUser } from "@librephotos/api-client";
-import { Avatar, Text, Tooltip } from "@mantine/core";
+import { Avatar } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
+import { META_CHIP_AVATAR, MetaChip } from "../common/MetaChip";
 import { UserAvatar } from "../common/UserAvatar";
 
 type Props = Readonly<{
@@ -12,18 +13,20 @@ type Props = Readonly<{
   own: boolean;
   /** A recipient who may add photos (#464). */
   contributor?: boolean;
+  /** The owner's chip opens the share dialog. */
+  onOpen?: () => void;
 }>;
 
-const MAX_AVATARS = 5;
+const MAX_AVATARS = 3;
 
 const displayName = (user: SimpleUser) => user.first_name || user.username;
 
 /**
- * A user album's people under its title, as Immich heads an album: the owner's face for a
+ * A user album's people under its title, as one header chip (MetaChip): the owner's face for a
  * recipient ("Owned by Ana · You can add photos"), the recipients' faces for the owner ("Shared
- * with 2 people"). Nothing for an album of one's own that is not shared.
+ * with 2 people", opening the share dialog). Nothing for an album of one's own that is not shared.
  */
-export function AlbumMembers({ owner, sharedTo, own, contributor = false }: Props) {
+export function AlbumMembers({ owner, sharedTo, own, contributor = false, onOpen }: Props) {
   const { t } = useTranslation();
   const { data: users } = useFetchUserListQuery();
   const people = own ? sharedTo : [owner];
@@ -38,20 +41,23 @@ export function AlbumMembers({ owner, sharedTo, own, contributor = false }: Prop
         .join(" · ");
 
   return (
-    <>
-      <Avatar.Group spacing="xs">
-        {people.slice(0, MAX_AVATARS).map(user => (
-          <Tooltip key={user.id} label={displayName(user)} withArrow>
-            <UserAvatar user={{ ...user, avatar_url: avatarUrlOf(user) }} size={28} alt={displayName(user)} />
-          </Tooltip>
-        ))}
-        {people.length > MAX_AVATARS ? (
-          <Avatar radius="xl" size={28}>{`+${people.length - MAX_AVATARS}`}</Avatar>
-        ) : null}
-      </Avatar.Group>
-      <Text size="sm" c="dimmed">
-        {label}
-      </Text>
-    </>
+    <MetaChip
+      title={people.map(displayName).join(", ")}
+      onClick={own ? onOpen : undefined}
+      leading={
+        <Avatar.Group spacing={6}>
+          {people.slice(0, MAX_AVATARS).map(user => (
+            <UserAvatar
+              key={user.id}
+              user={{ ...user, avatar_url: avatarUrlOf(user) }}
+              size={META_CHIP_AVATAR}
+              alt=""
+            />
+          ))}
+        </Avatar.Group>
+      }
+    >
+      {label}
+    </MetaChip>
   );
 }

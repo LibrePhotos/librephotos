@@ -1,4 +1,4 @@
-import { Anchor, Button, PasswordInput, Stack, Text, TextInput } from "@mantine/core";
+import { Anchor, Button, Stack } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
@@ -7,6 +7,7 @@ import { ApiError } from "../api_client/api";
 import { useLoginMutation, useSignUpMutation } from "../api_client/auth";
 import { useGetSettingsQuery } from "../api_client/settings";
 import { AuthCard } from "../components/auth/AuthCard";
+import { SignupFields } from "../components/auth/SignupFields";
 import { notification } from "../service/notifications";
 import { reportSignupError } from "../util/apiErrors";
 import { makeSignupSchema } from "./-signup.schema";
@@ -38,10 +39,17 @@ function SignupPage(): React.JSX.Element {
   const { mutate: login, isPending: isLoginPending } = useLoginMutation();
 
   return (
-    <AuthCard title={t("login.signup")}>
-      {registrationClosed ? (
-        <Text size="sm">{t("login.registrationdisabled")}</Text>
-      ) : (
+    <AuthCard
+      title={t("login.signuptitle")}
+      // Closed sign-ups say so where the description goes, in the same dimmed text as on every other page.
+      description={registrationClosed ? t("login.registrationdisabled") : undefined}
+      links={
+        <Anchor component={Link} to="/login">
+          {t("passwordreset.backtologin")}
+        </Anchor>
+      }
+    >
+      {registrationClosed ? null : (
         <form
           onSubmit={form.onSubmit(values => {
             const { email, first_name: firstName, last_name: lastName, password } = values;
@@ -65,58 +73,13 @@ function SignupPage(): React.JSX.Element {
           })}
         >
           <Stack>
-            <TextInput
-              required
-              label={t("login.usernameplaceholder")}
-              name="username"
-              autoComplete="username"
-              {...form.getInputProps("username")}
-            />
-            <TextInput
-              required
-              label={t("settings.emailplaceholder")}
-              name="email"
-              autoComplete="email"
-              {...form.getInputProps("email")}
-            />
-            <TextInput
-              required
-              label={t("settings.firstnameplaceholder")}
-              name="firstname"
-              autoComplete="given-name"
-              {...form.getInputProps("first_name")}
-            />
-            <TextInput
-              required
-              label={t("settings.lastnameplaceholder")}
-              name="lastname"
-              autoComplete="family-name"
-              {...form.getInputProps("last_name")}
-            />
-            <PasswordInput
-              required
-              label={t("login.passwordplaceholder")}
-              name="password"
-              autoComplete="new-password"
-              {...form.getInputProps("password")}
-            />
-            <PasswordInput
-              required
-              label={t("login.confirmpasswordplaceholder")}
-              name="passwordConfirm"
-              autoComplete="new-password"
-              {...form.getInputProps("passwordConfirm")}
-            />
-
-            <Button type="submit" loading={isSignupPending || isLoginPending}>
-              {t("login.signup")}
+            <SignupFields form={form} />
+            <Button type="submit" fullWidth loading={isSignupPending || isLoginPending}>
+              {t("login.createaccount")}
             </Button>
           </Stack>
         </form>
       )}
-      <Anchor component={Link} to="/login" size="sm" ta="center">
-        {t("passwordreset.backtologin")}
-      </Anchor>
     </AuthCard>
   );
 }

@@ -105,10 +105,10 @@ export function ShiftDateFields({ form, summary }: Props) {
           ]}
           {...form.getInputProps("direction")}
         />
-        <Button variant="default" size="compact-sm" onClick={() => oneHour("earlier")}>
+        <Button variant="light" size="compact-sm" onClick={() => oneHour("earlier")}>
           {t("changedatetime.hourearlier")}
         </Button>
-        <Button variant="default" size="compact-sm" onClick={() => oneHour("later")}>
+        <Button variant="light" size="compact-sm" onClick={() => oneHour("later")}>
           {t("changedatetime.hourlater")}
         </Button>
       </Group>

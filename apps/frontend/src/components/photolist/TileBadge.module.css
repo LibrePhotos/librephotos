@@ -1,0 +1,31 @@
+/* One tile mark: white text and glyph on the photo itself, kept readable by a soft shadow. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--mantine-color-white);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  filter: drop-shadow(0 1px 2px var(--app-scrim-black-60));
+}
+
+/* A tile corner: its marks in a row, 6px in from the tile's edges. */
+.corner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The top-right slot already sits 5px in (react-pig). */
+.top {
+  padding: 1px 1px 0 0;
+}
+
+.bottomLeft,
+.bottomRight {
+  padding: 6px;
+}

@@ -5,26 +5,25 @@ import { Logo } from "../common/Logo";
 import classes from "./AuthCard.module.css";
 
 type Props = Readonly<{
-  /** The form's heading ("Sign in to LibrePhotos", "Sign up"). */
+  /** The form's heading, without the product name the logo already shows ("Sign in", "Reset your password"). */
   title: ReactNode;
-  /** A dimmed line under the heading ("Create the admin account for this server."). */
-  subtitle?: ReactNode;
+  /** An optional dimmed line under the heading ("Create the admin account for this server."). */
+  description?: ReactNode;
   children: ReactNode;
-  /** A line under the card (the login page's tagline). */
-  footer?: ReactNode;
+  /** The quiet links under the form ("Forgot password?", "Back to sign in"), centred in one row. */
+  links?: ReactNode;
   /** Above the heading, inside the card (first-time setup's steps). */
   top?: ReactNode;
-  /** First-time setup: a 480px card for its steps instead of 400px. */
-  wide?: boolean;
 }>;
 
 /**
  * The layout of every page before the app: sign-in, sign-up, password reset and first-time setup.
- * The logo and the product name above a borderless card with a soft shadow, in the middle of a
- * plain page; the form's heading inside the card, then the form with its labels above the fields
- * (AuthCard.module.css sizes them), as Immich and Google draw their sign-in.
+ * The logo and the product name above one 400px borderless card with a soft shadow, in the middle of
+ * a plain page; inside it the heading, an optional description, the form with its labels above the
+ * fields and a full-width primary (AuthCard.module.css sizes them), then a row of small links, as
+ * Immich and Google draw their sign-in. The tagline sits under the card on every one of these pages.
  */
-export function AuthCard({ title, subtitle, children, footer, top, wide = false }: Props) {
+export function AuthCard({ title, description, children, links, top }: Props) {
   const { t } = useTranslation();
   return (
     <Stack align="center" justify="center" gap="lg" className={classes.page}>
@@ -35,27 +34,26 @@ export function AuthCard({ title, subtitle, children, footer, top, wide = false 
           {t("login.name")}
         </Text>
       </Group>
-      <Card radius={16} padding={24} className={classes.card} data-wide={wide || undefined}>
+      <Card radius={16} className={classes.card}>
         <Stack gap="lg">
           {top}
-          <Stack gap={4} align="center">
-            <Title order={3} className={classes.title}>
+          <Stack gap={6} align="center">
+            <Title order={2} className={classes.title}>
               {title}
             </Title>
-            {subtitle ? (
-              <Text size="sm" c="dimmed" ta="center">
-                {subtitle}
-              </Text>
-            ) : null}
+            {description ? <Text className={classes.description}>{description}</Text> : null}
           </Stack>
           {children}
+          {links ? (
+            <Group justify="center" gap="lg" className={classes.links}>
+              {links}
+            </Group>
+          ) : null}
         </Stack>
       </Card>
-      {footer ? (
-        <Text c="dimmed" size="sm" ta="center">
-          {footer}
-        </Text>
-      ) : null}
+      <Text c="dimmed" size="sm" ta="center">
+        {t("login.tagline")}
+      </Text>
     </Stack>
   );
 }

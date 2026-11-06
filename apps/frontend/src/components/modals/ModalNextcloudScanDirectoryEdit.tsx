@@ -1,9 +1,10 @@
 import type { DirTree, DirTreeResponse } from "@librephotos/api-client";
-import { Button, Group, Modal, Paper, Stack, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
+import { Button, FocusTrap, Group, Modal, Paper, Stack, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
+import { DIALOG_SIZE } from "./dialogSize";
 import { Leaf } from "./Leaf";
 import { makeNextcloudScanDirectorySchema } from "./ModalNextcloudScanDirectoryEdit.schema";
 import { modalTitleStyles } from "./modalTitleStyles";
@@ -60,13 +61,14 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
 
   return (
     <Modal
+      size={DIALOG_SIZE.lg}
       styles={modalTitleStyles}
       opened={isOpen}
-      centered
       onClose={onClose}
       title={t("modalnextcloud.setdirectory")}
-      size="xl"
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack>
         <TextInput
           label={t("modalnextcloud.currentdirectory")}
@@ -91,7 +93,7 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
           </Paper>
         </div>
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="light" onClick={onClose}>
             {t("modalnextcloud.cancel")}
           </Button>
           <Button disabled={unchanged || !form.isValid()} onClick={() => update()}>

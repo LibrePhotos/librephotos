@@ -1,5 +1,5 @@
 import type { DateSummary } from "@librephotos/api-client";
-import { Button, Group, Modal, SegmentedControl, Stack, Text } from "@mantine/core";
+import { Button, FocusTrap, Group, Modal, SegmentedControl, Stack, Text } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
@@ -13,6 +13,7 @@ import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
 import { formatPickerTime } from "../lightbox/TimestampForm.schema";
 import { WriteBackHint } from "../lightbox/WriteBackHint";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { dateTimeChange, makeChangeDateTimeSchema, type ChangeDateTimeValues } from "./ChangeDateTimeModal.schema";
 import { SetDateFields } from "./SetDateFields";
 import { ShiftDateFields } from "./ShiftDateFields";
@@ -109,7 +110,7 @@ function ChangeDateTimeForm({ summary, selection, onClose, onSaved }: FormProps)
           <WriteBackHint field="date" />
         </Stack>
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="light" onClick={onClose}>
             {t("changedatetime.cancel")}
           </Button>
           <DisabledReason reason={reason}>
@@ -138,13 +139,15 @@ export function ChangeDateTimeModal({ opened, onClose, selection, onSaved }: Pro
   const isPhone = useMediaQuery("(max-width: 36em)") ?? false;
   return (
     <Modal
+      size={DIALOG_SIZE.md}
       opened={opened}
       onClose={onClose}
-      size={480}
       // A phone gets the whole screen: the four number fields and the calendar need it.
       fullScreen={isPhone}
       title={summary ? t("changedatetime.title", { count: summary.count }) : t("changedatetime.titleloading")}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       {summary && <ChangeDateTimeForm summary={summary} selection={selection} onClose={onClose} onSaved={onSaved} />}
       {!summary && failure && <ErrorState failure={failure} compact />}
       {!summary && !failure && <PageLoader label={t("changedatetime.loading")} />}

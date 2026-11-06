@@ -215,14 +215,6 @@
   right: 0px;
 }
 
-/* The overlay icons and text are white (the star gold): a soft shadow keeps
-   them visible on bright photos and video frames. */
-.overlaysTopRight,
-.overlaysBottomLeft,
-.overlaysBottomRight {
-  filter: drop-shadow(0 0 2px var(--app-scrim-black-75));
-}
-
 /* A video's clip over its poster while the tile is pointed at (#2026): it fades
    in once it can play, so the poster shows until then and there is no flash. */
 .previewClip {

@@ -13,7 +13,6 @@ import {
   VisuallyHidden,
 } from "@mantine/core";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
@@ -23,9 +22,8 @@ import { useListFailure } from "../common/useListFailure";
 import { SectionLink } from "../settings/SettingsSection";
 import { CancelJobButton } from "./CancelJobButton";
 import { JobActionsMenu } from "./JobActionsMenu";
-import { jobDurationLabel } from "./JobDuration";
 import classes from "./JobList.module.css";
-import { JobProgress } from "./JobProgress";
+import { JobListProgress } from "./JobListProgress";
 import { JobStatusChip } from "./JobStatusChip";
 import { jobTypeLabel } from "./jobTypeLabel";
 
@@ -53,10 +51,10 @@ function isPlainRowClick(target: EventTarget) {
   return !(target instanceof Element && target.closest('a, button, [role="button"]'));
 }
 
-/** "1 hour ago · 482 ms", and on the admin list whose job it is. */
-function jobMeta(job: Job, t: TFunction, withUser: boolean): string {
+/** "1 hour ago", and on the admin list whose job it is; the duration has the progress column. */
+function jobMeta(job: Job, withUser: boolean): string {
   const when = parseInstant(job.started_at ?? job.queued_at).toRelative();
-  return [when, jobDurationLabel(job, t), withUser ? job.started_by.username : null].filter(Boolean).join(" · ");
+  return [when, withUser ? job.started_by.username : null].filter(Boolean).join(" · ");
 }
 
 export function JobList({ variant = "admin" }: IJobList) {
@@ -126,19 +124,11 @@ export function JobList({ variant = "admin" }: IJobList) {
                     {jobTypeLabel(job, t)}
                   </Anchor>
                   <Text size="xs" c="dimmed">
-                    {jobMeta(job, t, !mine)}
+                    {jobMeta(job, !mine)}
                   </Text>
                 </Table.Td>
                 <Table.Td className={classes.progressCell}>
-                  <JobProgress
-                    target={job.progress_target}
-                    current={job.progress_current}
-                    failed={job.failed}
-                    cancelled={job.cancelled}
-                    finished={job.finished}
-                    result={job.result}
-                    progressStep={job.progress_step}
-                  />
+                  <JobListProgress job={job} />
                 </Table.Td>
                 <Table.Td className={classes.chipCell}>
                   <JobStatusChip job={job} />

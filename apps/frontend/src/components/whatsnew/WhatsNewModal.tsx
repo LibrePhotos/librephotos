@@ -1,10 +1,11 @@
-import { Anchor, Button, Group, Modal, SegmentedControl, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Button, FocusTrap, Group, Modal, SegmentedControl, Stack, Text, Title } from "@mantine/core";
 import { IconExternalLink as ExternalLink } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchImageTagQuery } from "../../api_client/server";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { releasesForMenu, withHighlights } from "./selectUnseen";
 import classes from "./WhatsNewModal.module.css";
 import { WHATS_NEW_RELEASES, type WhatsNewHighlight, type WhatsNewRelease } from "./whatsNewReleases";
@@ -96,7 +97,9 @@ export function WhatsNewModal({ opened, onClose, releases: tags }: WhatsNewModal
   const release = releases.find(candidate => candidate.release === selected) ?? releases[0];
 
   return (
-    <Modal opened={opened} onClose={onClose} title={t("whatsnew.dialogtitle")} size="lg">
+    <Modal size={DIALOG_SIZE.lg} opened={opened} onClose={onClose} title={t("whatsnew.dialogtitle")}>
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack>
         {releases.length > 1 ? (
           <SegmentedControl

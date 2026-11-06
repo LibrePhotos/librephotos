@@ -1,11 +1,12 @@
 import type { DateTimeRule } from "@librephotos/api-client";
-import { ActionIcon, Modal, ScrollArea, Table, Text, TextInput } from "@mantine/core";
+import { ActionIcon, FocusTrap, Modal, ScrollArea, Table, Text, TextInput } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fuzzyMatch } from "../../util/util";
 import { describeRuleType, getRuleExtraInfo } from "../settings/dateTimeSettings";
 import classes from "../settings/RuleTable.module.css";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -71,12 +72,14 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
 
   return (
     <Modal
+      size={DIALOG_SIZE.lg}
       styles={modalTitleStyles}
       opened={opened}
-      size="xl"
       title={t("settings.configdatetime_add_title")}
       onClose={() => onClose()}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       {/* Same gap above the search field as the burst-rule dialog */}
       <Text c="dimmed" mb="md">
         {t("settings.configdatetime_add_description")}

@@ -1,0 +1,4 @@
+/* A path longer than the field ends in an ellipsis instead of being cut mid-word (ScanDirectoryField.tsx). */
+.input {
+  text-overflow: ellipsis;
+}

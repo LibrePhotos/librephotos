@@ -24,15 +24,26 @@ export function userDisplayName(user: AvatarUser): string {
   return full || user.username;
 }
 
+// Calm hues only: red and orange mean errors and warnings elsewhere in the app.
+const INITIALS_COLORS = ["blue", "indigo", "teal", "green", "grape", "cyan", "violet", "gray"] as const;
+
+/** The same colour for a name every time (a small string hash into INITIALS_COLORS). */
+function initialsColor(name: string): (typeof INITIALS_COLORS)[number] {
+  let hash = 0;
+  for (const char of name) hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 1_000_003;
+  return INITIALS_COLORS[hash % INITIALS_COLORS.length] ?? "gray";
+}
+
 /**
- * A user's picture, or their initials on a colour picked from their name (the same colour every
+ * A user's picture, or their initials on a soft tint picked from their name (the same one every
  * time), as Google Photos and Immich show people without a picture, instead of a grey silhouette.
  */
 export function UserAvatar({ user, alt = "", radius = "xl", ...props }: Props) {
   if (user?.avatar_url) {
     return <Avatar src={serverAddress + user.avatar_url} alt={alt} radius={radius} {...props} />;
   }
+  const name = user ? userDisplayName(user) : "";
   return (
-    <Avatar name={user ? userDisplayName(user) : undefined} color="initials" alt={alt} radius={radius} {...props} />
+    <Avatar name={name || undefined} color={initialsColor(name)} variant="light" alt={alt} radius={radius} {...props} />
   );
 }

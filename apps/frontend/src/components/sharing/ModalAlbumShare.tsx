@@ -1,4 +1,16 @@
-import { Button, Divider, Group, Modal, ScrollArea, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import {
+  Button,
+  Divider,
+  FocusTrap,
+  Group,
+  Modal,
+  ScrollArea,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconChevronDown as ChevronDown,
@@ -12,6 +24,7 @@ import { useFetchUserAlbumQuery, useToggleUserAlbumPublicMutation } from "../../
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { ConfirmModal } from "../modals/ConfirmModal";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { AlbumSlugSection } from "./AlbumSlugSection";
 import { MemberCeilingSection } from "./MemberCeilingSection";
 import { MemberRoleConfirmModal } from "./MemberRoleConfirmModal";
@@ -58,6 +71,7 @@ export function ModalAlbumShare(props: Props) {
   return (
     <>
       <Modal
+        size={DIALOG_SIZE.md}
         opened={isOpen}
         title={t("modalalbumsshare.title")}
         // Escape belongs to the confirmation while it is open; both would close otherwise.
@@ -67,6 +81,8 @@ export function ModalAlbumShare(props: Props) {
           setUserNameFilter("");
         }}
       >
+        {/* No focus ring at open: nothing is focused until Tab */}
+        <FocusTrap.InitialFocus />
         {/* One surface: the public link, a hairline, then who it is shared with and what they see */}
         <Stack gap={0}>
           <section className={classes.section}>

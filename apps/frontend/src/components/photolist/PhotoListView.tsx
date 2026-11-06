@@ -14,6 +14,8 @@ import type { PigHandle, PigVisibleGroup } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
+import { BottomLeftOverlay } from "./BottomLeftOverlay";
+import { BottomRightOverlay } from "./BottomRightOverlay";
 import { DefaultHeader, type CollectionHeader } from "./DefaultHeader";
 import { MediaTypeHint } from "./MediaTypeHint";
 import { PhotoListDialogs } from "./PhotoListDialogs";
@@ -21,7 +23,6 @@ import { PhotoListFallback } from "./PhotoListFallback";
 import { PhotoListSelectionBar } from "./PhotoListSelectionBar";
 import { PhotoListToolbar } from "./PhotoListToolbar";
 import classes from "./PhotoListView.module.css";
-import { StackOverlay } from "./StackOverlay";
 import { TopRightOverlay } from "./TopRightOverlay";
 import { usePhotoListAlbumCover } from "./usePhotoListAlbumCover";
 import { usePhotoListClick } from "./usePhotoListClick";
@@ -33,7 +34,6 @@ import { usePhotoListSelection } from "./usePhotoListSelection";
 import { usePhotoListSelectMode } from "./usePhotoListSelectMode";
 import { usePhotoListSlideshow } from "./usePhotoListSlideshow";
 import { usePhotoListThrottledUpdates } from "./usePhotoListThrottledUpdates";
-import { VideoOverlay } from "./VideoOverlay";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
@@ -379,8 +379,8 @@ function PhotoListViewComponent({
               groupByDate={isDateView}
               getUrl={getTileUrl}
               toprightoverlay={TopRightOverlay}
-              bottomleftoverlay={StackOverlay}
-              bottomrightoverlay={VideoOverlay}
+              bottomleftoverlay={BottomLeftOverlay}
+              bottomrightoverlay={BottomRightOverlay}
               numberOfItems={numberOfItems}
               updateItems={updateItems ? throttledUpdateItems : noop}
               updateGroups={updateGroups ? throttledUpdateGroups : noop}

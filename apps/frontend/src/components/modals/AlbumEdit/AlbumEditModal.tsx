@@ -1,5 +1,5 @@
 import type { BulkPhotoQuery, PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
-import { Modal, TextInput } from "@mantine/core";
+import { FocusTrap, Modal, TextInput } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
@@ -14,6 +14,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { parseInstant } from "../../../util/dateUtils";
 import { fuzzyMatch } from "../../../util/util";
 import { selectionLabel } from "../../photolist/selectionLabel";
+import { DIALOG_SIZE } from "../dialogSize";
 import { modalTitleStyles } from "../modalTitleStyles";
 import classes from "./AlbumEditModal.module.css";
 import { AlbumPickerRow } from "./AlbumPickerRow";
@@ -34,9 +35,9 @@ type Props = Readonly<{
 /** More albums than this and the picker starts with a search field (Immich). */
 const SEARCH_FROM = 6;
 
-/** "7 items · Created 7h ago": one meta line for an album of one's own. */
+/** "7 items · Created 7 hours ago", in full words: one meta line for an album of one's own. */
 function albumMeta(t: TFunction, album: UserAlbumInfo): string {
-  const created = parseInstant(album.created_on).toRelative({ style: "narrow" });
+  const created = parseInstant(album.created_on).toRelative();
   const items = t("modalalbum.items", { count: album.photo_count });
   return created ? `${items} · ${t("modalalbum.created", { duration: created })}` : items;
 }
@@ -85,7 +86,14 @@ export function AlbumEditModal(props: Props) {
 
   if (contributeTo) {
     return (
-      <Modal styles={modalTitleStyles} zIndex={1500} opened={isOpen} title={t("modalalbum.title")} onClose={close}>
+      <Modal
+        size={DIALOG_SIZE.md}
+        styles={modalTitleStyles}
+        zIndex={1500}
+        opened={isOpen}
+        title={t("modalalbum.title")}
+        onClose={close}
+      >
         <ContributeStep
           album={contributeTo}
           photoIds={photos}
@@ -112,6 +120,7 @@ export function AlbumEditModal(props: Props) {
 
   return (
     <Modal
+      size={DIALOG_SIZE.md}
       styles={modalTitleStyles}
       zIndex={1500}
       opened={isOpen}
@@ -124,10 +133,11 @@ export function AlbumEditModal(props: Props) {
       }
       onClose={close}
     >
-      {albumsUserList.length > SEARCH_FROM && (
+      {albumsUserList.length > SEARCH_FROM ? (
         <TextInput
+          data-autofocus
           variant="filled"
-          size="md"
+          size="sm"
           radius="md"
           className={classes.search}
           leftSection={<IconSearch size={18} />}
@@ -136,6 +146,9 @@ export function AlbumEditModal(props: Props) {
           value={search}
           onChange={event => setSearch(event.currentTarget.value)}
         />
+      ) : (
+        // No focus ring at open: nothing is focused until Tab
+        <FocusTrap.InitialFocus />
       )}
       {/* One list: the new album first, then your albums, then the shared ones you can add to */}
       <div className={classes.list}>

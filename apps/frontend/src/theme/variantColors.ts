@@ -12,6 +12,17 @@ export const appVariantColorResolver: VariantColorsResolver = input => {
   if (input.variant === "filled" && isPrimary) {
     return { ...colors, color: "var(--mantine-primary-color-contrast)" };
   }
+  // The neutral secondary: a quiet grey pill with no border, like Immich's secondary buttons, so
+  // secondary actions read as one family with the tonal (light) ones instead of an outlined box.
+  if (input.variant === "default") {
+    return {
+      ...colors,
+      background: "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))",
+      hover: "light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4))",
+      border: "1px solid transparent",
+      color: "var(--mantine-color-text)",
+    };
+  }
   // Destructive buttons: a deep red with white text in both schemes (the dark scheme's filled shade
   // is a pastel, which made "Empty trash" pale pink).
   if (input.variant === "filled" && input.color === "red") {

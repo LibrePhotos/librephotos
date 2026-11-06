@@ -16,7 +16,7 @@ export class LoginPage {
 
   async goto() {
     await this.page.goto("/login");
-    await expect(this.page.getByRole("heading", { name: "Sign in to LibrePhotos" })).toBeVisible();
+    await expect(this.page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
   }
 
   async login(username: string, password: string) {

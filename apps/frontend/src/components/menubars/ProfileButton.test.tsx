@@ -21,7 +21,10 @@ const stubs = vi.hoisted(() => ({
   openWhatsNew: vi.fn<(releases?: readonly string[]) => void>(),
 }));
 
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn<(options: { to: string }) => void>(),
+  useRouterState: () => false,
+}));
 vi.mock("../../api_client/auth", () => ({ useLogoutMutation: () => ({ mutate: vi.fn<() => void>() }) }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: { username: "admin", is_superuser: stubs.isAdmin } }),

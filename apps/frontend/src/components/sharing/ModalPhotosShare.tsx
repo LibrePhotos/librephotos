@@ -1,5 +1,17 @@
 import type { BulkPhotoQuery } from "@librephotos/api-client";
-import { ActionIcon, Badge, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  Badge,
+  Divider,
+  FocusTrap,
+  Group,
+  Modal,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { IconShare as Share, IconShareOff as ShareOff } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +21,7 @@ import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useC
 import { parseInstant } from "../../util/dateUtils";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import { UserAvatar } from "../common/UserAvatar";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { selectionLabel } from "../photolist/selectionLabel";
 import filterUsers from "./utils";
 
@@ -52,6 +65,7 @@ export function ModalPhotosShare(props: Props) {
 
   return (
     <Modal
+      size={DIALOG_SIZE.md}
       opened={isOpen}
       title={t("modalphotosshare.title")}
       onClose={() => {
@@ -59,6 +73,8 @@ export function ModalPhotosShare(props: Props) {
         setUserNameFilter("");
       }}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack>
         {selectAllMode ? (
           <Badge color="blue" size="lg" variant="light">

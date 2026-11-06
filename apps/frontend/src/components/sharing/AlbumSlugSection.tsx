@@ -269,7 +269,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
             userDefaults={currentUser?.public_sharing_defaults}
           />
           <Group>
-            <Button variant="default" disabled={!canSave} onClick={() => onSave()}>
+            <Button variant="light" disabled={!canSave} onClick={() => onSave()}>
               {t("sharing.saveLinkSettings")}
             </Button>
           </Group>

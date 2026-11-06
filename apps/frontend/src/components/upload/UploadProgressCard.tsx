@@ -1,9 +1,10 @@
 import { ActionIcon, Box, Button, Group, Paper, Progress, Stack, Text, Tooltip } from "@mantine/core";
-import { IconChevronDown, IconChevronUp, IconPlayerStop, IconRotateClockwise, IconX } from "@tabler/icons-react";
+import { IconChevronDown, IconChevronUp, IconRotateClockwise, IconX } from "@tabler/icons-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FOOTER_HEIGHT } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { toolbarLook } from "../common/toolbarLook";
 import { UploadAlbumStrip } from "./UploadAlbumStrip";
 import { useOptionalUploadProcessing, useUpload } from "./UploadContext";
 import { NO_OUTCOMES, rowServerState } from "./uploadProcessing";
@@ -66,9 +67,8 @@ function StopOrCloseButton() {
     <DisabledReason label={t("upload.cancel_hint")} reason={isCancelling && t("upload.cancelling")}>
       <Button
         size="compact-sm"
-        variant="subtle"
-        color="red"
-        leftSection={<IconPlayerStop size={14} />}
+        // Neutral: cancelling is not destructive (cancelled files can be retried); red is for failures.
+        {...toolbarLook()}
         onClick={cancel}
         data-testid="upload-cancel"
       >

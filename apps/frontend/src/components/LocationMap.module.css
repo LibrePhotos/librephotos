@@ -15,3 +15,15 @@
 .frame[data-drawn] > * {
   opacity: 1;
 }
+
+/*
+ * Dark mode: the inverted basemap (ThemedMap) came out so dim on the black viewer that the pin was
+ * hard to find. A touch brighter here, and the pin gets a white rim and a shadow to stand off it.
+ */
+[data-mantine-color-scheme="dark"] .frame[data-drawn] > * {
+  filter: brightness(1.2);
+}
+
+.pin svg {
+  filter: drop-shadow(0 0 1px var(--mantine-color-white)) drop-shadow(0 2px 3px var(--app-scrim-black-40));
+}

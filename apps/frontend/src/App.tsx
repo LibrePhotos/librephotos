@@ -76,11 +76,13 @@ const theme = createTheme({
     Modal: Modal.extend({
       defaultProps: {
         centered: true,
+        // The md dialog width (components/modals/dialogSize.ts) for dialogs that set none.
+        size: 520,
         radius: "lg",
         padding: 24,
         overlayProps: { backgroundOpacity: 0.55, blur: 2 },
       },
-      classNames: { content: dialogClasses.content },
+      classNames: { inner: dialogClasses.inner, content: dialogClasses.content },
       styles: modalTitleStyles,
     }),
     // Every menu and submenu fits the window and scrolls past it (#2707).

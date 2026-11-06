@@ -15,7 +15,7 @@ import { AvatarFacePickerModal } from "./AvatarFacePickerModal";
 import classes from "./ProfileAvatar.module.css";
 
 /** The avatar's size on the page, and of the image that is uploaded. */
-const AVATAR_SIZE = 96;
+const AVATAR_SIZE = 72;
 
 type Props = Readonly<{
   userId: number;
@@ -25,9 +25,9 @@ type Props = Readonly<{
 }>;
 
 /**
- * The profile's avatar: a round picture (or the user's initials on their colour, as everywhere a
- * user is shown), then in one row beside it the Change menu (upload an image, or pick one of the
- * faces) with the size limit under it. A new picture can be moved into place and is only stored
+ * The profile's avatar: a 72px round picture (or the user's initials on their colour, as everywhere
+ * a user is shown), and beside it the "Change photo" menu (upload an image, or pick one of the
+ * faces) with the size limit in 12px under it. A new picture can be moved into place and is only stored
  * with Upload.
  */
 export function ProfileAvatar({ userId, user }: Props) {
@@ -84,8 +84,8 @@ export function ProfileAvatar({ userId, user }: Props) {
         <Group gap="xs">
           <Menu position="bottom-start" shadow="md">
             <Menu.Target>
-              <Button size="sm" variant="light" aria-label={t("settings.changeavatar")}>
-                {t("settings.change")}
+              <Button size="sm" variant="light">
+                {t("settings.changephoto")}
               </Button>
             </Menu.Target>
             <Menu.Dropdown>

@@ -10,9 +10,8 @@
  * free, and so is the padding inside a card (`Paper`, `Card`) or inside a component.
  *
  * The settings-type pages (Settings, Profile, Library, Admin, Jobs, job detail) keep the same
- * gutter through `SettingsPageFrame`: the header spans the page like every other page's, and only
- * the cards below stop at a reading width, left-aligned. ALLOW_LIST holds a route file that still
- * sets its own gutter; it only shrinks.
+ * gutter through `SettingsPageFrame`: a left-aligned reading-width column holding the header and
+ * the cards. ALLOW_LIST holds a route file that still sets its own gutter; it only shrinks.
  */
 import { describe, expect, it } from "vitest";
 

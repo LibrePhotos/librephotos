@@ -4,6 +4,7 @@ import React from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import classes from "./ConfirmModal.module.css";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -54,14 +55,13 @@ export function ConfirmModal({
 
   return (
     <Modal
+      size={DIALOG_SIZE.sm}
       styles={modalTitleStyles}
       // Above the lightbox, like the other dialogs it opens.
       zIndex={1500}
       opened={opened}
       onClose={onClose}
       title={title}
-      centered
-      size="md"
       closeOnClickOutside={!loading}
       closeOnEscape={!loading}
       withCloseButton={!loading}
@@ -74,7 +74,7 @@ export function ConfirmModal({
           </Text>
         )}
         <div className={classes.actions}>
-          <Button variant="default" onClick={onClose} disabled={loading} data-autofocus>
+          <Button variant="light" onClick={onClose} disabled={loading} data-autofocus>
             {cancelLabel ?? t("cancel")}
           </Button>
           <Button color={confirmColor} onClick={onConfirm} loading={loading}>

@@ -15,6 +15,7 @@ import { PasswordEntry } from "./PasswordEntry";
 import { makeProfileSchema, type ProfileValues } from "./Profile.schema";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { SaveChangesDialog } from "./SaveChangesDialog";
+import { ScanDirectoryField } from "./ScanDirectoryField";
 import { SettingsCard } from "./SettingsCard";
 
 /** The profile's form values: the stored details, and the password fields locked and empty. */
@@ -144,19 +145,7 @@ export function Profile() {
             </Group>
           </Radio.Group>
 
-          <Stack justify="flex-start">
-            {auth?.access?.is_admin ? (
-              <TextInput
-                type="text"
-                label={t("settings.scandirectory")}
-                description={t("settings.scandirectoryreadonly")}
-                // Filled, so it does not pass for one of the editable fields around it.
-                variant="filled"
-                readOnly
-                value={userSelfDetails.scan_directory ?? ""}
-              />
-            ) : null}
-          </Stack>
+          {auth?.access?.is_admin ? <ScanDirectoryField path={userSelfDetails.scan_directory ?? ""} /> : null}
 
           <Group align="end" mb={10} mt={10}>
             <Select
@@ -172,12 +161,7 @@ export function Profile() {
               value={i18n.resolvedLanguage ?? "en"}
               data={LANGUAGE_OPTIONS.map(({ value, label }) => ({ value, label: t(label) }))}
             />
-            <Button
-              component="a"
-              href="https://hosted.weblate.org/engage/librephotos/"
-              target="_blank"
-              variant="default"
-            >
+            <Button component="a" href="https://hosted.weblate.org/engage/librephotos/" target="_blank" variant="light">
               {t("settings.helptranslating")}
             </Button>
           </Group>

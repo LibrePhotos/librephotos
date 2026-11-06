@@ -1,6 +1,7 @@
-import { Badge, Group, Kbd, Modal, Stack, Table, Text } from "@mantine/core";
+import { Badge, FocusTrap, Group, Kbd, Modal, Stack, Table, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { modalTitleStyles } from "../modals/modalTitleStyles";
 import { CHORD_KEY, goToShortcuts, HELP_KEY } from "./goToShortcuts";
 
@@ -28,7 +29,15 @@ export function ShortcutsModal({ opened, onClose, isAdmin }: Props) {
   const { t } = useTranslation();
   const isMac = /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent);
   return (
-    <Modal opened={opened} onClose={onClose} centered title={t("shortcuts.title")} styles={modalTitleStyles}>
+    <Modal
+      size={DIALOG_SIZE.md}
+      opened={opened}
+      onClose={onClose}
+      title={t("shortcuts.title")}
+      styles={modalTitleStyles}
+    >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack gap="sm">
         <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
           {t("shortcuts.goto")}

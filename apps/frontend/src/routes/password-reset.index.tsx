@@ -1,4 +1,4 @@
-import { Anchor, Button, Stack, Text, TextInput } from "@mantine/core";
+import { Anchor, Button, Stack, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
@@ -45,31 +45,26 @@ function PasswordResetRequestPage(): React.JSX.Element {
     );
   }
 
+  const backToSignIn = <Anchor href="/login">{t("passwordreset.backtologin")}</Anchor>;
+
   return (
-    <AuthCard title={t("passwordreset.title")}>
-      {submitted ? (
-        <>
-          <Text>{t("passwordreset.checkemail")}</Text>
-          <Anchor href="/login">{t("passwordreset.backtologin")}</Anchor>
-        </>
-      ) : (
+    <AuthCard
+      title={t("passwordreset.title")}
+      description={t(submitted ? "passwordreset.checkemail" : "passwordreset.instructions")}
+      links={backToSignIn}
+    >
+      {submitted ? null : (
         <form onSubmit={form.onSubmit(onSubmit)}>
           <Stack>
-            <Text size="sm" c="dimmed">
-              {t("passwordreset.instructions")}
-            </Text>
             <TextInput
               required
               label={t("passwordreset.emailplaceholder")}
               name="email"
               {...form.getInputProps("email")}
             />
-            <Button loading={isPending} type="submit">
+            <Button loading={isPending} type="submit" fullWidth>
               {t("passwordreset.sendlink")}
             </Button>
-            <Anchor href="/login" size="sm" ta="center">
-              {t("passwordreset.backtologin")}
-            </Anchor>
           </Stack>
         </form>
       )}

@@ -3,3 +3,20 @@
 .content {
   border: 1px solid light-dark(transparent, var(--app-scrim-white-8));
 }
+
+/* On a phone a dialog is a bottom sheet, like the account menu: full width at the bottom of the
+   screen with rounded top corners. */
+@media (max-width: 47.99em) {
+  .inner {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .content {
+    flex-basis: 100%;
+    max-width: 100%;
+    max-height: 90dvh;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

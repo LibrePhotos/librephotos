@@ -7,7 +7,7 @@ type Props = Readonly<{
   parts: ReadonlyArray<string | null | undefined | false>;
   /** After the meta line's text, on the same line: a small action ("Add birth date"). */
   trailing?: ReactNode;
-  /** Its own row under the line: the people in it, its chips. */
+  /** Its own row under the line: its chips (`MetaChip`), the people in it. */
   children?: ReactNode;
 }>;
 
@@ -32,9 +32,4 @@ export function CollectionMeta({ parts, trailing, children }: Props) {
       {children ? <div className={classes.row}>{children}</div> : null}
     </div>
   );
-}
-
-/** The 1px rule between two groups in a CollectionMeta row (the people and the map chip). */
-export function CollectionMetaSeparator() {
-  return <span className={classes.separator} aria-hidden />;
 }

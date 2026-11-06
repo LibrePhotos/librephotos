@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useIsAuthenticatedQuery, useLoginMutation, useSsoConfigQuery } from "../../api_client/auth";
 import { useGetSettingsQuery } from "../../api_client/settings";
 import { AuthCard } from "./AuthCard";
+import { LoginLinks } from "./LoginLinks";
 import { RememberMeRow } from "./RememberMeRow";
 import { SsoErrorAlert } from "./SsoErrorAlert";
 
@@ -31,6 +32,9 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
   });
   // An older server sends no day count and has no "Remember me".
   const rememberMeDays = siteSettings?.remember_me_days ?? 0;
+  // "Forgot password?" only works when the server can send the mail.
+  const forgotPassword = !!siteSettings?.email_configured;
+  const signup = !!siteSettings?.allow_registration;
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -50,7 +54,10 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
   }
 
   return (
-    <AuthCard title={t("login.signintitle")} footer={t("login.tagline")}>
+    <AuthCard
+      title={t("login.signin")}
+      links={forgotPassword || signup ? <LoginLinks forgotPassword={forgotPassword} signup={signup} /> : undefined}
+    >
       <SsoErrorAlert />
 
       <form onSubmit={onSubmit}>
@@ -76,21 +83,10 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
             rememberMeDays={rememberMeDays}
             rememberMe={form.values.rememberMe}
             onRememberMeChange={checked => form.setFieldValue("rememberMe", checked)}
-            showForgotPassword={!!siteSettings?.email_configured}
           />
-          <Button type="submit" loading={isLoading}>
+          <Button type="submit" fullWidth loading={isLoading}>
             {t("login.signin")}
           </Button>
-          {siteSettings && siteSettings.allow_registration && (
-            <Button
-              disabled={!siteSettings.allow_registration || isLoading}
-              component="a"
-              href="/signup"
-              variant="default"
-            >
-              {t("login.signup")}
-            </Button>
-          )}
         </Stack>
       </form>
 
@@ -101,7 +97,7 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
             {ssoConfig.providers.map(provider => (
               // A plain anchor, not a router link: the browser has to leave
               // the SPA and hit the backend to start the redirect to the IdP.
-              <Button key={provider.id} component="a" href={provider.login_url} variant="default" fullWidth>
+              <Button key={provider.id} component="a" href={provider.login_url} variant="light" fullWidth>
                 {/* The configured label reads as one button ("Sign in with
                           Keycloak"); with several providers it stops being
                           descriptive, so name each one instead. */}

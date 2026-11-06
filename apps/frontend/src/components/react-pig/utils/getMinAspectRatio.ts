@@ -12,11 +12,11 @@
  * @returns The minimum aspect ratio at this window width.
  */
 export default function getMinAspectRatio(containerWidth: number, scaleOfImages: number): number {
-  // Rows of about 130 px on a phone and 230 px on a desktop, as in Google Photos and Immich: a
-  // lone landscape photo no longer fills half the screen.
+  // Rows of about 130 px on a phone and 200-230 px on a desktop, as in Google Photos and Immich:
+  // a lone landscape photo no longer fills half the screen, and a laptop screen holds three days.
   if (containerWidth <= 480) return 2.8 * scaleOfImages;
   if (containerWidth <= 800) return 4 * scaleOfImages;
-  if (containerWidth <= 1280) return 5.2 * scaleOfImages;
+  if (containerWidth <= 1280) return 5.9 * scaleOfImages;
   if (containerWidth <= 1920) return 6.2 * scaleOfImages;
   return 7.5 * scaleOfImages;
 }

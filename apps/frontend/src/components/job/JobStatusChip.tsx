@@ -1,6 +1,5 @@
 import type { Job } from "@librephotos/api-client";
-import { Badge, Stack, Text, Tooltip } from "@mantine/core";
-import { IconCheck } from "@tabler/icons-react";
+import { Loader, Stack, Text, Tooltip } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { jobOutcome, type JobOutcome } from "./jobStatus";
@@ -10,17 +9,24 @@ type ChipJob = Pick<Job, "finished" | "failed" | "cancelled" | "started_at" | "r
   Partial<Pick<Job, "progress_current" | "progress_target">>;
 
 /**
- * Colour only where it needs attention: a running job's chip is the primary tint and a failure's
- * (all or some items) red. Completed, queued and cancelled are dimmed text, "✓ Completed" with no
- * pill, so a page of finished jobs reads calm (Immich's job cards).
+ * One status badge for every state: a 22px pill with a 6px dot before the label. Only what needs
+ * attention is tinted: a running job is the primary tint with a spinner for its dot, a failure (of
+ * all or some items) red; completed is a neutral pill with a green dot, queued and cancelled a grey
+ * one, so a page of finished jobs reads calm (Immich's job cards).
  */
-const CHIP_COLOR: Partial<Record<JobOutcome, string | undefined>> = {
-  running: undefined,
-  partial_failure: "red",
-  failed: "red",
+const TONE: Record<
+  JobOutcome,
+  { tone: "neutral" | "accent" | "danger"; dot: "success" | "muted" | "danger" | "spinner" }
+> = {
+  queued: { tone: "neutral", dot: "muted" },
+  running: { tone: "accent", dot: "spinner" },
+  completed: { tone: "neutral", dot: "success" },
+  partial_failure: { tone: "danger", dot: "danger" },
+  failed: { tone: "danger", dot: "danger" },
+  cancelled: { tone: "neutral", dot: "muted" },
 };
 
-/** A job's state: dimmed "✓ Completed", or a small chip ("Running", "2 failed"); a failure's shows its error on hover. */
+/** A job's state as one badge ("Completed", "Running", "2 failed"); a failure's shows its error on hover. */
 export function JobStatusChip({ job }: Readonly<{ job: ChipJob }>) {
   const { t } = useTranslation();
   const outcome = jobOutcome(job);
@@ -36,18 +42,16 @@ export function JobStatusChip({ job }: Readonly<{ job: ChipJob }>) {
     failed: t("joblist.failed"),
     cancelled: t("joblist.cancelled"),
   };
-  if (!(outcome in CHIP_COLOR)) {
-    return (
-      <Text component="span" className={classes.quiet}>
-        {outcome === "completed" ? <IconCheck size={14} aria-hidden /> : null}
-        {labels[outcome]}
-      </Text>
-    );
-  }
+  const { tone, dot } = TONE[outcome];
   const chip = (
-    <Badge variant="light" color={CHIP_COLOR[outcome]} tt="none" className={classes.chip}>
+    <span className={classes.badge} data-tone={tone} data-dot={dot}>
+      {dot === "spinner" ? (
+        <Loader size={10} color="currentColor" aria-hidden />
+      ) : (
+        <span className={classes.dot} aria-hidden />
+      )}
       {labels[outcome]}
-    </Badge>
+    </span>
   );
 
   if (outcome !== "failed" && outcome !== "partial_failure") {

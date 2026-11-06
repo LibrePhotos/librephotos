@@ -5,9 +5,12 @@
   color: var(--mantine-color-text);
 }
 
-/* Under a switch's label: the label input and the provider note line up with the switch text. */
+/*
+ * Under a switch's label: the label input and the provider note line up with the switch text,
+ * which starts after the theme's md track (Mantine's --switch-width-md) and its sm label offset.
+ */
 .indent {
-  padding-left: calc(2.375rem * var(--mantine-scale) + var(--mantine-spacing-sm));
+  padding-left: calc(2.875rem * var(--mantine-scale) + var(--mantine-spacing-sm));
 }
 
 /* A warning or an error reads as dimmed help text; only its icon takes the status colour, darker

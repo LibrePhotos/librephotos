@@ -1,5 +1,5 @@
 import type { JobDetail } from "@librephotos/api-client";
-import { ActionIcon, Badge, Box, Indicator, Menu, VisuallyHidden } from "@mantine/core";
+import { ActionIcon, Badge, Box, Group, Indicator, Menu, Stack, Text, VisuallyHidden } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconAdjustments as Adjustments,
@@ -11,14 +11,14 @@ import {
   IconSparkles as Sparkles,
   IconUser as User,
 } from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useLogoutMutation } from "../../api_client/auth";
 import { useOpenUpgradeTaskCount } from "../../api_client/jobs/hooks/useUpgradeTasks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
-import { UserAvatar } from "../common/UserAvatar";
+import { UserAvatar, userDisplayName } from "../common/UserAvatar";
 import { CancelJobModal } from "../job/CancelJobModal";
 import { ShortcutHint } from "../shortcuts/ShortcutHint";
 import { ShortcutsMenuItem } from "../shortcuts/ShortcutsMenuItem";
@@ -27,8 +27,12 @@ import { rewindSeasonYear } from "../support/supportPrompts";
 import { LogoutWhileUploadingModal, useLogoutGuard, useOptionalUploadProcessing } from "../upload";
 import { useWhatsNew } from "../whatsnew/whatsNewContext";
 import { ImportJobMenuSection, importPercent } from "./ImportJobMenuSection";
+import classes from "./TopMenu.module.css";
 import { jobPercent, WorkerJobMenuSection } from "./WorkerJobMenuSection";
 import { WorkerProgressRing } from "./WorkerProgressRing";
+
+// The pages the account menu opens; none has a row in the sidebar.
+const ACCOUNT_PAGES = ["/settings", "/profile", "/library", "/jobs", "/admin"];
 
 export function ProfileButton(): React.ReactNode {
   const { t } = useTranslation();
@@ -36,6 +40,9 @@ export function ProfileButton(): React.ReactNode {
   const { mutate: logout } = useLogoutMutation();
   const { requestLogout, modalProps } = useLogoutGuard(() => logout());
   const navigate = useNavigate();
+  const onAccountPage = useRouterState({
+    select: state => ACCOUNT_PAGES.some(page => state.location.pathname.startsWith(page)),
+  });
   const whatsNew = useWhatsNew();
   const support = useSupport();
   // Rewind, the user's year in photos, around Christmas only.
@@ -83,6 +90,11 @@ export function ProfileButton(): React.ReactNode {
               <ActionIcon
                 variant="transparent"
                 size={30}
+                radius="xl"
+                // On the account pages (Settings, Profile…), which have no sidebar row, the avatar
+                // that opens them is marked instead.
+                className={classes.avatarButton}
+                data-account-page={onAccountPage}
                 aria-label={[
                   t("topmenu.accountmenu"),
                   workerBusy ? t("topmenu.workerstatusbusy") : null,
@@ -105,24 +117,36 @@ export function ProfileButton(): React.ReactNode {
           {workerBusy && <WorkerJobMenuSection job={workerRunningJob} onCancel={askToCancel} />}
           {importing && <ImportJobMenuSection imports={openImports} />}
 
-          <Menu.Label>
-            <Trans i18nKey="topmenu.loggedin" /> {user ? user.username : ""}
-          </Menu.Label>
+          {/* Who is signed in, as Google Photos and Immich open their account menus. */}
+          {user && (
+            <Group gap="sm" wrap="nowrap" px="sm" py="xs">
+              <UserAvatar user={user} size={36} />
+              <Stack gap={0} miw={0}>
+                <Text size="sm" fw={600} truncate>
+                  {userDisplayName(user)}
+                </Text>
+                <Text size="xs" c="dimmed" truncate>
+                  <Trans i18nKey="topmenu.loggedin" /> {user.username}
+                </Text>
+              </Stack>
+            </Group>
+          )}
+          <Menu.Divider />
 
           <Menu.Item
-            leftSection={<Book size={14} />}
+            leftSection={<Book size={18} stroke={1.75} />}
             rightSection={<ShortcutHint to="/library" />}
             onClick={() => navigate({ to: "/library" })}
           >
             {t("topmenu.library")}
           </Menu.Item>
 
-          <Menu.Item leftSection={<User size={14} />} onClick={() => navigate({ to: "/profile" })}>
+          <Menu.Item leftSection={<User size={18} stroke={1.75} />} onClick={() => navigate({ to: "/profile" })}>
             {t("topmenu.profile")}
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<Settings size={14} />}
+            leftSection={<Settings size={18} stroke={1.75} />}
             rightSection={<ShortcutHint to="/settings" />}
             onClick={() => navigate({ to: "/settings" })}
           >
@@ -130,7 +154,7 @@ export function ProfileButton(): React.ReactNode {
           </Menu.Item>
 
           <Menu.Item
-            leftSection={<ListDetails size={14} />}
+            leftSection={<ListDetails size={18} stroke={1.75} />}
             rightSection={<ShortcutHint to="/jobs" />}
             onClick={() => navigate({ to: "/jobs" })}
           >
@@ -138,13 +162,16 @@ export function ProfileButton(): React.ReactNode {
           </Menu.Item>
 
           {rewindYear === null ? null : (
-            <Menu.Item leftSection={<Confetti size={14} />} onClick={() => support.openRewind(rewindYear)}>
+            <Menu.Item
+              leftSection={<Confetti size={18} stroke={1.75} />}
+              onClick={() => support.openRewind(rewindYear)}
+            >
               {t("rewind.menu", { year: rewindYear })}
             </Menu.Item>
           )}
 
           {/* The highlights of this release, also after the What's new card was closed (#2305). */}
-          <Menu.Item leftSection={<Sparkles size={14} />} onClick={() => whatsNew.open()}>
+          <Menu.Item leftSection={<Sparkles size={18} stroke={1.75} />} onClick={() => whatsNew.open()}>
             {t("whatsnew.menu")}
           </Menu.Item>
 
@@ -152,7 +179,7 @@ export function ProfileButton(): React.ReactNode {
 
           {user && user.is_superuser && (
             <Menu.Item
-              leftSection={<Adjustments size={14} />}
+              leftSection={<Adjustments size={18} stroke={1.75} />}
               rightSection={
                 upgradeTasksLabel ? (
                   <Badge size="sm" color="orange" circle>
@@ -171,7 +198,7 @@ export function ProfileButton(): React.ReactNode {
 
           <ShortcutsMenuItem />
 
-          <Menu.Item leftSection={<Logout size={14} />} onClick={requestLogout}>
+          <Menu.Item leftSection={<Logout size={18} stroke={1.75} />} onClick={requestLogout}>
             {t("topmenu.logout")}
           </Menu.Item>
         </Menu.Dropdown>

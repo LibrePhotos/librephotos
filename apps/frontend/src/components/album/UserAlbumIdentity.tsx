@@ -32,7 +32,13 @@ export function UserAlbumIdentity({ album, own, upload }: Props) {
   const sharedTo = album.shared_to ?? [];
   const members =
     !own || sharedTo.length > 0 ? (
-      <AlbumMembers owner={album.owner} sharedTo={sharedTo} own={own} contributor={album.my_role === "contributor"} />
+      <AlbumMembers
+        owner={album.owner}
+        sharedTo={sharedTo}
+        own={own}
+        contributor={album.my_role === "contributor"}
+        onOpen={share.open}
+      />
     ) : null;
   if (!own) return members ? <div className={classes.row}>{members}</div> : null;
 

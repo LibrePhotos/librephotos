@@ -22,6 +22,8 @@
 .leading {
   grid-row: 1;
   display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .text {
@@ -31,18 +33,18 @@
 
 .title.title {
   overflow-wrap: anywhere;
-  /* Every top-level page: 28px/700 on a 34px line (two classes: they win over Title's own size) */
-  font-size: calc(1.75rem * var(--mantine-scale));
+  /* Every top-level page: 26px/700 on a 32px line (two classes: they win over Title's own size) */
+  font-size: calc(1.625rem * var(--mantine-scale));
   font-weight: 700;
-  line-height: calc(2.125rem * var(--mantine-scale));
+  line-height: calc(2rem * var(--mantine-scale));
   letter-spacing: -0.01em;
 }
 
-/* A collection's own title (album, event, place, thing, person): 34px/750, so it reads as a place
+/* A collection's own title (album, event, place, thing, person): 34px/700, so it reads as a place
    of its own rather than a filtered timeline, as Apple's large titles and Immich's album title. */
 .title.collectionTitle {
   font-size: calc(2.125rem * var(--mantine-scale));
-  font-weight: 750;
+  font-weight: 700;
   line-height: calc(2.5rem * var(--mantine-scale));
   letter-spacing: -0.015em;
 }
@@ -77,8 +79,8 @@
    and the ⋯. */
 @media (max-width: 48em) {
   .title.title {
-    font-size: calc(1.5rem * var(--mantine-scale));
-    line-height: calc(1.875rem * var(--mantine-scale));
+    font-size: calc(1.375rem * var(--mantine-scale));
+    line-height: calc(1.75rem * var(--mantine-scale));
   }
 
   .title.collectionTitle {

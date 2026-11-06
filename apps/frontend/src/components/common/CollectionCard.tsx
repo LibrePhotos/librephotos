@@ -1,10 +1,12 @@
 import { ActionIcon, Menu, Text } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconDotsVertical } from "@tabler/icons-react";
 import clsx from "clsx";
-import React from "react";
+import React, { useRef } from "react";
 import type { ReactNode } from "react";
 import { Tile } from "../Tile";
 import classes from "./CollectionCard.module.css";
+import { useLongPress } from "./useLongPress";
 
 /** A cover photo as the album lists send it. */
 type CollectionCover = Readonly<{ image_hash: string; video?: boolean | null }>;
@@ -64,10 +66,55 @@ function Covers({ covers, size }: Readonly<{ covers: readonly CollectionCover[];
   ));
 }
 
+type CardMenuProps = Readonly<{
+  label: string;
+  opened: boolean;
+  onToggle: (trigger: HTMLButtonElement) => void;
+  onClose: () => void;
+  trigger: React.RefObject<HTMLButtonElement | null>;
+  children: ReactNode;
+}>;
+
+/** The card's ⋮ menu. On a phone its button hides and a long press on the card opens it. */
+function CardMenu({ label, opened, onToggle, onClose, trigger, children }: CardMenuProps) {
+  return (
+    <div className={classes.menu}>
+      {/* Its items open dialogs: handing focus back to the trigger took it from the dialog's
+          input. Escape still returns it (Mantine does that on its own). A long press opens it
+          with the finger still down, so only a new press outside closes it, not that one's
+          release. */}
+      <Menu
+        position="bottom-end"
+        returnFocus={false}
+        opened={opened}
+        onClose={onClose}
+        clickOutsideEvents={["pointerdown"]}
+      >
+        <Menu.Target>
+          <ActionIcon
+            ref={trigger}
+            variant="transparent"
+            className={classes.menuButton}
+            aria-label={label}
+            onClick={event => {
+              event.preventDefault();
+              onToggle(event.currentTarget);
+            }}
+          >
+            <IconDotsVertical size={16} />
+          </ActionIcon>
+        </Menu.Target>
+        <Menu.Dropdown>{children}</Menu.Dropdown>
+      </Menu>
+    </div>
+  );
+}
+
 /**
  * One card for every collection grid and row (albums, events, things, tags, places, folders, shared
  * albums, people): the cover fills a rounded box and the title and count sit on it bottom-left, over
- * a soft gradient. The ⋮ menu shows on hover and focus only (quietly always on touch screens).
+ * a soft gradient. The ⋮ menu shows on hover and focus only (quietly always on touch screens); on
+ * a phone it hides and a long press on the card opens the same menu (review r6 #16).
  */
 export function CollectionCard({
   title,
@@ -92,6 +139,12 @@ export function CollectionCard({
     ) : (
       <div className={clsx(classes.image, classes.placeholder)}>{placeholder}</div>
     ));
+  const [menuOpened, menu] = useDisclosure(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const longPress = useLongPress(() => {
+    menu.open();
+    if (trigger.current) onMenuOpen?.(trigger.current);
+  });
   const content = (
     <>
       <div className={classes.media}>{picture}</div>
@@ -110,7 +163,7 @@ export function CollectionCard({
   );
 
   return (
-    <div className={clsx(classes.card, className)} data-shape={shape}>
+    <div className={clsx(classes.card, className)} data-shape={shape} {...(menuItems ? longPress : {})}>
       {renderLink ? (
         renderLink({ className: classes.frame, "aria-label": linkLabel ?? title, children: content })
       ) : (
@@ -118,26 +171,18 @@ export function CollectionCard({
       )}
       {badges ? <div className={classes.badges}>{badges}</div> : null}
       {menuItems ? (
-        <div className={classes.menu}>
-          {/* Its items open dialogs: handing focus back to the trigger took it from the dialog's
-              input. Escape still returns it (Mantine does that on its own). */}
-          <Menu position="bottom-end" returnFocus={false}>
-            <Menu.Target>
-              <ActionIcon
-                variant="transparent"
-                className={classes.menuButton}
-                aria-label={menuLabel ?? title}
-                onClick={event => {
-                  event.preventDefault();
-                  onMenuOpen?.(event.currentTarget);
-                }}
-              >
-                <IconDotsVertical size={16} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>{menuItems}</Menu.Dropdown>
-          </Menu>
-        </div>
+        <CardMenu
+          label={menuLabel ?? title}
+          opened={menuOpened}
+          onToggle={button => {
+            if (!menuOpened) onMenuOpen?.(button);
+            menu.toggle();
+          }}
+          onClose={menu.close}
+          trigger={trigger}
+        >
+          {menuItems}
+        </CardMenu>
       ) : null}
     </div>
   );

@@ -1,5 +1,5 @@
 import type { ListUser, PersonSharing } from "@librephotos/api-client";
-import { Button, Divider, Group, Modal, ScrollArea, Stack, Switch, Text, Title } from "@mantine/core";
+import { Button, Divider, FocusTrap, Group, Modal, ScrollArea, Stack, Switch, Text, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { usePersonSharingQuery, useSetPersonSharingMutation } from "../../api_client/albums/hooks";
@@ -7,6 +7,7 @@ import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { PageLoader } from "../common/PageLoader";
 import { UserAvatar } from "../common/UserAvatar";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { getDisplayName } from "../sharing/UserEntry";
 import filterUsers from "../sharing/utils";
 
@@ -41,7 +42,14 @@ export function SharePersonModal({ opened, onClose, person }: Props) {
     save.mutate({ recipient_ids: ids, ...change });
 
   return (
-    <Modal opened={opened} onClose={onClose} title={t("personshare.title", { name: person.name })}>
+    <Modal
+      size={DIALOG_SIZE.md}
+      opened={opened}
+      onClose={onClose}
+      title={t("personshare.title", { name: person.name })}
+    >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       {sharing ? (
         <Stack>
           <Text size="sm">{t("personshare.intro", { name: person.name })}</Text>
@@ -79,9 +87,7 @@ export function SharePersonModal({ opened, onClose, person }: Props) {
             {t("personshare.never")}
           </Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={onClose}>
-              {t("personshare.done")}
-            </Button>
+            <Button onClick={onClose}>{t("personshare.done")}</Button>
           </Group>
         </Stack>
       ) : (

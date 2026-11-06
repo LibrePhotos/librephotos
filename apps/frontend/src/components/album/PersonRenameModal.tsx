@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { Person } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/urls";
 import { findByName } from "../../util/formSchemas";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { PersonMergeModal, type MergePerson } from "./PersonMergeModal";
 import { makePersonNameSchema } from "./personName.schema";
 import classes from "./PersonRenameModal.module.css";
@@ -61,7 +62,7 @@ function PersonRenameForm({ personId, people, placeholder, leftSection, onSubmit
           {...form.getInputProps("name")}
         />
         <Group justify="flex-end">
-          <Button variant="default" onClick={onCancel}>
+          <Button variant="light" onClick={onCancel}>
             {t("cancel")}
           </Button>
           {mergeTarget ? (
@@ -104,6 +105,7 @@ export function PersonRenameModal({ opened, onClose, person, people, onSubmit, o
   return (
     <>
       <Modal
+        size={DIALOG_SIZE.sm}
         title={t("personalbum.renamepersonheader", { name: person.name })}
         onClose={onClose}
         opened={opened}

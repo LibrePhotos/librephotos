@@ -57,3 +57,12 @@ input:not(:checked):not(:disabled) + .switchTrack {
   color: var(--mantine-color-text);
   opacity: 0.45;
 }
+
+/* A disabled primary stays a primary, only fainter, so the dialog's main action is recognisable
+   before it can be used (it read as a second Cancel). */
+[data-mantine-color-scheme]
+  .button:where([data-variant="filled"]):where(:disabled:not([data-loading]), [data-disabled]:not([data-loading])) {
+  border-color: transparent;
+  background: var(--button-bg);
+  color: var(--button-color);
+}

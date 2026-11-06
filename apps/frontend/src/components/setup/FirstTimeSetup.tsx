@@ -1,5 +1,5 @@
 import { userKeys } from "@librephotos/api-client";
-import { Button, Group, PasswordInput, Stack, Stepper, Switch, Text, TextInput } from "@mantine/core";
+import { Button, Group, Stack, Stepper, Switch, Text } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import type { UseFormReturnType } from "@mantine/form";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,24 +15,18 @@ import { useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } fr
 import { makeSignupSchema } from "../../routes/-signup.schema";
 import { reportSignupError, reportUserSaveError } from "../../util/apiErrors";
 import { AuthCard } from "../auth/AuthCard";
+import { SignupFields } from "../auth/SignupFields";
+import type { SignupValues } from "../auth/SignupFields";
 import { DirectoryPicker } from "./DirectoryPicker";
+import classes from "./FirstTimeSetup.module.css";
 import { uploadLocation } from "./uploadLocation";
 
 type FirstTimeSetupProps = {
   onComplete?: () => void;
 };
 
-type SetupAccountValues = {
-  username: string;
-  password: string;
-  first_name: string;
-  last_name: string;
-  passwordConfirm: string;
-  email: string;
-};
-
 type SetupAccountFormProps = {
-  form: UseFormReturnType<SetupAccountValues>;
+  form: UseFormReturnType<SignupValues>;
   onSubmit: FormEventHandler<HTMLFormElement>;
   disabled: boolean;
 };
@@ -43,53 +37,9 @@ function SetupAccountForm({ form, onSubmit, disabled }: SetupAccountFormProps): 
   return (
     <form onSubmit={onSubmit}>
       <Stack>
-        <TextInput
-          required
-          label={t("login.usernameplaceholder")}
-          name="username"
-          autoComplete="username"
-          {...form.getInputProps("username")}
-        />
-        <TextInput
-          required
-          label={t("settings.emailplaceholder")}
-          name="email"
-          autoComplete="email"
-          {...form.getInputProps("email")}
-        />
-        <Group grow>
-          <TextInput
-            required
-            label={t("settings.firstnameplaceholder")}
-            name="firstname"
-            autoComplete="given-name"
-            {...form.getInputProps("first_name")}
-          />
-          <TextInput
-            required
-            label={t("settings.lastnameplaceholder")}
-            name="lastname"
-            autoComplete="family-name"
-            {...form.getInputProps("last_name")}
-          />
-        </Group>
-        <PasswordInput
-          required
-          label={t("login.passwordplaceholder")}
-          name="password"
-          autoComplete="new-password"
-          {...form.getInputProps("password")}
-        />
-        <PasswordInput
-          required
-          label={t("login.confirmpasswordplaceholder")}
-          name="passwordConfirm"
-          autoComplete="new-password"
-          {...form.getInputProps("passwordConfirm")}
-        />
-
-        <Button type="submit" disabled={disabled}>
-          {t("login.signup")}
+        <SignupFields form={form} />
+        <Button type="submit" fullWidth disabled={disabled}>
+          {t("login.createadmin")}
         </Button>
       </Stack>
     </form>
@@ -215,25 +165,34 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
     void navigate({ to: "/" });
   };
 
-  // Each step's heading and the line under it; the steps above them show how far along the setup is.
+  // Each step's label under its dot and the line under the heading.
   const steps = [
-    { title: t("login.firsttimesetup"), subtitle: t("login.setupadmin") },
-    { title: t("adminarea.sitesettings"), subtitle: t("login.setupsitesettings") },
-    { title: t("settings.scandirectory"), subtitle: t("login.setupdatadirectory") },
+    { label: t("login.setupstepaccount"), description: t("login.setupadmin") },
+    { label: t("login.setupstepsettings"), description: t("login.setupsitesettings") },
+    { label: t("login.setupsteplibrary"), description: t("login.setupdatadirectory") },
   ];
-  const step = steps[activeStep];
 
   return (
     <AuthCard
-      wide
-      title={step?.title}
-      subtitle={step?.subtitle}
+      title={t("login.setuptitle")}
+      description={steps[activeStep]?.description}
       top={
-        <Stepper active={activeStep} onStepClick={setActiveStep} allowNextStepsSelect={false} size="xs">
+        <Stepper
+          active={activeStep}
+          onStepClick={setActiveStep}
+          allowNextStepsSelect={false}
+          size="xs"
+          classNames={{
+            step: classes.step,
+            stepBody: classes.stepBody,
+            stepLabel: classes.stepLabel,
+            separator: classes.separator,
+          }}
+        >
           {/* The account exists once this step is done: going back to it
               only led to a second sign-up that failed with "user exists". */}
-          {steps.map(({ title }, index) => (
-            <Stepper.Step key={title} aria-label={title} allowStepSelect={index === 0 ? false : undefined} />
+          {steps.map(({ label }, index) => (
+            <Stepper.Step key={label} label={label} allowStepSelect={index === 0 ? false : undefined} />
           ))}
         </Stepper>
       }
@@ -253,7 +212,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
             checked={!!allowRegistration}
             onChange={event => setAllowRegistration(event.currentTarget.checked)}
           />
-          <Group justify="flex-end">
+          <Group grow>
             <Button
               onClick={handleSiteSettingsNext}
               disabled={isSavingSettings || allowUpload === null || allowRegistration === null}
@@ -289,8 +248,8 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
               ) : undefined
             }
           />
-          <Group justify="space-between">
-            <Button variant="default" onClick={() => void navigate({ to: "/" })}>
+          <Group grow>
+            <Button variant="light" onClick={() => void navigate({ to: "/" })}>
               {t("skip")}
             </Button>
             <Button

@@ -2,6 +2,7 @@ import { Box, Group, Loader, Text, Title } from "@mantine/core";
 import clsx from "clsx";
 import type { ReactNode } from "react";
 import { PAGE_GUTTER_PX } from "../uiConstants";
+import { DetailBackButton, isDetailPath } from "./DetailBackButton";
 import classes from "./PageHeader.module.css";
 
 type Props = Readonly<{
@@ -23,8 +24,8 @@ type Props = Readonly<{
   // Under the title row, in the text's column: what the page adds to its header (an event's
   // description, the timeline filter's summary). The actions stay centred on the title row.
   below?: ReactNode;
-  // "collection" for an album, event, place, thing or person: a larger title (34px/750, a page's is
-  // 28px/700), so a collection reads as a place of its own rather than a filtered timeline (Immich,
+  // "collection" for an album, event, place, thing or person: a larger title (34px/700, a page's is
+  // 26px/700), so a collection reads as a place of its own rather than a filtered timeline (Immich,
   // Apple).
   size?: "page" | "collection";
 }>;
@@ -45,9 +46,21 @@ export function PageHeader({
   below,
   size = "page",
 }: Props) {
+  // The page's own header (not one nested under it) gets the detail pages' back chevron.
+  const back = titleOrder === 1 ? <DetailBackButton /> : null;
+  const hasLeading = Boolean(leading) || (titleOrder === 1 && isDetailPath(window.location.pathname));
   return (
-    <Box px={PAGE_GUTTER_PX} className={clsx(classes.root, leading ? classes.withLeading : undefined)} data-page-header>
-      {leading ? <div className={classes.leading}>{leading}</div> : null}
+    <Box
+      px={PAGE_GUTTER_PX}
+      className={clsx(classes.root, hasLeading ? classes.withLeading : undefined)}
+      data-page-header
+    >
+      {hasLeading ? (
+        <div className={classes.leading}>
+          {back}
+          {leading}
+        </div>
+      ) : null}
       <div className={classes.text}>
         <Title
           order={titleOrder}

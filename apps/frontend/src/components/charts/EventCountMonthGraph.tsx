@@ -52,7 +52,7 @@ export function EventCountMonthGraph() {
 
   return (
     <Stack gap="sm">
-      <Title order={3}>{t("sidemenu.timeline")}</Title>
+      <Title order={3}>{t("statistics.photospermonth")}</Title>
       {isLoading && <Loader />}
       {listFailure && <ErrorState failure={listFailure} />}
       {!isLoading && !listFailure && !hasData && (

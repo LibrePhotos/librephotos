@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api_client/api";
 import { useDeleteUserMutation } from "../../api_client/user/hooks";
 import { notification } from "../../service/notifications";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -48,10 +49,9 @@ export function ModalUserDelete(props: Props) {
 
   return (
     <Modal
+      size={DIALOG_SIZE.sm}
       styles={modalTitleStyles}
       opened={isOpen}
-      centered
-      size="md"
       onClose={onRequestClose}
       closeOnClickOutside={!isPending}
       closeOnEscape={!isPending}
@@ -64,7 +64,7 @@ export function ModalUserDelete(props: Props) {
           {t("adminarea.cannotbeundone")}
         </Text>
         <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={onRequestClose} disabled={isPending}>
+          <Button variant="light" onClick={onRequestClose} disabled={isPending} data-autofocus>
             {t("cancel")}
           </Button>
           <Button color="red" leftSection={<Trash size={16} />} loading={isPending} onClick={deleteUserAndClose}>

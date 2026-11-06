@@ -1,11 +1,12 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { Media } from "@librephotos/api-client";
-import { Box, Button, Group, Modal, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
+import { Box, Button, FocusTrap, Group, Modal, SimpleGrid, Stack, Text, UnstyledButton } from "@mantine/core";
 import { IconCheck, IconInfoCircle, IconPhoto, IconSparkles } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tile } from "../Tile";
 import classes from "./AlbumCoverPickerModal.module.css";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 const PHOTOS_PER_PAGE = 50;
@@ -71,13 +72,15 @@ export function AlbumCoverPickerModal({
 
   return (
     <Modal
+      size={DIALOG_SIZE.lg}
       styles={modalTitleStyles}
       zIndex={1500}
       opened={isOpen}
       title={t("modalalbumcover.title")}
       onClose={onRequestClose}
-      size="lg"
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack gap="md">
         {albumTitle && (
           <Text c="dimmed" size="sm">

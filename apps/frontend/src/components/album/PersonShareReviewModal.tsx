@@ -1,10 +1,11 @@
 import type { PigPhoto } from "@librephotos/api-client";
-import { Button, Checkbox, Group, Modal, SimpleGrid, Stack, Text } from "@mantine/core";
+import { Button, Checkbox, FocusTrap, Group, Modal, SimpleGrid, Stack, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePersonSharingPendingQuery, useReviewPersonSharingMutation } from "../../api_client/albums/hooks";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { PageLoader } from "../common/PageLoader";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { Tile } from "../Tile";
 
 type Props = Readonly<{
@@ -52,7 +53,14 @@ export function PersonShareReviewModal({ opened, onClose, person }: Props) {
     );
 
   return (
-    <Modal opened={opened} onClose={onClose} size="lg" title={t("personshare.reviewTitle", { name: person.name })}>
+    <Modal
+      size={DIALOG_SIZE.lg}
+      opened={opened}
+      onClose={onClose}
+      title={t("personshare.reviewTitle", { name: person.name })}
+    >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       {page ? (
         <Stack>
           <Text size="sm">{t("personshare.reviewIntro", { name: person.name })}</Text>
@@ -74,7 +82,7 @@ export function PersonShareReviewModal({ opened, onClose, person }: Props) {
             </Text>
           )}
           <Group justify="flex-end">
-            <Button variant="default" onClick={onClose}>
+            <Button variant="light" onClick={onClose}>
               {t("collab.cancel")}
             </Button>
             <Button loading={review.isPending} onClick={submit}>

@@ -1,5 +1,8 @@
 /* The phone's account sheet (AccountSheet.tsx): rounded top corners, a grab handle, 48px rows. */
+/* As tall as its content (Mantine's bottom drawer filled the screen), up to 90% of it. */
 .sheet {
+  height: auto;
+  max-height: 90dvh;
   border-radius: 16px 16px 0 0;
   padding-bottom: env(safe-area-inset-bottom);
 }

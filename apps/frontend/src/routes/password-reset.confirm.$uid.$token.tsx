@@ -52,7 +52,10 @@ function PasswordResetConfirmPage(): React.JSX.Element {
   }
 
   return (
-    <AuthCard title={t("passwordreset.choosetitle")}>
+    <AuthCard
+      title={t("passwordreset.choosetitle")}
+      links={<Anchor href="/login">{t("passwordreset.backtologin")}</Anchor>}
+    >
       <form onSubmit={form.onSubmit(onSubmit)}>
         <Stack>
           <PasswordInput
@@ -69,12 +72,9 @@ function PasswordResetConfirmPage(): React.JSX.Element {
             autoComplete="new-password"
             {...form.getInputProps("passwordConfirm")}
           />
-          <Button loading={isPending} type="submit">
+          <Button loading={isPending} type="submit" fullWidth>
             {t("passwordreset.setpassword")}
           </Button>
-          <Anchor href="/login" size="sm" ta="center">
-            {t("passwordreset.backtologin")}
-          </Anchor>
         </Stack>
       </form>
     </AuthCard>

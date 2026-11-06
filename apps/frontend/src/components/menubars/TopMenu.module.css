@@ -22,3 +22,8 @@
   letter-spacing: -0.01em;
   color: var(--mantine-color-text);
 }
+
+.avatarButton[data-account-page="true"] {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}

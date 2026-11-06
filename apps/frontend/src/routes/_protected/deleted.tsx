@@ -12,8 +12,8 @@ import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/phot
 import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
-import { TrashHeaderMenu } from "../../components/photolist/TrashHeaderMenu";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
+import { EmptyTrashButton, useTrashCounts } from "../../components/trash/EmptyTrashButton";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/deleted")({
@@ -31,6 +31,10 @@ function DeletedPhotos() {
   const photosQuery = useFetchDateAlbumsQuery({ photosetType: Photoset.IN_TRASHCAN, mediaType });
   const { data: photosGroupedByDate, isLoading } = photosQuery;
   const listFailure = useListFailure(photosQuery);
+  const trash = useTrashCounts();
+  // The media filter only where it can narrow something: a trash without videos is all photos. A
+  // filter already set (a link to ?media=videos) keeps it, so it can be cleared.
+  const mediaFilter = mediaType !== "all" || (trash.videos ?? 0) > 0 ? mediaType : undefined;
   // Days a photo stays in the trash (#2203); 0, or a server without the setting: until emptied.
   const retentionDays = useGetSettingsQuery().data?.trash_retention_days ?? 0;
 
@@ -77,9 +81,9 @@ function DeletedPhotos() {
           {retentionDays > 0 ? t("trash.retentionOn", { count: retentionDays }) : t("trash.retentionOff")}
         </Text>
       }
-      // Empty trash, in the ⋯: the whole trash, whatever the media filter shows; it waits for the
-      // job it starts.
-      headerMenu={<TrashHeaderMenu shownCount={photosFlat.length} />}
+      // Empty trash, left of Select and in the ⋯: the whole trash, whatever the media filter shows;
+      // it waits for the job it starts.
+      headerActions={<EmptyTrashButton total={trash.total} shownCount={photosFlat.length} />}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
@@ -87,7 +91,7 @@ function DeletedPhotos() {
       // "Trash is empty" would be wrong when only the filter matches nothing.
       emptyStateConfig={mediaType === "all" ? emptyStateConfig : undefined}
       error={listFailure}
-      mediaType={mediaType}
+      mediaType={mediaFilter}
       photosetQuery={{ in_trashcan: true, ...mediaTypeToBulkQuery(mediaType) }}
     />
   );

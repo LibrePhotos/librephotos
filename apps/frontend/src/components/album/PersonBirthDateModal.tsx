@@ -1,5 +1,5 @@
 import type { DatePhotosGroup } from "@librephotos/api-client";
-import { Alert, Button, Group, Modal, Stack } from "@mantine/core";
+import { Alert, Button, FocusTrap, Group, Modal, Stack } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconAlertTriangle, IconCake } from "@tabler/icons-react";
@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useSetPersonBirthDateMutation, type Person } from "../../api_client/albums/hooks";
 import { ICON_SIZE } from "../../uiConstants";
 import { calendarDaysAgo } from "../../util/dateUtils";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { photosBefore } from "./personAge";
 import { makePersonBirthDateSchema } from "./PersonBirthDateModal.schema";
 
@@ -63,7 +64,7 @@ function PersonBirthDateForm({ person, groups, onClose }: FormProps) {
             <span />
           )}
           <Group gap="xs">
-            <Button variant="default" onClick={onClose}>
+            <Button variant="light" onClick={onClose}>
               {t("cancel")}
             </Button>
             <Button type="submit" loading={setBirthDate.isPending}>
@@ -89,12 +90,15 @@ export function PersonBirthDateModal({ opened, onClose, person, groups }: Props)
   const { t } = useTranslation();
   return (
     <Modal
+      size={DIALOG_SIZE.sm}
       title={t("personbirthdate.title", { name: person.name })}
       opened={opened}
       onClose={onClose}
       // The opener moves the focus back itself: from the ⋮ menu, whose item is gone by then
       returnFocus={false}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <PersonBirthDateForm person={person} groups={groups} onClose={onClose} />
     </Modal>
   );

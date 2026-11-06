@@ -196,6 +196,14 @@ describe("JobList", () => {
     await mine.unmount();
   });
 
+  it("shows a finished job's duration instead of an empty progress bar", async () => {
+    const { container, unmount } = await render(<JobList variant="mine" />);
+
+    expect(container.querySelector('[role="progressbar"]')).toBeNull();
+    expect(container.querySelector("[data-duration]")?.textContent).toBe("55 sec");
+    await unmount();
+  });
+
   // #2244: like the users table, actions last; no header starts with a stray space.
   it("ends with the actions column and trims every header", async () => {
     const { container, unmount } = await render(<JobList />);

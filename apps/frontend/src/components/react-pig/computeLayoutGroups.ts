@@ -23,7 +23,7 @@ type Settings = ComputeLayoutGroupsParams<ImageItem>["settings"];
 function groupTitleHeightFor(settings: Settings, wrapperWidth: number): number {
   const narrow = wrapperWidth < settings.breakpoint;
   if (settings.headerSize === "small") return narrow ? 28 : 30;
-  if (settings.headerSize === "normal") return narrow ? 30 : 34;
+  if (settings.headerSize === "normal") return narrow ? 30 : 32;
   return narrow ? 38 : 44;
 }
 

@@ -7,7 +7,7 @@ import classes from "./AlbumEditModal.module.css";
 
 type Props = Readonly<{
   title: string;
-  /** The one dimmed line: "7 items · Created 7h ago", or whose shared album it is. */
+  /** The one dimmed line: "7 items · Created 7 hours ago", or whose shared album it is. */
   meta: string;
   cover?: Readonly<{ image_hash: string; video?: boolean }> | null;
   /** A locked album (#867) is listed but takes no photos: the row says so and does nothing. */

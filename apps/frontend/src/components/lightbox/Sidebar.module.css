@@ -85,6 +85,14 @@
   color: inherit;
 }
 
+/*
+ * A face crop is turned upright by the server, which leaves black wedges in its corners when the
+ * head was tilted; a slight zoom keeps them outside the rounded box (the face stays centred).
+ */
+.faceImage {
+  transform: scale(1.18);
+}
+
 .faceButton:focus-visible {
   outline: 2px solid var(--mantine-primary-color-filled);
   outline-offset: 1px;

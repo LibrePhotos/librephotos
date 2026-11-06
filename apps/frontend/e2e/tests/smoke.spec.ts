@@ -23,7 +23,7 @@ test.describe("login", () => {
     await page.goto("/favorites");
 
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole("heading", { name: "Sign in to LibrePhotos" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
   });
 });
 

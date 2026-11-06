@@ -1,14 +1,14 @@
-/* A 96px round avatar; the Change button and the size limit sit beside it (ProfileAvatar.tsx). */
+/* A 72px round avatar; the "Change photo" button and the size limit sit beside it (ProfileAvatar.tsx). */
 .avatar {
   position: relative;
   flex-shrink: 0;
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
 }
 
 .picture {
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   overflow: hidden;
   border-radius: 50%;
   background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));

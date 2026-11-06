@@ -179,3 +179,27 @@ a.frame:hover .image {
     filter: drop-shadow(0 1px 2px var(--app-scrim-black-60));
   }
 }
+
+/* A phone (review r6 #16): no ⋮ on every card, a long press on the card opens the same menu, which
+   still hangs from the hidden button's corner. The button stays in the tab order and for screen
+   readers, and shows while it has keyboard focus. The browser's own long-press preview and text
+   selection would fight the press, so they are off. */
+@media (max-width: 47.99em) {
+  .card .menu,
+  .card:hover .menu,
+  .card:focus-within .menu,
+  .card .menu:has([aria-expanded="true"]) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .card .menu:has(:focus-visible) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .frame {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}

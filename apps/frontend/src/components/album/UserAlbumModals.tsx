@@ -9,6 +9,7 @@ import {
   useRenameUserAlbumMutation,
 } from "../../api_client/albums/hooks";
 import { MutationErrorAlert } from "../common/MutationErrorAlert";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { makeAlbumTitleSchema } from "./UserAlbumModals.schema";
 
 type AlbumModalProps = Readonly<{
@@ -54,7 +55,7 @@ function RenameForm({ onClose, albumId, albumTitle, existingTitles }: Omit<Renam
           <MutationErrorAlert title={t("useralbum.renamefailed")} error={renameUserAlbum.error} />
         )}
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="light" onClick={onClose}>
             {t("cancel")}
           </Button>
           <Button type="submit" disabled={!form.isValid()} loading={renameUserAlbum.isPending}>
@@ -70,7 +71,7 @@ function RenameForm({ onClose, albumId, albumTitle, existingTitles }: Omit<Renam
 export function RenameUserAlbumModal({ opened, ...props }: RenameProps) {
   const { t } = useTranslation();
   return (
-    <Modal size="sm" opened={opened} onClose={props.onClose} title={t("useralbum.renamealbum")}>
+    <Modal size={DIALOG_SIZE.sm} opened={opened} onClose={props.onClose} title={t("useralbum.renamealbum")}>
       <RenameForm {...props} />
     </Modal>
   );
@@ -123,7 +124,7 @@ function CreateForm({ onClose, existingTitles, onCreated, collectionName }: Omit
           <MutationErrorAlert title={t("useralbum.createfailed")} error={createUserAlbum.error} />
         )}
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="light" onClick={onClose}>
             {t("cancel")}
           </Button>
           <Button type="submit" disabled={!form.isValid()} loading={createUserAlbum.isPending}>
@@ -139,7 +140,7 @@ function CreateForm({ onClose, existingTitles, onCreated, collectionName }: Omit
 export function CreateUserAlbumModal({ opened, ...props }: CreateProps) {
   const { t } = useTranslation();
   return (
-    <Modal size="sm" opened={opened} onClose={props.onClose} title={t("useralbum.newalbumtitle")}>
+    <Modal size={DIALOG_SIZE.sm} opened={opened} onClose={props.onClose} title={t("useralbum.newalbumtitle")}>
       <CreateForm {...props} />
     </Modal>
   );
@@ -155,14 +156,19 @@ export function DeleteUserAlbumModal({ opened, onClose, albumId, albumTitle, onD
   const { t } = useTranslation();
   const deleteUserAlbum = useDeleteUserAlbumMutation({ reportsErrors: true });
   return (
-    <Modal opened={opened} onClose={onClose} title={t("useralbum.deletealbumtitle", { title: albumTitle })}>
+    <Modal
+      size={DIALOG_SIZE.sm}
+      opened={opened}
+      onClose={onClose}
+      title={t("useralbum.deletealbumtitle", { title: albumTitle })}
+    >
       <Stack>
         <Text>{t("deletealbumexplanation")}</Text>
         {deleteUserAlbum.isError && (
           <MutationErrorAlert title={t("useralbum.deletefailed")} error={deleteUserAlbum.error} />
         )}
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="light" onClick={onClose} data-autofocus>
             {t("cancel")}
           </Button>
           <Button

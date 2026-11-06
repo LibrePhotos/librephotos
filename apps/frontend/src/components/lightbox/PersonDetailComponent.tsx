@@ -143,7 +143,13 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         offset={4}
       >
         {/* The name is right under it */}
-        <Avatar size={FACE_SIZE} radius={12} src={`${serverAddress}${person.face_url}`} alt="" />
+        <Avatar
+          size={FACE_SIZE}
+          radius={12}
+          src={`${serverAddress}${person.face_url}`}
+          alt=""
+          classNames={{ image: classes.faceImage }}
+        />
       </Indicator>
     </FaceTooltip>
   );

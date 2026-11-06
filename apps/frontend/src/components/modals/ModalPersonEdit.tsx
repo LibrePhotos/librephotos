@@ -2,6 +2,7 @@ import {
   Avatar,
   Button,
   Divider,
+  FocusTrap,
   Group,
   Modal,
   ScrollArea,
@@ -25,6 +26,7 @@ import { useRecentlyTaggedPeople } from "../../hooks/useRecentlyTaggedPeople";
 import { fuzzyMatch } from "../../util/util";
 import { makePersonNameSchema } from "../album/personName.schema";
 import { orderPeople } from "../facedashboard/personOrder";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 import { RecentlyTaggedGrid } from "./RecentlyTaggedGrid";
 
@@ -147,6 +149,7 @@ export function ModalPersonEdit({
 
   return (
     <Modal
+      size={DIALOG_SIZE.md}
       styles={modalTitleStyles}
       zIndex={1500}
       opened={isOpen}
@@ -156,6 +159,8 @@ export function ModalPersonEdit({
         form.reset();
       }}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack>
         <Text c="dimmed">
           {prompt ??

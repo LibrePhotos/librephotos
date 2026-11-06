@@ -95,7 +95,7 @@ export function SearchFilterButton(props: Props) {
             <Drawer.Body className={classes.sheetBody}>{panel}</Drawer.Body>
             <Group grow p="md" className={classes.sheetFooter}>
               {active > 0 && (
-                <Button variant="default" onClick={onClear}>
+                <Button variant="light" onClick={onClear}>
                   {t("searchfilter.clearall")}
                 </Button>
               )}

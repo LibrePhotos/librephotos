@@ -15,15 +15,21 @@ type Props = Readonly<{
   form: UseFormReturnType<NewPasswordFields>;
   /** "Create user": a password is set, so there is no lock. */
   createNew?: boolean;
-  /** The title is its card's heading (the Profile page), not a label inside a dialog. */
+  /**
+   * The Profile page: the title is its card's heading, and the fields are open without a lock,
+   * typing a password is what asks to change it.
+   */
   asHeading?: boolean;
 }>;
 
-/** The new-password fields of a parent form, behind a lock unless a new user is created. */
+/**
+ * The new-password fields of a parent form, labelled above like every other field: behind a lock in
+ * the admin's user dialog, open on the Profile page and when a new user is created.
+ */
 export function PasswordEntry({ form, createNew = false, asHeading = false }: Props): React.JSX.Element {
   const { t } = useTranslation();
   const { changePassword } = form.values;
-  const unlocked = createNew || changePassword;
+  const unlocked = createNew || asHeading || changePassword;
   const passwordProps = form.getInputProps("password");
   const confirmProps = form.getInputProps("passwordConfirm");
   // Locked fields keep the normal input look: greyed out they read as broken, and the lock button
@@ -34,6 +40,11 @@ export function PasswordEntry({ form, createNew = false, asHeading = false }: Pr
   // has text, and "must match" follows both fields. "Cannot be blank" first shows when a field is
   // left (or the form is submitted), not the moment the fields unlock or the dialog opens.
   const recheck = () => {
+    if (asHeading) {
+      // Open fields: a password in either one is the request to change it, both empty is none.
+      const { password, passwordConfirm } = form.getValues();
+      form.setFieldValue("changePassword", password !== "" || passwordConfirm !== "");
+    }
     if (form.errors.password !== undefined) form.validateField("password");
     if (form.getValues().passwordConfirm === "") {
       form.clearFieldError("passwordConfirm");
@@ -43,16 +54,14 @@ export function PasswordEntry({ form, createNew = false, asHeading = false }: Pr
   };
 
   return (
-    <Stack gap="xs">
+    <Stack gap="sm">
       {createNew ? (
         <Text fw={700}>{t("settings.password.titlesetpassword")}</Text>
+      ) : asHeading ? (
+        <Title order={4}>{t("settings.password.titlechangepassword")}</Title>
       ) : (
         <Group gap="xs" wrap="nowrap">
-          {asHeading ? (
-            <Title order={4}>{t("settings.password.titlechangepassword")}</Title>
-          ) : (
-            <Text fw={700}>{t("settings.password.titlechangepassword")}</Text>
-          )}
+          <Text fw={700}>{t("settings.password.titlechangepassword")}</Text>
           {/* A real button, so keyboard and screen reader users can unlock the fields too. */}
           <ActionIcon
             title={t("settings.password.tooltipeditbutton")}
@@ -72,9 +81,9 @@ export function PasswordEntry({ form, createNew = false, asHeading = false }: Pr
       )}
 
       <PasswordInput
-        leftSection={<Lock />}
-        placeholder={t("login.passwordplaceholder")}
+        label={t("settings.password.newpassword")}
         name="password"
+        autoComplete="new-password"
         disabled={!unlocked}
         required={changePassword}
         classNames={lockedLook}
@@ -86,9 +95,9 @@ export function PasswordEntry({ form, createNew = false, asHeading = false }: Pr
         onBlur={() => form.validateField("password")}
       />
       <PasswordInput
-        leftSection={<Lock />}
-        placeholder={t("login.confirmpasswordplaceholder")}
+        label={t("settings.password.confirmnewpassword")}
         name="passwordConfirm"
+        autoComplete="new-password"
         disabled={!unlocked}
         required={changePassword}
         classNames={lockedLook}

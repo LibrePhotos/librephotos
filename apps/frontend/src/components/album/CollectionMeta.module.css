@@ -26,9 +26,3 @@
   gap: 8px;
   margin-top: 4px;
 }
-
-.separator {
-  width: 1px;
-  height: 20px;
-  background: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
-}

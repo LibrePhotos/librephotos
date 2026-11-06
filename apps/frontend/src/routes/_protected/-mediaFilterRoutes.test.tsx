@@ -128,7 +128,8 @@ describe("the trash page", () => {
     const props = await renderRoute("/_protected/deleted");
 
     expect(props.photosetQuery).toEqual({ in_trashcan: true });
-    expect(props.mediaType).toBe("all");
+    // A trash without videos offers no media filter
+    expect(props.mediaType).toBeUndefined();
     expect(props.emptyStateConfig?.title).toBe(i18n.t("emptystate.deleted.title"));
   });
 });
@@ -142,8 +143,8 @@ describe("the trash page's retention (#2203)", () => {
     expect(props.emptyStateConfig?.description).toBe(
       "Photos you move to the trash appear here. They are deleted for good after 30 days."
     );
-    // Empty trash, in the header's ⋯
-    expect(props.headerMenu).toBeTruthy();
+    // Empty trash, a button in the header
+    expect(props.headerActions).toBeTruthy();
   });
 
   it("says photos stay until emptied while the retention is off or unknown", async () => {

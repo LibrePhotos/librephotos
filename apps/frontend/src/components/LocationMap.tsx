@@ -71,6 +71,7 @@ export function LocationMap({ photos }: Props) {
           latitude={photo.exif_gps_lat}
           anchor="bottom"
           color={markerColor}
+          className={classes.pin}
           onClick={e => {
             e.originalEvent.stopPropagation();
             setPopupInfo(photo);

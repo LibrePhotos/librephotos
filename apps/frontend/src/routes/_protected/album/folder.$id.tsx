@@ -202,7 +202,7 @@ function FolderDetail() {
           {/* Folder list modal with trigger button */}
           {subfolders.length > maxFolders && (
             <Button
-              variant="default"
+              variant="light"
               size={buttonSize}
               onClick={openFolderList}
               styles={{
@@ -217,12 +217,7 @@ function FolderDetail() {
               {t("moresubfolders", { count: subfolders.length - maxFolders })}
             </Button>
           )}
-          <FolderListModal
-            opened={folderListOpened}
-            onClose={closeFolderList}
-            folderPath={folderPath}
-            isMobile={isMobile}
-          />
+          <FolderListModal opened={folderListOpened} onClose={closeFolderList} folderPath={folderPath} />
         </Group>
       </Box>
     );

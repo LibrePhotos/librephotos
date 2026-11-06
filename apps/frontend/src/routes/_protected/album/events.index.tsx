@@ -1,9 +1,7 @@
 import type { AutoAlbumInfo } from "@librephotos/api-client";
-import { Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconSettingsAutomation as SettingsAutomation, IconTrash as Trash } from "@tabler/icons-react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { DateTime } from "luxon";
+import { IconSettingsAutomation as SettingsAutomation } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
@@ -11,9 +9,8 @@ import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
 import { eventSortConfig } from "../../../components/album/albumSortConfigs";
 import { AlbumSortMenu } from "../../../components/album/AlbumSortMenu";
 import { AutoAlbumDeleteModal } from "../../../components/album/AutoAlbumDeleteModal";
-import { eventStartDate } from "../../../components/album/eventDate";
+import { EventCard } from "../../../components/album/EventCard";
 import { useAlbumSort } from "../../../components/album/useAlbumSort";
-import { CollectionCard } from "../../../components/common/CollectionCard";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
@@ -52,24 +49,7 @@ function AlbumAuto() {
   }
 
   function renderCover(album: AutoAlbumInfo, size: number) {
-    const start = eventStartDate(album);
-    const dateTimeLabel = start.isValid ? start.toLocaleString(DateTime.DATE_MED) : null;
-    const count = t("numberofphotos", { count: album.photo_count, number: album.photo_count });
-    return (
-      <CollectionCard
-        size={size}
-        title={eventTitle(album)}
-        meta={dateTimeLabel ? `${dateTimeLabel} · ${count}` : count}
-        covers={[album.photos]}
-        renderLink={props => <Link {...props} to="/album/events/$id" params={{ id: String(album.id) }} />}
-        menuLabel={t("moreactions")}
-        menuItems={
-          <Menu.Item leftSection={<Trash size={14} />} onClick={() => deleteAlbum(album)}>
-            {t("delete")}
-          </Menu.Item>
-        }
-      />
-    );
+    return <EventCard album={album} size={size} onDelete={deleteAlbum} />;
   }
 
   return (
