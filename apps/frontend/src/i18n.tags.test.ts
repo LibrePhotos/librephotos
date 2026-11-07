@@ -12,12 +12,16 @@ import tagsEn from "./locales/en/tags.json";
 // `yarn test` runs from apps/frontend.
 const TAGS_TXT = resolve("..", "backend", "service", "tags", "tags.txt");
 
-/** The words as the tags sidecar reads them (openclip.read_tag_file): trimmed, no blank or # lines. */
+/**
+ * The words as the tags sidecar reads them (openclip.read_tag_file): trimmed, no blank or # lines
+ * (which covers the "## section" lines), and only the word of a "word = prompt | prompt" line.
+ */
 function readTagFile(path: string): string[] {
   return readFileSync(path, "utf-8")
     .split("\n")
     .map(line => line.trim())
-    .filter(line => line !== "" && !line.startsWith("#"));
+    .filter(line => line !== "" && !line.startsWith("#"))
+    .map(line => line.split("=")[0].trim());
 }
 
 describe("tags.json", () => {

@@ -5,8 +5,9 @@ absent (so CI without the bundle stays green). Point OPENCLIP_MODEL_DIR at a
 bundle (``scripts/build_openclip_onnx.py`` writes one) to run them.
 
 The fixtures are made at test time with Pillow, as the OCR golden tests make
-theirs: the synthetic receipt of ``test_ocr_engine_golden`` and a plain
-landscape-like gradient.
+theirs: a till receipt lying on a table and a plain landscape-like gradient.
+The OCR tests' receipt (big words on a white canvas) is no photo of a receipt:
+the model reads its words, so "MARKET" makes it a market.
 """
 
 import json
@@ -17,10 +18,10 @@ from unittest.mock import patch
 
 import numpy as np
 from django.test import SimpleTestCase
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from api.classification.documents import STRONG_TAG_LABELS, classify_document
-from api.tests.ocr.test_ocr_engine_golden import _render_receipt
+from api.tests.ocr.test_ocr_engine_golden import _load_font
 from service.tags.openclip import openclip as openclip_module
 from service.tags.openclip.openclip import OpenCLIP, Preprocess
 
@@ -41,6 +42,41 @@ def _render_landscape(path):
     sky = np.array([110, 170, 235]) * (1 - y) + np.array([60, 140, 60]) * y
     arr = np.repeat(sky, 600, axis=1).astype(np.uint8)
     Image.fromarray(arr, "RGB").save(path)
+
+
+def _render_receipt(path):
+    """A till receipt on a table, as a phone would photograph it; False
+    without a usable TrueType font."""
+    font = _load_font(15)
+    if font is None:
+        return False
+    table = Image.new("RGB", (640, 800), (96, 84, 72))
+    paper = Image.new("RGB", (300, 720), (246, 244, 238))
+    draw = ImageDraw.Draw(paper)
+    lines = [
+        "   CORNER SHOP",
+        "  Receipt #0042",
+        "",
+        "Bread          2.49",
+        "Milk 1L        1.19",
+        "Apples 1kg     2.99",
+        "Coffee 500g    6.49",
+        "Butter         2.29",
+        "Eggs x10       3.19",
+        "",
+        "SUBTOTAL      18.64",
+        "VAT 7%         1.30",
+        "TOTAL         19.94",
+        "",
+        "CARD          19.94",
+        "",
+        "  THANK YOU",
+    ]
+    for i, line in enumerate(lines):
+        draw.text((24, 30 + i * 30), line, fill=(30, 30, 30), font=font)
+    table.paste(paper.rotate(4, expand=True, fillcolor=(96, 84, 72)), (160, 20))
+    table.save(path)
+    return True
 
 
 class OpenCLIPGoldenTests(SimpleTestCase):
@@ -117,7 +153,7 @@ class OpenCLIPGoldenTests(SimpleTestCase):
 
         self.assertTrue(set(tags) & STRONG_TAG_LABELS, tags)
         # The OCR side of the same receipt: text but no currency symbol.
-        ocr_text = "LIBREPHOTOS MARKET\n123 MAIN STREET\nTOTAL 12.34\nTHANK YOU"
+        ocr_text = "CORNER SHOP\nBread 2.49\nTOTAL 19.94\nTHANK YOU"
         self.assertTrue(classify_document(ocr_text, 0.05, set(tags)))
 
     def test_the_landscape_is_not_a_document(self):

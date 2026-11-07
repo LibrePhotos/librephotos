@@ -17,7 +17,12 @@ What is pinned:
     to the context with the end token last, padded with 0; HTML entities are
     unescaped first.
   * Tags are cut on the softmax over all tags at the logit scale from
-    ``preprocess.json``, most likely first, at most ``max_tags``.
+    ``preprocess.json``, most likely first, at most ``max_tags``; each
+    section of the tag file adds its own minimum and its own cap per photo.
+  * A bare word is embedded as the mean of the prompt templates around it,
+    a ``word = prompt | prompt`` line as the mean of its own prompts.
+  * The shipped ``tags.txt`` parses and keeps every label document detection
+    relies on.
   * The tag-embedding cache is rebuilt when its tag count or dimension is off,
     or when it was built for another tag list (its sha256 hash, #2763).
   * The admin's ``custom_tags.txt`` adds its words after the built-in ones,
@@ -40,8 +45,10 @@ from service.tags.openclip.openclip import (
     OpenCLIP,
     Preprocess,
     PreprocessError,
+    TagFileError,
     crop_box,
     merge_tags,
+    parse_tag_lines,
     prepare_image,
     resized_size,
     tag_list_hash,
@@ -236,13 +243,26 @@ def _direction(*values):
     return vector
 
 
+def _hash(*lines):
+    return tag_list_hash(parse_tag_lines(lines).entries)
+
+
+def _text_direction(ids):
+    """The fake text tower's output for one row of FakeTokenizer ids."""
+    text = "".join(chr(i - 100) for i in ids if i > 2)
+    for axis, word in enumerate(("beach", "dog", "cat")):
+        if word in text:
+            return _direction(*([0.0] * axis), 1.0)
+    return np.ones(DIM, np.float32)
+
+
 class OpenCLIPTaggerTest(SimpleTestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         tags_file = os.path.join(self.tmp.name, "tags.txt")
         with open(tags_file, "w", encoding="utf-8") as f:
-            f.write("beach\n\ndog\n  cat  \n")
+            f.write("## scene max=3 min=0\nbeach\n\ndog\n  cat  \n")
         preprocess_file = os.path.join(self.tmp.name, "preprocess.json")
         with open(preprocess_file, "w", encoding="utf-8") as f:
             json.dump(PREPROCESS, f)
@@ -266,13 +286,10 @@ class OpenCLIPTaggerTest(SimpleTestCase):
             p.start()
             self.addCleanup(p.stop)
 
-        # Text tower: one direction per tag (beach, dog, cat) for the three
-        # tag prompts, all ones for anything else (a query).
+        # Text tower: a prompt naming beach, dog or cat points one way each,
+        # any other prompt (a query, a custom word) all ones.
         def text_output(feed):
-            batch = len(feed["input_ids"])
-            if batch == 3:
-                return np.stack([_direction(1), _direction(0, 1), _direction(0, 0, 1)])
-            return np.ones((batch, DIM), np.float32)
+            return np.stack([_text_direction(row) for row in feed["input_ids"]])
 
         self.text_session = FakeSession(text_output, "input_ids")
         self.vision_session = FakeSession(
@@ -307,15 +324,17 @@ class OpenCLIPTaggerTest(SimpleTestCase):
         tagger = OpenCLIP()
         tagger.load()
 
-        self.assertEqual(tagger.tags, ["beach", "dog", "cat"])
+        self.assertEqual(tagger.tag_list.names, ["beach", "dog", "cat"])
         self.assertTrue(tagger.is_loaded)
         self.assertTrue(os.path.exists(self.cache))
         self.assertEqual(tagger.tag_embeddings.shape, (3, DIM))
         np.testing.assert_allclose(
             np.linalg.norm(tagger.tag_embeddings, axis=1), 1.0, atol=1e-6
         )
+        # Every tag through every prompt template, in one batch.
         (feed,) = self.text_session.calls
-        self.assertEqual(feed["input_ids"].shape, (3, 77))
+        templates = len(openclip_module.PROMPT_TEMPLATES)
+        self.assertEqual(feed["input_ids"].shape, (3 * templates, 77))
         # The tag-building session is not kept for queries.
         self.assertIsNone(tagger.text_session)
 
@@ -327,7 +346,7 @@ class OpenCLIPTaggerTest(SimpleTestCase):
                 f.write(tags_hash)
 
     def test_good_cache_is_used_without_touching_the_text_tower(self):
-        self._write_cache(np.eye(3, DIM), tag_list_hash(["beach", "dog", "cat"]))
+        self._write_cache(np.eye(3, DIM), _hash("beach", "dog", "cat"))
 
         tagger = OpenCLIP()
         tagger.load()
@@ -338,7 +357,7 @@ class OpenCLIPTaggerTest(SimpleTestCase):
     def test_an_unchanged_list_reuses_the_cache_it_built(self):
         OpenCLIP().load()
         with open(self.cache_hash, encoding="utf-8") as f:
-            self.assertEqual(f.read(), tag_list_hash(["beach", "dog", "cat"]))
+            self.assertEqual(f.read(), _hash("beach", "dog", "cat"))
         self.text_session.calls.clear()
 
         OpenCLIP().load()
@@ -348,16 +367,16 @@ class OpenCLIPTaggerTest(SimpleTestCase):
     def test_a_renamed_tag_rebuilds_the_cache_of_the_same_size(self):
         OpenCLIP().load()
         with open(openclip_module.TAGS_FILE, "w", encoding="utf-8") as f:
-            f.write("beach\ndog\nkitten\n")
+            f.write("## scene max=3 min=0\nbeach\ndog\nkitten\n")
         self.text_session.calls.clear()
 
         tagger = OpenCLIP()
         tagger.load()
 
         self.assertEqual(len(self.text_session.calls), 1)
-        self.assertEqual(tagger.tags, ["beach", "dog", "kitten"])
+        self.assertEqual(tagger.tag_list.names, ["beach", "dog", "kitten"])
         with open(self.cache_hash, encoding="utf-8") as f:
-            self.assertEqual(f.read(), tag_list_hash(["beach", "dog", "kitten"]))
+            self.assertEqual(f.read(), _hash("beach", "dog", "kitten"))
 
     def test_an_old_cache_without_a_hash_is_rebuilt_once(self):
         self._write_cache(np.eye(3, DIM), None)
@@ -369,15 +388,19 @@ class OpenCLIPTaggerTest(SimpleTestCase):
         self.assertTrue(os.path.exists(self.cache_hash))
 
     def test_the_hash_follows_order_and_prompt_not_just_the_count(self):
-        self.assertEqual(tag_list_hash(["a", "b"]), tag_list_hash(["a", "b"]))
-        self.assertNotEqual(tag_list_hash(["a", "b"]), tag_list_hash(["b", "a"]))
-        self.assertNotEqual(tag_list_hash(["ab"]), tag_list_hash(["a", "b"]))
-        with patch.object(openclip_module, "PROMPT_TEMPLATE", "a picture of {tag}"):
-            other_prompt = tag_list_hash(["a", "b"])
-        self.assertNotEqual(other_prompt, tag_list_hash(["a", "b"]))
+        self.assertEqual(_hash("a", "b"), _hash("a", "b"))
+        self.assertNotEqual(_hash("a", "b"), _hash("b", "a"))
+        self.assertNotEqual(_hash("ab"), _hash("a", "b"))
+        self.assertNotEqual(_hash("a = x | y"), _hash("a = x", "a = y"))
+        self.assertNotEqual(_hash("a = a photo of a"), _hash("a = a picture of a"))
+        with patch.object(openclip_module, "PROMPT_TEMPLATES", ("a picture of {tag}",)):
+            other_prompt = _hash("a", "b")
+        self.assertNotEqual(other_prompt, _hash("a", "b"))
+        # Sections only steer the selection: they leave the embeddings alone.
+        self.assertEqual(_hash("## x max=1 min=0.5", "a"), _hash("a"))
 
     def test_stale_caches_are_rebuilt(self):
-        tags_hash = tag_list_hash(["beach", "dog", "cat"])
+        tags_hash = _hash("beach", "dog", "cat")
         for stale in (np.eye(2, DIM), np.eye(3, 256)):
             with self.subTest(shape=stale.shape):
                 self._write_cache(stale, tags_hash)
@@ -402,7 +425,7 @@ class OpenCLIPTaggerTest(SimpleTestCase):
             tagger.load()
 
         self.assertEqual(
-            tagger.tags,
+            tagger.tag_list.names,
             ["beach", "dog", "cat", "tortoise", "sourdough", "climbing wall"],
         )
         self.assertEqual(tagger.tag_embeddings.shape, (6, DIM))
@@ -411,7 +434,7 @@ class OpenCLIPTaggerTest(SimpleTestCase):
     def test_without_a_custom_file_the_built_in_list_is_used(self):
         tagger = OpenCLIP()
         tagger.load()
-        self.assertEqual(tagger.tags, ["beach", "dog", "cat"])
+        self.assertEqual(tagger.tag_list.names, ["beach", "dog", "cat"])
 
     def test_a_changed_custom_file_rebuilds_the_cache(self):
         OpenCLIP().load()
@@ -422,9 +445,7 @@ class OpenCLIPTaggerTest(SimpleTestCase):
 
         self.assertEqual(len(self.text_session.calls), 1)
         with open(self.cache_hash, encoding="utf-8") as f:
-            self.assertEqual(
-                f.read(), tag_list_hash(["beach", "dog", "cat", "tortoise"])
-            )
+            self.assertEqual(f.read(), _hash("beach", "dog", "cat", "tortoise"))
 
     def test_an_unreadable_custom_file_is_skipped(self):
         with open(self.custom_tags, "wb") as f:
@@ -432,13 +453,24 @@ class OpenCLIPTaggerTest(SimpleTestCase):
         tagger = OpenCLIP()
         with self.assertLogs("tags", "WARNING"):
             tagger.load()
-        self.assertEqual(tagger.tags, ["beach", "dog", "cat"])
+        self.assertEqual(tagger.tag_list.names, ["beach", "dog", "cat"])
 
     def test_merge_tags_keeps_the_first_spelling(self):
-        self.assertEqual(
-            merge_tags(["Dog", "cat"], ["dog", "fox", "FOX", "Cat", "owl"]),
-            ["Dog", "cat", "fox", "owl"],
+        merged = merge_tags(
+            parse_tag_lines(["Dog", "cat"]),
+            parse_tag_lines(["dog", "fox", "FOX", "Cat", "owl"]),
         )
+        self.assertEqual(merged.names, ["Dog", "cat", "fox", "owl"])
+
+    def test_a_custom_file_cannot_loosen_a_built_in_section(self):
+        merged = merge_tags(
+            parse_tag_lines(["## activity max=1 min=0.5", "dancing"]),
+            parse_tag_lines(["## activity max=9 min=0", "## pets max=4", "ferret"]),
+        )
+        self.assertEqual(merged.section("activity").min_probability, 0.5)
+        self.assertEqual(merged.section("pets").max_tags, 4)
+        (ferret,) = [e for e in merged.entries if e.name == "ferret"]
+        self.assertEqual(ferret.section, "pets")
 
     def test_predict_cuts_on_probability_at_the_bundles_logit_scale(self):
         tagger = OpenCLIP()
@@ -497,13 +529,13 @@ class OpenCLIPTaggerTest(SimpleTestCase):
         tagger = OpenCLIP()
         (embedding,) = tagger.embed_images_raw(["/p.jpg"])
         self.assertEqual(tagger.tags_for(embedding, threshold=0.02), ["beach"])
-        # The default cut-off (0.75 %) admits dog at 1.7 % too.
+        # The default floor (0.5 %) admits dog at 1.7 % too.
         self.assertEqual(tagger.tags_for(embedding), ["beach", "dog"])
 
     def test_text_queries_use_their_own_session_and_keep_it(self):
         tagger = OpenCLIP()
-        first = tagger.embed_text_raw("a dog")
-        tagger.embed_text_raw("a cat")
+        first = tagger.embed_text_raw("a fox")
+        tagger.embed_text_raw("an owl")
 
         self.assertEqual(first.shape, (DIM,))
         np.testing.assert_allclose(first, 1.0)  # raw, not normalised
@@ -514,3 +546,105 @@ class OpenCLIPTaggerTest(SimpleTestCase):
         self.assertIs(tagger.text_session, self.text_session)
         tagger.unload()
         self.assertIsNone(tagger.text_session)
+
+    def _write_tags(self, text):
+        with open(openclip_module.TAGS_FILE, "w", encoding="utf-8") as f:
+            f.write(text)
+
+    def test_a_section_minimum_drops_a_thing_the_floor_would_keep(self):
+        # dog (1.7 %) is in a section that wants 5 %; cat stays out anyway.
+        self._write_tags("## scene min=0\nbeach\n## animal min=0.05\ndog\ncat\n")
+        tagger = OpenCLIP()
+        self.assertEqual(
+            tagger.predict("/photo.jpg", threshold=0.01)["tags"], ["beach"]
+        )
+
+    def test_a_full_section_is_skipped_not_the_rest_of_the_photo(self):
+        # At scale 1 all three clear the floor; the scene section holds one.
+        with open(openclip_module.PREPROCESS_PATH, "w", encoding="utf-8") as f:
+            json.dump({**PREPROCESS, "logit_scale": 1.0}, f)
+        self._write_tags("## scene max=1 min=0\nbeach\ndog\n## animal min=0\ncat\n")
+        tagger = OpenCLIP()
+        self.assertEqual(
+            tagger.predict("/photo.jpg", threshold=0.01)["tags"], ["beach", "cat"]
+        )
+
+    def test_a_bare_word_is_embedded_through_every_template(self):
+        tagger = OpenCLIP()
+        tagger.load()
+        (feed,) = self.text_session.calls
+        prompts = [
+            "".join(chr(i - 100) for i in row if i > 2) for row in feed["input_ids"]
+        ]
+        self.assertEqual(
+            prompts[: len(openclip_module.PROMPT_TEMPLATES)],
+            [t.format(tag="beach") for t in openclip_module.PROMPT_TEMPLATES],
+        )
+
+    def test_spelled_out_prompts_replace_the_templates_and_are_averaged(self):
+        # "glasses" points half towards beach and half towards dog.
+        self._write_tags(
+            "## scene min=0\nglasses = beach eyeglasses | dog eyeglasses\ncat\n"
+        )
+        tagger = OpenCLIP()
+        tagger.load()
+        (feed,) = self.text_session.calls
+        templates = len(openclip_module.PROMPT_TEMPLATES)
+        self.assertEqual(feed["input_ids"].shape, (2 + templates, 77))
+        np.testing.assert_allclose(
+            tagger.tag_embeddings[0][:2], [2**-0.5, 2**-0.5], atol=1e-6
+        )
+        self.assertEqual(tagger.tag_list.names, ["glasses", "cat"])
+
+    def test_a_malformed_line_is_refused(self):
+        for line in (
+            "## scene maximum=2",
+            "## scene max=two",
+            "glasses = ",
+            " = a photo",
+        ):
+            with self.subTest(line=line), self.assertRaises(TagFileError):
+                parse_tag_lines([line])
+
+    def test_a_malformed_custom_file_is_skipped(self):
+        self._write_custom_tags("## pets max=lots\nferret\n")
+        tagger = OpenCLIP()
+        with self.assertLogs("tags", "WARNING"):
+            tagger.load()
+        self.assertEqual(tagger.tag_list.names, ["beach", "dog", "cat"])
+
+    def test_custom_words_get_their_own_section(self):
+        self._write_custom_tags("tortoise\n")
+        tagger = OpenCLIP()
+        tagger.load()
+        (tortoise,) = [e for e in tagger.tag_list.entries if e.name == "tortoise"]
+        section = tagger.tag_list.section(tortoise.section)
+        self.assertEqual(section.name, openclip_module.OTHER_SECTION)
+        self.assertEqual(section.max_tags, openclip_module.OTHER_SECTION_MAX)
+
+
+class ShippedTagListTest(SimpleTestCase):
+    """The tags.txt that ships, as the sidecar reads it."""
+
+    def setUp(self):
+        self.tag_list = openclip_module.read_tag_file(openclip_module.TAGS_FILE)
+
+    def test_it_parses_into_sections_with_unique_names(self):
+        names = [name.casefold() for name in self.tag_list.names]
+        self.assertGreater(len(names), 300)
+        self.assertEqual(len(names), len(set(names)))
+        for section in self.tag_list.sections:
+            self.assertGreaterEqual(section.max_tags, 1, section)
+            self.assertTrue(0 <= section.min_probability < 1, section)
+        # Every thing is in a section the file declares.
+        declared = {s.name for s in self.tag_list.sections} - {
+            openclip_module.OTHER_SECTION
+        }
+        self.assertTrue({e.section for e in self.tag_list.entries} <= declared)
+
+    def test_it_keeps_every_label_document_detection_reads(self):
+        from api.classification.documents import STRONG_TAG_LABELS, WEAK_TAG_LABELS
+
+        names = set(self.tag_list.names)
+        self.assertEqual(STRONG_TAG_LABELS - names, set())
+        self.assertEqual(WEAK_TAG_LABELS - names, set())

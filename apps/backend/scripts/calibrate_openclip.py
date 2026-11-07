@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Calibrate OpenCLIP's tag cut-off and its search and similar-photo thresholds.
+"""Calibrate OpenCLIP's search and similar-photo thresholds.
 
 Run by hand, from ``apps/backend`` in the backend environment (ONNX Runtime,
 no torch), against a model directory and a folder of photos::
 
     python scripts/calibrate_openclip.py --model-dir <data_models>/openclip_vitb32 \\
-        --corpus <photos> --tags-corpus ../../deploy/e2e/photos \\
+        --corpus <photos> \\
         [--reference previous_model.json] [--out calibration.json]
 
 Each threshold of a new model is chosen so that it behaves like the model it
@@ -17,18 +17,17 @@ replaces, measured on the same photos:
     threshold (``search_hits_per_query`` in the reference);
 ``api.search.semantic.SIMILAR_THRESHOLD``
     the same for photo-to-photo inner products (``similar_hits_per_photo``);
-``service.tags.openclip.openclip.DEFAULT_MIN_PROBABILITY``
-    the softmax probability (at the model's logit scale) that keeps the tags
-    per photo on ``--tags-corpus`` where the previous tagger had them
-    (``tags_per_photo``, by corpus: ``tags_corpus`` and ``corpus``; see
-    ``matching_min_probability``).
 
 The reference JSON holds those numbers for the previous model(s), measured
-the same way (``measure_search``, ``tag_counts``, ``distribution``). Without one, the script
-still reports OpenCLIP's own numbers. ``LABELLED_QUERIES`` (the relevant
+the same way (``measure_search``). Without one, the script still reports
+OpenCLIP's own numbers. ``LABELLED_QUERIES`` (the relevant
 photos by file name, from the LibrePhotos ML test corpus) give precision and
 recall of the ranking and of the thresholded results; queries whose photos are
 not in the corpus are skipped.
+
+The tag cut-offs are not calibrated here: each section of
+``service/tags/tags.txt`` carries its own, chosen on a sample of photos whose
+proposed things were graded by looking at them (see that file's header).
 """
 
 from __future__ import annotations
@@ -45,8 +44,6 @@ BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
-MAX_TAGS = 10
-MIN_PROBABILITIES = (0.005, 0.0075, 0.01, 0.0125, 0.015, 0.02, 0.03, 0.05, 0.1)
 
 _V = [f"portrait_astronaut_{s}" for s in ("big", "bright", "flip", "orig", "padded")]
 _H = [f"portrait_hanks_{s}" for s in ("big", "bright", "flip", "orig", "padded")]
@@ -253,45 +250,6 @@ def threshold_for_hits(scores, target, exclude_diagonal=False):
     )
 
 
-def tag_counts(probabilities, min_probability, max_tags=MAX_TAGS):
-    """Tags per photo for a (photos, tags) matrix of softmax probabilities."""
-    return [int(min(max_tags, (row >= min_probability).sum())) for row in probabilities]
-
-
-def distribution(counts):
-    counts = np.array(counts)
-    return {
-        "mean": round(float(counts.mean()), 2),
-        "median": float(np.median(counts)),
-        "min": int(counts.min()),
-        "max": int(counts.max()),
-        "histogram": {int(k): int((counts == k).sum()) for k in np.unique(counts)},
-    }
-
-
-def matching_min_probability(probabilities, before):
-    """The tag cut-off that keeps tags per photo where they were.
-
-    The largest cut-off (fewest noise tags) whose median equals the previous
-    tagger's and whose mean is within one tag of it; failing that, the one
-    with the closest mean.
-    """
-    grid = np.round(np.arange(0.005, 0.2, 0.0025), 4)
-    for p in grid[::-1]:
-        counts = tag_counts(probabilities, p)
-        if (
-            np.median(counts) == before["median"]
-            and abs(np.mean(counts) - before["mean"]) <= 1
-        ):
-            return float(p)
-    return float(
-        min(
-            grid,
-            key=lambda p: abs(np.mean(tag_counts(probabilities, p)) - before["mean"]),
-        )
-    )
-
-
 # --------------------------------------------------------------------------- #
 # OpenCLIP
 # --------------------------------------------------------------------------- #
@@ -310,21 +268,10 @@ def openclip_embeddings(paths, texts):
     )
 
 
-def tag_probabilities(model, images):
-    if not model.is_loaded:
-        model.load()
-    unit = images / np.linalg.norm(images, axis=1, keepdims=True)
-    logits = model.preprocess.logit_scale * (unit @ model.tag_embeddings.T)
-    logits -= logits.max(axis=1, keepdims=True)
-    probabilities = np.exp(logits)
-    return probabilities / probabilities.sum(axis=1, keepdims=True)
-
-
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--model-dir", help="the openclip_vitb32 directory")
     parser.add_argument("--corpus", required=True, help="photos for search")
-    parser.add_argument("--tags-corpus", help="photos for tags per photo")
     parser.add_argument("--reference", help="the previous model's numbers (JSON)")
     parser.add_argument("--out", help="write the results here as JSON")
     args = parser.parse_args(argv)
@@ -332,7 +279,6 @@ def main(argv=None):
         os.environ["OPENCLIP_MODEL_DIR"] = args.model_dir
 
     from api.search import semantic
-    from service.tags.openclip import openclip
 
     reference = json.loads(Path(args.reference).read_text()) if args.reference else {}
 
@@ -358,29 +304,6 @@ def main(argv=None):
         )
         result["calibrated"] = measure_search(images, stems, texts, search, similar)
 
-    tags_corpus = {"corpus": images}
-    if args.tags_corpus:
-        _, _, tag_images, _ = openclip_embeddings(collect(args.tags_corpus), [])
-        tags_corpus["tags_corpus"] = tag_images
-    result["tags_per_photo"] = {}
-    for name, embeddings in tags_corpus.items():
-        probabilities = tag_probabilities(model, embeddings)
-        result["tags_per_photo"][name] = {
-            str(p): distribution(tag_counts(probabilities, p))
-            for p in MIN_PROBABILITIES
-        }
-    result["calibrated_min_probability"] = {}
-    for name, before in (reference.get("tags_per_photo") or {}).items():
-        if name not in tags_corpus:
-            continue
-        probabilities = tag_probabilities(model, tags_corpus[name])
-        best = matching_min_probability(probabilities, before)
-        result["calibrated_min_probability"][name] = {
-            "min_probability": float(best),
-            "tags_per_photo": distribution(tag_counts(probabilities, best)),
-            "before": before,
-        }
-    result["current_min_probability"] = openclip.DEFAULT_MIN_PROBABILITY
     result["reference"] = reference
 
     text = json.dumps(result, indent=1, ensure_ascii=False)
