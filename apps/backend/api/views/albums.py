@@ -504,6 +504,9 @@ class AlbumUserListViewSet(ListViewSet):
 class AlbumUserEditViewSet(
     mixins.CreateModelMixin,
     PartialUpdateModelMixin[AlbumUser],
+    # Released clients (UhuruPhotos) delete here; the web uses
+    # DELETE /api/albums/user/<id>/. Both delete only the caller's own album.
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     permission_classes = (IsAuthenticated,)

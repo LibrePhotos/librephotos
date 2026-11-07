@@ -52,6 +52,7 @@ class SetPhotosRatingTest(TestCase):
                 "count": 2,
                 "updated_hashes": self.hashes[:2],
                 "not_updated_hashes": [],
+                "results": [],
             },
         )
         rated = Photo.objects.filter(image_hash__in=self.hashes[:2])

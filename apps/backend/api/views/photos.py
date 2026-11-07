@@ -55,6 +55,7 @@ from api.models.photo import restore_photos, shared_library_q, trash_photos
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.photos.files import remove_photos
+from api.photos.photo_keys import PhotoKeys
 from api.photos.selection import not_in_own_album_q
 from api.runtime.features import feature_enabled
 from api.runtime.ml_models import (
@@ -394,19 +395,21 @@ class BulkPhotoMutationView(APIView):
     def _post_hashes(
         self, user: User, image_hashes: list[str], value: object
     ) -> Response:
-        owned = Photo.objects.owned_by(user).filter(image_hash__in=image_hashes)
-        found = set(owned.values_list("image_hash", flat=True))
-        changing = set(
-            owned.filter(self.differs(user, value)).values_list("image_hash", flat=True)
+        # A key is a photo's image_hash, or its id (PhotoKeys).
+        keys = PhotoKeys(image_hashes)
+        owned = Photo.objects.owned_by(user).filter(keys.q())
+        found = keys.keys_of(owned.values_list("pk", "image_hash"))
+        changing = keys.keys_of(
+            owned.filter(self.differs(user, value)).values_list("pk", "image_hash")
         )
-        requested = list(dict.fromkeys(image_hashes))
+        requested = keys.keys
         updated_hashes = [h for h in requested if h in changing]
         not_updated_hashes = [h for h in requested if h in found - changing]
 
         if updated_hashes:
             self.apply(
                 user,
-                Photo.objects.owned_by(user).filter(image_hash__in=updated_hashes),
+                Photo.objects.owned_by(user).filter(PhotoKeys(updated_hashes).q()),
                 value,
             )
 
@@ -429,6 +432,9 @@ class BulkPhotoMutationView(APIView):
                 "count": len(updated_hashes),
                 "updated_hashes": updated_hashes,
                 "not_updated_hashes": not_updated_hashes,
+                # Released clients (UhuruPhotos) require the key that held
+                # the changed photos before 1.2.0.
+                "results": [],
             }
         )
 
@@ -1101,14 +1107,15 @@ class DeletePhotos(APIView):
         # a hash that is someone else's, not in the trash, or unknown is
         # reported as not deleted, all alike. image_hash is not unique, so
         # every matching row of the requester's is deleted.
-        image_hashes = list(dict.fromkeys(data["image_hashes"]))
-        photos = list(
-            Photo.objects.owned_by(user).filter(
-                image_hash__in=image_hashes, in_trashcan=True
-            )
-        )
-        found = {photo.image_hash for photo in photos}
-        failed = {photo.image_hash for photo in remove_photos(photos).failed}
+        # A key is a photo's image_hash, or its id (PhotoKeys).
+        keys = PhotoKeys(data["image_hashes"])
+        image_hashes = keys.keys
+        photos = list(Photo.objects.owned_by(user).filter(keys.q(), in_trashcan=True))
+        found = {keys.key_of(photo.pk, photo.image_hash) for photo in photos}
+        failed = {
+            keys.key_of(photo.pk, photo.image_hash)
+            for photo in remove_photos(photos).failed
+        }
         deleted = [h for h in image_hashes if h in found and h not in failed]
         not_deleted = [h for h in image_hashes if h not in found or h in failed]
 

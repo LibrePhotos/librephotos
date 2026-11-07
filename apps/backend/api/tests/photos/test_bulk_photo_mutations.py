@@ -81,8 +81,11 @@ class BulkMutationSidecarTest(TestCase):
         self.assertEqual(data["not_updated_hashes"], [self.hashes[0]])
         # The heavy per-photo payloads are gone: the web client's zod schema
         # would reject slim objects under these keys, so they are not sent.
-        for key in ("results", "updated", "not_updated"):
+        # ``results`` stays as an empty list, which released UhuruPhotos
+        # builds require.
+        for key in ("updated", "not_updated"):
             self.assertNotIn(key, data)
+        self.assertEqual(data["results"], [])
 
     def test_select_all_response_is_unchanged(self):
         response = self.client.post(

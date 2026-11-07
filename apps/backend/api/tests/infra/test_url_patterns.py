@@ -161,7 +161,15 @@ CLIENT_PATHS = {
     "/api/albums/thing/list/": "api.views.albums.AlbumThingListViewSet get=list",
     "/api/albums/user/1/": "api.views.albums.AlbumUserViewSet delete=destroy,get=retrieve,patch=partial_update",
     "/api/albums/user/edit/": "api.views.albums.AlbumUserEditViewSet post=create",
-    "/api/albums/user/edit/1/": "api.views.albums.AlbumUserEditViewSet patch=partial_update",
+    "/api/albums/user/edit/1/": (
+        "api.views.albums.AlbumUserEditViewSet delete=destroy,patch=partial_update"
+    ),
+    "/api/albums/date/list/": (
+        "api.views.legacy_date_albums.LegacyDateAlbumListViewSet get=list"
+    ),
+    "/api/albums/date/1/": (
+        "api.views.legacy_date_albums.LegacyDateAlbumViewSet get=retrieve"
+    ),
     "/api/albums/user/list/": "api.views.albums.AlbumUserListViewSet get=list",
     "/api/albums/user/shared/fromme/": "api.views.sharing.SharedFromMeAlbumUserListViewSet get=list",
     "/api/albums/user/shared/tome/": "api.views.sharing.SharedToMeAlbumUserListViewSet get=list",

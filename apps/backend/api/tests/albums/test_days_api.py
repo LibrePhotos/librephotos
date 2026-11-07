@@ -917,7 +917,8 @@ class SummaryDayIdTest(DaysTestCase):
         self.assertEqual(DAY_ID, self.summary(self.photo())["day_id"])
         undated = self.photo(exif_timestamp=None)
         self.assertEqual(UNDATED_DAY_ID, self.summary(undated)["day_id"])
-        self.assertNotIn("album_date_id", self.summary(undated))
+        # The same id under the name released clients read (UhuruPhotos).
+        self.assertEqual(UNDATED_DAY_ID, self.summary(undated)["album_date_id"])
 
     def test_the_public_view_of_an_owner_hiding_dates_names_the_undated_group(self):
         switches = every_public_switch_on()

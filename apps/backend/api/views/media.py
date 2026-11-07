@@ -1303,7 +1303,9 @@ class MediaServingView(APIView):
         self, request: Request, image_hash: str, use_proxy: bool
     ) -> HttpResponseBase:
         user = self._requester(request)
-        photo = self._lookup_photo(image_hash, user)
+        # By id too, as the derived media: clients that read a photo's id from
+        # its summary ask for /media/photos/<id> (UhuruPhotos).
+        photo = self._lookup_photo(image_hash, user, allow_uuid=True)
         if photo is None:
             return self._refuse(user)
 

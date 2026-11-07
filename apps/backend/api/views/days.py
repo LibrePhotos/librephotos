@@ -97,9 +97,9 @@ def public_view_owner(request: Request, username: str) -> User:
     return owner
 
 
-class DayViewSet(viewsets.ViewSet):
-    # The day list is one {"results": [...]} object.
-    list_returns_object = True
+class DayViewMixin(viewsets.ViewSet):
+    """How a read of the days resolves its view and a day: shared by
+    ``DayViewSet`` and the legacy date-album routes (``legacy_date_albums``)."""
 
     def get_permissions(self) -> list[BasePermission]:
         return public_view_permissions(self.request)
@@ -131,6 +131,11 @@ class DayViewSet(viewsets.ViewSet):
                 raise NotFound("No such day")
             return view.photos, walk_of(undated=True, opaque=True)
         return view.photos.filter(day_q(day)), walk_of(day is None, opaque=False)
+
+
+class DayViewSet(DayViewMixin):
+    # The day list is one {"results": [...]} object.
+    list_returns_object = True
 
     @extend_schema(parameters=[DayQuery], responses=DayListSerializer)
     def list(self, request: Request) -> Response:

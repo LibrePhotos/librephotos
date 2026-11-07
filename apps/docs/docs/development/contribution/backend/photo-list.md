@@ -8,7 +8,7 @@ sidebar_position: 5
 
 The timeline and every list built like it (favourites, a person, a folder, the trash, a shared library, a user's public page) are read day by day. A day is not stored: a photo belongs to the day of its date taken (`exif_timestamp`, wall-clock time), or to the undated group when it has none. All three endpoints take the same filters, so a day's count, its pages and its layout always agree.
 
-Up to 1.5.x these were `GET /api/albums/date/list/` and `GET /api/albums/date/<id>/?page=N`; both are gone.
+Up to 1.5.x these were `GET /api/albums/date/list/` and `GET /api/albums/date/<id>/?page=N`. Both still answer, read-only and deprecated, for released clients such as UhuruPhotos: they take the same filters plus `last_modified`, use the day ids below, and page a day by offset, which is slow on very large days. New clients use the endpoints below.
 
 :::note
 `public`, `hidden`, `in_trashcan`, `show_all_stack_photos` and `libraries` are booleans: `true`, `1`, `yes` or `on` switch them on, `false`, `0`, `no`, `off` or a blank value leave them off, and any other value is a 400 naming the parameter. The media filters (`favorite`, `video`, `photo`, `is_screenshot`, `is_document`, `hide_screenshots`, `hide_documents`, `archived`) are tri-state: a false word turns them off, any other value on, and leaving them out applies neither. `person` and `library` must be numbers, otherwise the answer is a 400.
