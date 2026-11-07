@@ -83,6 +83,15 @@ def _caption_instance(obj: Photo) -> PhotoCaption | None:
         return None
 
 
+def thumbnail_of(photo: Photo) -> Thumbnail | None:
+    """The photo's thumbnail row, or None before its import job has made one:
+    an upload is a photo from its completion on, and clients ask for its
+    summary while it is processed."""
+    # The reverse one-to-one raises RelatedObjectDoesNotExist, an
+    # AttributeError, when there is no row.
+    return photo.thumbnail if hasattr(photo, "thumbnail") else None
+
+
 class PhotoSummarySerializer(serializers.ModelSerializer):
     # UUID primary key
     id = serializers.UUIDField(read_only=True)
@@ -159,7 +168,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
 
     # TODO: Rename this field to aspect_ratio
     def get_aspectRatio(self, obj: Photo) -> float | None:
-        return obj.thumbnail.aspect_ratio
+        thumbnail = thumbnail_of(obj)
+        return thumbnail.aspect_ratio if thumbnail else None
 
     # TODO: Remove this field in the future (kept for backwards compatibility)
     def get_url(self, obj: Photo) -> str:
@@ -210,8 +220,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             return ""
 
     def get_dominantColor(self, obj: Photo) -> str:
-        if obj.thumbnail.dominant_color:
-            dominant_color = obj.thumbnail.dominant_color[1:-1]
+        thumbnail = thumbnail_of(obj)
+        if thumbnail and thumbnail.dominant_color:
+            dominant_color = thumbnail.dominant_color[1:-1]
             r, g, b = (int(x) for x in dominant_color.split(", "))
             return f"#{r:02x}{g:02x}{b:02x}"
         else:
@@ -519,10 +530,11 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
     photo_summary = serializers.SerializerMethodField()
     day_id = serializers.SerializerMethodField()
     processing = serializers.SerializerMethodField()
+    album_date_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
-        fields = ("photo_summary", "day_id", "processing")
+        fields = ("photo_summary", "day_id", "album_date_id", "processing")
 
     # The view passes a queryset of photos (many=False), not a single photo.
     @extend_schema_field(PhotoSummarySerializer)
@@ -532,7 +544,13 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
         ).data
 
     def get_processing(self, obj: QuerySet[Photo]) -> bool:
-        return obj.get().thumbnail.aspect_ratio is None
+        thumbnail = thumbnail_of(obj.get())
+        return thumbnail is None or thumbnail.aspect_ratio is None
+
+    def get_album_date_id(self, obj: QuerySet[Photo]) -> int:
+        """``day_id`` under the name released clients read (UhuruPhotos): the
+        id of the day in the legacy ``/api/albums/date/`` routes."""
+        return self.get_day_id(obj)
 
     def get_day_id(self, obj: QuerySet[Photo]) -> int:
         """The id of the photo's day in ``/api/days/`` (YYYYMMDD, 1 undated)."""
@@ -1621,6 +1639,12 @@ class BulkPhotoMutationResponse(serializers.Serializer[None]):
         required=False,
         help_text="The photos that already had the value; for image_hashes, "
         "not for select_all or sharing",
+    )
+    results = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Always empty; kept for released clients that require it "
+        "(it held the changed photos before 1.2.0)",
     )
 
 

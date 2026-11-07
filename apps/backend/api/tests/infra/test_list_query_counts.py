@@ -317,6 +317,7 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
     ),
     "api/albums/auto/list/": (ListFixture(_album_auto),),
     "api/days/": (ListFixture(_day),),
+    "api/albums/date/list/": (ListFixture(_day),),
     "api/albums/thing/list/": (ListFixture(_album_thing),),
     "api/albums/place/list/": (ListFixture(_album_place),),
     "api/albums/user/list/": (ListFixture(_album_user),),

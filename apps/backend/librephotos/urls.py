@@ -69,6 +69,7 @@ from api.views import (
     geocode,
     health,
     jobs,
+    legacy_date_albums,
     library_folders,
     library_shares,
     media,
@@ -292,6 +293,16 @@ router.register(
     r"api/folders", album_folder.FolderNavigationViewSet, basename="folder_navigation"
 )
 router.register(r"api/days", days.DayViewSet, basename="days")
+# The date albums #2920 removed, for released clients (UhuruPhotos): the day
+# list and a day's pages, served from /api/days/'s queries.
+router.register(
+    r"api/albums/date/list",
+    legacy_date_albums.LegacyDateAlbumListViewSet,
+    basename="album_date_list",
+)
+router.register(
+    r"api/albums/date", legacy_date_albums.LegacyDateAlbumViewSet, basename="album_date"
+)
 router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
 router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_place")
 router.register(r"api/albums/user", albums.AlbumUserViewSet, basename="album_user")

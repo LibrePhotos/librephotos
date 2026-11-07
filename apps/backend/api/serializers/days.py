@@ -202,3 +202,40 @@ class DayLayoutSerializer(serializers.Serializer[None]):
         help_text="``after`` for each page of ``limit`` photos: null for the "
         "first, then the id of the photo before the page",
     )
+
+
+class LegacyDateAlbumQuery(DayQuery):
+    """The filters of the legacy ``/api/albums/date/`` routes: those of
+    ``/api/days/`` plus the change sync of released clients. A day's page is
+    the paginator's ``page``."""
+
+    last_modified = serializers.DateTimeField(
+        required=False,
+        help_text="Only photos changed since then. For the owner it replaces "
+        "every other filter, so photos trashed or hidden since then are listed",
+    )
+
+
+class LegacyDateAlbumSerializer(DaySerializer):
+    """A day in the shape of the date albums #2920 removed."""
+
+    incomplete = serializers.BooleanField(
+        help_text="True in the list, which carries no photos; false on a page"
+    )
+    items = PhotoSummarySerializer(many=True)
+
+
+class LegacyDateAlbumListSerializer(serializers.Serializer[None]):
+    results = LegacyDateAlbumSerializer(many=True)
+
+
+class LegacyDateAlbumPageSerializer(serializers.Serializer[None]):
+    """A page of a day: the day as ``results``, one page in its ``items``."""
+
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = LegacyDateAlbumSerializer()
+    page = serializers.IntegerField()
+    page_size = serializers.IntegerField()
+    num_pages = serializers.IntegerField()

@@ -94,7 +94,8 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/albums/thing/list": {"GET list"},
     "api/albums/place/list": {"GET list"},
     "api/albums/user/list": {"GET list"},
-    "api/albums/user/edit": {"POST create", "PATCH partial_update"},
+    # DELETE for released clients (UhuruPhotos); the web deletes on api/albums/user.
+    "api/albums/user/edit": {"POST create", "PATCH partial_update", "DELETE destroy"},
     "api/albums/user/shared/tome": {"GET list"},
     "api/albums/user/shared/fromme": {"GET list"},
     # PATCH sets the cover (#429).
@@ -107,6 +108,9 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/folders": {"GET subfolders"},
     # The timeline's days: the list, a day's photos (by cursor) and its layout.
     "api/days": {"GET list", "GET photos", "GET layout"},
+    # The date albums #2920 removed, read-only for released clients.
+    "api/albums/date/list": {"GET list"},
+    "api/albums/date": {"GET retrieve"},
     "api/albums/thing": {"GET retrieve"},
     "api/albums/place": {"GET retrieve"},
     # PUT collections sets which of the owner's collections hold it (#1009).
@@ -448,13 +452,13 @@ class RemovedVerbsTest(TestCase):
             ("patch", f"/api/days/{ids['day']}/photos/", 405),
             ("delete", f"/api/days/{ids['day']}/photos/", 405),
             ("post", f"/api/days/{ids['day']}/layout/", 405),
-            # The day albums are gone: a day is read from its photos (/api/days/).
-            ("get", "/api/albums/date/list/", 404),
-            ("get", "/api/albums/date/1/", 404),
+            # The legacy date albums are read-only.
+            ("post", "/api/albums/date/list/", 405),
+            ("post", f"/api/albums/date/{ids['day']}/", 405),
+            ("delete", f"/api/albums/date/{ids['day']}/", 405),
             ("get", "/api/albums/user/edit/", 405),
             ("get", f"/api/albums/user/edit/{ids['user_album']}/", 405),
             ("put", f"/api/albums/user/edit/{ids['user_album']}/", 405),
-            ("delete", f"/api/albums/user/edit/{ids['user_album']}/", 405),
             ("post", "/api/jobs/", 405),
             ("put", f"/api/jobs/{ids['job']}/", 405),
             ("patch", f"/api/jobs/{ids['job']}/", 405),
@@ -500,6 +504,8 @@ class RemovedVerbsTest(TestCase):
             ("get", "/api/days/"),
             ("get", f"/api/days/{ids['day']}/photos/"),
             ("get", f"/api/days/{ids['day']}/layout/"),
+            ("get", "/api/albums/date/list/"),
+            ("get", f"/api/albums/date/{ids['day']}/"),
             ("get", f"/api/albums/user/{ids['user_album']}/"),
             ("get", "/api/persons/"),
             ("get", f"/api/persons/{ids['person']}/"),
@@ -1291,6 +1297,10 @@ UNPAGINATED_LIST_VIEWS: dict[str, str] = {
         "the timeline's index, one row per day without its photos; the "
         "clients lay the whole timeline out from it, and a day's photos page "
         "by cursor (/api/days/<id>/photos/)"
+    ),
+    "api.views.legacy_date_albums.LegacyDateAlbumListViewSet": (
+        "the day list in the date-album shape released clients read whole; "
+        "a day's photos page (/api/albums/date/<id>/?page=)"
     ),
     "api.views.gallery.GalleryDayViewSet": (
         "the public gallery's timeline index, one row per day without its "
