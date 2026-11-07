@@ -66,7 +66,9 @@ export function useVirtualizedGrid(
   setSelectedFaces: (faces: FaceSelection[]) => void,
   analysisMethod: FaceAnalysisMethod,
   width: number,
-  collapsedPersons: Record<FacesTab, ReadonlySet<number>>
+  collapsedPersons: Record<FacesTab, ReadonlySet<number>>,
+  /** Moves when the slots of the lists change (useFaceDataFetching), not when faces land. */
+  listsVersion = ""
 ) {
   const gridRef = useRef<VirtualGridHandle>(null);
   // The columns and the face size follow the grid's measured width
@@ -173,12 +175,13 @@ export function useVirtualizedGrid(
       rowOverscanStopIndex: Math.min(section.rowOverscanStopIndex, rowCount - 1),
     });
   });
-  // Only a fold changes the cells behind a fixed range: a scroll moves the range and the Grid
-  // reports it, and reacting to data arriving here would re-request the pages that just landed.
-  // So collapsedPersons is the only trigger; the replay reads the current cells and tab.
+  // A fold, a refetch or a face edit changes the cells behind a fixed range: a scroll moves the
+  // range and the Grid reports it. Reacting to every data change here would re-request the pages
+  // that just landed, so listsVersion only moves when the slots do (useFaceDataFetching); the
+  // replay reads the current cells and tab.
   useEffect(() => {
     replayLastSection();
-  }, [collapsedPersons]);
+  }, [collapsedPersons, listsVersion]);
 
   // Get flattened cell contents for cell range selection
   const getFlattenedCells = useCallback(

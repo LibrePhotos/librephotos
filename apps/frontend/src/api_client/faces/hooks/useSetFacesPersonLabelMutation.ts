@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { apiClient } from "../../api";
-import { invalidateFaceEdits } from "./invalidateFaceEdits";
+import { applyFaceEdits } from "../faceListCache";
 import { useRestoreFaceLabelsMutation } from "./useRestoreFaceLabelsMutation";
 
 type SetFacesLabelRequest = { faceIds: number[]; personName: string };
@@ -22,7 +22,7 @@ export const useSetFacesPersonLabelMutation = () => {
   return useMutation({
     mutationFn: setFacesPersonLabel,
     // The toast waits for the server: "not this person" used to claim success before it answered.
-    onSuccess: (data, { personName }) => {
+    onSuccess: (data, { faceIds, personName }) => {
       const undo = undoOf(data.previous);
       if (personName === UNKNOWN_PERSON_NAME) {
         // Who training no longer suggests for the faces (#2747); older servers do not say
@@ -48,7 +48,8 @@ export const useSetFacesPersonLabelMutation = () => {
       // to "Unknown - Other", which is not a pick worth remembering.
       recordRecentlyTaggedPerson(data.results[0]?.person);
 
-      invalidateFaceEdits(queryClient);
+      // The twins are in `results` too; older servers may leave out a face that did not change
+      applyFaceEdits(queryClient, [...faceIds, ...data.results.map(face => face.id)]);
     },
   });
 };

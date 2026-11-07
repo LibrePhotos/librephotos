@@ -3,7 +3,7 @@ import type { FaceLabels } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
-import { invalidateFaceEdits } from "./invalidateFaceEdits";
+import { applyFaceEdits } from "../faceListCache";
 
 const restoreFaceLabels = (faces: readonly FaceLabels[]) => endpoints.restoreFaceLabels(apiClient, faces);
 
@@ -14,7 +14,7 @@ export const useRestoreFaceLabelsMutation = () => {
     mutationFn: restoreFaceLabels,
     onSuccess: data => {
       notification.restoreFaceLabels(data.restored_ids.length);
-      invalidateFaceEdits(queryClient);
+      applyFaceEdits(queryClient, data.restored_ids);
     },
   });
 };
