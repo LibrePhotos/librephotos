@@ -21,7 +21,7 @@ function readTagFile(path: string): string[] {
     .split("\n")
     .map(line => line.trim())
     .filter(line => line !== "" && !line.startsWith("#"))
-    .map(line => line.split("=")[0].trim());
+    .map(line => line.replace(/=.*/, "").trim());
 }
 
 describe("tags.json", () => {
