@@ -1,6 +1,6 @@
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { Group, RemoveScroll, Stack } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { useCallbackRef, useDisclosure } from "@mantine/hooks";
 import { getRouteApi } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -64,8 +64,14 @@ export function FaceDashboard() {
   // Opened from a face in a later frame of a video: the video starts there (#2762).
   const [lightboxStart, setLightboxStart] = useState<FaceVideoStart | null>(null);
 
-  const { lists, fetchingLabeledFacesList, fetchingInferredFacesList, fetchingDeletedFacesList, idx2hash } =
-    useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence, personOrder, groupId);
+  const {
+    lists,
+    fetchingLabeledFacesList,
+    fetchingInferredFacesList,
+    fetchingDeletedFacesList,
+    idx2hash,
+    listsVersion,
+  } = useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence, personOrder, groupId);
 
   const showLightbox = useCallback(
     (imageId: string, isValid: boolean) => {
@@ -90,17 +96,15 @@ export function FaceDashboard() {
   const faceActions = useFaceActions();
   const { clearPending } = faceActions;
 
-  // Event handlers
-  const handleShowClick = useCallback(
-    (event: React.MouseEvent, item: FaceCell) => {
-      // Like idx2hash: the server never sends a face without its photo.
-      const photoId = item.photo ?? "";
-      const index = idx2hash.findIndex(image => image.id === photoId);
-      setLightboxStart(faceVideoStart(lists[activeTab], item));
-      showLightbox(photoId, index >= 0);
-    },
-    [idx2hash, showLightbox, lists, activeTab]
-  );
+  // Event handlers. One function for the dashboard's lifetime: the faces are memoized, and a new
+  // handler on every list change would draw each face on screen again after every edit.
+  const handleShowClick = useCallbackRef((event: React.MouseEvent, item: FaceCell) => {
+    // Like idx2hash: the server never sends a face without its photo.
+    const photoId = item.photo ?? "";
+    const index = idx2hash.findIndex(image => image.id === photoId);
+    setLightboxStart(faceVideoStart(lists[activeTab], item));
+    showLightbox(photoId, index >= 0);
+  });
   const lightboxItems = useMemo(() => withFaceVideoStart(idx2hash, lightboxStart), [idx2hash, lightboxStart]);
 
   // Debounced localStorage save - doesn't trigger re-renders, just persists position
@@ -164,7 +168,8 @@ export function FaceDashboard() {
     setSelectedFaces,
     analysisMethod,
     width,
-    collapsedPersons
+    collapsedPersons,
+    listsVersion
   );
 
   const handleToggleCollapse = useCallback(
@@ -172,16 +177,12 @@ export function FaceDashboard() {
     [activeTab, toggleCollapsed]
   );
 
-  // Update the grid utilities with actual implementation after grid is initialized
+  // Give the grid utilities the grid's cells once it is initialized. getFacesInRange reads them
+  // through getFlattenedCells and stays the same function: the selection's click handler is built
+  // on it, and a new one on every render drew every face on screen again.
   useEffect(() => {
     gridUtils.getFlattenedCells = virtualGrid.getFlattenedCells;
-    gridUtils.getFacesInRange = (start, end) => {
-      const allFaces = virtualGrid.getFlattenedCells();
-      const startIndex = allFaces.indexOf(start);
-      const endIndex = allFaces.indexOf(end);
-      return allFaces.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
-    };
-  }, [gridUtils, virtualGrid]);
+  }, [gridUtils, virtualGrid.getFlattenedCells]);
 
   // Action handlers
   const deleteSelectedFaces = useCallback(() => {

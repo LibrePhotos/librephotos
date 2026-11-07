@@ -187,6 +187,39 @@ describe("useFaceDataFetching", () => {
     expect(firstCachedFace().isTemp).toBeUndefined();
   });
 
+  it("does not reload a page whose faces are loaded", async () => {
+    seedPerson(150);
+    await render([page(1)]);
+    expect(stubs.fetchFaces).toHaveBeenCalledTimes(1);
+
+    // A face edit marks the pages stale but keeps the loaded faces in the list (faceListCache)
+    await act(async () => {
+      void queryClient.invalidateQueries({ queryKey: faceKeys.personFaces(), refetchType: "none" });
+    });
+    await render([page(1)]);
+
+    expect(stubs.fetchFaces).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops a page that lands after a face edit moved the faces", async () => {
+    seedPerson(150);
+    let answer: (faces: PersonFaceList) => void = () => {};
+    stubs.fetchFaces.mockImplementationOnce(() => new Promise(resolve => (answer = resolve)));
+    await render([page(2)]);
+
+    // A face of page 1 was edited: page 2 starts one face later now
+    await act(async () => {
+      seedPerson(149);
+    });
+    await act(async () => {
+      answer(Array.from({ length: 50 }, (_, i) => ({ id: 5000 + i, photo: "hash" })));
+      await Promise.resolve();
+    });
+
+    const people = queryClient.getQueryData<CompletePersonFaceList>(INFERRED_KEY);
+    expect(people?.[0]?.faces.some(face => !face.isTemp)).toBe(false);
+  });
+
   it("orders the people by face count on a copy of the cached list (#764)", async () => {
     const cluster = (id: number, name: string, faceCount: number) => ({
       id,

@@ -2,7 +2,7 @@ import { Avatar, Box, Flex, UnstyledButton } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPlayerPlayFilled, IconUser as User } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
-import React from "react";
+import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import type { CompletePersonFace } from "../../api_client/faces/types";
 import { formatVideoTime } from "../../util/dateUtils";
@@ -53,7 +53,34 @@ function faceLabel(t: TFunction, cell: FaceCell, name: string): string {
   return t(cell.image ? "facesdashboard.facein" : "facesdashboard.faceinnothumbnail", { name });
 }
 
-export function FaceComponent({
+/** A face's group as the face shows it: its name, and its kind for the actions (faceActionRules). */
+const sameGroup = (a: CompletePersonFace | undefined, b: CompletePersonFace | undefined) =>
+  a === b || (a !== undefined && b !== undefined && a.id === b.id && a.name === b.name && a.kind === b.kind);
+
+/**
+ * Whether a face can skip drawing again. Its group is a new object whenever one of the group's
+ * faces changes (an edit, a page landing), which would draw every face on screen again; the face
+ * only shows the group's name and kind. Every other prop is compared as React.memo would.
+ */
+function sameFaceProps(prev: Props, next: Props): boolean {
+  return (
+    prev.cell === next.cell &&
+    sameGroup(prev.group, next.group) &&
+    prev.tab === next.tab &&
+    prev.actions === next.actions &&
+    prev.pending === next.pending &&
+    prev.isScrollingFast === next.isScrollingFast &&
+    prev.selectMode === next.selectMode &&
+    prev.faceSize === next.faceSize &&
+    prev.isSelected === next.isSelected &&
+    prev.handleClick === next.handleClick &&
+    prev.handleShowClick === next.handleShowClick
+  );
+}
+
+export const FaceComponent = memo(FaceComponentView, sameFaceProps);
+
+function FaceComponentView({
   cell,
   group,
   tab,

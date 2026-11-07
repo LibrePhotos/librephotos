@@ -93,6 +93,36 @@ export async function pollUntil<TResult>(
   }
 }
 
+export type CoalesceOptions = {
+  /** run() waits this long after the last call. */
+  waitMs: number;
+  /** A steady stream of calls still runs it at least this often. */
+  maxWaitMs: number;
+};
+
+/**
+ * One run() for a burst of calls: the returned trigger schedules run() waitMs after its last call,
+ * and no later than maxWaitMs after the first call of the burst. Quick edits in a row (tagging face
+ * after face) then refetch once, not once per edit.
+ */
+export function coalesce(run: () => void, { waitMs, maxWaitMs }: CoalesceOptions): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let burstStart = 0;
+  const fire = () => {
+    timer = undefined;
+    run();
+  };
+  return () => {
+    const now = Date.now();
+    if (timer === undefined) {
+      burstStart = now;
+    } else {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(fire, Math.max(0, Math.min(waitMs, burstStart + maxWaitMs - now)));
+  };
+}
+
 /**
  * Invalidates the given queries after a short delay. The delay lets the writes that follow a
  * response land before the reads are refetched.

@@ -2,7 +2,7 @@ import { endpoints } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
-import { invalidateFaceEdits } from "./invalidateFaceEdits";
+import { applyFaceEdits } from "../faceListCache";
 import { useRestoreFacesMutation } from "./useRestoreFacesMutation";
 
 const DeleteFacesMutationKey = ["deleteFaces"] as const;
@@ -24,7 +24,7 @@ export const useDeleteFacesMutation = () => {
       // Older servers do not say which faces they deleted: the ones asked for, then
       const deletedIds = data.deleted_ids ?? faceIds;
       notification.deleteFaces(faceIds.length, () => restoreFaces({ faceIds: deletedIds }));
-      invalidateFaceEdits(queryClient);
+      applyFaceEdits(queryClient, deletedIds);
     },
   });
 };
