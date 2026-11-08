@@ -29,6 +29,16 @@ def error_event(kind: str = "ValueError", value: str = "boom") -> JsonObject:
     }
 
 
+def log_event(message: str) -> JsonObject:
+    """A log line without a stack, as django-q logs a pusher it restarted."""
+    return {
+        "level": "critical",
+        "platform": "python",
+        "logger": "django-q",
+        "logentry": {"message": message, "formatted": message},
+    }
+
+
 class SaveEventTest(TestCase):
     def test_the_same_error_again_counts_as_an_occurrence(self) -> None:
         first, created = save_event(error_event(value="id 1"), SOURCE_SERVER)
@@ -39,6 +49,38 @@ class SaveEventTest(TestCase):
         self.assertEqual(again.id, first.id)
         self.assertEqual(again.occurrences, 2)
         self.assertEqual(ErrorReport.objects.count(), 1)
+
+    def test_a_log_line_repeats_whatever_ids_and_numbers_it_carries(self) -> None:
+        # 17 reports of one restart loop, each naming another process.
+        first, created = save_event(
+            log_event(
+                "reincarnated pusher Process-3f9c2e7a41d84b0c9e6a5d1f2b7c8e90 "
+                "after sudden death"
+            ),
+            SOURCE_SERVER,
+        )
+        cases = [
+            "reincarnated pusher Process-0a1b2c3d4e5f60718293a4b5c6d7e8f9 "
+            "after sudden death",
+            "reincarnated pusher Process-6f1d0c55-3a2e-4c7b-9d10-2e8f4b6a7c91 "
+            "after sudden death",
+            "reincarnated pusher Process-12 after sudden death",
+        ]
+        for message in cases:
+            with self.subTest(message=message):
+                again, created_again = save_event(log_event(message), SOURCE_SERVER)
+                self.assertFalse(created_again)
+                self.assertEqual(again.id, first.id)
+
+        self.assertTrue(created)
+        self.assertEqual(ErrorReport.objects.get().occurrences, 4)
+        # Only the grouping ignores the id; the saved text keeps it.
+        self.assertIn("Process-3f9c2e7a41d84b0c9e6a5d1f2b7c8e90", first.title)
+        _, other = save_event(
+            log_event("reincarnated worker Process-12 after sudden death"),
+            SOURCE_SERVER,
+        )
+        self.assertTrue(other)
 
     def test_a_different_error_is_a_new_report(self) -> None:
         save_event(error_event("ValueError"), SOURCE_SERVER)
