@@ -57,7 +57,7 @@ py-cpuinfo==9.0.0
 psutil==7.2.2
 concurrent-log-handler==0.9.31
 # Error reporting (#2938): captures errors into the saved error reports (api/error_reports).
-sentry-sdk==2.73.0
+sentry-sdk==2.74.0
 
 # Tokenizers for the ONNX models: CLIP BPE (OpenCLIP tags and search) and the
 # LFM2 tokenizer (captions). The Rust package alone, no transformers.
