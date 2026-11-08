@@ -33,6 +33,7 @@ from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.duplicate import Duplicate
+from api.models.error_report import ErrorReport
 from api.models.library_folder import LibraryFolder
 from api.models.library_share import LibraryShare
 from api.models.long_running_job import LongRunningJob
@@ -124,6 +125,32 @@ def create_test_person(
         cluster_owner=cluster_owner,
         **kwargs,
     )
+
+
+def create_test_error_report(
+    title: str = "ValueError: boom", **kwargs: Any
+) -> ErrorReport:
+    """A saved error report (#2938) with a small scrubbed event, not sent.
+
+    Each gets its own fingerprint unless one is given, so they never count as
+    repeats of each other.
+    """
+    fields: dict[str, Any] = {
+        "source": ErrorReport.SOURCE_SERVER,
+        "fingerprint": uuid.uuid4().hex,
+        "title": title,
+        "release": "dev",
+        "event": {
+            "event_id": uuid.uuid4().hex,
+            "level": "error",
+            "platform": "python",
+            "release": "dev",
+            "exception": {"values": [{"type": "ValueError", "value": "boom"}]},
+            "tags": {"source": "server"},
+        },
+    }
+    fields.update(kwargs)
+    return ErrorReport.objects.create(**fields)
 
 
 def create_test_library_folder(owner: User, path: str) -> LibraryFolder:

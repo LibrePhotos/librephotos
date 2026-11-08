@@ -22,6 +22,7 @@ from api.directory_watcher.scan_schedule import (
 )
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
+from api.error_reports.send import MAINTAINERS, OWN_SERVER, mode_available
 from api.jobs.queue import enqueue_task
 from api.models import LongRunningJob, User
 from api.photos.retention import expired_trash_counts
@@ -75,6 +76,7 @@ SETTING_KEYS = (
     "REWIND_ENABLED",
     "PUBLIC_GALLERY",
     "PUBLIC_GALLERY_INDEXABLE",
+    "ERROR_REPORTING",
     *SCHEDULE_KEYS,
     LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
@@ -235,6 +237,11 @@ class SiteSettingsView(APIView):
             out["model_download"] = _model_download()
             out.update(_auto_scan(config))
             out["update_check"] = config["UPDATE_CHECK"]
+            # Error reporting (#2938): where new reports go, and which
+            # servers this instance knows. The DSNs themselves stay here.
+            out["error_reporting"] = config["ERROR_REPORTING"]
+            out["error_reporting_own_server"] = mode_available(OWN_SERVER)
+            out["error_reporting_maintainers"] = mode_available(MAINTAINERS)
             out.update(sso_setup(request._request))
         return Response(out)
 

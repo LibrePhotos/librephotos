@@ -15,6 +15,7 @@ from api.models.copy_budget import CopyBudget
 from api.models.deletion_log import DeletionLog
 from api.models.duplicate import Duplicate
 from api.models.email_config import EmailConfig
+from api.models.error_report import ErrorReport
 from api.models.face import Face
 from api.models.file import File, FileCopy
 from api.models.library_folder import LibraryFolder
@@ -54,6 +55,7 @@ __all__ = [
     "DeletionLog",
     "Duplicate",
     "EmailConfig",
+    "ErrorReport",
     "Face",
     "LibraryFolder",
     "LibraryShare",

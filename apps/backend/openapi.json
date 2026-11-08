@@ -4338,6 +4338,247 @@
         }
       }
     },
+    "/api/error-reports/": {
+      "get": {
+        "operationId": "api_error_reports_list",
+        "description": "The saved reports, newest first (at most 30), and Delete all.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ErrorReport"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_error_reports_destroy_all",
+        "description": "The saved reports, newest first (at most 30), and Delete all.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/error-reports/{report_id}/": {
+      "delete": {
+        "operationId": "api_error_reports_destroy",
+        "description": "Delete one saved report.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/error-reports/{report_id}/download/": {
+      "get": {
+        "operationId": "api_error_reports_download_retrieve",
+        "description": "The report's event exactly as it would be sent, as a JSON file.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            },
+            "description": "The scrubbed event, as an attachment"
+          }
+        }
+      }
+    },
+    "/api/error-reports/{report_id}/send/": {
+      "post": {
+        "operationId": "api_error_reports_send_create",
+        "description": "Send once: one report to the chosen server, else the maintainers.\n\n502 ``upstream_error`` when that server refuses it or cannot be reached;\n503 ``no_error_reporting_server`` when there is nowhere to send to.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorReport"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/error-reports/browser/": {
+      "post": {
+        "operationId": "api_error_reports_browser_create",
+        "description": "The web app's errors, scrubbed and saved like the server's own.\n\nAny signed-in user's browser forwards here, so the admins also see the\nerrors other users run into. Rate limited per user, and an envelope over\n200,000 characters is a 400.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserErrorReportRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserErrorReportRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserErrorReportRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserErrorReport"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/error-reports/send/": {
+      "post": {
+        "operationId": "api_error_reports_send_all",
+        "description": "Send all: every report not sent yet, to the same place as Send once.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorReportSendAll"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/exists/{id}/": {
       "get": {
         "operationId": "api_exists_retrieve",
@@ -16933,6 +17174,33 @@
           "path"
         ]
       },
+      "BrowserErrorReport": {
+        "type": "object",
+        "description": "How many of the envelope's errors were saved.",
+        "properties": {
+          "saved": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "saved"
+        ]
+      },
+      "BrowserErrorReportRequestRequest": {
+        "type": "object",
+        "description": "A Sentry envelope from the web app's SDK, as text.",
+        "properties": {
+          "envelope": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The envelope the browser SDK built; only its error events are kept.",
+            "maxLength": 200000
+          }
+        },
+        "required": [
+          "envelope"
+        ]
+      },
       "BulkMetadataUpdateResponse": {
         "type": "object",
         "description": "``PATCH /api/photos/metadata/bulk/``.",
@@ -19100,6 +19368,94 @@
           "message",
           "status"
         ]
+      },
+      "ErrorReport": {
+        "type": "object",
+        "description": "One saved report as the list shows it; Download has the whole event.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "source": {
+            "type": "string",
+            "readOnly": true,
+            "description": "server (the backend) or browser (the web app)."
+          },
+          "title": {
+            "type": "string",
+            "readOnly": true,
+            "description": "The error and its message, scrubbed."
+          },
+          "level": {
+            "type": "string",
+            "readOnly": true
+          },
+          "release": {
+            "type": "string",
+            "readOnly": true
+          },
+          "occurrences": {
+            "type": "integer",
+            "readOnly": true,
+            "description": "How often it happened; repeats within a day count here."
+          },
+          "first_seen": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "nullable": true,
+            "description": "When it was sent; null while it is only saved."
+          }
+        },
+        "required": [
+          "first_seen",
+          "id",
+          "last_seen",
+          "level",
+          "occurrences",
+          "release",
+          "sent_at",
+          "source",
+          "title"
+        ]
+      },
+      "ErrorReportSendAll": {
+        "type": "object",
+        "description": "What Send all did.",
+        "properties": {
+          "sent": {
+            "type": "integer",
+            "description": "Reports delivered."
+          },
+          "failed": {
+            "type": "integer",
+            "description": "Reports the server did not take."
+          }
+        },
+        "required": [
+          "failed",
+          "sent"
+        ]
+      },
+      "ErrorReportingEnum": {
+        "enum": [
+          "off",
+          "own_server",
+          "maintainers"
+        ],
+        "type": "string",
+        "description": "* `off` - off\n* `own_server` - own_server\n* `maintainers` - maintainers"
       },
       "EventTitleParts": {
         "type": "object",
@@ -28972,6 +29328,18 @@
             ],
             "nullable": true
           },
+          "error_reporting": {
+            "type": "string",
+            "description": "Where new error reports go: off, own_server or maintainers. Staff only."
+          },
+          "error_reporting_own_server": {
+            "type": "boolean",
+            "description": "Whether SENTRY_DSN names the admin's own server. Staff only."
+          },
+          "error_reporting_maintainers": {
+            "type": "boolean",
+            "description": "Whether the maintainers' server is set (ERROR_REPORTING_MAINTAINERS_DSN). Staff only."
+          },
           "whats_new_enabled": {
             "type": "boolean",
             "description": "Whether users see a What's new card once after an update (each user can also turn it off). Sent to everyone."
@@ -29163,6 +29531,14 @@
           "public_gallery_indexable": {
             "type": "boolean",
             "description": "Let search engines index the public gallery."
+          },
+          "error_reporting": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ErrorReportingEnum"
+              }
+            ],
+            "description": "Where new error reports go: off (they stay on this server), own_server (SENTRY_DSN) or maintainers.\n\n* `off` - off\n* `own_server` - own_server\n* `maintainers` - maintainers"
           }
         }
       },

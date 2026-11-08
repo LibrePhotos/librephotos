@@ -64,6 +64,7 @@ from api.views import (
     days,
     duplicates,
     email_config,
+    error_reports,
     faces,
     gallery,
     geocode,
@@ -666,6 +667,24 @@ urlpatterns = [
     path(
         "api/strip-thumbnail-metadata/",
         scan_triggers.StripThumbnailMetadataView.as_view(),
+    ),
+    path("api/error-reports/", error_reports.ErrorReportListView.as_view()),
+    path("api/error-reports/send/", error_reports.ErrorReportSendAllView.as_view()),
+    path(
+        "api/error-reports/browser/",
+        error_reports.BrowserErrorReportView.as_view(),
+    ),
+    path(
+        "api/error-reports/<int:report_id>/",
+        error_reports.ErrorReportDetailView.as_view(),
+    ),
+    path(
+        "api/error-reports/<int:report_id>/send/",
+        error_reports.ErrorReportSendView.as_view(),
+    ),
+    path(
+        "api/error-reports/<int:report_id>/download/",
+        error_reports.ErrorReportDownloadView.as_view(),
     ),
     path("api/upgrade-tasks/", upgrade_tasks.UpgradeTaskListView.as_view()),
     path(

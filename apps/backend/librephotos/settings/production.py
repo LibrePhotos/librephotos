@@ -179,6 +179,23 @@ INSTALL_TYPE = "docker" if IMAGE_TAG else "source"
 # for good, whatever the site setting says: nothing is sent to github.com.
 UPDATE_CHECK_ALLOWED = env_flag("UPDATE_CHECK", default=True)
 
+# Error reporting (#2938, api/error_reports). The backend and the web app keep
+# their errors, scrubbed, in the ErrorReport table; nothing is sent until an
+# admin picks a server in the ERROR_REPORTING site setting or sends a report
+# from the Error reports page. SENTRY_DSN is the admin's own GlitchTip or
+# Sentry project ("My own server"). ERROR_REPORTING_MAINTAINERS_DSN is where
+# "Share with the LibrePhotos maintainers" and Send once go: the public key of
+# a DSN is made to ship inside clients, and this is its one copy (the web app
+# never sees it: it forwards its errors to the backend). Set it empty to make
+# those two choices unavailable.
+SENTRY_DSN = env_str("SENTRY_DSN", "")
+ERROR_REPORTING_MAINTAINERS_DSN = env_str(
+    "ERROR_REPORTING_MAINTAINERS_DSN",
+    "https://4762d1d2e6814985b39254fd9886d391@errors.niaz.omg.lol/6",
+)
+# Whether ApiConfig.ready() starts the capture; the test settings turn it off.
+ERROR_REPORTING_CAPTURE = True
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=env_int("REFRESH_TOKEN_DAYS", 7)),
@@ -307,6 +324,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
                 ("hourly", "Every hour"),
                 ("daily", "Every day"),
                 ("custom", "On the days in AUTO_SCAN_DAYS"),
+            ),
+        },
+    ],
+    "error_reporting": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("off", "Off (keep reports on this server)"),
+                ("own_server", "My own server (SENTRY_DSN)"),
+                ("maintainers", "Share with the LibrePhotos maintainers"),
             ),
         },
     ],
@@ -510,6 +538,14 @@ CONSTANCE_CONFIG = {
         "Let search engines index the public gallery. Off: its pages and"
         " answers carry noindex.",
         bool,
+    ),
+    # Error reporting (#2938, api/error_reports): where the saved error
+    # reports go. Off keeps them on this server until an admin sends one.
+    "ERROR_REPORTING": (
+        "off",
+        "Send new error reports, scrubbed: off (keep them here), to your own"
+        " server (SENTRY_DSN), or to the LibrePhotos maintainers.",
+        "error_reporting",
     ),
     "MAP_API_PROVIDER": (
         env_str("MAP_API_PROVIDER", "exiftool"),
