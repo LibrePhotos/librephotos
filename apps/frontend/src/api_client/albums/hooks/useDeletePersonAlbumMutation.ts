@@ -14,6 +14,7 @@ export const useDeletePersonAlbumMutation = () =>
       queryClient.invalidateQueries({ queryKey: albumKeys.peopleAlbums() });
       queryClient.invalidateQueries({ queryKey: faceKeys.personFaces() });
       queryClient.invalidateQueries({ queryKey: faceKeys.incomplete() });
+      void queryClient.invalidateQueries({ queryKey: faceKeys.reviewCounts() });
       queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
     },
   });

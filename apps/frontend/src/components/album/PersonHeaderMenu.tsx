@@ -22,6 +22,7 @@ import {
   type Person,
 } from "../../api_client/albums/hooks";
 import { ICON_SIZE } from "../../uiConstants";
+import { FACES_SEARCH_DEFAULTS } from "../facedashboard/facesTab";
 import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { HeaderActionsMenu } from "../photolist/HeaderActionsMenu";
 import { PersonDeleteModal } from "./PersonDeleteModal";
@@ -42,7 +43,7 @@ type Props = Readonly<{
 /**
  * The person page's "⋮": rename, the birth date, set the cover (any photo, no selection needed, #2240), share
  * with other users (#668), groups,
- * merge into another person, manage faces, delete. A merge goes
+ * merge into another person, review their faces, delete. A merge goes
  * on to the person merged into, a delete back to People.
  */
 export function PersonHeaderMenu({ person, photos, onBirthDate }: Props) {
@@ -92,8 +93,16 @@ export function PersonHeaderMenu({ person, photos, onBirthDate }: Props) {
         <Menu.Item leftSection={<IconArrowMerge size={ICON_SIZE.menu} />} onClick={pick.open}>
           {t("personalbum.mergeintomenu")}
         </Menu.Item>
-        <Menu.Item leftSection={<IconFaceId size={ICON_SIZE.menu} />} onClick={() => void navigate({ to: "/faces" })}>
-          {t("personalbum.managefaces")}
+        <Menu.Item
+          leftSection={<IconFaceId size={ICON_SIZE.menu} />}
+          onClick={() =>
+            void navigate({
+              to: "/faces",
+              search: { ...FACES_SEARCH_DEFAULTS, tab: "labeled", person: Number(person.id) },
+            })
+          }
+        >
+          {t("personalbum.reviewfaces")}
         </Menu.Item>
         <Menu.Divider />
         <Menu.Item color="red" leftSection={<IconTrash size={ICON_SIZE.menu} />} onClick={remove.open}>

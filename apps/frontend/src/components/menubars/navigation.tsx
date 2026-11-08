@@ -59,7 +59,8 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
         "/organizing",
       ],
     },
-    { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },
+    // The face dashboard belongs to People, which is under Albums
+    { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue", activePrefixes: ["/album", "/faces"] },
     {
       label: t("sidemenu.sharing"),
       link: "/sharing",

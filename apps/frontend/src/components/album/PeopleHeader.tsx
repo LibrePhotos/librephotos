@@ -1,17 +1,17 @@
 import type { PersonGroup } from "@librephotos/api-client";
 import { ActionIcon, Group, Indicator, Menu, Tooltip, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
-import { IconDots, IconFaceId } from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
+import { IconDots } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { toolbarLook } from "../common/toolbarLook";
 import { PageHeader } from "../PageHeader";
-import { HeaderActionsMenu } from "../photolist/HeaderActionsMenu";
 import { sameSort } from "./albumSort";
 import { AlbumSortMenu, AlbumSortMenuItems } from "./AlbumSortMenu";
+import { FacesReviewLink } from "./FacesReviewLink";
 import { ManagePersonGroupsModal } from "./ManagePersonGroupsModal";
+import classes from "./PeopleHeader.module.css";
 import { PersonGroupFilter, PersonGroupMenuItems } from "./PersonGroupFilter";
 import type { AlbumSortMenuState } from "./useAlbumSort";
 
@@ -30,10 +30,9 @@ type Props = Readonly<{
 
 type ControlsProps = Omit<Props, "loading" | "shown">;
 
-/** A phone's header holds one ⋮ beside the title: the sort, the group filter and Manage faces in one menu. */
-function PeopleOverflowMenu({ total, groups, group, onGroupChange, sort }: ControlsProps) {
+/** A phone's header holds one ⋮ beside the title: the sort and the group filter in one menu. */
+function PeopleOverflowMenu({ groups, group, onGroupChange, sort }: ControlsProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [manageOpened, manage] = useDisclosure(false);
   // A dot on the ⋮ while the list is not in its default order or narrowed to a group
   const changed = group !== undefined || !sameSort(sort.sort, sort.defaultSort);
@@ -50,18 +49,10 @@ function PeopleOverflowMenu({ total, groups, group, onGroupChange, sort }: Contr
           </Menu.Target>
         </Indicator>
         <Menu.Dropdown>
-          {total > 0 && (
-            <>
-              <AlbumSortMenuItems {...sort} />
-              <Menu.Divider />
-              <Menu.Label>{t("persongroups.title")}</Menu.Label>
-              <PersonGroupMenuItems groups={groups} value={group?.id} onChange={onGroupChange} onManage={manage.open} />
-              <Menu.Divider />
-            </>
-          )}
-          <Menu.Item leftSection={<IconFaceId size={ICON_SIZE.menu} />} onClick={() => void navigate({ to: "/faces" })}>
-            {t("personalbum.managefaces")}
-          </Menu.Item>
+          <AlbumSortMenuItems {...sort} />
+          <Menu.Divider />
+          <Menu.Label>{t("persongroups.title")}</Menu.Label>
+          <PersonGroupMenuItems groups={groups} value={group?.id} onChange={onGroupChange} onManage={manage.open} />
         </Menu.Dropdown>
       </Menu>
       <ManagePersonGroupsModal opened={manageOpened} onClose={manage.close} />
@@ -69,26 +60,20 @@ function PeopleOverflowMenu({ total, groups, group, onGroupChange, sort }: Contr
   );
 }
 
-/** The sort and the group filter as labelled buttons in a desktop header, then the ⋯ with Manage faces. */
-function PeopleToolbar({ total, groups, group, onGroupChange, sort }: ControlsProps) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
+/** The sort and the group filter as labelled buttons in a desktop header. */
+function PeopleToolbar({ groups, group, onGroupChange, sort }: ControlsProps) {
   return (
     <Group gap={4} wrap="nowrap">
-      {total > 0 && <AlbumSortMenu {...sort} />}
-      {total > 0 && <PersonGroupFilter groups={groups} value={group?.id} onChange={onGroupChange} />}
-      <HeaderActionsMenu label={t("personalbum.peopleoptions")}>
-        <Menu.Item leftSection={<IconFaceId size={ICON_SIZE.menu} />} onClick={() => void navigate({ to: "/faces" })}>
-          {t("personalbum.managefaces")}
-        </Menu.Item>
-      </HeaderActionsMenu>
+      <AlbumSortMenu {...sort} />
+      <PersonGroupFilter groups={groups} value={group?.id} onChange={onGroupChange} />
     </Group>
   );
 }
 
 /**
- * The People page's header: the count of the people shown, then the sort, the group filter and the
- * ⋯ with Manage faces as the header's actions, folded into one ⋮ beside the title on a phone.
+ * The People page's header: the count of the people shown and the way to review their faces
+ * ("25 faces to review ›"), then the sort and the group filter, folded into one ⋮ beside the title
+ * on a phone. With no people yet there is nothing to sort: the page's empty state leads to the faces.
  */
 export function PeopleHeader({ loading, shown, ...controls }: Props) {
   const { t } = useTranslation();
@@ -101,11 +86,19 @@ export function PeopleHeader({ loading, shown, ...controls }: Props) {
       title={t("people")}
       loading={loading}
       subtitle={
-        group
-          ? t("personalbum.numberingroup", { count: shown, name: group.name })
-          : t("personalbum.numberofpeople", { count: total, peoplelength: total })
+        <span className={classes.subtitle}>
+          {group
+            ? t("personalbum.numberingroup", { count: shown, name: group.name })
+            : t("personalbum.numberofpeople", { count: total, peoplelength: total })}
+          {total > 0 && (
+            <>
+              <span aria-hidden>·</span>
+              <FacesReviewLink group={group?.id} />
+            </>
+          )}
+        </span>
       }
-      actions={isPhone ? <PeopleOverflowMenu {...controls} /> : <PeopleToolbar {...controls} />}
+      actions={total === 0 ? null : isPhone ? <PeopleOverflowMenu {...controls} /> : <PeopleToolbar {...controls} />}
     />
   );
 }

@@ -68,6 +68,8 @@ from api.serializers.face import (
     FaceIncompleteListQuery,
     FaceListQuery,
     FaceListSerializer,
+    FacesReviewCountQuery,
+    FacesReviewCountResponse,
     IncompletePersonFaceListSerializer,
     PersonFaceListSerializer,
     RestoreFaceLabelsRequest,
@@ -301,6 +303,56 @@ class FaceIncompleteListViewSet(ListViewSet):
         return Response(real_persons, status=status.HTTP_200_OK)
 
 
+class FacesReviewCountView(APIView):
+    """How many suggested faces wait for review: the count the People page and
+    a pinned Faces row show. One COUNT, without the incomplete list's
+    similarity ordering, so it is cheap to ask on every People visit."""
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        parameters=[FacesReviewCountQuery], responses=FacesReviewCountResponse
+    )
+    def get(self, request: Request, format: str | None = None) -> Response:
+        user = request_user(request)
+        params = parse_query(request, FacesReviewCountQuery)
+        people = Person.objects.owned_by(user)
+        if params.get("group") is not None:
+            people = people.in_group(user, params["group"])
+        suggested = (
+            Face.objects.owned_by(user)
+            .on_shown_photos()
+            .filter(suggested_faces_q(params, people))
+            .count()
+        )
+        return Response({"suggested": suggested})
+
+
+def suggested_faces_q(params: dict[str, Any], people: QuerySet[Person]) -> Q:
+    """The faces the Suggested tab lists for ``people``: the same fields as
+    _viewable_face_condition's, from the face's side, so the review count and
+    the tab cannot disagree."""
+    suggested_for, fields = _suggested_face_fields(params)
+    return Q(**fields, **{f"{suggested_for}__in": people})
+
+
+def _suggested_face_fields(params: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Which person a face is suggested for under ``analysis_method``, and
+    the fields of a face the Suggested tab lists: not deleted, no person yet,
+    at least ``min_confidence`` sure."""
+    if params["analysis_method"] == "classification":
+        return "classification_person", {
+            "deleted": False,
+            "person": None,
+            "classification_probability__gte": params["min_confidence"],
+        }
+    return "cluster_person", {
+        "deleted": False,
+        "person": None,
+        "cluster_probability__gte": params["min_confidence"],
+    }
+
+
 def _viewable_face_count(user: User, params: dict[str, Any]) -> Count:
     """Per person, the faces the dashboard's tab lists for them.
 
@@ -322,23 +374,15 @@ def _viewable_face_count(user: User, params: dict[str, Any]) -> Count:
 def _viewable_face_condition(params: dict[str, Any]) -> tuple[str, Q]:
     """The relation from a person to the faces the dashboard's tab lists for
     them, and which of those faces it lists."""
-    min_confidence = params["min_confidence"]
     if params["deleted"]:
         # Deleted faces keep their person (#127), suggested or not.
         return "faces__", Q(faces__deleted=True)
     if not params["inferred"]:
         return "faces__", Q(faces__deleted=False)
-    if params["analysis_method"] == "classification":
-        return "classification_faces__", Q(
-            classification_faces__deleted=False,
-            classification_faces__person=None,
-            classification_faces__classification_probability__gte=min_confidence,
-        )
-    return "cluster_faces__", Q(
-        cluster_faces__deleted=False,
-        cluster_faces__person=None,
-        cluster_faces__cluster_probability__gte=min_confidence,
-    )
+    suggested_for, fields = _suggested_face_fields(params)
+    # From the person's side: cluster_person's reverse is cluster_faces.
+    through = f"{suggested_for.removesuffix('_person')}_faces__"
+    return through, Q(**{through + field: value for field, value in fields.items()})
 
 
 def _unknown_faces_filter(params: dict[str, Any]) -> Q:

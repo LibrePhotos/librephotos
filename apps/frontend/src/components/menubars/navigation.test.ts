@@ -29,6 +29,8 @@ describe("isNavItemActive", () => {
     expect(isNavItemActive(item("/album"), "/album")).toBe(true);
     expect(isNavItemActive(item("/album"), "/album/user/3")).toBe(true);
     expect(isNavItemActive(item("/sharing"), "/sharing/byme/photos")).toBe(true);
+    // The face dashboard belongs to People, under Albums
+    expect(isNavItemActive(item("/album"), "/faces")).toBe(true);
   });
 
   it("matches whole path segments only", () => {

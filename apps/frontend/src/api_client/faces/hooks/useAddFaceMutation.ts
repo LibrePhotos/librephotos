@@ -71,6 +71,7 @@ export const useAddFaceMutation = () =>
       invalidateAfter(queryClient, [
         faceKeys.incomplete(),
         faceKeys.personFaces(),
+        faceKeys.reviewCounts(),
         albumKeys.peopleAlbums(),
         statsKeys.counts(),
         photoKeys.details(),

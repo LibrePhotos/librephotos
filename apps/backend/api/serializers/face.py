@@ -154,6 +154,31 @@ class FaceIncompleteListQuery(serializers.Serializer[None]):
     )
 
 
+class FacesReviewCountQuery(serializers.Serializer[None]):
+    """``GET /api/faces/review-count/``: the dashboard's Suggested tab filters.
+
+    The defaults are the dashboard's (FACES_SEARCH_DEFAULTS in the web app), so
+    a link that only says "Review faces" lands on the number it showed.
+    """
+
+    analysis_method = serializers.ChoiceField(
+        choices=["clustering", "classification"], default="clustering"
+    )
+    min_confidence = serializers.FloatField(default=0.7, min_value=0, max_value=1)
+    group = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        help_text="Only the faces suggested for the people in this group of yours",
+    )
+
+
+class FacesReviewCountResponse(serializers.Serializer[None]):
+    suggested = serializers.IntegerField(
+        help_text="Faces with no person yet that are suggested for one of your "
+        "people at least min_confidence sure: what the Suggested tab lists"
+    )
+
+
 class ScanFacesRequest(serializers.Serializer[None]):
     """``POST /api/scanfaces``: where to detect faces again (#524).
 

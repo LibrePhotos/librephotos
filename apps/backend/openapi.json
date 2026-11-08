@@ -4800,6 +4800,71 @@
         }
       }
     },
+    "/api/faces/review-count/": {
+      "get": {
+        "operationId": "api_faces_review_count_retrieve",
+        "description": "How many suggested faces wait for review: the count the People page and\na pinned Faces row show. One COUNT, without the incomplete list's\nsimilarity ordering, so it is cheap to ask on every People visit.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "analysis_method",
+            "schema": {
+              "enum": [
+                "clustering",
+                "classification"
+              ],
+              "type": "string",
+              "default": "clustering",
+              "minLength": 1
+            },
+            "description": "* `clustering` - clustering\n* `classification` - classification"
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only the faces suggested for the people in this group of yours"
+          },
+          {
+            "in": "query",
+            "name": "min_confidence",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0,
+              "default": 0.7
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FacesReviewCountResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/find-things/": {
       "post": {
         "operationId": "api_find_things_create",
@@ -19736,6 +19801,18 @@
           "photo",
           "timestamp",
           "video_time"
+        ]
+      },
+      "FacesReviewCountResponse": {
+        "type": "object",
+        "properties": {
+          "suggested": {
+            "type": "integer",
+            "description": "Faces with no person yet that are suggested for one of your people at least min_confidence sure: what the Suggested tab lists"
+          }
+        },
+        "required": [
+          "suggested"
         ]
       },
       "FindThingsRequestRequest": {

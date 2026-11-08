@@ -19,6 +19,7 @@ export const useTrainFacesMutation = () =>
       invalidateAfter(queryClient, [
         faceKeys.incomplete(),
         faceKeys.personFaces(),
+        faceKeys.reviewCounts(),
         albumKeys.peopleAlbums(),
         statsKeys.counts(),
       ]);

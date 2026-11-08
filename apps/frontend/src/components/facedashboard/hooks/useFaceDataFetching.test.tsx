@@ -78,7 +78,7 @@ let container: HTMLDivElement;
 
 let lists: ReturnType<typeof useFaceDataFetching>["lists"] | undefined;
 
-function Harness({ groups, personOrder }: { groups: Group[]; personOrder: FacesPersonOrder }) {
+function Harness({ groups, personOrder, person }: { groups: Group[]; personOrder: FacesPersonOrder; person?: number }) {
   lists = useFaceDataFetching(
     groups,
     FacesTab.enum.inferred,
@@ -86,14 +86,15 @@ function Harness({ groups, personOrder }: { groups: Group[]; personOrder: FacesP
     "confidence",
     0,
     personOrder,
-    undefined
+    undefined,
+    person
   ).lists;
   return null;
 }
 
-const render = async (groups: Group[], personOrder: FacesPersonOrder = "name") => {
+const render = async (groups: Group[], personOrder: FacesPersonOrder = "name", person?: number) => {
   await act(async () => {
-    root.render(<Harness groups={groups} personOrder={personOrder} />);
+    root.render(<Harness groups={groups} personOrder={personOrder} person={person} />);
   });
   await act(async () => {
     await Promise.resolve();
@@ -237,5 +238,19 @@ describe("useFaceDataFetching", () => {
 
     await render([], "name");
     expect(lists?.inferred.map(person => person.id)).toEqual([1, 2, 3]);
+  });
+
+  it("shows one person's faces when a person page asked for them", async () => {
+    const group = (id: number, name: string) => ({ id, name, face_count: 1, kind: "USER", faces: placeholders(1) });
+    queryClient.setQueryData<CompletePersonFaceList>(INFERRED_KEY, [
+      group(1, "Anna"),
+      group(2, "Ben"),
+      group(0, "Unknown - Other"),
+    ]);
+
+    await render([], "name", 2);
+    expect(lists?.inferred.map(person => person.name)).toEqual(["Ben"]);
+    // The Unknown tab is not a person's: it stays as it is
+    expect(lists?.unknown.map(person => person.name)).toEqual(["Unknown - Other"]);
   });
 });

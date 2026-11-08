@@ -112,7 +112,11 @@ describe("person group mutations", () => {
     const calls = await run(useDeletePersonGroupMutation, mutation => mutation.mutateAsync({ id: 3, name: "Family" }));
 
     expect(stubs.deletePersonGroupToast).toHaveBeenCalledWith("Family");
-    expect(calls).toEqual([{ queryKey: albumKeys.peopleAlbums() }, { queryKey: faceKeys.incomplete() }]);
+    expect(calls).toEqual([
+      { queryKey: albumKeys.peopleAlbums() },
+      { queryKey: faceKeys.incomplete() },
+      { queryKey: faceKeys.reviewCounts() },
+    ]);
   });
 
   it("puts a person in groups without a toast", async () => {
@@ -122,7 +126,11 @@ describe("person group mutations", () => {
     );
 
     expect(stubs.setPersonGroups).toHaveBeenCalledWith(expect.anything(), "12", [3]);
-    expect(calls).toEqual([{ queryKey: albumKeys.peopleAlbums() }, { queryKey: faceKeys.incomplete() }]);
+    expect(calls).toEqual([
+      { queryKey: albumKeys.peopleAlbums() },
+      { queryKey: faceKeys.incomplete() },
+      { queryKey: faceKeys.reviewCounts() },
+    ]);
   });
 });
 

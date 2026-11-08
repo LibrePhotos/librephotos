@@ -1,0 +1,8 @@
+/* "9 people · 25 faces to review ›": the count and the review link on one line, wrapping in a
+   long language (the link then sits on its own line under the count). */
+.subtitle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+}

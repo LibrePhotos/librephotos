@@ -10,3 +10,4 @@ export * from "./useRestoreFacesMutation";
 export * from "./useDetectFacesAgainMutation";
 export * from "./useDetectFacesReport";
 export * from "./useDrawnFaceResult";
+export * from "./useFacesReviewCountQuery";

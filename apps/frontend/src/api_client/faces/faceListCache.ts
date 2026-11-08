@@ -150,7 +150,14 @@ function cachedFaceLists(queryClient: QueryClient) {
 async function refreshAfterEdits(queryClient: QueryClient, state: EditState): Promise<void> {
   const { generation } = state;
   // The people albums (face counts, covers), the statistics and the photos' people
-  for (const queryKey of [albumKeys.peopleAlbums(), statsKeys.counts(), photoKeys.details(), faceKeys.personFaces()]) {
+  const refreshed = [
+    albumKeys.peopleAlbums(),
+    statsKeys.counts(),
+    photoKeys.details(),
+    faceKeys.personFaces(),
+    faceKeys.reviewCounts(),
+  ];
+  for (const queryKey of refreshed) {
     void queryClient.invalidateQueries({ queryKey });
   }
   await Promise.all(

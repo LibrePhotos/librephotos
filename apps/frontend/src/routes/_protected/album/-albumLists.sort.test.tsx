@@ -73,6 +73,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../../api_client/albums/hooks/useUserPlaces", () => ({ useUserPlacesQuery: () => ({ data: [] }) }));
+// The review link asks the server for its count; FacesReviewLink.test.tsx covers it
+vi.mock("../../../components/album/FacesReviewLink", () => ({ FacesReviewLink: () => null }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchAutoAlbumsQuery: () => ({ data: stubs.events, isFetching: false }),
   useDeleteAutoAlbumMutation: () => ({ mutate: () => {} }),

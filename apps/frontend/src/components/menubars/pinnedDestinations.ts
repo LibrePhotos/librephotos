@@ -2,6 +2,7 @@ import type { Icon } from "@tabler/icons-react";
 import {
   IconArchive,
   IconCalendarEvent,
+  IconFaceId,
   IconMapPin,
   IconMovie,
   IconSparkles,
@@ -21,6 +22,8 @@ export const PINNABLE_DESTINATIONS = [
   { id: "favorites", link: "/favorites", icon: IconStar, label: "sidemenu.favorites" },
   { id: "memories", link: "/memories", icon: IconSparkles, label: "sidemenu.memories" },
   { id: "people", link: "/album/persons", icon: IconUserCircle, label: "sidemenu.people" },
+  // The face dashboard, for those who label faces often; its row counts the faces waiting
+  { id: "faces", link: "/faces", icon: IconFaceId, label: "sidemenu.facerecognition" },
   { id: "places", link: "/album/places", icon: IconMapPin, label: "sidemenu.places" },
   { id: "events", link: "/album/events", icon: IconCalendarEvent, label: "events" },
   { id: "things", link: "/album/things", icon: IconTag, label: "sidemenu.things" },

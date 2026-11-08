@@ -34,6 +34,8 @@ const FacesSearch = z.object({
   personOrder: FacesPersonOrder.default(DEFAULT_VALUES.personOrder).catch(DEFAULT_VALUES.personOrder),
   // Only the people of one group (#1126); left out for everybody
   group: PersonGroupParam,
+  // Only one person's faces: a person page's "Review faces"; left out for everybody
+  person: z.number().int().positive().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/_protected/faces")({

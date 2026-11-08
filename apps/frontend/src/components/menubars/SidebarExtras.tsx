@@ -6,8 +6,11 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useFetchSharedAlbumsWithMeQuery, useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
+import { useFacesReviewCountQuery } from "../../api_client/faces/hooks";
 import { STORAGE_KEYS, useStoredState } from "../../util/storage";
 import { MediaThumbnail } from "../common/MediaThumbnail";
+import { TabCount } from "../common/TabCount";
+import { FACES_SEARCH_DEFAULTS } from "../facedashboard/facesTab";
 import type { PinnableDestination } from "./pinnedDestinations";
 import { PINNABLE_DESTINATIONS } from "./pinnedDestinations";
 import classes from "./SideMenuNarrow.module.css";
@@ -21,10 +24,12 @@ type NavRowProps = Readonly<{
   icon: React.ReactNode;
   label: string;
   onNavigate: (link: string) => void;
+  /** A quiet count after the label (the faces waiting on a pinned Faces row); none at 0. */
+  count?: number;
 }>;
 
 /** A sidebar row like the sections above it: a real link, so Ctrl/Cmd-click opens a new tab. */
-function NavRow({ link, active, icon, label, onNavigate }: NavRowProps) {
+function NavRow({ link, active, icon, label, onNavigate, count }: NavRowProps) {
   return (
     <a
       className={classes.link}
@@ -43,6 +48,7 @@ function NavRow({ link, active, icon, label, onNavigate }: NavRowProps) {
       <Text className={classes.link_text} size="sm" truncate>
         {label}
       </Text>
+      {count ? <TabCount count={count} /> : null}
     </a>
   );
 }
@@ -96,6 +102,12 @@ export function SidebarExtras({
   const [showRecent, setShowRecent] = useShowRecentAlbums();
   const recentAlbums = showRecent ? allRecentAlbums : [];
   const go = (link: string) => void navigate({ to: link });
+  // Asked only while Faces is pinned: the default sidebar shows no count
+  const { data: facesToReview } = useFacesReviewCountQuery({
+    method: FACES_SEARCH_DEFAULTS.method,
+    minConfidence: FACES_SEARCH_DEFAULTS.minConfidence,
+    enabled: pinned.some(destination => destination.id === "faces"),
+  });
 
   return (
     <>
@@ -110,6 +122,7 @@ export function SidebarExtras({
               icon={<destination.icon size={20} stroke={1.75} />}
               label={t(destination.label)}
               onNavigate={go}
+              count={destination.id === "faces" ? facesToReview : undefined}
             />
           ))}
         </div>

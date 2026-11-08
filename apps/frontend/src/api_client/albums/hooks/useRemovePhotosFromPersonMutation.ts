@@ -29,6 +29,7 @@ export const useRemovePhotosFromPersonMutation = () => {
           albumKeys.peopleAlbums(),
           faceKeys.personFaces(),
           faceKeys.incomplete(),
+          faceKeys.reviewCounts(),
           statsKeys.counts(),
           photoKeys.details(),
         ].map(queryKey => queryClient.invalidateQueries({ queryKey }))

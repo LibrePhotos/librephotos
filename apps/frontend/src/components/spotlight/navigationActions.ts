@@ -20,7 +20,6 @@ import {
   IconLock,
   IconMap,
   IconMapPinOff,
-  IconMoodSmile,
   IconPhoto,
   IconRobot,
   IconScreenshot,
@@ -217,9 +216,9 @@ function pageActions(t: Translate, navigate: Navigate): SpotlightAction[] {
     {
       id: "nav-faces",
       label: t("spotlight.nav.faces"),
-      leftSection: React.createElement(IconMoodSmile, iconProps),
+      leftSection: React.createElement(IconFaceId, iconProps),
       onClick: () => void navigate({ to: "/faces" }),
-      keywords: ["faces", "face dashboard", "recognition"],
+      keywords: ["faces", "review faces", "manage faces", "face dashboard", "recognition", "unknown faces"],
     },
     {
       id: "nav-settings",

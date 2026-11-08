@@ -18,6 +18,7 @@ import { PageHeader } from "../PageHeader";
 import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { FaceActionDialogs } from "./FaceActionDialogs";
 import { isFoldable } from "./faceGridRows";
+import type { FacesTabLists } from "./facesCounters";
 import { FacesEmptyState } from "./FacesEmptyState";
 import type { FacesTab } from "./facesTab";
 import toolbarClasses from "./FacesToolbar.module.css";
@@ -36,6 +37,12 @@ import { TabComponent } from "./TabComponent";
 import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 
 const routeApi = getRouteApi("/_protected/faces");
+
+/** The name of the person the page is narrowed to ("" until a list holding them loads), if any. */
+function personFilterName(lists: FacesTabLists, person: number | undefined): string | undefined {
+  if (person === undefined) return undefined;
+  return [...lists.labeled, ...lists.inferred, ...lists.deleted].find(group => group.id === person)?.name ?? "";
+}
 
 export function FaceDashboard() {
   // Columns are laid out in the grid's content box (the container pads it), so size them from that
@@ -71,7 +78,16 @@ export function FaceDashboard() {
     fetchingDeletedFacesList,
     idx2hash,
     listsVersion,
-  } = useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence, personOrder, groupId);
+  } = useFaceDataFetching(
+    groups,
+    activeTab,
+    analysisMethod,
+    orderBy,
+    minConfidence,
+    personOrder,
+    groupId,
+    search.person
+  );
 
   const showLightbox = useCallback(
     (imageId: string, isValid: boolean) => {
@@ -283,6 +299,7 @@ export function FaceDashboard() {
             canCollapse={foldable.length > 0}
             personGroups={personGroups}
             groupId={groupId}
+            personFilter={personFilterName(lists, search.person)}
           />
         </Group>
         {!isFetching && !hasFaces ? (

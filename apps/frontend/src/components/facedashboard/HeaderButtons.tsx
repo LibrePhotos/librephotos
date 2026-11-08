@@ -1,5 +1,5 @@
 import type { PersonGroup } from "@librephotos/api-client";
-import { ActionIcon, Button, Group, Menu, Tooltip, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, Group, Menu, Pill, Tooltip, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
   IconChevronsDown as ChevronsDown,
@@ -42,6 +42,8 @@ type Props = Readonly<{
   /** The user's groups of people, and the one the people are narrowed to (#1126). */
   personGroups: readonly PersonGroup[];
   groupId: number | undefined;
+  /** The name of the one person the page shows (a person page's "Review faces"), if any. */
+  personFilter?: string;
 }>;
 
 const routeApi = getRouteApi("/_protected/faces");
@@ -86,6 +88,7 @@ export function HeaderButtons({
   canCollapse,
   personGroups,
   groupId,
+  personFilter,
 }: Props) {
   const [deleteDialogOpen, { open: openDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
   const navigate = useNavigate();
@@ -139,6 +142,16 @@ export function HeaderButtons({
 
   const tools = (
     <Group gap={4} wrap="nowrap">
+      {personFilter !== undefined && (
+        <Pill
+          size="lg"
+          withRemoveButton
+          onRemove={() => void navigate({ to: "/faces", search: { ...search, person: undefined } })}
+          removeButtonProps={{ "aria-label": t("facesdashboard.showeveryone") }}
+        >
+          {personFilter || t("facesdashboard.oneperson")}
+        </Pill>
+      )}
       <FacesSortMenu
         orderBy={orderBy}
         personOrder={personOrder}

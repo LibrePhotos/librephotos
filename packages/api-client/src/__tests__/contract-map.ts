@@ -90,6 +90,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SetFacesLabelResponse: { schema: S.SetFacesLabelResponse, components: ["SetFacePersonLabelResponse"] },
   AddFaceResponse: { schema: S.AddFaceResponse, components: ["AddFaceResponse"] },
   DeleteFacesResponse: { schema: S.DeleteFacesResponse, components: ["DeleteFacesResponse"] },
+  FacesReviewCountResponse: { schema: S.FacesReviewCountResponse, components: ["FacesReviewCountResponse"] },
   RestoreFacesResponse: { schema: S.RestoreFacesResponse, components: ["RestoreFacesResponse"] },
   FaceLabels: { schema: S.FaceLabels, components: ["FaceLabels"] },
   RejectedPerson: { schema: S.RejectedPerson, components: ["RejectedPerson"] },

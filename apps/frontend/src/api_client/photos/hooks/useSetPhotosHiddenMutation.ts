@@ -17,6 +17,7 @@ function refresh(queryClient: QueryClient, request: SetPhotosHiddenRequest) {
   // Invalidate relevant queries to ensure consistent state
   invalidatePhotoLists(queryClient);
   void queryClient.invalidateQueries({ queryKey: faceKeys.incomplete() });
+  void queryClient.invalidateQueries({ queryKey: faceKeys.reviewCounts() });
   void queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
   void queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
 

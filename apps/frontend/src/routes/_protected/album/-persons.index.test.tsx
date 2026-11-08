@@ -60,6 +60,8 @@ vi.mock("@tanstack/react-router", () => ({
   ),
   useNavigate: () => stubs.navigate,
 }));
+// The review link asks the server for its count; FacesReviewLink.test.tsx covers it
+vi.mock("../../../components/album/FacesReviewLink", () => ({ FacesReviewLink: () => null }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchPeopleAlbumsQuery: () => ({
     data: stubs.people,
