@@ -4,7 +4,7 @@
  * settings' error_reporting_asked), so it never shows again on any device. With saved reports, it
  * offers to review them and asks about sending them like the Admin page does.
  */
-import type { ErrorReport, SiteSettingsUpdate } from "@librephotos/api-client";
+import type { ErrorReport, ProcessingStatus, SiteSettingsUpdate } from "@librephotos/api-client";
 import React from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
@@ -28,6 +28,7 @@ const stubs = vi.hoisted(() => ({
   reports: [] as ErrorReport[],
   uploads: [] as unknown[],
   saved: [] as SiteSettingsUpdate[],
+  status: undefined as ProcessingStatus | undefined,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -42,6 +43,10 @@ vi.mock("../../api_client/errorReports", () => ({
   useSendAllErrorReportsMutation: () => ({ mutate: () => undefined }),
 }));
 vi.mock("../upload", () => ({ useUpload: () => ({ items: stubs.uploads }) }));
+// The library is processed unless a test says otherwise; only the thank-you dialog reads it.
+vi.mock("../../api_client/jobs/hooks/useProcessingStatus", () => ({
+  useProcessingStatusUntil: () => ({ data: stubs.status }),
+}));
 vi.mock("../settings/useSaveSiteSettings", () => ({
   // The server's answer marks the question answered, as the backend does.
   useSaveSiteSettings: () => (input: SiteSettingsUpdate, onSaved?: () => void) => {
@@ -64,6 +69,11 @@ function report(id: number): ErrorReport {
     sent_at: null,
   };
 }
+
+const READY: ProcessingStatus = {
+  photo_count: 5,
+  stages: [{ key: "thumbnails", remaining: 0, unmatched: 0, running_job: null, last_run: null }],
+};
 
 async function render() {
   const view = await renderInMantine(<ErrorReportingPrompt />);
@@ -94,6 +104,7 @@ beforeEach(() => {
   stubs.reports = [];
   stubs.uploads = [];
   stubs.saved = [];
+  stubs.status = READY;
 });
 
 describe("errorReportingPromptPending", () => {
@@ -103,17 +114,9 @@ describe("errorReportingPromptPending", () => {
     ["a user who is not an admin", { ...admin, is_superuser: false }, { error_reporting_asked: false }, false],
     ["an answered question", admin, { error_reporting_asked: true }, false],
     ["an older backend", admin, {}, false],
-    [
-      "while the thank-you dialog waits",
-      { ...admin, support_prompt_seen: false },
-      {
-        error_reporting_asked: false,
-        support_prompts_enabled: true,
-      },
-      false,
-    ],
-  ])("%s", (_name, user, settings, pending) => {
-    expect(errorReportingPromptPending(user, settings)).toBe(pending);
+    ["while the thank-you dialog shows", admin, { error_reporting_asked: false }, false, true],
+  ])("%s", (_name, user, settings, pending, thankYouShows = false) => {
+    expect(errorReportingPromptPending(user, settings, thankYouShows)).toBe(pending);
   });
 });
 
@@ -171,6 +174,24 @@ describe("ErrorReportingPrompt", () => {
     expect(defined(openDialog()).textContent).toContain(i18n.t("errorreports.optin_title"));
     await click(dialogButton(i18n.t("errorreports.optin_new_only")));
     expect(stubs.saved).toEqual([{ error_reporting: "maintainers" }]);
+  });
+
+  it("asks an admin whose thank-you dialog waits for a library that never finishes processing", async () => {
+    stubs.user = { id: 1, is_superuser: true, support_prompt_seen: false };
+    stubs.settings = { ...stubs.settings, support_prompts_enabled: true };
+    stubs.status = {
+      photo_count: 601,
+      stages: [{ key: "captions", remaining: 561, unmatched: 0, running_job: null, last_run: null }],
+    };
+    await render();
+    expect(await dialogShows()).toBe(true);
+  });
+
+  it("waits while the thank-you dialog shows", async () => {
+    stubs.user = { id: 1, is_superuser: true, support_prompt_seen: false };
+    stubs.settings = { ...stubs.settings, support_prompts_enabled: true };
+    await render();
+    expect(await dialogShows(500)).toBe(false);
   });
 
   it("waits while files upload", async () => {
