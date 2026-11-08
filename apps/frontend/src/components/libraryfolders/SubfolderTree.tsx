@@ -37,7 +37,7 @@ function FolderNode({ folder, excluded, onToggle }: Readonly<{ folder: LibrarySu
             aria-expanded={expanded}
             aria-label={t("libraryfolders.showsubfolders", { name: folder.name })}
           >
-            {expanded ? <IconChevronDown size={ICON_SIZE.menu} /> : <IconChevronRight size={ICON_SIZE.menu} />}
+            {expanded ? <IconChevronDown size={ICON_SIZE.inline} /> : <IconChevronRight size={ICON_SIZE.inline} />}
           </ActionIcon>
         ) : (
           <span className={classes.spacer} />

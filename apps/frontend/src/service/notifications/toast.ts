@@ -1,6 +1,9 @@
 import { hideNotification, showNotification, updateNotification } from "@mantine/notifications";
+import { IconAlertCircle, IconAlertTriangle, IconCheck } from "@tabler/icons-react";
+import type { Icon } from "@tabler/icons-react";
 import { createElement } from "react";
 import type { ReactNode } from "react";
+import classes from "../../theme/notificationsTheme.module.css";
 import { ToastWithUndo } from "./ToastWithUndo";
 
 /** The optional parts of a toast. A second toast with the same `id` is ignored while the first one is up. */
@@ -11,13 +14,28 @@ export type ToastOptions = {
   autoClose?: number | false;
 };
 
+type ToastKind = "success" | "warning" | "error";
+
 /**
- * The only place a toast gets its colour: teal for done, orange for a heads-up, red for a failure.
- * Everything else in the app goes through `notification` (service/notifications), never
- * @mantine/notifications directly; the lint config bans that import.
+ * The only place a toast gets its colour and icon: teal and a check for done, orange and a
+ * triangle for a heads-up, red and a circle for a failure (the tinted circle and the shades are in
+ * theme/notificationsTheme.module.css). Everything else in the app goes through `notification`
+ * (service/notifications), never @mantine/notifications directly; the lint config bans that import.
  */
-function show(color: string, message: ReactNode, { title, id, autoClose }: ToastOptions = {}): void {
-  showNotification({ message, color, title, id, autoClose });
+const LOOKS: Record<ToastKind, { color: string; icon: Icon; className: string | undefined }> = {
+  success: { color: "teal", icon: IconCheck, className: classes.success },
+  warning: { color: "orange", icon: IconAlertTriangle, className: classes.warning },
+  error: { color: "red", icon: IconAlertCircle, className: classes.error },
+};
+
+/** The colour, icon and accent class of a toast of this kind. */
+function lookOf(kind: ToastKind) {
+  const { color, icon, className } = LOOKS[kind];
+  return { color, className, icon: createElement(icon, { size: 18, stroke: 2, "aria-hidden": true }) };
+}
+
+function show(kind: ToastKind, message: ReactNode, { title, id, autoClose }: ToastOptions = {}): void {
+  showNotification({ ...lookOf(kind), message, title, id, autoClose });
 }
 
 /**
@@ -63,9 +81,9 @@ function successCounted(
   const closesAfter = undos.length > 0 ? (autoClose ?? UNDO_TOAST_MS) : autoClose;
   if (shown === undefined) {
     const onClose = () => countedToasts.delete(id);
-    showNotification({ id, color: "teal", title, autoClose: closesAfter, message: body, onClose });
+    showNotification({ ...lookOf("success"), id, title, autoClose: closesAfter, message: body, onClose });
   } else {
-    updateNotification({ id, color: "teal", title, autoClose: closesAfter, message: body });
+    updateNotification({ ...lookOf("success"), id, title, autoClose: closesAfter, message: body });
   }
 }
 
@@ -87,9 +105,9 @@ async function undoInTurn(undos: ReadonlyArray<() => Promise<unknown>>): Promise
 }
 
 export const toast = {
-  success: (message: ReactNode, options?: ToastOptions) => show("teal", message, options),
-  warning: (message: ReactNode, options?: ToastOptions) => show("orange", message, options),
-  error: (message: ReactNode, options?: ToastOptions) => show("red", message, options),
+  success: (message: ReactNode, options?: ToastOptions) => show("success", message, options),
+  warning: (message: ReactNode, options?: ToastOptions) => show("warning", message, options),
+  error: (message: ReactNode, options?: ToastOptions) => show("error", message, options),
   successCounted,
   hide: (id: string) => {
     hideNotification(id);

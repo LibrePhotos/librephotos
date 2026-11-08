@@ -1,10 +1,11 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
-import { Anchor, Flex } from "@mantine/core";
+import { Anchor } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Tile } from "../Tile";
 import { SectionTitle } from "./SectionTitle";
+import classes from "./SimilarPhotosSection.module.css";
 
 type SimilarPhotosSectionProps = {
   photoDetail: Pick<PhotoType, "image_hash" | "similar_photos">;
@@ -12,7 +13,14 @@ type SimilarPhotosSectionProps = {
   showTitle?: boolean;
 };
 
-export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = true }: SimilarPhotosSectionProps) {
+/** Two full rows of the grid's three columns. */
+const SHOWN_BY_DEFAULT = 6;
+
+export function SimilarPhotosSection({
+  photoDetail,
+  maxItems = SHOWN_BY_DEFAULT,
+  showTitle = true,
+}: SimilarPhotosSectionProps) {
   const { t } = useTranslation();
 
   if (!photoDetail.similar_photos || photoDetail.similar_photos.length === 0) return null;
@@ -26,18 +34,15 @@ export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = tr
   return (
     <div>
       {showTitle && <SectionTitle>{t("lightbox.sidebar.similarphotos")}</SectionTitle>}
-      <Flex gap="xs" wrap="wrap" mt="xs">
+      <div className={classes.grid}>
         {shownPhotos.map((el, index) => (
           <Anchor
             key={el.image_hash}
+            className={classes.tile}
             // A router link, not a plain href, so the app is not reloaded. It goes
             // to the photo page even inside the lightbox: the lightbox's lists key
             // photos by id, and a similar photo is often not in them.
             renderRoot={rootProps => <Link {...rootProps} to="/photo/$id" params={{ id: el.image_hash }} />}
-            style={{
-              minWidth: "110px",
-              maxWidth: "110px",
-            }}
           >
             <Tile
               video={el.type.includes("video")}
@@ -45,18 +50,11 @@ export function SimilarPhotosSection({ photoDetail, maxItems = 8, showTitle = tr
               height={100}
               width={100}
               image_hash={el.image_hash}
-              style={{
-                objectFit: "cover",
-                width: "100%",
-                height: "100%",
-                aspectRatio: "1",
-                borderRadius: "4px",
-                transition: "transform 0.2s ease",
-              }}
+              className={classes.image}
             />
           </Anchor>
         ))}
-      </Flex>
+      </div>
     </div>
   );
 }

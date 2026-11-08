@@ -34,7 +34,7 @@ function StatusLine({ status }: Readonly<{ status: UpdateStatus }>) {
   return (
     <Group gap={6} wrap="nowrap" align="flex-start" role="status">
       <Text component="span" c={line.tone === "ok" ? "green" : color} lh={0} mt={3}>
-        <Icon size={ICON_SIZE.menu} aria-hidden />
+        <Icon size={ICON_SIZE.inline} aria-hidden />
       </Text>
       <Text fz="xs" c={color}>
         {line.text}

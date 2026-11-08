@@ -12,10 +12,33 @@
   overflow-x: hidden;
   overflow-y: auto;
   white-space: normal;
-  padding: var(--mantine-spacing-md);
+  padding: 0 var(--mantine-spacing-md) calc(var(--mantine-spacing-md) + env(safe-area-inset-bottom));
   background-color: var(--mantine-color-dark-8);
   border-top: 1px solid var(--app-scrim-white-8);
   border-radius: 16px 16px 0 0;
+  overscroll-behavior: contain;
+  /* A drag on the handle moves it with the finger (useSheetDrag). */
+  translate: 0 var(--sheet-drag, 0px);
+}
+
+/* The handle and the heading. On a phone they stay at the top of the sheet while the details
+   scroll under them, and a drag on them closes it. */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 calc(-1 * var(--mantine-spacing-md)) var(--mantine-spacing-lg);
+  padding: 0 var(--mantine-spacing-md) var(--mantine-spacing-xs);
+  background-color: var(--mantine-color-dark-8);
+  touch-action: none;
+}
+
+.handle {
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 6px;
+  border-radius: 2px;
+  background-color: var(--mantine-color-dark-3);
 }
 
 /* md, Mantine's 62em: where the panel used to switch too. */
@@ -30,6 +53,20 @@
     border-top: 0;
     border-left: 1px solid var(--app-scrim-white-8);
     border-radius: 0;
+    padding-bottom: var(--mantine-spacing-md);
+    translate: none;
+  }
+
+  /* A column beside the photo: the heading scrolls with it, nothing to drag. */
+  .top {
+    position: static;
+    padding-top: var(--mantine-spacing-md);
+    background-color: transparent;
+    touch-action: auto;
+  }
+
+  .handle {
+    display: none;
   }
 }
 

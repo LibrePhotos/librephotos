@@ -1,5 +1,5 @@
+import type { PigPhoto } from "@librephotos/api-client";
 import { Menu } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { IconStar as Star, IconStarOff as StarOff } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React from "react";
@@ -8,8 +8,10 @@ import { useSetFavoritePhotosMutation, useSetPhotosRatingMutation } from "../../
 import type { PhotoSelection } from "../../api_client/photos/photoSelection";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { ICON_SIZE } from "../../uiConstants";
-import { ratesWithStars, RATINGS_HIGHEST_FIRST } from "../../util/rating";
+import { isFavorite, ratesWithStars, RATINGS_HIGHEST_FIRST } from "../../util/rating";
 import { DisabledReason } from "../common/DisabledReason";
+import { MenuSubmenu } from "../common/MenuSubmenu";
+import { pairFor, type Pair } from "./SelectionVisibilityItems";
 
 type Props = Readonly<{
   /** Why the items are off (nothing selected), or false while they work. */
@@ -17,31 +19,37 @@ type Props = Readonly<{
   selectAllMode: boolean;
   /** The selected photos, read when an item is clicked. */
   selection: () => PhotoSelection;
+  /** The selected tiles (the exclusions after Select all), for which of Favorite and Unfavorite to offer. */
+  selectedItems: readonly PigPhoto[];
   /** Called after a request was sent, to end the selection. */
   onDone: () => void;
 }>;
 
-type FavoriteProps = Omit<Props, "selectAllMode">;
+type FavoriteProps = Omit<Props, "selectAllMode" | "selectedItems"> & Readonly<{ favorite: Pair }>;
 
-function FavoriteItems({ disabledReason, selection, onDone }: FavoriteProps) {
+function FavoriteItems({ disabledReason, selection, favorite, onDone }: FavoriteProps) {
   const { t } = useTranslation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
-  const setFavorite = (favorite: boolean) => {
-    setFavoritePhotos.mutate({ ...selection(), favorite });
+  const setFavorite = (on: boolean) => {
+    setFavoritePhotos.mutate({ ...selection(), favorite: on });
     onDone();
   };
   return (
     <>
-      <DisabledReason reason={disabledReason} position="left">
-        <Menu.Item leftSection={<Star size={ICON_SIZE.menu} />} onClick={() => setFavorite(true)}>
-          {t("selectionactions.favorite")}
-        </Menu.Item>
-      </DisabledReason>
-      <DisabledReason reason={disabledReason} position="left">
-        <Menu.Item leftSection={<StarOff size={ICON_SIZE.menu} />} onClick={() => setFavorite(false)}>
-          {t("selectionactions.unfavorite")}
-        </Menu.Item>
-      </DisabledReason>
+      {favorite !== "off" && (
+        <DisabledReason reason={disabledReason} position="left">
+          <Menu.Item leftSection={<Star size={ICON_SIZE.menu} />} onClick={() => setFavorite(true)}>
+            {t("selectionactions.favorite")}
+          </Menu.Item>
+        </DisabledReason>
+      )}
+      {favorite !== "on" && (
+        <DisabledReason reason={disabledReason} position="left">
+          <Menu.Item leftSection={<StarOff size={ICON_SIZE.menu} />} onClick={() => setFavorite(false)}>
+            {t("selectionactions.unfavorite")}
+          </Menu.Item>
+        </DisabledReason>
+      )}
     </>
   );
 }
@@ -55,17 +63,7 @@ function ratingLabel(t: TFunction, rating: number) {
 function RatingSubmenu({ disabledReason, selectAllMode, selection, onDone }: Props) {
   const { t } = useTranslation();
   const setPhotosRating = useSetPhotosRatingMutation();
-  // Opens on hover, and on a tap too: a phone has no hover.
-  const [opened, { open, close }] = useDisclosure(false);
-  const icon = <Star size={ICON_SIZE.menu} />;
   const reason = selectAllMode ? t("selectionactions.setratingselectall") : disabledReason;
-  if (reason) {
-    return (
-      <DisabledReason reason={reason} position="left">
-        <Menu.Item leftSection={icon}>{t("selectionactions.setrating")}</Menu.Item>
-      </DisabledReason>
-    );
-  }
   const rate = (rating: number) => {
     const photos = selection();
     if (photos.select_all) return;
@@ -73,29 +71,31 @@ function RatingSubmenu({ disabledReason, selectAllMode, selection, onDone }: Pro
     onDone();
   };
   return (
-    <Menu.Sub opened={opened} onChange={isOpen => (isOpen ? open() : close())}>
-      <Menu.Sub.Target>
-        <Menu.Sub.Item leftSection={icon} onClick={open}>
-          {t("selectionactions.setrating")}
-        </Menu.Sub.Item>
-      </Menu.Sub.Target>
-      <Menu.Sub.Dropdown>
-        {RATINGS_HIGHEST_FIRST.map(rating => (
-          <Menu.Item key={rating} onClick={() => rate(rating)}>
-            {ratingLabel(t, rating)}
-          </Menu.Item>
-        ))}
-      </Menu.Sub.Dropdown>
-    </Menu.Sub>
+    <MenuSubmenu label={t("selectionactions.setrating")} icon={<Star size={ICON_SIZE.menu} />} reason={reason}>
+      {RATINGS_HIGHEST_FIRST.map(rating => (
+        <Menu.Item key={rating} onClick={() => rate(rating)}>
+          {ratingLabel(t, rating)}
+        </Menu.Item>
+      ))}
+    </MenuSubmenu>
   );
 }
 
 /**
- * The selection menu's rating actions (#2202): Favorite / Unfavorite in
- * favorite mode, a "Set rating" submenu in stars mode, which never calls
+ * The selection menu's rating actions (#2202): Favorite or Unfavorite (both
+ * while the selection's favorites are not known) in favorite mode, a "Set
+ * rating" submenu in stars mode, which never calls
  * /photosedit/favorite/ (its Unfavorite sets the rating to 0).
  */
 export function SelectionRatingItems(props: Props) {
   const { data: user } = useCurrentUserSelfDetailsQuery();
-  return ratesWithStars(user) ? <RatingSubmenu {...props} /> : <FavoriteItems {...props} />;
+  if (ratesWithStars(user)) return <RatingSubmenu {...props} />;
+  const { selectAllMode, selectedItems, ...items } = props;
+  // Not known after Select all, nor before the user's favorite threshold has loaded.
+  const favorite = selectAllMode
+    ? "both"
+    : pairFor(
+        selectedItems.filter(item => !item.isTemp).map(item => (user ? isFavorite(item.rating, user) : undefined))
+      );
+  return <FavoriteItems {...items} favorite={favorite} />;
 }

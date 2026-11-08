@@ -3,7 +3,6 @@ import {
   ActionIcon,
   Badge,
   Button,
-  Drawer,
   Group,
   Indicator,
   Popover,
@@ -17,6 +16,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import { ICON_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { BottomSheet } from "../common/BottomSheet";
 import { toolbarLook } from "../common/toolbarLook";
 import { countSearchFilters } from "./searchFilter";
 import classes from "./SearchFilterButton.module.css";
@@ -85,15 +85,13 @@ export function SearchFilterButton(props: Props) {
             <IconFilter size={ICON_SIZE.toolbar} />
           </ActionIcon>
         </Indicator>
-        <Drawer.Root opened={opened} onClose={close} position="bottom" size="85%">
-          <Drawer.Overlay />
-          <Drawer.Content className={classes.sheet}>
-            <Drawer.Header>
-              <Drawer.Title>{t("searchfilter.title")}</Drawer.Title>
-              <Drawer.CloseButton />
-            </Drawer.Header>
-            <Drawer.Body className={classes.sheetBody}>{panel}</Drawer.Body>
-            <Group grow p="md" className={classes.sheetFooter}>
+        <BottomSheet
+          opened={opened}
+          onClose={close}
+          size="tall"
+          title={t("searchfilter.title")}
+          footer={
+            <Group grow>
               {active > 0 && (
                 <Button variant="light" onClick={onClear}>
                   {t("searchfilter.clearall")}
@@ -101,8 +99,10 @@ export function SearchFilterButton(props: Props) {
               )}
               <Button onClick={close}>{t("searchfilter.show", { count: resultCount })}</Button>
             </Group>
-          </Drawer.Content>
-        </Drawer.Root>
+          }
+        >
+          <div className={classes.sheetBody}>{panel}</div>
+        </BottomSheet>
       </>
     );
   }

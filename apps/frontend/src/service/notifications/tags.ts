@@ -17,24 +17,19 @@ function mergeTags(sourceName: string, name: string) {
   toast.success(i18n.t("toasts.mergetags", { sourceName, name }), { title: i18n.t("toasts.mergetagstitle") });
 }
 
-function addPhotosToTag(name: string, numberOfPhotos: number) {
-  toast.success(i18n.t("toasts.addtotag", { name, numberOfPhotos }), { title: i18n.t("toasts.addtotagtitle") });
+// One short sentence with no title. `numberOfPhotos` is passed beside `count` for the translations
+// that still read "{{numberOfPhotos}} photo(s)".
+
+function addPhotosToTag(name: string, count: number) {
+  toast.success(i18n.t("toasts.addtotag", { name, count, numberOfPhotos: count }));
 }
 
-function removePhotosFromTag(name: string, numberOfPhotos: number) {
-  toast.success(i18n.t("toasts.removefromtag", { name, numberOfPhotos }), {
-    title: i18n.t("toasts.removefromtagtitle"),
-  });
+function removePhotosFromTag(name: string, count: number) {
+  toast.success(i18n.t("toasts.removefromtag", { name, count, numberOfPhotos: count }));
 }
 
-function taggedPhotos(names: string[], numberOfPhotos: number) {
-  toast.success(
-    i18n.t("toasts.taggedphotos", {
-      tags: names.join(", "),
-      count: numberOfPhotos,
-    }),
-    { title: i18n.t("toasts.taggedphotostitle") }
-  );
+function taggedPhotos(names: string[], count: number) {
+  toast.success(i18n.t("toasts.taggedphotos", { tags: names.join(", "), count }));
 }
 
 export const tags = {

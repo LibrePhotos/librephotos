@@ -33,12 +33,15 @@ function rescanFacesFailed() {
 
 type Undo = () => Promise<unknown>;
 
+// One short sentence with no title, a plural on `count`; `numberOfFaces` is passed too for the
+// translations that still read "{{numberOfFaces}} face(s)".
+
 function deleteFaces(numberOfFaces: number, undo?: Undo) {
   toast.successCounted(
     "faces-deleted",
     numberOfFaces,
-    total => i18n.t("toasts.deletefaces", { numberOfFaces: total }),
-    { title: i18n.t("toasts.deletefacestitle"), undo }
+    total => i18n.t("toasts.deletefaces", { count: total, numberOfFaces: total }),
+    { undo }
   );
 }
 
@@ -51,10 +54,10 @@ function addFacesToPerson(personName: string, numberOfFaces: number, undo?: Undo
     `faces-labeled-${personName}`,
     numberOfFaces,
     (total, twinTotal = 0) => {
-      const labelled = i18n.t("toasts.addfacestoperson", { numberOfFaces: total, personName });
+      const labelled = i18n.t("toasts.addfacestoperson", { count: total, numberOfFaces: total, personName });
       return twinTotal > 0 ? `${labelled}. ${i18n.t("toasts.addfacestwins", { count: twinTotal })}` : labelled;
     },
-    { title: i18n.t("toasts.addfacestopersontitle"), undo, extra: twins }
+    { undo, extra: twins }
   );
 }
 
@@ -76,8 +79,8 @@ function removeFacesFromPerson(numberOfFaces: number, undo?: Undo) {
   toast.successCounted(
     "faces-unlabeled",
     numberOfFaces,
-    total => i18n.t("toasts.removefacestoperson", { numberOfFaces: total }),
-    { title: i18n.t("toasts.removefacestopersontitle"), undo }
+    total => i18n.t("toasts.removefacestoperson", { count: total, numberOfFaces: total }),
+    { undo }
   );
 }
 
@@ -90,7 +93,7 @@ function rejectFacesFromPeople(names: readonly string[], numberOfFaces: number, 
     "faces-unlabeled",
     numberOfFaces,
     total => i18n.t("toasts.removefacesnotsuggested", { names: listNames(names), count: total }),
-    { title: i18n.t("toasts.removefacestopersontitle"), undo }
+    { undo }
   );
 }
 

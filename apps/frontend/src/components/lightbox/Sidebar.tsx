@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useIsAuthenticatedQuery } from "../../api_client/auth";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
+import { useSheetDrag } from "../common/useSheetDrag";
 import { isLibraryPhoto } from "../libraryShare/libraryShareFields";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { useYourPlaceAt } from "../places/useYourPlaceAt";
@@ -55,11 +56,6 @@ type SelectedFace = {
   face_url: string;
 };
 
-/** The panel every state of the sidebar renders in. */
-function SidebarPanel({ children }: { children: React.ReactNode }) {
-  return <aside className={classes.panel}>{children}</aside>;
-}
-
 type SidebarHeaderProps = {
   closeSidepanel: () => void;
 };
@@ -83,6 +79,24 @@ function SidebarHeader({ closeSidepanel }: SidebarHeaderProps) {
         </ActionIcon>
       </Tooltip>
     </Group>
+  );
+}
+
+/**
+ * The panel every state of the sidebar renders in, under its heading. On a phone it is a sheet
+ * over the photo: the handle and heading stay put while the details scroll, and dragging them
+ * down closes it.
+ */
+function SidebarPanel({ closeSidepanel, children }: SidebarHeaderProps & { children: React.ReactNode }) {
+  const { sheet, handlers } = useSheetDrag<HTMLElement>(closeSidepanel);
+  return (
+    <aside ref={sheet} className={classes.panel}>
+      <div className={classes.top} {...handlers}>
+        <div className={classes.handle} aria-hidden />
+        <SidebarHeader closeSidepanel={closeSidepanel} />
+      </div>
+      {children}
+    </aside>
   );
 }
 
@@ -175,9 +189,8 @@ function PublicAlbumSidebar({ slug, id, closeSidepanel }: PublicAlbumSidebarProp
   const { data: publicPhotoData, isLoading } = useFetchPublicPhotoDetailQuery({ slug, photoId: id });
 
   return (
-    <SidebarPanel>
+    <SidebarPanel closeSidepanel={closeSidepanel}>
       <Stack gap="lg">
-        <SidebarHeader closeSidepanel={closeSidepanel} />
         {isLoading && <Loader size="sm" />}
         {!isLoading && publicPhotoData && (
           <SharedSections
@@ -214,9 +227,8 @@ function ViewerSidebar(props: SharedViewerSidebarProps) {
   const { data: photo } = useFetchPhotoDetailsQuery(props.id, !isAuthenticated);
   if (!photo || !isLibraryPhoto(photo)) return <SharedViewerSidebar {...props} rights={photo?.rights} />;
   return (
-    <SidebarPanel>
+    <SidebarPanel closeSidepanel={props.closeSidepanel}>
       <Stack gap="lg">
-        <SidebarHeader closeSidepanel={props.closeSidepanel} />
         <LibraryPhotoDetails photo={photo} setFaceLocation={props.setFaceLocation} />
       </Stack>
     </SidebarPanel>
@@ -231,9 +243,8 @@ function SharedViewerSidebar({ id, gridItem, closeSidepanel, setFaceLocation, ri
   const date = gridItem?.date || null;
   const location = gridItem?.location || null;
   return (
-    <SidebarPanel>
+    <SidebarPanel closeSidepanel={closeSidepanel}>
       <Stack gap="lg">
-        <SidebarHeader closeSidepanel={closeSidepanel} />
         {date && <TimestampItem photoDetail={{ image_hash: id, exif_timestamp: date }} isPublic />}
         {/* The grid has the place name, never the coordinates: no map. */}
         {location && (
@@ -293,9 +304,8 @@ function OwnerSidebar({
     // Keep the panel in place while loading, and say so if the photo has no
     // details for this user, instead of an empty strip next to the photo.
     return (
-      <SidebarPanel>
+      <SidebarPanel closeSidepanel={closeSidepanel}>
         <Stack gap="lg">
-          <SidebarHeader closeSidepanel={closeSidepanel} />
           {isPhotoDetailError ? (
             <Text size="sm" c="dimmed">
               {t("lightbox.sidebar.detailsLoadFailed")}
@@ -325,9 +335,8 @@ function OwnerSidebar({
   };
 
   return (
-    <SidebarPanel>
+    <SidebarPanel closeSidepanel={closeSidepanel}>
       <Stack gap="lg">
-        <SidebarHeader closeSidepanel={closeSidepanel} />
         {photoDetail.in_trashcan && <TrashedItem trashedAt={photoDetail.trashed_at} />}
         {/* What the owner writes first, then who is in it, then the facts: Google Photos' and Immich's order. */}
         <Description photoDetail={photoDetail} isPublic={false} />
@@ -360,7 +369,7 @@ function OwnerSidebar({
         <TagsSection photoDetail={photoDetail} />
         <RightsSection photo={photoDetail} />
         <AlbumsSection imageHash={photoDetail.image_hash} />
-        <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />
+        <SimilarPhotosSection photoDetail={photoDetail} />
         <AlbumThreadSection photoKey={id} />
       </Stack>
 

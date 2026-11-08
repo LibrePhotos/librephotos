@@ -17905,9 +17905,15 @@
           },
           "numberOfItems": {
             "type": "integer"
+          },
+          "aspect_ratio_sum": {
+            "type": "number",
+            "format": "double",
+            "description": "The sum of its photos' aspect ratios (1 for a photo without a thumbnail): a client lays the day out at its width before its photos load"
           }
         },
         "required": [
+          "aspect_ratio_sum",
           "date",
           "id",
           "location",

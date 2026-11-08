@@ -1,15 +1,6 @@
 import type { ImportJob, User } from "@librephotos/api-client";
 import type { MantineColorScheme } from "@mantine/core";
-import {
-  Divider,
-  Drawer,
-  Group,
-  SegmentedControl,
-  Stack,
-  Text,
-  UnstyledButton,
-  useMantineColorScheme,
-} from "@mantine/core";
+import { Divider, Group, SegmentedControl, Stack, Text, UnstyledButton, useMantineColorScheme } from "@mantine/core";
 import type { Icon } from "@tabler/icons-react";
 import {
   IconAdjustments,
@@ -23,6 +14,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { BottomSheet } from "../common/BottomSheet";
 import { UserAvatar, userDisplayName } from "../common/UserAvatar";
 import classes from "./AccountSheet.module.css";
 import { ImportJobMenuSection } from "./ImportJobMenuSection";
@@ -63,17 +55,7 @@ export function AccountSheet({ opened, onClose, user, imports, onLogout }: Props
   ];
 
   return (
-    <Drawer
-      opened={opened}
-      onClose={onClose}
-      position="bottom"
-      size="auto"
-      withCloseButton={false}
-      overlayProps={{ backgroundOpacity: 0.4 }}
-      classNames={{ content: classes.sheet, body: classes.body }}
-      aria-label={t("topmenu.accountmenu")}
-    >
-      <div className={classes.handle} aria-hidden />
+    <BottomSheet opened={opened} onClose={onClose} label={t("topmenu.accountmenu")}>
       {user && (
         <Group gap="sm" wrap="nowrap" px="md" pb="sm">
           <UserAvatar user={user} size={40} />
@@ -122,6 +104,6 @@ export function AccountSheet({ opened, onClose, user, imports, onLogout }: Props
           {t("topmenu.logout")}
         </UnstyledButton>
       </div>
-    </Drawer>
+    </BottomSheet>
   );
 }

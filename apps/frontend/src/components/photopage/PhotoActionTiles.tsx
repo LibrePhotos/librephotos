@@ -198,7 +198,7 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
           </Menu.Item>
           <Menu.Item
             leftSection={
-              actions.isArchived ? <IconArchiveOff size={ICON_SIZE.menu} /> : <IconArchive size={ICON_SIZE.menu} />
+              actions.isArchived ? <IconArchiveOff size={ICON_SIZE.inline} /> : <IconArchive size={ICON_SIZE.inline} />
             }
             onClick={actions.toggleArchived}
           >
@@ -219,7 +219,7 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
           <Menu.Item
             color={actions.inTrash ? undefined : "red"}
             leftSection={
-              actions.inTrash ? <IconArrowBackUp size={ICON_SIZE.menu} /> : <IconTrash size={ICON_SIZE.menu} />
+              actions.inTrash ? <IconArrowBackUp size={ICON_SIZE.inline} /> : <IconTrash size={ICON_SIZE.inline} />
             }
             onClick={actions.toggleTrash}
           >

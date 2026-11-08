@@ -1,0 +1,20 @@
+/*
+ * A device without hover has no use for tooltips: a tap that reads as a hover showed one and left it
+ * on screen.
+ */
+@media (hover: none) {
+  .tooltip {
+    visibility: hidden;
+  }
+}
+
+/*
+ * A menu button's tooltip ("Sort, groups and more") stayed open under the menu it had just opened,
+ * for as long as the pointer rested on the button. Hidden while that menu is open, in both nestings:
+ * a Tooltip inside Menu.Target receives the target's state itself (Mantine spreads the props it does
+ * not know onto the tooltip), and a Tooltip around Menu.Target describes the expanded button.
+ */
+.tooltip[data-expanded],
+:global(body:has([aria-haspopup="menu"][aria-expanded="true"][aria-describedby])) .tooltip {
+  visibility: hidden;
+}

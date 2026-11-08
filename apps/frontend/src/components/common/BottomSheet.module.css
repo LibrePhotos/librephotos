@@ -1,0 +1,61 @@
+/* The phone's bottom sheet (BottomSheet.tsx). */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  max-height: 90dvh;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow: hidden;
+  /* Raised over the dimmed page in dark mode too, with a hairline on top (the page is dark-7). */
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  border-top: 1px solid light-dark(transparent, var(--app-scrim-white-8));
+  /* A drag moves it down with the finger; `translate` adds to the open/close transition's transform. */
+  translate: 0 var(--sheet-drag, 0px);
+
+  &[data-size="auto"] {
+    height: auto;
+  }
+}
+
+/* The handle and the heading: where a drag starts. */
+.grab {
+  flex: none;
+  touch-action: none;
+  cursor: grab;
+}
+
+.handle {
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 4px;
+  border-radius: 2px;
+  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-sm);
+  padding: 4px var(--mantine-spacing-xs) 8px var(--mantine-spacing-md);
+}
+
+.title {
+  font-size: var(--mantine-font-size-lg);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: 4px;
+}
+
+.footer {
+  flex: none;
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  border-top: 1px solid var(--mantine-color-default-border);
+}

@@ -160,8 +160,8 @@ def public_view_filters(params: dict[str, object]) -> dict[str, object]:
     return neutral
 
 
-class DaySerializer(serializers.Serializer[None]):
-    """A day of the list: ``id`` names it in ``/api/days/<id>/...``."""
+class DayFieldsSerializer(serializers.Serializer[None]):
+    """The fields a day has in every shape, the released clients' one included."""
 
     id = serializers.IntegerField(
         help_text="YYYYMMDD of the day, or 1 for the photos without a date"
@@ -171,6 +171,15 @@ class DaySerializer(serializers.Serializer[None]):
     )
     location = serializers.CharField(help_text="The town of its first located photo")
     numberOfItems = serializers.IntegerField()
+
+
+class DaySerializer(DayFieldsSerializer):
+    """A day of the list: ``id`` names it in ``/api/days/<id>/...``."""
+
+    aspect_ratio_sum = serializers.FloatField(
+        help_text="The sum of its photos' aspect ratios (1 for a photo without a "
+        "thumbnail): a client lays the day out at its width before its photos load"
+    )
 
 
 class DayListSerializer(serializers.Serializer[None]):
@@ -216,7 +225,7 @@ class LegacyDateAlbumQuery(DayQuery):
     )
 
 
-class LegacyDateAlbumSerializer(DaySerializer):
+class LegacyDateAlbumSerializer(DayFieldsSerializer):
     """A day in the shape of the date albums #2920 removed."""
 
     incomplete = serializers.BooleanField(

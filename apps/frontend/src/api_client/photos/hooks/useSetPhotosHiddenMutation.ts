@@ -1,39 +1,39 @@
 import { endpoints, faceKeys, photoKeys, statsKeys } from "@librephotos/api-client";
-import { useMutation } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
-import { apiClient, queryClient } from "../../api";
+import { apiClient } from "../../api";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { selectionArgs, singlePhotoHash, type PhotoSelection } from "../photoSelection";
+import { useBulkPhotoToggle } from "./useBulkPhotoToggle";
 
 type SetPhotosHiddenRequest = PhotoSelection & { hidden: boolean };
 
-// Set photos hidden
-export const useSetPhotosHiddenMutation = () =>
-  useMutation({
-    mutationFn: async (request: SetPhotosHiddenRequest) => {
-      const [imageHashes, selectAll] = selectionArgs(request);
-      const data = await endpoints.setPhotosHidden(apiClient, imageHashes, request.hidden, selectAll);
+async function setHidden(request: SetPhotosHiddenRequest) {
+  const [imageHashes, selectAll] = selectionArgs(request);
+  return endpoints.setPhotosHidden(apiClient, imageHashes, request.hidden, selectAll);
+}
 
-      // Show notification based on mode
-      if (request.select_all) {
-        notification.togglePhotosHidden(data.count ?? 0, request.hidden);
-      } else {
-        notification.togglePhotosHidden(request.image_hashes.length, request.hidden);
-      }
+function refresh(queryClient: QueryClient, request: SetPhotosHiddenRequest) {
+  // Invalidate relevant queries to ensure consistent state
+  invalidatePhotoLists(queryClient);
+  void queryClient.invalidateQueries({ queryKey: faceKeys.incomplete() });
+  void queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
+  void queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
 
-      return data;
-    },
-    onSuccess: (data, request) => {
-      // Invalidate relevant queries to ensure consistent state
-      invalidatePhotoLists(queryClient);
-      queryClient.invalidateQueries({ queryKey: faceKeys.incomplete() });
-      queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
-      queryClient.invalidateQueries({ queryKey: statsKeys.photoMonthCounts() });
+  // If we have a single photo in individual mode, invalidate its details
+  const imageHash = singlePhotoHash(request);
+  if (imageHash !== undefined) {
+    void queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
+  }
+}
 
-      // If we have a single photo in individual mode, invalidate its details
-      const imageHash = singlePhotoHash(request);
-      if (imageHash !== undefined) {
-        queryClient.invalidateQueries({ queryKey: photoKeys.detail(imageHash) });
-      }
-    },
+/** Hide or unhide photos; the toast's Undo sets them back. */
+export const useSetPhotosHiddenMutation = () => {
+  const queryClient = useQueryClient();
+  return useBulkPhotoToggle({
+    send: setHidden,
+    refresh: request => refresh(queryClient, request),
+    invert: (request, image_hashes) => ({ image_hashes, hidden: !request.hidden }),
+    notify: (count, request, undo) => notification.togglePhotosHidden(count, request.hidden, undo),
   });
+};

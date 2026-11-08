@@ -27,7 +27,7 @@ function GroupItem({
   onClick: () => void;
 }>) {
   return (
-    <Menu.Item rightSection={checked ? <IconCheck size={ICON_SIZE.menu} /> : null} onClick={onClick}>
+    <Menu.Item rightSection={checked ? <IconCheck size={ICON_SIZE.inline} /> : null} onClick={onClick}>
       {label}
       {count !== undefined && (
         <Text span size="xs" c="dimmed" ml={6}>
@@ -75,7 +75,7 @@ export function PersonGroupFilter({ groups, value, onChange }: Props) {
               {...look}
               h={TOOLBAR_CONTROL_HEIGHT}
               leftSection={<Icon size={18} />}
-              rightSection={<IconChevronDown size={ICON_SIZE.menu} />}
+              rightSection={<IconChevronDown size={ICON_SIZE.inline} />}
               aria-label={t("persongroups.button", { current: label })}
             >
               {label}

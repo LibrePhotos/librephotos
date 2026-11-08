@@ -1,6 +1,6 @@
 import { FaceOrderBy } from "@librephotos/api-client";
 import { ActionIcon, Button, Indicator, Menu } from "@mantine/core";
-import { IconArrowsSort as ArrowsSort, IconCheck as Check, IconChevronDown as ChevronDown } from "@tabler/icons-react";
+import { IconArrowsSort as ArrowsSort, IconChevronDown as ChevronDown } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
@@ -18,13 +18,13 @@ type Props = Readonly<{
 
 /**
  * The faces dashboard's Sort menu: the order of the faces (confidence or date) and of the people
- * (#764, #622: similar faces together), in one menu instead of two controls in the toolbar.
+ * (#764, #622: similar faces together), in one menu instead of two controls in the toolbar. The
+ * chosen orders carry the theme's trailing check (menuTheme.ts).
  */
 export function FacesSortMenu({ orderBy, personOrder, onOrderBy, onPersonOrder, compact }: Props) {
   const { t } = useTranslation();
   const isDefault = orderBy === FACES_SEARCH_DEFAULTS.orderBy && personOrder === FACES_SEARCH_DEFAULTS.personOrder;
   const look = toolbarLook(!isDefault);
-  const check = <Check size={ICON_SIZE.menu} />;
   const label = t("facesdashboard.sort");
   const faceOrders = [
     { value: FaceOrderBy.enum.confidence, label: t("facesdashboard.sortbyconfidence") },
@@ -37,7 +37,7 @@ export function FacesSortMenu({ orderBy, personOrder, onOrderBy, onPersonOrder, 
   ];
 
   return (
-    <Menu position="bottom-end" shadow="md">
+    <Menu position="bottom-end">
       <Menu.Target>
         {compact ? (
           <Indicator size={8} offset={4} disabled={isDefault}>
@@ -65,7 +65,6 @@ export function FacesSortMenu({ orderBy, personOrder, onOrderBy, onPersonOrder, 
             // "person", an older order, sorts by date
             checked={option.value === (orderBy === "person" ? FaceOrderBy.enum.date : orderBy)}
             onChange={() => onOrderBy(option.value)}
-            checkIcon={check}
             closeMenuOnClick
           >
             {option.label}
@@ -79,7 +78,6 @@ export function FacesSortMenu({ orderBy, personOrder, onOrderBy, onPersonOrder, 
             value={option.value}
             checked={option.value === personOrder}
             onChange={() => onPersonOrder(option.value)}
-            checkIcon={check}
             closeMenuOnClick
           >
             {option.label}

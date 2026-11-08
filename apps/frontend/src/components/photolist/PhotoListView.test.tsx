@@ -543,17 +543,15 @@ describe("PhotoListView photo page", () => {
   });
 });
 
-// The display options open from the header's ⋯: "View options…" (no second "adjust" button).
+// The display options open from the header's View options button: with no other header actions,
+// a ⋯ holding only "View options…" would be a click to reach a click (review s0 #12).
 async function openSettingsMenu() {
-  const more = document.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("photodisplay.more")}"]`);
-  expect(more).not.toBeNull();
-  await act(async () => defined(more).click());
-  // let the menu's open transition mount the dropdown
-  await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
-  const item = Array.from(document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
-    entry => entry.textContent === i18n.t("photodisplay.viewoptions")
+  const view = document.querySelector<HTMLButtonElement>(
+    `button[aria-label="${i18n.t("photodisplay.viewoptionsbutton")}"]`
   );
-  await act(async () => defined(item).click());
+  expect(view).not.toBeNull();
+  await act(async () => defined(view).click());
+  // let the panel's open transition mount it
   await act(async () => new Promise(resolve => setTimeout(resolve, 50)));
 }
 
@@ -651,7 +649,7 @@ describe("PhotoListView header actions", () => {
 
   // A shared album is read-only for its recipient, yet "Leave album" lives in its toolbar (#2210).
   it("shows headerActions on a read-only view, without the list's own controls", async () => {
-    const display = `[aria-label="${i18n.t("photodisplay.more")}"]`;
+    const display = `[aria-label="${i18n.t("photodisplay.viewoptionsbutton")}"]`;
     const mediaFilter = '[data-testid="media-filter"]';
     const props = { mediaType: "all", headerActions: <span data-testid="leave-menu" /> } as const;
     // The owner's view: the list's controls next to the actions

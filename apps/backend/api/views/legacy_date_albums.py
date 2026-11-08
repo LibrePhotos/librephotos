@@ -80,7 +80,18 @@ class LegacyDateAlbumListViewSet(LegacyDateAlbumMixin):
     )
     def list(self, request: Request) -> Response:
         _params, view = self._legacy_view()
-        rows = [{**row, "incomplete": True, "items": []} for row in day_rows(view)]
+        # The released clients' shape: the row without aspect_ratio_sum.
+        rows: list[dict[str, Any]] = [
+            {
+                "id": row["id"],
+                "date": row["date"],
+                "location": row["location"],
+                "numberOfItems": row["numberOfItems"],
+                "incomplete": True,
+                "items": [],
+            }
+            for row in day_rows(view)
+        ]
         return Response({"results": rows})
 
 

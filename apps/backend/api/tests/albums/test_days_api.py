@@ -119,14 +119,38 @@ class DayListTest(DaysTestCase):
     def test_a_row_is_the_day_its_count_and_place(self):
         (first, *_) = list_days(self.client)
         self.assertEqual(
-            {"id": 20240503, "date": "2024-05-03", "location": "", "numberOfItems": 1},
+            {
+                "id": 20240503,
+                "date": "2024-05-03",
+                "location": "",
+                "numberOfItems": 1,
+                "aspect_ratio_sum": 1.0,
+            },
             first,
         )
         undated = list_days(self.client)[-1]
         self.assertEqual(
-            {"id": UNDATED_DAY_ID, "date": None, "location": "", "numberOfItems": 1},
+            {
+                "id": UNDATED_DAY_ID,
+                "date": None,
+                "location": "",
+                "numberOfItems": 1,
+                "aspect_ratio_sum": 1.0,
+            },
             undated,
         )
+
+    def test_a_row_sums_its_photos_aspect_ratios(self):
+        # A client lays a short day out at its width before its photos load.
+        self.photo(
+            exif_timestamp=at(9, day=datetime.date(2024, 5, 3)), aspect_ratio=1.5
+        )
+        self.photo(
+            exif_timestamp=at(10, day=datetime.date(2024, 5, 3)), aspect_ratio=0.75
+        )
+        (first, *_) = list_days(self.client)
+        self.assertEqual(3, first["numberOfItems"])
+        self.assertAlmostEqual(3.25, first["aspect_ratio_sum"])
 
     def test_newest_first_is_the_default(self):
         expected = [20240503, 20240502, 20240501, UNDATED_DAY_ID]
@@ -607,7 +631,15 @@ class PublicViewWithoutDatesTest(DaysTestCase):
 
     def test_one_undated_group_without_a_place(self):
         self.assertEqual(
-            [{"id": UNDATED_DAY_ID, "date": None, "location": "", "numberOfItems": 5}],
+            [
+                {
+                    "id": UNDATED_DAY_ID,
+                    "date": None,
+                    "location": "",
+                    "numberOfItems": 5,
+                    "aspect_ratio_sum": 5.0,
+                }
+            ],
             list_days(self.anonymous, self.params),
         )
 
