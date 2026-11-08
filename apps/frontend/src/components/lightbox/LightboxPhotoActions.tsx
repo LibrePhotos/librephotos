@@ -20,7 +20,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { menuShortcut } from "../common/menuShortcut";
 import { FileActionItems } from "../photolist/FileActionItems";
+import { COPY_KEY } from "./lightbox.hotkeys";
 import { LightboxToolbarButton, TOOLBAR_BUTTON, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
 import { VisibilityMenuItems } from "./LightboxVisibilityActions";
 import type { PhotoActions } from "./usePhotoActions";
@@ -86,12 +88,12 @@ function useRotationItems({ canRotate, onRotate }: MoreMenuProps): MenuItemProps
     ? [
         {
           label: t("lightbox.toolbar.rotateCCW"),
-          icon: <RotateCCW size={ICON_SIZE.lightbox} />,
+          icon: <RotateCCW size={ICON_SIZE.menu} />,
           onClick: () => onRotate(-90),
         },
         {
           label: t("lightbox.toolbar.rotateCW"),
-          icon: <RotateCW size={ICON_SIZE.lightbox} />,
+          icon: <RotateCW size={ICON_SIZE.menu} />,
           onClick: () => onRotate(90),
         },
       ]
@@ -116,7 +118,7 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
     <Menu
       position="bottom-end"
       withinPortal={false}
-      width={260}
+      width={268}
       opened={opened}
       onChange={next => (next ? open() : close())}
     >
@@ -132,7 +134,8 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
         {zoom && (
           <DisabledReason reason={zoom.blockedReason} position="left">
             <Menu.Item
-              leftSection={zoom.isZoomed ? <ZoomOut size={ICON_SIZE.lightbox} /> : <ZoomIn size={ICON_SIZE.lightbox} />}
+              leftSection={zoom.isZoomed ? <ZoomOut size={ICON_SIZE.menu} /> : <ZoomIn size={ICON_SIZE.menu} />}
+              {...menuShortcut("Z")}
               onClick={zoom.toggle}
             >
               {zoomLabel}
@@ -140,18 +143,24 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
           </DisabledReason>
         )}
         <Menu.Item
-          leftSection={isSlideshowActive ? <Pause size={ICON_SIZE.lightbox} /> : <Play size={ICON_SIZE.lightbox} />}
+          leftSection={isSlideshowActive ? <Pause size={ICON_SIZE.menu} /> : <Play size={ICON_SIZE.menu} />}
+          {...menuShortcut("S")}
           onClick={toggleSlideshow}
         >
           {slideshowLabel}
         </Menu.Item>
         {onCopyToClipboard && (
-          <Menu.Item leftSection={<Copy size={ICON_SIZE.lightbox} />} onClick={onCopyToClipboard}>
+          <Menu.Item
+            leftSection={<Copy size={ICON_SIZE.menu} />}
+            {...menuShortcut(COPY_KEY)}
+            onClick={onCopyToClipboard}
+          >
             {copyLabel}
           </Menu.Item>
         )}
         <Menu.Item
-          leftSection={isFullscreen ? <Minimize size={ICON_SIZE.lightbox} /> : <Maximize size={ICON_SIZE.lightbox} />}
+          leftSection={isFullscreen ? <Minimize size={ICON_SIZE.menu} /> : <Maximize size={ICON_SIZE.menu} />}
+          {...menuShortcut("G")}
           onClick={toggleFullscreen}
         >
           {fullscreenLabel}
@@ -170,7 +179,7 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
         {ownPhoto && actions.isOwner && (
           <>
             <Menu.Divider />
-            <FileActionItems photoIds={[ownPhoto.id]} single iconSize={ICON_SIZE.lightbox} />
+            <FileActionItems photoIds={[ownPhoto.id]} single />
           </>
         )}
       </Menu.Dropdown>

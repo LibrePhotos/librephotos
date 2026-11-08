@@ -27,9 +27,14 @@ const stubs = vi.hoisted(() => ({
   mergeStacks: vi.fn<Call>(),
   removeFromStack: vi.fn<Call>(async () => undefined),
 }));
+// The page the menu is on, and the signed-in user (undefined: not loaded yet).
+const page = vi.hoisted(() => ({
+  pathname: "/",
+  user: undefined as { favorite_min_rating: number; rating_mode: string } | undefined,
+}));
 // The Files items have their own tests (FileActionItems.test.tsx).
 vi.mock("./FileActionItems", () => ({ FileActionItems: () => null, SelectionFileItems: () => null }));
-vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: "/" }) }));
+vi.mock("@tanstack/react-router", () => ({ useLocation: () => ({ pathname: page.pathname }) }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
 vi.mock("../../util/util", async importOriginal => ({
   ...(await importOriginal<typeof import("../../util/util")>()),
@@ -53,7 +58,7 @@ vi.mock("../../api_client/stacks", () => ({
 }));
 vi.mock("../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 1 }) }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
-  useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
+  useCurrentUserSelfDetailsQuery: () => ({ data: page.user }),
 }));
 // The real dialog is tested on its own (BulkLocationModal.test.tsx): here it shows what it got.
 vi.mock("../map/BulkLocationModal", () => ({
@@ -91,9 +96,9 @@ beforeAll(async () => {
 
 const stack = { id: "11111111-1111-4111-8111-111111111111", type: "manual", photo_count: 2, is_primary: false };
 
-function photo(n: number, stacked = false) {
+function photo(n: number, stacked = false, state: { rating?: number; archived?: boolean } = {}) {
   const id = `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-  return PigPhoto.parse({ id, image_hash: `hash${n}`, aspectRatio: 1, stacks: stacked ? [stack] : [] });
+  return PigPhoto.parse({ id, image_hash: `hash${n}`, aspectRatio: 1, stacks: stacked ? [stack] : [], ...state });
 }
 
 const callbacks = {
@@ -108,6 +113,8 @@ let container: HTMLDivElement;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  page.pathname = "/";
+  page.user = undefined;
   container = document.createElement("div");
   document.body.appendChild(container);
 });
@@ -141,34 +148,53 @@ const menuButton = (menu: 0 | 1) =>
     `button[aria-label="${i18n.t(menu === 0 ? "selectionactions.addto" : "selectionactions.photoactions")}"]`
   );
 
+// The label without the shortcut hint ("T") some items carry on the right, or the name of an item
+// with a note under its label (Hide, Archive)
+const itemName = (item: HTMLElement) =>
+  item.getAttribute("aria-label") ?? item.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim();
+
+const menuItems = () => Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+
+/** The open menus' item named `label`, opening the submenus (Edit info, Mark as) to find it. */
+async function findItem(label: string): Promise<HTMLButtonElement | undefined> {
+  const found = menuItems().find(item => itemName(item) === label);
+  if (found) return found;
+  for (const submenu of menuItems().filter(item => item.hasAttribute("data-sub-menu-item"))) {
+    await act(async () => submenu.click());
+    const inside = menuItems().find(item => itemName(item) === label);
+    if (inside) return inside;
+  }
+  return undefined;
+}
+
+/** The names of the open menu's items, its submenus closed. */
+const itemNames = () => menuItems().map(item => itemName(item));
+
 /** Opens the first ("+") or second ("⋮") menu and clicks the item with `label`. */
 async function pick(menu: 0 | 1, label: string) {
   await act(async () => defined(menuButton(menu)).click());
-  const item = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
-    // The label without the shortcut hint ("t") some items carry on the right, or the name of an
-    // item with a note under its label (Hide, Archive)
-    button =>
-      (button.getAttribute("aria-label") ?? button.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim()) ===
-      label
-  );
+  const item = await findItem(label);
   await act(async () => defined(item, label).click());
 }
 
-const items: [string, Call, object][] = [
+// [item, its mutation, what it sends, the page it is offered on]. Unhide is offered on the Hidden
+// page, where every photo is hidden; Hide everywhere else.
+const items: [string, Call, object, string?][] = [
   ["Favorite", stubs.favorite, { favorite: true }],
   ["Unfavorite", stubs.favorite, { favorite: false }],
   ["Hide", stubs.hidden, { hidden: true }],
-  ["Unhide", stubs.hidden, { hidden: false }],
+  ["Unhide", stubs.hidden, { hidden: false }, "/hidden"],
   ["Archive", stubs.archived, { archived: true }],
   ["Unarchive", stubs.archived, { archived: false }],
   ["Make public", stubs.public, { val_public: true }],
   ["Make private", stubs.public, { val_public: false }],
   ["Move to trash", stubs.deleted, { deleted: true }],
-  ["Mark as screenshot", stubs.category, { category: "screenshot" }],
+  ["Screenshot", stubs.category, { category: "screenshot" }],
 ];
 
 describe("the photo actions", () => {
-  it.each(items)("%s sends the selected hashes", async (label, mutate, change) => {
+  it.each(items)("%s sends the selected hashes", async (label, mutate, change, pathname = "/") => {
+    page.pathname = pathname;
     await render({});
 
     await pick(1, label);
@@ -177,7 +203,8 @@ describe("the photo actions", () => {
     expect(callbacks.updateSelectionState).toHaveBeenCalledWith(expect.objectContaining({ selectMode: false }));
   });
 
-  it.each(items)("%s sends the query after Select all", async (label, mutate, change) => {
+  it.each(items)("%s sends the query after Select all", async (label, mutate, change, pathname = "/") => {
+    page.pathname = pathname;
     await render({ selectAllMode: true, selectAllQuery: { person: 5 }, selectedItems: [photo(3)] });
 
     await pick(1, label);
@@ -223,6 +250,60 @@ describe("the photo actions", () => {
     await pick(1, "Sharing");
 
     expect(callbacks.onSharePhotos).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Review s0 #6: the menu listed both of each pair whatever the selection held.
+describe("one of each pair, when the selection says which", () => {
+  const favoriteUser = { favorite_min_rating: 4, rating_mode: "favorite" };
+
+  async function openWith(props: Partial<Props>) {
+    await render(props);
+    await act(async () => defined(menuButton(1)).click());
+    return itemNames();
+  }
+
+  it("offers Favorite while a photo is not one", async () => {
+    page.user = favoriteUser;
+    const names = await openWith({ selectedItems: [photo(1, false, { rating: 5 }), photo(2, false, { rating: 0 })] });
+    expect(names).toContain("Favorite");
+    expect(names).not.toContain("Unfavorite");
+  });
+
+  it("offers Unfavorite alone when every photo is a favorite", async () => {
+    page.user = favoriteUser;
+    const names = await openWith({ selectedItems: [photo(1, false, { rating: 5 }), photo(2, false, { rating: 4 })] });
+    expect(names).toContain("Unfavorite");
+    expect(names).not.toContain("Favorite");
+  });
+
+  it("offers both after Select all, where the photos are not known", async () => {
+    page.user = favoriteUser;
+    const names = await openWith({ selectAllMode: true, selectAllQuery: { person: 5 }, selectedItems: [] });
+    expect(names).toEqual(expect.arrayContaining(["Favorite", "Unfavorite", "Archive", "Unarchive"]));
+  });
+
+  it.each([
+    [[false, true], "Archive", "Unarchive"],
+    [[true, true], "Unarchive", "Archive"],
+  ])("archived %j offers %s, not %s", async (archived, offered, notOffered) => {
+    const names = await openWith({ selectedItems: archived.map((state, n) => photo(n, false, { archived: state })) });
+    expect(names).toContain(offered);
+    expect(names).not.toContain(notOffered);
+  });
+
+  it.each([
+    ["/", "Hide", "Unhide"],
+    ["/hidden", "Unhide", "Hide"],
+  ])("on %s offers %s, not %s", async (pathname, offered, notOffered) => {
+    page.pathname = pathname;
+    const names = await openWith({});
+    expect(names).toContain(offered);
+    expect(names).not.toContain(notOffered);
+  });
+
+  it("ends with Move to trash", async () => {
+    expect((await openWith({})).at(-1)).toBe("Move to trash");
   });
 });
 
@@ -286,12 +367,7 @@ describe("the add-to menu", () => {
 /** Opens the photo actions ("⋮") menu and returns the item with `label`. */
 async function photoAction(label: string): Promise<HTMLButtonElement> {
   await act(async () => defined(menuButton(1)).click());
-  const item = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(
-    button =>
-      (button.getAttribute("aria-label") ?? button.querySelector(".mantine-Menu-itemLabel")?.textContent?.trim()) ===
-      label
-  );
-  return defined(item, label);
+  return defined(await findItem(label), label);
 }
 
 /** Off, says why, and still in the menu's arrow-key order (Mantine skips `data-disabled` items, #2592). */
@@ -307,9 +383,10 @@ const stackActions = ["Create stack", "Merge stacks", "Break apart stacks"];
 // #2608: these items were plain `disabled`: greyed out with no reason, and skipped by the arrow keys.
 describe("a disabled item says why", () => {
   it.each([
-    ...items.map(([label]) => label),
-    "Mark as photo",
-    "Mark as document",
+    // Without a selection the submenus do not open: Edit info and Mark as say why instead
+    ...items.filter(([label]) => label !== "Unhide" && label !== "Screenshot").map(([label]) => label),
+    "Edit info",
+    "Mark as",
     "Download",
     "Sharing",
     ...stackActions,

@@ -24,7 +24,7 @@ function MediaTypeMenuItem({ value, current }: Readonly<{ value: MediaType; curr
       {value === FIRST_CATEGORY && <Menu.Divider />}
       <Menu.Item
         leftSection={<Icon size={ICON_SIZE.inline} color={color} />}
-        rightSection={checked ? <IconCheck size={ICON_SIZE.menu} /> : null}
+        rightSection={checked ? <IconCheck size={ICON_SIZE.inline} /> : null}
         onClick={() => select(value)}
       >
         {t(labelKey)}
@@ -67,7 +67,7 @@ export function MediaTypeSelector() {
             {...look}
             h={TOOLBAR_CONTROL_HEIGHT}
             leftSection={<Icon size={18} />}
-            rightSection={<IconChevronDown size={ICON_SIZE.menu} />}
+            rightSection={<IconChevronDown size={ICON_SIZE.inline} />}
             aria-label={t("mediafilter.button", { current: t(labelKey) })}
           >
             {t(labelKey)}

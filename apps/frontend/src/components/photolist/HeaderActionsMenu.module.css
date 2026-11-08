@@ -2,3 +2,8 @@
 .anchor {
   display: inline-flex;
 }
+
+/* An open menu's button: the toolbar's neutral pressed fill, not the primary tint of a state that is on. */
+.trigger[data-open] {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}

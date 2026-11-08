@@ -1,3 +1,4 @@
+import type { ParseKeys } from "i18next";
 import i18n from "../../i18n";
 import { toast } from "./toast";
 
@@ -71,14 +72,43 @@ function notWrittenToFile(reason: string) {
   });
 }
 
-/** An unhandled exception on the server (HTTP 500). The endpoint helps a bug report. */
+/**
+ * What failed, by the endpoint a server error came from: the toast names the action ("Couldn't
+ * update favorites"), never the path. Any other endpoint gets a plain "Something went wrong".
+ */
+const SERVER_ERROR_TITLES: Partial<Record<string, ParseKeys>> = {
+  "/photosedit/favorite/": "toasts.servererrortitles.favorite",
+  "/photosedit/rating/": "toasts.servererrortitles.rating",
+  "/photosedit/hide/": "toasts.servererrortitles.hide",
+  "/photosedit/archive/": "toasts.servererrortitles.archive",
+  "/photosedit/setdeleted/": "toasts.servererrortitles.trash",
+  "/photosedit/makepublic/": "toasts.servererrortitles.public",
+  "/photosedit/share/": "toasts.servererrortitles.share",
+  "/photosedit/category/": "toasts.servererrortitles.category",
+  "/photosedit/datetime/": "toasts.servererrortitles.date",
+  "/photosedit/location/": "toasts.servererrortitles.location",
+  "/photosedit/rotate/": "toasts.servererrortitles.rotate",
+  "/photosedit/savecaption/": "toasts.servererrortitles.caption",
+};
+
+/**
+ * An unhandled exception on the server (HTTP 500), in words a photo user can act on. The endpoint
+ * goes to the console for a bug report, not into the toast.
+ */
 function serverError(endpoint: string) {
-  toast.error(i18n.t("toasts.servererror", { endpoint }), { title: i18n.t("toasts.servererrortitle") });
+  console.error(`Server error (HTTP 500) from ${endpoint}`);
+  const { pathname } = new URL(endpoint, window.location.origin);
+  const title = SERVER_ERROR_TITLES[pathname] ?? "toasts.servererrortitle";
+  toast.error(i18n.t("toasts.servererrorbody"), { title: i18n.t(title) });
 }
 
-/** A response that did not match its schema; the detail is technical and stays as it is. */
-function parseError(detail: string, title?: string) {
-  toast.error(i18n.t("toasts.reportissue", { detail }), { title: title ?? i18n.t("toasts.parseerrortitle") });
+/**
+ * A response that did not match its schema (server drift). The detail is technical: it goes to the
+ * console, and one toast at a time says what it means for the user.
+ */
+function parseError(detail: string) {
+  console.error(`Unexpected server response: ${detail}`);
+  toast.error(i18n.t("toasts.parseerror"), { title: i18n.t("toasts.parseerrortitle"), id: "parse-error" });
 }
 
 export const worker = {

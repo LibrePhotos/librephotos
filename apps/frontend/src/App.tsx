@@ -16,9 +16,11 @@ import { controlsTheme } from "./theme/controlsTheme";
 import { appCssVariablesResolver } from "./theme/cssVariables";
 import dialogClasses from "./theme/dialogsTheme.module.css";
 import { menuThemeComponents } from "./theme/menuTheme";
+import { notificationsTheme } from "./theme/notificationsTheme";
 import { BRAND_SCALE, DARK_SCALE } from "./theme/palette";
+import { tooltipTheme } from "./theme/tooltipTheme";
 import { appVariantColorResolver } from "./theme/variantColors";
-import { TOP_MENU_HEIGHT } from "./uiConstants";
+import { FOOTER_HEIGHT, PAGE_GUTTER, PAGE_GUTTER_MOBILE, TOP_MENU_HEIGHT } from "./uiConstants";
 import { firstDayOfWeek } from "./util/dateUtils";
 
 // Set up a Router instance
@@ -88,21 +90,28 @@ const theme = createTheme({
     // Every menu and submenu fits the window and scrolls past it (#2707).
     ...menuThemeComponents,
     ...controlsTheme,
+    ...notificationsTheme,
+    ...tooltipTheme,
   },
 });
 
 /**
- * Toasts come in at the top, just below the top bar. The bottom corner is where
- * the "Save changes" dialog, the upload progress card and, on a phone, the
- * footer menu sit, so a toast there covered their buttons (a rejected save hid
- * Cancel and Update); right at the top it covered the search field and the
- * lightbox toolbar.
+ * On a desktop, toasts come in at the top right, just below the top bar and
+ * level with the page's content inset: the bottom corner is where the "Save
+ * changes" dialog and the upload progress card sit, so a toast there covered
+ * their buttons (a rejected save hid Cancel and Update), and right at the top
+ * it covered the search field and the lightbox toolbar.
+ *
+ * On a phone they come in at the bottom, just above the footer menu, as Google
+ * Photos' snackbar does: at the top they covered the page title and its
+ * actions. While one of those bottom cards is up, they go back to the top
+ * (App.module.css), so they still never cover its buttons.
  */
 function AppNotifications() {
   // No SSR here, so read the media query on the first render instead of a
   // frame later (a toast fired at start-up would land in the wrong place).
   const position = useMatches<NotificationsProps["position"]>(
-    { base: "top-center", sm: "top-right" },
+    { base: "bottom-center", sm: "top-right" },
     { getInitialValueInEffect: false }
   );
   return (
@@ -110,11 +119,17 @@ function AppNotifications() {
       position={position}
       autoClose={3000}
       zIndex={1001}
+      containerWidth={380}
       // Mantine 9 pauses every toast when one is hovered; keep 8's per-toast pause.
       pauseResetOnHover="notification"
       classNames={{ root: notificationClasses.notifications }}
-      // Applied to every position's container; only the top ones read it.
-      style={{ "--app-notifications-top": `${TOP_MENU_HEIGHT + 8}px` }}
+      // Applied to every position's container; each reads the ones of its edge.
+      style={{
+        "--app-notifications-top": `${TOP_MENU_HEIGHT + 8}px`,
+        "--app-notifications-bottom": `${FOOTER_HEIGHT + 8}px`,
+        "--app-notifications-inset": `${PAGE_GUTTER}px`,
+        "--app-notifications-inset-mobile": `${PAGE_GUTTER_MOBILE}px`,
+      }}
     />
   );
 }

@@ -68,15 +68,16 @@ export function getPhotosFlatFromGroupedByDate(photosGroupedByDate: DatePhotosGr
 }
 
 /**
- * A grid placeholder for a photo whose page has not loaded yet: square, no
- * image, `isTemp` set. Every other field holds what the PigPhoto schema
- * defaults it to, so the placeholder is a PigPhoto like the photos around it.
+ * A grid placeholder for a photo whose page has not loaded yet: no image,
+ * `isTemp` set, square unless the day's average shape is known. Every other
+ * field holds what the PigPhoto schema defaults it to, so the placeholder is a
+ * PigPhoto like the photos around it.
  */
-export function tempPigPhoto(id: string): PigPhoto {
+export function tempPigPhoto(id: string, aspectRatio = 1): PigPhoto {
   return {
     id,
     image_hash: "",
-    aspectRatio: 1,
+    aspectRatio,
     type: Media.IMAGE,
     is_hdr: false,
     rating: 0,
@@ -86,10 +87,19 @@ export function tempPigPhoto(id: string): PigPhoto {
   };
 }
 
+/**
+ * A day's placeholders take its photos' average aspect ratio when the server
+ * sends it, so the day is as wide before its photos load as after: short days
+ * share a line, and square placeholders moved them (and everything below) when
+ * the photos came in.
+ */
 export function addTempElementsToGroups(photosGroupedByDate: IncompleteDatePhotosGroup[]) {
   photosGroupedByDate.forEach(group => {
-    for (let i = 0; i < group.numberOfItems; i++) {
-      group.items.push(tempPigPhoto(i.toString()));
+    const { numberOfItems } = group;
+    const ratioSum = group.aspect_ratio_sum;
+    const aspectRatio = ratioSum && numberOfItems > 0 ? ratioSum / numberOfItems : 1;
+    for (let i = 0; i < numberOfItems; i++) {
+      group.items.push(tempPigPhoto(i.toString(), aspectRatio));
     }
   });
 }

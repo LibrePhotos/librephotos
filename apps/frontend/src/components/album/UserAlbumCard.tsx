@@ -16,6 +16,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { ICON_SIZE } from "../../uiConstants";
 import { CollectionCard } from "../common/CollectionCard";
 import classes from "./UserAlbumCard.module.css";
 
@@ -128,32 +129,49 @@ export function UserAlbumCard({
         hasActions ? (
           <>
             {onRename && (
-              <Menu.Item leftSection={<Edit size={14} />} onClick={() => onRename(`${album.id}`, album.title)}>
+              <Menu.Item
+                leftSection={<Edit size={ICON_SIZE.menu} />}
+                onClick={() => onRename(`${album.id}`, album.title)}
+              >
                 {t("rename")}
               </Menu.Item>
             )}
             {onShare && (
-              <Menu.Item leftSection={<Share size={14} />} onClick={() => onShare(`${album.id}`, album.title)}>
+              <Menu.Item
+                leftSection={<Share size={ICON_SIZE.menu} />}
+                onClick={() => onShare(`${album.id}`, album.title)}
+              >
                 {t("sidemenu.sharing")}
               </Menu.Item>
             )}
             {onCollections && (
-              <Menu.Item leftSection={<Folders size={14} />} onClick={() => onCollections(`${album.id}`, album.title)}>
+              <Menu.Item
+                leftSection={<Folders size={ICON_SIZE.menu} />}
+                onClick={() => onCollections(`${album.id}`, album.title)}
+              >
                 {t("albumcollections.menuitem")}
               </Menu.Item>
             )}
             {onToggleLocked && (
               <Menu.Item
-                leftSection={album.locked ? <LockOpen size={14} /> : <Lock size={14} />}
+                leftSection={album.locked ? <LockOpen size={ICON_SIZE.menu} /> : <Lock size={ICON_SIZE.menu} />}
                 onClick={() => onToggleLocked(`${album.id}`, !album.locked)}
               >
                 {t(album.locked ? "useralbum.unlockAlbum" : "useralbum.lockAlbum")}
               </Menu.Item>
             )}
+            {/* Destructive, so last, red and set apart, as on the album's own page. */}
             {onDelete && (
-              <Menu.Item leftSection={<Trash size={14} />} onClick={() => onDelete(`${album.id}`, album.title)}>
-                {t("delete")}
-              </Menu.Item>
+              <>
+                {(onRename || onShare || onCollections || onToggleLocked) && <Menu.Divider />}
+                <Menu.Item
+                  color="red"
+                  leftSection={<Trash size={ICON_SIZE.menu} />}
+                  onClick={() => onDelete(`${album.id}`, album.title)}
+                >
+                  {t("useralbum.deletealbum")}
+                </Menu.Item>
+              </>
             )}
           </>
         ) : null

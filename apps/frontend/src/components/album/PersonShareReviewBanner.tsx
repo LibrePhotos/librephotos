@@ -20,7 +20,7 @@ export function PersonShareReviewBanner({ person }: Props) {
   if (!sharing || sharing.recipients.length === 0 || sharing.pending_count === 0) return null;
   return (
     <>
-      <Alert variant="light" color="yellow" icon={<IconEyeQuestion size={ICON_SIZE.menu} />} mx={10} mb="xs">
+      <Alert variant="light" color="yellow" icon={<IconEyeQuestion size={ICON_SIZE.inline} />} mx={10} mb="xs">
         <Group justify="space-between" gap="xs">
           <Text size="sm">{t("personshare.pendingBanner", { count: sharing.pending_count, name: person.name })}</Text>
           <Button size="xs" variant="light" color="yellow" onClick={dialog.open}>

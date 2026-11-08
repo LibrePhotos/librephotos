@@ -50,7 +50,7 @@ function LikeButton({ albumId, photoId, enabled }: LikeProps) {
           loading={setLiked.isPending}
           onClick={() => setLiked.mutate(!liked)}
         >
-          {liked ? <IconHeartFilled size={ICON_SIZE.menu} /> : <IconHeart size={ICON_SIZE.menu} />}
+          {liked ? <IconHeartFilled size={ICON_SIZE.inline} /> : <IconHeart size={ICON_SIZE.inline} />}
         </ActionIcon>
       )}
       {likes && count > 0 && (

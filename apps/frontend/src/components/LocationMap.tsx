@@ -1,5 +1,5 @@
 import type { Photo } from "@librephotos/api-client";
-import { Box, getPrimaryShade, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { Box } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
@@ -35,11 +35,6 @@ export function LocationMap({ photos }: Props) {
   const { mapStyle } = useMapStyle();
 
   const photosWithGPS = useMemo(() => photos.filter(isLocated), [photos]);
-  // The pin is HTML over the map, which the dark map filter leaves alone: the app's accent as this
-  // colour scheme draws it, not maplibre's own teal.
-  const theme = useMantineTheme();
-  const scheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
-  const markerColor = theme.colors[theme.primaryColor]?.[getPrimaryShade(theme, scheme)];
   const { avgLat, avgLon } = getAveragedCoordinates(photosWithGPS);
 
   // Hidden until the first tiles are drawn: between the style's load and the tiles the map was an
@@ -69,16 +64,17 @@ export function LocationMap({ photos }: Props) {
           key={photo.image_hash}
           longitude={photo.exif_gps_lon}
           latitude={photo.exif_gps_lat}
-          anchor="bottom"
-          color={markerColor}
-          className={classes.pin}
+          anchor="center"
           onClick={e => {
             e.originalEvent.stopPropagation();
             setPopupInfo(photo);
           }}
-        />
+        >
+          {/* HTML over the map, which the dark map filter leaves alone (LocationMap.module.css) */}
+          <span className={classes.pin} />
+        </Marker>
       )),
-    [photosWithGPS, markerColor]
+    [photosWithGPS]
   );
 
   if (photosWithGPS.length > 0 && mapStyle === null) {

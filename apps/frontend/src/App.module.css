@@ -1,9 +1,40 @@
 /*
- * Every Notifications position gets its own fixed container with this class.
- * Only the top ones move down, below the top bar and the lightbox toolbar; a
- * `top` on the bottom containers would stretch them across the screen.
- * --app-notifications-top is set in App.tsx from TOP_MENU_HEIGHT.
+ * Every Notifications position gets its own fixed container with this class; the
+ * --app-notifications-* values are set in App.tsx from uiConstants. Only the top ones move down,
+ * below the top bar and the lightbox toolbar; a `top` on the bottom containers would stretch them
+ * across the screen.
  */
 .notifications:is([data-position="top-center"], [data-position="top-right"], [data-position="top-left"]) {
   top: var(--app-notifications-top);
+}
+
+/* The desktop's top right: level with the page content's 20px inset, not Mantine's 16px. */
+.notifications[data-position="top-right"] {
+  right: var(--app-notifications-inset);
+}
+
+/*
+ * The phone's bottom: above the footer menu and the home indicator, full width within the page's
+ * 12px gutter.
+ */
+.notifications[data-position="bottom-center"] {
+  left: var(--app-notifications-inset-mobile);
+  right: var(--app-notifications-inset-mobile);
+  bottom: calc(var(--app-notifications-bottom) + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  max-width: none;
+  transform: none;
+}
+
+/*
+ * While a card sits above the phone's footer menu (the "Save changes" dialog, the upload progress
+ * card, What's new), the phone's toasts go back to the top, below the top bar, so they never cover
+ * that card's buttons.
+ */
+:global(
+    body:has([data-testid="save-changes-dialog"], [data-testid="upload-progress-card"], [data-testid="whats-new-card"])
+  )
+  .notifications[data-position="bottom-center"] {
+  top: var(--app-notifications-top);
+  bottom: auto;
 }

@@ -1,26 +1,6 @@
-/* The phone's account sheet (AccountSheet.tsx): rounded top corners, a grab handle, 48px rows. */
-/* As tall as its content (Mantine's bottom drawer filled the screen), up to 90% of it. */
-.sheet {
-  height: auto;
-  max-height: 90dvh;
-  border-radius: 16px 16px 0 0;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.body {
-  padding: 0 0 var(--mantine-spacing-sm);
-}
-
-.handle {
-  width: 36px;
-  height: 4px;
-  margin: 8px auto 12px;
-  border-radius: 2px;
-  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
-}
-
+/* The phone's account sheet (AccountSheet.tsx, in a BottomSheet): 48px rows. */
 .rows {
-  padding: 4px 0;
+  padding: 4px 0 var(--mantine-spacing-sm);
 }
 
 .row {
@@ -32,9 +12,15 @@
   padding: 0 var(--mantine-spacing-md);
   font-size: var(--mantine-font-size-md);
 
-  &:hover,
+  /* The sheet is dark-6 in dark mode. A touch screen has no hover: a tap left no highlight behind. */
   &:focus-visible {
-    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+    }
   }
 
   & svg {

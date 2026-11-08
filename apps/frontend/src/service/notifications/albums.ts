@@ -5,20 +5,19 @@ function setCoverPhoto() {
   toast.success(i18n.t("toasts.setcoverphoto"), { title: i18n.t("toasts.setcoverphototitle") });
 }
 
-function addPhotosToAlbum(title: string, numberOfPhotos: number) {
-  toast.success(i18n.t("toasts.addtoalbum", { title, numberOfPhotos }), { title: i18n.t("toasts.addtoalbumtitle") });
+// One short sentence with no title: "Added 2 photos to Lisbon". `numberOfPhotos` is passed beside
+// `count` for the translations that still read "{{numberOfPhotos}} photo(s)".
+
+function addPhotosToAlbum(title: string, count: number) {
+  toast.success(i18n.t("toasts.addtoalbum", { title, count, numberOfPhotos: count }));
 }
 
-function removePhotosFromAlbum(title: string, numberOfPhotos: number) {
-  toast.success(i18n.t("toasts.removefromalbum", { title, numberOfPhotos }), {
-    title: i18n.t("toasts.removefromalbumtitle"),
-  });
+function removePhotosFromAlbum(title: string, count: number) {
+  toast.success(i18n.t("toasts.removefromalbum", { title, count, numberOfPhotos: count }));
 }
 
-function createAlbum(title: string, numberOfPhotos: number) {
-  toast.success(i18n.t("toasts.createnewalbum", { title, numberOfPhotos }), {
-    title: i18n.t("toasts.createalbumtitle"),
-  });
+function createAlbum(title: string, count: number) {
+  toast.success(i18n.t("toasts.createnewalbum", { title, count, numberOfPhotos: count }));
 }
 
 function renameAlbum(oldTitle: string, newTitle: string) {

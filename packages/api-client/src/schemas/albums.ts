@@ -19,6 +19,8 @@ export const Day = z.object({
   date: z.string().nullable(),
   location: z.string(),
   numberOfItems: z.number(),
+  /** The sum of its photos' aspect ratios; servers before it leave it out. */
+  aspect_ratio_sum: z.number().optional(),
 });
 export type Day = z.infer<typeof Day>;
 

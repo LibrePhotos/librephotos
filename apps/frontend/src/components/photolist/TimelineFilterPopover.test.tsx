@@ -122,13 +122,13 @@ describe("TimelineFilterPopover", () => {
     expect(onChange).toHaveBeenLastCalledWith({ ...SHOW_EVERYTHING, favorites: true });
   });
 
-  it("disables reset and save on the default view", async () => {
+  it("only says so on the default view, with nothing to reset or save", async () => {
     const saved = { ...SHOW_EVERYTHING, hide_screenshots: true };
     await renderPopover(saved, saved);
     await open();
     expect(document.body.textContent).toContain("This is your default view");
-    expect(buttonByText("Reset to default").disabled).toBe(true);
-    expect(buttonByText("Save as default").disabled).toBe(true);
+    expect(document.body.textContent).not.toContain("Reset to default");
+    expect(document.body.textContent).not.toContain("Save as default");
   });
 
   it("offers reset and save when the view differs from the default", async () => {
@@ -167,6 +167,13 @@ describe("TimelineFilterPopover", () => {
       const button = defined(document.body.querySelector("button"));
       expect(button.getAttribute("aria-label")).toBe("Filter, 1 filter active");
       expect(button.textContent).toBe("");
+      // The filters open in a bottom sheet, headed and closable, as the search page's.
+      await act(async () => {
+        button.click();
+      });
+      const sheet = defined(document.body.querySelector('[role="dialog"]'));
+      expect(sheet.textContent).toContain("Filter timeline");
+      expect(switchLabelled("Documents").checked).toBe(true);
     } finally {
       window.matchMedia = wide;
     }

@@ -1,9 +1,10 @@
-import { ActionIcon, Menu, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Menu } from "@mantine/core";
 import { IconAlbum as Album, IconPlus as Plus, IconTag as Tag } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { menuShortcut } from "../common/menuShortcut";
 
 type Props = Readonly<{
   /** Why the menu is off: nothing is selected. Empty while there is a selection. */
@@ -18,7 +19,7 @@ type Props = Readonly<{
 export function AddToMenu({ reason, selection, onAddToAlbum, onAddTags }: Props) {
   const { t } = useTranslation();
   return (
-    <Menu width={200}>
+    <Menu width={220} position="bottom-end">
       {/* Outside Menu.Target, so its click handler replaces the one that opens the menu (#2621). */}
       <DisabledReason reason={reason}>
         <Menu.Target>
@@ -30,29 +31,21 @@ export function AddToMenu({ reason, selection, onAddToAlbum, onAddTags }: Props)
 
       <Menu.Dropdown>
         <Menu.Label>
-          {t("selectionactions.labelwithselection", { label: t("selectionactions.album"), selection })}
+          {t("selectionactions.labelwithselection", { label: t("selectionactions.addtoheading"), selection })}
         </Menu.Label>
-
-        <Menu.Divider />
 
         <Menu.Item leftSection={<Album size={ICON_SIZE.menu} />} onClick={() => !reason && onAddToAlbum()}>
           {t("selectionactions.album")}
         </Menu.Item>
 
         {/* No reason here: this menu only opens with a selection (its button says why without one). */}
-        <Tooltip label={t("selectionactions.tagdescription")} position="left">
-          <Menu.Item
-            leftSection={<Tag size={ICON_SIZE.menu} />}
-            rightSection={
-              <Text size="xs" c="dimmed">
-                t
-              </Text>
-            }
-            onClick={() => !reason && onAddTags()}
-          >
-            {t("selectionactions.tag")}
-          </Menu.Item>
-        </Tooltip>
+        <Menu.Item
+          leftSection={<Tag size={ICON_SIZE.menu} />}
+          {...menuShortcut("T")}
+          onClick={() => !reason && onAddTags()}
+        >
+          {t("selectionactions.tag")}
+        </Menu.Item>
       </Menu.Dropdown>
     </Menu>
   );

@@ -72,7 +72,7 @@ export function AlbumSortMenuItems({ options, sort, defaultSort, onChange }: Alb
   const labelOf = (key: AlbumSort["key"]): ParseKeys =>
     options.find(option => option.key === key)?.label ?? SORT_KEY_LABELS[key];
   const isDefault = sameSort(sort, defaultSort);
-  const check = <Check size={ICON_SIZE.menu} />;
+  const check = <Check size={ICON_SIZE.inline} />;
   return (
     <>
       <Menu.Label>{t("albumsort.sortby")}</Menu.Label>

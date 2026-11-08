@@ -185,3 +185,8 @@
 .intervalDropdown .intervalOption:active:where(:not([data-combobox-selected])) {
   background-color: var(--app-scrim-white-8);
 }
+
+/* A phone's ⋮ menu is a sheet (theme/menuTheme): over the bottom bar, not under it. */
+.bar:has([data-sheet]) {
+  z-index: 6;
+}

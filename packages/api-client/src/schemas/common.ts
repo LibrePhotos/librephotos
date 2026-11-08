@@ -158,6 +158,8 @@ export const IncompleteDatePhotosGroup = DatePhotosGroup.extend({
   id: IntegerId,
   incomplete: z.boolean(),
   numberOfItems: z.number(),
+  /** The sum of the day's aspect ratios, which its placeholders take the average of (see Day). */
+  aspect_ratio_sum: z.number().optional(),
 });
 export type IncompleteDatePhotosGroup = z.infer<typeof IncompleteDatePhotosGroup>;
 

@@ -159,7 +159,7 @@ describe("UserAlbumCard actions", () => {
     for (const [label, handler] of [
       ["Rename", onRename],
       ["Sharing", onShare],
-      ["Delete", onDelete],
+      ["Delete album", onDelete],
     ] as const) {
       await openActions(container);
       const item = Array.from(document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(

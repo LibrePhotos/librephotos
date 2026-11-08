@@ -9,7 +9,7 @@ export const DOCUMENTATION_LINK = "https://docs.librephotos.com";
 
 // Shared icon sizes (px). Use these instead of literals so toolbars line up.
 export const ICON_SIZE = {
-  menu: 14, // icons in menu items (leftSection)
+  menu: 18, // icons in menu items (leftSection), every menu; the theme draws them at stroke 1.75
   inline: 16, // small inline icons and loaders
   lightbox: 18, // lightbox toolbar, its menu and the grid overlays
   overlay: 18, // tile overlays (favourite star, stack indicator)

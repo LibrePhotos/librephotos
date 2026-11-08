@@ -1,0 +1,4 @@
+/* The phone sheet's filters (in a BottomSheet). */
+.sheetBody {
+  padding: 4px var(--mantine-spacing-md) var(--mantine-spacing-md);
+}
