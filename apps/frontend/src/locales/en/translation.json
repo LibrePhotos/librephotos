@@ -1767,7 +1767,7 @@
       "folders": "Go to Folders",
       "myAlbums": "Go to My albums",
       "sharing": "Go to Sharing",
-      "faces": "Go to Faces dashboard",
+      "faces": "Review faces",
       "settings": "Go to Settings",
       "profile": "Go to Profile",
       "library": "Go to Library",
@@ -2289,7 +2289,9 @@
     "renamepersonheader": "What do you want to rename {{name}} to?",
     "personalreadyexists": "Person {{name}} already exists.",
     "nameplaceholder": "Name",
-    "managefaces": "Manage faces",
+    "reviewfaces": "Review faces",
+    "facestoreview_one": "{{shown}} face to review",
+    "facestoreview_other": "{{shown}} faces to review",
     "personactions": "Person actions",
     "deletepersonnamed": "Delete {{name}}?",
     "deletepersonremoved": "{{name}} is removed from People. The photos stay in your library.",
@@ -2503,6 +2505,8 @@
     "recentlytagged": "Recently tagged"
   },
   "facesdashboard": {
+    "showeveryone": "Show everyone's faces",
+    "oneperson": "One person",
     "numberoffaces": "{{number}} faces",
     "selectedfaces": "{{number}} selected",
     "explanationadding": "Add to an existing face ID or create a new face ID",
@@ -3155,7 +3159,7 @@
       "progress_other": "{{current, number}} / {{count, number}} items processed"
     },
     "goToLibrary": "Go to Library",
-    "goToFaces": "Go to Faces",
+    "goToFaces": "Review faces",
     "generateEvents": "Generate events",
     "scanPhotos": "Scan photos",
     "useralbums": {

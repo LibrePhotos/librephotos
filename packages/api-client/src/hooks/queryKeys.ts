@@ -316,6 +316,13 @@ export const faceKeys = {
   /** The people list as the server sends it. */
   incompleteListRaw: (inferred: boolean) => [...faceKeys.incomplete(), "raw", inferred] as const,
   clusters: () => [...faceRoot, "clusters"] as const,
+  /**
+   * How many faces wait for review (the People page's link, a pinned Faces row). Not under
+   * incomplete(): the face-list cache merges everything there as a face list.
+   */
+  reviewCounts: () => [...faceRoot, "reviewCount"] as const,
+  reviewCount: (request: { method: FaceAnalysisMethod; minConfidence: number; group?: number }) =>
+    [...faceKeys.reviewCounts(), request] as const,
 };
 
 const folderRoot = ["folders"] as const;

@@ -1,6 +1,6 @@
 /**
  * The person page's "⋮" (#2207): Rename and Delete open the People page's dialogs, Delete goes
- * back to People once the person is gone, Manage faces opens the face dashboard, and "Merge
+ * back to People once the person is gone, Review faces opens the dashboard on their faces, and "Merge
  * into…" picks another person, asks, and goes on to that person once merged (#2206). "Groups…"
  * opens a checklist of the user's groups that saves on every tick (#1126). "Set as cover…" picks
  * the cover from the person's loaded photos without selecting anything (#2240).
@@ -24,6 +24,7 @@ import type {
 } from "../../api_client/albums/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import { FACES_SEARCH_DEFAULTS } from "../facedashboard/facesTab";
 import type { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { PersonHeaderMenu } from "./PersonHeaderMenu";
 
@@ -167,7 +168,7 @@ async function pick(key: ParseKeys) {
 }
 
 describe("PersonHeaderMenu", () => {
-  it("offers rename, set as cover, share, groups, merge, manage faces and delete", async () => {
+  it("offers rename, set as cover, share, groups, merge, review faces and delete", async () => {
     await act(async () => button("Person actions").click());
 
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
@@ -178,7 +179,7 @@ describe("PersonHeaderMenu", () => {
       "Share…",
       "Groups…",
       "Merge into…",
-      "Manage faces",
+      "Review faces",
       "Delete person",
     ]);
   });
@@ -220,10 +221,13 @@ describe("PersonHeaderMenu", () => {
     expect(stubs.setCover).toHaveBeenCalledWith({ id: "5", cover_photo: "h1" });
   });
 
-  it("opens the face dashboard", async () => {
-    await pick("personalbum.managefaces");
+  it("reviews this person's faces on the face dashboard", async () => {
+    await pick("personalbum.reviewfaces");
 
-    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/faces" });
+    expect(stubs.navigate).toHaveBeenCalledWith({
+      to: "/faces",
+      search: { ...FACES_SEARCH_DEFAULTS, tab: "labeled", person: 5 },
+    });
   });
 
   it("renames through the People page's dialog, with its duplicate check", async () => {

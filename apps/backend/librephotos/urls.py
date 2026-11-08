@@ -528,6 +528,8 @@ urlpatterns = [
         scan_triggers.RescanPhotosView.as_view(),
         name="photos_rescan",
     ),
+    # Before the router: its faces prefix would otherwise be tried first.
+    path("api/faces/review-count/", faces.FacesReviewCountView.as_view()),
     re_path(r"^", include(router.urls)),
     # Health probes - unauthenticated, and under /api/ because the proxy only
     # forwards ^/(api|media)/ to the backend. Must stay ahead of the

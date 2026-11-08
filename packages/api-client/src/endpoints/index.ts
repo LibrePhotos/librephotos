@@ -2049,6 +2049,23 @@ export async function fetchIncompleteFaces(
 }
 
 /**
+ * How many faces wait for review: the ones the face dashboard's Suggested tab lists, with the same
+ * method and threshold. One count, cheap enough for the People page to ask on every visit.
+ */
+export async function fetchFacesReviewCount(
+  client: ApiClient,
+  params: { analysisMethod: S.FaceAnalysisMethod; minConfidence: number; group?: number }
+): Promise<S.FacesReviewCountResponse> {
+  const query = buildQuery({
+    analysis_method: params.analysisMethod,
+    min_confidence: params.minConfidence,
+    group: params.group,
+  });
+  const res = await client.get<unknown>(`/faces/review-count/${query}`);
+  return parseResponse(S.FacesReviewCountResponse, res, "faces review count");
+}
+
+/**
  * Assign faces to a person by name (auto-creates the person). Passing the
  * unknown sentinel name rejects the faces back to unknown instead.
  */
