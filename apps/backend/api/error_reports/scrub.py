@@ -401,12 +401,27 @@ def title(event: Mapping[str, Json]) -> str:
     return text.splitlines()[0][:512] if text.strip() else "Error"
 
 
+# Ids in a message that change between repeats of one error: UUIDs, long hex
+# ids (a django-q process name) and numbers. Grouping ignores them.
+_VOLATILE_ID = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    r"|\b(?=[a-f]*\d)[0-9a-f]{8,}\b"
+    r"|\d+",
+    re.IGNORECASE,
+)
+
+
+def _grouping_text(text: Json) -> Json:
+    """``text`` with its volatile ids replaced, for the fingerprint only."""
+    return _VOLATILE_ID.sub("<id>", text) if isinstance(text, str) else text
+
+
 def fingerprint(event: Mapping[str, Json]) -> str:
     """The same error from the same place gives the same digest.
 
     The error types and the functions on their stacks, not the message, which
     often carries an id that changes; a log message or an error without a
-    stack is told apart by its text.
+    stack is told apart by its text, without its ids and numbers.
     """
     parts: list[Json] = [_object(event.get("tags")).get("source")]
     for value in _list(_object(event.get("exception")).get("values")):
@@ -419,9 +434,10 @@ def fingerprint(event: Mapping[str, Json]) -> str:
             for frame in frames
         )
         if not frames:
-            parts.append(exception.get("value"))
+            parts.append(_grouping_text(exception.get("value")))
     if len(parts) == 1:
-        parts.append(_object(event.get("logentry")).get("message") or title(event))
+        message = _object(event.get("logentry")).get("message") or title(event)
+        parts.append(_grouping_text(message))
     return hashlib.sha256(json.dumps(parts).encode()).hexdigest()
 
 
