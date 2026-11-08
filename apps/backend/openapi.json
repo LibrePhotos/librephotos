@@ -29336,6 +29336,10 @@
             "type": "boolean",
             "description": "Whether SENTRY_DSN names the admin's own server. Staff only."
           },
+          "error_reporting_asked": {
+            "type": "boolean",
+            "description": "Whether an admin answered where error reports go, in the first-time setup or the one-time question, or chose Not now. Staff only."
+          },
           "error_reporting_maintainers": {
             "type": "boolean",
             "description": "Whether the maintainers' server is set (ERROR_REPORTING_MAINTAINERS_DSN). Staff only."
@@ -29539,6 +29543,10 @@
               }
             ],
             "description": "Where new error reports go: off (they stay on this server), own_server (SENTRY_DSN) or maintainers.\n\n* `off` - off\n* `own_server` - own_server\n* `maintainers` - maintainers"
+          },
+          "error_reporting_asked": {
+            "type": "boolean",
+            "description": "true: an admin answered the question where error reports go, or chose Not now; it is not asked again. false changes nothing (being asked cannot be undone). Choosing error_reporting sets it too."
           }
         }
       },

@@ -179,6 +179,13 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         " own_server (SENTRY_DSN) or maintainers.",
     )
 
+    error_reporting_asked = JsonBooleanField(
+        required=False,
+        help_text="true: an admin answered the question where error reports go,"
+        " or chose Not now; it is not asked again. false changes nothing (being"
+        " asked cannot be undone). Choosing error_reporting sets it too.",
+    )
+
     def validate_error_reporting(self, value: str) -> str:
         if not mode_available(value):
             raise serializers.ValidationError(
@@ -236,6 +243,15 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         return stored_days(value)
 
     def validate(self, attrs: Mapping[str, object]) -> Mapping[str, object]:
+        if attrs.get("error_reporting_asked") is False:
+            # A client posting back what GET answered must not ask again.
+            attrs = {
+                key: value
+                for key, value in attrs.items()
+                if key != "error_reporting_asked"
+            }
+            if not attrs:
+                return attrs
         if not attrs:
             raise serializers.ValidationError(
                 f"Give at least one of: {', '.join(self.fields)}."
@@ -416,6 +432,11 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
     error_reporting_own_server = serializers.BooleanField(
         required=False,
         help_text="Whether SENTRY_DSN names the admin's own server. Staff only.",
+    )
+    error_reporting_asked = serializers.BooleanField(
+        required=False,
+        help_text="Whether an admin answered where error reports go, in the"
+        " first-time setup or the one-time question, or chose Not now. Staff only.",
     )
     error_reporting_maintainers = serializers.BooleanField(
         required=False,

@@ -12,12 +12,6 @@ MAX_ENVELOPE_CHARACTERS = 200_000
 class ErrorReportSerializer(serializers.ModelSerializer[ErrorReport]):
     """One saved report as the list shows it; Download has the whole event."""
 
-    # A string, not an enum: a source a later server adds must not break
-    # the clients that parse the list.
-    source = serializers.CharField(
-        read_only=True, help_text="server (the backend) or browser (the web app)."
-    )
-
     class Meta:
         model = ErrorReport
         fields = (
@@ -39,6 +33,16 @@ class ErrorReportSerializer(serializers.ModelSerializer[ErrorReport]):
             },
             "sent_at": {"help_text": "When it was sent; null while it is only saved."},
         }
+
+    def get_fields(self) -> dict[str, serializers.Field]:
+        fields = super().get_fields()
+        # A string, not an enum: a source a later server adds must not break
+        # the clients that parse the list. Declared here rather than as a
+        # class attribute, which would shadow Field.source.
+        fields["source"] = serializers.CharField(
+            read_only=True, help_text="server (the backend) or browser (the web app)."
+        )
+        return fields
 
 
 class ErrorReportSendAllSerializer(serializers.Serializer[None]):

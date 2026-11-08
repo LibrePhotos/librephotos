@@ -77,6 +77,7 @@ SETTING_KEYS = (
     "PUBLIC_GALLERY",
     "PUBLIC_GALLERY_INDEXABLE",
     "ERROR_REPORTING",
+    "ERROR_REPORTING_ASKED",
     *SCHEDULE_KEYS,
     LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
@@ -242,6 +243,7 @@ class SiteSettingsView(APIView):
             out["error_reporting"] = config["ERROR_REPORTING"]
             out["error_reporting_own_server"] = mode_available(OWN_SERVER)
             out["error_reporting_maintainers"] = mode_available(MAINTAINERS)
+            out["error_reporting_asked"] = config["ERROR_REPORTING_ASKED"]
             out.update(sso_setup(request._request))
         return Response(out)
 
@@ -251,6 +253,10 @@ class SiteSettingsView(APIView):
         # Each request field is the lower-case name of its constance key.
         for key, value in data.items():
             setattr(site_config, key.upper(), value)
+        if "error_reporting" in data:
+            # Choosing, in the first-time setup, the one-time question or the
+            # Admin page, answers the question for every admin (#2938).
+            site_config.ERROR_REPORTING_ASKED = True
         if any(key.upper() in SCHEDULE_KEYS for key in data):
             sync_scan_schedule()
         if data.get("update_check") is True:

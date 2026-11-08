@@ -547,6 +547,13 @@ CONSTANCE_CONFIG = {
         " server (SENTRY_DSN), or to the LibrePhotos maintainers.",
         "error_reporting",
     ),
+    "ERROR_REPORTING_ASKED": (
+        False,
+        "Written by the first-time setup and the one-time question to admins,"
+        " not a setting: whether an admin answered where error reports go (or"
+        " chose Not now), so nobody is asked again.",
+        bool,
+    ),
     "MAP_API_PROVIDER": (
         env_str("MAP_API_PROVIDER", "exiftool"),
         "Map Provider",
