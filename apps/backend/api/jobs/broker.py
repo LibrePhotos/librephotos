@@ -130,9 +130,16 @@ class ReleaseGuardedORM(ORM):
         return loaded
 
     def fail_unloadable(self, pk: int, payload: str, error: Exception) -> None:
-        """Take task ``pk`` off the queue and record it as failed."""
+        """Take task ``pk`` off the queue and record it as failed.
+
+        The record is best effort: a failure to write it must not stop the
+        pusher, which is what dropping the task is for.
+        """
         self.delete(pk)
-        save_task(unloadable_failure(payload, error), self)
+        try:
+            save_task(unloadable_failure(payload, error), self)
+        except Exception:
+            logger.exception("Could not record removed queued task %s as failed", pk)
 
     def renew_leases(self) -> None:
         """Extend the lease of every task this process holds.
@@ -298,7 +305,10 @@ def unloadable_failure(payload: str, error: Exception) -> dict[str, object]:
             salt=Conf.PREFIX,
             serializer=lambda: serializer,
         )
-    except pickle.UnpicklingError, EOFError, LookupError, TypeError, ValueError:
+    except Exception:
+        # An old pickle can raise anything while it rebuilds an object, such
+        # as getattr() on a method that was removed: then the reason is generic.
+        logger.exception("Read a removed queued task without its fields")
         task = {}
     if not isinstance(task, dict):
         task = {}

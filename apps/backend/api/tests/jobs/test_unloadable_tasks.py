@@ -98,6 +98,22 @@ def queue_good_task() -> int:
     return queue_payload(task_calling("math.floor", "good", args=(1.5,)))
 
 
+class Geolocated:
+    """A model whose method a queued task named, until an update removed it."""
+
+    def _geolocate(self) -> None:
+        pass
+
+
+def queue_removed_method_task() -> int:
+    """A task of a bound method, ``photo._geolocate`` on the incident's instance.
+
+    Pickle stores a bound method as ``getattr(instance, name)``, so opening it
+    raises in that call, not while looking up a class.
+    """
+    return queue_payload(task_calling(Geolocated()._geolocate, "geolocate"))
+
+
 class _StopOnceDelivered:
     """The pusher's stop event: set once a task reached the workers, or after a few pulls."""
 
@@ -203,6 +219,39 @@ class UnloadableTaskTest(TestCase):
 
         self.assertFalse(OrmQ.objects.filter(pk=bad).exists())
         self.assertIn("could not be loaded", Failure.objects.get().result)
+
+    def test_a_task_of_a_method_that_was_removed_is_recorded_as_failed(
+        self,
+    ) -> None:
+        bad = queue_removed_method_task()
+        good = queue_good_task()
+        method = Geolocated.__dict__["_geolocate"]
+        delattr(Geolocated, "_geolocate")
+        self.addCleanup(setattr, Geolocated, "_geolocate", method)
+
+        with (
+            patch.object(Conf, "BULK", 2),
+            self.assertLogs("api.jobs.broker", "ERROR"),
+        ):
+            taken = ReleaseGuardedORM(list_key=LIST_KEY).dequeue() or []
+
+        self.assertEqual([pk for pk, _payload in taken], [good])
+        self.assertFalse(OrmQ.objects.filter(pk=bad).exists())
+        self.assertIn("could not be loaded", Failure.objects.get().result)
+
+    def test_the_task_is_still_removed_when_recording_it_fails(self) -> None:
+        bad = queue_removed_function_task()
+        good = queue_good_task()
+
+        with (
+            patch.object(Conf, "BULK", 2),
+            patch.object(broker_module, "save_task", side_effect=RuntimeError("db")),
+            self.assertLogs("api.jobs.broker", "ERROR"),
+        ):
+            taken = ReleaseGuardedORM(list_key=LIST_KEY).dequeue() or []
+
+        self.assertEqual([pk for pk, _payload in taken], [good])
+        self.assertFalse(OrmQ.objects.filter(pk=bad).exists())
 
     def test_a_queue_stuck_on_such_a_task_recovers_once_its_lease_runs_out(
         self,
