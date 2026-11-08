@@ -7,6 +7,7 @@ const RECIPIENT = "bugs@reports.niaz.omg.lol";
 function session(options: { allowMessage?: () => boolean; reply?: Reply; maxMessageBytes?: number } = {}) {
   const out: string[] = [];
   const messages: string[] = [];
+  const senders: string[] = [];
   let closed = false;
   const smtp = new SmtpSession(
     {
@@ -14,8 +15,9 @@ function session(options: { allowMessage?: () => boolean; reply?: Reply; maxMess
       recipient: RECIPIENT,
       maxMessageBytes: options.maxMessageBytes ?? 1000,
       allowMessage: options.allowMessage ?? (() => true),
-      receive: async (message) => {
+      receive: async (message, sender) => {
         messages.push(new TextDecoder().decode(message));
+        senders.push(sender);
         return options.reply ?? { code: 250, text: "2.0.0 Thanks" };
       },
     },
@@ -27,7 +29,7 @@ function session(options: { allowMessage?: () => boolean; reply?: Reply; maxMess
   smtp.greet();
   const send = (text: string) => smtp.receive(new TextEncoder().encode(text));
   const codes = () => out.map((line) => line.slice(0, 3));
-  return { out, messages, send, codes, closed: () => closed, smtp };
+  return { out, messages, senders, send, codes, closed: () => closed, smtp };
 }
 
 const transaction = (body: string) =>
@@ -51,6 +53,13 @@ describe("SmtpSession", () => {
     expect(codes()).toEqual(["220", "250", "250", "250", "354", "250"]);
     expect(out.at(-1)).toBe("250 2.0.0 1 forwarded\r\n");
     expect(messages).toEqual(["Subject: x\r\n\r\nhello\r\n"]);
+  });
+
+  test("passes the envelope sender on with the message", async () => {
+    const { send, senders } = session();
+    await send(transaction("hello"));
+    await send(`MAIL FROM:<>\r\nRCPT TO:<${RECIPIENT}>\r\nDATA\r\nbounce\r\n.\r\n`);
+    expect(senders).toEqual(["a@example.org", ""]);
   });
 
   test("passes a refusal from intake on", async () => {

@@ -3,8 +3,8 @@ import type { Reply } from "./intake";
 import type { Store } from "./store";
 
 // A receive-only SMTP server: the subset of RFC 5321 a mail server needs to
-// deliver to one address. It never sends, relays or forwards mail, offers no
-// AUTH, and keeps nothing of the sender or the recipients.
+// deliver to one address. It never sends, relays or forwards mail and offers
+// no AUTH. The envelope sender goes to intake with the message.
 
 // RFC 5321 allows 512 bytes for a command line; mail servers send less.
 const MAX_COMMAND_BYTES = 4096;
@@ -19,12 +19,12 @@ export type SessionOptions = {
   maxMessageBytes: number;
   /** False when this client sent too many messages lately. */
   allowMessage: () => boolean;
-  receive: (message: Uint8Array) => Promise<Reply>;
+  receive: (message: Uint8Array, sender: string) => Promise<Reply>;
 };
 
-type Transaction = { mail: boolean; recipients: number; accepted: boolean };
+type Transaction = { mail: boolean; sender: string; recipients: number; accepted: boolean };
 
-const fresh = (): Transaction => ({ mail: false, recipients: 0, accepted: false });
+const fresh = (): Transaction => ({ mail: false, sender: "", recipients: 0, accepted: false });
 
 /** The address in `FROM:<...>` or `TO:<...>`, and the parameters after it. */
 function parsePath(argument: string, keyword: string): { address: string; params: string } | null {
@@ -113,12 +113,13 @@ export class SmtpSession {
 
   private async endData(): Promise<void> {
     const parts = this.data ?? [];
+    const sender = this.transaction.sender;
     const tooBig = this.dataBytes > this.options.maxMessageBytes;
     this.data = null;
     this.dataBytes = 0;
     this.transaction = fresh();
     if (tooBig) return this.reply(552, "5.3.4 Message too big");
-    const answer = await this.options.receive(Buffer.concat(parts));
+    const answer = await this.options.receive(Buffer.concat(parts), sender);
     this.reply(answer.code, answer.text);
   }
 
@@ -182,6 +183,7 @@ export class SmtpSession {
       return this.reply(552, "5.3.4 Message too big");
     }
     this.transaction.mail = true;
+    this.transaction.sender = path.address;
     this.reply(250, "2.1.0 OK");
   }
 

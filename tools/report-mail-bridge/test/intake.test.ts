@@ -9,7 +9,11 @@ const BROWSER_REPORT = await Bun.file(`${import.meta.dir}/fixtures/librephotos-e
 type Part = { filename: string; type?: string; content: string };
 
 /** A message as a mail client writes it: a text body and base64 attachments. */
-function message(parts: Part[], body = "Hi, see the attached report. Jane <jane@example.org>") {
+function message(
+  parts: Part[],
+  body = "Hi, see the attached report. Jane <jane@example.org>",
+  bodyType = "text/plain",
+) {
   const boundary = "----=_Part_42";
   const lines = [
     "From: Jane Doe <jane@example.org>",
@@ -19,7 +23,7 @@ function message(parts: Part[], body = "Hi, see the attached report. Jane <jane@
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     "",
     `--${boundary}`,
-    "Content-Type: text/plain; charset=utf-8",
+    `Content-Type: ${bodyType}; charset=utf-8`,
     "",
     body,
   ];
@@ -45,6 +49,7 @@ let answer: SendResult;
 let logs: string[];
 let store: Store;
 let intake: ReturnType<typeof createIntake>;
+const receive = (raw: Uint8Array) => intake(raw, "jane@example.org");
 
 beforeEach(() => {
   sent = [];
@@ -58,7 +63,7 @@ beforeEach(() => {
       return answer;
     },
     log: (line) => logs.push(line),
-    limits: { reportsPerMail: 10, reportsPerHour: 3 },
+    limits: { reportsPerMail: 10, reportsPerHour: 3, inboxPerHour: 3, maxTextChars: 1000 },
   });
 });
 
@@ -86,7 +91,7 @@ describe("reportFiles", () => {
 
 describe("intake", () => {
   test("forwards a good report", async () => {
-    const reply = await intake(message([report()]));
+    const reply = await receive(message([report()]));
     expect(reply.code).toBe(250);
     expect(sent).toHaveLength(1);
     const event = JSON.parse(sent[0]!.split("\n")[2]!);
@@ -95,7 +100,7 @@ describe("intake", () => {
   });
 
   test("forwards nothing of the mail itself", async () => {
-    await intake(message([report()]));
+    await receive(message([report()]));
     expect(sent[0]).not.toContain("jane");
     expect(sent[0]).not.toContain("192.168.1.20");
     expect(sent[0]).not.toContain("Subject");
@@ -103,37 +108,88 @@ describe("intake", () => {
   });
 
   test("forwards each report of a mail", async () => {
-    const reply = await intake(message([report(), report(BROWSER_REPORT, "b.json")]));
+    const reply = await receive(message([report(), report(BROWSER_REPORT, "b.json")]));
     expect(reply.code).toBe(250);
     expect(sent).toHaveLength(2);
   });
 
-  test("refuses a mail without a report", async () => {
-    const reply = await intake(message([]));
-    expect(reply.code).toBe(550);
+  test("keeps a mail without a report in the inbox", async () => {
+    const raw = message([], "The scan stops at 40 %.");
+    const reply = await receive(raw);
+    expect(reply.code).toBe(250);
     expect(sent).toEqual([]);
+    const [kept] = store.inboxList();
+    expect(kept).toMatchObject({
+      from: "Jane Doe <jane@example.org>",
+      subject: "Crash on 192.168.1.20 for jane@example.org",
+      attachments: [],
+    });
+    const full = store.inboxGet(kept!.id);
+    expect(full).toMatchObject({ sender: "jane@example.org", text: "The scan stops at 40 %." });
+    expect(full?.headers.to).toBe("bugs@reports.niaz.omg.lol");
+    expect(store.inboxRaw(kept!.id)).toEqual(raw);
   });
 
-  test("refuses JSON that is not a report", async () => {
-    const reply = await intake(message([report('{"hello": "world"}')]));
-    expect(reply.code).toBe(550);
-    expect(sent).toEqual([]);
+  test("keeps the names, types and sizes of its attachments", async () => {
+    await receive(message([{ filename: "screen.png", type: "image/png", content: "PNG!" }]));
+    expect(store.inboxGet(store.inboxList()[0]!.id)?.attachments).toEqual([
+      { name: "screen.png", type: "image/png", size: 4 },
+    ]);
   });
 
-  test("refuses an oversized report", async () => {
+  test("keeps a mail whose JSON is not a report", async () => {
+    const reply = await receive(message([report('{"hello": "world"}', "settings.json")]));
+    expect(reply.code).toBe(250);
+    expect(sent).toEqual([]);
+    expect(store.inboxList()[0]?.attachments).toEqual(["settings.json"]);
+  });
+
+  test("keeps a mail with an oversized report instead of forwarding it", async () => {
     const huge = JSON.stringify({ ...JSON.parse(REPORT), message: "x".repeat(300_000) });
-    expect((await intake(message([report(huge)]))).code).toBe(550);
+    expect((await receive(message([report(huge)]))).code).toBe(250);
     expect(sent).toEqual([]);
+    expect(store.inboxList()).toHaveLength(1);
+  });
+
+  test("keeps the text of an HTML-only mail", async () => {
+    await receive(message([], "<p>Scan <b>stops</b></p><script>x()</script><p>at 40&nbsp;%</p>", "text/html"));
+    const text = store.inboxGet(store.inboxList()[0]!.id)?.text ?? "";
+    expect(text).toContain("Scan stops");
+    expect(text).toContain("at 40");
+    expect(text).not.toContain("<");
+    expect(text).not.toContain("x()");
+  });
+
+  test("cuts a very long text", async () => {
+    await receive(message([], "y".repeat(5000)));
+    expect(store.inboxGet(store.inboxList()[0]!.id)?.text.length).toBe(1000);
+  });
+
+  test("refuses an empty mail", async () => {
+    const empty = new TextEncoder().encode("From: a@b.c\r\nSubject: \r\n\r\n \r\n");
+    expect((await receive(empty)).code).toBe(550);
+    expect(store.inboxList()).toEqual([]);
+  });
+
+  test("stops keeping mail at the hourly inbox limit", async () => {
+    for (const n of [1, 2, 3]) expect((await receive(message([], `note ${n}`))).code).toBe(250);
+    expect((await receive(message([], "note 4"))).code).toBe(451);
+    expect(store.inboxList()).toHaveLength(3);
+  });
+
+  test("does not keep a mail that holds a report", async () => {
+    await receive(message([report(), report("nope", "x.json")]));
+    expect(store.inboxList()).toEqual([]);
   });
 
   test("refuses too many reports in one mail", async () => {
     const files = Array.from({ length: 11 }, (_, i) => report(REPORT, `r${i}.json`));
-    expect((await intake(message(files))).code).toBe(552);
+    expect((await receive(message(files))).code).toBe(552);
     expect(sent).toEqual([]);
   });
 
   test("forwards the good reports of a mail and skips the rest", async () => {
-    const reply = await intake(message([report(), report("nope", "x.json")]));
+    const reply = await receive(message([report(), report("nope", "x.json")]));
     expect(reply.code).toBe(250);
     expect(reply.text).toContain("1 forwarded");
     expect(reply.text).toContain("1 not a report");
@@ -141,8 +197,8 @@ describe("intake", () => {
   });
 
   test("skips a report it already forwarded", async () => {
-    await intake(message([report()]));
-    const reply = await intake(message([report()]));
+    await receive(message([report()]));
+    const reply = await receive(message([report()]));
     expect(reply.code).toBe(250);
     expect(reply.text).toContain("1 already received");
     expect(sent).toHaveLength(1);
@@ -150,9 +206,9 @@ describe("intake", () => {
 
   test("gives a report the same event id every time", async () => {
     answer = "unavailable";
-    await intake(message([report()]));
+    await receive(message([report()]));
     answer = "sent";
-    await intake(message([report()]));
+    await receive(message([report()]));
     const ids = sent.map((envelope) => JSON.parse(envelope.split("\n")[0]!).event_id);
     expect(ids[0]).toBe(ids[1]);
     expect(ids[0]).toMatch(/^[0-9a-f]{32}$/);
@@ -160,15 +216,15 @@ describe("intake", () => {
 
   test("asks the sender to retry while GlitchTip is unavailable", async () => {
     answer = "unavailable";
-    expect((await intake(message([report()]))).code).toBe(451);
+    expect((await receive(message([report()]))).code).toBe(451);
     answer = "sent";
-    expect((await intake(message([report()]))).code).toBe(250);
+    expect((await receive(message([report()]))).code).toBe(250);
     expect(sent).toHaveLength(2);
   });
 
   test("accepts but drops a report GlitchTip refuses", async () => {
     answer = "refused";
-    const reply = await intake(message([report()]));
+    const reply = await receive(message([report()]));
     expect(reply.code).toBe(250);
     expect(reply.text).toContain("1 refused");
   });
@@ -177,17 +233,13 @@ describe("intake", () => {
     const variants = [1, 2, 3, 4].map((n) =>
       report(JSON.stringify({ ...JSON.parse(REPORT), level: `level${n}` }), `r${n}.json`),
     );
-    expect((await intake(message(variants.slice(0, 3)))).code).toBe(250);
-    expect((await intake(message(variants.slice(3)))).code).toBe(451);
+    expect((await receive(message(variants.slice(0, 3)))).code).toBe(250);
+    expect((await receive(message(variants.slice(3)))).code).toBe(451);
     expect(sent).toHaveLength(3);
   });
 
-  test("refuses a message that is not MIME at all", async () => {
-    expect((await intake(new Uint8Array([0, 1, 2, 3]))).code).toBe(550);
-  });
-
   test("logs counts only", async () => {
-    await intake(message([report()]));
+    await receive(message([report()]));
     expect(logs.join("\n")).not.toContain("jane");
     expect(logs.join("\n")).not.toContain("DoesNotExist");
     expect(logs.join("\n")).toContain("forwarded=1");
