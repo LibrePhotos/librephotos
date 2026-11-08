@@ -1,0 +1,4 @@
+node_modules/
+dist/
+*.sqlite*
+Dockerfile.coolify
