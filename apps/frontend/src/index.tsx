@@ -18,11 +18,14 @@ import { createRoot } from "react-dom/client";
 import { apiClient, queryClient } from "./api_client/api";
 import { App } from "./App";
 import { i18nReady } from "./i18n";
+import { installErrorReporting } from "./service/errorReporting/reportBrowserError";
 
 const container = document.getElementById("root");
 if (!container) {
   throw new Error("index.html has no #root element to render into");
 }
+// Uncaught errors go to the server's saved error reports (#2938), which sends nothing on its own.
+installErrorReporting();
 const root = createRoot(container);
 // Non-English locales are fetched on demand; wait for the saved/detected one so
 // the first paint is already in the right language (English resolves at once).
