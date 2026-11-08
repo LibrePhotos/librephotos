@@ -53,6 +53,14 @@ vi.mock("../api_client/user/hooks", () => ({
   useUpdateUserScanDirectoryMutation: () => stubs.noopMutation,
 }));
 vi.mock("../components/setup/DirectoryPicker", () => ({ DirectoryPicker: () => null }));
+// Its own test covers the step; here it is one button that moves on, as Off does.
+vi.mock("../components/setup/SetupErrorReportingStep", () => ({
+  SetupErrorReportingStep: ({ onDone }: { onDone: () => void }) => (
+    <button type="button" onClick={onDone}>
+      error-reporting-off
+    </button>
+  ),
+}));
 vi.mock("../util/apiErrors", () => ({ reportSignupError: () => {}, reportUserSaveError: () => {} }));
 
 let root: ReturnType<typeof createRoot> | undefined;
@@ -200,13 +208,16 @@ describe("the site settings step of the first-run setup", () => {
     expect(container.textContent).not.toContain(i18n.t("skip"));
   });
 
-  it("moves on once the save went through", async () => {
+  it("moves on once the save went through, to error reporting and then the library", async () => {
     stubs.updateSettings.mockImplementation((_variables, options) => options.onSuccess?.());
     await reachSiteSettingsStep();
 
     await act(async () => uploadSwitch().click());
     await act(async () => button(i18n.t("continue")).click());
 
+    expect(container.textContent).toContain(i18n.t("errorreports.setup_step"));
+    expect(container.textContent).not.toContain(i18n.t("skip"));
+    await act(async () => button("error-reporting-off").click());
     expect(container.textContent).toContain(i18n.t("skip"));
   });
 });

@@ -18,6 +18,7 @@ export * from "./stacks";
 export * from "./duplicates";
 export * from "./stats";
 export * from "./server";
+export * from "./errorReports";
 export * from "./folders";
 export * from "./geocode";
 export * from "./photoLocations";

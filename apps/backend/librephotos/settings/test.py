@@ -44,3 +44,13 @@ REST_FRAMEWORK = {
 # starts on the first dequeue (api/jobs/broker.py); in the suite the tests
 # renew them themselves, and no thread writes to the test database.
 Q_CLUSTER = {**Q_CLUSTER, "testing": True}  # noqa: F405
+
+# The suite starts the error capture itself where it tests it
+# (api/tests/error_reports/harness.py); every other test's errors stay out.
+ERROR_REPORTING_CAPTURE = False
+# Never the maintainers' real project: a test that sends gets a host that
+# cannot exist, and the tests refuse every connection anyway.
+SENTRY_DSN = ""
+ERROR_REPORTING_MAINTAINERS_DSN = (
+    "https://0123456789abcdef0123456789abcdef@errors.example.invalid/1"
+)

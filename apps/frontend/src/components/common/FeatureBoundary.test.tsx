@@ -10,6 +10,10 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockIn
 import i18n from "../../i18n";
 import { FeatureBoundary } from "./FeatureBoundary";
 
+// The real one loads the Sentry SDK on the first error, which this suite does not need (#2938).
+const reported = vi.hoisted(() => vi.fn<(error: unknown) => void>());
+vi.mock("../../service/errorReporting/reportBrowserError", () => ({ reportBrowserError: reported }));
+
 const state = { throws: true };
 
 function Fragile() {
@@ -79,6 +83,8 @@ describe("FeatureBoundary", () => {
     expect(container.querySelector("[data-testid=feature]")).toBeNull();
     expect(container.querySelector("[role=alert]")?.textContent).toContain(i18n.t("featureboundary.title"));
     expect(consoleError).toHaveBeenCalledWith("[FeatureBoundary:test]", expect.any(Error), expect.any(String));
+    // Saved as an error report on the server (#2938).
+    expect(reported).toHaveBeenCalledWith(expect.any(Error));
   });
 
   it("renders the child again on Retry", async () => {

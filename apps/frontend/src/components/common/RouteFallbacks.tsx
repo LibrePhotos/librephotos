@@ -1,8 +1,9 @@
 import { Code } from "@mantine/core";
 import { IconAlertTriangle, IconError404 } from "@tabler/icons-react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { reportBrowserError } from "../../service/errorReporting/reportBrowserError";
 import { EmptyState } from "./EmptyState";
 
 // Router-wide fallbacks (createRouter's defaultNotFoundComponent and
@@ -24,6 +25,10 @@ export function NotFoundPage() {
 
 export function RouteErrorPage({ error }: ErrorComponentProps) {
   const { t } = useTranslation();
+  // A page that failed to render is saved as an error report (#2938).
+  useEffect(() => {
+    reportBrowserError(error);
+  }, [error]);
   return (
     <>
       <EmptyState

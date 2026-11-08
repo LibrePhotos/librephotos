@@ -1,0 +1,4 @@
+/* Error titles carry long tokens (module paths, ids) that would push the card wider. */
+.title {
+  overflow-wrap: anywhere;
+}

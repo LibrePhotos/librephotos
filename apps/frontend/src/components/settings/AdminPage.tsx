@@ -9,6 +9,7 @@ import { useFetchServerStatsQuery, useUpdateNotice } from "../../api_client/serv
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { ErrorReportingCard } from "../errorReports/ErrorReportingCard";
 import { JobList } from "../job/JobList";
 import { PageHeader } from "../PageHeader";
 import { SettingsPageFrame } from "../SettingsPageFrame";
@@ -155,6 +156,7 @@ export function AdminPage() {
     ...(upgradeTasks.length ? [{ id: ADMIN_SECTIONS.upgrade, label: t("upgradetasks.header") }] : []),
     { id: ADMIN_SECTIONS.site, label: t("adminarea.sitesettings") },
     { id: ADMIN_SECTIONS.gallery, label: t("sitesettings.publicGallery") },
+    { id: ADMIN_SECTIONS.errors, label: t("errorreports.setting") },
     { id: ADMIN_SECTIONS.features, label: t("sitesettings.features_header") },
     { id: ADMIN_SECTIONS.email, label: t("emailsettings.header") },
     { id: ADMIN_SECTIONS.tools, label: t("adminarea.admintools") },
@@ -183,6 +185,9 @@ export function AdminPage() {
           </SettingsSection>
           <SettingsSection id={ADMIN_SECTIONS.gallery}>
             <PublicGallerySetting />
+          </SettingsSection>
+          <SettingsSection id={ADMIN_SECTIONS.errors}>
+            <ErrorReportingCard />
           </SettingsSection>
           <SettingsSection id={ADMIN_SECTIONS.features}>
             <FeaturesCard />

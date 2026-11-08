@@ -8,6 +8,7 @@
 
 import { Route as rootRouteImport } from "./routes/__root";
 import { Route as ProtectedAdminRouteImport } from "./routes/_protected/admin";
+import { Route as ProtectedAdminErrorReportsRouteImport } from "./routes/_protected/admin/error-reports";
 import { Route as ProtectedAdminIndexRouteImport } from "./routes/_protected/admin/index";
 import { Route as ProtectedAdminJobIdRouteImport } from "./routes/_protected/admin/job.$id";
 import { Route as ProtectedAlbumEventsIdRouteImport } from "./routes/_protected/album/events.$id";
@@ -214,6 +215,11 @@ const PublicUsersRoute = PublicUsersRouteImport.update({
 const ProtectedAdminIndexRoute = ProtectedAdminIndexRouteImport.update({
   id: "/",
   path: "/",
+  getParentRoute: () => ProtectedAdminRoute,
+} as any);
+const ProtectedAdminErrorReportsRoute = ProtectedAdminErrorReportsRouteImport.update({
+  id: "/error-reports",
+  path: "/error-reports",
   getParentRoute: () => ProtectedAdminRoute,
 } as any);
 const ProtectedAlbumIndexRoute = ProtectedAlbumIndexRouteImport.update({
@@ -449,6 +455,7 @@ export interface FileRoutesByFullPath {
   "/public/$users": typeof PublicUsersRoute;
   "/password-reset/": typeof PasswordResetIndexRoute;
   "/public/": typeof PublicIndexRoute;
+  "/admin/error-reports": typeof ProtectedAdminErrorReportsRoute;
   "/jobs/$id": typeof ProtectedJobsIdRoute;
   "/organizing/$tab": typeof ProtectedOrganizingTabRoute;
   "/photo/$id": typeof ProtectedPhotoIdRoute;
@@ -517,6 +524,7 @@ export interface FileRoutesByTo {
   "/": typeof ProtectedIndexRoute;
   "/password-reset": typeof PasswordResetIndexRoute;
   "/public": typeof PublicIndexRoute;
+  "/admin/error-reports": typeof ProtectedAdminErrorReportsRoute;
   "/jobs/$id": typeof ProtectedJobsIdRoute;
   "/organizing/$tab": typeof ProtectedOrganizingTabRoute;
   "/photo/$id": typeof ProtectedPhotoIdRoute;
@@ -589,6 +597,7 @@ export interface FileRoutesById {
   "/_protected/": typeof ProtectedIndexRoute;
   "/password-reset/": typeof PasswordResetIndexRoute;
   "/public/": typeof PublicIndexRoute;
+  "/_protected/admin/error-reports": typeof ProtectedAdminErrorReportsRoute;
   "/_protected/jobs/$id": typeof ProtectedJobsIdRoute;
   "/_protected/organizing/$tab": typeof ProtectedOrganizingTabRoute;
   "/_protected/photo/$id": typeof ProtectedPhotoIdRoute;
@@ -661,6 +670,7 @@ export interface FileRouteTypes {
     | "/public/$users"
     | "/password-reset/"
     | "/public/"
+    | "/admin/error-reports"
     | "/jobs/$id"
     | "/organizing/$tab"
     | "/photo/$id"
@@ -729,6 +739,7 @@ export interface FileRouteTypes {
     | "/"
     | "/password-reset"
     | "/public"
+    | "/admin/error-reports"
     | "/jobs/$id"
     | "/organizing/$tab"
     | "/photo/$id"
@@ -800,6 +811,7 @@ export interface FileRouteTypes {
     | "/_protected/"
     | "/password-reset/"
     | "/public/"
+    | "/_protected/admin/error-reports"
     | "/_protected/jobs/$id"
     | "/_protected/organizing/$tab"
     | "/_protected/photo/$id"
@@ -1049,6 +1061,13 @@ declare module "@tanstack/react-router" {
       path: "/";
       fullPath: "/admin/";
       preLoaderRoute: typeof ProtectedAdminIndexRouteImport;
+      parentRoute: typeof ProtectedAdminRoute;
+    };
+    "/_protected/admin/error-reports": {
+      id: "/_protected/admin/error-reports";
+      path: "/error-reports";
+      fullPath: "/admin/error-reports";
+      preLoaderRoute: typeof ProtectedAdminErrorReportsRouteImport;
       parentRoute: typeof ProtectedAdminRoute;
     };
     "/_protected/album/": {
@@ -1342,11 +1361,13 @@ declare module "@tanstack/react-router" {
 }
 
 interface ProtectedAdminRouteChildren {
+  ProtectedAdminErrorReportsRoute: typeof ProtectedAdminErrorReportsRoute;
   ProtectedAdminIndexRoute: typeof ProtectedAdminIndexRoute;
   ProtectedAdminJobIdRoute: typeof ProtectedAdminJobIdRoute;
 }
 
 const ProtectedAdminRouteChildren: ProtectedAdminRouteChildren = {
+  ProtectedAdminErrorReportsRoute: ProtectedAdminErrorReportsRoute,
   ProtectedAdminIndexRoute: ProtectedAdminIndexRoute,
   ProtectedAdminJobIdRoute: ProtectedAdminJobIdRoute,
 };

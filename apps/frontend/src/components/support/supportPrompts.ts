@@ -3,6 +3,9 @@ import type { ProcessingStatus, Rewind, SiteSettings, User } from "@librephotos/
 /** The site settings the prompts read. */
 type Switches = Pick<SiteSettings, "support_prompts_enabled" | "rewind_enabled">;
 
+/** The user fields the thank-you dialog reads. */
+type Asked = Pick<User, "is_superuser" | "support_prompt_seen">;
+
 /**
  * Whether the library is processed: it has photos, no stage's job is queued or running, and every
  * stage either has nothing left or ran at least once. A stage whose run left a few photos it could
@@ -14,7 +17,7 @@ export function libraryReady(status: ProcessingStatus | undefined): boolean {
 }
 
 /** Whether this user is asked for support at all: admins, while the server allows it. */
-export function asksForSupport(user: User | undefined, settings: Switches | undefined): boolean {
+export function asksForSupport(user: Asked | undefined, settings: Partial<Switches> | undefined): boolean {
   return user?.is_superuser === true && settings?.support_prompts_enabled === true;
 }
 
@@ -22,7 +25,7 @@ export function asksForSupport(user: User | undefined, settings: Switches | unde
  * Whether the one-time thank-you dialog may still show: an admin who has not seen it, on a server
  * that sends the switch and can remember that it was closed.
  */
-export function thankYouPending(user: User | undefined, settings: Switches | undefined): boolean {
+export function thankYouPending(user: Asked | undefined, settings: Partial<Switches> | undefined): boolean {
   return asksForSupport(user, settings) && user?.support_prompt_seen === false;
 }
 

@@ -87,6 +87,7 @@ vi.mock("./ServerLogsCard", () => ({ ServerLogsCard: () => null }));
 vi.mock("./ServiceList", () => ({ ServiceList: () => null }));
 vi.mock("./SiteSettings", () => ({ SiteSettings: () => null }));
 vi.mock("./PublicGallerySetting", () => ({ PublicGallerySetting: () => null }));
+vi.mock("../errorReports/ErrorReportingCard", () => ({ ErrorReportingCard: () => null }));
 vi.mock("./StripThumbnailMetadataTool", () => ({ StripThumbnailMetadataTool: () => "strip-thumbnail-metadata-tool" }));
 vi.mock("./LookUpPlacesTool", () => ({ LookUpPlacesTool: () => "look-up-places-tool" }));
 vi.mock("./DeduplicateFacesTool", () => ({ DeduplicateFacesTool: () => "deduplicate-faces-tool" }));
@@ -187,6 +188,7 @@ describe("AdminPage", () => {
     for (const id of [
       "admin-site",
       "admin-gallery",
+      "admin-errors",
       "admin-features",
       "admin-tools",
       "admin-logs",
@@ -200,6 +202,7 @@ describe("AdminPage", () => {
     expect([...toc.querySelectorAll("a")].map(link => link.getAttribute("href"))).toEqual([
       "#admin-site",
       "#admin-gallery",
+      "#admin-errors",
       "#admin-features",
       "#admin-email",
       "#admin-tools",

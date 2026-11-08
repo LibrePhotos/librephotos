@@ -2,6 +2,7 @@ import { Button, Center, Stack, Text } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { reportBrowserError } from "../../service/errorReporting/reportBrowserError";
 
 type FallbackProps = Readonly<{
   error: unknown;
@@ -59,6 +60,7 @@ export class FeatureBoundary extends React.Component<FeatureBoundaryProps, Featu
 
   override componentDidCatch(error: unknown, info: React.ErrorInfo): void {
     console.error(`[FeatureBoundary:${this.props.name}]`, error, info.componentStack);
+    reportBrowserError(error);
   }
 
   override componentDidUpdate(previous: FeatureBoundaryProps): void {

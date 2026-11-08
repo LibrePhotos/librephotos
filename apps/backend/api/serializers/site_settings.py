@@ -16,6 +16,8 @@ from api.drf.params import (
     JsonIntegerField,
     JsonStringField,
 )
+from api.error_reports.send import MODES as ERROR_REPORTING_MODES
+from api.error_reports.send import mode_available
 from api.geocode.config import MAP_API_PROVIDERS
 from api.runtime.features import (
     FEATURES,
@@ -169,6 +171,30 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         help_text="Let search engines index the public gallery.",
     )
 
+    # Error reporting (#2938). Choosing a server needs its DSN in the environment.
+    error_reporting = serializers.ChoiceField(
+        choices=ERROR_REPORTING_MODES,
+        required=False,
+        help_text="Where new error reports go: off (they stay on this server),"
+        " own_server (SENTRY_DSN) or maintainers.",
+    )
+
+    error_reporting_asked = JsonBooleanField(
+        required=False,
+        help_text="true: an admin answered the question where error reports go,"
+        " or chose Not now; it is not asked again. false changes nothing (being"
+        " asked cannot be undone). Choosing error_reporting sets it too.",
+    )
+
+    def validate_error_reporting(self, value: str) -> str:
+        if not mode_available(value):
+            raise serializers.ValidationError(
+                "There is no server for this choice: set SENTRY_DSN (your own"
+                " server) or ERROR_REPORTING_MAINTAINERS_DSN and restart the server.",
+                code="error_reporting_unavailable",
+            )
+        return value
+
     def validate_update_check(self, value: bool) -> bool:
         if value and update_check_locked():
             raise serializers.ValidationError(
@@ -217,6 +243,15 @@ class SiteSettingsRequest(serializers.Serializer[None]):
         return stored_days(value)
 
     def validate(self, attrs: Mapping[str, object]) -> Mapping[str, object]:
+        if attrs.get("error_reporting_asked") is False:
+            # A client posting back what GET answered must not ask again.
+            attrs = {
+                key: value
+                for key, value in attrs.items()
+                if key != "error_reporting_asked"
+            }
+            if not attrs:
+                return attrs
         if not attrs:
             raise serializers.ValidationError(
                 f"Give at least one of: {', '.join(self.fields)}."
@@ -389,6 +424,25 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
         " state). Staff only.",
     )
     model_download = SiteModelDownloadSerializer(required=False, allow_null=True)
+    error_reporting = serializers.CharField(
+        required=False,
+        help_text="Where new error reports go: off, own_server or maintainers."
+        " Staff only.",
+    )
+    error_reporting_own_server = serializers.BooleanField(
+        required=False,
+        help_text="Whether SENTRY_DSN names the admin's own server. Staff only.",
+    )
+    error_reporting_asked = serializers.BooleanField(
+        required=False,
+        help_text="Whether an admin answered where error reports go, in the"
+        " first-time setup or the one-time question, or chose Not now. Staff only.",
+    )
+    error_reporting_maintainers = serializers.BooleanField(
+        required=False,
+        help_text="Whether the maintainers' server is set"
+        " (ERROR_REPORTING_MAINTAINERS_DSN). Staff only.",
+    )
     whats_new_enabled = serializers.BooleanField(
         help_text="Whether users see a What's new card once after an update"
         " (each user can also turn it off). Sent to everyone."

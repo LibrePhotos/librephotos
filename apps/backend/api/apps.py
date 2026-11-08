@@ -103,6 +103,17 @@ class ApiConfig(AppConfig):
 
         features.register()
 
+        from django.conf import settings
+
+        if settings.ERROR_REPORTING_CAPTURE:
+            # Keeps errors, scrubbed, in the saved error reports (#2938);
+            # nothing is sent unless an admin chose a server. No database
+            # access here: the transport reads the site setting when an
+            # error comes.
+            from api.error_reports.capture import start_capture
+
+            start_capture()
+
         try:
             reconfigure_logging()
         except LoggingNotConfiguredError:

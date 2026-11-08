@@ -68,6 +68,10 @@ _.do_DELETE
 _.do_OPTIONS
 _.version_string
 
+# sentry_sdk's client hands every envelope to its transport through this
+# method (api/error_reports/capture.py, ErrorReportTransport).
+_.capture_envelope
+
 # Test hooks that reset module-level caches between tests.
 _.reset_probe_cache  # function in api/video/ffmpeg_budget.py
 _.reset_for_tests  # function in api/geocode/rate_limit.py

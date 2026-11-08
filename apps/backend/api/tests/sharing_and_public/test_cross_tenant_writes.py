@@ -124,6 +124,16 @@ NOT_PHOTO_SCOPED = {
     "api/strip-thumbnail-metadata/": "admin-only, instance-wide thumbnail cleanup job",
     "api/upgrade-tasks/<slug:key>/start/": "admin-only, instance-wide post-upgrade jobs",
     "api/upgrade-tasks/<slug:key>/dismiss/": "admin-only, instance-wide post-upgrade card state",
+    "api/error-reports/": "admin-only, instance-wide saved error reports (#2938)",
+    "api/error-reports/send/": "admin-only, instance-wide saved error reports",
+    "api/error-reports/<int:report_id>/": "admin-only, instance-wide saved error reports",
+    "api/error-reports/<int:report_id>/send/": (
+        "admin-only, instance-wide saved error reports"
+    ),
+    "api/error-reports/browser/": (
+        "saves the requester's browser error, scrubbed, in the admins' list; "
+        "reads no rows and takes no ids"
+    ),
     "api/updates/skip/": "admin-only, instance-wide update check state",
     "api/updates/snooze/": "admin-only, instance-wide update check state",
     "api/updates/install/": "admin-only, downloads the newest release (#2788)",
