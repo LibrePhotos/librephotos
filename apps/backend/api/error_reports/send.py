@@ -93,7 +93,11 @@ def send_report(report: ErrorReport, dsn: str) -> None:
     try:
         response = requests.post(
             auth.get_api_url(),
-            data=envelope_bytes(report.event, event_id),
+            # The server groups repeats by this fingerprint, the same way the
+            # saved list does, instead of by a message that carries ids.
+            data=envelope_bytes(
+                {**report.event, "fingerprint": [report.fingerprint]}, event_id
+            ),
             headers={
                 "Content-Type": "application/x-sentry-envelope",
                 "X-Sentry-Auth": auth.to_header(),
