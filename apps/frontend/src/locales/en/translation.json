@@ -4441,6 +4441,12 @@
     "delete_all_message": "The saved reports are deleted from this server. Reports you already sent stay on the server they went to.",
     "cancel": "Cancel",
     "sent_toast": "Report sent",
-    "send_all_toast": "{{sent}} sent, {{failed}} not sent"
+    "send_all_toast": "{{sent}} sent, {{failed}} not sent",
+    "intro_purpose": "Error reports help the LibrePhotos maintainers find and fix bugs.",
+    "intro_consent": "Nothing is sent unless you choose so. Until then, errors are only kept on this server.",
+    "intro_contents": "A report holds the error, where in the code it happened, and the LibrePhotos, Python and browser versions. Names, paths, file names, addresses and your photos are removed before it is saved.",
+    "intro_later": "You can change this any time under Admin Area > Error reporting.",
+    "setup_step": "Errors",
+    "setup_description": "Choose whether error reports are shared"
   }
 }

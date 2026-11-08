@@ -19,7 +19,12 @@ import { SignupFields } from "../auth/SignupFields";
 import type { SignupValues } from "../auth/SignupFields";
 import { DirectoryPicker } from "./DirectoryPicker";
 import classes from "./FirstTimeSetup.module.css";
+import { SetupErrorReportingStep } from "./SetupErrorReportingStep";
 import { uploadLocation } from "./uploadLocation";
+
+// The steps after the account (0) and the site settings (1).
+const STEP_ERRORS = 2;
+const STEP_LIBRARY = 3;
 
 type FirstTimeSetupProps = {
   onComplete?: () => void;
@@ -126,7 +131,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
     (allowUpload !== siteSettings.allow_upload || allowRegistration !== siteSettings.allow_registration);
 
   const handleSiteSettingsNext = () => {
-    const goNext = () => setActiveStep(2);
+    const goNext = () => setActiveStep(STEP_ERRORS);
     if (settingsChanged) {
       updateSettings(
         { allow_upload: allowUpload ?? false, allow_registration: allowRegistration ?? false },
@@ -169,6 +174,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
   const steps = [
     { label: t("login.setupstepaccount"), description: t("login.setupadmin") },
     { label: t("login.setupstepsettings"), description: t("login.setupsitesettings") },
+    { label: t("errorreports.setup_step"), description: t("errorreports.setup_description") },
     { label: t("login.setupsteplibrary"), description: t("login.setupdatadirectory") },
   ];
 
@@ -222,7 +228,8 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
           </Group>
         </Stack>
       )}
-      {activeStep === 2 && (
+      {activeStep === STEP_ERRORS && <SetupErrorReportingStep onDone={() => setActiveStep(STEP_LIBRARY)} />}
+      {activeStep === STEP_LIBRARY && (
         <Stack gap="md">
           <DirectoryPicker
             value={scanDirectory}

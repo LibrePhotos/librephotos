@@ -113,7 +113,7 @@ describe("ErrorReportingCard", () => {
     await click(dialogButton(i18n.t("errorreports.optin_new_only")));
     const [only] = stubs.saved;
     expect(defined(only).input).toEqual({ error_reporting: "maintainers" });
-    expect(defined(only).onSaved).toBeUndefined();
+    defined(only).onSaved?.();
     expect(stubs.sendAll).not.toHaveBeenCalled();
   });
 

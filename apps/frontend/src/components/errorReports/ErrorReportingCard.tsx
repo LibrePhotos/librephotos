@@ -1,17 +1,14 @@
 import { Anchor, Group, List, SegmentedControl, Stack, Text, Title } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { Link } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
-import { useErrorReportsQuery, useSendAllErrorReportsMutation } from "../../api_client/errorReports";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { DOCUMENTATION_LINK } from "../../uiConstants";
 import { SettingsCard } from "../settings/SettingsCard";
 import { SectionLink } from "../settings/SettingsSection";
-import { useSaveSiteSettings } from "../settings/useSaveSiteSettings";
-import { ERROR_REPORTING_DOCS, modeOf, type ErrorReportingMode, type SendingMode } from "./errorReportingMode";
+import { ERROR_REPORTING_DOCS, modeOf, type ErrorReportingMode } from "./errorReportingMode";
 import { ErrorReportingOptInModal } from "./ErrorReportingOptInModal";
-import { useSendAllToast } from "./useSendAllToast";
+import { useErrorReportingChoice } from "./useErrorReportingChoice";
 
 /** Exactly what a report holds and what it never does, as the docs page lists it. */
 function WhatIsSent() {
@@ -44,36 +41,16 @@ function WhatIsSent() {
 export function ErrorReportingCard() {
   const { t } = useTranslation();
   const { data: settings } = useGetSettingsQuery();
-  const available = settings?.error_reporting !== undefined;
-  const { data: reports = [] } = useErrorReportsQuery({ enabled: available });
-  const save = useSaveSiteSettings();
-  const sendAll = useSendAllErrorReportsMutation();
-  const sendAllToast = useSendAllToast();
-  const [pending, setPending] = useState<SendingMode | null>(null);
-  const [optInOpen, { open, close }] = useDisclosure(false);
-  if (!available) return null;
-  const stored = modeOf(settings.error_reporting);
-  const unsent = reports.filter(report => report.sent_at === null);
+  const stored = modeOf(settings?.error_reporting);
+  const { choose, unsent, optIn } = useErrorReportingChoice({
+    current: stored,
+    enabled: settings?.error_reporting !== undefined,
+  });
+  if (settings?.error_reporting === undefined) return null;
   const usable: Record<ErrorReportingMode, boolean> = {
     off: true,
     own_server: settings.error_reporting_own_server === true,
     maintainers: settings.error_reporting_maintainers === true,
-  };
-
-  const change = (value: string) => {
-    const next = modeOf(value);
-    if (next === "off" || stored !== "off" || unsent.length === 0) {
-      save({ error_reporting: next });
-      return;
-    }
-    setPending(next);
-    open();
-  };
-  const choose = (sendSaved: boolean) => {
-    if (pending !== null) {
-      save({ error_reporting: pending }, sendSaved ? () => sendAll.mutate(undefined, sendAllToast) : undefined);
-    }
-    close();
   };
 
   return (
@@ -89,7 +66,7 @@ export function ErrorReportingCard() {
         <SegmentedControl
           aria-label={t("errorreports.setting")}
           value={stored}
-          onChange={change}
+          onChange={value => choose(modeOf(value))}
           data={[
             { value: "off", label: t("errorreports.off") },
             { value: "own_server", label: t("errorreports.own_server"), disabled: !usable.own_server },
@@ -117,13 +94,7 @@ export function ErrorReportingCard() {
             </Text>
           ) : null}
         </Group>
-        <ErrorReportingOptInModal
-          opened={optInOpen}
-          onClose={close}
-          destination={pending ?? "maintainers"}
-          reports={unsent}
-          onChoose={choose}
-        />
+        <ErrorReportingOptInModal {...optIn} />
       </Stack>
     </SettingsCard>
   );
