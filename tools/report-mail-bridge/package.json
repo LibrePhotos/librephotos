@@ -1,0 +1,19 @@
+{
+  "name": "librephotos-report-mail-bridge",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "bun run src/main.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "bun build --compile --bytecode --minify src/main.ts --outfile dist/report-mail-bridge"
+  },
+  "dependencies": {
+    "postal-mime": "4.1.4"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "typescript": "6.0.3"
+  }
+}

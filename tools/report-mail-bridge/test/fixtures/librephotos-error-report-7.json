@@ -1,0 +1,74 @@
+{
+  "contexts": {
+    "os": {
+      "name": "Linux",
+      "version": "6.8.0"
+    },
+    "runtime": {
+      "name": "CPython",
+      "version": "3.14.0"
+    }
+  },
+  "environment": "production",
+  "event_id": "5f0c1d7e2a9b4c3d8e6f7a1b2c3d4e5f",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": false,
+          "type": "django"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "site-packages/django/core/handlers/exception.py",
+              "context_line": "        response = get_response(request)",
+              "filename": "django/core/handlers/exception.py",
+              "function": "inner",
+              "in_app": false,
+              "lineno": 55,
+              "module": "django.core.handlers.exception",
+              "post_context": [
+                "    except Exception as exc:"
+              ],
+              "pre_context": [
+                "    def inner(request):",
+                "        try:"
+              ]
+            },
+            {
+              "abs_path": "api/views/albums.py",
+              "context_line": "        album = AlbumUser.objects.get(id=album_id)",
+              "filename": "api/views/albums.py",
+              "function": "retrieve",
+              "in_app": true,
+              "lineno": 142,
+              "module": "api.views.albums",
+              "pre_context": [
+                "    def retrieve(self, request, album_id):"
+              ]
+            }
+          ]
+        },
+        "type": "DoesNotExist",
+        "value": "AlbumUser matching query does not exist. Path <library>"
+      }
+    ]
+  },
+  "level": "error",
+  "logger": "django.request",
+  "platform": "python",
+  "release": "1.5.1",
+  "request": {
+    "method": "GET"
+  },
+  "sdk": {
+    "name": "sentry.python.django",
+    "version": "2.40.0"
+  },
+  "tags": {
+    "source": "server"
+  },
+  "timestamp": "2026-11-08T12:34:56.789012Z",
+  "transaction": "/api/albums/user/{album_id}/"
+}

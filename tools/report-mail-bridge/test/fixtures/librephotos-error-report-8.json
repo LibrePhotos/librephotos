@@ -1,0 +1,54 @@
+{
+  "contexts": {
+    "browser": {
+      "name": "Firefox",
+      "version": "144.0"
+    },
+    "os": {
+      "name": "Windows",
+      "version": ">=10"
+    }
+  },
+  "environment": "production",
+  "event_id": "0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": true,
+          "type": "onunhandledrejection"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "colno": 17,
+              "filename": "/assets/index-Bx1.js",
+              "function": "loadAlbum",
+              "in_app": true,
+              "lineno": 3
+            }
+          ]
+        },
+        "type": "TypeError",
+        "value": "Cannot read properties of undefined (reading 'id')"
+      }
+    ]
+  },
+  "level": "error",
+  "platform": "javascript",
+  "release": "1.5.1",
+  "request": {
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0"
+    },
+    "method": "GET"
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "10.20.0"
+  },
+  "tags": {
+    "source": "browser"
+  },
+  "timestamp": 1762605296.123
+}
