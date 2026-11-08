@@ -8,6 +8,7 @@ from constance.test import override_config
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
+from api.error_reports.send import send_report
 from api.models import ErrorReport
 from api.tests.error_reports.harness import capturing, inline_background, no_network
 from api.tests.utils import create_test_error_report, create_test_user
@@ -179,3 +180,42 @@ class OptInFlowTest(TestCase):
         self.assertFalse(body["error_reporting_own_server"])
         self.assertTrue(body["error_reporting_maintainers"])
         self.assertNotIn(MAINTAINERS, json.dumps(body))
+
+
+class GroupingOnTheServerTest(TestCase):
+    """The receiving server groups repeats the way the saved list does.
+
+    GlitchTip and Sentry group by the message when no fingerprint is sent, so
+    a log line carrying a changing id ("reincarnated pusher Process-<id>")
+    became one issue per id there, even though this server counts them as one.
+    """
+
+    def test_a_sent_report_carries_its_fingerprint(self) -> None:
+        def pusher_death(process: str) -> ErrorReport:
+            message = f"reincarnated pusher Process-{process} after sudden death"
+            return create_test_error_report(
+                title=message,
+                fingerprint="a" * 64,
+                event={
+                    "level": "critical",
+                    "platform": "python",
+                    "logentry": {"message": message},
+                    "tags": {"source": "server"},
+                },
+            )
+
+        first = pusher_death("09e4997ddc8942ac8b48bdafc51c7ded")
+        second = pusher_death("47a8c2de3fdf4f74a95dd9b1e148479a")
+        with (
+            no_network(),
+            mock.patch(
+                "api.error_reports.send.requests.post", return_value=accepted()
+            ) as post,
+        ):
+            send_report(first, MAINTAINERS)
+            send_report(second, MAINTAINERS)
+
+        self.assertEqual(
+            [event.get("fingerprint") for event in posted_events(post)],
+            [["a" * 64], ["a" * 64]],
+        )
