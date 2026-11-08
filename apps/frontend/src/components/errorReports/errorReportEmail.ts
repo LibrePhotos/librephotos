@@ -4,10 +4,11 @@ import { DateTime } from "luxon";
 import { parseInstant } from "../../util/dateUtils";
 
 /**
- * Where Email sends a saved error report (#2938). A placeholder until the maintainers pick the
- * address; this is its one copy.
+ * Where Email sends a saved error report (#2938). Received by the maintainers' open-source
+ * report mail bridge (`tools/report-mail-bridge`), which forwards valid report files to
+ * GlitchTip and drops the mail itself. This is the address's one copy.
  */
-export const REPORT_EMAIL = "REPORT_EMAIL_PLACEHOLDER@example.invalid";
+export const REPORT_EMAIL = "bugs@reports.niaz.omg.lol";
 
 /** "Server" or "Web app"; a source a newer server adds shows as it is. */
 export function sourceLabel(source: string, t: TFunction): string {

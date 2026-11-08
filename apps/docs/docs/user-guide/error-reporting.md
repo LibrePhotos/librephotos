@@ -28,7 +28,7 @@ Turning sharing on while reports are saved asks a second question first: **Send 
 
 - **Send once**: send just this report, without turning sharing on. It goes to the server chosen under Error reporting, or to the maintainers while it is off.
 - **Download**: save the report as a JSON file, exactly what would be sent.
-- **Email**: open your mail app with a message to the maintainers that names the error. Mail links cannot attach files, so attach the file **Download** saved. This works for a server without internet access too.
+- **Email**: open your mail app with a message to the maintainers (`bugs@reports.niaz.omg.lol`) that names the error. Mail links cannot attach files, so attach the file **Download** saved. This works for a server without internet access too. The address is received by the maintainers' own [report mail bridge](https://github.com/LibrePhotos/librephotos/tree/dev/tools/report-mail-bridge), which runs on a server in Germany: it passes valid report files on to the maintainers' error tracker and drops everything else in the mail, including your address, the subject and the text.
 - **Delete**: remove it from your server.
 
 **Send all** sends every report not sent yet; **Delete all** removes them all. Reports already sent stay on the server they went to.
