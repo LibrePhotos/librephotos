@@ -389,6 +389,14 @@ export const serverKeys = {
   updates: () => [...serverRoot, "updates"] as const,
 };
 
+const errorReportRoot = ["errorReports"] as const;
+
+/** The saved error reports (admins, #2938). */
+export const errorReportKeys = {
+  all: errorReportRoot,
+  list: () => [...errorReportRoot, "list"] as const,
+};
+
 const serviceRoot = ["services"] as const;
 
 export const serviceKeys = {

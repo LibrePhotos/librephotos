@@ -3050,3 +3050,49 @@ export async function deleteAllAutoAlbums(client: ApiClient): Promise<string> {
   const res = await client.post<unknown>("/albums/auto/delete_all/");
   return parseResponse(z.string(), res, "delete all event albums");
 }
+
+/** The saved error reports, newest first, at most 30 (admins only, #2938). */
+export async function fetchErrorReports(client: ApiClient): Promise<S.ErrorReport[]> {
+  const res = await client.get<unknown>("/error-reports/");
+  return parseResponse(S.ErrorReport.array(), res, "error reports");
+}
+
+/**
+ * Send once: one saved report to the chosen error reporting server, or to the maintainers while
+ * error reporting is off. A 502 when that server refuses it, a 503 `no_error_reporting_server` when
+ * there is none.
+ */
+export async function sendErrorReport(client: ApiClient, reportId: number): Promise<S.ErrorReport> {
+  const res = await client.post<unknown>(`/error-reports/${reportId}/send/`, {});
+  return parseResponse(S.ErrorReport, res, "send error report");
+}
+
+/** Send all: every saved report not sent yet, to the same server as Send once. */
+export async function sendAllErrorReports(client: ApiClient): Promise<S.ErrorReportSendAll> {
+  const res = await client.post<unknown>("/error-reports/send/", {});
+  return parseResponse(S.ErrorReportSendAll, res, "send all error reports");
+}
+
+/** Delete one saved report. Answers 204. */
+export async function deleteErrorReport(client: ApiClient, reportId: number): Promise<void> {
+  await client.delete(`/error-reports/${reportId}/`);
+}
+
+/** Delete every saved report. Answers 204. */
+export async function deleteAllErrorReports(client: ApiClient): Promise<void> {
+  await client.delete("/error-reports/");
+}
+
+/** One saved report's event, exactly as it would be sent, as a JSON file. */
+export async function downloadErrorReport(client: ApiClient, reportId: number): Promise<Blob> {
+  return client.getBlob(`/error-reports/${reportId}/download/`);
+}
+
+/**
+ * Forward a browser error (a Sentry envelope, as text) to the server, which scrubs and saves it like
+ * its own and sends it on only when an admin chose a server (#2938). Any signed-in user may.
+ */
+export async function forwardBrowserErrorReport(client: ApiClient, envelope: string): Promise<S.BrowserErrorReport> {
+  const res = await client.post<unknown>("/error-reports/browser/", { envelope });
+  return parseResponse(S.BrowserErrorReport, res, "forward browser error");
+}

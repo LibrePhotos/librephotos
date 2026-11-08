@@ -204,6 +204,10 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   ServerStats: { schema: S.ServerStats, components: ["ServerStats"] },
   UpdateStatus: { schema: S.UpdateStatus, components: ["UpdateStatus"] },
   InstallState: { schema: S.InstallState, components: ["InstallState"] },
+  // error reports (#2938)
+  ErrorReport: { schema: S.ErrorReport, components: ["ErrorReport"] },
+  ErrorReportSendAll: { schema: S.ErrorReportSendAll, components: ["ErrorReportSendAll"] },
+  BrowserErrorReport: { schema: S.BrowserErrorReport, components: ["BrowserErrorReport"] },
   // stacks
   StackFileVariant: { schema: S.StackFileVariant, components: ["StackFileVariant"] },
   StackPhoto: { schema: S.StackPhoto, components: ["StackPhoto"] },
