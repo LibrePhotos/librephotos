@@ -4447,6 +4447,10 @@
     "intro_contents": "A report holds the error, where in the code it happened, and the LibrePhotos, Python and browser versions. Names, paths, file names, addresses and your photos are removed before it is saved.",
     "intro_later": "You can change this any time under Admin Area > Error reporting.",
     "setup_step": "Errors",
-    "setup_description": "Choose whether error reports are shared"
+    "setup_description": "Choose whether error reports are shared",
+    "prompt_title": "Help fix bugs in LibrePhotos?",
+    "prompt_not_now": "Not now",
+    "prompt_review_one": "Review the {{count}} saved report",
+    "prompt_review_other": "Review the {{count}} saved reports"
   }
 }
