@@ -239,6 +239,26 @@ class VideoFrameScanTest(TestCase):
 
         self.assertEqual(2, self.faces().count())
 
+    def test_a_face_past_the_edge_of_a_frame_is_cut_to_it(self) -> None:
+        # The edge of the frame cuts Anna off (#2922); a box outside it is skipped.
+        self.scan(
+            [],
+            {2: [((-30, 120, 60, -8), ANNA), ((200, 300, 260, 240), BEN)]},
+        )
+
+        (face,) = self.faces()
+        self.assertEqual(
+            (0, 120, 60, 0),
+            (
+                face.location_top,
+                face.location_right,
+                face.location_bottom,
+                face.location_left,
+            ),
+        )
+        with Image.open(face.image.path) as crop:
+            self.assertEqual((120, 60), crop.size)
+
     def test_a_face_below_the_minimum_size_is_skipped(self) -> None:
         # 180 px high: 50 % is 90 px, more than Ben's 60 px.
         User.objects.filter(pk=self.user.pk).update(min_face_size=0.5)
