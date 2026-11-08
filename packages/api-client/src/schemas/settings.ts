@@ -144,6 +144,10 @@ export const SiteSettings = z.object({
   // Whether SENTRY_DSN names the admin's own server, and whether the maintainers' server is set.
   error_reporting_own_server: z.boolean().optional(),
   error_reporting_maintainers: z.boolean().optional(),
+  // Whether an admin answered where error reports go (first-time setup, the one-time question, the
+  // Admin page) or chose Not now: the web app asks admins once while it is false. Posting true is
+  // Not now; posting false changes nothing.
+  error_reporting_asked: z.boolean().optional(),
 });
 export type SiteSettings = z.infer<typeof SiteSettings>;
 
