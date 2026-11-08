@@ -1,23 +1,21 @@
 import type { User } from "@librephotos/api-client";
 import React, { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
-import { useProcessingStatusUntil } from "../../api_client/jobs/hooks/useProcessingStatus";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useRewindQuery } from "../../api_client/stats/hooks/useRewindQuery";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useSaveSupportPromptStateMutation } from "../../api_client/user/hooks/useSaveSupportPromptStateMutation";
 import { useUpload } from "../upload";
 import { SupportContext, type Support } from "./supportContext";
-import { libraryReady, rewindToOpen, rewindWorthShowing, thankYouPending } from "./supportPrompts";
+import { rewindToOpen, rewindWorthShowing, thankYouPending } from "./supportPrompts";
+import { useThankYouDue } from "./useThankYouDue";
 
 // Both load on first use, so the app's first chunk does not carry them.
 const ThankYouModal = lazy(async () => ({ default: (await import("./ThankYouModal")).ThankYouModal }));
 const RewindModal = lazy(async () => ({ default: (await import("./rewind/RewindModal")).RewindModal }));
 
-/** The thank-you dialog, once the admin's library is processed. */
+/** The thank-you dialog, mounted once it is due (`useThankYouDue`). */
 function ThankYouGate({ user }: Readonly<{ user: User }>) {
-  const { data: status } = useProcessingStatusUntil(true, libraryReady);
   const save = useSaveSupportPromptStateMutation({ reportsErrors: true });
-  if (!libraryReady(status)) return null;
   return <ThankYouModal onClose={() => save.mutate({ userId: user.id, state: { support_prompt_seen: true } })} />;
 }
 
@@ -47,8 +45,9 @@ export function SupportProvider({ children }: Readonly<{ children: ReactNode }>)
   const value = useMemo<Support>(() => ({ openRewind: setOpenedYear }), []);
 
   const quiet = uploads.length === 0;
-  const thankYou = thankYouPending(user, settings);
-  const autoYear = thankYou ? null : rewindToOpen(user, settings, new Date());
+  // Pending and the library processed: the error reporting question asks the same hook.
+  const thankYou = useThankYouDue(user, settings);
+  const autoYear = thankYouPending(user, settings) ? null : rewindToOpen(user, settings, new Date());
 
   const closeOpened = () => {
     if (user && openedYear !== null && (user.rewind_seen_year ?? 0) < openedYear) {
