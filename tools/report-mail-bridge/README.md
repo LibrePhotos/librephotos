@@ -126,9 +126,10 @@ At omg.lol, for `reports.niaz.omg.lol`:
 | Type | Name | Value |
 | --- | --- | --- |
 | A | `reports.niaz` | the server's IPv4 address |
-| MX | `reports.niaz` | `10 reports.niaz.omg.lol` |
+| MX | `reports.niaz` | `10 reports.niaz.omg.lol.` |
 
-No SPF, DKIM or DMARC: the server sends no mail.
+The trailing dot matters: without it omg.lol appends its zone
+(`reports.niaz.omg.lol.omg.lol`). No SPF, DKIM or DMARC: the server sends no mail.
 
 ## Dependencies
 
