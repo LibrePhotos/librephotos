@@ -67,6 +67,19 @@ class ImageDecodingFallbackTests(unittest.TestCase):
             decoding.thumbnail(path, 100)
         self.assertFalse(decoding.can_decode(path))
 
+    def test_text_that_libvips_reads_as_a_matrix_is_not_an_image(self):
+        # #2913: libvips' matrix and CSV loaders take plain text files.
+        for name, text in (
+            ("notes.txt", b"13 20\nRoll notes\n"),
+            ("exposures.csv", b"1,2,3\n4,5,6\n"),
+        ):
+            with self.subTest(name=name):
+                path = os.path.join(self.dir, name)
+                with open(path, "wb") as handle:
+                    handle.write(text)
+                self.assertFalse(decoding.can_decode(path))
+                self.assertFalse(is_valid_media(path, user=None))
+
     def test_is_valid_media_accepts_heic(self):
         self.assertTrue(is_valid_media(os.path.join(self.dir, "photo.heic"), user=None))
         self.assertFalse(
