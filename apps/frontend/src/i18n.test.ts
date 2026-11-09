@@ -76,8 +76,12 @@ describe("i18n lazy locale loading", () => {
     await i18n.loadNamespaces("tags");
 
     expect(i18n.getResource("en", "tags", "beach")).toBe("beach");
-    // No German file yet (Weblate adds it): an empty bundle, so English shows
-    expect(i18n.getResourceBundle("de", "tags")).toEqual({});
+    expect(i18n.getResource("de", "tags", "beach")).toBe("Strand");
+
+    // A language with no tags file yet gets an empty bundle, so English shows
+    await i18n.changeLanguage("da");
+    await i18n.loadNamespaces("tags");
+    expect(i18n.getResourceBundle("da", "tags")).toEqual({});
   });
 
   it("fetches a locale when the user switches language", async () => {
