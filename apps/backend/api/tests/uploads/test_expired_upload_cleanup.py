@@ -2,7 +2,7 @@
 
 A cancelled or abandoned web upload leaves a staged ``.part`` file and its
 row; ``chunked_upload.cleanup.delete_expired_uploads`` removes both once the
-upload is older than ``CHUNKED_UPLOAD_EXPIRATION_DELTA``, and
+upload was idle for longer than ``CHUNKED_UPLOAD_EXPIRATION_DELTA``, and
 ``start_job_cleanup_service`` schedules it.
 """
 
@@ -49,7 +49,7 @@ class ExpiredUploadCleanupTest(TestCase):
         upload.file.save(name="tmp", content=ContentFile(b"partial"), save=False)
         upload.save()
         ChunkedUpload.objects.filter(pk=upload.pk).update(
-            created_on=timezone.now() - age
+            created_on=timezone.now() - age, updated_on=timezone.now() - age
         )
         return upload
 

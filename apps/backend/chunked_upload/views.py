@@ -7,10 +7,9 @@ from django.core.files.uploadedfile import UploadedFile
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.views.generic import View
 
-from .constants import COMPLETE, UPLOADING, http_status
+from .constants import COMPLETE, http_status
 from .exceptions import ChunkedUploadError
 from .models import ChunkedUpload
 from .response import Response
@@ -286,14 +285,54 @@ class ChunkedUploadView(ChunkedUploadBaseView):
         chunk_size = end - start + 1
         self.check_chunk(request, chunked_upload, chunk, start, total, chunk_size)
 
-        chunked_upload.append_chunk(chunk, chunk_size=chunk_size, save=False)
-
-        self._save(chunked_upload)
+        if chunked_upload.pk is None:
+            self.write_first_chunk(chunked_upload, chunk, chunk_size)
+        else:
+            self.write_next_chunk(request, chunked_upload, chunk, start, chunk_size)
 
         return Response(
             self.get_response_data(chunked_upload, request),
             status=http_status.HTTP_200_OK,
         )
+
+    def write_first_chunk(
+        self, chunked_upload: ChunkedUpload, chunk: UploadedFile, chunk_size: int
+    ) -> None:
+        """A new upload is no other request's yet: write it, then save the row."""
+        chunked_upload.write_chunk(chunk, 0)
+        chunked_upload.offset = chunk_size
+        self._save(chunked_upload)
+
+    def write_next_chunk(
+        self,
+        request: HttpRequest,
+        chunked_upload: ChunkedUpload,
+        chunk: UploadedFile,
+        start: int,
+        chunk_size: int,
+    ) -> None:
+        """Claim the chunk's bytes on the row, then write them.
+
+        ``check_chunk`` read the offset before; the claim is what keeps a
+        second request with the same offset, or one that read the row before
+        a completion, from writing too.
+        """
+        end = start + chunk_size
+        if not chunked_upload.claim_chunk(start, end):
+            current = get_object_or_404(
+                self.get_queryset(request), pk=chunked_upload.pk
+            )
+            self.is_valid_chunked_upload(current)
+            raise ChunkedUploadError(
+                status=http_status.HTTP_400_BAD_REQUEST,
+                detail="Offsets do not match",
+                offset=current.offset,
+            )
+        try:
+            chunked_upload.write_chunk(chunk, start)
+        except Exception:
+            chunked_upload.give_back_chunk(start, end)
+            raise
 
 
 class ChunkedUploadCompleteView(ChunkedUploadBaseView):
@@ -317,8 +356,12 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
 
     def is_valid_chunked_upload(self, chunked_upload: ChunkedUpload) -> None:
         """
-        Check if chunked upload is already complete.
+        Check if chunked upload has already expired or is already complete.
         """
+        if chunked_upload.expired:
+            raise ChunkedUploadError(
+                status=http_status.HTTP_410_GONE, detail="Upload has expired"
+            )
         if chunked_upload.status == COMPLETE:
             error_msg = "Upload has already been marked as complete"
             raise ChunkedUploadError(
@@ -366,24 +409,25 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
 
         self.validate(request)
         self.is_valid_chunked_upload(chunked_upload)
-        if self.do_md5_check:
-            self.md5_check(chunked_upload, md5)
-
-        chunked_upload.status = COMPLETE
-        chunked_upload.completed_on = timezone.now()
-        self._save(chunked_upload)
-        try:
-            response = self.on_completion(chunked_upload.get_uploaded_file(), request)
-        except ChunkedUploadError:
-            # The upload did NOT complete. Leaving the row marked COMPLETE
-            # poisons the upload_id: every retry then answers 400 "Upload has
-            # already been marked as complete" and the staged bytes are
-            # orphaned. Hand the id back so a retry can re-run completion.
-            # A queryset update (rather than .save()) is deliberate: on_completion
-            # is allowed to have deleted the row, in which case this is a no-op.
-            self.model.objects.filter(upload_id=chunked_upload.upload_id).update(
-                status=UPLOADING, completed_on=None
+        if not chunked_upload.claim_completion():
+            # Another completion claimed it since it was read, or it was deleted.
+            get_object_or_404(self.get_queryset(request), pk=chunked_upload.pk)
+            raise ChunkedUploadError(
+                status=http_status.HTTP_400_BAD_REQUEST,
+                detail="Upload has already been marked as complete",
             )
+        try:
+            if self.do_md5_check:
+                self.md5_check(chunked_upload, md5)
+            response = self.on_completion(chunked_upload.get_uploaded_file(), request)
+        except Exception:
+            # Whatever failed, the upload did NOT complete: left COMPLETE, every
+            # retry would answer 400 "already marked as complete" and the
+            # staged bytes would be orphaned. A completion that deleted the
+            # row leaves nothing to reopen. The handle goes first: an open one
+            # keeps the retry from deleting the staged file on Windows.
+            chunked_upload.file.close()
+            chunked_upload.reopen()
             raise
 
         # An answer of its own, such as "Photo duplicated", replaces the
