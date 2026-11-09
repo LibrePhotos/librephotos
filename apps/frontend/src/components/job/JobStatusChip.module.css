@@ -1,0 +1,49 @@
+/*
+ * A job's status badge (JobStatusChip.tsx): a 22px pill, 12px/500 label after a 6px dot (or a
+ * spinner while the job runs). Neutral for states that need nothing, the primary tint while
+ * running, red for failures.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding-inline: 8px;
+  border-radius: 11px;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.badge[data-tone="neutral"] {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}
+
+.badge[data-tone="accent"] {
+  background-color: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
+}
+
+.badge[data-tone="danger"] {
+  background-color: light-dark(var(--mantine-color-red-0), var(--mantine-color-red-light));
+  color: light-dark(var(--mantine-color-red-7), var(--mantine-color-red-4));
+}
+
+.dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.badge[data-dot="success"] .dot {
+  background-color: var(--mantine-color-green-6);
+}
+
+.badge[data-dot="muted"] .dot {
+  background-color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
+}

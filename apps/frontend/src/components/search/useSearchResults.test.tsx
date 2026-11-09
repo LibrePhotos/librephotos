@@ -101,7 +101,7 @@ describe("SearchResultsView", () => {
     stubs.search = { camera: "X-T5" };
     const { props, unmount } = await renderView("beach");
 
-    expect(props.title).toBe('Results for "beach"');
+    expect(props.title).toBe("Results for “beach”");
     expect(props.photosetQuery).toBeUndefined();
     expect(props.loading).toBe(false);
     await unmount();

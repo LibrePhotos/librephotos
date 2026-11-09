@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import React, { useMemo } from "react";
+import React, { useLayoutEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ImageItem, LaidOutTile, PigOverlay, PigSettings, ScrollSpeed, TileUrl } from "../../types";
 import getTileMeasurements from "../../utils/getTileMeasurements";
@@ -30,6 +30,22 @@ type TileProps<T extends ImageItem> = {
 };
 
 const springTransition = { type: "spring", mass: 1.5, stiffness: 400, damping: 40 } as const;
+// A new layout (a day's page arrived, the width changed) moves a tile at once: the grid keeps the
+// reader's place by scrolling in the same frame, and a spring would slide the tile away and back.
+const relayoutTransition = { duration: 0 } as const;
+
+type TilePlace = { x: number; y: number; width: number; height: number; expanded: boolean };
+
+/** Whether the layout, rather than selecting or expanding, moved or resized the tile. */
+function movedByLayout(previous: TilePlace | null, current: TilePlace): boolean {
+  if (previous === null || previous.expanded !== current.expanded) return false;
+  return (
+    previous.x !== current.x ||
+    previous.y !== current.y ||
+    previous.width !== current.width ||
+    previous.height !== current.height
+  );
+}
 
 function TileComponent<T extends ImageItem>({
   item,
@@ -58,6 +74,20 @@ function TileComponent<T extends ImageItem>({
   // A video with a poster mounts its clip only while it is pointed at or focused (#2026).
   const { previewing, handlers: previewHandlers } = useClipPreview(showsPoster(item));
 
+  // Where the layout put the tile at the last commit, to tell a new layout from a selection.
+  const place: TilePlace = {
+    x: item.style.translateX,
+    y: item.style.translateY,
+    width: item.style.width,
+    height: item.style.height,
+    expanded: isExpanded,
+  };
+  const placeRef = useRef<TilePlace | null>(null);
+  const transition = movedByLayout(placeRef.current, place) ? relayoutTransition : springTransition;
+  useLayoutEffect(() => {
+    placeRef.current = place;
+  });
+
   const TopRightOverlay = toprightoverlay;
   const BottomLeftOverlay = bottomleftoverlay;
   const BottomRightOverlay = bottomrightoverlay;
@@ -70,24 +100,14 @@ function TileComponent<T extends ImageItem>({
     containerOffsetTop,
   });
 
-  function getWidth(exp: boolean, sel: boolean) {
-    if (exp) {
-      return `${Math.ceil(calcWidth)}px`;
-    }
-    if (sel) {
-      return `${item.style.width - item.style.width * 0.1}px`;
-    }
-    return `${item.style.width}px`;
+  // A selected tile keeps its cell: the photo inside it shrinks onto a tinted cell (styles.module.css),
+  // as in Google Photos, so neighbours never move.
+  function getWidth(exp: boolean) {
+    return exp ? `${Math.ceil(calcWidth)}px` : `${item.style.width}px`;
   }
 
-  function getHeight(exp: boolean, sel: boolean) {
-    if (exp) {
-      return `${Math.ceil(calcHeight)}px`;
-    }
-    if (sel) {
-      return `${item.style.height - item.style.height * 0.1}px`;
-    }
-    return `${item.style.height}px`;
+  function getHeight(exp: boolean) {
+    return exp ? `${Math.ceil(calcHeight)}px` : `${item.style.height}px`;
   }
 
   const label = useMemo(() => tileLabel(item, isVideo, t), [item, isVideo, t]);
@@ -100,17 +120,13 @@ function TileComponent<T extends ImageItem>({
       className={styles.pigTile}
       initial={false}
       animate={{
-        width: getWidth(isExpanded, isSelected),
-        height: getHeight(isExpanded, isSelected),
+        width: getWidth(isExpanded),
+        height: getHeight(isExpanded),
         zIndex: isExpanded ? 10 : 0,
-        marginLeft: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
-        marginRight: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
-        marginTop: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
-        marginBottom: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
         x: isExpanded ? offsetX : item.style.translateX,
         y: isExpanded ? offsetY : item.style.translateY,
       }}
-      transition={springTransition}
+      transition={transition}
       {...previewHandlers}
       style={{
         outline: isExpanded ? `${settings.gridGap}px solid ${settings.bgColor}` : undefined,

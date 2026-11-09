@@ -1,36 +1,67 @@
-import { Text } from "@mantine/core";
+import { IconChevronRight } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React from "react";
 import type { ReactNode } from "react";
-import classes from "../album/AlbumSection.module.css";
+import { useTranslation } from "react-i18next";
+import overviewClasses from "./SharingOverview.module.css";
 import { SharePreviewSkeleton } from "./SharingPreviewCards";
+import { SharingRow } from "./SharingRow";
+
+/** What "View all" wraps: spread on a router Link to the section's page. */
+type HeadingLinkProps = Readonly<{ className: string | undefined; children: ReactNode }>;
 
 type Props = Readonly<{
-  /** The link to the section's page, holding its SharingSectionHeading. */
-  heading: ReactNode;
+  /** The section's 24px icon. */
+  icon: ReactNode;
+  title: string;
+  /** "N photos, M albums", under the title. */
+  summary: string;
+  /** The "View all" link to the section's page. */
+  renderLink: (props: HeadingLinkProps) => ReactNode;
   loading: boolean;
-  /** Shown instead of the preview when there is nothing in it. */
+  /** Says there is nothing in the section; null when there is. */
   emptyText: string | null;
   /** The placeholder while loading; a row of cards by default. */
   skeleton?: ReactNode;
   children: ReactNode;
 }>;
 
-/** One section of the Sharing overview: its heading, then a placeholder, an empty note or the preview. */
-export function SharingPreviewSection({ heading, loading, emptyText, skeleton, children }: Props) {
+/**
+ * One section of the Sharing overview (SharingRow): its icon, title and "N photos, M albums", a
+ * "View all ›" to its page on the right, and the preview under it. With nothing in it the section
+ * is the row alone, its line saying so, without the "View all" into an empty page.
+ */
+export function SharingPreviewSection({
+  icon,
+  title,
+  summary,
+  renderLink,
+  loading,
+  emptyText,
+  skeleton,
+  children,
+}: Props) {
+  const { t } = useTranslation();
+  if (!loading && emptyText !== null) {
+    return <SharingRow icon={icon} title={title} description={emptyText} />;
+  }
   return (
-    <div className={classes.section}>
-      <div className={classes.header}>{heading}</div>
-      {loading ? (
-        (skeleton ?? <SharePreviewSkeleton />)
-      ) : emptyText !== null ? (
-        <div className={classes.emptyState}>
-          <Text c="dimmed">{emptyText}</Text>
-        </div>
-      ) : (
-        children
-      )}
-    </div>
+    <SharingRow
+      icon={icon}
+      title={title}
+      description={loading ? "" : summary}
+      action={renderLink({
+        className: overviewClasses.viewAll,
+        children: (
+          <>
+            {t("explore.viewAll")}
+            <IconChevronRight size={14} aria-hidden />
+          </>
+        ),
+      })}
+    >
+      {loading ? (skeleton ?? <SharePreviewSkeleton />) : children}
+    </SharingRow>
   );
 }
 

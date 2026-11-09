@@ -48,6 +48,9 @@ class MergePhotosSharingAMainFileMigrationTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         state = MigrationLoader(connection).project_state(("api", MIGRATION_NAME))
+        # The test database is fully migrated: AlbumDate and its photo table
+        # are gone (0222), so the merge must not look for them.
+        state.remove_model("api", "albumdate")
         cls.state_apps = state.apps
 
     def setUp(self):

@@ -48,6 +48,9 @@ DICT_KEY_ROOTS = ("api/views", "api/serializers", "nextcloud")
 LEGACY_CAMEL_CASE_FIELDS = frozenset(
     {
         "aspectRatio",
+        # The day layout's list of them, named after aspectRatio (as the
+        # clients read it): api/serializers/days.py.
+        "aspectRatios",
         "birthTime",
         "digitalZoomRatio",
         "dominantColor",
@@ -62,6 +65,7 @@ LEGACY_CAMEL_CASE_FIELDS = frozenset(
 # Dict keys written by views and serializers that predate the rule.
 LEGACY_CAMEL_CASE_DICT_KEYS = frozenset(
     {
+        "aspectRatios",
         "isFirstTimeSetup",
         "numberOfItems",
     }

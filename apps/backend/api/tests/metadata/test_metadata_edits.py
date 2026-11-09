@@ -31,10 +31,10 @@ from api.models.photo_metadata import (
 from api.models.photo_search import PhotoSearch
 from api.models.tag import Tag
 from api.tests.utils import (
-    create_test_album_date,
     create_test_photo,
     create_test_user,
 )
+from api.timeline.days import day_id
 
 WHEN = datetime.datetime(2021, 6, 5, 4, 3, 2, tzinfo=datetime.UTC)
 GEOCODED = {
@@ -83,16 +83,15 @@ class RatingTest(MetadataApiTestCase):
         self.assertEqual((edit.old_value, edit.new_value), (0, 5))
 
     def test_a_patched_rating_puts_the_photo_in_favorites(self):
-        day = create_test_album_date(self.user, WHEN.date())
-        day.photos.add(self.photo)
+        Photo.objects.filter(pk=self.photo.pk).update(exif_timestamp=WHEN)
 
         def favorite_days():
-            response = self.client.get("/api/albums/date/list/", {"favorite": "true"})
+            response = self.client.get("/api/days/", {"favorite": "true"})
             return [row["id"] for row in response.json()["results"]]
 
         self.assertEqual(favorite_days(), [])
         self.patch_metadata({"rating": 4})
-        self.assertEqual(favorite_days(), [day.id])
+        self.assertEqual(favorite_days(), [day_id(WHEN.date())])
 
     def test_the_rating_write_is_queued_like_a_favorite(self):
         self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE

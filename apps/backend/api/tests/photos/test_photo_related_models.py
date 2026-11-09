@@ -1,12 +1,12 @@
 from django.core.exceptions import FieldDoesNotExist
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.test import APIClient
 
-from api.geocode.photo_location import add_location_to_album_dates
 from api.models import Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_search import PhotoSearch
-from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_user, list_days
 
 
 class PhotoModelIntegrationTest(TestCase):
@@ -301,85 +301,41 @@ class PhotoModelIntegrationTest(TestCase):
         # Note: accessing search_location property will still work even with .only()
         # because it goes through the related model
 
-    def test_album_date_queryset_works(self):
-        """Test that the album date queryset works with the fixed field references"""
 
-        # Create a photo with search data
+class PhotoTownTest(TestCase):
+    """A photo's town, which names its day (issue #1268).
 
-        search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
-        search_instance.search_location = "New York"
-        search_instance.search_captions = "outdoor nature"
-        search_instance.save()
-
-        # Create an album date and add the photo to it
-        album_date = create_test_album_date(
-            date=self.photo.exif_timestamp.date()
-            if self.photo.exif_timestamp
-            else timezone.now().date(),
-            owner=self.user,
-        )
-        album_date.photos.add(self.photo)
-
-        # This should work with the corrected field references
-        photo_qs = (
-            album_date.photos.all()
-            .select_related("search_instance")
-            .only(
-                "image_hash",
-                "search_instance__search_location",
-                "exif_timestamp",
-            )
-        )
-
-        photos = list(photo_qs)
-        self.assertEqual(len(photos), 1)
-        self.assertEqual(photos[0].search_instance.search_location, "New York")
-
-
-class AddLocationToAlbumDatesTest(TestCase):
-    """Regression tests for add_location_to_album_dates (issue #1268).
-
-    The function reaches into geolocation_json["places"][-2] to pick a city name.
-    Real-world data is messy: photos may have no geolocation, a partial geocode
-    result, only a country-level place, or stale-format JSON missing the
-    "places" key entirely. None of those should crash the rescan job.
+    The town reaches into geolocation_json for a city name. Real-world data is
+    messy: photos may have no geolocation, a partial geocode result, only a
+    country-level place, or stale-format JSON missing the "places" key
+    entirely. None of those may crash a save (the rescan job), and none names
+    a place.
     """
 
     def setUp(self):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user, exif_timestamp=timezone.now())
 
-    def test_does_not_crash_when_geolocation_json_is_none(self):
-        self.photo.geolocation_json = None
-        add_location_to_album_dates(self.photo)
+    def test_messy_geolocation_names_no_town(self):
+        for value in (
+            None,
+            {},
+            # Legacy-format records seen in long-lived databases (the schema
+            # carried a top-level "city" before commit 134e8847 in 2023).
+            {"city": "Berlin", "_v": "1"},
+            {"places": []},
+            # Remote locations where the geocoder only resolves the country.
+            {"places": ["Antarctica"]},
+        ):
+            with self.subTest(value=value):
+                self.photo.geolocation_json = value
+                self.photo.save()
+                self.assertEqual(self.photo.town, "")
 
-    def test_does_not_crash_when_geolocation_json_is_empty_dict(self):
-        self.photo.geolocation_json = {}
-        add_location_to_album_dates(self.photo)
-
-    def test_does_not_crash_when_places_key_is_missing(self):
-        # Legacy-format records seen in long-lived databases (the schema
-        # carried a top-level "city" before commit 134e8847 in 2023).
-        self.photo.geolocation_json = {"city": "Berlin", "_v": "1"}
-        add_location_to_album_dates(self.photo)
-
-    def test_does_not_crash_when_places_is_empty(self):
-        self.photo.geolocation_json = {"places": []}
-        add_location_to_album_dates(self.photo)
-
-    def test_does_not_crash_when_places_has_one_entry(self):
-        # Remote locations where the geocoder only resolves the country.
-        self.photo.geolocation_json = {"places": ["Antarctica"]}
-        add_location_to_album_dates(self.photo)
-
-    def test_writes_city_to_album_date_location(self):
-        album_date = create_test_album_date(
-            date=self.photo.exif_timestamp.date(), owner=self.user
-        )
-        album_date.photos.add(self.photo)
-
+    def test_the_city_names_the_day(self):
         self.photo.geolocation_json = {"places": ["Berlin", "Germany"]}
-        add_location_to_album_dates(self.photo)
+        self.photo.save()
 
-        album_date.refresh_from_db()
-        self.assertEqual(album_date.location, {"places": ["Berlin"]})
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        self.assertEqual([day["location"] for day in list_days(client)], ["Berlin"])

@@ -1,6 +1,7 @@
-import { Card, Switch, Title } from "@mantine/core";
+import { Switch, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
@@ -8,7 +9,7 @@ export function ExperimentalOptionsCard({ user, onChange }: UserSettingsCardProp
   const { t } = useTranslation();
 
   return (
-    <Card shadow="md">
+    <SettingsCard>
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.experimentaloptions" />
         <SectionLink />
@@ -19,6 +20,6 @@ export function ExperimentalOptionsCard({ user, onChange }: UserSettingsCardProp
         checked={user.transcode_videos}
         onChange={event => onChange({ transcode_videos: event.currentTarget.checked })}
       />
-    </Card>
+    </SettingsCard>
   );
 }

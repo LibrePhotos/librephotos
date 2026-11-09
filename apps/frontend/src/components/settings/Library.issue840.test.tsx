@@ -91,6 +91,7 @@ vi.mock("../../api_client/jobs/hooks", () => ({
 vi.mock("../../api_client/photos/hooks", () => ({ useDeleteMissingPhotosMutation: () => stubs.noopMutation }));
 vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => stubs.siteSettings }));
 vi.mock("../../api_client/stats/hooks", () => ({ useFetchCountStatsQuery: () => stubs.countStats }));
+vi.mock("../../api_client/albums/hooks", () => ({ useFetchDateAlbumsQuery: () => ({ data: [] }) }));
 vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => stubs.userList,
   useUpdateUserMutation: () => stubs.noopMutation,

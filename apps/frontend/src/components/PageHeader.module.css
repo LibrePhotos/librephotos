@@ -1,0 +1,98 @@
+/*
+ * The page header: a compact title row whose left edge is the content's (PAGE_GUTTER, set from
+ * PageHeader.tsx). One grid on every page and every width: [face] [title + meta] [actions], the
+ * actions centred on the title and its meta line and kept on that row on a phone too, and what
+ * the page adds below (`below`) in the text's column underneath.
+ */
+/* The same 16px above every page's title and 12px below its header, so the title sits at one
+   height on every page. */
+.root {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  padding-block: 16px 12px;
+}
+
+.withLeading {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 16px;
+}
+
+.leading {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.text {
+  grid-row: 1;
+  min-width: 0;
+}
+
+.title.title {
+  overflow-wrap: anywhere;
+  /* Every top-level page: 26px/700 on a 32px line (two classes: they win over Title's own size) */
+  font-size: calc(1.625rem * var(--mantine-scale));
+  font-weight: 700;
+  line-height: calc(2rem * var(--mantine-scale));
+  letter-spacing: -0.01em;
+}
+
+/* A collection's own title (album, event, place, thing, person): 34px/700, so it reads as a place
+   of its own rather than a filtered timeline, as Apple's large titles and Immich's album title. */
+.title.collectionTitle {
+  font-size: calc(2.125rem * var(--mantine-scale));
+  font-weight: 700;
+  line-height: calc(2.5rem * var(--mantine-scale));
+  letter-spacing: -0.015em;
+}
+
+.subtitle.collectionSubtitle {
+  margin-top: 4px;
+}
+
+.loader {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.subtitle {
+  margin-top: 2px;
+}
+
+.actions {
+  grid-row: 1;
+  grid-column: -2;
+}
+
+/* The text's column and the actions' under it, so it lines up with the title, not the face. */
+.below {
+  grid-row: 2;
+  grid-column: -3 / -1;
+  min-width: 0;
+  margin-top: 4px;
+}
+
+/* A phone keeps the title row: a long title wraps within its own column, beside at most two icons
+   and the ⋯. */
+@media (max-width: 48em) {
+  .title.title {
+    font-size: calc(1.375rem * var(--mantine-scale));
+    line-height: calc(1.75rem * var(--mantine-scale));
+  }
+
+  .title.collectionTitle {
+    font-size: calc(1.75rem * var(--mantine-scale));
+    line-height: calc(2.125rem * var(--mantine-scale));
+  }
+
+  .root {
+    column-gap: 8px;
+  }
+
+  .withLeading {
+    column-gap: 12px;
+  }
+}

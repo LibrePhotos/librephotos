@@ -1,5 +1,5 @@
 /**
- * Every page keeps the same horizontal gutter, PAGE_GUTTER (10px) from the edge of the app shell,
+ * Every page keeps the same horizontal gutter, PAGE_GUTTER (20px, 12px on a phone) from the edge of the app shell,
  * which adds none: PageHeader and PageBody keep it, and so do PhotoListView's grid and TileGrid.
  * The sharing pages wrapped themselves in `p="md"` and the photo page in a `Container`, so the
  * title and the content jumped sideways between routes.
@@ -9,13 +9,13 @@
  * and uses no `Container`: its content goes in `PageBody`. Vertical padding (`pt`, `pb`, `py`) is
  * free, and so is the padding inside a card (`Paper`, `Card`) or inside a component.
  *
- * The settings-type pages (Settings, Profile, Library, Admin, Jobs, job detail) are the one
- * deliberate exception: a centred `Container` (960px, 16px padding) for forms and tables, rendered
- * from their components. ALLOW_LIST holds the route file among them; it only shrinks.
+ * The settings-type pages (Settings, Profile, Library, Admin, Jobs, job detail) keep the same
+ * gutter through `SettingsPageFrame`: a left-aligned reading-width column holding the header and
+ * the cards. ALLOW_LIST holds a route file that still sets its own gutter; it only shrinks.
  */
 import { describe, expect, it } from "vitest";
 
-const ALLOW_LIST = new Set<string>(["/src/routes/_protected/jobs/index.tsx"]);
+const ALLOW_LIST = new Set<string>([]);
 
 const SIZE = "(xs|sm|md|lg|xl)";
 const SIDE = "(p|px|pl|pr|ps|pe)";

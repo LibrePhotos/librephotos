@@ -1,0 +1,29 @@
+/* The phone's account sheet (AccountSheet.tsx, in a BottomSheet): 48px rows. */
+.rows {
+  padding: 4px 0 var(--mantine-spacing-sm);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-md);
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--mantine-spacing-md);
+  font-size: var(--mantine-font-size-md);
+
+  /* The sheet is dark-6 in dark mode. A touch screen has no hover: a tap left no highlight behind. */
+  &:focus-visible {
+    background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+    }
+  }
+
+  & svg {
+    color: var(--mantine-color-dimmed);
+  }
+}

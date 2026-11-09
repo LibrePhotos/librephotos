@@ -6,16 +6,15 @@ web app opens a video where the face is.
 
 from django.test import TestCase
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.tests.utils import (
-    create_test_album_date,
     create_test_face,
     create_test_person,
     create_test_photo,
     create_test_user,
 )
+from api.timeline.days import UNDATED_DAY_ID
 
 
 class FaceVideoTimeFieldsTest(TestCase):
@@ -72,15 +71,15 @@ class FaceVideoTimeFieldsTest(TestCase):
         )
         other = create_test_person(name="Ben", cluster_owner=self.user)
         create_test_face(photo=self.video, person=other, video_time=1.0)
-        album = create_test_album_date(date=timezone.now().date(), owner=self.user)
-        album.photos.add(self.video, self.photo)
 
         def times(query: dict[str, object]) -> dict[str, object]:
-            response = self.client.get(f"/api/albums/date/{album.id}/", query)
+            # Both are undated: the undated group holds them.
+            url = f"/api/days/{UNDATED_DAY_ID}/photos/"
+            response = self.client.get(url, query)
             self.assertEqual(200, response.status_code)
             return {
                 item["id"]: item["person_video_time"]
-                for item in response.json()["results"]["items"]
+                for item in response.json()["items"]
             }
 
         self.assertEqual(

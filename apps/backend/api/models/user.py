@@ -171,7 +171,7 @@ class User(AbstractUser):
         RIGHT = "right"
 
     text_alignment = models.TextField(
-        choices=TextAlignment.choices, default=TextAlignment.RIGHT
+        choices=TextAlignment.choices, default=TextAlignment.LEFT
     )
 
     class HeaderSize(models.TextChoices):
@@ -179,7 +179,9 @@ class User(AbstractUser):
         NORMAL = "normal"
         SMALL = "small"
 
-    header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
+    header_size = models.TextField(
+        choices=HeaderSize.choices, default=HeaderSize.NORMAL
+    )
 
     # How the scroll scrubber beside a photo list looks: a thumb with a date
     # bubble, or a map of how many photos each month holds.
@@ -192,7 +194,7 @@ class User(AbstractUser):
     )
 
     # Which end of the date-grouped photo lists comes first (#2712): the
-    # newest day or the oldest, by date taken. See api.albums.photo_order.
+    # newest day or the oldest, by date taken. See api.timeline.days.
     class PhotoOrder(models.TextChoices):
         NEWEST = "newest"
         OLDEST = "oldest"

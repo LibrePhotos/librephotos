@@ -1,19 +1,18 @@
 import type { FaceAnalysisMethod } from "@librephotos/api-client";
 import { flatten, uniqBy } from "lodash-es";
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
 import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
-import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
-import type { GroupedGridRows } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/scrollScrubberTypes";
 import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
+import { buildFaceGridRows, faceGridLayout, faceRowHeights, layoutWidthOf } from "../faceGridRows";
 import { FacesTab } from "../facesTab";
-import { needsCoverPage } from "../personCover";
 import { PAGE_SIZE } from "./useFaceDataFetching";
 import type { FaceGroupPage } from "./useFaceDataFetching";
 
 /** A cell of the faces grid: a person's header, or one of their faces. */
 export type GridCell = CompletePersonFace | PersonFace;
-export type GridRows = GroupedGridRows<CompletePersonFace, PersonFace>;
+/** The grid's rows (see faceGridRows.ts): a shelf row mixes groups and their faces. */
+export type GridRows = GridCell[][];
 
 /**
  * A face that has been paged in. Until then a face is a placeholder (`isTemp`): no image or URL yet,
@@ -44,15 +43,12 @@ export function isLoadedFace(cell: GridCell): cell is FaceCell {
 type RenderedSection = SectionRenderedParams;
 
 /**
- * The page (of its person's faces) that a rendered cell needs: a placeholder face its own page, a
- * collapsed cluster the first page, for its cover face (#860).
+ * The page (of its person's faces) that a rendered placeholder face needs. A folded group's tile
+ * shows its first faces, so it pages in its first page like any other face (#860).
  */
-function pageNeededBy(cell: GridCell, collapsed: ReadonlySet<number>): { page: number; person: number } | null {
-  if (isPersonCell(cell)) {
-    return collapsed.has(cell.id) && needsCoverPage(cell) ? { page: 1, person: cell.id } : null;
-  }
+function pageNeededBy(cell: GridCell): { page: number; person: number } | null {
   // fetchIncompleteFaces gives each placeholder its person's id, and its index as its id
-  if (!cell.isTemp || typeof cell.person !== "number") return null;
+  if (isPersonCell(cell) || !cell.isTemp || typeof cell.person !== "number") return null;
   return { page: Math.ceil((cell.id + 1) / PAGE_SIZE), person: cell.person };
 }
 
@@ -70,27 +66,13 @@ export function useVirtualizedGrid(
   setSelectedFaces: (faces: FaceSelection[]) => void,
   analysisMethod: FaceAnalysisMethod,
   width: number,
-  collapsedPersons: Record<FacesTab, ReadonlySet<number>>
+  collapsedPersons: Record<FacesTab, ReadonlySet<number>>,
+  /** Moves when the slots of the lists change (useFaceDataFetching), not when faces land. */
+  listsVersion = ""
 ) {
   const gridRef = useRef<VirtualGridHandle>(null);
-  const [gridHeight, setGridHeight] = useState(0);
-  const [entrySquareSize, setEntrySquareSize] = useState(0);
-  const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(0);
-
-  // Calculate grid dimensions
-  useEffect(() => {
-    if (width > 0) {
-      const { entrySquareSize: size } = calculateFaceGridCellSize(width);
-      setEntrySquareSize(size);
-      setNumEntrySquaresPerRow(Math.floor(width / size));
-      const { cellContents } = calculateFaceGridCells(
-        lists[activeTab],
-        numEntrySquaresPerRow,
-        collapsedPersons[activeTab]
-      );
-      setGridHeight(cellContents.length * size);
-    }
-  }, [width, lists, activeTab, numEntrySquaresPerRow, collapsedPersons]);
+  // The columns and the face size follow the grid's measured width
+  const layout = useMemo(() => faceGridLayout(layoutWidthOf(width)), [width]);
 
   // Handle scroll from scrubber
   const handleScrubberScroll = useCallback(
@@ -105,48 +87,30 @@ export function useVirtualizedGrid(
 
   // Calculate cell contents for each tab - MEMOIZED to prevent recalculation on every render
   const cellContents = useMemo(
-    () => ({
-      [FacesTab.enum.labeled]: calculateFaceGridCells(
-        lists.labeled,
-        numEntrySquaresPerRow,
-        collapsedPersons[FacesTab.enum.labeled]
-      ).cellContents,
-      [FacesTab.enum.inferred]: calculateFaceGridCells(
-        lists.inferred,
-        numEntrySquaresPerRow,
-        collapsedPersons[FacesTab.enum.inferred]
-      ).cellContents,
-      [FacesTab.enum.unknown]: calculateFaceGridCells(
-        lists.unknown,
-        numEntrySquaresPerRow,
-        collapsedPersons[FacesTab.enum.unknown]
-      ).cellContents,
-      [FacesTab.enum.deleted]: calculateFaceGridCells(
-        lists.deleted,
-        numEntrySquaresPerRow,
-        collapsedPersons[FacesTab.enum.deleted]
-      ).cellContents,
+    (): Record<FacesTab, GridRows> => ({
+      [FacesTab.enum.labeled]: buildFaceGridRows(lists.labeled, layout, collapsedPersons[FacesTab.enum.labeled]),
+      [FacesTab.enum.inferred]: buildFaceGridRows(lists.inferred, layout, collapsedPersons[FacesTab.enum.inferred]),
+      [FacesTab.enum.unknown]: buildFaceGridRows(lists.unknown, layout, collapsedPersons[FacesTab.enum.unknown]),
+      [FacesTab.enum.deleted]: buildFaceGridRows(lists.deleted, layout, collapsedPersons[FacesTab.enum.deleted]),
     }),
-    [lists.labeled, lists.inferred, lists.unknown, lists.deleted, numEntrySquaresPerRow, collapsedPersons]
+    [lists.labeled, lists.inferred, lists.unknown, lists.deleted, layout, collapsedPersons]
   );
 
   // Get cell contents for the active tab - stable reference due to memoized cellContents
   const getCellContentsForTab = useCallback((tab: FacesTab): GridRows => cellContents[tab] || [], [cellContents]);
 
-  // Get endpoint cell for section rendering
-  const getEndpointCell = useCallback(
-    (cells: GridRows, rowStopIndex: number, columnStopIndex: number): GridCell | undefined => {
-      if (columnStopIndex < 0) {
-        return undefined;
-      }
-      const cell: GridCell | undefined = cells[rowStopIndex]?.[columnStopIndex];
-      if (cell) {
-        return cell;
-      }
-      return getEndpointCell(cells, rowStopIndex, columnStopIndex - 1);
-    },
-    []
-  );
+  // Where each row of the active tab starts, and the whole grid's height
+  const rowOffsets = useMemo(() => {
+    const heights = faceRowHeights(cellContents[activeTab], layout);
+    const offsets: number[] = [];
+    let top = 0;
+    for (const height of heights) {
+      offsets.push(top);
+      top += height;
+    }
+    return { offsets, total: top };
+  }, [cellContents, activeTab, layout]);
+  const gridHeight = rowOffsets.total;
 
   // Generate scroll positions for the scrubber
   const getScrollPositions = useCallback((): ScrollerData[] => {
@@ -154,32 +118,21 @@ export function useVirtualizedGrid(
     return rows.reduce<ScrollerData[]>((positions, row, index) => {
       const first: GridCell | undefined = row[0];
       if (first && isPersonCell(first) && first.name) {
-        positions.push({ label: first.name, targetY: index * entrySquareSize });
+        positions.push({ label: first.name, targetY: rowOffsets.offsets[index] ?? 0 });
       }
       return positions;
     }, []);
-  }, [activeTab, getCellContentsForTab, entrySquareSize]);
+  }, [activeTab, getCellContentsForTab, rowOffsets]);
 
-  // Request the pages backing the placeholder cells of a rendered section
+  // Request the pages backing the placeholder cells of a rendered section. A row is rendered whole
+  // (a shelf of cards is one row), so the section is its rows, whatever its columns.
   const requestPagesForSection = useCallback(
-    ({
-      rowOverscanStartIndex,
-      columnOverscanStartIndex,
-      rowOverscanStopIndex,
-      columnOverscanStopIndex,
-    }: RenderedSection) => {
+    ({ rowOverscanStartIndex, rowOverscanStopIndex }: RenderedSection) => {
       const cells = getCellContentsForTab(activeTab);
-      const startPoint: GridCell | undefined = cells[rowOverscanStartIndex]?.[columnOverscanStartIndex];
-      const endPoint = getEndpointCell(cells, rowOverscanStopIndex, columnOverscanStopIndex);
+      const sectionCells = flatten<GridCell>(cells.slice(rowOverscanStartIndex, rowOverscanStopIndex + 1));
 
-      if (!startPoint || !endPoint) return;
-
-      const flatCells = flatten<GridCell>(cells);
-      const startIndex = flatCells.indexOf(startPoint);
-      const endIndex = flatCells.indexOf(endPoint);
-
-      const relevantInfos = flatCells.slice(startIndex, endIndex + 1).flatMap(cell => {
-        const needed = pageNeededBy(cell, collapsedPersons[activeTab]);
+      const relevantInfos = sectionCells.flatMap(cell => {
+        const needed = pageNeededBy(cell);
         return needed
           ? [
               {
@@ -195,7 +148,7 @@ export function useVirtualizedGrid(
 
       onSectionChange(uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
     },
-    [activeTab, analysisMethod, collapsedPersons, getCellContentsForTab, getEndpointCell, onSectionChange]
+    [activeTab, analysisMethod, getCellContentsForTab, onSectionChange]
   );
 
   // Handle section rendering and detect visible cells
@@ -222,12 +175,13 @@ export function useVirtualizedGrid(
       rowOverscanStopIndex: Math.min(section.rowOverscanStopIndex, rowCount - 1),
     });
   });
-  // Only a fold changes the cells behind a fixed range: a scroll moves the range and the Grid
-  // reports it, and reacting to data arriving here would re-request the pages that just landed.
-  // So collapsedPersons is the only trigger; the replay reads the current cells and tab.
+  // A fold, a refetch or a face edit changes the cells behind a fixed range: a scroll moves the
+  // range and the Grid reports it. Reacting to every data change here would re-request the pages
+  // that just landed, so listsVersion only moves when the slots do (useFaceDataFetching); the
+  // replay reads the current cells and tab.
   useEffect(() => {
     replayLastSection();
-  }, [collapsedPersons]);
+  }, [collapsedPersons, listsVersion]);
 
   // Get flattened cell contents for cell range selection
   const getFlattenedCells = useCallback(
@@ -237,8 +191,7 @@ export function useVirtualizedGrid(
 
   return {
     gridRef,
-    entrySquareSize,
-    numEntrySquaresPerRow,
+    layout,
     gridHeight,
     getCellContentsForTab,
     getFlattenedCells,

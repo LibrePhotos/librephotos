@@ -73,6 +73,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("../../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../../api_client/albums/hooks/useUserPlaces", () => ({ useUserPlacesQuery: () => ({ data: [] }) }));
+// The review link asks the server for its count; FacesReviewLink.test.tsx covers it
+vi.mock("../../../components/album/FacesReviewLink", () => ({ FacesReviewLink: () => null }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchAutoAlbumsQuery: () => ({ data: stubs.events, isFetching: false }),
   useDeleteAutoAlbumMutation: () => ({ mutate: () => {} }),
@@ -187,14 +189,15 @@ describe("Tags", () => {
 
   it("are by name by default", async () => {
     const page = await renderPage(path);
-    expect(page.titles()).toEqual(["beach", "mountain"]);
+    // The cards capitalise the stored name
+    expect(page.titles()).toEqual(["Beach", "Mountain"]);
     await page.unmount();
   });
 
   it("can be sorted by their number of photos", async () => {
     storeSort(STORAGE_KEYS.albumSortTags, { key: "count", direction: "desc" });
     const page = await renderPage(path);
-    expect(page.titles()).toEqual(["mountain", "beach"]);
+    expect(page.titles()).toEqual(["Mountain", "Beach"]);
     await page.unmount();
   });
 

@@ -178,7 +178,12 @@ describe("PlacePreview", () => {
 describe("YourPlaceActions", () => {
   it("opens the editor on the Places map", async () => {
     const actions = await renderPlaces(<YourPlaceActions place={place(4, "Home")} />);
-    await actions.click(actions.button("Edit place"));
+    await actions.click(actions.button(i18n.t("moreactions")));
+    await actions.click(
+      Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
+        item => item.textContent === "Edit place"
+      )
+    );
     expect(stubs.navigated).toEqual([{ to: "/album/places", search: { edit: 4 } }]);
     await actions.unmount();
   });

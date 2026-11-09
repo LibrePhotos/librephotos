@@ -53,12 +53,16 @@ describe.skipIf(!baseUrl)("live backend contract", () => {
     await endpoints.fetchSiteSettings(client);
   });
 
-  it("timeline: date album list, one date album, photo detail", async () => {
-    const groups = await endpoints.fetchDateAlbumsList(client);
+  it("timeline: day list, one day's layout and photos, photo detail", async () => {
+    const groups = await endpoints.fetchDays(client);
     expect(groups.length).toBeGreaterThan(0);
-    const group = await endpoints.fetchDateAlbum(client, defined(groups[0]).id, 1);
-    expect(group.items.length).toBeGreaterThan(0);
-    await endpoints.fetchPhotoDetails(client, defined(group.items[0]).id);
+    const dayId = defined(groups[0]).id;
+    const layout = await endpoints.fetchDayLayout(client, dayId);
+    expect(layout.aspectRatios).toHaveLength(layout.numberOfItems);
+    const page = await endpoints.fetchDayPhotos(client, dayId, null);
+    expect(page.items.length).toBeGreaterThan(0);
+    if (page.next) await endpoints.fetchDayPhotos(client, dayId, page.next);
+    await endpoints.fetchPhotoDetails(client, defined(page.items[0]).id);
     await endpoints.fetchRecentlyAddedPhotos(client);
     await endpoints.fetchPhotosWithoutTimestamp(client, 1);
     await endpoints.fetchPhotosWithoutLocation(client, 1);

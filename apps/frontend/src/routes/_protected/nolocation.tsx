@@ -73,7 +73,6 @@ function NoLocationPhotosView() {
     <PhotoListView
       title={t("photos.nolocation")}
       loading={status === "pending"}
-      icon={MapPinOff}
       photoset={photosFlat}
       idx2hash={photosFlat}
       numberOfItems={photosFlat?.length}

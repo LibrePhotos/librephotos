@@ -1,18 +1,133 @@
-.albums {
-  overflow-y: scroll;
-  height: 25vh;
-  /* 48em is the theme's sm breakpoint (Mantine's default), the navbar switch */
-  @media (min-width: 48em) {
-    /* 50vh creates scrollbar on the whole modal */
-    height: 49vh;
+/*
+ * The add-to-album picker (Google Photos, Immich): "2 items selected" under the title, a filled
+ * search field for a long list, then one scroll list whose first row is "+ New album". Rows are
+ * 56px with a 48px cover; no hairlines split the list.
+ */
+.subtitle {
+  display: block;
+  margin-top: 2px;
+  color: var(--mantine-color-dimmed);
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.search {
+  margin-bottom: 4px;
+}
+
+/* Pulled out by the rows' own 12px padding, so the covers line up with the title and a hover
+   fills the width */
+.list {
+  max-height: min(56vh, 480px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 4px -12px 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 4px 12px;
+  border-radius: var(--mantine-radius-md);
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 }
 
-.tile {
-  object-fit: cover;
-  width: 40px;
-  height: 40px;
-  aspect-ratio: 1;
-  border-radius: 4px;
+.cover,
+.coverPlaceholder,
+.newTile {
   flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+}
+
+.cover {
+  object-fit: cover;
+}
+
+.coverPlaceholder,
+.newTile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mantine-color-dimmed);
+}
+
+.coverPlaceholder {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+/* "+ New album": a dashed tile in the accent */
+.newTile {
+  border: 1.5px dashed var(--mantine-primary-color-light-color);
+  color: var(--mantine-primary-color-light-color);
+}
+
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rowTitle {
+  overflow: hidden;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  overflow: hidden;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  flex-shrink: 0;
+}
+
+/* The new album's row while it is a field: the tile, the title and Create on one line */
+.newRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 4px 12px;
+}
+
+.newInput {
+  flex: 1;
+  min-width: 0;
+}
+
+/* "Shared with you, you can add": a quiet label in the same list */
+.groupLabel {
+  padding: 12px 12px 4px;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
 }

@@ -1,0 +1,72 @@
+/*
+ * App-wide looks of the form controls (controlsTheme.ts). Mantine's defaults left an unchecked
+ * switch or radio almost invisible, most of all in the dark scheme, and mixed two input looks.
+ */
+
+/* An off switch: a track that reads as a control on white and on near-black, with a white thumb. */
+input:not(:checked):not(:disabled) + .switchTrack {
+  --switch-bg: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+/* A plain white thumb that lifts off the track with a soft shadow, as on iOS and Material 3. */
+.switchThumb {
+  border: 0;
+  box-shadow:
+    0 1px 2px var(--app-scrim-black-25),
+    0 0 1px var(--app-scrim-black-20);
+}
+
+/* The md track with the sm label and description text of the other form labels, centred on the 22px track */
+.switchText {
+  --label-fz: var(--mantine-font-size-sm);
+  --label-lh: calc(1.375rem * var(--mantine-scale));
+}
+
+.switchDescription.switchDescription {
+  font-size: var(--mantine-font-size-xs);
+}
+
+/* Unchecked radios and checkboxes: a 1.5px ring two steps darker than the old one. */
+[data-mantine-color-scheme] .radio,
+[data-mantine-color-scheme] .checkbox {
+  border-width: calc(0.09375rem * var(--mantine-scale));
+}
+
+.radio:not(:checked):not(:disabled),
+.checkbox:not(:checked):not(:disabled):not([data-indeterminate]) {
+  border-color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+/*
+ * One input look: a light grey (dark-6) field with a 1px border, for the default and the filled
+ * variants alike. The focus border and an error border still win: focus sets the variable on the
+ * input itself, and a field with an error is left out here.
+ */
+[data-mantine-color-scheme] .inputWrapper:not([data-error], [data-variant="unstyled"])[data-variant] {
+  --input-bd: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  --input-bg: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+/*
+ * A disabled button keeps its shape: the outline of its variant and only fainter text, instead of
+ * a pale grey block that read like a missing element.
+ */
+[data-mantine-color-scheme] .button:where(:disabled:not([data-loading]), [data-disabled]:not([data-loading])) {
+  border-color: var(--mantine-color-default-border);
+  background: transparent;
+  color: var(--mantine-color-text);
+  opacity: 0.45;
+}
+
+/* A disabled primary stays a primary, only fainter, so the dialog's main action is recognisable
+   before it can be used (it read as a second Cancel). A Button without a variant is filled and
+   has no data-variant. */
+[data-mantine-color-scheme]
+  .button:where([data-variant="filled"], :not([data-variant])):where(
+    :disabled:not([data-loading]),
+    [data-disabled]:not([data-loading])
+  ) {
+  border-color: transparent;
+  background: var(--mantine-primary-color-filled);
+  color: var(--mantine-primary-color-contrast);
+}

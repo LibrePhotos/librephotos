@@ -26,7 +26,15 @@ export const LEGACY_UNDATED_GROUP_DATE = "No timestamp";
 /** A note for a dated group's heading, from its day (a person's age on the person page, #2751). */
 export type GroupNote = (day: DateTime) => string | null;
 
-// TODO: Add ordinal suffix to day of month when implemented in luxon (NB, is it still valid?)
+// "Sat, Oct 17" for this year's days, "Sat, Oct 17, 2024" for older ones: the short label Google
+// Photos and Immich put over a day.
+const DAY_THIS_YEAR = { weekday: "short", month: "short", day: "numeric" } as const;
+const DAY_OTHER_YEAR = { ...DAY_THIS_YEAR, year: "numeric" } as const;
+
+function formatGroupDay(date: DateTime): string {
+  return date.toLocaleString(date.year === DateTime.now().year ? DAY_THIS_YEAR : DAY_OTHER_YEAR);
+}
+
 export function formatDateForPhotoGroups(
   photoGroups: DatePhotosGroup[],
   note?: GroupNote
@@ -43,7 +51,7 @@ export function formatDateForPhotoGroups(
         ...photoGroup,
         year: date.year,
         month: date.month,
-        date: date.toLocaleString(DateTime.DATE_HUGE),
+        date: formatGroupDay(date),
         note: note?.(date),
       };
     }
@@ -60,15 +68,16 @@ export function getPhotosFlatFromGroupedByDate(photosGroupedByDate: DatePhotosGr
 }
 
 /**
- * A grid placeholder for a photo whose page has not loaded yet: square, no
- * image, `isTemp` set. Every other field holds what the PigPhoto schema
- * defaults it to, so the placeholder is a PigPhoto like the photos around it.
+ * A grid placeholder for a photo whose page has not loaded yet: no image,
+ * `isTemp` set, square unless the day's average shape is known. Every other
+ * field holds what the PigPhoto schema defaults it to, so the placeholder is a
+ * PigPhoto like the photos around it.
  */
-export function tempPigPhoto(id: string): PigPhoto {
+export function tempPigPhoto(id: string, aspectRatio = 1): PigPhoto {
   return {
     id,
     image_hash: "",
-    aspectRatio: 1,
+    aspectRatio,
     type: Media.IMAGE,
     is_hdr: false,
     rating: 0,
@@ -78,10 +87,19 @@ export function tempPigPhoto(id: string): PigPhoto {
   };
 }
 
+/**
+ * A day's placeholders take its photos' average aspect ratio when the server
+ * sends it, so the day is as wide before its photos load as after: short days
+ * share a line, and square placeholders moved them (and everything below) when
+ * the photos came in.
+ */
 export function addTempElementsToGroups(photosGroupedByDate: IncompleteDatePhotosGroup[]) {
   photosGroupedByDate.forEach(group => {
-    for (let i = 0; i < group.numberOfItems; i++) {
-      group.items.push(tempPigPhoto(i.toString()));
+    const { numberOfItems } = group;
+    const ratioSum = group.aspect_ratio_sum;
+    const aspectRatio = ratioSum && numberOfItems > 0 ? ratioSum / numberOfItems : 1;
+    for (let i = 0; i < numberOfItems; i++) {
+      group.items.push(tempPigPhoto(i.toString(), aspectRatio));
     }
   });
 }

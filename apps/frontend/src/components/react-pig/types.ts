@@ -92,6 +92,9 @@ export type LaidOutGroup<T extends ImageItem> = Omit<GroupedImageItem<T>, "items
   items: LaidOutTile<T>[];
   groupTranslateY: number;
   height: number;
+  /** A short day sharing a line with others (computeLayoutGroups): its left edge and width. */
+  groupTranslateX?: number;
+  width?: number;
 };
 
 /** The whole grid as the layout placed it: flat tiles, or date groups of tiles. */

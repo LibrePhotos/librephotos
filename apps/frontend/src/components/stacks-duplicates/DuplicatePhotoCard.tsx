@@ -118,8 +118,8 @@ export function DuplicatePhotoCard({
 
         {showSelectButton && (
           <Button
-            variant={isSelected ? "filled" : "outline"}
-            color={isSelected ? "blue" : "gray"}
+            // The kept copy is tonal in the accent, the others quiet: no filled button outside a dialog
+            variant={isSelected ? "light" : "default"}
             leftSection={isSelected ? <IconCheck size={16} /> : null}
             onClick={onSelect}
             fullWidth

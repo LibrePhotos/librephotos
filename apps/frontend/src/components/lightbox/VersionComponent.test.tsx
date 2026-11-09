@@ -3,7 +3,8 @@
  * read as portrait), showed a Windows backend's sub-path instead of the file
  * name, and built its "+N formats" plural in English code. Its camera row
  * printed a long exposure as a bare "2.5", which reads like 1/2.5 (#2275), and
- * `ISO200`, `ƒ / 2.8` and an English `58.14 kB` in a German UI (#2276).
+ * `ISO200`, `ƒ / 2.8` and an English `58.14 kB` in a German UI (#2276). The exposure is a strip of
+ * chips under the camera and lens, and "Show more" ends the Details with All metadata in it.
  */
 import type { FileVariant, Photo } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -72,7 +73,7 @@ async function render(overrides: Partial<Photo>, isPublic = false) {
     container,
     /** The panel's lines, " | " between them. */
     lines: () =>
-      Array.from(container.querySelectorAll("p, button"))
+      Array.from(container.querySelectorAll("p, a, button, li"))
         .map(element => element.textContent)
         .join(" | "),
     async unmount() {
@@ -90,7 +91,7 @@ async function renderText(overrides: Partial<Photo>, isPublic = false) {
 }
 
 describe("VersionComponent", () => {
-  it("offers All metadata as a link in the file row, to the owner only", async () => {
+  it("offers All metadata as a link under Show more, to the owner only", async () => {
     expect(await renderText({})).toContain("all metadata link");
     expect(await renderText({}, true)).not.toContain("all metadata");
   });
@@ -134,15 +135,21 @@ describe("CameraInfoSection", () => {
     exposure_compensation: 0.7,
   };
 
-  it("splits the camera and the lens into two rows", async () => {
+  it("names the camera and the lens, then the exposure as chips", async () => {
     const text = await renderText(fuji);
-    expect(text).toContain("| Fujifilm X-T5 | 1/250 · ISO 200 · +0.7 EV |");
-    expect(text).toContain("| XF16-55mmF2.8 R LM WR | ƒ/5.6 · 23 mm (35 mm equiv.) |");
+    expect(text).toContain("| Fujifilm X-T5 | XF16-55mmF2.8 R LM WR | ISO 200 | 23 mm | +0.7 EV | ƒ/5.6 | 1/250 |");
   });
 
-  it("puts the lens values on the camera row when there is no lens name", async () => {
+  it("gives the focal length's chip its 35 mm equivalent on hover", async () => {
+    const panel = await render(fuji);
+    const focal = Array.from(panel.container.querySelectorAll("li")).find(chip => chip.textContent === "23 mm");
+    expect(focal?.getAttribute("title")).toBe("23 mm (35 mm equiv.)");
+    await panel.unmount();
+  });
+
+  it("shows the chips without a lens name", async () => {
     const text = await renderText({ camera: "X-T5", fstop: 2.8, iso: 100 });
-    expect(text).toContain("| X-T5 | ƒ/2.8 · ISO 100 |");
+    expect(text).toContain("| X-T5 | ISO 100 | ƒ/2.8 |");
   });
 
   it("formats in the UI language", async () => {
@@ -161,12 +168,11 @@ describe("CameraInfoSection", () => {
   it("has no camera row for a photo without camera data", async () => {
     const withCamera = await render(fuji);
     expect(withCamera.container.querySelector(".tabler-icon-camera")).not.toBeNull();
-    expect(withCamera.container.querySelector(".tabler-icon-aperture")).not.toBeNull();
     await withCamera.unmount();
 
     const panel = await render({});
     expect(panel.container.querySelector(".tabler-icon-camera")).toBeNull();
-    expect(panel.container.querySelector(".tabler-icon-aperture")).toBeNull();
+    expect(panel.container.querySelector("li")).toBeNull();
     await panel.unmount();
   });
 
@@ -203,13 +209,18 @@ describe("Show more", () => {
     const known = await render({ metering_mode: "Evaluative" });
     expect(known.container.textContent).toContain("Evaluative");
     await known.unmount();
-    const unknown = await render({ metering_mode: "Unknown", image_path: [] });
+    // Public: the owner always has All metadata under Show more
+    const unknown = await render({ metering_mode: "Unknown", image_path: [] }, true);
     expect(unknown.lines()).not.toContain("Show more");
     await unknown.unmount();
   });
 
   it("is not offered when it would open on nothing", async () => {
-    expect(await renderText({ image_path: [] })).not.toContain("Show more");
+    expect(await renderText({ image_path: [] }, true)).not.toContain("Show more");
+  });
+
+  it("is offered to the owner for All metadata alone", async () => {
+    expect(await renderText({ image_path: [] })).toContain("Show more");
   });
 
   it("is offered for the folder of the file", async () => {

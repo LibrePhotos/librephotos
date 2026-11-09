@@ -50,7 +50,7 @@ export function ContributeStep({ album, photoIds, selectAll, count, myId, onBack
         <PageLoader />
       )}
       <Group justify="flex-end">
-        <Button variant="default" onClick={onBack}>
+        <Button variant="light" onClick={onBack}>
           {t("collab.back")}
         </Button>
         <Button

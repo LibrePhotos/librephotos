@@ -15,6 +15,7 @@ import { AlbumCollectionFilter } from "./AlbumCollectionFilter";
 import { AlbumCollectionsModal } from "./AlbumCollectionsModal";
 import type { CollectionFilter } from "./collectionFilter";
 import { ManageAlbumCollectionsModal } from "./ManageAlbumCollectionsModal";
+import { MyAlbumsHeaderMenu } from "./MyAlbumsHeaderMenu";
 
 type SetParams = { albumId: number | string; collectionIds: number[] };
 type RenameParams = { id: number; name: string; newName: string };
@@ -240,19 +241,10 @@ describe("ManageAlbumCollectionsModal", () => {
 
 describe("AlbumCollectionFilter", () => {
   const onChange = vi.fn<(filter: CollectionFilter) => void>();
-  const onManage = vi.fn<() => void>();
   const counts = { byCollection: new Map([[travel.id, 2]]), none: 4, all: 6 };
 
   const renderFilter = (collections: AlbumCollection[], value: CollectionFilter = undefined) =>
-    render(
-      <AlbumCollectionFilter
-        collections={collections}
-        counts={counts}
-        value={value}
-        onChange={onChange}
-        onManage={onManage}
-      />
-    );
+    render(<AlbumCollectionFilter collections={collections} counts={counts} value={value} onChange={onChange} />);
 
   function chip(name: string): HTMLInputElement {
     const radios = Array.from(document.body.querySelectorAll<HTMLInputElement>('input[type="radio"]'));
@@ -285,8 +277,19 @@ describe("AlbumCollectionFilter", () => {
     expect(onChange).toHaveBeenLastCalledWith(undefined);
   });
 
-  it("opens Manage collections from its menu", async () => {
-    await renderFilter([family, travel]);
+  it("leaves the row out until there is a collection", async () => {
+    await renderFilter([]);
+
+    expect(document.body.querySelector('input[type="radio"]')).toBeNull();
+  });
+});
+
+// The collections' actions live in My Albums' header ⋯, not in a row of their own
+describe("MyAlbumsHeaderMenu", () => {
+  const onManage = vi.fn<() => void>();
+
+  it("opens Manage collections from the header's ⋯", async () => {
+    await render(<MyAlbumsHeaderMenu hasCollections onManage={onManage} />);
 
     await click(button("Collection actions"));
     await click(button("Manage collections…"));
@@ -294,9 +297,10 @@ describe("AlbumCollectionFilter", () => {
   });
 
   it("offers to make the first collection", async () => {
-    await renderFilter([]);
+    onManage.mockClear();
+    await render(<MyAlbumsHeaderMenu hasCollections={false} onManage={onManage} />);
 
-    expect(document.body.querySelector('input[type="radio"]')).toBeNull();
+    await click(button("Collection actions"));
     await click(button("New collection"));
     expect(onManage).toHaveBeenCalled();
   });

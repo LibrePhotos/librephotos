@@ -59,7 +59,6 @@ from api.tests.utils import (
     create_test_album_auto,
     create_test_album_collection,
     create_test_album_comment,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -73,6 +72,7 @@ from api.tests.utils import (
     create_test_user,
     create_test_user_place,
 )
+from api.timeline.days import day_id
 
 # URLconfs LibrePhotos does not write (Django admin, allauth). A route under
 # one of these prefixes is out of scope, unless its view lives in the api
@@ -124,6 +124,16 @@ NOT_PHOTO_SCOPED = {
     "api/strip-thumbnail-metadata/": "admin-only, instance-wide thumbnail cleanup job",
     "api/upgrade-tasks/<slug:key>/start/": "admin-only, instance-wide post-upgrade jobs",
     "api/upgrade-tasks/<slug:key>/dismiss/": "admin-only, instance-wide post-upgrade card state",
+    "api/error-reports/": "admin-only, instance-wide saved error reports (#2938)",
+    "api/error-reports/send/": "admin-only, instance-wide saved error reports",
+    "api/error-reports/<int:report_id>/": "admin-only, instance-wide saved error reports",
+    "api/error-reports/<int:report_id>/send/": (
+        "admin-only, instance-wide saved error reports"
+    ),
+    "api/error-reports/browser/": (
+        "saves the requester's browser error, scrubbed, in the admins' list; "
+        "reads no rows and takes no ids"
+    ),
     "api/updates/skip/": "admin-only, instance-wide update check state",
     "api/updates/snooze/": "admin-only, instance-wide update check state",
     "api/updates/install/": "admin-only, downloads the newest release (#2788)",
@@ -363,8 +373,8 @@ class CrossTenantWriteTest(TestCase):
             title="Berlin", geolocation_level=1, owner=self.victim
         )
         self.v_place.photos.add(self.v_pub, self.v_priv)
-        self.v_date = create_test_album_date(date=now.date(), owner=self.victim)
-        self.v_date.photos.add(self.v_pub, self.v_priv)
+        # A day is the photos' own date, no row of its own (v_pub, v_priv).
+        self.v_day = day_id(now.date())
 
         self.v_stack = create_test_stack(
             owner=self.victim, stack_type="manual", primary_photo=self.v_pub
@@ -763,9 +773,12 @@ class CrossTenantWriteTest(TestCase):
             ("patch", f"/api/albums/place/{self.v_place.pk}/", {"favorited": True}),
             ("put", f"/api/albums/place/{self.v_place.pk}/", {"favorited": True}),
             ("delete", f"/api/albums/place/{self.v_place.pk}/", None),
-            ("patch", f"/api/albums/date/{self.v_date.pk}/", {"favorited": True}),
-            ("put", f"/api/albums/date/{self.v_date.pk}/", {"favorited": True}),
-            ("delete", f"/api/albums/date/{self.v_date.pk}/", None),
+            # The days are read-only: no write reaches their photos.
+            ("post", "/api/days/", {"favorited": True}),
+            ("patch", f"/api/days/{self.v_day}/photos/", {"favorited": True}),
+            ("put", f"/api/days/{self.v_day}/photos/", {"favorited": True}),
+            ("delete", f"/api/days/{self.v_day}/photos/", None),
+            ("post", f"/api/days/{self.v_day}/layout/", None),
             # people and faces
             ("post", "/api/persons/", {"name": self.v_person.name}),
             (
@@ -1037,7 +1050,6 @@ class CrossTenantWriteTest(TestCase):
             "albumauto_set",
             "albumthing_set",
             "albumplace_set",
-            "albumdate_set",
             "primary_in_stack",
             "thumbnail",
             "metadata",

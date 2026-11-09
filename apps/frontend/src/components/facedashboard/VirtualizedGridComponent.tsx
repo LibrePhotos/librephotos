@@ -1,5 +1,6 @@
 import cx from "clsx";
 import React, { useCallback, useMemo, useState } from "react";
+import type { CompletePersonFace } from "../../api_client/faces/types";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
@@ -10,20 +11,21 @@ import type { GridCellProps, SectionRenderedParams, VirtualGridHandle } from "..
 import { groupsByRow } from "./faceActionRules";
 import type { FaceActionHandlers } from "./faceActionRules";
 import { FaceComponent } from "./FaceComponent";
+import { FaceGridRow } from "./FaceGridRow";
+import type { HeaderVariant } from "./FaceGridRow";
+import { faceRowHeights, faceRowKinds, layoutWidthOf } from "./faceGridRows";
+import type { FaceGridLayout } from "./faceGridRows";
 import type { FacesTab } from "./facesTab";
 import { HeaderComponent } from "./HeaderComponent";
 import { usePeopleCovers } from "./hooks/usePeopleCovers";
 import type { FaceCell, FaceSelection, GridCell, GridRows } from "./hooks/useVirtualizedGrid";
-import { isLoadedFace, isPersonCell } from "./hooks/useVirtualizedGrid";
-import { PersonCell } from "./PersonCell";
+import { isLoadedFace } from "./hooks/useVirtualizedGrid";
 import { coverFaceUrl } from "./personCover";
 import classes from "./VirtualizedGridComponent.module.css";
 
 type VirtualizedGridComponentProps = {
   containerRef: React.Ref<HTMLDivElement>;
   gridRef: React.RefObject<VirtualGridHandle | null>;
-  entrySquareSize: number;
-  numEntrySquaresPerRow: number;
   gridHeight: number;
   getCellContentsForTab: (tab: FacesTab) => GridRows;
   getScrollPositions: () => ScrollerData[];
@@ -37,21 +39,23 @@ type VirtualizedGridComponentProps = {
   selectedFaces: FaceSelection[];
   setSelectedFaces: (faces: FaceSelection[]) => void;
   activeTab: FacesTab;
-  collapsedPersons: ReadonlySet<number>;
+  /** The columns and face size the rows were built for (useVirtualizedGrid). */
+  layout: FaceGridLayout;
   onToggleCollapse: (personId: number) => void;
   faceActions: FaceActionHandlers;
   pendingFaceIds: ReadonlySet<number>;
   /** The A-Z scrubber only fits the name order (#764). */
   showScrubber: boolean;
+  /** "Add a name" on a cluster: label all of its faces (the dashboard's Label faces dialog). */
+  onNameGroup?: (faces: FaceSelection[]) => void;
 };
 
 const NO_SCROLL_POSITIONS: ScrollerData[] = [];
+const HEADER_STYLE: React.CSSProperties = {};
 
 export function VirtualizedGridComponent({
   containerRef,
   gridRef,
-  entrySquareSize,
-  numEntrySquaresPerRow,
   gridHeight,
   getCellContentsForTab,
   getScrollPositions,
@@ -65,16 +69,21 @@ export function VirtualizedGridComponent({
   selectedFaces,
   setSelectedFaces,
   activeTab,
-  collapsedPersons,
+  layout,
   onToggleCollapse,
   faceActions,
   pendingFaceIds,
   showScrubber,
+  onNameGroup,
 }: VirtualizedGridComponentProps) {
   const rows = getCellContentsForTab(activeTab);
-  // The People page's cover of each person, for the headers and the grid of people (#860)
+  // Rows of tiles and the slices of open groups (faceGridRows.ts)
+  const kinds = useMemo(() => faceRowKinds(rows), [rows]);
+  const heights = useMemo(() => faceRowHeights(rows, layout), [rows, layout]);
+  const rowHeight = useCallback(({ index }: { index: number }) => heights[index] ?? 0, [heights]);
+  // The People page's cover of each person, for an open group's header (#860)
   const ownCovers = usePeopleCovers();
-  // Folding swaps a person's header for a cell (and back): the person whose new control takes focus
+  // Folding swaps a group's section for a tile (and back): the group whose new toggle takes focus
   const [focusPerson, setFocusPerson] = useState<number | null>(null);
   const toggleCollapse = useCallback(
     (personId: number) => {
@@ -87,82 +96,74 @@ export function VirtualizedGridComponent({
   // A face's actions depend on its group (person, cluster or unknown), which is the header above it
   const rowGroups = useMemo(() => groupsByRow(rows), [rows]);
 
-  // Cell renderer for the virtualized grid
-  const cellRenderer = useCallback(
-    ({ columnIndex, key, rowIndex, style }: GridCellProps) => {
-      const cell: GridCell | undefined = rows[rowIndex]?.[columnIndex];
-      if (!cell) return null;
+  const renderHeader = useCallback(
+    (cell: CompletePersonFace, variant: HeaderVariant) => (
+      <HeaderComponent
+        style={HEADER_STYLE}
+        variant={variant}
+        cell={cell}
+        selectedFaces={selectedFaces}
+        setSelectedFaces={setSelectedFaces}
+        onToggleCollapse={() => toggleCollapse(cell.id)}
+        coverUrl={coverFaceUrl(cell, ownCovers.get(cell.id))}
+        takeFocus={focusPerson === cell.id}
+        onFocused={focusTaken}
+        onNameGroup={onNameGroup}
+      />
+    ),
+    [selectedFaces, setSelectedFaces, toggleCollapse, ownCovers, focusPerson, focusTaken, onNameGroup]
+  );
 
-      if (isPersonCell(cell)) {
-        const coverUrl = coverFaceUrl(cell, ownCovers.get(cell.id));
-        // A collapsed person is one cell of a grid of people (#860)
-        return collapsedPersons.has(cell.id) ? (
-          <PersonCell
-            key={key}
-            style={style}
-            person={cell}
-            coverUrl={coverUrl}
-            entrySquareSize={entrySquareSize}
-            onExpand={() => toggleCollapse(cell.id)}
-            takeFocus={focusPerson === cell.id}
-            onFocused={focusTaken}
-          />
-        ) : (
-          <HeaderComponent
-            key={key}
-            style={style}
-            cell={cell}
-            selectedFaces={selectedFaces}
-            setSelectedFaces={setSelectedFaces}
-            onToggleCollapse={() => toggleCollapse(cell.id)}
-            coverUrl={coverUrl}
-            takeFocus={focusPerson === cell.id}
-            onFocused={focusTaken}
-          />
-        );
-      }
-
+  const renderFace = useCallback(
+    (cell: GridCell, group: CompletePersonFace | undefined) =>
       // A placeholder until its page has loaded
-      if (!isLoadedFace(cell)) {
-        return <div key={key} style={{ ...style, height: entrySquareSize, width: entrySquareSize }} />;
-      }
-
-      return (
-        <div key={key} style={style}>
-          <FaceComponent
-            handleClick={handleCellClick}
-            handleShowClick={handleShowClick}
-            cell={cell}
-            group={rowGroups[rowIndex]}
-            tab={activeTab}
-            actions={faceActions}
-            pending={pendingFaceIds.has(cell.id)}
-            isScrollingFast={false}
-            selectMode={selectMode}
-            isSelected={selectedFaces.some(face => face.face_id === cell.id)}
-            entrySquareSize={entrySquareSize}
-          />
-        </div>
-      );
-    },
+      isLoadedFace(cell) ? (
+        <FaceComponent
+          handleClick={handleCellClick}
+          handleShowClick={handleShowClick}
+          cell={cell}
+          group={group}
+          tab={activeTab}
+          actions={faceActions}
+          pending={pendingFaceIds.has(cell.id)}
+          isScrollingFast={false}
+          selectMode={selectMode}
+          isSelected={selectedFaces.some(face => face.face_id === cell.id)}
+          faceSize={layout.faceSize}
+        />
+      ) : null,
     [
       activeTab,
-      entrySquareSize,
+      layout.faceSize,
       selectedFaces,
       handleCellClick,
       handleShowClick,
       selectMode,
-      rows,
-      rowGroups,
-      setSelectedFaces,
-      collapsedPersons,
-      toggleCollapse,
-      focusPerson,
-      focusTaken,
-      ownCovers,
       faceActions,
       pendingFaceIds,
     ]
+  );
+
+  // Each row is rendered whole: a row of tiles or a slice of an open group
+  const cellRenderer = useCallback(
+    ({ key, rowIndex, style }: GridCellProps) => {
+      const cells = rows[rowIndex];
+      const kind = kinds[rowIndex];
+      if (!cells || !kind) return null;
+      return (
+        <FaceGridRow
+          key={key}
+          style={style}
+          kind={kind}
+          cells={cells}
+          layout={layout}
+          group={rowGroups[rowIndex]}
+          renderHeader={renderHeader}
+          renderFace={renderFace}
+        />
+      );
+    },
+    [rows, kinds, layout, rowGroups, renderHeader, renderFace]
   );
 
   return (
@@ -179,9 +180,10 @@ export function VirtualizedGridComponent({
               ref={gridRef}
               className={cx(classes.grid, SCROLL_SCRUBBER_TARGET)}
               cellRenderer={cellRenderer}
-              columnWidth={entrySquareSize}
-              columnCount={numEntrySquaresPerRow}
-              rowHeight={entrySquareSize}
+              // One column: the rows lay out their own tiles, and stop short of a scrollbar
+              columnWidth={layoutWidthOf(gridWidth)}
+              columnCount={1}
+              rowHeight={rowHeight}
               onSectionRendered={onSectionRendered}
               height={height}
               width={gridWidth}

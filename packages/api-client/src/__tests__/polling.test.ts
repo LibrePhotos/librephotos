@@ -1,6 +1,14 @@
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { invalidateAfter, POLL_ACTIVE_MS, POLL_IDLE_MS, PollTimeoutError, pollUntil, pollWhile } from "../polling";
+import {
+  coalesce,
+  invalidateAfter,
+  POLL_ACTIVE_MS,
+  POLL_IDLE_MS,
+  PollTimeoutError,
+  pollUntil,
+  pollWhile,
+} from "../polling";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -110,5 +118,45 @@ describe("invalidateAfter", () => {
     expect(invalidate).toHaveBeenCalledTimes(2);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["faces"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["people"] });
+  });
+});
+
+describe("coalesce", () => {
+  it("runs once, the wait after the last call of a burst", async () => {
+    const run = vi.fn<() => void>();
+    const trigger = coalesce(run, { waitMs: 300, maxWaitMs: 5000 });
+
+    trigger();
+    await vi.advanceTimersByTimeAsync(200);
+    trigger();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(run).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(100);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("still runs during a steady stream of calls, once maxWait has passed", async () => {
+    const run = vi.fn<() => void>();
+    const trigger = coalesce(run, { waitMs: 300, maxWaitMs: 1000 });
+
+    for (let i = 0; i < 5; i += 1) {
+      trigger();
+      await vi.advanceTimersByTimeAsync(250);
+    }
+
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts a new burst after a run", async () => {
+    const run = vi.fn<() => void>();
+    const trigger = coalesce(run, { waitMs: 300, maxWaitMs: 1000 });
+
+    trigger();
+    await vi.advanceTimersByTimeAsync(300);
+    trigger();
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(run).toHaveBeenCalledTimes(2);
   });
 });

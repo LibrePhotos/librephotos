@@ -82,6 +82,7 @@ FRAMEWORK_METHODS = frozenset(
         "authenticate",
         "authenticate_header",
         "get_cache_key",  # throttles
+        "get_page_number",  # pagination
         "list",
         "retrieve",
         "create",

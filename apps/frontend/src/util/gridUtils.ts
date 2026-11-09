@@ -99,22 +99,3 @@ export const calculateFaceGridCells = <Person extends { id: number; faces: reado
   flushCollapsedRun();
   return { cellContents: gridContents };
 };
-
-export const calculateFaceGridCellSize = (gridWidth: number) => {
-  let numEntrySquaresPerRow = 10;
-  if (gridWidth < 300) {
-    numEntrySquaresPerRow = 2;
-  } else if (gridWidth < 600) {
-    numEntrySquaresPerRow = 3;
-  } else if (gridWidth < 800) {
-    numEntrySquaresPerRow = 4;
-  } else if (gridWidth < 1000) {
-    numEntrySquaresPerRow = 6;
-  } else if (gridWidth < 1200) {
-    numEntrySquaresPerRow = 8;
-  }
-
-  const entrySquareSize = gridWidth / numEntrySquaresPerRow;
-
-  return { entrySquareSize, numEntrySquaresPerRow };
-};

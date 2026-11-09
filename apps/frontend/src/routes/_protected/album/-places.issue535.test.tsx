@@ -270,14 +270,15 @@ describe("the places page on first mount", () => {
   it("has a grip that makes the map taller, and remembers it", async () => {
     const page = await renderPage();
     const grip = page.container.querySelector<HTMLElement>('[role="separator"]');
-    expect(grip?.getAttribute("aria-valuenow")).toBe("240");
+    // 40 % of jsdom's 768px window, at least 320
+    expect(grip?.getAttribute("aria-valuenow")).toBe("320");
 
     await act(async () => {
       grip?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     });
 
-    expect(grip?.getAttribute("aria-valuenow")).toBe("260");
-    expect(localStorage.getItem(STORAGE_KEYS.placesMapHeight)).toBe("260");
+    expect(grip?.getAttribute("aria-valuenow")).toBe("340");
+    expect(localStorage.getItem(STORAGE_KEYS.placesMapHeight)).toBe("340");
     await page.unmount();
   });
 
@@ -313,12 +314,12 @@ describe("the places page on first mount", () => {
 // #2234: the tile linked to its album only through the cover, and a place
 // without one rendered no link at all.
 describe("a place without a cover photo", () => {
-  it("still opens from its tile and its title", async () => {
+  it("still opens from its card, which carries its title", async () => {
     stubs.albums = [{ id: 1, title: "Paris", cover_photos: [], photo_count: 12, geolocation_level: 2 }];
     const page = await renderPage();
 
     const links = page.links("/album/places/1");
-    expect(links).toHaveLength(2);
+    expect(links).toHaveLength(1);
     expect(links.some(link => link.textContent?.includes("Paris"))).toBe(true);
     await page.unmount();
   });

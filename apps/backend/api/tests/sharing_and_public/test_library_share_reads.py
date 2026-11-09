@@ -20,15 +20,18 @@ from api.serializers.photos import (
 )
 from api.sharing.grants import DETAIL_FIELDS, SUMMARY_FIELDS
 from api.tests.utils import (
-    create_test_album_date,
+    api_error,
     create_test_album_place,
     create_test_face,
     create_test_library_share,
     create_test_person,
     create_test_photo,
     create_test_user,
+    day_photo_ids,
+    list_days,
     share_test_photos,
 )
+from api.timeline.days import day_id
 
 DAY = datetime.date(2025, 10, 18)
 NOON = timezone.make_aware(datetime.datetime(2025, 10, 18, 12, 0))
@@ -76,10 +79,6 @@ class LibraryShareFixture(TestCase):
         )
         self.person = create_test_person(name="Clara Ruiz", cluster_owner=self.owner)
         create_test_face(photo=self.photo, person=self.person)
-        self.day = create_test_album_date(
-            owner=self.owner, date=DAY, location={"places": ["Starnberg"]}
-        )
-        self.day.photos.add(self.photo, self.hidden, self.trashed, self.archived)
         self.share = create_test_library_share(
             owner=self.owner, recipient=self.recipient
         )
@@ -246,28 +245,27 @@ class PhotoDetailTest(LibraryShareFixture):
 class LibraryPageTest(LibraryShareFixture):
     def days(self, user, **params):
         query = {"library": self.owner.pk, **params}
-        return client_for(user).get("/api/albums/date/list/", query)
+        return client_for(user).get("/api/days/", query)
+
+    def page(self, user, day, **params):
+        query = {"library": self.owner.pk, **params}
+        return client_for(user).get(f"/api/days/{day}/photos/", query)
 
     def test_the_recipient_reads_the_owners_days_without_places(self):
         response = self.days(self.recipient)
         self.assertEqual(response.status_code, 200)
         [day] = response.json()["results"]
-        self.assertEqual(day["id"], self.day.pk)
+        self.assertEqual(day["id"], day_id(DAY))
         self.assertEqual(day["location"], "")
         # The photo and the archived one; never the hidden or trashed one.
         self.assertEqual(day["numberOfItems"], 2)
 
-        response = client_for(self.recipient).get(
-            f"/api/albums/date/{self.day.pk}/", {"library": self.owner.pk}
-        )
+        response = self.page(self.recipient, day_id(DAY))
         self.assertEqual(response.status_code, 200)
-        results = response.json()["results"]
-        self.assertEqual(results["location"], "")
-        hashes = {item["image_hash"] for item in results["items"]}
+        items = response.json()["items"]
+        hashes = {item["image_hash"] for item in items}
         self.assertEqual(hashes, {self.photo.image_hash, self.archived.image_hash})
-        item = next(
-            i for i in results["items"] if i["image_hash"] == self.photo.image_hash
-        )
+        item = next(i for i in items if i["image_hash"] == self.photo.image_hash)
         self.assertEqual(item["location"], "")
         self.assertIsNone(item["exif_gps_lat"])
         self.assertEqual(item["rating"], 0)
@@ -277,12 +275,35 @@ class LibraryPageTest(LibraryShareFixture):
         [day] = self.days(self.recipient).json()["results"]
         self.assertEqual(day["location"], "Starnberg")
 
+    def test_a_hidden_photos_town_never_names_the_day(self):
+        """The day's place is its first located photo the view shows: a
+        hidden or trashed photo taken earlier that day does not count."""
+        self.switch(share_location=True)
+        earlier = NOON - datetime.timedelta(hours=2)
+        for photo in (self.hidden, self.trashed):
+            photo.exif_timestamp = earlier
+            photo.geolocation_json = {"places": ["Street", "SecretTown", "Land"]}
+            photo.save()
+        [day] = self.days(self.recipient).json()["results"]
+        self.assertEqual(day["location"], "Starnberg")
+
     def test_without_a_share_the_library_is_a_404(self):
         self.assertEqual(self.days(self.stranger).status_code, 404)
-        response = client_for(self.stranger).get(
-            f"/api/albums/date/{self.day.pk}/", {"library": self.owner.pk}
-        )
-        self.assertEqual(response.status_code, 404)
+        for view in ("photos", "layout"):
+            with self.subTest(view=view):
+                response = client_for(self.stranger).get(
+                    f"/api/days/{day_id(DAY)}/{view}/", {"library": self.owner.pk}
+                )
+                self.assertEqual(response.status_code, 404)
+
+    def test_a_cursor_on_a_photo_the_recipient_cannot_see_is_a_400(self):
+        """A hidden or trashed photo of the owner must not place itself among
+        the shared ones: the cursor only names photos of the view."""
+        for photo in (self.hidden, self.trashed):
+            with self.subTest(photo=photo.pk):
+                response = self.page(self.recipient, day_id(DAY), after=photo.pk)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(api_error(response)["field"], "after")
 
     def test_owner_only_views_return_no_library_photos(self):
         for params in (
@@ -296,65 +317,73 @@ class LibraryPageTest(LibraryShareFixture):
                 response = self.days(self.recipient, **params)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.json()["results"], [])
+                response = self.page(self.recipient, day_id(DAY), **params)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["items"], [])
 
 
 class TimelineTest(LibraryShareFixture):
     def setUp(self):
         super().setUp()
         self.own = create_test_photo(owner=self.recipient, exif_timestamp=NOON)
-        self.own_day = create_test_album_date(owner=self.recipient, date=DAY)
-        self.own_day.photos.add(self.own)
-        other_date = datetime.date(2025, 10, 12)
+        self.own_day = day_id(DAY)
         self.only_theirs = create_test_photo(
             owner=self.owner,
             exif_timestamp=timezone.make_aware(datetime.datetime(2025, 10, 12, 9)),
+            geolocation_json={"places": ["Street", "Munich", "Germany"]},
         )
-        self.their_day = create_test_album_date(
-            owner=self.owner, date=other_date, location={"places": ["Munich"]}
-        )
-        self.their_day.photos.add(self.only_theirs)
+        self.their_day = day_id(datetime.date(2025, 10, 12))
 
     def timeline(self, **params):
         query = {"libraries": "true", "archived": "false", **params}
-        response = client_for(self.recipient).get("/api/albums/date/list/", query)
-        self.assertEqual(response.status_code, 200)
-        return response.json()["results"]
+        return list_days(client_for(self.recipient), query)
 
-    def day_items(self, day_id, **params):
+    def day_items(self, day, **params):
         query = {"libraries": "true", "archived": "false", **params}
-        response = client_for(self.recipient).get(f"/api/albums/date/{day_id}/", query)
+        response = client_for(self.recipient).get(f"/api/days/{day}/photos/", query)
         self.assertEqual(response.status_code, 200, response.content[:300])
-        return response.json()["results"]
+        return response.json()["items"]
 
     def test_partner_photos_only_with_the_switch_on(self):
         days = self.timeline()
-        self.assertEqual([d["id"] for d in days], [self.own_day.pk])
+        self.assertEqual([d["id"] for d in days], [self.own_day])
         self.assertEqual(days[0]["numberOfItems"], 1)
 
         self.switch(show_in_timeline=True)
         days = self.timeline()
-        self.assertEqual([d["id"] for d in days], [self.own_day.pk, self.their_day.pk])
-        # One day for the date both have: the recipient's, with both photos;
-        # the owner's archived photo is not in a timeline.
+        self.assertEqual([d["id"] for d in days], [self.own_day, self.their_day])
+        # One day for the date both have, with both photos; the owner's
+        # archived photo is not in a timeline.
         self.assertEqual(days[0]["numberOfItems"], 2)
+        # The owner does not share where they were.
         self.assertEqual(days[1]["location"], "")
 
-        hashes = {i["image_hash"] for i in self.day_items(self.own_day.pk)["items"]}
+        hashes = {i["image_hash"] for i in self.day_items(self.own_day)}
         self.assertEqual(hashes, {self.own.image_hash, self.photo.image_hash})
-        their = self.day_items(self.their_day.pk)
-        self.assertEqual(their["location"], "")
         self.assertEqual(
-            [i["image_hash"] for i in their["items"]], [self.only_theirs.image_hash]
+            [i["image_hash"] for i in self.day_items(self.their_day)],
+            [self.only_theirs.image_hash],
         )
+
+    def test_the_partners_place_shows_with_their_location_switch(self):
+        self.switch(show_in_timeline=True, share_location=True)
+        days = self.timeline()
+        self.assertEqual(days[1]["location"], "Munich")
+
+    def test_the_counts_match_the_pages(self):
+        self.switch(show_in_timeline=True)
+        client = client_for(self.recipient)
+        query = {"libraries": "true", "archived": "false"}
+        for day in self.timeline():
+            with self.subTest(day=day["id"]):
+                ids = day_photo_ids(client, day["id"], query, limit=1)
+                self.assertEqual(len(ids), day["numberOfItems"])
+                self.assertEqual(len(set(ids)), len(ids))
 
     def test_without_the_param_the_timeline_is_the_users_own(self):
         self.switch(show_in_timeline=True)
-        response = client_for(self.recipient).get(
-            "/api/albums/date/list/", {"archived": "false"}
-        )
-        self.assertEqual(
-            [d["id"] for d in response.json()["results"]], [self.own_day.pk]
-        )
+        days = list_days(client_for(self.recipient), {"archived": "false"})
+        self.assertEqual([d["id"] for d in days], [self.own_day])
 
     def test_a_favourites_filter_never_takes_partner_photos(self):
         self.switch(show_in_timeline=True)
@@ -362,9 +391,9 @@ class TimelineTest(LibraryShareFixture):
         self.own.save()
         days = self.timeline(favorite="true")
         self.assertEqual(
-            [(d["id"], d["numberOfItems"]) for d in days], [(self.own_day.pk, 1)]
+            [(d["id"], d["numberOfItems"]) for d in days], [(self.own_day, 1)]
         )
-        items = self.day_items(self.own_day.pk, favorite="true")["items"]
+        items = self.day_items(self.own_day, favorite="true")
         self.assertEqual([i["image_hash"] for i in items], [self.own.image_hash])
 
     def test_oldest_first_merges_the_libraries_in_that_order(self):
@@ -372,34 +401,38 @@ class TimelineTest(LibraryShareFixture):
         self.switch(show_in_timeline=True)
         newest = [d["id"] for d in self.timeline()]
         oldest = [d["id"] for d in self.timeline(order="oldest")]
-        self.assertEqual(newest, [self.own_day.pk, self.their_day.pk])
-        self.assertEqual(oldest, [self.their_day.pk, self.own_day.pk])
+        self.assertEqual(newest, [self.own_day, self.their_day])
+        self.assertEqual(oldest, [self.their_day, self.own_day])
 
     def test_a_shared_library_lists_its_days_oldest_first(self):
-        earlier = create_test_photo(
+        create_test_photo(
             owner=self.owner,
             exif_timestamp=timezone.make_aware(datetime.datetime(2025, 10, 1, 9)),
         )
-        earlier_day = create_test_album_date(
-            owner=self.owner, date=earlier.exif_timestamp.date()
-        )
-        earlier_day.photos.add(earlier)
         query = {"library": self.owner.pk, "order": "oldest"}
-        response = client_for(self.recipient).get("/api/albums/date/list/", query)
+        days = list_days(client_for(self.recipient), query)
         self.assertEqual(
-            [d["id"] for d in response.json()["results"]],
-            [earlier_day.pk, self.their_day.pk, self.day.pk],
+            [d["id"] for d in days],
+            [day_id(datetime.date(2025, 10, 1)), self.their_day, day_id(DAY)],
         )
 
     def test_a_partner_day_is_not_reachable_after_leaving(self):
         self.switch(show_in_timeline=True)
         self.share.delete()
-        response = client_for(self.recipient).get(
-            f"/api/albums/date/{self.their_day.pk}/", {"libraries": "true"}
-        )
-        self.assertEqual(response.status_code, 404)
-        items = self.day_items(self.own_day.pk)["items"]
+        self.assertEqual(self.day_items(self.their_day), [])
+        self.assertEqual([d["id"] for d in self.timeline()], [self.own_day])
+        items = self.day_items(self.own_day)
         self.assertEqual([i["image_hash"] for i in items], [self.own.image_hash])
+
+    def test_a_partner_cursor_is_a_400_after_leaving(self):
+        self.switch(show_in_timeline=True)
+        self.share.delete()
+        response = client_for(self.recipient).get(
+            f"/api/days/{self.own_day}/photos/",
+            {"libraries": "true", "after": self.photo.pk},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(api_error(response)["field"], "after")
 
 
 class SharedWithYouTabsTest(LibraryShareFixture):

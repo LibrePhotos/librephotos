@@ -1,5 +1,5 @@
 import type { FileVariant, Photo as PhotoType } from "@librephotos/api-client";
-import { Anchor, Badge, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
+import { Anchor, Badge, Box, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
 import { IconMovie as Movie, IconPhoto as Photo } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
@@ -12,10 +12,12 @@ import { fileNameOf, folderOf } from "../photopage/photoPageText";
 import { CameraInfoSection } from "./CameraInfoSection";
 import { DetailsList } from "./DetailsList";
 import { cameraDetails, fileFacts } from "./photoDetails";
+import { ROW_ICON } from "./SectionTitle";
+import classes from "./Sidebar.module.css";
 
-// Where the text next to a 24px row icon starts (icon plus the Group's default
+// Where the text next to a 20px row icon starts (icon plus the Group's default
 // md gap), so the toggles and expanded details line up with the rows above.
-const TEXT_COLUMN = "calc(24px + var(--mantine-spacing-md))";
+const TEXT_COLUMN = "calc(20px + var(--mantine-spacing-md))";
 
 /** The badge colour and label of a file variant's type (JPG, RAW, VIDEO, META). */
 export function getVariantBadgeProps(variant: FileVariant): { color: string; label: string } {
@@ -30,18 +32,24 @@ export function getVariantBadgeProps(variant: FileVariant): { color: string; lab
   return typeMap[variant.type] || unknownBadge;
 }
 
+/** "JPEG", "HEIC", "MP4": the file's format, from its extension; null without one. */
+function fileFormat(fileName: string): string | null {
+  const dot = fileName.lastIndexOf(".");
+  if (dot <= 0 || dot === fileName.length - 1) return null;
+  const extension = fileName.slice(dot + 1).toUpperCase();
+  return extension === "JPG" ? "JPEG" : extension;
+}
+
 /**
  * Basic photo information (filename, dimensions, file size)
  * Includes file variants with a dedicated toggle
  */
 function PhotoInfoSection({
   photoDetail,
-  isPublic,
   category,
   t,
 }: {
   photoDetail: PhotoType;
-  isPublic: boolean;
   category: React.ReactNode;
   t: TFunction;
 }) {
@@ -51,42 +59,52 @@ function PhotoInfoSection({
   const nonMainVariants = fileVariants.filter(v => !v.is_main);
   const hasVariants = nonMainVariants.length > 0;
   const firstImagePath = photoDetail.image_path?.[0];
+  const fileName = firstImagePath !== undefined ? fileNameOf(firstImagePath) : t("exif.unknownFilename");
+  const format = firstImagePath !== undefined ? fileFormat(fileName) : null;
 
   return (
-    // Full width, so the category badge lines up with the edit icons of the
-    // rows around it.
     <Stack gap="xs" w="100%">
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <Group justify="flex-start" wrap="nowrap">
-          {photoDetail.video ? <Movie /> : <Photo />}
-          <div>
-            <Anchor href={mediaUrl.photo(photoDetail.image_hash)} target="_blank">
-              <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
-                {firstImagePath !== undefined ? fileNameOf(firstImagePath) : t("exif.unknownFilename")}
-              </Text>
-            </Anchor>
-            <Group gap="xs">
-              <Text size="xs" c="dimmed">
-                {fileFacts(photoDetail, locale).join(" · ")}
-              </Text>
-              {hasVariants && (
-                <Anchor
-                  component="button"
-                  type="button"
-                  size="xs"
-                  c="blue"
-                  onClick={() => setShowVariants(!showVariants)}
-                  style={{ cursor: "pointer" }}
-                >
-                  {showVariants ? t("exif.hideFormats") : t("exif.showFormats", { count: nonMainVariants.length })}
-                </Anchor>
-              )}
-              {/* The owner's only, as the editors are (#2277). */}
-              {!isPublic && <AllMetadataButton photo={photoDetail} variant="link" />}
-            </Group>
+      <Group justify="flex-start" wrap="nowrap" align="flex-start" miw={0}>
+        {photoDetail.video ? <Movie {...ROW_ICON} /> : <Photo {...ROW_ICON} />}
+        <Box miw={0}>
+          {/* Plain text that opens the file: a file name, not a call to action. Two lines, so a
+              long camera or stock-site name still reads; the format and category sit under it. */}
+          <Anchor
+            href={mediaUrl.photo(photoDetail.image_hash)}
+            target="_blank"
+            c="var(--mantine-color-text)"
+            underline="hover"
+            size="sm"
+            fw={500}
+            lineClamp={2}
+            className={classes.fileName}
+            title={fileName}
+          >
+            {fileName}
+          </Anchor>
+          <Group gap="xs" mt={2}>
+            <Text size="xs" c="dimmed">
+              {fileFacts(photoDetail, locale).join(" · ")}
+            </Text>
+            {hasVariants && (
+              <Anchor
+                component="button"
+                type="button"
+                size="xs"
+                c="blue"
+                onClick={() => setShowVariants(!showVariants)}
+                style={{ cursor: "pointer" }}
+              >
+                {showVariants ? t("exif.hideFormats") : t("exif.showFormats", { count: nonMainVariants.length })}
+              </Anchor>
+            )}
+          </Group>
+          {/* "JPEG · Photo ⌄", dimmed: the category is the owner's to change (CategoryBadge). */}
+          <div className={classes.formatLine}>
+            {format && <span>{format}</span>}
+            {category}
           </div>
-        </Group>
-        {category}
+        </Box>
       </Group>
 
       {/* File variants shown when toggled */}
@@ -150,7 +168,9 @@ function DuplicatesSection({ duplicates, t }: { duplicates: string[]; t: TFuncti
 
   return (
     <>
-      <Text fw={800}>{t("exif.duplicates")}</Text>
+      <Text size="sm" fw={500}>
+        {t("exif.duplicates")}
+      </Text>
       <Text size="sm" c="dimmed" mb="xs">
         {t("exif.duplicatesManaged")}
       </Text>
@@ -173,11 +193,13 @@ export function VersionComponent(
   props: Readonly<{
     photoDetail: PhotoType;
     isPublic: boolean;
-    /** Shown at the end of the file name row: the owner's category badge. */
+    /** After the file's format under its name: the owner's category control (CategoryBadge, look "text"). */
     category?: React.ReactNode;
+    /** After the camera rows and before "Show more", which then ends the Details: the place. */
+    location?: React.ReactNode;
   }>
 ) {
-  const { photoDetail, isPublic, category } = props;
+  const { photoDetail, isPublic, category, location } = props;
 
   const [showMore, setShowMore] = useState(false);
   const { t } = useTranslation();
@@ -190,27 +212,31 @@ export function VersionComponent(
   const folder = !isPublic && firstImagePath !== undefined ? folderOf(firstImagePath) : null;
   const locale = useFormatLocale();
   const moreRows = cameraDetails(photoDetail, t, locale).more;
-  // No toggle that would open on nothing.
-  const hasMore = folder !== null || moreRows.length > 0 || duplicates.length > 0;
+  // No toggle that would open on nothing. The owner always has All metadata (#2277).
+  const hasMore = !isPublic || folder !== null || moreRows.length > 0 || duplicates.length > 0;
 
   return (
     <div>
       <Stack align="flex-start">
-        <PhotoInfoSection photoDetail={photoDetail} isPublic={isPublic} category={category} t={t} />
+        <PhotoInfoSection photoDetail={photoDetail} category={category} t={t} />
         <CameraInfoSection photoDetail={photoDetail} />
+        {location ? <Box w="100%">{location}</Box> : null}
+        {/* One link ends the Details: the rest of the facts, and every tag of the file under them. On
+            the panel's content edge, like the map above it. */}
         {hasMore && (
           <>
             <Collapse expanded={showMore}>
-              <Stack ml={TEXT_COLUMN}>
+              <Stack align="flex-start">
                 <AdditionalInfoSection folder={folder} rows={moreRows} t={t} />
                 {duplicates.length > 0 && <DuplicatesSection duplicates={duplicates} t={t} />}
+                {/* The owner's only, as the editors are (#2277). */}
+                {!isPublic && <AllMetadataButton photo={photoDetail} variant="link" />}
               </Stack>
             </Collapse>
             <Anchor
               component="button"
               type="button"
               size="xs"
-              ml={TEXT_COLUMN}
               aria-expanded={showMore}
               onClick={() => setShowMore(!showMore)}
             >

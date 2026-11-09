@@ -10,6 +10,10 @@ sidebar_position: 25
 
 It aims to become a full-featured photo album replacement, including features like offline support, backup and sync etc.
 
+:::tip Uploads stay "Queued"
+UhuruPhotos only uploads, even the photos you pick yourself, while **Cloud backup & sync** is on in its account menu and it has every permission it asks for (full photo access, not selected photos only). Check its network and charging requirements for sync too. With sync on, it also uploads every photo of its feed that is not on the server yet. Uploading must also be allowed on the server (**Allow uploads** in the admin settings), and your user needs a scan directory.
+:::
+
 The app is currently in [open beta on the Google Play Store](https://play.google.com/apps/testing/com.savvasdalkitsis.uhuruphotos). You can contact [the author](https://github.com/savvasdalkitsis/) on [gitter](https://app.gitter.im/#/room/#uhuruphotos:gitter.im) or [discord](https://discord.gg/xwRvtSDGWb) for information.
 
 ## LibrePhotos Mobile

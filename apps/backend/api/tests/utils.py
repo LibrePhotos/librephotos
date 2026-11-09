@@ -29,11 +29,11 @@ from api.models import Cluster, Face, File, Person, Photo, User
 from api.models.album_auto import AlbumAuto
 from api.models.album_collection import AlbumCollection
 from api.models.album_comment import AlbumComment, AlbumLike
-from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.duplicate import Duplicate
+from api.models.error_report import ErrorReport
 from api.models.library_folder import LibraryFolder
 from api.models.library_share import LibraryShare
 from api.models.long_running_job import LongRunningJob
@@ -125,6 +125,32 @@ def create_test_person(
         cluster_owner=cluster_owner,
         **kwargs,
     )
+
+
+def create_test_error_report(
+    title: str = "ValueError: boom", **kwargs: Any
+) -> ErrorReport:
+    """A saved error report (#2938) with a small scrubbed event, not sent.
+
+    Each gets its own fingerprint unless one is given, so they never count as
+    repeats of each other.
+    """
+    fields: dict[str, Any] = {
+        "source": ErrorReport.SOURCE_SERVER,
+        "fingerprint": uuid.uuid4().hex,
+        "title": title,
+        "release": "dev",
+        "event": {
+            "event_id": uuid.uuid4().hex,
+            "level": "error",
+            "platform": "python",
+            "release": "dev",
+            "exception": {"values": [{"type": "ValueError", "value": "boom"}]},
+            "tags": {"source": "server"},
+        },
+    }
+    fields.update(kwargs)
+    return ErrorReport.objects.create(**fields)
 
 
 def create_test_library_folder(owner: User, path: str) -> LibraryFolder:
@@ -296,11 +322,33 @@ def create_test_album_collection(
     return collection
 
 
-def create_test_album_date(
-    owner: User, date: datetime.date | None = None, **kwargs: Any
-) -> AlbumDate:
-    """A date album for ``owner``. Without a date it is undated (NULL dates may repeat)."""
-    return AlbumDate.objects.create(owner=owner, date=date, **kwargs)
+def list_days(
+    client: Any, params: dict[str, Any] | None = None
+) -> list[dict[str, Any]]:
+    """The rows of ``GET /api/days/`` with ``params`` (asserted to be a 200)."""
+    response = client.get("/api/days/", params or {})
+    assert response.status_code == 200, response.content
+    return response.json()["results"]
+
+
+def day_photo_ids(
+    client: Any, day: int, params: dict[str, Any] | None = None, limit: int = 100
+) -> list[str]:
+    """The ids of every photo of the day ``day`` (an id from ``/api/days/``)
+    in the view ``params`` name, in order, walking its pages by cursor."""
+    ids: list[str] = []
+    after = None
+    while True:
+        query = {**(params or {}), "limit": limit}
+        if after is not None:
+            query["after"] = after
+        response = client.get(f"/api/days/{day}/photos/", query)
+        assert response.status_code == 200, response.content
+        body = response.json()
+        ids += [item["id"] for item in body["items"]]
+        after = body["next"]
+        if after is None:
+            return ids
 
 
 def create_test_job(

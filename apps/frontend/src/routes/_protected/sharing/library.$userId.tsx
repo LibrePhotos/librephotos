@@ -1,4 +1,3 @@
-import { IconLibraryPhoto } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -36,7 +35,6 @@ function SharedLibrary() {
     <PhotoListView
       title={t("librarySharing.libraryOf", { name })}
       loading={library.loadingPhotos}
-      icon={IconLibraryPhoto}
       photoset={library.groups}
       idx2hash={library.photosFlat}
       updateGroups={library.updateGroups}
@@ -44,7 +42,7 @@ function SharedLibrary() {
       isPublic
       titleBadge={<ReadOnlyBadge />}
       additionalSubHeader={<LibrarySubHeader share={share} />}
-      headerActions={<LibraryMenu share={share} />}
+      headerMenu={<LibraryMenu share={share} />}
       emptyStateConfig={{ title: t("librarySharing.emptyLibrary", { name }), description: "" }}
       error={library.failure}
     />

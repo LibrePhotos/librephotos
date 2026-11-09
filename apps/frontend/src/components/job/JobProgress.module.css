@@ -1,0 +1,30 @@
+/* A thin bar on a neutral track with the count after it: "64 / 64". */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  min-width: 0;
+}
+
+.bar {
+  flex: 1;
+  min-width: 48px;
+  --progress-root-bg: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+/*
+ * A fixed, right-aligned counter cell, so every bar in a list ends at the same x whether the count
+ * reads "2 / 2" or "200 / 200".
+ */
+.count {
+  flex: 0 0 5.5rem;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+/* A finished job's line: dimmed, not the accent (the colour is for running and failed jobs). */
+.quietSection {
+  background-color: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+}

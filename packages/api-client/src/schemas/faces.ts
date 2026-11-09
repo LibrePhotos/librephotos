@@ -52,6 +52,12 @@ export type IncompletePersonFace = z.infer<typeof IncompletePersonFace>;
 export const IncompleteFacesResponse = IncompletePersonFace.array();
 export type IncompleteFacesResponse = z.infer<typeof IncompleteFacesResponse>;
 
+/** GET /api/faces/review-count/: the faces the dashboard's Suggested tab lists. */
+export const FacesReviewCountResponse = z.object({
+  suggested: z.number(),
+});
+export type FacesReviewCountResponse = z.infer<typeof FacesReviewCountResponse>;
+
 /**
  * One relabelled face in the answer of POST /api/labelfaces (FaceListSerializer). `person` is null
  * and `person_name` is "Unknown - Other" for a face moved back to unknown.

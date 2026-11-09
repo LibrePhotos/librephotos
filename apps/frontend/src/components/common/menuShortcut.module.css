@@ -1,0 +1,17 @@
+/* A shortcut hint in a menu row (menuShortcut.tsx): plain dimmed text, no key cap. */
+.shortcut {
+  color: var(--mantine-color-dimmed);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: inherit;
+  letter-spacing: 0.02em;
+
+  &::after {
+    content: attr(data-keys);
+  }
+
+  @media (hover: none) {
+    display: none;
+  }
+}

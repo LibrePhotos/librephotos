@@ -1,4 +1,4 @@
-import { Badge, Menu, UnstyledButton, useMantineTheme } from "@mantine/core";
+import { Badge, Menu, UnstyledButton } from "@mantine/core";
 import {
   IconAlbumOff as AlbumOff,
   IconArchive as Archive,
@@ -22,7 +22,7 @@ import { useNavigate, useRouter } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDuplicateStatsQuery } from "../../api_client/duplicates";
-import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE } from "../../uiConstants";
 import classes from "./PhotosViewSwitcher.module.css";
 
 // The pages whose title is the Photos view switcher.
@@ -48,16 +48,15 @@ export function isPhotosView(pathname: string) {
 // Its own component so the stats are only fetched once the dropdown is open.
 function DuplicatesMenuItem({ onClick }: Readonly<{ onClick: () => void }>) {
   const { t } = useTranslation();
-  const theme = useMantineTheme();
   const { data: stats } = useDuplicateStatsQuery();
   const pending = stats?.pending_duplicates ?? 0;
 
   return (
     <Menu.Item
-      leftSection={<Copy color={theme.colors.yellow[6]} size={ICON_SIZE.menu} />}
+      leftSection={<Copy size={ICON_SIZE.menu} />}
       rightSection={
         pending > 0 ? (
-          <Badge size="sm" variant="light" color="yellow" circle={pending < 10}>
+          <Badge size="sm" variant="light" color="gray" circle={pending < 10}>
             {pending}
           </Badge>
         ) : null
@@ -69,17 +68,17 @@ function DuplicatesMenuItem({ onClick }: Readonly<{ onClick: () => void }>) {
   );
 }
 
-// The page title as a menu of the Photos views, with a check mark on the current one.
+// The page title as a menu of the Photos views, with a check mark on the current one. Its icons are
+// the theme's dimmed ones, like every menu's. The dropdown opens under the title's left edge.
 // `publicName` is the signed-in user's name, for My Public Photos.
 export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: string; publicName: string }>) {
   const { t } = useTranslation();
-  const theme = useMantineTheme();
   const navigate = useNavigate();
   const { pathname } = useRouter().state.location;
-  const currentView = (to: string) => (pathname === to ? <Check size={ICON_SIZE.menu} /> : null);
+  const currentView = (to: string) => (pathname === to ? <Check size={ICON_SIZE.inline} /> : null);
 
   return (
-    <Menu>
+    <Menu position="bottom-start" offset={4}>
       {/* A real button, so the view switcher is reachable from the keyboard. */}
       <Menu.Target>
         <UnstyledButton fz="inherit">
@@ -89,7 +88,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
 
       <Menu.Dropdown>
         <Menu.Item
-          leftSection={<Calendar color={theme.colors.green[6]} size={ICON_SIZE.menu} />}
+          leftSection={<Calendar size={ICON_SIZE.menu} />}
           rightSection={currentView("/")}
           onClick={() => void navigate({ to: "/" })}
         >
@@ -97,7 +96,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<Calendar color={theme.colors.red[6]} size={ICON_SIZE.menu} />}
+          leftSection={<Calendar size={ICON_SIZE.menu} />}
           rightSection={currentView("/notimestamp")}
           onClick={() => void navigate({ to: "/notimestamp" })}
         >
@@ -105,7 +104,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<MapPinOff color={theme.colors.red[6]} size={ICON_SIZE.menu} />}
+          leftSection={<MapPinOff size={ICON_SIZE.menu} />}
           rightSection={currentView("/nolocation")}
           onClick={() => void navigate({ to: "/nolocation" })}
         >
@@ -113,7 +112,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<AlbumOff color={theme.colors.blue[6]} size={ICON_SIZE.menu} />}
+          leftSection={<AlbumOff size={ICON_SIZE.menu} />}
           rightSection={currentView("/noalbum")}
           onClick={() => void navigate({ to: "/noalbum" })}
         >
@@ -130,17 +129,14 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
           {t("sidemenu.recentlyadded")}
         </Menu.Item>
 
-        <Menu.Item
-          leftSection={<Sparkles color={theme.colors.grape[6]} size={ICON_SIZE.menu} />}
-          onClick={() => void navigate({ to: "/memories" })}
-        >
+        <Menu.Item leftSection={<Sparkles size={ICON_SIZE.menu} />} onClick={() => void navigate({ to: "/memories" })}>
           {t("sidemenu.memories")}
         </Menu.Item>
 
         <Menu.Divider />
 
         <Menu.Item
-          leftSection={<EyeOff color={theme.colors.red[6]} size={ICON_SIZE.menu} />}
+          leftSection={<EyeOff size={ICON_SIZE.menu} />}
           rightSection={currentView("/hidden")}
           onClick={() => void navigate({ to: "/hidden" })}
         >
@@ -148,7 +144,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<Archive color={theme.colors.teal[6]} size={ICON_SIZE.menu} />}
+          leftSection={<Archive size={ICON_SIZE.menu} />}
           rightSection={currentView("/archived")}
           onClick={() => void navigate({ to: "/archived" })}
         >
@@ -156,7 +152,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<Star color={FAVORITE_COLOR} size={ICON_SIZE.menu} />}
+          leftSection={<Star size={ICON_SIZE.menu} />}
           rightSection={currentView("/favorites")}
           onClick={() => void navigate({ to: "/favorites" })}
         >
@@ -164,7 +160,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<Photo color={theme.colors.blue[6]} size={ICON_SIZE.menu} />}
+          leftSection={<Photo size={ICON_SIZE.menu} />}
           rightSection={currentView("/photos")}
           onClick={() => void navigate({ to: "/photos" })}
         >
@@ -172,7 +168,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<Video color={theme.colors.pink[6]} size={ICON_SIZE.menu} />}
+          leftSection={<Video size={ICON_SIZE.menu} />}
           rightSection={currentView("/videos")}
           onClick={() => void navigate({ to: "/videos" })}
         >
@@ -180,7 +176,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<Screenshot color={theme.colors.violet[6]} size={ICON_SIZE.menu} />}
+          leftSection={<Screenshot size={ICON_SIZE.menu} />}
           rightSection={currentView("/screenshots")}
           onClick={() => void navigate({ to: "/screenshots" })}
         >
@@ -188,7 +184,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<FileText color={theme.colors.orange[7]} size={ICON_SIZE.menu} />}
+          leftSection={<FileText size={ICON_SIZE.menu} />}
           rightSection={currentView("/documents")}
           onClick={() => void navigate({ to: "/documents" })}
         >
@@ -196,7 +192,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         </Menu.Item>
 
         <Menu.Item
-          leftSection={<Globe color={theme.colors.green[6]} size={ICON_SIZE.menu} />}
+          leftSection={<Globe size={ICON_SIZE.menu} />}
           onClick={() => void navigate({ to: "/public/$users", params: { users: publicName } })}
         >
           {t("sidemenu.mypublicphotos")}
@@ -208,7 +204,7 @@ export function PhotosViewSwitcher({ title, publicName }: Readonly<{ title: stri
         <DuplicatesMenuItem onClick={() => void navigate({ to: "/organizing/$tab", params: { tab: "duplicates" } })} />
 
         <Menu.Item
-          leftSection={<Stacks color={theme.colors.yellow[6]} size={ICON_SIZE.menu} />}
+          leftSection={<Stacks size={ICON_SIZE.menu} />}
           onClick={() => void navigate({ to: "/organizing/$tab", params: { tab: "stacks" } })}
         >
           {t("sidemenu.stacks")}

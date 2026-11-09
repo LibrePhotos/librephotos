@@ -2,6 +2,7 @@ import { Button, Group, Modal, Select, Stack, Text } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import React, { useEffect, useEffectEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import type { MergePerson } from "./PersonMergeModal";
 import { makePersonMergeSchema } from "./PersonMergePickerModal.schema";
 
@@ -38,7 +39,12 @@ export function PersonMergePickerModal({ opened, onClose, person, people, onPick
   });
 
   return (
-    <Modal size="sm" opened={opened} onClose={onClose} title={t("personalbum.mergepickertitle", { name: person.name })}>
+    <Modal
+      size={DIALOG_SIZE.md}
+      opened={opened}
+      onClose={onClose}
+      title={t("personalbum.mergepickertitle", { name: person.name })}
+    >
       {/* A form, so Enter in the search goes on too */}
       <form onSubmit={pick}>
         <Stack>
@@ -54,7 +60,7 @@ export function PersonMergePickerModal({ opened, onClose, person, people, onPick
             {...form.getInputProps("target")}
           />
           <Group justify="flex-end">
-            <Button variant="default" onClick={onClose}>
+            <Button variant="light" onClick={onClose}>
               {t("cancel")}
             </Button>
             <Button disabled={!form.isValid()} type="submit">

@@ -13,6 +13,7 @@ type FacesSearch = {
   orderBy: string;
   minConfidence: number;
   personOrder: string;
+  person?: number;
 };
 
 // The Standard Schema interface TanStack Router validates the search with
@@ -52,6 +53,13 @@ beforeAll(async () => {
 }, 60000);
 
 describe("faces route search", () => {
+  it("narrows to one person from a person page, and ignores a bad id", () => {
+    expect(validate({ person: 5 }).person).toBe(5);
+    expect(validate({}).person).toBeUndefined();
+    expect(validate({ person: "x" }).person).toBeUndefined();
+    expect(validate({ person: -1 }).person).toBeUndefined();
+  });
+
   it("keeps a confidence of 0", () => {
     expect(validate({ minConfidence: 0 }).minConfidence).toBe(0);
   });

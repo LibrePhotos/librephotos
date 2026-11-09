@@ -1,5 +1,5 @@
 /**
- * The selection menu's "Mark as photo / screenshot / document" (issue #2130):
+ * The selection menu's "Mark as ▸ Photo / Screenshot / Document" (issue #2130):
  * by hashes for a plain selection, by the server-side query for select-all,
  * with the excluded tiles left out (placeholders that never loaded have no
  * hash and must not turn the request into a 400).
@@ -129,8 +129,16 @@ function menuItem(label: string) {
   return item;
 }
 
-async function markAs(props: Partial<React.ComponentProps<typeof SelectionActions>>, label: string) {
+async function pick(props: Partial<React.ComponentProps<typeof SelectionActions>>, label: string) {
   await openPhotoActions(props);
+  await act(async () => {
+    menuItem(label).click();
+  });
+}
+
+/** Picks `label` in the Mark as submenu. */
+async function markAs(props: Partial<React.ComponentProps<typeof SelectionActions>>, label: string) {
+  await pick(props, "Mark as");
   await act(async () => {
     menuItem(label).click();
   });
@@ -142,7 +150,7 @@ describe("SelectionActions Mark as", () => {
       {
         selectedItems: [photo(1, "aaa"), photo(2, "bbb", { isTemp: true })],
       },
-      "Mark as document"
+      "Document"
     );
     expect(stubs.setCategory).toHaveBeenCalledWith({ image_hashes: ["aaa"], category: "document" });
   });
@@ -154,7 +162,7 @@ describe("SelectionActions Mark as", () => {
         selectAllQuery: { hide_screenshots: true },
         selectedItems: [photo(1, "aaa"), placeholder],
       },
-      "Mark as photo"
+      "Photo"
     );
     expect(stubs.setCategory).toHaveBeenCalledWith({
       select_all: true,
@@ -167,7 +175,8 @@ describe("SelectionActions Mark as", () => {
 
 describe("SelectionActions rating", () => {
   it("favorites the selection in favorite mode", async () => {
-    await markAs({ selectedItems: [photo(1, "aaa")] }, "Unfavorite");
+    // Every selected photo is a favorite already (4 stars and up): Unfavorite is offered
+    await pick({ selectedItems: [photo(1, "aaa", { rating: 5 })] }, "Unfavorite");
     expect(stubs.setFavorite).toHaveBeenCalledWith({ image_hashes: ["aaa"], favorite: false });
     expect(() => menuItem("Set rating")).toThrow();
   });

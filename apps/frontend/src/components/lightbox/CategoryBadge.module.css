@@ -1,0 +1,27 @@
+/* The photo page's chip: never squeezed by the card title next to it. */
+.badge {
+  flex: none;
+  cursor: pointer;
+}
+
+/* The info panel's plain look: dimmed 12px text, part of the "JPEG · Photo" line, with a small
+   chevron that says it opens a menu. */
+.text {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.4;
+  color: var(--mantine-color-dimmed);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.text:hover {
+  color: var(--mantine-color-text);
+  text-decoration: underline;
+}
+
+.text:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}

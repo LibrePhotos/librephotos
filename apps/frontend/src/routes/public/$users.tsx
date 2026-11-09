@@ -1,6 +1,5 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
-import { IconGlobe as Globe } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -76,7 +75,6 @@ function UserPublicPage() {
       <PhotoListView
         title={userAlbum.title}
         loading={false}
-        icon={Globe}
         // The same array as idx2hash makes a flat grid (see s.$slug.tsx).
         photoset={isUndatedShare(userAlbum.grouped_photos) ? albumPhotos : userAlbum.grouped_photos}
         idx2hash={albumPhotos}
@@ -91,7 +89,6 @@ function UserPublicPage() {
     <PhotoListView
       title={pageTitle}
       loading={isLoading}
-      icon={Globe}
       photoset={photosGroupedByDate ?? []}
       idx2hash={photosFlat}
       isPublic={currentUser?.username !== users}

@@ -1,7 +1,8 @@
-import { Button, Checkbox, Group, Modal, Stack, Text } from "@mantine/core";
+import { Button, Checkbox, FocusTrap, Group, Modal, Stack, Text } from "@mantine/core";
 import { IconDownload as Download } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -28,13 +29,14 @@ export function ModalDownloadOptions(props: Props) {
 
   return (
     <Modal
+      size={DIALOG_SIZE.md}
       styles={modalTitleStyles}
       opened={isOpen}
-      centered
-      size="md"
       onClose={handleClose}
       title={t("download.title")}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack gap="md">
         <Text size="sm">{t("download.selectedcount", { count: photoCount })}</Text>
 
@@ -46,7 +48,7 @@ export function ModalDownloadOptions(props: Props) {
         />
 
         <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={handleClose}>
+          <Button variant="light" onClick={handleClose}>
             {t("cancel")}
           </Button>
           <Button leftSection={<Download size={16} />} onClick={handleConfirm}>

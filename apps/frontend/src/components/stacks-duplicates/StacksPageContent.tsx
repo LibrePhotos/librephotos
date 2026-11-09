@@ -13,9 +13,9 @@ import {
   Badge,
   Box,
   Button,
-  ButtonGroup,
   Card,
   Checkbox,
+  Flex,
   Group,
   Image,
   Menu,
@@ -45,11 +45,14 @@ import {
   useStackStatsQuery,
 } from "../../api_client/stacks";
 import { serverAddress } from "../../api_client/urls";
+import { TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { DisabledReason } from "../common/DisabledReason";
 import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { TabCount } from "../common/TabCount";
+import { toolbarLook } from "../common/toolbarLook";
 import { useListFailure } from "../common/useListFailure";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { StackModal } from "../stacks/StackModal";
@@ -262,7 +265,11 @@ export function StacksPageContent() {
           {/* Type filter */}
           <Menu shadow="md" width={200}>
             <Menu.Target>
-              <Button variant="light" size="sm" rightSection={<IconChevronDown size={14} />}>
+              <Button
+                {...toolbarLook(typeFilter !== undefined)}
+                h={TOOLBAR_CONTROL_HEIGHT}
+                rightSection={<IconChevronDown size={14} />}
+              >
                 {typeFilter ? t(`stacks.types.${typeFilter}`) : t("stacks.types.all")}
               </Button>
             </Menu.Target>
@@ -277,11 +284,7 @@ export function StacksPageContent() {
                 >
                   <Group justify="space-between" style={{ width: "100%" }}>
                     <Text>{type.label}</Text>
-                    {type.value && (
-                      <Badge size="xs" variant="light">
-                        {type.count}
-                      </Badge>
-                    )}
+                    {type.value && <TabCount count={type.count} />}
                   </Group>
                 </Menu.Item>
               ))}
@@ -290,10 +293,15 @@ export function StacksPageContent() {
         </Group>
         {/* Stacked on phones: side by side the two buttons are wider than the screen */}
         <Group gap="xs" w={isPhone ? "100%" : undefined}>
-          <ButtonGroup orientation={isPhone ? "vertical" : "horizontal"} w={isPhone ? "100%" : undefined}>
+          <Flex direction={isPhone ? "column" : "row"} gap={4} w={isPhone ? "100%" : undefined}>
             <Menu shadow="md" width={300}>
               <Menu.Target>
-                <Button variant="outline" size="sm" fullWidth={isPhone} rightSection={<IconChevronDown size={14} />}>
+                <Button
+                  {...toolbarLook()}
+                  h={TOOLBAR_CONTROL_HEIGHT}
+                  fullWidth={isPhone}
+                  rightSection={<IconChevronDown size={14} />}
+                >
                   {t("stacks.detectOptions")}
                 </Button>
               </Menu.Target>
@@ -321,7 +329,8 @@ export function StacksPageContent() {
             {/* Bursts are the only thing to detect: with it unchecked the job would do nothing. */}
             <DisabledReason reason={!detectOptions.detect_bursts && t("stacks.nothingtodetect")}>
               <Button
-                size="sm"
+                variant="light"
+                h={TOOLBAR_CONTROL_HEIGHT}
                 fullWidth={isPhone}
                 leftSection={<IconRefresh size={16} />}
                 onClick={handleDetect}
@@ -330,7 +339,7 @@ export function StacksPageContent() {
                 {t("stacks.detect")}
               </Button>
             </DisabledReason>
-          </ButtonGroup>
+          </Flex>
         </Group>
       </Group>
 

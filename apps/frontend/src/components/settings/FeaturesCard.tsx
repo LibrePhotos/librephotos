@@ -1,5 +1,5 @@
 import type { SiteFeatureName, SiteModelDownload } from "@librephotos/api-client";
-import { Badge, Box, Card, Code, Group, Stack, Switch, Text, Title } from "@mantine/core";
+import { Badge, Box, Code, Group, Stack, Switch, Text, Title } from "@mantine/core";
 import { IconInfoCircle as InfoCircle, IconLock as Lock } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ import {
 import { notification } from "../../service/notifications";
 import { FeatureModelStatus } from "./FeatureModelStatus";
 import classes from "./FeaturesCard.module.css";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { SiteFeatureState } from "./siteFeatures";
 import { envVariable, FEATURE_ROWS, modelStatus } from "./siteFeatures";
@@ -46,7 +47,8 @@ function FeatureDescription({ row, checked, parentOff }: { row: Row; checked: bo
   const off = !checked && !parentOff;
   return (
     <>
-      <Text fz="xs" c="dimmed">
+      {/* A setting's description: 13px at a reading width, as SectionNav.module.css sets Mantine's. */}
+      <Text fz={13} c="dimmed" maw="72ch">
         {t(row.description)}
         {off && ` ${t(row.off)}`}
       </Text>
@@ -145,7 +147,7 @@ export function FeaturesCard() {
   };
 
   return (
-    <Card shadow="md">
+    <SettingsCard>
       <Stack>
         <Stack gap={4}>
           <Title order={4}>
@@ -174,6 +176,6 @@ export function FeaturesCard() {
           return row.parent ? <SubFeature key={row.name}>{featureRow}</SubFeature> : featureRow;
         })}
       </Stack>
-    </Card>
+    </SettingsCard>
   );
 }

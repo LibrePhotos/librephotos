@@ -28,7 +28,6 @@ imports Django's ``Paginator``.
 """
 
 import ast
-import datetime
 import inspect
 import textwrap
 import types
@@ -55,17 +54,16 @@ from api.accounts.permissions import IsSuperUser
 from api.drf.pagination import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
-    DayAlbumPagination,
     DefaultPagination,
+    WholeListPagination,
 )
-from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Tag
+from api.models import AlbumAuto, AlbumPlace, AlbumThing, AlbumUser, Tag
 from api.models.long_running_job import LongRunningJob
 from api.serializers.job import LongRunningJobSerializer
 from api.serializers.tag import TagSerializer
 from api.tests.infra.routes import ApiRoute, api_routes, router_verbs
 from api.tests.utils import (
     create_test_album_auto,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -93,11 +91,11 @@ ROUTER_VERBS: dict[str, set[str]] = {
     "api/manage/user": {"PATCH partial_update"},
     "api/delete/user": {"DELETE destroy"},
     "api/albums/auto/list": {"GET list"},
-    "api/albums/date/list": {"GET list"},
     "api/albums/thing/list": {"GET list"},
     "api/albums/place/list": {"GET list"},
     "api/albums/user/list": {"GET list"},
-    "api/albums/user/edit": {"POST create", "PATCH partial_update"},
+    # DELETE for released clients (UhuruPhotos); the web deletes on api/albums/user.
+    "api/albums/user/edit": {"POST create", "PATCH partial_update", "DELETE destroy"},
     "api/albums/user/shared/tome": {"GET list"},
     "api/albums/user/shared/fromme": {"GET list"},
     # PATCH sets the cover (#429).
@@ -108,6 +106,10 @@ ROUTER_VERBS: dict[str, set[str]] = {
         "POST delete_all",
     },
     "api/folders": {"GET subfolders"},
+    # The timeline's days: the list, a day's photos (by cursor) and its layout.
+    "api/days": {"GET list", "GET photos", "GET layout"},
+    # The date albums #2920 removed, read-only for released clients.
+    "api/albums/date/list": {"GET list"},
     "api/albums/date": {"GET retrieve"},
     "api/albums/thing": {"GET retrieve"},
     "api/albums/place": {"GET retrieve"},
@@ -316,11 +318,11 @@ class RouterVerbsTest(SimpleTestCase):
         )
 
     def test_a_viewset_dropping_a_pinned_verb_is_caught(self):
-        expected = {**ROUTER_VERBS, "api/albums/date": {"GET retrieve", "GET list"}}
+        expected = {**ROUTER_VERBS, "api/albums/thing": {"GET retrieve", "GET list"}}
 
         self.assertEqual(
             router_verb_drift(router, expected),
-            ["api/albums/date: no longer serves ['GET list']"],
+            ["api/albums/thing: no longer serves ['GET list']"],
         )
 
 
@@ -403,9 +405,7 @@ class RemovedVerbsTest(TestCase):
             "place": create_test_album_place(
                 title="Berlin", geolocation_level=1, owner=admin
             ).pk,
-            "date": create_test_album_date(
-                date=datetime.date(2021, 3, 4), owner=admin
-            ).pk,
+            "day": 20210304,
             "user_album": create_test_album_user(title="Trip", owner=admin).pk,
             "person": create_test_person(name="Ana", cluster_owner=admin).pk,
             "tag": create_test_tag(name="beach", owner=admin).pk,
@@ -445,15 +445,20 @@ class RemovedVerbsTest(TestCase):
             ("get", "/api/albums/user/", 404),
             ("post", "/api/albums/user/", 404),
             ("put", f"/api/albums/user/{ids['user_album']}/", 405),
-            ("post", "/api/albums/date/", 404),
-            ("post", "/api/albums/date/?public=1", 404),
-            ("put", f"/api/albums/date/{ids['date']}/", 405),
-            ("patch", f"/api/albums/date/{ids['date']}/", 405),
-            ("delete", f"/api/albums/date/{ids['date']}/", 405),
+            ("post", "/api/days/", 405),
+            ("post", "/api/days/?public=1", 405),
+            ("get", f"/api/days/{ids['day']}/", 404),
+            ("put", f"/api/days/{ids['day']}/photos/", 405),
+            ("patch", f"/api/days/{ids['day']}/photos/", 405),
+            ("delete", f"/api/days/{ids['day']}/photos/", 405),
+            ("post", f"/api/days/{ids['day']}/layout/", 405),
+            # The legacy date albums are read-only.
+            ("post", "/api/albums/date/list/", 405),
+            ("post", f"/api/albums/date/{ids['day']}/", 405),
+            ("delete", f"/api/albums/date/{ids['day']}/", 405),
             ("get", "/api/albums/user/edit/", 405),
             ("get", f"/api/albums/user/edit/{ids['user_album']}/", 405),
             ("put", f"/api/albums/user/edit/{ids['user_album']}/", 405),
-            ("delete", f"/api/albums/user/edit/{ids['user_album']}/", 405),
             ("post", "/api/jobs/", 405),
             ("put", f"/api/jobs/{ids['job']}/", 405),
             ("patch", f"/api/jobs/{ids['job']}/", 405),
@@ -476,7 +481,6 @@ class RemovedVerbsTest(TestCase):
                 AlbumAuto,
                 AlbumThing,
                 AlbumPlace,
-                AlbumDate,
                 AlbumUser,
                 Tag,
                 LongRunningJob,
@@ -497,7 +501,11 @@ class RemovedVerbsTest(TestCase):
         ids = self.ids
         for method, url in (
             ("get", f"/api/albums/auto/{ids['auto']}/"),
-            ("get", f"/api/albums/date/{ids['date']}/"),
+            ("get", "/api/days/"),
+            ("get", f"/api/days/{ids['day']}/photos/"),
+            ("get", f"/api/days/{ids['day']}/layout/"),
+            ("get", "/api/albums/date/list/"),
+            ("get", f"/api/albums/date/{ids['day']}/"),
             ("get", f"/api/albums/user/{ids['user_album']}/"),
             ("get", "/api/persons/"),
             ("get", f"/api/persons/{ids['person']}/"),
@@ -610,6 +618,11 @@ STAFF_ONLY_VIEWS = {
     "api.views.dataviz.ServerStatsView",
     "api.views.email_config.EmailConfigView",
     "api.views.email_config.EmailTestView",
+    "api.views.error_reports.ErrorReportDetailView",
+    "api.views.error_reports.ErrorReportDownloadView",
+    "api.views.error_reports.ErrorReportListView",
+    "api.views.error_reports.ErrorReportSendAllView",
+    "api.views.error_reports.ErrorReportSendView",
     "api.views.library_folders.ManageLibraryFolderView",
     "api.views.library_folders.ManageLibraryFoldersView",
     "api.views.scan_triggers.DeduplicateFacesView",
@@ -1285,9 +1298,14 @@ class AccessByRoleTest(TestCase):
 # List routes that answer every row at once, and why. Every other list pages
 # with api.drf.pagination.DefaultPagination or one of its presets.
 UNPAGINATED_LIST_VIEWS: dict[str, str] = {
-    "api.views.albums.AlbumDateListViewSet": (
+    "api.views.days.DayViewSet": (
         "the timeline's index, one row per day without its photos; the "
-        "clients lay the whole timeline out from it"
+        "clients lay the whole timeline out from it, and a day's photos page "
+        "by cursor (/api/days/<id>/photos/)"
+    ),
+    "api.views.legacy_date_albums.LegacyDateAlbumListViewSet": (
+        "the day list in the date-album shape released clients read whole; "
+        "a day's photos page (/api/albums/date/<id>/?page=)"
     ),
     "api.views.gallery.GalleryDayViewSet": (
         "the public gallery's timeline index, one row per day without its "
@@ -1539,7 +1557,7 @@ class PaginationConventionTest(SimpleTestCase):
 
     def test_presets_live_in_one_module_and_keep_the_one_envelope(self):
         presets = pagination_subclasses()
-        self.assertIn(DayAlbumPagination, presets)
+        self.assertIn(WholeListPagination, presets)
         self.assertEqual(preset_problems(presets), [])
 
     def test_a_preset_with_its_own_envelope_is_caught(self):

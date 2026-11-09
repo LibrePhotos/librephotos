@@ -217,7 +217,7 @@ describe("the public gallery page", () => {
     await render({ tab: "places", owner: 2 });
     const tile = defined(container.querySelector("[data-testid=tile]"));
     expect(tile.textContent).toContain("Munich");
-    expect(tile.textContent).toContain("3 Photos");
+    expect(tile.textContent).toContain("3 photos");
     expect(tile.querySelector("[aria-label='Anna Berger']")).not.toBeNull();
     expect(tile.querySelector("a")?.dataset.search).toBe(JSON.stringify({ owner: 2, place: "Munich" }));
   });

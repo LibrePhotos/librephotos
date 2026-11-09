@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { AttributionControl, Layer, Marker, NavigationControl, Source } from "react-map-gl/maplibre";
 import type { ResolvedMapStyle } from "../../util/mapStyle";
 import { MapResizeHandle } from "./MapResizeHandle";
+import classes from "./PlacesPhotoMap.module.css";
 import { SpotCard, SpotRing } from "./SpotCard";
 import { SpotLightbox } from "./SpotLightbox";
 import { ThemedMap } from "./ThemedMap";
@@ -11,6 +12,11 @@ import { CLUSTER_MAX_ZOOM, type usePlacesMap } from "./usePlacesMap";
 
 /** How tall the Places map can be made with its grip, in pixels. */
 export const PLACES_MAP_HEIGHTS = { min: 240, max: 560 } as const;
+
+/** The map's height until its grip is dragged: 40 % of the window, from 320 to 480 px. */
+export function defaultPlacesMapHeight(windowHeight: number): number {
+  return Math.round(Math.min(480, Math.max(320, windowHeight * 0.4)));
+}
 
 type Props = Readonly<{
   placesMap: ReturnType<typeof usePlacesMap>;
@@ -47,6 +53,9 @@ export function PlacesPhotoMap({
         <ThemedMap
           ref={placesMap.setMapRef}
           h={height}
+          className={classes.map}
+          // One world, fitted to the photos: a wide map repeated the continents side by side
+          renderWorldCopies={false}
           initialViewState={placesMap.initialViewState}
           mapStyle={mapStyle}
           onMoveEnd={placesMap.onMoveEnd}
@@ -55,7 +64,7 @@ export function PlacesPhotoMap({
           interactiveLayerIds={["clusters", "unclustered-point"]}
           attributionControl={false}
         >
-          <NavigationControl position="top-right" />
+          <NavigationControl position="top-right" showCompass={false} />
           <AttributionControl compact={true} />
           <Source
             id="locations"

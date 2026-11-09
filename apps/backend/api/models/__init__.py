@@ -1,7 +1,6 @@
 from api.models.album_auto import AlbumAuto
 from api.models.album_collection import AlbumCollection
 from api.models.album_comment import AlbumComment, AlbumLike
-from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import (
@@ -16,6 +15,7 @@ from api.models.copy_budget import CopyBudget
 from api.models.deletion_log import DeletionLog
 from api.models.duplicate import Duplicate
 from api.models.email_config import EmailConfig
+from api.models.error_report import ErrorReport
 from api.models.face import Face
 from api.models.file import File, FileCopy
 from api.models.library_folder import LibraryFolder
@@ -43,7 +43,6 @@ __all__ = [
     "AlbumCollection",
     "AlbumComment",
     "AlbumLike",
-    "AlbumDate",
     "AlbumPlace",
     "AlbumThing",
     "AlbumRole",
@@ -56,6 +55,7 @@ __all__ = [
     "DeletionLog",
     "Duplicate",
     "EmailConfig",
+    "ErrorReport",
     "Face",
     "LibraryFolder",
     "LibraryShare",

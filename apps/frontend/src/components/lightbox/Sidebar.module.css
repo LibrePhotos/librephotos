@@ -1,0 +1,229 @@
+/* The info panel. It sits in the viewer's dark scope (ViewerDarkScope), so the theme's dark values
+   apply in either colour scheme. On a phone it is a raised near-black sheet over the lower part of
+   the photo; from md on, a 360px column beside it on the stage's own black, set apart by a faint
+   hairline, as Immich has it (two different blacks side by side read as a seam). */
+.panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 250;
+  height: 65dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: normal;
+  padding: 0 var(--mantine-spacing-md) calc(var(--mantine-spacing-md) + env(safe-area-inset-bottom));
+  background-color: var(--mantine-color-dark-8);
+  border-top: 1px solid var(--app-scrim-white-8);
+  border-radius: 16px 16px 0 0;
+  overscroll-behavior: contain;
+  /* A drag on the handle moves it with the finger (useSheetDrag). */
+  translate: 0 var(--sheet-drag, 0px);
+}
+
+/* The handle and the heading. On a phone they stay at the top of the sheet while the details
+   scroll under them, and a drag on them closes it. */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 calc(-1 * var(--mantine-spacing-md)) var(--mantine-spacing-lg);
+  padding: 0 var(--mantine-spacing-md) var(--mantine-spacing-xs);
+  background-color: var(--mantine-color-dark-8);
+  touch-action: none;
+}
+
+.handle {
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 6px;
+  border-radius: 2px;
+  background-color: var(--mantine-color-dark-3);
+}
+
+/* md, Mantine's 62em: where the panel used to switch too. */
+@media (min-width: 62em) {
+  .panel {
+    position: relative;
+    flex: 0 0 360px;
+    width: 360px;
+    height: 100%;
+    /* The viewer's black shows through (ContentViewer's .viewer). */
+    background-color: transparent;
+    border-top: 0;
+    border-left: 1px solid var(--app-scrim-white-8);
+    border-radius: 0;
+    padding-bottom: var(--mantine-spacing-md);
+    translate: none;
+  }
+
+  /* A column beside the photo: the heading scrolls with it, nothing to drag. */
+  .top {
+    position: static;
+    padding-top: var(--mantine-spacing-md);
+    background-color: transparent;
+    touch-action: auto;
+  }
+
+  .handle {
+    display: none;
+  }
+}
+
+.header {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* An empty field the owner can fill: "Add a caption", "Add tags". */
+.placeholder {
+  font-size: var(--mantine-font-size-sm);
+  color: var(--mantine-color-dimmed);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.placeholder:hover {
+  color: var(--mantine-color-text);
+  text-decoration: underline;
+}
+
+/* The location's map: a rounded tile, as in Apple Photos. */
+.map {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* The faces of the photo: 64px rounded crops with the name in 12px under them, four to a row in the
+   panel, as Immich shows them. */
+.faceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 12px 8px;
+}
+
+.faceTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.faceButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px;
+  border-radius: var(--mantine-radius-md);
+  color: inherit;
+}
+
+/*
+ * A face crop is turned upright by the server, which leaves black wedges in its corners when the
+ * head was tilted; a slight zoom keeps them outside the rounded box (the face stays centred).
+ */
+.faceImage {
+  transform: scale(1.18);
+}
+
+.faceButton:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}
+
+.faceName {
+  width: 100%;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Detect faces again found it just now (#1117): a small tag on the crop's lower edge */
+.faceNew {
+  position: absolute;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* A face's ⋮ (confirm, rename, not this person, delete) on the crop's top-right corner, shown on
+   hover or focus, so the list reads as faces and names. A touch screen has no hover: there it
+   stays. */
+.faceActions {
+  position: absolute;
+  top: 0;
+  right: calc(50% - 36px);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.faceTile:hover .faceActions,
+.faceTile:focus-within .faceActions,
+.faceActions:has([aria-expanded="true"]) {
+  opacity: 1;
+}
+
+/* Nested to outrank ActionIcon's own colours whatever order the stylesheets load in */
+.faceActions .faceMenuButton {
+  background-color: var(--app-scrim-black-60);
+  color: var(--mantine-color-white);
+}
+
+.faceActions .faceMenuButton:hover {
+  background-color: var(--app-scrim-black-90);
+}
+
+@media (hover: none) {
+  .faceActions {
+    opacity: 1;
+  }
+}
+
+/* A detail row's icon (date, file, camera, place): small and dimmed, level with the first line. */
+.rowIcon {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* The file name: up to two lines, broken anywhere, and the whole of it on hover. */
+/* "JPEG · Photo ⌄" under the file name: dimmed 12px, a dot between whichever parts there are. */
+.formatLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 2px;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.4;
+  color: var(--mantine-color-dimmed);
+}
+
+.formatLine:empty {
+  display: none;
+}
+
+.formatLine > * + *::before {
+  content: "·";
+  display: inline-block;
+  /* The category's button adds its 2px gap after the dot. */
+  margin: 0 2px 0 4px;
+  color: var(--mantine-color-dimmed);
+}
+
+.fileName {
+  word-break: break-all;
+}
+
+/* A line of the place row: one line, cut short with an ellipsis (the whole name is its hover). */
+.placeLine {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -160,7 +160,7 @@ export function CheckFileContentsResults({ result }: Props) {
   const { t } = useTranslation();
   const changed = result.new_picture + result.same_picture + result.similar_picture + result.uncomparable;
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Stack>
         <div>
           <Title order={4}>{t("checkfilecontents.results")}</Title>

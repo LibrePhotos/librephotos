@@ -7,6 +7,8 @@ import { NotFoundPage, RouteErrorPage } from "./RouteFallbacks";
 
 const stubs = vi.hoisted(() => ({ navigate: vi.fn<(options: { to: string }) => void>() }));
 
+// The real one loads the Sentry SDK on the first error, which this suite does not need (#2938).
+vi.mock("../../service/errorReporting/reportBrowserError", () => ({ reportBrowserError: () => undefined }));
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => stubs.navigate,
 }));

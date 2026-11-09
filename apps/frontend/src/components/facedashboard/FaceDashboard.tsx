@@ -1,7 +1,6 @@
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
-import { RemoveScroll, Stack } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
-import { IconFaceId } from "@tabler/icons-react";
+import { Group, RemoveScroll, Stack } from "@mantine/core";
+import { useCallbackRef, useDisclosure } from "@mantine/hooks";
 import { getRouteApi } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -11,15 +10,18 @@ import {
   useRestoreFacesMutation,
   useSetFacesPersonLabelMutation,
 } from "../../api_client/faces";
-import { TOP_MENU_HEIGHT } from "../../uiConstants";
+import { PAGE_GUTTER_PX, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { usePersonGroupFilter } from "../album/usePersonGroupFilter";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { PageHeader } from "../PageHeader";
 import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { FaceActionDialogs } from "./FaceActionDialogs";
+import { isFoldable } from "./faceGridRows";
+import type { FacesTabLists } from "./facesCounters";
 import { FacesEmptyState } from "./FacesEmptyState";
 import type { FacesTab } from "./facesTab";
+import toolbarClasses from "./FacesToolbar.module.css";
 import { faceVideoStart, withFaceVideoStart } from "./faceVideoStart";
 import type { FaceVideoStart } from "./faceVideoStart";
 import { HeaderButtons } from "./HeaderButtons";
@@ -30,11 +32,17 @@ import type { FaceGroupPage } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
-import type { FaceCell, GridCell } from "./hooks/useVirtualizedGrid";
+import type { FaceCell, FaceSelection, GridCell } from "./hooks/useVirtualizedGrid";
 import { TabComponent } from "./TabComponent";
 import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 
 const routeApi = getRouteApi("/_protected/faces");
+
+/** The name of the person the page is narrowed to ("" until a list holding them loads), if any. */
+function personFilterName(lists: FacesTabLists, person: number | undefined): string | undefined {
+  if (person === undefined) return undefined;
+  return [...lists.labeled, ...lists.inferred, ...lists.deleted].find(group => group.id === person)?.name ?? "";
+}
 
 export function FaceDashboard() {
   // Columns are laid out in the grid's content box (the container pads it), so size them from that
@@ -63,8 +71,23 @@ export function FaceDashboard() {
   // Opened from a face in a later frame of a video: the video starts there (#2762).
   const [lightboxStart, setLightboxStart] = useState<FaceVideoStart | null>(null);
 
-  const { lists, fetchingLabeledFacesList, fetchingInferredFacesList, fetchingDeletedFacesList, idx2hash } =
-    useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence, personOrder, groupId);
+  const {
+    lists,
+    fetchingLabeledFacesList,
+    fetchingInferredFacesList,
+    fetchingDeletedFacesList,
+    idx2hash,
+    listsVersion,
+  } = useFaceDataFetching(
+    groups,
+    activeTab,
+    analysisMethod,
+    orderBy,
+    minConfidence,
+    personOrder,
+    groupId,
+    search.person
+  );
 
   const showLightbox = useCallback(
     (imageId: string, isValid: boolean) => {
@@ -89,17 +112,15 @@ export function FaceDashboard() {
   const faceActions = useFaceActions();
   const { clearPending } = faceActions;
 
-  // Event handlers
-  const handleShowClick = useCallback(
-    (event: React.MouseEvent, item: FaceCell) => {
-      // Like idx2hash: the server never sends a face without its photo.
-      const photoId = item.photo ?? "";
-      const index = idx2hash.findIndex(image => image.id === photoId);
-      setLightboxStart(faceVideoStart(lists[activeTab], item));
-      showLightbox(photoId, index >= 0);
-    },
-    [idx2hash, showLightbox, lists, activeTab]
-  );
+  // Event handlers. One function for the dashboard's lifetime: the faces are memoized, and a new
+  // handler on every list change would draw each face on screen again after every edit.
+  const handleShowClick = useCallbackRef((event: React.MouseEvent, item: FaceCell) => {
+    // Like idx2hash: the server never sends a face without its photo.
+    const photoId = item.photo ?? "";
+    const index = idx2hash.findIndex(image => image.id === photoId);
+    setLightboxStart(faceVideoStart(lists[activeTab], item));
+    showLightbox(photoId, index >= 0);
+  });
   const lightboxItems = useMemo(() => withFaceVideoStart(idx2hash, lightboxStart), [idx2hash, lightboxStart]);
 
   // Debounced localStorage save - doesn't trigger re-renders, just persists position
@@ -163,7 +184,8 @@ export function FaceDashboard() {
     setSelectedFaces,
     analysisMethod,
     width,
-    collapsedPersons
+    collapsedPersons,
+    listsVersion
   );
 
   const handleToggleCollapse = useCallback(
@@ -171,16 +193,12 @@ export function FaceDashboard() {
     [activeTab, toggleCollapsed]
   );
 
-  // Update the grid utilities with actual implementation after grid is initialized
+  // Give the grid utilities the grid's cells once it is initialized. getFacesInRange reads them
+  // through getFlattenedCells and stays the same function: the selection's click handler is built
+  // on it, and a new one on every render drew every face on screen again.
   useEffect(() => {
     gridUtils.getFlattenedCells = virtualGrid.getFlattenedCells;
-    gridUtils.getFacesInRange = (start, end) => {
-      const allFaces = virtualGrid.getFlattenedCells();
-      const startIndex = allFaces.indexOf(start);
-      const endIndex = allFaces.indexOf(end);
-      return allFaces.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
-    };
-  }, [gridUtils, virtualGrid]);
+  }, [gridUtils, virtualGrid.getFlattenedCells]);
 
   // Action handlers
   const deleteSelectedFaces = useCallback(() => {
@@ -198,6 +216,15 @@ export function FaceDashboard() {
       clearSelection();
     }
   }, [selectedFaces, restoreFacesMutate, clearSelection]);
+
+  // "Add a name" on a cluster: its faces become the selection the Label faces dialog names
+  const nameGroup = useCallback(
+    (faces: FaceSelection[]) => {
+      setSelectedFaces(faces);
+      openModalPersonEdit();
+    },
+    [setSelectedFaces, openModalPersonEdit]
+  );
 
   const notThisPersonFunc = useCallback(() => {
     if (selectedFaces.length > 0) {
@@ -239,36 +266,42 @@ export function FaceDashboard() {
   const currentTabList = lists[activeTab];
   const hasFaces = currentTabList.length > 0;
   const collapsedInActiveTab = collapsedPersons[activeTab];
-  const allCollapsed = hasFaces && currentTabList.every(person => collapsedInActiveTab.has(person.id));
+  // Only a group with more faces than its tile shows folds
+  const foldable = useMemo(() => currentTabList.filter(isFoldable), [currentTabList]);
+  const allCollapsed = foldable.length > 0 && foldable.every(person => collapsedInActiveTab.has(person.id));
 
   const toggleAllCollapsed = useCallback(() => {
-    setCollapsedForTab(activeTab, allCollapsed ? [] : currentTabList.map(person => person.id));
-  }, [activeTab, allCollapsed, currentTabList, setCollapsedForTab]);
+    setCollapsedForTab(activeTab, allCollapsed ? [] : foldable.map(person => person.id));
+  }, [activeTab, allCollapsed, foldable, setCollapsedForTab]);
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
-      <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
-        <PageHeader icon={IconFaceId} title={t("sidemenu.facerecognition")} />
-        <TabComponent
-          fetchingLabeledFacesList={fetchingLabeledFacesList}
-          fetchingInferredFacesList={fetchingInferredFacesList}
-          fetchingDeletedFacesList={fetchingDeletedFacesList}
-          lists={lists}
-        />
-        <HeaderButtons
-          selectMode={selectedFaces.length > 0}
-          selectedFaces={selectedFaces}
-          changeSelectMode={clearSelection}
-          addFaces={() => selectedFaces.length > 0 && openModalPersonEdit()}
-          deleteFaces={deleteSelectedFaces}
-          notThisPerson={notThisPersonFunc}
-          restoreFaces={restoreSelectedFaces}
-          allCollapsed={allCollapsed}
-          toggleAllCollapsed={toggleAllCollapsed}
-          canCollapse={hasFaces}
-          personGroups={personGroups}
-          groupId={groupId}
-        />
+      <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`} gap="xs">
+        <PageHeader title={t("sidemenu.facerecognition")} />
+        {/* One toolbar row: the tabs, then Sort, Filter and the tools, or what to do with a selection */}
+        <Group px={PAGE_GUTTER_PX} justify="space-between" gap="xs" className={toolbarClasses.toolbar}>
+          <TabComponent
+            fetchingLabeledFacesList={fetchingLabeledFacesList}
+            fetchingInferredFacesList={fetchingInferredFacesList}
+            fetchingDeletedFacesList={fetchingDeletedFacesList}
+            lists={lists}
+          />
+          <HeaderButtons
+            selectMode={selectedFaces.length > 0}
+            selectedFaces={selectedFaces}
+            changeSelectMode={clearSelection}
+            addFaces={() => selectedFaces.length > 0 && openModalPersonEdit()}
+            deleteFaces={deleteSelectedFaces}
+            notThisPerson={notThisPersonFunc}
+            restoreFaces={restoreSelectedFaces}
+            allCollapsed={allCollapsed}
+            toggleAllCollapsed={toggleAllCollapsed}
+            canCollapse={foldable.length > 0}
+            personGroups={personGroups}
+            groupId={groupId}
+            personFilter={personFilterName(lists, search.person)}
+          />
+        </Group>
         {!isFetching && !hasFaces ? (
           <FacesEmptyState
             activeTab={activeTab}
@@ -279,8 +312,6 @@ export function FaceDashboard() {
           <VirtualizedGridComponent
             containerRef={ref}
             gridRef={virtualGrid.gridRef}
-            entrySquareSize={virtualGrid.entrySquareSize}
-            numEntrySquaresPerRow={virtualGrid.numEntrySquaresPerRow}
             gridHeight={virtualGrid.gridHeight}
             getCellContentsForTab={virtualGrid.getCellContentsForTab}
             getScrollPositions={virtualGrid.getScrollPositions}
@@ -294,11 +325,12 @@ export function FaceDashboard() {
             selectedFaces={virtualGrid.selectedFaces}
             setSelectedFaces={virtualGrid.setSelectedFaces}
             activeTab={activeTab}
-            collapsedPersons={collapsedInActiveTab}
+            layout={virtualGrid.layout}
             onToggleCollapse={handleToggleCollapse}
             faceActions={faceActions.actions}
             pendingFaceIds={faceActions.pendingFaceIds}
             showScrubber={personOrder === "name"}
+            onNameGroup={nameGroup}
           />
         )}
         <ModalPersonEdit

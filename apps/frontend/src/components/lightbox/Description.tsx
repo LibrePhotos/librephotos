@@ -1,7 +1,7 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
-import { ActionIcon, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
-import { IconCheck, IconPencil, IconX, IconNote as Note, IconWand as Wand } from "@tabler/icons-react";
+import { IconCheck, IconPencil, IconX, IconWand as Wand } from "@tabler/icons-react";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -17,6 +17,8 @@ import { fuzzyMatch } from "../../util/util";
 import { AISuggestionButton } from "./AISuggestionButton";
 import classes from "./Description.module.css";
 import hashtagClasses from "./Hashtag.module.css";
+import { SectionTitle } from "./SectionTitle";
+import sectionClasses from "./Sidebar.module.css";
 import suggestion from "./Suggestion";
 import { ThingBadges } from "./ThingBadges";
 import { UnsavedBadge } from "./UnsavedBadge";
@@ -76,12 +78,7 @@ function CaptionHeader({
   return (
     <Group justify="space-between" wrap="nowrap">
       <Group gap="xs" wrap="nowrap">
-        {heading ?? (
-          <Group>
-            <Note />
-            <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
-          </Group>
-        )}
+        {heading ?? <SectionTitle>{t("lightbox.sidebar.caption")}</SectionTitle>}
         {dirty && <UnsavedBadge />}
       </Group>
       {/* Same controls, in the same place, as the tags and keywords below. */}
@@ -141,9 +138,28 @@ function CaptionHeader({
   );
 }
 
+/**
+ * No caption yet: the owner gets a quiet "Add a caption" that opens the editor, as Google Photos and
+ * Immich have it; anyone else is told there is none.
+ */
+function EmptyField({ isPublic, onAdd }: Readonly<{ isPublic: boolean; onAdd: () => void }>) {
+  const { t } = useTranslation();
+  if (isPublic) {
+    return (
+      <Text size="sm" c="dimmed">
+        {t("lightbox.sidebar.noCaption")}
+      </Text>
+    );
+  }
+  return (
+    <UnstyledButton className={sectionClasses.placeholder} onClick={onAdd}>
+      {t("lightbox.sidebar.addCaption")}
+    </UnstyledButton>
+  );
+}
+
 function CaptionEditor(props: Props) {
   const { photoDetail, isPublic, heading, startEditing = false } = props;
-  const { t } = useTranslation();
   // Only the owner edits, so only the owner needs the hashtag suggestions; a
   // public visitor's request for them is refused anyway.
   const { data: thingAlbums } = useFetchThingsAlbumsQuery(isPublic);
@@ -270,11 +286,7 @@ function CaptionEditor(props: Props) {
             />
           </div>
         )}
-        {isEmpty && (
-          <Text size="sm" c="dimmed">
-            {t("lightbox.sidebar.noCaption")}
-          </Text>
-        )}
+        {isEmpty && <EmptyField isPublic={isPublic} onAdd={() => setEditing(true)} />}
         {/* Hidden rather than unmounted when empty, so the editor keeps its view. */}
         <RichTextEditor
           editor={editor}

@@ -41,7 +41,6 @@ function NotInAlbumPhotosView() {
     <PhotoListView
       title={t("photos.notinalbum")}
       loading={photosQuery.status === "pending"}
-      icon={AlbumOff}
       photoset={photosFlat}
       idx2hash={photosFlat}
       numberOfItems={photosFlat.length}

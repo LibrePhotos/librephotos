@@ -1,6 +1,5 @@
 import type { Photo } from "@librephotos/api-client";
 import { Paper } from "@mantine/core";
-import { IconMovie, IconPhoto } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { TimestampEditActions, TimestampEditForm } from "../lightbox/TimestampItem";
@@ -43,7 +42,6 @@ export function PhotoPageHeader({ photo, isOwner }: Props) {
   return (
     <>
       <PageHeader
-        icon={photo.video ? IconMovie : IconPhoto}
         title={date?.date ?? t("lightbox.sidebar.withouttimestamp")}
         subtitle={subtitle || undefined}
         actions={isOwner && !editor.editMode ? <TimestampEditActions editor={editor} /> : undefined}

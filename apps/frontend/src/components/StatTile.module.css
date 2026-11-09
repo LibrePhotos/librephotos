@@ -1,0 +1,45 @@
+/* A stat tile (StatTile.tsx): the accent icon and a small dimmed label over a large number. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  min-width: 0;
+  color: var(--mantine-color-dimmed);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--mantine-primary-color-filled);
+}
+
+.labelText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail {
+  font-size: 13px;
+}
+
+/* A HoverCard target around a tile keeps the tile's full height in its grid cell */
+.fill {
+  height: 100%;
+}

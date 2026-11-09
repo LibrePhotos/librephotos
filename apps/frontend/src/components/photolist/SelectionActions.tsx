@@ -4,11 +4,6 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
   IconDownload as Download,
-  IconFileText as FileText,
-  IconGlobe as Globe,
-  IconKey as Key,
-  IconPhoto as Photo,
-  IconScreenshot as Screenshot,
   IconShare as Share,
   IconTrash as Trash,
 } from "@tabler/icons-react";
@@ -35,10 +30,11 @@ import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
 import { SelectionFileItems } from "./FileActionItems";
 import { SelectionEditDialogs } from "./SelectionEditDialogs";
-import { SelectionEditItems } from "./SelectionEditItems";
+import { SelectionEditItems, SelectionMarkAsItems } from "./SelectionEditItems";
 import { selectionLabel } from "./selectionLabel";
+import { SelectionQuickActions } from "./SelectionQuickActions";
 import { SelectionRatingItems } from "./SelectionRatingItems";
-import { SelectionVisibilityItems } from "./SelectionVisibilityItems";
+import { pairFor, SelectionPublicItems, SelectionVisibilityItems, type Pair } from "./SelectionVisibilityItems";
 import { StackSelectionActions } from "./StackSelectionActions";
 import { useSelectionEditDialogs } from "./useSelectionEditDialogs";
 
@@ -132,6 +128,26 @@ export function SelectionActions(props: Readonly<Props>) {
     resetSelection();
   };
 
+  // Making photos public copies their absolute links (shareMediaUrl: the origin plus the subpath, no
+  // ".jpg": the same link serves videos too). After Select all there are no hashes to copy.
+  const setPublic = (isPublic: boolean) => {
+    setPhotosPublic.mutate({ ...photoSelection(), val_public: isPublic });
+    if (isPublic && !selectAllMode) {
+      copyToClipboard(
+        getImageHashes()
+          .map(hash => shareMediaUrl.photo(hash))
+          .join("\n")
+      );
+    }
+    resetSelection();
+  };
+
+  // Archive or Unarchive: one of them when every selected tile says whether it is archived. After
+  // Select all only the Archive page's are known to be.
+  const onArchivePage = location.pathname.startsWith("/archived");
+  let archivePair: Pair = pairFor(selectedItems.filter(item => !item.isTemp).map(item => item.archived));
+  if (selectAllMode) archivePair = onArchivePage ? "off" : "both";
+
   // Download modal state
   const [isDownloadModalOpen, { open: openDownloadModal, close: closeDownloadModal }] = useDisclosure(false);
   const [isRemoveFromPersonOpen, { open: openRemoveFromPerson, close: closeRemoveFromPerson }] = useDisclosure(false);
@@ -147,26 +163,12 @@ export function SelectionActions(props: Readonly<Props>) {
     : getImageHashes().length;
 
   const handleDownloadConfirm = (options: { includeStackedPhotos: boolean }) => {
-    if (selectAllMode) {
-      downloadPhotoArchive.mutate({
-        select_all: true,
-        query: selectAllQuery ?? {},
-        excluded_hashes: getExcludedHashes(),
-        userId,
-        includeStackedPhotos: options.includeStackedPhotos,
-      });
-    } else {
-      downloadPhotoArchive.mutate({
-        image_hashes: getImageHashes(),
-        userId,
-        includeStackedPhotos: options.includeStackedPhotos,
-      });
-    }
+    downloadPhotoArchive.mutate({ ...photoSelection(), userId, includeStackedPhotos: options.includeStackedPhotos });
     resetSelection();
   };
 
   return (
-    <Group>
+    <Group gap={4} wrap="nowrap">
       <ModalDownloadOptions
         isOpen={isDownloadModalOpen}
         photoCount={downloadPhotoCount}
@@ -189,10 +191,17 @@ export function SelectionActions(props: Readonly<Props>) {
           onRemoved={resetSelection}
         />
       )}
+      <SelectionQuickActions
+        disabledReason={noSelection}
+        selection={photoSelection}
+        onShare={onSharePhotos}
+        onDownload={openDownloadModal}
+        onDone={resetSelection}
+      />
       <AddToMenu reason={noSelection} selection={selection} onAddToAlbum={onAddToAlbum} onAddTags={onAddTags} />
 
-      {/* Wide enough for the one-line notes under Hide and Archive. */}
-      <Menu width={260}>
+      {/* Wide enough for the one-line notes under Hide and Archive; its right edge on the bar's. */}
+      <Menu width={260} position="bottom-end" offset={{ mainAxis: 14, alignmentAxis: -24 }}>
         <Menu.Target>
           <ActionIcon
             variant="subtle"
@@ -209,12 +218,18 @@ export function SelectionActions(props: Readonly<Props>) {
             {t("selectionactions.labelwithselection", { label: t("selectionactions.photoactions"), selection })}
           </Menu.Label>
 
-          <Menu.Divider />
-
           <SelectionRatingItems
             disabledReason={noSelection}
             selectAllMode={selectAllMode}
+            selectedItems={selectedItems}
             selection={photoSelection}
+            onDone={resetSelection}
+          />
+          <SelectionVisibilityItems
+            disabledReason={noSelection}
+            selection={photoSelection}
+            hide={location.pathname.startsWith("/hidden") ? "off" : "on"}
+            archive={archivePair}
             onDone={resetSelection}
           />
 
@@ -228,83 +243,7 @@ export function SelectionActions(props: Readonly<Props>) {
             onRenameFiles={editDialogs.rename.open}
             onSetRights={editDialogs.rights.open}
           />
-
-          <Menu.Divider />
-
-          <SelectionVisibilityItems disabledReason={noSelection} selection={photoSelection} onDone={resetSelection} />
-
-          <Menu.Divider />
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item leftSection={<Photo size={ICON_SIZE.menu} />} onClick={() => markAs("photo")}>
-              {t("selectionactions.markasphoto")}
-            </Menu.Item>
-          </DisabledReason>
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item leftSection={<Screenshot size={ICON_SIZE.menu} />} onClick={() => markAs("screenshot")}>
-              {t("selectionactions.markasscreenshot")}
-            </Menu.Item>
-          </DisabledReason>
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item leftSection={<FileText size={ICON_SIZE.menu} />} onClick={() => markAs("document")}>
-              {t("selectionactions.markasdocument")}
-            </Menu.Item>
-          </DisabledReason>
-
-          <Menu.Divider />
-
-          <SelectionFileItems
-            selectedItems={selectedItems}
-            selectAllMode={selectAllMode}
-            userId={userId}
-            disabledReason={noSelection}
-            onDone={resetSelection}
-          />
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item
-              leftSection={<Globe size={ICON_SIZE.menu} />}
-              onClick={() => {
-                if (selectAllMode) {
-                  setPhotosPublic.mutate({
-                    select_all: true,
-                    query: selectAllQuery ?? {},
-                    excluded_hashes: getExcludedHashes(),
-                    val_public: true,
-                  });
-                  // Note: Can't copy links in selectAll mode as we don't have all hashes
-                } else {
-                  setPhotosPublic.mutate({
-                    image_hashes: getImageHashes(),
-                    val_public: true,
-                  });
-                  // Absolute links (shareMediaUrl: the origin plus the subpath), and
-                  // no ".jpg": the same link serves videos too.
-                  const linksToCopy = getImageHashes()
-                    .map(ih => shareMediaUrl.photo(ih))
-                    .join("\n");
-                  copyToClipboard(linksToCopy);
-                }
-                resetSelection();
-              }}
-            >
-              {t("selectionactions.makepublic")}
-            </Menu.Item>
-          </DisabledReason>
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item
-              leftSection={<Key size={ICON_SIZE.menu} />}
-              onClick={() => {
-                setPhotosPublic.mutate({ ...photoSelection(), val_public: false });
-                resetSelection();
-              }}
-            >
-              {t("selectionactions.makeprivate")}
-            </Menu.Item>
-          </DisabledReason>
+          <SelectionMarkAsItems disabledReason={noSelection} onMarkAs={markAs} />
 
           <Menu.Divider />
 
@@ -313,28 +252,12 @@ export function SelectionActions(props: Readonly<Props>) {
               {t("selectionactions.download")}
             </Menu.Item>
           </DisabledReason>
-
-          <Menu.Divider />
-
-          <DisabledReason reason={noSelection} position="left">
-            <Menu.Item
-              leftSection={<Trash size={ICON_SIZE.menu} />}
-              onClick={() => {
-                setPhotosDeleted.mutate({ ...photoSelection(), deleted: true });
-                resetSelection();
-              }}
-            >
-              {t("selectionactions.deleted")}
-            </Menu.Item>
-          </DisabledReason>
-
-          <Menu.Divider />
-
           <DisabledReason reason={noSelection} position="left">
             <Menu.Item leftSection={<Share size={ICON_SIZE.menu} />} onClick={onSharePhotos}>
               {t("selectionactions.sharing")}
             </Menu.Item>
           </DisabledReason>
+          <SelectionPublicItems disabledReason={noSelection} onSetPublic={setPublic} />
 
           <StackSelectionActions
             selectedItems={selectedItems}
@@ -361,6 +284,30 @@ export function SelectionActions(props: Readonly<Props>) {
               onRemoveFromPerson={openRemoveFromPerson}
             />
           )}
+
+          <Menu.Divider />
+
+          <SelectionFileItems
+            selectedItems={selectedItems}
+            selectAllMode={selectAllMode}
+            userId={userId}
+            disabledReason={noSelection}
+            onDone={resetSelection}
+          />
+
+          {/* Destructive, so last, red and set apart, as in every menu. */}
+          <DisabledReason reason={noSelection} position="left">
+            <Menu.Item
+              color="red"
+              leftSection={<Trash size={ICON_SIZE.menu} />}
+              onClick={() => {
+                setPhotosDeleted.mutate({ ...photoSelection(), deleted: true });
+                resetSelection();
+              }}
+            >
+              {t("selectionactions.deleted")}
+            </Menu.Item>
+          </DisabledReason>
         </Menu.Dropdown>
       </Menu>
     </Group>

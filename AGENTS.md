@@ -11,6 +11,7 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 | `packages/api-client` | Shared zod schemas and endpoints for every request, web and mobile (#2347) | `apps/frontend/AGENTS.md` (API layer) |
 | `apps/docs` | Docusaurus 3, deployed to docs.librephotos.com from `dev` | |
 | `deploy/` | Dockerfiles, compose, k8s, e2e setup | |
+| `tools/report-mail-bridge` | Bun SMTP server that forwards mailed error reports to the maintainers' GlitchTip | its `README.md` |
 
 ## Rules
 

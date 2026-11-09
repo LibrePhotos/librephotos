@@ -92,15 +92,19 @@ describe("LocationLink toolbar", () => {
     expect(transform()).toBe("translate(0,0) scale(1)");
   });
 
-  it("expands a place on click, pans with the mouse and zooms with the wheel", async () => {
+  it("opens two levels, folds a place on click, pans with the mouse and zooms with the wheel", async () => {
     await renderInMantine(<LocationLink />);
     const hint = "Click nodes to expand";
     expect(document.body.textContent).toContain(hint);
-    expect(nodes()).toHaveLength(1);
+    // The root and the countries start open: Places, Germany, Portugal, Berlin, Hamburg, Lisbon
+    expect(nodes()).toHaveLength(6);
 
     await press(defined(nodes()[0]));
-    expect(nodes()).toHaveLength(3);
+    expect(nodes()).toHaveLength(1);
     expect(document.body.textContent).not.toContain(hint);
+
+    await press(defined(nodes()[0]));
+    expect(nodes()).toHaveLength(6);
 
     const svg = defined(document.body.querySelector("svg[aria-label]"));
     await press(svg, new MouseEvent("mousemove", { bubbles: true, buttons: 1, screenX: 10, screenY: 10 }));

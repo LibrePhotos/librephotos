@@ -34,6 +34,7 @@ import { useListFailure } from "../common/useListFailure";
 import styles from "./LocationLink.module.css";
 import { PlaceTreeToolbar, PlaceTreeZoomControls } from "./PlaceTreeControls";
 import type { TreeLayout, TreeLinkType, TreeOrientation } from "./PlaceTreeControls";
+import { initiallyOpenPlaces } from "./placeTreeDefaults";
 
 type NodeData = {
   name: string;
@@ -189,7 +190,8 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
   const [layout, setLayout] = useState<TreeLayout>("cartesian");
   const [orientation, setOrientation] = useState<TreeOrientation>("horizontal");
   const [linkType, setLinkType] = useState<TreeLinkType>("line");
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  // Null until a place is clicked: until then the root and the places under it are open
+  const [toggled, setExpandedNodes] = useState<Set<string> | null>(null);
   const [zoom, setZoom] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
@@ -197,6 +199,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
   const svgRef = useRef<SVGSVGElement>(null);
   const locationTreeQuery = useFetchLocationTreeQuery();
   const { data: locationSunburst, isLoading } = locationTreeQuery;
+  const expandedNodes = useMemo(() => toggled ?? initiallyOpenPlaces(locationSunburst), [toggled, locationSunburst]);
   const listFailure = useListFailure(locationTreeQuery);
   const { t, i18n } = useTranslation();
   // placetree.photocount is new; until a locale translates it, keep that locale's
@@ -256,7 +259,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
       hideHint();
       const nodePath = node.data.name;
       setExpandedNodes(prev => {
-        const newSet = new Set(prev);
+        const newSet = new Set(prev ?? expandedNodes);
         if (newSet.has(nodePath)) {
           newSet.delete(nodePath);
         } else {
@@ -265,7 +268,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
         return newSet;
       });
     },
-    [hideHint]
+    [hideHint, expandedNodes]
   );
 
   const handleZoomIn = useCallback(() => {
@@ -325,9 +328,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
     });
   }, []);
 
-  const handleNodeMouseLeave = useCallback(() => {
-    setTooltip(null);
-  }, []);
+  const handleNodeMouseLeave = useCallback(() => setTooltip(null), []);
 
   const processData = useCallback(
     (data: NodeData): NodeData => {

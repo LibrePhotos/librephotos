@@ -8,8 +8,9 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { click, dialogButton, openDialog, renderInMantine, setUpMantineDom } from "../modals/confirmModal.test-utils";
-import { DeleteJobButton, removeJobMessage } from "./DeleteJobButton";
+import { DeleteJobButton } from "./DeleteJobButton";
 import { jobFixture } from "./jobFixture.test-utils";
+import { removeJobMessage } from "./removeJobMessage";
 
 const stubs = vi.hoisted(() => ({
   deleteJob: vi.fn<(id: number, options?: { onSuccess?: () => void }) => void>(),

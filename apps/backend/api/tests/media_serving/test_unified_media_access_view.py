@@ -541,9 +541,13 @@ class UnifiedOriginalPhotoTest(TestCase):
         response = _unified("photos", "0" * 32, user=self.owner)
         self.assertEqual(response.status_code, 404)
 
-    def test_uuid_is_not_accepted_for_originals(self):
-        """Unlike the thumbnail branch, ``photos`` only looks up ``image_hash``."""
+    def test_uuid_is_accepted_for_originals(self):
+        """Like the thumbnail branch: clients that read a photo's id from its
+        summary ask for ``/media/photos/<id>`` (UhuruPhotos). The id opens
+        no more than the hash does."""
         response = _unified("photos", str(self.photo.pk), user=self.owner)
+        self.assertEqual(response.status_code, 200)
+        response = _unified("photos", str(self.photo.pk), user=self.stranger)
         self.assertEqual(response.status_code, 404)
 
     def test_duplicate_hash_serves_each_owner_their_own_file(self):

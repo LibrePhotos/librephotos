@@ -1,0 +1,55 @@
+/* A header chip: a person, a place, the map. Same height, border and text wherever it is. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  max-width: 100%;
+  padding: 0 10px 0 4px;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: 999px;
+  color: var(--mantine-color-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+
+  & > svg {
+    flex-shrink: 0;
+    margin-left: 4px;
+    color: var(--mantine-color-dimmed);
+  }
+}
+
+.chip[data-bare] {
+  padding: 0 12px;
+}
+
+.chip[data-interactive] {
+  cursor: pointer;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+  }
+}
+
+.chip[data-active] {
+  border-color: transparent;
+  background: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
+
+  & > svg {
+    color: inherit;
+  }
+
+  &:hover {
+    background: var(--mantine-primary-color-light-hover);
+  }
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

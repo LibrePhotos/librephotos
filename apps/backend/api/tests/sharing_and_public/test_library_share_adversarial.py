@@ -35,12 +35,17 @@ class LibraryRecipientReadTest(reads.CrossTenantReadTest):
         return [
             *super().cases(),
             ("/api/library-shares/", None),
-            (f"/api/albums/date/list/?library={victim}", None),
-            (f"/api/albums/date/{v.v_date.pk}/?library={victim}", None),
-            ("/api/albums/date/list/?libraries=true", None),
-            (f"/api/albums/date/{v.v_date.pk}/?libraries=true", None),
-            (f"/api/albums/date/list/?libraries=true&person={v.v_person.pk}", None),
-            (f"/api/albums/date/list/?library={victim}&search=VictimFriendName", None),
+            (f"/api/days/?library={victim}", None),
+            (f"/api/days/{v.v_day}/photos/?library={victim}", None),
+            (f"/api/days/{v.v_day}/layout/?library={victim}", None),
+            ("/api/days/?libraries=true", None),
+            (f"/api/days/{v.v_day}/photos/?libraries=true", None),
+            (f"/api/days/?libraries=true&person={v.v_person.pk}", None),
+            (
+                f"/api/days/{v.v_day}/photos/?library={victim}&person={v.v_person.pk}",
+                None,
+            ),
+            (f"/api/days/?library={victim}&folder=/", None),
             (f"/api/photos/{v.v_photo.pk}/", None),
             (f"/api/photos/{v.v_photo2.pk}/", None),
             (f"/api/photos/{v.v_photo.pk}/summary/", None),
@@ -78,7 +83,8 @@ class LibraryRecipientReadTest(reads.CrossTenantReadTest):
         client = self.client_for(self.attacker)
         for url in (
             f"/api/photos/{self.v_photo.pk}/",
-            f"/api/albums/date/{self.v_date.pk}/?library={self.victim.pk}",
+            f"/api/days/{self.v_day}/photos/?library={self.victim.pk}",
+            f"/api/days/{self.v_day}/photos/?libraries=true",
         ):
             with self.subTest(url=url):
                 response = client.get(url)

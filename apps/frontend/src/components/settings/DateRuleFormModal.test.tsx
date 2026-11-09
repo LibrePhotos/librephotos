@@ -91,7 +91,7 @@ async function open(values: Partial<DateRuleFormValues>, id = 1000) {
 }
 
 function saveButton() {
-  return defined(Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Save Rule"));
+  return defined(Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Save rule"));
 }
 
 function inputLabelled(label: string) {

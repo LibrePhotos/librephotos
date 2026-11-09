@@ -2,17 +2,19 @@ import type { SetPhotosLocationResponse, SetPhotosRightsResponse } from "@librep
 import i18n from "../../i18n";
 import { toast } from "./toast";
 
-function togglePhotoDelete(isDeleted: boolean, numberOfPhotos: number) {
-  const notificationMessage = isDeleted
-    ? i18n.t("toasts.deletephoto", { numberOfPhotos })
-    : i18n.t("toasts.recoverphoto", { numberOfPhotos });
-  toast.success(notificationMessage, { title: i18n.t("toasts.setdeletetitle") });
+/** Puts back what a toast reports; it gives the toast an Undo button (#127). */
+type Undo = () => Promise<unknown>;
+
+// A routine change is one short sentence with no title, as in Google Photos ("Added 2 photos to
+// favorites"). The strings are plurals on `count`; `numberOfPhotos` is passed too for the
+// translations that still read "{{numberOfPhotos}} photo(s)".
+
+function togglePhotoDelete(isDeleted: boolean, count: number) {
+  toast.success(i18n.t(isDeleted ? "toasts.deletephoto" : "toasts.recoverphoto", { count, numberOfPhotos: count }));
 }
 
-function removePhotos(numberOfPhotos: number) {
-  toast.success(i18n.t("toasts.finaldeletephoto", { numberOfPhotos }), {
-    title: i18n.t("toasts.finaldeletephototitle"),
-  });
+function removePhotos(count: number) {
+  toast.success(i18n.t("toasts.finaldeletephoto", { count, numberOfPhotos: count }));
 }
 
 /** Empty trash queued its job (#2203); the photos go in the background. */
@@ -50,25 +52,34 @@ function downloadFailed() {
   toast.error(i18n.t("toasts.downloadfailed"), { title: i18n.t("toasts.downloaderror") });
 }
 
-function togglePhotoSharing(username: string, numberOfPhotos: number, isShared: boolean) {
-  const notificationMessage = isShared
-    ? i18n.t("toasts.sharephoto", { username, numberOfPhotos })
-    : i18n.t("toasts.unsharephoto", { username, numberOfPhotos });
-  toast.success(notificationMessage, { title: i18n.t("toasts.sharephototitle") });
+function togglePhotoSharing(username: string, count: number, isShared: boolean) {
+  const key = isShared ? "toasts.sharephoto" : "toasts.unsharephoto";
+  toast.success(i18n.t(key, { username, count, numberOfPhotos: count }));
 }
 
-function togglePhotosPublic(numberOfPhotos: number, isPublic: boolean) {
-  const notificationMessage = isPublic
-    ? i18n.t("toasts.addpublicphoto", { numberOfPhotos })
-    : i18n.t("toasts.removepublicphoto", { numberOfPhotos });
-  toast.success(notificationMessage, { title: i18n.t("toasts.setpublicphotostitle") });
+// The bulk toggles below add up while their toast is on screen and take the Undo of their change:
+// the flag set back on the photos the server changed (api_client/photos/hooks/useBulkPhotoToggle.ts).
+
+function togglePhotosPublic(count: number, isPublic: boolean, undo?: Undo) {
+  const key = isPublic ? "toasts.addpublicphoto" : "toasts.removepublicphoto";
+  toast.successCounted(
+    `photos-public-${isPublic}`,
+    count,
+    total => i18n.t(key, { count: total, numberOfPhotos: total }),
+    {
+      undo,
+    }
+  );
 }
 
-function togglePhotosFavorite(numberOfPhotos: number, isFavorite: boolean) {
-  const notificationMessage = isFavorite
-    ? i18n.t("toasts.favoritephoto", { numberOfPhotos })
-    : i18n.t("toasts.unfavoritephoto", { numberOfPhotos });
-  toast.success(notificationMessage, { title: i18n.t("toasts.setfavoritestitle") });
+function togglePhotosFavorite(count: number, isFavorite: boolean, undo?: Undo) {
+  const key = isFavorite ? "toasts.favoritephoto" : "toasts.unfavoritephoto";
+  toast.successCounted(
+    `photos-favorite-${isFavorite}`,
+    count,
+    total => i18n.t(key, { count: total, numberOfPhotos: total }),
+    { undo }
+  );
 }
 
 function setPhotosRating(numberOfPhotos: number, rating: number) {
@@ -76,7 +87,7 @@ function setPhotosRating(numberOfPhotos: number, rating: number) {
     rating === 0
       ? i18n.t("toasts.clearrating", { count: numberOfPhotos })
       : i18n.t("toasts.setrating", { count: numberOfPhotos, rating });
-  toast.success(message, { title: i18n.t("toasts.setratingtitle") });
+  toast.success(message);
 }
 
 // One toast for a bulk date change (#2278): how many photos moved, and how many a shift skipped
@@ -136,23 +147,26 @@ function writeMetadataFailed() {
   toast.error(i18n.t("toasts.writemetadatafailed"), { title: i18n.t("toasts.writemetadatafailedtitle") });
 }
 
-function togglePhotosHidden(numberOfPhotos: number, isHidden: boolean) {
-  const notificationMessage = isHidden
-    ? i18n.t("toasts.hidephoto", { numberOfPhotos })
-    : i18n.t("toasts.unhidephoto", { numberOfPhotos });
-  toast.success(notificationMessage, { title: i18n.t("toasts.sethidetitle") });
+function togglePhotosHidden(count: number, isHidden: boolean, undo?: Undo) {
+  const key = isHidden ? "toasts.hidephoto" : "toasts.unhidephoto";
+  toast.successCounted(
+    `photos-hidden-${isHidden}`,
+    count,
+    total => i18n.t(key, { count: total, numberOfPhotos: total }),
+    {
+      undo,
+    }
+  );
 }
 
 /** Archived photos leave the timeline and Memories only (#545): the toast says where they still are. */
-function togglePhotosArchived(count: number, isArchived: boolean) {
-  const message = isArchived ? i18n.t("toasts.archivephoto", { count }) : i18n.t("toasts.unarchivephoto", { count });
-  toast.success(message, { title: i18n.t("toasts.setarchivetitle") });
+function togglePhotosArchived(count: number, isArchived: boolean, undo?: Undo) {
+  const key = isArchived ? "toasts.archivephoto" : "toasts.unarchivephoto";
+  toast.successCounted(`photos-archived-${isArchived}`, count, total => i18n.t(key, { count: total }), { undo });
 }
 
 function setPhotosCategory(numberOfPhotos: number, category: "photo" | "screenshot" | "document") {
-  toast.success(i18n.t(`toasts.setcategory.${category}`, { count: numberOfPhotos }), {
-    title: i18n.t("toasts.setcategorytitle"),
-  });
+  toast.success(i18n.t(`toasts.setcategory.${category}`, { count: numberOfPhotos }));
 }
 
 function startPhotoScan() {

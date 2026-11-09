@@ -136,6 +136,18 @@ export const SiteSettings = z.object({
   public_gallery: z.string().optional(),
   // Whether search engines may index the gallery; the gallery page says noindex otherwise.
   public_gallery_indexable: z.boolean().optional(),
+  // Error reporting (#2938), staff only; older backends lack all three. Where new error reports
+  // go: "off" (kept on the server), "own_server" (SENTRY_DSN) or "maintainers". A string, so a
+  // choice a newer server adds does not fail the answer. A 400 `error_reporting_unavailable`
+  // refuses a server the environment does not name.
+  error_reporting: z.string().optional(),
+  // Whether SENTRY_DSN names the admin's own server, and whether the maintainers' server is set.
+  error_reporting_own_server: z.boolean().optional(),
+  error_reporting_maintainers: z.boolean().optional(),
+  // Whether an admin answered where error reports go (first-time setup, the one-time question, the
+  // Admin page) or chose Not now: the web app asks admins once while it is false. Posting true is
+  // Not now; posting false changes nothing.
+  error_reporting_asked: z.boolean().optional(),
 });
 export type SiteSettings = z.infer<typeof SiteSettings>;
 
@@ -152,6 +164,8 @@ export type SiteSettingsUpdate = Partial<
     | "auto_scan_status"
     | "sso_providers"
     | "public_url_configured"
+    | "error_reporting_own_server"
+    | "error_reporting_maintainers"
   > & {
     [K in SiteFeatureName as `${K}_enabled`]: boolean;
   }

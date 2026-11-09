@@ -90,7 +90,7 @@ async function renderModal(props: Partial<React.ComponentProps<typeof ModalPerso
 const nameInput = () => defined(container.querySelector<HTMLInputElement>("input"), "the name input");
 const addButton = () =>
   defined(
-    Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === "Add Person"),
+    Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(el => el.textContent === "Add person"),
     "the Add person button"
   );
 const listedPeople = () => Array.from(container.querySelectorAll("h4"), title => title.textContent);

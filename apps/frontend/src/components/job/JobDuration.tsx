@@ -1,15 +1,6 @@
-import { Table } from "@mantine/core";
+import type { TFunction } from "i18next";
 import { DateTime, Duration } from "luxon";
-import React from "react";
-import { useTranslation } from "react-i18next";
 import { parseInstant } from "../../util/dateUtils";
-
-type IJobDuration = Readonly<{
-  matches: boolean;
-  finished: boolean;
-  finishedAt: string | null;
-  startedAt: string | null;
-}>;
 
 /**
  * Human duration of a job, up to now while it is still running. Sub-second
@@ -26,17 +17,15 @@ export function formatJobDuration(startedAt: string, finishedAt?: string | null)
   return duration.toHuman({ unitDisplay: "short" });
 }
 
-export function JobDuration({ matches, finished, finishedAt, startedAt }: IJobDuration): React.JSX.Element | null {
-  const { t } = useTranslation();
+type JobTimes = Readonly<{ finished: boolean; finished_at: string | null; started_at: string | null }>;
 
-  // The Duration column only exists on wide screens. A cell here on a phone
-  // pushed every later cell one column to the right.
-  if (!matches) {
-    return null;
+/**
+ * How long a job took ("482 ms"), or that it is still running or waiting. A job cancelled
+ * before it started has no duration (null).
+ */
+export function jobDurationLabel(job: JobTimes, t: TFunction): string | null {
+  if (job.finished) {
+    return job.started_at && job.finished_at ? formatJobDuration(job.started_at, job.finished_at) : null;
   }
-  if (finished) {
-    // A job cancelled before it started has no duration.
-    return <Table.Td>{startedAt && finishedAt ? formatJobDuration(startedAt, finishedAt) : null}</Table.Td>;
-  }
-  return <Table.Td>{startedAt ? t("joblist.running") : t("joblist.waiting")}</Table.Td>;
+  return job.started_at ? t("joblist.running") : t("joblist.waiting");
 }

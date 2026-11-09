@@ -66,6 +66,12 @@ const logOutFromMenu = async () => {
 };
 
 beforeAll(async () => {
+  // The account sheet's segmented control measures itself.
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
   window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
     media: query,

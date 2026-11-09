@@ -17,6 +17,8 @@ type Shown = {
   title?: string;
   message?: ReactNode;
   color?: string;
+  icon?: ReactNode;
+  className?: string;
   id?: string;
   autoClose?: number | false;
   onClose?: () => void;
@@ -97,12 +99,61 @@ describe("notifications", () => {
     expect(lastShown()).toMatchObject({ title: "Detail", message: "Token is invalid or expired" });
   });
 
-  it("reports a server error in words, with the endpoint for the bug report", () => {
-    notification.serverError("/photos/");
+  describe("server errors", () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    afterEach(() => logged.mockClear());
 
-    expect(lastShown().title).toBe("Server error");
-    expect(lastShown().message).toContain("/photos/");
-    expect(lastShown().message).not.toContain("developer tools");
+    it("name the action that failed, and keep the endpoint and GitHub out of the toast", () => {
+      notification.serverError("/photosedit/favorite/");
+
+      expect(lastShown()).toMatchObject({
+        color: "red",
+        title: "Couldn't update favorites",
+        message: "The server could not finish this. Try again in a moment.",
+      });
+      expect(logged).toHaveBeenCalledWith(expect.stringContaining("/photosedit/favorite/"));
+    });
+
+    it("say something went wrong where the endpoint names no action", () => {
+      notification.serverError("/photos/?page=2");
+
+      expect(lastShown().title).toBe("Something went wrong");
+      expect(String(lastShown().message)).not.toMatch(/photos\/|GitHub/);
+    });
+
+    it("log a response that did not match its schema, and toast it once in plain words", () => {
+      notification.parseError("search photos: expected string");
+
+      expect(lastShown()).toMatchObject({ title: "Couldn't read the server's answer", id: "parse-error" });
+      expect(String(lastShown().message)).not.toMatch(/expected string|GitHub/);
+      expect(logged).toHaveBeenCalledWith(expect.stringContaining("expected string"));
+    });
+  });
+});
+
+describe("routine photo changes", () => {
+  it("say what happened in one sentence, with no title and real plurals", () => {
+    notification.togglePhotosFavorite(2, true);
+    expect(lastShown()).toMatchObject({ message: "Added 2 photos to favorites", title: undefined, color: "teal" });
+
+    notification.togglePhotosHidden(1, true);
+    expect(lastShown()).toMatchObject({ message: "Hid 1 photo", title: undefined });
+
+    notification.togglePhotoDelete(true, 3);
+    expect(lastShown()).toMatchObject({ message: "Moved 3 photos to the trash", title: undefined });
+
+    notification.addPhotosToAlbum("Lisbon", 1);
+    expect(lastShown()).toMatchObject({ message: "Added 1 photo to Lisbon", title: undefined });
+  });
+
+  it("add up while on screen, and offer the Undo of each change (#127)", () => {
+    notification.togglePhotosArchived(1, true, () => Promise.resolve());
+    notification.togglePhotosArchived(2, true, () => Promise.resolve());
+
+    const latest = updateNotification.mock.calls.at(-1)?.[0];
+    expect(latest?.autoClose).toBe(8000);
+    expect(textOf(latest?.message)).toContain("3 photos archived");
+    expect(textOf(latest?.message)).toContain("Undo");
   });
 });
 
@@ -132,13 +183,21 @@ describe("notification primitives", () => {
   it("leaves the title, id and autoClose out when they are not given", () => {
     notification.warning("Heads up");
 
-    expect(lastShown()).toEqual({
-      message: "Heads up",
-      color: "orange",
-      title: undefined,
-      id: undefined,
-      autoClose: undefined,
-    });
+    expect(lastShown()).toMatchObject({ message: "Heads up", color: "orange" });
+    expect(lastShown()).not.toHaveProperty("title", expect.anything());
+    expect(lastShown()).not.toHaveProperty("id", expect.anything());
+    expect(lastShown()).not.toHaveProperty("autoClose", expect.anything());
+  });
+
+  it.each([
+    ["success", "tabler-icon-check"],
+    ["warning", "tabler-icon-alert-triangle"],
+    ["error", "tabler-icon-alert-circle"],
+  ] as const)("gives a %s toast its status icon and accent", (kind, icon) => {
+    notification[kind]("Saved");
+
+    expect(textOf(lastShown().icon)).toContain(icon);
+    expect(lastShown().className).toEqual(expect.any(String));
   });
 
   it("hides the toast with the given id", () => {
@@ -156,21 +215,20 @@ describe("counted toasts (#599: faces confirmed one at a time)", () => {
 
     expect(showNotification).toHaveBeenCalledTimes(1);
     expect(updateNotification).toHaveBeenLastCalledWith(
-      expect.objectContaining({ id: "faces-labeled-Anna", message: "3 face(s) were labeled as the person Anna" })
+      expect.objectContaining({ id: "faces-labeled-Anna", message: "Labeled 3 faces as Anna" })
     );
   });
 
   it("add up the matching faces labelled along in a burst beside the faces (#2754)", () => {
     notification.addFacesToPerson("Dora", 1, undefined, 1);
     expect(lastShown().message).toBe(
-      "1 face(s) were labeled as the person Dora. Also labeled 1 matching face in the same burst or duplicate group"
+      "Labeled 1 face as Dora. Also labeled 1 matching face in the same burst or duplicate group"
     );
 
     notification.addFacesToPerson("Dora", 1, undefined, 3);
     expect(updateNotification).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        message:
-          "2 face(s) were labeled as the person Dora. Also labeled 4 matching faces in the same burst or duplicate group",
+        message: "Labeled 2 faces as Dora. Also labeled 4 matching faces in the same burst or duplicate group",
       })
     );
   });
@@ -189,7 +247,7 @@ describe("counted toasts (#599: faces confirmed one at a time)", () => {
     notification.deleteFaces(1);
 
     expect(showNotification).toHaveBeenCalledTimes(2);
-    expect(lastShown()).toMatchObject({ id: "faces-deleted", message: "1 face(s) were deleted", color: "teal" });
+    expect(lastShown()).toMatchObject({ id: "faces-deleted", message: "Deleted 1 face", color: "teal" });
   });
 });
 
@@ -239,7 +297,7 @@ describe("toasts with an Undo (#127)", () => {
     notification.deleteFaces(2, () => Promise.resolve());
 
     expect(lastShown().autoClose).toBe(8000);
-    expect(textOf(lastShown().message)).toContain("2 face(s) were deleted");
+    expect(textOf(lastShown().message)).toContain("Deleted 2 faces");
     expect(textOf(lastShown().message)).toContain("Undo");
   });
 
@@ -290,7 +348,7 @@ describe("toasts with an Undo (#127)", () => {
     notification.deleteFaces(1);
 
     expect(showNotification).toHaveBeenCalledTimes(2);
-    expect(lastShown()).toMatchObject({ message: "1 face(s) were deleted", autoClose: undefined });
+    expect(lastShown()).toMatchObject({ message: "Deleted 1 face", autoClose: undefined });
   });
 });
 

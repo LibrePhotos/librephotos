@@ -67,7 +67,7 @@ export function LibraryFolderRow({ folder, leftOutCount, onRemove, onLeaveOut }:
   const { t } = useTranslation();
   const FolderIcon = folder.available ? IconFolder : IconFolderOff;
   return (
-    <Paper withBorder radius="sm" px="sm" py="xs">
+    <Paper withBorder radius="md" px="sm" py="xs">
       <Group wrap="nowrap" gap="sm">
         <FolderIcon size={ICON_SIZE.toolbar} stroke={1.5} className={classes.icon} aria-hidden />
         <Stack gap={0} flex={1} miw={0}>

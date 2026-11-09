@@ -24,7 +24,8 @@ type Props = Readonly<{
 function Section({ id, label, children }: Readonly<{ id: string; label: string; children: React.ReactNode }>) {
   return (
     <Stack gap="xs" role="group" aria-labelledby={id}>
-      <Text id={id} size="xs" fw={700} c="dimmed" tt="uppercase">
+      {/* A heading over its fields: larger than their 14px labels, as Immich's search sections. */}
+      <Text id={id} size="md" fw={600}>
         {label}
       </Text>
       {children}

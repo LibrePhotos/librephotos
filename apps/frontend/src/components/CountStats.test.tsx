@@ -6,10 +6,17 @@ import { COUNT_STATS_DEFAULTS } from "../api_client/stats/types";
 import i18n from "../i18n";
 import { CountStats } from "./CountStats";
 
-const stubs = vi.hoisted(() => ({ stats: {} as Record<string, number> }));
+const stubs = vi.hoisted(() => ({
+  stats: {} as Record<string, number>,
+  archivedDays: [] as Array<{ numberOfItems: number }>,
+}));
 
 vi.mock("../api_client/stats/hooks", () => ({
   useFetchCountStatsQuery: () => ({ data: stubs.stats }),
+}));
+
+vi.mock("../api_client/albums/hooks", () => ({
+  useFetchDateAlbumsQuery: () => ({ data: stubs.archivedDays }),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -19,8 +26,9 @@ vi.mock("@tanstack/react-router", () => ({
 let root: Root;
 let container: HTMLDivElement;
 
-const render = async (stats: Partial<typeof COUNT_STATS_DEFAULTS>) => {
+const render = async (stats: Partial<typeof COUNT_STATS_DEFAULTS>, archivedDays: number[] = []) => {
   stubs.stats = { ...COUNT_STATS_DEFAULTS, ...stats };
+  stubs.archivedDays = archivedDays.map(numberOfItems => ({ numberOfItems }));
   await act(async () => {
     root.render(
       <MantineProvider>
@@ -88,6 +96,13 @@ describe("CountStats", () => {
     const focusable = focusableCounts().map(el => el.textContent);
     // photos, days and events get a tooltip target; people and faces do not
     expect(focusable).toEqual(["25.1K25,123", "1.2K1,200", "1.5K1,500"]);
+  });
+
+  it("counts the photos the timeline shows, without the archived ones", async () => {
+    await render({ num_photos: 199, num_albumdate: 48 }, [1, 2]);
+    const text = container.textContent ?? "";
+    expect(text).toContain("196");
+    expect(text).not.toContain("199");
   });
 
   it("formats counts in the app language", async () => {

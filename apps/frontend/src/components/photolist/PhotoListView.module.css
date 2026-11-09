@@ -8,6 +8,7 @@
   top: var(--app-shell-header-height, 55px);
   z-index: 10;
   width: 100%;
-  padding: 6px;
-  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  /* None: PageHeader brings the page's spacing, so the title sits where every page has it. */
+  padding: 0;
+  background-color: var(--mantine-color-body);
 }

@@ -45,12 +45,16 @@ import argparse
 import hashlib
 import importlib.metadata
 import json
+import os
 import platform
 import shutil
 import sys
 from pathlib import Path
 
 import numpy as np
+
+# ONNX Runtime 1.29+ reports to Microsoft unless this is set before it loads.
+os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
@@ -271,11 +275,11 @@ def spread(items: list, count: int) -> list:
 
 
 def tag_prompts() -> list[str]:
-    from service.tags.openclip.openclip import PROMPT_TEMPLATE, TAGS_FILE
+    """Every prompt the tagger embeds, as the sidecar reads tags.txt."""
+    from service.tags.openclip.openclip import TAGS_FILE, read_tag_file
 
-    with open(TAGS_FILE, encoding="utf-8") as f:
-        tags = [line.strip() for line in f if line.strip()]
-    return [PROMPT_TEMPLATE.format(tag=tag) for tag in tags]
+    entries = read_tag_file(TAGS_FILE).entries
+    return [prompt for entry in entries for prompt in entry.prompts]
 
 
 def download_upstream(work: Path) -> dict[str, Path]:

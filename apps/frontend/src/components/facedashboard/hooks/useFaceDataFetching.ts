@@ -35,7 +35,9 @@ export function useFaceDataFetching(
   minConfidence: number,
   personOrder: FacesPersonOrder,
   /** Only the people of this group (#1126); the Unknown tab is not narrowed. */
-  group: number | undefined
+  group: number | undefined,
+  /** Only this person (a person page's "Review faces"); the Unknown tab is not narrowed either. */
+  person?: number
 ) {
   // Create params objects for API calls. Memoized: they key the cache entries the
   // page loader below reads and writes, and a fresh object on every render would
@@ -68,8 +70,8 @@ export function useFaceDataFetching(
     params.deleted
   );
 
-  // A tagging mutation invalidates the incomplete lists, and the refetch replaces
-  // every face with a placeholder again. Nothing else tells the grid to reload the
+  // Training, an added face or a person's rename invalidates the incomplete lists (a face
+  // edit does not, see faceListCache), and the refetch replaces every face with a placeholder again. Nothing else tells the grid to reload the
   // pages it is showing, so the cells it already asked for would stay blank until
   // the user scrolls. Count the refetches and reload the visible pages on each one.
   const [listRefreshCount, setListRefreshCount] = useState(0);
@@ -84,27 +86,29 @@ export function useFaceDataFetching(
 
   // Filter data by category - MEMOIZED to prevent recalculation on every render. The people are
   // ordered on copies (#764): the cached lists keep the server's name order.
-  const lists = useMemo(
-    () => ({
+  const lists = useMemo(() => {
+    // A person's own groups: every person but Unknown, or only the one asked for
+    const shown = (group: { id: number; name: string }) =>
+      !isUnknownGroup(group) && (person === undefined || group.id === person);
+    return {
       unknown: inferredFacesListUnfiltered.filter(isUnknownGroup),
-      inferred: orderPeople(
-        inferredFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
-        personOrder
-      ),
-      labeled: orderPeople(
-        labeledFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
-        personOrder
-      ),
+      inferred: orderPeople(inferredFacesListUnfiltered.filter(shown), personOrder),
+      labeled: orderPeople(labeledFacesListUnfiltered.filter(shown), personOrder),
       // The deleted faces of no one stay last, as the server sends them
       deleted: [
-        ...orderPeople(
-          deletedFacesListUnfiltered.filter(person => !isUnknownGroup(person)),
-          personOrder
-        ),
+        ...orderPeople(deletedFacesListUnfiltered.filter(shown), personOrder),
         ...deletedFacesListUnfiltered.filter(isUnknownGroup),
       ],
-    }),
-    [inferredFacesListUnfiltered, labeledFacesListUnfiltered, deletedFacesListUnfiltered, personOrder]
+    };
+  }, [inferredFacesListUnfiltered, labeledFacesListUnfiltered, deletedFacesListUnfiltered, personOrder, person]);
+
+  // Changes when the slots on the active tab change: a refetch (every face a placeholder again),
+  // or a face edit (people and their face counts), but not when a page of faces lands. The grid
+  // then asks again for the pages on screen, which the range it last reported may not hold.
+  const activeList = lists[activeTab];
+  const listsVersion = useMemo(
+    () => `${listRefreshCount}|${activeList.map(person => `${person.id}:${person.faces.length}`).join(",")}`,
+    [listRefreshCount, activeList]
   );
 
   // Create hash mapping based on active tab - MEMOIZED
@@ -141,9 +145,16 @@ export function useFaceDataFetching(
         // a page that was still queued can now sit past the end of the person, or
         // name a person that has no faces left at all. The backend answers that
         // with 404 "Invalid page", which the dashboard shows as an error.
-        if (!person || (element.page - 1) * PAGE_SIZE >= person.faces.length) {
+        const pageStart = (element.page - 1) * PAGE_SIZE;
+        if (!person || pageStart >= person.faces.length) {
           continue;
         }
+        // Loaded already: a face edit keeps the faces it did not touch (faceListCache)
+        if (!person.faces.slice(pageStart, pageStart + PAGE_SIZE).some(face => face.isTemp)) {
+          continue;
+        }
+        // A face edit while the page loads moves the faces after it: the answer no longer fits
+        const faceCountAsked = person.faces.length;
 
         try {
           const queryParams = {
@@ -168,22 +179,15 @@ export function useFaceDataFetching(
           // Update cache with fetched data
           const incompleteData = queryClient.getQueryData<CompletePersonFaceList>(incompleteKey);
 
-          if (incompleteData) {
+          const current = incompleteData?.find(entry => entry.id === element.person);
+          if (incompleteData && current && current.faces.length === faceCountAsked) {
+            const faces = current.faces.slice();
+            data.slice(0, faces.length - pageStart).forEach((face, offset) => {
+              faces[pageStart + offset] = { ...face, person: element.person };
+            });
             queryClient.setQueryData(
               incompleteKey,
-              incompleteData.map(entry =>
-                entry.id === element.person
-                  ? {
-                      ...entry,
-                      faces: entry.faces.map((face, idx) => {
-                        const dataIndex = idx - (element.page - 1) * PAGE_SIZE;
-                        return dataIndex >= 0 && dataIndex < data.length
-                          ? { ...data[dataIndex], person: element.person }
-                          : face;
-                      }),
-                    }
-                  : entry
-              )
+              incompleteData.map(entry => (entry === current ? { ...entry, faces } : entry))
             );
           }
         } catch (error) {
@@ -204,6 +208,7 @@ export function useFaceDataFetching(
     fetchingDeletedFacesList,
     idx2hash,
     params,
+    listsVersion,
   };
 }
 

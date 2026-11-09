@@ -7,6 +7,7 @@ import {
   firstDayOfWeek,
   formatCalendarDay,
   formatPhotoDateTime,
+  formatPhotoDaySpan,
   formatUtcOffset,
   formatVideoTime,
   fromPickerValue,
@@ -340,5 +341,22 @@ describe("calendar days (search filters)", () => {
     expect(calendarYear(0)).toEqual({ first: "2025-01-01", last: "2025-12-31" });
     expect(calendarYear(1)).toEqual({ first: "2024-01-01", last: "2024-12-31" });
     expect(calendarDaysAgo(365)).toBe("2024-01-02");
+  });
+});
+
+describe("formatPhotoDaySpan", () => {
+  test.each(zones)("spans the wall-clock days in %s", zone => {
+    Settings.defaultZone = zone;
+    Settings.defaultLocale = "en-US";
+    expect(formatPhotoDaySpan(["2026-10-18T23:30:00Z", null, "2026-10-17T00:10:00Z"])).toMatch(
+      // ICU puts thin spaces around the dash
+      /^Oct 17\s–\s18, 2026$/
+    );
+  });
+
+  test("one day, and nothing without a valid timestamp", () => {
+    Settings.defaultLocale = "en-US";
+    expect(formatPhotoDaySpan(["2026-10-17T08:00:00Z", "2026-10-17T20:00:00Z"])).toBe("Oct 17, 2026");
+    expect(formatPhotoDaySpan([null, "not a date"])).toBeNull();
   });
 });

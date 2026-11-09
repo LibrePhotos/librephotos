@@ -15,6 +15,7 @@ import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
 import { ConfirmModal } from "../modals/ConfirmModal";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { PersonGroupNameForm } from "./PersonGroupNameForm";
 
 type Props = Readonly<{ opened: boolean; onClose: () => void }>;
@@ -124,9 +125,7 @@ function GroupList({ onClose, onDelete }: ListProps) {
         {t("persongroups.explanation")}
       </Text>
       <Group justify="flex-end">
-        <Button variant="default" onClick={onClose}>
-          {t("persongroups.done")}
-        </Button>
+        <Button onClick={onClose}>{t("persongroups.done")}</Button>
       </Group>
     </Stack>
   );
@@ -144,7 +143,7 @@ export function ManagePersonGroupsModal({ opened, onClose }: Props) {
     <>
       {/* Escape closes only the confirmation while it is open */}
       <Modal
-        size="md"
+        size={DIALOG_SIZE.md}
         opened={opened}
         onClose={onClose}
         closeOnEscape={!confirmOpened}

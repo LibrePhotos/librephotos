@@ -1,14 +1,15 @@
 import { MAX_MEMORY_ITEMS } from "@librephotos/api-client";
-import { Button, SegmentedControl } from "@mantine/core";
-import { IconPlayerPlay as PlayerPlay, IconSparkles as Sparkles } from "@tabler/icons-react";
+import { ActionIcon, Button, useMantineTheme } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
+import { IconPlayerPlay as PlayerPlay } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE } from "../../uiConstants";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { DisabledReason } from "../common/DisabledReason";
+import { Segmented } from "../common/Segmented";
 import { PageHeader } from "../PageHeader";
 
 export type MemoriesView = "tiles" | "gallery";
-
-const isMemoriesView = (value: string): value is MemoriesView => value === "tiles" || value === "gallery";
 
 type Props = {
   view: MemoriesView;
@@ -26,43 +27,57 @@ type Props = {
  */
 export function MemoriesHeader({ view, onViewChange, onPlayAll, photoCount, capped, loading }: Props) {
   const { t } = useTranslation();
+  const theme = useMantineTheme();
+  // Read at once rather than after mounting, so a phone never shows the wide button first
+  const isPhone = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`, undefined, { getInitialValueInEffect: false });
 
+  const counts =
+    photoCount > 0
+      ? ` · ${t("memories.photocount", { count: photoCount })}${capped ? ` · ${t("memories.capped", { count: MAX_MEMORY_ITEMS })}` : ""}`
+      : "";
+  const playAll = t("memories.playall");
+
+  // One meta line, then the view control and the page's one action, tonal (Play all): the same
+  // order as every page header. Play all is an icon with a tooltip on a phone.
   return (
     <PageHeader
-      icon={Sparkles}
       title={t("memories.title")}
-      subtitle={
-        <>
-          <div>{t("memories.subtitle")}</div>
-          {photoCount > 0 ? (
-            <div>
-              {t("memories.photocount", { count: photoCount })}
-              {capped ? ` · ${t("memories.capped", { count: MAX_MEMORY_ITEMS })}` : ""}
-            </div>
-          ) : null}
-        </>
-      }
+      subtitle={`${t("memories.subtitle")}${counts}`}
       actions={
         <>
-          <Button
-            leftSection={<PlayerPlay size={ICON_SIZE.toolbar} />}
-            variant="light"
-            disabled={photoCount === 0}
-            loading={loading}
-            onClick={onPlayAll}
-          >
-            {t("memories.playall")}
-          </Button>
-          <SegmentedControl
+          <Segmented<MemoriesView>
             value={view}
-            onChange={value => {
-              if (isMemoriesView(value)) onViewChange(value);
-            }}
-            data={[
+            onChange={onViewChange}
+            segments={[
               { value: "tiles", label: t("memories.tiles") },
               { value: "gallery", label: t("memories.gallery") },
             ]}
           />
+          {isPhone ? (
+            <DisabledReason reason={photoCount === 0 ? t("memories.emptytitle") : null} label={playAll}>
+              <ActionIcon
+                variant="light"
+                size={TOOLBAR_ACTION_SIZE}
+                aria-label={playAll}
+                loading={loading}
+                onClick={onPlayAll}
+              >
+                <PlayerPlay size={ICON_SIZE.toolbar} />
+              </ActionIcon>
+            </DisabledReason>
+          ) : (
+            <DisabledReason reason={photoCount === 0 ? t("memories.emptytitle") : null}>
+              <Button
+                variant="light"
+                leftSection={<PlayerPlay size={ICON_SIZE.toolbar} />}
+                h={TOOLBAR_CONTROL_HEIGHT}
+                loading={loading}
+                onClick={onPlayAll}
+              >
+                {playAll}
+              </Button>
+            </DisabledReason>
+          )}
         </>
       }
     />

@@ -1,7 +1,11 @@
 .container {
   flex-grow: 1;
-  /* PAGE_GUTTER (uiConstants.ts), as above and below the dashboard */
-  padding: 0 10px;
+  /* The page gutter (PAGE_GUTTER_PX, uiConstants.ts): the cards line up with the toolbar above */
+  padding: 0 12px;
+
+  @media (min-width: 48em) {
+    padding: 0 20px;
+  }
 }
 
 .grid {

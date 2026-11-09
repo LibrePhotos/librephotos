@@ -76,7 +76,6 @@ function OnlyPhotos() {
       // "Photos only": "/" is titled "Photos" too, and includes videos.
       title={t("mediafilter.photos")}
       loading={isLoading}
-      icon={Photo}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

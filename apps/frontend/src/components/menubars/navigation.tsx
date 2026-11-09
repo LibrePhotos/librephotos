@@ -24,6 +24,8 @@ type MenuItem = {
   activePrefixes?: string[];
 };
 
+export const TRASH_LINK = "/deleted";
+
 /** Whether a nav entry is the current section, e.g. Albums on /album/user/3. */
 export function isNavItemActive(item: Pick<MenuItem, "link" | "activePrefixes">, pathname: string): boolean {
   return (item.activePrefixes ?? [item.link]).some(prefix =>
@@ -57,7 +59,8 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
         "/organizing",
       ],
     },
-    { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },
+    // The face dashboard belongs to People, which is under Albums
+    { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue", activePrefixes: ["/album", "/faces"] },
     {
       label: t("sidemenu.sharing"),
       link: "/sharing",
@@ -65,6 +68,6 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
       icon: Users,
       color: "red",
     },
-    { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "gray" },
+    { label: t("photos.deleted"), link: TRASH_LINK, icon: Trash, color: "gray" },
   ];
 }

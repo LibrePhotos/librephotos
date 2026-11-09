@@ -25,13 +25,12 @@ from api.directory_watcher.processing_jobs import (
 )
 from api.geocode.geocode import reverse_geocode
 from api.geocode.parsers.exiftool import parse as parse_exiftool
-from api.models import AlbumDate, LongRunningJob
+from api.models import LongRunningJob
 from api.models.album_place import AlbumPlace, get_album_place
 from api.tests.metadata.test_geocode_exiftool import ZERMATT, sidecar_answer
 from api.tests.metadata.test_place_names import STORED_NOMINATIM_ZERMATT
 from api.tests.utils import (
     api_error,
-    create_test_album_date,
     create_test_job,
     create_test_photo,
     create_test_user,
@@ -62,9 +61,6 @@ class ForcedLookupTest(TestCase):
         self.user = create_test_user()
         self.photo = _geocoded_photo(self.user)
         get_album_place("Vispastrasse", owner=self.user).photos.add(self.photo)
-        create_test_album_date(
-            owner=self.user, date=self.photo.exif_timestamp.date()
-        ).photos.add(self.photo)
 
     def run_task(self, **kwargs):
         job = create_test_job(self.user, LongRunningJob.JOB_LOOK_UP_PLACES)
@@ -92,6 +88,8 @@ class ForcedLookupTest(TestCase):
             AlbumPlace.objects.filter(photos=self.photo).values_list("title", flat=True)
         )
         self.assertEqual(titles, {"Zermatt", "Visp District", "Valais", "Switzerland"})
+        # The day's place is its photos' town: it follows the new name.
+        self.assertEqual(self.photo.town, "Zermatt")
 
     def test_a_failed_forced_lookup_keeps_the_place(self, post):
         post.side_effect = OSError("exif sidecar is down")
@@ -132,33 +130,14 @@ class LookUpPlacesJobTest(TestCase):
         self.assertEqual(job.progress_target, 2)
         self.assertFalse(job.finished)
 
-    def test_the_day_albums_name_their_places_again(self):
-        photo = _geocoded_photo(self.other)
-        day = create_test_album_date(
-            owner=self.other,
-            date=photo.exif_timestamp.date(),
-            location={"places": ["Valais/Wallis"]},
-        )
-
-        with mock.patch.object(processing_jobs, "enqueue_task"):
-            look_up_places(self.admin, self.job_id)
-
-        day.refresh_from_db()
-        self.assertIsNone(day.location)
-
     def test_no_photo_with_a_position_completes_at_once(self):
         create_test_photo(owner=self.admin)
-        day = create_test_album_date(
-            owner=self.admin, date=timezone.now().date(), location={"places": ["X"]}
-        )
 
         with mock.patch.object(processing_jobs, "enqueue_task") as enqueue:
             look_up_places(self.admin, self.job_id)
 
         enqueue.assert_not_called()
         self.assertTrue(self.job().finished)
-        day.refresh_from_db()
-        self.assertEqual(day.location, {"places": ["X"]})
 
     def test_a_job_cancelled_while_queued_does_nothing(self):
         _geocoded_photo(self.admin)
@@ -176,7 +155,9 @@ class LookUpPlacesJobTest(TestCase):
 
         with (
             mock.patch.object(
-                AlbumDate.objects, "exclude", side_effect=RuntimeError("db gone")
+                processing_jobs,
+                "_queue_per_photo_tasks",
+                side_effect=RuntimeError("db gone"),
             ),
             self.assertLogs("api.directory_watcher.processing_jobs", "ERROR"),
         ):

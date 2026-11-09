@@ -1,11 +1,8 @@
 import logging
-from functools import cached_property
 from typing import Any
 
 from django.db.models import Count, Exists, OuterRef, Prefetch, Q, QuerySet, Subquery
 from drf_spectacular.utils import (
-    OpenApiParameter,
-    OpenApiTypes,
     extend_schema,
     extend_schema_view,
 )
@@ -23,17 +20,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from api.albums.collections import set_album_collections
-from api.albums.photo_order import day_ordering, photo_ordering
-from api.albums.public_days import (
-    UNDATED_ATTR,
-    owners_sharing_dates,
-    public_day_rows,
-    undated_day_id,
-)
-from api.albums.timeline_filter import timeline_filter_q
 from api.drf.pagination import (
-    PAGE_PARAMETERS,
-    DayAlbumPagination,
     DefaultPagination,
     WholeListPagination,
 )
@@ -44,7 +31,6 @@ from api.faces.labels import relabel_faces
 from api.faces.merge import merge_people
 from api.models import (
     AlbumCollection,
-    AlbumDate,
     AlbumPlace,
     AlbumThing,
     AlbumUser,
@@ -54,20 +40,9 @@ from api.models import (
     User,
 )
 from api.models.photo import visible_photo_q
-from api.models.photo_stack import PhotoStack
-from api.photos.paths import folder_path_q
 from api.serializers.album_collection import (
     UserAlbumCollectionsRequest,
     UserAlbumCollectionsSerializer,
-)
-from api.serializers.album_date import (
-    AlbumDateListQuery,
-    AlbumDateSerializer,
-    DateAlbumFilterQuery,
-    IncompleteAlbumDateSerializer,
-    PublicViewQuery,
-    prefetch_public_photos,
-    public_view_filters,
 )
 from api.serializers.album_place import (
     AlbumPlaceListSerializer,
@@ -88,6 +63,7 @@ from api.serializers.album_user import (
     AlbumUserSerializer,
     with_album_user_list_relations,
 )
+from api.serializers.days import PublicViewQuery
 from api.serializers.person import (
     PersonListQuery,
     PersonMergeRequest,
@@ -100,20 +76,10 @@ from api.serializers.person import (
 )
 from api.serializers.person_group import PersonGroupsRequest, PersonGroupsSerializer
 from api.serializers.photos import (
-    PhotoSummarySerializer,
-    with_person_video_time,
-)
-from api.serializers.photos import (
     # Kept under its old name for the views that import it from here.
     with_photo_summary_relations as _with_photo_summary_relations,
 )
 from api.views.custom_api_view import CoverPhotosMixin, ListViewSet
-from api.views.library_days import (
-    library_day,
-    library_day_rows,
-    timeline_day,
-    timeline_day_rows,
-)
 from api.views.mixins import PartialUpdateModelMixin
 
 logger = logging.getLogger(__name__)
@@ -533,402 +499,14 @@ class AlbumUserListViewSet(ListViewSet):
         return with_album_user_list_relations(albums).order_by("title")
 
 
-def public_view_permissions(request: Request) -> list[BasePermission]:
-    """Anyone may read the public view (``?public``); the rest needs a sign-in.
-
-    Only the flag is read here, so an anonymous caller without it is answered
-    401 before any other parameter is validated.
-    """
-    if parse_query(request, PublicViewQuery)["public"]:
-        return [AllowAny()]
-    return [IsAuthenticated()]
-
-
-def public_view_owner(request: Request, username: str) -> User:
-    """The user whose public photos the public view (``?public``) shows.
-
-    The public view is per user: their public profile, ``/public/<username>``.
-    The combined view of everyone's public photos is the public gallery
-    (``/api/gallery/``, #434), which has switches of its own. A blank or
-    unknown username, a deactivated user, or one whose public profile
-    (``public_sharing``) is off is a 404, except to that user themselves (the
-    Public Links page lists their own public photos).
-    """
-    owner = (
-        User.objects.filter(username=username, is_active=True).first()
-        if username
-        else None
-    )
-    if owner is None:
-        raise NotFound()
-    requester = request.user
-    if not owner.public_sharing and not (
-        isinstance(requester, User) and requester.pk == owner.pk
-    ):
-        raise NotFound()
-    return owner
-
-
-# Retrieve only: there is no queryset, so the list, create, update and destroy
-# a ModelViewSet adds all failed with a 500. The day list is AlbumDateListViewSet.
-class AlbumDateViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    serializer_class = AlbumDateSerializer
-    pagination_class = DayAlbumPagination
-
-    @cached_property
-    def _query(self) -> dict[str, Any]:
-        """The query string, validated once per request."""
-        return public_view_filters(parse_query(self.request, DateAlbumFilterQuery))
-
-    def _ownership_filters(self) -> list[Q]:
-        params = self._query
-        user = self.request.user
-
-        filters = [Q(thumbnail__aspect_ratio__isnull=False)]
-        if isinstance(user, User) and not params["public"]:
-            filters.append(Photo.objects.owner_q(user))
-        if params["public"]:
-            owner = public_view_owner(self.request, params["username"])
-            filters.append(Photo.objects.owner_q(owner))
-            filters.append(Q(public=True))
-        return filters
-
-    def _media_flag_filters(self) -> list[Q]:
-        params = self._query
-
-        filters = [Q(hidden=params["hidden"])]
-        # Media type, screenshots, documents and favorites: resolved exactly as
-        # AlbumDateListViewSet does, so a day's pages match its count there.
-        filters += timeline_filter_q(self.request.user, params)
-        if params["in_trashcan"]:
-            filters.append(Q(in_trashcan=True) & Q(removed=False))
-        else:
-            filters.append(Q(in_trashcan=False))
-        return filters
-
-    def _grouping_filters(self) -> list[Q]:
-        params = self._query
-
-        filters: list[Q] = []
-        folder = params["folder"]
-        if folder:
-            filters.append(folder_path_q("files__path", folder))
-        # Photos that are not stacked, or that are the primary photo of their stack.
-        # Non-primary photos stay out of the timeline but remain reachable by
-        # expanding the stack. Duplicates are handled via the Duplicate model.
-        if not params["show_all_stack_photos"]:
-            filters.append(Q(stacks__isnull=True) | Q(primary_in_stack__isnull=False))
-        if "person" in params:
-            # One Q, so both conditions apply to the same face.
-            filters.append(Q(faces__person__id=params["person"], faces__deleted=False))
-        return filters
-
-    def _photo_filters(self) -> list[Q]:
-        params = self._query
-
-        last_modified = params.get("last_modified")
-        # For the owner, last_modified deliberately replaces every other
-        # filter. Only reached signed in: get_permissions requires it unless
-        # ``public`` is set.
-        if last_modified is not None and not params["public"]:
-            return [
-                Photo.objects.owner_q(request_user(self.request)),
-                Q(exif_timestamp__gte=last_modified),
-            ]
-        filters = (
-            self._ownership_filters()
-            + self._media_flag_filters()
-            + self._grouping_filters()
-        )
-        # The public view, anonymous or not, stays scoped to public photos.
-        if last_modified is not None:
-            filters.append(Q(exif_timestamp__gte=last_modified))
-        return filters
-
-    def _album_date(self) -> AlbumDate:
-        """The requested day album, if the caller may see it; 404 otherwise.
-
-        The serializer renders the album's own ``date`` and ``location``, so
-        filtering only the photos is not enough. Mirror the scope of
-        ``AlbumDateListViewSet``, which hands out the ids: the caller's own
-        days, or with ``public`` the days holding a public photo (of
-        ``username``, whose public profile must be on: ``public_view_owner``).
-        """
-        params = self._query
-        albums = AlbumDate.objects.all()
-        if params["public"]:
-            albums = albums.owned_by(
-                public_view_owner(self.request, params["username"])
-            )
-            # The photos the day list counts: never a hidden or trashed one.
-            albums = albums.filter(photos__in=Photo.visible.filter(public=True))
-        else:
-            # Only reached with an authenticated user: get_permissions requires
-            # it unless ``public`` is set.
-            albums = albums.owned_by(request_user(self.request))
-        # DRF's get_object_or_404 also turns a non-numeric id into a 404.
-        return get_object_or_404(albums.distinct(), pk=self.kwargs["pk"])
-
-    def _day_and_photos(self) -> tuple[AlbumDate, QuerySet[Photo]]:
-        """The day album and the photos it shows, before paging.
-
-        One owner's shared library with ``library``, the requester's day with
-        the libraries in their timeline with ``libraries`` (#2731).
-        """
-        params = self._query
-        if params.get("library") is not None:
-            return library_day(request_user(self.request), params, self.kwargs["pk"])
-        if params["libraries"] and not params["public"]:
-            return timeline_day(
-                request_user(self.request),
-                params,
-                self.kwargs["pk"],
-                self._photo_filters(),
-            )
-        album_date = self._album_date()
-        undated = self._public_undated_photos(album_date)
-        if undated is not None:
-            return album_date, undated
-        return album_date, album_date.photos.filter(*self._photo_filters())
-
-    def _public_undated_photos(self, album_date: AlbumDate) -> QuerySet[Photo] | None:
-        """In the public view, every public photo of an owner who keeps dates
-        to themselves, as one undated group (``api.albums.public_days``).
-
-        Only under the id the day list gives the group: the owner's other
-        days are a 404, so their ids do not tell the days apart. None for an
-        owner who shares dates, and outside the public view.
-        """
-        owner = album_date.owner
-        if not self._query["public"] or owner.pk in owners_sharing_dates([owner.pk]):
-            return None
-        photos = Photo.objects.owned_by(owner).filter(
-            *self._photo_filters(), albumdate__isnull=False
-        )
-        days = AlbumDate.objects.owned_by(owner).filter(photos__in=photos)
-        if undated_day_id(days) != album_date.pk:
-            raise NotFound()
-        setattr(album_date, UNDATED_ATTR, True)
-        return photos
-
-    def _album_date_page(self) -> tuple[AlbumDate, list[Photo]]:
-        """The day album and one page of its photos (``DayAlbumPagination``).
-
-        Not ``get_queryset``: it returns no queryset, and ``retrieve`` is the
-        only action this viewset serves.
-        """
-        album_date, day_photos = self._day_and_photos()
-        # An undated public group is in an order that says nothing about when
-        # its photos were taken.
-        ordering = (
-            ("pk",)
-            if getattr(album_date, UNDATED_ATTR, False)
-            else photo_ordering(self._query["order"])
-        )
-        photo_qs = _with_photo_summary_relations(
-            # distinct(): filtering through a reverse foreign key (faces of a
-            # person) repeats a photo.
-            day_photos.distinct().order_by(*ordering)
-        )
-        if "person" in self._query:
-            # A person's video opens where the person is (#2762).
-            photo_qs = with_person_video_time(photo_qs, self._query["person"])
-
-        photos = self.paginate_queryset(photo_qs)
-        return album_date, photos or []
-
-    def get_permissions(self) -> list[BasePermission]:
-        return public_view_permissions(self.request)
-
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "id",
-                OpenApiTypes.INT,
-                OpenApiParameter.PATH,
-                description="The day album's id (from /api/albums/date/list/)",
-            ),
-            DateAlbumFilterQuery,
-            *PAGE_PARAMETERS,
-        ],
-        description=(
-            "Returns the actual images, for a given day in chunks of 100 images. "
-            "``results`` is the day with one page of its photos in ``items`` "
-            "and their total in ``numberOfItems``; the page fields of every "
-            "paginated list sit next to it."
-        ),
-    )
-    def retrieve(self, *args: Any, **kwargs: Any) -> Response:
-        album_date, photos = self._album_date_page()
-        serializer = AlbumDateSerializer(
-            album_date,
-            context={
-                "request": self.request,
-                # The public view may only name places of public photos.
-                "public": self._query["public"],
-            },
-        )
-        serializer_data = serializer.data
-        # The request: another user's library photos show what they share;
-        # the public view what the owners' public sharing switches allow.
-        serializer_data["items"] = PhotoSummarySerializer(
-            photos,
-            many=True,
-            context={"request": self.request, "public": self._query["public"]},
-        ).data
-        response = self.get_paginated_response(serializer_data)
-        # The day's total, where clients have always read it (the same number
-        # as the page's count).
-        response.data["results"]["numberOfItems"] = response.data["count"]
-        return response
-
-
-# To-Do: Could be the summary command in AlbumDateViewSet
-class AlbumDateListViewSet(ListViewSet):
-    serializer_class = IncompleteAlbumDateSerializer
-    pagination_class = None
-    filter_backends = (filters.SearchFilter,)
-    search_fields = [
-        "photos__search_instance__search_captions",
-        "photos__search_instance__search_location",
-        "photos__faces__person__name",
-    ]
-
-    @cached_property
-    def _query(self) -> dict[str, Any]:
-        """The query string, validated once per request."""
-        return public_view_filters(parse_query(self.request, AlbumDateListQuery))
-
-    def get_queryset(self) -> QuerySet[AlbumDate]:
-        params = self._query
-        filter: list[Q] = []
-        filter.append(Q(photos__thumbnail__aspect_ratio__isnull=False))
-
-        if params["hidden"]:
-            filter.append(Q(photos__hidden=True))
-        else:
-            filter.append(Q(photos__hidden=False))
-
-        if params["in_trashcan"]:
-            filter.append(Q(photos__in_trashcan=True) & Q(photos__removed=False))
-        else:
-            filter.append(Q(photos__in_trashcan=False))
-
-        # Stack filtering: Only count photos that are either:
-        # 1. Not in any stack, OR
-        # 2. The primary photo of their stack
-        # Stacks are for organizational purposes (RAW+JPEG pairs, bursts, brackets, live photos, manual)
-        # Non-primary photos are hidden in the timeline but accessible via stack expansion
-        # NOTE: Duplicates are handled separately via the Duplicate model and are not filtered here
-        if not params["show_all_stack_photos"]:
-            # As subqueries, not LEFT JOINs: a join multiplied the rows of a
-            # photo in several stacks, which is what made the count DISTINCT
-            # (a sort of every row on the timeline's hottest query).
-            in_no_stack = ~Exists(
-                Photo.stacks.through.objects.filter(photo_id=OuterRef("pk"))
-            )
-            is_primary = Exists(
-                PhotoStack.objects.filter(primary_photo_id=OuterRef("pk"))
-            )
-            filter.append(
-                Q(
-                    photos__in=Photo.objects.filter(in_no_stack | is_primary).values(
-                        "pk"
-                    )
-                )
-            )
-
-        # Filter by folder path if provided
-        folder_path = params["folder"]
-        if folder_path:
-            filter.append(folder_path_q("photos__files__path", folder_path))
-
-        user = self.request.user
-        if isinstance(user, User) and not params["public"]:
-            filter.append(AlbumDate.objects.owner_q(user))
-            filter.append(Photo.objects.owner_q(user, through="photos__"))
-
-        if params["public"]:
-            owner = public_view_owner(self.request, params["username"])
-            filter.append(AlbumDate.objects.owner_q(owner))
-            filter.append(Q(photos__public=True))
-
-        # Media type, screenshots, documents and favorites (see
-        # api.albums.timeline_filter). Positive conditions on the photos join, applied
-        # in the one filter() call below, so a day holding a screenshot keeps
-        # its other photos and photo_count counts only the matching ones.
-        filter += timeline_filter_q(user, params, prefix="photos__")
-
-        if "person" in params:
-            filter.append(
-                Q(
-                    photos__faces__person__id=params["person"],
-                    photos__faces__deleted=False,
-                )
-            )
-        last_modified = params.get("last_modified")
-        if last_modified is not None and params["public"]:
-            # The public view, anonymous or not, stays scoped to public photos.
-            filter.append(Q(photos__last_modified__gte=last_modified))
-        elif last_modified is not None:
-            # For the owner it deliberately replaces every other filter. Only
-            # reached signed in: get_permissions requires it unless ``public``
-            # is set.
-            owner = request_user(self.request)
-            filter = []
-            filter.append(AlbumDate.objects.owner_q(owner))
-            filter.append(Photo.objects.owner_q(owner, through="photos__"))
-            filter.append(Q(photos__last_modified__gte=last_modified))
-
-        # Only these reach a photo's many files or faces, or the search fields,
-        # through a join that repeats the photo; otherwise each row is one
-        # day's photo and a plain count is exact.
-        repeats_photos = bool(
-            params["folder"] or "person" in params or params["search"]
-        )
-        qs = (
-            AlbumDate.objects.filter(*filter)
-            .annotate(photo_count=Count("photos", distinct=repeats_photos))
-            .filter(Q(photo_count__gt=0))
-            .order_by(day_ordering(params["order"]))
-        )
-
-        return qs
-
-    def get_permissions(self) -> list[BasePermission]:
-        return public_view_permissions(self.request)
-
-    @extend_schema(
-        parameters=[AlbumDateListQuery],
-        description="Gives you a list of days with the number of elements. This is not paginated and can be large.",
-    )
-    def list(self, *args: Any, **kwargs: Any) -> Response:
-        params = self._query
-        if params.get("library") is not None:
-            days = library_day_rows(request_user(self.request), params)
-            return Response(
-                {"results": IncompleteAlbumDateSerializer(days, many=True).data}
-            )
-        queryset = self.get_queryset()
-        public = params["public"]
-        rows: QuerySet[AlbumDate] | list[AlbumDate] = queryset
-        if public:
-            # The public view may only name places of public photos, and
-            # shows an owner who keeps dates to themselves no days.
-            rows = public_day_rows(queryset.prefetch_related(prefetch_public_photos()))
-        elif params["libraries"]:
-            rows = timeline_day_rows(request_user(self.request), params, queryset)
-        serializer = IncompleteAlbumDateSerializer(
-            rows, many=True, context={"public": public}
-        )
-        return Response({"results": serializer.data})
-
-
 # Create an album, or PATCH its title, photos, cover or lock. Opening one goes
 # through AlbumUserViewSet.
 class AlbumUserEditViewSet(
     mixins.CreateModelMixin,
     PartialUpdateModelMixin[AlbumUser],
+    # Released clients (UhuruPhotos) delete here; the web uses
+    # DELETE /api/albums/user/<id>/. Both delete only the caller's own album.
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     permission_classes = (IsAuthenticated,)

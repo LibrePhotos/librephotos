@@ -1,7 +1,8 @@
 import { User } from "@librephotos/api-client";
-import { Card, Flex, Group, Radio, Switch, Title } from "@mantine/core";
+import { Flex, Group, Radio, Switch, Title } from "@mantine/core";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
@@ -11,7 +12,7 @@ export function DuplicateDetectionCard({ user, onChange }: UserSettingsCardProps
   const { t } = useTranslation();
 
   return (
-    <Card shadow="md">
+    <SettingsCard>
       <Title order={4} mb={16}>
         <Trans i18nKey="settings.duplicatedetection" />
         <SectionLink />
@@ -39,6 +40,6 @@ export function DuplicateDetectionCard({ user, onChange }: UserSettingsCardProps
           onChange={event => onChange({ duplicate_clear_existing: event.currentTarget.checked })}
         />
       </Flex>
-    </Card>
+    </SettingsCard>
   );
 }

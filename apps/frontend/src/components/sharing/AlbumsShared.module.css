@@ -1,5 +1,5 @@
 /* The shared-albums pages (AlbumsSharedByMe, AlbumsSharedWithMe): a header per person, then their
-   album covers. */
+   album cards (CollectionCard). */
 .ownerHeader {
   padding-top: 15px;
   padding-left: 5px;
@@ -18,24 +18,4 @@
 
 .polaroid {
   margin-right: 5px;
-}
-
-.coverTile {
-  object-fit: cover;
-}
-
-.emptyCover {
-  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
-}
-
-/* The cover and its "⋮" chip, which sits on the cover's top right corner. */
-.tile {
-  position: relative;
-}
-
-.tileActions {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 1;
 }

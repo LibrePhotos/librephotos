@@ -1,5 +1,5 @@
 import { MAX_MEMORY_ITEMS } from "@librephotos/api-client";
-import { Group, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { IconSparkles as Sparkles } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
@@ -8,9 +8,9 @@ import { useFetchMemoriesQuery } from "../../api_client/memories";
 import { EmptyState } from "../../components/common/EmptyState";
 import { ErrorState } from "../../components/common/ErrorState";
 import { useListFailure } from "../../components/common/useListFailure";
+import { MemoriesGrid } from "../../components/memories/MemoriesGrid";
 import type { MemoriesView } from "../../components/memories/MemoriesHeader";
 import { MemoriesHeader } from "../../components/memories/MemoriesHeader";
-import { MemoryCard } from "../../components/memories/MemoryCard";
 import {
   memoriesAreCapped,
   memoriesPhotoCount,
@@ -20,7 +20,6 @@ import {
 import { MemorySlideshow } from "../../components/memories/MemorySlideshow";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { validatePhotoSearch } from "../../components/photolist/photoSearch";
-import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/memories")({
   component: Memories,
@@ -50,12 +49,6 @@ function Memories() {
   // The summary is the list: when it failed, the full set is not asked for, or
   // came back empty too. Its photos stay if only a later request failed.
   const listFailure = useListFailure(summary);
-
-  // One memory per year, so there is nothing to virtualize -- but the tiles are
-  // sized like the album grids so the two pages look like the same product.
-  const { columnWidth } = useAlbumListGridConfig();
-  // Whole pixels: a full row of fractional tiles can add up a hair past the page and wrap
-  const tileSize = Math.max(Math.floor(columnWidth) - 10, 0);
 
   // Memoised: opening or closing the lightbox re-renders the page, and a new list would make the
   // grid lay itself out again.
@@ -103,7 +96,6 @@ function Memories() {
           header={header}
           title={t("memories.title")}
           loading={isFetching && items.length === 0}
-          icon={Sparkles}
           photoset={groups}
           idx2hash={items}
           numberOfItems={items.length}
@@ -115,16 +107,7 @@ function Memories() {
         <Stack gap={0}>
           {header}
           {memories.length > 0 ? (
-            <Group gap={10} p={10} align="flex-start">
-              {memories.map(memory => (
-                <MemoryCard
-                  key={memory.id}
-                  memory={memory}
-                  size={tileSize}
-                  onPlay={() => setPlaying({ kind: "one", id: memory.id })}
-                />
-              ))}
-            </Group>
+            <MemoriesGrid memories={memories} onPlay={memory => setPlaying({ kind: "one", id: memory.id })} />
           ) : null}
           {/* Only claim there is nothing to remember when the request actually
               answered: a failed one says so, with a Retry. */}

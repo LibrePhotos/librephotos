@@ -32,7 +32,7 @@ from api.models import (
 from api.models.photo import HEAVY_PHOTO_COLUMNS, visible_photo_q
 from api.models.user import User, get_default_public_sharing_settings
 from api.photos.selection import build_photo_queryset
-from api.serializers.album_date import PublicViewQuery
+from api.serializers.days import PublicViewQuery
 from api.serializers.fields import (
     OwnedPhotoField,
     loaded,

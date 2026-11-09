@@ -7,7 +7,8 @@ import * as endpoints from "../endpoints";
 import { Photoset } from "../schemas";
 import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
-import dateAlbumsList from "./fixtures/dateAlbumsList.json";
+import dayPhotos from "./fixtures/dayPhotos.json";
+import days from "./fixtures/days.json";
 import folderSubfolders from "./fixtures/folderSubfolders.json";
 import userAlbumCards from "./fixtures/userAlbumCards.json";
 import { fakeServer, fakeServerByUrl } from "./harness";
@@ -458,10 +459,10 @@ describe("places and folders", () => {
   });
 });
 
-describe("date albums with the timeline filter", () => {
+describe("days with the timeline filter", () => {
   it("sends the timeline filter and the photoset flags, and leaves out media=all", async () => {
-    const { client, requests } = fakeServer(dateAlbumsList);
-    await endpoints.fetchDateAlbumsList(client, {
+    const { client, requests } = fakeServer(days);
+    await endpoints.fetchDays(client, {
       favorite: true,
       media: "photos",
       hide_screenshots: true,
@@ -470,11 +471,15 @@ describe("date albums with the timeline filter", () => {
       username: "Alice",
       folder: "",
     });
-    const dayServer = fakeServer({ results: defined(dateAlbumsList.results[0]) });
-    await endpoints.fetchDateAlbum(dayServer.client, 12, 2, { media: "all", hide_documents: true });
+    const after = "22222222-2222-2222-2222-222222222222";
+    const dayServer = fakeServer(dayPhotos);
+    await endpoints.fetchDayPhotos(dayServer.client, 20240615, after, { media: "all", hide_documents: true });
+    const layoutServer = fakeServer({ id: 20240615, numberOfItems: 0, aspectRatios: [], page_after: [] });
+    await endpoints.fetchDayLayout(layoutServer.client, 20240615, { media: "videos", hide_documents: true });
     const list = new URL(defined(requests[0]).url);
     const day = new URL(defined(dayServer.requests[0]).url);
-    expect(list.pathname).toBe("/api/albums/date/list/");
+    const layout = new URL(defined(layoutServer.requests[0]).url);
+    expect(list.pathname).toBe("/api/days/");
     expect(Object.fromEntries(list.searchParams)).toEqual({
       favorite: "true",
       media: "photos",
@@ -482,14 +487,47 @@ describe("date albums with the timeline filter", () => {
       person: "3",
       username: "alice",
     });
-    expect(day.pathname).toBe("/api/albums/date/12/");
-    expect(Object.fromEntries(day.searchParams)).toEqual({ hide_documents: "true", page: "2" });
+    expect(day.pathname).toBe("/api/days/20240615/photos/");
+    expect(Object.fromEntries(day.searchParams)).toEqual({ hide_documents: "true", after });
+    expect(layout.pathname).toBe("/api/days/20240615/layout/");
+    expect(Object.fromEntries(layout.searchParams)).toEqual({ media: "videos", hide_documents: "true" });
+  });
+
+  it("reads the days as groups of the grids whose photos are still to load", async () => {
+    const groups = await endpoints.fetchDays(fakeServer(days).client);
+    expect(groups).toEqual([
+      { id: 20240615, date: "2024-06-15", location: "Berlin", numberOfItems: 42, incomplete: true, items: [] },
+      { id: 1, date: null, location: "", numberOfItems: 3, incomplete: true, items: [] },
+    ]);
+  });
+
+  it("reads a page of a day and the cursor of the next one", async () => {
+    const page = await endpoints.fetchDayPhotos(fakeServer(dayPhotos).client, 20240615, null);
+    expect(page.items.map(photo => photo.image_hash)).toEqual(["abcdef0123456789hash1", "abcdef0123456789hash2"]);
+    expect(page.next).toBe("22222222-2222-2222-2222-222222222222");
+  });
+
+  it("reads a day's layout", async () => {
+    const answer = {
+      id: 20240615,
+      numberOfItems: 3,
+      aspectRatios: [1.5, null, 1],
+      page_after: [null, "22222222-2222-2222-2222-222222222222"],
+    };
+    await expect(endpoints.fetchDayLayout(fakeServer(answer).client, 20240615)).resolves.toEqual(answer);
+  });
+
+  it("fails loudly on a day page without its cursor", async () => {
+    const { items } = dayPhotos;
+    await expect(endpoints.fetchDayPhotos(fakeServer({ items }).client, 20240615, null)).rejects.toBeInstanceOf(
+      ResponseParseError
+    );
   });
 
   it("sends archived as a tri-state flag (#545)", async () => {
     const params = async (filter: endpoints.DateAlbumFilter) => {
-      const { client, requests } = fakeServer(dateAlbumsList);
-      await endpoints.fetchDateAlbumsList(client, filter);
+      const { client, requests } = fakeServer(days);
+      await endpoints.fetchDays(client, filter);
       return Object.fromEntries(new URL(defined(requests[0]).url).searchParams);
     };
     expect(await params({ archived: false })).toEqual({ archived: "false" });

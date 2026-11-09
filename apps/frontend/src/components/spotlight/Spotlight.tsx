@@ -1,60 +1,72 @@
-import { Button, Group, Kbd, Modal, Stack, Text, UnstyledButton } from "@mantine/core";
+import { Button, CloseButton, Group, Kbd, Modal, Stack, Text, UnstyledButton } from "@mantine/core";
 import { Spotlight as MantineSpotlight, spotlight } from "@mantine/spotlight";
 import { IconSearch } from "@tabler/icons-react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { notification } from "../../service/notifications";
 import { MissingPhotosConfirmText } from "../settings/MissingPhotosBadge";
+import classes from "./Spotlight.module.css";
 import { AVATAR_SIZE, useSpotlightActions } from "./useSpotlightActions";
 
 type SpotlightTriggerProps = {
   className?: string;
 };
 
+// The words of the search page being shown (/search/<words>), so the header field keeps them.
+function useShownSearchTerm(): string | null {
+  const pathname = useRouterState({ select: state => state.location.pathname });
+  const match = /^\/search\/([^/]+)\/?$/.exec(pathname);
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
 export function SpotlightTrigger({ className }: SpotlightTriggerProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [isMac, setIsMac] = useState(false);
+  const term = useShownSearchTerm();
 
   useEffect(() => {
     setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent));
   }, []);
 
+  // On a search page the field shows the words searched for, with a button that clears them, as
+  // Google Photos keeps the query in its search field.
   return (
-    <UnstyledButton
-      className={className}
-      onClick={() => spotlight.open()}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--mantine-spacing-sm)",
-        // As tall as the header's inputs, not the 44px that vertical padding gave
-        padding: "0 var(--mantine-spacing-md)",
-        minHeight: 36,
-        borderRadius: "var(--mantine-radius-md)",
-        border: "1px solid var(--mantine-color-default-border)",
-        backgroundColor: "var(--mantine-color-body)",
-        color: "var(--mantine-color-placeholder)",
-        cursor: "pointer",
-        minWidth: 0,
-        flex: 1,
-        maxWidth: 400,
-      }}
-    >
-      <IconSearch size={16} stroke={1.5} />
-      {/* Phones have no keyboard shortcut to hint at, and need the header room */}
-      <Text size="sm" c="dimmed" style={{ flex: 1 }} truncate visibleFrom="sm">
-        {t("spotlight.triggerPlaceholder")}
-      </Text>
-      <Text size="sm" c="dimmed" style={{ flex: 1 }} truncate hiddenFrom="sm">
-        {t("search.search")}
-      </Text>
-      <Group gap={4} wrap="nowrap" visibleFrom="sm">
-        <Kbd size="xs">{isMac ? "⌘" : "Ctrl"}</Kbd>
-        <Kbd size="xs">K</Kbd>
-      </Group>
-    </UnstyledButton>
+    <div className={className ? `${classes.trigger} ${className}` : classes.trigger}>
+      <UnstyledButton className={classes.open} onClick={() => spotlight.open()}>
+        <IconSearch size={18} stroke={1.75} />
+        {term !== null ? (
+          <Text size="sm" className={classes.label} truncate>
+            {term}
+          </Text>
+        ) : (
+          <>
+            {/* Phones have no keyboard shortcut to hint at, and need the header room */}
+            <Text size="sm" c="dimmed" className={classes.label} truncate visibleFrom="sm">
+              {t("spotlight.triggerPlaceholder")}
+            </Text>
+            <Text size="sm" c="dimmed" className={classes.label} truncate hiddenFrom="sm">
+              {t("search.search")}
+            </Text>
+            <Group gap={4} wrap="nowrap" visibleFrom="sm">
+              <Kbd size="xs">{isMac ? "⌘" : "Ctrl"}</Kbd>
+              <Kbd size="xs">K</Kbd>
+            </Group>
+          </>
+        )}
+      </UnstyledButton>
+      {term !== null && (
+        <CloseButton size="sm" radius="xl" aria-label={t("clear")} onClick={() => void navigate({ to: "/" })} />
+      )}
+    </div>
   );
 }
 
@@ -117,8 +129,9 @@ export function SpotlightProvider() {
         // and it grew to the full window height. Hand the classes back.
         classNames={{
           root: MantineSpotlight.classes.root,
-          content: MantineSpotlight.classes.content,
+          content: `${MantineSpotlight.classes.content} ${classes.palette}`,
           body: MantineSpotlight.classes.body,
+          action: classes.action,
         }}
         // One width for icons and avatars, so every label starts at the same x
         styles={{

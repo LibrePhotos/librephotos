@@ -1,5 +1,4 @@
 import { Group, Loader, Text } from "@mantine/core";
-import type { TablerIcon } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
 import { DateTime } from "luxon";
@@ -7,9 +6,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
-import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { parseInstant } from "../../util/dateUtils";
-import { formatUnitList } from "../../util/formatCount";
 import { PageHeader } from "../PageHeader";
 import { isPhotosView, PhotosViewSwitcher } from "./PhotosViewSwitcher";
 import { ScanDirectoryWelcome } from "./ScanDirectoryWelcome";
@@ -18,10 +15,11 @@ type Props = Readonly<{
   loading: boolean;
   numPhotosetItems: number;
   numPhotos: number;
-  icon: TablerIcon;
   title: string;
   // See PhotoListView's `titleBadge`.
   titleBadge?: React.ReactNode;
+  // See PhotoListView's `titleLeading`.
+  titleLeading?: React.ReactNode;
   additionalSubHeader: React.ReactNode;
   dayHeaderPrefix?: string;
   date?: string;
@@ -37,6 +35,20 @@ type Props = Readonly<{
   filterHint?: React.ReactNode;
   // The days are oldest first (#2712): the count line says so, as it is not the usual order.
   oldestFirst?: boolean;
+  // The header's right side: the photo list's toolbar.
+  actions?: React.ReactNode;
+  // See PhotoListView's `collection`.
+  collection?: CollectionHeader;
+}>;
+
+/**
+ * An album, event, place or thing: its header has the larger title and one meta line, the days its
+ * photos span first and then their count ("Nov 6, 2022 – Jun 21, 2026 · 4 photos"), no day count.
+ */
+export type CollectionHeader = Readonly<{
+  dateSpan?: string | null;
+  /** In place of the plain title text: the owner's inline rename (EditableAlbumTitle). */
+  title?: React.ReactNode;
 }>;
 
 type PhotoCounterProps = Readonly<
@@ -47,55 +59,64 @@ type PhotoCounterProps = Readonly<
     | "numPhotos"
     | "hasEmptyState"
     | "countsVideos"
-    | "filterHint"
-    | "additionalSubHeader"
     | "oldestFirst"
+    | "date"
+    | "dayHeaderPrefix"
+    | "collection"
   >
 >;
 
-// "12 days, 340 photos", or only "340 photos" when every item is its own group.
+// "340 photos · 12 days", or only "340 photos" when every item is its own group. A collection
+// says when instead of how many days: "Nov 6, 2022 – Jun 21, 2026 · 4 photos".
 function photoCountLine(
   t: TFunction,
-  locale: string,
   {
     numPhotosetItems,
     numPhotos,
     countsVideos,
-  }: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos">
+    collection,
+  }: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos" | "collection">
 ): string {
   const items = t(countsVideos ? "defaultheader.videoscount" : "defaultheader.photoscount", { count: numPhotos });
+  if (collection) return collection.dateSpan ? `${collection.dateSpan} · ${items}` : items;
   if (numPhotosetItems === numPhotos) return items;
-  return formatUnitList([t("defaultheader.dayscount", { count: numPhotosetItems }), items], locale);
+  // Photos first, as the count people look for: "3 photos · 1 day"
+  return `${items} · ${t("defaultheader.dayscount", { count: numPhotosetItems })}`;
 }
 
 // The count line, with "· Oldest first" when the days are in that order.
 function countLineWithOrder(
   t: TFunction,
-  locale: string,
-  props: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos" | "oldestFirst">
+  props: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos" | "oldestFirst" | "collection">
 ): string {
-  const line = photoCountLine(t, locale, props);
+  const line = photoCountLine(t, props);
   return props.oldestFirst ? t("defaultheader.oldestfirst", { counts: line }) : line;
 }
 
-// The subtitle: loading, "No images found", or the day and photo counts, with
-// the media filter's hint and the page's own sub-header.
+// The day of a one-day list (Recently added), after its count: "· Added on Friday, …".
+function dayDate(date: string | undefined, prefix: string | undefined): string {
+  if (!date) return "";
+  const instant = parseInstant(date);
+  return ` · ${prefix ?? ""}${instant.isValid ? instant.toLocaleString(DateTime.DATE_HUGE) : date}`;
+}
+
+// The subtitle, one dimmed line: loading, "No images found", or the day and photo counts.
 function PhotoCounter({
   loading,
   numPhotosetItems,
   numPhotos,
   hasEmptyState,
   countsVideos,
-  filterHint,
-  additionalSubHeader,
   oldestFirst,
+  date,
+  dayHeaderPrefix,
+  collection,
 }: PhotoCounterProps) {
   const { t } = useTranslation();
-  const locale = useFormatLocale();
   if (loading) {
     return (
       <Group gap={6} wrap="nowrap">
-        <Text ta="left" c="dimmed">
+        <Text ta="left" c="dimmed" size="sm">
           {t("defaultheader.loading")}
         </Text>
         <Loader size="xs" />
@@ -109,36 +130,35 @@ function PhotoCounter({
       return null;
     }
     return (
-      <div>
-        <Text ta="left" c="dimmed">
-          {t("defaultheader.noimages")}
-        </Text>
-        {filterHint}
-      </div>
+      <Text ta="left" c="dimmed" size="sm">
+        {t("defaultheader.noimages")}
+      </Text>
     );
   }
 
   return (
-    <div>
-      <Text ta="left" c="dimmed">
-        {countLineWithOrder(t, locale, { numPhotosetItems, numPhotos, countsVideos, oldestFirst })}
-      </Text>
-      {filterHint}
-      {additionalSubHeader}
-    </div>
+    <Text ta="left" c="dimmed" size="sm">
+      {countLineWithOrder(t, { numPhotosetItems, numPhotos, countsVideos, oldestFirst, collection })}
+      {dayDate(date, dayHeaderPrefix)}
+    </Text>
   );
 }
 
-// The date beside the title of a one-day list (Recently added).
-function DayDate({ date, prefix }: Readonly<{ date: string; prefix?: string }>) {
-  const instant = parseInstant(date);
+// Under the title row: the media filter's hint, and once there are photos the page's own lines.
+function belowHeader({
+  loading,
+  numPhotosetItems,
+  filterHint,
+  additionalSubHeader,
+}: Pick<Props, "loading" | "numPhotosetItems" | "filterHint" | "additionalSubHeader">): React.ReactNode {
+  if (loading) return null;
+  const extra = numPhotosetItems > 0 ? additionalSubHeader : null;
+  if (!filterHint && !extra) return null;
   return (
-    <Text style={{ whiteSpace: "nowrap" }}>
-      <b>
-        {prefix}
-        {instant.isValid ? instant.toLocaleString(DateTime.DATE_HUGE) : date}
-      </b>
-    </Text>
+    <>
+      {filterHint}
+      {extra}
+    </>
   );
 }
 
@@ -149,10 +169,10 @@ export function DefaultHeader(props: Props) {
   const {
     loading,
     numPhotosetItems,
-    icon,
     numPhotos,
     title,
     titleBadge,
+    titleLeading,
     additionalSubHeader,
     date,
     dayHeaderPrefix,
@@ -162,6 +182,8 @@ export function DefaultHeader(props: Props) {
     titleOrder,
     filterHint,
     oldestFirst,
+    actions,
+    collection,
   } = props;
 
   // Don't fetch user data on public pages
@@ -176,16 +198,16 @@ export function DefaultHeader(props: Props) {
   }
 
   // The view switcher on the views that have one; otherwise the plain title
-  const titleNode =
+  let titleNode: React.ReactNode =
     auth?.access && isPhotosView(location.pathname) ? (
       <PhotosViewSwitcher title={title} publicName={auth.access.name} />
     ) : (
       title
     );
+  if (collection?.title) titleNode = collection.title;
 
   return (
     <PageHeader
-      icon={icon}
       title={
         <>
           {titleNode}
@@ -193,6 +215,7 @@ export function DefaultHeader(props: Props) {
         </>
       }
       titleOrder={titleOrder}
+      leading={titleLeading}
       subtitle={
         <PhotoCounter
           loading={loading}
@@ -200,14 +223,15 @@ export function DefaultHeader(props: Props) {
           numPhotos={numPhotos}
           hasEmptyState={hasEmptyState}
           countsVideos={countsVideos}
-          filterHint={filterHint}
-          additionalSubHeader={additionalSubHeader}
           oldestFirst={oldestFirst}
+          date={(!hasEmptyState || numPhotosetItems > 0) && date ? date : undefined}
+          dayHeaderPrefix={dayHeaderPrefix}
+          collection={collection}
         />
       }
-      actions={
-        (!hasEmptyState || numPhotosetItems > 0) && date ? <DayDate date={date} prefix={dayHeaderPrefix} /> : undefined
-      }
+      size={collection ? "collection" : "page"}
+      below={belowHeader({ loading, numPhotosetItems, filterHint, additionalSubHeader })}
+      actions={actions}
     />
   );
 }

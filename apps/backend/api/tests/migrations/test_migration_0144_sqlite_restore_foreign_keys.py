@@ -43,7 +43,11 @@ requires_sqlite = skipUnless(
     connection.vendor == "sqlite", "only 0099's SQLite path rebuilt the tables"
 )
 
-REBUILT_BY_0099 = sorted({table for table, _ in squashed.SQLITE_FK_COLUMNS})
+# Tables 0099 rebuilt that a later migration dropped: AlbumDate's (0222).
+DROPPED_SINCE = {"api_albumdate_photos"}
+REBUILT_BY_0099 = sorted(
+    {table for table, _ in squashed.SQLITE_FK_COLUMNS} - DROPPED_SINCE
+)
 
 # An image_hash as pre-UUID LibrePhotos wrote them: an MD5 plus the owner id.
 PRE_0099_IMAGE_HASH = "0123456789abcdef0123456789abcdef1"

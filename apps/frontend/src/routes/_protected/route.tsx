@@ -1,8 +1,10 @@
-import { AppShell, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { AppShell } from "@mantine/core";
 import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import React from "react";
 import { useIsAuthenticatedQuery } from "../../api_client/auth";
+import { ErrorReportingPrompt } from "../../components/errorReports/ErrorReportingPrompt";
 import { LoggedOutHome } from "../../components/gallery/LoggedOutHome";
+import shellClasses from "../../components/menubars/AppShellChrome.module.css";
 import { FooterMenu } from "../../components/menubars/FooterMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
@@ -18,8 +20,6 @@ export const Route = createFileRoute("/_protected")({
 });
 
 function AppShellProtected() {
-  const colorScheme = useComputedColorScheme();
-  const theme = useMantineTheme();
   // A cookie read, known on the first render: the first paint is the app shell or the redirect,
   // never a loading state of its own (#2238).
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
@@ -37,6 +37,9 @@ function AppShellProtected() {
       {/* Here, not in __root: its search queries need a session, and login,
           signup and public pages have none (each fired 401s on load). */}
       <SpotlightProvider />
+      {/* Asks an admin once about error reporting (#2938). Inside the upload provider: it waits
+          while files upload. */}
+      <ErrorReportingPrompt />
       {/* The What's new card after an update, and the dialog the account menu opens (#2305). Inside
           the upload provider: the card waits while the upload card is open. */}
       <WhatsNewProvider>
@@ -52,6 +55,7 @@ function AppShellProtected() {
                 navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
                 footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
                 transitionDuration={0}
+                classNames={{ header: shellClasses.chrome, navbar: shellClasses.chrome, main: shellClasses.main }}
               >
                 <AppShell.Header>
                   <TopMenu />
@@ -59,12 +63,10 @@ function AppShellProtected() {
                 <AppShell.Navbar>
                   <SideMenuNarrow />
                 </AppShell.Navbar>
-                <AppShell.Main
-                  style={{
-                    backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
-                  }}
-                >
-                  <Outlet />
+                <AppShell.Main>
+                  <div className={shellClasses.content}>
+                    <Outlet />
+                  </div>
                 </AppShell.Main>
                 {/* The footer is the phone navigation. A 0px footer on desktop still
               drew a 1px border and left its links in the tab order. */}

@@ -1,5 +1,5 @@
 /**
- * The owner's "⋮" on an album page (#2208): Rename, Sharing, Lock / Unlock and Delete album open
+ * The owner's "⋮" on an album page (#2208): Rename, Lock / Unlock and Delete album open
  * My Albums' dialogs for this album; the rename's duplicate check leaves this album's own title
  * out, and deleting goes back to My Albums once the album is gone. With uploads on, "Upload to this
  * album…" comes first (#612), and says why when the album cannot take uploads. "Set as cover…"
@@ -17,7 +17,6 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import type { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
-import type { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import type { AlbumUpload } from "../upload/useAlbumUpload";
 import type { AlbumCollectionsModal } from "./AlbumCollectionsModal";
 import { UserAlbumHeaderMenu } from "./UserAlbumHeaderMenu";
@@ -25,7 +24,6 @@ import type { DeleteUserAlbumModal, RenameUserAlbumModal } from "./UserAlbumModa
 
 type RenameProps = React.ComponentProps<typeof RenameUserAlbumModal>;
 type DeleteProps = React.ComponentProps<typeof DeleteUserAlbumModal>;
-type ShareProps = React.ComponentProps<typeof ModalAlbumShare>;
 type CollectionsProps = React.ComponentProps<typeof AlbumCollectionsModal>;
 type CoverProps = React.ComponentProps<typeof AlbumCoverPickerModal>;
 
@@ -36,7 +34,6 @@ const stubs = vi.hoisted(() => ({
   cover: undefined as CoverProps | undefined,
   rename: undefined as RenameProps | undefined,
   remove: undefined as DeleteProps | undefined,
-  share: undefined as ShareProps | undefined,
   collections: undefined as CollectionsProps | undefined,
 }));
 
@@ -71,12 +68,6 @@ vi.mock("./UserAlbumModals", () => ({
 vi.mock("./AlbumCollectionsModal", () => ({
   AlbumCollectionsModal: (props: CollectionsProps) => {
     stubs.collections = props;
-    return null;
-  },
-}));
-vi.mock("../sharing/ModalAlbumShare", () => ({
-  ModalAlbumShare: (props: ShareProps) => {
-    stubs.share = props;
     return null;
   },
 }));
@@ -137,7 +128,6 @@ beforeEach(() => {
   stubs.cover = undefined;
   stubs.rename = undefined;
   stubs.remove = undefined;
-  stubs.share = undefined;
   openPicker.mockReset();
   stubs.collections = undefined;
 });
@@ -160,12 +150,13 @@ async function pick(item: string) {
 }
 
 describe("UserAlbumHeaderMenu", () => {
-  it("offers rename, set as cover, sharing, collections, lock and delete", async () => {
+  // Sharing is the Share button under the album's title, which the owner always has.
+  it("offers rename, set as cover, collections, lock and delete", async () => {
     await render();
     await act(async () => button("Album actions").click());
 
     const items = Array.from(document.body.querySelectorAll('[role="menuitem"]')).map(el => el.textContent?.trim());
-    expect(items).toEqual(["Rename", "Set as cover…", "Sharing", "Collections…", "Lock album", "Delete album"]);
+    expect(items).toEqual(["Rename", "Set as cover…", "Collections…", "Lock album", "Delete album"]);
   });
 
   it("picks the cover from the loaded photos, with nothing selected (#2240)", async () => {
@@ -202,7 +193,6 @@ describe("UserAlbumHeaderMenu", () => {
       "Upload to this album…",
       "Rename",
       "Set as cover…",
-      "Sharing",
       "Collections…",
       "Lock album",
       "Delete album",
@@ -231,13 +221,6 @@ describe("UserAlbumHeaderMenu", () => {
     const rename = defined(stubs.rename);
     expect(rename.opened).toBe(true);
     expect(rename).toMatchObject({ albumId: "7", albumTitle: "Lisbon 2026", existingTitles: ["Porto"] });
-  });
-
-  it("opens the sharing dialog for this album", async () => {
-    await render();
-    await pick("Sharing");
-
-    expect(stubs.share).toMatchObject({ isOpen: true, albumID: "7", ownerUsername: "maria" });
   });
 
   it.each([

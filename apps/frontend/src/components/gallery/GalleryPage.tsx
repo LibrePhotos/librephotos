@@ -1,7 +1,6 @@
 import type { Gallery, GalleryPhotographer } from "@librephotos/api-client";
 import { ApiError } from "@librephotos/api-client";
 import { Group, Tabs, Text } from "@mantine/core";
-import { IconWorld } from "@tabler/icons-react";
 import { Navigate } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -83,7 +82,7 @@ export function GalleryPage({ search, onSearch }: Props) {
 
   return (
     <>
-      <PageHeader icon={IconWorld} title={t("gallery.title")} subtitle={summary(gallery.data, t)} />
+      <PageHeader title={t("gallery.title")} subtitle={summary(gallery.data, t)} />
       <PageBody gap={0}>
         <Tabs value={tab} onChange={changeTab} keepMounted={false}>
           <Tabs.List className={classes.tabList}>

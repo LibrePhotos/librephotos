@@ -1,0 +1,31 @@
+/*
+ * A phone (below 576px): the settings cards become grouped sections, as iOS and Android draw them.
+ * No border or radius, and no inset of their own: the card runs to the screen's edges and pads its
+ * content back to the page gutter (PAGE_GUTTER_MOBILE), so text gets the whole width. An 8px band
+ * of a darker surface under each one separates it from the next; the stack's gap between cards is
+ * taken back, so the band is the only separation. The card's title is a small dimmed uppercase
+ * label, as a settings group's header is.
+ */
+@media (max-width: 35.99em) {
+  .card.card {
+    margin-inline: -12px;
+    margin-bottom: calc(-1 * var(--stack-gap, 0px));
+    padding-inline: 12px;
+    border: 0;
+    border-radius: 0;
+    border-bottom: 8px solid light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-9));
+  }
+
+  .card.card[data-flush] {
+    padding-inline: 0;
+  }
+
+  .card h4 {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--mantine-color-dimmed);
+  }
+}

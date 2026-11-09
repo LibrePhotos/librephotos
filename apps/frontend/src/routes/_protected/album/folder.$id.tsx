@@ -202,7 +202,7 @@ function FolderDetail() {
           {/* Folder list modal with trigger button */}
           {subfolders.length > maxFolders && (
             <Button
-              variant="default"
+              variant="light"
               size={buttonSize}
               onClick={openFolderList}
               styles={{
@@ -217,12 +217,7 @@ function FolderDetail() {
               {t("moresubfolders", { count: subfolders.length - maxFolders })}
             </Button>
           )}
-          <FolderListModal
-            opened={folderListOpened}
-            onClose={closeFolderList}
-            folderPath={folderPath}
-            isMobile={isMobile}
-          />
+          <FolderListModal opened={folderListOpened} onClose={closeFolderList} folderPath={folderPath} />
         </Group>
       </Box>
     );
@@ -234,13 +229,12 @@ function FolderDetail() {
       title={title}
       additionalSubHeader={getSubheader()}
       // An empty folder has no photos to detect faces in.
-      headerActions={
+      headerMenu={
         photosFlat.length > 0 ? (
           <FolderActionsMenu folderPath={folderPath} folderName={title} photoCount={photosFlat.length} />
         ) : undefined
       }
       loading={isLoading}
-      icon={Folder}
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}

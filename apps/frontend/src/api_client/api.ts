@@ -151,6 +151,17 @@ const sharedClient = createApiClient({
 });
 
 /**
+ * The same transport for the browser error forwarder (#2938): a failure there is dropped, so it
+ * never toasts, signs the user out or reports the backend down. Only api_client/errorReports uses it.
+ */
+export const quietApiClient: ApiClient = createApiClient({
+  baseUrl: PUBLIC_URL,
+  tokens: cookieTokens,
+  useCredentials: true,
+  onUnauthorized: () => undefined,
+});
+
+/**
  * Rethrow a failure as the web's ApiError. A 500 and a 401 already notified
  * above, so they carry no server message: callers fall back to a generic,
  * translated one (see util/apiErrors.ts).

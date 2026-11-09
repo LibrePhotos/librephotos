@@ -1,11 +1,11 @@
-import { Skeleton, Text } from "@mantine/core";
-import { IconMap } from "@tabler/icons-react";
+import { Skeleton } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Layer, Source } from "react-map-gl/maplibre";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
 import { useMapStyle } from "../../util/mapStyle";
+import { CollectionCard } from "../common/CollectionCard";
 import { clusterFeatureCollection, initialViewForClusters } from "../map/locationClusters";
 import { MapDisabledPlaceholder } from "../map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "../map/mapImages";
@@ -36,48 +36,37 @@ export function PlacesMapCard() {
   const pointLayer = useMemo(() => miniPointLayer(layerColors), [layerColors]);
 
   if (isLoading) {
-    return (
-      <div className={classes.card}>
-        <Skeleton height={120} />
-        <div className={classes.body}>
-          <Skeleton height={20} width="60%" />
-          <Skeleton height={14} width="40%" mt={8} />
-        </div>
-      </div>
-    );
+    return <Skeleton className={classes.loading} radius={12} />;
   }
 
   return (
-    <Link to="/album/places" className={classes.card}>
-      <div className={classes.mapContainer}>
-        {mapStyle === null ? (
-          <MapDisabledPlaceholder height="100%" />
-        ) : (
-          <ThemedMap
-            ref={ignoreMissingStyleImages}
-            h="100%"
-            initialViewState={initialViewState}
-            mapStyle={mapStyle}
-            interactive={false}
-            attributionControl={false}
-          >
-            <Source id="locations" type="geojson" data={geojsonData}>
-              <Layer {...pointLayer} />
-            </Source>
-          </ThemedMap>
-        )}
-      </div>
-      <div className={classes.body}>
-        <div className={classes.title}>
-          <IconMap size={20} stroke={1.5} />
-          <Text fw={600} size="sm">
-            {t("sidemenu.places")}
-          </Text>
+    <CollectionCard
+      shape="wide"
+      size={240}
+      title={t("sidemenu.places")}
+      meta={t("explore.placeCount", { count })}
+      renderLink={props => <Link {...props} to="/album/places" />}
+      media={
+        <div className={classes.mapContainer}>
+          {mapStyle === null ? (
+            <MapDisabledPlaceholder height="100%" />
+          ) : (
+            <ThemedMap
+              ref={ignoreMissingStyleImages}
+              h="100%"
+              initialViewState={initialViewState}
+              mapStyle={mapStyle}
+              interactive={false}
+              renderWorldCopies={false}
+              attributionControl={false}
+            >
+              <Source id="locations" type="geojson" data={geojsonData}>
+                <Layer {...pointLayer} />
+              </Source>
+            </ThemedMap>
+          )}
         </div>
-        <Text size="xs" c="dimmed" mt={4}>
-          {t("explore.placeCount", { count })}
-        </Text>
-      </div>
-    </Link>
+      }
+    />
   );
 }

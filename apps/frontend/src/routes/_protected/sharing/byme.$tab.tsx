@@ -1,10 +1,10 @@
 import { Stack, Tabs } from "@mantine/core";
-import { IconUpload } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsByMeQuery } from "../../../api_client/albums/hooks";
 import { useFetchSharedPhotosByMeQuery } from "../../../api_client/photos/hooks";
+import { PageTabs } from "../../../components/common/PageTabs";
 import { PageBody } from "../../../components/PageBody";
 import { PageHeader } from "../../../components/PageHeader";
 import { validatePhotoSearch } from "../../../components/photolist/photoSearch";
@@ -46,20 +46,20 @@ function SharedByMe() {
   return (
     <>
       <PageHeader
-        icon={IconUpload}
-        iconColor="var(--mantine-color-red-6)"
         title={tab === "photos" ? t("sharing.photosYouShared") : t("sharing.albumsYouShared")}
         subtitle={getSubHeader(tab)}
       />
       <PageBody gap={0}>
         {/* Controlled by the route: with defaultValue, Back changed the title
             but left the other tab showing. */}
-        <Tabs value={tab} onChange={value => value && navigate({ to: `/sharing/byme/${value}/` })}>
-          <Tabs.List>
-            <Tabs.Tab value="photos">{t("sidemenu.photos")}</Tabs.Tab>
-            <Tabs.Tab value="albums">{t("sidemenu.albums")}</Tabs.Tab>
-          </Tabs.List>
-
+        <PageTabs
+          value={tab}
+          onChange={value => void navigate({ to: `/sharing/byme/${value}/` })}
+          tabs={[
+            { value: "photos", label: t("sidemenu.photos") },
+            { value: "albums", label: t("sidemenu.albums") },
+          ]}
+        >
           <Tabs.Panel value="photos">
             <Stack gap="md" pt="md">
               <PhotoSharesSection />
@@ -70,7 +70,7 @@ function SharedByMe() {
           <Tabs.Panel value="albums" pt="md">
             <AlbumsSharedByMe />
           </Tabs.Panel>
-        </Tabs>
+        </PageTabs>
       </PageBody>
     </>
   );

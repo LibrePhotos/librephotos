@@ -45,11 +45,23 @@ vi.mock("@tanstack/react-router", () => ({
     stubs.component = options.component;
     return { useSearch: () => stubs.search, useNavigate: () => stubs.navigate };
   },
-  Link: ({ children, params }: { children: React.ReactNode; params: { id: string } }) => (
-    <a href={`#person-${params.id}`}>{children}</a>
+  Link: ({
+    children,
+    params,
+    "aria-label": label,
+  }: {
+    children: React.ReactNode;
+    params: { id: string };
+    "aria-label"?: string;
+  }) => (
+    <a href={`#person-${params.id}`} aria-label={label}>
+      {children}
+    </a>
   ),
   useNavigate: () => stubs.navigate,
 }));
+// The review link asks the server for its count; FacesReviewLink.test.tsx covers it
+vi.mock("../../../components/album/FacesReviewLink", () => ({ FacesReviewLink: () => null }));
 vi.mock("../../../api_client/albums/hooks", () => ({
   useFetchPeopleAlbumsQuery: () => ({
     data: stubs.people,
@@ -78,13 +90,13 @@ vi.mock("../../../components/virtual/TileGrid", () => ({
   }: {
     items: Person[];
     renderItem: (item: Person, size: number) => React.ReactNode;
-    renderCaption: (item: Person) => React.ReactNode;
+    renderCaption?: (item: Person) => React.ReactNode;
   }) => (
     <ul>
       {items.map(item => (
         <li key={item.id} data-testid="person">
           {renderItem(item, 100)}
-          {renderCaption(item)}
+          {renderCaption?.(item)}
         </li>
       ))}
     </ul>

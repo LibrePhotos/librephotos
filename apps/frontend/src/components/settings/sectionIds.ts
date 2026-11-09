@@ -21,6 +21,7 @@ export const ADMIN_SECTIONS = {
   upgrade: "admin-upgrade",
   site: "admin-site",
   gallery: "admin-gallery",
+  errors: "admin-errors",
   features: "admin-features",
   email: "admin-email",
   tools: "admin-tools",

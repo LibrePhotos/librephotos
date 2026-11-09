@@ -1,0 +1,41 @@
+/*
+ * The photo's map fades in once its first tiles are drawn (LocationMap.tsx). Until then the frame
+ * is a quiet surface, never an empty map with a lone pin and its attribution.
+ */
+.frame {
+  z-index: 2;
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+}
+
+.frame > * {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.frame[data-drawn] > * {
+  opacity: 1;
+}
+
+/*
+ * Dark mode: the inverted basemap (ThemedMap) came out so dim on the black viewer that the pin was
+ * hard to find. A touch brighter here.
+ */
+[data-mantine-color-scheme="dark"] .frame[data-drawn] > * {
+  filter: brightness(1.2);
+}
+
+/*
+ * Where the photo was taken: a dot in the app's accent with a white ring and a soft shadow, as
+ * Immich and Google Maps mark a spot. maplibre's grey-rimmed pin in the pastel dark accent sank
+ * into the dark map. The dark scheme takes a stronger shade of the accent than its pastel primary.
+ */
+.pin {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--mantine-color-white);
+  border-radius: 50%;
+  background-color: light-dark(var(--mantine-primary-color-filled), var(--mantine-primary-color-5));
+  box-shadow: 0 1px 3px var(--app-scrim-black-40);
+  cursor: pointer;
+}

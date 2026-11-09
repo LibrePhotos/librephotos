@@ -1,8 +1,8 @@
 /**
  * The Profile page collects edits and offers them in the "Save changes?" dialog: Save sends them,
- * Cancel puts the stored values back. The password fields sit behind a lock; a typed password
- * goes with the save only while they are unlocked, and Cancel or a save leaves them locked and
- * empty again (#2197).
+ * Cancel puts the stored values back. The password fields are open, labelled like the others; a
+ * typed password goes with the save, both fields emptied again is no change, and Cancel or a save
+ * leaves them empty again (#2197).
  */
 import type { User } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -111,11 +111,6 @@ function inputLabelled(text: string): HTMLInputElement {
 }
 
 const passwordInputs = () => [...container.querySelectorAll<HTMLInputElement>('input[type="password"]')];
-const lock = () =>
-  defined(
-    container.querySelector<HTMLButtonElement>('button[aria-label="Click to change the password"]'),
-    "the lock button"
-  );
 const saveDialog = () => container.querySelector('[data-testid="save-changes-dialog"]');
 const dialogButton = (label: string) =>
   defined(
@@ -127,7 +122,6 @@ const dialogButton = (label: string) =>
 const sentUser = () => defined(stubs.updateUser.mock.calls[0], "the save request")[0];
 
 async function typeNewPassword(password: string) {
-  await act(async () => lock().click());
   for (const input of passwordInputs()) {
     await type(input, password);
   }
@@ -162,8 +156,8 @@ describe("Profile", () => {
   });
 
   it("offers to save a password as soon as one is typed, and asks for the retype on Save", async () => {
-    await act(async () => lock().click());
     expect(saveDialog()).toBeNull();
+    expect(inputLabelled("New password").disabled).toBe(false);
 
     await type(defined(passwordInputs()[0]), "s3cret!!");
     await act(async () => dialogButton("Update").click());
@@ -172,9 +166,9 @@ describe("Profile", () => {
     expect(container.textContent).toContain("You must retype the password");
   });
 
-  it("does not save a password once the fields are locked again", async () => {
+  it("does not save a password once both fields are emptied again", async () => {
     await typeNewPassword("s3cret!!");
-    await act(async () => lock().click());
+    await typeNewPassword("");
     await type(inputLabelled("First name"), "Marlene");
     await act(async () => dialogButton("Update").click());
 
@@ -183,21 +177,20 @@ describe("Profile", () => {
   });
 
   // #2197: Cancel dropped the password from the pending save but left it on screen, unlocked.
-  it("locks and empties the password fields on Cancel", async () => {
+  it("empties the password fields on Cancel", async () => {
     await typeNewPassword("s3cret!!");
     await act(async () => dialogButton("Cancel").click());
 
     expect(passwordInputs().map(input => input.value)).toEqual(["", ""]);
-    expect(passwordInputs().every(input => input.disabled)).toBe(true);
-    expect(lock().getAttribute("aria-pressed")).toBe("false");
+    expect(saveDialog()).toBeNull();
   });
 
-  it("locks and empties the password fields after a save", async () => {
+  it("empties the password fields after a save", async () => {
     stubs.updateUser.mockImplementation((_user, callbacks) => callbacks.onSuccess?.());
     await typeNewPassword("s3cret!!");
     await act(async () => dialogButton("Update").click());
 
     expect(passwordInputs().map(input => input.value)).toEqual(["", ""]);
-    expect(passwordInputs().every(input => input.disabled)).toBe(true);
+    expect(saveDialog()).toBeNull();
   });
 });

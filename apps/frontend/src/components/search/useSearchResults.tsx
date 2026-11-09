@@ -1,16 +1,19 @@
 import { ApiError } from "@librephotos/api-client";
+import { Box } from "@mantine/core";
 import { IconAlertTriangle, IconFilter, IconSearch } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchPhotosQuery } from "../../api_client/search/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { PAGE_GUTTER_PX } from "../../uiConstants";
 import { useListFailure } from "../common/useListFailure";
 import type { EmptyStateConfig, PhotoListView } from "../photolist/PhotoListView";
 import { useMediaTypeFilter } from "../photolist/useMediaTypeFilter";
 import { hasSearchFilters, searchSelectAllQuery } from "./searchFilter";
-import { SearchFilterButton } from "./SearchFilterButton";
+import { SearchFilterButton, type FilterPanelState } from "./SearchFilterButton";
 import { SearchFilterChips } from "./SearchFilterChips";
+import { SearchMatchChips } from "./SearchMatchChips";
 import { useFavoriteRating, useSearchFilters } from "./useSearchFilters";
 
 const DEFAULTS = {
@@ -70,10 +73,12 @@ type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
 
 /**
  * The photo list of the search results, by words (/search/<words>) or by filters alone (/search/),
- * with the media button, the Filters button and the active filter chips (#2259, #329). Each search
- * route spreads the result into its PhotoListView: the list is the page, with its h1.
+ * with the media button, the Filters button, the active filter chips (#2259, #329) and, for words,
+ * the people, places and things whose names match them. Each search route spreads the result into
+ * its PhotoListView: the list is the page, with its h1. `filterPanel` keeps the Filters panel open
+ * across /search's swap from Explore to the results.
  */
-export function useSearchResults(term: string): PhotoListViewProps {
+export function useSearchResults(term: string, filterPanel?: FilterPanelState): PhotoListViewProps {
   const { t } = useTranslation();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
   const mediaType = useMediaTypeFilter();
@@ -101,7 +106,6 @@ export function useSearchResults(term: string): PhotoListViewProps {
     // No trailing "...": the header shows its own loading state.
     title: term ? t("search.resultsfor", { query: term }) : t("searchfilter.filteredtitle"),
     loading: isPending && (term.length > 0 || filtered),
-    icon: term ? IconSearch : IconFilter,
     photoset: currentUser?.semantic_search_topk ? photosFlat : photosGroupedByDate,
     idx2hash: photosFlat,
     mediaType,
@@ -117,15 +121,20 @@ export function useSearchResults(term: string): PhotoListViewProps {
         onClear={clearFilters}
         favoriteRating={favoriteRating}
         resultCount={photosFlat.length}
+        {...filterPanel}
       />
     ),
+    // On the page's content edge: PhotoListView puts the bar under the header as it is.
     filterBar: (
-      <SearchFilterChips
-        filters={filters}
-        onChange={setFilters}
-        onClear={clearFilters}
-        favoriteRating={favoriteRating}
-      />
+      <Box px={PAGE_GUTTER_PX}>
+        <SearchFilterChips
+          filters={filters}
+          onChange={setFilters}
+          onClear={clearFilters}
+          favoriteRating={favoriteRating}
+        />
+        {term && <SearchMatchChips term={term} />}
+      </Box>
     ),
   };
 }

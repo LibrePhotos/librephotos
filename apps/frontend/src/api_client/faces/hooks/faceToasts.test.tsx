@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { faceMenuItem } from "../../../components/lightbox/faceMenu.test-utils";
 import { PersonDetail } from "../../../components/lightbox/PersonDetailComponent";
 import i18n from "../../../i18n";
 import type { ToastOptions } from "../../../service/notifications/toast";
@@ -124,13 +125,14 @@ async function run<R>(useHook: () => R, start: (result: R) => void) {
 }
 
 const titles = () => toasts.success.mock.calls.map(call => call[1]?.title);
+const messages = () => toasts.success.mock.calls.map(call => call[0]);
 
 describe("deleting faces", () => {
   it("says the faces were deleted only once the server confirmed it", async () => {
     answer(200, { status: true, results: [], deleted: ["1", "2"], not_deleted: [] });
     await run(useDeleteFacesMutation, mutation => mutation.mutate({ faceIds: [1, 2] }));
 
-    expect(titles()).toEqual([i18n.t("toasts.deletefacestitle")]);
+    expect(messages()).toEqual(["Deleted 2 faces"]);
   });
 
   it("reports a failed delete instead of claiming it worked", async () => {
@@ -166,8 +168,8 @@ describe("deleting faces", () => {
         </QueryClientProvider>
       );
     });
-    const buttons = container.querySelectorAll("button");
-    await act(async () => defined(buttons[buttons.length - 1]).click());
+    const remove = await faceMenuItem(container, "Delete face");
+    await act(async () => remove.click());
     await settle();
 
     expect(toasts.success).not.toHaveBeenCalled();
@@ -181,7 +183,7 @@ describe("moving faces back to unknown", () => {
       mutation.mutate({ faceIds: [3], personName: "Unknown - Other" })
     );
 
-    expect(titles()).toEqual([i18n.t("toasts.removefacestopersontitle")]);
+    expect(messages()).toEqual(["Moved 1 face to 'Unknown - Other'"]);
   });
 
   it("names who will not be suggested for the face again (#2747)", async () => {
@@ -208,7 +210,7 @@ describe("moving faces back to unknown", () => {
     await run(useSetFacesPersonLabelMutation, mutation => mutation.mutate({ faceIds: [3], personName: "Dave" }));
 
     expect(toasts.success.mock.calls[0]?.[0]).toBe(
-      "1 face(s) were labeled as the person Dave. Also labeled 2 matching faces in the same burst or duplicate group"
+      "Labeled 1 face as Dave. Also labeled 2 matching faces in the same burst or duplicate group"
     );
   });
 });

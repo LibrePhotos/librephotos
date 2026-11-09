@@ -17,7 +17,7 @@ export function LibraryFoldersCard({ user, isAdmin }: Props) {
     return null;
   }
   return (
-    <Card shadow="md">
+    <Card withBorder radius="lg" padding="lg">
       <Stack gap="sm">
         <Stack gap={0}>
           <Title order={4}>{t("libraryfolders.title")}</Title>

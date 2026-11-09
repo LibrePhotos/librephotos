@@ -38,7 +38,6 @@ from api.tests.infra.routes import ApiRoute, api_routes
 from api.tests.utils import (
     create_test_album_auto,
     create_test_album_collection,
-    create_test_album_date,
     create_test_album_place,
     create_test_album_thing,
     create_test_album_user,
@@ -140,12 +139,13 @@ def _album_auto(requester: User, index: int) -> None:
     album.photos.add(_visible_photo(requester))
 
 
-def _album_date(requester: User, index: int) -> None:
+def _day(requester: User, index: int) -> None:
     moment = timezone.now() - timezone.timedelta(days=index)
-    album = create_test_album_date(
-        owner=requester, date=moment.date(), location={"places": ["Lisbon"]}
+    create_test_photo(
+        owner=requester,
+        exif_timestamp=moment,
+        geolocation_json={"places": ["Main Street 1", "Lisbon", "Portugal"]},
     )
-    album.photos.add(create_test_photo(owner=requester, exif_timestamp=moment))
 
 
 def _album_thing(requester: User, index: int) -> None:
@@ -316,7 +316,8 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
         ListFixture(_public_user, requester="anonymous"),
     ),
     "api/albums/auto/list/": (ListFixture(_album_auto),),
-    "api/albums/date/list/": (ListFixture(_album_date),),
+    "api/days/": (ListFixture(_day),),
+    "api/albums/date/list/": (ListFixture(_day),),
     "api/albums/thing/list/": (ListFixture(_album_thing),),
     "api/albums/place/list/": (ListFixture(_album_place),),
     "api/albums/user/list/": (ListFixture(_album_user),),

@@ -1,17 +1,37 @@
+/* A section of the album hub. Its heading and its row start on the page's left edge, like the
+   category cards under them; the page spaces the sections. */
 .section {
-  margin-bottom: 1.5rem;
-}
-
-.sectionCompact {
-  margin-bottom: 0;
+  margin: 0;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
-  padding: 0 0.5rem;
+  gap: var(--mantine-spacing-sm);
+  margin-bottom: 12px;
+}
+
+/* SectionHeader: 17px/600 title, a 13px dimmed meta line with the accent "View all" (a page title is
+   28px, so the step down is clear) */
+.headingTitle.headingTitle {
+  font-size: calc(1.0625rem * var(--mantine-scale));
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.headingMeta {
+  margin-top: 2px;
+  color: var(--mantine-color-dimmed);
+  font-size: calc(0.8125rem * var(--mantine-scale));
+  line-height: 1.4;
+}
+
+.viewAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--mantine-primary-color-light-color);
 }
 
 .headerLeft {
@@ -25,12 +45,15 @@
   }
 }
 
-/* Scroll variant (default) */
+/* Scroll variant (default). Pulled out by its padding, so the first card sits on the page edge while
+   the cards' shadow still has room on every side. */
 .scrollContainer {
   display: flex;
   gap: 1rem;
   overflow-x: auto;
-  padding: 0.5rem;
+  margin: 0 -0.5rem;
+  padding: 0.5rem 0.5rem 0.875rem;
+  scroll-padding-inline: 0.5rem;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
   scrollbar-color: var(--mantine-color-gray-4) transparent;
@@ -49,40 +72,38 @@
   border-radius: 3px;
 }
 
+/* A collection card in a scrolling row (CollectionCard): the album lists' cover size */
+.rowCard {
+  flex: 0 0 auto;
+  width: 180px;
+  scroll-snap-align: start;
+}
+
+/* A photo in a scrolling row (the Sharing overview), with the collection cards' corners */
 .albumCard {
-  /* A link is inline: block keeps the 140px width when it is not a flex child. */
   display: block;
   flex-shrink: 0;
   scroll-snap-align: start;
-  width: 140px;
+  width: 180px;
   text-decoration: none;
   color: inherit;
 }
 
 .albumCover {
-  width: 140px;
-  height: 140px;
-  border-radius: var(--mantine-radius-md);
+  width: 180px;
+  height: 180px;
+  border-radius: 12px;
   overflow: hidden;
-  background-color: var(--mantine-color-gray-1);
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-[data-mantine-color-scheme="dark"] .albumCover {
-  background-color: var(--mantine-color-dark-6);
 }
 
 .albumCoverImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.albumInfo {
-  margin-top: 0.5rem;
-  padding: 0 0.25rem;
 }
 
 .emptyState {
@@ -96,164 +117,146 @@
 .loadingContainer {
   display: flex;
   gap: 1rem;
-  padding: 0.5rem;
+  padding: 0.5rem 0;
 }
 
 .skeleton {
   flex-shrink: 0;
-  width: 140px;
+  width: 180px;
+  height: 180px;
 }
 
-/* Avatar Grid variant for People */
+/* The hub's card rows (My Albums, Collections): one grid, so every card has the same width and the
+   rows share their left and right edges. Two columns on a phone, three from sm, five from lg. */
+.hubGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--hub-columns), minmax(0, 1fr));
+  gap: 16px;
+  --hub-columns: 2;
+
+  @media (min-width: 48em) {
+    --hub-columns: 3;
+  }
+
+  @media (min-width: 75em) {
+    --hub-columns: 5;
+  }
+}
+
+/* A row of the grid that shows its first line only (My Albums); "View all" has the rest */
+.hubRow > :nth-child(n + 3) {
+  display: none;
+}
+
+@media (min-width: 48em) {
+  .hubRow > :nth-child(n + 3) {
+    display: block;
+  }
+
+  .hubRow > :nth-child(n + 4) {
+    display: none;
+  }
+}
+
+@media (min-width: 75em) {
+  .hubRow > :nth-child(n + 4) {
+    display: block;
+  }
+
+  .hubRow > :nth-child(n + 6) {
+    display: none;
+  }
+}
+
+/* An album cover while the row loads: the cards' square */
+.hubSkeleton {
+  height: auto;
+  aspect-ratio: 1;
+}
+
+/* The hub's people (HubPeopleRow): the People page's portrait cards in one row of a grid that
+   ends on the page's right edge like the album rows; HubPeopleRow shows as many as fit one row.
+   Keep the minimum widths in step with HubPeopleRow's. */
+.peopleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+
+  @media (max-width: 47.99em) {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 12px;
+  }
+}
+
+.personSkeleton {
+  height: auto;
+  aspect-ratio: 3 / 4;
+}
+
+/* Round faces in a grid that fills the row, names in 12px under them, cut to their cell (the
+   Sharing overview's people). Four columns on a phone. */
 .avatarGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 16px 8px;
+  padding: 0.5rem 0;
+
+  @media (max-width: 47.99em) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .avatarItem {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 6px;
+  min-width: 0;
   text-decoration: none;
   color: inherit;
-  width: 70px;
+  border-radius: var(--mantine-radius-md);
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+  }
 }
 
 .avatar {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   overflow: hidden;
-  background-color: var(--mantine-color-gray-2);
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--mantine-color-gray-3);
+  transition: transform 150ms ease;
 }
 
-[data-mantine-color-scheme="dark"] .avatar {
-  background-color: var(--mantine-color-dark-5);
-  border-color: var(--mantine-color-dark-4);
-}
-
-.avatarImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+.avatarItem:hover .avatar {
+  transform: scale(1.05);
 }
 
 .avatarName {
-  margin-top: 0.25rem;
+  width: 100%;
   text-align: center;
-  font-size: 0.7rem;
-  line-height: 1.2;
-  max-width: 70px;
+  font-size: 12px;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.avatarSkeleton {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 70px;
-}
-
-/* Card variant for dashboard tiles */
-.cardContainer {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  border-radius: var(--mantine-radius-md);
-  overflow: hidden;
-  background-color: var(--mantine-color-gray-0);
-  border: 2px solid var(--mantine-color-gray-2);
-  height: 100%;
-}
-
-[data-mantine-color-scheme="dark"] .cardContainer {
-  background-color: var(--mantine-color-dark-6);
-  border-color: var(--mantine-color-dark-4);
-}
-
-.cardCover {
-  width: 100%;
-  height: 120px;
-  background-color: var(--mantine-color-gray-1);
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  overflow: hidden;
-}
-
-[data-mantine-color-scheme="dark"] .cardCover {
-  background-color: var(--mantine-color-dark-5);
-}
-
-.cardCoverSingle {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--mantine-color-dimmed);
-}
-
-/* A section without covers shows its small header icon here; at 20px it read as a broken tile */
-.cardCoverSingle svg {
-  width: 40px;
-  height: 40px;
-}
-
-.cardCoverImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cardCoverThumbnail {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cardBody {
-  padding: 0.75rem;
-}
-
-/* The albums overview has five category cards: in its two-column range the last one would sit alone */
-@media (min-width: 48em) and (max-width: 61.99em) {
-  .lastCategoryCard {
-    grid-column: 1 / -1;
-  }
-}
-
-/* and in its three-column range it would leave a gap after it */
-@media (min-width: 62em) and (max-width: 74.99em) {
-  .lastCategoryCard {
-    grid-column: span 2;
-  }
-}
-
-.cardTitle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Loading states for variants */
 .avatarGridLoading {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 0.5rem;
+  padding: 0.5rem 0;
 }
 
+/* A category card while it loads: the card's 4:3 shape */
 .cardLoading {
-  border-radius: var(--mantine-radius-md);
-  overflow: hidden;
+  height: auto;
+  aspect-ratio: 4 / 3;
 }

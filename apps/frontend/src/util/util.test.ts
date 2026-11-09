@@ -1,8 +1,9 @@
-import type { DatePhotosGroup, DirTree } from "@librephotos/api-client";
+import type { DatePhotosGroup, DirTree, IncompleteDatePhotosGroup } from "@librephotos/api-client";
 import { Settings } from "luxon";
 import i18n from "../i18n";
 import { defined } from "./defined.test-utils";
 import {
+  addTempElementsToGroups,
   formatDateForPhotoGroups,
   fuzzyMatch,
   getAveragedCoordinates,
@@ -171,10 +172,10 @@ describe("adjust date for photo list group", () => {
       },
     ];
     const actual = formatDateForPhotoGroups(photoGroups);
-    expect(defined(actual[0], "the first group").date).toEqual("Friday, March 3, 2023");
+    expect(defined(actual[0], "the first group").date).toEqual("Fri, Mar 3, 2023");
     expect(defined(actual[0], "the first group").year).toEqual(2023);
     expect(defined(actual[0], "the first group").month).toEqual(3);
-    expect(defined(actual[1], "the second group").date).toEqual("Saturday, May 6, 2023");
+    expect(defined(actual[1], "the second group").date).toEqual("Sat, May 6, 2023");
     expect(defined(actual[1], "the second group").year).toEqual(2023);
     expect(defined(actual[1], "the second group").month).toEqual(5);
   });
@@ -186,7 +187,7 @@ describe("adjust date for photo list group", () => {
     Settings.defaultZone = "Europe/Berlin";
     try {
       const actual = formatDateForPhotoGroups([{ date: "2024-04-02T23:05:00Z", location: "", items: [] }]);
-      expect(defined(actual[0], "the first group").date).toEqual("Tuesday, April 2, 2024");
+      expect(defined(actual[0], "the first group").date).toEqual("Tue, Apr 2, 2024");
       expect(defined(actual[0], "the first group").month).toEqual(4);
     } finally {
       Settings.defaultZone = previousZone;
@@ -235,5 +236,30 @@ describe("getAveragedCoordinates", () => {
       { id: "4", exif_gps_lat: 2, exif_gps_lon: 1 },
     ]);
     expect(actual).toEqual({ avgLat: 0.75, avgLon: 3.25 });
+  });
+});
+
+describe("addTempElementsToGroups", () => {
+  const day = (numberOfItems: number, ratioSum?: number): IncompleteDatePhotosGroup => ({
+    id: 20240501,
+    date: "2024-05-01",
+    location: "",
+    incomplete: true,
+    numberOfItems,
+    ...(ratioSum === undefined ? {} : { aspect_ratio_sum: ratioSum }),
+    items: [],
+  });
+
+  it("gives a day's placeholders its average aspect ratio, so it is as wide as when it loads", () => {
+    const groups = [day(4, 6)];
+    addTempElementsToGroups(groups);
+    expect(groups[0]?.items.map(item => item.aspectRatio)).toEqual([1.5, 1.5, 1.5, 1.5]);
+    expect(groups[0]?.items.every(item => item.isTemp)).toBe(true);
+  });
+
+  it("keeps square placeholders when the server does not send the sum", () => {
+    const groups = [day(2)];
+    addTempElementsToGroups(groups);
+    expect(groups[0]?.items.map(item => item.aspectRatio)).toEqual([1, 1]);
   });
 });

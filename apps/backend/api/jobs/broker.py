@@ -18,6 +18,13 @@ A failed task is acknowledged too. Its failure is in the result table, and
 under a lease that its cluster keeps renewing it would otherwise run again
 after every restart.
 
+A task that cannot be loaded fails at once (#2945). django-q stores a task as
+a pickled reference to its function, so a task queued before an update that
+removed or moved that function raises when it is opened. In the pusher that
+ended the pusher, and the sentinel's next one took the same task: no queued
+work ran again. Here such a task leaves the queue and goes into the result
+table as a failure that names the missing code; the next tasks run.
+
 The release guard. A rolling deploy (Coolify, a Kubernetes surge) keeps the
 old container running while the new one migrates and writes its startup
 schedules, which are due at once. The old cluster took their first run and
@@ -30,10 +37,13 @@ test: an applied migration this code has no file for
 
 from __future__ import annotations
 
+import io
 import logging
 import os
+import pickle
 import threading
 import time
+import uuid
 from datetime import datetime, timedelta
 
 from django.db import DatabaseError, connections
@@ -41,9 +51,11 @@ from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models import Count, Max
 from django.utils import timezone
+from django_q import core_signing
 from django_q.brokers.orm import ORM
 from django_q.conf import Conf
 from django_q.models import OrmQ
+from django_q.monitor import save_task
 from django_q.signing import BadSignature, SignedPackage
 
 from api.checks import unknown_applied_migrations
@@ -100,10 +112,34 @@ class ReleaseGuardedORM(ORM):
         tasks: list[tuple[int, str]] | None = super().dequeue()
         if not tasks:
             return tasks
+        loaded: list[tuple[int, str]] = []
+        for pk, payload in tasks:
+            try:
+                loaded.append((pk, acknowledged_when_failed(payload)))
+            except Exception as error:
+                # Anything else that unpickling raises: the pusher would die
+                # on it. An empty list sends the pusher straight back here.
+                logger.exception(
+                    "Removed queued task %s, which this release cannot load", pk
+                )
+                self.fail_unloadable(pk, payload, error)
         with self._held_lock:
-            self._held.update(pk for pk, _payload in tasks)
-        self._keep_renewing()
-        return [(pk, acknowledged_when_failed(payload)) for pk, payload in tasks]
+            self._held.update(pk for pk, _payload in loaded)
+        if loaded:
+            self._keep_renewing()
+        return loaded
+
+    def fail_unloadable(self, pk: int, payload: str, error: Exception) -> None:
+        """Take task ``pk`` off the queue and record it as failed.
+
+        The record is best effort: a failure to write it must not stop the
+        pusher, which is what dropping the task is for.
+        """
+        self.delete(pk)
+        try:
+            save_task(unloadable_failure(payload, error), self)
+        except Exception:
+            logger.exception("Could not record removed queued task %s as failed", pk)
 
     def renew_leases(self) -> None:
         """Extend the lease of every task this process holds.
@@ -206,3 +242,99 @@ def acknowledged_when_failed(payload: str) -> str:
     task["ack_failure"] = True
     signed: str = SignedPackage.dumps(task)
     return signed
+
+
+class _MissingCode:
+    """Stands in for a function or class a queued task names that this code lacks."""
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+
+    def __call__(self, *args: object, **kwargs: object) -> _MissingCode:
+        # A missing class rebuilt from its arguments: still the stand-in.
+        return self
+
+    def __setstate__(self, state: object) -> None:
+        # The rebuilt object's state, which has nowhere to go.
+        pass
+
+
+class _TolerantUnpickler(pickle.Unpickler):
+    """Opens a task whose code is gone, noting each missing name."""
+
+    def __init__(self, data: bytes) -> None:
+        super().__init__(io.BytesIO(data))
+        self.missing: list[str] = []
+
+    def find_class(self, module_name: str, global_name: str, /) -> object:
+        try:
+            found: object = super().find_class(module_name, global_name)
+        except ImportError, AttributeError:
+            path = f"{module_name}.{global_name}"
+            self.missing.append(path)
+            return _MissingCode(path)
+        return found
+
+
+class _TolerantSerializer:
+    """``core_signing``'s serializer, reading with ``_TolerantUnpickler``."""
+
+    def __init__(self) -> None:
+        self.missing: list[str] = []
+
+    def loads(self, data: bytes) -> object:
+        unpickler = _TolerantUnpickler(data)
+        # Shared, so the names missed before a later error are known too.
+        self.missing = unpickler.missing
+        loaded: object = unpickler.load()
+        return loaded
+
+
+def unloadable_failure(payload: str, error: Exception) -> dict[str, object]:
+    """The failed-task record of ``payload``, which raised ``error`` when loaded.
+
+    What it can be read with the missing code stood in for: its id, name,
+    function and arguments. Never its chain, which would queue the next step.
+    """
+    serializer = _TolerantSerializer()
+    try:
+        # core_signing builds its serializer by calling the argument.
+        task = core_signing.loads(
+            payload,
+            key=Conf.SECRET_KEY,
+            salt=Conf.PREFIX,
+            serializer=lambda: serializer,
+        )
+    except Exception:
+        # An old pickle can raise anything while it rebuilds an object, such
+        # as getattr() on a method that was removed: then the reason is generic.
+        logger.exception("Read a removed queued task without its fields")
+        task = {}
+    if not isinstance(task, dict):
+        task = {}
+    missing = serializer.missing
+    if missing:
+        reason = (
+            f"{', '.join(dict.fromkeys(missing))} no longer exists, so the task "
+            "was removed from the queue. An older release queued it."
+        )
+    else:
+        reason = (
+            f"The task could not be loaded ({type(error).__name__}: {error}), "
+            "so it was removed from the queue."
+        )
+    func = task.get("func")
+    now = timezone.now()
+    return {
+        "id": str(task.get("id") or uuid.uuid4().hex),
+        "name": str(task.get("name") or "unloadable task"),
+        "func": func.path if isinstance(func, _MissingCode) else func or "unknown",
+        "args": task.get("args") or (),
+        "kwargs": task.get("kwargs") or {},
+        "group": task.get("group"),
+        "cluster": Conf.CLUSTER_NAME,
+        "started": now,
+        "stopped": now,
+        "result": reason,
+        "success": False,
+    }

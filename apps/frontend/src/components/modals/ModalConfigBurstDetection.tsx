@@ -1,11 +1,12 @@
 import type { BurstDetectionRule } from "@librephotos/api-client";
-import { ActionIcon, Badge, Group, Modal, ScrollArea, Table, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Badge, FocusTrap, Group, Modal, ScrollArea, Table, Text, TextInput } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fuzzyMatch } from "../../util/util";
 import classes from "../settings/RuleTable.module.css";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -105,12 +106,14 @@ export function ModalConfigBurstDetection({ opened, onClose, availableRules, onA
 
   return (
     <Modal
+      size={DIALOG_SIZE.lg}
       styles={modalTitleStyles}
       opened={opened}
-      size="xl"
       title={t("settings.burst.add_rule_title")}
       onClose={() => onClose()}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Text c="dimmed" mb="md">
         {t("settings.burst.add_rule_description")}
       </Text>

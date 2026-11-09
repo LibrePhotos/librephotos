@@ -1,7 +1,9 @@
-import { Box, Button, ButtonGroup, Checkbox, Group, Menu, SegmentedControl, Stack, Text } from "@mantine/core";
+import { Box, Button, Checkbox, Flex, Group, Menu, SegmentedControl, Stack, Text } from "@mantine/core";
 import { IconChevronDown, IconRefresh } from "@tabler/icons-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
+import { TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { toolbarLook } from "../common/toolbarLook";
 
 type DetectOptions = {
   detect_exact_copies: boolean;
@@ -27,10 +29,15 @@ export function DetectDuplicatesMenu({
   // Stacked on phones: side by side the two buttons are wider than the screen
   return (
     <Group gap="xs" w={isPhone ? "100%" : undefined}>
-      <ButtonGroup orientation={isPhone ? "vertical" : "horizontal"} w={isPhone ? "100%" : undefined}>
+      <Flex direction={isPhone ? "column" : "row"} gap={4} w={isPhone ? "100%" : undefined}>
         <Menu shadow="md" width={300}>
           <Menu.Target>
-            <Button variant="outline" size="sm" fullWidth={isPhone} rightSection={<IconChevronDown size={14} />}>
+            <Button
+              {...toolbarLook()}
+              h={TOOLBAR_CONTROL_HEIGHT}
+              fullWidth={isPhone}
+              rightSection={<IconChevronDown size={14} />}
+            >
               {t("duplicates.detectOptions")}
             </Button>
           </Menu.Target>
@@ -100,7 +107,8 @@ export function DetectDuplicatesMenu({
           </Menu.Dropdown>
         </Menu>
         <Button
-          size="sm"
+          variant="light"
+          h={TOOLBAR_CONTROL_HEIGHT}
           fullWidth={isPhone}
           leftSection={<IconRefresh size={16} />}
           onClick={onDetect}
@@ -108,7 +116,7 @@ export function DetectDuplicatesMenu({
         >
           {t("duplicates.detect")}
         </Button>
-      </ButtonGroup>
+      </Flex>
     </Group>
   );
 }

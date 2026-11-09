@@ -46,6 +46,8 @@ export type DateAlbumsListKey = [
 type PhotoGridKind =
   | "dateAlbums"
   | "dateAlbum"
+  | "dateAlbumLayout"
+  | "dayPhotos"
   | "recentlyAdded"
   | "userAlbum"
   | "publicAlbum"
@@ -99,6 +101,14 @@ export const photoGridKeys = {
    */
   dateAlbumDay: ([photoset, ...filters]: DateAlbumsListKey, albumDateId: number, page: number) =>
     [...photoGridKeys.dateAlbumDays(photoset), albumDateId, page, ...filters] as const,
+  /** Every loaded day layout (the aspect ratios of a day's photos) of one photoset's lists. */
+  dateAlbumLayouts: (photoset: Photoset) => [...gridKind("dateAlbumLayout"), photoset] as const,
+  /** The layout of one day of the list `listKey`: day id, then the list's filters, as dateAlbumDay. */
+  dateAlbumLayout: ([photoset, ...filters]: DateAlbumsListKey, albumDateId: number) =>
+    [...photoGridKeys.dateAlbumLayouts(photoset), albumDateId, ...filters] as const,
+  /** The photos of one day after a cursor, outside the web's paged lists (`useDayPhotosQuery`). */
+  dayPhotos: ([photoset, ...filters]: DateAlbumsListKey, dayId: number, after: string | null) =>
+    [...gridKind("dayPhotos"), photoset, dayId, after, ...filters] as const,
   /** Every view of the Recently added list. */
   recentlyAdded: () => gridKind("recentlyAdded"),
   recentlyAddedView: (mediaType: MediaType) => [...photoGridKeys.recentlyAdded(), mediaType] as const,
@@ -306,6 +316,13 @@ export const faceKeys = {
   /** The people list as the server sends it. */
   incompleteListRaw: (inferred: boolean) => [...faceKeys.incomplete(), "raw", inferred] as const,
   clusters: () => [...faceRoot, "clusters"] as const,
+  /**
+   * How many faces wait for review (the People page's link, a pinned Faces row). Not under
+   * incomplete(): the face-list cache merges everything there as a face list.
+   */
+  reviewCounts: () => [...faceRoot, "reviewCount"] as const,
+  reviewCount: (request: { method: FaceAnalysisMethod; minConfidence: number; group?: number }) =>
+    [...faceKeys.reviewCounts(), request] as const,
 };
 
 const folderRoot = ["folders"] as const;
@@ -379,6 +396,14 @@ export const serverKeys = {
   storageStats: () => [...serverRoot, "storageStats"] as const,
   /** The update check's result (admins, #2311). */
   updates: () => [...serverRoot, "updates"] as const,
+};
+
+const errorReportRoot = ["errorReports"] as const;
+
+/** The saved error reports (admins, #2938). */
+export const errorReportKeys = {
+  all: errorReportRoot,
+  list: () => [...errorReportRoot, "list"] as const,
 };
 
 const serviceRoot = ["services"] as const;

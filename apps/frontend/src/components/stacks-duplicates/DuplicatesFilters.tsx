@@ -1,10 +1,16 @@
 import type { DuplicateListItem, DuplicateType, ReviewStatus } from "@librephotos/api-client";
-import { Button, Checkbox, Group, Menu, SegmentedControl, Select } from "@mantine/core";
+import { Button, Checkbox, Group, Menu } from "@mantine/core";
 import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
+import { TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
+import { TabCount } from "../common/TabCount";
+import { toolbarLook } from "../common/toolbarLook";
 
-// Select options cannot be "", so "all statuses" gets a sentinel value
+/** A status in the filter menu, with its number of groups dimmed after it ("All" has none). */
+export type StatusOption = { value: string; label: string; count?: number };
+
+// "All statuses" is no status, so it gets a sentinel value
 export const ALL_STATUSES = "all";
 
 export function DuplicatesFilters({
@@ -23,7 +29,7 @@ export function DuplicatesFilters({
   setSelectedDuplicateIds: Dispatch<SetStateAction<Set<string>>>;
   statusFilter: ReviewStatus | undefined;
   onStatusChange: (value: string | null) => void;
-  statusOptions: { value: string; label: string }[];
+  statusOptions: StatusOption[];
   typeFilter: DuplicateType | undefined;
   setTypeFilter: Dispatch<SetStateAction<DuplicateType | undefined>>;
   duplicateTypes: { value: DuplicateType | ""; label: string }[];
@@ -46,28 +52,37 @@ export function DuplicatesFilters({
           label={t("duplicates.selectAll")}
         />
       )}
-      {/* Status filter: the segmented control cannot wrap, so phones get a select */}
-      <SegmentedControl
-        visibleFrom="sm"
-        size="sm"
-        value={statusFilter ?? ALL_STATUSES}
-        onChange={onStatusChange}
-        data={statusOptions}
-      />
-      <Select
-        hiddenFrom="sm"
-        size="sm"
-        w={200}
-        aria-label={t("duplicates.statusfilter")}
-        value={statusFilter ?? ALL_STATUSES}
-        onChange={onStatusChange}
-        data={statusOptions}
-        allowDeselect={false}
-      />
+      {/* Status filter: a toolbar menu like the type filter, the counts dimmed in its items */}
+      <Menu shadow="md" width={220}>
+        <Menu.Target>
+          <Button {...toolbarLook()} h={TOOLBAR_CONTROL_HEIGHT} rightSection={<IconChevronDown size={14} />}>
+            {statusOptions.find(option => option.value === (statusFilter ?? ALL_STATUSES))?.label}
+          </Button>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Label>{t("duplicates.statusfilter")}</Menu.Label>
+          {statusOptions.map(option => (
+            <Menu.Item
+              key={option.value}
+              onClick={() => onStatusChange(option.value)}
+              rightSection={(statusFilter ?? ALL_STATUSES) === option.value ? <IconCheck size={14} /> : null}
+            >
+              <Group gap={6} wrap="nowrap" component="span">
+                {option.label}
+                {option.count === undefined ? null : <TabCount count={option.count} />}
+              </Group>
+            </Menu.Item>
+          ))}
+        </Menu.Dropdown>
+      </Menu>
       {/* Type filter */}
       <Menu shadow="md" width={200}>
         <Menu.Target>
-          <Button variant="light" size="sm" rightSection={<IconChevronDown size={14} />}>
+          <Button
+            {...toolbarLook(typeFilter !== undefined)}
+            h={TOOLBAR_CONTROL_HEIGHT}
+            rightSection={<IconChevronDown size={14} />}
+          >
             {typeFilter ? t(`duplicates.types.${typeFilter}`) : t("duplicates.allTypes")}
           </Button>
         </Menu.Target>

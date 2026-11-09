@@ -147,7 +147,7 @@ export function photosetToFilter(photoset: Photoset): DateAlbumFilter {
 }
 
 /**
- * The date-album query params: each flag is "true" or left out, and buildQuery drops a blank value.
+ * The query params of the `/api/days/` reads: each flag is "true" or left out, and buildQuery drops a blank value.
  * `archived` is the one tri-state flag: "false" leaves archived photos out (the timeline).
  */
 function dateAlbumParams(filter: DateAlbumFilter) {
@@ -174,40 +174,64 @@ function dateAlbumParams(filter: DateAlbumFilter) {
   };
 }
 
-export async function fetchDateAlbumsList(
+/** The days of a date-grouped list (the timeline, favourites, a person, a folder, ...), newest first. */
+export async function fetchDays(
   client: ApiClient,
   filter: DateAlbumFilter = {}
 ): Promise<S.IncompleteDatePhotosGroup[]> {
-  const res = await client.get<unknown>(`/albums/date/list/${buildQuery(dateAlbumParams(filter))}`);
-  return parseResponse(S.FetchDateAlbumsListResponse, res, "date albums list").results;
+  const res = await client.get<unknown>(`/days/${buildQuery(dateAlbumParams(filter))}`);
+  return parseResponse(S.FetchDaysResponse, res, "days").results.map(S.dayGroup);
 }
 
-export async function fetchDateAlbum(
+/**
+ * A page of a day: the photos after `after` (the previous page's `next`, or a layout's
+ * `page_after`), the first page for null. A 400 on `after` means the photo left the day since.
+ */
+export async function fetchDayPhotos(
   client: ApiClient,
-  albumDateId: number,
-  page: number,
-  filter: DateAlbumFilter = {}
-): Promise<S.IncompleteDatePhotosGroup> {
-  const query = buildQuery({ ...dateAlbumParams(filter), page });
+  dayId: number,
+  after: string | null,
+  filter: DateAlbumFilter = {},
+  limit?: number
+): Promise<S.DayPhotosPage> {
+  const query = buildQuery({ ...dateAlbumParams(filter), after: after ?? undefined, limit });
   // Trailing slash: the router 301-redirects without it, one extra round trip per day page.
-  const res = await client.get<unknown>(`/albums/date/${albumDateId}/${query}`);
-  return parseResponse(S.FetchDateAlbumResponse, res, "date album").results;
+  const res = await client.get<unknown>(`/days/${dayId}/photos/${query}`);
+  return parseResponse(S.DayPhotosPage, res, "day photos");
 }
 
-/** How many photos one page of a day group holds (the server's date-album page size). */
+/** Every photo's aspect ratio of a day and the cursor of each of its pages of `limit` photos. */
+export async function fetchDayLayout(
+  client: ApiClient,
+  dayId: number,
+  filter: DateAlbumFilter = {},
+  limit?: number
+): Promise<S.DayLayout> {
+  const res = await client.get<unknown>(`/days/${dayId}/layout/${buildQuery({ ...dateAlbumParams(filter), limit })}`);
+  return parseResponse(S.DayLayout, res, "day layout");
+}
+
+/** How many photos one page of a day holds (the server's default `limit`). */
 export const DATE_ALBUM_PAGE_SIZE = 100;
 
-/** Where the next chunk of a date-album list's photos starts: a day group (its index in the list) and its page. */
-export type DateAlbumCursor = { group: number; page: number };
+/**
+ * Where the next chunk of a date-grouped list's photos starts: a day group (its index in the list)
+ * and the `after` within it (null: from its first photo).
+ */
+export type DateAlbumCursor = { group: number; after: string | null };
 
 /** One chunk of a date-album list's photos, in list order, and where the next one starts (null at the end). */
 export type DateAlbumPhotosChunk = { photos: S.PigPhoto[]; next: DateAlbumCursor | null };
 
 /**
- * The next photos of a date-album list (`groups`, from fetchDateAlbumsList with the same `filter`) from
+ * The next photos of a date-grouped list (`groups`, from fetchDays with the same `filter`) from
  * `cursor` on: about `photos` of them, in at most `requests` day pages fetched at once. A day the list
  * already sent whole is not fetched again. For a phone grid that reads a person's or a folder's photos
  * as it scrolls, without one request per day up front.
+ *
+ * The pages are fetched at once as long as each one but the last finishes its day: a page that may
+ * leave photos of its day behind is the last, since the next one needs its `next`. A page that does
+ * leave some behind (its day grew since the list was read) ends the chunk there.
  */
 export async function fetchDateAlbumPhotosChunk(
   client: ApiClient,
@@ -218,31 +242,37 @@ export async function fetchDateAlbumPhotosChunk(
 ): Promise<DateAlbumPhotosChunk> {
   const maxPhotos = limits.photos ?? DATE_ALBUM_PAGE_SIZE;
   const maxRequests = limits.requests ?? 8;
-  const reads: Promise<S.PigPhoto[]>[] = [];
-  let { group, page } = cursor;
+  type Read = { group: number; page: Promise<S.DayPhotosPage> };
+  const reads: Read[] = [];
+  let { group, after } = cursor;
   let budget = maxPhotos;
   while (group < groups.length && budget > 0 && reads.length < maxRequests) {
     const day = groups[group];
     if (!day) break;
     if (!day.incomplete && day.items.length > 0) {
-      reads.push(Promise.resolve(day.items));
+      reads.push({ group, page: Promise.resolve({ items: day.items, next: null }) });
       budget -= day.items.length;
       group += 1;
-      page = 1;
+      after = null;
       continue;
     }
-    const pages = Math.max(1, Math.ceil(day.numberOfItems / DATE_ALBUM_PAGE_SIZE));
-    reads.push(fetchDateAlbum(client, day.id, page, filter).then(album => album.items));
-    budget -= Math.max(1, Math.min(DATE_ALBUM_PAGE_SIZE, day.numberOfItems - (page - 1) * DATE_ALBUM_PAGE_SIZE));
-    if (page >= pages) {
-      group += 1;
-      page = 1;
-    } else {
-      page += 1;
-    }
+    reads.push({ group, page: fetchDayPhotos(client, day.id, after, filter, DATE_ALBUM_PAGE_SIZE) });
+    // Only the first page of a day that fits in one is known to finish the day.
+    if (after !== null || day.numberOfItems > DATE_ALBUM_PAGE_SIZE) break;
+    budget -= Math.max(1, day.numberOfItems);
+    group += 1;
   }
-  const photos = (await Promise.all(reads)).flat();
-  return { photos, next: group < groups.length ? { group, page } : null };
+  const pages = await Promise.all(reads.map(read => read.page));
+  const photos: S.PigPhoto[] = [];
+  for (const [i, page] of pages.entries()) {
+    photos.push(...page.items);
+    const read = reads[i];
+    // A day that grew since the list was read leaves photos behind: continue it before the next.
+    if (read && page.next) return { photos, next: { group: read.group, after: page.next } };
+  }
+  const last = reads[reads.length - 1];
+  const following = last ? last.group + 1 : group;
+  return { photos, next: following < groups.length ? { group: following, after: null } : null };
 }
 
 /* ---- photos ------------------------------------------------------------ */
@@ -2029,6 +2059,23 @@ export async function fetchIncompleteFaces(
 }
 
 /**
+ * How many faces wait for review: the ones the face dashboard's Suggested tab lists, with the same
+ * method and threshold. One count, cheap enough for the People page to ask on every visit.
+ */
+export async function fetchFacesReviewCount(
+  client: ApiClient,
+  params: { analysisMethod: S.FaceAnalysisMethod; minConfidence: number; group?: number }
+): Promise<S.FacesReviewCountResponse> {
+  const query = buildQuery({
+    analysis_method: params.analysisMethod,
+    min_confidence: params.minConfidence,
+    group: params.group,
+  });
+  const res = await client.get<unknown>(`/faces/review-count/${query}`);
+  return parseResponse(S.FacesReviewCountResponse, res, "faces review count");
+}
+
+/**
  * Assign faces to a person by name (auto-creates the person). Passing the
  * unknown sentinel name rejects the faces back to unknown instead.
  */
@@ -3029,4 +3076,50 @@ export async function deleteAutoAlbum(client: ApiClient, albumId: number | strin
 export async function deleteAllAutoAlbums(client: ApiClient): Promise<string> {
   const res = await client.post<unknown>("/albums/auto/delete_all/");
   return parseResponse(z.string(), res, "delete all event albums");
+}
+
+/** The saved error reports, newest first, at most 30 (admins only, #2938). */
+export async function fetchErrorReports(client: ApiClient): Promise<S.ErrorReport[]> {
+  const res = await client.get<unknown>("/error-reports/");
+  return parseResponse(S.ErrorReport.array(), res, "error reports");
+}
+
+/**
+ * Send once: one saved report to the chosen error reporting server, or to the maintainers while
+ * error reporting is off. A 502 when that server refuses it, a 503 `no_error_reporting_server` when
+ * there is none.
+ */
+export async function sendErrorReport(client: ApiClient, reportId: number): Promise<S.ErrorReport> {
+  const res = await client.post<unknown>(`/error-reports/${reportId}/send/`, {});
+  return parseResponse(S.ErrorReport, res, "send error report");
+}
+
+/** Send all: every saved report not sent yet, to the same server as Send once. */
+export async function sendAllErrorReports(client: ApiClient): Promise<S.ErrorReportSendAll> {
+  const res = await client.post<unknown>("/error-reports/send/", {});
+  return parseResponse(S.ErrorReportSendAll, res, "send all error reports");
+}
+
+/** Delete one saved report. Answers 204. */
+export async function deleteErrorReport(client: ApiClient, reportId: number): Promise<void> {
+  await client.delete(`/error-reports/${reportId}/`);
+}
+
+/** Delete every saved report. Answers 204. */
+export async function deleteAllErrorReports(client: ApiClient): Promise<void> {
+  await client.delete("/error-reports/");
+}
+
+/** One saved report's event, exactly as it would be sent, as a JSON file. */
+export async function downloadErrorReport(client: ApiClient, reportId: number): Promise<Blob> {
+  return client.getBlob(`/error-reports/${reportId}/download/`);
+}
+
+/**
+ * Forward a browser error (a Sentry envelope, as text) to the server, which scrubs and saves it like
+ * its own and sends it on only when an admin chose a server (#2938). Any signed-in user may.
+ */
+export async function forwardBrowserErrorReport(client: ApiClient, envelope: string): Promise<S.BrowserErrorReport> {
+  const res = await client.post<unknown>("/error-reports/browser/", { envelope });
+  return parseResponse(S.BrowserErrorReport, res, "forward browser error");
 }

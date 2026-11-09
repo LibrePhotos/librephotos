@@ -43,7 +43,6 @@ function NoTimestampPhotosView() {
     <PhotoListView
       title={t("photos.notimestamp")}
       loading={photosQuery.status === "pending"}
-      icon={CalendarOff}
       photoset={photosFlat}
       idx2hash={photosFlat}
       numberOfItems={photosFlat.length}

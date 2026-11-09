@@ -4,6 +4,7 @@ import React from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import classes from "./ConfirmModal.module.css";
+import { DIALOG_SIZE } from "./dialogSize";
 import { modalTitleStyles } from "./modalTitleStyles";
 
 type Props = Readonly<{
@@ -20,7 +21,7 @@ type Props = Readonly<{
   cancelLabel?: string;
   /** The confirm button's colour: red for a destructive action, the theme's for a long one (#524). */
   confirmColor?: MantineColor;
-  /** Adds the red "This action cannot be undone." line. */
+  /** Adds the dimmed "This action cannot be undone." line (the red button already warns). */
   irreversible?: boolean;
   /**
    * The action is running: both buttons, Escape and the overlay are locked, and the
@@ -54,14 +55,13 @@ export function ConfirmModal({
 
   return (
     <Modal
+      size={DIALOG_SIZE.sm}
       styles={modalTitleStyles}
       // Above the lightbox, like the other dialogs it opens.
       zIndex={1500}
       opened={opened}
       onClose={onClose}
       title={title}
-      centered
-      size="md"
       closeOnClickOutside={!loading}
       closeOnEscape={!loading}
       withCloseButton={!loading}
@@ -69,12 +69,12 @@ export function ConfirmModal({
       <Stack gap="sm">
         <Text size="sm">{message}</Text>
         {irreversible && (
-          <Text size="sm" c="red">
+          <Text size="sm" c="dimmed">
             {t("confirmdialog.cannotbeundone")}
           </Text>
         )}
         <div className={classes.actions}>
-          <Button variant="default" onClick={onClose} disabled={loading} data-autofocus>
+          <Button variant="light" onClick={onClose} disabled={loading} data-autofocus>
             {cancelLabel ?? t("cancel")}
           </Button>
           <Button color={confirmColor} onClick={onConfirm} loading={loading}>

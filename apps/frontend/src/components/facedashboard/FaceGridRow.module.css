@@ -1,0 +1,33 @@
+/*
+ * The faces grid's rows (faceGridRows.ts has the sizes these add up to): borderless tiles in
+ * columns 12px apart, faces 4px apart, and an open group's faces on the same columns.
+ */
+.columns {
+  display: grid;
+  align-items: start;
+  column-gap: 12px;
+  box-sizing: border-box;
+}
+
+/* A group's faces, then its name and count under them */
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.faces {
+  display: grid;
+  gap: 4px;
+}
+
+.faceCell {
+  display: grid;
+}
+
+/* An open group's header line spans the row */
+.header {
+  display: flex;
+  align-items: flex-start;
+}

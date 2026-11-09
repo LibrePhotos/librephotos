@@ -21,8 +21,6 @@ type Props = Readonly<{
   single?: boolean;
   /** Called once a request was sent, to end a selection. */
   onDone?: () => void;
-  /** The icons' size, the other items' of the menu (the lightbox's are bigger). */
-  iconSize?: number;
 }>;
 
 /**
@@ -30,13 +28,7 @@ type Props = Readonly<{
  * selection's Photo Actions, the lightbox's ⋮ and the photo page's More. Both start a job at once;
  * while the queue is busy they say so instead (#2237).
  */
-export function FileActionItems({
-  photoIds,
-  disabledReason = false,
-  single = false,
-  onDone,
-  iconSize = ICON_SIZE.menu,
-}: Props) {
+export function FileActionItems({ photoIds, disabledReason = false, single = false, onDone }: Props) {
   const { t } = useTranslation();
   const noteId = useId();
   const queue = useJobQueue();
@@ -50,7 +42,7 @@ export function FileActionItems({
     <>
       <DisabledReason reason={reason} position="left">
         <Menu.Item
-          leftSection={<Refresh size={iconSize} />}
+          leftSection={<Refresh size={ICON_SIZE.menu} />}
           aria-label={rescanLabel}
           aria-describedby={noteId}
           onClick={() => {
@@ -66,7 +58,7 @@ export function FileActionItems({
       </DisabledReason>
       <DisabledReason reason={reason} position="left">
         <Menu.Item
-          leftSection={<FaceId size={iconSize} />}
+          leftSection={<FaceId size={ICON_SIZE.menu} />}
           onClick={() => {
             detectFaces.mutate({ photo_ids: photoIds });
             onDone?.();

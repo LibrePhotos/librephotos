@@ -1,0 +1,7 @@
+/* The selection count keeps one line: it shrinks before the actions beside it do. */
+.count {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}

@@ -7,7 +7,7 @@
  * - Each handler started from the saved profile, so typing the app password
  *   dropped an address entered just before.
  * - A rejected save closed the "Save changes?" dialog without a word.
- * - "Regenerate Event Titles" ran Generate Event Albums instead.
+ * - "Regenerate event titles" ran Generate event albums instead.
  */
 import type { User, WorkerAvailabilityResponse } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -299,7 +299,7 @@ const SCAN_JOB = {
   finished: false,
   failed: false,
   cancelled: false,
-  job_type_str: "Scan Photos",
+  job_type_str: "Scan photos",
   job_type: 1,
   started_by: { id: 1, username: "admin", first_name: "Ada", last_name: "" },
   progress_target: 10,
@@ -313,7 +313,7 @@ describe("Library while a job runs", () => {
     await rerender({ data: { status: true, queue_can_accept_job: false, job_detail: SCAN_JOB } });
 
     const notice = found(container.querySelector("[data-testid=job-queue-busy]"), "the busy notice");
-    expect(notice.textContent).toContain("A job is running: Scan Photos");
+    expect(notice.textContent).toContain("A job is running: Scan photos");
     expect(notice.querySelector("a")?.getAttribute("href")).toBe("/jobs");
   });
 
@@ -451,11 +451,11 @@ describe("Library captions (#2211)", () => {
   });
 });
 
-describe("Library link to the Admin Area (#2037)", () => {
+describe("Library link to the Admin area (#2037)", () => {
   const adminLink = () =>
-    [...container.querySelectorAll("a")].find(link => link.textContent === "Change scan directories in the Admin Area");
+    [...container.querySelectorAll("a")].find(link => link.textContent === "Change scan directories in the Admin area");
 
-  it("is not there for a user who cannot open the Admin Area", () => {
+  it("is not there for a user who cannot open the Admin area", () => {
     expect(adminLink()).toBeUndefined();
   });
 

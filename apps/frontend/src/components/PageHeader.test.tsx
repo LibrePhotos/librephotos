@@ -1,9 +1,7 @@
 import { MantineProvider } from "@mantine/core";
-import { IconStar } from "@tabler/icons-react";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { PAGE_HEADER_ICON_SIZE } from "../uiConstants";
 import { PageHeader } from "./PageHeader";
 
 let root: Root;
@@ -43,7 +41,7 @@ afterEach(async () => {
 
 describe("PageHeader", () => {
   it("renders exactly one h1 with the title", async () => {
-    await render(<PageHeader icon={IconStar} title="Albums" />);
+    await render(<PageHeader title="Albums" />);
 
     const headings = container.querySelectorAll("h1");
     expect(headings).toHaveLength(1);
@@ -52,15 +50,15 @@ describe("PageHeader", () => {
   });
 
   it("renders the subtitle when given and leaves it out when not", async () => {
-    await render(<PageHeader icon={IconStar} title="Albums" subtitle="3 albums" />);
+    await render(<PageHeader title="Albums" subtitle="3 albums" />);
     expect(container.textContent).toContain("3 albums");
 
-    await render(<PageHeader icon={IconStar} title="Albums" />);
+    await render(<PageHeader title="Albums" />);
     expect(container.textContent).not.toContain("3 albums");
   });
 
   it("renders the actions beside the title", async () => {
-    await render(<PageHeader icon={IconStar} title="Memories" actions={<button type="button">Play all</button>} />);
+    await render(<PageHeader title="Memories" actions={<button type="button">Play all</button>} />);
 
     const button = container.querySelector("button");
     expect(button?.textContent).toBe("Play all");
@@ -68,35 +66,32 @@ describe("PageHeader", () => {
   });
 
   it("renders no actions wrapper when there are none", async () => {
-    await render(<PageHeader icon={IconStar} title="Albums" />);
+    await render(<PageHeader title="Albums" />);
 
     expect(container.querySelector("button")).toBeNull();
   });
 
-  it("gives the icon the shared size, the header stroke and no shrinking", async () => {
-    await render(<PageHeader icon={IconStar} title="A very long title that would wrap" iconColor="red" />);
+  it("renders no page icon beside the title", async () => {
+    await render(<PageHeader title="Albums" subtitle="3 albums" />);
 
-    const svg = container.querySelector("svg");
-    expect(svg?.getAttribute("width")).toBe(String(PAGE_HEADER_ICON_SIZE));
-    expect(svg?.getAttribute("stroke-width")).toBe("1.5");
-    expect(svg?.style.flexShrink).toBe("0");
+    expect(container.querySelector("svg")).toBeNull();
   });
 
   it("shows a loader next to the title while loading", async () => {
-    await render(<PageHeader icon={IconStar} title="Albums" loading />);
+    await render(<PageHeader title="Albums" loading />);
 
     expect(container.querySelector("h1 .mantine-Loader-root")).not.toBeNull();
   });
 
   it("renders the title as an h2 when nested under the page's header", async () => {
-    await render(<PageHeader icon={IconStar} title="Public Photos" titleOrder={2} />);
+    await render(<PageHeader title="Public Photos" titleOrder={2} />);
 
     expect(container.querySelectorAll("h1")).toHaveLength(0);
     expect(container.querySelector("h2")?.textContent).toBe("Public Photos");
   });
 
   it("shows no loader when not loading", async () => {
-    await render(<PageHeader icon={IconStar} title="Albums" />);
+    await render(<PageHeader title="Albums" />);
 
     expect(container.querySelector(".mantine-Loader-root")).toBeNull();
   });

@@ -104,7 +104,7 @@ async function render() {
 }
 
 function why() {
-  return Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Why this date?");
+  return Array.from(document.querySelectorAll("button")).find(b => b.getAttribute("aria-label") === "Why this date?");
 }
 
 async function openTest() {

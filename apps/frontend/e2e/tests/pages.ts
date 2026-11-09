@@ -9,14 +9,14 @@ export class LoginPage {
   readonly submit: Locator;
 
   constructor(readonly page: Page) {
-    this.username = page.getByPlaceholder("Username");
-    this.password = page.getByPlaceholder("Password");
-    this.submit = page.getByRole("button", { name: "Login", exact: true });
+    this.username = page.getByLabel("Username", { exact: true });
+    this.password = page.getByLabel("Password", { exact: true });
+    this.submit = page.getByRole("button", { name: "Sign in", exact: true });
   }
 
   async goto() {
     await this.page.goto("/login");
-    await expect(this.page.getByRole("heading", { name: "Login" })).toBeVisible();
+    await expect(this.page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
   }
 
   async login(username: string, password: string) {

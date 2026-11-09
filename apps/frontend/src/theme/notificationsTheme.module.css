@@ -1,0 +1,51 @@
+/*
+ * One toast look (notificationsTheme.ts): a status icon in a softly tinted circle instead of
+ * Mantine's coloured bar, 12/16 padding, a shadow that lifts it off a photo grid, and a hairline in
+ * the dark scheme, where the toast's surface is close to the page. The accent comes from the kind
+ * of toast (the classes at the end, set in service/notifications/toast.ts).
+ *
+ * The classes are doubled: this sheet can load before Mantine's (it comes with the toast code, which
+ * the API client imports), and a single class would lose to Mantine's own at equal specificity.
+ */
+.root.root {
+  gap: 12px;
+  padding: 12px 12px 12px 16px;
+  box-shadow: 0 6px 24px var(--app-scrim-black-15);
+}
+
+:where([data-mantine-color-scheme="dark"]) .root.root {
+  border: 1px solid var(--app-scrim-white-8);
+  box-shadow: 0 6px 24px var(--app-scrim-black-50);
+}
+
+.icon.icon {
+  flex: none;
+  margin-inline-end: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--toast-accent, var(--notification-color)) 15%, transparent);
+  color: var(--toast-accent, var(--notification-color));
+}
+
+.body.body {
+  margin-inline-end: 0;
+}
+
+.title.title {
+  font-weight: 600;
+}
+
+/* The status colours: a strong shade in the light scheme, a lighter one that stays readable on the
+   dark surface (the dark primary shade, 2, read as a pastel decoration). */
+.success {
+  --toast-accent: light-dark(var(--mantine-color-teal-7), var(--mantine-color-teal-4));
+}
+
+.warning {
+  --toast-accent: light-dark(var(--mantine-color-orange-7), var(--mantine-color-orange-4));
+}
+
+.error {
+  --toast-accent: light-dark(var(--mantine-color-red-7), var(--mantine-color-red-5));
+}

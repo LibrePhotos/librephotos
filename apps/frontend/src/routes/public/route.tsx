@@ -19,7 +19,7 @@ function AppShellPublicWithHeader() {
       </AppShell.Header>
       <AppShell.Main
         style={{
-          backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+          backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
         }}
       >
         <Outlet />

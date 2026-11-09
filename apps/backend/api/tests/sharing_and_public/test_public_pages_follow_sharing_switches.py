@@ -19,13 +19,15 @@ from api.models.photo_share import PhotoShare
 from api.models.user import get_default_public_sharing_settings
 from api.search.semantic import OPENCLIP
 from api.tests.utils import (
-    create_test_album_date,
     create_test_album_user,
     create_test_face,
     create_test_person,
     create_test_photo,
     create_test_user,
+    day_photo_ids,
+    list_days,
 )
+from api.timeline.days import UNDATED_DAY_ID, day_id
 
 LAT, LON = 47.99, 11.34
 STREET = "Marienplatz 1, 80331 Munich, Germany"
@@ -60,10 +62,6 @@ class PublicPhotoFixture(TestCase):
         )
         person = create_test_person(name="Alice", cluster_owner=self.owner)
         create_test_face(photo=self.photo, person=person)
-        self.day = create_test_album_date(self.owner, date=TAKEN.date())
-        self.day.location = {"places": ["Munich"]}
-        self.day.save()
-        self.day.photos.add(self.photo)
         self.anonymous = APIClient()
         self.signed_in = APIClient()
         self.signed_in.force_authenticate(self.stranger)
@@ -77,24 +75,21 @@ class PublicPhotoFixture(TestCase):
     def readers(self):
         return {"anonymous": self.anonymous, "signed in": self.signed_in}
 
-    def day_url(self):
-        return (
-            f"/api/albums/date/{self.day.pk}/"
-            f"?public=true&username={self.owner.username}"
-        )
+    def public(self, **params):
+        return {"public": "true", "username": self.owner.username, **params}
+
+    def day_items(self, client, day=UNDATED_DAY_ID, **params):
+        response = client.get(f"/api/days/{day}/photos/", self.public(**params))
+        self.assertEqual(response.status_code, 200)
+        return response.json()["items"]
 
 
 class DayAlbumTest(PublicPhotoFixture):
-    def item(self, client):
-        response = client.get(self.day_url())
-        self.assertEqual(response.status_code, 200)
-        return response.json()["results"]
-
     def test_without_switches_a_day_shows_no_place_time_or_rating(self):
         for name, client in self.readers().items():
             with self.subTest(name):
-                day = self.item(client)
-                item = day["items"][0]
+                (day,) = list_days(client, self.public())
+                item = self.day_items(client, day["id"])[0]
                 self.assertIsNone(item["exif_gps_lat"])
                 self.assertIsNone(item["exif_gps_lon"])
                 self.assertEqual(item["location"], "")
@@ -103,13 +98,14 @@ class DayAlbumTest(PublicPhotoFixture):
                 self.assertEqual(item["rating"], 0)
                 self.assertIsNone(item["stacks"])
                 self.assertFalse(item["has_raw_variant"])
+                self.assertEqual(day["id"], UNDATED_DAY_ID)
                 self.assertIsNone(day["date"])
                 self.assertEqual(day["location"], "")
 
     def test_the_switches_show_place_and_time(self):
         self.switch_on(share_location=True, share_timestamps=True)
-        day = self.item(self.anonymous)
-        item = day["items"][0]
+        (day,) = list_days(self.anonymous, self.public())
+        item = self.day_items(self.anonymous, day["id"])[0]
         self.assertEqual(item["exif_gps_lat"], LAT)
         self.assertEqual(item["location"], STREET)
         self.assertTrue(item["date"].startswith("2024-07-14"))
@@ -121,41 +117,57 @@ class DayAlbumTest(PublicPhotoFixture):
     def test_the_owner_sees_the_public_view_as_visitors_do(self):
         owner = APIClient()
         owner.force_authenticate(self.owner)
-        item = self.item(owner)["items"][0]
+        item = self.day_items(owner)[0]
         self.assertIsNone(item["exif_gps_lat"])
 
     def test_the_day_list_names_no_date_or_place_without_switches(self):
-        url = f"/api/albums/date/list/?public=true&username={self.owner.username}"
-        days = self.anonymous.get(url).json()["results"]
+        days = list_days(self.anonymous, self.public())
         self.assertEqual(len(days), 1)
+        self.assertEqual(days[0]["id"], UNDATED_DAY_ID)
         self.assertIsNone(days[0]["date"])
         self.assertEqual(days[0]["location"], "")
         self.switch_on(share_location=True, share_timestamps=True)
-        days = self.anonymous.get(url).json()["results"]
+        days = list_days(self.anonymous, self.public())
+        self.assertEqual(days[0]["id"], day_id(TAKEN.date()))
         self.assertEqual(days[0]["date"], "2024-07-14")
         self.assertEqual(days[0]["location"], "Munich")
 
+    def test_dates_without_the_location_switch_name_no_place(self):
+        self.switch_on(share_timestamps=True)
+        (day,) = list_days(self.anonymous, self.public())
+        self.assertEqual(day["date"], "2024-07-14")
+        self.assertEqual(day["location"], "")
+
     def test_the_public_view_cannot_be_filtered_by_what_it_hides(self):
-        base = f"/api/albums/date/list/?public=true&username={self.owner.username}"
-        everything = self.anonymous.get(base).json()["results"]
+        self.switch_on(share_timestamps=True)
+        everything = list_days(self.anonymous, self.public())
+        day = everything[0]["id"]
+        photos = day_photo_ids(self.anonymous, day, self.public())
         person = self.photo.faces.get().person_id
         for extra in (
-            "&search=nobody-is-called-this",
-            f"&person={person + 1000}",
-            "&folder=/nowhere/at/all",
-            "&favorite=false",
+            {"person": person + 1000},
+            {"folder": "/nowhere/at/all"},
+            {"favorite": "false"},
+            {"favorite": "true"},
+            {"hidden": "true"},
+            {"in_trashcan": "true"},
         ):
             with self.subTest(extra):
-                response = self.anonymous.get(base + extra)
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.json()["results"], everything)
+                params = self.public(**extra)
+                self.assertEqual(list_days(self.anonymous, params), everything)
+                self.assertEqual(day_photo_ids(self.anonymous, day, params), photos)
 
     def test_hidden_or_trashed_public_photos_stay_out(self):
         hidden = create_test_photo(owner=self.owner, public=True, hidden=True)
-        self.day.photos.add(hidden)
-        response = self.anonymous.get(self.day_url() + "&hidden=true")
-        ids = [item["id"] for item in response.json()["results"]["items"]]
-        self.assertNotIn(str(hidden.pk), ids)
+        trashed = create_test_photo(owner=self.owner, public=True, in_trashcan=True)
+        for params in ({"hidden": "true"}, {"in_trashcan": "true"}, {}):
+            with self.subTest(params):
+                ids = [item["id"] for item in self.day_items(self.anonymous, **params)]
+                self.assertEqual(ids, [str(self.photo.pk)])
+                self.assertNotIn(str(hidden.pk), ids)
+                self.assertNotIn(str(trashed.pk), ids)
+        (day,) = list_days(self.anonymous, self.public())
+        self.assertEqual(day["numberOfItems"], 1)
 
 
 class UndatedPublicPageTest(PublicPhotoFixture):
@@ -168,43 +180,40 @@ class UndatedPublicPageTest(PublicPhotoFixture):
             public=True,
             exif_timestamp=TAKEN + datetime.timedelta(days=30),
         )
-        self.later_day = create_test_album_date(
-            self.owner, date=(TAKEN + datetime.timedelta(days=30)).date()
-        )
-        self.later_day.photos.add(self.later)
-        self.list_url = (
-            f"/api/albums/date/list/?public=true&username={self.owner.username}"
-        )
+        self.later_day = day_id((TAKEN + datetime.timedelta(days=30)).date())
 
     def test_the_days_are_one_undated_group(self):
-        days = self.anonymous.get(self.list_url).json()["results"]
+        days = list_days(self.anonymous, self.public())
         self.assertEqual(len(days), 1)
+        self.assertEqual(days[0]["id"], UNDATED_DAY_ID)
         self.assertIsNone(days[0]["date"])
         self.assertEqual(days[0]["numberOfItems"], 2)
-        group = min(self.day.pk, self.later_day.pk)
-        self.assertEqual(days[0]["id"], group)
-        url = f"/api/albums/date/{group}/?public=true&username={self.owner.username}"
-        body = self.anonymous.get(url).json()["results"]
-        ids = [item["id"] for item in body["items"]]
+        items = self.day_items(self.anonymous)
+        # By id: an order that tells nothing about when they were taken.
+        ids = [item["id"] for item in items]
         self.assertEqual(ids, sorted([str(self.photo.pk), str(self.later.pk)]))
-        self.assertEqual({item["date"] for item in body["items"]}, {""})
-        self.assertIsNone(body["date"])
+        self.assertEqual({item["date"] for item in items}, {""})
 
     def test_the_other_days_do_not_open(self):
-        other = max(self.day.pk, self.later_day.pk)
-        url = f"/api/albums/date/{other}/?public=true&username={self.owner.username}"
-        self.assertEqual(self.anonymous.get(url).status_code, 404)
+        for day in (day_id(TAKEN.date()), self.later_day):
+            for view in ("photos", "layout"):
+                with self.subTest(day=day, view=view):
+                    response = self.anonymous.get(
+                        f"/api/days/{day}/{view}/", self.public()
+                    )
+                    self.assertEqual(response.status_code, 404)
 
     def test_with_the_dates_switch_the_days_come_back(self):
         self.switch_on(share_timestamps=True)
-        days = self.anonymous.get(self.list_url).json()["results"]
+        days = list_days(self.anonymous, self.public())
         self.assertEqual(
             [day["date"] for day in days],
             ["2024-08-13", "2024-07-14"],
         )
-        other = max(self.day.pk, self.later_day.pk)
-        url = f"/api/albums/date/{other}/?public=true&username={self.owner.username}"
-        self.assertEqual(self.anonymous.get(url).status_code, 200)
+        self.assertEqual(
+            day_photo_ids(self.anonymous, self.later_day, self.public()),
+            [str(self.later.pk)],
+        )
 
     def test_a_public_album_lists_its_photos_in_no_time_order(self):
         album = create_test_album_user(owner=self.owner)
@@ -380,47 +389,21 @@ class PublicViewFilterTest(TestCase):
         self.late = create_test_photo(
             owner=self.owner, public=True, exif_timestamp=TAKEN
         )
-        self.day1 = create_test_album_date(self.owner, date=early.date())
-        self.day1.photos.add(self.early)
-        self.day2 = create_test_album_date(self.owner, date=TAKEN.date())
-        self.day2.photos.add(self.late)
+        self.day1 = day_id(early.date())
+        self.day2 = day_id(TAKEN.date())
         self.base = {"public": "true", "username": self.owner.username}
         self.client = APIClient()
-
-    def test_last_modified_does_not_split_the_undated_group(self):
-        listing = self.client.get("/api/albums/date/list/", self.base).json()["results"]
-        self.assertEqual(len(listing), 1)
-        group = listing[0]["id"]
-        for day in (self.day1, self.day2):
-            with self.subTest(day=day.pk):
-                response = self.client.get(
-                    f"/api/albums/date/{day.pk}/",
-                    {**self.base, "last_modified": "2022-01-01"},
-                )
-                if day.pk != group:
-                    self.assertEqual(response.status_code, 404)
-                    continue
-                items = response.json()["results"]["items"]
-                self.assertEqual(len(items), 2)
-
-    def test_last_modified_does_not_change_the_counts(self):
-        url = "/api/albums/date/list/"
-        everything = self.client.get(url, self.base).json()["results"]
-        later = self.client.get(url, {**self.base, "last_modified": "2999-01-01"})
-        self.assertEqual(later.json()["results"], everything)
 
     def test_archived_is_neither_sent_nor_a_filter(self):
         self.late.archived = True
         self.late.save()
         self.switch_dates_on()
-        url = f"/api/albums/date/{self.day2.pk}/"
-        items = self.client.get(url, self.base).json()["results"]["items"]
+        url = f"/api/days/{self.day2}/photos/"
+        items = self.client.get(url, self.base).json()["items"]
         self.assertEqual([item["archived"] for item in items], [False])
         only_archived = self.client.get(url, {**self.base, "archived": "true"})
-        self.assertEqual(len(only_archived.json()["results"]["items"]), 1)
-        days = self.client.get(
-            "/api/albums/date/list/", {**self.base, "archived": "false"}
-        ).json()["results"]
+        self.assertEqual(len(only_archived.json()["items"]), 1)
+        days = list_days(self.client, {**self.base, "archived": "false"})
         self.assertEqual(len(days), 2)
 
     def switch_dates_on(self):
@@ -429,12 +412,15 @@ class PublicViewFilterTest(TestCase):
         self.owner.public_sharing_defaults = settings
         self.owner.save()
 
-    def test_the_day_of_a_hidden_public_photo_is_a_404(self):
+    def test_the_day_of_a_hidden_public_photo_is_not_listed(self):
         self.switch_dates_on()
         self.early.hidden = True
         self.early.save()
-        response = self.client.get(f"/api/albums/date/{self.day1.pk}/", self.base)
-        self.assertEqual(response.status_code, 404)
+        days = list_days(self.client, self.base)
+        self.assertEqual([day["id"] for day in days], [self.day2])
+        self.assertEqual(day_photo_ids(self.client, self.day1, self.base), [])
+        layout = self.client.get(f"/api/days/{self.day1}/layout/", self.base)
+        self.assertEqual(layout.json()["numberOfItems"], 0)
 
 
 class PublicAlbumByIdTest(TestCase):

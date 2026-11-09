@@ -1,80 +1,55 @@
 import type { UploadFailedFile } from "@librephotos/api-client";
-import { Anchor, Badge, Button, Group, Loader, Paper, Progress, Stack, Text } from "@mantine/core";
-import {
-  IconAlertCircle,
-  IconBan,
-  IconCheck,
-  IconCopy,
-  IconPhoto,
-  IconRotateClockwise,
-  IconVideo,
-} from "@tabler/icons-react";
+import { Anchor, Button, Loader, Progress, Stack, Text } from "@mantine/core";
+import { IconCheck, IconPhoto, IconRotateClockwise, IconVideo } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import type { ParseKeys, TFunction } from "i18next";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import { AlbumOutcomeNote } from "./UploadAlbumStrip";
 import type { RowServerState } from "./uploadProcessing";
 import classes from "./UploadProgressCard.module.css";
+import { useFileThumbnail } from "./useFileThumbnail";
 import type { UploadItem, UploadStatus } from "./useUploadQueue";
-
-const STATUS_COLOR: Record<UploadStatus, string> = {
-  pending: "gray",
-  hashing: "gray",
-  uploading: "blue",
-  done: "green",
-  duplicate: "gray",
-  error: "red",
-  cancelled: "gray",
-};
 
 const isBusy = (status: UploadStatus) => status === "hashing" || status === "uploading";
 
-const STATUS_ICON: Partial<Record<UploadStatus, React.ReactNode>> = {
-  done: <IconCheck size={12} />,
-  duplicate: <IconCopy size={12} />,
-  error: <IconAlertCircle size={12} />,
-  cancelled: <IconBan size={12} />,
-};
-
-function StatusBadge({ status }: { status: UploadStatus }) {
+/**
+ * Where a file stands, in 12px sentence case under its name ("Waiting", "Uploading 42 %"): dimmed
+ * text, only a failure in red, as Google Photos' upload list. No chips.
+ */
+function StatusLine({ item, server }: { item: UploadItem; server: RowServerState }) {
   const { t } = useTranslation();
-  const icon = isBusy(status) ? <Loader size={10} color={STATUS_COLOR[status]} /> : STATUS_ICON[status];
+  let text: string;
+  let failed = false;
+  if (server.kind === "processing") text = t("upload.server.processing");
+  else if (server.kind === "ready") text = t("upload.server.ready");
+  else if (server.kind === "failed") {
+    text = t("upload.server.not_imported");
+    failed = true;
+  } else if (item.status === "uploading") text = t("upload.status.uploading_percent", { percent: item.progress });
+  else {
+    text = t(`upload.status.${item.status}`);
+    failed = item.status === "error";
+  }
   return (
-    <Badge
-      color={STATUS_COLOR[status]}
-      variant={status === "duplicate" ? "outline" : "light"}
-      leftSection={icon}
-      className={classes.noShrink}
-    >
-      {t(`upload.status.${status}`)}
-    </Badge>
+    <Text component="span" className={failed ? classes.statusFailed : classes.status}>
+      {text}
+    </Text>
   );
 }
 
-/** The badge of an uploaded file the server imports (#2739): Processing, Ready or Not imported. */
-function ServerBadge({ state }: { state: Exclude<RowServerState, { kind: "untracked" }> }) {
-  const { t } = useTranslation();
-  if (state.kind === "processing") {
+/** The row's right edge: a spinner while busy, a check once it is in, nothing while waiting. */
+function RowEnd({ item, server }: { item: UploadItem; server: RowServerState }) {
+  if (server.kind === "processing" || (server.kind === "untracked" && isBusy(item.status)))
     return (
-      <Badge color="blue" variant="light" leftSection={<Loader size={10} />} className={classes.noShrink}>
-        {t("upload.server.processing")}
-      </Badge>
+      <span className={classes.rowEnd} aria-hidden>
+        <Loader size={14} />
+      </span>
     );
-  }
-  if (state.kind === "ready") {
-    return (
-      <Badge color="green" variant="light" leftSection={<IconCheck size={12} />} className={classes.noShrink}>
-        {t("upload.server.ready")}
-      </Badge>
-    );
-  }
-  return (
-    <Badge color="red" variant="light" leftSection={<IconAlertCircle size={12} />} className={classes.noShrink}>
-      {t("upload.server.not_imported")}
-    </Badge>
-  );
+  if (server.kind === "ready" || (server.kind === "untracked" && item.status === "done"))
+    return <IconCheck size={16} className={classes.rowCheck} aria-hidden />;
+  return null;
 }
 
 // The steps of an upload's import (api/jobs/upload_import.py UPLOAD_STEPS), by name.
@@ -118,48 +93,67 @@ function ServerNote({ state }: { state: RowServerState }) {
 const failureText = (failure: UploadFailedFile | undefined, t: TFunction): string =>
   failure ? t("upload.server.not_read", { error: failure.error ?? "" }) : t("upload.server.lost");
 
-/** The row's icon: the server's thumbnail once the photo is ready, otherwise the file type. */
-function RowIcon({ item, ready }: { item: UploadItem; ready: boolean }) {
+/**
+ * The row's 32px thumbnail: the server's once the photo is ready, before that the picked file itself
+ * (an object URL), otherwise the file type's glyph (a video, a format the browser cannot show).
+ */
+function RowThumbnail({ item, ready }: { item: UploadItem; ready: boolean }) {
+  const local = useFileThumbnail(item.file);
+  const [broken, setBroken] = useState(false);
   const isVideo = item.file.type.startsWith("video/");
-  if (ready && item.photoId) return <MediaThumbnail imageHash={item.photoId} size={16} video={isVideo} radius={2} />;
+  if (ready && item.photoId)
+    return <MediaThumbnail imageHash={item.photoId} size={32} video={isVideo} radius={6} className={classes.thumb} />;
+  if (local && !broken)
+    return <img src={local} alt="" className={classes.thumb} decoding="async" onError={() => setBroken(true)} />;
   const FileIcon = isVideo ? IconVideo : IconPhoto;
-  return <FileIcon size={16} className={classes.fileIcon} />;
+  return (
+    <span className={classes.thumbPlaceholder}>
+      <FileIcon size={16} />
+    </span>
+  );
 }
 
 type Props = { item: UploadItem; server: RowServerState; onRetry: (item: UploadItem) => void };
 
-/** One file of the upload card: its name, where it stands, and why it failed. */
+/**
+ * One file of the upload card: a flat 44px row of the card's one list (hairlines between rows),
+ * its thumbnail, name and where it stands, a 2px progress line along the bottom while it uploads,
+ * and why it failed.
+ */
 export function UploadRow({ item, server, onRetry }: Props) {
   const { t } = useTranslation();
   return (
-    <Paper withBorder radius="sm" px="sm" py={6} data-testid="upload-row">
-      <Group justify="space-between" wrap="nowrap" gap="sm">
-        <Group gap="xs" wrap="nowrap" miw="0">
-          <RowIcon item={item} ready={server.kind === "ready"} />
-          <Text size="sm" truncate title={item.file.name}>
-            {item.file.name}
-          </Text>
-        </Group>
-        {server.kind === "untracked" ? <StatusBadge status={item.status} /> : <ServerBadge state={server} />}
-      </Group>
-      <AlbumOutcomeNote item={item} />
-      <ServerNote state={server} />
-      {item.status === "uploading" && <Progress value={item.progress} size="xs" mt={6} />}
-      {item.status === "error" && (
-        <Stack gap={4} mt={6} align="flex-start">
-          <Text size="xs" c="red" lh={1.3}>
+    <div className={classes.row} data-testid="upload-row">
+      <RowThumbnail item={item} ready={server.kind === "ready"} />
+      <div className={classes.rowText}>
+        <Text className={classes.name} truncate title={item.file.name}>
+          {item.file.name}
+        </Text>
+        <StatusLine item={item} server={server} />
+        <AlbumOutcomeNote item={item} />
+        <ServerNote state={server} />
+        {item.status === "error" && (
+          <Text size="xs" c="dimmed" lh={1.3} mt={2}>
             {item.error || t("upload.unknown_error")}
           </Text>
-          <Button
-            size="compact-xs"
-            variant="subtle"
-            leftSection={<IconRotateClockwise size={12} />}
-            onClick={() => onRetry(item)}
-          >
-            {t("upload.retry")}
-          </Button>
-        </Stack>
+        )}
+      </div>
+      {item.status === "error" ? (
+        <Button
+          size="compact-xs"
+          variant="subtle"
+          className={classes.noShrink}
+          leftSection={<IconRotateClockwise size={12} />}
+          onClick={() => onRetry(item)}
+        >
+          {t("upload.retry")}
+        </Button>
+      ) : (
+        <RowEnd item={item} server={server} />
       )}
-    </Paper>
+      {item.status === "uploading" && (
+        <Progress value={item.progress} size={2} radius={0} className={classes.rowProgress} aria-hidden />
+      )}
+    </div>
   );
 }

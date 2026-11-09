@@ -2,8 +2,9 @@
  * The server refuses a blank album title with a 400, and the dialog closes
  * before the request settles, so Create must not be clickable without a name
  * (it only checked for duplicates and failed silently). The parent keeps the
- * modal mounted, so a typed title must not survive into the next opening.
- * A locked album (#867) is listed but cannot take new photos.
+ * modal mounted, so a typed title or search must not survive into the next
+ * opening. A locked album (#867) is listed but cannot take new photos. The new
+ * album is the list's first row, a field once clicked; a long list gets a search.
  */
 import type { UserAlbum, UserAlbumInfo } from "@librephotos/api-client";
 import { Media } from "@librephotos/api-client";
@@ -41,9 +42,6 @@ vi.mock("../../../api_client/albums/hooks", () => ({
   useSetAlbumMembershipMutation: () => ({ mutate: stubs.setMembership }),
 }));
 vi.mock("../../../hooks/useAuth", () => ({ useAuth: () => ({ userId: 9, isAuthenticated: true }) }));
-vi.mock("../../album/AlbumListItem", () => ({
-  AlbumListItem: ({ album }: { album: { title: string } }) => <span className="album">{album.title}</span>,
-}));
 vi.mock("../../Tile", () => ({ Tile: () => null }));
 
 const album = (id: number, title: string, locked = false): UserAlbumInfo => ({
@@ -114,26 +112,57 @@ function found<E extends Element>(element: E | null | undefined, what: string): 
   return element;
 }
 
-const titleInput = () =>
-  found(document.querySelector<HTMLInputElement>(".mantine-Modal-body input"), "the title input");
+const byLabel = (label: string) =>
+  found(document.querySelector<HTMLInputElement>(`.mantine-Modal-body input[aria-label="${label}"]`), label);
+const titleInput = () => byLabel("New album");
+const searchInput = () => byLabel("Search albums");
 const createButton = () =>
   found(document.querySelector<HTMLButtonElement>('.mantine-Modal-body button[type="submit"]'), "the Create button");
 // React tracks the previous value on the node itself, so a plain assignment is swallowed.
 const setInputValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-const listedAlbums = () => Array.from(document.querySelectorAll(".mantine-Modal-body .album"), el => el.textContent);
+const listedAlbums = () =>
+  Array.from(document.querySelectorAll(".mantine-Modal-body [data-album-title]"), el => el.textContent);
+const albumButton = (title: string) =>
+  found(
+    [...document.querySelectorAll(".mantine-Modal-body [data-album-title]")]
+      .find(el => el.textContent === title)
+      ?.closest("button"),
+    `the ${title} row`
+  );
 
-function type(value: string) {
-  const input = titleInput();
+/** Clicks the list's first row, "New album", which turns into the title field. */
+function startNewAlbum() {
+  const tile = found(
+    [...document.querySelectorAll<HTMLButtonElement>(".mantine-Modal-body button")].find(
+      button => button.textContent === "New album"
+    ),
+    "the New album row"
+  );
+  act(() => tile.click());
+}
+
+function typeInto(input: HTMLInputElement, value: string) {
   act(() => {
     setInputValue?.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
 
+const type = (value: string) => typeInto(titleInput(), value);
+
 describe("AlbumEditModal", () => {
   beforeEach(() => mount([album(1, "Trip"), album(2, "Home")]));
 
+  it("says how many items are selected and lists the albums with their count", () => {
+    expect(document.body.textContent).toContain("1 item selected");
+    expect(listedAlbums()).toEqual(["Trip", "Home"]);
+    expect(albumButton("Trip").textContent).toContain("3 items · Created");
+    // A short list has no search
+    expect(document.querySelector('input[aria-label="Search albums"]')).toBeNull();
+  });
+
   it("keeps Create disabled until there is a new, non-blank title", () => {
+    startNewAlbum();
     expect(createButton().disabled).toBe(true);
     type("   ");
     expect(createButton().disabled).toBe(true);
@@ -144,6 +173,7 @@ describe("AlbumEditModal", () => {
   });
 
   it("says a title is taken, trimmed and in any case", () => {
+    startNewAlbum();
     type(" trip ");
 
     expect(document.body.textContent).toContain("Album trip already exists.");
@@ -152,29 +182,45 @@ describe("AlbumEditModal", () => {
   });
 
   it("sends the trimmed title", () => {
+    startNewAlbum();
     type(" New ");
     act(() => createButton().click());
 
     expect(stubs.create).toHaveBeenCalledWith(expect.objectContaining({ title: "New", photos: ["a1"] }));
   });
 
-  it("forgets the typed filter after adding to an existing album", () => {
-    type("Tr");
-    expect(listedAlbums()).toEqual(["Trip"]);
-    const firstAlbum = found(
-      document.querySelector(".mantine-Modal-body .album")?.closest("button"),
-      "the first album"
-    );
-    act(() => firstAlbum.click());
+  it("adds to an existing album and forgets the typed title", () => {
+    startNewAlbum();
+    type("Half");
+    act(() => albumButton("Trip").click());
     expect(stubs.add).toHaveBeenCalledWith(expect.objectContaining({ id: "1", photos: ["a1"] }));
     expect(stubs.close).toHaveBeenCalled();
 
     renderModal(false);
     renderModal(true);
 
+    // Back to the "New album" row, its title gone
+    expect(document.querySelector('input[aria-label="New album"]')).toBeNull();
+    startNewAlbum();
     expect(titleInput().value).toBe("");
     expect(createButton().disabled).toBe(true);
-    expect(listedAlbums()).toEqual(["Trip", "Home"]);
+  });
+});
+
+describe("AlbumEditModal with many albums", () => {
+  const titles = ["Trip", "Home", "Garden", "Berlin", "Porto", "Dogs", "Cats"];
+  beforeEach(() => mount(titles.map((title, i) => album(i + 1, title))));
+
+  it("filters the list with its search and forgets it on the way out", () => {
+    typeInto(searchInput(), "Tr");
+    expect(listedAlbums()).toEqual(["Trip"]);
+    act(() => albumButton("Trip").click());
+
+    renderModal(false);
+    renderModal(true);
+
+    expect(searchInput().value).toBe("");
+    expect(listedAlbums()).toEqual(titles);
   });
 });
 
@@ -244,11 +290,7 @@ describe("AlbumEditModal albums shared with you (#464)", () => {
   });
 
   it("says who will see the photos and what, before adding them", () => {
-    const shared = found(
-      [...document.querySelectorAll(".mantine-Modal-body .album")].find(el => el.textContent === "Bruno and Mila"),
-      "the shared album"
-    );
-    act(() => found(shared.closest("button"), "its button").click());
+    act(() => albumButton("Bruno and Mila").click());
 
     const body = document.body.textContent ?? "";
     expect(body).toContain("Add 1 photo to Bruno and Mila");

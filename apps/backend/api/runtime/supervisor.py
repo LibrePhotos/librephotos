@@ -394,6 +394,12 @@ def _service_environment() -> dict[str, str]:
         # without it the session fails and service.onnx_session falls back to
         # the CPU provider. Unless set already.
         "VK_LOADER_DRIVERS_DISABLE": "*lvp*",
+        # ONNX Runtime 1.29+ sends usage telemetry to Microsoft by default
+        # (model and graph names and hashes, hardware, a persistent device id)
+        # unless this is set before it loads. Three sidecars import it before
+        # any code of ours runs, so it has to come from here. Set it to 0 to
+        # let ONNX Runtime send it. Unless set already.
+        "ORT_DISABLE_TELEMETRY": "1",
         **os.environ,
         "BASE_DATA": settings.BASE_DATA,
         "BASE_LOGS": settings.LOGS_ROOT,

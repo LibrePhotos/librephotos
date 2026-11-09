@@ -61,13 +61,16 @@ from api.views import (
     albums,
     dataviz,
     date_rules,
+    days,
     duplicates,
     email_config,
+    error_reports,
     faces,
     gallery,
     geocode,
     health,
     jobs,
+    legacy_date_albums,
     library_folders,
     library_shares,
     media,
@@ -262,9 +265,6 @@ router.register(
     r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto_list"
 )
 router.register(
-    r"api/albums/date/list", albums.AlbumDateListViewSet, basename="album_date_list"
-)
-router.register(
     r"api/albums/thing/list", albums.AlbumThingListViewSet, basename="album_thing_list"
 )
 router.register(
@@ -293,7 +293,17 @@ router.register(r"api/albums/auto", album_auto.AlbumAutoViewSet, basename="album
 router.register(
     r"api/folders", album_folder.FolderNavigationViewSet, basename="folder_navigation"
 )
-router.register(r"api/albums/date", albums.AlbumDateViewSet, basename="album_date")
+router.register(r"api/days", days.DayViewSet, basename="days")
+# The date albums #2920 removed, for released clients (UhuruPhotos): the day
+# list and a day's pages, served from /api/days/'s queries.
+router.register(
+    r"api/albums/date/list",
+    legacy_date_albums.LegacyDateAlbumListViewSet,
+    basename="album_date_list",
+)
+router.register(
+    r"api/albums/date", legacy_date_albums.LegacyDateAlbumViewSet, basename="album_date"
+)
 router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
 router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_place")
 router.register(r"api/albums/user", albums.AlbumUserViewSet, basename="album_user")
@@ -518,6 +528,8 @@ urlpatterns = [
         scan_triggers.RescanPhotosView.as_view(),
         name="photos_rescan",
     ),
+    # Before the router: its faces prefix would otherwise be tried first.
+    path("api/faces/review-count/", faces.FacesReviewCountView.as_view()),
     re_path(r"^", include(router.urls)),
     # Health probes - unauthenticated, and under /api/ because the proxy only
     # forwards ^/(api|media)/ to the backend. Must stay ahead of the
@@ -657,6 +669,24 @@ urlpatterns = [
     path(
         "api/strip-thumbnail-metadata/",
         scan_triggers.StripThumbnailMetadataView.as_view(),
+    ),
+    path("api/error-reports/", error_reports.ErrorReportListView.as_view()),
+    path("api/error-reports/send/", error_reports.ErrorReportSendAllView.as_view()),
+    path(
+        "api/error-reports/browser/",
+        error_reports.BrowserErrorReportView.as_view(),
+    ),
+    path(
+        "api/error-reports/<int:report_id>/",
+        error_reports.ErrorReportDetailView.as_view(),
+    ),
+    path(
+        "api/error-reports/<int:report_id>/send/",
+        error_reports.ErrorReportSendView.as_view(),
+    ),
+    path(
+        "api/error-reports/<int:report_id>/download/",
+        error_reports.ErrorReportDownloadView.as_view(),
     ),
     path("api/upgrade-tasks/", upgrade_tasks.UpgradeTaskListView.as_view()),
     path(

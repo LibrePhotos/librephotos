@@ -1,9 +1,9 @@
 import type { BulkPhotoQuery } from "@librephotos/api-client";
 import {
   ActionIcon,
-  Avatar,
   Badge,
   Divider,
+  FocusTrap,
   Group,
   Modal,
   ScrollArea,
@@ -20,8 +20,9 @@ import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { parseInstant } from "../../util/dateUtils";
 import { MediaThumbnail } from "../common/MediaThumbnail";
+import { UserAvatar } from "../common/UserAvatar";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { selectionLabel } from "../photolist/selectionLabel";
-import { avatarSrc } from "./avatarSrc";
 import filterUsers from "./utils";
 
 type Props = Readonly<{
@@ -64,6 +65,7 @@ export function ModalPhotosShare(props: Props) {
 
   return (
     <Modal
+      size={DIALOG_SIZE.md}
       opened={isOpen}
       title={t("modalphotosshare.title")}
       onClose={() => {
@@ -71,6 +73,8 @@ export function ModalPhotosShare(props: Props) {
         setUserNameFilter("");
       }}
     >
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack>
         {selectAllMode ? (
           <Badge color="blue" size="lg" variant="light">
@@ -115,7 +119,7 @@ export function ModalPhotosShare(props: Props) {
                 return (
                   <Group justify="space-between" key={item.id}>
                     <Group>
-                      <Avatar radius="xl" size={50} src={avatarSrc(item)} />
+                      <UserAvatar user={item} size={40} />
                       <div>
                         <Title order={4}>{displayName}</Title>
                         {item.date_joined && (

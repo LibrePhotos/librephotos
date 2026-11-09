@@ -1,5 +1,5 @@
 import { Button, Center, Group, Stack, Text } from "@mantine/core";
-import { IconGlobe as Globe, IconAlertCircle } from "@tabler/icons-react";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,7 +53,6 @@ function PublicAlbumBySlug() {
     <PhotoListView
       title={album ? album.title : t("loading")}
       loading={isLoading}
-      icon={Globe}
       // PhotoListView shows a flat grid when photoset is the idx2hash array
       // itself: no made-up "Without Timestamp" day for hidden dates.
       photoset={album ? (isUndatedShare(album.grouped_photos) ? flat : album.grouped_photos) : []}

@@ -1,13 +1,12 @@
 import type { BulkPhotoQuery, DatePhotosGroup, MediaType, PhotoOrder, PigPhoto, User } from "@librephotos/api-client";
-import { Box, Flex, RemoveScroll } from "@mantine/core";
+import { Box, RemoveScroll } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import type { TablerIcon } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useRef } from "react";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
-import { TOP_MENU_HEIGHT } from "../../uiConstants";
+import { PAGE_GUTTER_PX, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { formatDateForPhotoGroups, type GroupNote } from "../../util/util";
 import type { ListFailure } from "../common/useListFailure";
 import Pig from "../react-pig";
@@ -15,14 +14,15 @@ import type { PigHandle, PigVisibleGroup } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
-import { DefaultHeader } from "./DefaultHeader";
+import { BottomLeftOverlay } from "./BottomLeftOverlay";
+import { BottomRightOverlay } from "./BottomRightOverlay";
+import { DefaultHeader, type CollectionHeader } from "./DefaultHeader";
 import { MediaTypeHint } from "./MediaTypeHint";
 import { PhotoListDialogs } from "./PhotoListDialogs";
 import { PhotoListFallback } from "./PhotoListFallback";
 import { PhotoListSelectionBar } from "./PhotoListSelectionBar";
 import { PhotoListToolbar } from "./PhotoListToolbar";
 import classes from "./PhotoListView.module.css";
-import { StackOverlay } from "./StackOverlay";
 import { TopRightOverlay } from "./TopRightOverlay";
 import { usePhotoListAlbumCover } from "./usePhotoListAlbumCover";
 import { usePhotoListClick } from "./usePhotoListClick";
@@ -34,7 +34,6 @@ import { usePhotoListSelection } from "./usePhotoListSelection";
 import { usePhotoListSelectMode } from "./usePhotoListSelectMode";
 import { usePhotoListSlideshow } from "./usePhotoListSlideshow";
 import { usePhotoListThrottledUpdates } from "./usePhotoListThrottledUpdates";
-import { VideoOverlay } from "./VideoOverlay";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
@@ -82,12 +81,10 @@ export type EmptyStateConfig = {
 type Props = Readonly<{
   title: string;
   loading: boolean;
-  icon: TablerIcon;
   photoset: DatePhotosGroup[] | PigPhoto[];
   idx2hash: PigPhoto[];
   selectable: boolean;
   isPublic?: boolean;
-  isAlbumPubliclyShared?: boolean;
   publicAlbumSlug?: string;
   numberOfItems?: number;
   // Pig reports the groups (date views) or tiles (flat views) on screen, so
@@ -109,6 +106,8 @@ type Props = Readonly<{
   additionalSubHeader?: React.ReactNode;
   // After the title, inside the heading: a user album's "Locked" badge.
   titleBadge?: React.ReactNode;
+  /** Before the title and its subtitle in the header, e.g. a person's face. */
+  titleLeading?: React.ReactNode;
   albumID?: string;
   ownerUsername?: string;
   albumLocked?: boolean;
@@ -129,6 +128,8 @@ type Props = Readonly<{
   // empty, so a filter that matches nothing can always be changed back, and on
   // a view that is otherwise read-only (`isPublic`): leaving a shared album.
   headerActions?: React.ReactNode;
+  /** The page's ⋮ menu: always after Select in the toolbar, so it sits in one place on every page. */
+  headerMenu?: React.ReactNode;
   // Under the title row, full width, also while the view loads or is empty: the search page's
   // active filter chips, so a filter that matches nothing can be removed where it shows.
   filterBar?: React.ReactNode;
@@ -140,6 +141,8 @@ type Props = Readonly<{
   onSlideshowClose?: () => void;
   // An event's days, which always read oldest first: the display menu shows the order fixed (#2712).
   eventOrder?: boolean;
+  // An album, event, place or thing: the larger title and one "dates · N photos" meta line.
+  collection?: CollectionHeader;
 }>;
 
 // An admin's empty timeline before a scan directory is set: DefaultHeader shows the setup
@@ -178,12 +181,10 @@ function isListLoading(loading: boolean, isPublic: boolean, userDetailsLoading: 
 function PhotoListViewComponent({
   title,
   loading,
-  icon,
   photoset,
   idx2hash,
   selectable,
   isPublic = false,
-  isAlbumPubliclyShared = false,
   publicAlbumSlug,
   numberOfItems = 0,
   updateGroups,
@@ -195,6 +196,7 @@ function PhotoListViewComponent({
   titleOrder,
   additionalSubHeader,
   titleBadge,
+  titleLeading,
   albumID,
   ownerUsername,
   albumLocked = false,
@@ -204,11 +206,13 @@ function PhotoListViewComponent({
   photosetQuery,
   mediaType,
   headerActions,
+  headerMenu,
   filterBar,
   banner,
   slideshow = false,
   onSlideshowClose,
   eventOrder,
+  collection,
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
@@ -277,61 +281,61 @@ function PhotoListViewComponent({
   // Read-only views select nothing, except a contributor's album, where they remove their own.
   const canSelect = canSelectPhotos(isPublic, contributor);
   const isUserAlbum = location.pathname.startsWith("/album/user/");
+  // While selecting, the selection bar takes the header's place (Google Photos, Immich): the
+  // title and toolbar come back when select mode ends.
+  const showsSelectionBar = !isLoading && canSelect && getNumPhotos() > 0 && selectMode.selecting;
 
   return (
     <RemoveScroll enabled={lightbox.lightboxOpen}>
       {header !== null && (
         <Box className={classes.header} ref={headerRef}>
-          {header || (
-            // The actions sit beside the title in the normal flow (they used to be
-            // absolutely positioned over it). The 220px basis wraps a wide action
-            // group onto its own row on phones instead of squeezing the title, and
-            // keeps the timeline's three icons (Filter, Select, display) beside it.
-            <Flex justify="space-between" align="flex-start" columnGap="xs" rowGap={4} wrap="wrap">
-              <Box flex="1 1 220px" miw={0}>
-                <DefaultHeader
-                  loading={isLoading}
-                  numPhotosetItems={photos.length || 0}
-                  numPhotos={getNumPhotos()}
-                  icon={icon}
-                  title={title}
-                  titleBadge={titleBadge}
-                  dayHeaderPrefix={dayHeaderPrefix}
-                  date={date}
-                  additionalSubHeader={additionalSubHeader}
-                  hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
-                  isPublic={isPublic}
-                  countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
-                  titleOrder={titleOrder}
-                  filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
-                  oldestFirst={showsOldestFirst(photoOrder, preferences.photoOrder)}
-                />
-              </Box>
-              {!isFirstTimeSetup && (
-                <PhotoListToolbar
-                  headerActions={headerActions}
-                  listControls={!isLoading && canSelect}
-                  hasPhotos={getNumPhotos() > 0}
-                  mediaFilter={mediaType !== undefined}
-                  publicLink={isAlbumPubliclyShared && isUserAlbum}
-                  onOpenSharing={() => dialogs.albumShare.open()}
-                  preferences={preferences}
-                  photoOrder={photoOrder}
-                  selectMode={
-                    selectable
-                      ? {
-                          selecting: selectMode.selecting,
-                          onToggle: selectMode.toggle,
-                          ref: selectMode.selectButtonRef,
-                        }
-                      : undefined
-                  }
-                />
-              )}
-            </Flex>
-          )}
-          {header === undefined && filterBar}
-          {!isLoading && canSelect && getNumPhotos() > 0 && selectMode.selecting && (
+          {header ??
+            (showsSelectionBar ? null : (
+              // One PageHeader on every page: title and count on the left, the toolbar on the
+              // right, centred on them (on a phone too, where it stays on the title's row).
+              <DefaultHeader
+                loading={isLoading}
+                numPhotosetItems={photos.length || 0}
+                numPhotos={getNumPhotos()}
+                title={title}
+                titleBadge={titleBadge}
+                titleLeading={titleLeading}
+                dayHeaderPrefix={dayHeaderPrefix}
+                date={date}
+                additionalSubHeader={additionalSubHeader}
+                hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
+                isPublic={isPublic}
+                countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
+                titleOrder={titleOrder}
+                filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
+                oldestFirst={showsOldestFirst(photoOrder, preferences.photoOrder)}
+                collection={collection}
+                actions={
+                  isFirstTimeSetup ? undefined : (
+                    <PhotoListToolbar
+                      headerActions={headerActions}
+                      headerMenu={headerMenu}
+                      listControls={!isLoading && canSelect}
+                      hasPhotos={getNumPhotos() > 0}
+                      mediaFilter={mediaType !== undefined}
+                      preferences={preferences}
+                      photoOrder={photoOrder}
+                      selectMode={
+                        selectable
+                          ? {
+                              selecting: selectMode.selecting,
+                              onToggle: selectMode.toggle,
+                              ref: selectMode.selectButtonRef,
+                            }
+                          : undefined
+                      }
+                    />
+                  )
+                }
+              />
+            ))}
+          {header === undefined && !showsSelectionBar && filterBar}
+          {showsSelectionBar && (
             <PhotoListSelectionBar
               selectionState={selectionState}
               idx2hash={idx2hash}
@@ -351,7 +355,8 @@ function PhotoListViewComponent({
           )}
         </Box>
       )}
-      {banner}
+      {/* Out of the way while selecting (the Memories strip): the bar sits over the grid only */}
+      {selectMode.selecting ? null : banner}
       {!isLoading && photos.length > 0 ? (
         <ScrollScrubber
           scrollPositions={dataForScrollIndicator}
@@ -361,7 +366,7 @@ function PhotoListViewComponent({
           variant={localScrubberStyle}
           stickyHeader={headerRef}
         >
-          <Box p={10} ref={gridRef}>
+          <Box px={PAGE_GUTTER_PX} py={10} ref={gridRef} data-selecting={selectMode.selecting}>
             <Pig<PigPhoto>
               ref={pigRef}
               className={SCROLL_SCRUBBER_TARGET}
@@ -374,8 +379,8 @@ function PhotoListViewComponent({
               groupByDate={isDateView}
               getUrl={getTileUrl}
               toprightoverlay={TopRightOverlay}
-              bottomleftoverlay={StackOverlay}
-              bottomrightoverlay={VideoOverlay}
+              bottomleftoverlay={BottomLeftOverlay}
+              bottomrightoverlay={BottomRightOverlay}
               numberOfItems={numberOfItems}
               updateItems={updateItems ? throttledUpdateItems : noop}
               updateGroups={updateGroups ? throttledUpdateGroups : noop}

@@ -88,7 +88,23 @@ class JWTCookieScheme(SimpleJWTScheme):
         return {"type": "apiKey", "in": "cookie", "name": JWT_COOKIE_NAME}
 
 
+#: Set on a viewset whose ``list`` answers one object (``{"results": [...]}``
+#: built by the view), so the schema does not describe it as an array of them.
+LIST_RETURNS_OBJECT = "list_returns_object"
+
+
 class AutoSchema(openapi.AutoSchema):
+    def _is_list_view(
+        self,
+        serializer: serializers.Serializer[Any]
+        | type[serializers.Serializer[Any]]
+        | None = None,
+    ) -> bool:
+        if getattr(self.view, LIST_RETURNS_OBJECT, False):
+            return False
+        is_list: bool = super()._is_list_view(serializer)
+        return is_list
+
     def _map_basic_serializer(
         self, serializer: serializers.BaseSerializer, direction: str
     ) -> dict[str, Any]:

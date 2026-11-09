@@ -156,14 +156,20 @@ CLIENT_PATHS = {
     "/api/albums/auto/1/": "api.views.album_auto.AlbumAutoViewSet delete=destroy,get=retrieve,patch=partial_update",
     "/api/albums/auto/delete_all/": "api.views.album_auto.AlbumAutoViewSet post=delete_all",
     "/api/albums/auto/list/": "api.views.album_auto.AlbumAutoListViewSet get=list",
-    "/api/albums/date/1/": "api.views.albums.AlbumDateViewSet get=retrieve",
-    "/api/albums/date/list/": "api.views.albums.AlbumDateListViewSet get=list",
     "/api/albums/place/in-bounds/": "api.views.places_map.PlaceAlbumsInBoundsView",
     "/api/albums/place/list/": "api.views.albums.AlbumPlaceListViewSet get=list",
     "/api/albums/thing/list/": "api.views.albums.AlbumThingListViewSet get=list",
     "/api/albums/user/1/": "api.views.albums.AlbumUserViewSet delete=destroy,get=retrieve,patch=partial_update",
     "/api/albums/user/edit/": "api.views.albums.AlbumUserEditViewSet post=create",
-    "/api/albums/user/edit/1/": "api.views.albums.AlbumUserEditViewSet patch=partial_update",
+    "/api/albums/user/edit/1/": (
+        "api.views.albums.AlbumUserEditViewSet delete=destroy,patch=partial_update"
+    ),
+    "/api/albums/date/list/": (
+        "api.views.legacy_date_albums.LegacyDateAlbumListViewSet get=list"
+    ),
+    "/api/albums/date/1/": (
+        "api.views.legacy_date_albums.LegacyDateAlbumViewSet get=retrieve"
+    ),
     "/api/albums/user/list/": "api.views.albums.AlbumUserListViewSet get=list",
     "/api/albums/user/shared/fromme/": "api.views.sharing.SharedFromMeAlbumUserListViewSet get=list",
     "/api/albums/user/shared/tome/": "api.views.sharing.SharedToMeAlbumUserListViewSet get=list",
@@ -175,6 +181,9 @@ CLIENT_PATHS = {
     "/api/auth/token/refresh/": "librephotos.urls.CustomTokenRefreshView",
     "/api/autoalbumgen/": "api.views.album_auto.AutoAlbumGenerateView",
     "/api/clusterfaces": "api.views.dataviz.ClusterFaceView",
+    "/api/days/": "api.views.days.DayViewSet get=list",
+    "/api/days/20240501/layout/": "api.views.days.DayViewSet get=layout",
+    "/api/days/20240501/photos/": "api.views.days.DayViewSet get=photos",
     "/api/delete/user/1/": "api.views.user.DeleteUserViewSet delete=destroy",
     "/api/deletefaces": "api.views.faces.DeleteFaces",
     "/api/deletemissingphotos": "api.views.scan_triggers.DeleteMissingPhotosView",

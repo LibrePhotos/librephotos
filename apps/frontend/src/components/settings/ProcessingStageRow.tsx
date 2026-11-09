@@ -68,7 +68,8 @@ function RemainingCount({ stage }: StageProps) {
   const locale = useFormatLocale();
   if (stage.remaining === 0) {
     return (
-      <Group gap={4} wrap="nowrap" c="green">
+      // Dimmed, not green: colour is for the stages that need something (#15 of the design review)
+      <Group gap={4} wrap="nowrap" c="dimmed">
         <CircleCheck size={16} aria-hidden />
         <Text size="sm">{t("processingstatus.done")}</Text>
       </Group>

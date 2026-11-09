@@ -45,7 +45,7 @@ export function BackendStatusFailure({ status, screen }: BackendStatusFailurePro
         </Button>
         {canCopy() && (
           <Button
-            variant="default"
+            variant="light"
             leftSection={clipboard.copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
             onClick={() => clipboard.copy(details())}
           >

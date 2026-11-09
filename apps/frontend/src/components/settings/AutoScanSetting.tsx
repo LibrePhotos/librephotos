@@ -49,7 +49,7 @@ function StatusLine({ status }: { status: SiteAutoScanStatus }) {
   return (
     <Group gap={6} wrap="nowrap" align="flex-start" mt={6} role="status">
       <Text component="span" c={tone === "ok" ? "green" : color} lh={0} mt={3}>
-        <Icon size={ICON_SIZE.menu} aria-hidden />
+        <Icon size={ICON_SIZE.inline} aria-hidden />
       </Text>
       <Text fz="sm" c={color}>
         {text}

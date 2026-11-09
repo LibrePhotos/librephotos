@@ -1,9 +1,11 @@
 import type { LibraryShare } from "@librephotos/api-client";
-import { Avatar, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Group, Stack, Text } from "@mantine/core";
 import { IconLibraryPhoto } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { UserAvatar } from "../common/UserAvatar";
+import { SharingRow } from "../sharing/SharingRow";
 import { personName, shareDate } from "./libraryShareFields";
 import { TimelineSwitch } from "./TimelineSwitch";
 import { useLibraryShares } from "./useLibraryShares";
@@ -14,10 +16,10 @@ function LibraryRow({ share }: Readonly<{ share: LibraryShare }>) {
   return (
     <Group justify="space-between" wrap="wrap" gap="xs">
       <Group gap="sm" wrap="nowrap" miw={0}>
-        <Avatar radius="xl" name={name} color="initials" />
+        <UserAvatar user={share.owner} />
         <div>
           <Link to="/sharing/library/$userId" params={{ userId: String(share.owner.id) }}>
-            <Text component="span" fw={500} size="sm" c="blue">
+            <Text component="span" fw={500} size="sm" c="var(--mantine-color-anchor)">
               {t("librarySharing.libraryOf", { name })}
             </Text>
           </Link>
@@ -41,21 +43,16 @@ export function LibrariesSharedWithYouSection() {
   const { received } = useLibraryShares();
   if (received.length === 0) return null;
   return (
-    <Paper withBorder radius="md" p="md">
+    <SharingRow
+      icon={<IconLibraryPhoto size={24} stroke={1.5} />}
+      title={t("librarySharing.librariesWithYou")}
+      description={t("sharing.userCount", { count: received.length })}
+    >
       <Stack gap="sm">
-        <Group gap="sm" wrap="nowrap">
-          <IconLibraryPhoto size={24} stroke={1.5} color="var(--mantine-color-green-6)" aria-hidden />
-          <div>
-            <Title order={4}>{t("librarySharing.librariesWithYou")}</Title>
-            <Text size="sm" c="dimmed">
-              {t("sharing.userCount", { count: received.length })}
-            </Text>
-          </div>
-        </Group>
         {received.map(share => (
           <LibraryRow key={share.id} share={share} />
         ))}
       </Stack>
-    </Paper>
+    </SharingRow>
   );
 }

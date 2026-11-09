@@ -1,4 +1,4 @@
-import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import { Button, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import type { TFunction } from "i18next";
 import React, { useEffect, useState } from "react";
@@ -11,6 +11,7 @@ import { AutoScanSetting } from "./AutoScanSetting";
 import { NoticeSiteSettings } from "./NoticeSiteSettings";
 import { PlaceNameLanguageSetting } from "./PlaceNameLanguageSetting";
 import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import { SsoSettingsGroup } from "./SsoSettings";
 import { TrashRetentionSetting } from "./TrashRetentionSetting";
@@ -126,13 +127,13 @@ export function SiteSettings() {
     return <SiteSettingsForm />;
   }
   return (
-    <Card shadow="md">
+    <SettingsCard>
       <Title order={4}>
         {t("adminarea.sitesettings")}
         <SectionLink />
       </Title>
       {failure ? <ErrorState failure={failure} compact /> : <PageLoader />}
-    </Card>
+    </SettingsCard>
   );
 }
 
@@ -219,7 +220,7 @@ function SiteSettingsForm() {
         </Stack>
       </Modal>
 
-      <Card shadow="md">
+      <SettingsCard>
         <Stack>
           <Title order={4}>
             {t("adminarea.sitesettings")}
@@ -396,7 +397,7 @@ function SiteSettingsForm() {
             </Grid.Col>
           </Grid>
         </Stack>
-      </Card>
+      </SettingsCard>
     </>
   );
 }

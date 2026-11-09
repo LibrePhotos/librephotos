@@ -1,9 +1,22 @@
-import { ActionIcon, Button, CopyButton, Group, Loader, Modal, Stack, Text, TextInput, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  CopyButton,
+  FocusTrap,
+  Group,
+  Loader,
+  Modal,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+} from "@mantine/core";
 import { IconCheck as CheckIcon, IconCopy as CopyIcon, IconRefresh as RefreshIcon } from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
+import { DIALOG_SIZE } from "../modals/dialogSize";
 import { ConfirmPopover } from "./ConfirmPopover";
 
 type Props = {
@@ -33,7 +46,9 @@ export function PhotoShareLinkModal({ photoId, onClose }: Readonly<Props>) {
   const fullUrl = share?.url ? `${shareAddress}${share.url}` : "";
 
   return (
-    <Modal opened={!!photoId} onClose={onClose} title={t("sharing.photoLink")} centered>
+    <Modal size={DIALOG_SIZE.sm} opened={!!photoId} onClose={onClose} title={t("sharing.photoLink")}>
+      {/* No focus ring at open: nothing is focused until Tab */}
+      <FocusTrap.InitialFocus />
       <Stack gap="sm">
         <Text size="sm" c="dimmed">
           {t("sharing.photoLinkExplanation")}

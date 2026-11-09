@@ -103,7 +103,12 @@ async function openMenu(props: Partial<Props>) {
       </MantineProvider>
     );
   });
-  await act(async () => defined(container.querySelectorAll("button")[1], "the photo actions button").click());
+  await act(async () =>
+    defined(
+      container.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("selectionactions.photoactions")}"]`),
+      "the photo actions button"
+    ).click()
+  );
   return root;
 }
 

@@ -43,6 +43,9 @@ once the first session started on it, not when the device is found.
     variable-shape models is hundreds of MB more than their next request
     needs (the Rust and TypeScript experiments measured -400 MB resident for
     OCR and -200 MB for captions for a few % more time).
+``ORT_DISABLE_TELEMETRY``
+    Unset or ``1``: ONNX Runtime sends Microsoft no telemetry (see
+    ``quiet_telemetry``). ``0`` leaves ONNX Runtime's own default, on.
 
 WebGPU sessions run one call at a time per process: two sessions running at
 once crash on Linux with Vulkan (microsoft/onnxruntime#32561).
@@ -91,6 +94,23 @@ NO_GPU_HINT = (
 )
 
 log = logger("onnx_session")
+
+
+def quiet_telemetry() -> None:
+    """Turn off ONNX Runtime's telemetry events unless ORT_DISABLE_TELEMETRY=0.
+
+    ORT_DISABLE_TELEMETRY=1, which api.runtime.supervisor and the Docker images
+    set, stops the 1DS uploader the Linux and macOS builds have shipped since
+    1.29, but only when it is set before ONNX Runtime loads. The Windows wheel
+    reports through ETW instead, which ignores the variable; this API covers
+    that one, and the events of any process that loaded ONNX Runtime without
+    the variable.
+    """
+    if env_optional_flag("ORT_DISABLE_TELEMETRY") is not False:
+        ort.disable_telemetry_events()
+
+
+quiet_telemetry()
 
 
 class _WebGpuState:

@@ -12,7 +12,6 @@ from rest_framework.test import APIClient
 
 from api.dataviz.rewind import rewind_year
 from api.models import Person
-from api.models.album_date import get_or_create_album_date
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -27,14 +26,12 @@ PORTO = {"places": ["Ribeira", "Porto", "Portugal"]}
 
 
 def add_photo_on(user, day, **kwargs):
-    """A photo taken on ``day``, grouped under that day like a scan would."""
+    """A photo taken at noon on ``day`` (its wall clock, stored as UTC)."""
     kwargs.setdefault(
         "exif_timestamp",
         datetime.datetime(day.year, day.month, day.day, 12, tzinfo=UTC),
     )
-    photo = create_test_photo(owner=user, **kwargs)
-    get_or_create_album_date(date=day, owner=user).photos.add(photo)
-    return photo
+    return create_test_photo(owner=user, **kwargs)
 
 
 class RewindYearTest(SimpleTestCase):
@@ -74,7 +71,10 @@ class RewindViewTest(TestCase):
     def test_counts_only_the_users_own_photos_of_that_year(self):
         add_photo_on(self.user, datetime.date(2026, 3, 1))
         add_photo_on(self.user, datetime.date(2026, 3, 2), video=True)
-        add_photo_on(self.user, datetime.date(2025, 12, 31))
+        # A New Year's Eve photo a minute before midnight, wall clock: no
+        # timezone moves it into the next year.
+        new_years_eve = datetime.datetime(2025, 12, 31, 23, 59, tzinfo=UTC)
+        add_photo_on(self.user, new_years_eve.date(), exif_timestamp=new_years_eve)
         add_photo_on(self.user, datetime.date(2026, 3, 3), is_screenshot=True)
         add_photo_on(self.user, datetime.date(2026, 3, 4), hidden=True)
         add_photo_on(self.user, datetime.date(2026, 3, 5), in_trashcan=True)

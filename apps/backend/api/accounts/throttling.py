@@ -154,3 +154,15 @@ class PublicGalleryRateThrottle(UserRateThrottle):
     """
 
     scope = "public_gallery"
+
+
+class BrowserErrorReportRateThrottle(UserRateThrottle):
+    """The web app's error forwarder (#2938), per signed-in user.
+
+    Not a credential throttle: it keeps one browser stuck in an error loop
+    from pushing everyone else's reports out of the short saved list. A fixed
+    rate, so it needs no setting.
+    """
+
+    scope = "browser_error_report"
+    rate = "10/minute"

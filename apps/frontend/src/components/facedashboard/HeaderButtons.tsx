@@ -1,29 +1,31 @@
-import { FaceAnalysisMethod, FaceOrderBy, type PersonGroup } from "@librephotos/api-client";
-import { ActionIcon, Button, Divider, Group, NumberInput, Select, Stack, Tooltip } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import type { PersonGroup } from "@librephotos/api-client";
+import { ActionIcon, Button, Group, Menu, Pill, Tooltip, useMantineTheme } from "@mantine/core";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
-  IconBarbell as Barbell,
-  IconCheck as Check,
   IconChevronsDown as ChevronsDown,
   IconChevronsUp as ChevronsUp,
-  IconFilter as Filter,
-  IconWand,
-  IconPlus as Plus,
+  IconDots as Dots,
+  IconFaceId as FaceId,
   IconRestore as Restore,
-  IconSortDescending as SortDescending,
+  IconTag as Tag,
   IconTrash as Trash,
   IconUserOff as UserOff,
+  IconX as X,
 } from "@tabler/icons-react";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useTrainFacesMutation } from "../../api_client/faces";
-import { PAGE_GUTTER } from "../../uiConstants";
-import { PersonGroupFilter } from "../album/PersonGroupFilter";
+import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { toolbarLook } from "../common/toolbarLook";
 import { ConfirmModal } from "../modals/ConfirmModal";
+import { ConfidenceLegend } from "./ConfidenceLegend";
+import { TILE_FACES } from "./faceGridRows";
+import { FacesFilterPopover } from "./FacesFilterPopover";
+import { FacesSortMenu } from "./FacesSortMenu";
+import classes from "./FacesToolbar.module.css";
 import type { FaceSelection } from "./hooks/useVirtualizedGrid";
-import { PersonOrderControl } from "./PersonOrderControl";
 
 type Props = Readonly<{
   selectMode: boolean;
@@ -40,10 +42,39 @@ type Props = Readonly<{
   /** The user's groups of people, and the one the people are narrowed to (#1126). */
   personGroups: readonly PersonGroup[];
   groupId: number | undefined;
+  /** The name of the one person the page shows (a person page's "Review faces"), if any. */
+  personFilter?: string;
 }>;
 
 const routeApi = getRouteApi("/_protected/faces");
 
+/** One icon action of the toolbar, named by its tooltip text. */
+function ToolbarAction({
+  label,
+  onClick,
+  children,
+  color,
+}: Readonly<{ label: string; onClick: () => void; children: React.ReactNode; color?: string }>) {
+  return (
+    <Tooltip label={label}>
+      <ActionIcon
+        {...toolbarLook()}
+        color={color ?? "gray"}
+        size={TOOLBAR_ACTION_SIZE}
+        aria-label={label}
+        onClick={onClick}
+      >
+        {children}
+      </ActionIcon>
+    </Tooltip>
+  );
+}
+
+/**
+ * The right side of the faces toolbar. Nothing selected: Sort, Filter, Train faces and a ⋯ menu
+ * with fold all and the dots' legend. Faces selected: the count (a click clears it) and what can be done with them (#2237),
+ * so the selection's actions only show when they can be used.
+ */
 export function HeaderButtons({
   selectMode,
   selectedFaces,
@@ -57,176 +88,148 @@ export function HeaderButtons({
   canCollapse,
   personGroups,
   groupId,
+  personFilter,
 }: Props) {
   const [deleteDialogOpen, { open: openDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
   const navigate = useNavigate();
   const trainFacesMutation = useTrainFacesMutation();
   const { t } = useTranslation();
+  const theme = useMantineTheme();
+  const compact = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`, undefined, { getInitialValueInEffect: false });
   const search = routeApi.useSearch();
   const { tab: activeTab, method: analysisMethod, orderBy, minConfidence, personOrder } = search;
   const collapseLabel = allCollapsed ? t("facesdashboard.expandall") : t("facesdashboard.collapseall");
-  // The toolbar's face actions work on the selection; their tooltips say what they do and, until a
-  // face is selected, why they cannot (#2237).
-  const noSelection = selectedFaces.length === 0 && t("facesdashboard.selectfacesfirst");
+  const count = selectedFaces.length;
+
+  const selection = (
+    <Group gap={4} wrap="nowrap">
+      <Button
+        {...toolbarLook(true)}
+        h={TOOLBAR_CONTROL_HEIGHT}
+        leftSection={<X size={ICON_SIZE.inline} />}
+        onClick={changeSelectMode}
+        className={classes.count}
+      >
+        {t("selectionbar.count", { count })}
+      </Button>
+      {activeTab === "deleted" ? (
+        // Labelled, not an icon: the one thing to do with a deleted face is to bring it back
+        <Tooltip label={t("facesdashboard.restoreexplanation")}>
+          <Button
+            {...toolbarLook()}
+            h={TOOLBAR_CONTROL_HEIGHT}
+            leftSection={<Restore size={ICON_SIZE.toolbar} />}
+            onClick={restoreFaces}
+          >
+            {t("facesdashboard.restoreselected", { count })}
+          </Button>
+        </Tooltip>
+      ) : (
+        <>
+          <ToolbarAction label={t("facesdashboard.explanationadding")} onClick={addFaces}>
+            <Tag size={ICON_SIZE.toolbar} />
+          </ToolbarAction>
+          <ToolbarAction label={t("facesdashboard.notthisperson")} onClick={notThisPerson}>
+            <UserOff size={ICON_SIZE.toolbar} />
+          </ToolbarAction>
+          <ToolbarAction label={t("facesdashboard.explanationdeleting")} onClick={openDeleteDialog} color="red">
+            <Trash size={ICON_SIZE.toolbar} />
+          </ToolbarAction>
+        </>
+      )}
+    </Group>
+  );
+
+  const tools = (
+    <Group gap={4} wrap="nowrap">
+      {personFilter !== undefined && (
+        <Pill
+          size="lg"
+          withRemoveButton
+          onRemove={() => void navigate({ to: "/faces", search: { ...search, person: undefined } })}
+          removeButtonProps={{ "aria-label": t("facesdashboard.showeveryone") }}
+        >
+          {personFilter || t("facesdashboard.oneperson")}
+        </Pill>
+      )}
+      <FacesSortMenu
+        orderBy={orderBy}
+        personOrder={personOrder}
+        onOrderBy={order => void navigate({ to: "/faces", search: { ...search, orderBy: order } })}
+        onPersonOrder={order => void navigate({ to: "/faces", search: { ...search, personOrder: order } })}
+        compact={compact}
+      />
+      <FacesFilterPopover
+        tab={activeTab}
+        method={analysisMethod}
+        minConfidence={minConfidence}
+        onMethod={method => void navigate({ to: "/faces", search: { ...search, method } })}
+        onMinConfidence={value => void navigate({ to: "/faces", search: { ...search, minConfidence: value } })}
+        personGroups={personGroups}
+        groupId={groupId}
+        onGroup={group => void navigate({ to: "/faces", search: { ...search, group } })}
+        compact={compact}
+      />
+      {/* The page's one action: tonal, labelled where there is room */}
+      <Tooltip label={t("facesdashboard.explanationtraining")}>
+        {compact ? (
+          <ActionIcon
+            variant="light"
+            radius="xl"
+            size={TOOLBAR_ACTION_SIZE}
+            loading={trainFacesMutation.isPending}
+            aria-label={t("facesdashboard.train")}
+            onClick={() => trainFacesMutation.mutate()}
+          >
+            <FaceId size={ICON_SIZE.toolbar} />
+          </ActionIcon>
+        ) : (
+          <Button
+            variant="light"
+            radius="xl"
+            h={TOOLBAR_CONTROL_HEIGHT}
+            leftSection={<FaceId size={ICON_SIZE.toolbar} />}
+            loading={trainFacesMutation.isPending}
+            onClick={() => trainFacesMutation.mutate()}
+          >
+            {t("facesdashboard.train")}
+          </Button>
+        )}
+      </Tooltip>
+      {/* The rarely used tools: fold every group, and what a faded suggestion means */}
+      <Menu position="bottom-end" width={260}>
+        <Menu.Target>
+          <ActionIcon {...toolbarLook()} size={TOOLBAR_ACTION_SIZE} aria-label={t("moreactions")}>
+            <Dots size={ICON_SIZE.toolbar} />
+          </ActionIcon>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <DisabledReason
+            reason={!canCollapse && t("facesdashboard.nofoldablegroups", { number: TILE_FACES })}
+            position="left"
+          >
+            <Menu.Item
+              leftSection={allCollapsed ? <ChevronsDown size={ICON_SIZE.menu} /> : <ChevronsUp size={ICON_SIZE.menu} />}
+              onClick={toggleAllCollapsed}
+            >
+              {collapseLabel}
+            </Menu.Item>
+          </DisabledReason>
+          {/* How sure a suggestion is only means something for a suggestion */}
+          {activeTab === "inferred" && (
+            <>
+              <Menu.Divider />
+              <ConfidenceLegend />
+            </>
+          )}
+        </Menu.Dropdown>
+      </Menu>
+    </Group>
+  );
 
   return (
     <>
-      <Group px={PAGE_GUTTER} justify="space-between" align="flex-start">
-        <Group align="flex-start">
-          <Button
-            variant="light"
-            leftSection={<Check color={selectMode ? "green" : "gray"} />}
-            color={selectMode ? "blue" : "gray"}
-            onClick={changeSelectMode}
-          >
-            {t("selectionbar.count", { count: selectedFaces.length })}
-          </Button>
-          {/* Dividers only where the controls fit on one row: when the row wraps they end up dangling at line ends */}
-          <Divider orientation="vertical" visibleFrom="md" />
-          {/* The order of the faces, then of the people (#764): close together, as one control */}
-          <Group gap="xs" wrap="nowrap">
-            <Select
-              w={150}
-              value={orderBy}
-              onChange={value => {
-                // Picking the selected option again clears it (null): the route then falls back to its default
-                void navigate({ to: "/faces", search: { ...search, orderBy: FaceOrderBy.safeParse(value).data } });
-              }}
-              leftSection={<SortDescending size={16} />}
-              data={[
-                {
-                  label: t("facesdashboard.sortbyconfidence"),
-                  value: FaceOrderBy.enum.confidence,
-                },
-                {
-                  label: t("facesdashboard.sortbydate"),
-                  value: FaceOrderBy.enum.date,
-                },
-              ]}
-            />
-            <PersonOrderControl
-              value={personOrder}
-              onChange={order => void navigate({ to: "/faces", search: { ...search, personOrder: order } })}
-            />
-            {/* The Unknown tab holds no people, so it has nothing to narrow */}
-            {activeTab !== "unknown" && (
-              <PersonGroupFilter
-                groups={personGroups}
-                value={groupId}
-                onChange={group => void navigate({ to: "/faces", search: { ...search, group } })}
-              />
-            )}
-          </Group>
-          {(activeTab === "inferred" || activeTab === "unknown") && (
-            <>
-              <Divider orientation="vertical" visibleFrom="md" />
-              <Stack align="start">
-                <Select
-                  w={150}
-                  value={analysisMethod}
-                  onChange={value => {
-                    void navigate({
-                      to: "/faces",
-                      search: { ...search, method: FaceAnalysisMethod.safeParse(value).data },
-                    });
-                  }}
-                  leftSection={<Filter size={16} />}
-                  data={[
-                    {
-                      label: t("facesdashboard.clusters"),
-                      value: FaceAnalysisMethod.enum.clustering,
-                    },
-                    {
-                      label: t("facesdashboard.classifications"),
-                      value: FaceAnalysisMethod.enum.classification,
-                    },
-                  ]}
-                />
-              </Stack>
-              <Divider orientation="vertical" visibleFrom="md" />
-              <Stack align="start">
-                <NumberInput
-                  w={200}
-                  value={minConfidence * 100}
-                  onChange={value => {
-                    if (typeof value === "number") {
-                      void navigate({ to: "/faces", search: { ...search, minConfidence: value / 100 } });
-                    }
-                  }}
-                  min={0}
-                  max={100}
-                  step={5}
-                  decimalScale={0}
-                  leftSection={<IconWand size={16} />}
-                  suffix={t("facesdashboard.confidentsuffix")}
-                />
-              </Stack>
-            </>
-          )}
-        </Group>
-        <Group h={36} wrap="nowrap">
-          <DisabledReason label={collapseLabel} reason={!canCollapse && t("facesdashboard.nogroups")}>
-            <ActionIcon variant="light" color="gray" aria-label={collapseLabel} onClick={toggleAllCollapsed}>
-              {allCollapsed ? <ChevronsDown /> : <ChevronsUp />}
-            </ActionIcon>
-          </DisabledReason>
-          <Divider orientation="vertical" />
-          {activeTab === "deleted" ? (
-            // Labelled, not an icon: the one thing to do with a deleted face is to bring it back
-            <DisabledReason label={t("facesdashboard.restoreexplanation")} reason={noSelection}>
-              <Button variant="light" color="green" leftSection={<Restore size={18} />} onClick={restoreFaces}>
-                {selectedFaces.length > 0
-                  ? t("facesdashboard.restoreselected", { count: selectedFaces.length })
-                  : t("facesdashboard.restore")}
-              </Button>
-            </DisabledReason>
-          ) : (
-            <>
-              <DisabledReason label={t("facesdashboard.explanationadding")} reason={noSelection}>
-                <ActionIcon
-                  variant="light"
-                  color="green"
-                  aria-label={t("facesdashboard.explanationadding")}
-                  onClick={addFaces}
-                >
-                  <Plus />
-                </ActionIcon>
-              </DisabledReason>
-              <DisabledReason label={t("facesdashboard.notthisperson")} reason={noSelection}>
-                <ActionIcon
-                  variant="light"
-                  color="orange"
-                  aria-label={t("facesdashboard.notthisperson")}
-                  onClick={() => notThisPerson()}
-                >
-                  <UserOff />
-                </ActionIcon>
-              </DisabledReason>
-              <DisabledReason label={t("facesdashboard.explanationdeleting")} reason={noSelection}>
-                <ActionIcon
-                  variant="light"
-                  color="red"
-                  aria-label={t("facesdashboard.explanationdeleting")}
-                  onClick={() => openDeleteDialog()}
-                >
-                  <Trash />
-                </ActionIcon>
-              </DisabledReason>
-            </>
-          )}
-          <Tooltip label={t("facesdashboard.explanationtraining")}>
-            <ActionIcon
-              loading={trainFacesMutation.isPending}
-              color="blue"
-              variant="light"
-              aria-label={t("facesdashboard.explanationtraining")}
-              onClick={() => trainFacesMutation.mutate()}
-            >
-              <Barbell />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-      </Group>
+      {selectMode ? selection : tools}
       <ConfirmModal
         opened={deleteDialogOpen}
         onClose={closeDeleteDialog}
@@ -234,13 +237,12 @@ export function HeaderButtons({
           deleteFaces();
           closeDeleteDialog();
         }}
-        title={t("confirmdialog.deletefaces.title", { count: selectedFaces.length })}
+        title={t("confirmdialog.deletefaces.title", { count })}
         // Deleted faces can be restored from the Deleted tab (#127)
-        message={`${t("confirmdialog.deletefaces.message", { count: selectedFaces.length })} ${t(
-          "confirmdialog.deletefaces.restorable",
-          { count: selectedFaces.length }
-        )}`}
-        confirmLabel={t("confirmdialog.deletefaces.confirm", { count: selectedFaces.length })}
+        message={`${t("confirmdialog.deletefaces.message", { count })} ${t("confirmdialog.deletefaces.restorable", {
+          count,
+        })}`}
+        confirmLabel={t("confirmdialog.deletefaces.confirm", { count })}
       />
     </>
   );

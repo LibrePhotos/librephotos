@@ -16,21 +16,22 @@ import { useZoomOriginal } from "./useZoomOriginal";
 import { VideoPlayer } from "./VideoPlayer";
 import { VideoStartContext } from "./videoStart";
 
-/** How tall the lightbox's media box is; the carousel arrows centre on it. */
-export const LIGHTBOX_PHOTO_HEIGHT = "82vh";
-// The box starts 48px down, under the toolbar, and the thumbnail strip floats
-// over the bottom 96px of the lightbox. A video's native seek bar is at its
-// bottom edge, so on a short window the video stops short of the strip instead
-// of running under it.
-export const LIGHTBOX_VIDEO_HEIGHT = "min(82vh, calc(100vh - 160px))";
+/**
+ * The lightbox's photo fills the whole stage: the toolbar floats over its top on a gradient, and the
+ * thumbnail strip over its bottom only while the pointer moves (ContentViewer.module.css).
+ */
+const LIGHTBOX_PHOTO_HEIGHT = "var(--lightbox-media-height, 100dvh)";
+// A video's native seek bar is at its bottom edge and the toolbar over its top, so the video
+// stops short of both: 64px for the toolbar, 96px for the thumbnail strip.
+const LIGHTBOX_VIDEO_HEIGHT = "calc(100dvh - 160px)";
 /**
  * The tallest a photo or video gets outside the lightbox (`fullHeight`). The
  * photo page sets `--page-media-max-height` to the height of its mat, so the
  * whole picture fits the window, portrait or landscape.
  */
 const PAGE_MEDIA_MAX_HEIGHT = "var(--page-media-max-height, 70vh)";
-/** The tallest a photo gets: the page's mat, or 82vh in the lightbox. */
-const PHOTO_MAX_HEIGHT = "var(--page-media-max-height, 82vh)";
+/** The tallest a photo gets: the page's mat, or the whole stage in the lightbox. */
+const PHOTO_MAX_HEIGHT = `var(--page-media-max-height, ${LIGHTBOX_PHOTO_HEIGHT})`;
 
 /**
  * What MediaDisplay reads from the photo's details. The neighbouring slides and
@@ -154,7 +155,11 @@ function mainMotion(props: ResolvedProps): { transition: string; transform: stri
   };
 }
 
-function imageStyle(isMainContent: boolean, motion: { transition: string; transform: string }): React.CSSProperties {
+function imageStyle(
+  isMainContent: boolean,
+  inLightbox: boolean,
+  motion: { transition: string; transform: string }
+): React.CSSProperties {
   return {
     ...motion,
     // Block display so the wrapper matches the image exactly — the
@@ -163,11 +168,12 @@ function imageStyle(isMainContent: boolean, motion: { transition: string; transf
     // The photo page's mat sets the variable; the lightbox, a portal outside it, never has it.
     maxHeight: PHOTO_MAX_HEIGHT,
     maxWidth: "100%",
-    borderRadius: 8,
+    // Edge to edge in the lightbox, as in Google Photos and Immich; a card on the photo page.
+    borderRadius: inLightbox ? 0 : 8,
     opacity: isMainContent ? 1 : 0.9,
     willChange: isMainContent ? "transform" : "auto",
     WebkitTapHighlightColor: "transparent",
-    boxShadow: isMainContent ? "0 4px 16px var(--app-scrim-black-10)" : "none",
+    boxShadow: isMainContent && !inLightbox ? "0 4px 16px var(--app-scrim-black-10)" : "none",
   };
 }
 
@@ -220,7 +226,7 @@ function PhotoMedia(props: ResolvedProps) {
         alignItems: "center",
         justifyContent: "center",
         height: props.fullHeight ? "100%" : LIGHTBOX_PHOTO_HEIGHT,
-        borderRadius: "8px",
+        borderRadius: props.fullHeight ? 8 : 0,
       }}
     >
       <div style={{ position: "relative" }}>
@@ -232,7 +238,7 @@ function PhotoMedia(props: ResolvedProps) {
           onDragStart={props.handleDragStart}
           onDoubleClick={isMainContent ? props.toggleZoom : undefined}
           onLoad={handleLoad}
-          style={imageStyle(isMainContent, motion)}
+          style={imageStyle(isMainContent, !props.fullHeight, motion)}
         />
         {isMainContent && <PhotoOverlays {...props} motion={motion} naturalSize={naturalSize} />}
         {zoom.chip && (

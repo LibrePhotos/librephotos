@@ -125,6 +125,8 @@ class GalleryDayViewSet(GalleryAPIView, ListViewSet):
     queryset = Photo.objects.none()
     serializer_class = GalleryDaySerializer
     pagination_class = None
+    # The day list is one {"results": [...]} object.
+    list_returns_object = True
 
     @extend_schema(parameters=[GalleryFilterQuery], responses=GalleryDayListSerializer)
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:

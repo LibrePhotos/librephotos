@@ -12,7 +12,6 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.tests.utils import (
-    create_test_album_date,
     create_test_face,
     create_test_file,
     create_test_library_share,
@@ -20,7 +19,10 @@ from api.tests.utils import (
     create_test_photo,
     create_test_tag,
     create_test_user,
+    day_photo_ids,
+    list_days,
 )
+from api.timeline.days import day_id
 
 DAY = datetime.date(2025, 10, 18)
 NOON = timezone.make_aware(datetime.datetime(2025, 10, 18, 12, 0))
@@ -83,23 +85,27 @@ class PhotoListSearchOracleTest(TestCase):
 
 
 class HiddenOnlyDayTest(TestCase):
-    """A day album holding only hidden/trashed photos is not the owner's
-    library as it is shared, yet library_day / timeline_day resolve any of the
-    owner's AlbumDate pks and return its date (and place)."""
+    """A day holding only hidden or trashed photos is not the owner's
+    library as it is shared: it is not listed, and its pages and layout are
+    empty, so neither its date nor its place reaches the recipient."""
 
     def setUp(self):
         self.owner = create_test_user()
         self.recipient = create_test_user()
-        hidden = create_test_photo(
-            owner=self.owner, exif_timestamp=HIDDEN_NOON, hidden=True
+        place = {"places": ["Street", "SecretTown", "Land"]}
+        self.hidden = create_test_photo(
+            owner=self.owner,
+            exif_timestamp=HIDDEN_NOON,
+            hidden=True,
+            geolocation_json=place,
         )
-        trashed = create_test_photo(
-            owner=self.owner, exif_timestamp=HIDDEN_NOON, in_trashcan=True
+        self.trashed = create_test_photo(
+            owner=self.owner,
+            exif_timestamp=HIDDEN_NOON,
+            in_trashcan=True,
+            geolocation_json=place,
         )
-        self.day = create_test_album_date(
-            owner=self.owner, date=HIDDEN_DAY, location={"places": ["SecretTown"]}
-        )
-        self.day.photos.add(hidden, trashed)
+        self.day = day_id(HIDDEN_DAY)
         create_test_library_share(
             owner=self.owner,
             recipient=self.recipient,
@@ -107,38 +113,45 @@ class HiddenOnlyDayTest(TestCase):
             share_location=True,
         )
 
-    def test_library_day_of_hidden_photos_is_404(self):
+    def test_library_day_of_hidden_photos_is_not_listed(self):
         client = client_for(self.recipient)
-        for query in (f"?library={self.owner.pk}", "?libraries=true"):
-            with self.subTest(query=query):
-                response = client.get(f"/api/albums/date/{self.day.pk}/{query}")
-                body = response.content.decode()
-                self.assertEqual(response.status_code, 404, body[:300])
-                self.assertNotIn("2024-02-14", body)
-                self.assertNotIn("SecretTown", body)
+        for params in ({"library": self.owner.pk}, {"libraries": "true"}):
+            with self.subTest(params=params):
+                for path in ("/api/days/", f"/api/days/{self.day}/layout/"):
+                    body = client.get(path, params).content.decode()
+                    self.assertNotIn("2024-02-14", body)
+                    self.assertNotIn("SecretTown", body)
+                self.assertEqual(list_days(client, params), [])
+                self.assertEqual(day_photo_ids(client, self.day, params), [])
+                layout = client.get(f"/api/days/{self.day}/layout/", params).json()
+                self.assertEqual(layout["numberOfItems"], 0)
+
+    def test_a_hidden_photo_is_no_cursor(self):
+        client = client_for(self.recipient)
+        for photo in (self.hidden, self.trashed):
+            for params in ({"library": self.owner.pk}, {"libraries": "true"}):
+                with self.subTest(photo=photo.pk, params=params):
+                    response = client.get(
+                        f"/api/days/{self.day}/photos/", {**params, "after": photo.pk}
+                    )
+                    self.assertEqual(response.status_code, 400)
 
 
 class DayPlaceOfHiddenPhotoTest(TestCase):
-    """AlbumDate.location collects the town of every photo of the day
-    (add_location_to_album_dates), hidden ones included, and is never pruned.
-    With Location on, the shared day names it."""
+    """A day's place is the town of its first located photo the view shows:
+    with Location on, a hidden photo taken earlier that day must not name
+    the shared day."""
 
     def setUp(self):
         self.owner = create_test_user()
         self.recipient = create_test_user()
-        visible = create_test_photo(owner=self.owner, exif_timestamp=NOON)
-        hidden = create_test_photo(
+        self.visible = create_test_photo(owner=self.owner, exif_timestamp=NOON)
+        create_test_photo(
             owner=self.owner,
-            exif_timestamp=NOON,
+            exif_timestamp=NOON - datetime.timedelta(hours=1),
             hidden=True,
-            geolocation_json={"features": [{"text": "HiddenTown"}]},
+            geolocation_json={"places": ["Street", "HiddenTown", "Land"]},
         )
-        # As add_location_to_album_dates leaves it after geocoding the hidden
-        # photo (the visible one has no place).
-        self.day = create_test_album_date(
-            owner=self.owner, date=DAY, location={"places": ["HiddenTown"]}
-        )
-        self.day.photos.add(visible, hidden)
         create_test_library_share(
             owner=self.owner,
             recipient=self.recipient,
@@ -149,11 +162,20 @@ class DayPlaceOfHiddenPhotoTest(TestCase):
     def test_shared_day_does_not_name_a_hidden_photos_town(self):
         client = client_for(self.recipient)
         for url in (
-            f"/api/albums/date/list/?library={self.owner.pk}",
-            f"/api/albums/date/{self.day.pk}/?library={self.owner.pk}",
-            "/api/albums/date/list/?libraries=true",
+            f"/api/days/?library={self.owner.pk}",
+            f"/api/days/{day_id(DAY)}/photos/?library={self.owner.pk}",
+            "/api/days/?libraries=true",
         ):
             with self.subTest(url=url):
                 response = client.get(url)
                 self.assertEqual(response.status_code, 200)
                 self.assertNotIn("HiddenTown", response.content.decode())
+
+    def test_the_visible_photos_town_still_names_it(self):
+        self.visible.geolocation_json = {"places": ["Street", "OpenTown", "Land"]}
+        self.visible.save()
+        client = client_for(self.recipient)
+        for params in ({"library": self.owner.pk}, {"libraries": "true"}):
+            with self.subTest(params=params):
+                (day,) = list_days(client, params)
+                self.assertEqual(day["location"], "OpenTown")

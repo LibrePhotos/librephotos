@@ -328,6 +328,25 @@ Admins can turn the check off in **Admin Area > Site Settings > Check for new re
 | --- | --- | --- | --- |
 | `UPDATE_CHECK` | `updateCheck` | `true` | `false` sends no request to GitHub at all and locks **Check for new releases** off. On the Windows app, set it in a small `.cmd` file that starts LibrePhotos, as [Using another port](windows-standalone.md#using-another-port) shows for the service ports. |
 
+### Error reporting {#error-reporting}
+
+<Since version="1.6.0" /> LibrePhotos keeps the errors of its backend and web app, scrubbed, on your server, and sends nothing until an admin picks a server in **Admin Area > Site Settings > Error reporting** or sends a report from **Error reports**. [Error reporting](../user-guide/error-reporting.md) explains the choices and lists exactly what a report holds.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `SENTRY_DSN` | `sentryDsn` | empty | The DSN of your own GlitchTip or Sentry project. Set, it makes **My own server** available, and Send once and Send all go there while it is chosen. |
+| `ERROR_REPORTING_MAINTAINERS_DSN` | (none) | the maintainers' project | Where **Share with the LibrePhotos maintainers** and Send once go. Set it empty to make sharing with the maintainers unavailable; set it in the backend's environment, not in `.env`. |
+
+### ONNX Runtime telemetry {#onnx-runtime-telemetry}
+
+<Since version="1.6.0" /> The machine learning models run on ONNX Runtime, Microsoft's inference library. Since its version 1.29, its Linux and macOS builds send usage telemetry to Microsoft by default: which models run (names and hashes of the model files), the hardware and execution provider, errors and timings, and a device id that it keeps under `~/.cache/Microsoft/DeveloperTools/`. The events describe the models and the machine, not the photos the models look at. LibrePhotos turns this off: the Docker images set `ORT_DISABLE_TELEMETRY=1`, the backend starts its machine learning services with it unless you set it yourself, and the services also switch off the event logging the Windows build of ONNX Runtime does instead.
+
+LibrePhotos 1.5.0 and 1.5.1 shipped ONNX Runtime 1.31 without this, so their Docker images sent the telemetry. 1.4.0 and older used ONNX Runtime 1.27, which had none on Linux. The device id lived inside the container and is gone once the container is recreated.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ORT_DISABLE_TELEMETRY` | `1` | `0` lets ONNX Runtime send its telemetry to Microsoft again. |
+
 ### Internal service address
 
 The backend talks to its helper services (thumbnails, metadata, faces, tags, captions, OCR, search) over HTTP inside the container. They have no authentication, so they listen on `127.0.0.1` only and cannot be reached from outside the container.

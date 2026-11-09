@@ -52,9 +52,8 @@ const entries = (colors: MapLayerColors): Array<[string, string]> => [
   ["place", colors.place],
 ];
 
-// How far each dark colour may land from its light one. The filter cannot reach a bright yellow
-// (its blue channel clamps), so the medium cluster gets the most room; everything else is close.
-const TOLERANCE: Record<string, number> = { "clusters.medium": 34 };
+// How far each dark colour may land from its light one. The filter caps brightness at 90 %, so
+// white (the counts and rings) lands on a light grey; everything else is close.
 const DEFAULT_TOLERANCE = 9;
 
 describe("mapLayerColors", () => {
@@ -64,19 +63,21 @@ describe("mapLayerColors", () => {
   });
 
   it("paints the light colours on a light map", () => {
-    expect(mapLayerColors("light").point).toBe("#11b4da");
+    expect(mapLayerColors("light").point).toBe("#228be6");
   });
 
   it("paints colours on a dark map that the filter turns back into the light ones", () => {
     const light = new Map(entries(mapLayerColors("light")));
     const far = entries(mapLayerColors("dark")).flatMap(([name, dark]) => {
       const distance = deltaE(throughDarkMapFilter(dark), hexToRgb(light.get(name) ?? ""));
-      return distance <= (TOLERANCE[name] ?? DEFAULT_TOLERANCE) ? [] : [`${name}: ${distance.toFixed(1)}`];
+      return distance <= DEFAULT_TOLERANCE ? [] : [`${name}: ${distance.toFixed(1)}`];
     });
     expect(far).toEqual([]);
   });
 
-  it("keeps the cluster count black on a dark map", () => {
-    expect(throughDarkMapFilter(mapLayerColors("dark").clusterText)).toEqual([0, 0, 0]);
+  it("keeps the cluster count as light as the filter allows on a dark map", () => {
+    for (const channel of throughDarkMapFilter(mapLayerColors("dark").clusterText)) {
+      expect(channel).toBeCloseTo(BRIGHTNESS);
+    }
   });
 });

@@ -1,0 +1,89 @@
+/* The lightbox's dialog body: the whole window, the stage beside the info panel. */
+.body {
+  outline: none;
+  width: 100vw;
+  height: 100dvh;
+  padding: 0;
+  position: relative;
+}
+
+.viewer {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  /* Pure black, as Google Photos, Apple Photos and Immich show a photo: the theme's "black" is the
+     near-black text colour, which reads grey around a photo. */
+  background: black;
+}
+
+/* The photo takes the whole stage, as in Immich and Google Photos: the toolbar floats over its top
+   on a gradient, and the thumbnail strip shows over its bottom only while the pointer moves or the
+   keys step (ThumbnailNavigation). */
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* A phone with the info sheet open (65dvh, Sidebar.module.css): the photo moves into the space
+   above the sheet rather than staying under it, as Google Photos lifts it. */
+@media (max-width: 61.99em) {
+  .stage[data-info] {
+    flex: none;
+    width: 100%;
+    height: 35dvh;
+    /* The photo's height (MediaDisplay) follows the stage. */
+    --lightbox-media-height: 35dvh;
+  }
+}
+
+.media {
+  position: absolute;
+  inset: 0;
+}
+
+.carousel,
+.viewport,
+.container {
+  height: 100%;
+}
+
+/* A video (shorter than the stage, to clear the toolbar and the strip) sits in the middle. */
+.slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+/* Previous and next: quiet dark circles that show while the pointer is on the stage. Nested under
+   the controls' class to outrank Mantine's white disc whatever order the stylesheets load in. */
+.controls .control {
+  background-color: var(--app-scrim-black-35);
+  border: 0;
+  box-shadow: none;
+  color: var(--mantine-color-white);
+  opacity: 0;
+  transition:
+    opacity 150ms ease,
+    background-color 150ms ease;
+}
+
+.stage:hover .controls .control,
+.controls .control:focus-visible {
+  opacity: 1;
+}
+
+.controls .control:hover {
+  background-color: var(--app-scrim-black-60);
+}
+
+/* On a touch screen a swipe steps; the circles would only cover the photo. */
+@media (hover: none) {
+  .controls {
+    display: none;
+  }
+}

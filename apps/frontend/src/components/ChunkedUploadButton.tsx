@@ -35,19 +35,20 @@ export function ChunkedUploadButton() {
   const uploadContent = (
     <div style={{ alignItems: "center", display: "flex" }}>
       <input {...getInputProps()} data-testid="upload-input" />
-      {/* Same 30px tile and 1.1rem glyph as the colour scheme toggle beside it.
+      {/* Same round 36px button and 20px glyph as the colour scheme toggle beside it.
           A block Indicator gave the button a line box that lifted it ~2px. */}
       <Indicator processing disabled={!isUploading} color="blue" size={8} offset={3} style={{ display: "flex" }}>
         <ActionIcon
           color="gray"
-          variant="light"
-          size={30}
+          variant="subtle"
+          size={36}
+          radius="xl"
           onClick={ready ? open : undefined}
           disabled={!ready}
           style={!ready ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
           aria-label={t("upload.button")}
         >
-          <Upload size="1.1rem" />
+          <Upload size={20} stroke={1.75} />
         </ActionIcon>
       </Indicator>
     </div>

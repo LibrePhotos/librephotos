@@ -2,8 +2,8 @@ import { endpoints, photoKeys, statsKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
-import { invalidatePhotoLists } from "../invalidatePhotoLists";
 import { selectionArgs, type PhotoSelection } from "../photoSelection";
+import { applyTrashToggleToGrids } from "../removeFromDateAlbums";
 
 type DeletePhotosRequest = PhotoSelection & { deleted: boolean };
 
@@ -22,8 +22,8 @@ export const useMarkPhotosDeletedMutation = () =>
 
       return data;
     },
-    onSuccess: () => {
-      invalidatePhotoLists(queryClient);
+    onSuccess: (_data, request) => {
+      applyTrashToggleToGrids(queryClient, request, request.deleted);
       // Cached details hold in_trashcan, which drives the lightbox's Delete/Restore toggle.
       queryClient.invalidateQueries({ queryKey: photoKeys.details() });
       queryClient.invalidateQueries({ queryKey: statsKeys.counts() });

@@ -1,0 +1,86 @@
+/*
+ * The pages before the app (AuthCard.tsx): the logo and name over one card in the middle of a plain
+ * page, the same quiet grey as the app's chrome.
+ */
+.page {
+  min-height: 100dvh;
+  padding: var(--mantine-spacing-xl) var(--mantine-spacing-md);
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-body));
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * No border: a soft shadow sets the card off the page, and in dark mode its raised surface does.
+ * 400px with 32px of padding on every one of these pages, as Immich's sign-in; 24px on a phone.
+ */
+.card {
+  width: min(400px, 100%);
+  box-shadow: 0 8px 32px var(--app-scrim-black-8);
+}
+
+/* Two classes: Mantine's own Card rule sets the same variable with one. */
+.page .card {
+  --card-padding: 32px;
+}
+
+@media (max-width: 30em) {
+  .page .card {
+    --card-padding: 24px;
+  }
+}
+
+[data-mantine-color-scheme="dark"] .card {
+  box-shadow: 0 8px 32px var(--app-scrim-black-40);
+}
+
+/*
+ * 40px fields and buttons under 13px/600 labels. Mantine declares its sm sizes on each input and
+ * button itself, so they are set again there, one class stronger.
+ */
+.card :global(.mantine-Input-wrapper) {
+  --input-height-sm: 40px;
+}
+
+.card :global(.mantine-Button-root) {
+  --button-height-sm: 40px;
+}
+
+.card :global(.mantine-InputWrapper-label) {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.description {
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--mantine-color-dimmed);
+}
+
+/* "Forgot password?", "No account? Sign up", "Back to sign in": 13px, centred under the primary. */
+.links {
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+}
+
+.links :global(.mantine-Anchor-root) {
+  font-size: 13px;
+}
+
+/* Every field here is required: an asterisk on each label said nothing. */
+.card :global(.mantine-InputWrapper-required) {
+  display: none;
+}

@@ -1,17 +1,10 @@
 import { photoLicenseUrl, type PhotoLicenseId } from "@librephotos/api-client";
-import { ActionIcon, Anchor, CopyButton, Group, Paper, Stack, Text, Textarea, Title, Tooltip } from "@mantine/core";
-import {
-  IconAlertCircle,
-  IconCheck,
-  IconCopy,
-  IconExternalLink,
-  IconLicense,
-  IconX,
-  type Icon,
-} from "@tabler/icons-react";
+import { ActionIcon, Anchor, CopyButton, Group, Paper, Stack, Text, Textarea, Tooltip } from "@mantine/core";
+import { IconAlertCircle, IconCheck, IconCopy, IconExternalLink, IconX, type Icon } from "@tabler/icons-react";
 import type { ParseKeys, TFunction } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { SectionTitle } from "../lightbox/SectionTitle";
 import { LicenseBadge } from "./LicenseBadge";
 import { asLicense, LICENSES, type LicenseTerms } from "./photoLicenses";
 
@@ -107,10 +100,7 @@ export function PublicRightsSection({ rights }: Readonly<{ rights: Rights | null
   const url = license ? photoLicenseUrl(license) : null;
   return (
     <Stack gap="xs">
-      <Group gap="xs" wrap="nowrap">
-        <IconLicense aria-hidden />
-        <Title order={4}>{t("rights.public.title")}</Title>
-      </Group>
+      <SectionTitle>{t("rights.public.title")}</SectionTitle>
       {license && <LicenseBadge license={license} />}
       {rights.copyright && <Text size="sm">{rights.copyright}</Text>}
       {rights.creator && (

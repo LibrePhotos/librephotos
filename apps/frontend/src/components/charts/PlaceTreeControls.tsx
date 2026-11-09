@@ -46,12 +46,11 @@ type ToggleGroupProps<T extends string> = Readonly<{
   label: ParseKeys;
   options: readonly ToggleOption<T>[];
   value: T;
-  color: string;
   onChange: (value: T) => void;
 }>;
 
 /** One set of mutually exclusive toggles: each is a named button that says whether it is the chosen one. */
-function ToggleGroup<T extends string>({ label, options, value, color, onChange }: ToggleGroupProps<T>) {
+function ToggleGroup<T extends string>({ label, options, value, onChange }: ToggleGroupProps<T>) {
   const { t } = useTranslation();
   return (
     <div className={styles.toolbarGroup} role="group" aria-label={t(label)}>
@@ -60,8 +59,9 @@ function ToggleGroup<T extends string>({ label, options, value, color, onChange 
         return (
           <Tooltip key={option.value} label={t(option.label)} position="bottom" withArrow>
             <ActionIcon
-              variant={pressed ? "filled" : "subtle"}
-              color={pressed ? color : "gray"}
+              // Neutral like every toolbar; the chosen one in the primary colour
+              variant={pressed ? "light" : "subtle"}
+              color={pressed ? undefined : "gray"}
               size="md"
               aria-label={t(option.label)}
               aria-pressed={pressed}
@@ -90,13 +90,7 @@ type ToolbarProps = Readonly<{
 export function PlaceTreeToolbar(props: ToolbarProps) {
   return (
     <div className={styles.controlsToolbar}>
-      <ToggleGroup
-        label="placetree.layout"
-        options={LAYOUTS}
-        value={props.layout}
-        color="blue"
-        onChange={props.onLayoutChange}
-      />
+      <ToggleGroup label="placetree.layout" options={LAYOUTS} value={props.layout} onChange={props.onLayoutChange} />
       {props.layout === "cartesian" && (
         <>
           <div className={styles.toolbarDivider} />
@@ -104,7 +98,6 @@ export function PlaceTreeToolbar(props: ToolbarProps) {
             label="placetree.orientation"
             options={ORIENTATIONS}
             value={props.orientation}
-            color="cyan"
             onChange={props.onOrientationChange}
           />
         </>
@@ -114,7 +107,6 @@ export function PlaceTreeToolbar(props: ToolbarProps) {
         label="placetree.linkStyle"
         options={LINK_TYPES}
         value={props.linkType}
-        color="violet"
         onChange={props.onLinkTypeChange}
       />
     </div>

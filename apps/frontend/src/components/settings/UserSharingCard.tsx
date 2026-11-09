@@ -1,6 +1,7 @@
-import { Card, Stack, Switch, Text, Title } from "@mantine/core";
+import { Stack, Switch, Text, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { SettingsCard } from "./SettingsCard";
 import { SectionLink } from "./SettingsSection";
 import type { UserSettingsCardProps } from "./userSettingsCard";
 
@@ -12,7 +13,7 @@ import type { UserSettingsCardProps } from "./userSettingsCard";
 export function UserSharingCard({ user, onChange }: UserSettingsCardProps) {
   const { t } = useTranslation();
   return (
-    <Card shadow="md">
+    <SettingsCard>
       <Stack>
         <Title order={4}>
           {t("settings.usersharing")}
@@ -28,6 +29,6 @@ export function UserSharingCard({ user, onChange }: UserSettingsCardProps) {
           onChange={event => onChange({ share_people_names: event.currentTarget.checked })}
         />
       </Stack>
-    </Card>
+    </SettingsCard>
   );
 }

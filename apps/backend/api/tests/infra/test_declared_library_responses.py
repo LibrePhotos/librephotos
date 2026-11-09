@@ -21,7 +21,6 @@ from django.test import override_settings
 from rest_framework.test import APIClient
 
 from api.models import File, LongRunningJob, User
-from api.models.album_date import get_or_create_album_date
 from api.serving import permissions
 from api.tests.infra.test_declared_action_responses import queue_stub
 from api.tests.infra.test_declared_responses import DeclaredResponseTestCase
@@ -139,17 +138,15 @@ class MemoriesResponsesTest(DeclaredResponseTestCase):
         self.client.force_authenticate(user=self.user)
 
     def add_photo_on(self, day: datetime.date, place: str | None = None) -> None:
-        photo = create_test_photo(
+        create_test_photo(
             owner=self.user,
             exif_timestamp=datetime.datetime(
                 day.year, day.month, day.day, 12, tzinfo=UTC
             ),
+            geolocation_json=None
+            if place is None
+            else {"places": ["Main Street 1", place, "Germany"]},
         )
-        album = get_or_create_album_date(date=day, owner=self.user)
-        album.photos.add(photo)
-        if place is not None:
-            album.location = {"places": [place]}
-            album.save()
 
     def test_none_a_day_and_a_month(self) -> None:
         empty = self.assert_declared(self.path, f"{self.path}?date=2026-08-24")

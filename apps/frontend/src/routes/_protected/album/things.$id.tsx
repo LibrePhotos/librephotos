@@ -1,6 +1,6 @@
 import { IconTags as Tags } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumQuery } from "../../../api_client/albums/hooks";
 import { albumNotFoundState } from "../../../components/album/albumNotFound";
@@ -8,6 +8,7 @@ import { validateMediaSearch } from "../../../components/photolist/mediaTypeFilt
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import { useThingLabel } from "../../../hooks/useThingLabel";
+import { formatPhotoDaySpan } from "../../../util/dateUtils";
 
 export const Route = createFileRoute("/_protected/album/things/$id")({
   component: AlbumThingGallery,
@@ -26,13 +27,19 @@ function AlbumThingGallery() {
   } = useFetchThingsAlbumQuery(albumID || "", mediaType);
   // A failed background refetch also sets isError, with the album still on screen
   const notFound = isError && !groupedPhotos;
+  const groups = groupedPhotos?.grouped_photos;
+  const collection = useMemo(
+    () => ({ dateSpan: formatPhotoDaySpan((groups ?? []).map(group => group.date)) }),
+    [groups]
+  );
 
   return (
     <PhotoListView
       title={groupedPhotos ? thingLabel(groupedPhotos.title) : notFound ? t("things") : t("loading")}
+      // The days its photos span, then their count
+      collection={collection}
       loading={fetchingAlbumsThing}
       emptyStateConfig={notFound ? albumNotFoundState(t, <Tags size={40} />, "/album/things") : undefined}
-      icon={Tags}
       photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}
       idx2hash={groupedPhotos ? groupedPhotos.grouped_photos.flatMap(el => el.items) : []}
       // No photo filter for an album that is not there

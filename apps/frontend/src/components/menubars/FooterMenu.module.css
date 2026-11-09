@@ -1,0 +1,67 @@
+/* The phone's bottom navigation: Material 3 style tabs, icon over label, the current one marked
+   by a tinted pill behind its icon. */
+.bar {
+  height: 100%;
+  padding: 0 var(--mantine-spacing-xs);
+}
+
+.tab {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  text-decoration: none;
+
+  &[data-active="true"] {
+    color: var(--mantine-color-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+    border-radius: var(--mantine-radius-md);
+  }
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 30px;
+  border-radius: 999px;
+  transition: background-color 150ms ease;
+}
+
+.tab[data-active="true"] .pill {
+  color: var(--mantine-primary-color-light-color);
+  background-color: var(--mantine-primary-color-light);
+}
+
+.label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tab[data-active="true"] .label {
+  font-weight: 600;
+}
+
+/* The account menu on a phone: a wide, rounded sheet above the tab bar with finger-sized rows. */
+.sheet {
+  border-radius: var(--mantine-radius-lg);
+  padding: 6px;
+}
+
+.sheetItem {
+  min-height: 44px;
+  font-size: var(--mantine-font-size-md);
+}

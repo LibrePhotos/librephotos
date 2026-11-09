@@ -1,5 +1,5 @@
 /**
- * #2223: the trash icon next to a face in the lightbox deleted it on one click,
+ * #2223: the delete action of a face in the lightbox deleted it on one click,
  * although the faces page asks first and no UI can restore a deleted face.
  */
 import type { UseNavigateResult } from "@tanstack/react-router";
@@ -8,6 +8,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { click, dialogButton, openDialog, renderInMantine, setUpMantineDom } from "../modals/confirmModal.test-utils";
+import { faceMenuItem } from "./faceMenu.test-utils";
 import { PersonDetail } from "./PersonDetailComponent";
 
 /** The part of the delete mutation's `mutate` the row uses. */
@@ -47,7 +48,7 @@ async function renderRowAndClickTrash() {
       notThisPerson={() => {}}
     />
   );
-  await click(defined(container.querySelector<HTMLButtonElement>('button[aria-label="Delete face"]')));
+  await click(await faceMenuItem(container, "Delete face"));
 }
 
 /** The server answers the delete request with success. */

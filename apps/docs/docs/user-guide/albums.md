@@ -95,11 +95,13 @@ Automatically generated albums based on detected objects and scenes in your phot
 
 <Since version="1.5.0" /> To find the things in your photos again, open **Account menu > Library** and, under the **Things** heading, click the arrow next to **Find** and choose **Find things again for all photos**. It asks first, because on a large library it runs for hours. Every photo is labelled again with the current list of things, and the Things albums follow; your own tags, keywords and captions stay as they are. **Find** alone covers only the photos that have no things yet, which a scan also does by itself. Each user runs it for their own photos. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
 
+<Since version="1.6.0" /> A photo gets fewer things, and far fewer wrong ones: up to five, each only when the model is sure enough for its kind of thing. People and kinds of picture (screenshot, chat, meme, chart, drawing) count at a few percent, while activities, sports and occasions need near certainty, because the model mostly guesses those. Up to 1.5.x a photo got up to ten things from a longer list, and most of them were wrong or said little, such as "teenager", "meditating", "bachelor party" or "receipt" on a chat screenshot. Photos keep their old things until you run **Find things again for all photos**.
+
 <Since version="1.5.0" /> Things show in the language you picked under **Settings > Profile > Language**, in the Things albums, the photo's info panel and the statistics word cloud, as far as that language has been translated; a thing without a translation shows in English. Hover over a translated thing in the info panel or the word cloud to see its English word. Search still finds things by their English word only: searching *Strand* finds nothing, *beach* does. Clicking a thing searches for its English word for you. Your own words (below) and hashtag albums show as you wrote them.
 
 #### Teaching LibrePhotos new things
 
-<Since version="1.5.0" /> LibrePhotos finds things by comparing each photo with a list of about 940 words that ships with it (beach, dog, birthday cake, ...). It needs no training to learn a new one: adding the word to the list is enough. An admin can add their own words, such as "tortoise", "sourdough" or "climbing wall":
+<Since version="1.5.0" /> LibrePhotos finds things by comparing each photo with a list of about 500 words that ships with it (beach, dog, birthday cake, screenshot, ...). It needs no training to learn a new one: adding the word to the list is enough. An admin can add their own words, such as "tortoise", "sourdough" or "climbing wall":
 
 1. Create a text file named `custom_tags.txt` in the OpenCLIP model folder: `protected_media/data_models/openclip_vitb32/` in your data volume (`/protected_media/data_models/openclip_vitb32/custom_tags.txt` inside the Docker containers). To keep it somewhere else, point `OPENCLIP_CUSTOM_TAGS` at it (see [Environment variables](../installation/environment-variables.md#your-own-words-for-things)).
 2. Write one word or short phrase per line. Empty lines and lines starting with `#` are skipped, and so is a word the list already has (in any capitalisation).
@@ -109,6 +111,7 @@ Things to know:
 
 - Only photos labelled from then on get your words. To label the photos you already have with them, run **Find things again for all photos** (see above).
 - Every photo gets the words that fit it best out of the whole list. A specific word ("tortoise") works well; a very generic one ("thing", "photo", "outdoors") competes with the built-in words and can push them out of photos where they fit better.
+- <Since version="1.6.0" /> A photo gets at most two of your words, and only those the model is fairly sure of. A photo gets at most five things in all, and fewer when the model is unsure, so a word that never shows up may just be hard to see: describe it instead. Write `word = description`, for example `sourdough = a loaf of sourdough bread with a dark crust`. The album is still called by the word before `=`. Several descriptions separated by `|` are averaged: `tortoise = a tortoise | a tortoise shell on grass`. Up to 1.5.x, every line was a plain word, and a photo got up to ten things, many of them wrong.
 - The file stays when you update LibrePhotos, as it lives in your data volume next to the downloaded model.
 
 ---

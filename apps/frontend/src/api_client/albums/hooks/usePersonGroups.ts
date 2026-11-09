@@ -52,6 +52,7 @@ export const useDeletePersonGroupMutation = (options: MutationErrorOptions = {})
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: albumKeys.peopleAlbums() }),
         queryClient.invalidateQueries({ queryKey: faceKeys.incomplete() }),
+        queryClient.invalidateQueries({ queryKey: faceKeys.reviewCounts() }),
       ]);
     },
   });
@@ -70,6 +71,7 @@ export const useSetPersonGroupsMutation = (options: MutationErrorOptions = {}) =
       Promise.all([
         queryClient.invalidateQueries({ queryKey: albumKeys.peopleAlbums() }),
         queryClient.invalidateQueries({ queryKey: faceKeys.incomplete() }),
+        queryClient.invalidateQueries({ queryKey: faceKeys.reviewCounts() }),
       ]),
   });
 };

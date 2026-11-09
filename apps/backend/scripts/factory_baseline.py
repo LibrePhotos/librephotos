@@ -38,7 +38,6 @@ FACTORIES = {
     "Face": "create_test_face",
     "Person": "create_test_person",
     "AlbumUser": "create_test_album_user",
-    "AlbumDate": "create_test_album_date",
     "Tag": "create_test_tag",
     "PhotoStack": "create_test_stack",
     "Duplicate": "create_test_duplicate",

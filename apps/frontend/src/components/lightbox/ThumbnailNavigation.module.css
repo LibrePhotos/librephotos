@@ -1,89 +1,72 @@
-/* The previous, current and next thumbnails at the bottom of the lightbox. They sit on the photo, so
-   the scrim, borders and shadows are the same in both colour schemes (src/theme/colors.css). */
+/* The previous, current and next thumbnails at the bottom of the lightbox, over the photo on a dark
+   blurred pill. Hidden until the pointer moves near the stage's bottom or a key steps (data-revealed, set by
+   ThumbnailNavigation), and kept while pointed at or focused, so a still photo has the whole stage.
+   The stage is black in both colour schemes, and so is the pill. */
 .strip {
-  height: 80px;
-  overflow: visible;
   position: absolute;
-  bottom: 16px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
+  z-index: 5;
   display: flex;
   justify-content: center;
   align-items: center;
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
-  background: var(--app-scrim-black-20);
-  padding: 8px 0;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px var(--app-scrim-black-15);
-  margin: 0 auto;
+  padding: 6px;
   width: fit-content;
-  min-width: 240px;
-  max-width: 80%;
-  transition:
-    transform 0.25s ease-in-out,
-    max-width 0.25s ease-in-out;
+  border-radius: 12px;
+  background-color: var(--app-scrim-black-60);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
 }
 
-/* The previous and next photos: dimmed and shrunk towards the current one, a little less on hover. */
+.strip[data-revealed],
+.strip:hover,
+.strip:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The previous and next photos: dimmed until pointed at. */
 .neighbour {
   cursor: pointer;
-  opacity: 0.85;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 5px var(--app-scrim-black-30);
-  width: 64px;
-  height: 64px;
+  opacity: 0.6;
+  transition: opacity 150ms ease;
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
 }
 
-.neighbour:hover {
+.neighbour:hover,
+.neighbour:focus-visible {
   opacity: 1;
-  box-shadow: 0 4px 8px var(--app-scrim-black-40);
 }
 
-.previous {
-  transform: scale(0.85) translateX(10px);
-}
-
-.previous:hover {
-  transform: scale(0.9) translateX(10px);
-}
-
-.next {
-  transform: scale(0.85) translateX(-10px);
-}
-
-.next:hover {
-  transform: scale(0.9) translateX(-10px);
-}
-
+/* The photo shown: a thin white outline. */
 .current {
-  margin-left: 8px;
-  margin-right: 8px;
-  box-shadow:
-    0 0 12px var(--app-scrim-white-30),
-    0 4px 8px var(--app-scrim-black-50);
-  background-color: var(--app-scrim-black-30);
-  z-index: 1;
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
+  margin: 0 4px;
+  border-radius: 6px;
+  outline: 2px solid var(--mantine-color-white);
+  outline-offset: 1px;
 }
 
 /* The tiles are Mantine Images: nesting under their box outranks Image's own border radius whatever
    order the stylesheets load in. */
-.neighbour .tile {
-  border: 2px solid var(--app-scrim-white-60);
-  border-radius: 8px;
+.neighbour .tile,
+.current .tile {
+  border-radius: 6px;
   overflow: hidden;
-  background-color: var(--app-scrim-black-30);
   width: 100%;
   height: 100%;
 }
 
-.current .tile {
-  border: 3px solid var(--mantine-color-white);
-  border-radius: 8px;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
+/* On a touch screen or a phone a swipe steps through the photos; the strip would only cover the
+   photo, and the phone's bottom bar is there. */
+@media (hover: none), (max-width: 599px) {
+  .strip {
+    display: none;
+  }
 }

@@ -6,6 +6,9 @@ import styles from "./styles.module.css";
 type Group = {
   groupTranslateY: number;
   height: number;
+  // Set for a short day that shares its line with other days.
+  groupTranslateX?: number;
+  width?: number;
   location?: string | null;
   date: string | null;
   note?: string | null;
@@ -25,6 +28,10 @@ function Note({ note, headerSize }: Readonly<{ note?: string | null; headerSize:
   return <span className={`${styles.note} pig-header_note ${styles[headerSize]}`}>{note}</span>;
 }
 
+// Below this width a day sharing its line has room for its date only: a place cut to a letter or two
+// says nothing, so it moves into the date's tooltip.
+const MIN_WIDTH_WITH_PLACE = 250;
+
 export default function GroupHeader({
   settings,
   group,
@@ -32,11 +39,16 @@ export default function GroupHeader({
   textAlignment = "right",
   headerSize = "large",
 }: GroupHeaderProps) {
+  const showsPlace = group.width === undefined || group.width >= MIN_WIDTH_WITH_PLACE;
+  const location = showsPlace ? group.location : null;
+  const dateTitle = showsPlace ? undefined : (group.location ?? undefined);
   return (
     <header
       className={styles.headerPositioner}
       style={{
         top: `${group.groupTranslateY}px`,
+        left: `${group.groupTranslateX ?? 0}px`,
+        width: group.width === undefined ? "100%" : `${group.width}px`,
         height: `${group.height - settings.gridGap}px`,
       }}
     >
@@ -51,22 +63,26 @@ export default function GroupHeader({
           <>
             <span
               className={`${styles.location} pig-header_location ${styles[headerSize]}`}
-              title={group.location ?? undefined}
+              title={location ?? undefined}
             >
-              {group.location}
+              {location}
             </span>
             <Note note={group.note} headerSize={headerSize} />
-            <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
+            <span className={`${styles.date} pig-header_date ${styles[headerSize]}`} title={dateTitle}>
+              {group.date}
+            </span>
           </>
         ) : (
           <>
-            <span className={`${styles.date} pig-header_date ${styles[headerSize]}`}>{group.date}</span>
+            <span className={`${styles.date} pig-header_date ${styles[headerSize]}`} title={dateTitle}>
+              {group.date}
+            </span>
             <Note note={group.note} headerSize={headerSize} />
             <span
               className={`${styles.location} pig-header_location ${styles[headerSize]}`}
-              title={group.location ?? undefined}
+              title={location ?? undefined}
             >
-              {group.location}
+              {location}
             </span>
           </>
         )}

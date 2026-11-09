@@ -11,12 +11,12 @@ from rest_framework.test import APIClient
 
 from api.models.photo_search import PhotoSearch
 from api.tests.utils import (
-    create_test_album_date,
     create_test_face,
     create_test_person,
     create_test_photo,
     create_test_user,
 )
+from api.timeline.days import day_id
 
 
 class DeleteLabeledFacesTest(TestCase):
@@ -27,8 +27,7 @@ class DeleteLabeledFacesTest(TestCase):
         now = timezone.now()
         self.kept = create_test_photo(owner=self.user, exif_timestamp=now)
         self.wrong = create_test_photo(owner=self.user, exif_timestamp=now)
-        self.album = create_test_album_date(date=now.date(), owner=self.user)
-        self.album.photos.add(self.kept, self.wrong)
+        self.day = day_id(now.date())
         self.person = create_test_person(cluster_owner=self.user)
         self.kept_face = create_test_face(photo=self.kept, person=self.person)
         self.wrong_face = create_test_face(photo=self.wrong, person=self.person)
@@ -53,10 +52,10 @@ class DeleteLabeledFacesTest(TestCase):
     def test_the_person_album_drops_the_photo(self):
         self._delete_wrong_face()
         params = {"person": self.person.id}
-        days = self.client.get("/api/albums/date/list/", params).json()["results"]
+        days = self.client.get("/api/days/", params).json()["results"]
         self.assertEqual([day["numberOfItems"] for day in days], [1])
-        response = self.client.get(f"/api/albums/date/{self.album.id}/", params)
-        items = response.json()["results"]["items"]
+        response = self.client.get(f"/api/days/{self.day}/photos/", params)
+        items = response.json()["items"]
         self.assertEqual([item["image_hash"] for item in items], [self.kept.image_hash])
 
     def test_a_new_cover_comes_from_the_persons_own_photos(self):

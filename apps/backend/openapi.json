@@ -475,7 +475,7 @@
     "/api/albums/date/{id}/": {
       "get": {
         "operationId": "api_albums_date_retrieve",
-        "description": "Returns the actual images, for a given day in chunks of 100 images. ``results`` is the day with one page of its photos in ``items`` and their total in ``numberOfItems``; the page fields of every paginated list sit next to it.",
+        "description": "A page of a day, in the shape of the date albums #2920 removed, for released clients. Use /api/days/<id>/photos/.",
         "parameters": [
           {
             "in": "query",
@@ -539,7 +539,7 @@
             "schema": {
               "type": "integer"
             },
-            "description": "The day album's id (from /api/albums/date/list/)",
+            "description": "The day's id from /api/days/ (YYYYMMDD, 1 for the undated group)",
             "required": true
           },
           {
@@ -574,7 +574,7 @@
               "type": "string",
               "format": "date-time"
             },
-            "description": "A date or date-time. For the owner it replaces every other filter; with public it narrows the public photos."
+            "description": "Only photos changed since then. For the owner it replaces every other filter, so photos trashed or hidden since then are listed"
           },
           {
             "in": "query",
@@ -583,7 +583,7 @@
               "type": "boolean",
               "default": false
             },
-            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites, a search)"
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites)"
           },
           {
             "in": "query",
@@ -614,22 +614,6 @@
               "minLength": 1
             },
             "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Page number (default 1)."
-          },
-          {
-            "in": "query",
-            "name": "page_size",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Rows per page (default 100, at most 1000)."
           },
           {
             "in": "query",
@@ -694,12 +678,13 @@
             "basicAuth": []
           }
         ],
+        "deprecated": true,
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AlbumDate"
+                  "$ref": "#/components/schemas/LegacyDateAlbumPage"
                 }
               }
             },
@@ -710,8 +695,8 @@
     },
     "/api/albums/date/list/": {
       "get": {
-        "operationId": "api_albums_date_list_list",
-        "description": "Gives you a list of days with the number of elements. This is not paginated and can be large.",
+        "operationId": "api_albums_date_list_retrieve",
+        "description": "The days, in the shape of the date albums #2920 removed, for released clients. Use /api/days/.",
         "parameters": [
           {
             "in": "query",
@@ -801,7 +786,7 @@
               "type": "string",
               "format": "date-time"
             },
-            "description": "A date or date-time. For the owner it replaces every other filter; with public it narrows the public photos."
+            "description": "Only photos changed since then. For the owner it replaces every other filter, so photos trashed or hidden since then are listed"
           },
           {
             "in": "query",
@@ -810,7 +795,7 @@
               "type": "boolean",
               "default": false
             },
-            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites, a search)"
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites)"
           },
           {
             "in": "query",
@@ -869,15 +854,6 @@
           },
           {
             "in": "query",
-            "name": "search",
-            "schema": {
-              "type": "string",
-              "default": ""
-            },
-            "description": "Caption, location or person name"
-          },
-          {
-            "in": "query",
             "name": "show_all_stack_photos",
             "schema": {
               "type": "boolean",
@@ -914,15 +890,13 @@
             "basicAuth": []
           }
         ],
+        "deprecated": true,
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/IncompleteAlbumDate"
-                  }
+                  "$ref": "#/components/schemas/LegacyDateAlbumList"
                 }
               }
             },
@@ -2081,6 +2055,36 @@
             "description": ""
           }
         }
+      },
+      "delete": {
+        "operationId": "api_albums_user_edit_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this album user.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
       }
     },
     "/api/albums/user/list/": {
@@ -2843,6 +2847,661 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DateRulesTestResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/days/": {
+      "get": {
+        "operationId": "api_days_retrieve",
+        "description": "The days of the view, newest (or oldest) first, then the undated group.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "apply_default",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
+          },
+          {
+            "in": "query",
+            "name": "favorite",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only favorites (false turns a saved favorites default off)"
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "Only photos with a file under this folder"
+          },
+          {
+            "in": "query",
+            "name": "hidden",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Hidden photos instead of the visible ones"
+          },
+          {
+            "in": "query",
+            "name": "hide_documents",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hide_screenshots",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "in_trashcan",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Photos in the trash (not yet removed)"
+          },
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
+          {
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites)"
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
+          },
+          {
+            "in": "query",
+            "name": "media",
+            "schema": {
+              "type": "string"
+            },
+            "description": "all, photos or videos"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Only photos showing this person"
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: one user's public photos (with username)"
+          },
+          {
+            "in": "query",
+            "name": "show_all_stack_photos",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of a stack that are not its primary"
+          },
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/days/{id}/layout/": {
+      "get": {
+        "operationId": "api_days_layout_retrieve",
+        "description": "Every photo's aspect ratio in the day's order, and ``page_after``:\nthe ``after`` of each page of ``limit`` photos.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "apply_default",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
+          },
+          {
+            "in": "query",
+            "name": "favorite",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only favorites (false turns a saved favorites default off)"
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "Only photos with a file under this folder"
+          },
+          {
+            "in": "query",
+            "name": "hidden",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Hidden photos instead of the visible ones"
+          },
+          {
+            "in": "query",
+            "name": "hide_documents",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hide_screenshots",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The day's id from /api/days/ (YYYYMMDD, 1 for the undated group)",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "in_trashcan",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Photos in the trash (not yet removed)"
+          },
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
+          {
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites)"
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100
+            },
+            "description": "The page size the cursors in page_after are for"
+          },
+          {
+            "in": "query",
+            "name": "media",
+            "schema": {
+              "type": "string"
+            },
+            "description": "all, photos or videos"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Only photos showing this person"
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: one user's public photos (with username)"
+          },
+          {
+            "in": "query",
+            "name": "show_all_stack_photos",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of a stack that are not its primary"
+          },
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayLayout"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/days/{id}/photos/": {
+      "get": {
+        "operationId": "api_days_photos_retrieve",
+        "description": "A page of the day: ``limit`` photos after ``after``, and ``next``.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "description": "The id of the last photo of the previous page (a page's `next`, or a layout's `page_after`); absent for the first page"
+          },
+          {
+            "in": "query",
+            "name": "apply_default",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Apply the user's default_timeline_filter; the other filter params override it key by key."
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only archived photos (false: no archived photos, the timeline); absent: archived or not"
+          },
+          {
+            "in": "query",
+            "name": "favorite",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only favorites (false turns a saved favorites default off)"
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "Only photos with a file under this folder"
+          },
+          {
+            "in": "query",
+            "name": "hidden",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Hidden photos instead of the visible ones"
+          },
+          {
+            "in": "query",
+            "name": "hide_documents",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hide_screenshots",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The day's id from /api/days/ (YYYYMMDD, 1 for the undated group)",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "in_trashcan",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Photos in the trash (not yet removed)"
+          },
+          {
+            "in": "query",
+            "name": "is_document",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only documents (false: no documents)"
+          },
+          {
+            "in": "query",
+            "name": "is_screenshot",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only screenshots (false: no screenshots)"
+          },
+          {
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of the libraries you show in your timeline; ignored by views of your own library only (hidden, trash, a person, a folder, favourites)"
+          },
+          {
+            "in": "query",
+            "name": "library",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The id of a user who shares their library with you: their photos instead of yours, read-only (404 without such a share)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "media",
+            "schema": {
+              "type": "string"
+            },
+            "description": "all, photos or videos"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest day first, by date taken, and a day's photos in the same order; the undated day comes last either way\n\n* `newest` - Newest\n* `oldest` - Oldest"
+          },
+          {
+            "in": "query",
+            "name": "person",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Only photos showing this person"
+          },
+          {
+            "in": "query",
+            "name": "photo",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only photos (false: no photos)"
+          },
+          {
+            "in": "query",
+            "name": "public",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "The public view: one user's public photos (with username)"
+          },
+          {
+            "in": "query",
+            "name": "show_all_stack_photos",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Also the photos of a stack that are not its primary"
+          },
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string",
+              "default": ""
+            },
+            "description": "With public (required there): whose public photos. The public view is per user and needs their public profile on; everyone's public photos together are the public gallery (/api/gallery/)"
+          },
+          {
+            "in": "query",
+            "name": "video",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only videos (false: no videos)"
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayPhotos"
                 }
               }
             },
@@ -3679,6 +4338,247 @@
         }
       }
     },
+    "/api/error-reports/": {
+      "get": {
+        "operationId": "api_error_reports_list",
+        "description": "The saved reports, newest first (at most 30), and Delete all.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ErrorReport"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "api_error_reports_destroy_all",
+        "description": "The saved reports, newest first (at most 30), and Delete all.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/error-reports/{report_id}/": {
+      "delete": {
+        "operationId": "api_error_reports_destroy",
+        "description": "Delete one saved report.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/error-reports/{report_id}/download/": {
+      "get": {
+        "operationId": "api_error_reports_download_retrieve",
+        "description": "The report's event exactly as it would be sent, as a JSON file.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            },
+            "description": "The scrubbed event, as an attachment"
+          }
+        }
+      }
+    },
+    "/api/error-reports/{report_id}/send/": {
+      "post": {
+        "operationId": "api_error_reports_send_create",
+        "description": "Send once: one report to the chosen server, else the maintainers.\n\n502 ``upstream_error`` when that server refuses it or cannot be reached;\n503 ``no_error_reporting_server`` when there is nowhere to send to.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorReport"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/error-reports/browser/": {
+      "post": {
+        "operationId": "api_error_reports_browser_create",
+        "description": "The web app's errors, scrubbed and saved like the server's own.\n\nAny signed-in user's browser forwards here, so the admins also see the\nerrors other users run into. Rate limited per user, and an envelope over\n200,000 characters is a 400.",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserErrorReportRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserErrorReportRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserErrorReportRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserErrorReport"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/error-reports/send/": {
+      "post": {
+        "operationId": "api_error_reports_send_all",
+        "description": "Send all: every report not sent yet, to the same place as Send once.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorReportSendAll"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/exists/{id}/": {
       "get": {
         "operationId": "api_exists_retrieve",
@@ -3892,6 +4792,71 @@
                   "items": {
                     "$ref": "#/components/schemas/IncompletePersonFaceList"
                   }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/faces/review-count/": {
+      "get": {
+        "operationId": "api_faces_review_count_retrieve",
+        "description": "How many suggested faces wait for review: the count the People page and\na pinned Faces row show. One COUNT, without the incomplete list's\nsimilarity ordering, so it is cheap to ask on every People visit.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "analysis_method",
+            "schema": {
+              "enum": [
+                "clustering",
+                "classification"
+              ],
+              "type": "string",
+              "default": "clustering",
+              "minLength": 1
+            },
+            "description": "* `clustering` - clustering\n* `classification` - classification"
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only the faces suggested for the people in this group of yours"
+          },
+          {
+            "in": "query",
+            "name": "min_confidence",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0,
+              "default": 0.7
+            }
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FacesReviewCountResponse"
                 }
               }
             },
@@ -4119,7 +5084,7 @@
     },
     "/api/gallery/days/": {
       "get": {
-        "operationId": "api_gallery_days_list",
+        "operationId": "api_gallery_days_retrieve",
         "description": "The gallery's timeline: its days, newest first, then one group of the\nphotos whose owners keep dates to themselves (or that have none).",
         "parameters": [
           {
@@ -4167,10 +5132,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GalleryDayList"
-                  }
+                  "$ref": "#/components/schemas/GalleryDayList"
                 }
               }
             },
@@ -15373,47 +16335,6 @@
           "text"
         ]
       },
-      "AlbumDate": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "readOnly": true
-          },
-          "date": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "location": {
-            "type": "string",
-            "readOnly": true
-          },
-          "incomplete": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "numberOfItems": {
-            "type": "integer",
-            "readOnly": true
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PhotoSummary"
-            },
-            "readOnly": true
-          }
-        },
-        "required": [
-          "date",
-          "id",
-          "incomplete",
-          "items",
-          "location",
-          "numberOfItems"
-        ]
-      },
       "AlbumLikes": {
         "type": "object",
         "description": "The hearts on a photo in one album.",
@@ -16318,6 +17239,33 @@
           "path"
         ]
       },
+      "BrowserErrorReport": {
+        "type": "object",
+        "description": "How many of the envelope's errors were saved.",
+        "properties": {
+          "saved": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "saved"
+        ]
+      },
+      "BrowserErrorReportRequestRequest": {
+        "type": "object",
+        "description": "A Sentry envelope from the web app's SDK, as text.",
+        "properties": {
+          "envelope": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The envelope the browser SDK built; only its error events are kept.",
+            "maxLength": 200000
+          }
+        },
+        "required": [
+          "envelope"
+        ]
+      },
       "BulkMetadataUpdateResponse": {
         "type": "object",
         "description": "``PATCH /api/photos/metadata/bulk/``.",
@@ -16361,6 +17309,13 @@
               "type": "string"
             },
             "description": "The photos that already had the value; for image_hashes, not for select_all or sharing"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Always empty; kept for released clients that require it (it held the changed photos before 1.2.0)"
           }
         },
         "required": [
@@ -16993,6 +17948,113 @@
         "required": [
           "exif_timestamp",
           "image_hash"
+        ]
+      },
+      "Day": {
+        "type": "object",
+        "description": "A day of the list: ``id`` names it in ``/api/days/<id>/...``.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "YYYYMMDD of the day, or 1 for the photos without a date"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "The day; null for the undated group"
+          },
+          "location": {
+            "type": "string",
+            "description": "The town of its first located photo"
+          },
+          "numberOfItems": {
+            "type": "integer"
+          },
+          "aspect_ratio_sum": {
+            "type": "number",
+            "format": "double",
+            "description": "The sum of its photos' aspect ratios (1 for a photo without a thumbnail): a client lays the day out at its width before its photos load"
+          }
+        },
+        "required": [
+          "aspect_ratio_sum",
+          "date",
+          "id",
+          "location",
+          "numberOfItems"
+        ]
+      },
+      "DayLayout": {
+        "type": "object",
+        "description": "What a client lays a day out with before its photos load.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "numberOfItems": {
+            "type": "integer"
+          },
+          "aspectRatios": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            },
+            "description": "Every photo's aspect ratio, in the day's order"
+          },
+          "page_after": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "description": "``after`` for each page of ``limit`` photos: null for the first, then the id of the photo before the page"
+          }
+        },
+        "required": [
+          "aspectRatios",
+          "id",
+          "numberOfItems",
+          "page_after"
+        ]
+      },
+      "DayList": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Day"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "DayPhotos": {
+        "type": "object",
+        "description": "A page of a day's photos.",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            }
+          },
+          "next": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "``after`` for the next page; null on the last one"
+          }
+        },
+        "required": [
+          "items",
+          "next"
         ]
       },
       "DefaultTimezoneEnum": {
@@ -18378,6 +19440,94 @@
           "status"
         ]
       },
+      "ErrorReport": {
+        "type": "object",
+        "description": "One saved report as the list shows it; Download has the whole event.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "source": {
+            "type": "string",
+            "readOnly": true,
+            "description": "server (the backend) or browser (the web app)."
+          },
+          "title": {
+            "type": "string",
+            "readOnly": true,
+            "description": "The error and its message, scrubbed."
+          },
+          "level": {
+            "type": "string",
+            "readOnly": true
+          },
+          "release": {
+            "type": "string",
+            "readOnly": true
+          },
+          "occurrences": {
+            "type": "integer",
+            "readOnly": true,
+            "description": "How often it happened; repeats within a day count here."
+          },
+          "first_seen": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true,
+            "nullable": true,
+            "description": "When it was sent; null while it is only saved."
+          }
+        },
+        "required": [
+          "first_seen",
+          "id",
+          "last_seen",
+          "level",
+          "occurrences",
+          "release",
+          "sent_at",
+          "source",
+          "title"
+        ]
+      },
+      "ErrorReportSendAll": {
+        "type": "object",
+        "description": "What Send all did.",
+        "properties": {
+          "sent": {
+            "type": "integer",
+            "description": "Reports delivered."
+          },
+          "failed": {
+            "type": "integer",
+            "description": "Reports the server did not take."
+          }
+        },
+        "required": [
+          "failed",
+          "sent"
+        ]
+      },
+      "ErrorReportingEnum": {
+        "enum": [
+          "off",
+          "own_server",
+          "maintainers"
+        ],
+        "type": "string",
+        "description": "* `off` - off\n* `own_server` - own_server\n* `maintainers` - maintainers"
+      },
       "EventTitleParts": {
         "type": "object",
         "description": "``AlbumAuto.title_parts``: what the title is made of, for clients that word it (#2235).\n\nOutput only: the fields are read-only, so the schema has no request twin.",
@@ -18651,6 +19801,18 @@
           "photo",
           "timestamp",
           "video_time"
+        ]
+      },
+      "FacesReviewCountResponse": {
+        "type": "object",
+        "properties": {
+          "suggested": {
+            "type": "integer",
+            "description": "Faces with no person yet that are suggested for one of your people at least min_confidence sure: what the Suggested tab lists"
+          }
+        },
+        "required": [
+          "suggested"
         ]
       },
       "FindThingsRequestRequest": {
@@ -19235,45 +20397,6 @@
           "image_tag"
         ]
       },
-      "IncompleteAlbumDate": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "readOnly": true
-          },
-          "date": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "location": {
-            "type": "string",
-            "readOnly": true
-          },
-          "incomplete": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "numberOfItems": {
-            "type": "integer",
-            "readOnly": true
-          },
-          "items": {
-            "type": "array",
-            "items": {},
-            "readOnly": true
-          }
-        },
-        "required": [
-          "date",
-          "id",
-          "incomplete",
-          "items",
-          "location",
-          "numberOfItems"
-        ]
-      },
       "IncompletePersonFaceList": {
         "type": "object",
         "properties": {
@@ -19466,6 +20589,101 @@
         },
         "required": [
           "album_id"
+        ]
+      },
+      "LegacyDateAlbum": {
+        "type": "object",
+        "description": "A day in the shape of the date albums #2920 removed.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "YYYYMMDD of the day, or 1 for the photos without a date"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "The day; null for the undated group"
+          },
+          "location": {
+            "type": "string",
+            "description": "The town of its first located photo"
+          },
+          "numberOfItems": {
+            "type": "integer"
+          },
+          "incomplete": {
+            "type": "boolean",
+            "description": "True in the list, which carries no photos; false on a page"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoSummary"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "id",
+          "incomplete",
+          "items",
+          "location",
+          "numberOfItems"
+        ]
+      },
+      "LegacyDateAlbumList": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegacyDateAlbum"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "LegacyDateAlbumPage": {
+        "type": "object",
+        "description": "A page of a day: the day as ``results``, one page in its ``items``.",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "next": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "previous": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "results": {
+            "$ref": "#/components/schemas/LegacyDateAlbum"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "num_pages": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "next",
+          "num_pages",
+          "page",
+          "page_size",
+          "previous",
+          "results"
         ]
       },
       "LibraryFolder": {
@@ -23458,9 +24676,14 @@
             ],
             "readOnly": true
           },
+          "day_id": {
+            "type": "integer",
+            "description": "The id of the photo's day in ``/api/days/`` (YYYYMMDD, 1 undated).",
+            "readOnly": true
+          },
           "album_date_id": {
             "type": "integer",
-            "nullable": true,
+            "description": "``day_id`` under the name released clients read (UhuruPhotos): the\nid of the day in the legacy ``/api/albums/date/`` routes.",
             "readOnly": true
           },
           "processing": {
@@ -23470,6 +24693,7 @@
         },
         "required": [
           "album_date_id",
+          "day_id",
           "photo_summary",
           "processing"
         ]
@@ -28187,6 +29411,22 @@
             ],
             "nullable": true
           },
+          "error_reporting": {
+            "type": "string",
+            "description": "Where new error reports go: off, own_server or maintainers. Staff only."
+          },
+          "error_reporting_own_server": {
+            "type": "boolean",
+            "description": "Whether SENTRY_DSN names the admin's own server. Staff only."
+          },
+          "error_reporting_asked": {
+            "type": "boolean",
+            "description": "Whether an admin answered where error reports go, in the first-time setup or the one-time question, or chose Not now. Staff only."
+          },
+          "error_reporting_maintainers": {
+            "type": "boolean",
+            "description": "Whether the maintainers' server is set (ERROR_REPORTING_MAINTAINERS_DSN). Staff only."
+          },
           "whats_new_enabled": {
             "type": "boolean",
             "description": "Whether users see a What's new card once after an update (each user can also turn it off). Sent to everyone."
@@ -28378,6 +29618,18 @@
           "public_gallery_indexable": {
             "type": "boolean",
             "description": "Let search engines index the public gallery."
+          },
+          "error_reporting": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ErrorReportingEnum"
+              }
+            ],
+            "description": "Where new error reports go: off (they stay on this server), own_server (SENTRY_DSN) or maintainers.\n\n* `off` - off\n* `own_server` - own_server\n* `maintainers` - maintainers"
+          },
+          "error_reporting_asked": {
+            "type": "boolean",
+            "description": "true: an admin answered the question where error reports go, or chose Not now; it is not asked again. false changes nothing (being asked cannot be undone). Choosing error_reporting sets it too."
           }
         }
       },

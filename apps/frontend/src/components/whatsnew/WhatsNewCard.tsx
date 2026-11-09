@@ -153,8 +153,10 @@ export function WhatsNewCard({ user, runningTag, onSeeWhatsNew }: WhatsNewCardPr
         <Highlights releases={decision.releases} />
         <UpgradeTasksLine isAdmin={isAdmin} />
         <Group gap="xs">
+          {/* The card's main action is tonal (filled is for a dialog's confirm); the link out is quiet */}
           <Button
             size="xs"
+            variant="light"
             color="grape"
             onClick={() => {
               onSeeWhatsNew(decision.releases.map(release => release.release));
@@ -166,7 +168,7 @@ export function WhatsNewCard({ user, runningTag, onSeeWhatsNew }: WhatsNewCardPr
           {newest ? (
             <Button
               size="xs"
-              variant="default"
+              variant="subtle"
               component="a"
               href={newest.url}
               target="_blank"

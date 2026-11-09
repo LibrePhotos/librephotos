@@ -116,7 +116,8 @@ describe("MediaDisplay video size", () => {
   it("fills the lightbox's box", async () => {
     const props = await renderVideo({ video_playback_type: null });
 
-    expect(props.height).toBe("min(82vh, calc(100vh - 160px))");
+    // The stage less the toolbar over its top and the strip over its bottom.
+    expect(props.height).toBe("calc(100dvh - 160px)");
     expect(props.maxHeight).toBeUndefined();
   });
 

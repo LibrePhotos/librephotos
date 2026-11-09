@@ -98,10 +98,10 @@ class TimelineFilter:
         """Positive ``Q`` objects for this filter on ``<prefix>`` photo fields.
 
         Pass them to the same ``.filter()`` call as the rest of the photo
-        conditions. With ``prefix="photos__"`` (a multi-valued join from
-        ``AlbumDate``) an ``exclude()`` or ``~Q`` would drop every day that
-        holds a single screenshot; ``Q(photos__is_screenshot=False)`` keeps
-        the day and its other photos.
+        conditions. With ``prefix="photos__"`` (a multi-valued join from an
+        album) an ``exclude()`` or ``~Q`` would drop every album that holds a
+        single screenshot; ``Q(photos__is_screenshot=False)`` keeps the album
+        and its other photos.
         """
         filters: list[Q] = []
         if self.media in ("photos", "none"):

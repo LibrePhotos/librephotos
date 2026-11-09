@@ -13,10 +13,8 @@ from unittest.mock import patch
 from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 
-from api.models.album_date import get_or_create_album_date
 from api.tests.utils import create_test_photo, create_test_user
 from api.views.memories import (
-    album_date_place,
     anniversary,
     day_windows,
     month_windows,
@@ -28,14 +26,16 @@ UTC = datetime.UTC
 
 
 def add_photo_on(user, day, **kwargs):
-    """A photo taken on ``day``, grouped under that day like a scan would."""
+    """A photo taken on ``day`` (at noon unless ``exif_timestamp`` says otherwise)."""
     kwargs.setdefault(
         "exif_timestamp",
         datetime.datetime(day.year, day.month, day.day, 12, tzinfo=UTC),
     )
-    photo = create_test_photo(owner=user, **kwargs)
-    get_or_create_album_date(date=day, owner=user).photos.add(photo)
-    return photo
+    return create_test_photo(owner=user, **kwargs)
+
+
+def geolocation(town):
+    return {"places": ["Main Street 1", town, "Italy"], "features": []}
 
 
 class MemoryHelperTest(SimpleTestCase):
@@ -85,13 +85,6 @@ class MemoryHelperTest(SimpleTestCase):
         # Oldest year last: 2024 is a leap year, so its February runs to the 29th.
         _, _, _, february = month_windows(datetime.date(2026, 2, 5), 2024)[-1]
         self.assertEqual(february, datetime.date(2024, 2, 29))
-
-    def test_album_date_place_reads_the_first_place(self):
-        self.assertEqual(album_date_place({"places": ["Rome", "Italy"]}), "Rome")
-
-    def test_album_date_place_degrades_to_no_place(self):
-        for location in (None, {}, {"places": []}, {"places": [{"name": "Rome"}]}, []):
-            self.assertEqual(album_date_place(location), "")
 
     def test_pick_cover_prefers_a_favourite_still(self):
         first = SimpleNamespace(video=False, rating=0)
@@ -312,14 +305,47 @@ class MemoriesViewTest(TestCase):
         self.assertEqual(self.hashes(results[0]), {on_the_day.image_hash})
 
     def test_a_place_is_reported_when_the_day_has_one(self):
-        add_photo_on(self.user, datetime.date(2025, 8, 24))
-        album_date = get_or_create_album_date(
-            date=datetime.date(2025, 8, 24), owner=self.user
+        add_photo_on(
+            self.user,
+            datetime.date(2025, 8, 24),
+            exif_timestamp=datetime.datetime(2025, 8, 24, 9, tzinfo=UTC),
+            geolocation_json=geolocation("Rome"),
         )
-        album_date.location = {"places": ["Rome, Italy"]}
-        album_date.save()
         (memory,) = self.memories()["results"]
-        self.assertEqual(memory["location"], "Rome, Italy")
+        self.assertEqual(memory["location"], "Rome")
+
+    def test_the_place_is_the_town_of_the_days_first_located_photo(self):
+        add_photo_on(
+            self.user,
+            datetime.date(2025, 8, 24),
+            exif_timestamp=datetime.datetime(2025, 8, 24, 7, tzinfo=UTC),
+        )
+        add_photo_on(
+            self.user,
+            datetime.date(2025, 8, 24),
+            exif_timestamp=datetime.datetime(2025, 8, 24, 18, tzinfo=UTC),
+            geolocation_json=geolocation("Milan"),
+        )
+        add_photo_on(
+            self.user,
+            datetime.date(2025, 8, 24),
+            exif_timestamp=datetime.datetime(2025, 8, 24, 9, tzinfo=UTC),
+            geolocation_json=geolocation("Rome"),
+        )
+        (memory,) = self.memories()["results"]
+        self.assertEqual(memory["location"], "Rome")
+
+    def test_a_hidden_photo_does_not_name_the_place(self):
+        add_photo_on(
+            self.user,
+            datetime.date(2025, 8, 24),
+            exif_timestamp=datetime.datetime(2025, 8, 24, 7, tzinfo=UTC),
+            geolocation_json=geolocation("Secretville"),
+            hidden=True,
+        )
+        add_photo_on(self.user, datetime.date(2025, 8, 24))
+        (memory,) = self.memories()["results"]
+        self.assertEqual(memory["location"], "")
 
     def test_days_without_a_place_report_none(self):
         add_photo_on(self.user, datetime.date(2025, 8, 24))

@@ -40,7 +40,7 @@ export function CommentItem({ comment, albumId, photoId }: Props) {
           <Menu position="bottom-end" withinPortal>
             <Menu.Target>
               <ActionIcon variant="subtle" color="gray" size="sm" aria-label={t("collab.commentActions")}>
-                <IconDotsVertical size={ICON_SIZE.menu} />
+                <IconDotsVertical size={ICON_SIZE.inline} />
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>

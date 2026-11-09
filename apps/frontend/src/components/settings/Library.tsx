@@ -1,7 +1,8 @@
 import type { User } from "@librephotos/api-client";
-import { Card, Container, Space, Stack, Title } from "@mantine/core";
+import { Anchor, Stack, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconBook as Book } from "@tabler/icons-react";
+import { IconChevronRight } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
@@ -21,13 +22,16 @@ import { CountStats } from "../CountStats";
 import { LibraryFoldersCard } from "../libraryfolders/LibraryFoldersCard";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 import { PageHeader } from "../PageHeader";
+import { SettingsPageFrame } from "../SettingsPageFrame";
 import { JobQueueBusyNotice } from "./JobQueueBusyNotice";
+import classes from "./Library.module.css";
 import { LibraryActions } from "./LibraryActions";
 import { MissingPhotosBadge } from "./MissingPhotosBadge";
 import { NextcloudSettings } from "./NextcloudSettings";
 import { ProcessingStatusCard } from "./ProcessingStatusCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanLibraryRow } from "./ScanLibraryRow";
+import { SettingsCard } from "./SettingsCard";
 
 export function Library() {
   const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
@@ -137,14 +141,24 @@ export function Library() {
   }
 
   return (
-    <Container>
-      <PageHeader icon={Book} title={t("settings.library")} />
-
+    <SettingsPageFrame
+      header={
+        <PageHeader
+          title={t("settings.library")}
+          actions={
+            <Anchor component={Link} to="/statistics" size="sm" className={classes.statisticsLink}>
+              {t("countstats.viewstatistics")}
+              <IconChevronRight size={14} />
+            </Anchor>
+          }
+        />
+      }
+    >
       <Stack>
         <CountStats />
         <LibraryFoldersCard user={userSelfDetails} isAdmin={isAdmin} />
         <ProcessingStatusCard busyReason={busyReason} uploadOnly={!hasScanDirectory} />
-        <Card shadow="md">
+        <SettingsCard>
           <Stack>
             <Title order={4}>
               <Trans i18nKey="settings.photos" />
@@ -187,7 +201,7 @@ export function Library() {
               />
             )}
           </Stack>
-        </Card>
+        </SettingsCard>
 
         <ModalUserEdit
           onRequestClose={() => closeScanDirectorySetup()}
@@ -206,7 +220,6 @@ export function Library() {
           onCancel={handleCancel}
         />
       </Stack>
-      <Space h="xl" />
-    </Container>
+    </SettingsPageFrame>
   );
 }

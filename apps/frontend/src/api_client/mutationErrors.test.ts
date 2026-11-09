@@ -83,9 +83,13 @@ describe("a failed mutation", () => {
   });
 
   it("reports a response that did not match its schema once, as a parse error", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     await failWith(new ResponseParseError("rename album", "title: expected string"));
 
     expect(toasts.error).toHaveBeenCalledTimes(1);
-    expect(String(toasts.error.mock.calls[0]?.[0])).toContain("title: expected string");
+    // The toast speaks to the user; the schema detail goes to the console for a bug report.
+    expect(String(toasts.error.mock.calls[0]?.[0])).not.toContain("title: expected string");
+    expect(String(consoleError.mock.calls[0]?.[0])).toContain("title: expected string");
+    consoleError.mockRestore();
   });
 });

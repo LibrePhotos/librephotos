@@ -54,10 +54,11 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   DateSummary: { schema: S.DateSummary, components: ["DateSummaryResponse"] },
   // date groups (timeline, albums)
   DatePhotosGroup: { schema: S.DatePhotosGroup, components: ["GroupedPhotos"] },
-  IncompleteDatePhotosGroup: {
-    schema: S.IncompleteDatePhotosGroup,
-    components: ["IncompleteAlbumDate", "AlbumDate"],
-  },
+  // days (/api/days/: the timeline and every date-grouped list)
+  Day: { schema: S.Day, components: ["Day"] },
+  FetchDaysResponse: { schema: S.FetchDaysResponse, components: ["DayList"] },
+  DayPhotosPage: { schema: S.DayPhotosPage, components: ["DayPhotos"] },
+  DayLayout: { schema: S.DayLayout, components: ["DayLayout"] },
   // albums
   PhotoSuperSimple: { schema: S.PhotoSuperSimple, components: ["PhotoSuperSimple"] },
   UserAlbumInfo: { schema: S.UserAlbumInfo, components: ["AlbumUserList"] },
@@ -89,6 +90,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   SetFacesLabelResponse: { schema: S.SetFacesLabelResponse, components: ["SetFacePersonLabelResponse"] },
   AddFaceResponse: { schema: S.AddFaceResponse, components: ["AddFaceResponse"] },
   DeleteFacesResponse: { schema: S.DeleteFacesResponse, components: ["DeleteFacesResponse"] },
+  FacesReviewCountResponse: { schema: S.FacesReviewCountResponse, components: ["FacesReviewCountResponse"] },
   RestoreFacesResponse: { schema: S.RestoreFacesResponse, components: ["RestoreFacesResponse"] },
   FaceLabels: { schema: S.FaceLabels, components: ["FaceLabels"] },
   RejectedPerson: { schema: S.RejectedPerson, components: ["RejectedPerson"] },
@@ -203,6 +205,10 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   ServerStats: { schema: S.ServerStats, components: ["ServerStats"] },
   UpdateStatus: { schema: S.UpdateStatus, components: ["UpdateStatus"] },
   InstallState: { schema: S.InstallState, components: ["InstallState"] },
+  // error reports (#2938)
+  ErrorReport: { schema: S.ErrorReport, components: ["ErrorReport"] },
+  ErrorReportSendAll: { schema: S.ErrorReportSendAll, components: ["ErrorReportSendAll"] },
+  BrowserErrorReport: { schema: S.BrowserErrorReport, components: ["BrowserErrorReport"] },
   // stacks
   StackFileVariant: { schema: S.StackFileVariant, components: ["StackFileVariant"] },
   StackPhoto: { schema: S.StackPhoto, components: ["StackPhoto"] },
@@ -335,10 +341,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   RecentlyAddedPhotosResponse:
     "a {date, results} envelope (component RecentlyAddedPhotos) around rows compared on their own (PigPhoto); comparing it would repeat PigPhoto's baselined differences",
   BulkPhotoQuery: "a request body",
-  FetchDateAlbumsListResponse:
-    "a {results} envelope around rows compared on their own (IncompleteDatePhotosGroup); the view's wrapper is not a component",
-  FetchDateAlbumResponse:
-    "a {results} envelope around rows compared on their own (IncompleteDatePhotosGroup); the view's wrapper is not a component",
+  IncompleteDatePhotosGroup:
+    "the day group the photo grids hold, built on the client from a Day (dayGroup) or a GalleryDay; no view answers it",
   FetchUserAlbumsListResponse:
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
   PublicAlbum: "compared where it is read, as the results of FetchPublicAlbumResponse (PublicAlbumResponse)",

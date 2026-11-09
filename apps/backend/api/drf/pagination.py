@@ -160,25 +160,6 @@ class WholeListPagination(DefaultPagination):
     page_size = MAX_PAGE_SIZE
 
 
-class DayAlbumPagination(DefaultPagination):
-    """The photos of one day album (``AlbumDateViewSet.retrieve``).
-
-    Clients work the page numbers out from the day's ``numberOfItems``, which
-    may be stale by the time they ask: a page past the end answers the last
-    page and one that is not a number the first, as Django's ``Paginator`` did
-    here before.
-    """
-
-    def get_page_number(
-        self, request: Request, paginator: DjangoPaginator[object]
-    ) -> int:
-        try:
-            number = super().get_page_number(request, paginator)
-        except ValidationError:
-            return 1
-        return min(number, paginator.num_pages)
-
-
 # The page parameters, for the schema of a view drf-spectacular does not see
 # as a list (an APIView or a custom action).
 PAGE_PARAMETERS = [

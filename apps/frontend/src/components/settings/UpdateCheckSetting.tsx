@@ -34,7 +34,7 @@ function StatusLine({ status }: Readonly<{ status: UpdateStatus }>) {
   return (
     <Group gap={6} wrap="nowrap" align="flex-start" role="status">
       <Text component="span" c={line.tone === "ok" ? "green" : color} lh={0} mt={3}>
-        <Icon size={ICON_SIZE.menu} aria-hidden />
+        <Icon size={ICON_SIZE.inline} aria-hidden />
       </Text>
       <Text fz="xs" c={color}>
         {line.text}
@@ -89,7 +89,8 @@ export function UpdateCheckSetting() {
           ) : null}
         </Group>
         <Stack gap={4} id={`${id}-description`}>
-          <Text fz="xs" c="dimmed">
+          {/* A setting's description: 13px at a reading width, as SectionNav.module.css sets Mantine's. */}
+          <Text fz={13} c="dimmed" maw="72ch">
             {locked ? (
               <Trans i18nKey="sitesettings.updatecheck_locked" components={{ code: <Code fz="xs" /> }} />
             ) : (

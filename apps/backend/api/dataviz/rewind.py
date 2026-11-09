@@ -3,7 +3,7 @@
 Only the user's own photos count, as the timeline shows them (no hidden,
 trashed or archived photos), without screenshots and documents, like memories.
 A photo belongs to the year of the calendar day the timeline groups it under
-(``AlbumDate.date``), so no timezone conversion moves a New Year's Eve photo
+(the wall-clock date of ``exif_timestamp``, ``api.timeline``), so no timezone conversion moves a New Year's Eve photo
 into the next year. The cost is a handful of grouped queries over one year of
 photos; nothing is stored.
 """
@@ -18,6 +18,7 @@ from api.dataviz.stats import without_parallel_workers
 from api.models import Face, Person, Photo, User
 from api.models.place_names import place_name
 from api.photos.selection import build_photo_queryset
+from api.timeline.days import dates_q, day_q, taken_day
 
 TOP_PEOPLE = 5
 TOP_PLACES = 3
@@ -68,14 +69,15 @@ def year_photos(user: User, year: int) -> QuerySet[Photo]:
         user, {"hide_screenshots": True, "hide_documents": True, "archived": False}
     ).filter(removed=False)
     return timeline.filter(
-        albumdate__date__range=(datetime.date(year, 1, 1), datetime.date(year, 12, 31))
+        dates_q(datetime.date(year, 1, 1), datetime.date(year, 12, 31))
     )
 
 
 def _day_counts(photos: QuerySet[Photo]) -> dict[datetime.date, int]:
     rows = (
         photos.order_by()
-        .values_list("albumdate__date")
+        .annotate(day=taken_day())
+        .values_list("day")
         .annotate(total=Count("id", distinct=True))
     )
     return {day: total for day, total in rows if day is not None}
@@ -86,7 +88,7 @@ def _best_photo_ids(
 ) -> list[uuid.UUID]:
     """The photos of ``day`` worth showing: stills first, favourites first, in the order taken."""
     return list(
-        photos.filter(albumdate__date=day)
+        photos.filter(day_q(day))
         .order_by("video", "-rating", "exif_timestamp", "image_hash")
         .values_list("id", flat=True)[:limit]
     )

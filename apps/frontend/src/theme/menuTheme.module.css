@@ -1,0 +1,162 @@
+/*
+ * One look for every menu (menuTheme.ts): Immich's and Google's menus have monochrome icons, one
+ * group-title style and one check position. On a phone the same dropdown is an action sheet.
+ */
+
+/*
+ * The surface, and a fade with a soft shadow at an edge with more items past it: the two `local`
+ * covers scroll with the items and hide the `scroll` shadows once the list is at that end, so a
+ * menu cut by the window reads as scrollable rather than broken.
+ */
+.dropdown {
+  --menu-surface: var(--mantine-color-white);
+  --menu-edge-shadow: var(--app-scrim-black-12);
+
+  padding: 4px;
+  background:
+    linear-gradient(var(--menu-surface) 40%, transparent) center top / 100% 32px no-repeat local,
+    linear-gradient(transparent, var(--menu-surface) 60%) center bottom / 100% 32px no-repeat local,
+    linear-gradient(var(--menu-edge-shadow), transparent) center top / 100% 12px no-repeat scroll,
+    linear-gradient(transparent, var(--menu-edge-shadow)) center bottom / 100% 12px no-repeat scroll,
+    var(--menu-surface);
+}
+
+/* Mantine's own dark rule, so the viewer's dark scope (ViewerDarkScope) gets it too. */
+:where([data-mantine-color-scheme="dark"]) .dropdown {
+  --menu-surface: var(--mantine-color-dark-6);
+  --menu-edge-shadow: var(--app-scrim-black-50);
+}
+
+/*
+ * Rows of 36 px with the text's first line and the icons on one axis, so an item with a note under
+ * its label (Hide, Archive, Rescan files) keeps its icon level with the label.
+ */
+.item {
+  align-items: flex-start;
+  padding: 7px 12px;
+}
+
+.item:where([data-checked]),
+.item:has(> .itemSection[data-position="right"] :global(.tabler-icon-check)) {
+  font-weight: 500;
+}
+
+.itemLabel {
+  min-width: 0;
+}
+
+.itemSection {
+  align-self: flex-start;
+  height: calc(1em * var(--mantine-line-height));
+  color: var(--menu-item-color, var(--mantine-color-dimmed));
+
+  & :global(.tabler-icon) {
+    stroke-width: 1.75;
+  }
+
+  &:where([data-position="left"]) {
+    margin-inline-end: 10px;
+  }
+
+  /* ICON_SIZE.menu in every menu, also where an item still passes its own size. */
+  &:where([data-position="left"]) :global(.tabler-icon) {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* The chosen item: a check at the end of its row, in the primary colour, in every menu. */
+.itemSection[data-position="right"] :global(.tabler-icon-check),
+.itemIndicator {
+  color: var(--mantine-primary-color-filled);
+}
+
+.itemSection[data-position="right"] :global(.tabler-icon-check) {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.itemIndicator {
+  order: 1;
+  align-self: flex-start;
+  width: 16px;
+  height: calc(1em * var(--mantine-line-height));
+  margin-inline: var(--mantine-spacing-xs) 0;
+}
+
+/* Group titles: 12 px semibold, dimmed, sentence case. */
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--mantine-color-dimmed);
+  padding: 8px 12px 4px;
+}
+
+.divider {
+  margin-block: 4px;
+}
+
+/* Hidden from `sm` up, where menus are dropdowns. */
+.scrim {
+  @media (min-width: 48em) {
+    display: none;
+  }
+}
+
+/* A phone's action sheet (placeAsSheet in menuTheme.ts places it). */
+.dropdown[data-sheet] {
+  position: fixed;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  border-width: 1px 0 0;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -6px 28px var(--app-scrim-black-20);
+  overscroll-behavior: contain;
+  animation: sheet-rise 200ms ease-out;
+
+  & .item {
+    min-height: 48px;
+    padding: 12px 16px;
+    border-radius: 0;
+    font-size: var(--mantine-font-size-md);
+  }
+
+  & .itemSection[data-position="left"] {
+    margin-inline-end: 16px;
+
+    & :global(.tabler-icon) {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  & .label {
+    padding: 12px 16px 4px;
+  }
+
+  & .divider {
+    margin: 4px 16px;
+  }
+
+  /* No keyboard to press them on. */
+  & [data-menu-shortcut] {
+    display: none;
+  }
+}
+
+:where([data-mantine-color-scheme="dark"]) .dropdown[data-sheet] {
+  border-top-color: var(--app-scrim-white-8);
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown[data-sheet] {
+    animation: none;
+  }
+}

@@ -1,4 +1,4 @@
-"""The timeline filter: one resolver for the date-album list, the per-day page
+"""The timeline filter: one resolver for the day list, the per-day page
 and server-side select-all (issue #2130).
 
 * ``resolve_timeline_filter`` turns the saved default plus request params into
@@ -23,7 +23,8 @@ from api.albums.timeline_filter import (
 )
 from api.models import Photo
 from api.photos.selection import build_photo_queryset
-from api.tests.utils import create_test_album_date, create_test_photo, create_test_user
+from api.tests.utils import create_test_photo, create_test_user
+from api.timeline.days import day_id
 
 
 class _FakeUser:
@@ -202,7 +203,7 @@ class TimelineEndpointsTest(TestCase):
         self.client.force_authenticate(user=self.user)
         now = timezone.now()
         self.day = now.date()
-        self.mixed = create_test_album_date(owner=self.user, date=self.day)
+        self.mixed = day_id(self.day)
         self.plain = create_test_photo(owner=self.user, exif_timestamp=now)
         self.video = create_test_photo(owner=self.user, exif_timestamp=now, video=True)
         self.screenshot = create_test_photo(
@@ -211,38 +212,35 @@ class TimelineEndpointsTest(TestCase):
         self.document = create_test_photo(
             owner=self.user, exif_timestamp=now, is_document=True
         )
-        self.mixed.photos.add(self.plain, self.video, self.screenshot, self.document)
 
         earlier = now - timezone.timedelta(days=3)
-        self.shots_only = create_test_album_date(owner=self.user, date=earlier.date())
-        self.shots_only.photos.add(
-            create_test_photo(
-                owner=self.user, exif_timestamp=earlier, is_screenshot=True
-            )
-        )
+        self.shots_only = day_id(earlier.date())
+        create_test_photo(owner=self.user, exif_timestamp=earlier, is_screenshot=True)
 
     def _list(self, params):
-        response = self.client.get("/api/albums/date/list/", params)
+        response = self.client.get("/api/days/", params)
         self.assertEqual(response.status_code, 200)
         return {row["id"]: row["numberOfItems"] for row in response.json()["results"]}
 
-    def _day(self, album, params):
-        response = self.client.get(f"/api/albums/date/{album.id}/", params)
+    def _day(self, day, params):
+        """The hashes a day's page shows, and the count its layout gives."""
+        response = self.client.get(f"/api/days/{day}/photos/", params)
         self.assertEqual(response.status_code, 200)
-        results = response.json()["results"]
-        return {item["image_hash"] for item in results["items"]}, results[
-            "numberOfItems"
-        ]
+        self.assertIsNone(response.json()["next"])
+        layout = self.client.get(f"/api/days/{day}/layout/", params)
+        self.assertEqual(layout.status_code, 200)
+        hashes = {item["image_hash"] for item in response.json()["items"]}
+        return hashes, layout.json()["numberOfItems"]
 
     def test_without_apply_default_nothing_changes(self):
         days = self._list({})
-        self.assertEqual(days, {self.mixed.id: 4, self.shots_only.id: 1})
+        self.assertEqual(days, {self.mixed: 4, self.shots_only: 1})
 
     def test_apply_default_hides_screenshot_only_day_and_keeps_mixed_day(self):
         days = self._list({"apply_default": "1"})
         # The mixed day is kept with its two remaining items; the day holding
         # nothing but a screenshot drops out.
-        self.assertEqual(days, {self.mixed.id: 2})
+        self.assertEqual(days, {self.mixed: 2})
 
     def test_list_and_day_agree(self):
         for params in (
@@ -258,7 +256,7 @@ class TimelineEndpointsTest(TestCase):
                 days = self._list(params)
                 hashes, count = self._day(self.mixed, params)
                 self.assertEqual(len(hashes), count)
-                self.assertEqual(days.get(self.mixed.id, 0), count)
+                self.assertEqual(days.get(self.mixed, 0), count)
 
     def test_day_page_applies_default(self):
         hashes, _ = self._day(self.mixed, {"apply_default": "1"})
@@ -275,7 +273,7 @@ class TimelineEndpointsTest(TestCase):
         hashes, _ = self._day(self.mixed, {"favorite": "true"})
         self.assertEqual(hashes, {self.plain.image_hash})
         days = self._list({"favorite": "true"})
-        self.assertEqual(days, {self.mixed.id: 1})
+        self.assertEqual(days, {self.mixed: 1})
 
 
 class PublicTimelineIgnoresViewerDefaultTest(TestCase):
@@ -285,21 +283,18 @@ class PublicTimelineIgnoresViewerDefaultTest(TestCase):
         alice = create_test_user(public_sharing=True)
         bob = create_test_user(default_timeline_filter={"hide_screenshots": True})
         now = timezone.now()
-        day = create_test_album_date(owner=alice, date=now.date())
         shot = create_test_photo(
             owner=alice, exif_timestamp=now, is_screenshot=True, public=True
         )
-        day.photos.add(shot)
         client = APIClient()
         client.force_authenticate(user=bob)
         params = {"public": "true", "username": alice.username, "apply_default": "1"}
 
-        listed = client.get("/api/albums/date/list/", params).json()["results"]
-        self.assertEqual([row["id"] for row in listed], [day.id])
-        items = client.get(f"/api/albums/date/{day.id}/", params).json()["results"]
-        self.assertEqual(
-            [item["image_hash"] for item in items["items"]], [shot.image_hash]
-        )
+        listed = client.get("/api/days/", params).json()["results"]
+        # Alice keeps her dates to herself (the default): one undated group.
+        (row,) = listed
+        items = client.get(f"/api/days/{row['id']}/photos/", params).json()["items"]
+        self.assertEqual([item["image_hash"] for item in items], [shot.image_hash])
 
 
 class SelectAllMatchesTimelineTest(TestCase):

@@ -1,43 +1,103 @@
-person
-man
-woman
-child
-baby
-toddler
-teenager
-elderly person
-couple
-family
-group of people
-crowd
-portrait
-selfie
-face
-smile
-laughing
-glasses
-sunglasses
-hat
-beard
-mustache
-tattoo
-walking
-running
-jogging
+# The things OpenCLIP can find in a photo ("Things" albums and search).
+#
+# One thing per line. A bare word is described to the model with a set of
+# prompt templates ("a photo of {word}.", ...). "word = prompt | prompt" uses
+# these prompts instead: for words the model reads the wrong way ("glasses",
+# "pan") or that need the visual cue spelled out (documents, events).
+#
+# "## <section> max=<n> min=<p>" starts a section: at most n of its things per
+# photo, each with a softmax probability of at least p. The values were chosen
+# on 300 photos of a real library (198 to tune, 100 held out), every proposed
+# thing graded good, vague or wrong by looking at the photo. On the held-out
+# photos they keep as many good things as the old flat 0.75 % cut-off (1.6 per
+# photo) with 8x fewer wrong or useless ones (0.9 instead of 6.9 per photo).
+# Activities, sports and occasions guessed from loose cues need near
+# certainty; people and photo types are reliable at a few percent.
+#
+# Document detection (api/classification/documents.py) relies on the names of
+# the document section: keep them when re-wording their prompts.
+
+## type max=1 min=0.05
+screenshot = a screenshot of a phone app | a screenshot of a computer screen | a screenshot of a website | a mobile phone screenshot with text and icons
+chat = a screenshot of a chat conversation with message bubbles | a screenshot of whatsapp messages
+meme = a meme with a caption | an internet meme with text on an image
+drawing = a pencil drawing on paper | a sketch drawn by hand
+illustration = a digital illustration | a cartoon illustration
+video game = a screenshot of a video game | video game graphics
+chart = a screenshot of a stock price chart | a line chart graph | a bar chart diagram
+text = a picture with lots of text | a page of text | black text on a white background
+logo = a company logo on a plain background
+collage = a photo collage of several pictures
+black and white = a black and white photo
+
+## document max=1 min=0.2
+receipt = a photo of a printed paper receipt from a shop | a long till receipt with prices | a scanned shop receipt with a total amount
+document = a photo of a printed paper document | a scanned page of a letter | a scanned document with black text on white paper
+invoice = a photo of a printed paper invoice | a scanned invoice with a table of prices
+business card = a photo of a business card held in hand | a small printed business card
+identity document = a photo of a passport | a photo of a national id card | a photo of a driver's license
+ticket = a photo of a printed paper ticket | a paper train ticket
+book page = a photo of an open book page
+handwritten note = a photo of a handwritten note on paper
+menu = a photo of a restaurant menu
+whiteboard = a photo of a whiteboard with writing
+certificate = a photo of a framed certificate | a printed certificate with a seal
+poster = a photo of a poster on a wall
+newspaper = a photo of a newspaper
+
+## people max=3 min=0.005
+person = a photo of a person
+man = a photo of a man
+woman = a photo of a woman
+portrait = a portrait photo of a person
+sunglasses = a person wearing sunglasses
+hat = a person wearing a hat
+beard = a man with a full beard
+tattoo = a person with a tattoo on their skin
+group photo = a group photo of many people posing together | a group of friends posing for a photo
+child = a photo of a young child | a photo of a kid
+baby = a photo of a baby | a photo of an infant
+crowd = a large crowd of people
+long hair = a man with long hair | a person with long hair
+shirtless = a shirtless man
+headshot = a headshot portrait photo
+
+## selfie max=1 min=0.2
+selfie = a selfie, a person holding the phone at arm's length | a close-up selfie of a face taken with a front camera
+
+## clothing max=2 min=0.08
+shirt
+dress
+suit
+jacket
+coat
+sweater
+hoodie
+jeans
+shorts
+skirt
+uniform
+scarf
+glove
+boot
+sneaker
+sandal
+high heel
+ring = a ring on a finger
+necklace
+bracelet
+earring
+crown = a person wearing a crown
+helmet
+ribbon
+necktie
+t-shirt
+costume = a person wearing a costume | people dressed up in costumes
+mask = a person wearing a mask over their face
+
+## activity max=1 min=0.5
 swimming
-dancing
-cooking
-eating
-drinking
-reading
-writing
-sleeping
-working
-playing
-sitting
-standing
-jumping
-climbing
+drinking = a person drinking from a glass or cup
 hiking
 cycling
 surfing
@@ -48,23 +108,17 @@ fishing
 camping
 gardening
 painting
-drawing
-singing
-shopping
-traveling
-driving
-talking
-hugging
-kissing
-waving
-pointing
-clapping
-celebrating
-praying
-meditating
-exercising
-stretching
 yoga
+eating = people eating food at a table
+cooking = a person cooking food on a stove
+dancing = people dancing
+sleeping = a person sleeping in bed
+hugging = two people hugging each other
+kissing = two people kissing
+reading = a person reading a book
+playing video games = a person playing video games with a controller
+
+## sport max=1 min=0.5
 soccer
 basketball
 tennis
@@ -84,6 +138,8 @@ table tennis
 wrestling
 archery
 fencing
+
+## animal max=2 min=0.05
 cat
 dog
 puppy
@@ -107,7 +163,6 @@ tiger
 elephant
 giraffe
 zebra
-monkey
 gorilla
 panda
 snake
@@ -141,12 +196,14 @@ swan
 flamingo
 peacock
 coral
-seal
+seal = a seal animal
+
+## food max=3 min=0.2
 food
 fruit
-apple
+apple = an apple fruit
 banana
-orange
+orange = an orange fruit
 strawberry
 grape
 watermelon
@@ -164,7 +221,7 @@ broccoli
 corn
 potato
 onion
-pepper
+pepper = a bell pepper vegetable
 mushroom
 lettuce
 cucumber
@@ -182,7 +239,6 @@ sushi
 soup
 salad
 steak
-chicken meat
 seafood
 shrimp
 cheese
@@ -206,6 +262,8 @@ dinner
 dessert
 barbecue
 picnic
+
+## vehicle max=2 min=0.2
 car
 truck
 bus
@@ -234,6 +292,8 @@ hot air balloon
 skateboard
 stroller
 wheelchair
+
+## building max=1 min=0.2
 house
 apartment building
 skyscraper
@@ -252,96 +312,86 @@ palace
 stadium
 bridge
 arch
-monument
-statue
+monument = a historic monument
+statue = a statue
 fountain
 windmill
 factory
-warehouse
 greenhouse
 gazebo
 tent
-ruins
+ruins = ancient ruins
+
+## place max=1 min=0.05
+church interior
 kitchen
 bedroom
 bathroom
 living room
-dining room
 office
-classroom
-library
 museum
-gallery
-theater
-cinema
-hospital
 restaurant
 cafe
-bar
-pub
-bakery
+bar = a bar with a counter and drinks
 supermarket
-mall
 gym
-spa
 hotel room
-lobby
-hallway
 staircase
 balcony
-rooftop
 garden
 park
 forest
-jungle
 mountain
-hill
-valley
-cliff
 canyon
 cave
 island
-volcano
 glacier
 desert
 beach
-ocean
 sea
 river
 lake
-pond
-stream
 waterfall
-swamp
-marsh
 field
 meadow
-grassland
-prairie
-farmland
 vineyard
-orchard
 city
-town
 village
 street
 road
-highway
-alley
-sidewalk
-crossroad
-intersection
 parking lot
 playground
-courtyard
-pier
-dock
 harbor
-marina
-boardwalk
-promenade
 trail
-path
+airplane cabin
+airport terminal
+amusement park
+aquarium
+beer garden
+bookstore
+botanical garden
+campsite
+cemetery
+clothing store
+coast
+conference room
+construction site
+lawn
+market
+ski slope
+snowfield
+stage = a stage with performers
+subway station
+swimming pool
+train interior
+train station
+underwater
+night = a photo taken at night | a city at night with lights
+autumn = autumn leaves in fall colors | a tree with orange autumn leaves
+winter = a snowy winter landscape
+car interior = inside a car, the dashboard and seats
+
+## plant max=2 min=0.2
 tree
 palm tree
 pine tree
@@ -362,56 +412,27 @@ cactus
 bamboo
 vine
 leaf
-petal
-branch
-trunk
-root
-mushroom in nature
 coral reef
 seaweed
+
+## sky max=2 min=0.03
 sky
 cloud
-sun
-moon
-star
 rainbow
 aurora
 sunset
 sunrise
-dawn
-dusk
-golden hour
-twilight
-sunny
-cloudy
-rainy
 snowy
 foggy
-misty
-stormy
-windy
-overcast
-hazy
-frost
-ice
-thunder
 lightning
 rain
 snow
-hail
-spring
-summer
-autumn
-winter
-phone
-smartphone
-laptop
-computer
-tablet
-keyboard
-monitor
-camera
-television
+sunny = a sunny day with blue sky
+rainy = a rainy day with wet streets
+cloudy = a cloudy grey sky
+moon = the moon in the night sky
+
+## object max=3 min=0.2
 speaker
 headphones
 microphone
@@ -421,40 +442,31 @@ umbrella
 bag
 backpack
 purse
-wallet
 suitcase
 basket
-box
 bottle
-jar
 cup
 mug
-drinking glass
 plate
 bowl
 fork
 knife
 spoon
 chopsticks
-pan
 pot
 book
-newspaper
-magazine
 pen
 pencil
 scissors
-key
+key = a metal door key
 lock
 flashlight
 candle
 lamp
 lantern
 mirror
-frame
+frame = an empty picture frame
 painting on wall
-map
-globe
 telescope
 binoculars
 compass
@@ -471,14 +483,12 @@ chair
 table
 desk
 sofa
-couch
 bed
 bench
 stool
 shelf
 bookshelf
 cabinet
-drawer
 wardrobe
 rug
 carpet
@@ -486,44 +496,26 @@ curtain
 pillow
 blanket
 towel
-shirt
-dress
-suit
-jacket
-coat
-sweater
-hoodie
-jeans
-shorts
-skirt
-uniform
-costume
-scarf
-glove
-boot
-sneaker
-sandal
-high heel
-ring
-necklace
-bracelet
-earring
-crown
-mask
-helmet
-ribbon
-bow tie
-necktie
+smartphone = a photo of a smartphone | a mobile phone
+laptop = a photo of a laptop computer
+computer = a desktop computer with a monitor and keyboard
+television = a television on a tv stand
+camera = a photo of a camera
+game console = a video game console | a game controller
+toy = a photo of a toy
+stuffed animal = a stuffed animal plush toy
+board game = a board game on a table
+playing cards = playing cards on a table
+houseplant = a potted houseplant
+glasses = a person wearing eyeglasses
+
+## celebration max=2 min=0.2
 fireworks
 balloon
 confetti
-banner
 flag
 gift
-present
-wrapped gift
 birthday cake
-candles
 christmas tree
 ornament
 wreath
@@ -536,8 +528,8 @@ bouquet
 champagne
 trophy
 medal
-certificate
-diploma
+
+## sign max=1 min=0.2
 sign
 billboard
 traffic light
@@ -546,393 +538,31 @@ street sign
 neon sign
 graffiti
 mural
-poster
-banner sign
-tattoo art
 sculpture
-wood
-metal
-glass
-stone
-brick
-concrete
-marble
-ceramic
-leather
-fabric
-paper
-sand
-rock
-pebble
-crystal
-gold
-silver
-lace
-wool
-denim
-silk
+
+## misc max=2 min=0.2
 water
 fire
 smoke
-steam
 flame
-spark
-bubble
 wave
-foam
 icicle
 snowflake
-shadow
-reflection
 silhouette
 bokeh
 lens flare
-light beam
-darkness
-symmetry
-pattern
-texture
-stripe
-polka dot
-plaid
-geometric
-abstract
-colorful
-black and white
-vintage
-retro
-rustic
-modern
-minimalist
-cozy
-dramatic
-peaceful
-romantic
-festive
-spooky
-scary
-soothing
-stressful
-warm
-cold
-natural
-man-made
-aged
-glossy
-rusty
-dirty
-sterile
-moist
-dry
-cluttered
-open area
-enclosed area
-boating
-biking
-sunbathing
-touring
-diving
-bathing
-cleaning
-socializing
-studying
-training
-farming
-constructing
-competing
-spectating
-digging
-gaming
-sports
-vegetation
-foliage
-shrubbery
-leaves
-flowers
-asphalt
-pavement
-tiles
-plastic
-vinyl
-dirt
-running water
-still water
-natural light
-indoor lighting
-airfield
-airplane cabin
-airport terminal
-alcove
-amphitheater
-amusement arcade
-amusement park
-aquarium
-aqueduct
-archaeological site
-art gallery
-art studio
-assembly line
-attic
-auditorium
-badlands
-ballroom
-bamboo forest
-banquet hall
-baseball field
-basketball court
-bazaar
-beauty salon
-beer garden
-boat deck
-boathouse
-bookstore
-botanical garden
-bowling alley
-boxing ring
-building facade
-burial chamber
-campsite
-campus
-candy store
-car interior
-carousel
-catacomb
-cemetery
-chalet
-clothing store
-coast
-cockpit
-coffee shop
-computer room
-conference room
-construction site
-corn field
-corridor
-courthouse
-creek
-crevasse
-crosswalk
-dam
-delicatessen
-department store
-desert road
-diner
-discotheque
-doorway
-dorm room
-downtown
-dressing room
-driveway
-drugstore
-elevator
-embassy
-engine room
-entrance hall
-escalator
-excavation
-fabric store
-fast food restaurant
-fire escape
-fire station
-fishpond
-flea market
-florist shop
-food court
-football field
-forest path
-formal garden
-garage
-gas station
-gift shop
-golf course
-grotto
-gymnasium
-hangar
-hardware store
-hayfield
-heliport
-home office
-home theater
-hospital room
-hot spring
-hunting lodge
-ice cream parlor
-iceberg
-igloo
-industrial area
-inn
-jail cell
-japanese garden
-jewelry shop
-junkyard
-kindergarten
-lagoon
-landfill
-landing deck
-laundromat
-lawn
-lecture room
-loading dock
-locker room
-mansion
-market
-mausoleum
-moat
-motel
-mountain path
-movie theater
-music studio
-natural history museum
-nursery
-nursing home
-oil rig
-operating room
-orchestra pit
-pagoda
-pantry
-parking garage
-pasture
-patio
-pavilion
-pet shop
-pharmacy
-phone booth
-picnic area
-pizzeria
-playroom
-plaza
-porch
-racecourse
-raceway
-raft
-railroad track
-rainforest
-reception
-recreation room
-repair shop
-residential neighborhood
-restaurant kitchen
-restaurant patio
-rice paddy
-rock arch
-roof garden
-rope bridge
-runway
-sandbox
-sauna
-schoolhouse
-science museum
-server room
-shed
-shoe shop
-shopfront
-shopping mall
-shower
-ski resort
-ski slope
-slum
-snowfield
-soccer field
-stable
-stage
-storage room
-subway station
-sushi bar
-swimming hole
-swimming pool
-synagogue
-television studio
-throne room
-topiary garden
-toy shop
-train interior
-train station
-tree farm
-tree house
-trench
-tundra
-underwater
-utility room
-vegetable garden
-veterinary office
-viaduct
-volleyball court
-waiting room
-water park
-water tower
-watering hole
-wheat field
-wind farm
-yard
-youth hostel
-zen garden
-christmas
-birthday
-halloween
-easter
-thanksgiving
-new year
-new year's eve
-valentine's day
-wedding
-graduation
-anniversary
-engagement
-baby shower
-baptism
-communion
-funeral
-memorial service
-hanukkah
-diwali
-eid
-carnival
-mardi gras
-st. patrick's day
-independence day
-fourth of july
-mother's day
-father's day
-chinese new year
-lunar new year
-oktoberfest
-prom
-homecoming
-retirement party
-housewarming
-reunion
-concert
-festival
-parade
-costume party
-pool party
-garden party
-surprise party
-bridal shower
-bachelor party
-bachelorette party
-gender reveal
-first day of school
-award ceremony
-charity event
-gala
-recital
-school play
-talent show
-science fair
-sports day
-marathon
-tournament
-quinceañera
-bar mitzvah
-bat mitzvah
-receipt
-document
-invoice
-business card
-identity document
-ticket
-menu
-whiteboard
-handwritten note
-book page
+
+## event max=1 min=0.03
+halloween = a halloween party with people in scary costumes | halloween decorations and carved pumpkins
+christmas = christmas decorations and a christmas tree | people celebrating christmas
+birthday = a birthday party with a birthday cake and candles
+wedding = a wedding ceremony with a bride in a white dress
+easter = easter eggs and easter decorations
+carnival = a carnival parade with people in costumes
+new year's eve = new year's eve fireworks at midnight
+graduation = a graduation ceremony with caps and gowns
+concert = a concert with a band on stage and an audience
+festival = a music festival with a big crowd
+party = a party with people drinking and celebrating
+meeting = a business meeting around a table | people in a meeting room
+presentation = a person giving a presentation in front of a screen

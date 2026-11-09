@@ -4,10 +4,10 @@
  *   "Something similar to Google Photos, where people are represented by a cover photo of their
  *    face, and that can be expanded to reveal all the faces of that person."
  *
- * A collapsed person is one cell (their cover face, name and count) and collapsed people share
- * rows, so "Collapse all" gives a grid of people. Clicking a cell expands the person in place; the
- * expanded header shows the cover too. Clusters have no cover of their own: their first face is
- * it, so a collapsed cluster still pages in its first page.
+ * A group with more faces than a tile shows (four) folds into a tile: its first faces, name and
+ * count, side by side with the other tiles, so "Collapse all" gives a grid of people. Its Expand
+ * button opens it in place into a section whose header shows the person's cover. Clusters have no
+ * cover of their own: their first face is it.
  */
 import { FaceAnalysisMethod, UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -24,7 +24,7 @@ import type { FaceActionHandlers } from "./faceActionRules";
 import { FacesTab } from "./facesTab";
 import { isPersonCell, useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
 import type { GridCell } from "./hooks/useVirtualizedGrid";
-import { coverFaceUrl, needsCoverPage } from "./personCover";
+import { coverFaceUrl } from "./personCover";
 import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 
 const noopMutation = vi.hoisted(() => ({ mutate: () => {} }));
@@ -78,7 +78,13 @@ function group(id: number, name: string, kind: string, faces: PersonFace[]): Com
   return { id, name, kind, face_count: faces.length, faces };
 }
 
-const ANNA = group(1, "Anna", "USER", [placeholder(0, 1), placeholder(1, 1)]);
+// More faces than a tile shows, so Anna folds
+const ANNA = group(
+  1,
+  "Anna",
+  "USER",
+  Array.from({ length: 6 }, (_unused, index) => placeholder(index, 1))
+);
 const CLUSTER = group(2, "Unknown 001", "CLUSTER", [placeholder(0, 2)]);
 const LOADED_CLUSTER = group(3, "Unknown 002", "CLUSTER", [loaded(31)]);
 const BOB = group(4, "Bob", "USER", [loaded(41)]);
@@ -110,13 +116,6 @@ describe("issue #860 - the grid of people", () => {
     expect(coverFaceUrl(CLUSTER, undefined)).toBeUndefined();
     expect(coverFaceUrl(UNKNOWN, "/media/faces/x.jpg")).toBeUndefined();
   });
-
-  it("pages in a cover only for a cluster whose first face is not loaded", () => {
-    expect(needsCoverPage(CLUSTER)).toBe(true);
-    expect(needsCoverPage(LOADED_CLUSTER)).toBe(false);
-    expect(needsCoverPage(ANNA)).toBe(false);
-    expect(needsCoverPage(UNKNOWN)).toBe(false);
-  });
 });
 
 type OnSectionChange = Parameters<typeof useVirtualizedGrid>[4];
@@ -126,7 +125,7 @@ describe("issue #860 - pages a collapsed dashboard loads", () => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   });
 
-  it("asks only for the first page of the collapsed clusters on screen", async () => {
+  it("asks only for the first page of the folded groups on screen, for the faces their tiles show", async () => {
     const onSectionChange = vi.fn<OnSectionChange>();
     let grid: ReturnType<typeof useVirtualizedGrid> | undefined;
     function Host() {
@@ -142,8 +141,8 @@ describe("issue #860 - pages a collapsed dashboard loads", () => {
         [],
         () => {},
         FaceAnalysisMethod.enum.clustering,
-        // Four people per row at this width (calculateFaceGridCellSize)
-        700,
+        // Two tiles a row at this width (faceGridRows.ts)
+        450,
         { labeled: new Set(), inferred: ALL, unknown: new Set(), deleted: new Set() }
       );
       return null;
@@ -160,14 +159,16 @@ describe("issue #860 - pages a collapsed dashboard loads", () => {
       });
     });
 
+    // Anna's and the cluster's tiles; the other cluster's face is loaded
     expect(onSectionChange).toHaveBeenLastCalledWith([
+      { page: 1, person: ANNA.id, inferred: true, method: FaceAnalysisMethod.enum.clustering, deleted: false },
       { page: 1, person: CLUSTER.id, inferred: true, method: FaceAnalysisMethod.enum.clustering, deleted: false },
     ]);
     await act(async () => root.unmount());
   });
 });
 
-describe("issue #860 - person cells", () => {
+describe("issue #860 - folded groups", () => {
   const actions: FaceActionHandlers = {
     confirm: () => {},
     rejectMatch: () => {},
@@ -187,8 +188,7 @@ describe("issue #860 - person cells", () => {
           <VirtualizedGridComponent
             containerRef={null}
             gridRef={createRef<VirtualGridHandle>()}
-            entrySquareSize={131}
-            numEntrySquaresPerRow={4}
+            layout={{ columns: 4, faceSize: 96 }}
             gridHeight={rows.length * 131}
             getCellContentsForTab={() => rows}
             getScrollPositions={() => [
@@ -205,7 +205,6 @@ describe("issue #860 - person cells", () => {
             selectedFaces={[]}
             setSelectedFaces={() => {}}
             activeTab="inferred"
-            collapsedPersons={collapsed}
             onToggleCollapse={onToggleCollapse}
             faceActions={actions}
             pendingFaceIds={new Set()}
@@ -246,18 +245,15 @@ describe("issue #860 - person cells", () => {
   const button = (label: string) =>
     defined(container.querySelector<HTMLButtonElement>(`button[aria-label='${label}']`), `the ${label} button`);
 
-  it("shows each collapsed person as a button with their cover, name and count", async () => {
+  it("shows a folded person as a tile with their name, count and an Expand button", async () => {
     await render(ALL);
 
     const anna = button("Expand Anna");
     expect(anna.getAttribute("aria-expanded")).toBe("false");
-    expect(anna.textContent).toContain("2 Faces");
-    expect(anna.querySelector("img")?.getAttribute("src")).toMatch(/anna\.jpg$/);
-    // The count is read out with the name
-    expect(container.querySelector(`#${CSS.escape(anna.getAttribute("aria-describedby") ?? "")}`)?.textContent).toBe(
-      "2 Faces"
-    );
-    expect(container.querySelectorAll("button[aria-label^='Expand']")).toHaveLength(PEOPLE.length);
+    expect(anna.closest("div")?.textContent).toContain("Anna");
+    expect(container.textContent).toContain("6 faces");
+    // A group whose tile already shows all its faces has nothing to expand
+    expect(container.querySelectorAll("button[aria-label^='Expand']")).toHaveLength(1);
   });
 
   it("expands the person in place and hands focus to their header's toggle", async () => {
@@ -268,7 +264,7 @@ describe("issue #860 - person cells", () => {
     await act(async () => anna.click());
     expect(onToggleCollapse).toHaveBeenCalledWith(ANNA.id);
 
-    // The dashboard unfolds Anna: her cell becomes a header with her cover and the faces below
+    // The dashboard unfolds Anna: her tile becomes a header with her cover and the faces below
     await render(new Set([CLUSTER.id, LOADED_CLUSTER.id, BOB.id]));
 
     const collapse = button("Collapse Anna");
@@ -276,7 +272,7 @@ describe("issue #860 - person cells", () => {
     expect(collapse.parentElement?.querySelector("img")?.getAttribute("src")).toMatch(/anna\.jpg$/);
   });
 
-  it("folds a person back into a cell that takes the focus", async () => {
+  it("folds a person back into a tile whose Expand button takes the focus", async () => {
     await render(new Set([CLUSTER.id, LOADED_CLUSTER.id, BOB.id]));
 
     await act(async () => button("Collapse Anna").click());

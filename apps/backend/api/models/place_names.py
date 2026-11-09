@@ -139,7 +139,7 @@ def town_name(geolocation_json: object) -> str | None:
     """The town a photo was taken in, as the day albums name it.
 
     Typed rows: the city level. Untyped rows: the next to last name, as
-    ``add_location_to_album_dates`` always picked it.
+    the day albums always picked it.
     """
     return place_name(geolocation_json, "city", untyped_index=DAY_ALBUM_UNTYPED_INDEX)
 
