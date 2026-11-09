@@ -1,7 +1,7 @@
 import { Alert, Button, Grid, Group, Select, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconInfoCircle } from "@tabler/icons-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLookUpPlacesMutation } from "../../api_client/jobs/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
@@ -9,7 +9,7 @@ import { intlLocale } from "../../util/formatCount";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { isLanguageCode, placeLanguageName, placeLanguageOptions, PROVIDER_DEFAULT } from "./placeLanguageOptions";
 import { CONTROL_SPAN, SettingLabel } from "./ScanSettings";
-import { useSaveSiteSettings } from "./useSaveSiteSettings";
+import { useSiteSettingDraft } from "./useSiteSettingDraft";
 
 type Props = Readonly<{
   /**
@@ -28,19 +28,14 @@ type Props = Readonly<{
 export function PlaceNameLanguageSetting({ provider }: Props) {
   const supported = provider?.data.place_language ?? false;
   const { t, i18n } = useTranslation();
-  const { data: settings, dataUpdatedAt } = useGetSettingsQuery();
-  const save = useSaveSiteSettings();
+  const { data: settings } = useGetSettingsQuery();
   const stored = settings?.geocode_language ?? "";
-  const [language, setLanguage] = useState(stored);
+  const draft = useSiteSettingDraft(stored, value => ({ geocode_language: value }));
+  const language = draft.value;
   const [search, setSearch] = useState("");
   // The language picked here, until the admin starts the lookup or puts it off.
   const [changedTo, setChangedTo] = useState<string | null>(null);
   const header = t("sitesettings.placelanguage_header");
-
-  useEffect(() => {
-    setLanguage(stored);
-    // dataUpdatedAt: a reload that brings back the same value still resets the field
-  }, [stored, dataUpdatedAt]);
 
   // A code being typed ("pt-BR", "de,en") is offered as it is.
   const typed = search.replace(/\s/g, "");
@@ -52,9 +47,8 @@ export function PlaceNameLanguageSetting({ provider }: Props) {
   const choose = (value: string | null) => {
     const next = value === null || value === PROVIDER_DEFAULT ? "" : value;
     if (next === language) return;
-    setLanguage(next);
     setChangedTo(next);
-    save({ geocode_language: next });
+    void draft.commit(next);
   };
 
   return (

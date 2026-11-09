@@ -13,12 +13,12 @@ import { setUpMantineDom } from "../modals/confirmModal.test-utils";
 import { AutoScanSetting } from "./AutoScanSetting";
 
 const stubs = vi.hoisted(() => ({
-  save: vi.fn<(input: SiteSettingsUpdate) => void>(),
+  save: vi.fn<(input: SiteSettingsUpdate) => Promise<boolean>>(),
   query: { data: undefined as Partial<SiteSettings> | undefined, dataUpdatedAt: 1 },
 }));
 
 vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => stubs.query }));
-vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => stubs.save }));
+vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettingsAsync: () => stubs.save }));
 
 const STATUS = {
   last_run_at: "2026-10-14T03:00:00Z",
@@ -33,8 +33,8 @@ const STATUS = {
 let container: HTMLElement;
 let root: Root;
 
-async function render(settings: Partial<SiteSettings>) {
-  stubs.query = { data: settings, dataUpdatedAt: 1 };
+async function render(settings: Partial<SiteSettings>, dataUpdatedAt = 1) {
+  stubs.query = { data: settings, dataUpdatedAt };
   await act(async () => {
     root.render(
       // env="test": no transitions or portals, so the dropdown renders in place
@@ -103,6 +103,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  stubs.save.mockResolvedValue(true);
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -151,7 +152,7 @@ describe("AutoScanSetting", () => {
     await typeTime("22:30");
     expect(stubs.save).toHaveBeenCalledWith({ auto_scan_time: "22:30" });
 
-    stubs.save.mockReset();
+    stubs.save.mockClear();
     await typeTime("");
     expect(stubs.save).not.toHaveBeenCalled();
     expect(timeField()?.value).toBe("03:00");
@@ -165,12 +166,29 @@ describe("AutoScanSetting", () => {
     await act(async () => chip("Fri").click());
     expect(stubs.save).toHaveBeenLastCalledWith({ auto_scan_days: [0, 4] });
 
-    stubs.save.mockReset();
+    stubs.save.mockClear();
     await render(schedule("custom", { auto_scan_days: [0] }));
     await act(async () => chip("Mon").click());
     expect(stubs.save).not.toHaveBeenCalled();
     expect(container.querySelector('[role="alert"]')?.textContent).toBe(
       "Pick at least one day. Until you do, the saved schedule stays."
     );
+  });
+
+  it("keeps a frequency whose save runs when the settings are fetched again", async () => {
+    stubs.save.mockReturnValue(new Promise<boolean>(() => {}));
+    await render(schedule("off"));
+    await choose("Every hour");
+
+    // The status line's refresh brings back the old schedule while the save is on its way.
+    await render(schedule("off"), 2);
+    expect(select().value).toBe("Every hour");
+  });
+
+  it("shows the stored frequency again when the save is refused", async () => {
+    stubs.save.mockResolvedValue(false);
+    await render(schedule("off"));
+    await choose("Every hour");
+    expect(select().value).toBe("Off");
   });
 });

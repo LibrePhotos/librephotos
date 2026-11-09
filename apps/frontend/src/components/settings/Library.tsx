@@ -1,9 +1,8 @@
-import type { User } from "@librephotos/api-client";
 import { Anchor, Stack, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronRight } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
@@ -12,11 +11,10 @@ import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
 import { serverAddress } from "../../api_client/urls";
-import { useFetchUserListQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useJobQueue } from "../../hooks/useJobQueue";
 import { notification } from "../../service/notifications";
-import { reportUserSaveError } from "../../util/apiErrors";
 import { PageLoader } from "../common/PageLoader";
 import { CountStats } from "../CountStats";
 import { LibraryFoldersCard } from "../libraryfolders/LibraryFoldersCard";
@@ -32,16 +30,16 @@ import { ProcessingStatusCard } from "./ProcessingStatusCard";
 import { SaveChangesDialog } from "./SaveChangesDialog";
 import { ScanLibraryRow } from "./ScanLibraryRow";
 import { SettingsCard } from "./SettingsCard";
+import { useUserSettingsDraft } from "./useUserSettingsDraft";
 
 export function Library() {
-  const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [scanDirectorySetupOpen, { open: openScanDirectorySetup, close: closeScanDirectorySetup }] =
     useDisclosure(false);
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
   const { data: auth } = useAccessToken();
   const { data: userList } = useFetchUserListQuery();
-  const [editedUser, setEditedUser] = useState<User | null>(null);
+  const draft = useUserSettingsDraft(userSelfDetails);
   const queue = useJobQueue();
   const { t } = useTranslation();
   // Every job button says why it is off while the queue is busy (#2237).
@@ -57,9 +55,7 @@ export function Library() {
     isSuccess: isNextcloudSuccess,
     isError: isNextcloudError,
   } = useFetchNextcloudDirsQuery(!isNextcloudEnabled);
-  const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
-  const updateUser = useUpdateUserMutation({ reportsErrors: true });
   const scanPhotos = useScanPhotosMutation();
   const rescanPhotos = useRescanPhotosMutation();
 
@@ -81,62 +77,13 @@ export function Library() {
     }
   };
 
-  // open update dialog, when user was edited
-  useEffect(() => {
-    if (JSON.stringify(editedUser) !== JSON.stringify(userSelfDetails)) {
-      openUpdateDialog();
-    } else {
-      closeUpdateDialog();
-    }
-  }, [editedUser, userSelfDetails, openUpdateDialog, closeUpdateDialog]);
-
-  useEffect(() => {
-    if (userSelfDetails) {
-      setEditedUser(userSelfDetails);
-    }
-  }, [userSelfDetails]);
-
-  useEffect(() => {
-    if (!isNextcloudEnabled) {
-      return;
-    }
-    if (isNextcloudFetching === true) {
-      setNextcloudStatusColor("blue");
-    } else if (isNextcloudSuccess === true && userSelfDetails?.nextcloud_server_address) {
-      setNextcloudStatusColor("green");
-    } else if (isNextcloudError === true) {
-      setNextcloudStatusColor("red");
-    }
-  }, [isNextcloudEnabled, isNextcloudFetching, isNextcloudSuccess, isNextcloudError, userSelfDetails]);
-
   if (avatarImgSrc === "/unknown_user.jpg") {
     if (userSelfDetails?.avatar_url) {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
     }
   }
 
-  const handleSubmit = () => {
-    if (editedUser) {
-      const newUserData = { ...editedUser };
-      delete newUserData.scan_directory;
-      delete newUserData.avatar;
-      // Keep the dialog open when the server rejects the save (an unsafe Nextcloud address, for
-      // example), so the edits can be fixed.
-      updateUser.mutate(newUserData, {
-        onSuccess: () => closeUpdateDialog(),
-        onError: reportUserSaveError,
-      });
-    }
-  };
-
-  const handleCancel = () => {
-    if (userSelfDetails) {
-      setEditedUser(userSelfDetails);
-    }
-    closeUpdateDialog();
-  };
-
-  if (!userSelfDetails) {
+  if (!userSelfDetails || !draft.user) {
     return <PageLoader />;
   }
 
@@ -191,13 +138,12 @@ export function Library() {
             {isNextcloudEnabled && (
               <NextcloudSettings
                 userSelfDetails={userSelfDetails}
-                editedUser={editedUser}
-                setEditedUser={setEditedUser}
+                editedUser={draft.user}
+                onEdit={draft.edit}
                 busyReason={busyReason}
                 isNextcloudFetching={isNextcloudFetching}
                 isNextcloudSuccess={isNextcloudSuccess}
                 isNextcloudError={isNextcloudError}
-                nextcloudStatusColor={nextcloudStatusColor}
               />
             )}
           </Stack>
@@ -213,11 +159,12 @@ export function Library() {
           firstTimeSetup
         />
 
+        {/* A refused save (an unsafe Nextcloud address, for example) keeps the edits and the prompt. */}
         <SaveChangesDialog
-          opened={isOpenUpdateDialog}
-          saving={updateUser.isPending}
-          onSave={handleSubmit}
-          onCancel={handleCancel}
+          opened={draft.pending}
+          saving={draft.saving}
+          onSave={() => void draft.save()}
+          onCancel={draft.discard}
         />
       </Stack>
     </SettingsPageFrame>

@@ -19,7 +19,6 @@ const LOCAL_ON_ERROR = new Map<string, string>([
     "/src/components/movephotos/MovePhotosModal.tsx",
     "opens the name clash dialog on a 409; the hook's own onError reports every other failure",
   ],
-  ["/src/components/settings/useSaveSiteSettings.ts", "reloads the settings; the toast reports"],
   ["/src/hooks/useCopyPhotoToClipboard.ts", "its own useMutation onError, which the cache sees"],
 ]);
 

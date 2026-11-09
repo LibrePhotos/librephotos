@@ -19,9 +19,6 @@ import { defined } from "../../util/defined.test-utils";
 import { expectDisabledWithReason, focusAndReadTooltip } from "../common/disabledReason.test-utils";
 import { Library } from "./Library";
 
-/** The mutate options Library passes when it saves the profile. */
-type SaveOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
-
 const mocks = vi.hoisted(() => {
   class ApiError extends Error {
     constructor(
@@ -35,7 +32,7 @@ const mocks = vi.hoisted(() => {
   const user: Partial<User> = {};
   return {
     ApiError,
-    mutate: vi.fn<(user: Partial<User>, options?: SaveOptions) => void>(),
+    save: vi.fn<(user: Partial<User>) => Promise<Partial<User>>>(),
     generateAutoAlbums: vi.fn<() => void>(),
     updateUserError: vi.fn<(message: string) => void>(),
     regenerateEventTitles: vi.fn<() => void>(),
@@ -46,6 +43,8 @@ const mocks = vi.hoisted(() => {
     settings: { nextcloud_enabled: true, ocr_model: "none" } as Record<string, unknown>,
     // useWorkerQuery's answer; undefined until the server answers.
     worker: { data: { queue_can_accept_job: true } } as { data?: Partial<WorkerAvailabilityResponse> },
+    // useFetchNextcloudDirsQuery's state.
+    nextcloud: { isFetching: false, isSuccess: false, isError: false },
   };
 });
 
@@ -66,7 +65,7 @@ vi.mock("../../api_client/faces", () => ({
   useTrainFacesMutation: () => noopMutation,
 }));
 vi.mock("../../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
-  useFetchNextcloudDirsQuery: () => ({ isFetching: false, isSuccess: false, isError: false, data: [] }),
+  useFetchNextcloudDirsQuery: () => ({ ...mocks.nextcloud, data: [] }),
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useApplyDateRules: () => ({ start: mocks.applyDateRules, running: false }),
@@ -87,7 +86,7 @@ vi.mock("../../api_client/settings/hooks", () => ({
 vi.mock("../../api_client/stats/hooks", () => ({ useFetchCountStatsQuery: () => ({ data: undefined }) }));
 vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => ({ data: [] }),
-  useUpdateUserMutation: () => ({ mutate: mocks.mutate, isPending: false }),
+  useUpdateUserMutation: () => ({ mutateAsync: mocks.save, isPending: false }),
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: mocks.user }),
@@ -143,7 +142,8 @@ let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
 beforeEach(async () => {
-  mocks.mutate.mockReset();
+  mocks.save.mockReset().mockImplementation(async user => user);
+  mocks.nextcloud = { isFetching: false, isSuccess: false, isError: false };
   mocks.generateAutoAlbums.mockReset();
   mocks.updateUserError.mockReset();
   mocks.regenerateEventTitles.mockReset();
@@ -181,6 +181,17 @@ function found<T>(element: T | null | undefined, what: string): T {
   if (element === null || element === undefined) throw new Error(`${what} not found`);
   return element;
 }
+
+/** Renders the page again in place, as a refetch would. */
+const renderPage = async () => {
+  await act(async () => {
+    root.render(
+      <MantineProvider>
+        <Library />
+      </MantineProvider>
+    );
+  });
+};
 
 const setInputValue = async (input: HTMLInputElement, value: string) => {
   // React tracks the value itself; set it the way a browser does so onChange fires.
@@ -228,8 +239,8 @@ describe("Library Nextcloud settings", () => {
 
     await click(buttonByText("dialog-save"));
 
-    expect(mocks.mutate).toHaveBeenCalledTimes(1);
-    expect(defined(mocks.mutate.mock.calls[0])[0]).toMatchObject({
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(defined(mocks.save.mock.calls[0])[0]).toMatchObject({
       nextcloud_server_address: "https://cloud.example.com",
       nextcloud_username: "mara",
       nextcloud_app_password: "app-secret",
@@ -237,9 +248,7 @@ describe("Library Nextcloud settings", () => {
   });
 
   it("reports a rejected save and keeps the dialog open", async () => {
-    mocks.mutate.mockImplementation((_data, options) =>
-      options?.onError?.(new mocks.ApiError("API error: 400", 400, "The address must start with https://."))
-    );
+    mocks.save.mockRejectedValue(new mocks.ApiError("API error: 400", 400, "The address must start with https://."));
     await setInputValue(byPlaceholder("https://"), "cloud.example.com");
 
     await click(buttonByText("dialog-save"));
@@ -251,6 +260,21 @@ describe("Library Nextcloud settings", () => {
 
 // #2224: the "Save changes?" prompt is what guards leaving the page (SaveChangesDialog.leaving.test.tsx),
 // so it has to be open exactly while edits are pending: from the first edit until Save or Cancel.
+describe("Library Nextcloud status", () => {
+  const badge = () => found(container.querySelector<HTMLElement>(".mantine-Badge-root"), "the status badge");
+
+  it("follows the connection check instead of keeping an old colour", async () => {
+    mocks.user = { ...mocks.user, nextcloud_server_address: "https://cloud.example.com" };
+    mocks.nextcloud = { isFetching: false, isSuccess: false, isError: true };
+    await renderPage();
+    expect(badge().style.getPropertyValue("--badge-color")).toContain("red");
+
+    mocks.nextcloud = { isFetching: false, isSuccess: false, isError: false };
+    await renderPage();
+    expect(badge().style.getPropertyValue("--badge-color")).not.toContain("red");
+  });
+});
+
 describe("Library unsaved edits", () => {
   const prompt = () => document.body.querySelector('[data-testid="save-dialog"]');
 
@@ -264,8 +288,18 @@ describe("Library unsaved edits", () => {
     expect(prompt()).toBeNull();
   });
 
+  it("keeps what is typed, and the prompt, when the profile is fetched again", async () => {
+    await setInputValue(byPlaceholder("User name"), "mara");
+
+    // A window focus or another save reads the profile again.
+    mocks.user = { ...mocks.user };
+    await renderPage();
+
+    expect(byPlaceholder("User name").value).toBe("mara");
+    expect(prompt()).not.toBeNull();
+  });
+
   it("no longer guards leaving once the save went through", async () => {
-    mocks.mutate.mockImplementation((_data, options) => options?.onSuccess?.());
     await setInputValue(byPlaceholder("User name"), "mara");
 
     await click(buttonByText("dialog-save"));

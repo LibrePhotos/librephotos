@@ -12,11 +12,9 @@ import i18n from "../../i18n";
 import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { Settings } from "./Settings";
 
-type SaveOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
-
 const mocks = vi.hoisted(() => ({
   user: {} as Record<string, unknown>,
-  mutate: vi.fn<(user: Record<string, unknown>, options?: SaveOptions) => void>(),
+  save: vi.fn<(user: Record<string, unknown>) => Promise<unknown>>(),
   applyDateRules: vi.fn<() => void>(),
   queueCanAcceptJob: true,
 }));
@@ -33,7 +31,7 @@ vi.mock("../../api_client/settings", () => ({
 }));
 vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserSelfDetailsQuery: () => ({ data: mocks.user }),
-  useUpdateUserMutation: () => ({ mutate: mocks.mutate, isPending: false }),
+  useUpdateUserMutation: () => ({ mutateAsync: mocks.save, isPending: false }),
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useApplyDateRules: () => ({ start: mocks.applyDateRules, running: false }),
@@ -124,9 +122,9 @@ beforeEach(async () => {
     burst_detection_rules: "[]",
   };
   // The server takes the save; the next fetch returns what was saved.
-  mocks.mutate.mockImplementation((user, options) => {
+  mocks.save.mockImplementation(async user => {
     mocks.user = { ...user };
-    options?.onSuccess?.();
+    return user;
   });
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -182,7 +180,7 @@ describe("Apply date rules offer (#437)", () => {
     await click(button("dialog-save"));
     await render();
 
-    expect(mocks.mutate).toHaveBeenCalledTimes(1);
+    expect(mocks.save).toHaveBeenCalledTimes(1);
     expect(container.textContent).not.toContain(OFFER);
   });
 

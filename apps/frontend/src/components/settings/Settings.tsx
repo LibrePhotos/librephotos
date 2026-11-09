@@ -1,13 +1,11 @@
 import { userKeys, type User } from "@librephotos/api-client";
 import { Stack } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth";
 import { useApplyDateRules } from "../../api_client/jobs/hooks";
-import { useFetchUserSelfDetailsQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
-import { reportUserSaveError } from "../../util/apiErrors";
+import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { PageHeader } from "../PageHeader";
 import { SettingsPageFrame } from "../SettingsPageFrame";
 import { ApplyDateRulesOffer } from "./ApplyDateRulesOffer";
@@ -29,27 +27,18 @@ import { SectionNav } from "./SectionNav";
 import { SettingsCard } from "./SettingsCard";
 import { SettingsSection } from "./SettingsSection";
 import { UserSharingCard } from "./UserSharingCard";
+import { useUserSettingsDraft } from "./useUserSettingsDraft";
 
 export function Settings() {
-  const [isOpenUpdateDialog, { open: openUpdateDialog, close: closeUpdateDialog }] = useDisclosure(false);
   const { data: auth } = useAccessToken();
   const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id.toString() ?? "");
-  const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
+  const draft = useUserSettingsDraft(userSelfDetails);
+  const editedUserDetails = draft.user;
   const { t } = useTranslation();
-  const updateUser = useUpdateUserMutation({ reportsErrors: true });
   const queryClient = useQueryClient();
   // Saved date rules only apply to new scans: offer to apply them to the library too (#437).
   const [dateRulesSaved, setDateRulesSaved] = useState(false);
   const applyDateRules = useApplyDateRules();
-
-  // open update dialog, when user was edited
-  useEffect(() => {
-    if (userSelfDetails && editedUserDetails && JSON.stringify(userSelfDetails) !== JSON.stringify(editedUserDetails)) {
-      openUpdateDialog();
-    } else {
-      closeUpdateDialog();
-    }
-  }, [userSelfDetails, editedUserDetails, openUpdateDialog, closeUpdateDialog]);
 
   useEffect(() => {
     if (auth?.access?.user_id) {
@@ -57,17 +46,11 @@ export function Settings() {
     }
   }, [auth?.access?.user_id, queryClient]);
 
-  useEffect(() => {
-    if (userSelfDetails) {
-      setEditedUserDetails(userSelfDetails);
-    }
-  }, [userSelfDetails]);
-
   if (!userSelfDetails || !editedUserDetails) {
     return null;
   }
 
-  const edit = (patch: Partial<User>) => setEditedUserDetails({ ...editedUserDetails, ...patch });
+  const edit = (patch: Partial<User>) => draft.edit(user => ({ ...user, ...patch }));
   const cardProps = { user: editedUserDetails, onChange: edit };
 
   const sections = [
@@ -137,27 +120,17 @@ export function Settings() {
           </SettingsSection>
         </Stack>
       </SectionNav>
+      {/* A refused save keeps the edits and the prompt, so the edits can be fixed. */}
       <SaveChangesDialog
-        opened={isOpenUpdateDialog}
-        saving={updateUser.isPending}
+        opened={draft.pending}
+        saving={draft.saving}
         onSave={() => {
-          const newUserData = { ...editedUserDetails };
-          delete newUserData.scan_directory;
-          delete newUserData.avatar;
-          // Keep the dialog open when the server rejects the save, so the edits can be fixed.
-          const rulesChanged = newUserData.datetime_rules !== userSelfDetails.datetime_rules;
-          updateUser.mutate(newUserData, {
-            onSuccess: () => {
-              closeUpdateDialog();
-              if (rulesChanged) setDateRulesSaved(true);
-            },
-            onError: reportUserSaveError,
+          const rulesChanged = editedUserDetails.datetime_rules !== userSelfDetails.datetime_rules;
+          void draft.save().then(saved => {
+            if (saved && rulesChanged) setDateRulesSaved(true);
           });
         }}
-        onCancel={() => {
-          setEditedUserDetails(userSelfDetails);
-          closeUpdateDialog();
-        }}
+        onCancel={draft.discard}
       />
     </SettingsPageFrame>
   );

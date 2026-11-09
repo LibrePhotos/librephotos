@@ -9,8 +9,9 @@ import {
   IconRefresh,
   type TablerIcon,
 } from "@tabler/icons-react";
+import { isEqual } from "lodash-es";
 import { Info } from "luxon";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { ICON_SIZE } from "../../uiConstants";
@@ -23,7 +24,7 @@ import {
   type AutoScanTone,
 } from "./autoScanStatus";
 import { CONTROL_SPAN, LABEL_SPAN } from "./ScanSettings";
-import { useSaveSiteSettings } from "./useSaveSiteSettings";
+import { useSiteSettingDraft } from "./useSiteSettingDraft";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const NO_DAYS: number[] = [];
@@ -59,18 +60,13 @@ function StatusLine({ status }: { status: SiteAutoScanStatus }) {
 }
 
 /** The start time: saved on blur and on Enter, when it is a whole time and changed. */
-function StartTime({ stored, onSave }: { stored: string; onSave: (time: string) => void }) {
+function StartTime({ stored }: { stored: string }) {
   const { t } = useTranslation();
-  const [time, setTime] = useState(stored);
-
-  useEffect(() => setTime(stored), [stored]);
+  const time = useSiteSettingDraft(stored, value => ({ auto_scan_time: value }));
 
   const commit = () => {
-    if (!TIME.test(time)) {
-      setTime(stored);
-      return;
-    }
-    if (time !== stored) onSave(time);
+    if (TIME.test(time.value)) void time.commit();
+    else time.discard();
   };
 
   return (
@@ -81,8 +77,8 @@ function StartTime({ stored, onSave }: { stored: string; onSave: (time: string) 
       <TimeInput
         aria-label={t("sitesettings.autoscantime")}
         leftSection={<IconClock size={ICON_SIZE.inline} />}
-        value={time}
-        onChange={event => setTime(event.currentTarget.value)}
+        value={time.value}
+        onChange={event => time.edit(event.currentTarget.value)}
         onBlur={commit}
         onKeyDown={event => {
           if (event.key === "Enter") commit();
@@ -94,21 +90,20 @@ function StartTime({ stored, onSave }: { stored: string; onSave: (time: string) 
 }
 
 /** The custom days. Without a day nothing is saved and the saved schedule stays. */
-function Weekdays({ stored, onSave }: { stored: number[]; onSave: (days: number[]) => void }) {
+function Weekdays({ stored }: { stored: number[] }) {
   const { t } = useTranslation();
-  const [days, setDays] = useState(stored.map(String));
+  const days = useSiteSettingDraft(stored, value => ({ auto_scan_days: value }), isEqual);
   const names = Info.weekdays("short");
 
-  useEffect(() => setDays(stored.map(String)), [stored]);
-
-  const change = (next: string[]) => {
-    setDays(next);
-    if (next.length) onSave(next.map(Number).sort((a, b) => a - b));
+  const change = (picked: string[]) => {
+    const next = picked.map(Number).sort((a, b) => a - b);
+    if (next.length) void days.commit(next);
+    else days.edit(next);
   };
 
   return (
     <Stack gap={4}>
-      <Chip.Group multiple value={days} onChange={change}>
+      <Chip.Group multiple value={days.value.map(String)} onChange={change}>
         <Group gap={4} role="group" aria-label={t("sitesettings.autoscandays")}>
           {weekdayOrder().map(day => (
             <Chip key={day} value={String(day)} size="xs">
@@ -117,7 +112,7 @@ function Weekdays({ stored, onSave }: { stored: number[]; onSave: (days: number[
           ))}
         </Group>
       </Chip.Group>
-      {days.length === 0 && (
+      {days.value.length === 0 && (
         <Text fz="xs" c="red" role="alert">
           {t("sitesettings.autoscanpickaday")}
         </Text>
@@ -133,15 +128,12 @@ function Weekdays({ stored, onSave }: { stored: number[]; onSave: (days: number[
  */
 export function AutoScanSetting() {
   const { t } = useTranslation();
-  const { data: settings, dataUpdatedAt } = useGetSettingsQuery();
-  const save = useSaveSiteSettings();
+  const { data: settings } = useGetSettingsQuery();
   const stored = settings?.auto_scan;
-  const [frequency, setFrequency] = useState<AutoScanFrequency>(isAutoScanFrequency(stored) ? stored : "off");
-
-  useEffect(() => {
-    setFrequency(isAutoScanFrequency(stored) ? stored : "off");
-    // dataUpdatedAt: a reload that brings back the same value still resets the control
-  }, [stored, dataUpdatedAt]);
+  const draft = useSiteSettingDraft<AutoScanFrequency>(isAutoScanFrequency(stored) ? stored : "off", value => ({
+    auto_scan: value,
+  }));
+  const frequency = draft.value;
 
   // Staff only, and older backends have no schedule.
   if (!settings || stored === undefined) return null;
@@ -169,17 +161,11 @@ export function AutoScanSetting() {
             data={AUTO_SCAN_FREQUENCIES.map(value => ({ value, label: t(`sitesettings.autoscan_${value}`) }))}
             value={frequency}
             onChange={value => {
-              if (!isAutoScanFrequency(value)) return;
-              setFrequency(value);
-              save({ auto_scan: value });
+              if (isAutoScanFrequency(value)) void draft.commit(value);
             }}
           />
-          {frequency === "custom" && (
-            <Weekdays stored={settings.auto_scan_days ?? NO_DAYS} onSave={days => save({ auto_scan_days: days })} />
-          )}
-          {timed && (
-            <StartTime stored={settings.auto_scan_time ?? "03:00"} onSave={time => save({ auto_scan_time: time })} />
-          )}
+          {frequency === "custom" && <Weekdays stored={settings.auto_scan_days ?? NO_DAYS} />}
+          {timed && <StartTime stored={settings.auto_scan_time ?? "03:00"} />}
         </Stack>
       </Grid.Col>
     </>
