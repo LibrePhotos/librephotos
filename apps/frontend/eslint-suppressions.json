@@ -350,17 +350,11 @@
     }
   },
   "src/api_client/user/hooks/useUpdateAvatarMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 2
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
   },
   "src/api_client/user/hooks/useUpdateUserMutation.ts": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 3
-    },
     "ban/query-client-singleton": {
       "count": 1
     }
@@ -484,11 +478,6 @@
     }
   },
   "src/routes/password-reset.confirm.$uid.$token.tsx": {
-    "@typescript-eslint/no-floating-promises": {
-      "count": 1
-    }
-  },
-  "src/util/util.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
     }

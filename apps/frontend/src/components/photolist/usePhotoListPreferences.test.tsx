@@ -10,12 +10,20 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { defined } from "../../util/defined.test-utils";
 import { usePhotoListPreferences } from "./usePhotoListPreferences";
 
+type SaveCallbacks = { onSuccess?: () => void; onError?: () => void };
+
 const mocks = vi.hoisted(() => ({
   save: vi.fn<(user: Partial<User>) => Promise<unknown>>(),
 }));
 
 vi.mock("../../api_client/user/hooks", () => ({
-  useUpdateUserMutation: () => ({ mutateAsync: mocks.save }),
+  useUpdateUserMutation: () => ({
+    mutate: (user: Partial<User>, callbacks: SaveCallbacks) =>
+      void mocks.save(user).then(
+        () => callbacks.onSuccess?.(),
+        () => callbacks.onError?.()
+      ),
+  }),
 }));
 vi.mock("../../api_client/user/hooks/usePhotoOrder", () => ({
   useSetPhotoOrderMutation: () => ({ mutate: vi.fn<() => void>() }),
@@ -64,7 +72,7 @@ describe("usePhotoListPreferences", () => {
     await act(async () => preferences().handleThumbnailSizeChange(3));
     expect(preferences().localImageScale).toBe(3);
     await act(async () => vi.advanceTimersByTime(500));
-    expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ id: 1, image_scale: 3 }));
+    expect(mocks.save).toHaveBeenCalledWith({ id: 1, image_scale: 3 });
   });
 
   it("keeps a size not saved yet when the profile changes meanwhile", async () => {

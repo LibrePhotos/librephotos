@@ -55,17 +55,21 @@ type Options<T> = Readonly<{
 export function useServerDraft<T>(server: T, { save, isEqual = Object.is, keepOnFailure = false }: Options<T>) {
   const [state, dispatch] = useReducer(draftReducer<T>, CLEAN);
   const lastSeq = useRef(0);
+  // Saves not settled yet, also ones an edit has since taken the draft from.
+  const inFlight = useRef(0);
   const value = state.status === "clean" ? server : state.draft;
 
   const commit = async (next: T = value): Promise<boolean> => {
     // While a save runs the server may not hold `next` yet, so even an unchanged value is sent.
-    if (state.status !== "saving" && isEqual(next, server)) {
+    if (inFlight.current === 0 && isEqual(next, server)) {
       dispatch({ type: "discard" });
       return true;
     }
     const seq = ++lastSeq.current;
     dispatch({ type: "save", draft: next, seq });
+    inFlight.current += 1;
     const saved = await save(next);
+    inFlight.current -= 1;
     dispatch({ type: "settled", seq, outcome: saved ? "saved" : keepOnFailure ? "kept" : "reverted" });
     return saved;
   };

@@ -20,6 +20,13 @@ type DisplayPreferences = {
   scrubber_style: ScrubberStyle;
 };
 
+const changedPreferences = (stored: DisplayPreferences, next: DisplayPreferences): Partial<DisplayPreferences> => ({
+  ...(next.image_scale !== stored.image_scale && { image_scale: next.image_scale }),
+  ...(next.text_alignment !== stored.text_alignment && { text_alignment: next.text_alignment }),
+  ...(next.header_size !== stored.header_size && { header_size: next.header_size }),
+  ...(next.scrubber_style !== stored.scrubber_style && { scrubber_style: next.scrubber_style }),
+});
+
 type PreferenceFields = Pick<User, "id" | "image_scale" | "text_alignment" | "header_size" | "scrubber_style"> &
   Partial<Pick<User, "photo_order">>;
 
@@ -42,18 +49,17 @@ export const usePhotoListPreferences = (userSelfDetails: PreferenceFields | unde
     scrubber_style: userSelfDetails?.scrubber_style ?? "thumb",
   };
 
-  // Only the display preferences are sent: echoing the whole profile back sent the avatar URL,
+  // Only the changed preferences are sent: echoing the whole profile back sent the avatar URL,
   // which the backend rejects as "not a file" (#2153).
   const draft = useServerDraft(stored, {
-    save: async preferences => {
-      if (!userId) return false;
-      try {
-        await updateUser.mutateAsync({ id: userId, ...preferences });
-        return true;
-      } catch {
-        return false;
-      }
-    },
+    save: preferences =>
+      new Promise<boolean>(resolve => {
+        if (!userId) return resolve(false);
+        updateUser.mutate(
+          { id: userId, ...changedPreferences(stored, preferences) },
+          { onSuccess: () => resolve(true), onError: () => resolve(false) }
+        );
+      }),
     isEqual,
   });
   // Changes made within one pause are saved together.

@@ -97,6 +97,15 @@ describe("useServerDraft", () => {
     expect(draft.current().status).toBe("clean");
   });
 
+  it("sends a value typed back to the stored one while a save of another runs", async () => {
+    const { save, calls } = manualSave();
+    const draft = await renderDraft("a", save);
+    await act(async () => void draft.current().commit("b"));
+    await act(async () => draft.current().edit("a"));
+    await act(async () => void draft.current().commit());
+    expect(calls.map(call => call.value)).toEqual(["b", "a"]);
+  });
+
   it("shows the server's value again after a refused save", async () => {
     const { save, calls } = manualSave();
     const draft = await renderDraft("a", save);
