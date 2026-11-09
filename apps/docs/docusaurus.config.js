@@ -75,6 +75,24 @@ const config = {
     ],
   ],
 
+  // Search in the browser over an index built with the site: no external service or account.
+  themes: [
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      /** @type {import("@easyops-cn/docusaurus-search-local").PluginOptions} */
+      ({
+        hashed: true,
+        language: ["en"],
+        indexBlog: true,
+        docsRouteBasePath: "/docs",
+        blogRouteBasePath: "/blog",
+        highlightSearchTermsOnTargetPage: true,
+        explicitSearchResultPath: true,
+        searchResultLimits: 8,
+      }),
+    ],
+  ],
+
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
@@ -104,6 +122,8 @@ const config = {
             activeBaseRegex: "^/docs/development",
           },
           { to: "/blog", label: "Blog", position: "left" },
+          // The local search (themes above), a pill like the app's header search
+          { type: "search", position: "right" },
           {
             href: "https://github.com/LibrePhotos/librephotos",
             label: "GitHub",
