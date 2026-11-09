@@ -1196,7 +1196,9 @@ class PhotoSerializer(serializers.ModelSerializer):
 
         # Someone the photo was shared with sees the stack's other photos
         # only where they may see those too: the stack is the owner's.
-        viewer = getattr(self.context.get("request"), "user", None)
+        # Without a request it is the owner's view, as in get_similar_photos.
+        request = self.context.get("request")
+        viewer = getattr(request, "user", None) if request else obj.owner
         result = []
         for stack in stacks:
             members = stack.photos.select_related("thumbnail")
