@@ -124,16 +124,21 @@ def followup_status(user: User) -> FollowupStatus:
 
 def request_upload_followups(user: User, delay: timedelta = DEBOUNCE) -> None:
     """Photos were added for ``user``: run the follow-ups within ``delay``."""
-    states = _states(user)
-    states.update(photos_added=True)
-    if states.filter(lease_expires_at__gt=timezone.now()).update(dirty=True):
+    _states(user).update(photos_added=True)
+    if FollowupLease.mark_dirty(user):
         # The run holding the lease loops once more when it is done.
         return
     schedule_upload_followups(user, timezone.now() + delay)
 
 
 class FollowupLease:
-    """The user's lease, held under a token by one run at a time."""
+    """The user's lease, held under a token by one run at a time.
+
+    Its states: free (no holder, no expiry), held (a holder and an expiry
+    ahead), held and dirty, and expired (an expiry passed: free to take).
+    Each transition is one conditional update; the model's constraints keep
+    the fields to these states.
+    """
 
     def __init__(self, user: User, token: str) -> None:
         self.user = user
@@ -151,6 +156,21 @@ class FollowupLease:
         )
         return cls(user, token) if taken else None
 
+    @staticmethod
+    def mark_dirty(user: User) -> bool:
+        """Held to held and dirty; ``False`` when no run holds the lease."""
+        held = _states(user).filter(lease_expires_at__gt=timezone.now())
+        return bool(held.update(dirty=True))
+
+    @staticmethod
+    def expiry(user: User) -> datetime | None:
+        """When the lease runs out unless renewed; ``None`` while it is free."""
+        return (
+            UploadFollowupState.objects.owned_by(user)
+            .values_list("lease_expires_at", flat=True)
+            .first()
+        )
+
     def _held(self) -> UploadFollowupStateQuerySet:
         return UploadFollowupState.objects.owned_by(self.user).filter(
             lease_holder=self.token, lease_expires_at__gt=timezone.now()
@@ -166,18 +186,26 @@ class FollowupLease:
         ``False`` means ``dirty`` was set while the run worked: the flag is
         cleared and the run goes round once more, still holding the lease.
         """
-        if (
-            self._held()
-            .filter(dirty=False)
-            .update(lease_holder="", lease_expires_at=None)
-        ):
+        if self._free():
             return True
-        if self._held().update(dirty=False, lease_expires_at=timezone.now() + LEASE):
+        if self._go_again():
             return False
         # Lost on the way: a request may have marked it dirty and left the
-        # run to us. A scheduled run that finds the lease held does nothing.
+        # run to us. A scheduled run that finds the lease held looks again
+        # when it expires.
         schedule_upload_followups(self.user, timezone.now())
         return True
+
+    def _free(self) -> bool:
+        """Held and clean to free."""
+        clean = self._held().filter(dirty=False)
+        return bool(clean.update(lease_holder="", lease_expires_at=None))
+
+    def _go_again(self) -> bool:
+        """Held and dirty to held and clean, renewed for one more pass."""
+        return bool(
+            self._held().update(dirty=False, lease_expires_at=timezone.now() + LEASE)
+        )
 
 
 @dataclass
@@ -325,7 +353,7 @@ def run_upload_followups(user_id: int) -> None:
         return
     lease = FollowupLease.acquire(user)
     if lease is None:
-        logger.info("upload follow-ups of user %s are running already", user_id)
+        _look_again_when_the_lease_expires(user)
         return
     while True:
         if not _run_pass(lease):
@@ -335,6 +363,21 @@ def run_upload_followups(user_id: int) -> None:
             return
         if lease.release():
             return
+
+
+def _look_again_when_the_lease_expires(user: User) -> None:
+    """Re-arm the run for when the holder's lease runs out.
+
+    A worker that dies mid-run has its task handed out again
+    (``api.jobs.broker.LEASE``) before this lease expires. Ending here would
+    leave its pass, and a request that marked it dirty, to the next upload.
+    A live holder renews its lease, and the run re-armed here finds it held
+    again and waits once more.
+    """
+    expires = FollowupLease.expiry(user)
+    logger.info("upload follow-ups of user %s are running already", user.id)
+    if expires is not None:
+        schedule_upload_followups(user, expires)
 
 
 def backfill_upload_followups() -> int:

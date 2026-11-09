@@ -134,7 +134,9 @@ class UploadStatusTest(TestCase):
 
     def test_reports_the_followups(self):
         create_test_upload_followup_state(
-            self.user, lease_expires_at=timezone.now() + timedelta(minutes=5)
+            self.user,
+            lease_holder="run",
+            lease_expires_at=timezone.now() + timedelta(minutes=5),
         )
 
         self.assertEqual("running", self.status()["followups"]["state"])
@@ -157,14 +159,18 @@ class FollowupStatusTest(TestCase):
 
     def test_running_while_a_run_holds_the_lease(self):
         create_test_upload_followup_state(
-            self.user, lease_expires_at=self.now + timedelta(minutes=5)
+            self.user,
+            lease_holder="run",
+            lease_expires_at=self.now + timedelta(minutes=5),
         )
 
         self.assertEqual("running", followup_status(self.user)["state"])
 
     def test_an_expired_lease_is_no_run(self):
         create_test_upload_followup_state(
-            self.user, lease_expires_at=self.now - timedelta(minutes=1)
+            self.user,
+            lease_holder="run",
+            lease_expires_at=self.now - timedelta(minutes=1),
         )
 
         self.assertEqual("idle", followup_status(self.user)["state"])
@@ -194,7 +200,7 @@ class FollowupStatusTest(TestCase):
         other = create_test_user()
         _schedule_followups(other, self.now + timedelta(minutes=1))
         create_test_upload_followup_state(
-            other, lease_expires_at=self.now + timedelta(minutes=5)
+            other, lease_holder="run", lease_expires_at=self.now + timedelta(minutes=5)
         )
 
         self.assertEqual("idle", followup_status(self.user)["state"])

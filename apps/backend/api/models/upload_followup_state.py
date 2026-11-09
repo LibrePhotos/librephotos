@@ -21,8 +21,11 @@ class UploadFollowupState(models.Model):
     - ``lease_holder`` / ``lease_expires_at``: the run that is working now.
       Taken and renewed by conditional updates on the holder's token, so two
       workers never both hold it and a holder that let it expire cannot renew.
+      Both are set or both are empty.
     - ``dirty``: a request arrived while a run held the lease; the run loops
-      once more instead of releasing.
+      once more instead of releasing. Only set under a lease.
+
+    The transitions are in ``api.jobs.upload_followups.FollowupLease``.
     - ``photos_added``: photos were added since the last run took the flag; it
       decides whether the similarity index needs a rebuild.
     - ``face_watermark``, ``last_clustered_at``, ``last_face_label_at``: for
@@ -47,6 +50,22 @@ class UploadFollowupState(models.Model):
     objects = UploadFollowupStateQuerySet.as_manager()
 
     class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(lease_holder="", lease_expires_at__isnull=True)
+                    | (
+                        ~models.Q(lease_holder="")
+                        & models.Q(lease_expires_at__isnull=False)
+                    )
+                ),
+                name="upload_followup_lease_holder_and_expiry",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(dirty=False) | ~models.Q(lease_holder=""),
+                name="upload_followup_dirty_under_lease",
+            ),
+        ]
         verbose_name = "Upload Follow-up State"
         verbose_name_plural = "Upload Follow-up States"
 
