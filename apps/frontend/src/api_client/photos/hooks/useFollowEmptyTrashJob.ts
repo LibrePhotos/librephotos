@@ -1,9 +1,9 @@
-import type { Job } from "@librephotos/api-client";
+import type { Job, JobDetail } from "@librephotos/api-client";
 import { serverKeys, statsKeys } from "@librephotos/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { notification } from "../../../service/notifications";
-import { useFollowOwnJob } from "../../jobs/hooks/useFollowOwnJob";
+import { useFollowedJob } from "../../jobs/hooks/useFollowedJob";
 import { invalidatePhotoLists } from "../invalidatePhotoLists";
 
 const countIn = (result: Job["result"], key: string): number | null => {
@@ -31,21 +31,20 @@ export function reportEmptyTrash(job: Pick<Job, "cancelled" | "failed" | "result
 }
 
 /**
- * Follows the Empty trash job `jobId` (null: none) through the job list (`useFollowOwnJob`). Once it
- * has ended it says how it went, refreshes the photo grids and the counts, and calls `onEnded`.
- * Returns the job while it is known.
+ * Follows the Empty trash job this tab started (`useEmptyTrashMutation`). Once it has ended it says
+ * how it went and refreshes the photo grids and the counts. Returns the job's id while it is
+ * followed, also on a trash page opened again while it runs; null otherwise.
  */
-export function useFollowEmptyTrashJob(jobId: string | null, onEnded: () => void): Job | undefined {
+export function useFollowEmptyTrashJob(): string | null {
   const queryClient = useQueryClient();
   const report = useCallback(
-    (ended: Job) => {
+    (ended: JobDetail) => {
       reportEmptyTrash(ended);
       invalidatePhotoLists(queryClient);
       void queryClient.invalidateQueries({ queryKey: statsKeys.counts() });
       void queryClient.invalidateQueries({ queryKey: serverKeys.storageStats() });
-      onEnded();
     },
-    [onEnded, queryClient]
+    [queryClient]
   );
-  return useFollowOwnJob(jobId, report);
+  return useFollowedJob("emptyTrash", report).jobId;
 }

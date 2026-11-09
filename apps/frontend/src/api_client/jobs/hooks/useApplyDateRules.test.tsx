@@ -4,17 +4,18 @@
  * date set by hand.
  */
 import type { Job } from "@librephotos/api-client";
-import { photoGridKeys } from "@librephotos/api-client";
+import { jobKeys, photoGridKeys } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { jobFixture } from "../../../components/job/jobFixture.test-utils";
+import { fakeJobServer } from "../jobServer.test-utils";
 import { reportDateRules, useApplyDateRules } from "./useApplyDateRules";
 
 type EndedJob = Pick<Job, "job_id" | "finished" | "failed" | "cancelled" | "result">;
 
 const stubs = vi.hoisted(() => ({
-  jobs: [] as EndedJob[],
   notification: {
     dateRulesStarted: vi.fn<() => void>(),
     dateRulesApplied: vi.fn<(moved: number, kept: number, failed: number) => void>(),
@@ -26,26 +27,25 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../service/notifications", () => ({ notification: stubs.notification }));
-vi.mock("./useJobsQuery", () => ({
-  useJobsQuery: () => ({ data: { results: stubs.jobs } }),
-}));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 afterEach(() => {
-  stubs.jobs = [];
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
-function respond(status: number, body: unknown) {
-  const fetchMock = vi.fn<typeof fetch>(
-    async () => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
+/** The trigger answers `status` with `body`; the job list holds the job it names, running. */
+function respond(status: number, body: unknown, jobId: string) {
+  const server = fakeJobServer(url =>
+    url.pathname === "/api/photos/reapply-date-rules/"
+      ? new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
+      : undefined
   );
-  vi.stubGlobal("fetch", fetchMock);
-  return fetchMock;
+  server.setJobs([jobFixture({ job_id: jobId })]);
+  return server;
 }
 
 const ended = (fields: Partial<EndedJob>): EndedJob => ({
@@ -67,8 +67,8 @@ async function flush() {
   }
 }
 
-/** Renders the hook, clicks Apply, then lets the job list report `job`. */
-async function applyAndEnd(job: EndedJob) {
+/** Renders the hook, clicks Apply, then lets the server report `job` as it ended. */
+async function applyAndEnd(server: ReturnType<typeof respond>, job: EndedJob) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   const invalidate = vi.spyOn(client, "invalidateQueries");
   let latest: ReturnType<typeof useApplyDateRules> | undefined;
@@ -87,8 +87,8 @@ async function applyAndEnd(job: EndedJob) {
   act(() => latest?.start());
   await flush();
   const runningWhileQueued = latest?.running;
-  stubs.jobs = [job];
-  await act(async () => render());
+  server.setJobs([jobFixture(job)]);
+  await act(async () => client.refetchQueries({ queryKey: jobKeys.all }));
   await flush();
   const runningAfter = latest?.running;
   act(() => root.unmount());
@@ -97,11 +97,11 @@ async function applyAndEnd(job: EndedJob) {
 
 describe("useApplyDateRules", () => {
   it("starts the job, follows it, and reports what moved", async () => {
-    const fetchMock = respond(200, { status: true, job_id: "j1", job_ids: ["j1"] });
+    const server = respond(200, { status: true, job_id: "j1", job_ids: ["j1"] }, "j1");
 
-    const { runningWhileQueued, runningAfter, invalidate } = await applyAndEnd(ended({}));
+    const { runningWhileQueued, runningAfter, invalidate } = await applyAndEnd(server, ended({}));
 
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(server.fetchMock).toHaveBeenCalledWith(
       "/api/photos/reapply-date-rules/",
       expect.objectContaining({ method: "POST" })
     );
@@ -113,9 +113,13 @@ describe("useApplyDateRules", () => {
   });
 
   it("follows the job already running instead of starting another", async () => {
-    respond(409, { errors: [{ code: "job_already_running", message: "Already running", job_id: "j0" }] });
+    const server = respond(
+      409,
+      { errors: [{ code: "job_already_running", message: "Already running", job_id: "j0" }] },
+      "j0"
+    );
 
-    await applyAndEnd(ended({ job_id: "j0" }));
+    await applyAndEnd(server, ended({ job_id: "j0" }));
 
     expect(stubs.notification.jobAlreadyRunning).toHaveBeenCalledTimes(1);
     expect(stubs.notification.dateRulesStarted).not.toHaveBeenCalled();

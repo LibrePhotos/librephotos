@@ -3,17 +3,18 @@
  * follows it, and once it ended says how many photos were written and how many could not be.
  */
 import type { Job } from "@librephotos/api-client";
-import { settingsKeys } from "@librephotos/api-client";
+import { jobKeys, settingsKeys } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { jobFixture } from "../../../components/job/jobFixture.test-utils";
+import { fakeJobServer } from "../jobServer.test-utils";
 import { reportWriteMetadata, useWriteMetadataToFiles } from "./useWriteMetadataToFiles";
 
 type EndedJob = Pick<Job, "job_id" | "finished" | "failed" | "cancelled" | "result">;
 
 const stubs = vi.hoisted(() => ({
-  jobs: [] as EndedJob[],
   notification: {
     writeMetadataStarted: vi.fn<() => void>(),
     writeMetadataDone: vi.fn<(written: number, failed: number) => void>(),
@@ -25,27 +26,15 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../service/notifications", () => ({ notification: stubs.notification }));
-vi.mock("./useJobsQuery", () => ({
-  useJobsQuery: () => ({ data: { results: stubs.jobs } }),
-}));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 afterEach(() => {
-  stubs.jobs = [];
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
-
-function respond(status: number, body: unknown) {
-  const fetchMock = vi.fn<typeof fetch>(
-    async () => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
-  );
-  vi.stubGlobal("fetch", fetchMock);
-  return fetchMock;
-}
 
 const ended = (fields: Partial<EndedJob>): EndedJob => ({
   job_id: "j1",
@@ -68,7 +57,15 @@ async function flush() {
 
 describe("useWriteMetadataToFiles", () => {
   it("starts the job, follows it and reports the counts", async () => {
-    const fetchMock = respond(202, { job_id: "j1", types: ["ratings"] });
+    const server = fakeJobServer(url =>
+      url.pathname === "/api/savemetadata/"
+        ? new Response(JSON.stringify({ job_id: "j1", types: ["ratings"] }), {
+            status: 202,
+            headers: { "Content-Type": "application/json" },
+          })
+        : undefined
+    );
+    server.setJobs([jobFixture({ job_id: "j1", job_type_str: "Write metadata" })]);
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const invalidate = vi.spyOn(client, "invalidateQueries");
     let latest: ReturnType<typeof useWriteMetadataToFiles> | undefined;
@@ -89,12 +86,13 @@ describe("useWriteMetadataToFiles", () => {
 
     await act(async () => latest?.start());
     await flush();
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/api/savemetadata/");
+    expect(String(server.fetchMock.mock.calls[0]?.[0])).toContain("/api/savemetadata/");
     expect(stubs.notification.writeMetadataStarted).toHaveBeenCalledOnce();
     expect(latest?.running).toBe(true);
+    expect(latest?.job?.progress_current).toBe(50);
 
-    stubs.jobs = [ended({})];
-    await render();
+    server.setJobs([jobFixture({ ...ended({}) })]);
+    await act(async () => client.refetchQueries({ queryKey: jobKeys.all }));
     await flush();
 
     expect(stubs.notification.writeMetadataDone).toHaveBeenCalledWith(4060, 42);

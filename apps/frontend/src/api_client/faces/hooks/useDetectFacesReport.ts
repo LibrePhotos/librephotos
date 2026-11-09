@@ -1,7 +1,8 @@
-import { photoKeys, type Job } from "@librephotos/api-client";
+import { photoKeys, type JobDetail } from "@librephotos/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { useFollowOwnJob } from "../../jobs/hooks/useFollowOwnJob";
+import { notification } from "../../../service/notifications";
+import { useFollowJob } from "../../jobs/hooks/useFollowJob";
 import { detectFacesReports } from "../detectFacesReports";
 
 /** What Detect faces again found on one photo (#1117), or null when it was not run on it. */
@@ -16,7 +17,7 @@ const noReport = () => undefined;
 
 /**
  * Follows a Detect faces again of the photo `photoId` (started by `useDetectFacesAgainMutation`
- * for a single photo) through the job list. Once the job has ended, the photo's details are fetched
+ * for a single photo). Once the job has ended, the photo's details are fetched
  * again and its faces (`faceIds`) compared with those it had before.
  */
 export function useDetectFacesReport(
@@ -34,7 +35,7 @@ export function useDetectFacesReport(
   }, [photoId, report, faceIds]);
 
   const onEnded = useCallback(
-    (job: Pick<Job, "job_id" | "failed">) => {
+    (job: Pick<JobDetail, "job_id" | "failed">) => {
       if (!photoId) return;
       // The scan's faces are in the photo's details once they are fetched again
       void queryClient
@@ -43,7 +44,12 @@ export function useDetectFacesReport(
     },
     [photoId, queryClient]
   );
-  useFollowOwnJob(report?.state === "running" ? report.jobId : null, onEnded);
+  const runningJobId = report?.state === "running" ? report.jobId : null;
+  const onLost = useCallback(() => {
+    if (photoId && runningJobId) detectFacesReports.lose(photoId, runningJobId);
+    notification.jobLost();
+  }, [photoId, runningJobId]);
+  useFollowJob(runningJobId, onEnded, onLost);
 
   if (!photoId || !report) return null;
   const dismiss = () => detectFacesReports.dismiss(photoId);

@@ -15,6 +15,11 @@ function jobAlreadyRunning() {
   toast.warning(i18n.t("toasts.jobalreadyrunning"), { title: i18n.t("toasts.jobalreadyrunningtitle") });
 }
 
+/** A job the page was waiting on was removed from the job list before it ended, so how it went is unknown. */
+function jobLost() {
+  toast.warning(i18n.t("toasts.joblost"), { title: i18n.t("toasts.joblosttitle") });
+}
+
 /** The thumbnail metadata cleanup an admin started from the Admin Area (#2321). */
 function startStripThumbnailMetadata() {
   toast.success(i18n.t("toasts.stripthumbnailmetadata"), { title: i18n.t("toasts.stripthumbnailmetadatatitle") });
@@ -115,6 +120,7 @@ export const worker = {
   jobAlreadyRunning,
   jobCancelled,
   jobFinished,
+  jobLost,
   notWrittenToFile,
   parseError,
   requestFailed,

@@ -352,6 +352,11 @@ export const jobKeys = {
   /** Every job of the list, all its pages (the bulk remove of finished jobs): under `all`, so a job change refreshes it. */
   every: (mine: boolean) => [...jobRoot, "every", { mine }] as const,
   detail: (id: number) => [...jobRoot, "detail", id] as const,
+  /**
+   * Where a job the user started is, by the `job_id` its trigger answered with (the web's job
+   * follower). Not under `all`: a job once found keeps its id, whatever the job list shows later.
+   */
+  lookup: (jobId: string) => ["jobLookup", jobId] as const,
   /** The Library page's processing status (#2741): under `all`, so a job change refreshes it. */
   processingStatus: () => [...jobRoot, "processingStatus"] as const,
   /** The Finish the upgrade card's tasks (#2322): under `all`, so a job change refreshes them. */

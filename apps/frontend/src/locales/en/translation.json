@@ -2827,6 +2827,8 @@
     "jobcancelledtitle": "Job cancelled",
     "jobalreadyrunning": "This job is already queued or running. Its progress is shown in the job list.",
     "jobalreadyrunningtitle": "Already running",
+    "joblost": "This job is no longer in the job list, so LibrePhotos cannot say how it went.",
+    "joblosttitle": "Job removed",
     "stripthumbnailmetadata": "Removing photo details from thumbnails. Follow it in Worker Logs.",
     "stripthumbnailmetadatatitle": "Job started",
     "lookupplaces": "Looking up the place names of every photo again. Follow it in Worker Logs.",
