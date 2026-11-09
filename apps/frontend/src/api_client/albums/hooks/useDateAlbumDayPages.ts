@@ -1,40 +1,25 @@
 import { endpoints, photoGridKeys } from "@librephotos/api-client";
-import type {
-  DateAlbumsListKey,
-  DayPhotosPage,
-  IncompleteDatePhotosGroup,
-  MediaType,
-  PhotoOrder,
-  Photoset,
-} from "@librephotos/api-client";
-import { useQuery } from "@tanstack/react-query";
-import { type TimelineFilter } from "../../../components/photolist/timelineFilter";
-import { apiClient, ApiError, queryClient } from "../../api";
+import type { DateAlbumsListKey, DayPhotosPage, IncompleteDatePhotosGroup, PhotoOrder } from "@librephotos/api-client";
+import { useQueries, type QueryClient } from "@tanstack/react-query";
+import { useDayPagesOnScreen } from "../../../components/photolist/visibleDayPages";
+import { apiClient, ApiError } from "../../api";
 import { usePhotoOrder } from "../../user/hooks/usePhotoOrder";
 import { dayLayoutQuery, ensureDayLayout } from "./dateAlbumLayout";
-import { DATE_ALBUM_PAGE_SIZE, dateAlbumRequestFilter, dateAlbumsListKey } from "./useFetchDateAlbumsQuery";
-
-type AlbumDateOption = {
-  photosetType: Photoset;
-  album_date_id: number;
-  page: number;
-  username?: string;
-  person_id?: number;
-  folder?: string;
-  mediaType?: MediaType;
-  timelineFilter?: TimelineFilter;
-  library?: number;
-  withLibraries?: boolean;
-};
+import {
+  DATE_ALBUM_PAGE_SIZE,
+  dateAlbumRequestFilter,
+  dateAlbumsListKey,
+  type AlbumDateListOptions,
+} from "./useFetchDateAlbumsQuery";
 
 /** A day's request options: the list's filters, the day and the photo order (#2712). */
-type DayRequest = Omit<AlbumDateOption, "page"> & { order: PhotoOrder };
+type DayRequest = AlbumDateListOptions & { album_date_id: number; order: PhotoOrder };
 
 /**
  * The `after` of page `page` of a day: null for the first, the previous page's `next` when that page
  * is loaded and current, else the day's layout. Undefined for a page past the end of the day.
  */
-async function pageCursor(day: DayRequest, page: number): Promise<string | null | undefined> {
+async function pageCursor(queryClient: QueryClient, day: DayRequest, page: number): Promise<string | null | undefined> {
   if (page <= 1) return null;
   const previousKey = photoGridKeys.dateAlbumDay(dateAlbumsListKey(day), day.album_date_id, page - 1);
   const previous = queryClient.getQueryState<DayPhotosPage>(previousKey);
@@ -51,9 +36,9 @@ const isStaleCursor = (error: unknown) => error instanceof ApiError && error.sta
  * Page `page` of a day: the cursor that opens it, then its photos. A cursor whose photo left the
  * day since (a 400) is looked up again once in a fresh layout.
  */
-async function fetchDayPage(day: DayRequest, page: number): Promise<DayPhotosPage> {
+async function fetchDayPage(queryClient: QueryClient, day: DayRequest, page: number): Promise<DayPhotosPage> {
   const read = async () => {
-    const after = await pageCursor(day, page);
+    const after = await pageCursor(queryClient, day, page);
     if (after === undefined) return { items: [], next: null };
     return endpoints.fetchDayPhotos(
       apiClient,
@@ -81,7 +66,13 @@ async function fetchDayPage(day: DayRequest, page: number): Promise<DayPhotosPag
 }
 
 /** Put a loaded page of a day into the day's placeholders in the list cache. */
-function mergeDayPage(listKey: DateAlbumsListKey, dayId: number, page: number, items: DayPhotosPage["items"]) {
+function mergeDayPage(
+  queryClient: QueryClient,
+  listKey: DateAlbumsListKey,
+  dayId: number,
+  page: number,
+  items: DayPhotosPage["items"]
+) {
   queryClient.setQueryData<IncompleteDatePhotosGroup[]>(photoGridKeys.dateAlbumList(listKey), groups =>
     groups?.map(group => {
       if (group.id !== dayId) return group;
@@ -96,24 +87,33 @@ function mergeDayPage(listKey: DateAlbumsListKey, dayId: number, page: number, i
   );
 }
 
-// One page of a day, in the same photo order (#2712) as the day list it fills in.
-export const useFetchDateAlbumQuery = (dayOptions: AlbumDateOption, queryOptions?: { skip?: boolean }) => {
-  const photoOrder = usePhotoOrder();
-  const options = { ...dayOptions, order: photoOrder.order };
-  return useQuery({
-    queryKey: photoGridKeys.dateAlbumDay(dateAlbumsListKey(options), options.album_date_id, options.page),
-    queryFn: async () => {
+/** One page of a day, in the same photo order (#2712) as the day list it fills in. */
+function dayPageQuery(day: DayRequest, page: number) {
+  return {
+    queryKey: photoGridKeys.dateAlbumDay(dateAlbumsListKey(day), day.album_date_id, page),
+    queryFn: async ({ client }: { client: QueryClient }) => {
       // Beside the day's first page: the shapes of all its photos, so its pages arrive in place.
-      ensureDayLayout(
-        queryClient,
-        dateAlbumsListKey(options),
-        options.album_date_id,
-        dateAlbumRequestFilter(options)
-      ).catch(() => undefined);
-      const result = await fetchDayPage(options, options.page);
-      mergeDayPage(dateAlbumsListKey(options), options.album_date_id, options.page, result.items);
+      ensureDayLayout(client, dateAlbumsListKey(day), day.album_date_id, dateAlbumRequestFilter(day)).catch(
+        () => undefined
+      );
+      const result = await fetchDayPage(client, day, page);
+      mergeDayPage(client, dateAlbumsListKey(day), day.album_date_id, page, result.items);
       return result;
     },
-    enabled: !queryOptions?.skip && photoOrder.ready,
+  };
+}
+
+/**
+ * Loads the day pages of the list `listOptions` that are on screen, all at once, and returns the
+ * `updateGroups` the photo list reports them through. Each page merges into the list as it arrives.
+ */
+export const useDateAlbumDayPages = (listOptions: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
+  const photoOrder = usePhotoOrder();
+  const options = { ...listOptions, order: photoOrder.order };
+  const { pages, updateGroups } = useDayPagesOnScreen(JSON.stringify(dateAlbumsListKey(options)));
+  const enabled = !queryOptions?.skip && photoOrder.ready;
+  useQueries({
+    queries: pages.map(({ day, page }) => ({ ...dayPageQuery({ ...options, album_date_id: day }, page), enabled })),
   });
+  return updateGroups;
 };

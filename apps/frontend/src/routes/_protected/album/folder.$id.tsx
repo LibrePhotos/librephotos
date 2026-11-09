@@ -8,7 +8,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  useFetchDateAlbumQuery,
+  useDateAlbumDayPages,
   useFetchDateAlbumsQuery,
   useFetchFolderSubfoldersQuery,
 } from "../../../api_client/albums/hooks";
@@ -16,7 +16,6 @@ import { FolderActionsMenu } from "../../../components/album/FolderActionsMenu";
 import { FolderListModal } from "../../../components/album/FolderListModal";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
-import type { PhotoGroup, PigVisibleGroup } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
@@ -85,25 +84,8 @@ function FolderDetail() {
     }
   }, [photosGroupedByDate]);
 
-  // No group to fetch until the grid asks for one
-  const [group, setGroup] = useState<PhotoGroup>({ id: 0, page: 0 });
-
-  useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, folder: folderPath, mediaType },
-    { skip: !group.id }
-  );
-
-  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
-    visibleGroups.reverse().forEach(photoGroup => {
-      const visibleImages = photoGroup.items;
-      const firstTempObject = visibleImages.find(i => i.isTemp);
-      if (firstTempObject) {
-        const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
-
-        setGroup({ id: photoGroup.id, page });
-      }
-    });
-  };
+  // Pig reports the day groups on screen; their placeholders name the pages still to load.
+  const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.NONE, folder: folderPath, mediaType });
 
   function getSubheader() {
     // The server knows where the library ends (null at the scan directory) and

@@ -42,7 +42,7 @@ type HydratableGroup<T> = Pick<IncompleteDatePhotosGroup, "id" | "numberOfItems"
 // upload, a rotation, ...) keeps showing the day pages that are still
 // current instead of dropping back to blank placeholders that nothing
 // re-requests. Pages resolved later merge into the list cache themselves
-// (see useFetchDateAlbumQuery), so the two refetches can finish in any order.
+// (see useDateAlbumDayPages), so the two refetches can finish in any order.
 export function hydrateGroupsFromCachedPages<T>(groups: HydratableGroup<T>[], pages: CachedDateAlbumPage<T>[]) {
   pages.forEach(({ albumDateId, page, items }) => {
     const group = groups.find(g => g.id === albumDateId);
@@ -69,7 +69,7 @@ function sameFilters(queryKey: readonly unknown[], listKey: DateAlbumsListKey): 
 }
 
 // Collects the still-valid, already-loaded pages of every date album that
-// belongs to the list identified by `listKey` (see useFetchDateAlbumQuery for
+// belongs to the list identified by `listKey` (see useDateAlbumDayPages for
 // the per-day query key layout).
 function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPage[] {
   return queryClient
@@ -77,7 +77,7 @@ function getCachedDateAlbumPages(listKey: DateAlbumsListKey): CachedDateAlbumPag
     .findAll({ queryKey: photoGridKeys.dateAlbumDays(listKey[0]) })
     .flatMap(query => {
       const [, , , albumDateId, page] = query.queryKey;
-      // useFetchDateAlbumQuery is the only query under this key, and it caches the day's page.
+      // useDateAlbumDayPages is the only query under this key, and it caches the day's page.
       const data = queryClient.getQueryData<DayPhotosPage>(query.queryKey);
       if (
         query.state.isInvalidated ||
@@ -112,7 +112,7 @@ export function buildDateAlbumFilter(photosetType: Photoset, mediaType?: MediaTy
 }
 
 // Define the parameter types for the queries
-type AlbumDateListOptions = {
+export type AlbumDateListOptions = {
   photosetType: Photoset;
   person_id?: number;
   username?: string;
@@ -152,7 +152,7 @@ export function dateAlbumRequestFilter(options: AlbumDateListOptions): DateAlbum
   };
 }
 
-// The list's query key; useFetchDateAlbumQuery merges its pages into it.
+// The list's query key; useDateAlbumDayPages merges its pages into it.
 export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsListKey {
   const library = libraryKey(options);
   const key: DateAlbumsListKey = [

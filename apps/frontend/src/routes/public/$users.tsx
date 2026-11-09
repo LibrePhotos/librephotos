@@ -3,11 +3,9 @@ import { Photoset } from "@librephotos/api-client";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, usePublicAlbumQuery } from "../../api_client/albums/hooks";
+import { useDateAlbumDayPages, useFetchDateAlbumsQuery, usePublicAlbumQuery } from "../../api_client/albums/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import type { PhotoGroup } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { PigVisibleGroup } from "../../components/photolist/PhotoListView";
 import { validatePhotoSearch } from "../../components/photolist/photoSearch";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
@@ -38,12 +36,8 @@ function UserPublicPage() {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  // No day group asked for yet: the query below stays disabled until one is.
-  const [group, setGroup] = useState<PhotoGroup>({ id: 0, page: 0 });
-  useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.PUBLIC, username: users },
-    { skip: !group.id }
-  );
+  // Pig reports the day groups on screen; their placeholders name the pages still to load.
+  const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.PUBLIC, username: users });
 
   // ?album= names one of the user's public albums by its link slug: show it instead. The
   // album's id alone opens nothing for a visitor.
@@ -55,18 +49,6 @@ function UserPublicPage() {
   const pageTitle =
     currentUser?.username === users ? t("sidemenu.mypublicphotos") : t("sharing.publicPhotosOf", { name: users });
   usePublicPageTitle(albumSlug && userAlbum ? userAlbum.title : pageTitle);
-
-  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
-    visibleGroups.reverse().forEach(photoGroup => {
-      const visibleImages = photoGroup.items;
-      const firstTempObject = visibleImages.find(i => i.isTemp);
-      if (firstTempObject) {
-        const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
-
-        setGroup({ id: photoGroup.id, page });
-      }
-    });
-  };
 
   // If a specific album is requested and loaded, render it directly
   if (albumSlug && userAlbum) {

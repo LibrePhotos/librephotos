@@ -1,6 +1,7 @@
 import { endpoints, galleryKeys, photoGridKeys } from "@librephotos/api-client";
 import type { GalleryFilter, IncompleteDatePhotosGroup, PigPhoto } from "@librephotos/api-client";
-import { useQuery, type QueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, type QueryClient } from "@tanstack/react-query";
+import { useDayPagesOnScreen } from "../../components/photolist/visibleDayPages";
 import { addTempElementsToGroups } from "../../util/util";
 import { DATE_ALBUM_PAGE_SIZE, hydrateGroupsFromCachedPages } from "../albums/hooks/useFetchDateAlbumsQuery";
 import type { CachedDateAlbumPage } from "../albums/hooks/useFetchDateAlbumsQuery";
@@ -93,14 +94,21 @@ function mergeDayPage(queryClient: QueryClient, filter: GalleryFilter, day: numb
   );
 }
 
-/** One page of a day of the gallery's timeline; merged into the timeline when it arrives. */
-export const useGalleryDayQuery = (filter: GalleryFilter, day: number, page: number) =>
-  useQuery({
-    queryKey: photoGridKeys.galleryDay(filter, day, page),
-    queryFn: async ({ client }) => {
-      const { results } = await endpoints.fetchGalleryDayPhotos(apiClient, day, page, filter);
-      mergeDayPage(client, filter, day, page, results);
-      return results;
-    },
-    enabled: day > 0,
+/**
+ * Loads the day pages of `filter`'s timeline that are on screen, all at once, and returns the
+ * `updateGroups` the photo list reports them through. Each page merges into the timeline as it arrives.
+ */
+export const useGalleryDayPages = (filter: GalleryFilter) => {
+  const { pages, updateGroups } = useDayPagesOnScreen(JSON.stringify(filter));
+  useQueries({
+    queries: pages.map(({ day, page }) => ({
+      queryKey: photoGridKeys.galleryDay(filter, day, page),
+      queryFn: async ({ client }) => {
+        const { results } = await endpoints.fetchGalleryDayPhotos(apiClient, day, page, filter);
+        mergeDayPage(client, filter, day, page, results);
+        return results;
+      },
+    })),
   });
+  return updateGroups;
+};

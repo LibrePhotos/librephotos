@@ -4,12 +4,11 @@ import { IconArchive as Archive } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
-import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
@@ -37,23 +36,8 @@ function ArchivedPhotos() {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState(NO_PHOTO_GROUP);
-  useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.ARCHIVED, mediaType },
-    { skip: !group.id }
-  );
-
-  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
-    visibleGroups.reverse().forEach(photoGroup => {
-      const visibleImages = photoGroup.items;
-      const firstTempObject = visibleImages.find(i => i.isTemp);
-      if (firstTempObject) {
-        const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
-
-        setGroup({ id: photoGroup.id, page });
-      }
-    });
-  };
+  // Pig reports the day groups on screen; their placeholders name the pages still to load.
+  const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.ARCHIVED, mediaType });
 
   const emptyStateConfig: EmptyStateConfig = useMemo(
     () => ({

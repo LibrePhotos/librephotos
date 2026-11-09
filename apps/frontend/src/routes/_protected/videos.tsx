@@ -4,11 +4,10 @@ import { IconVideo as Video } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
-import { NO_PHOTO_GROUP } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { validatePhotoSearch } from "../../components/photolist/photoSearch";
 import { useScanEmptyStateAction } from "../../components/photolist/useScanEmptyStateAction";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
@@ -30,23 +29,8 @@ function OnlyVideos() {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  const [group, setGroup] = useState(NO_PHOTO_GROUP);
-  useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.VIDEOS },
-    { skip: !group.id }
-  );
-
-  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
-    visibleGroups.reverse().forEach(photoGroup => {
-      const visibleImages = photoGroup.items;
-      const firstTempObject = visibleImages.find(i => i.isTemp);
-      if (firstTempObject) {
-        const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
-
-        setGroup({ id: photoGroup.id, page });
-      }
-    });
-  };
+  // Pig reports the day groups on screen; their placeholders name the pages still to load.
+  const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.VIDEOS });
 
   const emptyAction = useScanEmptyStateAction(t("emptystate.videos.description"));
   const emptyStateConfig: EmptyStateConfig = useMemo(

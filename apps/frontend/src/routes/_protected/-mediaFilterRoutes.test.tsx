@@ -45,8 +45,9 @@ vi.mock("../../api_client/albums/hooks", () => ({
     stubs.listOptions.push(options);
     return stubs.query;
   },
-  useFetchDateAlbumQuery: (options: ListOptions) => {
+  useDateAlbumDayPages: (options: ListOptions) => {
     stubs.dayOptions.push(options);
+    return () => {};
   },
 }));
 vi.mock("../../api_client/settings/hooks", () => ({

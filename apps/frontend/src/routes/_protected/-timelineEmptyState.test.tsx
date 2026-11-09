@@ -40,7 +40,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useFetchDateAlbumsQuery: () => stubs.emptyTimeline,
-  useFetchDateAlbumQuery: () => ({}),
+  useDateAlbumDayPages: () => () => {},
 }));
 vi.mock("../../api_client/photos/hooks/useFetchRecentlyAddedPhotosQuery", () => ({
   useFetchRecentlyAddedPhotosQuery: () => stubs.emptyRecent,

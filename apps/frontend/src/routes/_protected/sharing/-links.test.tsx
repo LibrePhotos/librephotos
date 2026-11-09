@@ -60,14 +60,14 @@ vi.mock("../../../api_client/user/hooks", () => {
 });
 vi.mock("../../../api_client/albums/hooks", () => {
   const userAlbums = { data: [], isLoading: false };
-  const noPage = { data: undefined, isLoading: false };
+  const loadDays = () => {};
   return {
     DATE_ALBUM_PAGE_SIZE: 100,
     useFetchDateAlbumsQuery: (options: DayListOptions) => {
       stubs.dayListOptions.push(options);
       return { data: stubs.days, isLoading: false };
     },
-    useFetchDateAlbumQuery: () => noPage,
+    useDateAlbumDayPages: () => loadDays,
     useFetchUserAlbumsQuery: () => userAlbums,
     useRemovePhotoFromUserAlbumMutation: () => ({ mutate: () => {} }),
     useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),

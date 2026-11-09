@@ -59,7 +59,6 @@ const getTileUrl = (imageHash: string, pxHeight: number, poster = false) => {
   return poster ? mediaUrl.squarePoster(imageHash) : mediaUrl.squareThumbnail(imageHash);
 };
 
-export type { PhotoGroup } from "./photoGroup";
 // The pages that load their own date groups read the visible ones in the shape Pig reports.
 export type { GroupedImageItem, PigHandle, PigVisibleGroup } from "../react-pig";
 

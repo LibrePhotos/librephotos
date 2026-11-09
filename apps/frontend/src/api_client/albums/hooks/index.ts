@@ -24,7 +24,7 @@ export * from "./useCreateUserAlbumMutation";
 export * from "./useRemovePhotoFromUserAlbumMutation";
 export * from "./useSetUserAlbumCoverMutation";
 export * from "./useAddPhotoToUserAlbumMutation";
-export * from "./useFetchDateAlbumQuery";
+export * from "./useDateAlbumDayPages";
 export * from "./useFetchDateAlbumsQuery";
 export * from "./useFetchAutoAlbumQuery";
 export * from "./useDeleteAutoAlbumMutation";

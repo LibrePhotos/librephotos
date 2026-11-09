@@ -49,7 +49,7 @@ vi.mock("../../../api_client/albums/hooks", () => ({
     };
   },
   useFetchDateAlbumsQuery: () => stubs.dateAlbums,
-  useFetchDateAlbumQuery: () => ({}),
+  useDateAlbumDayPages: () => () => {},
 }));
 // The menu has its own test; here it only matters that the page passes it the person.
 vi.mock("../../../components/album/PersonHeaderMenu", () => ({ PersonHeaderMenu: () => null }));

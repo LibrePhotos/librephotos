@@ -1,7 +1,6 @@
 /**
  * The gallery's timeline (#434): the days of the photo list, every tile marked with whose photo it
- * is, the page of a day asked for once its placeholders are on screen (never a day of the timeline
- * of another filter), and an empty state that tells "nobody shows photos yet" from "nothing matches".
+ * is, the day pages on screen loaded under the timeline's filter, and an empty state that tells "nobody shows photos yet" from "nothing matches".
  */
 import type { GalleryFilter, IncompleteDatePhotosGroup, PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
@@ -25,7 +24,8 @@ type ListProps = {
 const stubs = vi.hoisted(() => ({
   days: undefined as IncompleteDatePhotosGroup[] | undefined,
   error: null as Error | null,
-  dayAsked: [] as [GalleryFilter, number, number][],
+  dayFilters: [] as GalleryFilter[],
+  loadDays: vi.fn<(groups: PigVisibleGroup<PigPhoto>[]) => void>(),
   list: undefined as ListProps | undefined,
   marked: false,
 }));
@@ -39,9 +39,9 @@ vi.mock("../../api_client/gallery/hooks", () => ({
     isFetching: false,
     refetch: async () => undefined,
   }),
-  useGalleryDayQuery: (filter: GalleryFilter, day: number, page: number) => {
-    stubs.dayAsked.push([filter, day, page]);
-    return {};
+  useGalleryDayPages: (filter: GalleryFilter) => {
+    stubs.dayFilters.push(filter);
+    return stubs.loadDays;
   },
 }));
 vi.mock("../photolist/PhotoListView", () => ({
@@ -82,7 +82,7 @@ const day = (id: number, count: number): IncompleteDatePhotosGroup => ({
 beforeEach(() => {
   stubs.days = [day(20250816, 150), day(1, 2)];
   stubs.error = null;
-  stubs.dayAsked = [];
+  stubs.dayFilters = [];
   stubs.list = undefined;
   stubs.marked = false;
 });
@@ -113,20 +113,13 @@ describe("the gallery timeline", () => {
     expect(list.isPublic).toBe(true);
     expect(list.selectable).toBe(false);
     expect(stubs.marked).toBe(true);
-    expect(stubs.dayAsked.at(-1)).toEqual([{}, 0, 1]);
+    expect(stubs.dayFilters.at(-1)).toEqual({});
   });
 
-  it("asks for the page of a day whose placeholders are on screen", async () => {
+  it("loads the day pages on screen under the timeline's filter", async () => {
     await render({ owner: 2 });
-    const list = defined(stubs.list);
-    const placeholders = Array.from({ length: 50 }, (_, i) => tempPigPhoto(String(100 + i)));
-    await act(async () => list.updateGroups([{ id: 20250816, date: null, items: placeholders }]));
-    expect(stubs.dayAsked.at(-1)).toEqual([{ owner: 2 }, 20250816, 2]);
-  });
-
-  it("does not ask the new filter for a day of the old timeline", async () => {
-    await render({ owner: 2 });
-    await act(async () => defined(stubs.list).updateGroups([{ id: 1, date: null, items: [tempPigPhoto("0")] }]));
+    expect(defined(stubs.list).updateGroups).toBe(stubs.loadDays);
+    expect(stubs.dayFilters.at(-1)).toEqual({ owner: 2 });
     await act(async () =>
       defined(root).render(
         <MantineProvider env="test">
@@ -134,7 +127,7 @@ describe("the gallery timeline", () => {
         </MantineProvider>
       )
     );
-    expect(stubs.dayAsked.at(-1)).toEqual([{ owner: 3 }, 0, 1]);
+    expect(stubs.dayFilters.at(-1)).toEqual({ owner: 3 });
   });
 
   it("tells an empty gallery from a filter that matches nothing", async () => {
