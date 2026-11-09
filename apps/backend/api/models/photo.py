@@ -32,13 +32,23 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
         """Photos ``user`` may read: their own, shared directly to them, public,
         or in a library shared with them (``in_shared_libraries``).
 
-        Album shares are resolved by the media views, not here. What a
-        library recipient sees of each photo is ``api.sharing.grants``' call.
+        Only their own once hidden, trashed or removed: nothing clears
+        ``shared_to`` or ``public`` then, so a share or a public flag alone
+        kept the photo readable by everyone it had reached
+        (GHSA-57r4-v566-3rcw). Album shares are resolved by the media views,
+        not here. What a library recipient sees of each photo is
+        ``api.sharing.grants``' call.
         """
         q = Q(public=True)
         if isinstance(user, User) and user.is_authenticated:
-            q |= self.owner_q(user) | Q(shared_to=user) | shared_library_q(user)
-        return self.filter(q)
+            q |= Q(shared_to=user) | shared_library_q(user)
+            return self.filter((q & shown_photo_q()) | self.owner_q(user))
+        return self.filter(q & shown_photo_q())
+
+    def shown(self) -> Self:
+        """The photos that are not hidden, trashed or removed: the only ones
+        anyone but their owner may still be shown (``shown_photo_q``)."""
+        return self.filter(shown_photo_q())
 
     def in_shared_libraries(self, user: User | AnonymousUser | None) -> Self:
         """The photos of the libraries other users share with ``user`` (#2731).
@@ -115,7 +125,19 @@ def shared_library_q(
     if shares is None:
         shares = LibraryShare.objects.received_by(user)
     owners = shares.values("owner_id")
-    return Q(**{f"{prefix}owner__in": owners}) & Q(  # owner-scope: library sharers
+    # owner-scope: library sharers
+    return Q(**{f"{prefix}owner__in": owners}) & shown_photo_q(prefix)
+
+
+def shown_photo_q(prefix: str = "") -> Q:
+    """Not hidden, trashed or removed, as a ``Q``: what a share, a public
+    flag or an album may still show to anyone but the photo's owner.
+
+    ``visible_photo_q`` without its thumbnail condition, so a shared photo
+    that is still being processed stays the recipient's as it is the owner's.
+    ``prefix`` reaches the photos through a relation (``"photo__"``).
+    """
+    return Q(
         **{
             f"{prefix}hidden": False,
             f"{prefix}in_trashcan": False,

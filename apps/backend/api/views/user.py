@@ -23,6 +23,7 @@ from api.accounts.permissions import (
     IsAdminOrFirstTimeSetupOrRegistrationAllowed,
     IsAdminOrSelf,
     IsSuperUser,
+    MayManageUser,
 )
 from api.accounts.throttling import AuthRateThrottle
 from api.drf.pagination import DefaultPagination
@@ -304,4 +305,5 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
 class ManageUserViewSet(PartialUpdateModelMixin[User], viewsets.GenericViewSet):
     queryset = with_user_relations(User.objects.all()).order_by("id")
     serializer_class = ManageUserSerializer
-    permission_classes = (IsAdminUser,)
+    # A superuser is edited by superusers only (GHSA-57r4-v566-3rcw).
+    permission_classes = (IsAdminUser, MayManageUser)

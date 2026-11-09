@@ -893,12 +893,19 @@ class MediaServingView(APIView):
                 if p.owner_id == user.id:
                     return p
             for p in candidates:
-                if p.shared_to.filter(id=user.id).exists():
+                if self._shared_directly(p, user):
                     return p
         for p in candidates:
             if self._in_public_album(p) or self._is_public_photo(p):
                 return p
         return candidates[0]
+
+    @staticmethod
+    def _shared_directly(photo: Photo, user: User) -> bool:
+        """Whether ``photo``'s owner shared it with ``user`` and has not hidden,
+        trashed or removed it since: none of those clears ``shared_to``, so
+        the share alone kept the files served (GHSA-57r4-v566-3rcw)."""
+        return Photo.objects.shown().shared_with(user).filter(pk=photo.pk).exists()
 
     def _may_access(
         self, photo: Photo, user: User | None, original: bool = False
@@ -917,7 +924,7 @@ class MediaServingView(APIView):
         """
         if user is None:
             return False
-        if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
+        if photo.owner_id == user.id or self._shared_directly(photo, user):
             return True
         grant = indirect_grants(user, [photo.pk]).get(photo.pk)
         if grant is not None and (grant.originals or not original):
@@ -1317,7 +1324,7 @@ class MediaServingView(APIView):
             grant = self._library_grant(photo, user)
             if grant is not None:
                 return self._library_original(photo, grant, use_proxy, transcode)
-            if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
+            if photo.owner_id == user.id or self._shared_directly(photo, user):
                 return self._generate_response_original(
                     photo, use_proxy, transcode, inline=True
                 )

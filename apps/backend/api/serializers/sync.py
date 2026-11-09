@@ -12,6 +12,7 @@ from typing import Any
 from rest_framework import serializers
 
 from api.drf.params import ClampedIntegerField
+from api.sharing.grants import ALWAYS, NEVER, FieldRules, LibraryGrant, redact
 
 # Rows per page of a feed. The mobile app asks for MAX_PAGE_SIZE on purpose
 # (apps/mobile/src/sync/remote/delta.ts); a larger page_size is clamped to it.
@@ -136,6 +137,49 @@ def serialize_photo_row(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# What a library share's recipient gets of each ``serialize_photo_row`` field,
+# the rules of ``api.sharing.grants.DETAIL_FIELDS`` under the feed's names.
+# A field missing here is hidden from recipients.
+PHOTO_ROW_FIELDS: FieldRules = {
+    "id": (ALWAYS, None),
+    "image_hash": (ALWAYS, None),
+    "owner_id": (ALWAYS, None),
+    "timestamp": ("timestamps", None),
+    "added_on": ("users", None),
+    "last_modified": (ALWAYS, None),
+    "type": (ALWAYS, None),
+    "video_length_ms": (ALWAYS, None),
+    "rating": (NEVER, 0),
+    "is_favorite": (NEVER, False),
+    "hidden": (ALWAYS, None),
+    "archived": ("users", False),
+    "is_screenshot": (ALWAYS, None),
+    "is_document": (ALWAYS, None),
+    "in_trashcan": (ALWAYS, None),
+    "removed": (ALWAYS, None),
+    "is_public": (NEVER, False),
+    "aspect_ratio": (ALWAYS, None),
+    "latitude": ("location", None),
+    "longitude": ("location", None),
+    "search_location": ("location", ""),
+    "dominant_color": (ALWAYS, None),
+}
+
+
+def serialize_shared_photo_row(
+    row: dict[str, Any], grant: LibraryGrant | None
+) -> dict[str, Any]:
+    """``serialize_photo_row`` for a photo of someone who shares their
+    library with the requester: the share's switches decide, as they do for
+    the photo's detail (GHSA-9j7w-vxf9-x93c). ``grant`` None leaves the row
+    whole (the requester's own photo, or one shared without a library share).
+    """
+    data = serialize_photo_row(row)
+    if grant is not None:
+        redact(data, PHOTO_ROW_FIELDS, grant)
+    return data
+
+
 # --------------------------------------------------------------------------- #
 # Person
 # --------------------------------------------------------------------------- #
@@ -174,6 +218,7 @@ USER_ALBUM_VALUES = (
     "title",
     "owner_id",
     "favorited",
+    "cover_photo_id",
     "cover_photo__image_hash",
     "created_on",
     "last_modified",

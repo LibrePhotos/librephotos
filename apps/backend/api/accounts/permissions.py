@@ -8,11 +8,33 @@ from api.models import AlbumUser, AlbumUserPhoto, Photo, User
 
 
 class IsAdminOrSelf(permissions.BasePermission):
+    """A user edits their own account; staff edit the others.
+
+    A superuser's account only by a superuser: staff who are not one could
+    set its password or email and sign in as it (GHSA-57r4-v566-3rcw).
+    """
+
     def has_object_permission(self, request: Request, view: APIView, obj: User) -> bool:
         if request.method in permissions.SAFE_METHODS:
             return True
+        if obj == request.user:
+            return True
+        return bool(request.user.is_staff and outranks_or_equals(request.user, obj))
 
-        return bool(bool(request.user) and request.user.is_staff or obj == request.user)
+
+def outranks_or_equals(actor: User, target: User) -> bool:
+    """Whether ``actor`` may act on ``target``'s account as an admin: a
+    superuser on anyone, anyone else not on a superuser."""
+    return bool(actor.is_superuser or not target.is_superuser)
+
+
+class MayManageUser(permissions.BasePermission):
+    """The ``outranks_or_equals`` rule as an object permission, for the admin
+    user editor; list it after ``IsAdminUser``."""
+
+    def has_object_permission(self, request: Request, view: APIView, obj: User) -> bool:
+        actor = request.user
+        return isinstance(actor, User) and outranks_or_equals(actor, obj)
 
 
 class IsSuperUser(permissions.BasePermission):
@@ -55,10 +77,10 @@ class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
     def has_object_permission(
         self, request: Request, view: APIView, obj: Photo
     ) -> bool:
-        if obj.public:
-            return True
-
-        if obj.owner == request.user or request.user in obj.shared_to.all():
+        # Owner, a direct share, a public photo or a shared library, and for
+        # anyone but the owner never once hidden, trashed or removed: hiding
+        # clears neither ``shared_to`` nor ``public`` (GHSA-57r4-v566-3rcw).
+        if Photo.objects.visible_to(request.user).filter(pk=obj.pk).exists():
             return True
 
         # Through an album only along a vouched link (the album owner's photo,
@@ -73,14 +95,7 @@ class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
             return True
 
         # An approved photo of a person shared with the requester (#668).
-        if photos_seen_through_people(request.user).filter(pk=obj.pk).exists():
-            return True
-
-        # A photo of a library shared with the requester (#2731); never a
-        # hidden, trashed or removed one.
-        return (
-            Photo.objects.in_shared_libraries(request.user).filter(pk=obj.pk).exists()
-        )
+        return photos_seen_through_people(request.user).filter(pk=obj.pk).exists()
 
 
 class IsNextcloudEnabled(permissions.BasePermission):
