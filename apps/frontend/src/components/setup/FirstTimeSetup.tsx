@@ -32,21 +32,33 @@ type FirstTimeSetupProps = {
   onComplete?: () => void;
 };
 
+/**
+ * The admin account: `new` until the sign-up went through, then `created`. A sign-in that fails
+ * after it is tried again on its own: signing up again only said "user exists".
+ */
+type AccountStage = "new" | "created";
+
 type SetupAccountFormProps = {
   form: UseFormReturnType<SignupValues>;
   onSubmit: FormEventHandler<HTMLFormElement>;
   disabled: boolean;
+  stage: AccountStage;
 };
 
 /** The first step: the admin account. */
-function SetupAccountForm({ form, onSubmit, disabled }: SetupAccountFormProps): React.JSX.Element {
+function SetupAccountForm({ form, onSubmit, disabled, stage }: SetupAccountFormProps): React.JSX.Element {
   const { t } = useTranslation();
   return (
     <form onSubmit={onSubmit}>
       <Stack>
         <SignupFields form={form} />
+        {stage === "created" ? (
+          <Text size="sm" c="dimmed">
+            {t("login.setupsigninagain")}
+          </Text>
+        ) : null}
         <Button type="submit" fullWidth disabled={disabled}>
-          {t("login.createadmin")}
+          {stage === "created" ? t("login.signin") : t("login.createadmin")}
         </Button>
       </Stack>
     </form>
@@ -85,6 +97,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
   const [activeStep, setActiveStep] = useState(0);
+  const [account, setAccount] = useState<AccountStage>("new");
   const [scanDirectory, setScanDirectory] = useState("");
   const [isPathValid, setIsPathValid] = useState(true);
   // Null without a scan directory: the backend refuses uploads then.
@@ -109,19 +122,18 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
   function onSignUp(values: typeof form.values): void {
     const { email, first_name: firstName, last_name: lastName, password } = values;
     const username = values.username.toLowerCase();
+    const signIn = () => login({ username, password }, { onSuccess: () => setActiveStep(1) });
+    if (account === "created") {
+      signIn();
+      return;
+    }
     signup(
       { email, first_name: firstName, last_name: lastName, username, password },
       {
         onSuccess: () => {
+          setAccount("created");
           void queryClient.invalidateQueries({ queryKey: userKeys.list() });
-          login(
-            { username, password },
-            {
-              onSuccess: () => {
-                setActiveStep(1);
-              },
-            }
-          );
+          signIn();
         },
         // A rejected sign-up (username taken, password refused) used to do
         // nothing at all: the button re-enabled and the form said nothing.
@@ -147,6 +159,12 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
   const flip = (field: "allow_upload" | "allow_registration", checked: boolean) =>
     toggles.update(values => values && { ...values, [field]: checked });
 
+  // Finish and Skip both end the setup here, then open the app.
+  const finish = () => {
+    onComplete?.();
+    void navigate({ to: "/" });
+  };
+
   const handleFinish = () => {
     if (!canSaveDirectory) {
       return;
@@ -159,8 +177,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
             if (scanDirectory) {
               scanPhotos.mutate();
             }
-            onComplete?.();
-            void navigate({ to: "/" });
+            finish();
           },
           // Without this the wizard just does nothing when the backend rejects
           // the directory, leaving the admin stuck. See issue #492.
@@ -169,8 +186,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
       );
       return;
     }
-    onComplete?.();
-    void navigate({ to: "/" });
+    finish();
   };
 
   // Each step's label under its dot and the line under the heading.
@@ -207,7 +223,12 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
       }
     >
       {activeStep === 0 && (
-        <SetupAccountForm form={form} onSubmit={form.onSubmit(onSignUp)} disabled={isSignupPending || isLoginPending} />
+        <SetupAccountForm
+          form={form}
+          onSubmit={form.onSubmit(onSignUp)}
+          disabled={isSignupPending || isLoginPending}
+          stage={account}
+        />
       )}
       {activeStep === 1 && (
         <Stack gap="md">
@@ -259,7 +280,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
             }
           />
           <Group grow>
-            <Button variant="light" onClick={() => void navigate({ to: "/" })}>
+            <Button variant="light" onClick={finish}>
               {t("skip")}
             </Button>
             <Button

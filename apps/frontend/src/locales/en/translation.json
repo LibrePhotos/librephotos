@@ -1629,6 +1629,7 @@
     "name": "LibrePhotos",
     "login": "Login",
     "signin": "Sign in",
+    "setupsigninagain": "The admin account is created, but signing in failed. Sign in to go on.",
     "username": "User name",
     "usernameplaceholder": "Username",
     "usernamelabel": "User name",
