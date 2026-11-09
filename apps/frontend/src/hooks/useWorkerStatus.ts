@@ -1,24 +1,7 @@
 import type { JobDetail } from "@librephotos/api-client";
-import { useEffect, useState } from "react";
-import { useWorkerQuery } from "../api_client/jobs/hooks";
+import { useJobQueue } from "./useJobQueue";
 
-export function useWorkerStatus() {
-  const { data: worker, isLoading } = useWorkerQuery();
-
-  const [workerRunningJob, setWorkerRunningJob] = useState<JobDetail | null>(null);
-  const [workerAvailable, setWorkerAvailable] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (worker) {
-      setWorkerAvailable(worker.queue_can_accept_job);
-      setWorkerRunningJob(worker.job_detail || null);
-    }
-  }, [worker]);
-
-  return {
-    workerRunningJob,
-    workerAvailable,
-    isLoading,
-    currentData: worker,
-  };
+/** The job the worker runs, when the user may see it; null before the server has answered too. */
+export function useWorkerStatus(): { workerRunningJob: JobDetail | null } {
+  return { workerRunningJob: useJobQueue().job };
 }
