@@ -31,6 +31,13 @@ const aloneItem = (id: string, details: Photo): LightboxItem => ({
   location: details.search_location ?? undefined,
 });
 
+/** How the lightbox shows `photo`: decided once it opens and the list (`loaded`) is there, then kept. */
+function nextView(view: LightboxView | null, photo: string | undefined, loaded: PigPhoto[] | undefined) {
+  if (photo === undefined) return null;
+  if (view !== null || loaded === undefined) return view;
+  return isInList(loaded, photo) ? "list" : "alone";
+}
+
 /** A photo's tile in Pig's layout, without flattening it: a big timeline has 200k of them. */
 function findTile<T extends { id: string }>(layout: readonly (T | { items: readonly T[] })[], id: string | undefined) {
   for (const entry of layout) {
@@ -63,14 +70,13 @@ export const usePhotoListLightbox = (
   // The entry the lightbox pushed names the grid entry it came from; the grid entry has none.
   const pushedFrom = useLocation({ select: location => location.state.lightboxFrom });
   const gridKey = useLocation({ select: photoListScrollRestorationKey });
-  const [view, setView] = useState<LightboxView | null>(null);
+  const [settledView, setView] = useState<LightboxView | null>(null);
 
   // Settled once per opening, from the list as it is then: a photo deleted while it is open, or a
   // stack member picked in the sidebar, is not in the list either, and must not end the stepping.
-  useEffect(() => {
-    if (photo === undefined) setView(null);
-    else if (view === null && ready) setView(isInList(idx2hash, photo) ? "list" : "alone");
-  }, [photo, view, ready, idx2hash]);
+  // Worked out while rendering, not in an effect, so the render that names a photo opens it.
+  const view = nextView(settledView, photo, ready ? idx2hash : undefined);
+  if (view !== settledView) setView(view);
 
   // A photo shown alone opens once its details confirm the viewer may see it.
   const alone = view === "alone" && photo !== undefined;

@@ -154,7 +154,7 @@ describe("photo action tiles", () => {
     await act(async () => byText(container, "button", "photopage.tiles.album").click());
     const album = defined(stubs.album.at(-1));
     expect(album.isOpen).toBe(true);
-    expect(album.selectedImages).toEqual([{ id: "p1", image_hash: "h1", type: "image" }]);
+    expect(album.selection).toEqual({ kind: "some", items: [{ id: "p1", image_hash: "h1", type: "image" }] });
   });
 
   it("downloads the original straight away when the photo has one file", async () => {

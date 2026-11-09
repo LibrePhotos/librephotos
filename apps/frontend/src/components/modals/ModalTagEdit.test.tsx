@@ -8,10 +8,9 @@
  *   - a new name is POSTed to /tags/ once and then used by id,
  *   - each name gets exactly one /tags/<id>/add/ call carrying the whole
  *     selection, not one call per photo,
- *   - in select-all mode the selection is the query, and `selectedImages`
- *     holds the EXCLUDED photos instead.
+ *   - after select all the selection is the query and the photos left out of it.
  */
-import { Media, type BulkPhotoQuery } from "@librephotos/api-client";
+import { Media } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -113,10 +112,7 @@ function addButton(): HTMLButtonElement {
 }
 
 type RenderOptions = {
-  selectAllMode?: boolean;
-  selectAllQuery?: BulkPhotoQuery;
-  totalCount?: number;
-  selectedImages?: typeof selection;
+  selection?: React.ComponentProps<typeof ModalTagEdit>["selection"];
 };
 
 async function renderModal(options: RenderOptions = {}) {
@@ -134,10 +130,7 @@ async function renderModal(options: RenderOptions = {}) {
           closed = true;
           setIsOpen(false);
         }}
-        selectedImages={options.selectedImages ?? selection}
-        selectAllMode={options.selectAllMode}
-        selectAllQuery={options.selectAllQuery}
-        totalCount={options.totalCount}
+        selection={options.selection ?? { kind: "some", items: selection }}
       />
     );
   }
@@ -239,9 +232,7 @@ describe("ModalTagEdit", () => {
 
   it("sends the select-all payload instead of a photo list, with the unchecked photos excluded", async () => {
     const modal = await renderModal({
-      selectAllMode: true,
-      selectAllQuery: { person: 3 },
-      totalCount: 150000,
+      selection: { kind: "all", query: { person: 3 }, excluded: selection, total: 150000 },
     });
     await modal.type("beach,");
     await modal.submit();

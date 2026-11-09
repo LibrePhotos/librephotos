@@ -14,7 +14,6 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { useRemovePhotosFromPersonMutation } from "../../api_client/albums/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
-import { addTempElementsToFlatList } from "../../util/util";
 import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { SelectionActions } from "./SelectionActions";
 
@@ -79,7 +78,7 @@ function photo(n: number) {
   return PigPhoto.parse({ id, image_hash: `hash${n}`, aspectRatio: 1 });
 }
 
-const updateSelectionState = vi.fn<Props["updateSelectionState"]>();
+const onDone = vi.fn<Props["onDone"]>();
 
 async function openMenu(props: Partial<Props>) {
   const container = document.createElement("div");
@@ -89,8 +88,8 @@ async function openMenu(props: Partial<Props>) {
     root.render(
       <MantineProvider env="test">
         <SelectionActions
-          selectedItems={[]}
-          updateSelectionState={updateSelectionState}
+          selected={{ kind: "some", items: [] }}
+          onDone={onDone}
           onSharePhotos={() => {}}
           setAlbumCover={() => {}}
           onShareAlbum={() => {}}
@@ -120,7 +119,7 @@ function removeItem() {
 
 describe("Remove from this person", () => {
   it("is offered on a person page", async () => {
-    const root = await openMenu({ selectedItems: [photo(1)] });
+    const root = await openMenu({ selected: { kind: "some", items: [photo(1)] } });
 
     expect(defined(removeItem()).getAttribute("aria-disabled")).toBeNull();
     await act(async () => root.unmount());
@@ -128,23 +127,22 @@ describe("Remove from this person", () => {
 
   it.each(["/album/user/5", "/"])("is not offered on %s", async pathname => {
     stubs.pathname = pathname;
-    const root = await openMenu({ selectedItems: [photo(1)] });
+    const root = await openMenu({ selected: { kind: "some", items: [photo(1)] } });
 
     expect(removeItem()).toBeUndefined();
     await act(async () => root.unmount());
   });
 
   it("is disabled after Select all", async () => {
-    const root = await openMenu({ selectedItems: [], selectAllMode: true, selectAllQuery: { person: 5 } });
+    const root = await openMenu({ selected: { kind: "all", query: { person: 5 }, excluded: [], total: 3 } });
 
     expect(defined(removeItem()).getAttribute("aria-disabled")).toBe("true");
     await act(async () => root.unmount());
   });
 
-  it("asks first, then sends the ids of the loaded photos", async () => {
-    updateSelectionState.mockReset();
-    const placeholder = defined(addTempElementsToFlatList(1)[0], "the placeholder");
-    const root = await openMenu({ selectedItems: [photo(1), photo(2), placeholder] });
+  it("asks first, then sends the ids of the photos", async () => {
+    onDone.mockReset();
+    const root = await openMenu({ selected: { kind: "some", items: [photo(1), photo(2)] } });
 
     await act(async () => defined(removeItem()).click());
     expect(stubs.removeFromPerson).not.toHaveBeenCalled();
@@ -161,7 +159,7 @@ describe("Remove from this person", () => {
       personName: "Anna Becker",
       photoIds: [photo(1).id, photo(2).id],
     });
-    expect(updateSelectionState).toHaveBeenCalledWith(expect.objectContaining({ selectMode: false }));
+    expect(onDone).toHaveBeenCalled();
     await act(async () => root.unmount());
   });
 });
@@ -177,14 +175,14 @@ describe("Set album cover in the selection menu (#2240)", () => {
   }
 
   it("sets the one selected photo and clears the selection", async () => {
-    updateSelectionState.mockReset();
+    onDone.mockReset();
     const setAlbumCover = vi.fn<Props["setAlbumCover"]>();
-    const root = await openMenu({ selectedItems: [photo(1)], setAlbumCover });
+    const root = await openMenu({ selected: { kind: "some", items: [photo(1)] }, setAlbumCover });
 
     await act(async () => coverItem().click());
 
     expect(setAlbumCover).toHaveBeenCalledWith("person");
-    expect(updateSelectionState).toHaveBeenCalledWith(expect.objectContaining({ selectMode: false }));
+    expect(onDone).toHaveBeenCalled();
     await act(async () => root.unmount());
   });
 
@@ -193,7 +191,7 @@ describe("Set album cover in the selection menu (#2240)", () => {
     ["two photos", [photo(1), photo(2)], "selectionactions.albumcovermultiselect"],
   ] as const)("is off with %s selected and says why", async (_label, selectedItems, reason) => {
     const setAlbumCover = vi.fn<Props["setAlbumCover"]>();
-    const root = await openMenu({ selectedItems: [...selectedItems], setAlbumCover });
+    const root = await openMenu({ selected: { kind: "some", items: [...selectedItems] }, setAlbumCover });
 
     const item = coverItem();
     expectDisabledWithReason(item, i18n.t(reason));

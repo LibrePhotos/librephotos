@@ -1,4 +1,3 @@
-import type { BulkPhotoQuery, PigPhoto } from "@librephotos/api-client";
 import { ActionIcon, Group } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icons-react";
@@ -6,135 +5,49 @@ import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
-import type { SelectionState } from "../../api_client/photos/types";
 import { DisabledReason } from "../common/DisabledReason";
 import { ConfirmModal } from "../modals/ConfirmModal";
+import { hasSelection, selectedCount, toPhotoSelection } from "./photoListSelection";
+import type { Selected } from "./photoListSelection";
 
 type Props = {
-  selectedItems: PigPhoto[];
-  selectAllMode?: boolean;
-  selectAllQuery?: BulkPhotoQuery;
-  totalCount?: number;
-  updateSelectionState: (input: Partial<SelectionState>) => void;
+  selected: Selected;
+  /** The action is done: select mode ends. */
+  onDone: () => void;
 };
 
-export function TrashcanActions(props: Readonly<Props>) {
+export function TrashcanActions({ selected, onDone }: Readonly<Props>) {
   const [deleteDialogOpen, { open: openDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
-  const { selectedItems, selectAllMode = false, selectAllQuery, totalCount, updateSelectionState } = props;
   const { t } = useTranslation();
   const location = useLocation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
   const purgeDeletedPhotos = usePurgeDeletedPhotosMutation();
 
-  // Helper to get excluded hashes for selectAll mode
-  const getExcludedHashes = () => selectedItems.map(i => i.image_hash);
-
-  // Calculate the actual selected count
-  const getSelectedCount = () => {
-    if (selectAllMode) {
-      const excludedCount = selectedItems.length;
-      return (totalCount ?? 0) - excludedCount;
-    }
-    return selectedItems.length;
-  };
-
   const handlePermanentDelete = () => {
-    if (selectAllMode) {
-      purgeDeletedPhotos.mutate(
-        {
-          select_all: true,
-          query: selectAllQuery ?? {},
-          excluded_hashes: getExcludedHashes(),
-        },
-        {
-          onSuccess: () => {
-            updateSelectionState({
-              selectMode: false,
-              selectAllMode: false,
-              selectedItems: [],
-              selectAllQuery: undefined,
-            });
-            closeDeleteDialog();
-          },
-        }
-      );
-    } else {
-      purgeDeletedPhotos.mutate(
-        { image_hashes: selectedItems.map(i => i.image_hash) },
-        {
-          onSuccess: () => {
-            updateSelectionState({
-              selectMode: false,
-              selectAllMode: false,
-              selectedItems: [],
-              selectAllQuery: undefined,
-            });
-            closeDeleteDialog();
-          },
-        }
-      );
-    }
+    purgeDeletedPhotos.mutate(toPhotoSelection(selected), {
+      onSuccess: () => {
+        onDone();
+        closeDeleteDialog();
+      },
+    });
   };
 
-  // Check if any action is possible
-  const hasSelection = selectAllMode || selectedItems.length > 0;
-  const selectedCount = getSelectedCount();
+  const restore = () => {
+    markPhotosDeleted.mutate({ ...toPhotoSelection(selected), deleted: false }, { onSuccess: onDone });
+  };
+
+  const count = selectedCount(selected);
   // Shared by each Tooltip and the aria-label of its icon-only button.
-  const restoreLabel =
-    selectedCount === 1 ? t("trash.restorePhoto") : t("trash.restorePhotos", { count: selectedCount });
-  const noSelection = !hasSelection && t("selectionactions.selectphotosfirst");
-  const deleteLabel =
-    selectedCount === 1 ? t("trash.deletePermanently") : t("trash.deletePhotosPermanently", { count: selectedCount });
+  const restoreLabel = count === 1 ? t("trash.restorePhoto") : t("trash.restorePhotos", { count });
+  const noSelection = !hasSelection(selected) && t("selectionactions.selectphotosfirst");
+  const deleteLabel = count === 1 ? t("trash.deletePermanently") : t("trash.deletePhotosPermanently", { count });
 
   return (
     <Group>
       {location.pathname.startsWith("/deleted") && (
         <>
           <DisabledReason label={restoreLabel} reason={noSelection} position="bottom">
-            <ActionIcon
-              variant="light"
-              color="blue"
-              aria-label={restoreLabel}
-              onClick={() => {
-                if (selectAllMode) {
-                  markPhotosDeleted.mutate(
-                    {
-                      select_all: true,
-                      query: selectAllQuery ?? {},
-                      excluded_hashes: getExcludedHashes(),
-                      deleted: false,
-                    },
-                    {
-                      onSuccess: () => {
-                        updateSelectionState({
-                          selectMode: false,
-                          selectAllMode: false,
-                          selectedItems: [],
-                          selectAllQuery: undefined,
-                        });
-                      },
-                    }
-                  );
-                } else {
-                  markPhotosDeleted.mutate(
-                    {
-                      image_hashes: selectedItems.map(i => i.image_hash),
-                      deleted: false,
-                    },
-                    {
-                      onSuccess: () => {
-                        updateSelectionState({
-                          selectMode: false,
-                          selectAllMode: false,
-                          selectedItems: [],
-                          selectAllQuery: undefined,
-                        });
-                      },
-                    }
-                  );
-                }
-              }}
-            >
+            <ActionIcon variant="light" color="blue" aria-label={restoreLabel} onClick={restore}>
               <ArrowBackUp />
             </ActionIcon>
           </DisabledReason>
@@ -159,7 +72,7 @@ export function TrashcanActions(props: Readonly<Props>) {
         onClose={closeDeleteDialog}
         onConfirm={handlePermanentDelete}
         loading={purgeDeletedPhotos.isPending}
-        title={t("trash.deleteConfirmTitle", { count: selectedCount })}
+        title={t("trash.deleteConfirmTitle", { count })}
         message={t("trash.permanentDeleteWarning")}
         confirmLabel={deleteLabel}
         irreversible

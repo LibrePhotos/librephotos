@@ -82,7 +82,7 @@ function renderModal(isOpen: boolean) {
         <AlbumEditModal
           isOpen={isOpen}
           onRequestClose={stubs.close}
-          selectedImages={[{ id: "a1", image_hash: "a1", type: Media.IMAGE }]}
+          selection={{ kind: "some", items: [{ id: "a1", image_hash: "a1", type: Media.IMAGE }] }}
         />
       </MantineProvider>
     );

@@ -745,7 +745,7 @@ describe("PhotoListView selection bar on demand (#2240)", () => {
 
     await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
     expect(selectionToolbar()).not.toBeNull();
-    expect(selectionBar.props?.selectedItems.map(item => item.id)).toEqual(["a"]);
+    expect(selectionBar.props?.selection).toMatchObject({ kind: "some", items: [{ id: "a" }] });
 
     await act(async () => doneButton().click());
     expect(selectionToolbar()).toBeNull();
@@ -755,6 +755,17 @@ describe("PhotoListView selection bar on demand (#2240)", () => {
     await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
     await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
     expect(selectionToolbar()).toBeNull();
+  });
+
+  it("stays in select mode the Select button opened when the last photo is unticked", async () => {
+    await render({});
+    await act(async () => selectButton().click());
+
+    await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
+    await act(async () => defined(lastPigProps().handleSelection)(defined(items[0])));
+
+    expect(selectionToolbar()).not.toBeNull();
+    expect(selectionBar.props?.selection).toEqual({ kind: "some", items: [], keepOpen: true });
   });
 
   it("offers no Select button on a list that cannot be selected from", async () => {
@@ -771,22 +782,22 @@ describe("PhotoListView selection", () => {
     await render({ photosetQuery: { hide_screenshots: true } });
     await act(async () => selectButton().click());
     await act(async () => {
-      defined(selectionBar.props).updateSelectionState({
-        selectMode: true,
-        selectAllMode: true,
-        selectAllQuery: { hide_screenshots: true },
-      });
+      defined(selectionBar.props).dispatch({ type: "selectAll", query: { hide_screenshots: true } });
     });
-    expect(selectionBar.props?.selectAllMode).toBe(true);
+    expect(selectionBar.props?.selection.kind).toBe("all");
 
     // An equal query passed as a fresh literal keeps the selection.
     await render({ photosetQuery: { hide_screenshots: true } });
-    expect(selectionBar.props?.selectAllMode).toBe(true);
+    expect(selectionBar.props?.selection.kind).toBe("all");
 
     await render({ photosetQuery: {} });
     // Nothing is selected any more, so the bar is gone with the select all
     expect(selectionToolbar()).toBeNull();
     expect(lastPigProps().selectedItems).toEqual([]);
+
+    // Nor does going back to the first filter bring the old select all back
+    await render({ photosetQuery: { hide_screenshots: true } });
+    expect(selectionToolbar()).toBeNull();
   });
 });
 

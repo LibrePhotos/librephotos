@@ -10,6 +10,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { expectDisabledWithReason, focusAndReadTooltip } from "../common/disabledReason.test-utils";
+import type { Selected } from "./photoListSelection";
 import { SelectionActions } from "./SelectionActions";
 
 type Props = React.ComponentProps<typeof SelectionActions>;
@@ -101,8 +102,16 @@ function photo(n: number, stacked = false, state: { rating?: number; archived?: 
   return PigPhoto.parse({ id, image_hash: `hash${n}`, aspectRatio: 1, stacks: stacked ? [stack] : [], ...state });
 }
 
+const some = (...items: PigPhoto[]): Selected => ({ kind: "some", items });
+const all = (excluded: PigPhoto[] = [], total = 0): Selected => ({
+  kind: "all",
+  query: { person: 5 },
+  excluded,
+  total,
+});
+
 const callbacks = {
-  updateSelectionState: vi.fn<Props["updateSelectionState"]>(),
+  onDone: vi.fn<Props["onDone"]>(),
   onSharePhotos: vi.fn<Props["onSharePhotos"]>(),
   onAddToAlbum: vi.fn<Props["onAddToAlbum"]>(),
   onAddTags: vi.fn<Props["onAddTags"]>(),
@@ -130,7 +139,7 @@ async function render(props: Partial<Props>) {
     defined(root).render(
       <MantineProvider env="test">
         <SelectionActions
-          selectedItems={[photo(1, true), photo(2, true)]}
+          selected={some(photo(1, true), photo(2, true))}
           setAlbumCover={() => {}}
           onShareAlbum={() => {}}
           title="Photos"
@@ -200,12 +209,12 @@ describe("the photo actions", () => {
     await pick(1, label);
 
     expect(mutate).toHaveBeenCalledWith({ image_hashes: ["hash1", "hash2"], ...change });
-    expect(callbacks.updateSelectionState).toHaveBeenCalledWith(expect.objectContaining({ selectMode: false }));
+    expect(callbacks.onDone).toHaveBeenCalled();
   });
 
   it.each(items)("%s sends the query after Select all", async (label, mutate, change, pathname = "/") => {
     page.pathname = pathname;
-    await render({ selectAllMode: true, selectAllQuery: { person: 5 }, selectedItems: [photo(3)] });
+    await render({ selected: all([photo(3)]) });
 
     await pick(1, label);
 
@@ -218,7 +227,7 @@ describe("the photo actions", () => {
   });
 
   it.each([false, true])("downloads, select all = %s", async selectAllMode => {
-    await render({ selectAllMode, selectAllQuery: { person: 5 }, totalCount: 4 });
+    await render(selectAllMode ? { selected: all([photo(1, true), photo(2, true)], 4) } : {});
 
     await pick(1, "Download");
     await act(async () => button("confirm download").click());
@@ -234,14 +243,14 @@ describe("the photo actions", () => {
     [false, { image_hashes: ["hash1", "hash2"] }],
     [true, { select_all: true, query: { person: 5 }, excluded_hashes: ["hash1", "hash2"] }],
   ])("Set location… opens the dialog for the selection, select all = %s", async (selectAllMode, selection) => {
-    await render({ selectAllMode, selectAllQuery: { person: 5 } });
+    await render(selectAllMode ? { selected: all([photo(1, true), photo(2, true)]) } : {});
     expect(document.body.textContent).not.toContain("location dialog");
 
     await pick(1, "Set location…");
 
     expect(button("location dialog").dataset.selection).toBe(JSON.stringify(selection));
     await act(async () => button("location dialog").click());
-    expect(callbacks.updateSelectionState).toHaveBeenCalledWith(expect.objectContaining({ selectMode: false }));
+    expect(callbacks.onDone).toHaveBeenCalled();
   });
 
   it("opens the sharing panel", async () => {
@@ -265,21 +274,21 @@ describe("one of each pair, when the selection says which", () => {
 
   it("offers Favorite while a photo is not one", async () => {
     page.user = favoriteUser;
-    const names = await openWith({ selectedItems: [photo(1, false, { rating: 5 }), photo(2, false, { rating: 0 })] });
+    const names = await openWith({ selected: some(photo(1, false, { rating: 5 }), photo(2, false, { rating: 0 })) });
     expect(names).toContain("Favorite");
     expect(names).not.toContain("Unfavorite");
   });
 
   it("offers Unfavorite alone when every photo is a favorite", async () => {
     page.user = favoriteUser;
-    const names = await openWith({ selectedItems: [photo(1, false, { rating: 5 }), photo(2, false, { rating: 4 })] });
+    const names = await openWith({ selected: some(photo(1, false, { rating: 5 }), photo(2, false, { rating: 4 })) });
     expect(names).toContain("Unfavorite");
     expect(names).not.toContain("Favorite");
   });
 
   it("offers both after Select all, where the photos are not known", async () => {
     page.user = favoriteUser;
-    const names = await openWith({ selectAllMode: true, selectAllQuery: { person: 5 }, selectedItems: [] });
+    const names = await openWith({ selected: all() });
     expect(names).toEqual(expect.arrayContaining(["Favorite", "Unfavorite", "Archive", "Unarchive"]));
   });
 
@@ -287,7 +296,9 @@ describe("one of each pair, when the selection says which", () => {
     [[false, true], "Archive", "Unarchive"],
     [[true, true], "Unarchive", "Archive"],
   ])("archived %j offers %s, not %s", async (archived, offered, notOffered) => {
-    const names = await openWith({ selectedItems: archived.map((state, n) => photo(n, false, { archived: state })) });
+    const names = await openWith({
+      selected: some(...archived.map((state, n) => photo(n, false, { archived: state }))),
+    });
     expect(names).toContain(offered);
     expect(names).not.toContain(notOffered);
   });
@@ -349,7 +360,7 @@ describe("the add-to menu", () => {
 
   // #2621: the + button was a plain `disabled`: greyed out with no reason, and out of the Tab order.
   it("asks for a selection first, and stays shut", async () => {
-    await render({ selectedItems: [] });
+    await render({ selected: some() });
 
     const add = defined(
       container.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("selectionactions.addto")}"]`),
@@ -391,7 +402,7 @@ describe("a disabled item says why", () => {
     "Sharing",
     ...stackActions,
   ])("%s asks for a selection first, and does nothing", async label => {
-    await render({ selectedItems: [] });
+    await render({ selected: some() });
 
     const item = await photoAction(label);
     expectReachableWithReason(item, SELECT_FIRST);
@@ -403,13 +414,13 @@ describe("a disabled item says why", () => {
   });
 
   it.each(stackActions)("%s is not offered after Select all", async label => {
-    await render({ selectAllMode: true, selectAllQuery: { person: 5 } });
+    await render({ selected: all() });
 
     expectReachableWithReason(await photoAction(label), NOT_WITH_SELECT_ALL);
   });
 
   it("Create Stack needs two photos", async () => {
-    await render({ selectedItems: [photo(1)] });
+    await render({ selected: some(photo(1)) });
 
     const item = await photoAction("Create stack");
     expectReachableWithReason(item, "Select at least two photos to stack them");
@@ -417,7 +428,7 @@ describe("a disabled item says why", () => {
   });
 
   it.each(["Merge stacks", "Break apart stacks"])("%s needs a photo in a manual stack", async label => {
-    await render({ selectedItems: [photo(1), photo(2)] });
+    await render({ selected: some(photo(1), photo(2)) });
 
     expectReachableWithReason(await photoAction(label), "None of the selected photos is in a manual stack");
   });

@@ -1,8 +1,7 @@
 /**
  * The selection menu's "Mark as ▸ Photo / Screenshot / Document" (issue #2130):
- * by hashes for a plain selection, by the server-side query for select-all,
- * with the excluded tiles left out (placeholders that never loaded have no
- * hash and must not turn the request into a 400).
+ * by hashes for a plain selection, by the server-side query and its
+ * exclusions for select-all.
  *
  * Its rating actions follow the user's rating style (#2202): Favorite /
  * Unfavorite, or a "Set rating" submenu that rates by hash only.
@@ -20,7 +19,6 @@ import type {
 } from "../../api_client/photos/hooks";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
-import { addTempElementsToFlatList } from "../../util/util";
 import { SelectionActions } from "./SelectionActions";
 
 type SetCategory = ReturnType<typeof useSetPhotosCategoryMutation>["mutate"];
@@ -90,9 +88,6 @@ function photo(n: number, imageHash: string, extra: Partial<PigPhoto> = {}) {
   return PigPhoto.parse({ id, image_hash: imageHash, aspectRatio: 1, ...extra });
 }
 
-// The grid's stand-in for a photo of a page not loaded yet: it has no hash.
-const placeholder = defined(addTempElementsToFlatList(1)[0], "the placeholder");
-
 async function openPhotoActions(props: Partial<React.ComponentProps<typeof SelectionActions>>) {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -101,8 +96,8 @@ async function openPhotoActions(props: Partial<React.ComponentProps<typeof Selec
     root.render(
       <MantineProvider env="test">
         <SelectionActions
-          selectedItems={[]}
-          updateSelectionState={() => {}}
+          selected={{ kind: "some", items: [] }}
+          onDone={() => {}}
           onSharePhotos={() => {}}
           setAlbumCover={() => {}}
           onShareAlbum={() => {}}
@@ -146,22 +141,13 @@ async function markAs(props: Partial<React.ComponentProps<typeof SelectionAction
 
 describe("SelectionActions Mark as", () => {
   it("sends the selected hashes", async () => {
-    await markAs(
-      {
-        selectedItems: [photo(1, "aaa"), photo(2, "bbb", { isTemp: true })],
-      },
-      "Document"
-    );
+    await markAs({ selected: { kind: "some", items: [photo(1, "aaa")] } }, "Document");
     expect(stubs.setCategory).toHaveBeenCalledWith({ image_hashes: ["aaa"], category: "document" });
   });
 
-  it("sends the select-all query and drops hashless exclusions", async () => {
+  it("sends the select-all query and its exclusions", async () => {
     await markAs(
-      {
-        selectAllMode: true,
-        selectAllQuery: { hide_screenshots: true },
-        selectedItems: [photo(1, "aaa"), placeholder],
-      },
+      { selected: { kind: "all", query: { hide_screenshots: true }, excluded: [photo(1, "aaa")], total: 9 } },
       "Photo"
     );
     expect(stubs.setCategory).toHaveBeenCalledWith({
@@ -176,14 +162,14 @@ describe("SelectionActions Mark as", () => {
 describe("SelectionActions rating", () => {
   it("favorites the selection in favorite mode", async () => {
     // Every selected photo is a favorite already (4 stars and up): Unfavorite is offered
-    await pick({ selectedItems: [photo(1, "aaa", { rating: 5 })] }, "Unfavorite");
+    await pick({ selected: { kind: "some", items: [photo(1, "aaa", { rating: 5 })] } }, "Unfavorite");
     expect(stubs.setFavorite).toHaveBeenCalledWith({ image_hashes: ["aaa"], favorite: false });
     expect(() => menuItem("Set rating")).toThrow();
   });
 
   it("rates the selection through the Set rating submenu in stars mode", async () => {
     stubs.ratingMode = "stars";
-    await openPhotoActions({ selectedItems: [photo(1, "aaa"), photo(2, "bbb")] });
+    await openPhotoActions({ selected: { kind: "some", items: [photo(1, "aaa"), photo(2, "bbb")] } });
 
     expect(() => menuItem("Favorite")).toThrow();
     expect(() => menuItem("Unfavorite")).toThrow();
@@ -200,7 +186,7 @@ describe("SelectionActions rating", () => {
 
   it("disables Set rating after Select all, which the server refuses to rate", async () => {
     stubs.ratingMode = "stars";
-    await openPhotoActions({ selectAllMode: true, selectAllQuery: {}, selectedItems: [] });
+    await openPhotoActions({ selected: { kind: "all", query: { favorite: true }, excluded: [], total: 3 } });
 
     const item = menuItem("Set rating");
     expect(item.getAttribute("aria-disabled")).toBe("true");

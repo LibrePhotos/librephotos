@@ -3,12 +3,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import type React from "react";
 import type { RefObject } from "react";
-import type { SelectionState } from "../../api_client/photos/types";
+import { isSelecting, rangeAnchor } from "./photoListSelection";
+import type { ListSelection } from "./photoListSelection";
 
 type Props = {
   idx2hashRef: RefObject<PigPhoto[]>;
   selectable: boolean;
-  selectionStateRef: RefObject<SelectionState>;
+  readSelection: () => ListSelection;
   handleSelection: (item: PigPhoto) => void;
   handleSelections: (items: PigPhoto[]) => void;
   currentImageIndexRef: RefObject<number>;
@@ -20,7 +21,7 @@ type Props = {
 export const usePhotoListClick = ({
   idx2hashRef,
   selectable,
-  selectionStateRef,
+  readSelection,
   handleSelection,
   handleSelections,
   currentImageIndexRef,
@@ -32,7 +33,7 @@ export const usePhotoListClick = ({
     (event: React.MouseEvent<Element, MouseEvent>, item: PigPhoto) => {
       // if an image is selectable, then handle shift click
       if (selectable && event.shiftKey) {
-        const lastSelectedElement = selectionStateRef.current.selectedItems.at(-1);
+        const lastSelectedElement = rangeAnchor(readSelection());
         if (lastSelectedElement === undefined) {
           handleSelection(item);
           return;
@@ -47,7 +48,7 @@ export const usePhotoListClick = ({
         handleSelections(idx2hashRef.current.slice(indexOfCurrentlySelectedItem, indexOfLastSelectedItem));
         return;
       }
-      if (selectionStateRef.current.selectMode) {
+      if (isSelecting(readSelection())) {
         handleSelection(item);
         return;
       }
@@ -77,7 +78,7 @@ export const usePhotoListClick = ({
       navigate,
       showLightbox,
       currentImageIndexRef,
-      selectionStateRef,
+      readSelection,
       idx2hashRef,
     ]
   );

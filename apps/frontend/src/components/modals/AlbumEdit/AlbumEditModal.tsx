@@ -1,4 +1,4 @@
-import type { BulkPhotoQuery, PigPhoto, UserAlbumInfo } from "@librephotos/api-client";
+import type { UserAlbumInfo } from "@librephotos/api-client";
 import { FocusTrap, Modal, TextInput } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
@@ -13,6 +13,8 @@ import type { SelectAllAlbumFields } from "../../../api_client/albums/types";
 import { useAuth } from "../../../hooks/useAuth";
 import { parseInstant } from "../../../util/dateUtils";
 import { fuzzyMatch } from "../../../util/util";
+import { pickedPhotos, selectAllOf, selectedCount } from "../../photolist/photoListSelection";
+import type { PhotoRef, Selected } from "../../photolist/photoListSelection";
 import { selectionLabel } from "../../photolist/selectionLabel";
 import { DIALOG_SIZE } from "../dialogSize";
 import { modalTitleStyles } from "../modalTitleStyles";
@@ -25,12 +27,17 @@ import { SharedAlbumsYouCanAdd } from "./SharedAlbumsYouCanAdd";
 type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
-  // In select-all mode this holds the EXCLUDED items, not the selection.
-  selectedImages: ReadonlyArray<Pick<PigPhoto, "id" | "image_hash" | "type">>;
-  selectAllMode?: boolean;
-  selectAllQuery?: BulkPhotoQuery;
-  totalCount?: number;
+  selection: Selected<PhotoRef>;
 }>;
+
+/**
+ * Where the picker is: the list (`creating` while the new album's row takes a title), or the
+ * second step for an album someone shared with you as a contributor (#464), which says who will
+ * see the photos and what of them before anything is added.
+ */
+type Step = Readonly<{ kind: "pick"; creating: boolean }> | Readonly<{ kind: "contribute"; album: UserAlbumInfo }>;
+
+const PICK: Step = { kind: "pick", creating: false };
 
 /** More albums than this and the picker starts with a search field (Immich). */
 const SEARCH_FROM = 6;
@@ -48,31 +55,24 @@ function albumMeta(t: TFunction, album: UserAlbumInfo): string {
  * the shared ones you may add to.
  */
 export function AlbumEditModal(props: Props) {
-  const { isOpen, onRequestClose, selectedImages, selectAllMode = false, selectAllQuery, totalCount } = props;
+  const { isOpen, onRequestClose, selection } = props;
   const { t } = useTranslation();
   const { data: albumsUserList = [] } = useFetchUserAlbumsQuery();
   const createUserAlbum = useCreateUserAlbumMutation();
   const addPhotoToUserAlbum = useAddPhotoToUserAlbumMutation();
   const { userId } = useAuth();
-  // An album someone shared with you as a contributor (#464): the second step says who will see
-  // the photos and what of them before anything is added.
-  const [contributeTo, setContributeTo] = useState<UserAlbumInfo | null>(null);
+  const [step, setStep] = useState<Step>(PICK);
   const [search, setSearch] = useState("");
-  const [creating, setCreating] = useState(false);
   const form = useNewAlbumForm(albumsUserList.map(album => album.title));
 
-  const excludedHashes = selectAllMode ? selectedImages.map(i => i.image_hash) : [];
-  const effectiveCount = selectAllMode ? Math.max(0, (totalCount ?? 0) - selectedImages.length) : selectedImages.length;
-
+  const count = selectedCount(selection);
+  const selectAll = selectAllOf(selection);
   // The server resolves select-all through the same query the view uses (incl.
   // the photos/videos filter), so the payload matches exactly what is on screen.
-  const selectAllFields: SelectAllAlbumFields = {
-    select_all: true,
-    query: selectAllQuery ?? {},
-    excluded_hashes: excludedHashes,
-    photoCount: effectiveCount,
-  };
-  const photos = selectAllMode ? [] : selectedImages.map(i => i.id);
+  const selectAllFields: SelectAllAlbumFields = selectAll
+    ? { select_all: true, query: selectAll.query, excluded_hashes: selectAll.excludedHashes, photoCount: count }
+    : {};
+  const photos = pickedPhotos(selection).map(i => i.id);
 
   // The parent keeps this component mounted, so every way out must clear the search and the new
   // album's title: a leftover filter would otherwise reopen with albums missing.
@@ -80,11 +80,10 @@ export function AlbumEditModal(props: Props) {
     onRequestClose();
     form.reset();
     setSearch("");
-    setCreating(false);
-    setContributeTo(null);
+    setStep(PICK);
   };
 
-  if (contributeTo) {
+  if (step.kind === "contribute") {
     return (
       <Modal
         size={DIALOG_SIZE.md}
@@ -95,12 +94,12 @@ export function AlbumEditModal(props: Props) {
         onClose={close}
       >
         <ContributeStep
-          album={contributeTo}
+          album={step.album}
           photoIds={photos}
-          selectAll={selectAllMode ? { query: selectAllQuery ?? {}, excludedHashes } : undefined}
-          count={effectiveCount}
+          selectAll={selectAll}
+          count={count}
           myId={userId}
-          onBack={() => setContributeTo(null)}
+          onBack={() => setStep(PICK)}
           onDone={close}
         />
       </Modal>
@@ -109,14 +108,7 @@ export function AlbumEditModal(props: Props) {
 
   const query = search.trim();
   const albums = albumsUserList.filter(album => fuzzyMatch(query, album.title));
-  const subtitle = selectAllMode
-    ? selectionLabel(t, {
-        selectAllMode,
-        total: totalCount ?? 0,
-        excluded: excludedHashes.length,
-        selected: selectedImages.length,
-      })
-    : t("modalalbum.itemsselected", { count: effectiveCount });
+  const subtitle = selection.kind === "all" ? selectionLabel(t, selection) : t("modalalbum.itemsselected", { count });
 
   return (
     <Modal
@@ -154,10 +146,10 @@ export function AlbumEditModal(props: Props) {
       <div className={classes.list}>
         <NewAlbumRow
           form={form}
-          editing={creating}
-          onEdit={setCreating}
+          editing={step.creating}
+          onEdit={creating => setStep({ kind: "pick", creating })}
           onCreate={title => {
-            createUserAlbum.mutate({ title, photos, ...(selectAllMode ? selectAllFields : {}) });
+            createUserAlbum.mutate({ title, photos, ...selectAllFields });
             close();
           }}
         />
@@ -173,13 +165,13 @@ export function AlbumEditModal(props: Props) {
                 id: `${item.id}`,
                 title: item.title,
                 photos,
-                ...(selectAllMode ? selectAllFields : {}),
+                ...selectAllFields,
               });
               close();
             }}
           />
         ))}
-        <SharedAlbumsYouCanAdd filter={query} onPick={setContributeTo} />
+        <SharedAlbumsYouCanAdd filter={query} onPick={album => setStep({ kind: "contribute", album })} />
       </div>
     </Modal>
   );

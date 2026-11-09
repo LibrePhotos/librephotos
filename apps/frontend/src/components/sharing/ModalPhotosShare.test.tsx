@@ -1,3 +1,4 @@
+import { Media } from "@librephotos/api-client";
 /**
  * The photo share dialog says what the users you share with see (#2722): the date, place and
  * things, and the names of people only with the setting on. Sharing and unsharing a selection
@@ -66,6 +67,8 @@ afterEach(async () => {
   document.body.innerHTML = "";
 });
 
+const twoPhotos = ["h1", "h2"].map(hash => ({ id: `id-${hash}`, image_hash: hash, type: Media.IMAGE }));
+
 async function open(props: Partial<React.ComponentProps<typeof ModalPhotosShare>> = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -74,7 +77,7 @@ async function open(props: Partial<React.ComponentProps<typeof ModalPhotosShare>
   await act(async () =>
     mounted.render(
       <MantineProvider env="test">
-        <ModalPhotosShare selectedImageHashes={["h1", "h2"]} isOpen onRequestClose={() => {}} {...props} />
+        <ModalPhotosShare selection={{ kind: "some", items: twoPhotos }} isOpen onRequestClose={() => {}} {...props} />
       </MantineProvider>
     )
   );
@@ -105,7 +108,7 @@ describe("the photo share dialog", () => {
   });
 
   it("shares a select-all selection with its exclusions", async () => {
-    await open({ selectAllMode: true, selectAllQuery: { favorite: true }, totalCount: 10 });
+    await open({ selection: { kind: "all", query: { favorite: true }, excluded: twoPhotos, total: 10 } });
 
     await act(async () => button("Share: jonas").click());
     expect(stubs.share).toHaveBeenCalledWith(
