@@ -22,6 +22,14 @@ type Position = [number, number];
 /** A position whose place name the server already has: the photo's own, or a copied photo's. */
 type KnownPlace = Readonly<{ position: Position; name: string }>;
 
+/**
+ * "Use my location": idle, waiting for the browser's answer, or failed with the reason. A spot
+ * picked by hand while waiting ends the wait, and the answer that comes after it is dropped.
+ */
+type Locating = { status: "idle" } | { status: "locating" } | { status: "failed"; message: string };
+
+const NOT_LOCATING: Locating = { status: "idle" };
+
 function samePosition(a: readonly [number, number] | null, b: readonly [number, number] | null): boolean {
   return a !== null && b !== null && a[0] === b[0] && a[1] === b[1];
 }
@@ -41,17 +49,31 @@ export function useLocationPicker(initialPosition: Position | null, initialPlace
   const [known, setKnown] = useState<KnownPlace | null>(() =>
     initialPosition && initialPlace ? { position: initialPosition, name: initialPlace } : null
   );
-  const [isGeolocating, setIsGeolocating] = useState(false);
-  const [geolocationError, setGeolocationError] = useState<string | null>(null);
+  const [locating, setLocating] = useState<Locating>(NOT_LOCATING);
+  // The browser's answer to an older request (or one a hand pick ended) carries a stale number.
+  const locateRequest = useRef(0);
 
-  const onMapClick = useCallback((e: MapLayerMouseEvent) => setPosition([e.lngLat.lat, e.lngLat.lng]), []);
-  const onMarkerDragEnd = useCallback((e: MarkerDragEvent) => setPosition([e.lngLat.lat, e.lngLat.lng]), []);
+  const pickByHand = useCallback((next: Position) => {
+    locateRequest.current += 1;
+    setLocating(current => (current.status === "locating" ? NOT_LOCATING : current));
+    setPosition(next);
+  }, []);
 
-  // Pan to a picked spot: the map's first view is the photo's location or the world.
-  const pick = useCallback((lat: number, lon: number) => {
-    setPosition([lat, lon]);
+  const onMapClick = useCallback((e: MapLayerMouseEvent) => pickByHand([e.lngLat.lat, e.lngLat.lng]), [pickByHand]);
+  const onMarkerDragEnd = useCallback((e: MarkerDragEvent) => pickByHand([e.lngLat.lat, e.lngLat.lng]), [pickByHand]);
+
+  // Pan to a spot: the map's first view is the photo's location or the world.
+  const flyTo = useCallback((lat: number, lon: number) => {
     mapRef.current?.flyTo({ center: [lon, lat], zoom: PLACE_ZOOM });
   }, []);
+
+  const pick = useCallback(
+    (lat: number, lon: number) => {
+      pickByHand([lat, lon]);
+      flyTo(lat, lon);
+    },
+    [pickByHand, flyTo]
+  );
 
   const pickPhoto = useCallback(
     (photo: PositionedPhoto) => {
@@ -63,24 +85,31 @@ export function useLocationPicker(initialPosition: Position | null, initialPlace
 
   // The only place that asks the browser for the user's position: never on open (#2283).
   const useMyLocation = useCallback(() => {
+    if (locating.status === "locating") return;
     if (!navigator.geolocation) {
-      setGeolocationError(t("locationpicker.geolocation_not_supported"));
+      setLocating({ status: "failed", message: t("locationpicker.geolocation_not_supported") });
       return;
     }
-    setIsGeolocating(true);
-    setGeolocationError(null);
+    locateRequest.current += 1;
+    const request = locateRequest.current;
+    setLocating({ status: "locating" });
     navigator.geolocation.getCurrentPosition(
       pos => {
-        setIsGeolocating(false);
-        pick(pos.coords.latitude, pos.coords.longitude);
+        if (request !== locateRequest.current) return;
+        setLocating(NOT_LOCATING);
+        setPosition([pos.coords.latitude, pos.coords.longitude]);
+        flyTo(pos.coords.latitude, pos.coords.longitude);
       },
       error => {
-        setIsGeolocating(false);
-        setGeolocationError(t(GEOLOCATION_ERROR_KEYS[error.code] ?? "locationpicker.unknown_error"));
+        if (request !== locateRequest.current) return;
+        setLocating({
+          status: "failed",
+          message: t(GEOLOCATION_ERROR_KEYS[error.code] ?? "locationpicker.unknown_error"),
+        });
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  }, [t, pick]);
+  }, [t, flyTo, locating.status]);
 
   return {
     position,
@@ -93,8 +122,8 @@ export function useLocationPicker(initialPosition: Position | null, initialPlace
     pick,
     pickPhoto,
     useMyLocation,
-    isGeolocating,
-    geolocationError,
+    isGeolocating: locating.status === "locating",
+    geolocationError: locating.status === "failed" ? locating.message : null,
     /** Show the area of `photo` while nothing is picked yet: where photos taken around then were. */
     startNear: useCallback((photo: PositionedPhoto | undefined) => {
       if (photo) mapRef.current?.jumpTo({ center: [photo.exif_gps_lon, photo.exif_gps_lat], zoom: NEARBY_ZOOM });

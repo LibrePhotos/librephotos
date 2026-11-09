@@ -35,7 +35,7 @@ const stubs = vi.hoisted(() => {
 });
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-vi.mock("../../util/util", () => ({ copyToClipboard: stubs.copy }));
+vi.mock("../../util/util", () => ({ copyText: async (text: string) => (stubs.copy(text), true) }));
 vi.mock("../../api_client/albums/hooks", async () => ({
   useToggleUserAlbumPublicMutation: () => ({ mutate: stubs.mutate }),
   // The real check, on the client stubbed below.

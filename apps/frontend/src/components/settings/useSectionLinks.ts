@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { notification } from "../../service/notifications";
-import { copyToClipboard } from "../../util/util";
+import { copyText } from "../../util/util";
 import { revealSection, sectionElement, type SectionNavActions } from "./sectionNavigation";
 
 /**
@@ -72,8 +72,9 @@ export function useSectionLinks(): SectionNavActions {
     () => ({
       goTo,
       copyLink: (id: string) => {
-        copyToClipboard(new URL(`#${id}`, window.location.href).href);
-        notification.success(t("sectionnav.linkcopied"));
+        void copyText(new URL(`#${id}`, window.location.href).href).then(copied => {
+          if (copied) notification.success(t("sectionnav.linkcopied"));
+        });
         goTo(id);
       },
     }),

@@ -6,18 +6,31 @@ import { DateTime } from "luxon";
 import i18n from "../i18n";
 import { parsePhotoTimestamp } from "./dateUtils";
 
-export const copyToClipboard = (str: string) => {
+/**
+ * Copies `str` and resolves whether it reached the clipboard, so "Copied" is only said when it
+ * did: the browser may refuse the write (no permission, the page not focused). On plain HTTP
+ * there is no `navigator.clipboard`; the old copy command is tried instead.
+ */
+export async function copyText(str: string): Promise<boolean> {
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(str);
-  } else {
-    const el = document.createElement("textarea");
-    el.value = str;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
+    try {
+      await navigator.clipboard.writeText(str);
+      return true;
+    } catch {
+      return false;
+    }
   }
-};
+  const el = document.createElement("textarea");
+  el.value = str;
+  document.body.appendChild(el);
+  el.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(el);
+  return copied;
+}
+
+/** `copyText` where nothing is said about the outcome. */
+export const copyToClipboard = (str: string) => void copyText(str);
 
 // The undated group's date from the search endpoint, and from the album, person,
 // place, thing and tag lists on servers before 1.3 (those send null now).

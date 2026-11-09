@@ -18,7 +18,7 @@ vi.mock("../../api_client/auth/hooks", () => ({
   useAccessToken: () => ({ data: { access: { user_id: "1", name: "dotan", is_admin: false } } }),
 }));
 
-vi.mock("../../util/util", () => ({ copyToClipboard: () => {} }));
+vi.mock("../../util/util", () => ({ copyText: async () => true }));
 
 vi.mock("../../api_client/media", () => ({
   useMediaDiagnosticsQuery: () => ({ data: undefined }),

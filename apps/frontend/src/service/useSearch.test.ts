@@ -2,6 +2,9 @@
  * Without captioned photos /searchtermexamples/ returns placeholder fragments
  * ("for people", "for things", ...). Shown as Ctrl+K results they read as broken
  * text and search for the phrase itself, so they are not offered; real terms are.
+ *
+ * The options were copied into state once everything had loaded: a list that failed left the
+ * palette without any suggestion and said nothing.
  */
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,19 +12,29 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { isSearchExample, SearchOptionType, useSearch } from "./useSearch";
 
 const examplesQuery = vi.hoisted(() => ({
-  data: ["for things", "for people", "beach"],
+  data: ["for things", "for people", "beach"] as string[] | undefined,
   isLoading: false,
+}));
+const peopleQuery = vi.hoisted(() => ({
+  isError: false,
+  refetch: vi.fn<() => Promise<unknown>>(async () => undefined),
 }));
 
 vi.mock("../api_client/search/hooks/useSearchExamplesQuery", () => ({
-  useSearchExamplesQuery: () => ({ data: examplesQuery.data, isLoading: examplesQuery.isLoading }),
+  useSearchExamplesQuery: () => ({
+    data: examplesQuery.data,
+    isLoading: examplesQuery.isLoading,
+    isError: false,
+    refetch: async () => undefined,
+  }),
 }));
 vi.mock("../api_client/albums/hooks", () => {
   // One array for every render, as a query hands out until it refetches
   const empty: never[] = [];
-  const none = () => ({ data: empty, isLoading: false });
+  const none = () => ({ data: empty, isLoading: false, isError: false, refetch: async () => undefined });
   return {
-    useFetchPeopleAlbumsQuery: none,
+    useFetchPeopleAlbumsQuery: () =>
+      peopleQuery.isError ? { data: undefined, isLoading: false, isError: true, refetch: peopleQuery.refetch } : none(),
     useFetchPlacesAlbumsQuery: none,
     useFetchThingsAlbumsQuery: none,
     useFetchUserAlbumsQuery: none,
@@ -60,6 +73,8 @@ describe("useSearch", () => {
     await act(async () => root.unmount());
     examplesQuery.data = ["for things", "for people", "beach"];
     examplesQuery.isLoading = false;
+    peopleQuery.isError = false;
+    peopleQuery.refetch.mockClear();
   });
 
   async function render() {
@@ -85,12 +100,14 @@ describe("useSearch", () => {
     expect(examples()).toEqual([]);
   });
 
-  it("seeds the unfiltered options once loading finishes", async () => {
+  it("offers the unfiltered options once loading finishes", async () => {
     examplesQuery.isLoading = true;
+    examplesQuery.data = undefined;
     await render();
     expect(search.options).toEqual([]);
 
     examplesQuery.isLoading = false;
+    examplesQuery.data = ["for things", "for people", "beach"];
     await rerender();
 
     expect(examples()).toEqual(["beach"]);
@@ -108,5 +125,23 @@ describe("useSearch", () => {
     await rerender();
 
     expect(examples()).toEqual(["mountain"]);
+  });
+
+  it("keeps the other suggestions when one list failed, says so and asks for it again", async () => {
+    peopleQuery.isError = true;
+    await render();
+
+    expect(examples()).toEqual(["beach"]);
+    expect(search.failed).toBe(true);
+    search.retry();
+    expect(peopleQuery.refetch).toHaveBeenCalledOnce();
+  });
+
+  it("follows a refetch that brings new suggestions", async () => {
+    await render();
+    examplesQuery.data = ["beach", "harbour"];
+    await rerender();
+
+    expect(examples()).toEqual(["beach", "harbour"]);
   });
 });

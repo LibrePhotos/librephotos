@@ -47,7 +47,10 @@ const copied = vi.fn<(text: string) => void>();
 // Mocked bare, without importOriginal: util.ts pulls in ../api_client/dir-tree,
 // which does not exist in the tree, so loading the real module here fails.
 vi.mock("../../util/util", () => ({
-  copyToClipboard: (text: string) => copied(text),
+  copyText: async (text: string) => {
+    copied(text);
+    return true;
+  },
 }));
 
 vi.mock("../../api_client/media", () => ({

@@ -13,7 +13,7 @@ import {
   VisuallyHidden,
 } from "@mantine/core";
 import { Link, useNavigate } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
 import { parseInstant } from "../../util/dateUtils";
@@ -61,7 +61,6 @@ function jobMeta(job: Job, withUser: boolean): string {
 export function JobList({ variant = "admin" }: IJobList) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [jobCount, setJobCount] = useState(0);
   const [activePage, setActivePage] = useState(1);
   const [pageSize] = useState(10);
   const mine = variant === "mine";
@@ -71,12 +70,8 @@ export function JobList({ variant = "admin" }: IJobList) {
   const { data: jobs, isLoading } = jobsQuery;
   const listFailure = useListFailure(jobsQuery);
 
-  useEffect(() => {
-    if (!jobs) {
-      return;
-    }
-    setJobCount(jobs.count);
-  }, [jobs]);
+  // The query keeps the previous page while the next one loads, so the page count stays put.
+  const jobCount = jobs?.count ?? 0;
 
   return (
     <Card withBorder radius="lg" padding="lg">
@@ -174,11 +169,7 @@ export function JobList({ variant = "admin" }: IJobList) {
         </Table>
       </Table.ScrollContainer>
       <Flex justify="center" mt={20}>
-        <Pagination
-          total={Math.ceil(+jobCount.toFixed(1) / pageSize)}
-          onChange={newPage => setActivePage(newPage)}
-          withEdges
-        />
+        <Pagination total={Math.ceil(jobCount / pageSize)} value={activePage} onChange={setActivePage} withEdges />
       </Flex>
     </Card>
   );

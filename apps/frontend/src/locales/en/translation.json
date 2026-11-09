@@ -1739,6 +1739,7 @@
     "placeholder": "Search photos, run commands...",
     "triggerPlaceholder": "Search photos, people and places",
     "nothingFound": "No results found",
+    "suggestionsFailed": "Search suggestions could not be loaded. Try again",
     "searchFor": "Search for \"{{query}}\"",
     "groups": {
       "search": "Search results",
