@@ -43,6 +43,7 @@ from api.models.user import User
 from api.photos.zip_downloads import zip_file_name
 from api.runtime import binaries
 from api.serializers.media import MediaQuery
+from api.serving.caching import cache_thumbnail, file_etag, not_modified
 from api.serving.http_range import file_size, ranged_response
 from api.sharing.copies import (
     COPIES_DIR,
@@ -439,19 +440,27 @@ class MediaServingView(APIView):
         if not os.path.exists(file_path):
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         try:
+            request = getattr(self, "request", None)
+            # The bundled proxy answers If-None-Match itself; serving the file
+            # here, an unchanged one is a bodiless 304 (see api.serving.caching).
+            etag = file_etag(os.stat(file_path))
+            unchanged = not_modified(request, etag)
+            if unchanged is not None:
+                return unchanged
             handle = open(file_path, "rb")
             content_type = content_type or self._file_content_type(file_path)
             # Ranges matter here and nowhere else in this class: behind the
             # bundled proxy the bytes never come from Django, but an install
             # serving media itself has to answer a seek on its own, and a video
             # served without ranges cannot be sought at all.
-            request = getattr(self, "request", None)
-            return ranged_response(
+            response = ranged_response(
                 handle,
                 file_size(handle),
                 request.headers.get("Range") if request is not None else None,
                 content_type,
             )
+            response["ETag"] = etag
+            return response
         except FileNotFoundError:
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         except PermissionError:
@@ -1399,11 +1408,17 @@ class UnifiedMediaAccessView(MediaServingView):
 
         image_hash = fname.split(".", maxsplit=1)[0].split("_", maxsplit=1)[0]
         if album_id is not None:
-            return self._serve_shared_album_media(
-                album_id, image_hash, path, fname, use_proxy
+            return cache_thumbnail(
+                request,
+                kind,
+                self._serve_shared_album_media(
+                    album_id, image_hash, path, fname, use_proxy
+                ),
             )
         if kind != "photos":
-            return self._serve_derived_media(
-                request, image_hash, path, fname, use_proxy
+            return cache_thumbnail(
+                request,
+                kind,
+                self._serve_derived_media(request, image_hash, path, fname, use_proxy),
             )
         return self._serve_original_media(request, image_hash, use_proxy)

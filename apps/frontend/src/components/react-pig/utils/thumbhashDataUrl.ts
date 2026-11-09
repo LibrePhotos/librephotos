@@ -31,3 +31,19 @@ export function thumbhashDataUrl(hash: string | null | undefined): string | null
   cache.set(hash, url);
   return url;
 }
+
+/**
+ * `url` with a short digest of the photo's ThumbHash as `?v=`. The backend makes the ThumbHash
+ * again whenever it builds the thumbnails again (a rotation), so a changed picture gets a new
+ * address, and the server lets the browser keep each one for a year without asking again.
+ * Unchanged without a hash.
+ */
+export function withThumbhashVersion(url: string, hash: string | null | undefined): string {
+  if (!hash) return url;
+  // FNV-1a, 32 bits: short, and two versions of one photo practically never share it.
+  let digest = 0x811c9dc5;
+  for (let i = 0; i < hash.length; i++) {
+    digest = Math.imul(digest ^ hash.charCodeAt(i), 0x01000193) >>> 0;
+  }
+  return `${url}${url.includes("?") ? "&" : "?"}v=${digest.toString(36)}`;
+}

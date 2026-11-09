@@ -21,6 +21,11 @@ class MediaQuery(serializers.Serializer[None]):
         true_values={"1"},
         help_text="1 asks for a video this browser cannot play to be converted",
     )
+    v = serializers.CharField(
+        required=False,
+        help_text="A thumbnail's version (the grid sends a digest of its ThumbHash): "
+        "with it the thumbnail may be cached for a year",
+    )
 
 
 class BlockingPathSerializer(serializers.Serializer[None]):

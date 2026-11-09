@@ -4,7 +4,8 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../../../../i18n";
 import { defined } from "../../../../util/defined.test-utils";
-import type { ImageItem } from "../../types";
+import type { ImageItem, ScrollSpeed } from "../../types";
+import { forgetLoaded } from "../../utils/loadedImages";
 import Tile from "./Tile";
 
 const settings = { gridGap: 8, bgColor: "#fff", expandedSize: 1000 };
@@ -42,6 +43,7 @@ function renderTile(
     handleClick = vi.fn<(event: React.MouseEvent<HTMLButtonElement>, clicked: PhotoItem) => void>(),
     handleSelection = vi.fn<(selected: PhotoItem) => void>(),
     activeTileId = null as ImageItem["id"] | null,
+    scrollSpeed = "slow" as ScrollSpeed,
   } = {}
 ) {
   container = document.createElement("div");
@@ -60,7 +62,7 @@ function renderTile(
         selected={false}
         selectable={selectable}
         windowHeight={900}
-        scrollSpeed="slow"
+        scrollSpeed={scrollSpeed}
         settings={settings}
       />
     );
@@ -81,6 +83,7 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
+  forgetLoaded();
   if (root && container) {
     act(() => defined(root).unmount());
     container.remove();
@@ -221,14 +224,60 @@ describe("react-pig Tile media", () => {
 
     const [placeholder, grid] = Array.from(button.querySelectorAll("img"));
     expect(defined(placeholder).getAttribute("src")).toMatch(/^data:image\/png;base64,/);
-    expect(defined(grid).getAttribute("src")).toBe("/media/hash1?h=400");
+    // Versioned by the hash, so the browser may keep it.
+    expect(defined(grid).getAttribute("src")).toMatch(/^\/media\/hash1\?h=400&v=[0-9a-z]+$/);
   });
 
   it("keeps the dominant colour for a hash it cannot read", () => {
     const { button } = renderTile({ ...photoItem(), thumbhash: "not base64!" });
 
-    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toEqual([
+    const sources = Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src") ?? "");
+    expect(sources).toHaveLength(1);
+    expect(sources[0]).toMatch(/^\/media\/hash1\?h=400&v=/);
+  });
+
+  it("asks for another address once the thumbnails were built again", () => {
+    const src = (thumbhash: string) =>
+      Array.from(renderTile({ ...photoItem(), thumbhash }).button.querySelectorAll("img"))
+        .map(img => img.getAttribute("src") ?? "")
+        .find(address => address.startsWith("/media/"));
+    const before = src(SKY_THUMBHASH);
+    act(() => defined(root).unmount());
+    expect(src("IAgSAwB5lZtfand4AAAAAAA=")).not.toBe(before);
+  });
+
+  it("shows a picture it showed before at once when the tile mounts again, without the placeholder", () => {
+    const first = renderTile({ ...photoItem(), thumbhash: SKY_THUMBHASH });
+    const [, grid] = Array.from(first.button.querySelectorAll("img"));
+    act(() => {
+      defined(grid).dispatchEvent(new Event("load"));
+    });
+    act(() => defined(root).unmount());
+
+    const again = renderTile({ ...photoItem(), thumbhash: SKY_THUMBHASH });
+    const images = Array.from(again.button.querySelectorAll("img"));
+    expect(images.map(img => img.getAttribute("src") ?? "").filter(src => src.startsWith("data:"))).toEqual([]);
+    expect(defined(images[0]).className).toMatch(/pigFullLoaded/);
+    expect(defined(images[0]).className).toMatch(/pigFullAtOnce/);
+  });
+
+  it("keeps a picture it showed before while scrolling fast", () => {
+    const first = renderTile(photoItem());
+    act(() => {
+      defined(first.button.querySelector("img")).dispatchEvent(new Event("load"));
+    });
+    act(() => defined(root).unmount());
+
+    const fast = renderTile(photoItem(), { scrollSpeed: "fast" });
+    expect(Array.from(fast.button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toEqual([
       "/media/hash1?h=400",
+    ]);
+  });
+
+  it("loads nothing new while scrolling fast", () => {
+    const { button } = renderTile({ ...photoItem(), thumbhash: SKY_THUMBHASH }, { scrollSpeed: "fast" });
+    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src")?.slice(0, 5))).toEqual([
+      "data:",
     ]);
   });
 

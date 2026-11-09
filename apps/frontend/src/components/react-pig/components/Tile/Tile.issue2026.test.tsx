@@ -11,6 +11,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../../util/defined.test-utils";
 import type { ScrollSpeed } from "../../types";
+import { forgetLoaded } from "../../utils/loadedImages";
 import Tile from "./Tile";
 import { PREVIEW_DELAY_MS } from "./useClipPreview";
 
@@ -117,6 +118,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  forgetLoaded();
   if (root && container) {
     act(() => defined(root).unmount());
     container.remove();

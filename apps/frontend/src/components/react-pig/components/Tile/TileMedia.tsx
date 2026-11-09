@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import type { ImageItem, LaidOutTile, PigSettings, ScrollSpeed, TileUrl } from "../../types";
 import getImageHeight from "../../utils/getImageHeight";
-import { thumbhashDataUrl } from "../../utils/thumbhashDataUrl";
+import { thumbhashDataUrl, withThumbhashVersion } from "../../utils/thumbhashDataUrl";
 import { ExpandedClip, GridClip, PreviewClip } from "./TileClips";
 import { TileImages } from "./TileImages";
 
@@ -39,10 +39,21 @@ type Props = Readonly<{
 }>;
 
 /** The pictures or clips inside a tile's button. */
-export function TileMedia({ item, getUrl, containerWidth, scrollSpeed, settings, isExpanded, previewing }: Props) {
+export function TileMedia({
+  item,
+  getUrl: unversionedUrl,
+  containerWidth,
+  scrollSpeed,
+  settings,
+  isExpanded,
+  previewing,
+}: Props) {
   const [clipFailed, setClipFailed] = useState(false);
   const kind = tileMediaKind(item, clipFailed);
   if (kind === "none") return null;
+  // Versioned by the photo's ThumbHash, so the browser may keep each picture (api.serving.caching).
+  const getUrl: TileUrl = (hash, size, poster) =>
+    withThumbhashVersion(unversionedUrl(hash, size, poster), item.thumbhash);
   // A placeholder has no image yet; a loaded tile always has one.
   const imageHash = item.image_hash ?? "";
   const gridHeight = getImageHeight(containerWidth);
