@@ -79,7 +79,7 @@ class EmptyTrashJobTest(TestCase):
         def remove(photo):
             if photo.pk == broken.pk:
                 raise PermissionError("read-only library")
-            real_remove(photo)
+            return real_remove(photo)
 
         with (
             mock.patch.object(files, "remove_photo", remove),

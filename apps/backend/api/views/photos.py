@@ -51,6 +51,7 @@ from api.models.album_thing import (
     album_thing_ids_for_photos,
     refresh_album_thing_photo_counts,
 )
+from api.models.person import person_ids_for_photos, refresh_person_face_counts
 from api.models.photo import restore_photos, shared_library_q, trash_photos
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
@@ -322,8 +323,8 @@ class BulkPhotoMutationView(APIView):
     flag_name: str
     #: What happened to a photo, by new value, for log lines.
     past_tense = {True: "changed", False: "changed"}
-    #: Hiding or trashing a photo takes it out of its tags' and thing albums'
-    #: counts, and a queryset UPDATE fires no signal to say so.
+    #: Hiding or trashing a photo takes it out of its tags', thing albums' and
+    #: people's counts, and a queryset UPDATE fires no signal to say so.
     refreshes_tag_counts = False
     #: In ``select_all`` mode, touch (and count) only photos whose state
     #: differs rather than every photo the query matches.
@@ -348,10 +349,12 @@ class BulkPhotoMutationView(APIView):
         if self.refreshes_tag_counts:
             affected_tag_ids = tag_ids_for_photos(photos)
             affected_thing_ids = album_thing_ids_for_photos(photos)
+            affected_person_ids = person_ids_for_photos(photos)
         count = self.write(user, photos, value)
         if self.refreshes_tag_counts:
             refresh_tag_photo_counts(affected_tag_ids)
             refresh_album_thing_photo_counts(affected_thing_ids)
+            refresh_person_face_counts(affected_person_ids)
         return count
 
     @extend_schema(responses=BulkPhotoMutationResponse)
@@ -447,7 +450,8 @@ class SetPhotosDeleted(BulkPhotoMutationView):
     refreshes_tag_counts = True
 
     def differs(self, user: User, value: object) -> Q:
-        return ~Q(in_trashcan=value)
+        # A removed photo stays in the trash (``restore_photos``).
+        return ~Q(in_trashcan=value) & Q(removed=False)
 
     def write(self, user: User, photos: QuerySet[Photo], value: object) -> int:
         # Through the trash helpers, which set and clear trashed_at with it.
@@ -1112,9 +1116,10 @@ class DeletePhotos(APIView):
         image_hashes = keys.keys
         photos = list(Photo.objects.owned_by(user).filter(keys.q(), in_trashcan=True))
         found = {keys.key_of(photo.pk, photo.image_hash) for photo in photos}
+        removal = remove_photos(photos)
         failed = {
             keys.key_of(photo.pk, photo.image_hash)
-            for photo in remove_photos(photos).failed
+            for photo in [*removal.failed, *removal.skipped]
         }
         deleted = [h for h in image_hashes if h in found and h not in failed]
         not_deleted = [h for h in image_hashes if h not in found or h in failed]

@@ -368,11 +368,12 @@ class EnsureCachedTest(CacheDirectoryTestCase):
 class DiscardTest(CacheDirectoryTestCase):
     def test_deleting_a_photo_takes_its_cached_copy_with_it(self):
         user = create_test_user()
-        photo = create_test_photo(owner=user, video=True)
+        photo = create_test_photo(owner=user, video=True, in_trashcan=True)
         final = _write(transcode_cache.final_path(photo.image_hash))
         part = _write(final + ".part")
 
-        remove_photo(photo)
+        with self.captureOnCommitCallbacks(execute=True):
+            remove_photo(photo)
 
         self.assertFalse(os.path.exists(final))
         self.assertFalse(os.path.exists(part))

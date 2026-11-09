@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Collection, Iterable
 from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
@@ -19,6 +20,8 @@ from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
     from typing import Self
+
+    from django.db.models.fetch_modes import FetchMode
 
 
 class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
@@ -184,8 +187,10 @@ def restore_photos(photos: QuerySet[Photo]) -> int:
     """Take ``photos`` out of the trash and clear ``trashed_at``.
 
     The counterpart of ``trash_photos``; returns the number of rows updated.
+    A removed photo stays where it is: its files are gone, and out of the
+    trash it would be shown nowhere and never purged.
     """
-    return photos.update(
+    return photos.filter(removed=False).update(
         in_trashcan=False, trashed_at=None, last_modified=timezone.now()
     )
 
@@ -216,6 +221,24 @@ def visible_photo_q(prefix: str = "") -> Q:
         & Q(**{f"{prefix}in_trashcan": False})
         & Q(**{f"{prefix}removed": False})
     )
+
+
+# Written by queryset UPDATEs (``trash_photos``, ``restore_photos``,
+# ``api.photos.files.remove_photo``, the bulk hide, archive, public and rating
+# views) while scans and edits hold a photo they loaded before. A full-row
+# ``Photo.save()`` writes one of them only when that instance changed it.
+LIFECYCLE_FIELDS = frozenset(
+    {
+        "in_trashcan",
+        "trashed_at",
+        "removed",
+        "removed_at",
+        "hidden",
+        "archived",
+        "public",
+        "rating",
+    }
+)
 
 
 class LocationSource(models.TextChoices):
@@ -305,6 +328,10 @@ class Photo(models.Model):
     # by trash_photos/restore_photos. The trash retention purges by it.
     trashed_at = models.DateTimeField(blank=True, null=True, db_index=True)
     removed = models.BooleanField(default=False, db_index=True)
+    # When ``remove_photo`` removed it; None otherwise. The removed-photo
+    # cleanup purges the row 30 days later (``last_modified`` moves on
+    # every write, so it is no clock).
+    removed_at = models.DateTimeField(blank=True, null=True)
     hidden = models.BooleanField(default=False, db_index=True)
     # Archived (#545): off the timeline and Memories only. Unlike ``hidden``
     # it is not part of ``visible_photo_q``: an archived photo stays in its
@@ -424,13 +451,82 @@ class Photo(models.Model):
 
         return self.clip_embeddings
 
+    # The LIFECYCLE_FIELDS values this instance was loaded or last saved with.
+    _lifecycle_loaded: dict[str, object] | None = None
+
+    @classmethod
+    def from_db(
+        cls,
+        db: str | None,
+        field_names: Collection[str],
+        values: Collection[object],
+        *,
+        fetch_mode: FetchMode | None = None,
+    ) -> Self:
+        instance = super().from_db(db, field_names, values, fetch_mode=fetch_mode)
+        instance._remember_lifecycle(LIFECYCLE_FIELDS)
+        return instance
+
+    def refresh_from_db(
+        self,
+        using: str | None = None,
+        fields: Iterable[str] | None = None,
+        from_queryset: QuerySet[Photo] | None = None,
+    ) -> None:
+        fields = None if fields is None else list(fields)
+        super().refresh_from_db(using, fields, from_queryset)
+        self._remember_lifecycle(LIFECYCLE_FIELDS if fields is None else fields)
+
+    def _remember_lifecycle(self, fields: Iterable[str]) -> None:
+        loaded = dict(self._lifecycle_loaded or {})
+        for name in LIFECYCLE_FIELDS.intersection(fields):
+            if name in self.__dict__:
+                loaded[name] = self.__dict__[name]
+        self._lifecycle_loaded = loaded
+
+    def _lifecycle_changed(self, name: str) -> bool:
+        loaded = self._lifecycle_loaded or {}
+        return name not in loaded or self.__dict__.get(name) != loaded[name]
+
+    def _whole_row_fields(self) -> list[str]:
+        """What a full-row save of an existing row writes: every loaded
+        column, but a lifecycle flag only where this instance changed it."""
+        deferred = self.get_deferred_fields()
+        return [
+            field.name
+            for field in self._meta.concrete_fields
+            if not field.primary_key
+            and field.attname not in deferred
+            and (
+                field.name not in LIFECYCLE_FIELDS
+                or self._lifecycle_changed(field.name)
+            )
+        ]
+
     def save(self, *args: Any, **kwargs: Any) -> None:
+        """Save the photo; a full-row save of a loaded row keeps the lifecycle.
+
+        A scan holds the instance for the whole read of the file while the
+        user trashes, hides or rates the photo through a queryset UPDATE;
+        writing that instance whole put the old flags back (a trashed photo
+        came back, a rating was lost). So a save without ``update_fields``
+        writes ``LIFECYCLE_FIELDS`` only where this instance changed them.
+        """
         # The town goes with the place it is read from, never on its own.
         self.town = photo_town(self.geolocation_json)
         update_fields = kwargs.get("update_fields")
         if update_fields is not None and "geolocation_json" in update_fields:
             kwargs["update_fields"] = [*update_fields, "town"]
+        if (
+            update_fields is None
+            and not self._state.adding
+            and self._lifecycle_loaded is not None
+            and not kwargs.get("force_insert")
+        ):
+            kwargs["update_fields"] = self._whole_row_fields()
         super().save(*args, **kwargs)
+        written = kwargs.get("update_fields")
+        self._remember_lifecycle(LIFECYCLE_FIELDS if written is None else written)
 
     def __str__(self) -> str:
         main_file_path = (

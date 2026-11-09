@@ -572,6 +572,9 @@ def create_test_photo(**kwargs):
     # A photo in the trash has a trashed_at, as trash_photos would set it.
     if kwargs.get("in_trashcan") and "trashed_at" not in kwargs:
         kwargs["trashed_at"] = timezone.now()
+    # And a removed one its removed_at, as remove_photo sets it.
+    if kwargs.get("removed") and "removed_at" not in kwargs:
+        kwargs["removed_at"] = timezone.now()
 
     # Create the photo with remaining kwargs
     photo = Photo(pk=pk, image_hash=image_hash, **kwargs)

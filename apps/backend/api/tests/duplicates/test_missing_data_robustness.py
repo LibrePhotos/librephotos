@@ -359,7 +359,7 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
 
     def test_delete_photo_in_multiple_stacks(self):
         """Test deleting a photo that's in multiple stacks."""
-        photo = create_test_photo(owner=self.user)
+        photo = create_test_photo(owner=self.user, in_trashcan=True)
         other_photos1 = [create_test_photo(owner=self.user) for _ in range(2)]
         other_photos2 = [create_test_photo(owner=self.user) for _ in range(2)]
 
@@ -386,7 +386,7 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
 
     def test_delete_photo_in_multiple_duplicate_groups(self):
         """Test deleting a photo that's in multiple duplicate groups."""
-        photo = create_test_photo(owner=self.user)
+        photo = create_test_photo(owner=self.user, in_trashcan=True)
         other_photos1 = [create_test_photo(owner=self.user)]
         other_photos2 = [create_test_photo(owner=self.user)]
 
@@ -410,7 +410,10 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
 
     def test_delete_primary_photo_from_stack(self):
         """Test deleting the primary photo from a stack."""
-        photos = [create_test_photo(owner=self.user) for _ in range(3)]
+        photos = [
+            create_test_photo(owner=self.user, in_trashcan=index == 0)
+            for index in range(3)
+        ]
         stack = create_test_stack(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
