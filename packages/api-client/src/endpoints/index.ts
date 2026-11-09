@@ -1016,6 +1016,16 @@ export async function fetchJobs(
   return parseResponse(S.JobsResponse, res, "jobs");
 }
 
+/**
+ * Every job of the list, all its pages, 1000 a request (the server's largest page). Staff get
+ * everyone's unless `mine` narrows the list to their own.
+ */
+export async function fetchAllJobs(client: ApiClient, options: { mine?: boolean } = {}): Promise<S.Job[]> {
+  const query = buildQuery({ page_size: 1000, mine: options.mine ? "true" : undefined });
+  const rows = await fetchAllPages(client, `/jobs/${query}`);
+  return parseResponse(S.Job.array(), rows, "jobs");
+}
+
 /** One job, with its progress. */
 export async function fetchJob(client: ApiClient, jobId: number): Promise<S.JobDetail> {
   const res = await client.get<unknown>(`/jobs/${jobId}/`);

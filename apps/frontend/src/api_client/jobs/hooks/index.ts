@@ -1,3 +1,4 @@
+export * from "./useAllJobsQuery";
 export * from "./useApplyDateRules";
 export * from "./useCancelJobMutation";
 export * from "./useCheckFileContentsMutation";
@@ -13,6 +14,7 @@ export * from "./useDeduplicateFacesMutation";
 export * from "./useLookUpPlacesMutation";
 export * from "./useRegenerateEventTitlesMutation";
 export * from "./useRescanPhotosMutation";
+export * from "./useRemoveJobsMutation";
 export * from "./useRescanSelectedPhotosMutation";
 export * from "./useScanNextcloudPhotosMutation";
 export * from "./useScanPhotosMutation";

@@ -26,6 +26,7 @@ import classes from "./JobList.module.css";
 import { JobListProgress } from "./JobListProgress";
 import { JobStatusChip } from "./JobStatusChip";
 import { jobTypeLabel } from "./jobTypeLabel";
+import { RemoveFinishedJobsButton } from "./RemoveFinishedJobsButton";
 
 type IJobList = Readonly<{
   /**
@@ -85,6 +86,12 @@ export function JobList({ variant = "admin" }: IJobList) {
           {t("joblist.workerlogs")}
           <SectionLink /> {isLoading ? <Loader size="xs" /> : null}
         </Title>
+      )}
+      {/* Only on My Jobs: the admin list holds everyone's jobs, and removing those in bulk is not this button's job. */}
+      {mine && (
+        <Flex justify="flex-end" mb={16}>
+          <RemoveFinishedJobsButton />
+        </Flex>
       )}
       {/* Scrolls sideways on a phone instead of clipping the menu at the card edge */}
       <Table.ScrollContainer minWidth={320} type="native">
