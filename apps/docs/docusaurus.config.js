@@ -4,8 +4,16 @@
 const { themes } = require("prism-react-renderer");
 const htmlTableStructure = require("./src/remark/html-table-structure");
 
-const lightCodeTheme = themes.github;
-const darkCodeTheme = themes.dracula;
+// Code blocks sit on the app's surfaces: grey-0 in the light scheme, the raised near-black (dark-6
+// of DARK_SCALE) in the dark one, instead of the themes' own GitHub grey and One Dark slate.
+const lightCodeTheme = {
+  ...themes.github,
+  plain: { ...themes.github.plain, backgroundColor: "#f8f9fa" },
+};
+const darkCodeTheme = {
+  ...themes.oneDark,
+  plain: { ...themes.oneDark.plain, backgroundColor: "#1f1f23" },
+};
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -23,14 +31,6 @@ const config = {
   // If you aren't using GitHub pages, you don't need these.
   organizationName: "LibrePhotos",
   projectName: "librephotos",
-
-  headTags: [
-    { tagName: "link", attributes: { rel: "preconnect", href: "https://fonts.googleapis.com" } },
-    { tagName: "link", attributes: { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "anonymous" } },
-  ],
-  stylesheets: [
-    "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap",
-  ],
 
   onBrokenLinks: "throw",
 
@@ -82,22 +82,26 @@ const config = {
       colorMode: { respectPrefersColorScheme: true },
       navbar: {
         title: "LibrePhotos",
+        // The app header's mark: ink on the light chrome, white on the dark one.
         logo: {
           alt: "LibrePhotos logo",
-          src: "img/logo-round.png",
+          src: "brand/logo.png",
+          srcDark: "brand/logo-white.png",
         },
         items: [
+          // Plain links with their own patterns: as `doc` items both would be marked current on
+          // every page, since the docs are one sidebar.
           {
-            type: "doc",
-            docId: "intro",
+            to: "/docs/intro",
             position: "left",
             label: "Docs",
+            activeBaseRegex: "^/docs/(?!development)",
           },
           {
-            type: "doc",
-            docId: "development/dev-install",
+            to: "/docs/development/dev-install",
             position: "left",
             label: "Development",
+            activeBaseRegex: "^/docs/development",
           },
           { to: "/blog", label: "Blog", position: "left" },
           {
@@ -114,7 +118,7 @@ const config = {
         ],
       },
       footer: {
-        style: "dark",
+        style: "light",
         links: [
           {
             title: "Docs",

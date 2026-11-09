@@ -1,5 +1,5 @@
 ---
-title: "📱  Mobile Apps"
+title: "Mobile apps"
 description: "Which apps does Librephotos have?"
 sidebar_position: 25
 ---

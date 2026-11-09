@@ -1,5 +1,5 @@
 ---
-title: "🤖 Auto scan all folders"
+title: "Auto scan all folders"
 description: "Scan every library automatically, on a schedule set in Site settings or from a cron job on the host, or let a folder watcher name the new files"
 sidebar_position: 12
 ---
@@ -12,7 +12,7 @@ LibrePhotos can scan every library by itself, so new photos show up without anyo
 
 <Since version="1.4.0" />
 
-Open **Account menu > Admin Area > Site settings** and pick a schedule under **Scan libraries automatically**:
+Open **Account menu > Admin area > Site settings** and pick a schedule under **Scan libraries automatically**:
 
 - **Off** (the default): nothing is scanned unless a user clicks **Scan** on the Library page.
 - **Every hour**: at the start of every hour.
@@ -23,7 +23,7 @@ The setting is saved as you change it, like the other site settings. Nothing nee
 
 ### What a run does
 
-Each run starts, for every user with a scan directory, the same scan the **Scan** button on the Library page starts: an incremental scan of their scan directory, followed by the usual face detection, things and places. While the [Nextcloud integration](./library.md#nextcloud-integration) is on, a user's Nextcloud folder is scanned too, right after their scan directory. The scans show up in the job list like any other **Scan Photos** job, started by the user whose library they scan.
+Each run starts, for every user with a scan directory, the same scan the **Scan** button on the Library page starts: an incremental scan of their scan directory, followed by the usual face detection, things and places. While the [Nextcloud integration](./library.md#nextcloud-integration) is on, a user's Nextcloud folder is scanned too, right after their scan directory. The scans show up in the job list like any other **Scan photos** job, started by the user whose library they scan.
 
 A run never stacks a scan on top of another one. A user whose scan is still queued or running, from the previous run or from a click on **Scan**, is skipped this time and picked up by the next run. This is what keeps a long first scan of a big library from being started again every hour.
 
@@ -42,7 +42,7 @@ Under the setting, one line says what the last run did and when the next one is,
 - _Last run Oct 14, 2026, 3:00 AM: 3 libraries scanned. Next run Oct 15, 2026, 3:00 AM._
 - _Still scanning: anna._ The scans of that run are queued or running.
 - _Skipped bob: a scan was still running._
-- _Could not scan carla; see Worker Logs._ Her library could not be scanned, or her scan failed. The job in **Worker Logs** says why, for example that the scan directory looks unmounted (see [Missing Photos](./missing-photos.md#when-a-scan-asks-is-the-library-mounted)).
+- _Could not scan carla; see Worker logs._ Her library could not be scanned, or her scan failed. The job in **Worker logs** says why, for example that the scan directory looks unmounted (see [Missing Photos](./missing-photos.md#when-a-scan-asks-is-the-library-mounted)).
 
 ### Why a scan every hour is cheap
 
@@ -66,7 +66,7 @@ curl -u myuser:mypassword -H 'Content-Type: application/json' \
 
 `POST /api/scan-files/` takes up to 1,000 paths, **as LibrePhotos sees them** (inside the container that is the scan directory set for your user, such as `/data/...`, not the folder on the host). It authenticates like every other endpoint, with your user's password over Basic auth or a JWT access token (see [API authentication](./api-authentication.md)); a script that runs for days is simpler with Basic auth, because an access token expires after 5 minutes. Use HTTPS, or call it from the same machine.
 
-The call starts a **Scan Photos** job for those files and answers at once:
+The call starts a **Scan photos** job for those files and answers at once:
 
 ```json
 {"status": true, "job_id": "…", "job_ids": ["…"], "file_count": 2, "removed_count": 0, "ignored_paths": []}

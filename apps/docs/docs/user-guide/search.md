@@ -1,5 +1,5 @@
 ---
-title: "🔎 Search"
+title: "Search"
 description: "Find your photos using spotlight search, semantic search, and text search"
 sidebar_position: 3
 ---
@@ -26,7 +26,7 @@ Press any of these keyboard shortcuts to open the spotlight:
 `Ctrl + P` / `Cmd + P` opens the spotlight rather than the browser's print dialog. Use the browser menu if you need to print the page.
 :::
 
-You can also click the search icon in the top menu bar.
+You can also click the search field at the top of the page (**Search photos, people and places**; on a phone it just says **Search**).
 
 ### What You Can Do
 
@@ -48,23 +48,23 @@ Select "Search for [your query]" to perform a full search and see all matching r
 
 Quickly jump to any page in LibrePhotos:
 
-- Photos, Albums, My Albums, People, Places, Things, Tags, Events, Folders
-- Favorites, Hidden, Videos, Trash, Recently Added, No Timestamp, No Location, Not in an Album
+- Photos, Albums, My albums, People, Places, Things, Tags, Events, Folders
+- Memories, Favorites, Hidden, Archive, Videos, Screenshots, Documents, Trash, Recently added, Photos without timestamps, Photos without location, photos not in an album
 - <Since version="1.4.0" /> Filter photos: the search page with [filters](#search-filters) and no words
-- Sharing, Faces Dashboard, Statistics — and its sub-pages Place Tree, Word Clouds, Timeline, Social Graph and Face Clusters
-- Settings, Profile, Library, Admin Area
+- Sharing, Review faces (the face dashboard), Statistics, and its sub-pages Place tree, Word clouds, Timeline, Social graph and Face clusters
+- Settings, Profile, Library, Admin area
 
-Settings and Profile also expose keyword shortcuts: typing something like `password`, `language`, `clustering`, `metadata` or `llm` surfaces entries such as Change Password, Change Language, Face Recognition Settings, Metadata Settings and Caption Context Settings, each of which opens the matching Settings or Profile page.
+Settings and Profile also expose keyword shortcuts: typing something like `password`, `language`, `clustering`, `metadata` or `llm` surfaces entries such as Change password, Change language, Face recognition settings, Metadata settings and Caption context settings, each of which opens the matching Settings or Profile page.
 
 #### Actions
 
 Trigger common actions directly from the spotlight:
 
-- **Scan photos** / **Rescan photos** — Start a photo scan
-- **Train faces** / **Rescan faces** — Run face recognition
-- **Generate events** — Group photos into events
-- **Delete missing photos** — Clean up missing files
-- **Toggle theme** — Switch between light and dark mode
+- **Scan photos** / **Rescan all photos** — Start a photo scan
+- **Train face recognition** / **Detect faces in photos** — Run face recognition
+- **Generate event albums** — Group photos into events
+- **Remove missing photos** — Clean up missing files
+- **Toggle dark mode** — Switch between light and dark mode
 
 ## Text Search
 
@@ -163,7 +163,7 @@ You need to have the **CLIP embedding** calculation job completed for semantic s
 One model turns photos and queries into embeddings and detects the things in your photos: [OpenCLIP](https://huggingface.co/laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K) ViT-B/32, trained by LAION on DataComp-XL and released under the MIT licence. Detecting a photo's things yields its search embedding from the same run, so a scan runs one vision model per photo. There is nothing to choose in the settings.
 
 :::note Upgrading to 1.3.0
-Releases up to 1.2.x searched with CLIP ViT-B/32 and detected things with another model. After the upgrade a **Calculate Clip Embeddings** job re-embeds every photo with OpenCLIP in the background and gives it new things from the same run; nothing is deleted first. While it runs, semantic search and similar photos cover the photos converted so far (the index catches up after the first 2,000 photos and then each time the number converted has doubled, so a large library is not held up rebuilding it; up to 1.4.0 it caught up every 2,000 photos), and the Things albums fill up again as photos are processed again. It happens once.
+Releases up to 1.2.x searched with CLIP ViT-B/32 and detected things with another model. After the upgrade a **Calculate CLIP embeddings** job re-embeds every photo with OpenCLIP in the background and gives it new things from the same run; nothing is deleted first. While it runs, semantic search and similar photos cover the photos converted so far (the index catches up after the first 2,000 photos and then each time the number converted has doubled, so a large library is not held up rebuilding it; up to 1.4.0 it caught up every 2,000 photos), and the Things albums fill up again as photos are processed again. It happens once.
 :::
 
 ### How It Works
@@ -175,7 +175,7 @@ Releases up to 1.2.x searched with CLIP ViT-B/32 and detected things with anothe
 
 ## Similar Photos
 
-When viewing a photo in the lightbox, the **Similar Photos** section in the sidebar shows visually similar photos from your library. These are found using the same CLIP embedding technology as semantic search.
+When viewing a photo in the lightbox, the **Similar photos** section in the sidebar shows visually similar photos from your library. These are found using the same CLIP embedding technology as semantic search.
 
 Click on any similar photo to navigate directly to it. This is useful for:
 

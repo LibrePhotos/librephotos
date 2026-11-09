@@ -1,5 +1,5 @@
 ---
-title: "📦 unRAID"
+title: "Unraid"
 description: "How to install LibrePhotos on Unraid using Docker Compose."
 sidebar_position: 3
 ---
@@ -39,7 +39,7 @@ wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/deploy/compos
 
 You'll need to edit the .env file and set the two mandatory variables: `scanDirectory`, the folder holding your photos (e.g. `/mnt/user/pictures`), and `data`, a folder for LibrePhotos' internal state - its database, protected media, logs and model cache (e.g. `/mnt/user/appdata/librephotos`). Create both folders before you start the stack, and keep note of the default HTTP port, 3000.
 
-The map API key is no longer set in this file. After first boot, set it under your avatar -> Admin Area -> Site Settings. See [Old environment variables](environment-variables.md#old-environment-variables) if you'd rather seed it as a first-boot default.
+The map API key is no longer set in this file. After first boot, set it under your avatar -> Admin area -> Site settings. See [Old environment variables](environment-variables.md#old-environment-variables) if you'd rather seed it as a first-boot default.
 
 You should have LibrePhotos accessible after a few minutes of boot-up on unraidip:3000 unless you changed this in the .env file.
 

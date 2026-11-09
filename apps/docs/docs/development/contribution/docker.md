@@ -1,5 +1,5 @@
 ---
-title: "🐋 Docker"
+title: "Docker"
 description: "Contributing to LibrePhotos Docker infrastructure."
 sidebar_position: 4
 last_modified_at: 2024-12-14

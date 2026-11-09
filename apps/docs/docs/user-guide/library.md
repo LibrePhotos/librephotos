@@ -1,19 +1,19 @@
 ---
-title: "📚 Library Management"
+title: "Library management"
 description: "Scanning, Nextcloud integration, services, and server management"
 sidebar_position: 11
 ---
 
-The **Library** page is your central hub for managing your photo library. Access it by clicking on your avatar (top right) and selecting **Library**, or via the spotlight search (`Ctrl+K` → "Library").
+The **Library** page is your central hub for managing your photo library. Open it with **Account menu > Library** (on a phone, tap your picture at the right end of the bottom bar), or via the spotlight search (`Ctrl+K` → "Library"). **View statistics** at the top right of the page opens the [Statistics](./statistics.md) charts.
 
 ## Overview Stats
 
 At the top of the Library page, you'll see quick stats about your library:
 
 - **Photos** — Total number of photos and the number of distinct days they were taken on (undated photos are grouped into a single extra bucket)
-- **People** — Number of recognized people, with a breakdown of inferred, labeled, and unknown faces
-- **Faces** — Total faces detected
+- **People** — Number of recognized people and of all faces detected; hover for a breakdown of inferred, labeled, and unknown faces
 - **Events** — Number of events (photos grouped by when they were taken)
+- **Places** — Number of places your photos were taken in
 
 ## Processing status
 
@@ -36,7 +36,7 @@ The header says how many stages are done. **Run now** starts the job that does w
 
 When every stage is done, the card is a single line, "All N photos are processed"; **Show details** opens the rows again. A library without photos has no card.
 
-<Since version="1.5.1" /> A face region imported from your files where the face model finds no face (or a box you drew around something it does not see as a face) stays a person tag without recognition data, so it is never grouped with a stranger. **Face recognition data** does not count such regions as left to do: the row says "N face regions have no face match (kept as person tags)", also on the single line when everything else is done. LibrePhotos does not ask the face model about them again until an admin picks another **Face Recognition Model** in the site settings or you press **Try again** next to that line, which asks once more and then runs the stage. Up to 1.5.0 they counted as left to do forever, every run asked again, and with enough of them the job showed as failed.
+<Since version="1.5.1" /> A face region imported from your files where the face model finds no face (or a box you drew around something it does not see as a face) stays a person tag without recognition data, so it is never grouped with a stranger. **Face recognition data** does not count such regions as left to do: the row says "N face regions have no face match (kept as person tags)", also on the single line when everything else is done. LibrePhotos does not ask the face model about them again until an admin picks another **Face recognition model** in the site settings or you press **Try again** next to that line, which asks once more and then runs the stage. Up to 1.5.0 they counted as left to do forever, every run asked again, and with enough of them the job showed as failed.
 
 If your photos only come from uploads (you have no scan directory), photos uploaded before LibrePhotos 1.4.0 that have no faces count as not checked for faces until a face scan has looked at them once: press **Run now** on **Face detection**. The row says so.
 
@@ -46,7 +46,7 @@ For scripts: the card reads `GET /api/library/processing-status/`, and **Run now
 
 ### Scan Photos (File System)
 
-In the **Scan Library** row, click **Scan** to scan your configured scan directory for new photos. The scan process:
+In the **Scan library** row, click **Scan** to scan your configured scan directory for new photos. The scan process:
 
 1. Discovers new image and video files
 2. Groups related files (RAW+JPEG pairs, Live Photos) as [file variants](./stacks-and-file-variants.md). A RAW and a JPEG with the same name in the same folder become one photo with a RAW variant; there is no setting for this.
@@ -100,7 +100,7 @@ A file whose bytes changed while its picture stayed the same is only re-keyed in
 
 <Since version="1.5.0" /> The same goes for a picture another app saved again, compressed again or edited lightly (a slightly brighter version, say): it keeps its faces, things, caption and place in the timeline, and only its thumbnails are made again so that they show the file as it is now. Uploading such a file again is recognised as a photo you already have. Up to 1.4.0, any change to the picture's fingerprint counted as a new picture and cost the photo its faces.
 
-<Since version="1.5.0" /> A scan only reads a file again when its modification date changed. A file replaced by a copy that kept the old date (`cp -p`, `rsync --times`, some sync apps) is not noticed; an admin finds those with **Check file contents** in the Admin Area (see [Check File Contents](./job-system.md#check-file-contents)), or with `python manage.py rehash_files` (`--user <name>` for one library, `--path <folder>` for one folder of it).
+<Since version="1.5.0" /> A scan only reads a file again when its modification date changed. A file replaced by a copy that kept the old date (`cp -p`, `rsync --times`, some sync apps) is not noticed; an admin finds those with **Check file contents** in the Admin area (see [Check File Contents](./job-system.md#check-file-contents)), or with `python manage.py rehash_files` (`--user <name>` for one library, `--path <folder>` for one folder of it).
 
 For a video, and for a photo you have rotated inside LibrePhotos, the two cannot be told apart. The scan takes the careful path there: the thumbnails are rebuilt once and the cached video conversion is dropped, but the faces you have named are kept and the photo stays where it is in the timeline.
 
@@ -114,8 +114,8 @@ The first scan after upgrading may re-key files LibrePhotos had previously writt
 
 When one photo is wrong (a bad thumbnail, a date that does not match the file after another app edited it, a file replaced with one that kept the old modification time), you can read just its files again instead of rescanning the whole library:
 
-- **Several photos**: select them, open the **⋮** (Photo Actions) and choose **Rescan files** in the **Files** group. Up to 1,000 photos at a time; after **Select all**, pick the photos one by one instead.
-- **One photo**: in the photo viewer, open the **⋮** after the rotate buttons (on a phone, the **⋮** menu) and choose **Rescan file**. On the photo's page it is under **More**.
+- **Several photos**: select them, open the **⋮** (Photo actions) and choose **Rescan files** in the **Files** group. Up to 1,000 photos at a time; after **Select all**, pick the photos one by one instead.
+- **One photo**: in the photo viewer, open the **⋮** (**More actions**) at the right end of the toolbar and choose **Rescan file**. On the photo's page it is under **More**.
 
 A rescan reads every file of the photo again, also when it did not change: the main file, its [variants](./stacks-and-file-variants.md) and its sidecars. It renders the thumbnails again (the old ones stay if that fails), reads the metadata and the date, and checks the file's hash. What you changed in LibrePhotos stays: a date you set by hand, a location you set, captions and albums (see [How a rescan treats your edits](./exif-data.md#how-a-rescan-treats-your-edits) for every field). The things, places and faces jobs that follow only look at what is new, as after a **Scan**, so a rescan does not detect faces again: use **Detect faces again** next to it for that (see [Face recognition](./face-recognition.md#detect-faces-again-in-some-photos-or-a-folder)).
 
@@ -129,7 +129,7 @@ Scan progress is shown in the [Job System](./job-system.md). The scan is split i
 
 <Since version="1.4.0" />
 
-You can move your own photos to another folder of your library without leaving LibrePhotos. Select the photos and choose **Move to folder…** in the photo actions menu (⋮), or open a photo and choose **More → Move to folder…**.
+You can move your own photos to another folder of your library without leaving LibrePhotos. Select the photos and choose **Edit info → Move to folder…** in the photo actions menu (⋮), or open a photo and choose **More → Move to folder…**.
 
 The dialog shows the folders of your library: your scan directory and, when it is set elsewhere, your upload folder. Folders the scan skips (hidden folders and the ones matching the skip patterns) are not listed, and you cannot move photos outside your library. Pick a folder in the tree or type its full path. **New folder** names a folder inside the one you picked; it is made when the photos move.
 
@@ -149,7 +149,7 @@ If a file with the same name is already in the folder, a second dialog lists the
 
 A file in the folder is never overwritten.
 
-Albums, faces, tags, ratings and sharing stay with the photo, and the folder views show it in its new folder right away. The next scan does not read a moved photo again. A selection of more than 100 photos moves in the background as a **Move Photos** job (see [Job System](./job-system.md)); a move cannot start while a scan of your library runs.
+Albums, faces, tags, ratings and sharing stay with the photo, and the folder views show it in its new folder right away. The next scan does not read a moved photo again. A selection of more than 100 photos moves in the background as a **Move photos** job (see [Job System](./job-system.md)); a move cannot start while a scan of your library runs.
 
 ### Sorting into folders by date
 
@@ -163,7 +163,7 @@ The dialog lists the folders the photos go to, how many photos each one gets and
 
 <Since version="1.5.0" />
 
-You can give your own photos file names made from their capture date, such as `20250601_233000.jpg` instead of `IMG_4711.jpg`, so they are easy to find and share outside LibrePhotos. Select the photos and choose **Rename files…** in the photo actions menu (⋮), or open a photo and choose **More → Rename files…**.
+You can give your own photos file names made from their capture date, such as `20250601_233000.jpg` instead of `IMG_4711.jpg`, so they are easy to find and share outside LibrePhotos. Select the photos and choose **Edit info → Rename files…** in the photo actions menu (⋮), or open a photo and choose **More → Rename files…**.
 
 Pick a preset (**Date and time**, **Date, time and old name**, **Date and old name**) or write your own name with these tokens; the buttons under the field put one where the cursor is:
 
@@ -183,7 +183,7 @@ Before you rename, the dialog lists the first photos with a thumbnail, their nam
 
 A photo is renamed with all its files, as for a move: its RAW or JPEG variant, a Live Photo's video and its XMP sidecars (`IMG_1.CR2` becomes `20250601_233000.CR2`, `IMG_1.jpg.xmp` becomes `20250601_233000.jpg.xmp`), so the scan still sees one photo. When a name is taken, for example by two photos of the same second, the photo gets the next free one: `20250601_233000 (1).jpg`. Nothing is ever overwritten, and a photo that cannot be renamed keeps every file under its old name. Albums, faces, tags, ratings and sharing stay with the photo.
 
-A selection of more than 100 photos is renamed in the background as a **Rename Photos** job; a rename cannot start while a scan of your library runs.
+A selection of more than 100 photos is renamed in the background as a **Rename photos** job; a rename cannot start while a scan of your library runs.
 
 ## Nextcloud Integration
 
@@ -191,7 +191,7 @@ If you have a Nextcloud instance, you can scan photos directly from it without m
 
 ### Enabling the integration
 
-The integration is off by default, and the **Nextcloud** section is hidden on the Library page until an admin turns it on. Click on your avatar (top right) → `Admin Area` → `Site Settings` and enable the `Enable Nextcloud integration` switch. On a fresh install you can also pre-enable it by setting `nextcloudEnabled=true` in `librephotos.env` before the first start.
+The integration is off by default, and the **Nextcloud** section is hidden on the Library page until an admin turns it on. Open **Account menu > Admin area** → `Site settings` and enable the `Enable Nextcloud integration` switch. On a fresh install you can also pre-enable it by setting `nextcloudEnabled=true` in `librephotos.env` before the first start.
 
 ### Setup
 
@@ -200,7 +200,7 @@ The integration is off by default, and the **Nextcloud** section is hidden on th
 3. Save your changes when the **Save Changes** dialog appears (click **Update**). The **Status** row at the top of the Nextcloud section then shows a green **Connected** badge. It reads **Missing credentials**, **Connecting**, or **Disconnected** while the connection is unset, in progress, or failing.
 4. Click **Browse** (folder icon) to select your Nextcloud photo directory
 
-A Nextcloud scan shows up as a **Scan Photos** job that counts the new and changed files it imports. When it finishes, it starts the same follow-up jobs as a local scan: tags, places, search embeddings and faces. <Since version="1.5.0" /> Up to 1.4.0, the job showed as finished after its first photo, and the imported photos only got tags, places and faces from the next local scan.
+A Nextcloud scan shows up as a **Scan photos** job that counts the new and changed files it imports. When it finishes, it starts the same follow-up jobs as a local scan: tags, places, search embeddings and faces. <Since version="1.5.0" /> Up to 1.4.0, the job showed as finished after its first photo, and the imported photos only got tags, places and faces from the next local scan.
 
 ### Nextcloud with a self-signed certificate
 
@@ -270,12 +270,12 @@ The Library page provides quick access to common maintenance actions:
 
 | Row | Button | Description |
 |-----|--------|-------------|
-| **Scan Library** | **Scan** | Scan for new photos in the file system |
-| **Scan Library** (dropdown) | **Rescan** | Re-process all existing photos |
-| **Generate Event Albums** | **Generate** | Group photos into events by when they were taken |
-| **Regenerate Event Titles** | **Generate** | Regenerate the titles of existing events |
+| **Scan library** | **Scan** | Scan for new photos in the file system |
+| **Scan library** (dropdown) | **Rescan** | Re-process all existing photos |
+| **Generate event albums** | **Generate** | Group photos into events by when they were taken |
+| **Regenerate event titles** | **Generate** | Regenerate the titles of existing events |
 | **Train faces** | **Train** | Run face clustering and classification |
-| **Rescan Faces** | **Rescan** | Re-detect faces in all photos; for some photos or one folder see [Detect faces again](./face-recognition.md#detect-faces-again-in-some-photos-or-a-folder) |
+| **Rescan faces** | **Rescan** | Re-detect faces in all photos; for some photos or one folder see [Detect faces again](./face-recognition.md#detect-faces-again-in-some-photos-or-a-folder) |
 | **Nextcloud** | **Scan** | Scan photos from a connected Nextcloud instance |
 | **Extract Text** | **Extract** | Read the text on photos that have not been read yet (see [Text Recognition](./text-recognition.md#extracting-text)) |
 | **Extract Text** (dropdown) | **Extract text again for all photos** | Read the text on every photo again |
@@ -285,7 +285,7 @@ If LibrePhotos detects photos that are no longer on disk, a red **N Missing Phot
 
 ## Service Management
 
-LibrePhotos runs several background ML services. Administrators can monitor and control them from the **Admin Area**:
+LibrePhotos runs several background ML services. Administrators can monitor and control them from the **Admin area**:
 
 | Service | Description |
 |---------|-------------|
@@ -295,7 +295,7 @@ LibrePhotos runs several background ML services. Administrators can monitor and 
 | **image_captioning** | Image caption generation |
 | **exif** | EXIF metadata extraction |
 | **tags** | Things and semantic-search embeddings (OpenCLIP); always runs, because search needs it |
-| **ocr** | [Text recognition](./text-recognition.md); only started while a Text Recognition (OCR) Model is selected in Site Settings |
+| **ocr** | [Text recognition](./text-recognition.md); only started while a Text recognition (OCR) model is selected in Site settings |
 
 For each service, you can:
 
@@ -307,7 +307,7 @@ For each service, you can:
 
 ### Server Stats
 
-Administrators can download a server-stats report from the Admin Area (**Admin Tools** → **Download Server Stats**), which saves a `serverstats.json` file containing:
+Administrators can download a server-stats report from the Admin area (**Admin tools** → **Download server stats**), which saves a `serverstats.json` file containing:
 
 - **CPU** — Model, core count, architecture, and instruction-set flags
 - **RAM** — Total system memory
@@ -315,19 +315,19 @@ Administrators can download a server-stats report from the Admin Area (**Admin T
 - **Storage** — Total, used, and free disk space
 - **Per-user stats** — Detailed counts per user (photos, videos, albums, faces, and more)
 
-The stats are not rendered in the UI — download the JSON to inspect them. Per-user photo counts are also shown directly in the Admin Area's user table.
+The stats are not rendered in the UI — download the JSON to inspect them. Per-user photo counts are also shown directly in the Admin area's user table.
 
 ### Storage Display
 
-The sidebar shows a storage bar for the disk holding your LibrePhotos data directory (`/data` in the default Docker setup). It reports how full that whole volume is — hover for `<used> of <total> used` — so it includes the operating system and anything else on the same disk, not just your photos.
+A **Storage** card at the bottom of the sidebar shows a bar for the disk holding your LibrePhotos data directory (`/data` in the default Docker setup), with `<used> of <total> used` under it. The bar turns orange at 75% and red at 90%. It reports how full that whole volume is, so it includes the operating system and anything else on the same disk, not just your photos.
 
 ### Server Logs
 
-The Admin Area shows a **Server Logs** panel with the most recent log lines (1–1000, default 100) and a **Refresh** button. The download icon saves the full `librephotos.log` file (`ownphotos.log` in 1.3.0 and older).
+The Admin area shows a **Server logs** panel with the most recent log lines (1–1000, default 100) and a **Refresh** button. The download icon saves the full `librephotos.log` file (`ownphotos.log` in 1.3.0 and older).
 
 ### Image Version
 
-The sidebar shows the backend image tag (`dev` when `IMAGE_TAG` is unset). Hover over it to see the backend git hash.
+The bottom of the sidebar shows the version as **Version: _tag_** (`dev` when `IMAGE_TAG` is unset), next to the **Documentation** and **Support us** links. Hover over it to see the backend git hash.
 
 ## Management Commands
 

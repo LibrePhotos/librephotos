@@ -5,7 +5,7 @@ import { devices, expect, test } from "@playwright/test";
 import { changedPixelShare } from "./compare";
 import { SHOTS_DAY, SHOTS_DIR, SHOTS_FILTER } from "./env";
 import type { Device, ShotRun } from "./files";
-import { budgetError, looksTheSame, selectShots, shotRuns } from "./files";
+import { budgetError, encodeWithinBudget, looksTheSame, selectShots, shotRuns } from "./files";
 import type { ShotSpec } from "./manifest";
 import { SHOTS } from "./manifest";
 import { countOtherOrigins, waitForMaps } from "./maps";
@@ -124,7 +124,9 @@ async function takeShot(page: Page, run: ShotRun<ShotSpec>) {
   const target = shootTarget(page, run.shot);
   const options: ShotOptions = { animations: "disabled", caret: "hide", mask: run.shot.mask?.(page), style: HIDE };
   await waitUntilStill(target, options);
-  const bytes = await target.screenshot({ ...options, type: "webp", quality: 80 });
+  const bytes = await encodeWithinBudget(run.device, quality =>
+    target.screenshot({ ...options, type: "webp", quality })
+  );
   expect(budgetError(run.fileName, run.device, bytes.length), "size budget").toBeUndefined();
   const { type, change } = await save(page.context(), path.join(SHOTS_DIR, run.fileName), bytes);
   test.info().annotations.push({ type, description: `${run.fileName}: ${change}` });

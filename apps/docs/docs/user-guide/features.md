@@ -1,5 +1,5 @@
 ---
-title: "💡 Feature Comparison"
+title: "Feature comparison"
 description: "Which features does Librephotos have?"
 sidebar_position: 26
 ---

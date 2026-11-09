@@ -1,5 +1,5 @@
 ---
-title: "🔗 Sharing"
+title: "Sharing"
 description: "Share photos and albums with other users or publicly via links"
 sidebar_position: 6
 ---
@@ -8,14 +8,14 @@ LibrePhotos offers multiple ways to share your photos and albums — with other 
 
 ## The Sharing Page
 
-The **Sharing** page (accessible from the navigation) is your central hub for all sharing activity. It provides an overview of:
+The **Sharing** page (**Sharing** in the sidebar, or the **Sharing** tab at the bottom of the screen on a phone) is your central hub for all sharing activity. It provides an overview of:
 
 - **Your library**: who you share your whole library with, and what each of them sees ([Sharing your whole library](#sharing-your-whole-library))
 - **Libraries shared with you**: the libraries other users share with you. This row only shows once someone does.
 - **Public photos** — Other users on your instance who have made their profile public
 - **Shared with you** — Photos and albums that others have shared with you
 - **You shared** — Photos and albums you have shared with others
-- **Public Links** — Albums and photos you've shared publicly via link. An album card shows the album's title and number of photos; a photo card says **Share link** and when you made the link, or **Public photo** and the day the photo was taken. <Since version="1.4.0" /> Up to 1.3.0, photo cards had no caption.
+- **Public links** — Albums and photos you've shared publicly via link. An album card shows the album's title and number of photos; a photo card says **Share link** and when you made the link, or **Public photo** and the day the photo was taken. <Since version="1.4.0" /> Up to 1.3.0, photo cards had no caption.
 
 ## Sharing Albums with Users
 
@@ -25,7 +25,7 @@ You can share any user album with other users on your LibrePhotos instance:
 2. Open the **⋮** (**Album actions**) at the right of the album's header and choose **Sharing**
 3. Search for users and pick a role for each: **No access**, **Can view** or **Can add photos**
 
-You can also open the same dialog from the share action on the album's card under **Albums**, or, while selecting photos, from the selection bar's **three-dot menu** (⋮) under **Album Actions**.
+You can also open the same dialog from the share action on the album's card under **Albums**, or, while selecting photos, from the selection bar's **three-dot menu** (⋮) under **Album actions**.
 
 Shared albums show up in the recipient's sharing area: they open **Sharing**, click the **Shared with you** tile, then the **Albums** tab (the page is titled *Albums others shared*).
 
@@ -74,7 +74,7 @@ When the photo's owner also shares their whole library with you, that share's ch
 
 <Since version="1.5.0" />
 
-Everyone in a shared album, its owner included, can comment on its photos and like them. Open a photo from the album's page and open the details panel (**Toggle info panel**): under **Comments** you see the comments, the heart and who liked the photo, and a box to write in. **Enter** sends, **Shift+Enter** starts a new line.
+Everyone in a shared album, its owner included, can comment on its photos and like them. Open a photo from the album's page and open the details panel (**Show info panel**, or `i`): under **Comments** you see the comments, the heart and who liked the photo, and a box to write in. **Enter** sends, **Shift+Enter** starts a new line.
 
 - Comments belong to the album, not the photo: the same photo in another album has its own comments, and only the people in that album see them.
 - A comment is plain text, at most 1000 characters. Links and formatting are shown as typed.
@@ -110,7 +110,7 @@ The people you share with find the person under **Shared with you**, on the **Pe
 You can share individual photos (or a selection of photos) with other users:
 
 1. Select one or more photos from any view
-2. Click the **three-dot menu** (⋮) and, under **Photo Actions**, choose **"Sharing"**
+2. Click the **three-dot menu** (⋮, **Photo actions**) and choose **"Sharing"**. On a wide screen the share button in the selection bar does the same.
 3. Search for users and toggle sharing on or off for each
 
 Shared photos show up in the recipient's sharing area, grouped by the person who shared them: they open **Sharing**, click the **Shared with you** tile, then the **Photos** tab (the page is titled *Photos others shared*).
@@ -186,7 +186,7 @@ The sharing dialogs say the same in one sentence under the list of users.
 
 When you also [share your whole library](#sharing-your-whole-library) with someone, its **People names** switch decides for them instead of this setting.
 
-Public links do not use this setting: what a visitor of a public album or photo link sees is set by the [Photo Details](#photo-details) of the link, and **Share detected faces** there also shows only the people you named.
+Public links do not use this setting: what a visitor of a public album or photo link sees is set by the [Photo details](#photo-details) of the link, and **Share detected faces** there also shows only the people you named.
 
 ## Public Album Sharing via Link
 
@@ -209,7 +209,7 @@ The dialog shows it as the **Album link**, with buttons to copy it and to open i
 
 Under the album link, the dialog also shows a **Slideshow link**: the same address with `?slideshow=1` added (`https://your-instance/public/s/{slug}?slideshow=1`), with its own copy and open buttons. Whoever opens it sees the album start as a slideshow from its first photo, in the [lightbox](./viewing-photos.md), instead of the photo grid. It is handy for a photo frame, a TV or a party screen.
 
-- The slideshow link is the album link with a different start: it shows the same photos and the same Photo Details, expires with the album link, and stops working when you turn public sharing off. There is no separate link to revoke.
+- The slideshow link is the album link with a different start: it shows the same photos and the same Photo details, expires with the album link, and stops working when you turn public sharing off. There is no separate link to revoke.
 - Visitors have no LibrePhotos settings, so a photo stays on screen for 5 seconds. They can change the interval in the lightbox, pause with the play button or `s`, and step through with the arrow keys.
 - The slideshow stops at the last photo. Closing the lightbox shows the album's photo grid, and the address goes back to the plain album link.
 - When the visitor's device asks for reduced motion, photos cross-fade instead of zooming in.
@@ -236,30 +236,30 @@ Expiration is optional. Pick any expiry date and time with the date picker (down
 
 #### Photo Details
 
-The **Photo Details** panel fine-tunes what information visitors can see when they open a photo in a public album:
+The **Photo details** panel fine-tunes what information visitors can see when they open a photo in a public album:
 
 | Setting | What it controls |
 |---------|-----------------|
 | **Share photo timestamps** | Whether photo dates and times are visible. Without it, photos are not grouped by day and are listed in an order that says nothing about when they were taken. |
 | **Share location information** | Whether GPS coordinates and place names are shown |
 | **Share camera information** | Whether camera model, lens, focal length, aperture, ISO, and shutter speed are shown |
-| **Share captions** | Whether captions are visible: yours, and the tags. A caption written by the captioning model can name the person and the place (see [Caption Context](./settings/index.md#caption-context)), so it is shown only when location information and detected faces are shared too. |
+| **Share captions** | Whether captions are visible: yours, and the tags. A caption written by the captioning model can name the person and the place (see [Caption context](./settings/index.md#caption-context)), so it is shown only when location information and detected faces are shared too. |
 | **Share detected faces** | Whether the names of the people you named are displayed. Faces you have not named and face groups are never shown. |
 
 <Since version="1.5.0" /> A photo's [copyright, creator and license](./rights.md#on-public-pages) follow none of these settings: a photo with a license shows them on every public page, so visitors know what they may do with it. A photo without a license shows visitors none of them, not even a copyright or creator its file carries.
 
-Each of these settings can be toggled independently per album. When left unset, the **user-level defaults** from your settings are used; you can configure those in **Settings → Public Sharing Defaults**.
+Each of these settings can be toggled independently per album. When left unset, the **user-level defaults** from your settings are used; you can configure those in **Settings → Public sharing defaults**.
 
 **All five are off by default** — both as the built-in fallback and as the initial value of your user-level defaults, following a privacy-first, opt-in approach. So on a brand-new public link, visitors don't see any of these per-photo details until you turn the relevant options on.
 
-These settings cover what the page shows, and the files behind it. Thumbnails are stored without the photo's EXIF and XMP (GPS position, camera serial number, keywords), keeping only the colour profile. Thumbnails created by 1.2.1 and older may still contain it. An admin cleans them once after upgrading, with **Remove photo details from old thumbnails** in **Admin Area > Admin Tools** or the `strip_thumbnail_metadata` command; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata).
+These settings cover what the page shows, and the files behind it. Thumbnails are stored without the photo's EXIF and XMP (GPS position, camera serial number, keywords), keeping only the colour profile. Thumbnails created by 1.2.1 and older may still contain it. An admin cleans them once after upgrading, with **Remove photo details from old thumbnails** in **Admin area > Admin tools** or the `strip_thumbnail_metadata` command; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata).
 
 An original file carries all of its metadata at once (location, camera, date, keywords, people), so a visitor gets the original file of a photo or video only when **all five** settings are on. Otherwise a download is a full-size copy without metadata (a photo as a JPEG keeping only its colour profile, a video with its streams as they are but without the recorded location and other container metadata), and the video of a motion photo is not available. The text LibrePhotos searches in, file names and folders, ratings, favourites and stacks are never shown to visitors, whatever the settings.
 
 The same rules apply wherever a visitor can reach the photo: the public album page, a [photo made public](#making-individual-photos-public), your public profile, and a [photo link](#revocable-photo-links). Users of your instance who open a public photo that is not shared with them see it as a visitor does.
 
 :::caution
-Changes to the slug, expiration and Photo Details settings are **not applied until you click "Save link settings"** at the bottom of the settings panel. That button stays disabled until you change something; the **Public sharing** toggle itself only saves the on/off state.
+Changes to the slug, expiration and Photo details settings are **not applied until you click "Save link settings"** at the bottom of the settings panel. That button stays disabled until you change something; the **Public sharing** toggle itself only saves the on/off state.
 :::
 
 ### The Public Album Experience
@@ -269,7 +269,7 @@ Visitors to a public album link see:
 - A photo grid with the album's photos
 - A **Play slideshow** button above the grid (a play icon on a phone), which starts the same slideshow as the [slideshow link](#slideshow-link)
 - A lightbox viewer for browsing individual photos; the open photo is in the address, so a visitor can [link to one photo of the album](./viewing-photos.md#photo-link)
-- Photo details (subject to the album's Photo Details settings)
+- Photo details (subject to the album's Photo details settings)
 - No login required
 
 ## Making Individual Photos Public
@@ -277,31 +277,31 @@ Visitors to a public album link see:
 Besides sharing whole albums, you can make individual photos public without putting them in an album:
 
 1. Select one or more photos from any view
-2. Click the **three-dot menu** (⋮) and, under **Photo Actions**, choose **"Make Public"**
+2. Click the **three-dot menu** (⋮, **Photo actions**) and choose **"Make public"**
 
 When you select photos individually, direct image links (`https://your-instance/media/photos/<hash>.jpg`) are copied to your clipboard so you can paste them straight away. In *select all* mode the photos are still made public, but no links are copied.
 
-These are raw image-file URLs, so they behave differently from public album links. There is no album page, no custom slug and no expiration — anyone with the link can open the image file directly. What it shows follows your **Settings → Public Sharing Defaults**: the original file only when all five details are shared, otherwise a copy without its metadata (see [Photo Details](#photo-details)). If you need per-link controls, share a public album instead.
+These are raw image-file URLs, so they behave differently from public album links. There is no album page, no custom slug and no expiration — anyone with the link can open the image file directly. What it shows follows your **Settings → Public sharing defaults**: the original file only when all five details are shared, otherwise a copy without its metadata (see [Photo details](#photo-details)). If you need per-link controls, share a public album instead.
 
-Public photos appear under the **Photos** tab of your **Public Links** page, on your public profile at `https://your-instance/public/<username>`, and in your own [My Public Photos](./viewing-photos.md#my-public-photos) view. Your public profile shows the details your Public Sharing Defaults allow; without **Share photo timestamps** its photos are one group without a date instead of days.
+Public photos appear under the **Photos** tab of your **Public links** page, on your public profile at `https://your-instance/public/<username>`, and in your own [My Public Photos](./viewing-photos.md#my-public-photos) view. Your public profile shows the details your Public sharing defaults allow; without **Share photo timestamps** its photos are one group without a date instead of days.
 
-To reverse this, select the photos again and choose **"Make Private"** from the same menu.
+To reverse this, select the photos again and choose **"Make private"** from the same menu.
 
 ### Revocable Photo Links
 
-The **globe button** in the lightbox (shortcut **P**) does something different from the bulk *Make Public* action above: it creates a *share link* for that one photo and opens a dialog showing it, with a button to copy it. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo. Creating a link does **not** make the photo public: it does not appear on your public profile or under *Make Public*, and the photo's own `/media/...` URLs still require a login.
+The **Share link** button in the lightbox (the share icon, shortcut **P**; on a phone it is in the bar at the bottom) does something different from the bulk *Make public* action above: it creates a *share link* for that one photo and opens a dialog showing it, with a button to copy it. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo. Creating a link does **not** make the photo public: it does not appear on your public profile or under *Make public*, and the photo's own `/media/...` URLs still require a login.
 
 Because the slug is random, the link can be withdrawn:
 
 - **Replace link** mints a new slug. The previous URL, and the image and video URLs behind it, stop working at once.
 - **Revoke** switches the share off and burns the slug, so anyone still holding that link gets a "not found" page. Sharing the photo again creates a brand-new link rather than reviving the old one.
 
-Your active photo links are listed under the **Photos** tab of your **Public Links** page, each with its own copy, replace and revoke buttons.
+Your active photo links are listed under the **Photos** tab of your **Public links** page, each with its own copy, replace and revoke buttons.
 
 What a visitor with the link can see:
 
-- The photo as a large preview image (not the original file). For a video, the video itself, so it can be played: the original file only when all five Public Sharing Defaults are on, otherwise a copy without its metadata.
-- The photo details you allow in **Settings → Public Sharing Defaults** (date, location, camera, captions, people's names). Photo links have no per-link settings of their own.
+- The photo as a large preview image (not the original file). For a video, the video itself, so it can be played: the original file only when all five Public sharing defaults are on, otherwise a copy without its metadata.
+- The photo details you allow in **Settings → Public sharing defaults** (date, location, camera, captions, people's names). Photo links have no per-link settings of their own.
 
 What they cannot see: the original file of a photo, face thumbnails, any other photo, or anything that identifies the file's content hash. While the photo is hidden or in the trash, its link shows "not found" as well.
 
@@ -348,25 +348,25 @@ Only you leave: the owner keeps the album, it stays shared with everyone else, a
 
 ### Public Links
 
-Open **Sharing** and click the **Public Links** tile to see everything you've made publicly accessible. It has two tabs: **Albums** (albums with a public link) and **Photos** (individual photos you've marked public).
+Open **Sharing** and click the **Public links** tile to see everything you've made publicly accessible. It has two tabs: **Albums** (albums with a public link) and **Photos** (individual photos you've marked public).
 
-The **Public Links** row on the Sharing page shows your latest public photos and counts all of them.
+The **Public links** row on the Sharing page shows your latest public photos and counts all of them.
 
 <Since version="1.4.0" /> Up to 1.3.0, public photos rarely showed or counted on the Sharing page or the Photos tab, and the Photos tab also listed other users' public photos.
 
 ## Public User Profiles
 
-Users can make their profile publicly accessible by enabling **Public Sharing** in their profile settings. Other users on the instance can then find them in the **Public photos** section of the **Sharing** page, which lists every user with public sharing enabled along with their public photo count. A user's public photos are browsable at `https://your-instance/public/<username>`.
+Users can make their profile publicly accessible by enabling **Public sharing** in their profile settings (**Account menu > Profile**). Other users on the instance can then find them in the **Public photos** section of the **Sharing** page, which lists every user with public sharing enabled along with their public photo count. A user's public photos are browsable at `https://your-instance/public/<username>`.
 
-<Since version="1.5.0" /> That page, and the API behind it, only work while the user's public profile is on (the user still sees their own public photos under **Public Links**). Up to 1.4.0 the API also answered without a username, with every user's public photos together, whatever their profile setting; everyone's public photos together are now the [public gallery](#public-gallery), which is off until an admin turns it on and shows only users who take part.
+<Since version="1.5.0" /> That page, and the API behind it, only work while the user's public profile is on (the user still sees their own public photos under **Public links**). Up to 1.4.0 the API also answered without a username, with every user's public photos together, whatever their profile setting; everyone's public photos together are now the [public gallery](#public-gallery), which is off until an admin turns it on and shows only users who take part.
 
 ## Public gallery
 
 <Since version="1.5.0" />
 
-The public gallery puts the public photos of everyone who takes part on one page, at your server's address. It is off until an admin turns it on under **Admin Area > Public gallery** ([settings](./settings/index.md#public-gallery)): **Members only** shows it to every signed-in user under **Sharing**, **Everyone** opens it at the server's address for visitors without an account. While it is off, the server's address opens the login page as before.
+The public gallery puts the public photos of everyone who takes part on one page, at your server's address. It is off until an admin turns it on under **Admin area > Public gallery** ([settings](./settings/index.md#public-gallery)): **Members only** shows it to every signed-in user under **Sharing**, **Everyone** opens it at the server's address for visitors without an account. While it is off, the server's address opens the login page as before.
 
-Nobody takes part by default. To show your public photos there, turn on **Settings > Public gallery > Show my public photos in the public gallery**. Only you can turn it on or off for yourself; an admin cannot do it for you. The card lists what visitors see of your photos. Turning it off takes them out of the gallery again; they stay public on their own links and your [public profile](#public-user-profiles) either way. Only photos you made public ([Make Public](#making-individual-photos-public)) are shown, never photos that are only in a public album or behind a photo link.
+Nobody takes part by default. To show your public photos there, turn on **Settings > Public gallery > Show my public photos in the public gallery**. Only you can turn it on or off for yourself; an admin cannot do it for you. The card lists what visitors see of your photos. Turning it off takes them out of the gallery again; they stay public on their own links and your [public profile](#public-user-profiles) either way. Only photos you made public ([Make public](#making-individual-photos-public)) are shown, never photos that are only in a public album or behind a photo link.
 
 The gallery has four tabs:
 
@@ -377,7 +377,7 @@ The gallery has four tabs:
 
 The chips above the tabs narrow the timeline, places and people to one photographer. The address keeps the tab and the filters, so a link shows the same view to anyone.
 
-What a visitor sees of each photo follows its owner's [Public Sharing Defaults](./settings/index.md#public-sharing-defaults), owner by owner, as on a photo link: the photo, its owner's name, and dates, town names, named people, camera details and captions only where the owner shares them. The gallery's lists never carry a photo's coordinates or address, even for owners who share their location. File names and folders, hidden, archived and private photos, albums, tags, favourites and ratings never show. A signed-in user sees the gallery exactly as a visitor does, their own photos included.
+What a visitor sees of each photo follows its owner's [Public sharing defaults](./settings/index.md#public-sharing-defaults), owner by owner, as on a photo link: the photo, its owner's name, and dates, town names, named people, camera details and captions only where the owner shares them. The gallery's lists never carry a photo's coordinates or address, even for owners who share their location. File names and folders, hidden, archived and private photos, albums, tags, favourites and ratings never show. A signed-in user sees the gallery exactly as a visitor does, their own photos included.
 
 Search engines are asked not to index the gallery unless the admin allows it.
 

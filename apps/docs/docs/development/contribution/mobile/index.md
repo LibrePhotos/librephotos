@@ -1,5 +1,5 @@
 ---
-title: "📱 Mobile"
+title: "Mobile"
 description: "Development Information regarding the LibrePhotos Mobile App."
 sidebar_position: 3
 last_modified_at: 2026-10-13

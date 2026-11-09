@@ -1,0 +1,26 @@
+{
+  "theme.admonition.note": {
+    "message": "Note",
+    "description": "The default label used for the Note admonition (:::note); sentence case like the app's labels"
+  },
+  "theme.admonition.tip": {
+    "message": "Tip",
+    "description": "The default label used for the Tip admonition (:::tip)"
+  },
+  "theme.admonition.info": {
+    "message": "Info",
+    "description": "The default label used for the Info admonition (:::info)"
+  },
+  "theme.admonition.warning": {
+    "message": "Warning",
+    "description": "The default label used for the Warning admonition (:::warning)"
+  },
+  "theme.admonition.danger": {
+    "message": "Danger",
+    "description": "The default label used for the Danger admonition (:::danger)"
+  },
+  "theme.admonition.caution": {
+    "message": "Caution",
+    "description": "The default label used for the Caution admonition (:::caution)"
+  }
+}

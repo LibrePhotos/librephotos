@@ -1,5 +1,5 @@
 ---
-title: 📂 Internal files
+title: "Internal files"
 description: "Which folders and files LibrePhotos creates on disk"
 sidebar_position: 19
 ---
@@ -18,7 +18,7 @@ LibrePhotos 1.3.0 and older also keep `secret.key` here, so do not zip this whol
 
 ⚠ Do not delete this file, and do not share it.
 
-Django signs every session, login token and password-reset link with a secret key, and encrypts the SMTP password stored in the `Admin Area` with it. On the first start LibrePhotos generates the key and keeps it in this file, which is then used every time you start it: `/protected_media/secret.key` inside the backend container, which the shipped Docker Compose file maps to `${data}/protected_media/secret.key` on the host (`%LOCALAPPDATA%\LibrePhotos\protected_media\secret.key` for the [Windows standalone build](../installation/windows-standalone.md)). Back it up together with the rest of this folder.
+Django signs every session, login token and password-reset link with a secret key, and encrypts the SMTP password stored in the `Admin area` with it. On the first start LibrePhotos generates the key and keeps it in this file, which is then used every time you start it: `/protected_media/secret.key` inside the backend container, which the shipped Docker Compose file maps to `${data}/protected_media/secret.key` on the host (`%LOCALAPPDATA%\LibrePhotos\protected_media\secret.key` for the [Windows standalone build](../installation/windows-standalone.md)). Back it up together with the rest of this folder.
 
 If you delete it, a new key is generated: every user is logged out and the SMTP password has to be entered again. Anyone who has a copy of the file can forge a login to your instance.
 
@@ -52,7 +52,7 @@ Here we save the thumbnails of all the faces, so that viewing them is faster.
 
 ### /data_models
 
-All the machine learning models live here: the LFM2.5-VL captioning model, OpenCLIP ViT-B/32 for tags and semantic search, and the InsightFace face recognition models. Rather than being baked into the image, they are downloaded by the "Download Models" job, or when you pick a new model in the `Admin Area` (for example the `Captioning Model` setting). Because of that, this folder only grows as you enable features, but it is usually by far the largest folder in `/protected_media` — several GB in total.
+All the machine learning models live here: the LFM2.5-VL captioning model, OpenCLIP ViT-B/32 for tags and semantic search, and the InsightFace face recognition models. Rather than being baked into the image, they are downloaded by the "Download models" job, or when you pick a new model in the `Admin area` (for example the `Captioning model` setting). Because of that, this folder only grows as you enable features, but it is usually by far the largest folder in `/protected_media` — several GB in total.
 
 Deleting it is safe: the models are simply downloaded again the next time they are needed. If your server has no Internet access, see [Offline Usage](./offline-setup.md) for how to place the files by hand.
 

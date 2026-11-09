@@ -1,28 +1,25 @@
+/* A small chip like the app's badges: tinted in the accent once released, grey before. */
 .since {
   display: inline-block;
-  padding: 0 0.5em;
-  border: 1px solid var(--ifm-color-emphasis-400);
+  padding: 0 0.55em;
   border-radius: 999px;
-  color: var(--ifm-color-emphasis-800);
-  font-size: 0.8em;
+  background: var(--app-surface-tonal);
+  color: var(--app-text);
+  font-size: 0.78em;
   font-weight: 600;
-  line-height: 1.6;
-  vertical-align: middle;
+  line-height: 1.7;
+  vertical-align: 0.08em;
   white-space: nowrap;
 }
 
 .since[data-released="true"] {
-  border-color: var(--ifm-color-primary);
-  color: var(--ifm-color-primary-darker);
-}
-
-[data-theme="dark"] .since[data-released="true"] {
-  color: var(--ifm-color-primary-lightest);
+  background: var(--app-primary-light);
+  color: var(--app-primary-light-color);
 }
 
 a.since:hover {
   text-decoration: none;
-  background: var(--ifm-color-emphasis-100);
+  background: var(--app-primary-light-hover);
 }
 
 /* `<Since version="..." />` on a line of its own sits between paragraphs, so give it their spacing. */

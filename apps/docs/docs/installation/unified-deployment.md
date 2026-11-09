@@ -1,5 +1,5 @@
 ---
-title: "🚀 Single Container Deployment"
+title: "Single container deployment"
 description: "Simplified single-container deployment with internal or external database"
 sidebar_position: 1
 ---

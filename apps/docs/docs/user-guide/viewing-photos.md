@@ -1,12 +1,12 @@
 ---
-title: "🖼️ Viewing Photos"
+title: "Viewing photos"
 description: "Photo views, the lightbox, the photo details sidebar and the photo page"
 sidebar_position: 2
 ---
 
 ## Photo Views
 
-LibrePhotos provides several ways to browse your photo library. You can switch between views using the navigation menu or the header dropdown on the main timeline.
+LibrePhotos provides several ways to browse your photo library. You can switch between views using the sidebar (the tabs at the bottom of the screen on a phone) or the dropdown in the title of the **Photos** page, which also holds Favorites, Videos, Hidden, Archive and the other views below.
 
 ### Timeline (Home)
 
@@ -16,7 +16,7 @@ The default view showing all your photos grouped by date, from newest to oldest.
 
 <Since version="1.5.0" /> Up to 1.4.0, every list was newest first.
 
-To read your photos the way they happened, for example a holiday from the first day to the last, pick **Oldest first** under **Order** in **Photo Display Settings** (the gear button above the photos). The order is by date taken, not by when a photo was added, and it changes nothing on your photos or in your albums. It is saved to your account, so your other devices and browsers follow it, and it applies to every list grouped by day:
+To read your photos the way they happened, for example a holiday from the first day to the last, pick **Oldest first** under **Order** in the view options (**View options…** in the **⋯** at the right of the page header, or the **View options** button on a page with no other actions). The order is by date taken, not by when a photo was added, and it changes nothing on your photos or in your albums. It is saved to your account, so your other devices and browsers follow it, and it applies to every list grouped by day:
 
 - the timeline and the Favorites, Photos, Videos, Screenshots, Documents, Hidden, Archive and Trash views,
 - your albums and the albums shared with you, people, places, things, tags and folders,
@@ -31,10 +31,10 @@ Events always read oldest first, as they happened: on an event the **Order** con
 
 <Since version="1.5.0" />
 
-The scroll scrubber appears when you point at the right edge or scroll a long way, and runs from just under the header to the bottom of the window. Pick how it looks under **Scroll Bar** in **Photo Display Settings** (the gear button above the photos). The choice is saved to your account and applies to every photo list:
+The scroll scrubber appears when you point at the right edge or scroll a long way, and runs from just under the header to the bottom of the window. Pick how it looks under **Scroll bar** in the view options (**View options…** in the **⋯** at the right of the page header). The choice is saved to your account and applies to every photo list:
 
 - **Simple**: a thin track with a handle you can drag. A bubble next to the handle shows the date you are at, and the years (or months) appear beside the track while you point at it.
-- **Photo Density**: one bar per month, as wide as the number of photos in it, so busy trips and quiet years stand out. A frame marks the part you are looking at, and pointing at a bar shows its month and how many photos it holds. Very long timelines show one bar per year instead.
+- **Photo density**: one bar per month, as wide as the number of photos in it, so busy trips and quiet years stand out. A frame marks the part you are looking at, and pointing at a bar shows its month and how many photos it holds. Very long timelines show one bar per year instead.
 
 Click a year or month label to jump there.
 
@@ -42,11 +42,13 @@ Click a year or month label to jump there.
 
 <Since version="1.3.0" />
 
-The **Filter** button next to the display options narrows what the timeline shows:
+The **Filter** button in the page header narrows what the timeline shows. On a phone it is an icon, and the filter opens as a sheet from the bottom of the screen:
 
 - **Media type**: all, photos only, or videos only.
 - **Hide from timeline**: leave out **Screenshots** and/or **Documents** (see [Fixing a wrong category](#category)).
 - **Show only**: **Favorites**.
+
+<Screenshot id="timeline-filter" />
 
 While a filter is active the button is highlighted with the number of active filters, and the header says what is filtered. The filter lives in the page address, so it survives a reload and can be bookmarked.
 
@@ -79,7 +81,7 @@ Photos you've hidden. Hiding a photo takes it out of every view (the timeline, a
 Photos you've archived. Archiving takes a photo off the main timeline and out of [Memories](./memories.md), and nothing else: it stays in its albums, on the people and places pages, in folders and in search. Use it for photos you have sorted into albums and no longer want to scroll past, or for receipts and other photos you want to keep but not see every day.
 
 - To archive photos, select them and choose **Archive** from the selection actions menu (the ⋮ button). **Unarchive** in the same menu puts them back on the timeline. Both work after **Select all** too.
-- In the photo viewer, the archive button next to the eye (or the `a` key) archives the photo you are looking at, or unarchives it. On the [photo page](#photo-page) it is under **More**.
+- In the photo viewer, **Archive photo** in the **⋮** (**More actions**), or the `a` key, archives the photo you are looking at, or unarchives it. On the [photo page](#photo-page) it is under **More**.
 - Open the Archive page from the Photos header dropdown (after **Hidden**) or by searching for "Archive" with `Ctrl` + `k`. It has the same [media filter](#media-filter) as the Hidden page.
 - In albums, search and the other views, an archived photo has a small archive mark in its top right corner, so you can see why it is not on your timeline.
 
@@ -126,7 +128,7 @@ Shows only video files, filtering out all still photos.
 <Since version="1.4.0" /> This applies to the labelled media button, its **Documents only** choice, and the filter on Trash, Recently Added, Without Timestamp, Without Location and folder pages.
 :::
 
-Favorites, Hidden, Trash, Recently Added, Without Timestamp, Without Location, Not in an Album, search results, and the album, person, place, thing, tag and folder pages have a media button next to the display options. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
+Favorites, Hidden, Trash, Recently Added, Without Timestamp, Without Location, Not in an Album, search results, and the album, person, place, thing, tag and folder pages have a media button in the page header. It names what the page shows: **All media**, **Photos only**, **Videos only**, **Screenshots only** or **Documents only**. Click it to pick another. While a filter is on, the button is highlighted, the header says what the page shows, and **Show all** next to it goes back to all media. On a phone the button is an icon with a dot while a filter is on.
 
 The choice is part of the page address (for example `?media=videos`), so it survives a reload and can be bookmarked. Every page starts with all media: the saved default of the [timeline filter](#filtering-the-timeline) never applies here.
 
@@ -136,7 +138,7 @@ Selecting all photos on a filtered list selects only what it shows. In Trash, fi
 
 Photos that don't have a date/time in their EXIF metadata. Useful for finding and fixing photos with missing timestamps.
 
-<Since version="1.4.0" /> To give them a date, select them and choose **Change date and time…** from the selection actions menu, then **Set** (see [Changing the date of many photos](#changing-the-date-of-many-photos)).
+<Since version="1.4.0" /> To give them a date, select them and choose **Edit info → Change date and time…** from the selection actions menu, then **Set** (see [Changing the date of many photos](#changing-the-date-of-many-photos)).
 
 ### Without Location
 
@@ -144,7 +146,7 @@ Photos that don't have a date/time in their EXIF metadata. Useful for finding an
 
 Photos that have no GPS coordinates, oldest added first. Open a photo and set its location from the [Location](#location) section of the details sidebar; once it has coordinates it leaves this view. A photo whose coordinates could not be turned into a place name still has a location, so it is not listed here.
 
-To give many of them one place, select them and choose **Set location…** from the selection actions menu (see [Setting the location of many photos](./places.md#setting-the-location-of-many-photos)). **Select all** reaches every photo on the page, not only the ones loaded so far, and the page has the [media filter](#media-filter).
+To give many of them one place, select them and choose **Edit info → Set location…** from the selection actions menu (see [Setting the location of many photos](./places.md#setting-the-location-of-many-photos)). **Select all** reaches every photo on the page, not only the ones loaded so far, and the page has the [media filter](#media-filter).
 
 ### Not in an Album {#not-in-an-album}
 
@@ -186,32 +188,37 @@ On a [public album](./sharing.md#the-public-album-experience) the same works for
 
 ### Toolbar
 
-The toolbar at the top provides quick actions. From left to right:
+The toolbar at the top starts with the back arrow (**Close**), which returns to the gallery, followed by the photo's date and place. On the right, from left to right:
 
-- **Slideshow** - Start or stop an automatic slideshow. While it runs, a dropdown lets you choose the interval (3, 5, 10, 15 or 30 seconds).
 - **360° view** - <Since version="1.5.0" /> Look around in a [360° photo sphere](#photo-spheres) instead of seeing it flat. Shown only for photo spheres.
 - **Select text in photo** - Lay the recognised text over the photo so you can select and copy it. Shown only on your own photos where [text recognition](./text-recognition.md) found text.
-- **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos. See [Zooming into the original](#zooming-into-the-original).
-- **Fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
-- **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. The button is shown for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
-- **Hide / Show** (eye icon) - Hide the photo everywhere but the Hidden page, or unhide it.
-- **Archive / Unarchive** (box icon) - Take the photo off the timeline and Memories, or put it back (see [Archive](#archive)). The box is teal while the photo is archived.
+- **Share link** (share icon) - Create a revocable link to this one photo and show it with a copy button, plus **Replace link** and **Revoke**. The icon is green while the photo has a live link. This does not make the photo public; see [Revocable Photo Links](./sharing.md#revocable-photo-links).
 - **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark. In stars mode this is a row of five stars instead (see [Rating photos with stars](#rating-photos-with-stars)).
-- **Share link** (globe icon) - Create a revocable link to this one photo and show it with a copy button, plus **Replace link** and **Revoke**. The globe is green while the photo has a live link. This does not make the photo public; see [Revocable Photo Links](./sharing.md#revocable-photo-links).
-- **Delete** - Move the photo to trash.
-- **Rotate counter-clockwise** / **Rotate clockwise** - Rotate the photo 90° in either direction (see [Rotating Photos](#rotating-photos)).
-- **Toggle info panel** - Show or hide the photo details sidebar.
-- **Close** - Return to the gallery.
+- **Show info panel** / **Hide info panel** - Show or hide the photo details sidebar.
+- **Delete photo** (trash icon) - Move the photo to trash. On a photo in the trash it is **Restore photo**.
+- **More actions** (⋮) - A menu with the rest:
+  - **Zoom in** / **Zoom out** - Magnify the image. Still photos only, not videos. See [Zooming into the original](#zooming-into-the-original).
+  - **Slideshow** / **Stop slideshow** - Start or stop an automatic slideshow. While it runs, the toolbar shows its controls, with a dropdown to choose the interval (3, 5, 10, 15 or 30 seconds).
+  - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. It is offered for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
+  - **Fullscreen** / **Exit fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
+  - **Hide photo** / **Unhide photo** - Hide the photo everywhere but the Hidden page, or unhide it.
+  - **Archive photo** / **Unarchive photo** - Take the photo off the timeline and Memories, or put it back (see [Archive](#archive)).
+  - **Rotate 90° counter-clockwise** / **Rotate 90° clockwise** - Rotate the photo 90° in either direction (see [Rotating Photos](#rotating-photos)).
+  - **Rescan file** and **Detect faces again**, under **Files** (see [Library Management](./library.md) and [Face recognition](./face-recognition.md#detect-faces-again-in-some-photos-or-a-folder)).
 
-The Hide, Archive, Favorite, Share link, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, copy, info-panel and close buttons.
+Each item in the menu shows its keyboard shortcut (see [Keyboard Shortcuts](#keyboard-shortcuts)). On a phone, **Share link**, the info panel button and **Delete photo** sit in a bar at the bottom of the screen instead of the top.
 
-There is no download or share button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
+<Since version="1.6.0" /> Up to 1.5.x, zoom, the slideshow, copy, fullscreen, hide, archive and the rotations had buttons of their own in the toolbar on a wide screen, and the share link button was a globe.
+
+The share link, favorite, delete, hide, archive and rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the zoom, slideshow, copy and fullscreen items in the ⋮, the info panel button and the back arrow.
+
+There is no download button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
 
 To put a single photo on the clipboard, open it and press the **Copy to clipboard** button or `Ctrl` + `c` (`⌘` + `c` on macOS). The browser's own right-click menu on the picture offers **Copy image** as well.
 
 ### Zooming into the original
 
-<Since version="1.5.0" /> The viewer shows a display-size version of each photo, 1080 pixels high by default. When you zoom in (the zoom button, a double-click, `z` or a pinch), it loads the original file in the background and switches to it once it is there, so the details stay sharp. Up to 1.4.0, zooming only enlarged the display-size version.
+<Since version="1.5.0" /> The viewer shows a display-size version of each photo, 1080 pixels high by default. When you zoom in (**Zoom in** in the viewer's ⋮, a double-click, `z` or a pinch), it loads the original file in the background and switches to it once it is there, so the details stay sharp. Up to 1.4.0, zooming only enlarged the display-size version.
 
 A small label in the photo's lower-left corner says what you are looking at while you are zoomed in:
 
@@ -240,12 +247,12 @@ Photo spheres you added before 1.5.0 are found when they are scanned again: run 
 
 ### Rotating Photos
 
-The two rotate buttons in the toolbar let you reorient a photo in 90° steps — useful for images that were captured at the wrong angle or whose EXIF Orientation tag is missing or incorrect.
+**Rotate 90° counter-clockwise** and **Rotate 90° clockwise** in the viewer's ⋮ (**More actions**) let you reorient a photo in 90° steps — useful for images that were captured at the wrong angle or whose EXIF Orientation tag is missing or incorrect.
 
 Rotation in LibrePhotos is **non-destructive**:
 
 - The original image file on disk is **not modified**. Instead, the rotation is recorded as an EXIF Orientation override stored in the database, and the thumbnails are regenerated so the new orientation is visible everywhere in the UI.
-- Each click composes on top of the previous rotation, so two clicks of the clockwise button produce a 180° rotation and four clicks return the photo to its original orientation.
+- Each rotation composes on top of the previous one, so rotating clockwise twice produces a 180° rotation and four times returns the photo to its original orientation.
 - The change applies to the photo for every viewer, not just your own session.
 - Rotation is only available for still images. Videos cannot be rotated from the lightbox.
 
@@ -261,6 +268,8 @@ Your **Write edits to files** setting (Settings → Metadata) controls whether t
 
 The sidebar displays detailed information about the current photo and provides quick access to related content.
 
+<Screenshot id="lightbox" />
+
 <Since version="1.4.0" /> While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. All four are written to files.
 
 ### Unsaved changes {#unsaved-changes}
@@ -275,7 +284,7 @@ Shows when the photo was taken. You can click the edit button to modify the date
 
 ### Changing the date of many photos
 
-<Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Change date and time…**. The dialog has two tabs:
+<Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Edit info → Change date and time…**. The dialog has two tabs:
 
 - **Shift** moves every selected photo by the same amount, so their order and the time between them stay the same. Pick **Earlier** or **Later** and enter the days, hours, minutes and seconds, or click **1 h earlier** or **1 h later**. A line spells out the shift ("1 hour, 30 minutes earlier"), and a table shows the oldest and newest selected photo now and after the shift. **Shift** stays greyed out until the amount is more than zero. Photos without a date are left alone; the dialog says how many.
 - **Set** gives every selected photo the same date and time, picked with the same calendar and time field as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
@@ -305,11 +314,11 @@ For more details on how file variants and stacks work, see [Stacks & File Varian
 
 <Since version="1.3.0" />
 
-LibrePhotos detects screenshots while scanning and documents (receipts, letters, forms) from their text, and the **Classify Media Categories** job (listed on the Jobs page) re-runs both over the library. The category is the badge at the end of the filename row in [File & Camera Info](#file--camera-info). When it is wrong, click the badge and pick **Photo**, **Screenshot** or **Document**. The menu also says whether the category was **Detected automatically** or **Set by you**, and where the item appears with your saved [timeline filter](#filtering-the-timeline). A notification with **Undo** confirms the change; undoing a correction of a detected category hands the item back to the detectors. Videos get the badge only when they were wrongly flagged, and can only be set back to **Photo**.
+LibrePhotos detects screenshots while scanning and documents (receipts, letters, forms) from their text, and the **Classify media categories** job (listed on the Jobs page) re-runs both over the library. The category is the badge at the end of the filename row in [File & Camera Info](#file--camera-info). When it is wrong, click the badge and pick **Photo**, **Screenshot** or **Document**. The menu also says whether the category was **Detected automatically** or **Set by you**, and where the item appears with your saved [timeline filter](#filtering-the-timeline). A notification with **Undo** confirms the change; undoing a correction of a detected category hands the item back to the detectors. Videos get the badge only when they were wrongly flagged, and can only be set back to **Photo**.
 
-A category you set is kept: rescanning the library or running Classify Media Categories again never overwrites it. The control is shown on your own photos only.
+A category you set is kept: rescanning the library or running Classify media categories again never overwrites it. The control is shown on your own photos only.
 
-To fix many items at once, select them in the grid and choose **Mark as photo**, **Mark as screenshot** or **Mark as document** from the selection actions menu.
+To fix many items at once, select them in the grid, open the selection actions menu (⋮) and choose **Mark as**, then **Photo**, **Screenshot** or **Document**.
 
 ### Location
 
@@ -381,7 +390,7 @@ Beside the photo (below it on a phone), the page title is the date the photo was
 Under the title, labelled buttons hold the photo's actions:
 
 - **Favorite**: mark the photo as a favorite, or remove the mark. The button is yellow while it is one. In stars mode it is a wider **Rating** tile with five stars instead, which work as in the photo viewer (see [Rating photos with stars](#rating-photos-with-stars)).
-- **Share**: create a revocable link to this photo, as the globe in the lightbox does (see [Revocable Photo Links](./sharing.md#revocable-photo-links)). The button is green while the photo has a live link.
+- **Share**: create a revocable link to this photo, as **Share link** in the lightbox does (see [Revocable Photo Links](./sharing.md#revocable-photo-links)). The button is green while the photo has a live link.
 - **Album**: add the photo to one of your albums, or to a new one.
 - **Download**: download the original file. When the photo has more than one file (a RAW next to its JPEG, the video of a Live Photo), it opens a list to pick the file from.
 - **More**: **Copy image** (still photos, HTTPS only), **Rotate 90° counter-clockwise** and **Rotate 90° clockwise** (still photos), **Hide photo** / **Show photo**, **Archive photo** / **Unarchive photo**, **Open in viewer**, and **Move to trash** / **Restore from trash**.
@@ -397,7 +406,7 @@ Then each subject has a card, with the same editors as the [details sidebar](#ph
 - **Place**'s coordinates line, with the copy button and the altitude, is the same as in the [Location](#location) section.
 - **Camera**: the camera and lens, with aperture, shutter speed, focal length (and its 35 mm equivalent) and ISO, the exposure bias, and the same **Show more** list as the sidebar.
 - **File**: the file name (it opens the original), its dimensions, megapixels and size (a video's duration and codec), the [Category](#category) badge, the photo's other formats with a download button each, the folder it is in below your library folder, copies of the file and its stack.
-- **Albums** and **Similar Photos**, when there are any.
+- **Albums** and **Similar photos**, when there are any.
 
 Details a photo does not have yet are not listed as empty cards: they are buttons in one **Add details** card (**Add a caption**, **Add tags**, **Add a place**, **Mark a face**). Each opens its editor straight away.
 
@@ -412,8 +421,8 @@ On a photo someone shared with you, the page shows the photo, its date and the n
 | `g` then `p` | Photos |
 | `g` then `l` | Library |
 | `g` then `s` | Settings |
-| `g` then `a` | Admin Area (admins only) |
-| `g` then `j` | My Jobs |
+| `g` then `a` | Admin area (admins only) |
+| `g` then `j` | My jobs |
 | `?` | The list of keyboard shortcuts |
 
 The account menu shows the same keys next to its pages, and **Keyboard shortcuts** in it opens the list. The keys do nothing while you type in a field or while a dialog or the photo viewer is open: the viewer has its own keys, listed below, where `g` toggles fullscreen.
@@ -457,7 +466,7 @@ Not every browser plays every video. H.265 (HEVC), which most phones record in, 
 
 LibrePhotos asks your browser, for each video, whether it can play it. If it can, you get the original at full resolution. If it cannot, the video is converted to H.264 for you as it plays, capped at 720 lines, and kept for the next time you watch it (see [Experimental options](./settings/index.md#experimental-options) for how converted copies are stored). A video your browser says it can play but then fails to decode is converted the same way, automatically. You do not need **Always transcode videos** for any of this.
 
-This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are never served a conversion: they get the original, or a copy without its metadata unless every [Photo Details](./sharing.md#photo-details) setting of the link is on.
+This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are never served a conversion: they get the original, or a copy without its metadata unless every [Photo details](./sharing.md#photo-details) setting of the link is on.
 
 :::note
 <Since version="1.3.0" /> On 1.2.1 and older, a video your browser could not play needed **Always transcode videos**.
@@ -467,8 +476,8 @@ This applies to you and to anyone you share a video with who signs in. Visitors 
 
 Most phones record video in HDR by default: iPhones in Dolby Vision, most Android phones in HLG. Wherever LibrePhotos converts such a video — the gallery thumbnails, and playback whenever it is converted (see [Videos your browser cannot play](#videos-your-browser-cannot-play)) — it maps the picture down to ordinary SDR colours, so it looks like itself instead of washed out and grey.
 
-In the photo grid, an HDR video carries an **HDR** badge next to its duration. Whether a video is HDR is worked out once, when the scan adds it, together with its codec and pixel format. Videos that were already in your library before this existed are checked by the **Probe Videos** job, which runs by itself after your next scan and rebuilds the thumbnails of the HDR ones, and of any 10-bit or 4:2:2 ones, so thumbnails that looked washed out or did not play are corrected then. See [Job System](./job-system.md#probe-videos).
+In the photo grid, an HDR video carries an **HDR** badge next to its duration. Whether a video is HDR is worked out once, when the scan adds it, together with its codec and pixel format. Videos that were already in your library before this existed are checked by the **Probe videos** job, which runs by itself after your next scan and rebuilds the thumbnails of the HDR ones, and of any 10-bit or 4:2:2 ones, so thumbnails that looked washed out or did not play are corrected then. See [Job System](./job-system.md#probe-videos).
 
 :::note
-The HDR badge, the scan-time check and **Probe Videos** are new in 1.3.0. 1.2.0 and 1.2.1 already mapped HDR videos to SDR, but could turn bright skies and highlights flat white; older releases converted them washed out.
+The HDR badge, the scan-time check and **Probe videos** are new in 1.3.0. 1.2.0 and 1.2.1 already mapped HDR videos to SDR, but could turn bright skies and highlights flat white; older releases converted them washed out.
 :::

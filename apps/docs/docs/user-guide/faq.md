@@ -1,5 +1,5 @@
 ---
-title: "❓ FAQ"
+title: "FAQ"
 description: "Scan always fails after importing few images"
 sidebar_position: 27
 ---
@@ -91,7 +91,7 @@ No. Every photo belongs to exactly one user, so LibrePhotos refuses a scan direc
 
 ## "could not resize shared memory segment ... No space left on device"
 
-A page fails now and then with "Something went wrong on the server", most often the Admin Area, the statistics or the Things and Places lists, and the backend log shows:
+A page fails now and then with "Something went wrong on the server", most often the Admin area, the statistics or the Things and Places lists, and the backend log shows:
 
 ```
 psycopg.errors.DiskFull: could not resize shared memory segment "/PostgreSQL.…" to … bytes: No space left on device

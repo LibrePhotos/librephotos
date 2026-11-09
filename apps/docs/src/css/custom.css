@@ -1,73 +1,653 @@
 /**
- * Global styles. Infima is bundled by the classic preset; the variables
- * below retint it to match the LibrePhotos app (Mantine blue) and logo (ink).
+ * Global styles. Infima is bundled by the classic preset; everything below retints and reshapes
+ * it to match the LibrePhotos web app (apps/frontend/src/theme): the app's own accent
+ * (BRAND_SCALE in palette.ts) used only for links and primary actions, near-black surfaces in the
+ * dark scheme (DARK_SCALE), the system font stack and type scale of App.tsx, 8 px controls and
+ * 12-16 px cards, and the app shell's chrome: a grey header and sidebar around the page, sidebar
+ * rows as pills with the current one in the accent's tint (AppShellChrome.module.css,
+ * SideMenuNarrow.module.css).
  */
 
 :root {
-  --ifm-color-primary: #1c7ed6;
-  --ifm-color-primary-dark: #1971c2;
-  --ifm-color-primary-darker: #1864ab;
-  --ifm-color-primary-darkest: #145a99;
-  --ifm-color-primary-light: #228be6;
-  --ifm-color-primary-lighter: #339af0;
-  --ifm-color-primary-lightest: #4dabf7;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  /* BRAND_SCALE 3-9: links and filled buttons use shade 6 (#1a66d2, 5.4:1 on white). */
+  --ifm-color-primary: #1a66d2;
+  --ifm-color-primary-dark: #1557b5;
+  --ifm-color-primary-darker: #114894;
+  --ifm-color-primary-darkest: #0b3670;
+  --ifm-color-primary-light: #2b74ee;
+  --ifm-color-primary-lighter: #4c8df6;
+  --ifm-color-primary-lightest: #7cacf8;
+  --ifm-color-primary-contrast-background: #eaf2fe;
+  --ifm-color-primary-contrast-foreground: #0b3670;
 
-  /* Landing page tokens */
-  --lp-display-font: "Bricolage Grotesque", var(--ifm-font-family-base);
-  --lp-ink: #1f1f24;
-  --lp-on-ink: #f7f7f9;
-  --lp-on-ink-soft: #c5c6cf;
-  --lp-on-ink-muted: #9a9ba8;
-  --lp-on-ink-line: rgba(255, 255, 255, 0.22);
-  --lp-accent: #228be6;
-  --lp-accent-strong: #1971c2;
-  --lp-surface: #f3f4f7;
-  --lp-line: #dfe1e8;
+  /* The app's shared tokens. */
+  --app-text: #1b1b1f; /* LIGHT_TEXT */
+  --app-dimmed: #5f6670; /* LIGHT_DIMMED, 5.5:1 on white */
+  --app-body: #ffffff; /* the page */
+  --app-chrome: #f8f9fa; /* header, sidebar, footer: Mantine gray-0 */
+  --app-surface: #ffffff; /* cards on the page */
+  --app-surface-tonal: #f1f3f5; /* default (grey) buttons, chips: gray-1 */
+  --app-surface-tonal-hover: #e9ecef; /* gray-2 */
+  --app-hover: #f1f3f5; /* sidebar row hover: gray-1 */
+  --app-border: #dee2e6; /* gray-3 */
+  --app-border-soft: #e9ecef; /* gray-2 */
+  --app-nav-text: #343a40; /* sidebar rows: gray-8 */
+  --app-nav-icon: #495057; /* gray-7 */
+  --app-primary-light: rgba(26, 102, 210, 0.1); /* Mantine's light variant: the active row's tint */
+  --app-primary-light-hover: rgba(26, 102, 210, 0.14);
+  --app-primary-light-color: #1a66d2;
+  --app-primary-filled: #1a66d2;
+  --app-primary-filled-hover: #1557b5;
+  --app-primary-contrast: #ffffff;
+  --app-focus: #1a66d2;
+  --app-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(0, 0, 0, 0.12);
+  --app-radius-control: 8px; /* defaultRadius md: buttons and inputs */
+  --app-radius-card: 12px; /* CollectionCard */
+  --app-radius-panel: 16px; /* dialogs, the page's corner */
+
+  /* Mantine's default font stacks: the app sets none of its own. */
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  --ifm-heading-font-family: var(--ifm-font-family-base);
+  --ifm-font-family-monospace: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  --ifm-font-color-base: var(--app-text);
+  --ifm-heading-color: var(--app-text);
+  --ifm-color-content: var(--app-text);
+  --ifm-color-content-secondary: var(--app-dimmed);
+  --ifm-background-color: var(--app-body);
+  --ifm-background-surface-color: var(--app-chrome);
+  --ifm-hover-overlay: var(--app-hover);
+  --ifm-toc-border-color: var(--app-border-soft);
+  --ifm-color-emphasis-0: #ffffff;
+  --ifm-color-emphasis-100: #f1f3f5;
+  --ifm-color-emphasis-200: #e9ecef;
+  --ifm-color-emphasis-300: #dee2e6;
+  --ifm-color-emphasis-400: #ced4da;
+  --ifm-color-emphasis-500: #868e96;
+  --ifm-color-emphasis-600: #5f6670;
+  --ifm-color-emphasis-700: #495057;
+  --ifm-color-emphasis-800: #343a40;
+  --ifm-color-emphasis-900: #1b1b1f;
+  --ifm-color-emphasis-1000: #000000;
+
+  /* Type: the app's 26/22/18/16 headings, one step up for the page title of a long article. */
+  --ifm-line-height-base: 1.65;
+  --ifm-heading-font-weight: 700;
+  --ifm-heading-line-height: 1.3;
+  --ifm-h1-font-size: 1.875rem;
+  --ifm-h2-font-size: 1.375rem;
+  --ifm-h3-font-size: 1.125rem;
+  --ifm-h4-font-size: 1rem;
+  --ifm-h5-font-size: 0.875rem;
+  --ifm-h6-font-size: 0.8125rem;
+  --ifm-heading-vertical-rhythm-bottom: 0.75;
+
+  --ifm-global-radius: var(--app-radius-control);
+  --ifm-code-border-radius: 6px;
+  --ifm-code-font-size: 88%;
+  --ifm-code-background: var(--app-surface-tonal);
+  --ifm-code-padding-horizontal: 0.35rem;
+  --ifm-pre-border-radius: var(--app-radius-card);
+  --ifm-pre-background: var(--app-chrome);
+  --ifm-card-border-radius: var(--app-radius-card);
+  --ifm-pagination-nav-border-radius: var(--app-radius-card);
+  --ifm-table-border-color: var(--app-border);
+  --ifm-table-stripe-background: transparent;
+  --ifm-table-head-background: var(--app-chrome);
+  --ifm-table-cell-padding: 0.6rem 0.9rem;
+  --ifm-blockquote-border-color: var(--app-border);
+  --ifm-blockquote-color: var(--app-dimmed);
+  --ifm-hr-background-color: var(--app-border-soft);
+  --ifm-hr-height: 1px;
+
+  --ifm-navbar-height: 3.5rem; /* TOP_MENU_HEIGHT is 55 px */
+  --ifm-navbar-background-color: var(--app-chrome);
+  --ifm-navbar-shadow: none;
+  --ifm-navbar-link-color: var(--app-nav-text);
+  --ifm-navbar-link-hover-color: var(--app-text);
+  --ifm-navbar-padding-horizontal: 1.25rem;
+  --ifm-menu-color: var(--app-nav-text);
+  --ifm-menu-color-active: var(--app-primary-light-color);
+  --ifm-menu-color-background-active: var(--app-primary-light);
+  --ifm-menu-color-background-hover: var(--app-hover);
+  --ifm-menu-link-padding-vertical: 0.5rem;
+  --ifm-menu-link-padding-horizontal: 1rem;
+  --ifm-footer-background-color: var(--app-chrome);
+  --ifm-footer-color: var(--app-dimmed);
+  --ifm-footer-link-color: var(--app-dimmed);
+  --ifm-footer-link-hover-color: var(--app-text);
+  --ifm-footer-title-color: var(--app-dimmed);
+  --ifm-breadcrumb-item-background-active: transparent;
+  --ifm-breadcrumb-color-active: var(--app-text);
+
+  /* Status colours of the admonitions, from Mantine's scale (text shades pass AA on the tint). */
+  --app-info: #1a66d2;
+  --app-info-text: #1557b5;
+  --app-tip: #2f9e44;
+  --app-tip-text: #2b8a3e;
+  --app-warning: #f08c00;
+  --app-warning-text: #a65200;
+  --app-danger: #e03131;
+  --app-danger-text: #c92a2a;
+  --app-note: #868e96;
+  --app-note-text: #495057;
+  --app-tint: 8%;
+  --app-tint-border: 24%;
+
+  --docusaurus-highlighted-code-line-bg: rgba(26, 102, 210, 0.1);
+  --docusaurus-collapse-button-bg: transparent;
+  --docusaurus-collapse-button-bg-hover: var(--app-hover);
 }
 
-[data-theme='dark'] {
-  --ifm-color-primary: #4dabf7;
-  --ifm-color-primary-dark: #339af0;
-  --ifm-color-primary-darker: #228be6;
-  --ifm-color-primary-darkest: #1c7ed6;
-  --ifm-color-primary-light: #74c0fc;
-  --ifm-color-primary-lighter: #a5d8ff;
-  --ifm-color-primary-lightest: #d0ebff;
-  --ifm-background-color: #1f1f24;
-  --ifm-background-surface-color: #26262c;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+[data-theme="dark"] {
+  /* The dark scheme's primary is the pastel shade 2, with dark text on filled buttons (12:1). */
+  --ifm-color-primary: #a8c7fa;
+  --ifm-color-primary-dark: #7cacf8;
+  --ifm-color-primary-darker: #4c8df6;
+  --ifm-color-primary-darkest: #2b74ee;
+  --ifm-color-primary-light: #d4e4fd;
+  --ifm-color-primary-lighter: #eaf2fe;
+  --ifm-color-primary-lightest: #eaf2fe;
+  --ifm-color-primary-contrast-background: rgba(168, 199, 250, 0.18);
+  --ifm-color-primary-contrast-foreground: #d4e4fd;
 
-  --lp-ink: #151518;
-  --lp-accent: #4dabf7;
-  --lp-accent-strong: #74c0fc;
-  --lp-surface: #26262c;
-  --lp-line: #3a3a42;
+  /* DARK_SCALE: 0 text, 2 dimmed, 4 borders, 5 hover, 6 raised, 7 page, 8 chrome. */
+  --app-text: #ececee;
+  --app-dimmed: #9a9aa2;
+  --app-body: #121214;
+  --app-chrome: #0d0d0f;
+  --app-surface: #1f1f23;
+  --app-surface-tonal: #2a2a2f;
+  --app-surface-tonal-hover: #37373d;
+  --app-hover: #1f1f23;
+  --app-border: #37373d;
+  --app-border-soft: #2a2a2f;
+  --app-nav-text: #ececee;
+  --app-nav-icon: #c4c4ca;
+  --app-primary-light: rgba(168, 199, 250, 0.18);
+  --app-primary-light-hover: rgba(168, 199, 250, 0.24);
+  --app-primary-light-color: #a8c7fa;
+  --app-primary-filled: #a8c7fa;
+  --app-primary-filled-hover: #7cacf8;
+  --app-primary-contrast: #0b3670;
+  --app-focus: #a8c7fa;
+  --app-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+
+  --ifm-color-emphasis-0: #121214;
+  --ifm-color-emphasis-100: #1f1f23;
+  --ifm-color-emphasis-200: #2a2a2f;
+  --ifm-color-emphasis-300: #37373d;
+  --ifm-color-emphasis-400: #4a4a51;
+  --ifm-color-emphasis-500: #7c7c85;
+  --ifm-color-emphasis-600: #9a9aa2;
+  --ifm-color-emphasis-700: #c4c4ca;
+  --ifm-color-emphasis-800: #dcdce0;
+  --ifm-color-emphasis-900: #ececee;
+  --ifm-color-emphasis-1000: #ffffff;
+
+  --app-info: #a8c7fa;
+  --app-info-text: #a8c7fa;
+  --app-tip: #69db7c;
+  --app-tip-text: #8ce99a;
+  --app-warning: #ffa94d;
+  --app-warning-text: #ffc078;
+  --app-danger: #ff8787;
+  --app-danger-text: #ffa8a8;
+  --app-note: #9a9aa2;
+  --app-note-text: #c4c4ca;
+  --app-tint: 12%;
+  --app-tint-border: 26%;
+
+  --docusaurus-highlighted-code-line-bg: rgba(168, 199, 250, 0.12);
+  --ifm-table-stripe-background: transparent;
+  --ifm-table-head-background: var(--app-chrome);
+  --ifm-table-border-color: var(--app-border);
 }
 
-/* Navbar sponsor button */
-.navbar__sponsor {
-  border: 1px solid var(--ifm-color-primary);
-  border-radius: 999px;
-  padding: 0.25rem 0.85rem;
-  margin-left: 0.25rem;
+html {
+  background-color: var(--app-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--app-primary-light-hover);
+}
+
+/* One focus ring for every control, in the accent like Mantine's. */
+:focus-visible {
+  outline: 2px solid var(--app-focus);
+  outline-offset: 2px;
+}
+
+a {
+  text-underline-offset: 0.18em;
+}
+
+/* ---------------------------------------------------------------- Header */
+
+.navbar {
+  padding-block: 0;
+  border-bottom: 0;
+}
+
+.navbar__brand {
+  margin-right: 1.25rem;
+}
+
+.navbar__logo {
+  height: 1.625rem;
+  margin-right: 0.6rem;
+}
+
+.navbar__title {
+  font-size: 1.1875rem;
   font-weight: 600;
-  color: var(--ifm-color-primary);
+  letter-spacing: -0.01em;
+  color: var(--app-text);
+}
+
+/* Header links as pills, the current section in the accent's tint (like the sidebar rows). */
+.navbar__item.navbar__link {
+  align-items: center;
+  min-height: 2.25rem;
+  margin-inline: 0.125rem;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Infima hides the header items below 997 px (they move to the menu panel), so only lay them
+   out from there up. */
+@media (min-width: 997px) {
+  .navbar__item.navbar__link {
+    display: inline-flex;
+  }
+}
+
+.navbar__item.navbar__link:hover {
+  background: var(--app-hover);
+}
+
+.navbar__link--active,
+.navbar__link--active:hover {
+  color: var(--app-primary-light-color);
+  background: var(--app-primary-light);
+  font-weight: 600;
+}
+
+/* External links in the header carry no arrow; the GitHub and sponsor items say where they go. */
+.navbar__items--right .navbar__link svg {
+  display: none;
+}
+
+/* The colour scheme switch: a round icon button, as in the app's header. */
+.navbar [class*="colorModeToggle"] button {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  color: var(--app-nav-icon);
+}
+
+.navbar [class*="colorModeToggle"] button:hover {
+  background: var(--app-hover);
+}
+
+/* Sponsor: a quiet grey pill (the app's default button) with a heart; Install is the page's one
+   primary action. */
+.navbar__item.navbar__sponsor {
+  background: var(--app-surface-tonal);
+  color: var(--app-text);
+  margin-left: 0.375rem;
+  font-weight: 600;
+}
+
+.navbar__item.navbar__sponsor:hover {
+  background: var(--app-surface-tonal-hover);
+  color: var(--app-text);
 }
 
 .navbar__sponsor::before {
-  content: "♥";
+  content: "\2665";
   margin-right: 0.4rem;
+  color: #e64980; /* Mantine pink-6, the heart only */
 }
 
-.navbar__sponsor:hover {
-  background: var(--ifm-color-primary);
-  color: #fff;
+[data-theme="dark"] .navbar__sponsor::before {
+  color: #f783ac;
 }
 
-.navbar__sponsor svg {
-  display: none;
+/* A search box, should one be added: the app's pill search in the header. */
+.navbar__search-input,
+.DocSearch-Button {
+  height: 2.5rem;
+  border-radius: 999px;
+  background-color: var(--app-surface-tonal);
+  color: var(--app-dimmed);
+}
+
+/* The phone menu panel: the same chrome and pills. */
+.navbar-sidebar {
+  background-color: var(--app-chrome);
+  box-shadow: none;
+}
+
+.navbar-sidebar__brand {
+  box-shadow: none;
+}
+
+.navbar-sidebar__back {
+  border-radius: 999px;
+  background: var(--app-surface-tonal);
+  margin: 0.25rem 0.5rem 0.5rem;
+  width: calc(100% - 1rem);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- Sidebar */
+
+.menu {
+  padding: 0.75rem 0.5rem !important;
+  font-weight: 500;
+}
+
+.menu__link {
+  min-height: 2.25rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  font-weight: 600;
+}
+
+/* A category whose page is not the open one: neutral text; the open page's row carries the tint. */
+.menu__link--sublist.menu__link--active:not([aria-current="page"]),
+.menu__list-item-collapsible--active .menu__link--active:not([aria-current="page"]) {
+  color: var(--app-text);
+  background: transparent;
+  font-weight: 600;
+}
+
+.menu__list-item-collapsible {
+  border-radius: 999px;
+}
+
+.menu__list-item-collapsible--active {
+  background: transparent;
+}
+
+.menu__list-item-collapsible:hover {
+  background: var(--app-hover);
+}
+
+.menu__list-item-collapsible .menu__link:hover {
+  background: transparent;
+}
+
+.menu__caret,
+.menu__link--sublist-caret::after {
+  opacity: 0.6;
+}
+
+.menu__caret {
+  border-radius: 999px;
+}
+
+.menu__caret:hover {
+  background: var(--app-surface-tonal-hover);
+}
+
+.menu__list .menu__list {
+  margin-top: 0.125rem;
+  padding-left: 0.75rem;
+}
+
+.menu__list-item:not(:first-child) {
+  margin-top: 0.125rem;
+}
+
+/* -------------------------------------------- The page set into the chrome */
+
+.footer,
+.theme-doc-sidebar-container {
+  border: 0 !important;
+}
+
+@media (min-width: 997px) {
+  html.docs-doc-page,
+  html.docs-doc-page .main-wrapper,
+  html.plugin-docs .main-wrapper {
+    background-color: var(--app-chrome);
+  }
+
+  html.plugin-docs .theme-doc-sidebar-container {
+    background-color: var(--app-chrome);
+  }
+
+  /* The page itself: one step up, with the rounded top-left corner of the app's content. */
+  html.plugin-docs .theme-doc-sidebar-container + main {
+    background-color: var(--app-body);
+    border-top-left-radius: var(--app-radius-panel);
+  }
+
+  /* The collapse button at the foot of the sidebar: no rule above it. */
+  html.plugin-docs .theme-doc-sidebar-container button[class*="collapseSidebarButton"] {
+    border: 0;
+    border-radius: 999px;
+    margin: 0 0.5rem 0.5rem;
+  }
+
+  html.plugin-docs [class*="collapsedDocSidebar"]:hover,
+  html.plugin-docs [class*="expandButton"]:hover {
+    background-color: var(--app-hover);
+  }
+}
+
+/* ---------------------------------------------------------------- Article */
+
+.markdown {
+  --ifm-h1-vertical-rhythm-bottom: 0.9;
+}
+
+.markdown h1:first-child {
+  --ifm-h1-font-size: 1.875rem;
+  letter-spacing: -0.015em;
+}
+
+/* Infima sizes the article's headings on `.markdown > hN` (2rem and 1.5rem); bring them back to the
+   app's scale. */
+.markdown > h2 {
+  --ifm-h2-font-size: 1.375rem;
+  margin-top: 2.25rem;
+  letter-spacing: -0.01em;
+}
+
+.markdown > h3 {
+  --ifm-h3-font-size: 1.125rem;
+  margin-top: 1.75rem;
+}
+
+@media (max-width: 996px) {
+  .markdown h1:first-child {
+    --ifm-h1-font-size: 1.625rem; /* the app's 26 px page title */
+  }
+}
+
+/* Breadcrumbs: dimmed text with the current page in the text colour, no tinted pill. */
+.breadcrumbs__link {
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  color: var(--app-dimmed);
+  padding: 0.25rem 0.6rem;
+}
+
+.breadcrumbs__item--active .breadcrumbs__link {
+  color: var(--app-text);
+  font-weight: 600;
+}
+
+a.breadcrumbs__link:hover {
+  background: var(--app-hover);
+}
+
+/* Table of contents: dimmed, the current heading in the accent. */
+.table-of-contents {
+  font-size: 0.8125rem;
+}
+
+.table-of-contents__link {
+  color: var(--app-dimmed);
+}
+
+.table-of-contents__link:hover,
+.table-of-contents__link--active {
+  color: var(--app-text);
+}
+
+.table-of-contents__link--active {
+  font-weight: 600;
+}
+
+.theme-doc-toc-desktop {
+  padding-top: 0.5rem;
+}
+
+/* Inline code: a grey chip without an outline. */
+code {
+  border: 0;
+  vertical-align: baseline;
+}
+
+a code {
+  color: inherit;
+}
+
+/* Code blocks: a raised surface with a hairline, the app's card radius. */
+.theme-code-block {
+  border: 1px solid var(--app-border-soft);
+  box-shadow: none !important;
+  --ifm-pre-padding: 1rem;
+}
+
+.theme-code-block [class*="codeBlockTitle"] {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--app-dimmed);
+  border-bottom-color: var(--app-border-soft) !important;
+}
+
+.theme-code-block button {
+  border-radius: var(--app-radius-control);
+}
+
+/* Admonitions: a tinted card with a hairline in the status colour, sentence-case title, like the
+   app's tinted (light variant) notices. */
+.alert {
+  --ifm-alert-border-width: 1px;
+  --ifm-alert-border-left-width: 1px;
+  --ifm-alert-border-radius: var(--app-radius-card);
+  --ifm-alert-padding-vertical: 0.875rem;
+  --ifm-alert-padding-horizontal: 1.125rem;
+  --ifm-alert-foreground-color: var(--app-text);
+  --app-status: var(--app-note);
+  --app-status-text: var(--app-note-text);
+  --ifm-alert-background-color: color-mix(in srgb, var(--app-status) var(--app-tint), var(--app-body));
+  --ifm-alert-border-color: color-mix(in srgb, var(--app-status) var(--app-tint-border), var(--app-body));
+  box-shadow: none;
+}
+
+.alert--info {
+  --app-status: var(--app-info);
+  --app-status-text: var(--app-info-text);
+}
+
+.alert--success {
+  --app-status: var(--app-tip);
+  --app-status-text: var(--app-tip-text);
+}
+
+.alert--warning {
+  --app-status: var(--app-warning);
+  --app-status-text: var(--app-warning-text);
+}
+
+.alert--danger {
+  --app-status: var(--app-danger);
+  --app-status-text: var(--app-danger-text);
+}
+
+.theme-admonition > div:first-child {
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: none;
+  color: var(--app-status-text);
+}
+
+.theme-admonition > div:first-child svg {
+  fill: var(--app-status-text);
+}
+
+.alert a {
+  color: var(--ifm-link-color);
+  text-decoration-color: currentColor;
+}
+
+.alert code {
+  background: color-mix(in srgb, var(--app-status) 14%, transparent);
+}
+
+/* Tables: a bordered card with rules between rows only, no zebra; wider tables scroll inside it. */
+.markdown table {
+  width: max-content;
+  max-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.markdown table thead tr {
+  border: 0;
+}
+
+.markdown th,
+.markdown td {
+  border: 0;
+  border-bottom: 1px solid var(--app-border-soft);
+  vertical-align: top;
+  text-align: left;
+}
+
+.markdown th {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--app-dimmed);
+  background: var(--app-chrome);
+}
+
+.markdown tr {
+  border: 0;
+}
+
+.markdown tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.markdown thead tr:first-child th:first-child {
+  border-top-left-radius: calc(var(--app-radius-card) - 1px);
+}
+
+.markdown thead tr:first-child th:last-child {
+  border-top-right-radius: calc(var(--app-radius-card) - 1px);
 }
 
 /* MDX 3 wraps multi-line text inside raw HTML table cells in <p>, which
@@ -76,4 +656,202 @@
 .markdown td > p:last-child,
 .markdown th > p:last-child {
   margin-bottom: 0;
+}
+
+.markdown img {
+  border-radius: var(--app-radius-control);
+}
+
+blockquote {
+  border-left-width: 3px;
+  border-radius: 0;
+}
+
+details.alert {
+  --app-status: var(--app-note);
+}
+
+/* Cards (category indexes) and the previous/next links: bordered cards that tint on hover. */
+.card,
+.pagination-nav__link {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+  box-shadow: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+a.card:hover,
+.pagination-nav__link:hover {
+  border-color: var(--app-border);
+  background: var(--app-chrome);
+}
+
+.pagination-nav__sublabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-dimmed);
+}
+
+.pagination-nav__label {
+  font-weight: 600;
+}
+
+/* Edit this page / last updated: dimmed meta. */
+.theme-edit-this-page,
+.theme-last-updated {
+  font-size: 0.875rem;
+  color: var(--app-dimmed);
+}
+
+/* Tabs: neutral labels, the selected one underlined in the accent. */
+.tabs__item {
+  border-radius: var(--app-radius-control) var(--app-radius-control) 0 0;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--app-dimmed);
+}
+
+.tabs__item--active {
+  color: var(--app-text);
+  border-bottom-color: var(--app-primary-filled);
+}
+
+/* ---------------------------------------------------------------- Buttons */
+
+.button {
+  border-radius: var(--app-radius-control);
+  font-weight: 600;
+}
+
+.button--primary {
+  --ifm-button-background-color: var(--app-primary-filled);
+  --ifm-button-border-color: var(--app-primary-filled);
+  --ifm-button-color: var(--app-primary-contrast);
+  color: var(--app-primary-contrast);
+}
+
+.button--primary:hover {
+  --ifm-button-background-color: var(--app-primary-filled-hover);
+  --ifm-button-border-color: var(--app-primary-filled-hover);
+  color: var(--app-primary-contrast);
+}
+
+.button--secondary {
+  --ifm-button-background-color: var(--app-surface-tonal);
+  --ifm-button-border-color: transparent;
+  color: var(--app-text);
+}
+
+.button--secondary:hover {
+  --ifm-button-background-color: var(--app-surface-tonal-hover);
+  color: var(--app-text);
+}
+
+.theme-back-to-top-button {
+  border-radius: 999px;
+  background-color: var(--app-surface-tonal);
+  box-shadow: var(--app-shadow-card);
+}
+
+/* ---------------------------------------------------------------- Footer */
+
+.footer {
+  padding: 2.5rem var(--ifm-spacing-horizontal) 2rem;
+  font-size: 0.875rem;
+}
+
+/* Column titles in the app's group-label style (RECENT ALBUMS). */
+.footer__title {
+  margin-bottom: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.footer__item {
+  padding-block: 0.2rem;
+}
+
+.footer__link-item:hover {
+  text-decoration: underline;
+}
+
+.footer__link-item svg {
+  display: none;
+}
+
+.footer__bottom {
+  margin-top: 1.5rem;
+  font-size: 0.8125rem;
+}
+
+/* ---------------------------------------------------------------- Blog */
+
+html.plugin-blog aside nav[class*="sidebar"] {
+  font-size: 0.875rem;
+}
+
+html.plugin-blog [class*="sidebarItemLink"] {
+  color: var(--app-dimmed);
+}
+
+html.plugin-blog [class*="sidebarItemLinkActive"] {
+  color: var(--app-primary-light-color) !important;
+  font-weight: 600;
+}
+
+html.plugin-blog [class*="sidebarItemTitle"] {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-dimmed);
+}
+
+/* Post titles at the app's page-title weight and a docs-sized scale, in the text colour: the accent
+   stays for links inside the text. */
+html.plugin-blog article > header > :is(h1, h2) {
+  font-size: clamp(1.625rem, 1.3rem + 1.1vw, 2.25rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+html.plugin-blog article > header > h2 a {
+  color: var(--app-text);
+}
+
+html.plugin-blog article > header time,
+html.plugin-blog article > header [class*="container_"] {
+  color: var(--app-dimmed);
+}
+
+html.plugin-blog .avatar__name a {
+  color: var(--app-text);
+}
+
+.avatar__photo {
+  border: 0;
+}
+
+/* -------------------------------------------------------- Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .pagination-nav__link {
+    transition: none;
+  }
+}
+
+/* The phone's "On this page": a grey panel, not the accent's tint. */
+.theme-doc-toc-mobile {
+  background-color: var(--app-surface-tonal) !important;
+  border-radius: var(--app-radius-card) !important;
+}
+
+.theme-doc-toc-mobile > button {
+  font-weight: 600;
+  font-size: 0.875rem;
 }

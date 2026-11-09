@@ -1,5 +1,5 @@
 ---
-title: "✨ Memories"
+title: "Memories"
 description: "Rediscover the photos you took on this day in earlier years"
 sidebar_position: 5
 ---
@@ -8,7 +8,7 @@ sidebar_position: 5
 
 **Memories** answers "what was I doing a year ago today?". It collects the photos you took around this date in each earlier year and lets you play them back as a slideshow.
 
-Open it from **Memories** in the sidebar, or type "memories" (or "on this day", "years ago") into the [spotlight search](./search.md).
+Open it with **See all** on the row of memories above the timeline, from **Memories** in the dropdown of the **Photos** page title, or type "memories" (or "on this day", "years ago") into the [spotlight search](./search.md). <Since version="1.6.0" /> To keep it one click away, pin it: **Customize sidebar** under the sidebar's pages, then tick **Memories**.
 
 ---
 
@@ -46,19 +46,19 @@ A memory is built from the days your timeline already groups photos under, so a 
 - **The month fallback.** If no year has anything in that window, the page widens to whole months instead and shows "August 2019"-style tiles. Better a memory of the right month than an empty page.
 - **This year is excluded.** Photos from this year's anniversary are still near the top of your timeline, so they are not a memory yet.
 - **29 February** falls back to the 28th in years that do not have one.
-- **Your day, not the server's.** The anniversary is taken from your own timezone (**Settings → Metadata Options → Default timezone**), so memories roll over at your midnight rather than the server's.
+- **Your day, not the server's.** The anniversary is taken from your own timezone (**Settings → Metadata options → Default timezone**), so memories roll over at your midnight rather than the server's.
 
 ### What is left out
 
 Memories draw from the same photos your timeline shows — your own photos, not hidden, not [archived](./viewing-photos.md#archive), not in the trash, and only the primary photo of a [stack](./stacks-and-file-variants.md) so a RAW/JPEG pair is not shown twice. On top of that, photos detected as **screenshots** and **documents** are skipped: a screenshot from four years ago is not a memory of anything.
 
-Place names come from reverse geocoding. If you have not run **Add Geolocation**, tiles simply show no place — see [Places](./places.md).
+Place names come from reverse geocoding. If you have not run **Add geolocation**, tiles simply show no place — see [Places](./places.md).
 
 ---
 
 ## Playback
 
-Playing a memory opens the normal [lightbox](./viewing-photos.md) already in slideshow mode, so everything you know from there still works: the interval dropdown (3, 5, 10, 15 or 30 seconds, defaulting to your **Settings → Slideshow interval**), `s` to stop and start, arrow keys to step through by hand, `f` for fullscreen and `Esc` to close.
+Playing a memory opens the normal [lightbox](./viewing-photos.md) already in slideshow mode, so everything you know from there still works: the interval dropdown (3, 5, 10, 15 or 30 seconds, defaulting to your **Settings → Interface → Default slideshow interval**), `s` to stop and start, arrow keys to step through by hand, `g` for fullscreen and `Esc` to close.
 
 Picking a different memory always starts its slideshow from the beginning.
 

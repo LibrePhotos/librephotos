@@ -1,5 +1,5 @@
 ---
-title: "💼 Job System"
+title: "Job system"
 description: "A overview of what the worker logs mean"
 sidebar_position: 23
 ---
@@ -12,7 +12,7 @@ The job system gives you information about the long-running jobs, including whic
 
 Scan photos will look at all media files in your scan directory and will add them to the library.
 
-A normal scan only reads the files that are new or changed (the file or one of its sidecars) since the last successful scan of the whole scan directory started. A scan that was cancelled or failed before it reached every file does not count, and neither does a scan of a few selected files or a Nextcloud scan. A full scan reads every file again. <Since version="1.4.0" /> Up to 1.3.0, any finished scan counted, including cancelled ones and **Detect Stacks** runs, and a file edited while the last scan ran could be skipped. The first normal scan after the upgrade therefore checks every file once.
+A normal scan only reads the files that are new or changed (the file or one of its sidecars) since the last successful scan of the whole scan directory started. A scan that was cancelled or failed before it reached every file does not count, and neither does a scan of a few selected files or a Nextcloud scan. A full scan reads every file again. <Since version="1.4.0" /> Up to 1.3.0, any finished scan counted, including cancelled ones and **Detect stacks** runs, and a file edited while the last scan ran could be skipped. The first normal scan after the upgrade therefore checks every file once.
 
 ### Generate Event Albums
 
@@ -32,13 +32,13 @@ Finds all missing media files and removes them from the database.
 
 ### Scan Missing Photos
 
-Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use **Delete Missing Photos** for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files, and when the scan had to skip a folder it could not read. It checks every photo before it changes anything. <Since version="1.4.0" /> It fails without changing anything when the scan directory looks unmounted or more than the **Missing photos limit** of your photos would be marked missing. See [Missing Photos](./missing-photos.md).
+Goes through every photo in the database and flags the ones whose file can no longer be found on disk. It does not delete anything — use **Delete missing photos** for that. It runs automatically after a full scan and after any scan of your configured scan directory; it is skipped when you scan a different directory or only a specific list of files, and when the scan had to skip a folder it could not read. It checks every photo before it changes anything. <Since version="1.4.0" /> It fails without changing anything when the scan directory looks unmounted or more than the **Missing photos limit** of your photos would be marked missing. See [Missing Photos](./missing-photos.md).
 
 ### Calculate Clip Embeddings
 
-Calculates the OpenCLIP search embedding of every photo that has none, then rebuilds the similarity index. This is used for semantic search and for finding similar images. **Find Things** stores the embeddings as it tags, so with tagging on this job only fills the gaps. After an upgrade from a release with another model, it re-embeds those photos in place and gives them their tags from the same run.
+Calculates the OpenCLIP search embedding of every photo that has none, then rebuilds the similarity index. This is used for semantic search and for finding similar images. **Find things** stores the embeddings as it tags, so with tagging on this job only fills the gaps. After an upgrade from a release with another model, it re-embeds those photos in place and gives them their tags from the same run.
 
-<Since version="1.5.0" /> Uploads start it too: a few minutes after your last upload, LibrePhotos embeds the uploaded photos that have no embedding yet and rebuilds the similarity index, then runs **Generate Face Embeddings** for faces without one. A burst of uploads gets one run. Up to 1.4.0, uploaded photos only appeared in semantic search after the next scan or restart. The first start after the upgrade does this once for every user with photos.
+<Since version="1.5.0" /> Uploads start it too: a few minutes after your last upload, LibrePhotos embeds the uploaded photos that have no embedding yet and rebuilds the similarity index, then runs **Generate face embeddings** for faces without one. A burst of uploads gets one run. Up to 1.4.0, uploaded photos only appeared in semantic search after the next scan or restart. The first start after the upgrade does this once for every user with photos.
 
 ### Find Things
 
@@ -48,25 +48,25 @@ Finds the things in your photos (beach, dog, sunset, ...) with OpenCLIP, for the
 
 ### Add Geolocation
 
-Looks up place names for each photo's GPS coordinates (reverse geocoding) so they appear in the places view and location search. It runs automatically after each scan; a normal scan processes photos added since the last successful run started, plus every photo whose position has no place name looked up for it yet (its GPS changed in the file, or an earlier lookup failed; a position where the provider found no place, such as open sea, is not asked again until it changes), while a full scan goes over every photo. A photo whose place was already looked up for its position is skipped either way, so switching the Map Provider renames nothing; [Look Up Place Names](#look-up-place-names) does. It looks up the position LibrePhotos has stored, which the scan keeps in line with the file unless you set the location yourself. A run that was cancelled or failed before it reached every photo does not count as successful.
+Looks up place names for each photo's GPS coordinates (reverse geocoding) so they appear in the places view and location search. It runs automatically after each scan; a normal scan processes photos added since the last successful run started, plus every photo whose position has no place name looked up for it yet (its GPS changed in the file, or an earlier lookup failed; a position where the provider found no place, such as open sea, is not asked again until it changes), while a full scan goes over every photo. A photo whose place was already looked up for its position is skipped either way, so switching the Map provider renames nothing; [Look up place names](#look-up-place-names) does. It looks up the position LibrePhotos has stored, which the scan keeps in line with the file unless you set the location yourself. A run that was cancelled or failed before it reached every photo does not count as successful.
 
 ### Scan Faces
 
-Looks for faces in your photos and saves them. It runs automatically after each scan and looks at every photo whose faces have not been looked for yet: new photos, photos whose file was replaced, and photos the face recognition service failed on last time, for example because it was restarting or ran out of memory. Each such failure is listed in the job's errors, and the photo is tried again on the next run. A picture the service cannot read at all is listed once and not tried again. When the service cannot be reached for 20 photos in a row, the job stops with the error "Face service unreachable" and the remaining photos wait for the next run. **Rescan Faces** looks at every photo again.
+Looks for faces in your photos and saves them. It runs automatically after each scan and looks at every photo whose faces have not been looked for yet: new photos, photos whose file was replaced, and photos the face recognition service failed on last time, for example because it was restarting or ran out of memory. Each such failure is listed in the job's errors, and the photo is tried again on the next run. A picture the service cannot read at all is listed once and not tried again. When the service cannot be reached for 20 photos in a row, the job stops with the error "Face service unreachable" and the remaining photos wait for the next run. **Rescan faces** looks at every photo again.
 
-<Since version="1.4.0" /> Up to 1.3.0, a face recognition error counted as "no faces in this photo", the job reported no error, and only **Rescan Faces** found those faces later. If the face recognition service had trouble while your library was scanned, run **Rescan Faces** once after updating.
+<Since version="1.4.0" /> Up to 1.3.0, a face recognition error counted as "no faces in this photo", the job reported no error, and only **Rescan faces** found those faces later. If the face recognition service had trouble while your library was scanned, run **Rescan faces** once after updating.
 
 ### Generate Face Embeddings
 
-Computes the numeric encoding for faces that have been detected but not yet encoded, so they can be grouped and matched. It runs automatically as part of **Scan Faces**. If no faces are waiting to be encoded it finishes immediately, so you may not always see a row for it.
+Computes the numeric encoding for faces that have been detected but not yet encoded, so they can be grouped and matched. It runs automatically as part of **Scan faces**. If no faces are waiting to be encoded it finishes immediately, so you may not always see a row for it.
 
-<Since version="1.5.1" /> A face region the face model finds no face in (often one imported from your files) is not a failure: the job counts it as unmatched, keeps it as a person tag without an encoding, and leaves it alone on later runs until the **Face Recognition Model** site setting changes or you press **Try again** on the [processing status](./library.md#processing-status). Up to 1.5.0 each run asked again and counted every such region as a failed item, so a library with many of them showed the job as failed, and the job list did not say why.
+<Since version="1.5.1" /> A face region the face model finds no face in (often one imported from your files) is not a failure: the job counts it as unmatched, keeps it as a person tag without an encoding, and leaves it alone on later runs until the **Face recognition model** site setting changes or you press **Try again** on the [processing status](./library.md#processing-status). Up to 1.5.0 each run asked again and counted every such region as a failed item, so a library with many of them showed the job as failed, and the job list did not say why.
 
 ### Find Similar Faces
 
 Clusters the faces into known and unknown groups.
 
-<Since version="1.5.0" /> Uploads start it too, once enough new faces came in: at least 20, and at least 2% of all your faces. So that it does not renumber the "Unknown" groups while you work through them, it waits until 30 minutes after your last upload and 15 minutes after you last labelled, deleted or restored a face, runs at most once an hour, and waits while a scan, a face scan, **Train Faces** or an upload of yours is still running. Any run, also one a scan or the **Train** button started, counts as the last one. Up to 1.4.0, faces of uploaded photos stayed among the unknown faces until you trained by hand.
+<Since version="1.5.0" /> Uploads start it too, once enough new faces came in: at least 20, and at least 2% of all your faces. So that it does not renumber the "Unknown" groups while you work through them, it waits until 30 minutes after your last upload and 15 minutes after you last labelled, deleted or restored a face, runs at most once an hour, and waits while a scan, a face scan, **Train faces** or an upload of yours is still running. Any run, also one a scan or the **Train** button started, counts as the last one. Up to 1.4.0, faces of uploaded photos stayed among the unknown faces until you trained by hand.
 
 ### Download Models
 
@@ -82,7 +82,7 @@ Runs after each scan to fix RAW files that were scanned as their own photos. For
 
 ### Import Uploads
 
-<Since version="1.5.0" /> Shows the photos and videos you uploaded, from the web app, the mobile app or another client, while LibrePhotos processes them: thumbnails, dates, tags, places and faces. Uploads made close together count in one job, so its progress reads "12 of 40" for all of them. It ends a few minutes after your last upload, once every upload is processed, and then starts the search and face steps described under **Calculate Clip Embeddings**. A photo whose processing failed is listed in the job with the file name and the step that failed. It runs next to other jobs and never keeps you from starting a scan, and it cannot be cancelled or removed while it runs. Up to 1.4.0, uploads showed no job at all.
+<Since version="1.5.0" /> Shows the photos and videos you uploaded, from the web app, the mobile app or another client, while LibrePhotos processes them: thumbnails, dates, tags, places and faces. Uploads made close together count in one job, so its progress reads "12 of 40" for all of them. It ends a few minutes after your last upload, once every upload is processed, and then starts the search and face steps described under **Calculate CLIP embeddings**. A photo whose processing failed is listed in the job with the file name and the step that failed. It runs next to other jobs and never keeps you from starting a scan, and it cannot be cancelled or removed while it runs. Up to 1.4.0, uploads showed no job at all.
 
 ### Probe Videos
 
@@ -100,15 +100,15 @@ Reads the text on your photos so that search can find it, and uses it to detect 
 
 ### Detect Stacks
 
-Groups burst sequences into stacks, using your [burst detection rules](./settings/index.md#set-burst-detection-rules). It starts when you click **Detect Stacks** on the Organizing → Stacks page. See [Stacks & File Variants](./stacks-and-file-variants.md). <Since version="1.4.0" /> Up to 1.3.0, it was listed as **Scan Photos**.
+Groups burst sequences into stacks, using your [burst detection rules](./settings/index.md#set-burst-detection-rules). It starts when you click **Detect stacks** on the Organizing → Stacks page. See [Stacks & File Variants](./stacks-and-file-variants.md). <Since version="1.4.0" /> Up to 1.3.0, it was listed as **Scan photos**.
 
 ### Detect Duplicate Photos
 
-Finds duplicate photos in your library using perceptual hashing. It detects both exact copies (via hash comparison) and visual duplicates (via a two-pass algorithm). Results are shown in the Organizing page, where you can review and manage them; the button that starts this job there is called **Detect Duplicates**. See [Duplicate Detection](./duplicate-detection.md) for more details.
+Finds duplicate photos in your library using perceptual hashing. It detects both exact copies (via hash comparison) and visual duplicates (via a two-pass algorithm). Results are shown in the Organizing page, where you can review and manage them; the button that starts this job there is called **Detect duplicates**. See [Duplicate detection](./duplicate-detection.md) for more details.
 
 ### Remove Photo Details from Thumbnails
 
-Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) and a video's location from the thumbnails LibrePhotos 1.2.1 and older wrote, across every user's library. An admin starts it with **Remove photo details from old thumbnails** under **Admin Area > Admin Tools**; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata). It only rewrites thumbnails that still carry metadata, so running it again is quick and safe. <Since version="1.4.0" /> Up to 1.3.0, this was only the `strip_thumbnail_metadata` command.
+Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) and a video's location from the thumbnails LibrePhotos 1.2.1 and older wrote, across every user's library. An admin starts it with **Remove photo details from old thumbnails** under **Admin area > Admin tools**; see [After upgrading from 1.2.1 or older](../installation/upgrading.md#strip-thumbnail-metadata). It only rewrites thumbnails that still carry metadata, so running it again is quick and safe. <Since version="1.4.0" /> Up to 1.3.0, this was only the `strip_thumbnail_metadata` command.
 
 ### Read Shutter Speeds Again
 
@@ -124,11 +124,11 @@ Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) 
 
 ### Write Metadata to Files
 
-<Since version="1.4.0" /> Started with **Write now** under **Write edits to files** in Settings → Metadata Options. Writes the edits that are only in LibrePhotos (ratings, dates and locations you set, rotations, captions, tags and face tags) to your sidecars or media files, as that setting says; a photo with nothing to write is left alone. It ends with how many photos it wrote, and lists the photos it could not write. See [Writing the edits of a whole library](./exif-data.md#writing-the-edits-of-a-whole-library).
+<Since version="1.4.0" /> Started with **Write now** under **Write edits to files** in Settings → Metadata options. Writes the edits that are only in LibrePhotos (ratings, dates and locations you set, rotations, captions, tags and face tags) to your sidecars or media files, as that setting says; a photo with nothing to write is left alone. It ends with how many photos it wrote, and lists the photos it could not write. See [Writing the edits of a whole library](./exif-data.md#writing-the-edits-of-a-whole-library).
 
 ### Look Up Place Names
 
-<Since version="1.4.0" /> Asks the Map Provider set in Site Settings again for the place of every photo with a location, across every user's library, for example after switching to ExifTool. An admin starts it with **Look up place names again** under **Admin Area > Admin Tools**, after a confirmation. Photos move to the Places albums of their new names, and the day albums name their places again; a photo whose lookup fails keeps its old place. See [Switching the provider](./places.md#switching-the-provider).
+<Since version="1.4.0" /> Asks the Map provider set in Site settings again for the place of every photo with a location, across every user's library, for example after switching to ExifTool. An admin starts it with **Look up place names again** under **Admin area > Admin tools**, after a confirmation. Photos move to the Places albums of their new names, and the day albums name their places again; a photo whose lookup fails keeps its old place. See [Switching the provider](./places.md#switching-the-provider).
 
 ### Move Photos
 
@@ -138,7 +138,7 @@ Removes the photo's EXIF and XMP (GPS position, camera serial number, keywords) 
 
 ### Remove duplicate faces
 
-<Since version="1.5.0" /> Deletes the faces that were saved twice on the same photo, across every user's library: where two faces of a photo overlap, the one with a name stays (the older one, when both or neither have a name). An admin starts it with **Remove duplicate faces** under **Admin Area > Admin Tools**, after a confirmation; the deleted duplicates do not go to the Deleted tab and cannot be restored. It ends with how many photos it checked and how many faces it deleted. The same work runs from the command line, for every user or one:
+<Since version="1.5.0" /> Deletes the faces that were saved twice on the same photo, across every user's library: where two faces of a photo overlap, the one with a name stays (the older one, when both or neither have a name). An admin starts it with **Remove duplicate faces** under **Admin area > Admin tools**, after a confirmation; the deleted duplicates do not go to the Deleted tab and cannot be restored. It ends with how many photos it checked and how many faces it deleted. The same work runs from the command line, for every user or one:
 
 ```bash
 docker compose exec backend python manage.py deduplicate_faces
@@ -153,7 +153,7 @@ docker compose exec backend python manage.py deduplicate_faces --user anna --chu
 
 ### Check File Contents
 
-<Since version="1.5.0" /> Reads every file of every user's library again and compares it with what LibrePhotos has, to find files that were replaced while keeping their old modification date (`cp -p`, `rsync --times`, some sync apps), which a scan does not notice. An admin starts it with **Check file contents** under **Admin Area > Admin Tools**, for all users or one user and, optionally, one folder of that user's library; the `rehash_files` command does the same. A changed file is imported again as a scan would (see [Files replaced in place](./library.md#files-replaced-in-place)), and the photos holding it are then read again by a scan of their owner's. The job's page shows how many files were read, what became of the changed ones, per user, and the files that could not be read. It reads every byte, so it takes hours on a large library, and other jobs wait until it finishes.
+<Since version="1.5.0" /> Reads every file of every user's library again and compares it with what LibrePhotos has, to find files that were replaced while keeping their old modification date (`cp -p`, `rsync --times`, some sync apps), which a scan does not notice. An admin starts it with **Check file contents** under **Admin area > Admin tools**, for all users or one user and, optionally, one folder of that user's library; the `rehash_files` command does the same. A changed file is imported again as a scan would (see [Files replaced in place](./library.md#files-replaced-in-place)), and the photos holding it are then read again by a scan of their owner's. The job's page shows how many files were read, what became of the changed ones, per user, and the files that could not be read. It reads every byte, so it takes hours on a large library, and other jobs wait until it finishes.
 
 ### Rename Photos
 
@@ -161,7 +161,7 @@ docker compose exec backend python manage.py deduplicate_faces --user anna --chu
 
 ### Repair Turned Faces
 
-<Since version="1.5.1" /> Some apps turn a photo's pixels when they export it but keep the face tags they wrote for the picture before the turn. Up to 1.5.0, LibrePhotos put such a face a quarter turn away from the face: it never got an encoding, and **Scan Faces** found the face again as a second face without a name. This job moves those faces onto the face, across every user's library. An admin starts it from the [Finish the upgrade card](../installation/upgrading.md#finish-the-upgrade).
+<Since version="1.5.1" /> Some apps turn a photo's pixels when they export it but keep the face tags they wrote for the picture before the turn. Up to 1.5.0, LibrePhotos put such a face a quarter turn away from the face: it never got an encoding, and **Scan faces** found the face again as a second face without a name. This job moves those faces onto the face, across every user's library. An admin starts it from the [Finish the upgrade card](../installation/upgrading.md#finish-the-upgrade).
 
 A face is moved only when exactly one of the two quarter turns lands on a face LibrePhotos found on the photo, and that face has no name or the same name. The face then takes that face's place and encoding, and the copy is deleted; it does not go to the Deleted tab. Anything else stays as it is, for example a face found there that you named as someone else. Your files are not changed, and the photo's faces are not looked for again. It ends with how many faces it repaired and how many it left. The same work runs from the command line; `--dry-run` only counts the faces:
 
@@ -172,29 +172,29 @@ docker compose exec backend python manage.py repair_turned_faces
 
 ## Where to get information about previous run jobs
 
-When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`.
+When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin area`. You should see the jobs at the bottom of the page in a table called `Worker logs`.
 
-Click a row in the `Worker Logs` table to open that job's detail page. It shows the job's ID and status, when it was queued, started and finished, how long it ran, who started it, and the current progress step. If the job failed, an `Error Details` section shows the captured error message and the full result data. The page has the same **Cancel** (while the job is unfinished) and **Remove** buttons as its row, with the same confirmation; after **Remove** it goes back to the list. <Since version="1.4.0" /> Up to 1.3.0, the detail page had neither button.
+Click a row in the `Worker logs` table to open that job's detail page. It shows the job's ID and status, when it was queued, started and finished, how long it ran, who started it, and the current progress step. If the job failed, an `Error Details` section shows the captured error message and the full result data. The page has the same **Cancel** (while the job is unfinished) and **Remove** buttons as its row, with the same confirmation; after **Remove** it goes back to the list. <Since version="1.4.0" /> Up to 1.3.0, the detail page had neither button.
 
 ## What to do when a job gets stuck
 
 LibrePhotos checks every hour for jobs that have made no progress for a day and marks them failed, with the error "Job made no progress for 24 hours"; the job keeps the errors it had recorded. A job that runs for days but keeps making progress, such as the first scan of a large library, is left alone. The threshold is the `STUCK_JOB_HOURS` variable (see [Environment variables](../installation/environment-variables.md#stuck-jobs)). <Since version="1.4.0" /> Up to 1.3.0, every job was marked failed 24 hours after it started, even while it was still working.
 
-<Since version="1.5.0" /> A job that a running worker is still busy with is left alone too, however long it goes without progress: **Find Similar Faces** reports none while it groups the faces of a large library. Up to 1.4.0, such a job could be marked failed while it worked, and still showed as failed after it succeeded.
+<Since version="1.5.0" /> A job that a running worker is still busy with is left alone too, however long it goes without progress: **Find similar faces** reports none while it groups the faces of a large library. Up to 1.4.0, such a job could be marked failed while it worked, and still showed as failed after it succeeded.
 
 <Since version="1.5.0" /> When LibrePhotos restarts while jobs run (an update, a changed compose file, a reboot, a worker killed for using too much memory), the work the old backend had already taken from the queue runs again about 10 minutes after the restart. A scan interrupted that way still reaches 100 % and starts its follow-up jobs. Up to 1.4.0, that work stayed in the queue for months: the scan stopped just short of 100 %, was marked failed a day later and never started its follow-ups.
 
-If a job is still running and you want to stop it, use the **Cancel** button in its `Worker Logs` row or on its detail page, or the one under the progress bar in the account menu. A dialog asks first; **Keep running** leaves the job alone. Cancelling marks the job as cancelled and finished and removes any of its steps that are still waiting in the queue. Jobs check for cancellation as they go and stop at their next checkpoint, so it can take a few seconds before a running job actually stops; photos a scan already took off the queue are skipped. A model download or a download of selected photos still runs to the end. **Find Similar Faces** is the one exception while it rebuilds the face clusters: it finishes the rebuild, so you are not left without clusters, but it does not start **Train Faces** afterwards. Cancelling frees the queue for a new job at once, so you do not need to remove the entry afterwards. <Since version="1.4.0" /> Up to 1.3.0, a cancelled scan kept importing the photos it had queued, and duplicate and stack detection, face training, search embeddings, file variant repair and event albums ran to the end. The next scan picks up what a cancelled or failed scan, tagging, geolocation or face scan left behind.
+If a job is still running and you want to stop it, use the **Cancel** button in its `Worker logs` row or on its detail page, or the one under the progress bar in the account menu. A dialog asks first; **Keep running** leaves the job alone. Cancelling marks the job as cancelled and finished and removes any of its steps that are still waiting in the queue. Jobs check for cancellation as they go and stop at their next checkpoint, so it can take a few seconds before a running job actually stops; photos a scan already took off the queue are skipped. A model download or a download of selected photos still runs to the end. **Find similar faces** is the one exception while it rebuilds the face clusters: it finishes the rebuild, so you are not left without clusters, but it does not start **Train faces** afterwards. Cancelling frees the queue for a new job at once, so you do not need to remove the entry afterwards. <Since version="1.4.0" /> Up to 1.3.0, a cancelled scan kept importing the photos it had queued, and duplicate and stack detection, face training, search embeddings, file variant repair and event albums ran to the end. The next scan picks up what a cancelled or failed scan, tagging, geolocation or face scan left behind.
 
 The **Remove** button only deletes the log entry from the database — it does **not** stop a running job. Use it for a job that has genuinely crashed (nothing is progressing and the logs show an ungraceful failure) so that the queue will accept new jobs again.
 
 Removing a finished job deletes its record and result; nothing in your library changes. Two runs are different, because a later run starts from them:
 
-- The newest scan of the whole scan directory that reached every file is the reference for the next normal scan, which only rereads the files changed since then (see [Scan Photos](#scan-photos)). Without it, the next normal scan reads every file of your library again, as a full scan does. So its **Remove** button is greyed out, and pointing at it says "This scan is the reference for the next incremental scan"; LibrePhotos refuses to remove it in any other way too, also for an admin. It can be removed once a newer scan of the whole library has finished. A cancelled scan, a scan of a few selected files or a Nextcloud scan does not replace it. This scan is kept by the automatic cleanup of old jobs as well.
-- The newest complete **Add Geolocation** run: the next one looks up the photos added since it started. Remove it and the next run looks up the places of every photo added since the run before it, or of all your photos if none is left. The confirmation dialog warns about it.
+- The newest scan of the whole scan directory that reached every file is the reference for the next normal scan, which only rereads the files changed since then (see [Scan photos](#scan-photos)). Without it, the next normal scan reads every file of your library again, as a full scan does. So its **Remove** button is greyed out, and pointing at it says "This scan is the reference for the next incremental scan"; LibrePhotos refuses to remove it in any other way too, also for an admin. It can be removed once a newer scan of the whole library has finished. A cancelled scan, a scan of a few selected files or a Nextcloud scan does not replace it. This scan is kept by the automatic cleanup of old jobs as well.
+- The newest complete **Add geolocation** run: the next one looks up the photos added since it started. Remove it and the next run looks up the places of every photo added since the run before it, or of all your photos if none is left. The confirmation dialog warns about it.
 
-<Since version="1.6.0" /> To clear a long list at once, open **Account menu > My Jobs** and click **Remove finished jobs**. A dialog says how many jobs go. It removes the records of your finished jobs, whether they completed, failed or were cancelled. It keeps a job that is still running or queued, the scan the next normal scan is measured against, and every **Add Geolocation** run that went through all its photos, so nothing in your library changes and the next scans work as before. The button is greyed out, with the reason, when there is nothing to remove. It is not on the `Worker Logs` table of the Admin Area, which lists every user's jobs; remove those one at a time. Up to 1.5.1, **My Jobs** could only remove one job per click.
+<Since version="1.6.0" /> To clear a long list at once, open **Account menu > My jobs** and click **Remove finished jobs**. A dialog says how many jobs go. It removes the records of your finished jobs, whether they completed, failed or were cancelled. It keeps a job that is still running or queued, the scan the next normal scan is measured against, and every **Add geolocation** run that went through all its photos, so nothing in your library changes and the next scans work as before. The button is greyed out, with the reason, when there is nothing to remove. It is not on the `Worker logs` table of the Admin area, which lists every user's jobs; remove those one at a time. Up to 1.5.1, **My jobs** could only remove one job per click.
 
-<Since version="1.4.0" /> Up to 1.3.0, the reference scan could be removed, and the next scan then read the whole library again. The confirmation dialog could not tell which scan was the reference, and it also warned about **Scan Faces**, which picks the photos whose faces have not been looked for whatever ran before.
+<Since version="1.4.0" /> Up to 1.3.0, the reference scan could be removed, and the next scan then read the whole library again. The confirmation dialog could not tell which scan was the reference, and it also warned about **Scan faces**, which picks the photos whose faces have not been looked for whatever ran before.
 
 <Since version="1.4.0" /> Up to 1.3.0, **Cancel** and **Remove** acted on the first click, without asking.

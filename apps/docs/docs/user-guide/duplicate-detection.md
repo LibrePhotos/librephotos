@@ -1,5 +1,5 @@
 ---
-title: "🔍 Duplicate Detection"
+title: "Duplicate detection"
 description: "Find and manage duplicate photos in your library"
 sidebar_position: 15
 ---
@@ -30,7 +30,7 @@ LibrePhotos computes a 64-bit perceptual hash (pHash) for each image using a DCT
 Two images are considered visually similar when their **Hamming distance** (the number of differing bits) is below a threshold.
 
 :::note Visual duplicates need a perceptual hash first
-The perceptual hash is computed while a photo is scanned, from its large thumbnail, and visual duplicate detection only looks at photos that already have one. Photos indexed before this feature was added have no hash, and an ordinary scan skips files it has already indexed — so **Detect Duplicates** can report no visual duplicates on an older library.
+The perceptual hash is computed while a photo is scanned, from its large thumbnail, and visual duplicate detection only looks at photos that already have one. Photos indexed before this feature was added have no hash, and an ordinary scan skips files it has already indexed — so **Detect duplicates** can report no visual duplicates on an older library.
 
 To fill in the missing hashes, run a **Rescan** once from the [Library page](./library.md#library-actions) — open the dropdown next to **Scan** and choose **Rescan**; this re-processes every photo. Exact-copy detection uses the file's MD5 hash and isn't affected.
 :::
@@ -49,21 +49,21 @@ This approach keeps memory usage manageable even with hundreds of thousands of p
 
 ### Finding Duplicates
 
-1. Navigate to **Organizing → Duplicate Photos**.
-2. Open the **Detection Options** dropdown and choose what to look for. Do this *before* you start detection — the detect button runs immediately with whatever options are currently set:
+1. Open **Organizing → Duplicate photos**: in the dropdown of the **Photos** page title, choose **Duplicates** under **Organizing**. While duplicates wait for review, a **_N_ duplicates to review** card at the bottom of the sidebar opens the same page.
+2. Open the **Detection options** dropdown and choose what to look for. Do this *before* you start detection — the detect button runs immediately with whatever options are currently set:
    - **Exact file copies (identical content)** — find byte-identical files
    - **Visual duplicates (similar images)** — find visually similar photos
    - **Visual sensitivity** — Strict (fewer matches, higher confidence), Normal, or Loose (more matches, may include false positives). This only appears while *Visual duplicates* is enabled.
    - **Clear pending duplicates** — remove existing pending groups before detection runs
-3. Click **"Detect Duplicates"**. Detection starts straight away using the options you selected.
+3. Click **"Detect duplicates"**. Detection starts straight away using the options you selected.
 
-The Detection Options aren't remembered between runs, so set them each time you detect. The default **Visual sensitivity** and **Clear pending duplicates** values come from **Settings → Duplicate Detection** and can be changed there; the *Exact file copies* and *Visual duplicates* checkboxes always start enabled.
+The Detection options aren't remembered between runs, so set them each time you detect. The default **Visual sensitivity** and **Clear pending duplicates** values come from **Settings → Duplicate detection** and can be changed there; the *Exact file copies* and *Visual duplicates* checkboxes always start enabled.
 
 Detection runs as a background job. You can monitor progress in the [Job System](./job-system.md).
 
 ### Reviewing Duplicates
 
-Once detection is complete, duplicates appear as groups on the **Organizing → Duplicate Photos** page:
+Once detection is complete, duplicates appear as groups on the **Organizing → Duplicate photos** page:
 
 - Each group shows preview thumbnails of the duplicate photos
 - Badges indicate the **type** (exact copy or visual duplicate) and **review status**
@@ -73,7 +73,7 @@ Once detection is complete, duplicates appear as groups on the **Organizing → 
 
 Use the filters at the top to narrow down results:
 
-- **Status**: Pending Review, Resolved, Dismissed, or All
+- **Status**: Pending review, Resolved, Dismissed, or All
 - **Type**: Exact Copies or Visual Duplicates
 
 :::note
@@ -86,15 +86,15 @@ Click on a duplicate group to open the review modal:
 
 1. Each photo is shown with its **resolution**, **file size**, **camera**, **date**, and **file path**
 2. The highest-resolution photo is automatically pre-selected as the one to keep
-3. The pre-selected photo's button reads **"Keep This"**; every other photo shows a **"Select"** button. To keep a different photo, click its **"Select"** button — that photo's button then changes to **"Keep This"**
-4. Click **"Keep Selected & Trash Others"** — the other photos are moved to trash
+3. The pre-selected photo's button reads **"Keep this"**; every other photo shows a **"Select"** button. To keep a different photo, click its **"Select"** button — that photo's button then changes to **"Keep this"**
+4. Click **"Keep selected & trash others"** — the other photos are moved to trash
 5. The group status changes to **Resolved**
 
 #### Other Actions
 
-- **"Not a Duplicate"** — Dismiss the group if the photos aren't actually duplicates. The group's status changes to **Dismissed** and its photos are unlinked from the group. Because the page only lists groups that still contain two or more photos, a dismissed group then disappears from view entirely — including from the **Dismissed** filter — even though it is still counted in the **Dismissed (N)** tab. This can't be undone from the interface.
-- **"Revert & Restore Photos"** — For **resolved** groups only: undo the resolution, restore the trashed photos from the trash, and set the group back to **Pending**. Dismissed groups can't be reverted — the server rejects the request, and dismissing has already unlinked the photos rather than trashing them.
-- **Delete Group** — Remove the duplicate group record entirely.
+- **"Not duplicates"** — Dismiss the group if the photos aren't actually duplicates. The group's status changes to **Dismissed** and its photos are unlinked from the group. Because the page only lists groups that still contain two or more photos, a dismissed group then disappears from view entirely — including from the **Dismissed** filter — even though it is still counted in the **Dismissed (N)** tab. This can't be undone from the interface.
+- **"Revert & restore photos"** — For **resolved** groups only: undo the resolution, restore the trashed photos from the trash, and set the group back to **Pending**. Dismissed groups can't be reverted — the server rejects the request, and dismissing has already unlinked the photos rather than trashing them.
+- **Delete group** — Remove the duplicate group record entirely.
 
 ### Batch Operations
 

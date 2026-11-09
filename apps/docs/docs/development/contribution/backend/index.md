@@ -1,5 +1,5 @@
 ---
-title: "☁️ Backend"
+title: "Backend"
 description: "Development Information regarding LibrePhotos Backend."
 sidebar_position: 1
 last_modified_at: 2020-08-04

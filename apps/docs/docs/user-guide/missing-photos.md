@@ -1,5 +1,5 @@
 ---
-title: "📂 Missing Photos"
+title: "Missing photos"
 description: "Understanding and managing missing photos in LibrePhotos"
 sidebar_position: 16
 ---
@@ -45,7 +45,7 @@ Common scenarios that cause missing photos:
 
 - the scan directory does not exist or cannot be read,
 - the scan directory is empty while you have photos in it, or
-- the missing-file check finds that more than the **Missing photos limit** (an admin setting in [Site Settings](./settings/index.md#site-settings), 50% by default) of your photos, and more than 100 photos, would lose all their files. The job's error says how many, for example "4,812 of 5,003 photos would be marked missing. Nothing was changed. Is the library mounted?".
+- the missing-file check finds that more than the **Missing photos limit** (an admin setting in [Site settings](./settings/index.md#site-settings), 50% by default) of your photos, and more than 100 photos, would lose all their files. The job's error says how many, for example "4,812 of 5,003 photos would be marked missing. Nothing was changed. Is the library mounted?".
 
 Mount the library again and run the scan once more. If you really deleted most of your photos on purpose, ask an administrator to set the **Missing photos limit** to 100% (which turns the check off), scan, and set it back afterwards.
 
@@ -85,7 +85,7 @@ If the issue is related to mounting or storage:
 2. Check Docker volume mounts in your configuration
 3. Verify network storage is accessible
 4. Restart LibrePhotos after fixing storage issues
-5. Run a scan from the **Library** page (avatar menu → **Library** → **Scan Library** → **Scan**) so LibrePhotos re-checks and relinks the restored files
+5. Run a scan from the **Library** page (avatar menu → **Library** → **Scan library** → **Scan**) so LibrePhotos re-checks and relinks the restored files
 
 ### Option 3: Automatic Relinking
 
@@ -98,7 +98,7 @@ LibrePhotos automatically relinks photos when files reappear:
 To trigger automatic relinking:
 
 1. Click your avatar in the top-right corner and select **Library** (or press `Ctrl+K` and search for "Library")
-2. In the **Scan Library** row, click **Scan** to perform a new scan (a full re-read of every file is available as **Rescan** in the dropdown next to it)
+2. In the **Scan library** row, click **Scan** to perform a new scan (a full re-read of every file is available as **Rescan** in the dropdown next to it)
 3. LibrePhotos will detect and relink matching files
 
 ### Option 4: Delete Missing Photos
@@ -115,7 +115,7 @@ If you're certain the files are permanently gone:
    - Album associations
    - Ratings and captions
 
-The same action is also available from the Spotlight command palette (`Ctrl+K`) as **Delete Missing Photos**.
+The same action is also available from the Spotlight command palette (`Ctrl+K`) as **Delete missing photos**.
 
 :::caution
 Deleting missing photos is permanent. Make sure the files are truly gone and won't be restored before using this option.
@@ -147,7 +147,7 @@ Deleting missing photos is permanent. Make sure the files are truly gone and won
 **Problem**: You reorganized your photo collection using a file manager.
 
 **Solution**:
-1. If the new location is within your scanned directories, just run a scan from the **Library** page (**Scan Library** → **Scan**)
+1. If the new location is within your scanned directories, just run a scan from the **Library** page (**Scan library** → **Scan**)
 2. LibrePhotos will detect the files by hash and automatically relink them
 3. The original metadata, ratings, and face tags will be preserved
 
@@ -157,7 +157,7 @@ Deleting missing photos is permanent. Make sure the files are truly gone and won
 
 **Solution**:
 - If you want to keep them: Restore the files from trash and run a scan
-- If you want to remove them: Use the **"N Missing Photos"** badge on the Library page (or the **Delete Missing Photos** action in the Spotlight palette) to clean up the database
+- If you want to remove them: Use the **"N Missing Photos"** badge on the Library page (or the **Delete missing photos** action in the Spotlight palette) to clean up the database
 
 ## Future Improvements
 
@@ -173,6 +173,6 @@ This real-time monitoring will use file system watchers (inotify on Linux, FSEve
 ## Related Documentation
 
 - [Trash Management](./trash.md) - Learn about LibrePhotos' trash system
-- [Job System](./job-system.md) - Understanding long-running jobs such as "Delete Missing Photos", and how to monitor them in the Admin Area
+- [Job System](./job-system.md) - Understanding long-running jobs such as "Delete missing photos", and how to monitor them in the Admin area
 - [Auto Scan](./auto-scan.md) - Configure automatic photo scanning
 
