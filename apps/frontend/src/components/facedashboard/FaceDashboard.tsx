@@ -1,15 +1,9 @@
-import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { Group, RemoveScroll, Stack } from "@mantine/core";
 import { useCallbackRef, useDisclosure } from "@mantine/hooks";
 import { getRouteApi } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  useDeleteFacesMutation,
-  useRestoreFacesMutation,
-  useSetFacesPersonLabelMutation,
-} from "../../api_client/faces";
 import { PAGE_GUTTER_PX, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { usePersonGroupFilter } from "../album/usePersonGroupFilter";
 import { Lightbox } from "../lightbox";
@@ -30,7 +24,9 @@ import { useFaceActions } from "./hooks/useFaceActions";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
 import type { FaceGroupPage } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
+import { useSelectedFaceActions } from "./hooks/useSelectedFaceActions";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
+import { useTabScrollRequest } from "./hooks/useTabScrollRequest";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
 import type { FaceCell, FaceSelection, GridCell } from "./hooks/useVirtualizedGrid";
 import { TabComponent } from "./TabComponent";
@@ -62,7 +58,9 @@ export function FaceDashboard() {
 
   // State
   const [modalPersonEditOpen, { open: openModalPersonEdit, close: closeModalPersonEdit }] = useDisclosure(false);
-  const [scrollTo, setScrollTo] = useState<number | null>(null);
+  // The faces the Label faces dialog names: a cluster's ("Add a name"), or null for the selection
+  const [labelTarget, setLabelTarget] = useState<FaceSelection[] | null>(null);
+  const { scrollTo, onScrolled } = useTabScrollRequest(activeTab, tabPositions);
   const [groups, setGroups] = useState<FaceGroupPage[]>([]);
 
   // Simple lightbox state management
@@ -104,10 +102,6 @@ export function FaceDashboard() {
     setLightboxImageId("");
   }, [hideLightbox]);
 
-  // Mutations
-  const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
-  const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
-  const { mutate: restoreFacesMutate } = useRestoreFacesMutation();
   // Confirm, Not this person, Label as… and Delete on one face (#599)
   const faceActions = useFaceActions();
   const { clearPending } = faceActions;
@@ -137,14 +131,11 @@ export function FaceDashboard() {
     ({ scrollTop }: { scrollTop: number }) => {
       currentScrollTop.current = scrollTop;
 
-      // Clear scrollTo once we've reached the target (for programmatic scrolls)
-      if (scrollTo !== null && scrollTop === scrollTo) {
-        setScrollTo(null);
-      }
+      onScrolled();
       // Debounced save to localStorage - no state update, no re-render
       debouncedSavePosition(activeTab, scrollTop);
     },
-    [scrollTo, activeTab, debouncedSavePosition]
+    [onScrolled, activeTab, debouncedSavePosition]
   );
 
   // Create grid utilities object that we'll use for selection logic
@@ -163,10 +154,21 @@ export function FaceDashboard() {
     return utils;
   }, []);
 
-  // Create selection hook with the grid utils
-  const { selectedFaces, handleCellClick, clearSelection, setSelectedFaces } = useFaceSelection(
-    gridUtils.getFacesInRange
+  // The tabs, filters and orders show different faces: a selection does not outlive its list
+  const selectionScope = JSON.stringify([
+    activeTab,
+    analysisMethod,
+    orderBy,
+    minConfidence,
+    personOrder,
+    groupId,
+    search.person,
+  ]);
+  const { selectedFaces, handleCellClick, clearSelection, setSelectedFaces, dropFaces } = useFaceSelection(
+    gridUtils.getFacesInRange,
+    selectionScope
   );
+  const selectionActions = useSelectedFaceActions(selectedFaces, dropFaces, faceActions.track);
 
   // Initialize the virtualized grid
   // Only pass scrollTo for programmatic scrolling (tab switches), not tabPositions
@@ -200,56 +202,23 @@ export function FaceDashboard() {
     gridUtils.getFlattenedCells = virtualGrid.getFlattenedCells;
   }, [gridUtils, virtualGrid.getFlattenedCells]);
 
-  // Action handlers
-  const deleteSelectedFaces = useCallback(() => {
-    if (selectedFaces.length > 0) {
-      // The hook says "deleted" once the server confirmed, or reports the failure
-      deleteFacesMutate({ faceIds: selectedFaces.map(face => face.face_id) });
-      clearSelection();
-    }
-  }, [selectedFaces, deleteFacesMutate, clearSelection]);
-
-  // The Deleted tab's Restore (#127): the hook says "restored" once the server confirmed
-  const restoreSelectedFaces = useCallback(() => {
-    if (selectedFaces.length > 0) {
-      restoreFacesMutate({ faceIds: selectedFaces.map(face => face.face_id) });
-      clearSelection();
-    }
-  }, [selectedFaces, restoreFacesMutate, clearSelection]);
-
-  // "Add a name" on a cluster: its faces become the selection the Label faces dialog names
+  // "Add a name" on a cluster: the Label faces dialog names its faces, leaving the selection be
   const nameGroup = useCallback(
     (faces: FaceSelection[]) => {
-      setSelectedFaces(faces);
+      setLabelTarget(faces);
       openModalPersonEdit();
     },
-    [setSelectedFaces, openModalPersonEdit]
+    [openModalPersonEdit]
   );
 
-  const notThisPersonFunc = useCallback(() => {
-    if (selectedFaces.length > 0) {
-      setFacesPersonLabelMutate({
-        faceIds: selectedFaces.map(face => face.face_id),
-        personName: UNKNOWN_PERSON_NAME,
-      });
-      clearSelection();
-    }
-  }, [selectedFaces, setFacesPersonLabelMutate, clearSelection]);
-
-  // Restore scroll position only on tab change (not when tabPositions updates)
+  // The tabs show other lists: a face rejected on Labeled shows up on Unknown, and is not pending there
   const prevTabRef = useRef(activeTab);
   useEffect(() => {
     if (prevTabRef.current !== activeTab) {
-      // Tab changed - restore the saved scroll position for the new tab
-      // A tab without a saved position is not scrolled (null, as undefined was before)
-      setScrollTo(tabPositions[activeTab] ?? null);
-      // The tabs show different faces: a selection carried over would let Delete,
-      // Not this person and Add act on faces that are no longer on screen
-      clearSelection();
       clearPending();
       prevTabRef.current = activeTab;
     }
-  }, [activeTab, tabPositions, clearSelection, clearPending]);
+  }, [activeTab, clearPending]);
 
   const handleLightboxImageChange = useCallback((imageId: string) => {
     setLightboxImageId(imageId);
@@ -290,10 +259,14 @@ export function FaceDashboard() {
             selectMode={selectedFaces.length > 0}
             selectedFaces={selectedFaces}
             changeSelectMode={clearSelection}
-            addFaces={() => selectedFaces.length > 0 && openModalPersonEdit()}
-            deleteFaces={deleteSelectedFaces}
-            notThisPerson={notThisPersonFunc}
-            restoreFaces={restoreSelectedFaces}
+            addFaces={() => {
+              if (selectedFaces.length === 0) return;
+              setLabelTarget(null);
+              openModalPersonEdit();
+            }}
+            deleteFaces={selectionActions.deleteSelected}
+            notThisPerson={selectionActions.rejectSelected}
+            restoreFaces={selectionActions.restoreSelected}
             allCollapsed={allCollapsed}
             toggleAllCollapsed={toggleAllCollapsed}
             canCollapse={foldable.length > 0}
@@ -335,11 +308,9 @@ export function FaceDashboard() {
         )}
         <ModalPersonEdit
           isOpen={modalPersonEditOpen}
-          onRequestClose={() => {
-            closeModalPersonEdit();
-            clearSelection();
-          }}
-          selectedFaces={selectedFaces}
+          onRequestClose={closeModalPersonEdit}
+          selectedFaces={labelTarget ?? selectedFaces}
+          onPersonChosen={personName => selectionActions.label(labelTarget ?? selectedFaces, personName)}
         />
         <FaceActionDialogs state={faceActions} />
         {lightboxOpen && (

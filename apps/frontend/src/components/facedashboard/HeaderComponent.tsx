@@ -13,7 +13,7 @@ import {
 import { getRouteApi } from "@tanstack/react-router";
 import cx from "clsx";
 import { uniqBy } from "lodash-es";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   useDeletePersonAlbumMutation,
@@ -70,7 +70,6 @@ export function HeaderComponent({
 }: Readonly<Props>) {
   const { tab: activeTab } = routeApi.useSearch();
   const { t } = useTranslation();
-  const [checked, setChecked] = useState(false);
   const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
   const [deleteDialogVisible, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
   const { mutate: renamePerson } = useRenamePersonAlbumMutation();
@@ -113,6 +112,9 @@ export function HeaderComponent({
   // Faces that have not been paged in yet carry their index as id, so acting on them would hit
   // whatever real faces happen to have those ids
   const loadedFaces = cell.faces.filter(isLoadedFace);
+  // Read from the selection, so it agrees with the faces however they were picked
+  const selectedOfGroup = loadedFaces.filter(face => selectedFaces.some(selected => selected.face_id === face.id));
+  const checked = loadedFaces.length > 0 && selectedOfGroup.length === loadedFaces.length;
 
   const handleClick = () => {
     if (!checked) {
@@ -123,7 +125,6 @@ export function HeaderComponent({
       const remainingFaces = selectedFaces.filter(i => loadedFaces.filter(j => j.id === i.face_id).length === 0);
       setSelectedFaces(remainingFaces);
     }
-    setChecked(!checked);
   };
 
   // The Deleted tab (#127): the person's faces leave the tab, so they leave the selection too
@@ -137,16 +138,6 @@ export function HeaderComponent({
     const facesToAddIDs = loadedFaces.map(i => i.id);
     setFacesPersonLabel({ faceIds: facesToAddIDs, personName: cell.name });
   };
-
-  useEffect(() => {
-    // deselect when no faces of the current group are selected
-    const selectedFacesOfGroup = selectedFaces.filter(
-      i => cell.faces.filter(j => !j.isTemp && j.id === i.face_id).length > 0
-    );
-    if (selectedFacesOfGroup.length === 0) {
-      setChecked(false);
-    }
-  }, [cell.faces, selectedFaces]);
 
   const faceCount = t("facesdashboard.facescounter", { count: cell.faces.length });
   // The grid places the header as its row's one cell, a face wide: the header spans the row
@@ -212,6 +203,7 @@ export function HeaderComponent({
         className={classes.groupCheck}
         data-shown={checked || selectedFaces.length > 0 || undefined}
         checked={checked}
+        indeterminate={selectedOfGroup.length > 0 && !checked}
         onChange={handleClick}
         aria-label={t("facesdashboard.selectgroup", { name: cell.name })}
       />

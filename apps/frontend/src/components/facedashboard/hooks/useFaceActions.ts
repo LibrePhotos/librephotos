@@ -20,8 +20,10 @@ function toggled(ids: ReadonlySet<number>, faceIds: readonly number[], pending: 
  * The per-face actions of the faces dashboard (#599), Restore on the Deleted tab (#127), and the
  * state of the two dialogs they open: Label faces for one face, and the delete confirmation.
  *
- * A face an action was sent for is "pending": dimmed and without buttons until the refreshed list
- * drops it, so a quick second click cannot hit it again and the review loop gets instant feedback.
+ * A face an action was sent for is "pending": dimmed and without buttons until the server answers,
+ * so a quick second click cannot hit it again and the review loop gets instant feedback. On success
+ * the edit has already taken the face out of the cached lists; a face that shows up again (moved to
+ * another person on the same tab) is not pending there.
  */
 export function useFaceActions() {
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
@@ -33,17 +35,27 @@ export function useFaceActions() {
   const [labelDialogOpened, { open: openLabelDialog, close: closeLabelDialog }] = useDisclosure(false);
   const [deleteDialogOpened, { open: openDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
 
-  const markPending = useCallback((faceIds: readonly number[], pending: boolean) => {
-    setPendingFaceIds(ids => toggled(ids, faceIds, pending));
+  /**
+   * Marks the faces pending and hands back the callbacks of the request sent for them, which end
+   * it. The QueryClient's toast reports a failure; this only gives the faces their buttons back.
+   */
+  const track = useCallback((faceIds: readonly number[], onSuccess?: () => void) => {
+    setPendingFaceIds(ids => toggled(ids, faceIds, true));
+    const settle = () => setPendingFaceIds(ids => toggled(ids, faceIds, false));
+    return {
+      onSuccess: () => {
+        settle();
+        onSuccess?.();
+      },
+      onError: settle,
+    };
   }, []);
 
   const labelFace = useCallback(
     (face: FaceCell, personName: string) => {
-      markPending([face.id], true);
-      // The QueryClient's toast reports the failure; this only gives the face its buttons back
-      setFacesPersonLabel({ faceIds: [face.id], personName }, { onError: () => markPending([face.id], false) });
+      setFacesPersonLabel({ faceIds: [face.id], personName }, track([face.id]));
     },
-    [markPending, setFacesPersonLabel]
+    [track, setFacesPersonLabel]
   );
 
   const actions = useMemo<FaceActionHandlers>(
@@ -58,12 +70,9 @@ export function useFaceActions() {
         setTargetFace(face);
         openDeleteDialog();
       },
-      restore: face => {
-        markPending([face.id], true);
-        restoreFaces({ faceIds: [face.id] }, { onError: () => markPending([face.id], false) });
-      },
+      restore: face => restoreFaces({ faceIds: [face.id] }, track([face.id])),
     }),
-    [labelFace, markPending, restoreFaces, openLabelDialog, openDeleteDialog]
+    [labelFace, track, restoreFaces, openLabelDialog, openDeleteDialog]
   );
 
   const labelTargetAs = (personName: string) => {
@@ -73,8 +82,7 @@ export function useFaceActions() {
   const deleteTarget = () => {
     if (targetFace) {
       const faceIds = [targetFace.id];
-      markPending(faceIds, true);
-      deleteFaces({ faceIds }, { onError: () => markPending(faceIds, false) });
+      deleteFaces({ faceIds }, track(faceIds));
     }
     closeDeleteDialog();
   };
@@ -85,6 +93,7 @@ export function useFaceActions() {
   return {
     actions,
     pendingFaceIds,
+    track,
     clearPending,
     targetFace,
     labelDialogOpened,
