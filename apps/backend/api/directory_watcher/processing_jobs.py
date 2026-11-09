@@ -779,6 +779,8 @@ def classify_media(user: User, job_id: UUID) -> None:
             # Check for cancellation periodically
             if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
                 logger.info("Classify media job cancelled")
+                # The photos classified so far were counted: keep their flags.
+                flush()
                 return
             failed = False
             error = None
