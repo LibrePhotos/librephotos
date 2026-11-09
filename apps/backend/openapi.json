@@ -15839,6 +15839,15 @@
               "default": false
             },
             "description": "1 asks for a video this browser cannot play to be converted"
+          },
+          {
+            "in": "query",
+            "name": "v",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "A thumbnail's version (the grid sends a digest of its ThumbHash): with it the thumbnail may be cached for a year"
           }
         ],
         "tags": [

@@ -86,6 +86,11 @@
   opacity: 1;
 }
 
+/* A picture the page showed before: there at once, no fade over a placeholder. */
+.pigFullAtOnce {
+  transition: none;
+}
+
 /* .caption {
   position: absolute;
   bottom: 0;
