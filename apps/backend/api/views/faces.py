@@ -28,7 +28,6 @@ from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.faces import photo_faces
 from api.faces.classify import cluster_all_faces
-from api.faces.clustering_gate import record_face_label
 from api.faces.drawn_faces import (
     FaceServiceError,
     FoundFace,
@@ -38,11 +37,9 @@ from api.faces.drawn_faces import (
 from api.faces.labels import (
     RelabelResult,
     delete_faces,
-    recreate_search_captions,
     relabel_faces,
     restore_faces,
     restore_labels,
-    write_face_tags_of,
 )
 from api.faces.photo_faces import (
     DetectedFace,
@@ -600,28 +597,22 @@ class AddFaceView(APIView):
                     face_image, box, found.encoding if found is not None else None
                 ),
                 f"{photo.image_hash}_manual_{uuid.uuid4().hex[:8]}.jpg",
-                person,
+                None,
                 None,
             )
 
         if not face.encoding:
             _encode_drawn_face(face)
 
-        person._calculate_face_count()
-        person._set_default_cover_photo()
-        # A labelling like any other: the follow-ups' clustering waits (#2738).
-        record_face_label(user)
-
-        # The person's name is part of what the photo can be found by.
-        photo.refresh_from_db()
-        recreate_search_captions([photo])
-
-        write_error = write_face_tags_of(user, [photo])
+        # A labelling like any other (relabel_faces): the person's count and
+        # cover, the photo's search captions, the face tags written back, and
+        # the follow-ups' clustering held back (#2738).
+        result = relabel_faces(user, Face.objects.filter(pk=face.pk), person)
 
         return Response(
             {
                 "status": True,
-                "write_error": write_error,
+                "write_error": result.write_error,
                 "fitted": found is not None,
                 "face": {
                     "face_id": face.id,

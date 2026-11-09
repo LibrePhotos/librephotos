@@ -104,7 +104,7 @@ class FaceWithoutCropTest(TestCase):
     def test_relabeling_a_cropless_face_answers_it_without_a_url(self) -> None:
         face = self._cropless_face("")
 
-        with patch("api.views.faces.write_face_tags_of", return_value=None):
+        with patch("api.faces.labels.write_face_tags_of", return_value=None):
             response = self.client.post(
                 "/api/labelfaces/",
                 {"face_ids": [face.id], "person_name": "Bea"},

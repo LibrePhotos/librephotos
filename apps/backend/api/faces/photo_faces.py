@@ -30,6 +30,7 @@ from api.faces.geometry import (
     calculate_iou,
     min_face_height,
 )
+from api.faces.labels import recreate_search_captions
 from api.faces.recognition import face_model_name, get_face_encodings
 from api.lazy_import import LazyModule
 from api.metadata.reader import sidecar_files_for_photo
@@ -247,6 +248,8 @@ class _FaceScan:
     face_locations: list[tuple[int, int, int, int]]
     # Faces saved by this scan; also numbers the crops' file names.
     saved: int = 0
+    # Whether this scan gave a face a person, from a face region's name.
+    named: bool = False
 
 
 def _save_new_faces(
@@ -278,8 +281,8 @@ def _save_new_faces(
         assert encoding_array is None or isinstance(encoding_array, np.ndarray)
 
         if overlaps_existing_face(scan.face_locations, *location):
-            if person is not None:
-                _reconcile_xmp_face_name(photo, person, person_name, location)
+            if person is not None and _reconcile_xmp_face_name(photo, person, location):
+                scan.named = True
             if encoding_array is not None:
                 _give_encoding_to_overlapping_face(photo, location, encoding_array)
             continue
@@ -298,7 +301,20 @@ def _save_new_faces(
         if person is not None:
             person._calculate_face_count()
             person._set_default_cover_photo()
+            scan.named = True
         scan.face_locations.append(location)
+    if scan.named:
+        _index_person_names(photo)
+
+
+def _index_person_names(photo: Photo) -> None:
+    """Rebuild the photo's search captions: a person's name finds the photo.
+
+    As ``relabel_faces`` does for a labelling. Nothing is written back to the
+    file, where the names came from, and the follow-ups' clustering is not
+    held back (``record_face_label``): no user labelled anything.
+    """
+    recreate_search_captions([api.models.Photo.objects.get(pk=photo.pk)])
 
 
 def _give_encoding_to_overlapping_face(
@@ -337,23 +353,27 @@ def _get_or_create_named_person(
 ) -> api.models.person.Person | None:
     if not person_name:
         return None
-    person = api.models.person.get_or_create_person(
+    return api.models.person.get_or_create_person(
         name=person_name,
         owner=photo.owner,
         kind=api.models.person.Person.KIND_USER,
     )
-    person.save()
-    return person
 
 
 def _reconcile_xmp_face_name(
     photo: Photo,
     person: api.models.person.Person,
-    person_name: str | None,
     location: tuple[int, int, int, int],
-) -> None:
+) -> bool:
+    """Give a face region's name to the face found where it is; whether it did.
+
+    Only to a face that is not deleted and has no person, and never a person
+    the user said the face is not (#2747): without face tags written back,
+    the file keeps the region after a "Not Anna", and each rescan would label
+    the face again. One conditional update, so a label set meanwhile stays.
+    """
     top, right, bottom, left = location
-    for existing_face in _first_frame_faces(photo):
+    for existing_face in _first_frame_faces(photo).filter(deleted=False):
         existing_location = (
             existing_face.location_top,
             existing_face.location_right,
@@ -362,17 +382,24 @@ def _reconcile_xmp_face_name(
         )
         if not overlaps_existing_face([existing_location], top, right, bottom, left):
             continue
-        if existing_face.person_id is None:
-            existing_face.person = person
-            existing_face.save(update_fields=["person"])
-            person._calculate_face_count()
-            person._set_default_cover_photo()
-            logger.warning(
-                "XMP face reconciliation: assigned %s to existing face %s",
-                person_name,
-                existing_face.id,
+        named = (
+            api.models.face.Face.objects.filter(
+                pk=existing_face.pk, person__isnull=True
             )
-        break
+            .exclude(rejected_persons=person)
+            .update(person=person)
+        )
+        if not named:
+            return False
+        person._calculate_face_count()
+        person._set_default_cover_photo()
+        logger.info(
+            "image %s: face region name given to face %s",
+            photo.image_hash,
+            existing_face.id,
+        )
+        return True
+    return False
 
 
 @dataclass
@@ -526,27 +553,49 @@ def generate_face_encoding(face: api.models.face.Face) -> None:
     photo = face.photo
     assert photo is not None
     face_model = face_model_name()
-    encodings = get_face_encodings(
-        photo.thumbnail.thumbnail_big.path,
-        [
-            (
-                face.location_top,
-                face.location_right,
-                face.location_bottom,
-                face.location_left,
-            )
-        ],
+    box = (
+        face.location_top,
+        face.location_right,
+        face.location_bottom,
+        face.location_left,
     )
+    encodings = get_face_encodings(photo.thumbnail.thumbnail_big.path, [box])
     if not encodings:
         raise ValueError(f"Face service returned no encoding for face {face.id}")
     if encodings[0] is None:
         # Another face's embedding would file this one under a stranger,
         # so the face keeps no encoding and stays out of clustering.
-        face.unmatched_by = face_model
-        face.save(update_fields=["unmatched_by"])
-        raise NoFaceInRegionError(
-            f"The face service detected no face in face {face.id}"
-        )
-    face.encoding = encodings[0].tobytes().hex()
-    face.unmatched_by = ""
-    face.save()
+        if _store_encoding_result(face, box, unmatched_by=face_model):
+            raise NoFaceInRegionError(
+                f"The face service detected no face in face {face.id}"
+            )
+        return
+    _store_encoding_result(
+        face, box, encoding=encodings[0].tobytes().hex(), unmatched_by=""
+    )
+
+
+def _store_encoding_result(
+    face: api.models.face.Face, box: tuple[int, int, int, int], **fields: str
+) -> bool:
+    """Write what the face model said about ``box`` onto ``face``; whether it did.
+
+    The face was loaded when Generate Face Embeddings started, so only these
+    fields are written, and only while the row still has that box: a full
+    save would undo a label or delete made since, and insert again a face
+    deleted since (Deduplicate Faces, a turned region, a replaced file).
+    """
+    top, right, bottom, left = box
+    stored = api.models.face.Face.objects.filter(
+        pk=face.pk,
+        location_top=top,
+        location_right=right,
+        location_bottom=bottom,
+        location_left=left,
+    ).update(**fields)
+    if not stored:
+        logger.info("face %s: deleted or moved while encoding, left alone", face.id)
+        return False
+    for name, value in fields.items():
+        setattr(face, name, value)
+    return True
