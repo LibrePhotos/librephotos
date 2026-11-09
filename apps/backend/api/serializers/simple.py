@@ -43,6 +43,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
     # names them, so an event's photos lay out like every other grid's.
     aspectRatio = serializers.SerializerMethodField()
     dominantColor = serializers.SerializerMethodField()
+    thumbhash = serializers.SerializerMethodField()
     video_length = serializers.SerializerMethodField()
     is_hdr = serializers.SerializerMethodField()
     animated_preview = serializers.SerializerMethodField()
@@ -63,6 +64,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             "video",
             "aspectRatio",
             "dominantColor",
+            "thumbhash",
             "video_length",
             "is_hdr",
             "animated_preview",
@@ -85,6 +87,10 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
     def get_dominantColor(self, obj: Photo) -> str:
         thumbnail = getattr(obj, "thumbnail", None)
         return dominant_hex(thumbnail and thumbnail.dominant_color) or ""
+
+    def get_thumbhash(self, obj: Photo) -> str | None:
+        thumbnail = getattr(obj, "thumbnail", None)
+        return thumbnail.thumbhash if thumbnail else None
 
     def get_video_length(self, obj: Photo) -> str:
         return obj.video_length or ""

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { ImageItem, LaidOutTile, PigSettings, ScrollSpeed, TileUrl } from "../../types";
 import getImageHeight from "../../utils/getImageHeight";
+import { thumbhashDataUrl } from "../../utils/thumbhashDataUrl";
 import { ExpandedClip, GridClip, PreviewClip } from "./TileClips";
 import { TileImages } from "./TileImages";
 
@@ -29,26 +30,16 @@ export function showsPoster(item: ImageItem): boolean {
 type Props = Readonly<{
   item: LaidOutTile<ImageItem>;
   getUrl: TileUrl;
-  useLqip: boolean;
   containerWidth: number;
   scrollSpeed: ScrollSpeed;
-  settings: Pick<PigSettings, "thumbnailSize" | "expandedSize">;
+  settings: Pick<PigSettings, "expandedSize">;
   isExpanded: boolean;
   /** Whether the pointer rests on the tile or it has keyboard focus; only a poster tile uses it. */
   previewing: boolean;
 }>;
 
 /** The pictures or clips inside a tile's button. */
-export function TileMedia({
-  item,
-  getUrl,
-  useLqip,
-  containerWidth,
-  scrollSpeed,
-  settings,
-  isExpanded,
-  previewing,
-}: Props) {
+export function TileMedia({ item, getUrl, containerWidth, scrollSpeed, settings, isExpanded, previewing }: Props) {
   const [clipFailed, setClipFailed] = useState(false);
   const kind = tileMediaKind(item, clipFailed);
   if (kind === "none") return null;
@@ -75,10 +66,9 @@ export function TileMedia({
     <>
       <TileImages
         urlFor={size => getUrl(imageHash, size, poster)}
-        useLqip={useLqip}
+        placeholderSrc={thumbhashDataUrl(item.thumbhash)}
         showFull={showFull}
         gridHeight={gridHeight}
-        thumbnailSize={settings.thumbnailSize}
         width={item.style.width}
         height={item.style.height}
         expandedSrc={isExpanded && !poster ? getUrl(imageHash, settings.expandedSize) : null}

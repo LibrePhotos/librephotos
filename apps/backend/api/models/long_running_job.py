@@ -199,6 +199,7 @@ class LongRunningJob(models.Model):
     JOB_MAKE_VIDEO_POSTERS = 34
     JOB_RENAME_PHOTOS = 35
     JOB_REPAIR_TURNED_FACES = 36
+    JOB_MAKE_THUMBHASHES = 37
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -236,6 +237,7 @@ class LongRunningJob(models.Model):
         (JOB_MAKE_VIDEO_POSTERS, "Make Video Posters"),
         (JOB_RENAME_PHOTOS, "Rename Photos"),
         (JOB_REPAIR_TURNED_FACES, "Repair Turned Faces"),
+        (JOB_MAKE_THUMBHASHES, "Make Photo Placeholders"),
     )
 
     # The ``result`` key a photo scan of the user's whole scan directory sets.

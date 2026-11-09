@@ -202,6 +202,7 @@ SUMMARY_FIELDS: FieldRules = {
     "id": (ALWAYS, None),
     "image_hash": (ALWAYS, None),
     "dominantColor": (ALWAYS, None),
+    "thumbhash": (ALWAYS, None),
     "url": (ALWAYS, None),
     "location": ("location", ""),
     "date": ("timestamps", ""),

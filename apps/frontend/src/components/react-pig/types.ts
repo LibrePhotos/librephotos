@@ -29,6 +29,8 @@ export type ImageItem = {
   style?: PigTileStyle;
   isTemp?: boolean;
   dominantColor?: string;
+  /** The picture in ~25 bytes (base64 ThumbHash): shown, blurred, until the image has loaded. */
+  thumbhash?: string | null;
   type?: string;
   /** When it was taken; Tile puts it in its label. */
   date?: string | null;
@@ -119,7 +121,6 @@ export type PigSettings = {
   primaryImageBufferHeight: number;
   secondaryImageBufferHeight: number;
   expandedSize: number;
-  thumbnailSize: number;
   groupByDate: boolean;
   breakpoint: number;
   groupGapSm: number;

@@ -21,7 +21,7 @@ from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import is_raw
 from api.runtime import binaries, sidecars
 from api.runtime.features import feature_enabled
-from api.thumbnails import face_boxes
+from api.thumbnails import face_boxes, thumbhash
 from api.video import color
 from api.video.no_metadata import NO_METADATA
 
@@ -773,6 +773,8 @@ def regenerate_thumbnails(
         # Only these change the colours of the picture: a rotation keeps
         # them, and a rewritten file has had its colour cleared already.
         refresh_dominant_color(thumbnail)
+    # A rotation turns the placeholder too, so it is made again every time.
+    refresh_thumbhash(thumbnail)
 
     calculate_aspect_ratio(thumbnail)
     refresh_perceptual_hash(thumbnail)
@@ -794,6 +796,46 @@ def refresh_dominant_color(thumbnail: Thumbnail) -> None:
     calculate_dominant_color(thumbnail)
     if thumbnail.dominant_color is None:
         thumbnail.save(update_fields=["dominant_color"])
+
+
+def _placeholder_source(thumbnail: Thumbnail) -> str:
+    """The picture the placeholders are sampled from.
+
+    A video's square thumbnails are mp4 clips, which PIL cannot open; its big
+    thumbnail is a still. Raises ValueError when the field names no file.
+    """
+    source = (
+        thumbnail.thumbnail_big
+        if thumbnail.photo.video
+        else thumbnail.square_thumbnail_small
+    )
+    return source.path
+
+
+def thumbhash_of(thumbnail: Thumbnail) -> str | None:
+    """The ThumbHash of the photo's thumbnail; None when it cannot be read."""
+    try:
+        return thumbhash.thumbhash_of_file(_placeholder_source(thumbnail))
+    except OSError, ValueError:
+        # No file name, no file, not a picture or a truncated one.
+        logger.info("Cannot calculate the ThumbHash of %s", thumbnail)
+        return None
+
+
+def calculate_thumbhash(thumbnail: Thumbnail) -> None:
+    """Store the photo's ThumbHash, the grid's placeholder; kept once set."""
+    if thumbnail.thumbhash:
+        return
+    refresh_thumbhash(thumbnail)
+
+
+def refresh_thumbhash(thumbnail: Thumbnail) -> None:
+    """Sample the ThumbHash again from the thumbnails just built.
+
+    One that cannot be sampled is cleared: the dominant colour shows instead.
+    """
+    thumbnail.thumbhash = thumbhash_of(thumbnail)
+    thumbnail.save(update_fields=["thumbhash"])
 
 
 def refresh_perceptual_hash(thumbnail: Thumbnail) -> None:
@@ -854,15 +896,10 @@ def calculate_dominant_color(thumbnail: Thumbnail, palette_size: int = 16) -> No
     """
     if thumbnail.dominant_color:
         return
-    # A video's square thumbnails are mp4 clips, which PIL cannot open,
-    # so videos never got a colour; their big thumbnail is a still.
-    source = (
-        thumbnail.thumbnail_big
-        if thumbnail.photo.video
-        else thumbnail.square_thumbnail_small
-    )
     try:
-        dominant_color = _most_common_color(source.path, palette_size)
+        dominant_color = _most_common_color(
+            _placeholder_source(thumbnail), palette_size
+        )
     except OSError, ValueError:
         # No file name (ValueError from .path), no file, not a picture or a
         # truncated one (OSError, PIL's UnidentifiedImageError included).

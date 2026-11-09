@@ -38,7 +38,6 @@ export type PigVisibleGroup<T extends ImageItem = ImageItem> = GroupedImageItem<
 
 export type PigProps<T extends ImageItem> = {
   imageData: T[] | GroupedImageItem<T>[];
-  useLqip?: boolean;
   gridGap?: number;
   /** Builds an image or video URL from a tile's `image_hash`; Tile calls it for loaded tiles only. */
   getUrl?: TileUrl | null;
@@ -51,7 +50,6 @@ export type PigProps<T extends ImageItem> = {
   breakpoint?: number;
   sortFunc?: ((a: PigEntry<T>, b: PigEntry<T>) => number) | null;
   expandedSize?: number;
-  thumbnailSize?: number;
   bgColor?: string;
   handleClick?: ((event: React.MouseEvent, item: T) => void) | null;
   selectable?: boolean;
@@ -94,7 +92,6 @@ export type PigHandle<T extends ImageItem = ImageItem> = {
 function Pig<T extends ImageItem>(
   {
     imageData,
-    useLqip = true,
     gridGap = 4,
     getUrl: propGetUrl = null,
     primaryImageBufferHeight = 2500,
@@ -106,7 +103,6 @@ function Pig<T extends ImageItem>(
     breakpoint = 800,
     sortFunc = null,
     expandedSize = 1000,
-    thumbnailSize = 20,
     bgColor = "inherit",
     handleClick: propHandleClick = null,
     selectable = false,
@@ -213,7 +209,6 @@ function Pig<T extends ImageItem>(
       primaryImageBufferHeight,
       secondaryImageBufferHeight,
       expandedSize,
-      thumbnailSize,
       groupByDate,
       breakpoint,
       groupGapSm,
@@ -226,7 +221,6 @@ function Pig<T extends ImageItem>(
       primaryImageBufferHeight,
       secondaryImageBufferHeight,
       expandedSize,
-      thumbnailSize,
       groupByDate,
       breakpoint,
       groupGapSm,
@@ -395,7 +389,6 @@ function Pig<T extends ImageItem>(
       return (
         <Tile
           key={`tile-${item.id?.toString() || item.image_hash || Math.random().toString(36)}`}
-          useLqip={useLqip}
           windowHeight={windowHeightRef.current}
           containerWidth={containerWidthRef.current}
           containerOffsetTop={containerOffsetTopRef.current}
@@ -419,7 +412,6 @@ function Pig<T extends ImageItem>(
       );
     },
     [
-      useLqip,
       toprightoverlay,
       bottomleftoverlay,
       bottomrightoverlay,

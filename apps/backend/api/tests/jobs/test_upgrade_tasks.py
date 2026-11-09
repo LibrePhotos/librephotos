@@ -85,7 +85,7 @@ class TheRegistryTest(TestCase):
     def test_only_tasks_without_another_starter_start_themselves(self):
         self.assertEqual(
             {task.key for task in UPGRADE_TASKS if task.autostart},
-            {STRIP, EXPOSURE, POSTERS},
+            {STRIP, EXPOSURE, POSTERS, "make_thumbhashes"},
         )
 
 

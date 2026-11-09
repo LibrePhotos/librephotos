@@ -361,6 +361,8 @@ export const PhotoSimple = z.object({
   // Optional: backends before 1.3 do not send them.
   aspectRatio: z.number().nullish(),
   dominantColor: z.string().nullish(),
+  // The tile's placeholder (base64 ThumbHash), as in PigPhoto; older backends lack it.
+  thumbhash: z.string().nullish(),
   // Seconds as a string, "" for a photo (as in PigPhoto).
   video_length: z.string().optional(),
   is_hdr: z.boolean().optional(),

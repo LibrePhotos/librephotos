@@ -655,7 +655,8 @@
       "check_file_contents": "Check file contents",
       "trash_photos_outside_library": "Trash photos outside the library",
       "rename_photos": "Rename photos",
-      "repair_turned_faces": "Repair turned faces"
+      "repair_turned_faces": "Repair turned faces",
+      "make_thumbhashes": "Make photo placeholders"
     },
     "queuebusy": {
       "reason": "A job is running. Start this one when it has finished.",
@@ -3905,6 +3906,10 @@
     "repair_turned_faces": {
       "title": "Move faces tagged on a turned picture",
       "description": "Faces read from a photo whose picture was turned after they were tagged may sit a quarter turn away from the face, next to an unnamed copy of it. This moves each one onto the face, when only one fits. Your photos are not changed."
+    },
+    "make_thumbhashes": {
+      "title": "Make placeholders for older photos",
+      "description": "While a thumbnail loads, the photo grid shows a blurred preview of the photo. Photos added before this update get theirs now, from their thumbnails. Your photos are not changed."
     }
   },
   "movephotos": {

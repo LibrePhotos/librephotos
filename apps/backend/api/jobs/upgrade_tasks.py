@@ -46,6 +46,7 @@ from api.search.embedding_jobs import (
     photos_with_earlier_embeddings,
 )
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
+from api.thumbnails.placeholders import make_thumbhashes_job
 from api.thumbnails.posters import make_video_posters_job
 from api.video import color
 
@@ -223,6 +224,18 @@ UPGRADE_TASKS: tuple[UpgradeTask, ...] = (
             LongRunningJob.JOB_REPAIR_TURNED_FACES, repair_turned_faces_job
         ),
         seeded=True,
+    ),
+    # Photos scanned by 1.6.0 or older have no ThumbHash, so their tiles show
+    # the dominant colour until the thumbnail loads. Seeded by migration 0225
+    # when there are thumbnails; samples each from the small thumbnail.
+    UpgradeTask(
+        key="make_thumbhashes",
+        kind="automatic",
+        job_type=LongRunningJob.JOB_MAKE_THUMBHASHES,
+        check=_until_clean_run(LongRunningJob.JOB_MAKE_THUMBHASHES),
+        start=_as_admin(LongRunningJob.JOB_MAKE_THUMBHASHES, make_thumbhashes_job),
+        seeded=True,
+        autostart=True,
     ),
 )
 

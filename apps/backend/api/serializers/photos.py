@@ -98,6 +98,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     # Content hash for deduplication/caching (legacy 'id' field for backwards compatibility)
     image_hash = serializers.CharField(read_only=True)
     dominantColor = serializers.SerializerMethodField()
+    # The grid's placeholder until the thumbnail loads (base64 ThumbHash);
+    # null for a photo scanned before it existed, which shows dominantColor.
+    thumbhash = serializers.SerializerMethodField()
     aspectRatio = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
@@ -126,6 +129,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "id",
             "image_hash",
             "dominantColor",
+            "thumbhash",
             "url",
             "location",
             "date",
@@ -227,6 +231,10 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             return f"#{r:02x}{g:02x}{b:02x}"
         else:
             return ""
+
+    def get_thumbhash(self, obj: Photo) -> str | None:
+        thumbnail = thumbnail_of(obj)
+        return thumbnail.thumbhash if thumbnail else None
 
     def get_type(self, obj: Photo) -> str:
         if obj.video:
@@ -367,6 +375,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "image_hash",
             "thumbnail__aspect_ratio",
             "thumbnail__dominant_color",
+            "thumbnail__thumbhash",
             # Its name says whether a video's square is a clip (animated_preview).
             "thumbnail__square_thumbnail",
             "thumbnail__video_poster",

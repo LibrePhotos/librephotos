@@ -99,6 +99,9 @@ export const PigPhoto = z.object({
   id: UuidString,
   image_hash: z.string(),
   dominantColor: z.string().optional(),
+  // The tile's placeholder until its thumbnail loads: a base64 ThumbHash. Null for a photo scanned
+  // before the backend made them, absent from backends that predate them (the dominant colour shows).
+  thumbhash: z.string().nullish(),
   // Legacy: the backend still sends the image hash here; read `image_hash`.
   url: z.string().optional(),
   location: z.string().optional(),

@@ -42,7 +42,7 @@ function getUrl(imageHash: string, pxHeight: number) {
 const settings = {
   gridGap: 8,
   bgColor: "#fff",
-  thumbnailSize: 20,
+
   expandedSize: 1000,
 };
 
@@ -69,7 +69,6 @@ function tileElements(count: number, scrollSpeed: ScrollSpeed, activeTileId: str
     <Tile
       key={item.id}
       item={item}
-      useLqip
       containerWidth={1200}
       containerOffsetTop={0}
       getUrl={getUrl}
