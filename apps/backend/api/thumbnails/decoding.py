@@ -64,6 +64,8 @@ def full_size(path: str) -> pyvips.Image:
 _FLIP_TO_ORIENTATION = {3: 3, 5: 8, 6: 6}
 # Unconstrained side of a thumbnail box (vips wants a number).
 _ANY = 100_000
+# libvips loaders that take text files (matrixload_source, csvload_source too).
+_TEXT_LOADERS = ("matrixload", "csvload")
 
 
 def _same_shape(width: int, height: int, other_width: int, other_height: int) -> bool:
@@ -128,8 +130,11 @@ def raw_preview(path: str, height: int) -> pyvips.Image | None:
 def can_decode(path: str) -> bool:
     """Whether some loader recognises the file, from its header alone (no pixel decode)."""
     try:
-        pyvips.Image.new_from_file(path)
-        return True
+        loader = pyvips.Image.new_from_file(path).get("vips-loader")
+        # libvips reads plain text as a matrix (first line "13 20") or a CSV;
+        # notes beside the photos are not photos, and Pillow cannot read them
+        # either (#2913).
+        return not loader.startswith(_TEXT_LOADERS)
     except pyvips.Error:
         pass
     try:

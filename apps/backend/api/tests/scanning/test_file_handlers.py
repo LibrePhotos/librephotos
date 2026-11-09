@@ -404,6 +404,16 @@ class HandleFileGroupTests(FileHandlerTestBase):
     def test_text_file_group_is_ignored_not_failed(self):
         self._assert_ignored(_write_bytes(self.p("garbage.txt"), b"nope"))
 
+    def test_notes_starting_with_numbers_are_ignored_not_failed(self):
+        """#2913: libvips reads a text file whose first line is two numbers as
+        a matrix image, so film-roll notes beside the scans failed the scan."""
+        notes = b"13 20\nKodak Gold 200, shot at the lake\n"
+        self._assert_ignored(_write_bytes(self.p("030887 (13-20).txt"), notes))
+
+    def test_csv_file_group_is_ignored_not_failed(self):
+        # libvips' CSV loader opens any .csv as an image.
+        self._assert_ignored(_write_bytes(self.p("exposures.csv"), b"1,2,3\n4,5,6\n"))
+
     def test_corrupt_jpeg_group_is_still_an_error(self):
         bad_path = _write_bytes(self.p("broken.jpg"), b"not really a jpeg")
         create_test_job(
