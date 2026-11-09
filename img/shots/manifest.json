@@ -1,31 +1,75 @@
 [
   {
     "id": "timeline",
-    "alt": "Timeline of a sample library: photos grouped by day, newest first, with the place of each day",
+    "alt": "Timeline of a sample library: the Memories strip, then photos grouped by day, newest first, with the place of each day",
     "width": 1600,
-    "height": 1000
+    "height": 1000,
+    "phone": {
+      "width": 618,
+      "height": 1259
+    }
   },
   {
     "id": "lightbox",
-    "alt": "A photo open in the lightbox, with the Details sidebar: date, file, camera, the place on a map, the people in it, a generated caption and auto tags",
+    "alt": "A photo open in the lightbox with its Info panel: caption, people, date, file, the place on a map, tags, rights and the albums it is in",
     "width": 1600,
-    "height": 1000
+    "height": 1000,
+    "phone": {
+      "width": 618,
+      "height": 1259
+    }
   },
   {
     "id": "faces",
-    "alt": "People page: one cover photo per named person, with the number of photos each person is in",
+    "alt": "People page: the face of each named person, the number of people and a link to the faces to review, with sort and group menus",
     "width": 1600,
     "height": 1000
   },
   {
     "id": "places",
-    "alt": "Places page: a world map with clusters of photos, above a grid of places from countries down to streets",
+    "alt": "Places page: a world map with clusters of photos, above a grid of countries with the number of photos in each",
     "width": 1600,
     "height": 1000
   },
   {
     "id": "events",
     "alt": "Events page: albums made from days out, each named after the day, the time of day and the place, with its date and number of photos",
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "id": "timeline-filter",
+    "alt": "Timeline with the Filter popover open: media type, the screenshots and documents to hide, show only favorites, and a note that this is the default view",
+    "width": 1600,
+    "height": 1000,
+    "release": "1.3.0"
+  },
+  {
+    "id": "category-badge",
+    "alt": "Photo details in the lightbox with the category badge under the file name, which says whether the photo is a photo, a screenshot or a document",
+    "width": 1600,
+    "height": 1000,
+    "release": "1.3.0"
+  },
+  {
+    "id": "albums",
+    "alt": "Albums page: your own albums, the people, and collections of things, tags, places, events and folders",
+    "width": 1600,
+    "height": 1000,
+    "phone": {
+      "width": 618,
+      "height": 1259
+    }
+  },
+  {
+    "id": "upload-drop",
+    "alt": "Files dragged over the timeline: a dashed outline around the window and a card that says Drop photos and videos to upload",
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "id": "admin-site-settings",
+    "alt": "Admin area with the Site settings: switches for user registration, uploads, the Nextcloud integration, a folder for each new user and release checks",
     "width": 1600,
     "height": 1000
   }
