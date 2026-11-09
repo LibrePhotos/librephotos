@@ -51,11 +51,14 @@ function setPhone(phone: boolean) {
 }
 
 const people: Person[] = Array.from({ length: 20 }, (_, i) => ({
-  id: i + 1,
+  id: String(i + 1),
   name: `Person ${i + 1}`,
-  face_url: null,
+  face_url: "",
   face_count: 3,
-  face_photo_url: null,
+  face_photo_url: "",
+  video: false,
+  group_ids: [],
+  birth_date: null,
 }));
 
 function render() {

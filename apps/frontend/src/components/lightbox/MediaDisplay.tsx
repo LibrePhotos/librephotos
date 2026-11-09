@@ -21,9 +21,6 @@ import { VideoStartContext } from "./videoStart";
  * thumbnail strip over its bottom only while the pointer moves (ContentViewer.module.css).
  */
 const LIGHTBOX_PHOTO_HEIGHT = "var(--lightbox-media-height, 100dvh)";
-// A video's native seek bar is at its bottom edge and the toolbar over its top, so the video
-// stops short of both: 64px for the toolbar, 96px for the thumbnail strip.
-const LIGHTBOX_VIDEO_HEIGHT = "calc(100dvh - 160px)";
 /**
  * The tallest a photo or video gets outside the lightbox (`fullHeight`). The
  * photo page sets `--page-media-max-height` to the height of its mat, so the
@@ -122,7 +119,7 @@ function VideoMedia({
   // never ran.
   const fallbackUrl = embedded || converted || isPublic ? undefined : convertedUrl(originalUrl);
 
-  return (
+  const player = (
     <VideoPlayer
       url={videoUrl}
       fallbackUrl={fallbackUrl}
@@ -132,7 +129,7 @@ function VideoMedia({
       // keeps its own shape within the page's width, capped like the photo there. A
       // fixed box left bands around a landscape clip, and the stored width and
       // height cannot shape one, since they ignore a phone video's rotation.
-      height={fullHeight ? "auto" : LIGHTBOX_VIDEO_HEIGHT}
+      height={fullHeight ? "auto" : "100%"}
       maxHeight={fullHeight ? PAGE_MEDIA_MAX_HEIGHT : undefined}
       controls={isMainContent}
       playing={isMainContent && playing}
@@ -143,6 +140,8 @@ function VideoMedia({
       start={isMainContent ? videoStart : undefined}
     />
   );
+  // In the lightbox the video fills its own box between the viewer's bars (.videoStage).
+  return fullHeight ? player : <div className={classes.videoStage}>{player}</div>;
 }
 
 /** The CSS that zooms, pans and turns the main photo; the overlays share it so they track it exactly. */
