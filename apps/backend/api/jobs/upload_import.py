@@ -5,9 +5,10 @@ a photo whose processing failed was only in the log. Every upload that makes
 a photo is now counted in its user's open **Import Uploads** job
 (``LongRunningJob.JOB_IMPORT_UPLOADS``):
 
-- ``attach_upload(user)``: ``/api/upload/complete/`` calls it once the photo
-  row exists. It adds one to the open job's target, or opens the job; the
-  ``lrj_one_open_upload_import`` constraint keeps it to one per user.
+- ``attach_upload(user)``: ``/api/upload/complete/`` calls it in the
+  transaction that makes the photo and queues its task. It adds one to the
+  open job's target, or opens the job; the ``lrj_one_open_upload_import``
+  constraint keeps it to one per user.
   Duplicates, refused files and files that make no photo (a sidecar,
   embedded media) are not counted.
 - ``import_uploaded_photo(...)``: the task that runs the upload's steps
@@ -138,14 +139,6 @@ def attach_upload(user: User) -> LongRunningJob:
         if job is None:
             raise
         return job
-
-
-def release_upload(job_id: str) -> None:
-    """Take back an upload counted by ``attach_upload`` whose task was not queued."""
-    _import_jobs().filter(job_id=job_id, progress_target__gt=0).update(
-        progress_target=F("progress_target") - 1
-    )
-    finish_job_if_complete(job_id)
 
 
 def seal_upload_imports(jobs: LongRunningJobQuerySet) -> list[str]:

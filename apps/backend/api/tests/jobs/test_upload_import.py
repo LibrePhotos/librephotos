@@ -29,7 +29,6 @@ from api.jobs.upload_import import (
     attach_upload,
     import_uploaded_photo,
     record_upload,
-    release_upload,
     seal_upload_imports,
     sweep_upload_imports,
 )
@@ -130,17 +129,6 @@ class AttachUploadTest(TestCase):
         self.assertNotEqual(sealed_meanwhile.pk, job.pk)
         self.assertEqual(1, _job(sealed_meanwhile).progress_target)
         self.assertEqual(1, _job(job).progress_target)
-
-    def test_a_released_upload_is_taken_back_and_can_finish_the_job(self):
-        job = _open_import(self.user, progress_target=2, progress_current=1)
-        J.objects.filter(pk=job.pk).update(sealed=True)
-
-        with mock.patch(FOLLOWUPS):
-            release_upload(job.job_id)
-
-        job = _job(job)
-        self.assertEqual(1, job.progress_target)
-        self.assertTrue(job.finished)
 
 
 class SealTest(TestCase):
