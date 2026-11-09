@@ -3,7 +3,7 @@ import React, { lazy, Suspense, useMemo, useState, type ReactNode } from "react"
 import { useFetchImageTagQuery } from "../../api_client/server";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { useUpload } from "../upload";
+import { usePromptTurn } from "../prompts/promptQueue";
 import { cardMayShow, WhatsNewContext, type WhatsNew } from "./whatsNewContext";
 
 // Both load on first use with the bundled release list, so the app's first chunk does not carry them.
@@ -12,7 +12,7 @@ const WhatsNewModal = lazy(async () => ({ default: (await import("./WhatsNewModa
 
 /**
  * The What's new card and dialog (#2305), for the signed-in app shell. After an update, each user
- * sees a small card once (it never blocks the page, and waits while the upload card is open);
+ * sees a small card once (it never blocks the page, and waits while a dialog or the upload card is open);
  * `useWhatsNew().open()` opens the dialog from the account menu and the sidebar's version line.
  */
 export function WhatsNewProvider({ children }: Readonly<{ children: ReactNode }>) {
@@ -22,7 +22,6 @@ export function WhatsNewProvider({ children }: Readonly<{ children: ReactNode }>
   const { data: user } = useCurrentUserSelfDetailsQuery();
   const { data: imageInfos } = useFetchImageTagQuery();
   const { data: settings } = useGetSettingsQuery();
-  const { items: uploads } = useUpload();
   const runningTag = imageInfos?.image_tag ?? "";
 
   const value = useMemo<WhatsNew>(
@@ -34,7 +33,9 @@ export function WhatsNewProvider({ children }: Readonly<{ children: ReactNode }>
     }),
     [dialog]
   );
-  const showCard = cardMayShow(user, runningTag, settings?.whats_new_enabled) && uploads.length === 0 && !opened;
+  // The card waits for any dialog and for the upload card (the prompt queue); the dialog holds the others back.
+  const showCard = usePromptTurn("whatsNewCard", cardMayShow(user, runningTag, settings?.whats_new_enabled) && !opened);
+  usePromptTurn("whatsNewDialog", opened);
 
   return (
     <WhatsNewContext.Provider value={value}>

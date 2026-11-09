@@ -10,6 +10,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { click, dialogButton, openDialog, renderInMantine, setUpMantineDom } from "../modals/confirmModal.test-utils";
+import { PromptQueueProvider } from "../prompts/PromptQueueProvider";
 import { errorReportingPromptPending } from "./askAboutErrorReporting";
 import { ErrorReportingPrompt } from "./ErrorReportingPrompt";
 
@@ -76,7 +77,11 @@ const READY: ProcessingStatus = {
 };
 
 async function render() {
-  const view = await renderInMantine(<ErrorReportingPrompt />);
+  const view = await renderInMantine(
+    <PromptQueueProvider>
+      <ErrorReportingPrompt />
+    </PromptQueueProvider>
+  );
   // The dialog loads on first use.
   await vi.waitFor(() => undefined);
   return view;
@@ -114,9 +119,8 @@ describe("errorReportingPromptPending", () => {
     ["a user who is not an admin", { ...admin, is_superuser: false }, { error_reporting_asked: false }, false],
     ["an answered question", admin, { error_reporting_asked: true }, false],
     ["an older backend", admin, {}, false],
-    ["while the thank-you dialog shows", admin, { error_reporting_asked: false }, false, true],
-  ])("%s", (_name, user, settings, pending, thankYouShows = false) => {
-    expect(errorReportingPromptPending(user, settings, thankYouShows)).toBe(pending);
+  ])("%s", (_name, user, settings, pending) => {
+    expect(errorReportingPromptPending(user, settings)).toBe(pending);
   });
 });
 
@@ -185,13 +189,6 @@ describe("ErrorReportingPrompt", () => {
     };
     await render();
     expect(await dialogShows()).toBe(true);
-  });
-
-  it("waits while the thank-you dialog shows", async () => {
-    stubs.user = { id: 1, is_superuser: true, support_prompt_seen: false };
-    stubs.settings = { ...stubs.settings, support_prompts_enabled: true };
-    await render();
-    expect(await dialogShows(500)).toBe(false);
   });
 
   it("waits while files upload", async () => {

@@ -13,6 +13,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { setUpMantineDom } from "../modals/confirmModal.test-utils";
+import { PromptQueueProvider } from "../prompts/PromptQueueProvider";
 import { useWhatsNew } from "./whatsNewContext";
 import { testUser } from "./whatsNewFixture.test-utils";
 import { WhatsNewProvider } from "./WhatsNewProvider";
@@ -76,9 +77,11 @@ async function render(user: User) {
     root.render(
       <QueryClientProvider client={queryClient}>
         <MantineProvider env="test">
-          <WhatsNewProvider>
-            <MenuItem />
-          </WhatsNewProvider>
+          <PromptQueueProvider>
+            <WhatsNewProvider>
+              <MenuItem />
+            </WhatsNewProvider>
+          </PromptQueueProvider>
         </MantineProvider>
       </QueryClientProvider>
     );
