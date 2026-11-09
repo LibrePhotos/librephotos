@@ -8,13 +8,11 @@
  *
  * The leading "-" keeps the TanStack router plugin from treating this file as a route.
  */
-import { Media } from "@librephotos/api-client";
-import type { PigPhoto } from "@librephotos/api-client";
 import type { UseNavigateResult } from "@tanstack/react-router";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import type { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import type { useSaveDefaultTimelineFilterMutation } from "../../api_client/user/hooks";
 import type { PhotoListView } from "../../components/photolist/PhotoListView";
 import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
@@ -22,7 +20,7 @@ import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 
 type ListArgs = Parameters<typeof useFetchDateAlbumsQuery>;
-type DayArgs = Parameters<typeof useFetchDateAlbumQuery>;
+type DayArgs = Parameters<typeof useDateAlbumDayPages>;
 type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
 type SaveDefaultRequest = Parameters<ReturnType<typeof useSaveDefaultTimelineFilterMutation>["mutate"]>[0];
 /** The callbacks the timeline hands the save mutation, as these tests invoke them. */
@@ -33,6 +31,8 @@ const stubs = vi.hoisted(() => ({
   search: {} as Record<string, unknown>,
   user: undefined as { id: number; photo_count?: number; default_timeline_filter: Record<string, unknown> } | undefined,
   dayCalls: [] as { options: DayArgs[0]; queryOptions: DayArgs[1] }[],
+  // What the day-pages hook hands the route to pass on to the photo list.
+  loadDays: vi.fn<ReturnType<typeof useDateAlbumDayPages>>(),
   navigate: vi.fn<UseNavigateResult<string>>(),
   saveDefault: vi.fn<(request: SaveDefaultRequest, callbacks: SaveDefaultCallbacks) => void>(),
   listCalls: [] as { options: ListArgs[0]; queryOptions: ListArgs[1] }[],
@@ -72,9 +72,9 @@ vi.mock("../../api_client/albums/hooks", () => ({
     stubs.listCalls.push({ options, queryOptions });
     return stubs.listResult;
   },
-  useFetchDateAlbumQuery: (...[options, queryOptions]: DayArgs) => {
+  useDateAlbumDayPages: (...[options, queryOptions]: DayArgs) => {
     stubs.dayCalls.push({ options, queryOptions });
-    return {};
+    return stubs.loadDays;
   },
 }));
 vi.mock("../../hooks/useWorkerStatus", () => ({ useWorkerStatus: () => ({ workerRunningJob: undefined }) }));
@@ -123,19 +123,6 @@ function popoverProps() {
   expect(button.type).toBe(TimelineFilterPopover);
   return button.props;
 }
-
-// A day's placeholder tile, standing for a photo of a page not loaded yet.
-const placeholder: PigPhoto = {
-  id: "0",
-  image_hash: "",
-  aspectRatio: 1,
-  type: Media.IMAGE,
-  is_hdr: false,
-  rating: 0,
-  shared_to: [],
-  isTemp: true,
-  has_raw_variant: false,
-};
 
 async function renderTimeline() {
   const Timeline = defined(stubs.component);
@@ -249,23 +236,22 @@ describe("the main timeline filter", () => {
     expect(listProps().emptyStateConfig?.title).toBe("Nothing matches this filter");
   });
 
-  it("does not ask for a day of the old list after the filter changed", async () => {
+  it("loads the days on screen under the filter the list is read with", async () => {
     const Timeline = defined(stubs.component);
     const root = createRoot(document.createElement("div"));
     await act(async () => {
       root.render(<Timeline />);
     });
-    await act(async () => {
-      defined(listProps().updateGroups)([{ id: 1, date: null, items: [placeholder] }]);
-    });
-    expect(defined(stubs.dayCalls.at(-1)).options.album_date_id).toBe(1);
+    expect(listProps().updateGroups).toBe(stubs.loadDays);
+    expect(defined(stubs.dayCalls.at(-1)).options).toEqual(defined(stubs.listCalls.at(-1)).options);
     expect(defined(stubs.dayCalls.at(-1)).queryOptions?.skip).toBe(false);
 
     stubs.search = { media: "videos" };
     await act(async () => {
       root.render(<Timeline />);
     });
-    expect(defined(stubs.dayCalls.at(-1)).queryOptions?.skip).toBe(true);
+    expect(defined(stubs.dayCalls.at(-1)).options.timelineFilter).toMatchObject({ media: "videos" });
+    expect(defined(stubs.dayCalls.at(-1)).options).toEqual(defined(stubs.listCalls.at(-1)).options);
   });
 });
 

@@ -6,10 +6,12 @@
  */
 import { photoGridKeys, Photoset } from "@librephotos/api-client";
 import { QueryClientProvider } from "@tanstack/react-query";
-import React, { act } from "react";
+import React, { act, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { TimelineFilter } from "../../../components/photolist/timelineFilter";
 import { defined } from "../../../util/defined.test-utils";
+import { tempPigPhoto } from "../../../util/util";
 
 const stubs = await vi.hoisted(async () => {
   const { QueryClient } = await import("@tanstack/react-query");
@@ -27,7 +29,7 @@ vi.mock("../../api", async () => ({
 const { ApiError } = await import("../../apiError");
 
 const { dateAlbumsListKey, useFetchDateAlbumsQuery } = await import("./useFetchDateAlbumsQuery");
-const { useFetchDateAlbumQuery } = await import("./useFetchDateAlbumQuery");
+const { useDateAlbumDayPages } = await import("./useDateAlbumDayPages");
 
 const filter = { media: "photos" as const, hide_screenshots: true, hide_documents: false, favorites: false };
 const SECOND_PAGE_AFTER = "0b6c6f7e-2d64-4a55-9b1e-6d7f8e9a0b1c";
@@ -43,11 +45,22 @@ async function render(element: React.ReactElement) {
     root.render(<QueryClientProvider client={stubs.queryClient}>{element}</QueryClientProvider>);
   });
   // Let the query functions resolve.
-  await act(async () => {
-    await new Promise(resolve => {
-      setTimeout(resolve, 0);
+  for (let i = 0; i < 5; i++) {
+    await act(async () => {
+      await new Promise(resolve => {
+        setTimeout(resolve, 0);
+      });
     });
-  });
+  }
+}
+
+/** The timeline with placeholders of `pages` (day id, page) on screen, as the photo list reports them. */
+function OnScreen({ pages, timelineFilter }: { pages: [number, number][]; timelineFilter?: TimelineFilter }) {
+  const updateGroups = useDateAlbumDayPages({ photosetType: Photoset.NONE, timelineFilter });
+  useEffect(() => {
+    updateGroups(pages.map(([id, page]) => ({ id, date: null, items: [tempPigPhoto(String((page - 1) * 100))] })));
+  }, [pages, updateGroups]);
+  return null;
 }
 
 describe("date-album queries with a timeline filter", () => {
@@ -90,11 +103,7 @@ describe("date-album queries with a timeline filter", () => {
         ? { id: 1, numberOfItems: 150, aspectRatios: [], page_after: [null, SECOND_PAGE_AFTER] }
         : { items: [], next: null }
     );
-    function Day() {
-      useFetchDateAlbumQuery({ photosetType: Photoset.NONE, album_date_id: 1, page: 2, timelineFilter: filter });
-      return null;
-    }
-    await render(<Day />);
+    await render(<OnScreen pages={[[1, 2]]} timelineFilter={filter} />);
 
     const [layout, photos] = stubs.get.mock.calls.map(([endpoint]) => new URL(endpoint, "http://x"));
     const filterParams = { archived: "false", media: "photos", hide_screenshots: "true" };
@@ -115,11 +124,7 @@ describe("date-album queries with a timeline filter", () => {
     stubs.get.mockResolvedValue({ items: [], next: null });
     const key = dateAlbumsListKey({ photosetType: Photoset.NONE });
     stubs.queryClient.setQueryData(photoGridKeys.dateAlbumDay(key, 1, 1), { items: [], next: SECOND_PAGE_AFTER });
-    function Day() {
-      useFetchDateAlbumQuery({ photosetType: Photoset.NONE, album_date_id: 1, page: 2 });
-      return null;
-    }
-    await render(<Day />);
+    await render(<OnScreen pages={[[1, 2]]} />);
 
     expect(stubs.get).toHaveBeenCalledTimes(1);
     const url = new URL(defined(stubs.get.mock.calls[0], "the request")[0], "http://x");
@@ -139,11 +144,7 @@ describe("date-album queries with a timeline filter", () => {
       if (endpoint.includes(GONE)) throw new ApiError("stale", 400);
       return { items: [], next: null };
     });
-    function Day() {
-      useFetchDateAlbumQuery({ photosetType: Photoset.NONE, album_date_id: 1, page: 2 });
-      return null;
-    }
-    await render(<Day />);
+    await render(<OnScreen pages={[[1, 2]]} />);
 
     const paths = stubs.get.mock.calls.map(([endpoint]) => new URL(endpoint, "http://x"));
     expect(paths.map(url => url.pathname)).toEqual(["/days/1/photos/", "/days/1/layout/", "/days/1/photos/"]);
@@ -155,13 +156,42 @@ describe("date-album queries with a timeline filter", () => {
     stubs.get.mockReset();
     const key = dateAlbumsListKey({ photosetType: Photoset.NONE });
     stubs.queryClient.setQueryData(photoGridKeys.dateAlbumDay(key, 1, 1), { items: [], next: null });
-    function Day() {
-      useFetchDateAlbumQuery({ photosetType: Photoset.NONE, album_date_id: 1, page: 2 });
-      return null;
-    }
-    await render(<Day />);
+    await render(<OnScreen pages={[[1, 2]]} />);
 
     expect(stubs.get).not.toHaveBeenCalled();
+  });
+
+  it("asks for every day on screen at once, not one after another", async () => {
+    stubs.queryClient.clear();
+    stubs.get.mockReset();
+    let answer: () => void = () => {};
+    const held = new Promise<void>(resolve => {
+      answer = resolve;
+    });
+    stubs.get.mockImplementation(async () => {
+      await held;
+      return { items: [], next: null };
+    });
+    try {
+      await render(
+        <OnScreen
+          pages={[
+            [20251018, 1],
+            [20251017, 1],
+            [20251016, 1],
+          ]}
+        />
+      );
+      // No answer has arrived, and all three days were asked for.
+      const asked = stubs.get.mock.calls.map(([endpoint]) => new URL(endpoint, "http://x").pathname);
+      expect(asked.filter(path => path.endsWith("/photos/"))).toEqual([
+        "/days/20251018/photos/",
+        "/days/20251017/photos/",
+        "/days/20251016/photos/",
+      ]);
+    } finally {
+      answer();
+    }
   });
 
   it("fills a shared library's days only from that library's cached pages (#2731)", async () => {

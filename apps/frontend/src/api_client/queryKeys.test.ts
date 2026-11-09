@@ -241,7 +241,7 @@ const domains: Record<string, Domain> = {
         before: ["photoGrid", "dateAlbums", Photoset.TIMESTAMP, undefined, undefined, undefined, "all", "none"],
         after: photoGridKeys.dateAlbumList([Photoset.TIMESTAMP, undefined, undefined, undefined, "all", "none"]),
       },
-      useFetchDateAlbumQuery: {
+      useDateAlbumDayPages: {
         before: ["photoGrid", "dateAlbum", Photoset.TIMESTAMP, 4, 1, undefined, undefined, undefined, "all", "none"],
         after: photoGridKeys.dateAlbumDay([Photoset.TIMESTAMP, undefined, undefined, undefined, "all", "none"], 4, 1),
       },
@@ -308,7 +308,7 @@ const domains: Record<string, Domain> = {
         refreshes: [
           "useFetchPhotoDetailsQuery",
           "useFetchDateAlbumsQuery",
-          "useFetchDateAlbumQuery",
+          "useDateAlbumDayPages",
           "useFetchRecentlyAddedPhotosQuery",
           "useFetchUserAlbumQuery",
           "usePublicAlbumQuery",
@@ -335,7 +335,7 @@ const domains: Record<string, Domain> = {
         ],
         refreshes: [
           "useFetchDateAlbumsQuery",
-          "useFetchDateAlbumQuery",
+          "useDateAlbumDayPages",
           "useFetchRecentlyAddedPhotosQuery",
           "useFetchPhotoDetailsQuery",
         ],

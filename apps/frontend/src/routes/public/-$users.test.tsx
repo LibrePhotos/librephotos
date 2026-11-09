@@ -45,7 +45,7 @@ vi.mock("../../api_client/albums/hooks", () => ({
   },
   // One result for every render: the page copies it into state when it changes.
   useFetchDateAlbumsQuery: () => stubs.days,
-  useFetchDateAlbumQuery: () => ({ data: undefined }),
+  useDateAlbumDayPages: () => () => {},
 }));
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),

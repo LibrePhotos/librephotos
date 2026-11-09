@@ -1,11 +1,9 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
 import { useEffect, useState } from "react";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import { useListFailure } from "../common/useListFailure";
-import { NO_PHOTO_GROUP, type PhotoGroup } from "../photolist/photoGroup";
-import type { PigVisibleGroup } from "../photolist/PhotoListView";
 import { useLibraryShares } from "./useLibraryShares";
 
 /**
@@ -25,20 +23,11 @@ export function useSharedLibrary(ownerId: number) {
     if (photosQuery.data) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosQuery.data));
   }, [photosQuery.data]);
 
-  const [group, setGroup] = useState<PhotoGroup>(NO_PHOTO_GROUP);
-  useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, library: ownerId },
-    { skip: !group.id || share === undefined }
+  // Pig reports the day groups on screen; their placeholders name the pages still to load.
+  const updateGroups = useDateAlbumDayPages(
+    { photosetType: Photoset.NONE, library: ownerId },
+    { skip: share === undefined }
   );
-  // Pig reports the day groups on screen; a group's first placeholder names the page to load.
-  const updateGroups = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
-    visibleGroups.reverse().forEach(photoGroup => {
-      const firstTempObject = photoGroup.items.find(i => i.isTemp);
-      if (firstTempObject) {
-        setGroup({ id: photoGroup.id, page: Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100) });
-      }
-    });
-  };
 
   return {
     share,

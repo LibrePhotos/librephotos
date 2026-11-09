@@ -1,16 +1,14 @@
-import type { GalleryFilter, PigPhoto } from "@librephotos/api-client";
+import type { GalleryFilter } from "@librephotos/api-client";
 import { IconWorld } from "@tabler/icons-react";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useGalleryDayQuery, useGalleryDaysQuery } from "../../api_client/gallery/hooks";
+import { useGalleryDayPages, useGalleryDaysQuery } from "../../api_client/gallery/hooks";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import { EmptyState } from "../common/EmptyState";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
 import { OwnerMarksContext } from "../photolist/ownerMarks";
-import { NO_PHOTO_GROUP, type PhotoGroup } from "../photolist/photoGroup";
 import { PhotoListView } from "../photolist/PhotoListView";
-import type { PigVisibleGroup } from "../photolist/PhotoListView";
 
 type Props = Readonly<{ filter: GalleryFilter; filtered: boolean }>;
 
@@ -26,21 +24,8 @@ export function GalleryTimeline({ filter, filtered }: Props) {
   const days = useMemo(() => query.data ?? [], [query.data]);
   const idx2hash = useMemo(() => getPhotosFlatFromGroupedByDate(days), [days]);
 
-  // The day page to load, with the filter it was asked under: after the filter changes, a day of
-  // the old timeline is not asked for again under the new one.
-  const filterKey = JSON.stringify(filter);
-  const [group, setGroup] = useState<PhotoGroup & { filterKey?: string }>(NO_PHOTO_GROUP);
-  useGalleryDayQuery(filter, group.filterKey === filterKey ? group.id : 0, group.page);
-
-  // Pig reports the day groups on screen; a group's first placeholder names its page still to load.
-  const updateGroups = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
-    visibleGroups.reverse().forEach(photoGroup => {
-      const firstTemp = photoGroup.items.find(item => item.isTemp);
-      if (firstTemp) {
-        setGroup({ id: photoGroup.id, page: Math.ceil((parseInt(firstTemp.id, 10) + 1) / 100), filterKey });
-      }
-    });
-  };
+  // Pig reports the day groups on screen; their placeholders name the pages still to load.
+  const updateGroups = useGalleryDayPages(filter);
 
   if (failure) return <ErrorState failure={failure} />;
   if (!query.isLoading && days.length === 0) {

@@ -5,20 +5,18 @@ import { IconFilterOff as FilterOff, IconPhoto as Photo } from "@tabler/icons-re
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
 import { jobTypeLabel } from "../../components/job/jobTypeLabel";
 import { TimelineLibrariesNote } from "../../components/libraryShare/TimelineLibrariesNote";
 import { MemoriesStrip } from "../../components/memories/MemoriesStrip";
-import { NO_PHOTO_GROUP, type PhotoGroup } from "../../components/photolist/photoGroup";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { EmptyStateConfig, PigVisibleGroup } from "../../components/photolist/PhotoListView";
+import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { withPhotoSearch } from "../../components/photolist/photoSearch";
 import {
   countActiveFilters,
   describeTimelineFilter,
   SHOW_EVERYTHING,
-  timelineFilterKey,
   timelineFilterToBulkQuery,
   validateTimelineSearch,
 } from "../../components/photolist/timelineFilter";
@@ -60,7 +58,6 @@ function TimestampPhotos() {
     failure: filterFailure,
   } = useTimelineFilter();
   const filterActive = countActiveFilters(filter) > 0;
-  const filterKey = timelineFilterKey(filter);
 
   // Waits for the saved default: fetching before it loaded would show (and
   // cache) the unfiltered library for a moment.
@@ -76,33 +73,13 @@ function TimestampPhotos() {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
   }, [photosGroupedByDate]);
 
-  // The day page to load, with the filter it was asked under: after the
-  // filter changes, a day of the old list is not requested again under the
-  // new filter (it may not even be in the new list).
-  const [group, setGroup] = useState<PhotoGroup & { filterKey?: string }>(NO_PHOTO_GROUP);
-  useFetchDateAlbumQuery(
-    {
-      album_date_id: group.id,
-      page: group.page,
-      photosetType: Photoset.NONE,
-      timelineFilter: filter,
-      withLibraries: true,
-    },
-    { skip: !group.id || !filterReady || group.filterKey !== filterKey }
+  // Pig reports the date groups on screen; their placeholder tiles name the
+  // pages of those days still to load. Pages are keyed by the filter, so after
+  // it changes a day of the old list is not requested again under the new one.
+  const getAlbums = useDateAlbumDayPages(
+    { photosetType: Photoset.NONE, timelineFilter: filter, withLibraries: true },
+    { skip: !filterReady }
   );
-
-  // Pig reports the date groups on screen; a group's first placeholder tile
-  // names the page of that day still to load.
-  const getAlbums = (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
-    visibleGroups.reverse().forEach(photoGroup => {
-      const firstTempObject = photoGroup.items.find(i => i.isTemp);
-      if (firstTempObject) {
-        const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
-
-        setGroup({ id: photoGroup.id, page, filterKey });
-      }
-    });
-  };
 
   // Check if a scan-related job is running
   const isScanRunning =
