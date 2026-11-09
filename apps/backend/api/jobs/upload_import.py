@@ -22,9 +22,9 @@ a photo is now counted in its user's open **Import Uploads** job
   (``finish_job_if_complete``), and requests the user's follow-ups
   (``on_import_finished``, ``api.jobs.upload_followups``).
 - ``sweep_upload_imports`` also finishes lost jobs: sealed, short of their
-  target, no progress for ``LOST_AFTER`` and nothing waiting in the queue, so
-  a worker died holding their tasks. The missing files count as failed and the
-  follow-ups still run.
+  target, no progress for ``LOST_AFTER``, nothing waiting in the queue and
+  none of their tasks held by a live cluster, so a worker died holding
+  them. The missing files count as failed and the follow-ups still run.
 
 What a client reads from the job row (``GET /api/jobs/``):
 ``progress_target`` uploads counted, ``progress_current`` of them processed
@@ -69,7 +69,7 @@ from api.directory_watcher.utils import (
 )
 from api.faces.photo_faces import extract_faces
 from api.geocode.photo_location import geolocate_photo
-from api.jobs.queue import tasks_are_waiting
+from api.jobs.queue import held_job_ids, tasks_are_waiting
 from api.jobs.upload_followups import request_upload_followups
 from api.metadata.datetime_rules import CaptureTime
 from api.models import LongRunningJob, Photo, User
@@ -201,8 +201,13 @@ def sweep_upload_imports() -> None:
     seal_upload_imports(_import_jobs().filter(last_file_at__lt=now - IDLE_SEAL))
     lost = list(_lost_jobs(now).values_list("job_id", "started_by_id"))
     # Tasks still waiting may be these jobs', queued behind a scan.
-    if lost and not tasks_are_waiting():
-        for job_id, user_id in lost:
+    if not lost or tasks_are_waiting():
+        return
+    # A task a live cluster holds is not waiting, and one upload (a long
+    # video) can run past LOST_AFTER without progress.
+    held = held_job_ids()
+    for job_id, user_id in lost:
+        if job_id not in held:
             _finish_lost(job_id, user_id)
 
 

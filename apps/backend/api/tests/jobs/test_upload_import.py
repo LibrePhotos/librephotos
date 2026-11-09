@@ -34,6 +34,7 @@ from api.jobs.upload_import import (
 )
 from api.models import LongRunningJob, Photo
 from api.models.long_running_job import LongRunningJobQuerySet
+from api.tests.jobs.test_stuck_job_cleanup import hold, queue_task
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 J = LongRunningJob
@@ -266,6 +267,17 @@ class SweepTest(TestCase):
     def test_waits_while_the_queue_holds_tasks(self):
         job = self._lost_job()
         self.waiting.return_value = True
+
+        sweep_upload_imports()
+
+        self.assertFalse(_job(job).finished)
+        self.followups.assert_not_called()
+
+    def test_a_job_whose_task_a_live_cluster_holds_is_not_lost(self):
+        # One long upload (a video) is silent past LOST_AFTER while a worker
+        # runs it; the queue is empty because a taken task is not waiting.
+        job = self._lost_job()
+        hold(queue_task("photo-id", "/library/video.mp4", job.job_id))
 
         sweep_upload_imports()
 
