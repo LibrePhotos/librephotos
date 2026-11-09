@@ -8,8 +8,9 @@ export const useUpdateAvatarMutation = () =>
     mutationFn: ({ id, data }: { id: string; data: FormData }) => endpoints.updateUserPartial(apiClient, id, data),
     onSuccess: data => {
       notification.updateUser(data.username);
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
-      queryClient.invalidateQueries({ queryKey: userKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: userKeys.list() });
+      // Returned: the profile shows the stored picture once the upload is done, so it is done
+      // when the profile has been read again, not before.
+      return queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
     },
   });

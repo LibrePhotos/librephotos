@@ -17,6 +17,13 @@ import classes from "./ProfileAvatar.module.css";
 /** The avatar's size on the page, and of the image that is uploaded. */
 const AVATAR_SIZE = 72;
 
+/**
+ * The stored picture, or one picked here: waiting to be moved into place and uploaded, or being
+ * uploaded (the conversion included, so a second click finds it busy). A refused upload keeps the
+ * picture to try again; an upload that went through shows the stored picture.
+ */
+type AvatarState = { status: "stored" } | { status: "picked" | "uploading"; image: string };
+
 type Props = Readonly<{
   userId: number;
   /** The user as edited so far: their stored avatar, or the initials of their name; the first name
@@ -36,23 +43,27 @@ export function ProfileAvatar({ userId, user }: Props) {
   const editorRef = useRef<AvatarEditorRef>(null);
   const dropzoneRef = useRef<DropzoneRef>(null);
   const [facePickerOpen, { open: openFacePicker, close: closeFacePicker }] = useDisclosure(false);
-  // A picture chosen here: shown instead of the stored one, and unsaved until Save
-  const [picked, setPicked] = useState<string | null>(null);
-  const [unsaved, setUnsaved] = useState(false);
+  const [avatar, setAvatar] = useState<AvatarState>({ status: "stored" });
+  const picked = avatar.status === "stored" ? null : avatar.image;
 
-  const pick = (image: string) => {
-    setPicked(image);
-    setUnsaved(true);
-  };
+  const pick = (image: string) => setAvatar({ status: "picked", image });
 
   const save = async () => {
     const editor = editorRef.current;
-    if (!editor) return;
+    if (avatar.status !== "picked" || !editor) return;
+    const { image } = avatar;
+    setAvatar({ status: "uploading", image });
     const formData = new FormData();
     const name = `${user.first_name ?? ""}avatar.png`;
-    const file = await dataUrlToFile(editor.getImageScaledToCanvas().toDataURL(), name);
-    formData.append("avatar", file, name);
-    updateAvatar.mutate({ id: userId.toString(), data: formData }, { onSuccess: () => setUnsaved(false) });
+    try {
+      const file = await dataUrlToFile(editor.getImageScaledToCanvas().toDataURL(), name);
+      formData.append("avatar", file, name);
+      await updateAvatar.mutateAsync({ id: userId.toString(), data: formData });
+      setAvatar({ status: "stored" });
+    } catch {
+      // A refused upload is toasted by the QueryClient.
+      setAvatar({ status: "picked", image });
+    }
   };
 
   return (
@@ -97,19 +108,17 @@ export function ProfileAvatar({ userId, user }: Props) {
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
-          {unsaved && (
+          {picked && (
             <>
-              <Button size="sm" variant="light" loading={updateAvatar.isPending} onClick={() => void save()}>
+              <Button size="sm" variant="light" loading={avatar.status === "uploading"} onClick={() => void save()}>
                 {t("settings.upload")}
               </Button>
               <Button
                 size="sm"
                 variant="subtle"
                 color="gray"
-                onClick={() => {
-                  setPicked(null);
-                  setUnsaved(false);
-                }}
+                disabled={avatar.status === "uploading"}
+                onClick={() => setAvatar({ status: "stored" })}
               >
                 {t("cancel")}
               </Button>
@@ -117,7 +126,7 @@ export function ProfileAvatar({ userId, user }: Props) {
           )}
         </Group>
         <Text size="xs" c="dimmed">
-          {unsaved ? t("settings.avatarunsaved") : t("settings.filesize")}
+          {picked ? t("settings.avatarunsaved") : t("settings.filesize")}
         </Text>
       </Stack>
       <AvatarFacePickerModal opened={facePickerOpen} onClose={closeFacePicker} onPick={pick} />

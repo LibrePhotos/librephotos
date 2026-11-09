@@ -814,6 +814,7 @@
     "photoLink": "Share link",
     "photoLinkExplanation": "Anyone with this link can see this photo, without signing in. It does not make the photo public, and you can replace or revoke the link at any time.",
     "photoLinkFailed": "Could not update the share link for this photo.",
+    "rotateLinkFailed": "The link could not be replaced. The link above still works.",
     "shareLinkShortcut": "Share link (P)",
     "openPublicLink": "Open public link",
     "albumLink": "Album link",

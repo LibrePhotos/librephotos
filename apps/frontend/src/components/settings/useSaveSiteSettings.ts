@@ -34,14 +34,15 @@ export function useSaveSiteSettingsAsync() {
   );
 }
 
-/** `useSaveSiteSettingsAsync` for a fire-and-forget save; `onSaved` runs once the server took it. */
+/**
+ * `useSaveSiteSettingsAsync` for a fire-and-forget save: `onSaved` runs once the server took it,
+ * `onFailed` once it refused it.
+ */
 export function useSaveSiteSettings() {
   const save = useSaveSiteSettingsAsync();
   return useCallback(
-    (input: SiteSettingsUpdate, onSaved?: () => void) =>
-      void save(input).then(saved => {
-        if (saved) onSaved?.();
-      }),
+    (input: SiteSettingsUpdate, onSaved?: () => void, onFailed?: () => void) =>
+      void save(input).then(saved => (saved ? onSaved?.() : onFailed?.())),
     [save]
   );
 }

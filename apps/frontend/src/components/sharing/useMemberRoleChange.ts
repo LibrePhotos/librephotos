@@ -10,22 +10,23 @@ type PendingChange = { user: ListUser; role: MemberRole; count: number };
  * Changing a user's role in the share dialog (#464). Taking a contributor's "Can add photos" away
  * (to "Can view" or "No access") takes the photos they added out of the album, so that asks first,
  * naming how many; every other change saves at once.
+ *
+ * The dialog follows its own request, not the mutation's isPending or a per-call onSuccess: those
+ * track only the newest call, which may be another member's change saved meanwhile. A refused
+ * change (toasted by the QueryClient) leaves the dialog open.
  */
 export function useMemberRoleChange(albumID: string, album: UserAlbum | undefined) {
   const share = useShareUserAlbumMutation();
   const [opened, dialog] = useDisclosure(false);
   const [pending, setPending] = useState<PendingChange | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
-  const apply = (user: ListUser, role: MemberRole, onDone?: () => void) =>
-    share.mutate(
-      {
-        albumId: albumID,
-        userId: String(user.id),
-        share: role !== "none",
-        role: role === "none" ? undefined : role,
-      },
-      { onSuccess: onDone }
-    );
+  const params = (user: ListUser, role: MemberRole) => ({
+    albumId: albumID,
+    userId: String(user.id),
+    share: role !== "none",
+    role: role === "none" ? undefined : role,
+  });
 
   const request = (user: ListUser, role: MemberRole) => {
     const count = contributedCount(album, user);
@@ -34,12 +35,21 @@ export function useMemberRoleChange(albumID: string, album: UserAlbum | undefine
       dialog.open();
       return;
     }
-    apply(user, role);
+    share.mutate(params(user, role));
   };
 
-  const confirm = () => {
-    if (pending) apply(pending.user, pending.role, dialog.close);
+  const confirm = async () => {
+    if (!pending || confirming) return;
+    setConfirming(true);
+    try {
+      await share.mutateAsync(params(pending.user, pending.role));
+      dialog.close();
+    } catch {
+      // Toasted by the QueryClient; the dialog stays to try again or cancel.
+    } finally {
+      setConfirming(false);
+    }
   };
 
-  return { request, pending, opened, close: dialog.close, confirm, loading: share.isPending };
+  return { request, pending, opened, close: dialog.close, confirm: () => void confirm(), loading: confirming };
 }
