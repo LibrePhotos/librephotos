@@ -2,9 +2,10 @@ import React, { type ReactNode } from "react";
 import clsx from "clsx";
 import Link from "@docusaurus/Link";
 import useBaseUrl from "@docusaurus/useBaseUrl";
-import { useColorMode } from "@docusaurus/theme-common";
 import Layout from "@theme/Layout";
+import ThemedImage from "@theme/ThemedImage";
 import { shotInfo } from "@site/src/components/Screenshot/manifest";
+import { shotPath } from "@site/src/data/shots";
 import Tour from "@site/src/components/landing/Tour";
 import WhatsNew from "@site/src/components/landing/WhatsNew";
 import landing from "@site/src/components/landing/landing.module.css";
@@ -15,40 +16,30 @@ const DESCRIPTION =
   "LibrePhotos is a self-hosted, open source photo management service. Faces, places, events and semantic search, with every photo and every byte of metadata staying on your own machine.";
 
 const SPONSORS_URL = "https://github.com/sponsors/derneuere";
+// Who took the sample photos in the screenshots, kept next to them.
+const CREDITS_URL = "https://github.com/LibrePhotos/librephotos/blob/dev/apps/docs/static/img/shots/CREDITS.md";
 const PAYPAL_URL = "https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96";
 // Every release from 1.2.0 on carries the zip (standalone-windows workflow), so /latest/download always resolves.
 const WINDOWS_ZIP_URL = "https://github.com/LibrePhotos/librephotos/releases/latest/download/librephotos-windows-x64.zip";
 
-function DiamondMotif() {
-  return (
-    <svg className={styles.motif} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
-      <g fill="none" stroke="currentColor" strokeWidth="2.5">
-        <path d="M100 5 195 100 100 195 5 100Z" />
-        <path d="M100 20 180 100 100 180 20 100Z" />
-        <path d="M100 35 165 100 100 165 35 100Z" />
-        <path d="M100 50 150 100 100 150 50 100Z" />
-      </g>
-    </svg>
-  );
-}
-
+/**
+ * The timeline as the app shows it, in the theme the page is read in. Lazy on purpose: the server
+ * renders both themes' images and hides one, and a lazy image that is hidden is never fetched.
+ */
 function HeroShot() {
-  const shots = useBaseUrl("/img/shots/");
   const shot = shotInfo("timeline");
+  const light = useBaseUrl(shotPath(shot.id, "light"));
+  const dark = useBaseUrl(shotPath(shot.id, "dark"));
   return (
     <div className={styles.heroArt}>
-      <div className={styles.browserFrame}>
-        <div className={styles.browserBar} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-        <img
-          src={`${shots}${shot.id}-dark.webp`}
+      <div className={styles.shotFrame}>
+        <ThemedImage
+          sources={{ light, dark }}
           alt={shot.alt}
           width={shot.width}
           height={shot.height}
-          loading="eager"
+          loading="lazy"
+          decoding="async"
         />
       </div>
     </div>
@@ -63,27 +54,9 @@ function WindowsIcon() {
   );
 }
 
-function WindowsDownload() {
-  return (
-    <div className={styles.windows}>
-      <a className={styles.windowsLink} href={WINDOWS_ZIP_URL}>
-        <WindowsIcon />
-        <span>
-          <strong>Download for Windows</strong>
-          <span className={styles.windowsSub}>One program, no Docker or Python needed</span>
-        </span>
-      </a>
-      <Link to="/docs/installation/windows-standalone" className={styles.heroNoteLink}>
-        How it works
-      </Link>
-    </div>
-  );
-}
-
 function Hero() {
   return (
     <header className={styles.hero}>
-      <DiamondMotif />
       <div className={clsx("container", styles.heroInner)}>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>Self-hosted · Open source · MIT licensed</p>
@@ -94,20 +67,26 @@ function Hero() {
             not a byte of metadata.
           </p>
           <div className={styles.actions}>
-            <Link className={clsx("button button--lg", styles.primaryButton)} to="/docs/installation">
+            <Link className={clsx(styles.button, styles.buttonFilled)} to="/docs/installation">
               Install LibrePhotos
             </Link>
-            <a className={clsx("button button--lg", styles.ghostButton)} href="#tour">
+            <a className={clsx(styles.button, styles.buttonDefault)} href="#tour">
               See it in action
             </a>
           </div>
-          <WindowsDownload />
+          <a className={styles.windowsLink} href={WINDOWS_ZIP_URL}>
+            <span className={styles.windowsIcon}>
+              <WindowsIcon />
+            </span>
+            <span>
+              <strong>Download for Windows</strong>
+              <span className={styles.windowsSub}>One program, no Docker or Python needed</span>
+            </span>
+          </a>
           <p className={styles.heroNote}>
-            Runs with Docker, Kubernetes or Unraid, or as a standalone program on Windows. Android app included. Built by volunteers, so{" "}
-            <Link href={SPONSORS_URL} className={styles.heroNoteLink}>
-              sponsoring
-            </Link>{" "}
-            keeps it going.
+            Runs with Docker, Kubernetes or Unraid, or as a standalone program on Windows (
+            <Link to="/docs/installation/windows-standalone">how it works</Link>). Android app included. Built
+            by volunteers, so <Link href={SPONSORS_URL}>sponsoring</Link> keeps it going.
           </p>
         </div>
         <HeroShot />
@@ -128,7 +107,7 @@ function WhatsNewSection() {
 
 function TourSection() {
   return (
-    <section id="tour" className={clsx(styles.section, styles.sectionTinted)}>
+    <section id="tour" className={clsx(styles.section, styles.sectionChrome)}>
       <div className="container">
         <div className={styles.sectionHead}>
           <h2 className={styles.h2}>A look around</h2>
@@ -138,14 +117,32 @@ function TourSection() {
         </div>
         <Tour />
         <p className={landing.credits}>
-          Sample photos from Pexels by ALEKSANDAR PASARIC, Alexander Ruiz, Anna Tarazevich, Anton Kudryashov, Federico Abis, Fernando B M, H.DUNG, Johannes Plenio, Kampus Production, Kevin Schmidt, Kirill Lazarev, Masood Aslami, Naimish Verma, Polina Tankilevitch, Theo Felten, Tima Miroshnichenko, Travel with Lenses, Tutolo Design, Willian Justen de Vasconcellos, Yaroslav Shuraev, karim desouki. Dates and locations were added for the demo.
+          Sample photos from Unsplash and others, see the <Link href={CREDITS_URL}>credits</Link>.
         </p>
       </div>
     </section>
   );
 }
 
-type Path = { title: string; body: string; to: string; cta: string };
+type Path = { title: string; body: string; to: string; cta: string; icon: ReactNode };
+
+/** Outline icons in the app's style (Tabler, stroke 1.75). */
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {children}
+    </svg>
+  );
+}
 
 const PATHS: Path[] = [
   {
@@ -153,18 +150,35 @@ const PATHS: Path[] = [
     body: "Pick a deployment: a single container, Docker Compose, Kubernetes, Unraid, or the standalone Windows build. Most people are done in ten minutes.",
     to: "/docs/installation",
     cta: "Installation guides",
+    icon: (
+      <Icon>
+        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 11l5 5 5-5M12 4v12" />
+      </Icon>
+    ),
   },
   {
     title: "First steps",
     body: "Point LibrePhotos at your photos, run the first scan, and set up accounts for the rest of the household.",
     to: "/docs/user-guide/first-steps",
     cta: "After the first login",
+    icon: (
+      <Icon>
+        <path d="M15 8h.01M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z" />
+        <path d="m3 16 5-5c.928-.893 2.072-.893 3 0l5 5" />
+        <path d="m14 14 1-1c.928-.893 2.072-.893 3 0l3 3" />
+      </Icon>
+    ),
   },
   {
     title: "Contribute",
     body: "Get a development environment running, learn how the backend and frontend fit together, and send a pull request.",
     to: "/docs/development",
     cta: "Development setup",
+    icon: (
+      <Icon>
+        <path d="m7 8-4 4 4 4M17 8l4 4-4 4M14 4l-4 16" />
+      </Icon>
+    ),
   },
 ];
 
@@ -179,9 +193,13 @@ function StartHere() {
         <div className={styles.pathGrid}>
           {PATHS.map((p) => (
             <Link key={p.title} to={p.to} className={styles.pathCard}>
+              <span className={styles.pathIcon}>{p.icon}</span>
               <h3 className={styles.h3}>{p.title}</h3>
               <p>{p.body}</p>
-              <span className={styles.pathCta}>{p.cta} →</span>
+              <span className={styles.pathCta}>
+                {p.cta}
+                <ChevronIcon />
+              </span>
             </Link>
           ))}
         </div>
@@ -190,23 +208,33 @@ function StartHere() {
   );
 }
 
-function HeartIcon() {
+function ChevronIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 21s-7.5-4.6-9.6-9.2C1 8.3 3.2 4.5 6.9 4.5c2 0 3.5 1.1 4.3 2.4.8-1.3 2.3-2.4 4.3-2.4 3.7 0 5.9 3.8 4.5 7.3C19.5 16.4 12 21 12 21Z" />
+    <svg
+      className={styles.chevron}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="m9 6 6 6-6 6" />
     </svg>
   );
 }
 
 function Sponsor() {
   return (
-    <section id="sponsor" className={styles.community}>
+    <section id="sponsor" className={styles.section}>
       <div className="container">
         <div className={landing.sponsor}>
           <div>
             <p className={styles.eyebrow}>Support the project</p>
             <h2 className={styles.h2}>No company. No product key. Just people who want their photos back.</h2>
-            <p className={clsx(styles.sectionLead, styles.onInk)}>
+            <p className={styles.sectionLead}>
               LibrePhotos is maintained by volunteers in their spare time. There is no venture money and nothing
               is held back for a paid tier. If it saves you a subscription, consider passing a little of that on.
               Sponsorship pays for the hardware the models are tested on and the hours that go into releases.
@@ -224,9 +252,11 @@ function Sponsor() {
             </ul>
           </div>
           <div className={landing.sponsorCards}>
-            <Link href={SPONSORS_URL} className={landing.sponsorCard} data-primary="">
+            <Link href={SPONSORS_URL} className={landing.sponsorCard} data-tonal="">
               <span className={landing.sponsorIcon}>
-                <HeartIcon />
+                <Icon>
+                  <path d="M19.5 12.572 12 20l-7.5-7.428A5 5 0 1 1 12 6.006a5 5 0 1 1 7.5 6.572" />
+                </Icon>
               </span>
               <span>
                 <strong>Sponsor on GitHub</strong>
@@ -235,10 +265,9 @@ function Sponsor() {
             </Link>
             <Link href={PAYPAL_URL} className={landing.sponsorCard}>
               <span className={landing.sponsorIcon}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <rect x="3" y="6" width="18" height="12" rx="2" />
-                  <path d="M3 10h18M7 14h3" strokeLinecap="round" />
-                </svg>
+                <Icon>
+                  <path d="M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zM3 10h18M7 15h.01M11 15h2" />
+                </Icon>
               </span>
               <span>
                 <strong>Donate with PayPal</strong>
@@ -247,9 +276,9 @@ function Sponsor() {
             </Link>
             <Link to="/docs/development" className={landing.sponsorCard}>
               <span className={landing.sponsorIcon}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <Icon>
+                  <path d="m7 8-4 4 4 4M17 8l4 4-4 4M14 4l-4 16" />
+                </Icon>
               </span>
               <span>
                 <strong>Contribute code or translations</strong>
@@ -283,7 +312,7 @@ const COMMUNITY: { title: string; body: string; href: string }[] = [
 
 function BuiltOnAndCommunity() {
   return (
-    <section className={styles.section}>
+    <section className={clsx(styles.section, styles.sectionTight)}>
       <div className="container">
         <div className={styles.builtOn}>
           <h2 className={clsx(styles.h2, styles.builtOnTitle)}>Built on open tools</h2>

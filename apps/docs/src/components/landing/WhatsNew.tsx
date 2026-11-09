@@ -9,12 +9,14 @@ function headline(title: string, release: string): string {
 }
 
 /**
- * "New in <latest>": the highlights of the newest release post, from src/data/releases.json
- * (generated from the blog front matter by scripts/build-releases.mjs).
+ * "New in <release>": the highlights of the newest release post that has any, from
+ * src/data/releases.json (generated from the blog front matter by scripts/build-releases.mjs). A
+ * fix release such as 1.5.1 lists none, and then the release before it is shown rather than an
+ * empty section.
  */
 export default function WhatsNew(): ReactNode {
-  const latest = releases.releases[0];
-  if (!latest || latest.highlights.length === 0) {
+  const latest = releases.releases.find((r) => r.highlights.length > 0);
+  if (!latest) {
     return null;
   }
   return (

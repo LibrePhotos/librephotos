@@ -1,19 +1,14 @@
 import React, { useState, type ReactNode } from "react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
-import { useColorMode } from "@docusaurus/theme-common";
+import ThemedImage from "@theme/ThemedImage";
 import { shotInfo } from "@site/src/components/Screenshot/manifest";
+import { shotPath } from "@site/src/data/shots";
 import styles from "./landing.module.css";
 
 type Stop = { id: string; label: string; title: string; body: string; shot: string };
 
+// The timeline is the hero's shot, so the tour starts at the next stop.
 const STOPS: Stop[] = [
-  {
-    id: "timeline",
-    label: "Timeline",
-    title: "Every photo, by day and place",
-    body: "The timeline groups your library by the day it was taken and shows where you were. Scroll years in a flick with the scrubber on the right.",
-    shot: "timeline",
-  },
   {
     id: "lightbox",
     label: "Photo details",
@@ -46,9 +41,8 @@ const STOPS: Stop[] = [
 
 export default function Tour(): ReactNode {
   const [active, setActive] = useState(STOPS[0]);
-  const { colorMode } = useColorMode();
-  const base = useBaseUrl("/img/shots/");
-  const src = `${base}${active.shot}-${colorMode === "dark" ? "dark" : "light"}.webp`;
+  const light = useBaseUrl(shotPath(active.shot, "light"));
+  const dark = useBaseUrl(shotPath(active.shot, "dark"));
   const shot = shotInfo(active.shot);
 
   return (
@@ -72,7 +66,16 @@ export default function Tour(): ReactNode {
       </div>
       <div id="tour-panel" role="tabpanel" aria-labelledby={`tour-tab-${active.id}`} className={styles.tourPanel}>
         <div className={styles.tourFrame}>
-          <img key={src} src={src} alt={shot.alt} width={shot.width} height={shot.height} loading="lazy" />
+          {/* Lazy, so the theme the page is not shown in is never fetched. */}
+          <ThemedImage
+            key={active.shot}
+            sources={{ light, dark }}
+            alt={shot.alt}
+            width={shot.width}
+            height={shot.height}
+            loading="lazy"
+            decoding="async"
+          />
         </div>
         <p className={styles.tourCaption}>{active.body}</p>
       </div>
