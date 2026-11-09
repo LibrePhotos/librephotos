@@ -11,3 +11,14 @@
   border-radius: var(--mantine-radius-lg);
   background-color: var(--mantine-primary-color-light);
 }
+
+/* Close, the count and Select all: it shrinks (the count ellipsizes) so the bar keeps one line. */
+.lead {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The selection's actions keep their size. */
+.actions {
+  flex: none;
+}

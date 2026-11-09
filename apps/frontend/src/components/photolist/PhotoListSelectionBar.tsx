@@ -57,7 +57,8 @@ export function PhotoListSelectionBar({
   return (
     <Box className={classes.bar} mx={PAGE_GUTTER_PX} role="toolbar" aria-label={t("selectionbar.toolbar")}>
       <Group justify="space-between" gap="xs" wrap="nowrap">
-        <Group gap="xs">
+        {/* One line on every phone: the count gives way (ellipsis) before anything wraps */}
+        <Group gap="xs" wrap="nowrap" className={classes.lead}>
           <Tooltip label={t("selectionbar.done")} position="bottom">
             <ActionIcon
               ref={closeRef}
@@ -79,7 +80,7 @@ export function PhotoListSelectionBar({
             totalCount={totalCount}
           />
         </Group>
-        <Group justify="flex-end">
+        <Group justify="flex-end" gap="xs" wrap="nowrap" className={classes.actions}>
           {contributor && (
             <ContributorSelectionActions
               selectedItems={selectionState.selectedItems}

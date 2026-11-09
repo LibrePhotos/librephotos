@@ -5,3 +5,12 @@
   text-overflow: ellipsis;
   min-width: 0;
 }
+
+.root {
+  min-width: 0;
+}
+
+/* "Select all" stays whole; the count beside it gives way first. */
+.selectAll {
+  flex: none;
+}

@@ -26,6 +26,9 @@ import { PageHeader } from "../../../components/PageHeader";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { useEventTitle } from "../../../hooks/useEventTitle";
 
+/** How many albums the hub's row holds: one line of up to five on a wide screen; a phone swipes through all of them. */
+const HUB_ROW_MAX = 12;
+
 export const Route = createFileRoute("/_protected/album/")({
   component: AlbumExplore,
 });
@@ -149,8 +152,9 @@ function AlbumExplore() {
               </div>
             ) : (
               // The same grid as the Collections under it, first line only: one card width on the hub
+              // (a phone scrolls the row sideways through more of them)
               <div className={clsx(classes.hubGrid, classes.hubRow)}>
-                {userAlbums.slice(0, 5).map(album => (
+                {userAlbums.slice(0, HUB_ROW_MAX).map(album => (
                   <UserAlbumCard
                     key={album.id}
                     album={album}
