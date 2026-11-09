@@ -39,7 +39,7 @@ def _merge_raw_into_jpeg_photo(raw_photo: Photo, user: User, job_id: UUID) -> bo
         if not jpeg_photo.files.filter(hash=f.hash).exists():
             jpeg_photo.files.add(f)
 
-    jpeg_photo.save()
+    jpeg_photo.save(update_fields=["last_modified"])
     raw_photo.delete()
     logger.info(
         "job %s: Merged RAW photo into JPEG photo %s", job_id, jpeg_photo.image_hash

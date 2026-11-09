@@ -709,7 +709,7 @@ def rotate_photo(
         delta_angle_cw=angle,
         flip_h=flip_horizontal,
     )
-    photo.save()
+    photo.save(update_fields=["local_orientation", "last_modified"])
     if angle % 180 == 90:
         _swap_shown_size(photo)
 

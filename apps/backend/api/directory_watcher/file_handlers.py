@@ -431,7 +431,7 @@ def rekey_replaced_file(user: User, path: str, hash_value: str) -> Reindexed | N
             _discard_derived_content(photo, photo_hash)
             photo.image_hash = hash_for_owner(hash_value, photo.owner_id)
             photo.added_on = timezone.now()
-            photo.save()
+            photo.save(update_fields=["image_hash", "added_on", "last_modified"])
             rebuild_photo_ids.append(photo.pk)
 
     for photo in Photo.objects.filter(pk__in=rebuild_photo_ids):
@@ -601,10 +601,10 @@ def group_files_into_photo(
         photo.files.add(f)
 
     photo.main_file = main_file
-    photo.save()
+    photo.save(update_fields=["main_file", "last_modified"])
 
     if _attach_embedded_motion_video(user, photo, main_file):
-        photo.save()
+        photo.save(update_fields=["last_modified"])
 
     logger.info(
         "job %s: Created Photo %s with %s file(s)", job_id, photo.image_hash, len(files)
@@ -642,7 +642,7 @@ def _attach_metadata_sidecar(user: User, path: str) -> None:
         return
 
     photo.files.add(get_or_create_file(path, user))
-    photo.save()
+    photo.save(update_fields=["last_modified"])
 
 
 def _attach_file_variant(
@@ -653,7 +653,7 @@ def _attach_file_variant(
         photo.files.add(get_or_create_file(path, user))
         if keep_image:
             photo.video = False
-        photo.save()
+        photo.save(update_fields=["video", "last_modified"])
         logger.info(
             "Attached %s %s to existing Photo %s", label, path, photo.image_hash
         )
@@ -757,7 +757,7 @@ def create_new_image(user: User, path: str) -> Photo | None:
 
     photo.files.add(file)
     photo.main_file = file
-    photo.save()
+    photo.save(update_fields=["main_file", "last_modified"])
     return photo
 
 
