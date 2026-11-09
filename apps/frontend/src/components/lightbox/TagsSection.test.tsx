@@ -18,6 +18,10 @@ const stubs = vi.hoisted(() => ({
   keywords: undefined as string[] | null | undefined,
   tags: [] as Tag[],
   user: undefined as { save_metadata_to_disk: string } | undefined,
+  createTag: vi.fn<(variables: { name: string }) => Promise<Tag>>(),
+  addPhotos: vi.fn<(variables: { id: number; name: string; photos: string[] }) => Promise<void>>(),
+  removePhotos: vi.fn<(variables: { id: number; name: string; photos: string[] }) => Promise<void>>(),
+  requestFailed: vi.fn<(title: string, message: string) => void>(),
 }));
 
 vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
@@ -32,10 +36,11 @@ vi.mock("../../api_client/photos/hooks", () => ({
 vi.mock("../../api_client/tags/hooks", () => ({
   useFetchPhotoTagsQuery: () => ({ data: stubs.tags }),
   useFetchTagsQuery: () => ({ data: stubs.tags }),
-  useCreateTagMutation: () => ({ mutateAsync: vi.fn<() => Promise<Tag>>() }),
-  useAddPhotosToTagMutation: () => ({ mutateAsync: vi.fn<() => Promise<void>>(), isPending: false }),
-  useRemovePhotosFromTagMutation: () => ({ mutateAsync: vi.fn<() => Promise<void>>(), isPending: false }),
+  useCreateTagMutation: () => ({ mutateAsync: stubs.createTag }),
+  useAddPhotosToTagMutation: () => ({ mutateAsync: stubs.addPhotos, isPending: false }),
+  useRemovePhotosFromTagMutation: () => ({ mutateAsync: stubs.removePhotos, isPending: false }),
 }));
+vi.mock("../../service/notifications", () => ({ notification: { requestFailed: stubs.requestFailed } }));
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: { to: string }) => void>() }));
 // The hint reads the user's settings; WriteBackHint.test.tsx covers its texts (#2281).
 vi.mock("./WriteBackHint", () => ({
@@ -70,6 +75,10 @@ beforeEach(() => {
   stubs.keywords = [];
   stubs.tags = [];
   stubs.user = { save_metadata_to_disk: "OFF" };
+  stubs.createTag.mockReset().mockImplementation(async ({ name }) => ({ id: 99, name, photo_count: 0 }));
+  stubs.addPhotos.mockReset().mockResolvedValue(undefined);
+  stubs.removePhotos.mockReset().mockResolvedValue(undefined);
+  stubs.requestFailed.mockReset();
 });
 
 afterEach(async () => {
@@ -269,5 +278,56 @@ describe("TagsSection's unsaved draft (#2284)", () => {
       ).click()
     );
     expect(drafts.dirtyFields()).toEqual([]);
+  });
+});
+
+describe("TagsSection's save", () => {
+  const labelled = (container: HTMLElement, key: "lightbox.sidebar.save" | "lightbox.sidebar.cancel") =>
+    defined(container.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t(key)}"]`), key);
+
+  async function addTag(container: HTMLElement, name: string) {
+    const input = defined(container.querySelector<HTMLInputElement>("input"), "the tags input");
+    const setter = defined(Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set);
+    await act(async () => {
+      input.focus();
+      setter.call(input, name);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+  }
+
+  it("applies every change it can when one fails, and keeps the editor open to retry", async () => {
+    stubs.tags = [tag(1, "family"), tag(2, "beach")];
+    stubs.removePhotos.mockRejectedValue(new Error("refused"));
+    const container = await renderTags();
+    await openEditor(container);
+    const remove = defined(
+      container.querySelector<HTMLButtonElement>(".mantine-Pill-remove"),
+      "a pill's remove button"
+    );
+    await act(async () => remove.click());
+    await addTag(container, "sunset");
+
+    await act(async () => labelled(container, "lightbox.sidebar.save").click());
+
+    expect(stubs.removePhotos).toHaveBeenCalledTimes(1);
+    expect(stubs.addPhotos).toHaveBeenCalledWith({ id: 99, name: "sunset", photos: [expect.any(String)] });
+    expect(stubs.requestFailed).toHaveBeenCalledTimes(1);
+    expect(container.querySelector(".mantine-TagsInput-root")).not.toBeNull();
+  });
+
+  it("closes the editor once every change went through", async () => {
+    stubs.tags = [tag(1, "family")];
+    const container = await renderTags();
+    await openEditor(container);
+    await addTag(container, "sunset");
+
+    await act(async () => labelled(container, "lightbox.sidebar.save").click());
+
+    expect(stubs.addPhotos).toHaveBeenCalledTimes(1);
+    expect(stubs.requestFailed).not.toHaveBeenCalled();
+    expect(container.querySelector(".mantine-TagsInput-root")).toBeNull();
   });
 });

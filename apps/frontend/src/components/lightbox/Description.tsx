@@ -14,6 +14,7 @@ import { autoTagsOf, generatedCaptionOf, userCaptionOf } from "../../api_client/
 import { useGenerateImageToTextCaptionMutation, useSavePhotoCaptionMutation } from "../../api_client/photos/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { fuzzyMatch } from "../../util/util";
+import { DisabledReason } from "../common/DisabledReason";
 import { AISuggestionButton } from "./AISuggestionButton";
 import classes from "./Description.module.css";
 import hashtagClasses from "./Hashtag.module.css";
@@ -49,11 +50,17 @@ export function Description(props: Props) {
   return <CaptionEditor key={props.photoDetail.image_hash} {...props} />;
 }
 
+/**
+ * The editor's life: read-only, open, or open while its save runs. It closes only once the server
+ * took the caption; a refused save leaves it open with the draft, still unsaved (#2284).
+ */
+type EditorMode = "viewing" | "editing" | "saving";
+
 type CaptionHeaderProps = Readonly<{
   heading?: React.ReactNode;
   /** The draft differs from the saved caption (#2284). */
   dirty: boolean;
-  editMode: boolean;
+  mode: EditorMode;
   isPublic: boolean;
   generating: boolean;
   onEdit: () => void;
@@ -66,7 +73,7 @@ type CaptionHeaderProps = Readonly<{
 function CaptionHeader({
   heading,
   dirty,
-  editMode,
+  mode,
   isPublic,
   generating,
   onEdit,
@@ -75,6 +82,8 @@ function CaptionHeader({
   onSave,
 }: CaptionHeaderProps) {
   const { t } = useTranslation();
+  const editMode = mode !== "viewing";
+  const saving = mode === "saving";
   return (
     <Group justify="space-between" wrap="nowrap">
       <Group gap="xs" wrap="nowrap">
@@ -110,7 +119,7 @@ function CaptionHeader({
               <Wand size={16} />
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={t("lightbox.sidebar.cancel")}>
+          <DisabledReason label={t("lightbox.sidebar.cancel")} reason={saving && t("lightbox.sidebar.saving")}>
             <ActionIcon
               variant="subtle"
               color="gray"
@@ -120,7 +129,7 @@ function CaptionHeader({
             >
               <IconX size={16} />
             </ActionIcon>
-          </Tooltip>
+          </DisabledReason>
           <Tooltip label={t("lightbox.sidebar.save")}>
             <ActionIcon
               variant="subtle"
@@ -128,6 +137,7 @@ function CaptionHeader({
               size="sm"
               aria-label={t("lightbox.sidebar.save")}
               onClick={onSave}
+              loading={saving}
             >
               <IconCheck size={16} />
             </ActionIcon>
@@ -170,7 +180,8 @@ function CaptionEditor(props: Props) {
   const autoTags = autoTagsOf(photoDetail.captions_json, taggingModel);
   const savedCaption = userCaptionOf(photoDetail.captions_json);
 
-  const [editMode, setEditMode] = useState(startEditing && !isPublic);
+  const [mode, setMode] = useState<EditorMode>(startEditing && !isPublic ? "editing" : "viewing");
+  const editMode = mode !== "viewing";
   const [imageCaption, setImageCaption] = useState<string | null>(null);
   const { mutate: updateCaption } = useSavePhotoCaptionMutation();
   const { mutate: generateImageToTextCaptions, isPending: generatingCaptionIm2txt } =
@@ -232,7 +243,7 @@ function CaptionEditor(props: Props) {
   useEffect(() => showSavedCaption(), [showSavedCaption]);
 
   const setEditing = (editing: boolean) => {
-    setEditMode(editing);
+    setMode(editing ? "editing" : "viewing");
     // useEditor only reads `editable` when it creates the editor.
     editor?.setEditable(editing);
     if (editing) {
@@ -246,12 +257,19 @@ function CaptionEditor(props: Props) {
   };
 
   const onSave = () => {
+    if (mode === "saving") return;
     // Save sits where the pencil was, so a double-click saves straight away:
     // an unchanged caption is not written again (nor announced as saved).
-    if ((imageCaption ?? "") !== savedCaption) {
-      updateCaption({ id: photoDetail.image_hash, caption: imageCaption || "" });
+    if ((imageCaption ?? "") === savedCaption) {
+      setEditing(false);
+      return;
     }
-    setEditing(false);
+    setMode("saving");
+    editor?.setEditable(false);
+    updateCaption(
+      { id: photoDetail.image_hash, caption: imageCaption || "" },
+      { onSuccess: () => setEditing(false), onError: () => setEditing(true) }
+    );
   };
 
   // Compared as Save compares it: an editor opened and left unchanged holds nothing to lose.
@@ -267,7 +285,7 @@ function CaptionEditor(props: Props) {
         <CaptionHeader
           heading={heading}
           dirty={dirty}
-          editMode={editMode}
+          mode={mode}
           isPublic={isPublic}
           generating={generatingCaptionIm2txt}
           onEdit={() => setEditing(true)}

@@ -14,7 +14,17 @@ import { Description } from "./Description";
 import hashtagClasses from "./Hashtag.module.css";
 import { createUnsavedDrafts, UnsavedDraftsContext } from "./unsavedDrafts";
 
-const saveCaption = vi.fn<(variables: { id: string; caption: string }) => void>();
+type SaveCallbacks = { onSuccess?: () => void; onError?: (error: unknown) => void };
+const saveCaption = vi.fn<(variables: { id: string; caption: string }, callbacks?: SaveCallbacks) => void>();
+
+/** Settles the newest save as the server would. */
+async function settleSave(outcome: "saved" | "failed") {
+  const callbacks = defined(saveCaption.mock.calls.at(-1))[1];
+  await act(async () => {
+    if (outcome === "saved") callbacks?.onSuccess?.();
+    else callbacks?.onError?.(new Error("refused"));
+  });
+}
 const navigate = vi.hoisted(() => vi.fn<(options: { to: string }) => void>());
 const fetchThingsAlbums = vi.hoisted(() => vi.fn(() => ({ data: [] })));
 
@@ -195,7 +205,7 @@ describe("Description", () => {
     await clickLabelled(container, "Edit caption");
     await type(container, " and a draft");
     await clickLabelled(container, "Save");
-    expect(saveCaption).toHaveBeenCalledWith({ id: "a", caption: "Saved text and a draft" });
+    expect(saveCaption).toHaveBeenCalledWith({ id: "a", caption: "Saved text and a draft" }, expect.anything());
   });
 
   it("does not carry an open editor over to the next photo", async () => {
@@ -279,7 +289,7 @@ describe("Description's unsaved draft (#2284)", () => {
     expect(container.textContent).not.toContain("Unsaved");
   });
 
-  it("is saved, so no longer unsaved, after Save", async () => {
+  it("is saved, so no longer unsaved, once the server took it", async () => {
     const drafts = createUnsavedDrafts();
     const { container, root } = mount();
     await render(root, photo("a", "Saved text"), false, {}, drafts);
@@ -287,7 +297,27 @@ describe("Description's unsaved draft (#2284)", () => {
     await type(container, " and a draft");
 
     await clickLabelled(container, "Save");
+    // Not before: leaving now would lose the caption if the save fails.
+    expect(drafts.dirtyFields()).toEqual(["caption"]);
+    await settleSave("saved");
     expect(drafts.dirtyFields()).toEqual([]);
+    expect(editorElement(container).getAttribute("contenteditable")).toBe("false");
+  });
+
+  it("stays open and unsaved with the draft when the save fails", async () => {
+    const drafts = createUnsavedDrafts();
+    const { container, root } = mount();
+    await render(root, photo("a", "Saved text"), false, {}, drafts);
+    await clickLabelled(container, "Edit caption");
+    await type(container, " and a draft");
+
+    await clickLabelled(container, "Save");
+    await settleSave("failed");
+
+    expect(editorElement(container).getAttribute("contenteditable")).toBe("true");
+    expect(editorElement(container).textContent).toBe("Saved text and a draft");
+    expect(drafts.dirtyFields()).toEqual(["caption"]);
+    expect(container.querySelector('button[aria-label="Save"]')).not.toBeNull();
   });
 
   it("withdraws the draft when the next photo replaces the editor", async () => {
