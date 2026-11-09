@@ -69,12 +69,7 @@ export function UserAlbumIdentity({ album, own, upload }: Props) {
           </DisabledReason>
         ) : null}
       </div>
-      <ModalAlbumShare
-        isOpen={shareOpened}
-        onRequestClose={share.close}
-        albumID={String(album.id)}
-        ownerUsername={album.owner.username}
-      />
+      <ModalAlbumShare isOpen={shareOpened} onRequestClose={share.close} albumID={String(album.id)} />
     </div>
   );
 }

@@ -42,7 +42,6 @@ function PublicLinksPage() {
   const navigate = Route.useNavigate();
   const activeTab: PublicLinksTab = Route.useSearch({ select: search => search.tab }) ?? "albums";
   const [albumID, setAlbumID] = useState("");
-  const [albumOwner, setAlbumOwner] = useState("");
   const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
 
   // Fetch public albums (albums with public=true)
@@ -53,9 +52,8 @@ function PublicLinksPage() {
   const sharesFailure = useListFailure(sharesQuery);
   const publicAlbums = useMemo(() => userAlbums.filter(album => album.public), [userAlbums]);
 
-  const openShareDialog = (id: string, _title: string, ownerUsername: string) => {
+  const openShareDialog = (id: string) => {
     setAlbumID(id);
-    setAlbumOwner(ownerUsername);
     showShareDialog();
   };
 
@@ -135,12 +133,7 @@ function PublicLinksPage() {
           </Tabs.Panel>
         </PageTabs>
 
-        <ModalAlbumShare
-          isOpen={isShareDialogOpen}
-          onRequestClose={hideShareDialog}
-          albumID={albumID}
-          ownerUsername={albumOwner}
-        />
+        <ModalAlbumShare isOpen={isShareDialogOpen} onRequestClose={hideShareDialog} albumID={albumID} />
       </PageBody>
     </>
   );

@@ -2,7 +2,7 @@ import type { UserAlbumInfo } from "@librephotos/api-client";
 import { useDisclosure } from "@mantine/hooks";
 import { IconBookmark as Bookmark } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumsQuery, useToggleUserAlbumLockedMutation } from "../../../api_client/albums/hooks";
 import { AlbumCollectionFilter } from "../../../components/album/AlbumCollectionFilter";
@@ -17,6 +17,7 @@ import { useAlbumCollectionFilter } from "../../../components/album/useAlbumColl
 import { useAlbumSort } from "../../../components/album/useAlbumSort";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
+import { useUserAlbumDialogs } from "../../../components/album/useUserAlbumDialogs";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
@@ -35,13 +36,8 @@ export const Route = createFileRoute("/_protected/album/user/")({
 const NO_ALBUMS: UserAlbumInfo[] = [];
 
 function AlbumUser() {
-  const [albumID, setAlbumID] = useState("");
-  const [albumOwner, setAlbumOwner] = useState("");
-  const [albumTitle, setAlbumTitle] = useState("");
-  const [isDeleteDialogOpen, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
-  const [isRenameDialogOpen, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
-  const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
-  const [isCollectionsDialogOpen, collectionsDialog] = useDisclosure(false);
+  const albumDialogs = useUserAlbumDialogs();
+  const { album: dialogAlbum } = albumDialogs;
   const [isManageDialogOpen, manageDialog] = useDisclosure(false);
   const { t } = useTranslation();
   const navigate = Route.useNavigate();
@@ -59,32 +55,6 @@ function AlbumUser() {
     albumSort.sorted,
     Route.useSearch().collection
   );
-
-  const openDeleteDialog = (id: string, title: string) => {
-    showDeleteDialog();
-    setAlbumID(id);
-    setAlbumTitle(title);
-  };
-
-  const openRenameDialog = (id: string, title: string) => {
-    showRenameDialog();
-    setAlbumID(id);
-    setAlbumTitle(title);
-  };
-
-  const openShareDialog = (id: string, title: string) => {
-    showShareDialog();
-    setAlbumID(id);
-    setAlbumTitle(title);
-    const album = albums.find(a => `${a.id}` === id);
-    if (album) setAlbumOwner(album.owner.username);
-  };
-
-  const openCollectionsDialog = (id: string, title: string) => {
-    collectionsDialog.open();
-    setAlbumID(id);
-    setAlbumTitle(title);
-  };
 
   const subtitle = () => {
     if (filter === undefined) return t("useralbum.numberof", { count: albums.length, number: albums.length });
@@ -118,11 +88,11 @@ function AlbumUser() {
         />
       )}
       <AlbumCollectionsModal
-        opened={isCollectionsDialogOpen}
-        onClose={collectionsDialog.close}
-        albumId={albumID}
-        albumTitle={albumTitle}
-        collectionIds={albums.find(album => `${album.id}` === albumID)?.collection_ids ?? []}
+        opened={albumDialogs.collections.opened}
+        onClose={albumDialogs.collections.close}
+        albumId={dialogAlbum.id}
+        albumTitle={dialogAlbum.title}
+        collectionIds={albums.find(album => `${album.id}` === dialogAlbum.id)?.collection_ids ?? []}
       />
       <ManageAlbumCollectionsModal
         opened={isManageDialogOpen}
@@ -130,23 +100,22 @@ function AlbumUser() {
         counts={counts.byCollection}
       />
       <RenameUserAlbumModal
-        opened={isRenameDialogOpen}
-        onClose={hideRenameDialog}
-        albumId={albumID}
-        albumTitle={albumTitle}
+        opened={albumDialogs.rename.opened}
+        onClose={albumDialogs.rename.close}
+        albumId={dialogAlbum.id}
+        albumTitle={dialogAlbum.title}
         existingTitles={titles}
       />
       <ModalAlbumShare
-        isOpen={isShareDialogOpen}
-        onRequestClose={hideShareDialog}
-        albumID={albumID}
-        ownerUsername={albumOwner}
+        isOpen={albumDialogs.share.opened}
+        onRequestClose={albumDialogs.share.close}
+        albumID={dialogAlbum.id}
       />
       <DeleteUserAlbumModal
-        opened={isDeleteDialogOpen}
-        onClose={hideDeleteDialog}
-        albumId={albumID}
-        albumTitle={albumTitle}
+        opened={albumDialogs.remove.opened}
+        onClose={albumDialogs.remove.close}
+        albumId={dialogAlbum.id}
+        albumTitle={dialogAlbum.title}
       />
       {listFailure ? (
         <ErrorState failure={listFailure} />
@@ -179,10 +148,10 @@ function AlbumUser() {
               album={album}
               size={size}
               showActions
-              onRename={openRenameDialog}
-              onShare={openShareDialog}
-              onCollections={openCollectionsDialog}
-              onDelete={openDeleteDialog}
+              onRename={albumDialogs.rename.open}
+              onShare={albumDialogs.share.open}
+              onCollections={albumDialogs.collections.open}
+              onDelete={albumDialogs.remove.open}
               onToggleLocked={(id, locked) => toggleUserAlbumLocked.mutate({ id, locked })}
             />
           )}

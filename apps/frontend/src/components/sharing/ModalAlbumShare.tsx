@@ -39,7 +39,6 @@ type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
   albumID: string;
-  ownerUsername?: string;
 }>;
 
 export function ModalAlbumShare(props: Props) {

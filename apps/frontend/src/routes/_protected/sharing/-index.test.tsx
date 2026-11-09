@@ -85,8 +85,8 @@ vi.mock("../../../api_client/photos/hooks", () => ({
   useFetchSharedPhotosWithMeQuery: () => answer(stubs.photosWithMe),
 }));
 vi.mock("../../../components/sharing/ModalAlbumShare", () => ({
-  ModalAlbumShare: ({ isOpen, albumID, ownerUsername }: { isOpen: boolean; albumID: string; ownerUsername: string }) =>
-    isOpen ? <div data-testid="share-dialog">{`${albumID} of ${ownerUsername}`}</div> : null,
+  ModalAlbumShare: ({ isOpen, albumID }: { isOpen: boolean; albumID: string }) =>
+    isOpen ? <div data-testid="share-dialog">{albumID}</div> : null,
 }));
 
 const OWNER = { id: 1, username: "anna", first_name: "", last_name: "" };
@@ -281,7 +281,7 @@ describe("the Sharing overview's Public links row (#2241)", () => {
     );
     await act(async () => defined(item, "the Sharing item").click());
 
-    expect(document.body.querySelector('[data-testid="share-dialog"]')?.textContent).toBe("7 of anna");
+    expect(document.body.querySelector('[data-testid="share-dialog"]')?.textContent).toBe("7");
   });
 });
 
