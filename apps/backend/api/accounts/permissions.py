@@ -11,7 +11,7 @@ class IsAdminOrSelf(permissions.BasePermission):
     """A user edits their own account; staff edit the others.
 
     A superuser's account only by a superuser: staff who are not one could
-    set its password or email and sign in as it (GHSA-57r4-v566-3rcw).
+    set its password or email and sign in as it (GHSA-9r2w-8q26-2fcw).
     """
 
     def has_object_permission(self, request: Request, view: APIView, obj: User) -> bool:

@@ -305,5 +305,5 @@ class DeleteUserViewSet(mixins.DestroyModelMixin, viewsets.GenericViewSet):
 class ManageUserViewSet(PartialUpdateModelMixin[User], viewsets.GenericViewSet):
     queryset = with_user_relations(User.objects.all()).order_by("id")
     serializer_class = ManageUserSerializer
-    # A superuser is edited by superusers only (GHSA-57r4-v566-3rcw).
+    # A superuser is edited by superusers only (GHSA-9r2w-8q26-2fcw).
     permission_classes = (IsAdminUser, MayManageUser)
