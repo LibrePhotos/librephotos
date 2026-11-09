@@ -265,15 +265,17 @@ def _discard_faces(photo: Photo) -> None:
 def _discard_cheap_derived_content(photo: Photo, old_hash: str) -> None:
     """Drop what the new bytes certainly invalidate and nothing else.
 
-    The cached transcode is named after the image hash and the dominant colour
-    was sampled from the picture; both are cheap to rebuild and wrong to keep.
+    The cached transcode is named after the image hash, and the dominant colour
+    and the ThumbHash were sampled from the picture; all are cheap to rebuild
+    and wrong to keep.
     """
     transcode_cache.discard(old_hash)
 
     thumbnail = getattr(photo, "thumbnail", None)
     if thumbnail:
         thumbnail.dominant_color = None
-        thumbnail.save(update_fields=["dominant_color"])
+        thumbnail.thumbhash = None
+        thumbnail.save(update_fields=["dominant_color", "thumbhash"])
 
 
 def _discard_derived_content(photo: Photo, old_hash: str) -> None:
@@ -1175,6 +1177,7 @@ def _process_photo(
         edits.apply_rights_default_on_scan(photo)
 
     render.calculate_dominant_color(thumbnail)
+    render.calculate_thumbhash(thumbnail)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     logger.debug("job %s: get dominant color: %s, elapsed: %s", job_id, path, elapsed)
 

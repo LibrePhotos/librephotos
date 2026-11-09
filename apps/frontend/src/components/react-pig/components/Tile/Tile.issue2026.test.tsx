@@ -14,7 +14,7 @@ import type { ScrollSpeed } from "../../types";
 import Tile from "./Tile";
 import { PREVIEW_DELAY_MS } from "./useClipPreview";
 
-const settings = { gridGap: 8, bgColor: "#fff", thumbnailSize: 20, expandedSize: 1000 };
+const settings = { gridGap: 8, bgColor: "#fff", expandedSize: 1000 };
 
 function getUrl(imageHash: string, size: number, poster = false) {
   return `/media/${imageHash}?h=${size}${poster ? "&poster" : ""}`;
@@ -45,7 +45,6 @@ function tile(item: VideoItem, scrollSpeed: ScrollSpeed, activeTileId: string | 
   return (
     <Tile
       item={item}
-      useLqip
       containerWidth={1200}
       containerOffsetTop={0}
       getUrl={getUrl}
@@ -134,7 +133,7 @@ describe("issue 2026: a still poster, and the clip only on hover", () => {
     const { button } = renderTile();
 
     expect(button.querySelector("video")).toBeNull();
-    expect(sources(button, "img")).toEqual(["/media/hash1?h=20&poster", "/media/hash1?h=400&poster"]);
+    expect(sources(button, "img")).toEqual(["/media/hash1?h=400&poster"]);
   });
 
   it("mounts the clip over the poster once the pointer has rested, and releases it on leave", () => {
@@ -275,6 +274,6 @@ describe("issue 2026: a still poster, and the clip only on hover", () => {
     rest();
 
     expect(button.querySelector("video")).toBeNull();
-    expect(sources(button, "img")).toEqual(["/media/hash1?h=20", "/media/hash1?h=400"]);
+    expect(sources(button, "img")).toEqual(["/media/hash1?h=400"]);
   });
 });

@@ -39,6 +39,7 @@ const JOB_TYPE_KEYS: Partial<Record<number, ParseKeys>> = {
   34: "jobs.type.make_video_posters",
   35: "jobs.type.rename_photos",
   36: "jobs.type.repair_turned_faces",
+  37: "jobs.type.make_thumbhashes",
 };
 
 /**

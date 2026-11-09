@@ -7,9 +7,12 @@ import { defined } from "../../../../util/defined.test-utils";
 import type { ImageItem } from "../../types";
 import Tile from "./Tile";
 
-const settings = { gridGap: 8, bgColor: "#fff", thumbnailSize: 20, expandedSize: 1000 };
+const settings = { gridGap: 8, bgColor: "#fff", expandedSize: 1000 };
 
-type PhotoItem = ReturnType<typeof photoItem>;
+// A 100 x 60 gradient's ThumbHash, as the backend stores it.
+const SKY_THUMBHASH = "4QYKhJqGh4eAh4iHiHeAdQj4iA==";
+
+type PhotoItem = ReturnType<typeof photoItem> & { thumbhash?: string };
 
 function photoItem(
   overrides: Partial<
@@ -48,7 +51,6 @@ function renderTile(
     defined(root).render(
       <Tile
         item={item}
-        useLqip
         containerWidth={1200}
         containerOffsetTop={0}
         getUrl={(imageHash: string, size: number) => `/media/${imageHash}?h=${size}`}
@@ -207,23 +209,38 @@ describe("react-pig Tile accessibility", () => {
 });
 
 describe("react-pig Tile media", () => {
-  it("builds every image address from the image hash", () => {
+  it("builds the grid image's address from the image hash, and asks for no smaller one", () => {
     const { button } = renderTile(photoItem());
 
     const sources = Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"));
-    expect(sources).toEqual(["/media/hash1?h=20", "/media/hash1?h=400"]);
+    expect(sources).toEqual(["/media/hash1?h=400"]);
   });
 
-  it("unblurs the placeholder once the grid image has loaded", () => {
-    const { button } = renderTile(photoItem());
+  it("shows the photo's ThumbHash under the grid image, without a request of its own", () => {
+    const { button } = renderTile({ ...photoItem(), thumbhash: SKY_THUMBHASH });
+
     const [placeholder, grid] = Array.from(button.querySelectorAll("img"));
-    expect(defined(placeholder).className).not.toMatch(/pigThumbnailLoaded/);
+    expect(defined(placeholder).getAttribute("src")).toMatch(/^data:image\/png;base64,/);
+    expect(defined(grid).getAttribute("src")).toBe("/media/hash1?h=400");
+  });
+
+  it("keeps the dominant colour for a hash it cannot read", () => {
+    const { button } = renderTile({ ...photoItem(), thumbhash: "not base64!" });
+
+    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toEqual([
+      "/media/hash1?h=400",
+    ]);
+  });
+
+  it("fades the grid image in once it has loaded", () => {
+    const { button } = renderTile({ ...photoItem(), thumbhash: SKY_THUMBHASH });
+    const [, grid] = Array.from(button.querySelectorAll("img"));
+    expect(defined(grid).className).not.toMatch(/pigFullLoaded/);
 
     act(() => {
       defined(grid).dispatchEvent(new Event("load"));
     });
 
-    expect(defined(placeholder).className).toMatch(/pigThumbnailLoaded/);
     expect(defined(grid).className).toMatch(/pigFullLoaded/);
   });
 
@@ -261,7 +278,6 @@ describe("react-pig Tile media", () => {
 
     expect(button.querySelector("video")).toBeNull();
     expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toEqual([
-      "/media/hash1?h=20",
       "/media/hash1?h=400",
       "/media/hash1?h=1000",
     ]);

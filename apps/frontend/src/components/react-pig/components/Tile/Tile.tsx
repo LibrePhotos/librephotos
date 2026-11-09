@@ -10,7 +10,6 @@ import { useClipPreview } from "./useClipPreview";
 
 type TileProps<T extends ImageItem> = {
   item: LaidOutTile<T>;
-  useLqip: boolean;
   containerWidth: number;
   /** Null until Pig has measured its container. */
   containerOffsetTop: number | null;
@@ -23,7 +22,7 @@ type TileProps<T extends ImageItem> = {
   selectable: boolean;
   windowHeight: number;
   scrollSpeed: ScrollSpeed;
-  settings: Pick<PigSettings, "gridGap" | "bgColor" | "thumbnailSize" | "expandedSize">;
+  settings: Pick<PigSettings, "gridGap" | "bgColor" | "expandedSize">;
   toprightoverlay?: PigOverlay<T> | null;
   bottomleftoverlay?: PigOverlay<T> | null;
   bottomrightoverlay?: PigOverlay<T> | null;
@@ -49,7 +48,6 @@ function movedByLayout(previous: TilePlace | null, current: TilePlace): boolean 
 
 function TileComponent<T extends ImageItem>({
   item,
-  useLqip,
   containerWidth,
   containerOffsetTop,
   getUrl,
@@ -147,7 +145,6 @@ function TileComponent<T extends ImageItem>({
         <TileMedia
           item={item}
           getUrl={getUrl}
-          useLqip={useLqip}
           containerWidth={containerWidth}
           scrollSpeed={scrollSpeed}
           settings={settings}

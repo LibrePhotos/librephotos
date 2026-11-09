@@ -64,6 +64,9 @@ class Thumbnail(models.Model):
     square_thumbnail_small = models.ImageField(upload_to="square_thumbnails_small")
     aspect_ratio = models.FloatField(blank=True, null=True)
     dominant_color = models.TextField(blank=True, null=True)
+    # The picture in ~25 bytes, base64 (api.thumbnails.thumbhash): the grid
+    # shows it until the thumbnail has loaded. Null until it is computed.
+    thumbhash = models.CharField(max_length=64, blank=True, null=True)
     # A video's WebP stills sit beside its squares (``<image_hash>.webp`` in
     # both square directories): the grid shows them until the pointer rests
     # on the tile and the clip plays (#2026). With the animated previews off
