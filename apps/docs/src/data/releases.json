@@ -1,6 +1,77 @@
 {
-  "latest": "1.5.1",
+  "latest": "1.6.0",
   "releases": [
+    {
+      "release": "1.6.0",
+      "versions": [
+        "1.6.0"
+      ],
+      "date": "2026-11-09T12:00:00.000Z",
+      "title": "1.6.0: A fresh look, far fewer wrong things, and your year in photos",
+      "permalink": "/blog/1-6-0",
+      "summary": "A fresh look for the whole app, faces to review one click away, far fewer wrong things on your photos, and a Rewind of your year. Everyone should update; multi-user instances right away, for security fixes.",
+      "highlights": [
+        {
+          "id": "fresh-look",
+          "audience": "all",
+          "title": "A fresh look",
+          "body": "Every page got a calmer, cleaner design, also on phones. Customize sidebar pins the pages you use most, and big days load fast without jumping.",
+          "shot": "timeline",
+          "learn_more": "/docs/user-guide/viewing-photos#timeline-home",
+          "open_in_app": "/"
+        },
+        {
+          "id": "review-faces",
+          "audience": "all",
+          "title": "Faces to review, one click away",
+          "body": "The People page says how many faces wait for you and opens them in one click. You can also pin Faces to the sidebar.",
+          "shot": "faces",
+          "learn_more": "/docs/user-guide/face-recognition#open-the-face-dashboard",
+          "open_in_app": "/album/persons"
+        },
+        {
+          "id": "fewer-wrong-things",
+          "audience": "all",
+          "title": "Far fewer wrong things",
+          "body": "Photos get fewer things, like beach or dog, and far fewer wrong ones. Find things again for all photos on the Library page updates the photos you already have.",
+          "learn_more": "/docs/user-guide/albums#things-albums",
+          "open_in_app": "/library"
+        },
+        {
+          "id": "rewind",
+          "audience": "all",
+          "title": "Your year in photos",
+          "body": "From 20 December to 6 January, Rewind shows your year once: your busiest day, and the people and places you photographed most. Your server works it out.",
+          "learn_more": "/docs/user-guide/settings#site-settings"
+        },
+        {
+          "id": "error-reports",
+          "audience": "admin",
+          "title": "Error reports stay on your server",
+          "body": "When something breaks, LibrePhotos keeps a cleaned-up report on your server. Nothing is sent until you choose to share it with the maintainers or your own server.",
+          "learn_more": "/docs/user-guide/error-reporting#the-choices",
+          "open_in_app": "/admin"
+        }
+      ],
+      "after_update": [
+        {
+          "id": "find-things-again",
+          "audience": "all",
+          "title": "Recommended: find things again",
+          "body": "Account menu > Library, under Things the arrow next to Find > Find things again for all photos. Gives the photos you already had the better things.",
+          "learn_more": "/docs/user-guide/albums#things-albums",
+          "open_in_app": "/library"
+        },
+        {
+          "id": "choose-error-reporting",
+          "audience": "admin",
+          "title": "Choose where error reports go",
+          "body": "LibrePhotos asks once. Off keeps every report on this server. You can change it any time under Account menu > Admin area > Error reporting.",
+          "learn_more": "/docs/user-guide/error-reporting#the-choices",
+          "open_in_app": "/admin"
+        }
+      ]
+    },
     {
       "release": "1.5.1",
       "versions": [
