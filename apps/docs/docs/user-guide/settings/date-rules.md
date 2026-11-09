@@ -1,5 +1,5 @@
 ---
-title: "📅 Using date rules"
+title: "Using date rules"
 description: "How to use the date rules"
 sidebar_position: 1
 ---
@@ -61,7 +61,7 @@ Videos keep their date in other tags than photos, and the default rules read thr
 - **Other MP4 and MOV files** only have the UTC `QuickTime:CreateDate`, converted with the time zone of the video's position or, without one, your default time zone.
 - **MKV and WebM files** have a UTC `Matroska:DateTimeOriginal`, converted the same way by the two "MKV/WebM creation date" rules.
 
-<Since version="1.4.0" /> After the update, accounts whose rules still contain both "Get Video creation tag in UTC + figure out timezone using GPS coordinates" (ID 2) and "Video creation datetime in user default timezone" (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and **Reset To Defaults** adds them. Videos already in your library get the new dates with [Apply date rules to existing photos](#applying-the-rules) or a **Rescan**.
+<Since version="1.4.0" /> After the update, accounts whose rules still contain both "Get Video creation tag in UTC + figure out timezone using GPS coordinates" (ID 2) and "Video creation datetime in user default timezone" (ID 4) get the three new rules (IDs 17, 18 and 19) next to them; a list without either of those two is left as you set it, and **Reset to defaults** adds them. Videos already in your library get the new dates with [Apply date rules to existing photos](#applying-the-rules) or a **Rescan**.
 
 ### What gets stored, and why times are not converted for you
 
@@ -94,7 +94,7 @@ Currently, supported rule types:
   a property that only a sidecar holds, name its XMP tag directly (for example `XMP:<tag>`).
   `XMP:DateCreated`, where LibrePhotos writes the dates you set when
   [Write edits to files](./index.md#metadata-options) is on, is the first rule of the default list. Accounts created before 1.1.0 do not have that rule unless
-  they add it with **Add Rule** or **Reset To Defaults**.
+  they add it with **Add rule** or **Reset to defaults**.
   <Since version="1.5.0" /> These date tags hold local time: `XMP:DateCreated`,
   `EXIF:DateTimeOriginal`, `EXIF:ModifyDate` and `QuickTime:CreationDate`. Some apps still write
   them in UTC, with a trailing `Z` (`2025:06:02 06:30:00Z`); such a value is turned into local time
@@ -125,14 +125,14 @@ Currently, supported rule types:
 
 ### Adding optional rules
 
-To add a new rule, go to settings and navigate to the date time parsing rules. Click on the **Add Rule** button. You can now add optional rules, such as using the file's modified or created time.
+To add a new rule, go to settings and navigate to the date time parsing rules. Click on the **Add rule** button. You can now add optional rules, such as using the file's modified or created time.
 
-To remove a rule again, click the X (**Delete rule**) at the right-hand end of its row. The **Reset To Defaults** button next to **Add Rule** puts the list back to the rules LibrePhotos ships with; it is greyed out while your list already matches the default rules in their default order.
+To remove a rule again, click the X (**Delete rule**) at the right-hand end of its row. The **Reset to defaults** button next to **Add rule** puts the list back to the rules LibrePhotos ships with; it is greyed out while your list already matches the default rules in their default order.
 
 ### Writing your own rules
 
 <Since version="1.5.0" /> When no predefined rule reads your files' dates, write your own. Click
-**New Rule** next to **Add Rule**, or **Duplicate and edit** (the copy icon) on a predefined rule to
+**New rule** next to **Add rule**, or **Duplicate and edit** (the copy icon) on a predefined rule to
 start from it. A rule you wrote has an **Edit rule** pencil instead; the predefined rules stay as
 they are. In the form:
 
@@ -153,7 +153,7 @@ they are. In the form:
   model, for example) contains a text.
 - **Name**: filled in from your choices until you write your own.
 
-**Save Rule** checks the rule with the server first and shows anything it refuses next to the field;
+**Save rule** checks the rule with the server first and shows anything it refuses next to the field;
 the rule is then added at the end of the list. Like every change to the list, it is stored once you
 confirm **Save changes?**, and photos already in your library get its dates with
 [Apply date rules to existing photos](#applying-the-rules).
@@ -178,9 +178,9 @@ The date rules are applied on each scan, so photos scanned after a change use th
 - Right after you save changed rules, the date rules card shows **Your date rules changed** with an **Apply to existing photos** button.
 - At any time, open the **Library** page (from the profile menu in the top-right corner, choose **Library**; or press Ctrl+K and search for "Library") and click **Apply** in the **Dates** section.
 
-Both start the same background job, **Apply Date Rules**. It reads the date of every photo again with your current rules and moves each photo whose date changed to its new day. It does nothing else: no thumbnails, faces or other metadata are redone, and nothing is written to your files. A date you set by hand is never changed. When it is done, a message says how many photos moved to another day and how many keep the date you set by hand; the job list has the photos whose date could not be read. Event albums are not rebuilt by it: click **Generate** under **Generate Event Albums** on the Library page afterwards so your events follow the new dates.
+Both start the same background job, **Apply date rules**. It reads the date of every photo again with your current rules and moves each photo whose date changed to its new day. It does nothing else: no thumbnails, faces or other metadata are redone, and nothing is written to your files. A date you set by hand is never changed. When it is done, a message says how many photos moved to another day and how many keep the date you set by hand; the job list has the photos whose date could not be read. Event albums are not rebuilt by it: click **Generate** under **Generate event albums** on the Library page afterwards so your events follow the new dates.
 
-Up to version 1.3.0 the only way was a full **Rescan**: in the **Scan Library** section, click the arrow next to the **Scan** button and choose **Rescan** (or **Rescan All Photos** in the command palette). It still works, but re-processes every file, which takes much longer. A plain **Scan** does not apply changed rules to photos it has seen before: it only looks at files that are new or changed since the last scan.
+Up to version 1.3.0 the only way was a full **Rescan**: in the **Scan library** section, click the arrow next to the **Scan** button and choose **Rescan** (or **Rescan all photos** in the command palette). It still works, but re-processes every file, which takes much longer. A plain **Scan** does not apply changed rules to photos it has seen before: it only looks at files that are new or changed since the last scan.
 
 ### Troubleshooting
 

@@ -1,5 +1,5 @@
 ---
-title: "🐋 Standard Docker Setup"
+title: "Standard Docker setup"
 description: "Traditional multi-container deployment with nginx proxy."
 sidebar_position: 2
 ---

@@ -1,5 +1,5 @@
 ---
-title: "🗺 Places"
+title: "Places"
 description: "An overview on how geolocation and places work in LibrePhotos"
 sidebar_position: 8
 ---
@@ -25,7 +25,7 @@ GPS edited in another program is picked up by the next scan: a photo you geotag 
 
 GPS coordinates alone are just numbers. To show meaningful place names (like "Paris, France" or "Central Park, New York"), LibrePhotos uses **reverse geocoding** - a process that converts coordinates into human-readable addresses.
 
-You can configure your preferred geocoding provider in **Admin Area → Site Settings**:
+You can configure your preferred geocoding provider in **Admin area → Site settings**:
 
 | Provider | API Key Required | Notes |
 |----------|-----------------|-------|
@@ -46,7 +46,7 @@ Choose **Nominatim** if you want street and point-of-interest names. It is free 
 
 <Since version="1.4.0" />
 
-Choose **ExifTool (offline, built in)** as the **Map Provider** to look place names up on your own server. ExifTool, which LibrePhotos already uses to read metadata, comes with a database of the world's towns, so the lookup needs no Internet connection and no API key, has no rate limit (about 9 ms per photo instead of more than a second with Nominatim), and your photos' coordinates never leave the server.
+Choose **ExifTool (offline, built in)** as the **Map provider** to look place names up on your own server. ExifTool, which LibrePhotos already uses to read metadata, comes with a database of the world's towns, so the lookup needs no Internet connection and no API key, has no rate limit (about 9 ms per photo instead of more than a second with Nominatim), and your photos' coordinates never leave the server.
 
 What to expect:
 
@@ -60,23 +60,23 @@ Place names from ExifTool come from [GeoNames](https://www.geonames.org/) and ar
 
 #### Switching the provider
 
-Switching the **Map Provider** does not rename photos that already have a place: new photos, and photos whose position changes, get names from the new provider, so your Places albums mix the names of both.
+Switching the **Map provider** does not rename photos that already have a place: new photos, and photos whose position changes, get names from the new provider, so your Places albums mix the names of both.
 
-<Since version="1.4.0" /> To give every photo the names of the new provider, an admin opens **Admin Area → Admin Tools** and clicks **Start** next to **Look up place names again**, then confirms. A **Look Up Place Names** job asks the provider set now for the place of every photo with a location, for every user, and you can follow it in **Worker Logs**:
+<Since version="1.4.0" /> To give every photo the names of the new provider, an admin opens **Admin area → Admin tools** and clicks **Start** next to **Look up place names again**, then confirms. A **Look up place names** job asks the provider set now for the place of every photo with a location, for every user, and you can follow it in **Worker logs**:
 
 - Each photo moves to the Places albums of its new names. Places albums under the old names end up empty, favourited or shared ones included.
 - The day albums (and the memories built from them) name their places again as the job reaches their photos.
-- Event titles keep their wording until the event albums are generated again (**Regenerate Event Titles**).
+- Event titles keep their wording until the event albums are generated again (**Regenerate event titles**).
 - With ExifTool it takes minutes for a large library. With an online provider it takes about a second per photo (Nominatim's limit), so hours for tens of thousands of photos.
 - A photo whose lookup fails keeps its old place, and the next run tries it again.
 
 #### Place names in your language
 
-<Since version="1.5.0" /> Online providers name places in their own default language: English for some, the local name for Nominatim (*Wien* for Vienna, *Москва* for Moscow). To ask for another language, an admin picks it under **Admin Area → Site Settings → Place name language**, right below the Map Provider. **Provider default**, the default, asks for no language, as before.
+<Since version="1.5.0" /> Online providers name places in their own default language: English for some, the local name for Nominatim (*Wien* for Vienna, *Москва* for Moscow). To ask for another language, an admin picks it under **Admin area → Site settings → Place name language**, right below the Map provider. **Provider default**, the default, asks for no language, as before.
 
 - Nominatim, OpenCage, TomTom and MapTiler answer in the language you pick. Nominatim also takes a list in order of preference: type `de,en` into the field for German names, or English where a place has no German one.
-- Mapbox and the offline ExifTool provider always answer in their own language; the field is disabled while one of them is the Map Provider, and it keeps your choice for when you switch.
-- The language applies to new lookups. Photos named already keep their names until you look them up again: after a change, the setting offers **Look up place names again**, the same job as in Admin Tools (see [Switching the provider](#switching-the-provider)).
+- Mapbox and the offline ExifTool provider always answer in their own language; the field is disabled while one of them is the Map provider, and it keeps your choice for when you switch.
+- The language applies to new lookups. Photos named already keep their names until you look them up again: after a change, the setting offers **Look up place names again**, the same job as in Admin tools (see [Switching the provider](#switching-the-provider)).
 - It is one language for the whole server. The `GEOCODE_LANGUAGE` environment variable sets it on the first set-up.
 
 #### Which name a photo is filed under
@@ -92,7 +92,7 @@ LibrePhotos renders maps with **MapLibre GL**. By default the map background (th
 - No API key required for map display
 - Works offline once tiles are cached
 
-Admins can change where tiles come from under **Admin Area → Site Settings → Map Tiles**, which sits directly below the Map Provider select. Three options are available:
+Admins can change where tiles come from under **Admin area → Site settings → Map tiles**, which sits directly below the Map provider select. Three options are available:
 
 - **PhotoPrism (default)**: MapLibre vector tiles from `cdn.photoprism.app` and `maps.photoprism.app`.
 - **OpenStreetMap**: raster tiles from `tile.openstreetmap.org` (label glyphs from `fonts.openmaptiles.org`).
@@ -140,7 +140,7 @@ Your places are drawn on the map as blue circles with their names, and listed un
 - Photos join and leave on their own: when a scan finds a new or changed position in a file, and when you set or remove a location by hand (for one photo or many). Moving or resizing a place files your photos again.
 - A photo without a position is in no place. Give it a location first (see [Setting a Location Manually](#setting-a-location-manually)).
 - A photo in one of your places shows the place's name first in the photo's details, with the map provider's name under it, and searching for the place's name finds it.
-- An event mostly taken in one of your places (at least half of its photos) is called after it, such as "Sunday at Home" or "Saturday with Anna at Home", once its title is generated: new events right away, existing ones after **Regenerate Event Titles**. Turn **Use the name in event titles** off to keep the town in the title. The web app shows these titles; the mobile app still shows the town.
+- An event mostly taken in one of your places (at least half of its photos) is called after it, such as "Sunday at Home" or "Saturday with Anna at Home", once its title is generated: new events right away, existing ones after **Regenerate event titles**. Turn **Use the name in event titles** off to keep the town in the title. The web app shows these titles; the mobile app still shows the town.
 - You can have up to 100 places.
 
 ### Your places stay yours
@@ -151,16 +151,16 @@ A place called *Home* tells where you live, so your places are private. Their na
 
 ### Step 1: Configure Map Providers (Optional)
 
-1. Go to **Admin Area → Site Settings**
-2. Select your preferred **Map Provider** — this is the geocoding service used to turn coordinates into place names
-3. If using a commercial provider, enter your key in the **API key for Map Provider** field
-4. Optionally, choose the **Map Tiles** source directly below (PhotoPrism, OpenStreetMap, or None) — this controls the map background rather than geocoding
+1. Go to **Admin area → Site settings**
+2. Select your preferred **Map provider** — this is the geocoding service used to turn coordinates into place names
+3. If using a commercial provider, enter your key in the **API key for map provider** field
+4. Optionally, choose the **Map tiles** source directly below (PhotoPrism, OpenStreetMap, or None) — this controls the map background rather than geocoding
 5. Save the settings
 
 ### Step 2: Scan Your Photos
 
 1. Click your avatar (top right) and choose **Library**
-2. In the **Scan Library** card, click **Scan** to pick up newly added photos. If your photos are already indexed, open the dropdown next to the button and choose **Rescan** instead — a plain scan skips files that haven't changed
+2. In the **Scan library** card, click **Scan** to pick up newly added photos. If your photos are already indexed, open the dropdown next to the button and choose **Rescan** instead — a plain scan skips files that haven't changed
 3. The scan extracts GPS coordinates and performs reverse geocoding
 
 See [Library Management](./library.md) for the full list of Library page actions.
@@ -189,7 +189,7 @@ If a photo has no GPS data, or has the wrong location, you can set it by hand:
 4. Check the place name under the map: it is the name the photo gets when you save. It reads **Place name unavailable** when the server has no name for the spot (the coordinates are saved anyway), and says so when place names are turned off on the server.
 5. Click **Save**.
 
-The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site Settings, the map pane is hidden but place-name search, pasted coordinates and "use my current location" still work. <Since version="1.5.0" /> Up to 1.4.0, the place-name search found nothing when the Map Provider was OpenCage, Mapbox or MapTiler.
+The photo is reverse-geocoded immediately and added to the matching place albums — no rescan required. The pencil is not shown on publicly shared photos. If maps are turned off in Site settings, the map pane is hidden but place-name search, pasted coordinates and "use my current location" still work. <Since version="1.5.0" /> Up to 1.4.0, the place-name search found nothing when the Map provider was OpenCage, Mapbox or MapTiler.
 
 A photo without a location opens the dialog where the nearest geotagged photo taken within a day of it was taken, or on a world map when there is none. The browser only asks for your position when you click the crosshair button. <Since version="1.4.0" /> Up to 1.3.0 it asked as soon as the dialog opened, and started over Paris without permission.
 
@@ -197,7 +197,7 @@ A photo without a location opens the dialog where the nearest geotagged photo ta
 
 ### Setting the location of many photos
 
-<Since version="1.4.0" /> Photos from a camera without GPS, scans and screenshots often need the same location. Select them on the timeline or any photo page (or use **Select all**), open the **⋮** photo actions menu and choose **Set location…**:
+<Since version="1.4.0" /> Photos from a camera without GPS, scans and screenshots often need the same location. Select them on the timeline or any photo page (or use **Select all**), open the **⋮** photo actions menu and choose **Edit info → Set location…**:
 
 1. The dialog says how many of the selected photos already have a location. By default only the photos **without a location** get the new one; choose **All N photos** to replace the others too. The dialog then names the places that would be replaced. When every selected photo has a location, saving replaces them all, and the dialog says so.
 2. Pick the spot as for a single photo: search, paste coordinates, click the map, use your current location, or click a photo under **Copy from a photo taken nearby in time** (your geotagged photos taken within a day of the selection).
@@ -217,8 +217,8 @@ If no place name can be found for the new position (reverse geocoding is turned 
 
 1. **Check if photos have GPS data**: Open a photo's info panel and look for GPS coordinates
 2. **Scan for new photos**: If you recently added photos, run a **Scan** from the Library page
-3. **Check geocoding provider**: Ensure your geocoding provider is configured correctly in **Admin Area → Site Settings**. A commercial provider with a missing or invalid API key fails silently — the scan reports success but no place names are stored
-4. **Scan again after fixing the provider**: Go to **Library → Scan Library** and click **Scan**. The geocoding job after it looks up every photo whose position has no place name yet, including the ones whose lookup failed before, but not the ones where the provider found no place, such as open sea. <Since version="1.4.0" /> Up to 1.3.0 it only looked up photos added since the previous geolocation run, so a full **Rescan** was needed
+3. **Check geocoding provider**: Ensure your geocoding provider is configured correctly in **Admin area → Site settings**. A commercial provider with a missing or invalid API key fails silently — the scan reports success but no place names are stored
+4. **Scan again after fixing the provider**: Go to **Library → Scan library** and click **Scan**. The geocoding job after it looks up every photo whose position has no place name yet, including the ones whose lookup failed before, but not the ones where the provider found no place, such as open sea. <Since version="1.4.0" /> Up to 1.3.0 it only looked up photos added since the previous geolocation run, so a full **Rescan** was needed
 5. **Give geocoding time to finish**: Geocoding runs as a background job after the scan. With Nominatim on a large library this can take a while, and places keep filling in after the scan reports done — wait before re-scanning
 
 ### Some photos don't show locations
@@ -233,10 +233,10 @@ A rescan cannot add coordinates that were never in the file. To place such a pho
 ### Map tiles not loading
 
 - Check your internet connection
-- Check **Admin Area → Site Settings → Map Tiles**. If it is set to **None**, maps are disabled on purpose
+- Check **Admin area → Site settings → Map tiles**. If it is set to **None**, maps are disabled on purpose
 - With **PhotoPrism (default)**, the tiles come from `cdn.photoprism.app` and `maps.photoprism.app`
 - With **OpenStreetMap**, they come from `tile.openstreetmap.org` and `fonts.openmaptiles.org` instead
-- Ensure the relevant domains aren't blocked by your firewall or ad blocker. If the PhotoPrism domains are unreachable, switching **Map Tiles** to **OpenStreetMap** (or **None** to hide the map) is an alternative
+- Ensure the relevant domains aren't blocked by your firewall or ad blocker. If the PhotoPrism domains are unreachable, switching **Map tiles** to **OpenStreetMap** (or **None** to hide the map) is an alternative
 
 ## Privacy Considerations
 
@@ -244,4 +244,4 @@ A rescan cannot add coordinates that were never in the file. To place such a pho
 - When sharing photos, consider stripping EXIF data if privacy is a concern
 - LibrePhotos keeps your location data private within your instance
 - Opening a map fetches tiles for the area around your photos, which reveals their approximate location to the selected tile provider. The photo-info mini-map zooms in tightly, so the tiles it requests pinpoint that photo's location fairly precisely
-- You control this with **Map Tiles** in **Admin Area → Site Settings**: *PhotoPrism* (default, tiles from `cdn.photoprism.app` / `maps.photoprism.app`), *OpenStreetMap* (tiles from `tile.openstreetmap.org`, which shifts the exposure to a different provider rather than removing it), or *None* to disable map display entirely so no third-party tile requests are made
+- You control this with **Map tiles** in **Admin area → Site settings**: *PhotoPrism* (default, tiles from `cdn.photoprism.app` / `maps.photoprism.app`), *OpenStreetMap* (tiles from `tile.openstreetmap.org`, which shifts the exposure to a different provider rather than removing it), or *None* to disable map display entirely so no third-party tile requests are made

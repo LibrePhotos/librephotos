@@ -1,5 +1,5 @@
 ---
-title: "Missing Photos Implementation"
+title: "Missing photos implementation"
 description: "Technical documentation for the missing photos feature"
 sidebar_position: 4
 ---

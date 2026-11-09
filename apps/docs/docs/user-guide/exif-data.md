@@ -1,5 +1,5 @@
 ---
-title: "📇 Exif Data"
+title: "Exif data"
 description: "Which metadata LibrePhotos reads from your photos and their XMP sidecars, and what it writes back"
 sidebar_position: 18
 ---
@@ -7,7 +7,7 @@ sidebar_position: 18
 LibrePhotos reads a photo's metadata with [ExifTool](https://exiftool.org) when it scans the
 photo: from the file itself and from the XMP sidecars next to it. What you change in LibrePhotos
 (a date, a caption, tags, a location, a rating, a rotation, the people on a photo) is stored in
-LibrePhotos' database. With **Settings → Metadata Options → Write edits to files** set to
+LibrePhotos' database. With **Settings → Metadata options → Write edits to files** set to
 `Save to sidecar` or `Save to media file`, some of these edits are also written back, so other
 apps see them.
 
@@ -51,7 +51,7 @@ Where a field lists several tags, the first one the photo has is used.
 
 | In LibrePhotos | Tags, best first | Notes |
 | --- | --- | --- |
-| Date and time | `XMP:DateCreated`, `EXIF:DateTimeOriginal`, `EXIF:ModifyDate`, `QuickTime:CreationDate`, `QuickTime:CreateDate`, `Matroska:DateTimeOriginal`, `Composite:GPSDateTime`, then the file name | Decided by your [date rules](./settings/date-rules.md), in the order of your list; this is the default order. A date you set by hand wins over every rule. `QuickTime:CreationDate` is the local time a phone recorded a video at; `QuickTime:CreateDate` (MP4, MOV), `Matroska:DateTimeOriginal` (MKV, WebM) and `Composite:GPSDateTime` are UTC and are converted with the time zone of the photo's position, or else your default time zone. `XMP:DateCreated` is where LibrePhotos writes dates. Accounts created before 1.1.0 do not have its rule unless they add it with **Add Rule** or **Reset To Defaults**. <Since version="1.4.0" /> Between the tags and the file name, a [Google Takeout JSON](./google-takeout.md) next to the file gives the date. |
+| Date and time | `XMP:DateCreated`, `EXIF:DateTimeOriginal`, `EXIF:ModifyDate`, `QuickTime:CreationDate`, `QuickTime:CreateDate`, `Matroska:DateTimeOriginal`, `Composite:GPSDateTime`, then the file name | Decided by your [date rules](./settings/date-rules.md), in the order of your list; this is the default order. A date you set by hand wins over every rule. `QuickTime:CreationDate` is the local time a phone recorded a video at; `QuickTime:CreateDate` (MP4, MOV), `Matroska:DateTimeOriginal` (MKV, WebM) and `Composite:GPSDateTime` are UTC and are converted with the time zone of the photo's position, or else your default time zone. `XMP:DateCreated` is where LibrePhotos writes dates. Accounts created before 1.1.0 do not have its rule unless they add it with **Add rule** or **Reset to defaults**. <Since version="1.4.0" /> Between the tags and the file name, a [Google Takeout JSON](./google-takeout.md) next to the file gives the date. |
 | Time zone of the date | `EXIF:OffsetTimeOriginal`, `EXIF:OffsetTime` | <Since version="1.5.0" /> The UTC offset the camera or phone wrote for the capture time (`-07:00`), stored in the photo's metadata as it is written; blank values some cameras write are skipped. The date rules use it too: Info shows the offset of the photo's date after the time, for example "23:30 (UTC-07:00)", and a date tag written in UTC (`2025:06:02 06:30:00Z`) is turned into local time with it (see [date rules](./settings/date-rules.md#what-gets-stored-and-why-times-are-not-converted-for-you)). |
 | Location | `Composite:GPSLatitude`, `Composite:GPSLongitude` | ExifTool builds them from the EXIF GPS block, the embedded XMP or a video's `GPSCoordinates`. The place name (city, country) is looked up from the position. <Since version="1.4.0" /> A file without a position takes the one in its [Google Takeout JSON](./google-takeout.md), if it has one. |
 | Altitude | `Composite:GPSAltitude` | In metres, negative below sea level, stored in the photo's metadata. |
@@ -255,7 +255,7 @@ list, so the photo file's keywords show again. Inside LibrePhotos the removal st
 
 ### Face regions
 
-Writing faces needs both **Write face tags to image files** (Settings → Face Options, off by
+Writing faces needs both **Write face tags to image files** (Settings → Face options, off by
 default) and a sidecar or media file chosen under **Write edits to files**. Then labelling, adding,
 deleting or restoring a face writes the photo's regions again, as MWG regions in
 `XMP-mwg-rs:RegionInfo` with `AppliedToDimensions` and normalized areas. The areas are in the
@@ -362,7 +362,7 @@ A write ExifTool cannot make, for example into a read-only library, a damaged fi
 that cannot hold the tag, never undoes your edit: the rating, date, caption, location, tags, face
 label or rotation stays in LibrePhotos. The backend log names the photo and ExifTool's reason.
 Labelling a face, drawing one and rotating a photo also return the reason as `write_error` in the
-API response, and the **Write Metadata to Files** job and `manage.py save_metadata` list the photos
+API response, and the **Write metadata to files** job and `manage.py save_metadata` list the photos
 they could not write.
 
 In the web app, a face label, a drawn face or a rotation that did not reach the file shows an

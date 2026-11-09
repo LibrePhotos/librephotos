@@ -1,5 +1,5 @@
 ---
-title: "📖 Words used in release notes"
+title: "Words used in release notes"
 description: "Plain explanations of the words that LibrePhotos release notes and update steps use, with where to find each thing in the app."
 sidebar_position: 28
 ---
@@ -10,11 +10,11 @@ This page is for people who use LibrePhotos. If you write code for LibrePhotos, 
 
 ## Account menu {#account-menu}
 
-The menu behind your profile picture in the top right corner. It opens **Library**, **Profile**, **Settings**, **My Jobs** and, for administrators, the **Admin Area**. Update steps write a path through the app like this: **Account menu > Library**.
+The menu behind your profile picture in the top right corner. It opens **Library**, **Profile**, **Settings**, **My jobs** and, for administrators, the **Admin area**. On a phone, tap your picture at the right end of the bar at the bottom of the screen: the same pages open from a sheet, together with **Trash** and the colour scheme. Update steps write a path through the app like this: **Account menu > Library**.
 
-## Admin Area {#admin-area}
+## Admin area {#admin-area}
 
-The page where administrators change settings for the whole server: **Site settings**, **Users**, **Admin Tools**, the **Services** and the **Server Logs**. Open it with **Account menu > Admin Area**. Only administrators see it. A step that starts with "Admins:" is done here, and other users can skip it. See [Settings](./settings/index.md#admin-area).
+The page where administrators change settings for the whole server: **Site settings**, **Users**, **Admin tools**, the **Services** and the **Server logs**. Open it with **Account menu > Admin area**. Only administrators see it. A step that starts with "Admins:" is done here, and other users can skip it. See [Settings](./settings/index.md#admin-area).
 
 ## Backup {#backup}
 
@@ -37,7 +37,7 @@ Two common kinds of [metadata](#metadata). **EXIF** is written by the camera or 
 
 ## Job {#job}
 
-Work that LibrePhotos does in the background, such as a [scan](#scan), finding faces, or reading the text on photos. You can keep using the app while a job runs. Follow your jobs under **Account menu > My Jobs**. While a job runs, a progress ring is shown around your profile picture. Administrators see every user's jobs in the **Worker Logs** of the Admin Area. See [Job System](./job-system.md).
+Work that LibrePhotos does in the background, such as a [scan](#scan), finding faces, or reading the text on photos. You can keep using the app while a job runs. Follow your jobs under **Account menu > My jobs**. While a job runs, a progress ring is shown around your profile picture. Administrators see every user's jobs in the **Worker logs** of the Admin area. See [Job System](./job-system.md).
 
 ## Metadata {#metadata}
 
@@ -45,7 +45,7 @@ Information about a photo, as opposed to the picture itself: when and where it w
 
 ## Model {#model}
 
-A file that lets LibrePhotos recognise things in photos: faces, the things and scenes in a photo, the text in a photo, or a caption. Models run on your own server, so your photos are never sent anywhere to be analysed. LibrePhotos downloads the models it needs by itself, which shows up as a **Download Models** [job](#job). Administrators pick some of them in **Site settings**.
+A file that lets LibrePhotos recognise things in photos: faces, the things and scenes in a photo, the text in a photo, or a caption. Models run on your own server, so your photos are never sent anywhere to be analysed. LibrePhotos downloads the models it needs by itself, which shows up as a **Download models** [job](#job). Administrators pick some of them in **Site settings**.
 
 ## Public link {#public-link}
 
@@ -65,7 +65,7 @@ Search by what a photo shows rather than by the words stored with it. Searching 
 
 ## Service {#service}
 
-A helper program that runs next to LibrePhotos and does one kind of work, for example making thumbnails or finding faces. LibrePhotos starts and restarts its services by itself. Administrators can see them under **Services** in the Admin Area. See [Service Management](./library.md#service-management).
+A helper program that runs next to LibrePhotos and does one kind of work, for example making thumbnails or finding faces. LibrePhotos starts and restarts its services by itself. Administrators can see them under **Services** in the Admin area. See [Service Management](./library.md#service-management).
 
 ## Thumbnail {#thumbnail}
 

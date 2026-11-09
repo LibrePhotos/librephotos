@@ -1,13 +1,13 @@
 ---
-title: "🗑️ Trash"
+title: "Trash"
 description: "A overview on how Trash works"
 sidebar_position: 17
 ---
 
 ### Deleting images
 
-1. Mark file as "deleted". Select the image you want to delete, go to the action button and click on "Move to Trash"
-2. Navigate to Trash.
+1. Mark file as "deleted". Select the image you want to delete, open the selection actions menu (⋮) and click **Move to trash** (on a wide screen, the trash button in the selection bar does the same).
+2. Open **Trash** in the sidebar. On a phone it is in the account menu: tap your picture at the right end of the bar at the bottom of the screen.
 3. Select the images you want to delete forever (click **Select** at the right of the header, or tick a photo's checkbox; the selection bar appears under the header).
 4. Click the red trash icon in the selection bar (tooltip *Delete permanently*, or *Delete N photos permanently* when more than one is selected), then confirm in the **Delete N photos permanently?** dialog by clicking its red button. This cannot be undone.
 
@@ -41,7 +41,7 @@ Like **Delete permanently**, it deletes the original files from disk, and it can
 
 ### Deleting photos from the trash automatically
 
-An administrator can have LibrePhotos empty the trash on its own: in **Admin Area > Site Settings**, **Delete photos from the trash after** takes a number of days. A daily task then permanently deletes every photo that has been in the trash for longer than that, for all users.
+An administrator can have LibrePhotos empty the trash on its own: in **Admin area > Site settings**, **Delete photos from the trash after** takes a number of days. A daily task then permanently deletes every photo that has been in the trash for longer than that, for all users.
 
 :::danger Automatic deletion removes your original files
 

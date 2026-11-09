@@ -1,5 +1,5 @@
 ---
-title: "📖 Advanced docker-compose usage"
+title: "Advanced docker-compose usage"
 description: "Here are a couple of advanced tips"
 sidebar_position: 4
 ---
@@ -223,7 +223,7 @@ services:
 ```
 
 :::note
-`FEATURE_PROCESS_EMBEDDED_MEDIA` is checked only at the moment a file is first imported. Turning it on for a library that has already been scanned extracts nothing for the photos already there — not even with **Rescan All Photos** — so only files added afterwards are affected.
+`FEATURE_PROCESS_EMBEDDED_MEDIA` is checked only at the moment a file is first imported. Turning it on for a library that has already been scanned extracts nothing for the photos already there — not even with **Rescan all photos** — so only files added afterwards are affected.
 :::
 
 #### The machine learning services follow the switches
@@ -241,11 +241,11 @@ The backend runs its heavy models in separate sidecar processes, and a watchdog 
 
 The remaining services — `exif`, `thumbnail`, `tags` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. `tags` runs OpenCLIP, which makes the tags and the semantic-search embeddings alike, so `FEATURE_SCENE_CLASSIFICATION` stops the tagging but not the service (since 1.3.0). The other feature flags (`FEATURE_VIDEO`, `FEATURE_VIDEO_PREVIEWS`, `FEATURE_FACE_DETECTION_IN_VIDEOS`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
 
-`ocr` has no environment variable either, but it is not always on: it follows the **OCR model** choice in Site Settings, which ships with nothing selected. The service starts once a model is picked, and stops being started if the choice is set back to none — the watchdog re-reads the setting every minute, so neither direction needs a restart. A configuration the backend cannot read counts as a model being selected, so a database that is still starting can never take the service away.
+`ocr` has no environment variable either, but it is not always on: it follows the **OCR model** choice in Site settings, which ships with nothing selected. The service starts once a model is picked, and stops being started if the choice is set back to none — the watchdog re-reads the setting every minute, so neither direction needs a restart. A configuration the backend cannot read counts as a model being selected, so a database that is still starting can never take the service away.
 
-<Since version="1.4.0" /> `image_captioning` follows the **Captioning Model** choice the same way: with `None` selected the service is not started and the model is not downloaded, even while `FEATURE_IMAGE_CAPTIONING` allows captioning.
+<Since version="1.4.0" /> `image_captioning` follows the **Captioning model** choice the same way: with `None` selected the service is not started and the model is not downloaded, even while `FEATURE_IMAGE_CAPTIONING` allows captioning.
 
-A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running. The Admin Area's **Services** list shows one as **Disabled** rather than as unhealthy, and offers no Start button for it.
+A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running. The Admin area's **Services** list shows one as **Disabled** rather than as unhealthy, and offers no Start button for it.
 
 ### Cached video conversions
 
@@ -310,7 +310,7 @@ These settings apply to thumbnails rendered from then on: those of newly scanned
 
 Once an hour, LibrePhotos marks a job failed when it has made no progress for a day, so a job whose worker was killed (out of memory, a restart) does not keep the queue busy forever. The day counts from the job's last progress, not from its start: a first scan of a large library on slow hardware can take several days and is left alone as long as it keeps importing photos. <Since version="1.4.0" /> Up to 1.3.0, every job was marked failed 24 hours after it started.
 
-<Since version="1.5.0" /> A job that a running worker is still busy with is never marked failed, however long it goes without progress. Some jobs report none during one long step, such as **Find Similar Faces** while it groups the faces of a large library. Up to 1.4.0, such a job could be marked failed while it worked, and still showed as failed after it succeeded.
+<Since version="1.5.0" /> A job that a running worker is still busy with is never marked failed, however long it goes without progress. Some jobs report none during one long step, such as **Find similar faces** while it groups the faces of a large library. Up to 1.4.0, such a job could be marked failed while it worked, and still showed as failed after it succeeded.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
@@ -318,11 +318,11 @@ Once an hour, LibrePhotos marks a job failed when it has made no progress for a 
 
 ### Checking for new releases {#update-check}
 
-<Since version="1.5.0" /> Once a day, and right after the first start, the backend asks GitHub which LibrePhotos release is the newest and tells admins when it is newer than the one they run: an **Update available** card in the Admin Area, a dot next to the version in the sidebar, and on the [Windows app](windows-standalone.md#update-notifications) a tray menu item and one notification. Users who are not admins see nothing.
+<Since version="1.5.0" /> Once a day, and right after the first start, the backend asks GitHub which LibrePhotos release is the newest and tells admins when it is newer than the one they run: an **Update available** card in the Admin area, a dot next to the version in the sidebar, and on the [Windows app](windows-standalone.md#update-notifications) a tray menu item and one notification. Users who are not admins see nothing.
 
 What is sent: one plain `GET https://api.github.com/repos/LibrePhotos/librephotos/releases` request, without a login, cookie or anything about your server, its users or its photos. GitHub sees your server's IP address, as with any request. The answer is kept in the database, so the pages that show it never contact GitHub. Development builds (`dev`, a source checkout) have no release to compare and never ask.
 
-Admins can turn the check off in **Admin Area > Site Settings > Check for new releases**. To turn it off for good, for example on a server without internet access, set the variable below; the switch is then locked off.
+Admins can turn the check off in **Admin area > Site settings > Check for new releases**. To turn it off for good, for example on a server without internet access, set the variable below; the switch is then locked off.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
@@ -330,7 +330,7 @@ Admins can turn the check off in **Admin Area > Site Settings > Check for new re
 
 ### Error reporting {#error-reporting}
 
-<Since version="1.6.0" /> LibrePhotos keeps the errors of its backend and web app, scrubbed, on your server, and sends nothing until an admin picks a server in **Admin Area > Site Settings > Error reporting** or sends a report from **Error reports**. [Error reporting](../user-guide/error-reporting.md) explains the choices and lists exactly what a report holds.
+<Since version="1.6.0" /> LibrePhotos keeps the errors of its backend and web app, scrubbed, on your server, and sends nothing until an admin picks a server in **Admin area > Site settings > Error reporting** or sends a report from **Error reports**. [Error reporting](../user-guide/error-reporting.md) explains the choices and lists exactly what a report holds.
 
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
@@ -392,7 +392,7 @@ A Nextcloud on the same machine as LibrePhotos cannot be reached as `localhost`;
 
 ### Logging
 
-The backend writes its log files into the directory named by `BASE_LOGS`. `librephotos.log` is the one to look at first (`ownphotos.log` in 1.3.0 and older, see [Upgrading](upgrading.md#log-file-renamed)); it is also downloadable from the Admin Area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).
+The backend writes its log files into the directory named by `BASE_LOGS`. `librephotos.log` is the one to look at first (`ownphotos.log` in 1.3.0 and older, see [Upgrading](upgrading.md#log-file-renamed)); it is also downloadable from the Admin area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).
 
 | Variable | Default | What it does |
 | --- | --- | --- |
@@ -454,7 +454,7 @@ So set this whenever LibrePhotos has to hand a URL to something outside the cont
 
 ### Outgoing email
 
-The mail server itself is set in the app, under Admin area → Site Settings → Email. The variable here only supplies a default. The password-reset rate limit is under [Sign-in rate limits](#sign-in-rate-limits).
+The mail server itself is set in the app, under Admin area → Site settings → Email. The variable here only supplies a default. The password-reset rate limit is under [Sign-in rate limits](#sign-in-rate-limits).
 
 | Variable | Default | What it does |
 | --- | --- | --- |
@@ -641,9 +641,9 @@ The same settings have environment variables, which set the first-run default in
 | `SKIP_PATTERNS` | `skipPatterns` | _(empty)_ | The patterns of files and folders to ignore, as in the example above. |
 | `ALLOW_UPLOAD` | `allowUpload` | `true` | Whether uploads are allowed. An empty value leaves them allowed. |
 | `MAPBOX_API_KEY` | `mapApiKey` | _(empty)_ | The key for the geocoding provider, as in the example above. |
-| `MAP_API_PROVIDER` | `mapApiProvider` | `exiftool` | The geocoding provider: `exiftool` (offline, no key needed), `nominatim` (no key needed), `mapbox`, `maptiler`, `tomtom` or `opencage`. It applies only until the setting is first stored, which happens with the first place lookup or a save in Site Settings, so changing it on an install that has already geocoded photos does nothing: change **Map Provider** in Site Settings instead. <Since version="1.4.0" /> The default was `nominatim` up to 1.3.0, and the compose files did not pass it on. |
-| `MAP_TILE_PROVIDER` | _(none)_ | `photoprism` | The map background behind the photo pins. You can change it afterwards in Site Settings, without a restart. |
-| `GEOCODE_LANGUAGE` | _(none)_ | _(empty)_ | <Since version="1.5.0" /> The language online map providers name places in: a code such as `de` or `pt-BR`, or for Nominatim a list in order of preference such as `de,en`. Empty asks for the provider's default, as before. Mapbox and ExifTool ignore it. You can change it afterwards in Site Settings, as **Place name language**; see [Place names in your language](../user-guide/places.md#place-names-in-your-language). |
+| `MAP_API_PROVIDER` | `mapApiProvider` | `exiftool` | The geocoding provider: `exiftool` (offline, no key needed), `nominatim` (no key needed), `mapbox`, `maptiler`, `tomtom` or `opencage`. It applies only until the setting is first stored, which happens with the first place lookup or a save in Site settings, so changing it on an install that has already geocoded photos does nothing: change **Map provider** in Site settings instead. <Since version="1.4.0" /> The default was `nominatim` up to 1.3.0, and the compose files did not pass it on. |
+| `MAP_TILE_PROVIDER` | _(none)_ | `photoprism` | The map background behind the photo pins. You can change it afterwards in Site settings, without a restart. |
+| `GEOCODE_LANGUAGE` | _(none)_ | _(empty)_ | <Since version="1.5.0" /> The language online map providers name places in: a code such as `de` or `pt-BR`, or for Nominatim a list in order of preference such as `de,en`. Empty asks for the provider's default, as before. Mapbox and ExifTool ignore it. You can change it afterwards in Site settings, as **Place name language**; see [Place names in your language](../user-guide/places.md#place-names-in-your-language). |
 
 ### Removed variables
 

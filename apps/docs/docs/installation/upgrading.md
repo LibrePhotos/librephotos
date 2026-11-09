@@ -1,5 +1,5 @@
 ---
-title: "⬆️ Upgrading"
+title: "Upgrading"
 description: "How LibrePhotos upgrades its database, the automatic SQLite backups and how to restore one, going back to an older release, and the two-step upgrade for installs older than 2026w10."
 sidebar_position: 6
 ---
@@ -57,11 +57,11 @@ With Docker Compose, the backend's healthcheck asks `/api/healthz/ready`, so `do
 
 ## The Update available card {#update-available}
 
-<Since version="1.5.0" /> When a newer release is out, admins see an **Update available** card at the top of **Account menu > Admin Area**: "LibrePhotos 1.5.0 is available", the release you run, and when the new one was published. The sidebar shows a dot next to the version, with "Update available: 1.5.0" when you point at it.
+<Since version="1.5.0" /> When a newer release is out, admins see an **Update available** card at the top of **Account menu > Admin area**: "LibrePhotos 1.5.0 is available", the release you run, and when the new one was published. The sidebar shows a dot next to the version, with "Update available: 1.5.0" when you point at it.
 
 - **How to update** opens the steps for your install: [Windows](windows-standalone.md#updating), or the top of this page for Docker and the rest. The Windows app shows **Download update** instead, then **Restart to update**, and installs the release itself ([Updating from LibrePhotos](windows-standalone.md#update-from-the-app)).
 - **Release notes** opens the release on GitHub. Read them before you update: some releases ask you to do something once.
-- **Skip this release** hides the card and the dot until a newer release comes out. **Undo** in the message that follows, or **Show it again** under **Check for new releases** in Site Settings, brings it back.
+- **Skip this release** hides the card and the dot until a newer release comes out. **Undo** in the message that follows, or **Show it again** under **Check for new releases** in Site settings, brings it back.
 - The close button hides the card for a week.
 
 Only admins see it. The card comes from a daily check that can be turned off; see [Checking for new releases](environment-variables.md#update-check). Docker installs that run the `dev` image, and installs from source, have no release to compare and never show it.
@@ -76,15 +76,15 @@ Only admins see it. The card comes from a daily check that can be turned off; se
 
 Closing the card or opening **See what's new** counts as seen, on every browser and device of that user, so the card does not come back until the next update. **Account menu > What's new** and the version line at the bottom of the sidebar show the highlights again at any time (while a newer release is out, the version line takes admins to the [Update available card](#update-available) instead). Admins also see how many tasks the [Finish the upgrade card](#finish-the-upgrade) still has.
 
-The highlights are part of the app, so nothing is downloaded and nothing about your server is sent. They are in English for now. Someone who joins after an update does not get the card for that version, and installs that run the `dev` image never show it. Each user can turn the card off under **Settings** > **Interface**, and admins can turn it off for everyone under **Site Settings** with **Show users what's new after an update**.
+The highlights are part of the app, so nothing is downloaded and nothing about your server is sent. They are in English for now. Someone who joins after an update does not get the card for that version, and installs that run the `dev` image never show it. Each user can turn the card off under **Settings** > **Interface**, and admins can turn it off for everyone under **Site settings** with **Show users what's new after an update**.
 
 ## The Finish the upgrade card {#finish-the-upgrade}
 
 <Since version="1.4.0" /> Up to 1.3.0, the work an update left was only described in the release notes, and some of it needed a terminal.
 
-Some updates leave work to do once: data an older release stored needs reading again or cleaning up. LibrePhotos checks after each start what this server still needs, and shows it to admins on a **Finish the upgrade** card at the top of **Account menu > Admin Area**. While anything is left, the avatar in the top right corner has an orange dot and the **Admin Area** item in its menu shows how many tasks are left. Nothing is shown to other users, and nothing blocks the app meanwhile.
+Some updates leave work to do once: data an older release stored needs reading again or cleaning up. LibrePhotos checks after each start what this server still needs, and shows it to admins on a **Finish the upgrade** card at the top of **Account menu > Admin area**. While anything is left, the avatar in the top right corner has an orange dot and the **Admin area** item in its menu shows how many tasks are left. Nothing is shown to other users, and nothing blocks the app meanwhile.
 
-Each task has one row: what it does, why, and what happens to your photos (they are never changed). A running task shows how far it got and links to its job, which also shows in **Worker Logs** and on the avatar's progress ring.
+Each task has one row: what it does, why, and what happens to your photos (they are never changed). A running task shows how far it got and links to its job, which also shows in **Worker logs** and on the avatar's progress ring.
 
 - **Automatic** tasks start by themselves after the update. If one fails, its row says why and offers **Retry**; it is not started again by itself.
 - **Optional** tasks wait for you: **Start** runs it, **Not now** hides it for good. While another job runs, **Start** waits and says so.
@@ -98,7 +98,7 @@ When a task is done, its row says so for a day, then goes; the card goes with it
 | Read shutter speeds again | Automatic | After updating from 1.3.0 or older with shutter speeds stored wrongly ([details](#refresh-exposure-time)). |
 | Make still pictures of older videos | Automatic | <Since version="1.5.0" /> After updating a server that already had videos: the photo grid shows a still picture of each video and plays it only while you point at it ([Make Video Posters](../user-guide/job-system.md#make-video-posters)). |
 | Move faces tagged on a turned picture | Optional | <Since version="1.5.1" /> After updating a server where a photo has a face without an encoding next to one with: faces imported from tags a quarter turn off the face are moved onto it ([Repair Turned Faces](../user-guide/job-system.md#repair-turned-faces)). |
-| Read colour information of older videos | Optional | Videos added before LibrePhotos checked their colours when scanning, while ffprobe is available ([Probe Videos](../user-guide/job-system.md#probe-videos)). |
+| Read colour information of older videos | Optional | Videos added before LibrePhotos checked their colours when scanning, while ffprobe is available ([Probe videos](../user-guide/job-system.md#probe-videos)). |
 
 ## Automatic backups with SQLite and on Windows {#sqlite-backups}
 
@@ -166,7 +166,7 @@ Thumbnails made by 1.2.1 and older still carry the photo's EXIF and XMP: its GPS
 
 <Since version="1.4.0" /> It runs by itself after the update, and the [Finish the upgrade card](#finish-the-upgrade) shows its progress. Up to 1.3.0, it had to be started by hand.
 
-An admin can also start it in the web app: **Account menu > Admin Area > Admin Tools > Remove photo details from old thumbnails**, then **Start**. It runs as a job over the thumbnails of every user. The row shows how far it got and links to the job; its progress also shows in **Worker Logs** and on the avatar's progress ring. The job ends as failed, with the count and the thumbnails it could not clean, if any thumbnail still carries metadata afterwards.
+An admin can also start it in the web app: **Account menu > Admin area > Admin tools > Remove photo details from old thumbnails**, then **Start**. It runs as a job over the thumbnails of every user. The row shows how far it got and links to the job; its progress also shows in **Worker logs** and on the avatar's progress ring. The job ends as failed, with the count and the thumbnails it could not clean, if any thumbnail still carries metadata afterwards.
 
 <Since version="1.4.0" /> Up to 1.3.0, the cleanup was only available as the command below.
 
@@ -199,8 +199,8 @@ Both only rewrite thumbnails that still carry metadata, and keep their pixels an
 After updating to 1.5.0 or newer, each user scans once:
 
 1. Go to **Account menu > Library** and click **Scan**. A plain **Scan** is enough: it reads every photo whose details were never read, whatever its file date. **Rescan** does it too, but reads every photo again and takes longer.
-2. It is done when the job in **Account menu > My Jobs** has finished. Places, faces, things and search follow by themselves after the scan.
-3. If you use them, run **Detect Duplicates** (on the Duplicate Photos page), **Detect Photo Stacks** and **Generate Event Albums** again, because they only ran on the photos that had a date and a hash.
+2. It is done when the job in **Account menu > My jobs** has finished. Places, faces, things and search follow by themselves after the scan.
+3. If you use them, run **Detect duplicates** (on the Duplicate photos page), **Detect photo stacks** and **Generate event albums** again, because they only ran on the photos that had a date and a hash.
 
 If you skip it, those photos stay without a date (they show up under **Without Timestamp**) and without a place.
 
@@ -208,7 +208,7 @@ If you skip it, those photos stay without a date (they show up under **Without T
 
 <Since version="1.4.0" /> Up to 1.3.0, the shutter speed shown in Info was stored wrongly for fast and long exposures: anything faster than about 1/2000 s as `0`, 1/1250 to 1/2000 s as `1/1000`, and 2.5 s as `5/2`. The old value cannot be repaired from the database, so the exposure time of those photos is read again, once.
 
-<Since version="1.4.0" /> This runs by itself after the update, as the **Read Shutter Speeds Again** job, and the [Finish the upgrade card](#finish-the-upgrade) shows its progress. Only that one value is read from each photo and only the shutter speed is stored; your files are not changed.
+<Since version="1.4.0" /> This runs by itself after the update, as the **Read shutter speeds again** job, and the [Finish the upgrade card](#finish-the-upgrade) shows its progress. Only that one value is read from each photo and only the shutter speed is stored; your files are not changed.
 
 To run it again from a script, use the management command:
 
@@ -228,7 +228,7 @@ It reads only the exposure time and writes only the shutter speed, so running it
 
 <Since version="1.4.0" /> Up to 1.3.0, the backend log in the logs folder (`BASE_LOGS`, `/logs` in the container) is called `ownphotos.log`. Newer releases call it `librephotos.log`. The first start of a newer release renames `ownphotos.log` and its older parts (`ownphotos.log.1`, `ownphotos.log.2`, ...) to the new name, so the history is kept, and logs a warning saying so. The lines in it look the same as before.
 
-Anything that reads the file by name has to be pointed at the new one: Promtail, Fluent Bit or Vector configs, fail2ban filters (`logpath`), `tail -f` aliases and scripts. The **Server Logs** download in the Admin Area follows by itself.
+Anything that reads the file by name has to be pointed at the new one: Promtail, Fluent Bit or Vector configs, fail2ban filters (`logpath`), `tail -f` aliases and scripts. The **Server logs** download in the Admin area follows by itself.
 
 If the old file cannot be renamed (on Windows, another program such as an editor or a log viewer has it open), it is left as it is, the backend logs a warning and writes to a new `librephotos.log`. The same happens to an old file found next to an existing `librephotos.log`: it is left alone, and the log says so once. Delete `ownphotos.log` once you no longer need it. The `.__ownphotos.lock` file next to it is no longer used either and can be deleted.
 

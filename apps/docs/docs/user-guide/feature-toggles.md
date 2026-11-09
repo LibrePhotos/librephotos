@@ -1,5 +1,5 @@
 ---
-title: "✅ Feature Toggles"
+title: "Feature toggles"
 description: "LibrePhotos feature toggles"
 sidebar_position: 20
 ---
@@ -113,11 +113,11 @@ All of these default to on. See [Advanced docker-compose usage](../installation/
 
 Turning off face detection, image captioning or Things also keeps the matching machine learning service from starting, so its model is never loaded and never restarted by the watchdog. That is where the memory these switches save actually comes from. (Since 1.2.0; on 1.1.0 the switches stop the processing, but the services still start.)
 
-<Since version="1.4.0" /> Turning off face detection or image captioning also skips their model downloads: the **Download Models** job no longer fetches the face recognition model or the captioning model, and a scan no longer waits for them. That saves the disk space, and an offline server no longer fails a download for a model it never uses. Turning the feature back on downloads the model then: saving the site settings starts the download, and so does the next scan or a click on "Generate caption". Models that were already downloaded stay on disk; delete their folder under `data_models/` by hand if you want the space back (see [Offline Usage](./offline-setup.md#step-2-place-the-models-in-the-correct-location) for where each one lives).
+<Since version="1.4.0" /> Turning off face detection or image captioning also skips their model downloads: the **Download models** job no longer fetches the face recognition model or the captioning model, and a scan no longer waits for them. That saves the disk space, and an offline server no longer fails a download for a model it never uses. Turning the feature back on downloads the model then: saving the site settings starts the download, and so does the next scan or a click on "Generate caption". Models that were already downloaded stay on disk; delete their folder under `data_models/` by hand if you want the space back (see [Offline Usage](./offline-setup.md#step-2-place-the-models-in-the-correct-location) for where each one lives).
 
 ### Site settings switches
 
-<Since version="1.4.0" /> Every feature in the table except **Embedded media** also has a switch in the **Features** card, under **Account menu > Admin Area > Site settings**, which an admin can flip without restarting anything. The two layers combine like this:
+<Since version="1.4.0" /> Every feature in the table except **Embedded media** also has a switch in the **Features** card, under **Account menu > Admin area > Site settings**, which an admin can flip without restarting anything. The two layers combine like this:
 
 - An environment variable set to `false` is a hard off. The feature stays off whatever the site settings say, and its switch in the Features card is disabled, with a **Locked** badge and the name of the variable. To turn the feature on, change the variable in your Compose file or `.env` and restart.
 - While the environment variable allows a feature (the default), its switch decides. All of them start on.
@@ -148,7 +148,7 @@ With the switch on, a scan makes the two WebP stills as well, and the grid shows
 Face detection, image captioning and Things run on a machine learning model. Under each of these switches a line says whether its model is ready. When a model is missing, saving a switch starts the **Download models** job, and the line shows its progress with a link to the job. If the download fails, the line says so and offers **Retry**.
 
 :::note Embedded media
-The **Embedded media** switch is checked only the first time a file is imported. Enabling it on a library that has already been scanned extracts nothing for the photos that are already there, not even with **Rescan All Photos**, which skips extraction for files it has already imported. Only files added afterwards are affected. Turning it off never removes clips that were already extracted; those stay on disk under `protected_media/embedded_media/`.
+The **Embedded media** switch is checked only the first time a file is imported. Enabling it on a library that has already been scanned extracts nothing for the photos that are already there, not even with **Rescan all photos**, which skips extraction for files it has already imported. Only files added afterwards are affected. Turning it off never removes clips that were already extracted; those stay on disk under `protected_media/embedded_media/`.
 :::
 
 #### Legend
@@ -174,21 +174,21 @@ The **Embedded media** switch is checked only the first time a file is imported.
 
 ## Switches in Site Settings {#switches-in-site-settings}
 
-Besides the Features card [above](#site-settings-switches), some features are switched by a model choice in the app, under **Account menu > Admin Area > Site settings**. A change there takes effect without a restart.
+Besides the Features card [above](#site-settings-switches), some features are switched by a model choice in the app, under **Account menu > Admin area > Site settings**. A change there takes effect without a restart.
 
-- **Captioning Model**: `None` turns automatic captioning off. <Since version="1.4.0" /> It also keeps the captioning service stopped and the captioning model from being downloaded; picking the model again downloads it when you save. See [Image Captioning](./image-captioning.md). The `FEATURE_IMAGE_CAPTIONING` variable above switches it off for the whole deployment instead.
-- **Text Recognition (OCR) Model**: `None`, the default, keeps text recognition off and its service stopped. Text that was already read stays searchable. See [Text Recognition (OCR)](./text-recognition.md#turning-it-off).
-- **Map Tiles**: `None (hide map)` hides the maps, so map backgrounds are never loaded from an outside server. See [Site Settings](./settings/index.md#site-settings).
+- **Captioning model**: `None` turns automatic captioning off. <Since version="1.4.0" /> It also keeps the captioning service stopped and the captioning model from being downloaded; picking the model again downloads it when you save. See [Image Captioning](./image-captioning.md). The `FEATURE_IMAGE_CAPTIONING` variable above switches it off for the whole deployment instead.
+- **Text recognition (OCR) model**: `None`, the default, keeps text recognition off and its service stopped. Text that was already read stays searchable. See [Text Recognition (OCR)](./text-recognition.md#turning-it-off).
+- **Map tiles**: `None (hide map)` hides the maps, so map backgrounds are never loaded from an outside server. See [Site settings](./settings/index.md#site-settings).
 
-Single sign-on is not a feature toggle: it is switched on in the **Single sign-on** group of the same Site Settings card, once an identity provider is set up. See [Single Sign-On](./settings/single-sign-on.md).
+Single sign-on is not a feature toggle: it is switched on in the **Single sign-on** group of the same Site settings card, once an identity provider is set up. See [Single Sign-On](./settings/single-sign-on.md).
 
 ## Running with minimal machine learning {#minimal-machine-learning}
 
 <Since version="1.4.0" /> On a small server, or one without Internet access, you can turn off the machine learning you do not need. Set these in your `.env` (or the site settings switches above):
 
 - `FEATURE_FACE_DETECTION=false`: no face detection, no face recognition service, no face recognition model download.
-- `FEATURE_IMAGE_CAPTIONING=false` (or **Captioning Model** `None`): no automatic captions, no captioning service, no captioning model download (about 370 MB).
+- `FEATURE_IMAGE_CAPTIONING=false` (or **Captioning model** `None`): no automatic captions, no captioning service, no captioning model download (about 370 MB).
 - `FEATURE_SCENE_CLASSIFICATION=false`: no tags for the Things albums.
-- Leave **Text Recognition (OCR) Model** at `None`, the default: no OCR service and no OCR model download.
+- Leave **Text recognition (OCR) model** at `None`, the default: no OCR service and no OCR model download.
 
 What still runs and is still downloaded: OpenCLIP ViT-B/32 (about 600 MB). It makes the embeddings behind semantic search and similar photos, so the `tags` service keeps running even with Things turned off, and there is no switch for it. The thumbnail, EXIF and similarity services also keep running; they hold no large models. There is no separate image without the machine learning runtime.

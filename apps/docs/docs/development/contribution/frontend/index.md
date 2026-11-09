@@ -1,5 +1,5 @@
 ---
-title: "👨‍💻 Frontend"
+title: "Frontend"
 description: "Development Information regarding LibrePhotos Frontend."
 sidebar_position: 2
 last_modified_at: 2026-09-26

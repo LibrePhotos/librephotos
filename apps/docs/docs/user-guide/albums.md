@@ -1,5 +1,5 @@
 ---
-title: "📁 Albums"
+title: "Albums"
 description: "Managing your photo albums in LibrePhotos"
 sidebar_position: 4
 ---
@@ -28,10 +28,10 @@ A person's page has a **⋮** button (**Person actions**) at the right of its he
 - **Add birth date…** (**Birth date…** once there is one) sets, changes or removes the person's birth date (see below).
 - **Groups…** puts the person in your groups of people (see below).
 - **Merge into…** merges this person into another one you pick from your people, then shows that person's page.
-- **Manage faces** opens the face dashboard.
+- **Review faces** opens the [face dashboard](./face-recognition.md#open-the-face-dashboard) on the **Labeled** tab, showing only this person's faces. Remove the person's chip in its toolbar to see everyone's faces again.
 - **Delete person** removes the person from People and takes you back there. The photos stay in your library; the faces labelled with that person go back to the unknown faces, where you can label them again.
 
-A photo that shows up under the wrong person can be taken off them from the person's page: select it (or several), open the selection's **⋮** menu and choose **Remove from this person** under **Album Actions**. After you confirm, the person's faces on those photos go back to the unknown faces of the [face dashboard](./face-recognition.md), and the photos leave the person's page; they stay in your library and in any albums. This works on photos you selected one by one, not after **Select all**. If you write face tags to your files, the files are updated too.
+A photo that shows up under the wrong person can be taken off them from the person's page: select it (or several), open the selection's **⋮** menu and choose **Remove from this person** under **Album actions**. After you confirm, the person's faces on those photos go back to the unknown faces of the [face dashboard](./face-recognition.md), and the photos leave the person's page; they stay in your library and in any albums. This works on photos you selected one by one, not after **Select all**. If you write face tags to your files, the files are updated too.
 
 #### Birth date and age
 
@@ -46,10 +46,10 @@ Only you see a birth date: it is not part of shared albums, public links or what
 Groups gather people, for example "Family", "Work" or "Climbing club", so you can look at one circle at a time. A person can be in several groups, and only you see your groups.
 
 - To put a person in groups, open the **⋮** on their tile on the People page (or on their page) and choose **Groups…**. Tick the groups they belong to; every tick is saved at once. Type a name under the list and click **Add** to make a new group with this person in it.
-- To show only one group, use the group button in the People header (it says **All people** until you pick one). The list shows each group with how many people are in it. The page keeps the choice in its address, so **Back** from a person returns to the same group.
+- To show only one group, use the group button in the People header (it says **All people** until you pick one). On a phone it is in the header's **⋮**, under **Groups**. The list shows each group with how many people are in it. The page keeps the choice in its address, so **Back** from a person returns to the same group.
 - **Manage groups…** at the bottom of that list renames and deletes groups and adds new ones. Deleting a group keeps its people.
 
-When you merge two people, the person you merge into joins every group the merged person was in. The [face dashboard](./face-recognition.md#browse-people) has the same group button to label one group at a time.
+When you merge two people, the person you merge into joins every group the merged person was in. The [face dashboard](./face-recognition.md#browse-people) has the same choice under **Groups** in its **Filter**, to label one group at a time.
 
 <Since version="1.4.0" /> Up to 1.3.0, people could not be grouped.
 
@@ -74,14 +74,14 @@ A merge cannot be undone. If you write face tags to your files, the files of the
 Albums that group your photos into events based on when they were taken. Grouping is purely chronological: a photo joins the current event if it was taken less than **1 day and 12 hours** after the previous photo already in that event, so a continuous trip stays a single event however long it runs. An event needs at least two photos — a single photo on its own produces no album. Location and recognized people are not used for the grouping itself; they only feed the album's generated title (for example "Weekend in Paris") and its position on the map.
 
 :::note
-Unlike People, Places and Things albums, event albums are **not** created during a scan. To create them, open **Settings → Library**, find the **Event Albums** section and click **Generate** (or run the **Generate Event Albums** command from the search spotlight), and re-run it after importing new photos. **Regenerate Event Titles** only refreshes the titles of existing albums, which is useful once you have named faces or after reverse geocoding has filled in place names. It also cleans up titles made by 1.2.1 and older, which could read "with Unknown - Other" or contain a double space. See [Job System](./job-system.md) for the underlying jobs.
+Unlike People, Places and Things albums, event albums are **not** created during a scan. To create them, open **Account menu > Library**, find the **Event albums** section and click **Generate** next to **Generate event albums** (or run the **Generate event albums** command from the search spotlight), and re-run it after importing new photos. **Regenerate event titles** only refreshes the titles of existing albums, which is useful once you have named faces or after reverse geocoding has filled in place names. It also cleans up titles made by 1.2.1 and older, which could read "with Unknown - Other" or contain a double space. See [Job System](./job-system.md) for the underlying jobs.
 :::
 
-Event titles follow the language you picked for the web app: "Wednesday Afternoon with Anna in Berlin" reads "Mittwochnachmittag mit Anna in Berlin" in German, once that language has the translation. Place and person names stay as they are. An event made before this change keeps its English title until the next **Generate Event Albums** run or a **Regenerate Event Titles**; the mobile app and search still use the English title.
+Event titles follow the language you picked for the web app: "Wednesday Afternoon with Anna in Berlin" reads "Mittwochnachmittag mit Anna in Berlin" in German, once that language has the translation. Place and person names stay as they are. An event made before this change keeps its English title until the next **Generate event albums** run or a **Regenerate event titles**; the mobile app and search still use the English title.
 
 <Since version="1.4.0" /> Up to 1.3.0, event titles were always English.
 
-An event's cover on the **Events** page is its first photo until you pick another one with **Event actions** (⋮) → **Set as cover…** on the event's page (see [Setting an Album Cover](#setting-an-album-cover)). Running **Generate Event Albums** again keeps your pick: events are updated in place and only gain photos, and when new photos join two events into one, the merged event keeps the older event's cover, or the other one's if the older had none. **Delete all event albums** (Admin area, **Admin Tools**) removes the picks along with the events. A cover you hide or move to the trash later is replaced by the first photo again.
+An event's cover on the **Events** page is its first photo until you pick another one with **Event actions** (⋮) → **Set as cover…** on the event's page (see [Setting an Album Cover](#setting-an-album-cover)). Running **Generate event albums** again keeps your pick: events are updated in place and only gain photos, and when new photos join two events into one, the merged event keeps the older event's cover, or the other one's if the older had none. **Delete all event albums** (Admin area, **Admin tools**) removes the picks along with the events. A cover you hide or move to the trash later is replaced by the first photo again.
 
 ### Folders
 
@@ -92,13 +92,13 @@ The **Folders** page lists the folders of your scan directory. Each tile shows t
 ### Places Albums
 Automatically generated albums based on the GPS location data in your photos.
 
-The **Places** card on the Albums page shows a small map zoomed to fit your places, or the whole world while you have none; click it to open the [Places page](./places.md#the-places-page). <Since version="1.4.0" /> Up to 1.3.0, the card always showed the whole world.
+The **Places** card under **Collections** on the Albums page shows a small map zoomed to fit your places, or the whole world while you have none; click it to open the [Places page](./places.md#the-places-page). <Since version="1.4.0" /> Up to 1.3.0, the card always showed the whole world.
 
 ### Tags
-Albums for **your own tags** — the labels you type yourself, as opposed to the things OpenCLIP detects. Every tag gets an album, and the **Tags** section of the Albums page lists them with a photo count. Tags also come in from your files: keywords stored in a photo's XMP `Subject` or IPTC `Keywords` (including `.xmp` sidecars, so tags applied in Lightroom or digiKam are picked up) become tags during a scan. See [Tagging photos](#tagging-photos) below for how to apply them, and [Search](./search.md) for finding photos by tag.
+Albums for **your own tags** — the labels you type yourself, as opposed to the things OpenCLIP detects. Every tag gets an album, and the **Tags** card under **Collections** on the Albums page opens the list of them, each with a photo count. Tags also come in from your files: keywords stored in a photo's XMP `Subject` or IPTC `Keywords` (including `.xmp` sidecars, so tags applied in Lightroom or digiKam are picked up) become tags during a scan. See [Tagging photos](#tagging-photos) below for how to apply them, and [Search](./search.md) for finding photos by tag.
 
 ### Things Albums
-Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only things from the selected model are shown. Switching models does not delete your existing things, but it also does not detect things with the newly selected model — until things exist for that model, the Things section will look empty.
+Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site settings), so only things from the selected model are shown. Switching models does not delete your existing things, but it also does not detect things with the newly selected model — until things exist for that model, the Things section will look empty.
 
 <Since version="1.5.0" /> To find the things in your photos again, open **Account menu > Library** and, under the **Things** heading, click the arrow next to **Find** and choose **Find things again for all photos**. It asks first, because on a large library it runs for hours. Every photo is labelled again with the current list of things, and the Things albums follow; your own tags, keywords and captions stay as they are. **Find** alone covers only the photos that have no things yet, which a scan also does by itself. Each user runs it for their own photos. Albums created from `#hashtags` you typed into photo captions are always shown, regardless of the active model.
 
@@ -125,7 +125,7 @@ Things to know:
 
 ## Sorting album lists
 
-**My Albums**, **Events**, **Things**, **Places**, **People**, **Tags** and **Folders** have a **Sort** button at the right of their header; on a phone it is an icon. It names the current order, for example **Sort: Name**. Click it and pick:
+**My albums**, **Events**, **Things**, **Places**, **People**, **Tags** and **Folders** have a **Sort** button at the right of their header; on a phone it is an icon (on **People**, it is in the header's **⋮**). It names the current order, for example **Sort: Name**. Click it and pick:
 
 - under **Sort by**, what to sort on;
 - under **Order**, which way round: **A to Z** or **Z to A** for names, **Most first** or **Fewest first** for numbers, **Newest first** or **Oldest first** for dates;
@@ -133,13 +133,13 @@ Things to know:
 
 | Page | Usual order | Other orders |
 | --- | --- | --- |
-| My Albums | Name, A to Z | Number of photos; Date taken |
+| My albums | Name, A to Z | Number of photos; Date taken |
 | Events | Date taken, newest first | Name; Number of photos |
 | Things, Tags, Folders | Name, A to Z | Number of photos |
 | Places | Size of place, largest first (countries first, then the places with the most photos) | Name; Number of photos |
 | People | Name, A to Z | Number of faces |
 
-**Date taken** on My Albums is when the album's oldest photo was taken, not when you made the album; photos in the trash or hidden do not count, and albums without a dated photo come last. People are sorted by their number of faces, the count under each name on the People page. Names sort the way people read them: "Album 2" comes before "Album 10", and upper and lower case do not matter.
+**Date taken** on My albums is when the album's oldest photo was taken, not when you made the album; photos in the trash or hidden do not count, and albums without a dated photo come last. People are sorted by their number of faces, the count under each name on the People page. Names sort the way people read them: "Album 2" comes before "Album 10", and upper and lower case do not matter.
 
 Each page remembers its order in your browser, so going **Back** from an album returns to the same list at the same place. The order only changes what you see in the web app; the mobile app keeps its own.
 
@@ -190,16 +190,16 @@ If you already know which photo you want to use:
 
 ### An empty album
 
-<Since version="1.4.0" /> On **My Albums**, click **New album** (the **+** on a phone), give it a title that none of your albums has, and click **Create album**. The new album opens right away. It is empty, and shows a drop zone: drop photos and videos on it, or click **Upload photos**, to [upload them into the album](./upload.md#uploading-into-an-album). You can also fill it from your library as below.
+<Since version="1.4.0" /> On **My albums**, click **New album** (the **+** on a phone), give it a title that none of your albums has, and click **Create album**. The new album opens right away. It is empty, and shows a drop zone: drop photos and videos on it, or click **Upload photos**, to [upload them into the album](./upload.md#uploading-into-an-album). You can also fill it from your library as below.
 
-If **My Albums** is showing one collection (see [Grouping albums into collections](#grouping-albums-into-collections)), the new album goes into that collection, and the dialog says so. Made from **All** or **Not in a collection**, it is in no collection and shows under **Not in a collection**.
+If **My albums** is showing one collection (see [Grouping albums into collections](#grouping-albums-into-collections)), the new album goes into that collection, and the dialog says so. Made from **All** or **Not in a collection**, it is in no collection and shows under **Not in a collection**.
 
-Empty albums stay on **My Albums** with a *No cover* tile, also when you remove the last photo from an album. (Up to 1.3.0, an album without photos was hidden there.)
+Empty albums stay on **My albums** with a *No cover* tile, also when you remove the last photo from an album. (Up to 1.3.0, an album without photos was hidden there.)
 
 ### From photos you select
 
-1. Select one or more photos from any view: click **Select** at the right of the page header (an icon on a phone) and click the photos, or tick a photo's checkbox. The selection bar appears under the header while you select; its **✕** or the **Escape** key ends selecting and clears the selection
-2. Click the **plus icon** (+) in the selection bar
+1. Select one or more photos from any view: click **Select** at the right of the page header (an icon on a phone) and click the photos, or tick a photo's checkbox. The selection bar appears under the header while you select; its **✕** or the **Escape** key ends selecting and clears the selection. On a phone the bar only has the **+** and **⋮** buttons (favorite, share, download and move to trash are in the **⋮**), and menus open as a sheet from the bottom of the screen
+2. Click the **+** button (**Add to album or tags**) in the selection bar
 3. Click **"Album"**
 4. Either:
    - Enter a name for a new album and click "Create"
@@ -216,7 +216,7 @@ On the **Albums** page, every User Album card has a **three-dot menu** (⋮) in 
 - **Collections…** — put the album into collections (see [Grouping albums into collections](#grouping-albums-into-collections)).
 - **Delete** — a confirmation dialog appears before the album is removed.
 
-The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Upload to this album…** (see [Uploading into an album](./upload.md#uploading-into-an-album)), **Rename**, **Sharing**, **Collections…**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My Albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
+The album's own page has the same actions: the **⋮** button (**Album actions**) at the right of its header offers **Upload to this album…** (see [Uploading into an album](./upload.md#uploading-into-an-album)), **Rename**, **Sharing**, **Collections…**, **Lock album** or **Unlock album** (see [Locking user albums](#locking-user-albums-since-130)) and **Delete album**. A new title shows on the page right away, and after **Delete album** you land on **My albums**. The menu is only there for your own albums; on an album someone shared with you it has **Leave album** instead (see [Leaving an album shared with you](./sharing.md#leaving-an-album-shared-with-you)).
 
 <Since version="1.4.0" /> Up to 1.3.0, an album could only be renamed, locked or deleted from its card.
 
@@ -232,11 +232,11 @@ A collection is a label for albums, such as "Travel", "Family" or "2000s". An al
 
 ### Filtering My Albums
 
-Once you have a collection, **My Albums** shows a row of chips under its header: **All**, one chip per collection with the number of albums in it, and **Not in a collection**. Click a chip to show only those albums; the header then says how many albums are in it. The chosen collection stays in the page address, so going **Back** from an album returns to the same filtered list.
+Once you have a collection, **My albums** shows a row of chips under its header: **All**, one chip per collection with the number of albums in it, and **Not in a collection**. Click a chip to show only those albums; the header then says how many albums are in it. The chosen collection stays in the page address, so going **Back** from an album returns to the same filtered list.
 
 ### Putting an album into collections
 
-1. Open the album card's **⋮** menu on **My Albums**, or the **⋮** (**Album actions**) at the right of the album's own header.
+1. Open the album card's **⋮** menu on **My albums**, or the **⋮** (**Album actions**) at the right of the album's own header.
 2. Choose **Collections…**.
 3. Tick the collections the album belongs in, and untick the ones it does not. Each tick is saved right away.
 4. To make a new collection, type its name in **New collection** and click **Add**: it is created and the album is put in it.
@@ -244,10 +244,10 @@ Once you have a collection, **My Albums** shows a row of chips under its header:
 
 ### Renaming and deleting collections
 
-Open the **⋮** at the end of the chip row and choose **Manage collections…** (while you have no collection yet, click **New collection** on **My Albums** instead). The dialog lists your collections with their album counts:
+Open the **⋮** at the end of the chip row and choose **Manage collections…** (while you have no collection yet, click **New collection** on **My albums** instead). The dialog lists your collections with their album counts:
 
 - the pencil button renames a collection;
-- the bin button deletes it, after you confirm. Its albums stay in **My Albums**;
+- the bin button deletes it, after you confirm. Its albums stay in **My albums**;
 - **New collection** at the bottom adds one.
 
 Collection names are unique per user, ignoring upper and lower case: you cannot have both "Travel" and "travel".
@@ -265,7 +265,7 @@ Collections are private. When you share an album, the people you share it with s
 User Albums can be shared with other users on your LibrePhotos instance, or publicly via a link. For full details on all sharing features, see the [Sharing guide](./sharing.md).
 
 1. Navigate to the User Album you want to share
-2. Click the **three-dot menu** (⋮) at the right of the album's header and choose **Sharing** (or, while selecting photos, in the selection bar's ⋮, **Sharing** under "Album Actions")
+2. Click the **three-dot menu** (⋮) at the right of the album's header and choose **Sharing** (or, while selecting photos, in the selection bar's ⋮, **Sharing** under "Album actions")
 3. Search for and select the users you want to share with
 
 ---
@@ -288,7 +288,7 @@ Turning **"Public sharing"** off asks first, because it revokes the link for goo
 
 Once an album is public, it appears under **Sharing → Links**, where you can copy the link, open it, or reopen the sharing dialog to change its settings. Albums that are not yet public are not listed there.
 
-Default privacy settings for new public links can be configured in **Settings → Public Sharing Defaults**.
+Default privacy settings for new public links can be configured in **Settings → Public sharing defaults**.
 
 Public albums are accessible at `/public/s/{slug}` and include a lightbox viewer with the same navigation experience as the main app.
 
@@ -303,7 +303,7 @@ Tags are yours to type: a place name, a project, "to print", whatever you sort b
 Anywhere you can select photos — the timeline, a search result, a person, place, thing or user album, or a folder — you can tag the whole selection at once:
 
 1. Select the photos and videos you want to tag.
-2. Press **`t`**, or open the **plus menu** (＋) and click **Tags**.
+2. Press **`t`**, or open the **+** menu (**Add to album or tags**) in the selection bar and click **Tags**.
 3. Type the tags, separating several with a comma. Suggestions narrow as you type — tags that *begin* with what you typed come first, so a letter or two is usually enough — and anything new is created for you.
 4. Click **Add tags** (or press Enter on an empty box).
 
@@ -321,7 +321,7 @@ Open a photo and use the **Tags** section of the [sidebar](./viewing-photos.md) 
 
 ### Renaming, merging and deleting tags
 
-On the Albums page, open **Tags → View all**. The three-dot menu on any tag offers:
+On the Albums page, click the **Tags** card under **Collections**. The three-dot menu on any tag offers:
 
 - **Rename** — the tag keeps its photos.
 - **Merge** — pick another tag to fold into this one; its photos move over and it is deleted.
@@ -348,7 +348,7 @@ To remove photos from a User Album:
 1. Navigate to the User Album
 2. Select the photos you want to remove
 3. Click the **three-dot menu** (⋮)
-4. Click **"Remove Photos"**
+4. Under **Album actions**, click **"Remove photos"**
 
 :::caution
 This only removes the photos from the album. The original photos remain in your library.
@@ -360,6 +360,6 @@ This only removes the photos from the album. The original photos remain in your 
 
 In the user album list, open an album’s three-dot menu and choose **Lock album**; on the album's own page, the same item is in the **⋮** at the right of its header. A lock icon marks locked albums in the list, and a grey **Locked** badge follows the title on the album's page. Choose **Unlock album** from the same menus to allow changes again.
 
-Locking prevents adding photos to the album or removing photos from it. Locked albums are disabled in the add-to-album picker, and **Remove Photos** is disabled in a locked album’s selection menu, saying that the album is locked and has to be unlocked first. The lock protects which photos are in the album, not the photos themselves: you can still favorite, hide, share, tag or delete them, rename the album, change its cover, and manage album sharing.
+Locking prevents adding photos to the album or removing photos from it. Locked albums are disabled in the add-to-album picker, and **Remove photos** is disabled in a locked album’s selection menu, saying that the album is locked and has to be unlocked first. The lock protects which photos are in the album, not the photos themselves: you can still favorite, hide, share, tag or delete them, rename the album, change its cover, and manage album sharing.
 
 The API enforces the album membership lock. This does not protect the underlying photos from changes made elsewhere in your library or prevent deleting the album itself.

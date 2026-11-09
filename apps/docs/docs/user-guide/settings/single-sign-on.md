@@ -1,5 +1,5 @@
 ---
-title: "🔑 Single sign-on (OIDC)"
+title: "Single sign-on (OIDC)"
 description: "Letting people log in with Keycloak, Authentik, Authelia, Zitadel, Google or any other OpenID Connect provider"
 sidebar_position: 2
 ---
@@ -21,7 +21,7 @@ take anyone's existing way of logging in away.
   LibrePhotos genuinely cannot work out its own public address from an incoming
   request — it has to be told. Without it the login button reports that SSO is
   not fully configured.
-- **An email provider configured** in Site Settings, *if* you want LibrePhotos to
+- **An email provider configured** in Site settings, *if* you want LibrePhotos to
   create accounts on first login. See the email settings page. Without email
   configured, LibrePhotos will not create accounts over SSO, because it has no
   way to act on the provider's claim that an address is verified.
@@ -55,7 +55,7 @@ In the Django admin (`/api/django-admin/`), under **Social applications**, add o
 | Settings | `{"server_url": "https://your-idp/realms/example"}` — the issuer URL |
 | Sites | pick your site |
 
-Then, in the app, open **Admin Area > Site Settings** and find the **Single
+Then, in the app, open **Admin area > Site settings** and find the **Single
 sign-on** group. Each change saves at once. <Since version="1.5.0" /> Up to 1.4.0
 these switches were only on the Constance page of the Django admin, under the
 names in brackets.

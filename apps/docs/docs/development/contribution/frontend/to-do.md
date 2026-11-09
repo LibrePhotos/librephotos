@@ -1,5 +1,5 @@
 ---
-title: "🖱️ To-Do"
+title: "To-do"
 description: "Ways to contribute to the LibrePhotos frontend: open issues, E2E tests, and docs."
 sidebar_position: 2
 last_modified_at: 2026-09-26

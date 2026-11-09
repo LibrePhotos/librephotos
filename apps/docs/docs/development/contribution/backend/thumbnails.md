@@ -1,5 +1,5 @@
 ---
-title: "🎞 Thumbnails"
+title: "Thumbnails"
 description: "How do thumbnails work in LibrePhotos?"
 sidebar_position: 2
 ---

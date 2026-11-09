@@ -1,5 +1,5 @@
 ---
-title: "📚 Stacks & File Variants"
+title: "Stacks and file variants"
 description: "How LibrePhotos handles RAW+JPEG pairs, Live Photos, bursts, and other related photo groups"
 sidebar_position: 14
 ---
@@ -30,7 +30,7 @@ LibrePhotos uses a two-phase scan to group file variants:
 
 Metadata is read from the main file and from the XMP sidecars of every variant. A sidecar named after the RAW file (`IMG_001.CR2.xmp`, as darktable and other RAW editors write it) counts as well, so a rating, keywords, a description or face regions set in the RAW editor reach the photo. When both exist, a sidecar named after the main file (`IMG_001.xmp` or `IMG_001.jpg.xmp`) wins over the RAW's. <Since version="1.4.0" /> Up to 1.3.0, only sidecars named after the main file were read; a **Rescan** from the Library page picks up the others.
 
-After each scan, a **Repair File Variants** job runs automatically. It looks for RAW files that ended up as their own photo and merges them into the matching image photo (same folder, same base name — JPEG, HEIC, PNG or TIFF), and corrects the main display file when a RAW file is still marked as the main one. Live Photo videos that were already scanned as separate photos are not merged by this job.
+After each scan, a **Repair file variants** job runs automatically. It looks for RAW files that ended up as their own photo and merges them into the matching image photo (same folder, same base name — JPEG, HEIC, PNG or TIFF), and corrects the main display file when a RAW file is still marked as the main one. Live Photo videos that were already scanned as separate photos are not merged by this job.
 
 ### Viewing File Variants
 
@@ -53,7 +53,7 @@ Once photos are stacked, only the stack's cover photo appears in your timeline �
 | Type | Description | Detection |
 |------|-------------|-----------|
 | **Burst** | A rapid sequence of photos taken in burst mode | Automatic (rule-based: EXIF burst/sequence tags and filename patterns by default) |
-| **Bracket** | Exposure brackets for HDR | Reserved — not currently created; there is no bracket detection, and **Create Stack** always makes a Manual stack |
+| **Bracket** | Exposure brackets for HDR | Reserved — not currently created; there is no bracket detection, and **Create stack** always makes a Manual stack |
 | **Manual** | Any photos you want to group together | Manual |
 
 ### Automatic Stack Detection
@@ -66,47 +66,47 @@ Burst detection runs a list of rules stored per user. Enabled by default (hard c
 
 The two EXIF rules build one burst from consecutive frames of the same camera (model, and serial number when the photo has one; a frame scanned before LibrePhotos read serial numbers has none and still joins the other frames of its model when they all come from one body) taken at most 2 seconds apart, using the sub-second capture time (`SubSecTimeOriginal`). A burst that crosses a second boundary stays one stack, two cameras shooting at the same moment get one stack each, and a sequence number that starts again begins a new burst. A frame whose sequence number says "single shot" (0) is not a burst frame. Frames are ordered by capture time, and the stack's cover is the middle frame.
 
-<Since version="1.4.0" /> Up to 1.3.0, these rules grouped frames by the whole second, and a Canon photo shot in continuous drive mode made **Detect Stacks** fail. Run **Detect Stacks** again to regroup existing bursts.
+<Since version="1.4.0" /> Up to 1.3.0, these rules grouped frames by the whole second, and a Canon photo shot in continuous drive mode made **Detect stacks** fail. Run **Detect stacks** again to regroup existing bursts.
 
 A camera's file counter (`IMG_0001`, `DSC_0815`) or a download copy (`photo (1)`) does not make a burst by default: every camera numbers its files. A filename rule set to a counter pattern (`sequence_suffix`, `bracketed_sequence`, `iphone_burst`) or to a custom pattern still matches them, but then its frames also have to come from the same camera, count up by one and follow each other within the rule's interval (2 seconds by default).
 
-<Since version="1.4.0" /> Up to 1.3.0, the default filename rule took every `IMG_xxxx` file of a folder for one burst. Run **Detect Stacks** again to regroup existing bursts.
+<Since version="1.4.0" /> Up to 1.3.0, the default filename rule took every `IMG_xxxx` file of a folder for one burst. Run **Detect stacks** again to regroup existing bursts.
 
 Available but **disabled by default** (soft criteria — these estimate, and can group unrelated photos):
 
 - **Timestamp Proximity** — photos taken within a configurable interval of each other (2 seconds by default, measured to the sub-second) on the same camera
 - **Visual Similarity** — perceptual-hash comparison of consecutive photos
 
-Open **Settings** and use the **Burst Detection Rules** panel to enable, disable, reorder, add or remove these rules (including extra presets such as a looser 5-second timestamp rule or a custom filename pattern). Changes apply the next time you run **Detect Stacks**.
+Open **Settings** and use the **Burst detection rules** panel to enable, disable, reorder, add or remove these rules (including extra presets such as a looser 5-second timestamp rule or a custom filename pattern). Changes apply the next time you run **Detect stacks**.
 
-You can trigger stack detection from the **Organizing → Stacks** page by clicking **"Detect Stacks"** and choosing which types to detect.
+You can trigger stack detection from the **Organizing → Photo stacks** page by clicking **"Detect photo stacks"** and choosing which types to detect.
 
 ### The Organizing Page
 
-The **Organizing** page (accessible from the navigation) is your central hub for managing stacks and duplicates. It has two tabs:
+The **Organizing** page is your central hub for managing stacks and duplicates. Open it from the dropdown of the **Photos** page title, under **Organizing** (**Duplicates** or **Stacks**). It has two tabs, **Duplicate photos** and **Photo stacks**:
 
 #### Stacks Tab
 
 - Browse all detected stacks
-- Filter by stack type — the dropdown offers **All Types** plus each type you actually have stacks of
+- Filter by stack type — the dropdown offers **All types** plus each type you actually have stacks of
 - Click a stack to open the **Stack Modal** showing all photos in the group with details (resolution, file size, camera, date)
-- **Set Cover** — Choose which photo represents the stack in the timeline
-- **Unstack** — Remove the grouping. It asks first: the photos stay in your library, a burst or bracket stack comes back with the next detection, but a manual stack has to be built again by hand
-- **View in Lightbox** — Browse stack photos in the full lightbox viewer
+- **Set as cover** — Choose which photo represents the stack in the timeline
+- **Unstack photos** — Remove the grouping. It asks first: the photos stay in your library, a burst or bracket stack comes back with the next detection, but a manual stack has to be built again by hand
+- **View full size** — Browse stack photos in the full lightbox viewer
 
 #### Creating Manual Stacks
 
 1. Select multiple photos from any view
 2. Open the selection actions menu (three-dot menu)
-3. Click **"Create Stack"**
+3. Click **"Create stack"**
 4. The selected photos are grouped into a manual stack, and only the cover photo remains visible in your timeline
 
 #### Managing Stacks
 
 From the selection actions menu, you can also:
 
-- **Merge Stacks** — Combine multiple stacks into one
-- **Break Apart Stacks** — Remove the selected photos from every manual stack they belong to (a stack is deleted automatically if fewer than 2 photos remain)
+- **Merge stacks** — Combine multiple stacks into one
+- **Break apart stacks** — Remove the selected photos from every manual stack they belong to (a stack is deleted automatically if fewer than 2 photos remain)
 
 ### Stacks in the Lightbox
 

@@ -1,5 +1,5 @@
 ---
-title: "Offline Usage"
+title: "Offline usage"
 description: "Learn how to configure LibrePhotos for offline use by manually downloading and placing the required machine learning models. This guide provides step-by-step instructions so your LibrePhotos installation can run its machine learning features without an Internet connection."
 sidebar_position: 22
 ---
@@ -16,7 +16,7 @@ Manually download the necessary models from their respective URLs. Below is a li
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/tokenizer.json`
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/preprocess.json`
    - `https://huggingface.co/derneuere/librephotos_models/resolve/main/openclip_vitb32/LICENSE`
-2. **lfm2_vl_450m** (Captioning; optional, not needed with `FEATURE_IMAGE_CAPTIONING=false` or **Captioning Model** `None`)
+2. **lfm2_vl_450m** (Captioning; optional, not needed with `FEATURE_IMAGE_CAPTIONING=false` or **Captioning model** `None`)
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx`
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx_data`
    - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx`
@@ -26,7 +26,7 @@ Manually download the necessary models from their respective URLs. Below is a li
    - Tokenizer: `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json`
 3. **buffalo_sc** (Face recognition — default model; optional, not needed with `FEATURE_FACE_DETECTION=false`)
    - URL: `https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip`
-   - Only download the model selected in **Site Settings → Face Recognition Model**. The other options use the same release, e.g. `buffalo_s.zip`, `buffalo_m.zip`, `buffalo_l.zip`, `antelopev2.zip`.
+   - Only download the model selected in **Site settings → Face recognition model**. The other options use the same release, e.g. `buffalo_s.zip`, `buffalo_m.zip`, `buffalo_l.zip`, `antelopev2.zip`.
 
 ### Step 2: Place the Models in the Correct Location
 
@@ -71,10 +71,10 @@ data_models/
 
 Even with every model stored locally, these settings still reach the Internet by default:
 
-- **Site Settings → Map Tiles** defaults to **PhotoPrism (default)**, which loads the map background from `https://cdn.photoprism.app/maps/default.json` every time a map is shown. The **OpenStreetMap** option is not an offline alternative either — it fetches tiles from `tile.openstreetmap.org` and fonts from `fonts.openmaptiles.org`. On an offline install, select **None (hide map)**, which turns off map rendering and makes no external requests.
-- **Site Settings → Map Provider** (reverse geocoding) is **ExifTool (offline, built in)** on a new install: it looks place names up in a database that ships with LibrePhotos and needs no Internet access. It names towns, not streets; see [Offline place names with ExifTool](./places.md#offline-place-names-with-exiftool). An install set up before 1.4.0 keeps the provider it had, usually **Nominatim (OpenStreetMap)**, which calls the public Nominatim service during scans; without Internet access these calls fail and are only logged as a warning, so photos keep their coordinates but get no place names. Select ExifTool there, then **Look up place names again** under **Admin Area → Admin Tools** (see [Switching the provider](./places.md#switching-the-provider)). The place search in the location picker still needs Nominatim, so it does not work offline; clicking the map and pasting coordinates do. <Since version="1.4.0" /> Up to 1.3.0 there was no offline provider, so place names were unavailable offline.
+- **Site settings → Map tiles** defaults to **PhotoPrism (default)**, which loads the map background from `https://cdn.photoprism.app/maps/default.json` every time a map is shown. The **OpenStreetMap** option is not an offline alternative either — it fetches tiles from `tile.openstreetmap.org` and fonts from `fonts.openmaptiles.org`. On an offline install, select **None (hide map)**, which turns off map rendering and makes no external requests.
+- **Site settings → Map provider** (reverse geocoding) is **ExifTool (offline, built in)** on a new install: it looks place names up in a database that ships with LibrePhotos and needs no Internet access. It names towns, not streets; see [Offline place names with ExifTool](./places.md#offline-place-names-with-exiftool). An install set up before 1.4.0 keeps the provider it had, usually **Nominatim (OpenStreetMap)**, which calls the public Nominatim service during scans; without Internet access these calls fail and are only logged as a warning, so photos keep their coordinates but get no place names. Select ExifTool there, then **Look up place names again** under **Admin area → Admin tools** (see [Switching the provider](./places.md#switching-the-provider)). The place search in the location picker still needs Nominatim, so it does not work offline; clicking the map and pasting coordinates do. <Since version="1.4.0" /> Up to 1.3.0 there was no offline provider, so place names were unavailable offline.
 
-- <Since version="1.5.0" /> **Site Settings → Check for new releases** asks `api.github.com` once a day which release is the newest. Offline that request fails, and the switch only says so. To send nothing at all, set `UPDATE_CHECK=false` (`updateCheck=false` in `.env`), which also locks the switch off; see [Checking for new releases](../installation/environment-variables.md#update-check).
+- <Since version="1.5.0" /> **Site settings → Check for new releases** asks `api.github.com` once a day which release is the newest. Offline that request fails, and the switch only says so. To send nothing at all, set `UPDATE_CHECK=false` (`updateCheck=false` in `.env`), which also locks the switch off; see [Checking for new releases](../installation/environment-variables.md#update-check).
 
 ### Step 5: Run LibrePhotos
 

@@ -1,5 +1,5 @@
 ---
-title: " 🖼 Photo List"
+title: "Photo list"
 description: "How to fetch alot of images as a developer"
 sidebar_position: 5
 ---

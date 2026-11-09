@@ -1,5 +1,5 @@
 ---
-title: "📱 LibrePhotos Mobile"
+title: "LibrePhotos Mobile"
 description: "Try the offline-first LibrePhotos mobile app (not released yet, run it from source): first login, offline browsing, camera-roll backup, sync status, memories, and the share target."
 sidebar_position: 3
 ---

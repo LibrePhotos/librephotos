@@ -1,5 +1,5 @@
 ---
-title: "📦 Importing a Google Takeout export"
+title: "Importing a Google Takeout export"
 description: "Bring your Google Photos library into LibrePhotos with its dates, locations and descriptions"
 sidebar_position: 13.5
 ---
@@ -72,6 +72,6 @@ right before the file name rule:
 
 New accounts have them. After the update, an account whose rule list is still the default one of
 its LibrePhotos version gets them too; a list you changed (rules added, removed or moved) is left
-as you set it: add the two rules with **Add Rule**, or use **Reset To Defaults**. For photos you
+as you set it: add the two rules with **Add rule**, or use **Reset to defaults**. For photos you
 scanned before, use [Apply date rules to existing photos](./settings/date-rules.md#applying-the-rules)
 for the dates, or **Rescan** for dates, locations and captions.

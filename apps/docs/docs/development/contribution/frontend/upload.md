@@ -1,5 +1,5 @@
 ---
-title: " 📁 Upload"
+title: "Upload"
 description: "How to uploading photos works as a developer"
 sidebar_position: 1
 ---

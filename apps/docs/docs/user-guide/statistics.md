@@ -1,10 +1,10 @@
 ---
-title: "📊 Statistics & Data Visualization"
+title: "Statistics and data visualization"
 description: "Explore your photo library through interactive visualizations"
 sidebar_position: 10
 ---
 
-LibrePhotos includes a **Statistics** section with several interactive visualizations that help you explore patterns in your photo library. It is not in the main sidebar — open it from the **Statistics / Explore charts** card at the top of the **Library** page (reach the Library page from the avatar menu in the top-right corner → **Library**), or press `Ctrl+K` (`Cmd+K` on macOS) and search for "Statistics". You can also go straight to `/statistics`. The section opens on the **Place Tree** view, and a tab bar at the top lets you switch between the five views.
+LibrePhotos includes a **Statistics** section with several interactive visualizations that help you explore patterns in your photo library. It is not in the sidebar: open it with **View statistics** at the top right of the **Library** page (**Account menu > Library**), or press `Ctrl+K` (`Cmd+K` on macOS) and search for "Statistics". You can also go straight to `/statistics`. The page starts with the same counts as the Library page, then a tab bar to switch between the five views: **Timeline** (where it opens), **Place tree**, **Word clouds**, **Social graph** and **Face clusters**.
 
 ## Place Tree
 

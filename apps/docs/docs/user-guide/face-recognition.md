@@ -1,12 +1,25 @@
 ---
-title: "😃 Face recognition"
+title: "Face recognition"
 description: "How to use the face dashboard"
 sidebar_position: 7
 ---
 
+## Open the face dashboard
+
+The face dashboard is the **Faces** page, where you label, confirm and clean up faces.
+
+<Since version="1.6.0" /> Open it in any of these ways:
+
+- On **Albums** › **People**, click the link in the line under the title. It reads **_N_ faces to review** while suggestions wait for you, and **Review faces** otherwise, and opens the **Inferred** tab (narrowed to the group you are looking at, if any).
+- On a person's page, open the **⋮** (**Person actions**) and choose **Review faces**. The dashboard opens on the **Labeled** tab with only that person's faces, and a chip with their name in the toolbar; remove the chip to see everyone's faces.
+- Pin it to the sidebar: click **Customize sidebar** under the sidebar's pages and tick **Faces**. The pinned row shows how many faces wait for review.
+- Press `Ctrl+K` (`Cmd+K` on macOS) and type "Review faces".
+
+On a phone, People is under the **Albums** tab at the bottom of the screen. Up to 1.5.x, the dashboard was opened with **Manage faces** in the People page's menu.
+
 ## Label a face
 
-To label a face, click on the green plus button. A pop-up titled **Label faces** will show up where you can either search for an already existing person or add a new person. We want to add a new person, so type the name into the **Person Name** field under **New person** and click **Add Person** (the button stays disabled until you enter a name that does not already exist). Now the face is associated with the person.
+To label a face, select it and click the tag button in the toolbar (**Add to an existing face ID or create a new face ID**), or choose **Label as…** in the face's **⋮** menu. A pop-up titled **Label faces** will show up where you can either search for an already existing person or add a new person. We want to add a new person, so type the name into the **Person name** field under **New person** and click **Add person** (the button stays disabled until you enter a name that does not already exist). Now the face is associated with the person.
 
 Above the list of people, **Recently tagged** shows the last ten people you labelled faces as, each as a small face with the name under it. Click one to label the faces as that person without searching for the name. The section hides while you type a name. While you type, the people whose names match are listed with the most faces first, then by name; with nothing typed, the list is in name order. <Since version="1.5.0" /> Up to 1.4.0, matches stayed in name order.
 
@@ -22,7 +35,7 @@ Only a face that is clearly the same one is labelled along: one that has no name
 
 By default, labelling a face only updates the LibrePhotos database — your image files are not touched.
 
-If you enable **Settings → Face Options → Write face tags to image files**, then every time you label a face LibrePhotos also writes the face's region and the person's name into the photo as XMP MWG-RS region tags. This makes your face data portable to other photo managers such as Lightroom, digiKam and XnView.
+If you enable **Settings → Face options → Write face tags to image files**, then every time you label a face LibrePhotos also writes the face's region and the person's name into the photo as XMP MWG-RS region tags. This makes your face data portable to other photo managers such as Lightroom, digiKam and XnView.
 
 The switch only takes effect together with **Settings → Metadata → Write edits to files**, which decides where the tags go:
 
@@ -34,21 +47,21 @@ The switch only takes effect together with **Settings → Metadata → Write edi
 
 ## Change the label of a face
 
-To change a face to a new person, click on the green plus button. Search for the person you want it to change to and click on them. Now the face is associated with the new person.
+To change a face to a new person, select it and click the tag button in the toolbar, or choose **Label as…** in its **⋮** menu. Search for the person you want it to change to and click on them. Now the face is associated with the new person.
 
 ## Name a face from the photo itself
 
-You do not have to go through the face dashboard. Open a photo and look at the **People** section of the sidebar: it lists every face found in that photo, including the ones nothing has named yet. Hovering a row draws a box around that face on the photo, so you can tell which face a row belongs to.
+You do not have to go through the face dashboard. Open a photo and look at the **People** section of the sidebar: it shows every face found in that photo as a small tile with the name under it, including the faces nothing has named yet. Hovering a tile draws a box around that face on the photo, so you can tell which face a tile belongs to.
 
-A face the clustering and classification have not matched to anyone is shown as **Who is this?**. Click the row (or the person-question button next to it) to open the same **Label faces** dialog the dashboard uses, and pick or create a person. Rows that carry a name the classification guessed also offer the green check-person button to confirm that guess, the orange person-off button to reject it, and the trashcan to remove a detection that is not a face at all. The trashcan asks first, as it does on the face dashboard (see [Delete faces](#delete-faces)).
+A face the clustering and classification have not matched to anyone is shown as **Who is this?**. Click the tile (or **Name this face** in its **⋮**) to open the same **Label faces** dialog the dashboard uses, and pick or create a person. Clicking a named face searches for that person. The **⋮** in the corner of each tile (shown when you point at the tile, always on a touch screen) holds the face's actions: **Confirm as _name_** for a name the classification guessed, **Label as…** to pick another person, **Not _name_** to reject the guess, and **Delete face** to remove a detection that is not a face at all. **Delete face** asks first, as it does on the face dashboard (see [Delete faces](#delete-faces)).
 
-A row labelled **Unknown 001** (or a similar number) is a face that clustering grouped together with others like it, without anybody naming the group. That label is the group's name, not a person's, so there is nothing to confirm and no green check-person button — name such a row the same way you name a **Who is this?** one.
+A row labelled **Unknown 001** (or a similar number) is a face that clustering grouped together with others like it, without anybody naming the group. That label is the group's name, not a person's, so there is nothing to confirm and no **Confirm as** item; name such a face with **Label as…**.
 
 ## Add a face the scan missed
 
 The detector does not find every face. Someone turned away from the camera, a child, a face behind a hat or sunglasses, a face too small or too blurred — none of those get a face record, so there is nothing to label and the person never appears on the photo.
 
-Open the photo, then click the green person-plus button at the top of the **People** section of the sidebar. The photo dims and the pointer becomes a crosshair: drag a box around the face, and the **Label faces** dialog opens so you can pick an existing person or type a new name. Press **Escape**, or use the **Cancel** button in the sidebar, to leave without adding anything.
+Open the photo, then click the person-plus button (**Add a face the scan missed**) at the top of the **People** section of the sidebar. The photo dims and the pointer becomes a crosshair: drag a box around the face, and the **Label faces** dialog opens so you can pick an existing person or type a new name. Press **Escape**, or use the **Cancel** button in the sidebar, to leave without adding anything.
 
 <Since version="1.5.0" /> The box only has to be rough. While the **People** section says "Looking for the face in your box…", the face recognition service looks at that part of the photo on its own, enlarged, where it finds faces that are too small or too turned to be found in the whole photo. The face it finds is saved with its own, exact box, and with an encoding like any detected face, so it is grouped with that person's other faces; the message then says "The face was found in your box". Only a face whose middle is inside your box is taken. If there is no face in the box, the section says **No face found in the box** and offers **Keep my box** (the face is saved with your box and the name you chose, as before) or **Draw again**. When the face recognition service is off or not answering, your box is saved as you drew it. Up to 1.4.0, the box you drew was saved as it was.
 
@@ -60,37 +73,37 @@ A few things worth knowing:
 - **Zoom and pan are fine, rotation is not.** You can zoom in to draw a box around a small face. While the photo is turned, the button is disabled — the box could not be lined up with the photo reliably — so turn it back upright first.
 - **The photo needs a thumbnail.** Boxes are measured against the photo's big thumbnail, so a photo that has not been fully processed yet cannot take a face.
 
-If **Settings → Face Options → Write face tags to image files** is enabled, a face you add by hand is written into the photo (or its sidecar) as an XMP region just like any other, so the work is portable to other photo managers.
+If **Settings → Face options → Write face tags to image files** is enabled, a face you add by hand is written into the photo (or its sidecar) as an XMP region just like any other, so the work is portable to other photo managers.
 
 ## Train faces
 
-If you click on the blue button (the barbell icon) in the face dashboard, or the **Train** button on the [Library page](./library.md) (avatar menu → **Library**, under **Faces & People**), the system will try to cluster unknown faces and will try to either match them to already known faces or create a new unknown person.
+If you click **Train faces** in the face dashboard's toolbar (an icon on a phone), or the **Train** button on the [Library page](./library.md) (**Account menu > Library**, under **Faces & People**), the system will try to cluster unknown faces and will try to either match them to already known faces or create a new unknown person.
 
-<Since version="1.5.0" /> After uploads you do not have to: once at least 20 new faces (and 2% of all your faces) came in, LibrePhotos clusters and trains by itself, half an hour after your last upload, at most once an hour and not within 15 minutes of you labelling a face (see [Find Similar Faces](./job-system.md#find-similar-faces)). Your names and labels stay as they are.
+<Since version="1.5.0" /> After uploads you do not have to: once at least 20 new faces (and 2% of all your faces) came in, LibrePhotos clusters and trains by itself, half an hour after your last upload, at most once an hour and not within 15 minutes of you labelling a face (see [Find similar faces](./job-system.md#find-similar-faces)). Your names and labels stay as they are.
 
 <Since version="1.5.0" /> Clustering only replaces its own groups ("Unknown 001" and the like). A person you named stays, even with no faces left: one you created by hand, or one whose faces you all moved to someone else, keeps its name and [birth date](./albums.md#birth-date-and-age). To get rid of such a person, delete them from their page. Up to 1.4.0, every clustering deleted the named people that had no faces, those of every user.
 
-The dashboard has four tabs: **Inferred** (the matches training produced), **Unknown** (faces that were not matched, or that you rejected, grouped under "Unknown - Other"), **Labeled** (faces you have already named) and **Deleted** (faces you deleted, so you can [restore them](#restore-deleted-faces)). To see the recommendations, go to the **Inferred** tab. There you can see, for each face, the confidence of the match. By default the dashboard only shows matches it is at least 70% confident about — use the **% confident** filter in the toolbar to lower this threshold and surface weaker recommendations (the filter applies to both the Inferred and Unknown tabs).
+The dashboard has four tabs: **Inferred** (the matches training produced), **Unknown** (faces that were not matched, or that you rejected, grouped under "Unknown - Other"), **Labeled** (faces you have already named) and **Deleted** (faces you deleted, so you can [restore them](#restore-deleted-faces)). To see the recommendations, go to the **Inferred** tab. There you can see, for each face, the confidence of the match. By default the dashboard only shows matches it is at least 70% confident about. To lower this threshold and surface weaker recommendations, open **Filter** in the toolbar and change **Confidence** (it applies to both the Inferred and Unknown tabs). The same panel switches between **Clusters** and **Classifications** under **Show**.
 
 <Since version="1.5.0" /> A person with a [birth date](./albums.md#birth-date-and-age) is never suggested for a face on a photo taken more than a day before it: training suggests the next most likely person instead, or nobody. Photos without a date are not filtered, and you can still label any face by hand. Train again after setting a birth date to update the suggestions.
 
-Each tab shows how many faces it holds. Hover over a tab to see how many people (and, on the Inferred tab, groups) those faces belong to. The numbers follow the sort, Clusters/Classifications and confidence settings, so they always match the faces on screen.
+Each tab shows how many faces it holds. Hover over a tab to see how many people (and, on the Inferred tab, groups) those faces belong to. The numbers follow the **Sort** and **Filter** settings, so they always match the faces on screen.
 
 <Since version="1.5.0" /> The dashboard leaves out the faces of photos the photo lists leave out: photos in the [trash](./trash.md), hidden photos and [missing photos](./missing-photos.md). They are not counted in the tabs either, and training does not use them. Restoring a photo from the trash brings its faces back. Up to 1.4.0, the dashboard still listed them, so the copies you moved to the trash from a duplicate group still had faces to label.
 
-To confirm a whole inferred group at once, click the green check-person icon next to the person's name; it appears on the Inferred tab next to persons that already have a name. To confirm individual faces, select them and click the green plus button in the toolbar to add them to the person. To reject faces, select them and click the orange person-off button in the toolbar, which moves them back to "Unknown - Other".
+To confirm a whole inferred group at once, click the green check-person icon next to the person's name; it appears on the Inferred tab next to persons that already have a name. To confirm individual faces, select them and click the tag button in the toolbar to add them to the person. To reject faces, select them and click the person-off button in the toolbar (**Move the faces back to 'Unknown - Other'**). While faces are selected, the toolbar starts with how many are selected; click it to clear the selection.
 
 ### Browse people
 
 <Since version="1.4.0" />
 
-Each group starts with a row that shows the person's face, their name and how many faces they have. The face is the cover from the **People** page; a cluster such as "Unknown 001" uses its first face. Click the arrow next to the face to collapse the person: they shrink to a single tile with their face, name and face count, and collapsed people sit side by side. The double-arrow button in the toolbar collapses every group at once, which turns the tab into a grid of people. A collapsed person loads none of their faces apart from the cover, so a large library opens faster this way. Click a tile to open that person's faces again. The dashboard remembers which people you collapsed, per tab.
+Each group starts with a row that shows the person's face, their name and how many faces they have. The face is the cover from the **People** page; a cluster such as "Unknown 001" uses its first face. Click the arrow next to the face to collapse the person: they shrink to a single tile with their face, name and face count, and collapsed people sit side by side. **Collapse all groups** in the toolbar's **⋯** (**More actions**) collapses every group at once, which turns the tab into a grid of people. A collapsed person loads none of their faces apart from the cover, so a large library opens faster this way. Click a tile to open that person's faces again. The dashboard remembers which people you collapsed, per tab.
 
-Next to the face order (**Confidence** or **Date**, which sorts the faces inside each group) two small buttons choose the order of the people (point at one to see its name): **A–Z** (the letters icon) sorts them by name, **Most faces** (the numbers icon) puts the people with the most faces first. "Unknown - Other" always comes last. The letter scrubber on the right is only shown in **A–Z** order.
+The **Sort** button in the toolbar (an icon on a phone) sets two orders. Under **Sort by**, **Confidence** or **Date** sorts the faces inside each group. Under **Order people**, **A–Z** sorts the people by name and **Most faces** puts the people with the most faces first. "Unknown - Other" always comes last. The letter scrubber on the right is only shown in **A–Z** order.
 
-<Since version="1.5.0" /> The third button, **Similar faces together** (the joining arrows), puts groups whose faces look alike next to each other. It starts with the group with the most faces and then always takes the group that looks most like the last one, so the clusters of one person ("Unknown 014", "Unknown 087") usually end up in a row on the **Inferred** tab, often right after that person's name if they are already named. Label them in one pass, or select several groups' faces at once. Groups without a cluster (for example faces that only training suggested) come after the others, by name. A library with more than 3,000 groups keeps name order in this view.
+<Since version="1.5.0" /> The third order, **Similar faces together**, puts groups whose faces look alike next to each other. It starts with the group with the most faces and then always takes the group that looks most like the last one, so the clusters of one person ("Unknown 014", "Unknown 087") usually end up in a row on the **Inferred** tab, often right after that person's name if they are already named. Label them in one pass, or select several groups' faces at once. Groups without a cluster (for example faces that only training suggested) come after the others, by name. A library with more than 3,000 groups keeps name order in this view.
 
-<Since version="1.4.0" /> To label one circle of people at a time, use the group button next to the order buttons (it says **All people** until you pick one): the **Labeled** and **Inferred** tabs then only show the people in that [group](./albums.md#groups-of-people), and the tab counts follow. The **Unknown** tab has no people, so the button is hidden there.
+<Since version="1.4.0" /> To label one circle of people at a time, open **Filter** and pick a group under **Groups** (it says **All people** until you pick one): the **Labeled** and **Inferred** tabs then only show the people in that [group](./albums.md#groups-of-people), and the tab counts follow. **Manage groups…** under it renames, deletes and adds groups. The **Unknown** tab has no people, so the field is hidden there.
 
 ### Act on one face
 
@@ -107,7 +120,7 @@ On the Deleted tab the menu only offers **Restore face** and **Show photo**.
 
 #### "Not _name_" is remembered
 
-<Since version="1.5.0" /> When you send a face back with **Not _name_** (or the orange person-off button, or [**Remove from this person**](./albums.md) on a person's photos), LibrePhotos remembers that the face is not that person. **Train faces** never suggests them for that face again; it may suggest someone else, or leave the face in "Unknown - Other". The message after **Not _name_** says so, for example "Anna won't be suggested for this face again". To take it back, click **Undo** in that message, or label the face as that person yourself. When you [merge](./albums.md#merging-two-people) Anna into another person, the face is not suggested as the merged person either. Up to 1.4.0, the next training often suggested the same person again.
+<Since version="1.5.0" /> When you send a face back with **Not _name_** (or the person-off button in the toolbar, or [**Remove from this person**](./albums.md) on a person's photos), LibrePhotos remembers that the face is not that person. **Train faces** never suggests them for that face again; it may suggest someone else, or leave the face in "Unknown - Other". The message after **Not _name_** says so, for example "Anna won't be suggested for this face again". To take it back, click **Undo** in that message, or label the face as that person yourself. When you [merge](./albums.md#merging-two-people) Anna into another person, the face is not suggested as the merged person either. Up to 1.4.0, the next training often suggested the same person again.
 
 A face you acted on fades out and leaves the group once the list has refreshed. While you have faces selected, the menu only offers **Show photo**: the toolbar buttons act on the selection.
 
@@ -127,14 +140,14 @@ A face that was saved twice on the same photo (two overlapping boxes, for exampl
 
 <Since version="1.4.0" />
 
-The message that confirms a delete, a label (**Label as…**, the green plus button, the check-person buttons) or a wrong match (**Not _name_**, the orange person-off button) has an **Undo** button. It stays for 8 seconds, longer while you point at it. Undo puts the faces back exactly as they were: deleted faces come back to their person, and labelled faces go back to the tab they came from, with the suggestion they had (a face you confirmed on the Inferred tab is a suggestion on the Inferred tab again). When you act on several faces one after the other, the message adds them up, and its Undo takes back all of them.
+The message that confirms a delete, a label (**Label as…**, the tag button, the check-person buttons) or a wrong match (**Not _name_**, the person-off button) has an **Undo** button. It stays for 8 seconds, longer while you point at it. Undo puts the faces back exactly as they were: deleted faces come back to their person, and labelled faces go back to the tab they came from, with the suggestion they had (a face you confirmed on the Inferred tab is a suggestion on the Inferred tab again). When you act on several faces one after the other, the message adds them up, and its Undo takes back all of them.
 
 ### Restore deleted faces
 
 The **Deleted** tab lists every face you deleted, grouped by the person each face had; deleted faces that had no person are under "Unknown - Other". To bring faces back:
 
-- select them and click **Restore** in the toolbar,
-- click the green restore button next to a person's name to restore all of that person's faces, or
+- select them and click **Restore _N_ faces** in the toolbar,
+- click the restore button next to a person's name to restore all of that person's faces, or
 - choose **Restore face** in a face's ⋮ menu.
 
 A restored face goes back to its person (or to the unknown faces), counts for that person again and is found by search under their name. If **Write face tags to image files** is on, the face's region and the person's name are written to the photo again.
@@ -155,7 +168,7 @@ A re-scan will not bring back faces you removed with the delete face action. Del
 
 Re-scan faces on the Library page looks at every photo, which takes hours on a large library. To look at a few photos or one folder only:
 
-- **Some photos**: select them, open the **⋮** (Photo Actions) and choose **Detect faces again** in the **Files** group (up to 1,000 photos). In the photo viewer it is in the **⋮** after the rotate buttons, and on a photo's page under **More**.
+- **Some photos**: select them, open the **⋮** (Photo actions) and choose **Detect faces again** in the **Files** group (up to 1,000 photos). In the photo viewer it is in the **⋮** after the rotate buttons, and on a photo's page under **More**.
 - **A folder**: on the folder's page (open it from **Folders**), open the **⋮** (Folder actions) and choose **Detect faces again in this folder**. It covers the folder and its subfolders and asks first, saying how many photos that is.
 
 <Since version="1.5.0" /> For a single photo (from the photo viewer or the photo's page), the photo's **People** section follows the scan: it says "Looking for faces again…" while the scan runs, then marks the faces it found with **New**, or says **No new face found**. The scan uses the same detector as before, so a face it missed stays missed: use **Draw the face** there to draw a box around it (see [Add a face the scan missed](#add-a-face-the-scan-missed)).
@@ -164,7 +177,7 @@ It works like Re-scan faces for those photos: faces already found and named stay
 
 ## Workflow
 
-After the first scan finished, go to the face dashboard. Label a couple of faces per person. Then train the faces with the blue button. Check if the inferred faces are accurate and add a couple of the inferred faces to the labels. Train the faces again. You will get the best results if all the persons in the pictures are known and when every label has at least a couple of faces.
+After the first scan finished, go to the face dashboard. Label a couple of faces per person. Then train the faces with **Train faces**. Check if the inferred faces are accurate and add a couple of the inferred faces to the labels. Train the faces again. You will get the best results if all the persons in the pictures are known and when every label has at least a couple of faces.
 
 ## Pipeline
 
@@ -174,7 +187,7 @@ Faces are detected with [InsightFace](https://github.com/deepinsight/insightface
 
 Photos that already carry XMP `RegionInfo` face regions in the file or its XMP sidecar, for example ones written by digiKam, Lightroom or XnView, are read first. Any region marked `Type="Face"` with usable coordinates is taken as-is, and if the region carries a `Name`, the matching person is created and the face is labelled automatically. The InsightFace detector then still looks at the photo, because other photo managers usually store regions only for the faces someone tagged there. A detected face that overlaps a region is the same face: it is not added again, and it gives that face its ArcFace embedding. Every other detected face is added as usual. Regions without an overlapping detection get their embedding during the next train or re-scan, so clustering and classification work on them normally.
 
-<Since version="1.5.0" /> The detector saves every face it finds unless you set a **Minimum face size** under [Settings](./settings/index.md#face-options) → Face Options: faces lower than that share of the photo's shorter side are then skipped on new scans. Face regions from the file are always kept.
+<Since version="1.5.0" /> The detector saves every face it finds unless you set a **Minimum face size** under [Settings](./settings/index.md#face-options) → Face options: faces lower than that share of the photo's shorter side are then skipped on new scans. Face regions from the file are always kept.
 
 ### Faces in videos {#faces-in-videos}
 
@@ -200,7 +213,7 @@ At the moment no matter, which detection methods we use, there will be face dete
 
 ### Face Recognition
 
-Creates a 512-dimension [ArcFace](https://github.com/deepinsight/insightface) embedding for each detected face, which is what makes faces comparable to one another. You can choose which model is used in **Admin Area → Site Settings → Face Recognition Model**: smaller packs (like the default `buffalo_sc`) are faster and lighter, while larger packs (`buffalo_l`, `antelopev2`) are more accurate but use more memory.
+Creates a 512-dimension [ArcFace](https://github.com/deepinsight/insightface) embedding for each detected face, which is what makes faces comparable to one another. You can choose which model is used in **Admin area → Site settings → Face recognition model**: smaller packs (like the default `buffalo_sc`) are faster and lighter, while larger packs (`buffalo_l`, `antelopev2`) are more accurate but use more memory.
 
 :::warning Switching the model later
 Changing the model only affects faces that do not yet have an embedding. Faces that were already encoded keep the embedding produced by the previous model: **Train faces** re-encodes only faces that have no embedding yet, and **Re-scan faces** skips faces that overlap ones already stored. Embeddings from different InsightFace packs are not comparable even though they are all 512-dimensional, so until every face is re-encoded, clustering and classification will mix two embedding spaces. To fully switch packs today you have to delete the affected faces and re-scan them.
@@ -214,11 +227,11 @@ Older versions of LibrePhotos used dlib with 128-dimension encodings. When you u
 
 Clustering solves the issue of a system, which has no labelled persons yet. Users can get clusters they can name instead of going through a lot of faces and naming them. Clustering is stable, which means that you will get the same clusters out, when you put the same data in. Labels are not fed into the clustering algorithm itself — the encodings are grouped the same way no matter which faces you have already named. They do change the clusters that come out of it, though: any group that contains at least one labelled face is split into one cluster per labelled person, instead of producing a new unknown cluster for you to name.
 
-If you want to change how the grouping itself is done, add images, delete wrong faces, or change the clustering settings under **[Settings](./settings/index.md) → Face Options**:
+If you want to change how the grouping itself is done, add images, delete wrong faces, or change the clustering settings under **[Settings](./settings/index.md) → Face options**:
 
-- **Minimum Cluster Size** (default **Auto**) — the smallest group the algorithm will treat as a cluster. **Auto** also applies when the stored value is 0 or 1, and grows from 2 to 4, 8 and 16 as your library passes 1,000, 10,000 and 100,000 encoded faces.
-- **Minimum Samples** (default **1**) — how conservative clustering is; a higher value is more conservative and leaves more faces unclustered.
-- **Cluster Selection Epsilon** (default **0.95**, shown as "Normal") — how readily nearby clusters are merged; a higher value merges more clusters together. Clustering compares face encodings scaled to length 1, so two faces are 0 to 2 apart and two photos of one person about 0.9. **Small** to **Very High** (0.9 to 1.05) merge more and more of one person's clusters; **Very High** can also put look-alikes, such as siblings, into one cluster.
+- **Minimum cluster size** (default **Auto**) — the smallest group the algorithm will treat as a cluster. **Auto** also applies when the stored value is 0 or 1, and grows from 2 to 4, 8 and 16 as your library passes 1,000, 10,000 and 100,000 encoded faces.
+- **Minimum samples** (default **1**) — how conservative clustering is; a higher value is more conservative and leaves more faces unclustered.
+- **Cluster selection epsilon** (default **0.95**, shown as "Normal") — how readily nearby clusters are merged; a higher value merges more clusters together. Clustering compares face encodings scaled to length 1, so two faces are 0 to 2 apart and two photos of one person about 0.9. **Small** to **Very high** (0.9 to 1.05) merge more and more of one person's clusters; **Very high** can also put look-alikes, such as siblings, into one cluster.
 
 Steps which could be done to improve clustering are combining very similar faces from e.g. a serial recording or photo shoot, to prevent from too many small images to be clustered.
 

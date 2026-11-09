@@ -1,18 +1,18 @@
 ---
-title: "👨‍👩‍👧‍👦 Manage multiple user"
+title: "Manage multiple users"
 description: "In this document I explain how to manage users"
 sidebar_position: 21
 ---
 
 ### Manage User
 
-Click on your Avatar → Admin Area to navigate to your user panel.
+Click on your Avatar → Admin area to navigate to your user panel.
 
 The user panel is at the bottom of the page above the worker logs.
 
 You can create, delete and manage users of your instance. You can change the scan path, password, name and e-mail of a given user.
 
-<Since version="1.5.0" /> The circular arrow next to a user's scan directory scans that user's library now, the same scan as the **Scan** button on their Library page: the job is theirs and shows in their job list. While it runs, the arrow shows its progress. So after you fix a user's scan path, you can scan it without signing in as them. On your own Library page, **Change scan directories in the Admin Area** under **Scan library** leads to this table.
+<Since version="1.5.0" /> The circular arrow next to a user's scan directory scans that user's library now, the same scan as the **Scan** button on their Library page: the job is theirs and shows in their job list. While it runs, the arrow shows its progress. So after you fix a user's scan path, you can scan it without signing in as them. On your own Library page, **Change scan directories in the Admin area** under **Scan library** leads to this table.
 
 **Please note:**
 In LibrePhotos, the file system acts as the definitive source of photo organization. This means that folder structure dictates how photos are grouped and accessed within the application.
@@ -38,7 +38,7 @@ If your admin account already scans `/data` and you want to add more users, move
 
 <Since version="1.5.0" /> A user's library can span more than one folder, for example a folder of their own and a shared family folder, or a second disk. The scan directory stays the user's main folder (uploads go below it unless an upload folder is set); further folders are added in the user edit dialog, under **Library folders**:
 
-1. Open the user in the Admin Area and click **Add folder** under **Library folders**.
+1. Open the user in the Admin area and click **Add folder** under **Library folders**.
 2. Pick a folder in the tree (or type its path) and click **Add folder**. It must already exist under `/data`.
 3. Run a scan: every scan reads all folders of the library from then on.
 
@@ -62,7 +62,7 @@ The separation will also not keep the photos "private" as the admin of the host 
 
 The red trash icon in a user's row deletes that account. Admin accounts cannot be deleted, so the icon is greyed out for them.
 
-Deleting a user removes the account, so it can no longer sign in, but it does not remove the user's library. Their photos, albums, tags and stacks stay in the database and are handed to a disabled placeholder account called `deleted`, which cannot sign in and is not listed in the Admin Area. Nothing is removed from disk: the original files and their thumbnails stay where they are. If the photos should go as well, they have to be deleted from that user's library while the account still exists (see [Trash](./trash.md)).
+Deleting a user removes the account, so it can no longer sign in, but it does not remove the user's library. Their photos, albums, tags and stacks stay in the database and are handed to a disabled placeholder account called `deleted`, which cannot sign in and is not listed in the Admin area. Nothing is removed from disk: the original files and their thumbnails stay where they are. If the photos should go as well, they have to be deleted from that user's library while the account still exists (see [Trash](./trash.md)).
 
 Since 1.3.0, deleting a user also turns off everything of theirs that people without an account could open: public album links, photo links and public photos. Those links stop working for anyone who opens them. Nobody can sign in as `deleted`, so nobody could turn them off later. Links left on by users deleted with an older version are turned off when you upgrade to 1.3.0.
 
@@ -76,7 +76,7 @@ A user deleted after another one can have an album or a tag with the same name a
 
 ## Upload folder
 
-Photos uploaded through the web interface or backed up by the mobile app are written to an `uploads` folder inside the user's scan directory: `/data/user1/uploads/web/`. The user edit dialog in the Admin Area shows the folder uploads land in under the scan directory.
+Photos uploaded through the web interface or backed up by the mobile app are written to an `uploads` folder inside the user's scan directory: `/data/user1/uploads/web/`. The user edit dialog in the Admin area shows the folder uploads land in under the scan directory.
 
 Since 1.3.0, you can put a user's uploads somewhere else: pick a folder in the **Upload folder** field of the same dialog. It is checked like a scan directory: it must already exist under `/data`, and it must not be inside, above or the same as another user's scan directory or another user's upload folder. A folder inside the user's own scan directory is fine. Uploaded photos are scanned into the uploader's library, so an upload folder counts as part of that user's files: the same rule also refuses a scan directory that is inside, above or the same as another user's upload folder, and the error names the user and whether it clashes with their library or their upload folder. As with scan directories, a value that already overlaps is kept when you save the user without changing it. Uploads then go to `<upload folder>/web/`. Clear the field to go back to the default.
 
@@ -84,7 +84,7 @@ Uploaded photos always belong to the user who uploaded them. If the upload folde
 
 ## Giving each user their own folder automatically
 
-Admin Area → Site settings has a **Create a folder for each new user** switch, off by default. With it on, creating a user — from the admin panel, from self registration, or through single sign-on — also creates `/data/<username>` and assigns it as that user's scan directory, so you no longer have to make the folder on the host and assign it by hand for every account.
+Admin area → Site settings has a **Create a folder for each new user** switch, off by default. With it on, creating a user — from the admin panel, from self registration, or through single sign-on — also creates `/data/<username>` and assigns it as that user's scan directory, so you no longer have to make the folder on the host and assign it by hand for every account.
 
 It only works when your own scan directory is a subfolder such as `/data/admin`, not `/data` itself. Scan directories of different users cannot overlap (see above), so while any user scans `/data`, every `/data/<username>` folder is refused.
 
@@ -97,11 +97,11 @@ What it deliberately does not do:
 
 ## User Registration
 
-Click on your Avatar → Admin Area to the user registration setting.
+Click on your Avatar → Admin area to the user registration setting.
 
 You can also activate user registration, where user can create an account themselves. They cannot change the path, which means the admin is still in full control.
 
-Unless [Create a folder for each new user](#giving-each-user-their-own-folder-automatically) is on, a self-registered account is created without a scan directory, so the new user sees an empty library and is told to contact their administrator if they try to scan or upload. After someone signs up, open the Admin Area, edit their account in the user panel at the bottom of the page and set its scan path as described above.
+Unless [Create a folder for each new user](#giving-each-user-their-own-folder-automatically) is on, a self-registered account is created without a scan directory, so the new user sees an empty library and is told to contact their administrator if they try to scan or upload. After someone signs up, open the Admin area, edit their account in the user panel at the bottom of the page and set its scan path as described above.
 
 ## How to change the admin password, when you can't log in
 
@@ -109,4 +109,4 @@ There are three ways to accomplish that:
 
 - 1. If your `.env` sets the admin credentials, the password is reset every time the backend container starts. The keys are `userName`, `userPass` and `adminEmail` (passed to the backend as `ADMIN_USERNAME`, `ADMIN_PASSWORD` and `ADMIN_EMAIL`), and both the username and password must be non-empty. They are not in the shipped `librephotos.env` template, so add them yourself — see [Admin account variables](../installation/environment-variables.md#admin-account-variables) for the full behaviour.
 - 2. If you have access to your container, you can change the password by executing a Django management command `docker exec -it [backend container name] python manage.py changepassword [admin username]`
-- 3. If outgoing e-mail is configured on your instance, the login page shows a **Forgot your password?** link that e-mails a reset link to the address on your account. This only works once e-mail is set up (Admin Area → Site settings → Email) and the account has an e-mail address, so arrange both *before* you get locked out. Behind the bundled proxy, also set `frontendBaseUrl` in your `.env` (passed to the backend as `FRONTEND_BASE_URL`) so the emailed link points at your public address rather than the internal one.
+- 3. If outgoing e-mail is configured on your instance, the login page shows a **Forgot your password?** link that e-mails a reset link to the address on your account. This only works once e-mail is set up (Admin area → Site settings → Email) and the account has an e-mail address, so arrange both *before* you get locked out. Behind the bundled proxy, also set `frontendBaseUrl` in your `.env` (passed to the backend as `FRONTEND_BASE_URL`) so the emailed link points at your public address rather than the internal one.

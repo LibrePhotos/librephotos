@@ -1,5 +1,5 @@
 ---
-title: "👷‍♂️ Development Installation"
+title: "Development installation"
 description: "How to install LibrePhotos for Developers"
 sidebar_position: 1
 last_modified_at: 2024-12-14

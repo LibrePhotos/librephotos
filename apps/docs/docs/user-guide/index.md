@@ -1,5 +1,5 @@
 ---
-title: "User Guide"
+title: "User guide"
 description: "Everyday use of LibrePhotos: first steps, organizing, searching, sharing, and administration."
 sidebar_position: 3
 ---

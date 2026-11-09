@@ -1,5 +1,5 @@
 ---
-title: "🪟 Windows standalone (no Docker)"
+title: "Windows standalone (no Docker)"
 description: "One folder with librephotos.exe: the server, the frontend and the machine learning models, without Docker or Python. Installing, updating, backing up, restoring and uninstalling, step by step."
 sidebar_position: 5
 ---
@@ -283,7 +283,7 @@ once.
 
 1. [Back up](#backing-up) the database if you want a copy on another drive. LibrePhotos makes a copy
    in `db\backups` itself before it updates the database.
-2. In the browser, open **Admin Area** and click **Download update** on the **Update available**
+2. In the browser, open **Admin area** and click **Download update** on the **Update available**
    card. Or right-click the LibrePhotos icon in the tray and choose **Download LibrePhotos 1.5.0**.
 3. LibrePhotos downloads the release from GitHub (about 450 MB) while it keeps running. The card
    shows how far it got, and the tray menu says **Downloading 1.5.0 (42 %)**. An interrupted download
@@ -384,12 +384,12 @@ is, and its `librephotos-windows-x64.zip` can be downloaded:
 - a Windows notification says "LibrePhotos 1.5.0 is available" once for that release;
 - the tray menu has **Download LibrePhotos 1.5.0**, which [updates from LibrePhotos](#update-from-the-app)
   (where LibrePhotos cannot update itself: **Update to 1.5.0 available...**, which opens these steps);
-- admins see an **Update available** card at the top of the Admin Area, with **Download update**
+- admins see an **Update available** card at the top of the Admin area, with **Download update**
   (or **How to update the Windows app**), **Release notes** and **Skip this release**.
 
 **Check for updates** in the tray menu asks at once and answers with a notification, also when
 LibrePhotos is up to date. A release skipped on the Admin page is not announced again; the next
-one is. To turn the check off, switch off **Check for new releases** in **Admin Area > Site
+one is. To turn the check off, switch off **Check for new releases** in **Admin area > Site
 Settings**.
 
 ### Upgrading from 1.3.0 or older
@@ -399,7 +399,7 @@ recorded when a photo was added and when it checked whether a file had changed s
 West of Greenwich (UTC minus some hours, as in the Americas) a normal scan could therefore skip a file
 you edited within those hours after a scan, and the places and faces of photos added shortly after an
 earlier run were not looked up. Run a full rescan once after the upgrade: on the **Library** page, in
-the **Scan Library** section, click the arrow next to **Scan** and choose **Rescan** (or **Rescan All
+the **Scan library** section, click the arrow next to **Scan** and choose **Rescan** (or **Rescan All
 Photos** in the Ctrl+K command palette). East of Greenwich nothing was missed. Either way, the times
 in **Recently added** stay shifted by your UTC offset for photos added before the upgrade.
 

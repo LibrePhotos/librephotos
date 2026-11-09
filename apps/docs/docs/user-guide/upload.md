@@ -1,5 +1,5 @@
 ---
-title: " ⬆ Upload"
+title: "Upload"
 description: "How to upload photos to LibrePhotos"
 sidebar_position: 13
 ---
@@ -16,7 +16,7 @@ You can also drag photos and videos from your computer onto any page of the app.
 
 - On the album's page, open the **⋮** at the right of its header and choose **Upload to this album…**, then pick the files.
 - Or drag files onto the album's page. The overlay then says *Drop to add to* and the album's name.
-- An empty album shows a drop zone with an **Upload photos** button. Use **New album** on **My Albums** to make an empty album to upload into (see [Albums](./albums.md#creating-user-albums)).
+- An empty album shows a drop zone with an **Upload photos** button. Use **New album** on **My albums** to make an empty album to upload into (see [Albums](./albums.md#creating-user-albums)).
 
 The files go to your upload folder and your library as usual, and are added to the album as soon as each one is imported. The upload card names the album (*Adding to Porto 2025*) and, when it is done, says how many files were added, with an **Open album** link. A file that is already in your library is not uploaded again but is added to the album; its row says *Already in your library: added to the album*.
 
@@ -45,7 +45,7 @@ While files upload, a card in the bottom right corner lists them with their stat
 - **Updating search and faces**: every photo is in the timeline, and the server is now making them searchable by content and grouping their faces.
 - **38 photos ready**, with how many files were uploaded and how many were already in your library.
 
-A file the server could not read (an unsupported RAW format, a damaged file) says *Not imported* on its own row, with the reason and a link to **My Jobs**. A photo that is in your library but one of the later steps failed for (finding faces, for example) is *Ready* with a note naming the step. If the server makes no progress for two minutes, for example because a scan is running, the card says so; your files are safe and are processed once the server gets to them.
+A file the server could not read (an unsupported RAW format, a damaged file) says *Not imported* on its own row, with the reason and a link to **My jobs**. A photo that is in your library but one of the later steps failed for (finding faces, for example) is *Ready* with a note naming the step. If the server makes no progress for two minutes, for example because a scan is running, the card says so; your files are safe and are processed once the server gets to them.
 
 You can close the card while the server works. As long as uploads are being imported, from this browser or from the mobile app, the ring around your avatar shows it and the account menu has an **Importing your uploads** section with the same count. It runs next to other jobs, so **Scan** stays available, and it cannot be cancelled. An empty timeline says *Importing your uploads* instead of asking you to scan. Up to 1.4.0 the card said *Upload complete* as soon as the files were sent, and the timeline was refreshed before the photos had thumbnails.
 
@@ -57,7 +57,7 @@ The upload process works in the following way:
 - If it is, don't upload it (when uploading into an album, the photo you already have is added to the album instead)
 - If it isn't, upload it
 - We upload files in 1MB chunks
-- When each file finishes uploading, the backend registers that one photo, counts it in your **Import Uploads** job and queues its processing (metadata and thumbnails, then adding it to the album it was uploaded into, caption, geolocation, album dates, face extraction). No directory scan is triggered.
+- When each file finishes uploading, the backend registers that one photo, counts it in your **Import uploads** job and queues its processing (metadata and thumbnails, then adding it to the album it was uploaded into, caption, geolocation, album dates, face extraction). No directory scan is triggered.
 - <Since version="1.5.0" /> When the last file is sent, the web app tells the server the upload is over (`POST /api/upload/seal/`), and follows the import with `GET /api/upload/status/` (see [the upload API](../development/contribution/backend/upload.md)).
 - An upload into an album sends the album's id with the last request (`album_id` on `/api/upload/complete/`). The server checks that the album is yours and not locked before it saves the file; otherwise it answers 400 with the code `album_not_found` or `album_locked`, and the web app completes the same upload again without the album.
 
@@ -88,7 +88,7 @@ To use the upload feature properly, you **must** have:
 ### How to configure scan directory
 
 1. **Admin users only**: Only admins can set scan directories for users
-2. **Access admin panel**: Click on your avatar (top right) → `Admin Area`
+2. **Access admin panel**: Click on your avatar (top right) → `Admin area`
 3. **Set scan directory**: Manually set the `Scan Directory` for each user
 4. **Verify path**: The directory must exist and be accessible to the container
 

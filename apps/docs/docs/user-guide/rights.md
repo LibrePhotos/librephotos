@@ -1,5 +1,5 @@
 ---
-title: "© Copyright and licenses"
+title: "Copyright and licenses"
 description: "Give your photos a copyright notice, a creator and a license, and tell visitors what they may do with them"
 sidebar_position: 6.5
 ---
@@ -45,7 +45,7 @@ the section offers **Use my default**, which fills in the photo's empty fields f
 
 ## The rights of many photos
 
-Select photos, open **Photo actions** and pick **Set rights…**. The dialog shows the license, creator
+Select photos, open **Photo actions** (the **⋮** in the selection bar) and pick **Edit info → Set rights…**. The dialog shows the license, creator
 and copyright the selected photos share. Where they differ, the field says
 **Mixed: keep each photo's**. Only the fields you change are set; the others stay as each photo has
 them, and a field you empty is removed from every photo.
