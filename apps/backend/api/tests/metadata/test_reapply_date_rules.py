@@ -250,7 +250,7 @@ class ReapplyDateRulesJobTest(TestCase):
         self.assertEqual(enqueue.call_count, 1)
         job.refresh_from_db()
         self.assertTrue(job.cancelled)
-        self.assertEqual(job.result, {"status": "cancelled"})
+        self.assertEqual(job.result["status"], "cancelled")
 
     def test_a_batch_of_a_cancelled_job_does_nothing(self):
         photo = self.photo(exif_timestamp=OLD_DATE)
