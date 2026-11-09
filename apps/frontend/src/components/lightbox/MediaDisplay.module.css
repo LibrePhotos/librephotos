@@ -3,3 +3,18 @@
   width: 100%;
   height: var(--page-media-max-height, var(--lightbox-media-height, 100dvh));
 }
+
+/* A video in the lightbox: its own box between the toolbar over the stage's top and the controls
+   over its bottom (the thumbnail strip on a desktop, the action bar on a phone), the video centred
+   in it. The browser's own controls sit on the video's edges (iOS puts fullscreen, picture in
+   picture and volume in its top corners, Chrome the seek bar along its bottom), so the box must not
+   run under the viewer's bars. ContentViewer.module.css sets the bars' heights per layout. */
+.videoStage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding-top: var(--lightbox-video-top, 64px);
+  padding-bottom: var(--lightbox-video-bottom, 96px);
+}

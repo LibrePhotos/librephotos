@@ -82,7 +82,7 @@ export function SelectionBar(props: Readonly<Props>) {
   // "3 selected", then "Select all" as words (Google Photos): a bare double check said nothing.
   // The count is announced as it changes.
   return (
-    <Group gap="xs" wrap="nowrap">
+    <Group gap="xs" wrap="nowrap" className={classes.root}>
       <Text fw={600} px={4} aria-live="polite" className={classes.count}>
         {getDisplayText()}
       </Text>
@@ -92,6 +92,7 @@ export function SelectionBar(props: Readonly<Props>) {
         px="xs"
         aria-label={selectAllText}
         leftSection={<Checks size={ICON_SIZE.inline} />}
+        className={classes.selectAll}
         onClick={selectAll}
       >
         {selectAllText}

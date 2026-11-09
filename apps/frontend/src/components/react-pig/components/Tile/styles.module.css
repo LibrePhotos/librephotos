@@ -124,6 +124,7 @@
     0 0 0 1px var(--app-scrim-black-25),
     0 1px 3px var(--app-scrim-black-40);
   cursor: pointer;
+  pointer-events: auto;
   opacity: 0;
   transition: opacity 150ms linear;
 }
@@ -164,10 +165,45 @@
   outline-offset: 2px;
 }
 
+/* A touch screen: a tap anywhere on a tile opens it, or selects it while selecting (the tile's own
+   click does that), so the hidden check in its corner must not catch taps there: it took a 38px
+   square of every phone tile, where a tap selected the photo instead of opening it. iOS also keeps
+   :hover on the last tapped tile, which left its check showing. */
+@media (hover: none) {
+  .checkbox {
+    pointer-events: none;
+  }
+
+  .pigTile:hover .checkbox {
+    opacity: 0;
+  }
+
+  :global([data-selecting="true"]) .pigTile .checkbox {
+    opacity: 0.85;
+  }
+
+  .pigTile .checkbox:checked {
+    opacity: 1;
+  }
+
+  /* A tap shows at once that it landed, as a press dims a photo in Google Photos; no grey flash. */
+  .pigBtn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .pigBtn:active {
+    filter: brightness(0.85);
+  }
+}
+
+/* Beside the photo's button, not in it: only the check itself takes clicks, the rest of the corner
+   is the photo's. */
 .overlaysTopLeft {
   position: absolute;
   top: 0px;
   left: 0px;
+  pointer-events: none;
   /* Over the selected tint below */
   z-index: 2;
 }

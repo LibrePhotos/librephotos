@@ -21,6 +21,9 @@ type Props = Readonly<{
 const CARD_MIN = { desktop: 120, phone: 96 };
 const GAP = { desktop: 16, phone: 12 };
 
+/** A phone's sideways strip: this many people, at this card width (a bit over three on screen). */
+const PHONE_STRIP = { max: 15, card: 104 };
+
 /** How many cards of at least `min` px fit one row of `width` px, as `auto-fill` lays them out. */
 function columnsFor(width: number, min: number, gap: number): number {
   return Math.max(1, Math.floor((width + gap) / (min + gap)));
@@ -29,7 +32,7 @@ function columnsFor(width: number, min: number, gap: number): number {
 /**
  * The People row of the album hub and of Explore: the People page's 3:4 portrait cards
  * (PersonCard), smaller and in one row of as many as fit, so a person looks the same everywhere and
- * the row ends where the albums do. Managing faces lives on the People page's ⋯.
+ * the row ends where the albums do. On a phone the row scrolls sideways instead. Faces are reviewed from the People page.
  */
 export function HubPeopleRow({ people, isLoading, error, total }: Props) {
   const { t } = useTranslation();
@@ -55,6 +58,15 @@ export function HubPeopleRow({ people, isLoading, error, total }: Props) {
     body = (
       <div className={classes.emptyState}>
         <Text c="dimmed">{t("emptystate.people.title")}</Text>
+      </div>
+    );
+  } else if (isPhone) {
+    // A phone swipes sideways through more of them, as Google Photos' People row does
+    body = (
+      <div className={classes.peopleStrip}>
+        {people.slice(0, PHONE_STRIP.max).map(person => (
+          <PersonCard key={person.id} person={person} size={PHONE_STRIP.card} />
+        ))}
       </div>
     );
   } else {

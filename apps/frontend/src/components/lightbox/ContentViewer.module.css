@@ -28,6 +28,15 @@
   overflow: hidden;
 }
 
+/* A phone (useCompactViewer): a video's box (MediaDisplay .videoStage) runs from under the
+   toolbar's row of buttons to the action bar (LightboxControls .bottomBar). */
+@media (max-width: 599px) {
+  .stage {
+    --lightbox-video-top: 56px;
+    --lightbox-video-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* A phone with the info sheet open (65dvh, Sidebar.module.css): the photo moves into the space
    above the sheet rather than staying under it, as Google Photos lifts it. */
 @media (max-width: 61.99em) {
@@ -37,6 +46,8 @@
     height: 35dvh;
     /* The photo's height (MediaDisplay) follows the stage. */
     --lightbox-media-height: 35dvh;
+    /* The action bar gives way to the sheet (LightboxControls): a video runs down to it */
+    --lightbox-video-bottom: 0px;
   }
 }
 

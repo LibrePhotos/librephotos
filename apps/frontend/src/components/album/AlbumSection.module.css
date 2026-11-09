@@ -144,15 +144,44 @@
 }
 
 /* A row of the grid that shows its first line only (My Albums); "View all" has the rest */
-.hubRow > :nth-child(n + 3) {
-  display: none;
+/* A phone: the row scrolls sideways, as Google Photos' and Apple Photos' collections do, with the
+   next card peeking in at the edge so the swipe is obvious. It runs to the screen's edges (the
+   page gutter, PAGE_GUTTER_MOBILE, becomes its padding) and snaps to a card. */
+@media (max-width: 47.99em) {
+  .hubRow,
+  .peopleStrip {
+    display: flex;
+    gap: 12px;
+    margin-inline: -12px;
+    padding-inline: 12px;
+    scroll-padding-inline: 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    & > * {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+    }
+  }
+
+  /* Two and a bit album covers on screen */
+  .hubRow > * {
+    width: 42%;
+  }
+
+  /* A bit over three portraits on screen (HubPeopleRow's PHONE_STRIP.card) */
+  .peopleStrip > * {
+    width: 104px;
+  }
 }
 
 @media (min-width: 48em) {
-  .hubRow > :nth-child(n + 3) {
-    display: block;
-  }
-
   .hubRow > :nth-child(n + 4) {
     display: none;
   }
