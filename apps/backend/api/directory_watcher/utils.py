@@ -277,6 +277,7 @@ def is_job_cancelled(job_id: UUID | str) -> bool:
 def update_job_result(
     job_id: UUID | str,
     mutate: Callable[[dict[str, Any], LongRunningJob], dict[str, Any] | None],
+    unfinished_only: bool = False,
 ) -> LongRunningJob | None:
     """Apply ``mutate`` to a job's ``result`` JSON without losing concurrent writes.
 
@@ -289,19 +290,23 @@ def update_job_result(
 
     ``mutate(result, job)`` edits ``result`` (a private copy) in place and
     returns a dict of other fields to write with it. Returns the job as read
-    for the successful write, or ``None`` if the job is gone or cancelled.
+    for the successful write, or ``None`` if the job is gone or cancelled, or
+    with ``unfinished_only`` has ended.
     """
+    writable = (
+        Q(cancelled=False, finished=False) if unfinished_only else Q(cancelled=False)
+    )
     for _ in range(RESULT_UPDATE_ATTEMPTS):
-        job = LongRunningJob.objects.filter(job_id=job_id).first()
-        if job is None or job.cancelled:
+        job = LongRunningJob.objects.filter(writable, job_id=job_id).first()
+        if job is None:
             return None
         read = job.result
         result: dict[str, Any] = copy.deepcopy(read) if isinstance(read, dict) else {}
         other_fields = mutate(result, job) or {}
         unchanged = Q(result__isnull=True) if read is None else Q(result=read)
-        written = LongRunningJob.objects.filter(
-            unchanged, pk=job.pk, cancelled=False
-        ).update(result=result, **other_fields)
+        written = LongRunningJob.objects.filter(unchanged, writable, pk=job.pk).update(
+            result=result, **other_fields
+        )
         if written:
             return job
     logger.error(
@@ -474,30 +479,37 @@ def update_scan_counter(
     job_id: UUID | str, failed: bool = False, error: str | None = None
 ) -> None:
     """
-    Update the progress counter for a long-running job.
+    Count one item of a long-running job, and finish the job at its target.
 
-    Increments progress_current and marks job as finished when complete.
-    Also tracks errors for failed items.
+    A failed item is recorded in the result (``record_item_error``) in the
+    same write. A job that has ended (completed, failed, cancelled) counts
+    nothing more: its progress would pass its target, and a late error would
+    turn a completed job into a failed one.
 
     Args:
         job_id: The job ID to update
         failed: Whether this item failed processing
         error: Error message if failed
     """
-    LongRunningJob.objects.filter(job_id=job_id).update(
-        progress_current=F("progress_current") + 1, last_progress_at=timezone.now()
-    )
-
     if failed or error:
 
-        def add_error(result: dict[str, Any], job: LongRunningJob) -> dict[str, bool]:
-            return {"failed": record_item_error(result, error, job.progress_target)}
+        def add_error(result: dict[str, Any], job: LongRunningJob) -> dict[str, Any]:
+            return {
+                "progress_current": F("progress_current") + 1,
+                "last_progress_at": timezone.now(),
+                "failed": record_item_error(result, error, job.progress_target),
+            }
 
-        if update_job_result(job_id, add_error) is None:
-            # Gone, or cancelled: a cancelled job keeps its "cancelled" result.
-            return
-
-    finish_job_if_complete(job_id)
+        counted = update_job_result(job_id, add_error, unfinished_only=True) is not None
+    else:
+        counted = bool(
+            LongRunningJob.objects.filter(job_id=job_id, finished=False).update(
+                progress_current=F("progress_current") + 1,
+                last_progress_at=timezone.now(),
+            )
+        )
+    if counted:
+        finish_job_if_complete(job_id)
 
 
 def update_batch_counter(
@@ -511,7 +523,7 @@ def update_batch_counter(
     Adds ``counts`` to the same keys of the job's result (``{"moved": 3}``),
     records ``errors`` as failed items and advances the progress by ``done``,
     all in one write, then finishes the job once it reached its target. A
-    cancelled job is left as it is.
+    job that has ended is left as it is.
     """
 
     def add_batch(result: dict[str, Any], job: LongRunningJob) -> dict[str, Any]:
@@ -525,6 +537,6 @@ def update_batch_counter(
             fields["failed"] = record_item_error(result, error, job.progress_target)
         return fields
 
-    if update_job_result(job_id, add_batch) is None:
+    if update_job_result(job_id, add_batch, unfinished_only=True) is None:
         return
     finish_job_if_complete(job_id)

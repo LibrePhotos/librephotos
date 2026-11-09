@@ -324,7 +324,18 @@ class LongRunningJob(models.Model):
         return f"Job {self.job_id} - {self.get_job_type_display()} - {status}"
 
     # What the conditional writes below re-read when the row was cancelled.
-    _FINISH_FIELDS = ("cancelled", "failed", "finished", "finished_at", "result")
+    _FINISH_FIELDS = (
+        "cancelled",
+        "failed",
+        "finished",
+        "started_at",
+        "finished_at",
+        "result",
+    )
+
+    # Bound on ``_merge_result``'s compare-and-swap retries; the row has
+    # ended by then, so hardly anything else writes its result.
+    RESULT_MERGE_ATTEMPTS = 50
 
     # When ``stop_if_cancelled`` last read the row (``time.monotonic()``).
     _cancel_checked_at: float | None = None
@@ -350,8 +361,8 @@ class LongRunningJob(models.Model):
         """Write ``fields`` unless the row has been cancelled meanwhile.
 
         A conditional update, so a cancel made from the job list while the
-        job ran is not overwritten by the worker finishing, failing or
-        reporting a result. When it was cancelled, the instance re-reads the
+        job ran is not overwritten by the worker reporting a result (ending
+        the job is ``_end``'s). When it was cancelled, the instance re-reads the
         row's outcome. Returns whether the row was written.
         """
         written = (
@@ -368,51 +379,96 @@ class LongRunningJob(models.Model):
         self.started_at = timezone.now()
         self.save(update_fields=["started_at"])
 
+    def _end(
+        self,
+        fields: dict[str, Any],
+        status: str | None = None,
+        merge: dict[str, Any] | None = None,
+    ) -> bool:
+        """End the job: the one transition out of queued or running.
+
+        A conditional update on ``finished=False``, so a job ends once: a
+        cancel racing the worker's completion, or a failure raised after the
+        job completed, finds the row ended and leaves it alone. Every ended
+        row has a ``started_at`` (a job that ended while queued started when
+        it ended, as ``complete_unclaimed`` does). ``status`` and ``merge`` go
+        into the row's result, next to what the workers recorded. The instance
+        re-reads the row's outcome either way. Returns whether this call
+        ended the job.
+        """
+        now = timezone.now()
+        ended = (
+            type(self)
+            .objects.filter(pk=self.pk, finished=False)
+            .update(
+                finished=True,
+                finished_at=now,
+                started_at=Coalesce(
+                    "started_at", models.Value(now, models.DateTimeField())
+                ),
+                **fields,
+            )
+        )
+        if ended and status is not None:
+            self._merge_result({**(merge or {}), "status": status})
+        self.refresh_from_db(fields=list(self._FINISH_FIELDS))
+        return bool(ended)
+
+    def _merge_result(self, update: dict[str, Any]) -> None:
+        """Add ``update`` to the row's result, keeping the keys it does not name.
+
+        A compare-and-swap, like ``update_job_result``: a write that lands
+        between the read and this one is re-read, not overwritten.
+        """
+        rows = type(self).objects.filter(pk=self.pk)
+        for _ in range(self.RESULT_MERGE_ATTEMPTS):
+            read = rows.values_list("result", flat=True).first()
+            base = read if isinstance(read, dict) else {}
+            unchanged = (
+                models.Q(result__isnull=True) if read is None else models.Q(result=read)
+            )
+            if rows.filter(unchanged).update(result={**base, **update}):
+                return
+        logger.error("job %s: gave up merging its result", self.job_id)
+
     def complete(self, result: dict[str, Any] | None = None) -> bool:
-        """Mark job as successfully completed, unless it was cancelled.
+        """Mark the job completed, unless it has ended already.
 
         ``result`` is written only when given. Without it the row keeps the
         result its workers recorded (``update_scan_counter``,
         ``update_batch_counter``), which this instance has not seen: writing
         its stale copy dropped the run's errors (#2888). ``failed`` is left
-        as the workers set it (#2867). Returns False when the job had been
-        cancelled; the row is left as is.
+        as the workers set it (#2867). Returns False when the job had ended
+        (cancelled, failed, or completed by its last item's counter); the
+        row is left as is.
         """
-        self.finished = True
-        self.finished_at = timezone.now()
-        fields = ["finished", "finished_at"]
-        if result is not None:
-            self.result = result
-            fields.append("result")
-        return self._write_unless_cancelled(fields)
+        return self._end({} if result is None else {"result": result})
 
     def fail(
         self,
         error: BaseException | str | None = None,
         details: dict[str, Any] | None = None,
     ) -> bool:
-        """Mark job as failed with optional error message, unless it was cancelled.
+        """Mark the job failed, unless it has ended already.
 
-        ``details`` (counts, the failed items) go into the result next to the
-        error. Returns False when the job had been cancelled; the row is left
-        as is.
+        ``details`` (counts, the failed items) and ``error`` are added to the
+        result the job recorded (its errors, a scan's ``library_scan`` and
+        follow-ups), which stays. Returns False when the job had ended; a
+        completed job stays completed when a step after its end raises.
         """
-        self.failed = True
-        self.finished = True
-        self.finished_at = timezone.now()
+        failure = dict(details or {})
         if error is not None:
-            self.result = {**(details or {}), "status": "failed", "error": str(error)}
-        return self._write_unless_cancelled(
-            ["failed", "finished", "finished_at", "result"]
-        )
+            failure["error"] = str(error)
+        return self._end({"failed": True}, status="failed", merge=failure)
 
-    def cancel(self) -> None:
-        """Mark job as cancelled and finished."""
-        self.cancelled = True
-        self.finished = True
-        self.finished_at = timezone.now()
-        self.result = {"status": "cancelled"}
-        self.save(update_fields=["cancelled", "finished", "finished_at", "result"])
+    def cancel(self) -> bool:
+        """Mark the job cancelled, unless it has ended already.
+
+        A cancel ends the job as cancelled and not failed, whatever errors its
+        items had (they stay in the result). Returns whether it cancelled the
+        job: False when the job completed or failed first.
+        """
+        return self._end({"cancelled": True, "failed": False}, status="cancelled")
 
     def stop_if_cancelled(self) -> None:
         """Raise ``JobCancelledError`` when the job was cancelled while it ran.
@@ -580,19 +636,8 @@ class LongRunningJob(models.Model):
         if hours is None:
             hours = stuck_job_hours()
         error = f"Job made no progress for {hours} hours"
-        count = 0
         stuck = cls.objects.stuck(hours).exclude(job_id__in=alive)
-        for job in stuck.only("pk", "result"):
-            result = dict(job.result) if isinstance(job.result, dict) else {}
-            result.update(status="failed", error=error)
-            # Conditional: a job that finished meanwhile is left alone.
-            count += cls.objects.filter(pk=job.pk, finished=False).update(
-                failed=True,
-                finished=True,
-                finished_at=timezone.now(),
-                result=result,
-            )
-        return count
+        return sum(job.fail(error=error) for job in stuck.only("pk", "job_id"))
 
     @classmethod
     def cleanup_old_jobs(cls, days: int = 30) -> int:

@@ -513,7 +513,8 @@ class ZipPhotosTaskErrorHandlingTest(ZipPhotosTaskTestBase):
         self.assertFalse(os.path.exists(os.path.join(self.media_root, "zip")))
         self.assertFalse(self.mock_schedule.called)
         job.refresh_from_db()
-        self.assertIsNone(job.started_at)
+        # It started when it was cancelled, not when its task ran.
+        self.assertEqual(job.started_at, job.finished_at)
         self.assertTrue(job.cancelled)
 
     def test_photos_must_support_len(self):

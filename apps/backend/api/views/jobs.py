@@ -103,7 +103,9 @@ class LongRunningJobViewSet(
             raise ValidationError("Job is already finished", code="job_finished")
         _refuse_unfinished_import(job)
 
-        job.cancel()
+        # The job may have ended since the check above; then it keeps its outcome.
+        if not job.cancel():
+            raise ValidationError("Job is already finished", code="job_finished")
 
         # The task skips a cancelled job when it claims its row; removing it
         # from the broker as well frees its slot in the queue.
