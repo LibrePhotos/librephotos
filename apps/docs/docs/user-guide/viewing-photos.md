@@ -48,6 +48,8 @@ The **Filter** button next to the display options narrows what the timeline show
 - **Hide from timeline**: leave out **Screenshots** and/or **Documents** (see [Fixing a wrong category](#category)).
 - **Show only**: **Favorites**.
 
+<Screenshot id="timeline-filter" />
+
 While a filter is active the button is highlighted with the number of active filters, and the header says what is filtered. The filter lives in the page address, so it survives a reload and can be bookmarked.
 
 **Save as default** makes the current filter what the timeline shows every time you open it, for example to keep screenshots out for good. **Reset to default** goes back to your saved default. A saved default applies to the main timeline only: Favorites, Screenshots, Videos, Hidden, Trash, albums, folders, search, people, places and public pages are never filtered by it.
@@ -260,6 +262,8 @@ Your **Write edits to files** setting (Settings → Metadata) controls whether t
 ## Photo Details Sidebar
 
 The sidebar displays detailed information about the current photo and provides quick access to related content.
+
+<Screenshot id="lightbox" />
 
 <Since version="1.4.0" /> While you edit the date, the caption, the tags or the location, a dimmed line under the editor says where the change is kept: **Saved in LibrePhotos only**, or **Saved in LibrePhotos and written to the sidecar file** (or **to the photo file**). It follows your [Write edits to files](./settings/index.md#metadata-options) setting, which its **Settings** link opens. All four are written to files.
 

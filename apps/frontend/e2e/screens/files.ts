@@ -52,6 +52,28 @@ export function budgetError(fileName: string, device: Device, bytes: number): st
   return `${fileName} is ${Math.ceil(bytes / 1024)} KB, over the ${budget / 1024} KB ${device} budget`;
 }
 
+/** WebP qualities a shot is encoded at, best first. */
+export const WEBP_QUALITIES: readonly number[] = [80, 70, 60];
+
+/**
+ * Encodes a shot at each of WEBP_QUALITIES in turn and keeps the first that fits the device's
+ * budget: a detailed photo in view can push a shot over it at 80. Returns the last try when none
+ * fits, so the budget check reports the overrun.
+ */
+export async function encodeWithinBudget(
+  device: Device,
+  encode: (quality: number) => Promise<Uint8Array>
+): Promise<Uint8Array> {
+  let bytes: Uint8Array = new Uint8Array();
+  for (const quality of WEBP_QUALITIES) {
+    bytes = await encode(quality);
+    if (bytes.length <= SIZE_BUDGET[device]) {
+      break;
+    }
+  }
+  return bytes;
+}
+
 /**
  * The shots to take: every one, or the ids in `filter` (comma-separated, the SHOTS variable).
  * An id that is not in the manifest throws, so a typo does not silently take nothing.

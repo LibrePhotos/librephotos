@@ -43,6 +43,17 @@ async function openFirstPhotoDetails(page: Page) {
   }
 }
 
+/** Drags a file over the timeline as if from the desktop, which shows the upload drop overlay. */
+async function dragFileOverTimeline(page: Page) {
+  await new TimelinePage(page).photos.first().waitFor();
+  const dataTransfer = await page.evaluateHandle(() => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([""], "photo.jpg", { type: "image/jpeg" }));
+    return transfer;
+  });
+  await main(page).dispatchEvent("dragenter", { dataTransfer });
+}
+
 /**
  * The shots, in the order of the docs manifest. The first five are the landing page tour; their ids
  * and alt texts are the ones apps/docs/static/img/shots/manifest.json already has. Faces, places and
@@ -52,14 +63,14 @@ async function openFirstPhotoDetails(page: Page) {
 export const SHOTS: readonly ShotSpec[] = [
   {
     id: "timeline",
-    alt: "Timeline of a sample library: photos grouped by day, newest first, with the place of each day",
+    alt: "Timeline of a sample library: the Memories strip, then photos grouped by day, newest first, with the place of each day",
     route: "/",
     waitFor: page => new TimelinePage(page).photos.first(),
     phone: true,
   },
   {
     id: "lightbox",
-    alt: "A photo open in the lightbox, with the Details sidebar: date, file, camera, the place on a map, the people in it, a generated caption and auto tags",
+    alt: "A photo open in the lightbox with its Info panel: caption, people, date, file, the place on a map, tags, rights and the albums it is in",
     route: "/",
     prepare: openFirstPhotoDetails,
     waitFor: page => page.getByRole("dialog").getByRole("heading", { name: "Details" }),
@@ -67,13 +78,13 @@ export const SHOTS: readonly ShotSpec[] = [
   },
   {
     id: "faces",
-    alt: "People page: one cover photo per named person, with the number of photos each person is in",
+    alt: "People page: the face of each named person, the number of people and a link to the faces to review, with sort and group menus",
     route: "/album/persons",
     waitFor: page => main(page).getByRole("img").first(),
   },
   {
     id: "places",
-    alt: "Places page: a world map with clusters of photos, above a grid of places from countries down to streets",
+    alt: "Places page: a world map with clusters of photos, above a grid of countries with the number of photos in each",
     route: "/album/places",
     waitFor: page => main(page).getByRole("img").first(),
   },
@@ -85,7 +96,7 @@ export const SHOTS: readonly ShotSpec[] = [
   },
   {
     id: "timeline-filter",
-    alt: "Timeline with the Filter popover open: media type, the screenshots and documents to hide, show only favorites, and Save as default",
+    alt: "Timeline with the Filter popover open: media type, the screenshots and documents to hide, show only favorites, and a note that this is the default view",
     route: "/",
     prepare: async page => {
       await main(page)
@@ -97,10 +108,30 @@ export const SHOTS: readonly ShotSpec[] = [
   },
   {
     id: "category-badge",
-    alt: "Photo details in the lightbox with the category badge next to the file name, which says whether the photo is a photo, a screenshot or a document",
+    alt: "Photo details in the lightbox with the category badge under the file name, which says whether the photo is a photo, a screenshot or a document",
     route: "/",
     prepare: openFirstPhotoDetails,
     waitFor: page => page.getByRole("dialog").getByRole("button", { name: /^Category: / }),
     release: "1.3.0",
+  },
+  {
+    id: "albums",
+    alt: "Albums page: your own albums, the people, and collections of things, tags, places, events and folders",
+    route: "/album",
+    waitFor: page => main(page).getByRole("heading", { name: "My albums" }),
+    phone: true,
+  },
+  {
+    id: "upload-drop",
+    alt: "Files dragged over the timeline: a dashed outline around the window and a card that says Drop photos and videos to upload",
+    route: "/",
+    prepare: dragFileOverTimeline,
+    waitFor: page => page.getByText("Drop photos and videos to upload"),
+  },
+  {
+    id: "admin-site-settings",
+    alt: "Admin area with the Site settings: switches for user registration, uploads, the Nextcloud integration, a folder for each new user and release checks",
+    route: "/admin",
+    waitFor: page => main(page).getByText("Allow uploads"),
   },
 ];

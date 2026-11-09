@@ -5,9 +5,9 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="apps/docs/static/img/shots/timeline-dark.webp">
-  <img alt="The LibrePhotos timeline, with photos grouped by day and place" src="apps/docs/static/img/shots/timeline-light.webp">
+  <img alt="The LibrePhotos timeline: the Memories strip, then photos grouped by day and place" src="apps/docs/static/img/shots/timeline-light.webp">
 </picture>
-<sub>Sample photos from Pexels, see the <a href="apps/docs/static/img/shots/CREDITS.md">credits</a>.</sub>
+<sub>Sample photos from Unsplash and others, see the <a href="apps/docs/static/img/shots/CREDITS.md">credits</a>.</sub>
 
 A self-hosted, open-source photo management service with automatic face recognition, object detection, and semantic search — powered by modern machine learning.
 

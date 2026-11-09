@@ -4,10 +4,11 @@ description: "How to upload photos to LibrePhotos"
 sidebar_position: 13
 ---
 
-![](../../static/img/upload-image.png)
 In the top right corner of the web interface, there is an upload button. Clicking it will open a file picker. You can select multiple files and upload them.
 
 You can also drag photos and videos from your computer onto any page of the app. <Since version="1.4.0" /> Up to 1.3.0 only the upload button took dropped files. While you drag, the whole window shows where the files will go: *Drop photos and videos to upload*, or *Add to the running upload* when an upload is already in progress, in which case the new files join the end of the queue. On the profile page, dropping an image on your avatar still sets your avatar instead.
+
+<Screenshot id="upload-drop" />
 
 ### Uploading into an album
 
@@ -93,7 +94,7 @@ To use the upload feature properly, you **must** have:
 
 ### Activate / Deactivate the upload feature
 
-![](../../static/img/allow-uploading.png)
+<Screenshot id="admin-site-settings" />
 
 You can activate / deactivate by navigating as an admin to the admin area and clicking on the `Allow uploads` switch. This switch is the authoritative setting. The `ALLOW_UPLOAD` environment variable (set through `allowUpload` in your `.env` for the Docker Compose deployment) only supplies the initial default: once a value has been saved to the database — by toggling the switch, or by the first-time setup wizard — the stored setting wins and the environment variable is ignored.
 

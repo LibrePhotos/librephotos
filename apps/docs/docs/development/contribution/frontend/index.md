@@ -90,7 +90,8 @@ yarn screens:unit                      # the helpers, without a running LibrePho
   changing. A new shot that looks like the file it would replace (at most 0.2 % of the pixels
   changed) keeps the old file, so a second run changes nothing. The run says per file whether it
   kept or wrote it, and how much changed.
-- A desktop shot over 200 KB or a phone shot over 120 KB fails its test.
+- Shots are WebP at quality 80, or at 70 or 60 when that is what it takes to fit the budget: a
+  desktop shot over 200 KB or a phone shot over 120 KB even at 60 fails its test.
 - The browser clock and the Memories strip are fixed to `SHOTS_DAY` (default `2026-05-12`), so the
   memories are the same in every run.
 - The e2e stack has the eight sample photos and no machine learning, so it has no faces, places or

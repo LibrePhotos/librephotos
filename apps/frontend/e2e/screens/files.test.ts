@@ -6,6 +6,7 @@ import type { ShotMeta } from "./files";
 import {
   budgetError,
   docsManifest,
+  encodeWithinBudget,
   fileReader,
   looksTheSame,
   selectShots,
@@ -60,6 +61,19 @@ test.describe("shot files", () => {
     expect(budgetError("a-phone-dark.webp", "phone", 130_000)).toBe(
       "a-phone-dark.webp is 127 KB, over the 120 KB phone budget"
     );
+  });
+
+  test("a shot is encoded at the best quality that fits its budget", async () => {
+    const tried: number[] = [];
+    const encoder = (sizes: Record<number, number>) => async (quality: number) => {
+      tried.push(quality);
+      return new Uint8Array(sizes[quality]);
+    };
+    const fits = await encodeWithinBudget("desktop", encoder({ 80: 250_000, 70: 190_000, 60: 150_000 }));
+    expect([fits.length, tried]).toEqual([190_000, [80, 70]]);
+    tried.length = 0;
+    const tooBig = await encodeWithinBudget("phone", encoder({ 80: 300_000, 70: 250_000, 60: 200_000 }));
+    expect([tooBig.length, tried]).toEqual([200_000, [80, 70, 60]]);
   });
 
   test("a shot looks the same when at most 0.2 % of its pixels changed", () => {

@@ -8,6 +8,8 @@ sidebar_position: 4
 
 LibrePhotos supports several types of albums to help you organize your photo library.
 
+<Screenshot id="albums" />
+
 ## Album Types
 
 ### User Albums (My Albums)
@@ -17,6 +19,8 @@ Albums you create manually to organize photos however you like. You can add any 
 Automatically generated albums based on face recognition. Each recognized person gets their own album.
 
 The People page shows each person as a round picture of their cover face, the same face the Albums page shows; their name and number of faces sit under it. Choosing **Set as cover…** on a person's page also makes that person's face in the photo their cover face. A person whose face has no picture yet shows the whole cover photo instead, and a person without faces shows a placeholder. <Since version="1.4.0" /> Up to 1.3.0, the People page showed the whole cover photo for everyone.
+
+<Screenshot id="faces" />
 
 A person's page has a **⋮** button (**Person actions**) at the right of its header:
 
@@ -64,6 +68,9 @@ A merge cannot be undone. If you write face tags to your files, the files of the
 <Since version="1.4.0" /> Up to 1.3.0, two people could not be merged, a person's page had no menu, a photo could only be taken off a person in the face dashboard, and a deleted or unknown person's page said "Loading" for good instead of "Person not found".
 
 ### Events
+
+<Screenshot id="events" />
+
 Albums that group your photos into events based on when they were taken. Grouping is purely chronological: a photo joins the current event if it was taken less than **1 day and 12 hours** after the previous photo already in that event, so a continuous trip stays a single event however long it runs. An event needs at least two photos — a single photo on its own produces no album. Location and recognized people are not used for the grouping itself; they only feed the album's generated title (for example "Weekend in Paris") and its position on the map.
 
 :::note

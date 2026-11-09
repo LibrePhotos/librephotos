@@ -4,8 +4,7 @@ description: "A self-hosted open source photo management service."
 sidebar_position: 1
 ---
 
-![The LibrePhotos timeline, with photos grouped by day and place](../static/img/shots/timeline-light.webp)
-<sub>Sample photos from [Pexels](https://www.pexels.com/license/).</sub>
+<Screenshot id="timeline" caption="Sample photos from Unsplash and others." />
 
 Unlike commercial service that store your photos in the cloud and scan/index them to train their machine learning models and collect ad targeting data on you, LibrePhotos keeps all your photos and metadata on your local machine. Your data is never sent to or stored on a 3rd party server. Get the same power as those commercial services without giving up your personal data and privacy.
 
