@@ -1,7 +1,8 @@
 import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { apiClient, redirectToLogin } from "../../api";
+import { apiClient } from "../../api";
 import { clearAuthCookies, getAuthCookie } from "../../authCookies";
+import { redirectToLogin } from "../../session";
 
 const logout = () => endpoints.logout(apiClient, getAuthCookie("refresh"));
 

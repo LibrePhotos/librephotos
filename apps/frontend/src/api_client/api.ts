@@ -12,9 +12,9 @@ import { clearAuthCookies, getAuthCookie, setAuthCookie } from "./authCookies";
 import { reportMutationError, reportWriteError } from "./mutationErrors";
 import { notifyParseError } from "./parseErrors";
 import { reportRequestFailure } from "./server/backendTrouble";
+import { dropStaleSession, expireSession } from "./session";
 
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
-const API_BASE_URL = PUBLIC_URL + "/api";
 
 // The error every request rejects with (its own module, so media/mediaUrl can throw it without this one).
 export { ApiError } from "./apiError";
@@ -29,26 +29,7 @@ const cookieTokens: TokenSupplier = {
   clearTokens: clearAuthCookies,
 };
 
-/**
- * Set once the first failed authentication (or Log out) starts logging the user
- * out, so concurrent 401s don't each blacklist the token, notify and redirect. Never
- * reset: logging out ends in a full page navigation, which reloads this module.
- */
-let loggingOut = false;
-
 const isPublicPage = () => window.location.pathname.startsWith("/public");
-
-/**
- * End the session with a full page load of the login page. Not a router
- * navigation: the cached "logged in" answer would send /login straight back
- * into the app, and a reload drops every cached query, so whoever signs in
- * next in this tab never sees the previous user's data. The 401s that requests
- * still in flight get meanwhile are ignored (see `loggingOut`).
- */
-export function redirectToLogin(): void {
-  loggingOut = true;
-  window.location.assign(PUBLIC_URL + "/login");
-}
 
 /** One `{ field, message }` entry of the backend's error body. */
 function isFieldError(value: unknown): value is { field: string; message: string } {
@@ -62,78 +43,68 @@ function isFieldError(value: unknown): value is { field: string; message: string
   );
 }
 
+const LOGIN_ENDPOINT = "/auth/token/obtain/";
+
+/** The server's logout: blacklists the refresh token and clears the HttpOnly jwt cookie. */
+async function logOutOnServer(refreshToken: string | undefined): Promise<void> {
+  try {
+    await fetch(`${PUBLIC_URL}/api/auth/token/blacklist/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh: refreshToken }),
+      credentials: "include",
+    });
+  } catch (error) {
+    console.error("Logout failed:", error);
+  }
+}
+
+/** Where a 401 happened: a page for everyone, a page for signing in or up, or the signed-in app. */
+type UnauthorizedPage = "public" | "signedOut" | "app";
+
+function unauthorizedPage(pathname: string): UnauthorizedPage {
+  // Public pages and the password-reset pages are reached while logged out.
+  if (isPublicPage() || pathname.includes("/password-reset")) return "public";
+  if (pathname.includes("/login") || pathname.includes("/signup")) return "signedOut";
+  return "app";
+}
+
+/** Wrong credentials: the server's reason for refusing the sign-in. */
+async function reportRefusedLogin(response: Response): Promise<void> {
+  const data: unknown = await response.json().catch(() => ({}));
+  const body = typeof data === "object" && data !== null ? data : {};
+  const errors = "errors" in body ? body.errors : undefined;
+  const detail = "detail" in body ? body.detail : undefined;
+  if (errors) {
+    // The backend's exception handler: { errors: [{ field, message }] }
+    const entries: unknown[] = Array.isArray(errors) ? errors : [];
+    entries.forEach(error => {
+      if (isFieldError(error) && error.field === "detail") {
+        notification.authError(true, error.field, error.message);
+      }
+    });
+  } else if (typeof detail === "string" && detail) {
+    notification.authError(true, "detail", detail);
+  }
+}
+
 /**
- * A 401 the shared transport could not fix with a token refresh. The web
- * decides itself whether that logs the user out: not on public pages, and not
- * on the password-reset pages, which are reached while logged out.
+ * A 401 the shared transport could not fix with a token refresh. The web decides itself what it
+ * means: nothing on public pages; on the login and sign-up pages a refused sign-in (or a sign-up
+ * refused because registration is off, which the form reports itself); in the app, the end of the
+ * session (`expireSession`).
  */
 async function handleUnauthorized(endpoint: string, response: Response): Promise<void> {
-  const { pathname } = window.location;
-  const isPasswordResetPage = pathname.includes("/password-reset");
-  const isLoginPage = pathname.includes("/login");
-  const isSignupPage = pathname.includes("/signup");
-  const suppressAuthNotifications = isPublicPage() || isPasswordResetPage || isLoginPage || isSignupPage;
-  // Pages for logged-out users stay where they are. A refused sign-up
-  // (registration turned off) answers 401 too, and used to reload the sign-up
-  // form into the login page without a word; the form reports it itself now.
-  const staysOnPage = isLoginPage || isSignupPage;
-
-  // On public pages, silently ignore 401 errors for authenticated-only endpoints.
-  if (isPublicPage() || isPasswordResetPage) {
-    return;
-  }
-  if (!staysOnPage) {
-    // Another request already started logging out and redirecting.
-    if (loggingOut) {
+  const page = unauthorizedPage(window.location.pathname);
+  switch (page) {
+    case "public":
       return;
-    }
-    loggingOut = true;
-  }
-  // Log out: the server blacklists the refresh token, if there still is one,
-  // and clears the HttpOnly jwt cookie, which this script cannot delete. A
-  // rejected sign-in or sign-up ends no session, unless a stale token is left.
-  const refreshToken = getAuthCookie("refresh");
-  if (refreshToken || !staysOnPage) {
-    try {
-      await fetch(`${API_BASE_URL}/auth/token/blacklist/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh: refreshToken }),
-        credentials: "include",
-      });
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  }
-  // Clear auth cookies and redirect to login if we are not already on the login page
-  if (!staysOnPage) {
-    cookieTokens.clearTokens();
-    // A full navigation on purpose: the router lives in App.tsx (importing it
-    // here would be circular) and a reload also drops the cached queries.
-    window.location.href = PUBLIC_URL + "/login";
-  }
-
-  // Always show notifications for login attempts (wrong credentials),
-  // but suppress other 401 notifications on public/login/signup pages
-  const isLoginAttempt = endpoint === "/auth/token/obtain/";
-  if (!suppressAuthNotifications || isLoginAttempt) {
-    const data: unknown = await response.json().catch(() => ({}));
-    const body = typeof data === "object" && data !== null ? data : {};
-    const errors = "errors" in body ? body.errors : undefined;
-    const detail = "detail" in body ? body.detail : undefined;
-    if (errors) {
-      // The backend's exception handler: { errors: [{ field, message }] }
-      const entries: unknown[] = Array.isArray(errors) ? errors : [];
-      entries.forEach(error => {
-        if (isFieldError(error) && error.field === "detail") {
-          notification.authError(isLoginAttempt, error.field, error.message);
-        }
-      });
-    } else if (isLoginAttempt && typeof detail === "string" && detail) {
-      notification.authError(true, "detail", detail);
-    } else if (!isLoginAttempt) {
-      notification.invalidToken();
-    }
+    case "app":
+      return expireSession(logOutOnServer);
+    case "signedOut":
+      await dropStaleSession(logOutOnServer);
+      if (endpoint === LOGIN_ENDPOINT) await reportRefusedLogin(response);
+      return;
   }
 }
 

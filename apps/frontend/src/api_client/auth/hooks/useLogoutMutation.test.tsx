@@ -17,8 +17,8 @@ const redirectToLogin = vi.fn<() => void>();
 
 vi.mock("../../api", () => ({
   apiClient: { post: (...args: Parameters<typeof post>) => post(...args) },
-  redirectToLogin: () => redirectToLogin(),
 }));
+vi.mock("../../session", () => ({ redirectToLogin: () => redirectToLogin() }));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
