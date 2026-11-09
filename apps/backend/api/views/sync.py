@@ -53,6 +53,7 @@ from api.models import (
     Tag,
     User,
 )
+from api.models.photo import shown_photo_q
 from api.serializers.person import first_face_of_person
 from api.serializers.sync import (
     AUTO_ALBUM_VALUES,
@@ -64,7 +65,7 @@ from api.serializers.sync import (
     serialize_auto_album_row,
     serialize_named_album_row,
     serialize_person_row,
-    serialize_photo_row,
+    serialize_shared_photo_row,
     serialize_shared_user_row,
     serialize_user_album_row,
 )
@@ -79,6 +80,7 @@ from api.serializers.sync_responses import (
     SyncThingAlbumsResponseSerializer,
     SyncUserAlbumsResponseSerializer,
 )
+from api.sharing.grants import GrantLookup
 
 ENVELOPE_VERSION = 1
 
@@ -219,6 +221,18 @@ class BaseSyncView[ModelT: models.Model](APIView):
 # --------------------------------------------------------------------------- #
 # Photos
 # --------------------------------------------------------------------------- #
+def synced_photos(user: User) -> QuerySet[Photo]:
+    """The photos ``user``'s phone mirrors.
+
+    Their own, hidden, trashed and removed ones too (the app filters those),
+    and the photos shared with them that their owner has not hidden, trashed
+    or removed (GHSA-57r4-v566-3rcw, GHSA-9j7w-vxf9-x93c). A subquery, so a
+    photo shared with several users is one row.
+    """
+    shared = Photo.objects.shown().shared_with(user).values("pk")
+    return Photo.objects.filter(Photo.objects.owner_q(user) | Q(pk__in=shared))
+
+
 @sync_feed(
     SyncPhotosResponseSerializer,
     "The requester's photos and the photos shared to them.",
@@ -228,7 +242,23 @@ class SyncPhotosView(BaseSyncView[Photo]):
     values_fields = PHOTO_VALUES + ("has_motion",)
 
     def scoped_queryset(self, user: User) -> QuerySet[Photo]:
-        return Photo.objects.owned_or_shared_to(user)
+        return synced_photos(user)
+
+    def get_tombstones(self, user: User, cursor_dt: datetime | None) -> list[str]:
+        """The logged deletions and un-shares, and the photos shared with
+        ``user`` that their owner hid, trashed or removed since the cursor:
+        those leave the feed, and the change bumps ``last_modified``."""
+        tombstones = super().get_tombstones(user, cursor_dt)
+        if cursor_dt is None:
+            return tombstones
+        withdrawn = (
+            Photo.objects.shared_with(user)
+            .exclude(shown_photo_q())
+            .filter(last_modified__gt=cursor_dt)
+            .values_list("pk", flat=True)
+        )
+        seen = set(tombstones)
+        return tombstones + [str(pk) for pk in withdrawn if str(pk) not in seen]
 
     def annotate(self, qs: QuerySet[Photo], user: User) -> QuerySet[Photo]:
         motion = File.objects.filter(
@@ -237,7 +267,10 @@ class SyncPhotosView(BaseSyncView[Photo]):
         return qs.annotate(has_motion=Exists(motion))
 
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
-        return [serialize_photo_row(r) for r in rows]
+        grants = GrantLookup(user)
+        return [
+            serialize_shared_photo_row(r, grants.for_owner(r["owner_id"])) for r in rows
+        ]
 
 
 # --------------------------------------------------------------------------- #
@@ -278,10 +311,24 @@ class SyncUserAlbumsView(BaseSyncView[AlbumUser]):
 
     def serialize_page(self, rows: list[Row], user: User) -> list[Row]:
         ids = [r["id"] for r in rows]
+        own = {r["id"] for r in rows if r["owner_id"] == user.id}
         membership: defaultdict[int, list[str]] = defaultdict(list)
-        links = AlbumUserPhoto.objects.listed().filter(albumuser_id__in=ids)
-        for aid, pid in links.values_list("albumuser_id", "photo_id"):
-            membership[aid].append(str(pid))
+        # The owner's phone gets their hidden photos too and filters them; a
+        # member gets only what the album shows (``vouched``).
+        for links in (
+            AlbumUserPhoto.objects.listed().filter(albumuser_id__in=own),
+            AlbumUserPhoto.objects.vouched()
+            .filter(albumuser_id__in=ids)
+            .exclude(albumuser_id__in=own),
+        ):
+            for aid, pid in links.values_list("albumuser_id", "photo_id"):
+                membership[aid].append(str(pid))
+        for r in rows:
+            if (
+                r["id"] not in own
+                and str(r["cover_photo_id"]) not in membership[r["id"]]
+            ):
+                r["cover_photo__image_hash"] = None
         shared_ids = set(
             AlbumUserMember.objects.filter(albumuser_id__in=ids).values_list(
                 "albumuser_id", flat=True
@@ -296,6 +343,17 @@ class SyncUserAlbumsView(BaseSyncView[AlbumUser]):
 # --------------------------------------------------------------------------- #
 # Auto albums (membership embedded)
 # --------------------------------------------------------------------------- #
+def shown_to(
+    user: User,
+    album_model: type[AlbumAuto] | type[AlbumThing] | type[AlbumPlace],
+    through: str,
+) -> Q:
+    """The rows of an album's photo table that ``user`` may get: every photo
+    of their own albums, only the shown ones (``shown_photo_q``) of an album
+    shared with them."""
+    return album_model.objects.owner_q(user, through=through) | shown_photo_q("photo__")
+
+
 @sync_feed(SyncAutoAlbumsResponseSerializer, "The event albums, with their photos.")
 class SyncAutoAlbumsView(BaseSyncView[AlbumAuto]):
     entity = DeletionLog.ENTITY_ALBUM_AUTO
@@ -308,9 +366,10 @@ class SyncAutoAlbumsView(BaseSyncView[AlbumAuto]):
         ids = [r["id"] for r in rows]
         membership: defaultdict[int, list[UUID]] = defaultdict(list)
         through = AlbumAuto.photos.through
-        for aid, pid in through.objects.filter(albumauto_id__in=ids).values_list(
-            "albumauto_id", "photo_id"
-        ):
+        links = through.objects.filter(albumauto_id__in=ids).filter(
+            shown_to(user, AlbumAuto, "albumauto__")
+        )
+        for aid, pid in links.values_list("albumauto_id", "photo_id"):
             membership[aid].append(pid)
         # Cover = first member's image_hash. One query for the whole page.
         first_photo = {aid: pids[0] for aid, pids in membership.items() if pids}
@@ -343,9 +402,10 @@ class SyncThingAlbumsView(BaseSyncView[AlbumThing]):
         ids = [r["id"] for r in rows]
         covers: defaultdict[int, list[str]] = defaultdict(list)
         through = AlbumThing.cover_photos.through
-        for aid, phash in through.objects.filter(albumthing_id__in=ids).values_list(
-            "albumthing_id", "photo__image_hash"
-        ):
+        links = through.objects.filter(albumthing_id__in=ids).filter(
+            shown_to(user, AlbumThing, "albumthing__")
+        )
+        for aid, phash in links.values_list("albumthing_id", "photo__image_hash"):
             if phash:
                 covers[aid].append(phash)
         return [serialize_named_album_row(r, covers[r["id"]]) for r in rows]
@@ -365,6 +425,7 @@ class SyncPlaceAlbumsView(BaseSyncView[AlbumPlace]):
         ids = [r["id"] for r in rows]
         grouped = (
             AlbumPlace.photos.through.objects.filter(albumplace_id__in=ids)
+            .filter(shown_to(user, AlbumPlace, "albumplace__"))
             .values("albumplace_id")
             .annotate(n=Count("photo_id"))
         )
@@ -461,7 +522,7 @@ class SyncCountsView(APIView):
         user = request_user(request)
         return Response(
             {
-                "photos": Photo.objects.owned_or_shared_to(user).count(),
+                "photos": synced_photos(user).count(),
                 "persons": Person.objects.owned_by(user)
                 .filter(kind=Person.KIND_USER)
                 .count(),
