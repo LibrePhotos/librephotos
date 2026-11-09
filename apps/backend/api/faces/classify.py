@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 from bulk_update.helper import bulk_update
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 
 from api.dataviz.color_palettes import hex_palette
@@ -20,7 +21,11 @@ from api.faces.birth_dates import (
     without_unborn,
 )
 from api.faces.cluster_manager import ClusterManager
-from api.faces.clustering_gate import latest_face_id, record_clustering
+from api.faces.clustering_gate import (
+    latest_face_id,
+    lock_clustering,
+    record_clustering,
+)
 from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
@@ -180,18 +185,11 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
     lrj.update_progress(current=0, target=1)
 
     try:
-        # The clusters are deleted and then built again, so a cancel is only
-        # honoured before the deletes: stopping in between would leave the
-        # user without clusters. A cancel during the rebuild still skips the
+        # A cancel is honoured until the clusters are replaced (see
+        # create_all_clusters); one during the rebuild still skips the
         # training follow-up (complete() below).
         lrj.stop_if_cancelled()
-        # Taken before the rebuild: a face added while it runs is not in it,
-        # so the upload follow-ups count it as new (#2738).
-        watermark = latest_face_id(user)
-        delete_clustered_people(user)
-        delete_clusters(user)
-        target_count: int = create_all_clusters(user, lrj)
-        record_clustering(user, watermark)
+        target_count = create_all_clusters(user, lrj)
 
         lrj.update_progress(current=target_count, target=target_count)
         if not lrj.complete():
@@ -264,17 +262,24 @@ def group_indexes_by_label(
     return {label: np.where(labels == label)[0] for label in np.unique(labels)}
 
 
-def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
-    """Generate Cluster records for each different clustering of people
-    :param user: the current user
-    :param lrj: LongRunningJob to update, if needed
-    """
-    logger.info("Creating clusters")
-    data = collect_face_encodings(user)
+@dataclass(frozen=True)
+class ClusterPlan:
+    """What HDBSCAN found, before a row is written: each cluster's faces."""
 
+    # (cluster id, face ids), largest cluster first; -1 is the unknown cluster.
+    groups: list[tuple[int, list[int]]]
+    # The digits of a cluster person's number ("Unknown 007").
+    pad_len: int
+    # The faces clustered.
+    target_count: int
+
+
+def plan_clusters(user: User) -> ClusterPlan:
+    """Cluster the encodings of the user's faces; nothing is written."""
+    data = collect_face_encodings(user)
     target_count = len(data["id"])
     if target_count == 0:
-        return target_count
+        return ClusterPlan([], 1, 0)
 
     clt = build_clusterer(user, target_count)
     logger.info("Before finding clusters")
@@ -282,38 +287,71 @@ def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
     logger.info("After finding clusters")
 
     sorted_indexes = group_indexes_by_label(clt.labels_)
-    max_len: int = len(str(len(sorted_indexes)))
-    all_clusters: list[Cluster] = []
-    commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-    count: int = 0
-    cluster_count: int = 0
-
     logger.info("Found %s clusters", len(sorted_indexes))
+    groups: list[tuple[int, list[int]]] = []
+    cluster_count = 0
     for label_id in sorted(
         sorted_indexes, key=lambda key: np.size(sorted_indexes[key]), reverse=True
     ):
+        cluster_id = int(label_id)
         if label_id != UNKNOWN_CLUSTER_ID:
-            cluster_count = cluster_count + 1
+            cluster_count += 1
             cluster_id = cluster_count
-        else:
-            cluster_id = label_id
-        face_id_list = [data["id"][i] for i in sorted_indexes[label_id]]
-        count = count + len(face_id_list)
+        groups.append((cluster_id, [data["id"][i] for i in sorted_indexes[label_id]]))
+    return ClusterPlan(groups, len(str(len(sorted_indexes))), target_count)
+
+
+def write_clusters(
+    user: User, plan: ClusterPlan, lrj: LongRunningJob | None = None
+) -> None:
+    """Save the clusters of ``plan`` and file the faces under them.
+
+    The faces are read again: one deleted since the plan is left out.
+    """
+    created = 0
+    count = 0
+    commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+    for cluster_id, face_ids in plan.groups:
+        count += len(face_ids)
         face_array = list(
             Face.objects.filter(
-                Q(pk__in=face_id_list) & Q(encoding__isnull=False) & Q(deleted=False)
+                Q(pk__in=face_ids) & Q(encoding__isnull=False) & Q(deleted=False)
             )
         )
-        all_clusters.extend(
-            ClusterManager.try_add_cluster(user, cluster_id, face_array, max_len)
+        created += len(
+            ClusterManager.try_add_cluster(user, cluster_id, face_array, plan.pad_len)
         )
-
         if commit_time < datetime.datetime.now() and lrj is not None:
-            lrj.update_progress(current=count, target=target_count)
+            lrj.update_progress(current=count, target=plan.target_count)
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+    logger.info("Created %s clusters", created)
 
-    logger.info("Created %s clusters", len(all_clusters))
-    return target_count
+
+def create_all_clusters(user: User, lrj: LongRunningJob | None = None) -> int:
+    """Replace the user's clusters and cluster people with a new clustering.
+
+    HDBSCAN runs first, outside any transaction: it can take minutes, and on
+    SQLite an open write transaction blocks every other writer. The old rows
+    are then deleted and the new ones written in one transaction under the
+    user's clustering lock, so a rebuild that fails half-way leaves the old
+    clusters, and two rebuilds never interleave. Returns the faces clustered.
+    :param user: the current user
+    :param lrj: LongRunningJob to update, if needed
+    """
+    logger.info("Creating clusters")
+    # Taken before the faces are read: a face added while the rebuild runs
+    # is not in it, so the upload follow-ups count it as new (#2738).
+    watermark = latest_face_id(user)
+    plan = plan_clusters(user)
+    if lrj is not None:
+        lrj.stop_if_cancelled()
+    with transaction.atomic():
+        lock_clustering(user)
+        delete_clustered_people(user)
+        delete_clusters(user)
+        write_clusters(user, plan, lrj)
+        record_clustering(user, watermark)
+    return plan.target_count
 
 
 # Clustering one user rebuilds only that user's rows it made itself: each

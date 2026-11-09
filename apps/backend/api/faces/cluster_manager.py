@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from typing import TYPE_CHECKING
 
 from api.lazy_import import LazyModule
@@ -40,6 +41,7 @@ class ClusterManager:
             added_clusters, encoding_by_person = ClusterManager._split_by_person(
                 user, cluster_id, known_faces
             )
+            ClusterManager._join_main_person(added_clusters, known_faces, unknown_faces)
         else:
             added_clusters, encoding_by_person = ClusterManager._create_cluster_person(
                 user, cluster_id, unknown_faces, pad_len
@@ -94,6 +96,29 @@ class ClusterManager:
         )
         encodings = [face.get_encoding_array() for face in unknown_faces]
         return [new_cluster], {new_cluster.person.id: encodings}
+
+    @staticmethod
+    def _join_main_person(
+        added_clusters: list[Cluster],
+        known_faces: list[Face],
+        unknown_faces: list[Face],
+    ) -> None:
+        """File a mixed cluster's unlabelled faces under its main person's cluster.
+
+        HDBSCAN put them with labelled faces, so they are no unknown cluster's;
+        left out, they kept no cluster at all. The main person is the one with
+        the most faces in it, the first seen on a tie. The cluster's mean
+        encoding stays that of the person's labelled faces, and training
+        suggests a person for these faces as for any other unlabelled one.
+        """
+        if not unknown_faces:
+            return
+        votes = Counter(face.person_id for face in known_faces)
+        main_person_id = votes.most_common(1)[0][0]
+        main = next(c for c in added_clusters if c.person_id == main_person_id)
+        Face.objects.filter(id__in=[face.id for face in unknown_faces]).update(
+            cluster=main
+        )
 
     @staticmethod
     def _split_by_person(

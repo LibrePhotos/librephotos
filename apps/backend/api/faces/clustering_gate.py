@@ -68,6 +68,24 @@ def latest_face_id(user: User) -> int:
     return latest or 0
 
 
+def lock_clustering(user: User) -> None:
+    """Hold the user's clustering lock until the transaction ends.
+
+    A rebuild deletes the user's clusters and cluster people and writes them
+    again. Two at once (Scan Faces' own, an upload follow-up, Find Similar
+    Faces) interleave their deletes and writes into duplicate "Unknown N"
+    people and faces pointing at deleted clusters. The lock is the user's
+    ``UploadFollowupState`` row, which holds the clustering's watermark: on
+    PostgreSQL a second rebuild waits here until the first commits. SQLite
+    has no row locks; its IMMEDIATE transactions (``settings/_sqlite.py``)
+    serialise the whole block instead.
+    """
+    _state_of(user)
+    list(
+        UploadFollowupState.objects.owned_by(user).select_for_update().values_list("pk")
+    )
+
+
 def record_clustering(user: User, watermark: int) -> None:
     """A clustering of ``user``'s faces up to id ``watermark`` just ran."""
     _state_of(user)
