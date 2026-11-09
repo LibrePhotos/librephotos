@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 import PIL.Image
 
 from api.faces import extractor
-from api.faces.geometry import min_face_height
+from api.faces.geometry import box_in_picture, min_face_height
 from api.lazy_import import LazyModule
 from api.models.cluster import unit_length
 from api.video import frames
@@ -195,24 +195,31 @@ def _faces_in_frame(photo: Photo, seconds: float, frame_path: str) -> list[Frame
     """The faces the face service finds in one frame, at least the owner's minimum size.
 
     A detection without an encoding (a sidecar from before encodings came
-    with the detections) cannot be told apart from the others: skipped.
+    with the detections) cannot be told apart from the others: skipped. A
+    box going past the edge of the frame is cut to it (#2922).
     """
     detected = extractor.extract_from_face_service(frame_path)
     if not detected:
         return []
     with PIL.Image.open(frame_path) as frame:
         picture = np.array(frame.convert("RGB"))
+    height, width = picture.shape[:2]
     min_height = min_face_height(picture.shape, photo.owner.min_face_size)
     found: list[FrameFace] = []
-    for top, right, bottom, left, _name, *rest in detected:
+    for detection in detected:
+        top, right, bottom, left, _name, *rest = detection
         encoding = rest[0] if rest else None
         if not isinstance(encoding, np.ndarray) or bottom - top < min_height:
             continue
+        box = box_in_picture((top, right, bottom, left), width, height)
+        if box is None:
+            continue
+        top, right, bottom, left = box
         found.append(
             FrameFace(
                 seconds,
                 PIL.Image.fromarray(picture[top:bottom, left:right]),
-                (top, right, bottom, left),
+                box,
                 encoding,
             )
         )

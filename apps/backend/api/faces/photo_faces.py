@@ -26,6 +26,7 @@ import api.models
 from api.faces import extractor, video_faces
 from api.faces.geometry import (
     FACE_OVERLAP_IOU_THRESHOLD,
+    box_in_picture,
     calculate_iou,
     min_face_height,
 )
@@ -251,13 +252,26 @@ class _FaceScan:
 def _save_new_faces(
     scan: _FaceScan, face_locations: list[extractor.FaceLocation]
 ) -> None:
-    """Save each face that overlaps no face of the photo yet."""
+    """Save each face that overlaps no face of the photo yet.
+
+    A box going past the edge of the big thumbnail is cut to it (#2922), and
+    one wholly outside it is skipped.
+    """
     photo = scan.photo
     for face_location in face_locations:
         # Faces from the face service carry their encoding; XMP regions
         # get one from an overlapping detection or generate_face_embeddings.
         top, right, bottom, left, person_name, *encoding = face_location
-        location = (top, right, bottom, left)
+        height, width = scan.big_thumbnail_image.shape[:2]
+        location = box_in_picture((top, right, bottom, left), width, height)
+        if location is None:
+            logger.warning(
+                "image %s: face box %s is outside the big thumbnail, skipped",
+                photo.image_hash,
+                (top, right, bottom, left),
+            )
+            continue
+        top, right, bottom, left = location
         person = _get_or_create_named_person(photo, person_name)
         encoding_array = encoding[0] if encoding else None
         # The face service sends each encoding as a numpy array (face_recognition.detect_faces).
@@ -452,14 +466,20 @@ def cut_crop(face: api.models.face.Face) -> bool:
         return False
     try:
         with PIL.Image.open(thumbnail.thumbnail_big.path) as big_thumbnail:
-            # Clamped to the thumbnail, as the detection's array slice is
-            left = max(face.location_left, 0)
-            top = max(face.location_top, 0)
-            right = min(face.location_right, big_thumbnail.width)
-            bottom = min(face.location_bottom, big_thumbnail.height)
-            if right <= left or bottom <= top:
+            box = box_in_picture(
+                (
+                    face.location_top,
+                    face.location_right,
+                    face.location_bottom,
+                    face.location_left,
+                ),
+                big_thumbnail.width,
+                big_thumbnail.height,
+            )
+            if box is None:
                 logger.warning("face %s: its box is outside the big thumbnail", face.id)
                 return False
+            top, right, bottom, left = box
             crop = big_thumbnail.crop((left, top, right, bottom))
             content = _jpeg(crop)
     except OSError, PIL.Image.DecompressionBombError:

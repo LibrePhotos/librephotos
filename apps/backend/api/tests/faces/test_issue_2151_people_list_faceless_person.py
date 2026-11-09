@@ -99,19 +99,21 @@ class FacelessPersonInPeopleListTest(TestCase):
     def test_an_uncroppable_named_xmp_region_does_not_empty_the_list(
         self, extractor, _open
     ):
-        # A zero-height region: the crop is empty and Pillow refuses to save
-        # it ("cannot write empty image"), after the person was created.
+        # A zero-height region has no crop. It used to fail the scan with
+        # "cannot write empty image" after its person was created; it is
+        # skipped now (#2922), before any person is made of it.
         extractor.extract_from_exif.return_value = [(50, 80, 50, 20, "digiKam Person")]
+        extractor.extract_from_face_service.return_value = []
         scan_photo = create_test_photo(owner=self.user)
 
-        with self.assertRaises(ValueError):
-            extract_faces(scan_photo)
+        extract_faces(scan_photo)
 
-        orphan = Person.objects.get(name="digiKam Person", cluster_owner=self.user)
-        self.assertFalse(orphan.faces.exists())
-        self.assertIsNone(orphan.cover_photo)
-
+        self.assertFalse(
+            Person.objects.filter(
+                name="digiKam Person", cluster_owner=self.user
+            ).exists()
+        )
         rows = self._rows()
 
-        self.assertIn(orphan.id, {row["id"] for row in rows})
+        self.assertIn(self.person_with_face.id, {row["id"] for row in rows})
         self._assert_rows_match_frontend_schema(rows)

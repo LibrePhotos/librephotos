@@ -38,6 +38,23 @@ def calculate_iou(box1: Box, box2: Box) -> float:
     return intersection / union
 
 
+def box_in_picture(
+    box: tuple[int, int, int, int], width: int, height: int
+) -> tuple[int, int, int, int] | None:
+    """``box`` cut to a ``width`` x ``height`` picture, or None if none of it is in it.
+
+    A face at the edge of a picture is detected with a box that goes past
+    the edge (#2922): its top or left is then negative, and a negative
+    numpy index counts from the far side, so the crop came out empty.
+    """
+    top, right, bottom, left = box
+    top, bottom = max(top, 0), min(bottom, height)
+    left, right = max(left, 0), min(right, width)
+    if bottom <= top or right <= left:
+        return None
+    return top, right, bottom, left
+
+
 def min_face_height(image_shape: tuple[int, ...], min_face_size: float) -> float:
     """The lowest face, in pixels, a user's ``min_face_size`` keeps (#2749).
 
