@@ -61,7 +61,7 @@ function PublicLinksRow({ albums, photoShares, publicPhotos, onShareAlbum }: Row
             <MediaThumbnail
               imageHash={share.image_hash}
               size={ROW_CARD_SIZE}
-              kind="square_thumbnails"
+              cover
               radius={0}
               className={collectionCardImageClass}
             />

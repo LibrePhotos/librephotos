@@ -45,6 +45,10 @@ from api.search.embedding_jobs import (
     batch_calculate_clip_embedding,
     photos_with_earlier_embeddings,
 )
+from api.thumbnails.legacy_squares import (
+    legacy_squares_exist,
+    remove_small_thumbnails_job,
+)
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
 from api.thumbnails.placeholders import make_thumbhashes_job
 from api.thumbnails.posters import make_video_posters_job
@@ -227,7 +231,7 @@ UPGRADE_TASKS: tuple[UpgradeTask, ...] = (
     ),
     # Photos scanned by 1.6.0 or older have no ThumbHash, so their tiles show
     # the dominant colour until the thumbnail loads. Seeded by migration 0225
-    # when there are thumbnails; samples each from the small thumbnail.
+    # when there are thumbnails; samples each from its square thumbnail.
     UpgradeTask(
         key="make_thumbhashes",
         kind="automatic",
@@ -235,6 +239,19 @@ UPGRADE_TASKS: tuple[UpgradeTask, ...] = (
         check=_until_clean_run(LongRunningJob.JOB_MAKE_THUMBHASHES),
         start=_as_admin(LongRunningJob.JOB_MAKE_THUMBHASHES, make_thumbhashes_job),
         seeded=True,
+        autostart=True,
+    ),
+    # The 250 px squares 1.6 and older made, which nothing shows any more
+    # (the ThumbHash replaced them): needed while their folder is there, so
+    # a fresh install never sees it. Deletes only that folder's files.
+    UpgradeTask(
+        key="remove_small_thumbnails",
+        kind="automatic",
+        job_type=LongRunningJob.JOB_REMOVE_SMALL_THUMBNAILS,
+        check=lambda state: legacy_squares_exist(),
+        start=_as_admin(
+            LongRunningJob.JOB_REMOVE_SMALL_THUMBNAILS, remove_small_thumbnails_job
+        ),
         autostart=True,
     ),
 )

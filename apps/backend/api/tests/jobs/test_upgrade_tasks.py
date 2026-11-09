@@ -34,6 +34,7 @@ from api.tests.utils import (
     create_test_upgrade_task_state,
     create_test_user,
 )
+from api.thumbnails.legacy_squares import remove_small_thumbnails_job
 from api.thumbnails.metadata import strip_thumbnail_metadata_job
 from api.thumbnails.posters import make_video_posters_job
 
@@ -46,6 +47,7 @@ PROBE = "probe_videos"
 SEARCH = "semantic_search_conversion"
 POSTERS = "make_video_posters"
 TURNED_FACES = "repair_turned_faces"
+SMALL_SQUARES = "remove_small_thumbnails"
 LIST_URL = "/api/upgrade-tasks/"
 
 
@@ -74,6 +76,13 @@ class UpgradeTaskTestCase(TestCase):
         patcher = mock.patch.object(upgrade_tasks.color, "can_probe", return_value=True)
         self.can_probe = patcher.start()
         self.addCleanup(patcher.stop)
+        # The small squares' folder is gone unless a test says otherwise: the
+        # check reads MEDIA_ROOT, which other tests write into.
+        patcher = mock.patch.object(
+            upgrade_tasks, "legacy_squares_exist", return_value=False
+        )
+        self.legacy_squares_exist = patcher.start()
+        self.addCleanup(patcher.stop)
 
 
 class TheRegistryTest(TestCase):
@@ -85,7 +94,7 @@ class TheRegistryTest(TestCase):
     def test_only_tasks_without_another_starter_start_themselves(self):
         self.assertEqual(
             {task.key for task in UPGRADE_TASKS if task.autostart},
-            {STRIP, EXPOSURE, POSTERS, "make_thumbhashes"},
+            {STRIP, EXPOSURE, POSTERS, "make_thumbhashes", SMALL_SQUARES},
         )
 
 
@@ -227,6 +236,20 @@ class WhenATaskIsNeededTest(UpgradeTaskTestCase):
         self.assertIsNone(state.completed_at)
         self.assertIsNone(state.started_at)
 
+    def test_the_small_squares_task_is_needed_while_their_folder_exists(self):
+        """Not seeded: a fresh install never has the folder, so never the task."""
+        self.legacy_squares_exist.return_value = True
+        self.assertEqual(rows()[SMALL_SQUARES]["status"], "pending")
+        self.assertTrue(UpgradeTaskState.objects.filter(key=SMALL_SQUARES).exists())
+
+        self.legacy_squares_exist.return_value = False
+        self.assertEqual(rows()[SMALL_SQUARES]["status"], "done")
+
+    def test_the_small_squares_task_is_not_listed_without_their_folder(self):
+        create_test_photo(owner=self.admin)
+        self.assertNotIn(SMALL_SQUARES, rows())
+        self.assertFalse(UpgradeTaskState.objects.filter(key=SMALL_SQUARES).exists())
+
     def test_a_done_task_goes_after_a_day(self):
         create_test_upgrade_task_state(
             STRIP, completed_at=timezone.now() - timedelta(days=2)
@@ -367,6 +390,21 @@ class StartingTasksTest(UpgradeTaskTestCase):
             async_task.call_args.args, (repair_turned_faces_job, self.admin)
         )
 
+    def test_the_small_squares_removal_is_queued_for_the_admin(self):
+        self.legacy_squares_exist.return_value = True
+        with (
+            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            [job] = upgrade_tasks.start_task(TASKS_BY_KEY[SMALL_SQUARES], self.admin)
+
+        self.assertEqual(job.job_type, LongRunningJob.JOB_REMOVE_SMALL_THUMBNAILS)
+        self.assertEqual(job.job_type, 38)
+        self.assertEqual(job.started_by, self.admin)
+        self.assertEqual(
+            async_task.call_args.args, (remove_small_thumbnails_job, self.admin)
+        )
+
     def test_the_probe_is_queued_per_owner(self):
         other = create_test_user()
         create_test_photo(owner=self.admin, video=True)
@@ -415,6 +453,17 @@ class StartingAtStartupTest(UpgradeTaskTestCase):
                 LongRunningJob.JOB_STRIP_THUMBNAIL_METADATA,
                 LongRunningJob.JOB_REFRESH_EXPOSURE_TIMES,
             },
+        )
+
+    def test_the_small_squares_removal_starts_itself(self):
+        self.legacy_squares_exist.return_value = True
+        with mock.patch("api.jobs.queue.AsyncTask"):
+            self.assertEqual(start_automatic_tasks(), [SMALL_SQUARES])
+            self.assertEqual(start_automatic_tasks(), [])
+
+        self.assertEqual(
+            list(LongRunningJob.objects.values_list("job_type", flat=True)),
+            [LongRunningJob.JOB_REMOVE_SMALL_THUMBNAILS],
         )
 
     def test_a_failed_task_waits_for_retry(self):

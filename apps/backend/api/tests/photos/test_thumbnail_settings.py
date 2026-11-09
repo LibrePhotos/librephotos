@@ -23,7 +23,7 @@ from api.tests.utils import create_test_face, create_test_photo, create_test_use
 from api.thumbnails import face_boxes, render
 from librephotos.settings import production
 
-ALL_SIZES = ["thumbnails_big", "square_thumbnails", "square_thumbnails_small"]
+ALL_SIZES = ["thumbnails_big", "square_thumbnails"]
 _TOUCHED = (
     "BIG_THUMBNAIL_QUALITY",
     "BIG_THUMBNAIL_HEIGHT",
@@ -111,9 +111,8 @@ class BigThumbnailSettingsTest(SimpleTestCase):
 
         decode.assert_called_once_with(self.source, 600)
         self.assertEqual(_size(self.path("thumbnails_big")), (800, 600))
-        # The squares keep their sizes.
+        # The square keeps its size.
         self.assertEqual(_size(self.path("square_thumbnails")), (667, 500))
-        self.assertEqual(_size(self.path("square_thumbnails_small")), (333, 250))
 
     @override_settings(BIG_THUMBNAIL_QUALITY=70, SQUARE_THUMBNAIL_QUALITY=60)
     def test_the_big_thumbnail_has_the_configured_quality(self):
@@ -127,14 +126,7 @@ class BigThumbnailSettingsTest(SimpleTestCase):
         with mock.patch.object(pyvips.Image, "write_to_file", record):
             render.create_static_thumbnails(self.source, "h", ALL_SIZES)
 
-        self.assertEqual(
-            written,
-            {
-                "thumbnails_big": 70,
-                "square_thumbnails": 60,
-                "square_thumbnails_small": 60,
-            },
-        )
+        self.assertEqual(written, {"thumbnails_big": 70, "square_thumbnails": 60})
 
     @override_settings(BIG_THUMBNAIL_HEIGHT=700, BIG_THUMBNAIL_QUALITY=80)
     def test_a_raw_without_a_usable_preview_asks_the_service_for_both(self):

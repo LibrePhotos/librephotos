@@ -12,7 +12,7 @@ from PIL import Image
 from api.thumbnails import decoding
 from api.thumbnails.render import create_static_thumbnails
 
-ALL_SIZES = ["thumbnails_big", "square_thumbnails", "square_thumbnails_small"]
+ALL_SIZES = ["thumbnails_big", "square_thumbnails"]
 
 
 def _size(path):
@@ -46,18 +46,17 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
         decode.assert_called_once_with(self.source, 1080)
         self.assertEqual(_size(self.path("thumbnails_big")), (1440, 1080))
         self.assertEqual(_size(self.path("square_thumbnails")), (667, 500))
-        self.assertEqual(_size(self.path("square_thumbnails_small")), (333, 250))
+        self.assertEqual(
+            sorted(os.listdir(self.media)), sorted([*ALL_SIZES, "photo.jpg"])
+        )
 
-    def test_missing_small_sizes_come_from_the_big_thumbnail(self):
+    def test_a_missing_square_comes_from_the_big_thumbnail(self):
         create_static_thumbnails(self.source, "h", ["thumbnails_big"])
         os.remove(self.source)  # the original is not read again
 
-        create_static_thumbnails(
-            self.source, "h", ["square_thumbnails", "square_thumbnails_small"]
-        )
+        create_static_thumbnails(self.source, "h", ["square_thumbnails"])
 
         self.assertEqual(_size(self.path("square_thumbnails")), (667, 500))
-        self.assertEqual(_size(self.path("square_thumbnails_small")), (333, 250))
 
     def test_local_orientation_reaches_every_size(self):
         create_static_thumbnails(self.source, "h", ALL_SIZES, local_orientation=6)
@@ -65,7 +64,6 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
         # Rotated after the resize, as create_thumbnail always did.
         self.assertEqual(_size(self.path("thumbnails_big")), (1080, 1440))
         self.assertEqual(_size(self.path("square_thumbnails")), (375, 500))
-        self.assertEqual(_size(self.path("square_thumbnails_small")), (188, 250))
 
     def test_squares_use_the_square_quality_and_the_big_one_stays_at_95(self):
         # A noisy image, so WebP quality shows in the size.
@@ -84,14 +82,7 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
         ):
             create_static_thumbnails(self.source, "h", ALL_SIZES)
 
-        self.assertEqual(
-            written,
-            {
-                "thumbnails_big": 95,
-                "square_thumbnails": 60,
-                "square_thumbnails_small": 60,
-            },
-        )
+        self.assertEqual(written, {"thumbnails_big": 95, "square_thumbnails": 60})
 
     def test_small_original_is_not_enlarged(self):
         Image.new("RGB", (400, 300)).save(self.source)
@@ -99,7 +90,7 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
         create_static_thumbnails(self.source, "h", ALL_SIZES)
 
         self.assertEqual(_size(self.path("thumbnails_big")), (400, 300))
-        self.assertEqual(_size(self.path("square_thumbnails_small")), (333, 250))
+        self.assertEqual(_size(self.path("square_thumbnails")), (400, 300))
 
     def test_raw_without_usable_preview_still_goes_to_the_service(self):
         raw = os.path.join(self.media, "photo.CR2")
@@ -134,4 +125,4 @@ class CreateStaticThumbnailsTest(SimpleTestCase):
         raw_preview.assert_called_once_with(raw, 1080)
         request.assert_not_called()
         self.assertEqual(_size(self.path("thumbnails_big")), (1620, 1080))
-        self.assertEqual(_size(self.path("square_thumbnails_small")), (375, 250))
+        self.assertEqual(_size(self.path("square_thumbnails")), (750, 500))

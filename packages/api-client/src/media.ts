@@ -10,7 +10,6 @@
  */
 
 const MEDIA = {
-  squareThumbnailSmall: "square_thumbnails_small",
   squareThumbnail: "square_thumbnails",
   bigThumbnail: "thumbnails_big",
   photo: "photos",
@@ -24,25 +23,15 @@ function join(serverAddress: string, ...parts: string[]): string {
   return `${base}/media/${parts.join("/")}`;
 }
 
-/** Small grid thumbnail (rendered tile height < ~250px). */
-export function squareThumbnailSmallUrl(serverAddress: string, imageHash: string): string {
-  return join(serverAddress, MEDIA.squareThumbnailSmall, imageHash);
-}
-
-/** Standard/high-quality grid thumbnail. */
+/** The grid thumbnail, 500px high. (The 250px `square_thumbnails_small` are no longer made.) */
 export function squareThumbnailUrl(serverAddress: string, imageHash: string): string {
   return join(serverAddress, MEDIA.squareThumbnail, imageHash);
 }
 
 /**
- * A video's still poster at the small grid size: a WebP of its first frame beside the clip (#2026).
+ * A video's still poster for the grid: a WebP of its first frame beside the clip (#2026).
  * Only for a video whose `video_poster` is true; older servers answer the clip here.
  */
-export function squarePosterSmallUrl(serverAddress: string, imageHash: string): string {
-  return join(serverAddress, MEDIA.squareThumbnailSmall, `${imageHash}.webp`);
-}
-
-/** A video's still poster at the standard grid size; see `squarePosterSmallUrl`. */
 export function squarePosterUrl(serverAddress: string, imageHash: string): string {
   return join(serverAddress, MEDIA.squareThumbnail, `${imageHash}.webp`);
 }

@@ -42,7 +42,7 @@ from api.thumbnails.render import (
     create_thumbnail_for_video,
 )
 
-ALL_SIZES = ["thumbnails_big", "square_thumbnails", "square_thumbnails_small"]
+ALL_SIZES = ["thumbnails_big", "square_thumbnails"]
 SRGB_ICC = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
 XMP = (
     b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF '
@@ -118,12 +118,10 @@ class GeneratedThumbnailMetadataTest(MediaRootTestCase):
                     self.assertNotIn("exif", image.info)
                     self.assertNotIn("xmp", image.info)
 
-    def test_missing_small_sizes_from_the_big_thumbnail_have_none(self):
+    def test_a_missing_square_from_the_big_thumbnail_has_none(self):
         create_static_thumbnails(self.source, "h", ["thumbnails_big"])
-        create_static_thumbnails(self.source, "h", ALL_SIZES[1:])
-        for directory in ALL_SIZES[1:]:
-            with self.subTest(directory):
-                self.assertFalse(webp_has_metadata(self.path(directory)))
+        create_static_thumbnails(self.source, "h", ["square_thumbnails"])
+        self.assertFalse(webp_has_metadata(self.path("square_thumbnails")))
 
     def test_rotated_thumbnail_has_none(self):
         out = self.path("thumbnails_big")
@@ -274,13 +272,13 @@ class StripThumbnailMetadataTest(MediaRootTestCase):
 
     def test_dry_run_counts_without_touching(self):
         result = strip_thumbnail_metadata(self.media, dry_run=True)
-        self.assertEqual(result.scanned, 4)
-        self.assertEqual(len(result.with_metadata), 3)
+        self.assertEqual(result.scanned, 3)
+        self.assertEqual(len(result.with_metadata), 2)
         self.assertTrue(webp_has_metadata(self.path("thumbnails_big")))
 
     def test_strips_every_size_and_a_second_run_finds_nothing(self):
         result = strip_thumbnail_metadata(self.media)
-        self.assertEqual(result.stripped, 3)
+        self.assertEqual(result.stripped, 2)
         self.assertEqual(result.still_with_metadata, [])
         for directory in ALL_SIZES:
             self.assertFalse(webp_has_metadata(self.path(directory)))
@@ -289,7 +287,7 @@ class StripThumbnailMetadataTest(MediaRootTestCase):
     def test_management_command(self):
         out = StringIO()
         call_command("strip_thumbnail_metadata", stdout=out)
-        self.assertIn("Stripped 3 thumbnails", out.getvalue())
+        self.assertIn("Stripped 2 thumbnails", out.getvalue())
         self.assertFalse(webp_has_metadata(self.path("square_thumbnails")))
 
     def test_management_command_fails_when_a_thumbnail_cannot_be_rewritten(self):
@@ -303,7 +301,7 @@ class StripThumbnailMetadataTest(MediaRootTestCase):
             self.assertRaises(CommandError) as raised,
         ):
             call_command("strip_thumbnail_metadata", stdout=out, stderr=err)
-        self.assertIn("4 errors (see above)", str(raised.exception))
+        self.assertIn("3 errors (see above)", str(raised.exception))
         self.assertIn("locked", err.getvalue())
         self.assertNotIn("Stripped", out.getvalue())
 

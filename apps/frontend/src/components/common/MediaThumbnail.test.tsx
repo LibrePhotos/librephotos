@@ -20,13 +20,11 @@ describe("MediaThumbnail", () => {
   it("draws a photo as an image of its small square thumbnail", async () => {
     const { container } = await renderInMantine(<MediaThumbnail imageHash="abc" size={28} />);
     expect(container.querySelector("video")).toBeNull();
-    expect(defined(container.querySelector("img")).getAttribute("src")).toBe("/media/square_thumbnails_small/abc");
+    expect(defined(container.querySelector("img")).getAttribute("src")).toBe("/media/square_thumbnails/abc");
   });
 
   it("draws a known video as a paused <video> of its first frame", async () => {
-    const { container } = await renderInMantine(
-      <MediaThumbnail imageHash="abc" size={40} kind="square_thumbnails" video />
-    );
+    const { container } = await renderInMantine(<MediaThumbnail imageHash="abc" size={40} cover video />);
     expect(container.querySelector("img")).toBeNull();
     const video = defined(container.querySelector("video"));
     expect(video.getAttribute("src")).toBe("/media/square_thumbnails/abc#t=0.001");

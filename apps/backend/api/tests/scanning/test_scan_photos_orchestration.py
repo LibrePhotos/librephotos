@@ -607,6 +607,13 @@ class FailureHandlingTest(ScanPhotosCharacterizationBase):
         res["backfill"].assert_not_called()
 
     def test_thumbnail_directories_are_created_before_the_scan(self):
+        """Not the small squares' folder: they are no longer made, and its
+        presence is what asks for their removal."""
         self.run_scan(walk_result=[])
-        for name in ("square_thumbnails_small", "square_thumbnails", "thumbnails_big"):
+        for name in ("square_thumbnails", "thumbnails_big"):
             self.assertTrue(os.path.isdir(os.path.join(self.media_root.name, name)))
+        self.assertFalse(
+            os.path.exists(
+                os.path.join(self.media_root.name, "square_thumbnails_small")
+            )
+        )

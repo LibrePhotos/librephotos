@@ -332,12 +332,13 @@ describe("PhotoListView memoisation", () => {
 });
 
 describe("PhotoListView thumbnail addresses", () => {
-  it("builds them from the image hash Pig passes, small below 250px", async () => {
+  it("builds them from the image hash Pig passes, the one square at every size", async () => {
     await render({});
     const getUrl = defined(lastPigProps().getUrl);
 
-    expect(getUrl("abc123", 100)).toMatch(/\/media\/square_thumbnails_small\/abc123$/);
+    expect(getUrl("abc123", 100)).toMatch(/\/media\/square_thumbnails\/abc123$/);
     expect(getUrl("abc123", 400)).toMatch(/\/media\/square_thumbnails\/abc123$/);
+    expect(getUrl("abc123", 100, true)).toMatch(/\/media\/square_thumbnails\/abc123\.webp$/);
   });
 });
 

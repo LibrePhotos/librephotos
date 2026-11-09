@@ -22,9 +22,7 @@ from django.http import HttpRequest, HttpResponseBase
 from django.utils.cache import get_conditional_response
 
 # The media paths whose files are thumbnails.
-THUMBNAIL_KINDS = frozenset(
-    {"thumbnails_big", "square_thumbnails", "square_thumbnails_small"}
-)
+THUMBNAIL_KINDS = frozenset({"thumbnails_big", "square_thumbnails"})
 
 VERSIONED = "private, max-age=31536000, immutable"
 REVALIDATED = "private, no-cache"

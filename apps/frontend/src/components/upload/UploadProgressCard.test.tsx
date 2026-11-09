@@ -261,7 +261,7 @@ describe("UploadProgressCard", () => {
       expect(card.textContent).toContain("Processing your uploads");
       expect(card.textContent).toContain("1/3 ready");
       expect(rows().map(row => row.textContent)).toEqual(["a.jpgReady", "b.jpgProcessing", "c.jpgProcessing"]);
-      expect(defined(rows()[0]).querySelector("img")?.getAttribute("src")).toBe("/media/square_thumbnails_small/p1");
+      expect(defined(rows()[0]).querySelector("img")?.getAttribute("src")).toBe("/media/square_thumbnails/p1");
       // Closing is allowed: the account menu keeps following the import.
       expect(byTestId("upload-close")).not.toBeNull();
     });

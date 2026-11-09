@@ -367,7 +367,7 @@ class PhotoSerializerGetStacksTestCase(TestCase):
         self.assertEqual(by_hash[primary.image_hash]["size"], 1234)
         self.assertEqual(
             by_hash[primary.image_hash]["thumbnail_url"],
-            f"/media/square_thumbnails_small/{primary.image_hash}",
+            f"/media/square_thumbnails/{primary.image_hash}",
         )
 
     def test_non_primary_member_reports_is_primary_false(self):
@@ -412,12 +412,22 @@ class PhotoSerializerGetStacksTestCase(TestCase):
         self.assertEqual(entry["width"], 0)
         self.assertEqual(entry["height"], 0)
 
-    def test_missing_square_thumbnail_small_yields_null_thumbnail_url(self):
-        photo = create_test_photo(owner=self.user, square_thumbnail_small="")
+    def test_missing_square_thumbnail_yields_null_thumbnail_url(self):
+        photo = create_test_photo(owner=self.user, square_thumbnail="")
         self._stack(photos=[photo])
 
         entry = self.serializer.get_stacks(photo)[0]["photos"][0]
         self.assertIsNone(entry["thumbnail_url"])
+
+    def test_a_photo_without_a_small_square_still_has_a_thumbnail_url(self):
+        """Photos scanned now have no small square: the URL is the square's."""
+        photo = create_test_photo(owner=self.user, square_thumbnail_small="")
+        self._stack(photos=[photo])
+
+        entry = self.serializer.get_stacks(photo)[0]["photos"][0]
+        self.assertEqual(
+            entry["thumbnail_url"], f"/media/square_thumbnails/{photo.image_hash}"
+        )
 
     def test_photo_count_counts_stack_members_not_annotations(self):
         photos = [create_test_photo(owner=self.user) for _ in range(3)]

@@ -797,7 +797,6 @@ def scan_photos(
     # library again without being a full scan.
     force_files = force_files and bool(scan_files)
     thumbnail_dirs = [
-        os.path.join(settings.MEDIA_ROOT, "square_thumbnails_small"),
         os.path.join(settings.MEDIA_ROOT, "square_thumbnails"),
         os.path.join(settings.MEDIA_ROOT, "thumbnails_big"),
     ]

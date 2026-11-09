@@ -99,12 +99,9 @@ class ScanIndexesJpegXlTest(TestCase):
         for photo in photos:
             with self.subTest(path=photo.main_file.path):
                 thumbnail = photo.thumbnail
-                for field in (
-                    thumbnail.thumbnail_big,
-                    thumbnail.square_thumbnail,
-                    thumbnail.square_thumbnail_small,
-                ):
+                for field in (thumbnail.thumbnail_big, thumbnail.square_thumbnail):
                     self.assertTrue(field and os.path.exists(field.path), field)
+                self.assertFalse(thumbnail.square_thumbnail_small)
                 self.assertIsNotNone(thumbnail.aspect_ratio)
 
     def test_the_thumbnail_keeps_the_aspect_ratio(self) -> None:

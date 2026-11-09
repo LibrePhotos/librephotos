@@ -32,7 +32,7 @@ URL = "/api/strip-thumbnail-metadata/"
 
 
 class LeakyThumbnailsTestCase(TestCase):
-    """Three thumbnails written with the photo's GPS and XMP, one written clean."""
+    """Two thumbnails written with the photo's GPS and XMP, one written clean."""
 
     def setUp(self):
         self.media = tempfile.mkdtemp(prefix="librephotos-stripjob")
@@ -64,9 +64,9 @@ class ProgressTest(LeakyThumbnailsTestCase):
         calls = []
         strip_thumbnail_metadata(
             progress=lambda done, total: calls.append((done, total)),
-            progress_every=3,
+            progress_every=2,
         )
-        self.assertEqual(calls, [(0, 4), (3, 4), (4, 4)])
+        self.assertEqual(calls, [(0, 3), (2, 3), (3, 3)])
 
     def test_an_empty_library_reports_nothing_to_do(self):
         calls = []
@@ -84,11 +84,11 @@ class StripThumbnailMetadataJobTest(LeakyThumbnailsTestCase):
 
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
-        self.assertEqual((job.progress_current, job.progress_target), (4, 4))
+        self.assertEqual((job.progress_current, job.progress_target), (3, 3))
         self.assertIsNotNone(job.last_progress_at)
         self.assertEqual(job.result["status"], "completed")
-        self.assertEqual(job.result["scanned"], 4)
-        self.assertEqual(job.result["stripped"], 3)
+        self.assertEqual(job.result["scanned"], 3)
+        self.assertEqual(job.result["stripped"], 2)
         self.assertEqual(job.result["errors"], [])
         for directory in ALL_SIZES:
             self.assertFalse(webp_has_metadata(self.path(directory)))
@@ -155,7 +155,7 @@ class StripThumbnailMetadataJobTest(LeakyThumbnailsTestCase):
         self.assertTrue(job.failed)
         self.assertEqual(
             job.result["error"],
-            "Stripped 3 thumbnails. 1 still carry metadata, 1 error.",
+            "Stripped 2 thumbnails. 1 still carry metadata, 1 error.",
         )
         self.assertEqual(job.result["error_count"], 2)
         self.assertIn("exiftool exit 1", job.result["errors"])

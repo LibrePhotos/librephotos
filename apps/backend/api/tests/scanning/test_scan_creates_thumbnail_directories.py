@@ -33,7 +33,7 @@ class ScanPhotosDirectoryCreationTest(TestCase):
     def test_existing_thumbnail_directory_does_not_raise(self):
         user = create_test_user()
         with tempfile.TemporaryDirectory() as media_root:
-            preexisting_dir = os.path.join(media_root, "square_thumbnails_small")
+            preexisting_dir = os.path.join(media_root, "square_thumbnails")
             os.makedirs(preexisting_dir, exist_ok=True)
 
             user.scan_directory = media_root
@@ -53,11 +53,7 @@ class ScanPhotosDirectoryCreationTest(TestCase):
                 ):
                     scan_photos(user, full_scan=False, job_id=str(uuid.uuid4()))
 
-            expected_directories = [
-                "square_thumbnails_small",
-                "square_thumbnails",
-                "thumbnails_big",
-            ]
+            expected_directories = ["square_thumbnails", "thumbnails_big"]
             for directory_name in expected_directories:
                 directory_path = os.path.join(media_root, directory_name)
                 self.assertTrue(

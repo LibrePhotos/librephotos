@@ -10,12 +10,12 @@ from api.models.photo import Photo
 # Static thumbnails are webp. A video's squares are mp4 clips instead, or webp
 # stills when the animated previews are switched off (#649); a video can have
 # either on disk, depending on the switch when it was last scanned.
-STATIC_THUMBNAIL_DIRS = (
-    "thumbnails_big",
-    "square_thumbnails",
-    "square_thumbnails_small",
-)
-ANIMATED_THUMBNAIL_DIRS = ("square_thumbnails", "square_thumbnails_small")
+STATIC_THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails")
+ANIMATED_THUMBNAIL_DIRS = ("square_thumbnails",)
+# 250 px squares made up to 1.6: the grid's blurred preview, replaced by the
+# ThumbHash. No longer made; /media/square_thumbnails_small/ serves the square,
+# and the remove_small_thumbnails upgrade task deletes the folder.
+LEGACY_SQUARE_DIR = "square_thumbnails_small"
 
 
 def is_safe_file_stem(name: str) -> bool:
@@ -45,10 +45,12 @@ def thumbnail_path(output_dir: str, photo_hash: str, extension: str) -> str:
 def thumbnail_file_paths(photo_hash: str) -> list[str]:
     """Every path a thumbnail named after ``photo_hash`` can have.
 
-    Both formats of the squares: deleting a photo removes whichever exists.
+    Both formats of the squares, and the small squares older releases made:
+    deleting a photo removes whichever exists.
     """
     named = [(d, ".webp") for d in STATIC_THUMBNAIL_DIRS]
     named += [(d, ".mp4") for d in ANIMATED_THUMBNAIL_DIRS]
+    named += [(LEGACY_SQUARE_DIR, ".webp"), (LEGACY_SQUARE_DIR, ".mp4")]
     return [
         thumbnail_path(output_dir, photo_hash, extension)
         for output_dir, extension in named
@@ -61,6 +63,10 @@ class Thumbnail(models.Model):
     )
     thumbnail_big = models.ImageField(upload_to="thumbnails_big")
     square_thumbnail = models.ImageField(upload_to="square_thumbnails")
+    # The small square of releases up to 1.6 (LEGACY_SQUARE_DIR): no longer
+    # written or read. Kept so a rolling deploy's old container, which still
+    # selects it, works while the new one starts; to be dropped in a later
+    # release.
     square_thumbnail_small = models.ImageField(upload_to="square_thumbnails_small")
     aspect_ratio = models.FloatField(blank=True, null=True)
     dominant_color = models.TextField(blank=True, null=True)

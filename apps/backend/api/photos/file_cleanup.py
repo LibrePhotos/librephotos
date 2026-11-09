@@ -71,7 +71,6 @@ def _delete_orphaned_thumbnail_files(file_names: list[str]) -> None:
     if Thumbnail.objects.filter(
         models.Q(thumbnail_big__in=file_names)
         | models.Q(square_thumbnail__in=file_names)
-        | models.Q(square_thumbnail_small__in=file_names)
     ).exists():
         return
     photo_hashes = {os.path.splitext(os.path.basename(n))[0] for n in file_names}
@@ -95,7 +94,6 @@ def delete_orphaned_thumbnail_files(
         for field_file in (
             instance.thumbnail_big,
             instance.square_thumbnail,
-            instance.square_thumbnail_small,
         )
         if field_file and field_file.name
     ]

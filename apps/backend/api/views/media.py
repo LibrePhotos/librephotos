@@ -38,7 +38,7 @@ from api.mime import mime_type, still_content_type
 from api.models import AlbumUser, AlbumUserPhoto, Photo
 from api.models.album_user_share import AlbumUserShare
 from api.models.photo import HEAVY_PHOTO_COLUMNS
-from api.models.thumbnail import ANIMATED_THUMBNAIL_DIRS
+from api.models.thumbnail import ANIMATED_THUMBNAIL_DIRS, LEGACY_SQUARE_DIR
 from api.models.user import User
 from api.photos.zip_downloads import zip_file_name
 from api.runtime import binaries
@@ -580,8 +580,6 @@ class MediaServingView(APIView):
             return None
         if "thumbnails_big" in path:
             field = thumbnail.thumbnail_big
-        elif "square_thumbnails_small" in path:
-            field = thumbnail.square_thumbnail_small
         else:
             field = thumbnail.square_thumbnail
         # An empty FileField raises ValueError on .path/.name access downstream.
@@ -1398,6 +1396,10 @@ class UnifiedMediaAccessView(MediaServingView):
 
         use_proxy = self._should_use_proxy()
         kind = path.lower()
+        if kind == LEGACY_SQUARE_DIR:
+            # Older clients and pages still ask for the small squares, which
+            # are no longer made: the square answers for them.
+            path = kind = "square_thumbnails"
 
         if kind == "zip":
             return self._serve_zip(request, path, fname, use_proxy)

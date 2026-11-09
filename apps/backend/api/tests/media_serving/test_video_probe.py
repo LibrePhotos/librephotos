@@ -357,9 +357,8 @@ class ThumbnailPassesTheStoredValueTest(TestCase):
         ):
             render.generate_thumbnail(thumbnail)
         self.assertEqual(poster.call_args.kwargs["transfer"], "smpte2084")
-        self.assertEqual(animated.call_count, 2)
-        for call in animated.call_args_list:
-            self.assertEqual(call.kwargs["transfer"], "smpte2084")
+        animated.assert_called_once()
+        self.assertEqual(animated.call_args.kwargs["transfer"], "smpte2084")
 
 
 class ScanProbesBeforeThumbnailingTest(TestCase):
@@ -571,9 +570,8 @@ class ReplacedVideoIsProbedBeforeItsRebuildTest(TestCase):
             file_handlers._regenerate_thumbnails(Photo.objects.get(pk=photo.pk))
         poster.assert_called_once()
         self.assertEqual(poster.call_args.kwargs["transfer"], "bt709")
-        self.assertEqual(animated.call_count, 2)
-        for call in animated.call_args_list:
-            self.assertEqual(call.kwargs["transfer"], "bt709")
+        animated.assert_called_once()
+        self.assertEqual(animated.call_args.kwargs["transfer"], "bt709")
         self.assertEqual(Photo.objects.get(pk=photo.pk).video_color_transfer, "bt709")
 
     def test_a_photo_is_not_probed(self):

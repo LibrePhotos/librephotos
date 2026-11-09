@@ -50,14 +50,10 @@ const scrollToY = (y: number) => {
 const isDateGroupList = (photoset: DatePhotosGroup[] | PigPhoto[]): photoset is DatePhotosGroup[] =>
   photoset.every(entry => "items" in entry);
 
-// Pig passes a tile's `image_hash`.
-const getTileUrl = (imageHash: string, pxHeight: number, poster = false) => {
-  if (pxHeight < 250) {
-    return poster ? mediaUrl.squarePosterSmall(imageHash) : mediaUrl.squareThumbnailSmall(imageHash);
-  }
-  // Always use the highest quality thumbnails for better image quality
-  return poster ? mediaUrl.squarePoster(imageHash) : mediaUrl.squareThumbnail(imageHash);
-};
+// Pig passes a tile's `image_hash`. One size: the ThumbHash stands in while it loads, so the 250px
+// squares older releases made for small tiles are not asked for.
+const getTileUrl = (imageHash: string, _pxHeight: number, poster = false) =>
+  poster ? mediaUrl.squarePoster(imageHash) : mediaUrl.squareThumbnail(imageHash);
 
 // The pages that load their own date groups read the visible ones in the shape Pig reports.
 export type { GroupedImageItem, PigHandle, PigVisibleGroup } from "../react-pig";

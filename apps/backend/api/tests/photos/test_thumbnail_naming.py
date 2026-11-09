@@ -6,6 +6,7 @@ after the fact: thumbnails created for a batch of photos all carry the
 image_hash (not the UUID) in their stored paths.
 """
 
+import os
 from unittest import mock
 
 from django.test import TestCase
@@ -38,22 +39,23 @@ class ThumbnailNamingTest(TestCase):
         # Verify thumbnail paths use image_hash, not UUID
         self.assertIn(photo.image_hash, thumbnail.thumbnail_big.name)
         self.assertIn(photo.image_hash, thumbnail.square_thumbnail.name)
-        self.assertIn(photo.image_hash, thumbnail.square_thumbnail_small.name)
 
         # Verify UUID is NOT in the thumbnail paths
         self.assertNotIn(str(photo.id), thumbnail.thumbnail_big.name)
         self.assertNotIn(str(photo.id), thumbnail.square_thumbnail.name)
-        self.assertNotIn(str(photo.id), thumbnail.square_thumbnail_small.name)
 
     @mock.patch("api.thumbnails.render.create_static_thumbnails")
     @mock.patch("api.thumbnails.render.does_static_thumbnail_exist")
     def test_generate_thumbnail_uses_image_hash(self, mock_exists, mock_create):
-        """Verify that generate_thumbnail uses image_hash"""
+        """Verify that generate_thumbnail uses image_hash.
+
+        The small squares of older releases are no longer made, nor named.
+        """
         # Mock to indicate thumbnails don't exist yet
         mock_exists.return_value = False
 
         # Create a photo
-        photo = create_test_photo(owner=self.user)
+        photo = create_test_photo(owner=self.user, square_thumbnail_small="")
         thumbnail = photo.thumbnail
 
         # Call generate_thumbnail
@@ -65,9 +67,14 @@ class ThumbnailNamingTest(TestCase):
         self.assertEqual(kwargs["hash"], photo.image_hash)
         self.assertNotEqual(kwargs["hash"], str(photo.id))
         self.assertEqual(
-            kwargs["output_paths"],
-            ["thumbnails_big", "square_thumbnails", "square_thumbnails_small"],
+            kwargs["output_paths"], ["thumbnails_big", "square_thumbnails"]
         )
+        thumbnail.refresh_from_db()
+        self.assertEqual(
+            thumbnail.square_thumbnail.name,
+            os.path.join("square_thumbnails", photo.image_hash + ".webp"),
+        )
+        self.assertEqual(thumbnail.square_thumbnail_small.name, "")
 
     def test_thumbnail_file_naming_convention(self):
         """Test that thumbnail file names follow the correct pattern"""
@@ -77,16 +84,12 @@ class ThumbnailNamingTest(TestCase):
         # Check naming patterns
         expected_big = f"thumbnails_big/{photo.image_hash}.webp"
         expected_square = f"square_thumbnails/{photo.image_hash}.webp"
-        expected_square_small = f"square_thumbnails_small/{photo.image_hash}.webp"
 
         self.assertEqual(thumbnail.thumbnail_big.name.strip(), expected_big)
         self.assertEqual(thumbnail.square_thumbnail.name.strip(), expected_square)
-        self.assertEqual(
-            thumbnail.square_thumbnail_small.name.strip(), expected_square_small
-        )
 
     def test_batch_of_photos_all_use_image_hash_in_paths(self):
-        """Every thumbnail in a batch stores image_hash in all three paths."""
+        """Every thumbnail in a batch stores image_hash in both paths."""
         photos = [create_test_photo(owner=self.user) for _ in range(5)]
 
         self.assertEqual(Thumbnail.objects.count(), 5)
@@ -95,7 +98,6 @@ class ThumbnailNamingTest(TestCase):
             thumbnail = photo.thumbnail
             self.assertIn(photo.image_hash, thumbnail.thumbnail_big.name)
             self.assertIn(photo.image_hash, thumbnail.square_thumbnail.name)
-            self.assertIn(photo.image_hash, thumbnail.square_thumbnail_small.name)
 
     def test_video_thumbnail_naming(self):
         """Test that video thumbnails use .mp4 extension with image_hash"""
@@ -105,10 +107,6 @@ class ThumbnailNamingTest(TestCase):
         # Video thumbnails should use .mp4 for square thumbnails
         expected_big = f"thumbnails_big/{photo.image_hash}.webp"
         expected_square = f"square_thumbnails/{photo.image_hash}.mp4"
-        expected_square_small = f"square_thumbnails_small/{photo.image_hash}.mp4"
 
         self.assertEqual(thumbnail.thumbnail_big.name.strip(), expected_big)
         self.assertEqual(thumbnail.square_thumbnail.name.strip(), expected_square)
-        self.assertEqual(
-            thumbnail.square_thumbnail_small.name.strip(), expected_square_small
-        )

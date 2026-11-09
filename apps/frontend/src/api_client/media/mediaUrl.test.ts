@@ -18,10 +18,8 @@ afterEach(() => {
 
 // The strings the components built by hand before mediaUrl existed, per kind.
 const handBuilt: Record<Kind, (server: string, key: string) => string> = {
-  squareThumbnailSmall: (s: string, h: string) => `${s}/media/square_thumbnails_small/${h}`,
   squareThumbnail: (s: string, h: string) => `${s}/media/square_thumbnails/${h}`,
   // New with #2026: no component built these by hand.
-  squarePosterSmall: (s: string, h: string) => `${s}/media/square_thumbnails_small/${h}.webp`,
   squarePoster: (s: string, h: string) => `${s}/media/square_thumbnails/${h}.webp`,
   bigThumbnail: (s: string, h: string) => `${s}/media/thumbnails_big/${h}`,
   photo: (s: string, h: string) => `${s}/media/photos/${h}`,
@@ -30,18 +28,7 @@ const handBuilt: Record<Kind, (server: string, key: string) => string> = {
   face: (s: string, h: string) => `${s}/media/faces/${h}`,
   zip: (s: string, h: string) => `${s}/media/zip/${h}`,
 };
-const kinds: Kind[] = [
-  "squareThumbnailSmall",
-  "squareThumbnail",
-  "squarePosterSmall",
-  "squarePoster",
-  "bigThumbnail",
-  "photo",
-  "video",
-  "embedded",
-  "face",
-  "zip",
-];
+const kinds: Kind[] = ["squareThumbnail", "squarePoster", "bigThumbnail", "photo", "video", "embedded", "face", "zip"];
 
 describe("mediaUrl", () => {
   it.each(["", "/librephotos"])(

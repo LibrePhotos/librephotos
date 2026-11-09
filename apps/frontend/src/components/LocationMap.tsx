@@ -115,7 +115,7 @@ export function LocationMap({ photos }: Props) {
               <div>
                 <MediaThumbnail
                   imageHash={popupInfo.image_hash}
-                  kind="square_thumbnails"
+                  cover
                   size={POPUP_THUMBNAIL_SIZE}
                   alt={t("map.photohere")}
                 />
