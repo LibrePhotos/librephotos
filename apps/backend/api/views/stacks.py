@@ -116,9 +116,9 @@ class PhotoStackListView(PaginatedViewMixin, APIView):
                     "created_at": stack.created_at,
                     "primary_photo": {
                         "image_hash": stack.primary_photo.image_hash,
-                        "thumbnail_url": f"/media/square_thumbnails_small/{stack.primary_photo.image_hash}"
+                        "thumbnail_url": f"/media/square_thumbnails/{stack.primary_photo.image_hash}"
                         if hasattr(stack.primary_photo, "thumbnail")
-                        and stack.primary_photo.thumbnail.square_thumbnail_small
+                        and stack.primary_photo.thumbnail.square_thumbnail
                         else None,
                     }
                     if stack.primary_photo
@@ -126,9 +126,8 @@ class PhotoStackListView(PaginatedViewMixin, APIView):
                     "preview_photos": [
                         {
                             "image_hash": p.image_hash,
-                            "thumbnail_url": f"/media/square_thumbnails_small/{p.image_hash}"
-                            if hasattr(p, "thumbnail")
-                            and p.thumbnail.square_thumbnail_small
+                            "thumbnail_url": f"/media/square_thumbnails/{p.image_hash}"
+                            if hasattr(p, "thumbnail") and p.thumbnail.square_thumbnail
                             else None,
                         }
                         for p in photos
@@ -209,8 +208,8 @@ class PhotoStackDetailView(APIView):
                 if p.main_file
                 else None,
                 "file_variants": file_variants if file_variants else None,
-                "thumbnail_url": f"/media/square_thumbnails_small/{p.image_hash}"
-                if hasattr(p, "thumbnail") and p.thumbnail.square_thumbnail_small
+                "thumbnail_url": f"/media/square_thumbnails/{p.image_hash}"
+                if hasattr(p, "thumbnail") and p.thumbnail.square_thumbnail
                 else None,
                 "thumbnail_big_url": f"/media/thumbnails_big/{p.image_hash}"
                 if hasattr(p, "thumbnail") and p.thumbnail.thumbnail_big

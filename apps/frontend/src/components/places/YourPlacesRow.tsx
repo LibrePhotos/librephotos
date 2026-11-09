@@ -43,12 +43,7 @@ export function YourPlacesRow({ places, addDisabledReason, onAdd }: Props) {
               >
                 <div className={classes.cover}>
                   {cover ? (
-                    <MediaThumbnail
-                      imageHash={cover.image_hash}
-                      video={cover.video}
-                      size={COVER_SIZE}
-                      kind="square_thumbnails"
-                    />
+                    <MediaThumbnail imageHash={cover.image_hash} video={cover.video} size={COVER_SIZE} cover />
                   ) : (
                     <Icon size={40} stroke={1.5} color="var(--mantine-color-gray-5)" aria-hidden />
                   )}

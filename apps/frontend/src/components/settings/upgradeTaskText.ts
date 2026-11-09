@@ -9,7 +9,8 @@ type KnownTask =
   | "probe_videos"
   | "make_video_posters"
   | "repair_turned_faces"
-  | "make_thumbhashes";
+  | "make_thumbhashes"
+  | "remove_small_thumbnails";
 
 function isKnownTask(key: string): key is KnownTask {
   return (
@@ -19,7 +20,8 @@ function isKnownTask(key: string): key is KnownTask {
     key === "probe_videos" ||
     key === "make_video_posters" ||
     key === "repair_turned_faces" ||
-    key === "make_thumbhashes"
+    key === "make_thumbhashes" ||
+    key === "remove_small_thumbnails"
   );
 }
 
@@ -35,6 +37,7 @@ function knownTitle(key: KnownTask, count: number | null, t: TFunction): string 
     case "make_video_posters":
     case "repair_turned_faces":
     case "make_thumbhashes":
+    case "remove_small_thumbnails":
       return t(`upgradetasks.${key}.title`);
   }
 }

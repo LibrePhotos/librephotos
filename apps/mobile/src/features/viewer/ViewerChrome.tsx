@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
-import { squareThumbnailSmallUrl } from "@librephotos/api-client";
+import { squareThumbnailUrl } from "@librephotos/api-client";
 import { Icon, type IconName } from "@/components/Icon";
 import type { ViewerSlide } from "@/db/queries/detail";
 
@@ -189,7 +189,7 @@ export function ThumbnailStrip({
           const uri = slide.local_uri
             ? slide.local_uri
             : slide.image_hash
-              ? withVersion(squareThumbnailSmallUrl(serverAddress, slide.image_hash), versions[slide.image_hash])
+              ? withVersion(squareThumbnailUrl(serverAddress, slide.image_hash), versions[slide.image_hash])
               : null;
           return (
             <Pressable

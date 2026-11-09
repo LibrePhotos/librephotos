@@ -25,11 +25,14 @@ from rest_framework_simplejwt.tokens import AccessToken
 from api.models.thumbnail import Thumbnail
 from api.tests.utils import create_test_photo, create_test_user
 
+# The field each media path is served from. The small squares are no longer
+# made, so their path is answered with the square.
 THUMBNAIL_FIELDS = {
     "square_thumbnails": "square_thumbnail",
-    "square_thumbnails_small": "square_thumbnail_small",
+    "square_thumbnails_small": "square_thumbnail",
     "thumbnails_big": "thumbnail_big",
 }
+SERVED_FROM = {"square_thumbnails_small": "square_thumbnails"}
 
 # thumbnails_big is a static webp even for videos; the square variants follow
 # the source medium.
@@ -93,7 +96,8 @@ class ProxyThumbnailAddressingTest(MediaUuidThumbnailBase):
                         response = self._get(path, fname)
                         self.assertEqual(200, response.status_code)
                         self.assertEqual(
-                            f"/protected_media/{path}/{photo.image_hash}{ext}",
+                            f"/protected_media/{SERVED_FROM.get(path, path)}/"
+                            f"{photo.image_hash}{ext}",
                             response.headers.get("X-Accel-Redirect"),
                         )
                         self.assertEqual(
@@ -146,7 +150,7 @@ class DirectThumbnailAddressingTest(MediaUuidThumbnailBase):
         super().setUp()
         self.written = []
         for photo in (self.image, self.video):
-            for field in THUMBNAIL_FIELDS.values():
+            for field in set(THUMBNAIL_FIELDS.values()):
                 self._write(getattr(photo.thumbnail, field).name)
 
     def tearDown(self):

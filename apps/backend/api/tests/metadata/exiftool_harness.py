@@ -305,7 +305,7 @@ def _exif_service_post(
 
 def media_root(library: str) -> str:
     root = os.path.join(library, "protected_media")
-    for folder in ("thumbnails_big", "square_thumbnails", "square_thumbnails_small"):
+    for folder in ("thumbnails_big", "square_thumbnails"):
         os.makedirs(os.path.join(root, folder), exist_ok=True)
     return root
 

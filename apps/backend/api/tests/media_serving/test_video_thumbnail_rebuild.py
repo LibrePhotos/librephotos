@@ -119,8 +119,9 @@ class ThumbnailRebuildTest(TestCase):
 
     def test_a_rebuild_that_fails_half_way_does_not_mix_old_and_new(self):
         """The poster frame was made before the animated thumbnail failed."""
+        clip = os.path.join("square_thumbnails", self.photo.image_hash + ".mp4")
         with (
-            _ffmpeg_failing_on([os.path.join("square_thumbnails_small", "")]),
+            _ffmpeg_failing_on([clip]),
             self.assertRaises(render.VideoThumbnailError),
         ):
             render.regenerate_thumbnails(self._thumbnail(), keep_old_on_failure=True)
@@ -128,10 +129,13 @@ class ThumbnailRebuildTest(TestCase):
         self.assertEqual(len(self._contents()), 3)
 
     def test_a_rebuild_that_works_replaces_them_and_leaves_nothing_behind(self):
+        """The small square older releases made is not made again: it goes
+        with the old thumbnails."""
         with _ffmpeg_failing_on([]):
             render.regenerate_thumbnails(self._thumbnail(), keep_old_on_failure=True)
-        self.assertEqual(set(self._contents().values()), {b"new"})
-        self.assertEqual(len(self._contents()), 3)
+        self.assertEqual(
+            self._contents(), {"thumbnails_big": b"new", "square_thumbnails": b"new"}
+        )
         self.assertEqual(self._leftovers(), [])
 
     def test_a_rotation_still_starts_from_nothing(self):

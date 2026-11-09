@@ -97,22 +97,24 @@ class Issue384MediaThumbnailsTest(TestCase):
         The pre-rewrite helper produced "/protected_mediasquare_thumbnails/..."
         (missing separator), which nginx cannot map to its internal
         /protected_media/ location -- the browser then shows a placeholder.
+        The small squares are no longer made, so their URL is answered with
+        the square.
         """
         image = create_test_photo(owner=self.user, video=False)
         video = create_test_photo(owner=self.user, video=True)
 
-        for path, photo, ext in (
-            ("square_thumbnails", image, ".webp"),
-            ("square_thumbnails_small", image, ".webp"),
-            ("thumbnails_big", image, ".webp"),
-            ("square_thumbnails", video, ".mp4"),
-            ("square_thumbnails_small", video, ".mp4"),
+        for path, served, photo, ext in (
+            ("square_thumbnails", "square_thumbnails", image, ".webp"),
+            ("square_thumbnails_small", "square_thumbnails", image, ".webp"),
+            ("thumbnails_big", "thumbnails_big", image, ".webp"),
+            ("square_thumbnails", "square_thumbnails", video, ".mp4"),
+            ("square_thumbnails_small", "square_thumbnails", video, ".mp4"),
         ):
             with self.subTest(path=path, video=photo.video):
                 redirect = self._get(path, photo.image_hash).headers.get(
                     "X-Accel-Redirect"
                 )
                 self.assertEqual(
-                    f"/protected_media/{path}/{photo.image_hash}{ext}",
+                    f"/protected_media/{served}/{photo.image_hash}{ext}",
                     redirect,
                 )

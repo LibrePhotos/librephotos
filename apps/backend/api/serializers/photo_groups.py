@@ -16,7 +16,7 @@ class PhotoGroupThumbnailSerializer(serializers.Serializer[None]):
     image_hash = serializers.CharField()
     thumbnail_url = serializers.CharField(
         allow_null=True,
-        help_text="/media/square_thumbnails_small/<image_hash>; null without one",
+        help_text="/media/square_thumbnails/<image_hash>; null without one",
     )
 
 
@@ -46,7 +46,7 @@ class GroupPhotoSerializer(serializers.Serializer[None]):
     )
     thumbnail_url = serializers.CharField(
         allow_null=True,
-        help_text="/media/square_thumbnails_small/<image_hash>; null without one",
+        help_text="/media/square_thumbnails/<image_hash>; null without one",
     )
     thumbnail_big_url = serializers.CharField(
         allow_null=True,

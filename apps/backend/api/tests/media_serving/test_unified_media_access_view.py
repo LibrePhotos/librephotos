@@ -292,15 +292,22 @@ class UnifiedThumbnailAccessTest(TestCase):
             f"/protected_media/square_thumbnails/{video.image_hash}.mp4",
         )
 
-    def test_small_square_thumbnail_uses_its_own_field(self):
-        response = _unified(
+    def test_a_small_square_is_answered_with_the_square(self):
+        """The small squares are no longer made; older clients still ask for
+        them, and get the square with its caching."""
+        small = _unified(
             "square_thumbnails_small", self.photo.image_hash, user=self.owner
         )
-        self.assertEqual(response.status_code, 200)
+        square = _unified("square_thumbnails", self.photo.image_hash, user=self.owner)
+        self.assertEqual(small.status_code, 200)
         self.assertEqual(
-            response["X-Accel-Redirect"],
-            f"/protected_media/square_thumbnails_small/{self.photo.image_hash}.webp",
+            small["X-Accel-Redirect"],
+            f"/protected_media/square_thumbnails/{self.photo.image_hash}.webp",
         )
+        for header in ("Content-Type", "Cache-Control"):
+            with self.subTest(header):
+                self.assertEqual(small.get(header), square.get(header))
+        self.assertIsNotNone(small.get("Cache-Control"))
 
     def test_faces_path_is_served_verbatim_as_jpg(self):
         response = _unified("faces", f"{self.photo.image_hash}_1.jpg", user=self.owner)

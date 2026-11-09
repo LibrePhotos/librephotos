@@ -1,6 +1,6 @@
 """Still posters for videos in the grid (#2026).
 
-Every video gets WebP stills beside its clips, resized from its big thumbnail.
+Every video gets a WebP still beside its clip, resized from its big thumbnail.
 The grid shows them and mounts the clip only while a tile is pointed at, so a
 page of videos no longer holds one media player per tile. The media view
 serves a video's poster as ``<square directory>/<image_hash>.webp``, the grid
@@ -26,7 +26,10 @@ from api.serializers.simple import PhotoSimpleSerializer, has_video_poster
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 from api.thumbnails import posters, render
 
-SQUARES = ("square_thumbnails", "square_thumbnails_small")
+SQUARE = "square_thumbnails"
+# The small squares of older releases, no longer made: their URLs are answered
+# with the square.
+LEGACY_SQUARE = "square_thumbnails_small"
 
 
 class _MediaRootTestCase(TestCase):
@@ -38,7 +41,7 @@ class _MediaRootTestCase(TestCase):
         overrider = override_settings(MEDIA_ROOT=self.media_root)
         overrider.enable()
         self.addCleanup(overrider.disable)
-        for directory in ("thumbnails_big", *SQUARES):
+        for directory in ("thumbnails_big", SQUARE):
             os.makedirs(os.path.join(self.media_root, directory))
         forget_site_switches()
         self.addCleanup(forget_site_switches)
@@ -65,7 +68,7 @@ class PosterServingTest(_MediaRootTestCase):
 
     def test_behind_the_proxy_a_videos_poster_is_its_webp_still(self):
         video = create_test_photo(owner=self.user, video=True)
-        for directory in SQUARES:
+        for directory in (SQUARE, LEGACY_SQUARE):
             with self.subTest(directory=directory):
                 response = self.client.get(
                     f"/media/{directory}/{video.image_hash}.webp"
@@ -74,29 +77,31 @@ class PosterServingTest(_MediaRootTestCase):
                 self.assertEqual(response["Content-Type"], "image/webp")
                 self.assertEqual(
                     response["X-Accel-Redirect"],
-                    f"/protected_media/{directory}/{video.image_hash}.webp",
+                    f"/protected_media/{SQUARE}/{video.image_hash}.webp",
                 )
 
     def test_the_clip_is_still_served_without_the_extension(self):
         video = create_test_photo(owner=self.user, video=True)
-        response = self.client.get(f"/media/{SQUARES[0]}/{video.image_hash}")
+        response = self.client.get(f"/media/{SQUARE}/{video.image_hash}")
         self.assertEqual(response["Content-Type"], "video/mp4")
 
     def test_a_poster_asked_for_by_id_is_named_after_the_hash(self):
         video = create_test_photo(owner=self.user, video=True)
-        response = self.client.get(f"/media/{SQUARES[1]}/{video.pk}.webp")
-        self.assertEqual(
-            response["X-Accel-Redirect"],
-            f"/protected_media/{SQUARES[1]}/{video.image_hash}.webp",
-        )
+        for directory in (SQUARE, LEGACY_SQUARE):
+            with self.subTest(directory=directory):
+                response = self.client.get(f"/media/{directory}/{video.pk}.webp")
+                self.assertEqual(
+                    response["X-Accel-Redirect"],
+                    f"/protected_media/{SQUARE}/{video.image_hash}.webp",
+                )
 
     @override_settings(SERVE_FRONTEND=True)
     def test_served_directly_the_poster_is_the_still_and_not_the_clip(self):
         video = create_test_photo(owner=self.user, video=True)
-        self._write(SQUARES[0], video, ".webp", b"STILL")
-        self._write(SQUARES[0], video, ".mp4", b"CLIP")
+        self._write(SQUARE, video, ".webp", b"STILL")
+        self._write(SQUARE, video, ".mp4", b"CLIP")
 
-        response = self.client.get(f"/media/{SQUARES[0]}/{video.image_hash}.webp")
+        response = self.client.get(f"/media/{SQUARE}/{video.image_hash}.webp")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "image/webp")
@@ -105,18 +110,18 @@ class PosterServingTest(_MediaRootTestCase):
     @override_settings(SERVE_FRONTEND=True)
     def test_served_directly_a_missing_poster_is_not_found(self):
         video = create_test_photo(owner=self.user, video=True)
-        response = self.client.get(f"/media/{SQUARES[0]}/{video.image_hash}.webp")
+        response = self.client.get(f"/media/{SQUARE}/{video.image_hash}.webp")
         self.assertEqual(response.status_code, 404)
 
     def test_another_users_video_poster_is_refused(self):
         video = create_test_photo(owner=create_test_user(), video=True)
-        response = self.client.get(f"/media/{SQUARES[0]}/{video.image_hash}.webp")
+        response = self.client.get(f"/media/{SQUARE}/{video.image_hash}.webp")
         self.assertEqual(response.status_code, 404)
 
     def test_a_photo_and_the_big_thumbnail_are_served_as_before(self):
         photo = create_test_photo(owner=self.user)
         video = create_test_photo(owner=self.user, video=True)
-        for directory, item in ((SQUARES[0], photo), ("thumbnails_big", video)):
+        for directory, item in ((SQUARE, photo), ("thumbnails_big", video)):
             with self.subTest(directory=directory):
                 response = self.client.get(f"/media/{directory}/{item.image_hash}.webp")
                 self.assertEqual(
@@ -173,8 +178,7 @@ class PosterRenderTest(_MediaRootTestCase):
 
     def test_stills_already_there_are_only_marked(self):
         video = create_test_photo(owner=self.user, video=True)
-        for directory in SQUARES:
-            self._write(directory, video, ".webp")
+        self._write(SQUARE, video, ".webp")
         with mock.patch.object(render, "create_static_thumbnails") as stills:
             render.create_video_posters(video.thumbnail)
         stills.assert_not_called()
@@ -188,7 +192,7 @@ class PosterRenderTest(_MediaRootTestCase):
             with self.captureOnCommitCallbacks(execute=True):
                 render.generate_thumbnail(video.thumbnail)
 
-        self.assertEqual(clip.call_count, 2)
+        clip.assert_called_once()
         video.thumbnail.refresh_from_db()
         self.assertTrue(video.thumbnail.square_thumbnail.name.endswith(".mp4"))
         self.assertFalse(video.thumbnail.video_poster)
@@ -211,15 +215,17 @@ class MakeVideoPostersTest(_MediaRootTestCase):
     def _poster(self, video):
         return Thumbnail.objects.get(photo=video).video_poster
 
-    def test_a_video_gets_both_stills_from_its_big_thumbnail(self):
+    def test_a_video_gets_its_still_from_its_big_thumbnail(self):
+        """Only the square's: the small squares of older releases are no
+        longer made."""
         video = self._video()
 
         result = posters.make_video_posters()
 
         self.assertEqual((result.made, result.skipped, result.errors), (1, 0, []))
         self.assertTrue(self._poster(video))
-        for directory in SQUARES:
-            self.assertTrue(os.path.exists(self._path(directory, video, ".webp")))
+        self.assertTrue(os.path.exists(self._path(SQUARE, video, ".webp")))
+        self.assertFalse(os.path.exists(os.path.join(self.media_root, LEGACY_SQUARE)))
 
     def test_a_video_without_a_big_thumbnail_is_skipped(self):
         video = self._video(big=False)

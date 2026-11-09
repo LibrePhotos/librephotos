@@ -1048,11 +1048,9 @@ class PhotoSerializer(serializers.ModelSerializer):
         )
 
     def get_small_square_thumbnail_url(self, obj: Photo) -> str:
-        return (
-            obj.thumbnail.square_thumbnail_small.url
-            if obj.thumbnail.square_thumbnail_small
-            else ""
-        )
+        # The small squares are no longer made (LEGACY_SQUARE_DIR): the square,
+        # for clients that still read this field.
+        return self.get_square_thumbnail_url(obj)
 
     def get_big_thumbnail_url(self, obj: Photo) -> str:
         return obj.thumbnail.thumbnail_big.url if obj.thumbnail.thumbnail_big else ""
@@ -1242,13 +1240,13 @@ class PhotoSerializer(serializers.ModelSerializer):
             thumbnail = photo.thumbnail
         except ObjectDoesNotExist:
             thumbnail = None
-        has_thumbnail = bool(thumbnail and thumbnail.square_thumbnail_small)
+        has_thumbnail = bool(thumbnail and thumbnail.square_thumbnail)
         return {
             "id": str(photo.id),
             "image_hash": photo.image_hash,
             "is_primary": photo.pk == stack.primary_photo_id,
             "thumbnail_url": (
-                f"/media/square_thumbnails_small/{photo.image_hash}"
+                f"/media/square_thumbnails/{photo.image_hash}"
                 if has_thumbnail
                 else None
             ),
@@ -1387,12 +1385,9 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
         return thumbnail.square_thumbnail.url if thumbnail.square_thumbnail else ""
 
     def get_small_square_thumbnail_url(self, obj: Photo) -> str:
-        thumbnail = obj.thumbnail
-        return (
-            thumbnail.square_thumbnail_small.url
-            if thumbnail.square_thumbnail_small
-            else ""
-        )
+        # The small squares are no longer made (LEGACY_SQUARE_DIR): the square,
+        # for clients that still read this field.
+        return self.get_square_thumbnail_url(obj)
 
     def get_big_thumbnail_url(self, obj: Photo) -> str:
         thumbnail = obj.thumbnail

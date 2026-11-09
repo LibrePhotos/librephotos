@@ -3,8 +3,8 @@
  * "Video previews hangs when listing a huge amount of videos"
  *
  * For a video, the backend stores *animated* square thumbnails: a 5 second
- * H.264 clip at `media/square_thumbnails/<hash>` (500p) and
- * `media/square_thumbnails_small/<hash>` (250p) -- see
+ * H.264 clip at `media/square_thumbnails/<hash>` (500p; releases up to 1.6
+ * also made a 250p one in `square_thumbnails_small`) -- see
  * `api/models/thumbnail.py::_generate_thumbnail` /
  * `api/thumbnails/render.py::create_animated_thumbnail`. Only `thumbnails_big` is a
  * still image for a video.
@@ -33,10 +33,7 @@ import Tile from "./Tile";
 const SERVER = "http://localhost:3000";
 
 // The same mapping PhotoListView hands to react-pig.
-function getUrl(imageHash: string, pxHeight: number) {
-  if (pxHeight < 250) {
-    return `${SERVER}/media/square_thumbnails_small/${imageHash}`;
-  }
+function getUrl(imageHash: string) {
   return `${SERVER}/media/square_thumbnails/${imageHash}`;
 }
 

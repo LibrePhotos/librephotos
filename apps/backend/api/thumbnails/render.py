@@ -365,10 +365,7 @@ def create_thumbnail(
 
 # Output directory -> height of the square (WebP) thumbnails. They are resized
 # from the big one, which is BIG_THUMBNAIL_HEIGHT high.
-SQUARE_THUMBNAIL_HEIGHTS = {
-    "square_thumbnails": 500,
-    "square_thumbnails_small": 250,
-}
+SQUARE_THUMBNAIL_HEIGHTS = {"square_thumbnails": 500}
 
 
 def create_static_thumbnails(
@@ -724,9 +721,6 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
         thumbnail.square_thumbnail.name = os.path.join(
             "square_thumbnails", photo_hash + square_extension
         )
-        thumbnail.square_thumbnail_small.name = os.path.join(
-            "square_thumbnails_small", photo_hash + square_extension
-        )
         thumbnail.save()
         if photo.video:
             _remove_replaced_video_squares(photo_hash, square_extension)
@@ -805,9 +799,7 @@ def _placeholder_source(thumbnail: Thumbnail) -> str:
     thumbnail is a still. Raises ValueError when the field names no file.
     """
     source = (
-        thumbnail.thumbnail_big
-        if thumbnail.photo.video
-        else thumbnail.square_thumbnail_small
+        thumbnail.thumbnail_big if thumbnail.photo.video else thumbnail.square_thumbnail
     )
     return source.path
 

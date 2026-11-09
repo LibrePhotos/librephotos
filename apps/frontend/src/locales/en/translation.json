@@ -656,7 +656,8 @@
       "trash_photos_outside_library": "Trash photos outside the library",
       "rename_photos": "Rename photos",
       "repair_turned_faces": "Repair turned faces",
-      "make_thumbhashes": "Make photo placeholders"
+      "make_thumbhashes": "Make photo placeholders",
+      "remove_small_thumbnails": "Remove small thumbnails"
     },
     "queuebusy": {
       "reason": "A job is running. Start this one when it has finished.",
@@ -3910,6 +3911,10 @@
     "make_thumbhashes": {
       "title": "Make placeholders for older photos",
       "description": "While a thumbnail loads, the photo grid shows a blurred preview of the photo. Photos added before this update get theirs now, from their thumbnails. Your photos are not changed."
+    },
+    "remove_small_thumbnails": {
+      "title": "Remove the small thumbnails",
+      "description": "LibrePhotos 1.6 and older kept a second, smaller thumbnail of every photo, which nothing shows any more. This deletes them to free disk space. Your photos are not changed."
     }
   },
   "movephotos": {

@@ -1,7 +1,7 @@
 """The animated video previews can be switched off (#649).
 
 With ``VIDEO_PREVIEWS_ENABLED`` off (or ``FEATURE_VIDEO_PREVIEWS`` false), a
-video's square thumbnails are WebP stills resized from its big thumbnail
+video's square thumbnail is a WebP still resized from its big thumbnail
 instead of mp4 clips, stored under names ending in ``.webp``. The media view
 serves a square by its stored name, so the clips made before keep working
 next to the stills, and the grid serializers say which kind a video has.
@@ -24,7 +24,10 @@ from api.serializers.simple import PhotoSimpleSerializer, has_animated_preview
 from api.tests.utils import create_test_photo, create_test_user
 from api.thumbnails import render
 
-SQUARES = ("square_thumbnails", "square_thumbnails_small")
+SQUARE = "square_thumbnails"
+# The small squares of older releases, no longer made: their URLs are answered
+# with the square.
+LEGACY_SQUARE = "square_thumbnails_small"
 
 
 def _size(path):
@@ -43,7 +46,7 @@ class _MediaRootTestCase(TestCase):
         overrider = override_settings(MEDIA_ROOT=self.media_root)
         overrider.enable()
         self.addCleanup(overrider.disable)
-        for directory in ("thumbnails_big", *SQUARES):
+        for directory in ("thumbnails_big", SQUARE):
             os.makedirs(os.path.join(self.media_root, directory))
         forget_site_switches()
         self.addCleanup(forget_site_switches)
@@ -57,7 +60,7 @@ class _MediaRootTestCase(TestCase):
             handle.write(content)
 
     def _write_big_thumbnail(self, photo):
-        # A first frame of a 4:3 video, larger than both squares.
+        # A first frame of a 4:3 video, larger than the square.
         pyvips.Image.black(1200, 900).write_to_file(
             self._path("thumbnails_big", photo, ".webp")
         )
@@ -65,7 +68,9 @@ class _MediaRootTestCase(TestCase):
 
 class VideoSquareRenderTest(_MediaRootTestCase):
     def _video(self):
-        photo = create_test_photo(owner=self.user, video=True)
+        photo = create_test_photo(
+            owner=self.user, video=True, square_thumbnail_small=""
+        )
         self._write_big_thumbnail(photo)
         return photo
 
@@ -76,7 +81,9 @@ class VideoSquareRenderTest(_MediaRootTestCase):
         return photo.thumbnail
 
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
-    def test_switched_off_a_video_gets_webp_stills(self):
+    def test_switched_off_a_video_gets_a_webp_still(self):
+        """Only the square: the small squares of older releases are no longer
+        made, nor named."""
         photo = self._video()
         with mock.patch.object(render, "create_animated_thumbnail") as clip:
             thumbnail = self._generate(photo)
@@ -84,18 +91,11 @@ class VideoSquareRenderTest(_MediaRootTestCase):
         clip.assert_not_called()
         self.assertEqual(
             thumbnail.square_thumbnail.name,
-            os.path.join("square_thumbnails", photo.image_hash + ".webp"),
+            os.path.join(SQUARE, photo.image_hash + ".webp"),
         )
-        self.assertEqual(
-            thumbnail.square_thumbnail_small.name,
-            os.path.join("square_thumbnails_small", photo.image_hash + ".webp"),
-        )
-        self.assertEqual(
-            _size(self._path("square_thumbnails", photo, ".webp")), (667, 500)
-        )
-        self.assertEqual(
-            _size(self._path("square_thumbnails_small", photo, ".webp")), (333, 250)
-        )
+        self.assertEqual(thumbnail.square_thumbnail_small.name, "")
+        self.assertEqual(_size(self._path(SQUARE, photo, ".webp")), (667, 500))
+        self.assertFalse(os.path.exists(os.path.join(self.media_root, LEGACY_SQUARE)))
 
     @override_settings(FEATURE_VIDEO_PREVIEWS=False)
     def test_the_environment_switch_also_makes_stills(self):
@@ -106,7 +106,7 @@ class VideoSquareRenderTest(_MediaRootTestCase):
         clip.assert_not_called()
         self.assertTrue(thumbnail.square_thumbnail.name.endswith(".webp"))
 
-    def test_switched_on_a_video_gets_mp4_clips(self):
+    def test_switched_on_a_video_gets_an_mp4_clip(self):
         photo = self._video()
         with mock.patch.object(render, "create_animated_thumbnail") as clip:
             thumbnail = self._generate(photo)
@@ -115,38 +115,30 @@ class VideoSquareRenderTest(_MediaRootTestCase):
             call.kwargs["output_path"]: call.kwargs["output_height"]
             for call in clip.call_args_list
         }
-        self.assertEqual(
-            heights, {"square_thumbnails": 500, "square_thumbnails_small": 250}
-        )
+        self.assertEqual(heights, {SQUARE: 500})
         self.assertEqual(
             thumbnail.square_thumbnail.name,
-            os.path.join("square_thumbnails", photo.image_hash + ".mp4"),
+            os.path.join(SQUARE, photo.image_hash + ".mp4"),
         )
-        self.assertEqual(
-            thumbnail.square_thumbnail_small.name,
-            os.path.join("square_thumbnails_small", photo.image_hash + ".mp4"),
-        )
-        # The stills stay beside the clips: they are the grid's poster (#2026).
-        self.assertEqual(_size(self._path(SQUARES[0], photo, ".webp")), (667, 500))
+        self.assertEqual(thumbnail.square_thumbnail_small.name, "")
+        # The still stays beside the clip: it is the grid's poster (#2026).
+        self.assertEqual(_size(self._path(SQUARE, photo, ".webp")), (667, 500))
         self.assertTrue(thumbnail.video_poster)
 
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
-    def test_a_rescan_switched_off_replaces_the_clips_and_frees_them(self):
+    def test_a_rescan_switched_off_replaces_the_clip_and_frees_it(self):
         photo = self._video()
-        for directory in SQUARES:
-            self._write(directory, photo, ".mp4")
+        self._write(SQUARE, photo, ".mp4")
 
         thumbnail = self._generate(photo)
 
         self.assertTrue(thumbnail.square_thumbnail.name.endswith(".webp"))
-        for directory in SQUARES:
-            self.assertTrue(os.path.exists(self._path(directory, photo, ".webp")))
-            self.assertFalse(os.path.exists(self._path(directory, photo, ".mp4")))
+        self.assertTrue(os.path.exists(self._path(SQUARE, photo, ".webp")))
+        self.assertFalse(os.path.exists(self._path(SQUARE, photo, ".mp4")))
 
-    def test_a_rescan_switched_on_again_keeps_the_stills_as_posters(self):
+    def test_a_rescan_switched_on_again_keeps_the_still_as_poster(self):
         photo = self._video()
-        for directory in SQUARES:
-            self._write(directory, photo, ".webp")
+        self._write(SQUARE, photo, ".webp")
 
         def make_clip(**kwargs):
             self._write(kwargs["output_path"], photo, ".mp4")
@@ -157,29 +149,26 @@ class VideoSquareRenderTest(_MediaRootTestCase):
             thumbnail = self._generate(photo)
 
         self.assertTrue(thumbnail.square_thumbnail.name.endswith(".mp4"))
-        for directory in SQUARES:
-            self.assertTrue(os.path.exists(self._path(directory, photo, ".mp4")))
-            self.assertTrue(os.path.exists(self._path(directory, photo, ".webp")))
+        self.assertTrue(os.path.exists(self._path(SQUARE, photo, ".mp4")))
+        self.assertTrue(os.path.exists(self._path(SQUARE, photo, ".webp")))
 
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
-    def test_stills_already_there_are_kept(self):
+    def test_a_still_already_there_is_kept(self):
         photo = self._video()
-        for directory in SQUARES:
-            self._write(directory, photo, ".webp", b"kept")
+        self._write(SQUARE, photo, ".webp", b"kept")
 
         with mock.patch.object(render, "create_static_thumbnails") as stills:
             self._generate(photo)
 
         stills.assert_not_called()
-        with open(self._path(SQUARES[0], photo, ".webp"), "rb") as handle:
+        with open(self._path(SQUARE, photo, ".webp"), "rb") as handle:
             self.assertEqual(handle.read(), b"kept")
 
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
-    def test_the_squares_are_kept_when_the_save_fails(self):
-        """Old clips go only once the new names are stored."""
+    def test_the_clip_is_kept_when_the_save_fails(self):
+        """An old clip goes only once the new name is stored."""
         photo = self._video()
-        for directory in SQUARES:
-            self._write(directory, photo, ".mp4")
+        self._write(SQUARE, photo, ".mp4")
 
         with (
             mock.patch.object(Thumbnail, "save", side_effect=RuntimeError("db")),
@@ -188,8 +177,7 @@ class VideoSquareRenderTest(_MediaRootTestCase):
         ):
             render.generate_thumbnail(photo.thumbnail)
 
-        for directory in SQUARES:
-            self.assertTrue(os.path.exists(self._path(directory, photo, ".mp4")))
+        self.assertTrue(os.path.exists(self._path(SQUARE, photo, ".mp4")))
 
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
     def test_a_photo_is_not_touched_by_the_switch(self):
@@ -199,15 +187,18 @@ class VideoSquareRenderTest(_MediaRootTestCase):
                 render.generate_thumbnail(photo.thumbnail)
 
         self.assertEqual(
-            stills.call_args.kwargs["output_paths"],
-            ["thumbnails_big", "square_thumbnails", "square_thumbnails_small"],
+            stills.call_args.kwargs["output_paths"], ["thumbnails_big", SQUARE]
         )
         photo.thumbnail.refresh_from_db()
         self.assertTrue(photo.thumbnail.square_thumbnail.name.endswith(".webp"))
 
 
 class VideoSquareServingTest(_MediaRootTestCase):
-    """Both kinds of video square are served, each as what it is."""
+    """Both kinds of video square are served, each as what it is.
+
+    A small square's URL, which older clients still ask for, is answered with
+    the square.
+    """
 
     def setUp(self):
         super().setUp()
@@ -218,12 +209,7 @@ class VideoSquareServingTest(_MediaRootTestCase):
         photo = create_test_photo(owner=self.user, video=True)
         # Scanned with the animated previews off.
         Thumbnail.objects.filter(photo=photo).update(
-            square_thumbnail=os.path.join(
-                "square_thumbnails", photo.image_hash + ".webp"
-            ),
-            square_thumbnail_small=os.path.join(
-                "square_thumbnails_small", photo.image_hash + ".webp"
-            ),
+            square_thumbnail=os.path.join(SQUARE, photo.image_hash + ".webp")
         )
         return Photo.objects.get(pk=photo.pk)
 
@@ -237,28 +223,28 @@ class VideoSquareServingTest(_MediaRootTestCase):
             (still, ".webp", "image/webp"),
             (clip, ".mp4", "video/mp4"),
         ):
-            for directory in SQUARES:
+            for directory in (SQUARE, LEGACY_SQUARE):
                 with self.subTest(directory=directory, extension=extension):
                     response = self._get(directory, photo)
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(response["Content-Type"], content_type)
                     self.assertEqual(
                         response["X-Accel-Redirect"],
-                        f"/protected_media/{directory}/{photo.image_hash}{extension}",
+                        f"/protected_media/{SQUARE}/{photo.image_hash}{extension}",
                     )
 
     @override_settings(SERVE_FRONTEND=True)
     def test_served_directly_each_square_has_its_own_type(self):
         still = self._still_video()
         clip = create_test_photo(owner=self.user, video=True)
-        self._write(SQUARES[0], still, ".webp", b"STILL")
-        self._write(SQUARES[0], clip, ".mp4", b"CLIP")
+        self._write(SQUARE, still, ".webp", b"STILL")
+        self._write(SQUARE, clip, ".mp4", b"CLIP")
         for photo, content_type, body in (
             (still, "image/webp", b"STILL"),
             (clip, "video/mp4", b"CLIP"),
         ):
             with self.subTest(content_type=content_type):
-                response = self._get(SQUARES[0], photo)
+                response = self._get(SQUARE, photo)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response["Content-Type"], content_type)
                 self.assertEqual(b"".join(response.streaming_content), body)
@@ -266,18 +252,18 @@ class VideoSquareServingTest(_MediaRootTestCase):
     def test_without_a_thumbnail_row_the_file_on_disk_decides(self):
         clip = create_test_photo(owner=self.user, video=True)
         still = create_test_photo(owner=self.user, video=True)
-        self._write(SQUARES[0], clip, ".mp4")
+        self._write(SQUARE, clip, ".mp4")
         Thumbnail.objects.filter(photo__in=[clip, still]).delete()
         for photo, extension, content_type in (
             (clip, ".mp4", "video/mp4"),
             (still, ".webp", "image/webp"),
         ):
             with self.subTest(extension=extension):
-                response = self._get(SQUARES[0], photo)
+                response = self._get(SQUARE, photo)
                 self.assertEqual(response["Content-Type"], content_type)
                 self.assertEqual(
                     response["X-Accel-Redirect"],
-                    f"/protected_media/{SQUARES[0]}/{photo.image_hash}{extension}",
+                    f"/protected_media/{SQUARE}/{photo.image_hash}{extension}",
                 )
 
 

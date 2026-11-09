@@ -143,7 +143,6 @@ export function SidebarExtras({
                     <MediaThumbnail
                       imageHash={cover}
                       size={20}
-                      kind="square_thumbnails_small"
                       video={album.cover_photo?.video === true}
                       radius={4}
                       alt=""

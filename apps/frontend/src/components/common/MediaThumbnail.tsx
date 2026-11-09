@@ -7,8 +7,8 @@ import classes from "./MediaThumbnail.module.css";
 type Props = Readonly<{
   imageHash: string;
   size: number;
-  /** "square_thumbnails_small" for a list row, "square_thumbnails" for a cover. */
-  kind?: "square_thumbnails" | "square_thumbnails_small";
+  /** A cover (the album covers' radius) rather than a list row's icon. */
+  cover?: boolean;
   /** Whether it is a video, when the caller knows. Left out, an image that fails to load is shown as a video. */
   video?: boolean;
   className?: string;
@@ -29,17 +29,16 @@ type Props = Readonly<{
 export function MediaThumbnail({
   imageHash,
   size,
-  kind = "square_thumbnails_small",
+  cover = false,
   video = false,
   className,
   // A cover shares the album covers' radius (Mantine's md, 8px).
-  radius = kind === "square_thumbnails" ? "md" : 4,
+  radius = cover ? "md" : 4,
   alt = "",
 }: Props) {
   const [failedAsImage, setFailedAsImage] = useState(false);
   const videoNode = useRef<HTMLVideoElement | null>(null);
-  const src =
-    kind === "square_thumbnails" ? mediaUrl.squareThumbnail(imageHash) : mediaUrl.squareThumbnailSmall(imageHash);
+  const src = mediaUrl.squareThumbnail(imageHash);
 
   // Never cleared, see Tile.tsx: React detaches refs before the cleanup below runs.
   const holdVideoNode = useCallback((node: HTMLVideoElement | null) => {

@@ -32,7 +32,7 @@ from api.tests.utils import (
 )
 from api.thumbnails import render
 
-THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
+THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails")
 
 
 def _write_image(path, seed, size=(256, 256), format="PNG"):

@@ -100,36 +100,44 @@ class _MediaRootTestCase(TestCase):
         overrider = override_settings(MEDIA_ROOT=self.media_root)
         overrider.enable()
         self.addCleanup(overrider.disable)
-        for directory in ("thumbnails_big", "square_thumbnails_small"):
+        for directory in ("thumbnails_big", "square_thumbnails"):
             os.makedirs(os.path.join(self.media_root, directory))
         self.user = create_test_user()
 
     def _photo(self, readable=True, video=False):
-        """A photo whose small square (a video: its big thumbnail) is a picture, or is missing."""
+        """A photo whose square (a video: its big thumbnail) is a picture, or is missing."""
         photo = create_test_photo(owner=self.user, video=video)
         if readable:
-            directory = "thumbnails_big" if video else "square_thumbnails_small"
+            directory = "thumbnails_big" if video else "square_thumbnails"
             Image.new("RGB", (40, 25), (200, 60, 20)).save(
                 os.path.join(self.media_root, directory, photo.image_hash + ".webp")
-            )
-        if not video:
-            Thumbnail.objects.filter(photo=photo).update(
-                square_thumbnail_small=f"square_thumbnails_small/{photo.image_hash}.webp"
             )
         return Thumbnail.objects.get(photo=photo)
 
 
 class ScanTest(_MediaRootTestCase):
-    def test_a_photo_gets_its_thumbhash_from_the_small_square(self):
+    def test_a_photo_gets_its_thumbhash_from_its_square(self):
         thumbnail = self._photo()
         render.calculate_thumbhash(thumbnail)
 
         thumbnail.refresh_from_db()
         self.assertIsNotNone(thumbnail.thumbhash)
         self.assertEqual(
-            thumbnail.thumbhash,
-            thumbhash_of_file(thumbnail.square_thumbnail_small.path),
+            thumbnail.thumbhash, thumbhash_of_file(thumbnail.square_thumbnail.path)
         )
+
+    def test_a_photo_without_its_square_gets_none_from_a_small_one(self):
+        """The small squares of older releases are about to be deleted, so a
+        ThumbHash is never sampled from one."""
+        thumbnail = self._photo(readable=False)
+        small = os.path.join(self.media_root, thumbnail.square_thumbnail_small.name)
+        os.makedirs(os.path.dirname(small))
+        Image.new("RGB", (40, 25), (200, 60, 20)).save(small)
+
+        render.calculate_thumbhash(thumbnail)
+
+        thumbnail.refresh_from_db()
+        self.assertIsNone(thumbnail.thumbhash)
 
     def test_a_video_gets_it_from_its_big_thumbnail(self):
         thumbnail = self._photo(video=True)

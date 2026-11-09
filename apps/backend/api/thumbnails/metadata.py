@@ -30,7 +30,7 @@ from api.runtime import binaries
 
 logger = logging.getLogger(__name__)
 
-THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
+THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails")
 
 METADATA_CHUNKS = (b"EXIF", b"XMP ")
 # The VP8X header announces the metadata chunks with these flag bits.

@@ -1,7 +1,7 @@
 """A grid tile's placeholder colour is read from a still thumbnail.
 
-The colour came from the small square thumbnail, which for a video is an mp4
-clip PIL cannot open, so no video ever got one. A rebuilt thumbnail -- Probe
+The colour came from a square thumbnail, which for a video is an mp4 clip PIL
+cannot open, so no video ever got one. A rebuilt thumbnail -- Probe
 Videos replacing a washed-out HDR one -- kept the colour of the old one.
 """
 
@@ -48,17 +48,20 @@ class DominantColorTest(TestCase):
         thumbnail = create_test_photo(owner=self.user, video=True).thumbnail
         self._still(thumbnail.thumbnail_big, RED)
         # Not a picture: what a video's square thumbnails are to PIL.
-        with open(self._path(thumbnail.square_thumbnail_small), "wb") as clip:
+        with open(self._path(thumbnail.square_thumbnail), "wb") as clip:
             clip.write(b"\x00\x00\x00\x18ftypmp42")
 
         render.calculate_dominant_color(thumbnail)
 
         self.assertEqual(RED, self._rgb(thumbnail))
 
-    def test_a_photo_still_gets_the_colour_of_its_small_square(self):
+    def test_a_photo_gets_the_colour_of_its_square(self):
+        """The small square of older releases is no longer read, even when a
+        photo's row still names one."""
         thumbnail = create_test_photo(owner=self.user).thumbnail
         self._still(thumbnail.thumbnail_big, BLUE)
-        self._still(thumbnail.square_thumbnail_small, RED)
+        self._still(thumbnail.square_thumbnail, RED)
+        self._still(thumbnail.square_thumbnail_small, BLUE)
 
         render.calculate_dominant_color(thumbnail)
 
@@ -144,14 +147,14 @@ class DominantColorFailuresTest(TestCase):
         self._sample()
 
     def test_a_file_that_is_not_a_picture(self):
-        path = os.path.join(self.media_root, self.thumbnail.square_thumbnail_small.name)
+        path = os.path.join(self.media_root, self.thumbnail.square_thumbnail.name)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "wb") as handle:
             handle.write(b"not a picture")
         self._sample()
 
     def test_a_truncated_picture(self):
-        path = os.path.join(self.media_root, self.thumbnail.square_thumbnail_small.name)
+        path = os.path.join(self.media_root, self.thumbnail.square_thumbnail.name)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         Image.new("RGB", (64, 48), RED).save(path, "PNG")
         with open(path, "rb") as handle:
@@ -161,5 +164,5 @@ class DominantColorFailuresTest(TestCase):
         self._sample()
 
     def test_no_thumbnail_file_name(self):
-        self.thumbnail.square_thumbnail_small.name = ""
+        self.thumbnail.square_thumbnail.name = ""
         self._sample()
