@@ -4,11 +4,11 @@
  * This component focuses on storage cleanup by finding and removing duplicate files.
  * Supports both exact copies (identical files) and visual duplicates (similar images).
  */
-import { DuplicateType, ReviewStatus } from "@librephotos/api-client";
+import { DuplicateType, ReviewStatus, type User } from "@librephotos/api-client";
 import { Button, Group, Pagination, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconCopy } from "@tabler/icons-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth";
 import {
@@ -27,6 +27,34 @@ import { DuplicateCard } from "./DuplicateCard";
 import { DuplicateModal } from "./DuplicateModal";
 import { ALL_STATUSES, DuplicatesFilters, type StatusOption } from "./DuplicatesFilters";
 import { useStepBackFromMissingPage } from "./useStepBackFromMissingPage";
+
+type DetectOptions = React.ComponentProps<typeof DetectDuplicatesMenu>["detectOptions"];
+
+// Map sensitivity to visual threshold
+const sensitivityToThreshold = (sensitivity: string | undefined): number => {
+  switch (sensitivity) {
+    case "strict":
+      return 1;
+    case "loose":
+      return 5;
+    case "normal":
+    case undefined:
+    default:
+      return 3;
+  }
+};
+
+/** The detection options before any is changed here: the user's duplicate settings. */
+const detectDefaults = (user: User | undefined): DetectOptions => ({
+  detect_exact_copies: true,
+  detect_visual_duplicates: true,
+  visual_threshold: sensitivityToThreshold(user?.duplicate_sensitivity),
+  clear_pending: user?.duplicate_clear_existing ?? false,
+});
+
+/** The ids that `settled` (one result per id, in order) says were deleted. */
+const deletedIds = (ids: string[], settled: PromiseSettledResult<unknown>[]) =>
+  ids.filter((_, index) => settled[index]?.status === "fulfilled");
 
 export function DuplicatesPageContent() {
   const { t } = useTranslation();
@@ -49,38 +77,15 @@ export function DuplicatesPageContent() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  // Map sensitivity to visual threshold
-  const sensitivityToThreshold = (sensitivity: string | undefined): number => {
-    switch (sensitivity) {
-      case "strict":
-        return 1;
-      case "loose":
-        return 5;
-      case "normal":
-      case undefined:
-      default:
-        return 3;
-    }
-  };
-
-  // Detection options - initialized from user settings
-  const [detectOptions, setDetectOptions] = useState({
-    detect_exact_copies: true,
-    detect_visual_duplicates: true,
-    visual_threshold: sensitivityToThreshold(userSelfDetails?.duplicate_sensitivity),
-    clear_pending: userSelfDetails?.duplicate_clear_existing ?? false,
-  });
-
-  // Update detection options when user settings load
-  useEffect(() => {
-    if (userSelfDetails) {
-      setDetectOptions(prev => ({
-        ...prev,
-        visual_threshold: sensitivityToThreshold(userSelfDetails.duplicate_sensitivity),
-        clear_pending: userSelfDetails.duplicate_clear_existing ?? false,
-      }));
-    }
-  }, [userSelfDetails]);
+  // The options as changed in the menu, over the user's settings until then: a fetch of the
+  // settings (window focus) no longer undoes a change.
+  const [editedDetectOptions, setEditedDetectOptions] = useState<DetectOptions | null>(null);
+  const detectOptions = editedDetectOptions ?? detectDefaults(userSelfDetails);
+  const setDetectOptions = (next: SetStateAction<DetectOptions>) =>
+    setEditedDetectOptions(edited => {
+      const current = edited ?? detectDefaults(userSelfDetails);
+      return typeof next === "function" ? next(current) : next;
+    });
 
   // Initialize filters from URL search params
   useEffect(() => {
@@ -107,7 +112,7 @@ export function DuplicatesPageContent() {
   const listFailure = useListFailure(duplicatesQuery);
   useStepBackFromMissingPage(page, setPage, duplicatesError);
   const { mutate: detectDuplicates, isPending: isDetecting } = useDetectDuplicatesMutation();
-  const { mutate: deleteDuplicate } = useDeleteDuplicateMutation();
+  const { mutateAsync: deleteDuplicate } = useDeleteDuplicateMutation();
 
   const duplicates = duplicatesResponse?.results ?? [];
   const totalPages = duplicatesResponse?.num_pages ?? 1;
@@ -120,6 +125,7 @@ export function DuplicatesPageContent() {
   // Groups waiting for the delete confirmation. Kept after closing so the
   // dialog title does not change while it fades out.
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, { open: openDeleteConfirm, close: closeDeleteConfirm }] = useDisclosure(false);
 
   const askToDelete = (ids: string[]) => {
@@ -127,9 +133,14 @@ export function DuplicatesPageContent() {
     openDeleteConfirm();
   };
 
-  const confirmDelete = () => {
-    pendingDeleteIds.forEach(id => deleteDuplicate(id));
-    setSelectedDuplicateIds(prev => new Set([...prev].filter(id => !pendingDeleteIds.includes(id))));
+  // The dialog waits for every delete; only the groups that are gone leave the selection, so a
+  // failed one (toasted by the QueryClient) can be deleted again.
+  const confirmDelete = async () => {
+    setDeleting(true);
+    const settled = await Promise.allSettled(pendingDeleteIds.map(id => deleteDuplicate(id)));
+    const deleted = deletedIds(pendingDeleteIds, settled);
+    setSelectedDuplicateIds(prev => new Set([...prev].filter(id => !deleted.includes(id))));
+    setDeleting(false);
     closeDeleteConfirm();
   };
 
@@ -268,7 +279,8 @@ export function DuplicatesPageContent() {
         opened={deleteConfirmOpen}
         count={pendingDeleteIds.length}
         onClose={closeDeleteConfirm}
-        onConfirm={confirmDelete}
+        onConfirm={() => void confirmDelete()}
+        loading={deleting}
       />
     </Stack>
   );

@@ -27,13 +27,18 @@ type PageState = {
 
 const stubs = vi.hoisted(() => {
   const state: PageState = { pages: {}, numPages: 1, stats: undefined, requested: [] };
-  return { deleteDuplicate: vi.fn<(id: string) => void>(), ...state };
+  return {
+    deleteDuplicate: vi.fn<(id: string) => Promise<void>>(),
+    detectDuplicates: vi.fn<(options: Record<string, unknown>) => void>(),
+    user: undefined as { duplicate_sensitivity: string; duplicate_clear_existing: boolean } | undefined,
+    ...state,
+  };
 });
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn<(options: unknown) => void>() }));
 vi.mock("../lightbox", () => ({ Lightbox: () => null }));
 vi.mock("../../api_client/auth", () => ({ useAccessToken: () => ({ data: { access: { user_id: "1" } } }) }));
-vi.mock("../../api_client/user/hooks", () => ({ useFetchUserSelfDetailsQuery: () => ({ data: undefined }) }));
+vi.mock("../../api_client/user/hooks", () => ({ useFetchUserSelfDetailsQuery: () => ({ data: stubs.user }) }));
 
 const duplicate = (id: string) => ({
   id,
@@ -52,8 +57,8 @@ const duplicate = (id: string) => ({
 vi.mock("../../api_client/duplicates", () => {
   const idle = () => ({ mutate: vi.fn<(...args: unknown[]) => void>(), isPending: false });
   return {
-    useDeleteDuplicateMutation: () => ({ mutate: stubs.deleteDuplicate }),
-    useDetectDuplicatesMutation: idle,
+    useDeleteDuplicateMutation: () => ({ mutateAsync: stubs.deleteDuplicate }),
+    useDetectDuplicatesMutation: () => ({ mutate: stubs.detectDuplicates, isPending: false }),
     useDismissDuplicateMutation: idle,
     useResolveDuplicateMutation: idle,
     useRevertDuplicateMutation: idle,
@@ -105,7 +110,9 @@ beforeAll(async () => {
 }, 60000);
 
 beforeEach(() => {
-  stubs.deleteDuplicate.mockReset();
+  stubs.deleteDuplicate.mockReset().mockResolvedValue(undefined);
+  stubs.detectDuplicates.mockReset();
+  stubs.user = undefined;
   stubs.pages = { 1: [{ id: "a" }, { id: "b" }], 2: [{ id: "c" }, { id: "d" }] };
   stubs.numPages = 2;
   stubs.requested = [];
@@ -190,6 +197,19 @@ describe("deleting duplicate groups", { timeout: 15_000 }, () => {
     expect(container.textContent).not.toContain("2 selected");
   });
 
+  it("keeps the groups whose delete failed selected, and only those", async () => {
+    stubs.deleteDuplicate.mockImplementation(async id => {
+      if (id === "b") throw new Error("refused");
+    });
+    await render();
+    await click(selectAll());
+    await click(button("Delete selected"));
+    await click(button("Delete"));
+
+    expect(container.textContent).toContain("1 selected");
+    expect(container.textContent).not.toContain("Delete 2 duplicate groups?");
+  });
+
   it("does nothing when the confirmation is cancelled", async () => {
     await render();
     await click(selectAll());
@@ -198,6 +218,28 @@ describe("deleting duplicate groups", { timeout: 15_000 }, () => {
 
     expect(stubs.deleteDuplicate).not.toHaveBeenCalled();
     expect(container.textContent).toContain("2 selected");
+  });
+});
+
+describe("detection options", { timeout: 15_000 }, () => {
+  it("keeps an option picked when the user's settings are fetched again", async () => {
+    stubs.user = { duplicate_sensitivity: "normal", duplicate_clear_existing: false };
+    await render();
+    await click(button("Detection options"));
+    const clearPending = rendered(
+      Array.from(document.querySelectorAll<HTMLInputElement>("input[type=checkbox]")).find(input =>
+        input.closest(".mantine-Checkbox-root")?.textContent?.includes("Clear pending duplicates")
+      ),
+      "the Clear pending checkbox"
+    );
+    await click(clearPending);
+
+    // A window focus reads the user's settings again.
+    stubs.user = { ...stubs.user };
+    await render();
+    await click(button("Detect duplicates"));
+
+    expect(stubs.detectDuplicates).toHaveBeenCalledWith(expect.objectContaining({ clear_pending: true }));
   });
 });
 

@@ -4,7 +4,8 @@ import { schemaResolver, useForm } from "@mantine/form";
 import type { UseFormReturnType } from "@mantine/form";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { isEqual } from "lodash-es";
+import React, { useMemo, useState } from "react";
 import type { FormEventHandler } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoginMutation, useSignUpMutation } from "../../api_client/auth";
@@ -12,6 +13,7 @@ import { useScanPhotosMutation } from "../../api_client/jobs";
 import { useGetSettingsQuery } from "../../api_client/settings";
 import { useUpdateSettingsMutation } from "../../api_client/settings/hooks/useUpdateSettingsMutation";
 import { useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } from "../../api_client/user/hooks";
+import { useServerDraft } from "../../hooks/useServerDraft";
 import { makeSignupSchema } from "../../routes/-signup.schema";
 import { reportSignupError, reportUserSaveError } from "../../util/apiErrors";
 import { AuthCard } from "../auth/AuthCard";
@@ -59,8 +61,26 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
   const { mutate: updateScanDirectory, isPending: isUpdatePending } = useUpdateUserScanDirectoryMutation({
     reportsErrors: true,
   });
-  const { mutate: updateSettings, isPending: isSettingsPending } = useUpdateSettingsMutation();
+  const { mutateAsync: updateSettings } = useUpdateSettingsMutation();
   const { data: siteSettings } = useGetSettingsQuery();
+  // The two switches start from the stored settings; a fetch of them (window focus) leaves a flip alone.
+  const toggles = useServerDraft(
+    siteSettings && { allow_upload: siteSettings.allow_upload, allow_registration: siteSettings.allow_registration },
+    {
+      save: async values => {
+        if (!values) return true;
+        try {
+          await updateSettings(values);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      isEqual,
+      // A refused save is toasted by the QueryClient; the step stays with the switches as set.
+      keepOnFailure: true,
+    }
+  );
   const scanPhotos = useScanPhotosMutation();
   const queryClient = useQueryClient();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
@@ -69,10 +89,10 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
   const [isPathValid, setIsPathValid] = useState(true);
   // Null without a scan directory: the backend refuses uploads then.
   const webUploadLocation = uploadLocation(scanDirectory);
-  const [allowUpload, setAllowUpload] = useState<boolean | null>(null);
-  const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null);
+  const allowUpload = toggles.value?.allow_upload ?? null;
+  const allowRegistration = toggles.value?.allow_registration ?? null;
   const isSavingDirectory = isUpdatePending || scanPhotos.isPending;
-  const isSavingSettings = isSettingsPending;
+  const isSavingSettings = toggles.status === "saving";
 
   const form = useForm({
     initialValues: {
@@ -85,13 +105,6 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
     },
     validate: schemaResolver(makeSignupSchema(t), { sync: true }),
   });
-
-  useEffect(() => {
-    if (siteSettings) {
-      setAllowUpload(siteSettings.allow_upload);
-      setAllowRegistration(siteSettings.allow_registration);
-    }
-  }, [siteSettings]);
 
   function onSignUp(values: typeof form.values): void {
     const { email, first_name: firstName, last_name: lastName, password } = values;
@@ -124,25 +137,15 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
     return isPathValid;
   }, [scanDirectory, isPathValid]);
 
-  const settingsChanged =
-    siteSettings &&
-    allowUpload !== null &&
-    allowRegistration !== null &&
-    (allowUpload !== siteSettings.allow_upload || allowRegistration !== siteSettings.allow_registration);
+  // Unchanged switches send nothing; a refused save stays on the step so it can be retried
+  // instead of skipping it without a word (#2224).
+  const handleSiteSettingsNext = () =>
+    void toggles.commit().then(saved => {
+      if (saved) setActiveStep(STEP_ERRORS);
+    });
 
-  const handleSiteSettingsNext = () => {
-    const goNext = () => setActiveStep(STEP_ERRORS);
-    if (settingsChanged) {
-      updateSettings(
-        { allow_upload: allowUpload ?? false, allow_registration: allowRegistration ?? false },
-        // A refused save is toasted by the QueryClient; stay on the step so it can be retried
-        // instead of skipping it without a word (#2224).
-        { onSuccess: goNext }
-      );
-      return;
-    }
-    goNext();
-  };
+  const flip = (field: "allow_upload" | "allow_registration", checked: boolean) =>
+    toggles.update(values => values && { ...values, [field]: checked });
 
   const handleFinish = () => {
     if (!canSaveDirectory) {
@@ -211,12 +214,12 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
           <Switch
             label={t("sitesettings.headerupload")}
             checked={!!allowUpload}
-            onChange={event => setAllowUpload(event.currentTarget.checked)}
+            onChange={event => flip("allow_upload", event.currentTarget.checked)}
           />
           <Switch
             label={t("sitesettings.header")}
             checked={!!allowRegistration}
-            onChange={event => setAllowRegistration(event.currentTarget.checked)}
+            onChange={event => flip("allow_registration", event.currentTarget.checked)}
           />
           <Group grow>
             <Button

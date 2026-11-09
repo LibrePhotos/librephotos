@@ -1,10 +1,9 @@
-import { userKeys } from "@librephotos/api-client";
 import type { PhotoOrder, User } from "@librephotos/api-client";
 import { useDebouncedCallback } from "@mantine/hooks";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { isEqual } from "lodash-es";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useSetPhotoOrderMutation } from "../../api_client/user/hooks/usePhotoOrder";
+import { useServerDraft } from "../../hooks/useServerDraft";
 import { ScrubberStyle } from "../scrollscrubber/scrollScrubberTypes";
 
 export type HeaderSize = "large" | "normal" | "small";
@@ -14,93 +13,71 @@ export const isHeaderSize = (value: string): value is HeaderSize =>
 
 export const isScrubberStyle = (value: string): value is ScrubberStyle => ScrubberStyle.safeParse(value).success;
 
-// The display preferences of a photo list (thumbnail size, text alignment, header
-// size, scroll scrubber style). The menu shows the local values at once; the profile is saved debounced.
+type DisplayPreferences = {
+  image_scale: number;
+  text_alignment: "left" | "right";
+  header_size: HeaderSize;
+  scrubber_style: ScrubberStyle;
+};
+
+type PreferenceFields = Pick<User, "id" | "image_scale" | "text_alignment" | "header_size" | "scrubber_style"> &
+  Partial<Pick<User, "photo_order">>;
+
+// The display preferences of a photo list (thumbnail size, text alignment, header size, scroll
+// scrubber style). The menu shows a change at once, as a draft that a fetch of the profile leaves
+// alone; the profile is saved after a pause, and a refused save shows the stored values again.
 // The photo order (#2712) is saved at once instead: every list reads it from the cached user, which
 // the save updates before it is sent, and each change reloads the list.
-export const usePhotoListPreferences = (userSelfDetails: User | undefined) => {
+export const usePhotoListPreferences = (userSelfDetails: PreferenceFields | undefined) => {
   // Silent: the debounced grid preference saves would otherwise pop an "Update user" toast.
   const updateUser = useUpdateUserMutation({ silent: true });
   const setPhotoOrder = useSetPhotoOrderMutation();
-  const queryClient = useQueryClient();
+  const userId = userSelfDetails?.id;
 
-  const imageScale = userSelfDetails?.image_scale ?? 1;
-  const textAlignment = userSelfDetails?.text_alignment ?? "left";
-  const headerSize = userSelfDetails?.header_size ?? "normal";
-  // An older server does not send it.
-  const scrubberStyle = userSelfDetails?.scrubber_style ?? "thumb";
-
-  const [localImageScale, setLocalImageScale] = useState(imageScale);
-  const [localTextAlignment, setLocalTextAlignment] = useState<"left" | "right">(textAlignment);
-  const [localHeaderSize, setLocalHeaderSize] = useState<HeaderSize>(headerSize);
-  const [localScrubberStyle, setLocalScrubberStyle] = useState<ScrubberStyle>(scrubberStyle);
-
-  useEffect(() => {
-    setLocalImageScale(imageScale);
-    setLocalTextAlignment(textAlignment);
-    setLocalHeaderSize(headerSize);
-    setLocalScrubberStyle(scrubberStyle);
-  }, [imageScale, textAlignment, headerSize, scrubberStyle]);
-
-  // Only the changed preferences are sent: echoing the whole profile back sent
-  // the avatar URL, which the backend rejects as "not a file" (#2153). Changes
-  // made within one debounce window are merged so none of them is dropped.
-  const pendingPreferences = useRef<Partial<User>>({});
-  const flushPreferences = useDebouncedCallback(() => {
-    const changes = pendingPreferences.current;
-    pendingPreferences.current = {};
-    const userId = userSelfDetails?.id;
-    if (userId) {
-      updateUser.mutate(
-        { id: userId, ...changes },
-        {
-          onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
-          },
-        }
-      );
-    }
-  }, 500);
-  const debouncedSavePreferences = (partial: Partial<User>) => {
-    pendingPreferences.current = { ...pendingPreferences.current, ...partial };
-    flushPreferences();
+  const stored: DisplayPreferences = {
+    image_scale: userSelfDetails?.image_scale ?? 1,
+    text_alignment: userSelfDetails?.text_alignment ?? "left",
+    header_size: userSelfDetails?.header_size ?? "normal",
+    // An older server does not send it.
+    scrubber_style: userSelfDetails?.scrubber_style ?? "thumb",
   };
 
-  const handleThumbnailSizeChange = (value: number) => {
-    setLocalImageScale(value);
-    debouncedSavePreferences({ image_scale: value });
-  };
-
-  const handleTextAlignmentChange = (alignment: "left" | "right") => {
-    setLocalTextAlignment(alignment);
-    debouncedSavePreferences({ text_alignment: alignment });
-  };
-
-  const handleHeaderSizeChange = (size: HeaderSize) => {
-    setLocalHeaderSize(size);
-    debouncedSavePreferences({ header_size: size });
-  };
-
-  const handleScrubberStyleChange = (style: ScrubberStyle) => {
-    setLocalScrubberStyle(style);
-    debouncedSavePreferences({ scrubber_style: style });
+  // Only the display preferences are sent: echoing the whole profile back sent the avatar URL,
+  // which the backend rejects as "not a file" (#2153).
+  const draft = useServerDraft(stored, {
+    save: async preferences => {
+      if (!userId) return false;
+      try {
+        await updateUser.mutateAsync({ id: userId, ...preferences });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    isEqual,
+  });
+  // Changes made within one pause are saved together.
+  const flush = useDebouncedCallback(() => void draft.commit(), 500);
+  const change = (patch: Partial<DisplayPreferences>) => {
+    draft.update(current => ({ ...current, ...patch }));
+    flush();
   };
 
   const handlePhotoOrderChange = (order: PhotoOrder) => {
-    if (userSelfDetails) setPhotoOrder.mutate({ userId: userSelfDetails.id, order });
+    if (userId) setPhotoOrder.mutate({ userId, order });
   };
 
   return {
-    localImageScale,
-    localTextAlignment,
-    localHeaderSize,
-    localScrubberStyle,
+    localImageScale: draft.value.image_scale,
+    localTextAlignment: draft.value.text_alignment,
+    localHeaderSize: draft.value.header_size,
+    localScrubberStyle: draft.value.scrubber_style,
     // An older server does not send it, and its lists are newest first.
     photoOrder: userSelfDetails?.photo_order ?? "newest",
     handlePhotoOrderChange,
-    handleThumbnailSizeChange,
-    handleTextAlignmentChange,
-    handleHeaderSizeChange,
-    handleScrubberStyleChange,
+    handleThumbnailSizeChange: (value: number) => change({ image_scale: value }),
+    handleTextAlignmentChange: (alignment: "left" | "right") => change({ text_alignment: alignment }),
+    handleHeaderSizeChange: (size: HeaderSize) => change({ header_size: size }),
+    handleScrubberStyleChange: (style: ScrubberStyle) => change({ scrubber_style: style }),
   };
 };

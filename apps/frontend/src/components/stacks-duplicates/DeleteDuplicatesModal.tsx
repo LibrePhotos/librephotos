@@ -7,11 +7,14 @@ export function DeleteDuplicatesModal({
   count,
   onClose,
   onConfirm,
+  loading = false,
 }: {
   opened: boolean;
   count: number;
   onClose: () => void;
   onConfirm: () => void;
+  /** The deletes run: the dialog stays open until they have all settled. */
+  loading?: boolean;
 }) {
   const { t } = useTranslation();
   // Removing a group cannot be undone, and for a resolved one it also drops the Revert history
@@ -21,6 +24,7 @@ export function DeleteDuplicatesModal({
       onClose={onClose}
       onConfirm={onConfirm}
       irreversible
+      loading={loading}
       title={t("duplicates.deleteconfirmtitle", { count })}
       message={t("duplicates.deleteconfirmdescription")}
       confirmLabel={t("delete")}

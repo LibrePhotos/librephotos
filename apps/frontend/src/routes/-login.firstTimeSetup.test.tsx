@@ -15,7 +15,8 @@ const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
   signup: vi.fn<(variables: Record<string, string>, options: { onSuccess?: () => void }) => void>(),
   login: vi.fn<(variables: unknown, options: { onSuccess?: () => void }) => void>(),
-  updateSettings: vi.fn<(variables: unknown, options: { onSuccess?: () => void; onError?: () => void }) => void>(),
+  updateSettings: vi.fn<(variables: unknown) => Promise<unknown>>(),
+  siteSettings: { allow_registration: false, allow_upload: false, email_configured: false },
   noopMutation: { mutate: () => {}, isPending: false },
 }));
 
@@ -39,14 +40,11 @@ vi.mock("../api_client/auth", () => ({
   useSsoConfigQuery: () => ({ data: { enabled: false, providers: [] } }),
 }));
 vi.mock("../api_client/jobs", () => ({ useScanPhotosMutation: () => stubs.noopMutation }));
-// One object, as React Query hands back the same data until it changes: a new one per render
-// would put the wizard's switches back on every render.
-const SITE_SETTINGS = { allow_registration: false, allow_upload: false, email_configured: false };
 vi.mock("../api_client/settings", () => ({
-  useGetSettingsQuery: () => ({ data: SITE_SETTINGS }),
+  useGetSettingsQuery: () => ({ data: stubs.siteSettings }),
 }));
 vi.mock("../api_client/settings/hooks/useUpdateSettingsMutation", () => ({
-  useUpdateSettingsMutation: () => ({ mutate: stubs.updateSettings, isPending: false }),
+  useUpdateSettingsMutation: () => ({ mutateAsync: stubs.updateSettings, isPending: false }),
 }));
 vi.mock("../api_client/user/hooks", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
@@ -87,6 +85,7 @@ beforeEach(() => {
   stubs.signup.mockReset();
   stubs.login.mockReset();
   stubs.updateSettings.mockReset();
+  stubs.siteSettings = { allow_registration: false, allow_upload: false, email_configured: false };
 });
 
 afterEach(async () => {
@@ -106,6 +105,18 @@ async function renderSetup() {
   root = mounted;
   await act(async () => {
     mounted.render(
+      <MantineProvider env="test">
+        <Login />
+      </MantineProvider>
+    );
+  });
+}
+
+/** Renders the mounted wizard again, as a fetch of the settings would. */
+async function rerenderSetup() {
+  const Login = defined(stubs.component);
+  await act(async () => {
+    defined(root).render(
       <MantineProvider env="test">
         <Login />
       </MantineProvider>
@@ -192,24 +203,32 @@ describe("the site settings step of the first-run setup", () => {
   };
 
   it("stays on the step when saving fails", async () => {
-    stubs.updateSettings.mockImplementation((_variables, options) => options.onError?.());
+    stubs.updateSettings.mockRejectedValue(new Error("refused"));
     await reachSiteSettingsStep();
 
     await act(async () => uploadSwitch().click());
     await act(async () => button(i18n.t("continue")).click());
 
-    expect(stubs.updateSettings).toHaveBeenCalledWith(
-      { allow_upload: true, allow_registration: false },
-      expect.anything()
-    );
+    expect(stubs.updateSettings).toHaveBeenCalledWith({ allow_upload: true, allow_registration: false });
     // Still the site settings step: its switches are there, the directory step is not.
     expect(uploadSwitch().checked).toBe(true);
     expect(button(i18n.t("continue"))).toBeDefined();
     expect(container.textContent).not.toContain(i18n.t("skip"));
   });
 
+  it("keeps a flipped switch when the settings are fetched again", async () => {
+    await reachSiteSettingsStep();
+    await act(async () => uploadSwitch().click());
+
+    // A window focus reads the settings again: a new object with the same values.
+    stubs.siteSettings = { ...stubs.siteSettings };
+    await rerenderSetup();
+
+    expect(uploadSwitch().checked).toBe(true);
+  });
+
   it("moves on once the save went through, to error reporting and then the library", async () => {
-    stubs.updateSettings.mockImplementation((_variables, options) => options.onSuccess?.());
+    stubs.updateSettings.mockResolvedValue({});
     await reachSiteSettingsStep();
 
     await act(async () => uploadSwitch().click());
