@@ -48,27 +48,13 @@ function placeColors(locationTimeline: LocationTimeline, scheme: ColorScheme) {
 }
 
 /**
- * Data, series and legend for the stacked Location Timeline bar.
+ * A colour per stay and the legend for the Location Timeline bar (StayBarChart).
  *
- * The backend returns one entry per stay, so a place visited twice appears
- * twice. Keying the bar by place name let the last stay overwrite the earlier
- * ones (wrong widths, every segment showing the last stay's dates), so each
- * stay gets its own key and keeps the place only as its label. The colour is
- * the place's, not the stay's.
+ * The backend returns one entry per stay, so a place visited twice appears twice, and each stay is
+ * its own segment. The colour is the place's, not the stay's.
  */
 export function locationTimelineChart(locationTimeline: LocationTimeline, scheme: ColorScheme) {
   const { colors, legend, other } = placeColors(locationTimeline, scheme);
-  const data: Record<string, number | string> = { label: "" };
-  const series = locationTimeline.map((el, i) => {
-    const name = `stay${i}`;
-    const [duration] = el.data;
-    if (duration !== undefined) data[name] = duration;
-    return { name, label: el.loc, color: colors.get(el.loc) ?? other };
-  });
-  return { data: locationTimeline.length > 0 ? [data] : [], series, legend };
-}
-
-/** The stay a series name from `locationTimelineChart` stands for. */
-export function stayForSeries(locationTimeline: LocationTimeline, seriesName: string) {
-  return locationTimeline[Number(seriesName.replace("stay", ""))];
+  const series = locationTimeline.map(el => ({ label: el.loc, color: colors.get(el.loc) ?? other }));
+  return { series, legend };
 }

@@ -154,10 +154,10 @@
       "groupName": "docs docusaurus major"
     },
     {
-      "description": "Frontend majors are split so the safe ones can merge alone. React 19 and Mantine 9 have to ship together (with recharts, which only @mantine/charts uses). Both landed in #2171.",
+      "description": "Frontend majors are split so the safe ones can merge alone. React 19 and Mantine 9 have to ship together. Both landed in #2171.",
       "matchFileNames": ["apps/frontend/**"],
       "matchUpdateTypes": ["major"],
-      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom", "/^@mantine\\//", "recharts", "@welldone-software/why-did-you-render"],
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom", "/^@mantine\\//", "@welldone-software/why-did-you-render"],
       "groupName": "frontend react and mantine"
     },
     {

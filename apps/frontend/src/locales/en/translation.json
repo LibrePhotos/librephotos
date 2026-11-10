@@ -2263,7 +2263,11 @@
     "photocount_other": "{{count, number}} photos",
     "facecount_one": "{{name}}: {{count, number}} face",
     "facecount_other": "{{name}}: {{count, number}} faces",
-    "otherplaces": "Other"
+    "otherplaces": "Other",
+    "barlabel": "{{label}}: {{value}}",
+    "monthchartsummary": "Photos per month from {{from}} to {{to}}, the most in {{peak}} ({{value}}). Use the arrow keys to read each bar.",
+    "staylabel": "{{place}}, {{from}} – {{to}}",
+    "staychartsummary": "Where your photos were taken from {{from}} to {{to}}, place by place. Use the arrow keys to read each stay."
   },
   "autoalbum": {
     "subtitle": "Showing {{ autoalbumlength }} events",

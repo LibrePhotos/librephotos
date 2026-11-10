@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defined } from "../../util/defined.test-utils";
-import { locationTimelineChart, stayForSeries } from "./locationTimelineChart";
+import { locationTimelineChart } from "./locationTimelineChart";
 
 // The shape of the backend's location timeline test fixture: home, two trips
 // that are each visited twice.
@@ -13,23 +13,14 @@ const timeline = [
 ];
 
 describe("locationTimelineChart", () => {
-  it("keeps every stay as its own segment with its own duration", () => {
-    const { data, series } = locationTimelineChart(timeline, "light");
-
-    expect(new Set(series.map(s => s.name)).size).toBe(5);
-    expect(series.map(s => s.label)).toEqual(["Germany", "Canada", "France", "Canada", "France"]);
-    expect(series.map(s => data[0]?.[s.name])).toEqual([22208418, 9413609, 20648022, 6132785, 79828]);
-  });
-
-  it("finds the stay behind a hovered segment", () => {
+  it("keeps every stay as its own segment, in order", () => {
     const { series } = locationTimelineChart(timeline, "light");
 
-    expect(stayForSeries(timeline, defined(series[1]).name)?.start).toBe(2);
-    expect(stayForSeries(timeline, defined(series[3]).name)?.start).toBe(6);
+    expect(series.map(s => s.label)).toEqual(["Germany", "Canada", "France", "Canada", "France"]);
   });
 
-  it("has no data row without stays", () => {
-    expect(locationTimelineChart([], "light")).toEqual({ data: [], series: [], legend: [] });
+  it("has nothing to draw without stays", () => {
+    expect(locationTimelineChart([], "light")).toEqual({ series: [], legend: [] });
   });
 });
 
