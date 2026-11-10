@@ -34,6 +34,8 @@ export type ContentViewerProps = {
    * viewer steps to its own next or previous photo.
    */
   onTrashToggled?: (id: string) => boolean;
+  /** Runs the trash request at once, or once the user chose to discard an unsaved edit. */
+  beforeTrash?: (trash: () => void) => void;
   /** In the middle of the toolbar: the photo's date, place and position in the list (LightboxTitle). */
   toolbarTitle?: React.ReactNode;
 };
@@ -105,6 +107,8 @@ export type LightboxControlsProps = {
   onCopyToClipboard?: () => void;
   /** Called once the photo was moved to (or restored from) the trash. */
   onAfterTrashToggle?: () => void;
+  /** Runs the trash request at once, or once the user chose to discard an unsaved edit. */
+  beforeTrash?: (trash: () => void) => void;
   /** The 360° view of a photo sphere (#483). */
   panorama?: PanoramaMode;
   /** In the middle of the toolbar: the photo's date, place and position (LightboxTitle). */

@@ -28,6 +28,7 @@ import { validatePhotoSearch } from "../photolist/photoSearch";
 import { usePhotoListLightbox } from "../photolist/usePhotoListLightbox";
 import { Lightbox } from "./Lightbox";
 import { NEXT_KEY } from "./lightbox.hotkeys";
+import type { LightboxControlsProps } from "./lightbox.types";
 import type { ThumbnailNavigationProps } from "./ThumbnailNavigation";
 import { useRegisterDraft } from "./unsavedDrafts";
 
@@ -44,12 +45,25 @@ vi.mock("motion/react", () => ({
 vi.mock("./MediaDisplay", () => ({
   MediaDisplay: () => null,
 }));
+/** The trash requests the toolbar sent; each succeeds at once. */
+const trashRequests = vi.hoisted(() => ({ count: 0 }));
 vi.mock("./LightboxControls", () => ({
-  LightboxControls: ({ onCloseRequest }: { onCloseRequest: () => void }) => (
-    <button type="button" onClick={onCloseRequest}>
-      Close
-    </button>
-  ),
+  LightboxControls: ({ onCloseRequest, beforeTrash, onAfterTrashToggle }: LightboxControlsProps) => {
+    const trash = () => {
+      trashRequests.count += 1;
+      onAfterTrashToggle?.();
+    };
+    return (
+      <>
+        <button type="button" onClick={onCloseRequest}>
+          Close
+        </button>
+        <button type="button" onClick={() => (beforeTrash ? beforeTrash(trash) : trash())}>
+          Trash
+        </button>
+      </>
+    );
+  },
 }));
 vi.mock("./ThumbnailNavigation", () => ({
   ThumbnailNavigation: ({ onMoveNextRequest }: ThumbnailNavigationProps) => (
@@ -159,6 +173,7 @@ let cleanup: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await cleanup?.();
   cleanup = undefined;
+  trashRequests.count = 0;
 });
 
 function buttonNamed(label: string): HTMLButtonElement {
@@ -310,7 +325,7 @@ describe("lightbox with an unsaved edit", () => {
     expect(draft()).toBeUndefined();
   });
 
-  it("drops the question when the edit is saved meanwhile, and the next step goes through", async () => {
+  it("takes the held step once the edit is saved meanwhile, as it lets a held Back go", async () => {
     const { photo } = await openLightbox();
     await click("Type a caption");
     await click("Next photo");
@@ -319,11 +334,51 @@ describe("lightbox with an unsaved edit", () => {
     // A save that was in flight lands: the draft equals the saved value again.
     await click("Undo typing");
 
-    await vi.waitFor(() => expect(discardDialog()).toBeNull());
-    expect(photo()).toBe("a");
-    await click("Next photo");
     await vi.waitFor(() => expect(photo()).toBe("b"));
-    expect(discardDialog()).toBeNull();
+    await vi.waitFor(() => expect(discardDialog()).toBeNull());
+    await click("Next photo");
+    await vi.waitFor(() => expect(photo()).toBe("c"));
+  });
+
+  it("answers a Back pressed while a step is held with one question, for the Back", async () => {
+    const { photo } = await openLightbox();
+    await click("Type a caption");
+    await click("Next photo");
+    await vi.waitFor(() => expect(discardDialog()).not.toBeNull());
+
+    await act(async () => window.history.back());
+    await click("Discard");
+
+    await vi.waitFor(() => expect(photo()).toBeUndefined());
+    await vi.waitFor(() => expect(discardDialog()).toBeNull());
+  });
+
+  it("asks before trashing the photo, and Keep editing leaves it alone", async () => {
+    const { photo } = await openLightbox();
+    await click("Type a caption");
+
+    await click("Trash");
+
+    await vi.waitFor(() => expect(discardDialog()).not.toBeNull());
+    expect(trashRequests.count).toBe(0);
+    await click("Keep editing");
+    await vi.waitFor(() => expect(discardDialog()).toBeNull());
+    expect(trashRequests.count).toBe(0);
+    expect(photo()).toBe("a");
+    expect(draft()).toBe("A long caption");
+  });
+
+  it("trashes after Discard and steps on without asking again", async () => {
+    const { photo } = await openLightbox();
+    await click("Type a caption");
+
+    await click("Trash");
+    await vi.waitFor(() => expect(discardDialog()).not.toBeNull());
+    await click("Discard");
+
+    await vi.waitFor(() => expect(photo()).toBe("b"));
+    expect(trashRequests.count).toBe(1);
+    await vi.waitFor(() => expect(discardDialog()).toBeNull());
   });
 
   it("lets a held Back go once the edit is saved meanwhile", async () => {

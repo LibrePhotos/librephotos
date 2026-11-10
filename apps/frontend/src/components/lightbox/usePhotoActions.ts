@@ -18,6 +18,8 @@ type Options = {
   isPublic: boolean;
   /** Called once the photo was moved to (or restored from) the trash. */
   onAfterTrashToggle?: () => void;
+  /** Runs the trash request, at once or after a question (the lightbox's unsaved edits). */
+  beforeTrash?: (trash: () => void) => void;
 };
 
 /**
@@ -27,7 +29,7 @@ type Options = {
  * so a keyboard shortcut can call it blindly. The labels are each surface's
  * own: the lightbox names its shortcut keys, the page has none.
  */
-export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle }: Options) {
+export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle, beforeTrash }: Options) {
   const { data: userDetails } = useCurrentUserSelfDetailsQuery();
   const { mutate: setFavorite } = useSetFavoritePhotosMutation();
   const { mutate: setHidden } = useSetPhotosHiddenMutation();
@@ -76,13 +78,15 @@ export function usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle }: O
   const closeShareLink = useCallback(() => setSharingPhotoId(null), []);
 
   const toggleTrash = useCallback(() => {
-    if (photo) {
+    if (!photo) return;
+    const trash = () =>
       markDeleted(
         { image_hashes: [photo.image_hash], deleted: !photo.in_trashcan },
         { onSuccess: () => onAfterTrashToggle?.() }
       );
-    }
-  }, [photo, markDeleted, onAfterTrashToggle]);
+    if (beforeTrash) beforeTrash(trash);
+    else trash();
+  }, [photo, markDeleted, onAfterTrashToggle, beforeTrash]);
 
   return {
     isFavorite,

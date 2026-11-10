@@ -42,44 +42,64 @@ type DraftsDialog = Readonly<{
 }>;
 
 /**
- * The lightbox's guard: `guard(action)` runs a step, a thumbnail pick or the close at once when no
- * draft differs from its saved value, and otherwise holds it until the dialog answers. Back and
- * links go through the same dialog.
+ * What the dialog asks about: a step the lightbox holds (an arrow, a stack photo, the close, a
+ * trash), or a navigation the router holds (Back, a link). One at a time: a navigation is the
+ * user's latest way off the photo, so it replaces a held step, which is dropped with it.
+ */
+type Question = Readonly<{ about: "step"; run: () => void }> | Readonly<{ about: "navigation" }>;
+
+/**
+ * The lightbox's guard: `guard(action)` runs a step, a thumbnail pick, the close or a trash at once
+ * when no draft differs from its saved value, and otherwise holds it until the dialog answers. Back
+ * and links go through the same dialog. A save that lands while it asks leaves nothing to lose, so
+ * whatever was asked about goes ahead, a held step as much as a held Back.
  */
 export function useLightboxDraftsGuard() {
   const drafts = useUnsavedDrafts();
   const { dirtyFields, blocker } = useDraftsLeaveGuard(drafts);
-  const [pending, setPending] = useState<{ run: () => void } | null>(null);
-  // A save that lands while the question is open leaves nothing to ask about: forget the step too,
-  // or the dialog would come back with the next edit.
+  const [heldStep, setHeldStep] = useState<{ run: () => void } | null>(null);
+  const blocked = blocker.status === "blocked";
+  const question: Question | null = blocked
+    ? { about: "navigation" }
+    : heldStep && { about: "step", run: heldStep.run };
+
   const dirty = dirtyFields.length > 0;
   useEffect(() => {
-    if (!dirty) setPending(null);
-  }, [dirty]);
+    if (dirty || heldStep === null) return;
+    setHeldStep(null);
+    // A held navigation is let go by useDraftsLeaveGuard, and replaces the step.
+    if (!blocked) heldStep.run();
+  }, [dirty, heldStep, blocked]);
 
   const guard = useCallback(
     (action: () => void) => {
       if (drafts.dirtyFields().length === 0) action();
       // A second key press while the question is open does not replace the first.
-      else setPending(current => current ?? { run: action });
+      else setHeldStep(current => current ?? { run: action });
     },
     [drafts]
   );
 
-  const blocked = blocker.status === "blocked";
+  const answer = (discard: boolean) => {
+    setHeldStep(null);
+    if (question === null) return;
+    if (discard) drafts.discardAll();
+    switch (question.about) {
+      case "navigation":
+        if (discard) blocker.proceed?.();
+        else blocker.reset?.();
+        return;
+      case "step":
+        if (discard) question.run();
+        return;
+    }
+  };
+
   const dialog: DraftsDialog = {
-    opened: (pending !== null || blocked) && dirty,
+    opened: question !== null && dirty,
     fields: dirtyFields,
-    onKeepEditing: () => {
-      setPending(null);
-      blocker.reset?.();
-    },
-    onDiscard: () => {
-      drafts.discardAll();
-      setPending(null);
-      if (blocked) blocker.proceed?.();
-      else pending?.run();
-    },
+    onKeepEditing: () => answer(false),
+    onDiscard: () => answer(true),
   };
 
   return { drafts, guard, dialog };

@@ -8,7 +8,6 @@ import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { isPhotoSphere } from "../panorama/photoSphere";
-import { usePanoramaMode } from "../panorama/usePanoramaMode";
 import classes from "./ContentViewer.module.css";
 import { ImagePreloader } from "./ImagePreloader";
 import {
@@ -32,10 +31,8 @@ import { Sidebar } from "./Sidebar";
 import { SlideTransition } from "./SlideTransition";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import { useAfterTrashToggle } from "./useAfterTrashToggle";
-import { useFaceDrawing } from "./useFaceDrawing";
-import { useLightboxZoom } from "./useLightboxZoom";
-import { usePhotoRotation } from "./usePhotoRotation";
 import { useSlideshow } from "./useSlideshow";
+import { useViewerMode } from "./useViewerMode";
 import { SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./videoFailure";
 import { ViewerDarkScope } from "./ViewerDarkScope";
 
@@ -74,14 +71,12 @@ export function ContentViewer({
   startSlideshow,
   gridItem,
   onTrashToggled,
+  beforeTrash,
   toolbarTitle,
 }: ContentViewerProps) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
   const [embla, setEmbla] = useState<EmblaApi | null>(null);
-  const [playing, setPlaying] = useState(true);
-  // "Live text": overlay selectable OCR text on the photo
-  const [showOcrText, setShowOcrText] = useState(false);
 
   const contentRef = useRef<HTMLDivElement>(null);
   // Fullscreen support. The whole document goes fullscreen, as it always has
@@ -89,29 +84,27 @@ export function ContentViewer({
   // to be handed was ignored), and useFullscreenDocument is its Mantine 9 successor.
   const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreenDocument();
 
-  const slideshow = useSlideshow({ startSlideshow, isPublic, type, mainSrc, nextSrc, onMoveNextRequest });
-
   // Use image_hash for API calls since backend still uses image_hash for lookup
   // Skip this query on public pages since we don't have authenticated access to photo details
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash, isPublic);
   const { mainType } = mainSlide(type, isPublic, isPhotoDetailsLoading);
-  const { isZoomed, scale, offset, toggleZoom, isMagnified, bind } = useLightboxZoom(mainSrc);
   const { t } = useTranslation();
-  // A photo sphere opens flat; "360° view" (V) shows it in the panorama viewer (#483). A public
-  // page has no details, so the grid's entry says whether it is one.
-  const panorama = usePanoramaMode({
-    sphere: type === "photo" && isPhotoSphere(photoDetails ?? gridItem),
-    photoKey: mainSrc,
-  });
-  // The rotate buttons only show once the details are in.
-  const { rotationAngle, imageCacheKey, suppressRotationTransition, rotate, onImageLoad } = usePhotoRotation(
-    mainSrcHash,
-    mainSrc
-  );
   // Marking a face the detector missed; the hover box of a listed face would cover the drawing.
   const clearFaceLocation = useCallback(() => setFaceLocation(null), []);
-  const faceDrawing = useFaceDrawing(mainSrcHash, clearFaceLocation);
-
+  // A photo sphere opens flat; "360° view" (V) shows it in the panorama viewer (#483). A public
+  // page has no details, so the grid's entry says whether it is one.
+  const modes = useViewerMode({
+    mainSrc,
+    mainSrcHash,
+    still: type === "photo",
+    sphere: type === "photo" && isPhotoSphere(photoDetails ?? gridItem),
+    onStartFace: clearFaceLocation,
+  });
+  const { zoom, panorama, faceDrawing, rotation, playing, setPlaying, showOcrText, toggleOcrText, held } = modes;
+  const { isZoomed, scale, offset, toggleZoom, isMagnified, bind } = zoom;
+  // The rotate buttons only show once the details are in.
+  const { rotationAngle, imageCacheKey, suppressRotationTransition, rotate, onImageLoad } = rotation;
+  const slideshow = useSlideshow({ startSlideshow, isPublic, type, mainSrc, nextSrc, onMoveNextRequest, held });
   // A drawn box is read against the layer's on-screen rect, which stays right
   // through zoom and pan but not through rotation: the rect of a rotated
   // rectangle is its bounding box, so the fractions would not line up.
@@ -126,18 +119,8 @@ export function ContentViewer({
     if (canCopyPhoto) copyPhotoToClipboard({ imageHash: mainSrcHash, cacheKey: imageCacheKey });
   }, [canCopyPhoto, copyPhotoToClipboard, mainSrcHash, imageCacheKey]);
 
-  // Reset playing state when slide changes
-  useEffect(() => {
-    setPlaying(true);
-    setShowOcrText(false);
-  }, [mainSrc]);
-
   const ocrBlocks = liveTextBlocks(photoDetails, type);
   const hasOcrText = ocrBlocks !== undefined;
-
-  const toggleOcrText = useCallback(() => {
-    setShowOcrText(prev => !prev);
-  }, []);
 
   // Setup slide change handler for Embla
   useEffect(() => {
@@ -296,6 +279,7 @@ export function ContentViewer({
                   toggleOcrText={toggleOcrText}
                   onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
                   onAfterTrashToggle={handleAfterTrashToggle}
+                  beforeTrash={beforeTrash}
                   title={toolbarTitle}
                 />
 
@@ -360,6 +344,7 @@ export function ContentViewer({
                           handleDragStart={handleDragStart}
                           playing={playing}
                           onEnded={slideshow.handleVideoEnded}
+                          onUnplayable={slideshow.handleVideoUnplayable}
                           rotationAngle={rotationAngle}
                           imageCacheKey={imageCacheKey}
                           suppressRotationTransition={suppressRotationTransition}

@@ -15,6 +15,7 @@ import { ContentViewer, escapeTargetsLightbox } from "./ContentViewer";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { useLightboxCommands, type LightboxCommands } from "./lightboxCommands";
 import type { MediaDisplayProps } from "./MediaDisplay";
+import { createUnsavedDrafts, UnsavedDraftsContext, type UnsavedDrafts } from "./unsavedDrafts";
 
 /** What the stubbed details query answers: a test sets only the fields it is about. */
 type DetailsStub = { data: Partial<Photo> | undefined; isLoading: boolean };
@@ -130,7 +131,10 @@ afterEach(async () => {
   stubs.details = { data: undefined, isLoading: false };
 });
 
-async function renderViewer(props: Partial<React.ComponentProps<typeof ContentViewer>> = {}) {
+async function renderViewer(
+  props: Partial<React.ComponentProps<typeof ContentViewer>> = {},
+  drafts: UnsavedDrafts = createUnsavedDrafts()
+) {
   const handlers = {
     onCloseRequest: vi.fn<() => void>(),
     onMovePrevRequest: vi.fn<() => void>(),
@@ -143,19 +147,21 @@ async function renderViewer(props: Partial<React.ComponentProps<typeof ContentVi
     await act(async () => {
       root.render(
         <MantineProvider>
-          <ContentViewer
-            mainSrc="b"
-            mainSrcHash="hb"
-            nextSrc="c"
-            nextSrcHash="hc"
-            prevSrc="a"
-            prevSrcHash="ha"
-            type="photo"
-            enableZoom
-            isPublic={false}
-            {...handlers}
-            {...overrides}
-          />
+          <UnsavedDraftsContext.Provider value={drafts}>
+            <ContentViewer
+              mainSrc="b"
+              mainSrcHash="hb"
+              nextSrc="c"
+              nextSrcHash="hc"
+              prevSrc="a"
+              prevSrcHash="ha"
+              type="photo"
+              enableZoom
+              isPublic={false}
+              {...handlers}
+              {...overrides}
+            />
+          </UnsavedDraftsContext.Provider>
         </MantineProvider>
       );
     });
@@ -543,5 +549,102 @@ describe("ContentViewer 360° view", () => {
     await rerender(NEXT_ITEM);
 
     expect(lastControls().panorama?.active).toBe(false);
+  });
+});
+
+/** A photo sphere with recognised text: every mode the viewer has can be turned on for it. */
+const SPHERE_WITH_TEXT = {
+  image_hash: "hb",
+  projection_type: "equirectangular",
+  ocr: {
+    text: "EXIT",
+    blocks: [
+      {
+        text: "EXIT",
+        box: [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+          [0, 1],
+        ],
+      },
+    ],
+  },
+};
+
+describe("ContentViewer on the next photo", () => {
+  it("shows it flat, unrotated and without live text from its very first render", async () => {
+    stubs.details = { data: SPHERE_WITH_TEXT, isLoading: false };
+    const { rerender } = await renderViewer();
+    await press("t");
+    await act(async () => lastControls().onRotate(90));
+    await press("v");
+    expect(defined(stubs.media.at(-1))).toMatchObject({ panoramaActive: true, rotationAngle: 90, showOcrText: true });
+
+    await rerender(NEXT_ITEM);
+
+    const next = stubs.media.filter(props => props.id === "c");
+    expect(next.length).toBeGreaterThan(0);
+    for (const props of next) {
+      expect(props).toMatchObject({ panoramaActive: false, rotationAngle: 0, showOcrText: false, scale: 1 });
+    }
+  });
+});
+
+describe("ContentViewer slideshow", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function slideshow(drafts?: UnsavedDrafts) {
+    vi.useFakeTimers();
+    const viewer = await renderViewer({ startSlideshow: true }, drafts);
+    const wait = (ms: number) => act(async () => vi.advanceTimersByTime(ms));
+    return { ...viewer, wait };
+  }
+
+  it("waits while the photo is zoomed, and goes on once it is not", async () => {
+    const { onMoveNextRequest, wait } = await slideshow();
+    await press("z");
+
+    await wait(20000);
+    expect(onMoveNextRequest).not.toHaveBeenCalled();
+
+    await press("z");
+    await wait(5000);
+    expect(onMoveNextRequest).toHaveBeenCalledOnce();
+  });
+
+  it("waits while live text is shown", async () => {
+    stubs.details = { data: SPHERE_WITH_TEXT, isLoading: false };
+    const { onMoveNextRequest, wait } = await slideshow();
+    await press("t");
+
+    await wait(20000);
+
+    expect(onMoveNextRequest).not.toHaveBeenCalled();
+  });
+
+  it("waits while an edit is unsaved, rather than asking to discard it", async () => {
+    const drafts = createUnsavedDrafts();
+    const { onMoveNextRequest, wait } = await slideshow(drafts);
+    await act(async () => drafts.set("caption", true));
+
+    await wait(20000);
+    expect(onMoveNextRequest).not.toHaveBeenCalled();
+
+    await act(async () => drafts.set("caption", false));
+    await wait(5000);
+    expect(onMoveNextRequest).toHaveBeenCalledOnce();
+  });
+
+  it("moves on from a video that cannot play after a photo's time", async () => {
+    vi.useFakeTimers();
+    const { onMoveNextRequest } = await renderViewer({ startSlideshow: true, type: "video" });
+
+    await act(async () => defined(defined(stubs.media.at(-1)).onUnplayable)());
+    await act(async () => vi.advanceTimersByTime(5000));
+
+    expect(onMoveNextRequest).toHaveBeenCalledOnce();
   });
 });

@@ -112,6 +112,21 @@ describe("usePhotoActions", () => {
     expect(onAfterTrashToggle).toHaveBeenCalledTimes(1);
   });
 
+  it("sends the trash request only once beforeTrash lets it", async () => {
+    let held: (() => void) | undefined;
+    const beforeTrash = vi.fn((trash: () => void) => {
+      held = trash;
+    });
+    const hook = await renderHook(usePhotoActions, { photoDetail: photo, isPublic: false, beforeTrash });
+
+    act(() => hook.current().toggleTrash());
+    expect(beforeTrash).toHaveBeenCalledOnce();
+    expect(stubs.deleted).not.toHaveBeenCalled();
+
+    act(() => defined(held)());
+    expect(stubs.deleted).toHaveBeenCalledWith({ image_hashes: ["h1"], deleted: true }, expect.anything());
+  });
+
   it("opens and closes the share link dialog for the photo", async () => {
     const hook = await renderHook(usePhotoActions, { photoDetail: photo, isPublic: false });
     act(() => hook.current().openShareLink());
