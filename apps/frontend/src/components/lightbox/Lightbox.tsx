@@ -130,18 +130,20 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
       const target =
         neighbour(shownItems, shownIndex, 1, nowRemoved) ?? neighbour(shownItems, shownIndex, -1, nowRemoved);
       if (target === null) return false;
-      guard(() => goTo(target.id));
+      // Not guarded: the trash itself asked first (beforeTrash), and the photo is gone from the list.
+      goTo(target.id);
       return true;
     },
-    [markRemoved, guard, goTo]
+    [markRemoved, goTo]
   );
 
   const getMediaType = () => {
     if (photoDetails === undefined || photoDetails === null) {
-      // A public or shared page never fetches details, but the grid item still
-      // knows it is a video. A motion photo stays a still there: its clip is
-      // served only to the owner and for photos marked public.
-      if (!isPublic) return "photo";
+      // A public or shared page never fetches details, and a signed-in one is
+      // still loading them, but the grid item already knows it is a video (the
+      // viewer shows it as its poster until the details say how to play it). A
+      // motion photo stays a still until then: its clip is served only to the
+      // owner and for photos marked public.
       return currentItem?.type === "video" ? "video" : "photo";
     }
 
@@ -187,6 +189,7 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
           onMoveNextRequest={onMoveNextRequest}
           onPhotoSelect={handlePhotoSelect}
           onTrashToggled={handleTrashToggled}
+          beforeTrash={guard}
           startSlideshow={startSlideshow}
           gridItem={gridItem}
           toolbarTitle={

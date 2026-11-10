@@ -71,6 +71,7 @@ export function ContentViewer({
   startSlideshow,
   gridItem,
   onTrashToggled,
+  beforeTrash,
   toolbarTitle,
 }: ContentViewerProps) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
@@ -95,6 +96,7 @@ export function ContentViewer({
   const modes = useViewerMode({
     mainSrc,
     mainSrcHash,
+    still: type === "photo",
     sphere: type === "photo" && isPhotoSphere(photoDetails ?? gridItem),
     onStartFace: clearFaceLocation,
   });
@@ -277,6 +279,7 @@ export function ContentViewer({
                   toggleOcrText={toggleOcrText}
                   onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
                   onAfterTrashToggle={handleAfterTrashToggle}
+                  beforeTrash={beforeTrash}
                   title={toolbarTitle}
                 />
 

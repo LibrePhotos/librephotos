@@ -26,6 +26,8 @@ function viewerMode(flags: ModeFlags): ViewerMode {
 type Args = {
   mainSrc: string;
   mainSrcHash: string;
+  /** The item is a still: zoom and live text apply (a video's details can arrive after a Z). */
+  still: boolean;
   /** The photo shown is a photo sphere: the 360° view can be turned on. */
   sphere: boolean;
   /** A face is about to be drawn: the hover box of a listed face would cover it. */
@@ -38,7 +40,7 @@ type Args = {
  * browsing (unrotated, a video playing) from its first render. The slideshow is `held` while any
  * mode is on or an edit is unsaved: a slideshow step would then ask to discard it.
  */
-export function useViewerMode({ mainSrc, mainSrcHash, sphere, onStartFace }: Args) {
+export function useViewerMode({ mainSrc, mainSrcHash, still, sphere, onStartFace }: Args) {
   const zoom = useLightboxZoom(mainSrc);
   const panorama = usePanoramaMode({ sphere, photoKey: mainSrc });
   const exitPanorama = panorama.exit;
@@ -62,8 +64,8 @@ export function useViewerMode({ mainSrc, mainSrcHash, sphere, onStartFace }: Arg
   const mode = viewerMode({
     panorama: panorama.active,
     drawingFace: faceDrawing.isDrawing || faceDrawing.drawnBox !== null,
-    zoomed: zoom.isMagnified,
-    liveText: showOcrText,
+    zoomed: still && zoom.isMagnified,
+    liveText: still && showOcrText,
   });
 
   return {

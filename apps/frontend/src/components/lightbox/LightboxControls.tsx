@@ -126,6 +126,7 @@ export function LightboxControls({
   toggleOcrText,
   onCopyToClipboard,
   onAfterTrashToggle,
+  beforeTrash,
   panorama,
   title,
 }: LightboxControlsProps) {
@@ -133,7 +134,7 @@ export function LightboxControls({
   const compact = useCompactViewer();
 
   // Favourite, hide, archive, share link and trash, as the photo page has them too.
-  const actions = usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle });
+  const actions = usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle, beforeTrash });
 
   // The keyboard shortcuts of the lightbox that owns this toolbar
   const commands = useLightboxCommands();

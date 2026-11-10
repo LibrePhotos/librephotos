@@ -95,8 +95,17 @@ describe("Lightbox media type without photo details", () => {
     expect(props.type).toBe("photo");
   });
 
-  it("waits for the details on a signed-in page instead of guessing", async () => {
+  it("takes the grid's word for a video while a signed-in page loads the details", async () => {
+    // The viewer shows it as its poster until the details say how to play it, but never treats
+    // it as a still meanwhile (a zoom, the slideshow's photo timer).
     const props = await open([{ id: "a", image_hash: "ha", type: "video" }], "a");
+
+    expect(props.type).toBe("video");
+    expect(props.enableZoom).toBe(false);
+  });
+
+  it("keeps a motion photo a still until its details say it has a clip", async () => {
+    const props = await open([{ id: "a", image_hash: "ha", type: "motion_photo" }], "a");
 
     expect(props.type).toBe("photo");
   });
