@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import os
+import sys
 import time
 import uuid
 from collections.abc import Iterator, Mapping
@@ -66,31 +67,48 @@ def isValidNCMedia(file_obj: _RemoteFile) -> bool:
         return False
 
 
-# How deep and how large a scan directory may be. Far beyond any photo
-# library, so only a server that answers in circles or without end hits them.
+# How deep and how large a scan directory may be. A power user's library is a
+# million files; these leave room for twice that, in folders of 10 files on
+# average, so only a server that answers in circles or without end hits them.
 MAX_FOLDER_DEPTH = 100
-MAX_LISTED_ENTRIES = 5_000_000
+MAX_LISTED_ENTRIES = 2_500_000
+MAX_FOLDERS = 250_000
+# What the walk may hold of the listed entries (each RemoteFile with its
+# strings, as sys.getsizeof counts them), and so the most it holds: a listed
+# entry is either still waiting in a listing being walked, kept as a photo,
+# or dropped. A million files with 80-character paths take about 300 MB.
+MAX_WALK_BYTES = 1024 * 1024 * 1024
 
 
 class NextcloudWalkLimitError(Exception):
     """The scan directory is deeper or larger than a scan walks."""
 
 
-def collect_photos(nc: NextcloudClient, path: str, photos: list[_RemoteFile]) -> None:
-    """Every media file below ``path``, depth first in listing order.
+def retained_bytes(entry: _RemoteFile) -> int:
+    """The memory ``entry`` holds: the object, its path and property values."""
+    values = [entry.path, *(v for v in entry.attributes.values() if v)]
+    return sys.getsizeof(entry) + sum(map(sys.getsizeof, values))
 
-    Each folder is listed once, at most ``MAX_FOLDER_DEPTH`` folders deep and
-    ``MAX_LISTED_ENTRIES`` entries in all; beyond either the scan fails with
+
+def collect_photos(nc: NextcloudClient, path: str, photos: list[_RemoteFile]) -> bool:
+    """Every media file below ``path``, depth first in listing order; whether
+    every listing was complete (named no entry it had to leave out).
+
+    Each folder is listed once, at most ``MAX_FOLDER_DEPTH`` folders deep,
+    ``MAX_FOLDERS`` folders, ``MAX_LISTED_ENTRIES`` entries and
+    ``MAX_WALK_BYTES`` of them in all; beyond any the scan fails with
     NextcloudWalkLimitError rather than walk on.
     """
     visited: set[str] = set()
     listed = 0
+    held = 0
+    complete = True
     # Iterators over listings, so files and folders keep the order of the
     # recursion this replaced.
     stack: list[Iterator[_RemoteFile]] = []
 
     def enter(folder: str) -> None:
-        nonlocal listed
+        nonlocal listed, held, complete
         key = folder.rstrip("/") + "/"
         if key in visited:
             return
@@ -100,12 +118,23 @@ def collect_photos(nc: NextcloudClient, path: str, photos: list[_RemoteFile]) ->
                 f"The Nextcloud scan directory is more than {MAX_FOLDER_DEPTH} "
                 "folders deep."
             )
+        if len(visited) > MAX_FOLDERS:
+            raise NextcloudWalkLimitError(
+                f"The Nextcloud scan directory holds more than {MAX_FOLDERS} folders."
+            )
         entries = nc.list(folder)
+        complete = complete and not getattr(entries, "skipped", 0)
         listed += len(entries)
         if listed > MAX_LISTED_ENTRIES:
             raise NextcloudWalkLimitError(
                 f"The Nextcloud scan directory holds more than {MAX_LISTED_ENTRIES} "
                 "files and folders."
+            )
+        held += sys.getsizeof(key) + sum(map(retained_bytes, entries))
+        if held > MAX_WALK_BYTES:
+            raise NextcloudWalkLimitError(
+                "The Nextcloud scan directory lists more than "
+                f"{MAX_WALK_BYTES // 2**20} MiB of file names and details."
             )
         stack.append(iter(entries))
 
@@ -118,6 +147,7 @@ def collect_photos(nc: NextcloudClient, path: str, photos: list[_RemoteFile]) ->
             enter(x.path)
         elif isValidNCMedia(x):
             photos.append(x)
+    return complete
 
 
 def remote_mtime(file_obj: _RemoteFile) -> float | None:
@@ -388,7 +418,7 @@ def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
         nc = connect(user)
 
         remote_files: list[_RemoteFile] = []
-        collect_photos(nc, user.nextcloud_scan_directory, remote_files)
+        complete = collect_photos(nc, user.nextcloud_scan_directory, remote_files)
 
         # Only new and changed files are handed on: every one of them is
         # processed in full, and an unchanged indexed file has nothing new to
@@ -416,8 +446,14 @@ def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
         logger.info("Added %s photos", len(paths))
 
         lrj.stop_if_cancelled()
-        scope = local_path_for(root, user.nextcloud_scan_directory) or root
-        detach_deleted_files(user, scope, synced.listed)
+        if complete:
+            scope = local_path_for(root, user.nextcloud_scan_directory) or root
+            detach_deleted_files(user, scope, synced.listed)
+        else:
+            # A file the server named but the walk left out is not gone.
+            logger.warning(
+                "Not flagging Nextcloud files as gone: the listings left entries out"
+            )
         update_scan_counter(job_id, item=item_key("nextcloud-gone", job_id))
     except JobCancelledError:
         logger.info("Nextcloud scan job %s was cancelled", lrj.job_id)

@@ -46,7 +46,7 @@ from django.conf import settings
 from urllib3.exceptions import LocationParseError
 from urllib3.util import parse_url
 
-from nextcloud.webdav import NextcloudClient, UnexpectedHostError
+from nextcloud.webdav import NextcloudClient, UnexpectedHostError, has_dot_segment
 
 if TYPE_CHECKING:
     from api.models.user import User
@@ -158,7 +158,9 @@ def validate_server_address(url: str) -> None:
 
     A server address is a scheme, a host and an optional path: a query, a
     fragment or parameters (``?``, ``#``, ``;``) are refused, so every URL the
-    client builds from it stays on its host.
+    client builds from it stays on its host, and so is a ``.`` or ``..``
+    folder in the path, which would send the requests to another path than
+    the one the client reads the answers against.
     """
     url = (url or "").strip()
     if not url:
@@ -169,6 +171,11 @@ def validate_server_address(url: str) -> None:
             "https://cloud.example.com/nextcloud, without ?, # or ;."
         )
     _check_destination(url)
+    if has_dot_segment(url):
+        raise UnsafeServerAddress(
+            "The Nextcloud server address has to be a plain address such as "
+            "https://cloud.example.com/nextcloud, without . or .. folders."
+        )
 
 
 def _check_destination(url: str) -> None:

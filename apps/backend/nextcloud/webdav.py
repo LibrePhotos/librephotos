@@ -15,22 +15,25 @@ user's WebDAV root, starting with ``/``, a folder's ending with ``/``. They
 are quoted on the way out and unquoted on the way in. A path from the server
 (an ``href``) is only used when it lies under the user's WebDAV root on the
 configured server and has no ``.`` or ``..`` segment, backslash or control
-character; a listing answers only the entries directly in the listed folder.
+character; a listing answers only the entries directly in the listed folder,
+and an answer that names neither that folder nor anything in it is refused,
+so a scan never takes a misread answer for an empty folder.
 
 The listing XML is parsed with expat directly, as it arrives: a document
 type declaration or an entity declaration is refused outright, one
 ``<d:response>`` at a time is held as a tree, and a listing larger than
 ``MAX_LISTING_BYTES`` or with more than ``MAX_LISTING_ENTRIES`` entries is
-refused.
+refused. Of each entry only its path and the properties the scan reads are
+kept (``KEPT_PROPERTIES``, each at most ``MAX_PROPERTY_CHARS`` long).
 """
 
 from __future__ import annotations
 
 import logging
 import re
+import sys
 import xml.etree.ElementTree as ET
-from collections.abc import Callable
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING
 from urllib.parse import quote, unquote, urlparse, urlsplit
 from xml.parsers import expat
@@ -53,6 +56,19 @@ MAX_LISTING_ENTRIES = 100_000
 # Any other answer that is read whole (the capabilities) is far smaller.
 MAX_ANSWER_BYTES = 1024 * 1024
 DOWNLOAD_CHUNK_BYTES = 64 * 1024
+
+# The properties of an entry the scan reads; every other one is dropped as the
+# listing is read. A value longer than MAX_PROPERTY_CHARS is none of these (an
+# HTTP date, a size, a MIME type), so it is dropped too.
+KEPT_PROPERTIES = (
+    "{DAV:}getlastmodified",
+    "{DAV:}getcontentlength",
+    "{DAV:}getcontenttype",
+)
+MAX_PROPERTY_CHARS = 256
+# Nextcloud stores paths of up to 4000 characters; an entry with a longer one
+# is left out like an unsafe one.
+MAX_PATH_CHARS = 4096
 
 _CAPABILITIES = "ocs/v1.php/cloud/capabilities"
 _UNSAFE_PATH = re.compile(r"[\x00-\x1f\x7f\\]")
@@ -82,29 +98,79 @@ class UnsafeRemotePathError(ValueError):
     """A remote path with a ``.``/``..`` segment, a backslash or a control character."""
 
 
-@dataclass
 class RemoteFile:
     """A file or folder of a listing (what the scan read of pyocclient's FileInfo).
 
-    A folder's ``href`` ends with ``/``, which is how pyocclient told them apart.
+    A folder's ``href`` ends with ``/``, which is how pyocclient told them
+    apart. Only ``KEPT_PROPERTIES`` of ``attributes`` are kept, each up to
+    ``MAX_PROPERTY_CHARS``, in slots: a scan holds one per listed entry.
     """
 
-    path: str
-    attributes: dict[str, str | None] = field(default_factory=dict)
-    directory: bool = False
+    __slots__ = ("content_length", "content_type", "directory", "last_modified", "path")
+
+    def __init__(
+        self,
+        path: str,
+        attributes: Mapping[str, str | None] | None = None,
+        directory: bool = False,
+    ) -> None:
+        kept = [_kept_value(attributes or {}, name) for name in KEPT_PROPERTIES]
+        self.path = path
+        self.last_modified, self.content_length, content_type = kept
+        # Few distinct ones: one string each for the whole scan.
+        self.content_type = sys.intern(content_type) if content_type else None
+        self.directory = directory
+
+    @property
+    def attributes(self) -> dict[str, str | None]:
+        values = (self.last_modified, self.content_length, self.content_type)
+        return {
+            name: value
+            for name, value in zip(KEPT_PROPERTIES, values, strict=True)
+            if value is not None
+        }
 
     def is_dir(self) -> bool:
         return self.directory
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, RemoteFile):
+            return NotImplemented
+        return (self.path, self.attributes, self.directory) == (
+            other.path,
+            other.attributes,
+            other.directory,
+        )
+
+    __hash__ = None  # type: ignore[assignment]
+
+    def __repr__(self) -> str:
+        return f"RemoteFile({self.path!r}, {self.attributes!r}, directory={self.directory})"
+
+
+class Listing(list[RemoteFile]):
+    """A folder's entries, and how many the answer named that were left out
+    because they are not plain paths below the user's WebDAV root
+    (``skipped``): a listing with any is incomplete."""
+
+    skipped: int = 0
+
+
+def _kept_value(attributes: Mapping[str, str | None], name: str) -> str | None:
+    value = attributes.get(name)
+    if value is None or len(value) > MAX_PROPERTY_CHARS:
+        return None
+    return value
+
 
 def clean_path(path: str) -> str:
-    """``path`` relative to the WebDAV root, starting with ``/``.
+    """``path`` relative to the WebDAV root, starting with ``/``, with
+    repeated slashes as one (``//A//`` is ``/A/``, as pyocclient read it).
 
     Raises UnsafeRemotePathError for a ``.`` or ``..`` segment, a backslash
     or a control character: none of them can name a file below the root.
     """
-    if not path.startswith("/"):
-        path = "/" + path
+    path = re.sub("/+", "/", "/" + path)
     segments = path.split("/")
     if _UNSAFE_PATH.search(path) or any(s in (".", "..") for s in segments):
         raise UnsafeRemotePathError("the remote path is not a plain path")
@@ -120,6 +186,14 @@ def base_url(address: str) -> str:
     parts = urlsplit(address.strip())
     path = re.sub("/+", "/", "/" + parts.path.split(";")[0] + "/")
     return f"{parts.scheme}://{parts.netloc}{path}"
+
+
+def has_dot_segment(url: str) -> bool:
+    """Whether the path of ``url`` has a ``.`` or ``..`` segment (also
+    percent-encoded), which urllib3 resolves before it sends the request:
+    the server would get another path than the one built here."""
+    segments = urlsplit(url).path.split("/")
+    return any(unquote(segment) in (".", "..") for segment in segments)
 
 
 def dial_target(url: str) -> tuple[str, str, int]:
@@ -233,11 +307,16 @@ class NextcloudClient:
         self._webdav_url = ""
 
     def _checked(self, url: str) -> str:
-        """``url``, if it goes to the checked server; raises UnexpectedHostError."""
+        """``url``, if it goes to the checked server and path; raises
+        UnexpectedHostError."""
         if dial_target(url) != self._target:
             raise UnexpectedHostError(
                 "The Nextcloud server address is ambiguous: it can be read as "
                 "more than one host."
+            )
+        if has_dot_segment(url):
+            raise UnexpectedHostError(
+                "The Nextcloud server address has a . or .. folder in its path."
             )
         return url
 
@@ -292,30 +371,34 @@ class NextcloudClient:
         self._root_paths = (root, webdav if root == files else files)
 
     # ----------------------------------------------------------------- list
-    def list(self, path: str) -> list[RemoteFile]:
+    def list(self, path: str) -> Listing:
         """The files and folders directly in the folder ``path``.
 
         The folder itself and any entry a server names outside it are left
-        out. Raises ResponseError for an error status, InvalidAnswerError for
-        an answer that is not a readable listing or is too large,
+        out; ``skipped`` on the answer counts the entries left out for not
+        being plain paths below the WebDAV root. Raises ResponseError for an
+        error status, InvalidAnswerError for an answer that is not a readable
+        listing, is too large, or names neither the folder nor anything in it,
         UnsafeRemotePathError for a ``path`` with ``..`` and the like.
         """
         path = clean_path(path)
         if not path.endswith("/"):
             path += "/"
-        listed: list[RemoteFile] = []
-        skipped = 0
+        listed = Listing()
+        found_folder = False
 
         def take(element: ET.Element) -> None:
-            nonlocal skipped
+            nonlocal found_folder
             item = self._remote_file(element)
             if item is None:
-                skipped += 1
+                listed.skipped += 1
+            elif item.path.rstrip("/") == path.rstrip("/"):
+                found_folder = True
             elif _parent(item.path) == path:
                 if len(listed) >= MAX_LISTING_ENTRIES:
                     raise InvalidAnswerError(207, "the folder has too many entries")
                 listed.append(item)
-            elif item.path != path:
+            else:
                 logger.debug("Left %r out of a Nextcloud listing: not in it", item.path)
 
         response = self._request(
@@ -325,7 +408,9 @@ class NextcloudClient:
             if response.status_code not in (200, 207):
                 raise ResponseError(response.status_code)
             if response.status_code != 207:
-                return []  # pyocclient answered a 200 with no listing either
+                raise InvalidAnswerError(
+                    response.status_code, "the answer is no listing"
+                )
             stream = _ResponseStream(take)
             received = 0
             for chunk in response.iter_content(DOWNLOAD_CHUNK_BYTES):
@@ -336,11 +421,15 @@ class NextcloudClient:
             stream.feed(b"", final=True)
         finally:
             response.close()
-        if skipped:
+        if not found_folder and not listed:
+            # Every WebDAV server names the listed folder itself: an answer
+            # without it or anything in it was not read as the folder.
+            raise InvalidAnswerError(207, "the answer does not list the folder")
+        if listed.skipped:
             logger.warning(
                 "Left %d entries out of a Nextcloud listing: they are not below "
                 "the user's WebDAV folder",
-                skipped,
+                listed.skipped,
             )
         return listed
 
@@ -366,6 +455,8 @@ class NextcloudClient:
                 return None
         # Compared decoded: servers differ in how they percent-encode.
         decoded = unquote(target.path)
+        if len(decoded) > MAX_PATH_CHARS:
+            return None
         for root in self._root_paths:
             prefix = unquote(root)
             if decoded == prefix or decoded.startswith(prefix + "/"):
@@ -433,4 +524,4 @@ def _properties(element: ET.Element) -> dict[str, str | None]:
     prop = chosen.find("{DAV:}prop") if chosen is not None else None
     if prop is None:
         return {}
-    return {child.tag: child.text for child in prop}
+    return {child.tag: child.text for child in prop if child.tag in KEPT_PROPERTIES}

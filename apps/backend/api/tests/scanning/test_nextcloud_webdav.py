@@ -92,7 +92,10 @@ class LoginTest(_Client):
     def test_a_server_with_chunked_uploads_is_used_at_remote_php_webdav(self):
         nc, fake = client_for("https://cloud.example/")
         fake.answer(
-            "PROPFIND", "/remote.php/webdav/", 207, b"<d:multistatus xmlns:d='DAV:'/>"
+            "PROPFIND",
+            "/remote.php/webdav/",
+            207,
+            b"<d:multistatus xmlns:d='DAV:'><d:response><d:href>/remote.php/webdav/</d:href></d:response></d:multistatus>",
         )
         self.assertEqual(nc.list("/"), [])
         request, timeout, verify = fake.sent[-1]
@@ -110,7 +113,7 @@ class LoginTest(_Client):
             "PROPFIND",
             "/nextcloud/remote.php/dav/files/bob%20smith/",
             207,
-            b"<d:multistatus xmlns:d='DAV:'/>",
+            b"<d:multistatus xmlns:d='DAV:'><d:response><d:href>/nextcloud/remote.php/dav/files/bob%20smith/</d:href></d:response></d:multistatus>",
         )
         self.assertEqual(nc.list("/"), [])
 
@@ -147,7 +150,7 @@ class LoginTest(_Client):
             "PROPFIND",
             "/remote.php/webdav/Photos/",
             207,
-            b"<d:multistatus xmlns:d='DAV:'/>",
+            b"<d:multistatus xmlns:d='DAV:'><d:response><d:href>/remote.php/webdav/Photos/</d:href></d:response></d:multistatus>",
         )
         fake.answer("GET", "/remote.php/webdav/Photos/a.jpg", 200, b"jpeg")
         nc.list("/Photos")
@@ -173,7 +176,8 @@ class LoginTest(_Client):
 
 class ListingMatchesPyocclientTest(_Client):
     """Every recorded answer gives the listing pyocclient gave (minus its first
-    entry, the folder itself, which ``list`` left out)."""
+    entry, the folder itself, which ``list`` left out), with the properties
+    the scan reads (``KEPT_PROPERTIES``): the client keeps no others."""
 
     def test_every_recorded_answer(self):
         with open(FIXTURES / "multistatus_cases.json", encoding="utf-8") as handle:
@@ -185,7 +189,17 @@ class ListingMatchesPyocclientTest(_Client):
             # pyocclient kept absolute hrefs whole (a URL as the path); the
             # same answer with relative hrefs says what they name.
             relative = by_key[(case["server"], case["endpoint"], case["name"], False)]
-            expected = relative["pyocclient"][1:]
+            expected = [
+                {
+                    **entry,
+                    "attributes": {
+                        name: value
+                        for name, value in entry["attributes"].items()
+                        if name in webdav.KEPT_PROPERTIES and value is not None
+                    },
+                }
+                for entry in relative["pyocclient"][1:]
+            ]
             with self.subTest(
                 server=case["server"],
                 endpoint=case["endpoint"],

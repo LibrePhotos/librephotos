@@ -26,7 +26,7 @@ from api.metadata.photo_writer import write_photo_metadata
 from api.models import File, LongRunningJob, Photo, User
 from api.tests.utils import create_test_photo, create_test_user, patch_nextcloud_dns
 from nextcloud import directory_watcher
-from nextcloud.webdav import RemoteFile
+from nextcloud.webdav import InvalidAnswerError, Listing, RemoteFile
 
 JAN_2019 = datetime.datetime(2019, 1, 15, 12, 0, tzinfo=datetime.UTC)
 MAR_2020 = datetime.datetime(2020, 3, 1, 9, 30, tzinfo=datetime.UTC)
@@ -258,6 +258,57 @@ class NextcloudRemoteChangesTest(TestCase):
         self.assertFalse(back.missing)
         photo = Photo.objects.owned_by(self.user).get()
         self.assertEqual([back.pk], list(photo.files.values_list("pk", flat=True)))
+
+    def test_a_listing_that_left_entries_out_flags_nothing_missing(self):
+        self._delete_b_and_add_c()
+        listed = self.nc.list.side_effect
+
+        def incomplete(path):
+            found = Listing(listed(path))
+            found.skipped = 1
+            return found
+
+        self.nc.list.side_effect = incomplete
+
+        self._scan()
+
+        self.assertFalse(File.objects.get(path=self._local("b.png")).missing)
+        self.assertIn("c.png", self._processed())
+
+    def test_a_listing_that_is_refused_fails_the_scan_and_flags_nothing(self):
+        self._delete_b_and_add_c()
+        self.nc.list.side_effect = InvalidAnswerError(
+            207, "the answer does not list the folder"
+        )
+        job_id = uuid.uuid4()
+
+        result = directory_watcher.scan_photos(self.user, job_id)
+
+        self.assertFalse(result["status"])
+        self.assertTrue(LongRunningJob.objects.get(job_id=str(job_id)).failed)
+        self.assertFalse(File.objects.get(path=self._local("b.png")).missing)
+        self.assertFalse(File.objects.get(path=self._local("a.png")).missing)
+
+    def test_a_folder_emptied_on_the_server_flags_its_files_missing(self):
+        self.server["/Photos/a.png"] = (_png(9), JAN_2019)
+        self.server["/Photos/b.png"] = (_png(13), JAN_2019)
+        self._scan()
+        self.server.clear()
+
+        self._scan()
+
+        self.assertTrue(File.objects.get(path=self._local("a.png")).missing)
+        self.assertTrue(File.objects.get(path=self._local("b.png")).missing)
+
+    def test_a_scan_directory_with_repeated_slashes_has_the_same_scope(self):
+        self._delete_b_and_add_c()
+        self.user.nextcloud_scan_directory = "/Photos//"
+        self.user.save()
+
+        self._scan()
+
+        self.assertTrue(File.objects.get(path=self._local("b.png")).missing)
+        self.assertFalse(File.objects.get(path=self._local("a.png")).missing)
 
     def test_files_outside_the_scan_directory_are_not_flagged(self):
         self.server["/Photos/a.png"] = (_png(9), JAN_2019)

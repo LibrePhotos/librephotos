@@ -39,6 +39,12 @@ from nextcloud.webdav import (
 EMPTY = b"<d:multistatus xmlns:d='DAV:'/>"
 
 
+def only_folder(href):
+    """A listing of an empty folder: the folder itself, nothing in it."""
+    response = f"<d:response><d:href>{href}</d:href></d:response>"
+    return f"<d:multistatus xmlns:d='DAV:'>{response}</d:multistatus>".encode()
+
+
 def recorded(address):
     """A client for ``address`` after login and one listing: the URLs it asked for."""
     nc = GuardedClient(address)
@@ -58,10 +64,10 @@ class _Any(dict):
         self.capabilities = capabilities
 
     def get(self, key, default=None):
-        method, _ = key
+        method, path = key
         if method == "GET":
             return 200, self.capabilities, {}
-        return 207, EMPTY, {}
+        return 207, only_folder(path), {}
 
 
 class _Client(SimpleTestCase):
