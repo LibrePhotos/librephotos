@@ -30,14 +30,15 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Literal, TypedDict
 
+from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import APIException, ValidationError
 
 from api.directory_watcher.processing_jobs import probe_videos, unprobed_videos
 from api.drf.exceptions import Conflict, JobAlreadyRunning
 from api.faces.turned_faces import repair_turned_faces_job
-from api.jobs.queue import JobStep
+from api.jobs.queue import JobStep, lock_all_starts
 from api.jobs.start import enqueue_for_request
 from api.metadata.exposure_time_job import refresh_exposure_times_job
 from api.models import LongRunningJob, UpgradeTaskState, User
@@ -268,19 +269,27 @@ def _needed(task: UpgradeTask, state: UpgradeTaskState | None) -> bool:
 def _sync_state(
     task: UpgradeTask, state: UpgradeTaskState | None, now: datetime
 ) -> UpgradeTaskState | None:
-    """Make, finish or reopen the task's row from its check; returns the row."""
+    """Make, finish or reopen the task's row from its check; returns the row.
+
+    Reading the card does this, so two admins can read at once: each
+    transition is a conditional write that only the first reader makes.
+    """
     needed = _needed(task, state)
     if state is None:
-        return UpgradeTaskState.objects.create(key=task.key) if needed else None
+        if not needed:
+            return None
+        return UpgradeTaskState.objects.get_or_create(key=task.key)[0]
+    rows = UpgradeTaskState.objects.filter(pk=state.pk)
     if needed and state.completed_at is not None:
-        # A check-only task that has work again (a later model change).
-        state.completed_at = None
-        state.started_at = None
-        state.created_at = now
-        state.save(update_fields=["completed_at", "started_at", "created_at"])
+        # A check-only task that has work again (a later model change): a new
+        # round, which an earlier Not now did not answer.
+        rows.filter(completed_at__isnull=False).update(
+            completed_at=None, started_at=None, dismissed_at=None, created_at=now
+        )
+        state.refresh_from_db()
     elif not needed and state.completed_at is None:
-        state.completed_at = now
-        state.save(update_fields=["completed_at"])
+        rows.filter(completed_at__isnull=True).update(completed_at=now)
+        state.refresh_from_db()
     return state
 
 
@@ -443,34 +452,65 @@ def _queue(task: UpgradeTask, admin: User) -> list[LongRunningJob]:
     return jobs
 
 
+def _record_start(state: UpgradeTaskState) -> bool:
+    """Record the task's first start; False when someone recorded it first."""
+    return bool(
+        UpgradeTaskState.objects.filter(pk=state.pk, started_at__isnull=True).update(
+            started_at=timezone.now()
+        )
+    )
+
+
+def _start_locked(task: UpgradeTask, admin: User) -> list[LongRunningJob]:
+    """``start_task`` in one transaction that holds every other start, so no
+    job is queued between the busy check and this start's rows, and a start
+    refused for one owner queues nothing for the others."""
+    with transaction.atomic():
+        lock_all_starts()
+        state = _state_of(task)
+        _refuse_while_busy(task)
+        jobs = _queue(task, admin)
+        if not jobs:
+            raise Conflict(
+                "This upgrade task has nothing left to do.", code="task_not_needed"
+            )
+        _record_start(state)
+    return jobs
+
+
 def start_task(task: UpgradeTask, admin: User) -> list[LongRunningJob]:
     """Queue the task's jobs for ``admin``, refused while the queue is busy.
 
     ``Conflict`` (409): ``task_not_needed``, ``queue_busy`` or
-    ``job_already_running``. Records the first start on the task's row.
+    ``job_already_running``; a 500 ``job_start_failed`` when the broker
+    refuses the jobs. Records the first start on the task's row.
     """
-    state = _state_of(task)
-    _refuse_while_busy(task)
-    jobs = _queue(task, admin)
-    if not jobs:
-        raise Conflict(
-            "This upgrade task has nothing left to do.", code="task_not_needed"
-        )
-    if state.started_at is None:
-        state.started_at = timezone.now()
-        state.save(update_fields=["started_at"])
-    return jobs
+    try:
+        return _start_locked(task, admin)
+    except APIException:
+        raise
+    except Exception as error:
+        # The jobs are handed to the broker once the transaction commits.
+        logger.exception("could not queue the upgrade task %s", task.key)
+        raise APIException(
+            f"Could not start the upgrade task {task.key}.", code="job_start_failed"
+        ) from error
 
 
 def dismiss_task(task: UpgradeTask) -> None:
-    """Hide an optional task for good (**Not now**); required ones cannot be."""
+    """Hide an optional task for good (**Not now**); required ones cannot be.
+
+    Only a task with work has a row to hide: a row made here for a seeded task
+    would say the instance has the old data it is about.
+    """
     if task.required:
         raise ValidationError(
             "This upgrade task is required and cannot be dismissed.",
             code="task_required",
         )
-    UpgradeTaskState.objects.update_or_create(
-        key=task.key, defaults={"dismissed_at": timezone.now()}
+    sync_states()
+    UpgradeTaskState.objects.filter(key=task.key, completed_at__isnull=True).update(
+        dismissed_at=timezone.now()
     )
 
 
@@ -494,11 +534,23 @@ def start_automatic_tasks() -> list[str]:
         if state.started_at is not None or _running_jobs(task):
             continue
         try:
-            _queue(task, admin)
+            started = _start_once(task, state, admin)
         except Exception:
             logger.exception("could not queue the upgrade task %s", task.key)
             continue
-        state.started_at = timezone.now()
-        state.save(update_fields=["started_at"])
-        queued.append(task.key)
+        if started:
+            queued.append(task.key)
     return queued
+
+
+def _start_once(task: UpgradeTask, state: UpgradeTaskState, admin: User) -> bool:
+    """Queue an automatic task unless another startup recorded its start first.
+
+    The start is recorded before queuing, in the same transaction, so a
+    failure to queue leaves the task unstarted for the next startup.
+    """
+    with transaction.atomic():
+        if not _record_start(state):
+            return False
+        _queue(task, admin)
+    return True

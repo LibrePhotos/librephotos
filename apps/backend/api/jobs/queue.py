@@ -17,6 +17,7 @@ receives the row's id as ``job_id`` and claims the row when it starts
   own row, all written up front.
 - ``reserve_job``: the row of a job a running task does inline, refused like
   ``enqueue_job``.
+- ``lock_all_starts``: hold every start while a transaction checks the queue.
 - ``enqueue_task``: work without a row of its own,
   such as the per-photo pieces of a running job (they carry its ``job_id``)
   or untracked maintenance.
@@ -112,10 +113,20 @@ def _lock_starts(user: User, job_types: Sequence[int]) -> None:
     SQLite has no row locks, and its IMMEDIATE transactions
     (settings/_sqlite.py) serialise the whole block instead.
     """
-    users = User.objects.select_for_update()
-    if LongRunningJob.INSTANCE_WIDE_JOB_TYPES.isdisjoint(job_types):
-        users = users.filter(pk=user.pk)
-    list(users.order_by("pk").values_list("pk"))
+    if not LongRunningJob.INSTANCE_WIDE_JOB_TYPES.isdisjoint(job_types):
+        lock_all_starts()
+        return
+    list(User.objects.select_for_update().filter(pk=user.pk).values_list("pk"))
+
+
+def lock_all_starts() -> None:
+    """Hold every start (``enqueue_chain``, ``reserve_job``) until the calling
+    transaction ends: every user's row, in one order.
+
+    For a check over the whole queue that must not race a start, such as the
+    upgrade card's "another job is running" (``api.jobs.upgrade_tasks``).
+    """
+    list(User.objects.select_for_update().order_by("pk").values_list("pk"))
 
 
 def _refuse_running(user: User, job_types: Sequence[int]) -> None:

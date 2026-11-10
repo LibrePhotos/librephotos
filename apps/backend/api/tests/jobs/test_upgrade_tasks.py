@@ -621,3 +621,101 @@ class UpgradeTaskApiTest(UpgradeTaskTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(api_error(response)["code"], "task_required")
         self.assertIsNone(UpgradeTaskState.objects.get(key=STRIP).dismissed_at)
+
+
+class StateTransitionTest(UpgradeTaskTestCase):
+    """Each transition of a task's row happens once, whoever gets there first."""
+
+    def test_two_readers_that_both_saw_no_row_both_answer(self):
+        """Two admins open the card at once: both read no row, both make it.
+        The second ``create`` hit the unique key and the GET answered 500."""
+        self.legacy_squares_exist.return_value = True
+        task = TASKS_BY_KEY[SMALL_SQUARES]
+        first = upgrade_tasks._sync_state(task, None, timezone.now())
+        second = upgrade_tasks._sync_state(task, None, timezone.now())
+
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(UpgradeTaskState.objects.filter(key=SMALL_SQUARES).count(), 1)
+
+    def test_a_reopened_task_is_shown_again_after_not_now(self):
+        """Not now was about the work there was; new work asks again."""
+        task = upgrade_tasks.UpgradeTask(
+            key="optional_check_only",
+            kind="action",
+            job_type=LongRunningJob.JOB_PROBE_VIDEOS,
+            check=lambda state: True,
+            start=lambda admin: [],
+        )
+        long_ago = timezone.now() - timedelta(days=30)
+        stale = create_test_upgrade_task_state(
+            task.key, completed_at=long_ago, dismissed_at=long_ago
+        )
+
+        state = upgrade_tasks._sync_state(task, stale, timezone.now())
+
+        state.refresh_from_db()
+        self.assertIsNone(state.completed_at)
+        self.assertIsNone(state.dismissed_at)
+
+    def test_not_now_on_a_task_without_work_leaves_no_row(self):
+        """A seeded task's row says the instance has the old data: one made by
+        Not now on a fresh install made the task needed, and startable."""
+        upgrade_tasks.dismiss_task(TASKS_BY_KEY[TURNED_FACES])
+
+        self.assertFalse(UpgradeTaskState.objects.exists())
+        with self.assertRaises(upgrade_tasks.Conflict):
+            upgrade_tasks.start_task(TASKS_BY_KEY[TURNED_FACES], self.admin)
+
+    def test_a_start_queues_all_of_its_jobs_or_none(self):
+        """The busy check and the queueing are one step: a start that loses
+        the race for one owner's job leaves no job queued for the others."""
+        other = create_test_user()
+        create_test_photo(owner=self.admin, video=True)
+        create_test_photo(owner=other, video=True)
+        create_test_upgrade_task_state(PROBE)
+        create_test_job(other, LongRunningJob.JOB_PROBE_VIDEOS)
+
+        with (
+            # The other owner's probe was queued after the busy check ran.
+            mock.patch.object(upgrade_tasks, "_refuse_while_busy"),
+            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            self.captureOnCommitCallbacks(execute=True),
+            self.assertRaises(upgrade_tasks.JobAlreadyRunning),
+        ):
+            upgrade_tasks.start_task(TASKS_BY_KEY[PROBE], self.admin)
+
+        async_task.assert_not_called()
+        self.assertFalse(LongRunningJob.objects.filter(started_by=self.admin).exists())
+        self.assertIsNone(UpgradeTaskState.objects.get(key=PROBE).started_at)
+
+    def test_the_start_holds_every_other_start_while_it_checks(self):
+        create_test_upgrade_task_state(STRIP)
+        with (
+            mock.patch.object(
+                upgrade_tasks, "lock_all_starts", wraps=upgrade_tasks.lock_all_starts
+            ) as lock,
+            mock.patch.object(
+                upgrade_tasks,
+                "_refuse_while_busy",
+                side_effect=lambda task: self.assertTrue(lock.called),
+            ),
+            mock.patch("api.jobs.queue.AsyncTask"),
+        ):
+            upgrade_tasks.start_task(TASKS_BY_KEY[STRIP], self.admin)
+
+        lock.assert_called_once_with()
+
+    def test_a_task_another_startup_already_queued_is_not_queued_again(self):
+        """Two processes run the startup at once: both read the row unstarted."""
+        create_test_upgrade_task_state(STRIP)
+        stale = upgrade_tasks.sync_states()
+        UpgradeTaskState.objects.filter(key=STRIP).update(started_at=timezone.now())
+
+        with (
+            mock.patch.object(upgrade_tasks, "sync_states", return_value=stale),
+            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+        ):
+            self.assertEqual(start_automatic_tasks(), [])
+
+        async_task.assert_not_called()
+        self.assertFalse(LongRunningJob.objects.exists())
