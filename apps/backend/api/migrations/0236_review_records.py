@@ -35,7 +35,7 @@ def delete_empty_dismissed_groups(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0234_photo_removed_at"),
+        ("api", "0235_sidecar_watch_lease"),
     ]
 
     operations = [
