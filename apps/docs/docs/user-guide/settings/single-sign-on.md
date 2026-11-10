@@ -88,6 +88,10 @@ matches the one the provider reports:
 - **Two or more accounts share the address** → refused, whether or not sign-ups
   over SSO are on, because there is no single right answer. LibrePhotos does not
   create yet another account with the same address either.
+- **The matching account is deactivated** → refused, also when it was linked
+  before, and no new account is made for its address. Turn the account back on
+  to let it sign in. <Since version="1.7.0" /> Up to 1.6.0, a deactivated account
+  was linked, and signed in as soon as it was turned back on.
 - **The provider sends no address** → refused, since there is nothing to match
   on and no verified address to create an account with.
 - **No matching account** → a new one is created only if `OIDC_ALLOW_SIGNUP` is on
@@ -143,5 +147,6 @@ A failed attempt returns to the login page with an explanation. The usual causes
 | More than one account uses this email address | Give each LibrePhotos account its own email address (or clear it on the ones that should not log in over SSO) |
 | Sign-in was cancelled at your identity provider | Nothing to fix: the user pressed Cancel or declined access. Try again |
 | Your identity provider could not complete the sign-in | Look in the server log for the line starting `SSO login via`; it names the reason (for example an expired login, or the provider refusing the client secret) |
+| Single sign-on failed | The matching account is deactivated: turn it back on, or ask an administrator to |
 | Public URL not configured | Set `FRONTEND_BASE_URL` |
 | Provider-side "invalid redirect URI" | The redirect URI at your provider must match the callback URL above exactly, including the trailing slash |

@@ -460,6 +460,27 @@ class AdapterLinkingPolicyTest(TestCase):
 
         self.assertIsNone(self._run(sociallogin))
 
+    def test_an_inactive_account_is_never_linked(self):
+        """A deactivated account must not get an SSO identity attached: it
+        would sign in as soon as an admin turned the account back on, and
+        the link was made without anyone signing in to it."""
+        create_test_user(username="alice", email="sso@example.com", is_active=False)
+        sociallogin = _make_social_login(email="sso@example.com", verified=True)
+
+        self.assertEqual(self._run(sociallogin), "account_inactive")
+        self.assertFalse(SocialAccount.objects.exists())
+
+    def test_an_identity_linked_to_an_inactive_account_does_not_sign_in(self):
+        user = create_test_user(username="alice", email="sso@example.com")
+        SocialAccount.objects.create(user=user, provider="keycloak", uid="idp-sub-1")
+        User.objects.filter(pk=user.pk).update(is_active=False)
+        user.refresh_from_db()
+        sociallogin = _make_social_login(email="sso@example.com", verified=True)
+        sociallogin.user = user
+        sociallogin.account = SocialAccount.objects.get(uid="idp-sub-1")
+
+        self.assertEqual(self._run(sociallogin), "account_inactive")
+
 
 @override_config(OIDC_ALLOW_SIGNUP=True)
 class AdapterOpenSignupPolicyTest(TestCase):
@@ -493,6 +514,16 @@ class AdapterOpenSignupPolicyTest(TestCase):
         sociallogin = _make_social_login(email="nobody@example.com", verified=True)
 
         self.assertIsNone(self._run(sociallogin))
+
+    def test_an_inactive_account_does_not_make_way_for_a_new_one(self):
+        """Its email still names it: a sign-up would hand a second account
+        to whoever holds the address."""
+        create_test_user(username="alice", email="sso@example.com", is_active=False)
+        users_before = User.objects.count()
+        sociallogin = _make_social_login(email="sso@example.com", verified=True)
+
+        self.assertEqual(self._run(sociallogin), "account_inactive")
+        self.assertEqual(User.objects.count(), users_before)
 
     def test_unknown_unverified_email_cannot_sign_up(self):
         sociallogin = _make_social_login(email="nobody@example.com", verified=False)

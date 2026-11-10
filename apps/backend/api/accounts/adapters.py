@@ -21,6 +21,8 @@ Policy (per the maintainer's steer on issue #401):
   users that already exist and whose email an admin has set to match the IdP.
 * **Unambiguous email only.** When more than one account uses the provider's
   email, the login is refused rather than guessing or creating another one.
+* **Active accounts only.** An account an admin deactivated is neither linked
+  nor signed in to, and its email does not open a sign-up for a new one.
 * **Never privileged.** An account created via SSO is never a superuser or staff,
   even during first-time setup when no superuser exists yet.
 """
@@ -80,13 +82,17 @@ def _account_with_email(email: str) -> User | None:
     blank email, and a social identity must never be linked to the wrong (or
     every) account. Two or more matches refuse the login outright instead of
     falling through to sign-up, which would add yet another account with the
-    same address.
+    same address. A deactivated match refuses it too (``account_inactive``):
+    linking it would let the identity in the moment the account is turned
+    back on, and signing up would hand its address a second account.
     """
     if not email:
         return None
     matches = list(User.objects.filter(email__iexact=email)[:2])
     if len(matches) > 1:
         raise _login_error_redirect("email_ambiguous")
+    if matches and not matches[0].is_active:
+        raise _login_error_redirect("account_inactive")
     return matches[0] if matches else None
 
 
@@ -140,8 +146,10 @@ class SSOSocialAccountAdapter(DefaultSocialAccountAdapter):
         Runs after the IdP round-trip but before a user is logged in or created.
         """
         # The social account is already linked to a LibrePhotos user: nothing to
-        # decide, let the login proceed.
+        # decide but whether that account may still sign in.
         if sociallogin.is_existing:
+            if not sociallogin.user.is_active:
+                raise _login_error_redirect("account_inactive")
             return
 
         email, verified = _extract_email(sociallogin)
