@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from api.models.photo import Photo
 from api.models.scopes import SharedOwnedQuerySet
+from api.models.synced import SyncedModel
 from api.models.user import User, get_deleted_user
 
 # The photos photo_count counts. Not Photo.visible: tags can land before the
@@ -31,7 +32,9 @@ class AlbumThingQuerySet(SharedOwnedQuerySet["AlbumThing"]):
     """Scoped to its owner through ``owner``."""
 
 
-class AlbumThing(models.Model):
+class AlbumThing(SyncedModel):
+    SYNCED_FIELDS = frozenset({"title", "photo_count"})
+
     title = models.CharField(max_length=512, db_index=True)
     photos = models.ManyToManyField(Photo)
     thing_type = models.CharField(max_length=512, db_index=True, null=True)

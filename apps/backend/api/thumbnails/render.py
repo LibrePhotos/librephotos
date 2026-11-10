@@ -6,10 +6,12 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from PIL import Image
 
 from api.lazy_import import LazyModule
 from api.mime import EXIF_ORIENTED_EXTENSIONS, extension
+from api.models.photo import Photo
 from api.models.thumbnail import (
     ANIMATED_THUMBNAIL_DIRS,
     STATIC_THUMBNAIL_DIRS,
@@ -790,6 +792,7 @@ def refresh_dominant_color(thumbnail: Thumbnail) -> None:
     calculate_dominant_color(thumbnail)
     if thumbnail.dominant_color is None:
         thumbnail.save(update_fields=["dominant_color"])
+        _resend_photo(thumbnail)
 
 
 def _placeholder_source(thumbnail: Thumbnail) -> str:
@@ -871,9 +874,12 @@ def calculate_aspect_ratio(thumbnail: Thumbnail) -> None:
                 thumbnail.thumbnail_big.path,
             )
             return
-        thumbnail.aspect_ratio = round(width / height, 2)
-
+        ratio = round(width / height, 2)
+        changed = ratio != thumbnail.aspect_ratio
+        thumbnail.aspect_ratio = ratio
         thumbnail.save()
+        if changed:
+            _resend_photo(thumbnail)
     except Exception:
         logger.exception(
             "could not calculate aspect ratio for image %s",
@@ -903,6 +909,12 @@ def calculate_dominant_color(thumbnail: Thumbnail, palette_size: int = 16) -> No
     # serializers read it back that way.
     thumbnail.dominant_color = str(dominant_color)
     thumbnail.save()
+    _resend_photo(thumbnail)
+
+
+def _resend_photo(thumbnail: Thumbnail) -> None:
+    """Bump the photo: the delta feed sends its aspect ratio and colour."""
+    Photo.objects.filter(pk=thumbnail.photo_id).update(last_modified=timezone.now())
 
 
 def _most_common_color(path: str, palette_size: int) -> list[int] | None:

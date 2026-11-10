@@ -16,6 +16,7 @@ from api.models.library_share import LibraryShare
 from api.models.photo_stack import PhotoStack
 from api.models.place_names import town_name
 from api.models.scopes import SharedOwnedQuerySet
+from api.models.synced import SyncedModel
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
@@ -248,6 +249,17 @@ class LocationSource(models.TextChoices):
     USER = "user", "User"
 
 
+class CategorySource(models.TextChoices):
+    """Who set a photo's media category flags (``Photo.category_source``).
+
+    The detectors (a scan, Classify Media, OCR) change only an ``AUTO`` photo's
+    flags; a correction in the lightbox pins them as ``USER``.
+    """
+
+    AUTO = "auto", "Detector"
+    USER = "user", "User"
+
+
 _PhotoManagerBase = models.Manager.from_queryset(PhotoQuerySet)
 
 
@@ -256,7 +268,32 @@ class VisiblePhotoManager(_PhotoManagerBase["Photo"]):
         return super().get_queryset().filter(visible_photo_q())
 
 
-class Photo(models.Model):
+class Photo(SyncedModel):
+    # What ``GET /api/sync/photos/`` sends of the row (``PHOTO_VALUES``); its
+    # ``has_motion`` comes from the main file.
+    SYNCED_FIELDS = frozenset(
+        {
+            "image_hash",
+            "owner",
+            "main_file",
+            "exif_timestamp",
+            "timestamp",
+            "added_on",
+            "video",
+            "video_length",
+            "rating",
+            "hidden",
+            "archived",
+            "is_screenshot",
+            "is_document",
+            "in_trashcan",
+            "removed",
+            "public",
+            "exif_gps_lat",
+            "exif_gps_lon",
+        }
+    )
+
     # UUID primary key (like Immich) - enables flexible asset management
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -339,11 +376,12 @@ class Photo(models.Model):
     archived = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     # Media category flags. ``category_source`` records who set them so a
-    # rescan/backfill never clobbers a manual correction: "auto" (detector) or
-    # "user" (manually corrected in the UI).
+    # rescan/backfill never clobbers a manual correction (``CategorySource``).
     is_screenshot = models.BooleanField(default=False, db_index=True)
     is_document = models.BooleanField(default=False, db_index=True)
-    category_source = models.CharField(max_length=8, default="auto")
+    category_source = models.CharField(
+        max_length=8, default=CategorySource.AUTO, choices=CategorySource.choices
+    )
     video_length = models.TextField(blank=True, null=True)
     # What ffprobe said about a video's first stream and container, asked once
     # at scan time (see api.video.color.probe). NULL: never probed. "": probed,

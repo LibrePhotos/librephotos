@@ -13,7 +13,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.db.models import QuerySet
-from django.utils import timezone
 
 import api.models
 from api.metadata import datetime_rules
@@ -106,13 +105,15 @@ def reapply_date_rules(photo: Photo) -> bool:
     offset_changed = photo.exif_timestamp_offset != old_offset
     if not (moved or offset_changed or photo.exif_timestamp_source != old_source):
         return False
+    # The feed sends exif_timestamp, not the offset or the rule: naming the
+    # date only when it moved keeps the photo from being pulled again for
+    # nothing (``api.models.synced``).
     fields: dict[str, object] = {
-        "exif_timestamp": new_time,
         "exif_timestamp_offset": photo.exif_timestamp_offset,
         "exif_timestamp_source": photo.exif_timestamp_source,
     }
     if moved:
-        fields["last_modified"] = timezone.now()
+        fields["exif_timestamp"] = new_time
     written = api.models.Photo.objects.filter(
         pk=photo.pk, timestamp__isnull=True
     ).update(**fields)

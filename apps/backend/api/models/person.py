@@ -11,6 +11,7 @@ from django.utils import timezone
 from api.models.person_group import PersonGroup
 from api.models.photo import Photo, visible_photo_q
 from api.models.scopes import OwnedQuerySet
+from api.models.synced import SyncedModel
 from api.models.user import User
 
 if TYPE_CHECKING:
@@ -33,7 +34,8 @@ class PersonQuerySet(OwnedQuerySet["Person"]):
         )
 
 
-class Person(models.Model):
+class Person(SyncedModel):
+    SYNCED_FIELDS = frozenset({"name", "kind", "face_count", "cover_photo"})
     UNKNOWN_PERSON_NAME = "Unknown - Other"
     KIND_USER = "USER"
     KIND_CLUSTER = "CLUSTER"

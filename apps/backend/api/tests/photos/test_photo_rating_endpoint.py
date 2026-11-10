@@ -72,7 +72,9 @@ class SetPhotosRatingTest(TestCase):
                 self.assertEqual(photo.rating, rating)
 
     def test_an_unchanged_rating_is_reported_and_not_rewritten(self):
-        Photo.objects.filter(image_hash=self.hashes[0]).update(rating=2)
+        Photo.objects.filter(image_hash=self.hashes[0]).update(
+            rating=2, last_modified=LONG_AGO
+        )
 
         response = self._rate(self.hashes[:2], 2)
 

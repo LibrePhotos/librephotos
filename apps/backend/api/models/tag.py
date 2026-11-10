@@ -8,6 +8,7 @@ from django.db.models.signals import m2m_changed
 
 from api.models.photo import Photo
 from api.models.scopes import OwnedQuerySet
+from api.models.synced import SyncedModel
 from api.models.user import User, get_deleted_user
 
 NAME_MAX_LENGTH = 512
@@ -23,13 +24,15 @@ class TagQuerySet(OwnedQuerySet["Tag"]):
     """Scoped to its owner through ``owner``."""
 
 
-class Tag(models.Model):
+class Tag(SyncedModel):
     """A user-defined label attached to photos.
 
     ``PhotoMetadata.keywords`` stays the source of truth for what a file's
     EXIF/IPTC/XMP says. A Tag is the queryable counterpart: it can be listed,
     renamed, merged and counted without scanning every metadata blob.
     """
+
+    SYNCED_FIELDS = frozenset({"name", "photo_count"})
 
     name = models.CharField(max_length=NAME_MAX_LENGTH, db_index=True)
     owner = models.ForeignKey(

@@ -89,8 +89,9 @@ class NextcloudScanFollowupsTest(TestCase):
     def test_progress_counts_up_to_the_file_count_before_finishing(self):
         job = self._scan()
 
-        self.assertEqual([(0, 3, False), (1, 3, False), (2, 3, False)], self.seen)
-        self.assertEqual((3, 3), (job.progress_current, job.progress_target))
+        # Three files, then the check for files gone from the server.
+        self.assertEqual([(0, 4, False), (1, 4, False), (2, 4, False)], self.seen)
+        self.assertEqual((4, 4), (job.progress_current, job.progress_target))
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
 
@@ -108,7 +109,8 @@ class NextcloudScanFollowupsTest(TestCase):
 
         self.assertEqual([], self.seen)
         self.assertTrue(job.finished)
-        self.assertEqual((0, 0), (job.progress_current, job.progress_target))
+        # Only the check for files gone from the server.
+        self.assertEqual((1, 1), (job.progress_current, job.progress_target))
         self.followups.assert_called_once_with(self.user, False, False)
 
     def test_the_import_is_never_the_local_scan_baseline(self):

@@ -31,7 +31,6 @@ from rest_framework.response import Response
 from api.classification.captioning import captioning_available
 from api.directory_watcher import scan_photos
 from api.directory_watcher.processing_jobs import (
-    MISSING_BIG_THUMBNAIL,
     active_ocr_model,
     add_geolocation,
     faces_missing_encoding,
@@ -43,6 +42,7 @@ from api.directory_watcher.processing_jobs import (
     needs_face_scan,
     needs_ocr,
     needs_things,
+    needs_thumbnails,
     scan_faces,
     unmatched_faces,
 )
@@ -81,11 +81,6 @@ J = LongRunningJob
 IN_LIBRARY = Q(removed=False, in_trashcan=False)
 
 
-def needs_thumbnails() -> Q:
-    """Photos with a file but no big thumbnail; a rescan of their files makes it."""
-    return Q(removed=False) & MISSING_BIG_THUMBNAIL
-
-
 def _always() -> bool:
     return True
 
@@ -101,7 +96,7 @@ def _needs_text() -> Q:
 
 
 def _start_thumbnails(user: User) -> Response:
-    """Read the files of the photos without a big thumbnail again (as a rescan)."""
+    """Read the files of the photos whose thumbnails are not ready again (as a rescan)."""
     photo_ids = Photo.objects.owned_by(user).filter(needs_thumbnails())
     targets = rescan_targets(user, photo_ids.values_list("pk", flat=True))
     if not targets.paths:

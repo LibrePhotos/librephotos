@@ -30,6 +30,7 @@ from api.directory_watcher.missing_guard import (
     unavailable_folders,
 )
 from api.directory_watcher.processing_jobs import (
+    THUMBNAIL_NOT_READY,
     add_geolocation,
     generate_tags,
     ocr_has_work,
@@ -495,7 +496,9 @@ def _known_paths(batch_paths: list[str]) -> dict[str, KnownFile]:
 
     A photo whose metadata read failed (``metadata_read_at`` is None) counts as
     unknown, so an incremental scan reads it again (#2271); its thumbnails are
-    kept, ``generate_thumbnail`` skips the ones that exist.
+    kept, ``generate_thumbnail`` skips the ones that exist. So does a photo
+    whose thumbnails are not ready (``needs_thumbnails``): a render or an
+    aspect ratio that failed is tried again, or the photo stays in no grid.
 
     An exact copy of such a photo's file is known too, through its
     ``FileCopy`` (#2417), while the file it copies is still on disk: when that
@@ -505,7 +508,9 @@ def _known_paths(batch_paths: list[str]) -> dict[str, KnownFile]:
         path: KnownFile(file_hash, indexed_mtimes.recorded(mtime_ns, sidecars))
         for path, file_hash, mtime_ns, sidecars in Photo.objects.filter(
             files__path__in=batch_paths, metadata_read_at__isnull=False
-        ).values_list(
+        )
+        .exclude(THUMBNAIL_NOT_READY)
+        .values_list(
             "files__path",
             "files__hash",
             "files__indexed_mtime_ns",

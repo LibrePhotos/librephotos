@@ -15,7 +15,7 @@ from requests import exceptions as requests_errors
 
 from api.directory_watcher import handle_new_image
 from api.directory_watcher.scan_jobs import remember_import_followups
-from api.directory_watcher.utils import finish_job_if_complete
+from api.directory_watcher.utils import item_key, update_scan_counter
 from api.models import File, FileCopy, LongRunningJob, Photo, User
 from api.models.long_running_job import JobCancelledError
 from api.photos.media_files import is_metadata, is_raw
@@ -352,23 +352,24 @@ def scan_photos(user: User, job_id: uuid.UUID | str) -> dict[str, bool]:
             if path not in paths
         ]
 
-        scope = local_path_for(root, user.nextcloud_scan_directory) or root
-        detach_deleted_files(user, scope, synced.listed)
-
-        # The target goes first: handle_new_image counts each file and
-        # finishes the job at the target, which queues the scan's follow-ups
-        # (tags, places, search embeddings and the index, faces).
+        # The target goes first: handle_new_image counts each file, and the
+        # job finishes at the target, which queues the scan's follow-ups
+        # (tags, places, search embeddings and the index, faces). Its last
+        # step flags the files the server no longer lists, after every
+        # import: a cancelled or failed scan flags none, and a file moved on
+        # the server is attached at its new path before it leaves the old.
         remember_import_followups(lrj, user)
-        lrj.update_progress(current=0, target=len(paths))
+        lrj.update_progress(current=0, target=len(paths) + 1)
         for idx, image_path in enumerate(paths):
             lrj.stop_if_cancelled()
             logger.info("begin handling of photo %d/%d", idx + 1, len(paths))
             handle_new_image(user, image_path, job_id)
-
         logger.info("Added %s photos", len(paths))
-        # With nothing to import the job is at its target already: finish it,
-        # and queue the follow-ups, as a local scan with nothing new does.
-        finish_job_if_complete(job_id)
+
+        lrj.stop_if_cancelled()
+        scope = local_path_for(root, user.nextcloud_scan_directory) or root
+        detach_deleted_files(user, scope, synced.listed)
+        update_scan_counter(job_id, item=item_key("nextcloud-gone", job_id))
     except JobCancelledError:
         logger.info("Nextcloud scan job %s was cancelled", lrj.job_id)
         return {"status": False}

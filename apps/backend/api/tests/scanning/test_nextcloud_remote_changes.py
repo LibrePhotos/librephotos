@@ -200,6 +200,52 @@ class NextcloudRemoteChangesTest(TestCase):
         self.assertFalse(photo.files.exists())
         self.assertTrue(os.path.exists(self._local("b.png")))
 
+    def _delete_b_and_add_c(self):
+        self.server["/Photos/a.png"] = (_png(9), JAN_2019)
+        self.server["/Photos/b.png"] = (_png(13), JAN_2019)
+        self._scan()
+        del self.server["/Photos/b.png"]
+        self.server["/Photos/c.png"] = (_png(17), JAN_2019)
+
+    def _scan_that_stops(self, **patched):
+        job_id = uuid.uuid4()
+        with mock.patch.object(LongRunningJob, **patched):
+            result = directory_watcher.scan_photos(self.user, job_id)
+        self.assertFalse(result["status"])
+        return LongRunningJob.objects.get(job_id=str(job_id))
+
+    def test_a_scan_cancelled_during_the_import_flags_nothing_missing(self):
+        self._delete_b_and_add_c()
+
+        self._scan_that_stops(
+            attribute="stop_if_cancelled",
+            side_effect=directory_watcher.JobCancelledError,
+        )
+
+        self.assertFalse(File.objects.get(path=self._local("b.png")).missing)
+
+    def test_a_scan_failing_before_the_import_flags_nothing_missing(self):
+        self._delete_b_and_add_c()
+
+        job = self._scan_that_stops(
+            attribute="update_progress", side_effect=RuntimeError("db gone")
+        )
+
+        self.assertTrue(job.failed)
+        self.assertFalse(File.objects.get(path=self._local("b.png")).missing)
+
+    def test_the_missing_files_are_flagged_as_the_scan_s_last_step(self):
+        self._delete_b_and_add_c()
+        job_id = uuid.uuid4()
+
+        directory_watcher.scan_photos(self.user, job_id)
+
+        job = LongRunningJob.objects.get(job_id=str(job_id))
+        self.assertTrue(job.finished)
+        self.assertFalse(job.failed)
+        self.assertEqual((2, 2), (job.progress_current, job.progress_target))
+        self.assertTrue(File.objects.get(path=self._local("b.png")).missing)
+
     def test_a_file_back_on_the_server_is_attached_again(self):
         self.server["/Photos/b.png"] = (_png(13), JAN_2019)
         self._scan()

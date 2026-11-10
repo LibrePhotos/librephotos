@@ -42,7 +42,7 @@ from api.metadata.datetime_rules import CaptureTime
 from api.metadata.photo_datetime import extract_date_time
 from api.models import File, LongRunningJob, Person, Photo, Thumbnail, User
 from api.models.file import content_hash, hash_for_owner, hash_owner_part
-from api.models.photo import PhotoQuerySet
+from api.models.photo import CategorySource, PhotoQuerySet
 from api.models.photo_search import PhotoSearch
 from api.photos import indexed_mtimes
 from api.photos.file_cleanup import delete_thumbnail_files
@@ -1073,10 +1073,10 @@ def _read_metadata(
     logger.debug("job %s: extract exif data: %s, elapsed: %s", job_id, path, elapsed)
 
     # Categorise the photo (screenshot/document) from the freshly extracted
-    # metadata. A manual correction ("user") is never overwritten by a rescan.
+    # metadata. A manual correction (USER) is never overwritten by a rescan.
     # The value is persisted by the full ``photo.save()`` inside the
     # ``extract_date_time`` call immediately below.
-    if photo.category_source != "user":
+    if photo.category_source != CategorySource.USER:
         from api.classification.screenshots import classify
 
         photo.is_screenshot = classify(photo)
