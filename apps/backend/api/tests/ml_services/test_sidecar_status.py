@@ -6,11 +6,15 @@ turned off, so one that ran on was never stopped; and a start that timed out
 was reported as a success.
 """
 
+import datetime
 from unittest.mock import MagicMock, patch
 
 import requests
-from django.test import SimpleTestCase
+from django.db import OperationalError
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
 
+from api.models import SidecarWatchLease
 from api.runtime import supervisor
 from api.runtime.http_timeouts import HEALTH_CHECK, PATIENT_HEALTH_CHECK
 from api.runtime.supervisor import SidecarStatus, WatchdogAction
@@ -27,7 +31,7 @@ def _answer(service):
     return response
 
 
-class _Watchdog(SimpleTestCase):
+class _Watchdog(TestCase):
     """check_services over one enabled sidecar, ``tags``, with fake probes."""
 
     service = "tags"
@@ -108,6 +112,56 @@ class WatchdogTest(_Watchdog):
     def test_the_services_page_still_counts_a_silent_process_as_healthy(self):
         self.assertTrue(supervisor.is_healthy(self.service))
         self.assertEqual(self.timeouts_asked(), [HEALTH_CHECK])
+
+
+class OverlappingWatchdogRunsTest(_Watchdog):
+    """A run waiting on the patient probe outlasts the minute: the next run
+    starts in another worker before the first one is done."""
+
+    def test_a_second_run_during_the_patient_probe_leaves_the_sidecar_alone(self):
+        second_run_probes = []
+
+        def get(url, timeout):
+            if timeout == PATIENT_HEALTH_CHECK and not second_run_probes:
+                second_run_probes.append(len(self.get.call_args_list))
+                supervisor.check_services()
+                second_run_probes.append(len(self.get.call_args_list))
+            raise requests.Timeout("no answer")
+
+        self.get.side_effect = get
+
+        supervisor.check_services()
+
+        before, after = second_run_probes
+        self.assertEqual(before, after, "the second run probed the sidecar too")
+        self.stop.assert_called_once_with(self.service)
+        self.start.assert_called_once_with(self.service)
+
+    def test_the_next_run_checks_it_again(self):
+        supervisor.check_services()
+        supervisor.check_services()
+
+        self.assertEqual(self.start.call_count, 2)
+
+    def test_a_lease_left_by_a_run_that_died_expires(self):
+        self.assertTrue(SidecarWatchLease.objects.take(self.service, "died", 60))
+
+        supervisor.check_services()
+        self.start.assert_not_called()
+
+        SidecarWatchLease.objects.filter(service=self.service).update(
+            expires_at=timezone.now() - datetime.timedelta(seconds=1)
+        )
+        supervisor.check_services()
+        self.start.assert_called_once_with(self.service)
+
+    def test_a_database_that_is_down_does_not_stop_the_watchdog(self):
+        with patch.object(
+            SidecarWatchLease.objects, "take", side_effect=OperationalError("down")
+        ):
+            supervisor.check_services()
+
+        self.start.assert_called_once_with(self.service)
 
 
 class CheckServiceTest(_Watchdog):

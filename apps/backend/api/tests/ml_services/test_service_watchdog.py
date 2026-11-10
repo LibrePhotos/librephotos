@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import psutil
 import requests
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
 from api.runtime import supervisor
 from api.tests.ml_services.sidecar_starts import fake_sidecar_starts
@@ -29,7 +29,7 @@ def _health(service="tags", **body):
     return response
 
 
-class IdleSidecarTest(SimpleTestCase):
+class IdleSidecarTest(TestCase):
     def setUp(self):
         # The sidecars these tests turn off are found not running, so a real
         # one on this machine is never stopped.
@@ -116,7 +116,7 @@ class IdleSidecarTest(SimpleTestCase):
         self.assertTrue(any("unload" in line for line in logs.output), logs.output)
 
 
-class ProcessHandleTest(SimpleTestCase):
+class ProcessHandleTest(TestCase):
     def setUp(self):
         supervisor._processes.clear()
         self.addCleanup(supervisor._processes.clear)

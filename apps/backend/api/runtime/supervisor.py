@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import time
+import uuid
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 from enum import Enum, StrEnum
@@ -215,10 +216,52 @@ class _Probe(Enum):
     SILENT = "silent"
 
 
+# How long one watchdog run may hold a sidecar: longer than its patient
+# probe (PATIENT_HEALTH_CHECK), a stop (twice STOP_GRACE_SECONDS) and a start
+# (START_TIMEOUT_SECONDS) together.
+WATCH_LEASE_SECONDS = 300.0
+
+
 def check_services() -> None:
+    """The per-minute watchdog: check every sidecar and act on what it finds.
+
+    A run that waits on a busy sidecar's patient probe outlasts the minute,
+    so the next one starts in another worker meanwhile. Each sidecar is
+    checked under a lease (SidecarWatchLease): the second run passes over a
+    sidecar the first one still checks instead of probing or restarting it
+    as well.
+    """
     _reap_exited()
+    holder = uuid.uuid4().hex
     for service in SERVICES.keys():
-        _act_on(service, check_service(service))
+        if not _take_watch(service, holder):
+            logger.debug("Service %s is being checked by another watchdog run", service)
+            continue
+        try:
+            _act_on(service, check_service(service))
+        finally:
+            _give_back_watch(service, holder)
+
+
+def _take_watch(service: str, holder: str) -> bool:
+    from api.models.sidecar_watch_lease import SidecarWatchLease
+
+    try:
+        return SidecarWatchLease.objects.take(service, holder, WATCH_LEASE_SECONDS)
+    except DatabaseError as e:
+        # A database that is down must not stop the watchdog: the sidecars
+        # matter most when the rest is struggling.
+        logger.warning("Watching %s without a lease: %s", service, e)
+        return True
+
+
+def _give_back_watch(service: str, holder: str) -> None:
+    from api.models.sidecar_watch_lease import SidecarWatchLease
+
+    try:
+        SidecarWatchLease.objects.give_back(service, holder)
+    except DatabaseError as e:
+        logger.warning("Could not give back the watch of %s: %s", service, e)
 
 
 def check_service(service: str) -> SidecarCheck:

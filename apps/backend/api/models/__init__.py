@@ -32,6 +32,7 @@ from api.models.photo_ocr import PhotoOcr
 from api.models.photo_search import PhotoSearch
 from api.models.photo_share import PhotoShare
 from api.models.photo_stack import PhotoStack
+from api.models.sidecar_watch_lease import SidecarWatchLease
 from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
 from api.models.upgrade_task_state import UpgradeTaskState
@@ -74,6 +75,7 @@ __all__ = [
     "PhotoSearch",
     "PhotoShare",
     "PhotoStack",
+    "SidecarWatchLease",
     "Tag",
     "Thumbnail",
     "UpgradeTaskState",
