@@ -224,7 +224,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   `development`, `dev_windows`, `standalone`, `test` and `test_sqlite`.
 - `service/`: the sidecars `thumbnail`, `face_recognition`, `image_captioning`, `exif`, `tags`
   (OpenCLIP: tags, search and similar-photo embeddings) and `ocr`; `image_similarity/` is the
-  seventh (FAISS index). Ports live in `SERVICES` in `api/runtime/sidecars.py`; call them through
+  seventh (a memory-mapped numpy index per user). Ports live in `SERVICES` in `api/runtime/sidecars.py`; call them through
   `api.runtime.sidecars.post`/`get`. Sidecars never import Django.
 - `chunked_upload/` is a vendored app; `nextcloud/` the Nextcloud import.
 

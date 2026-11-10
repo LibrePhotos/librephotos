@@ -89,7 +89,7 @@ Pick the deployment that fits your setup. Step-by-step guides are in the [docume
 - **Face classification/clustering:** [hdbscan](https://github.com/scikit-learn-contrib/hdbscan) clustering and a [scikit-learn](https://scikit-learn.org/) multilayer perceptron, both ported to numpy
 - **Image captioning:** [LFM2.5-VL](https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX), prompted with the recognised people and the place
 - **Tagging, semantic search and similar photos:** [OpenCLIP ViT-B/32](https://huggingface.co/laion/CLIP-ViT-B-32-DataComp.XL-s13B-b90K) (DataComp-XL, MIT licence)
-- **Semantic search:** [CLIP ViT-B/32](https://huggingface.co/Xenova/clip-vit-base-patch32) with [FAISS](https://github.com/facebookresearch/faiss)
+- **Semantic search:** [CLIP ViT-B/32](https://huggingface.co/Xenova/clip-vit-base-patch32) with an exact inner-product index in numpy
 - **ML runtime:** [ONNX Runtime](https://onnxruntime.ai/) for every model, no PyTorch
 - **Reverse geocoding:** [geopy](https://github.com/geopy/geopy)
 

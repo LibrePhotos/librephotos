@@ -8,7 +8,6 @@ django-cryptography-5==2.0.3
 djangorestframework==3.18.3
 djangorestframework-simplejwt==5.5.1
 drf-spectacular==0.30.0
-faiss-cpu==1.15.1
 Flask==3.1.3
 # Imported directly (service/_common.py); Flask brings it too.
 Werkzeug==3.1.9

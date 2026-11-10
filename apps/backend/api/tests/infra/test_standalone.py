@@ -168,13 +168,11 @@ class StageRuntimeFilesTest(SimpleTestCase):
 
 
 class NuitkaCommandTest(SimpleTestCase):
-    def test_swig_proxies_ship_as_bytecode(self):
-        # MSVC runs out of heap on the C Nuitka generates for faiss.swigfaiss.
+    def test_the_entry_point_comes_last(self):
         build = load_build_script()
 
         command = build.nuitka_command(Path("out"), None, "0.0.0")
 
-        self.assertIn("--noinclude-custom-mode=faiss.swigfaiss:bytecode", command)
         self.assertEqual(command[-1], str(build.ENTRY))
 
     def test_the_pure_python_frameworks_ship_as_bytecode(self):

@@ -1,4 +1,4 @@
-"""Image similarity sidecar: per-user FAISS indices over the CLIP embeddings.
+"""Image similarity sidecar: per-user indices over the CLIP embeddings.
 
 The indices are kept under BASE_DATA/protected_media/similarity (see
 retrieval_index.RetrievalIndex), so a restart of this process no longer
@@ -23,6 +23,7 @@ forgets them until the next Calculate CLIP embeddings job.
     "result": [image hashes]}``; empty for a user without an index.
 """
 
+import atexit
 import os
 
 from flask.typing import ResponseReturnValue
@@ -37,6 +38,7 @@ log = logger("image_similarity")
 
 app = create_app("image_similarity")
 index = RetrievalIndex(store_dir=INDEX_ROOT)
+atexit.register(index.close)
 
 
 def _user_id(value: object) -> int:

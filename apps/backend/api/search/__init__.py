@@ -2,8 +2,8 @@
 
 - ``semantic``: the OpenCLIP model behind tags, search and similar photos
   (embeddings, query embeddings, thresholds, tag generation)
-- ``similarity``: the client of the ``image_similarity`` sidecar (the FAISS
-  index of a user's embeddings, similar-photo and text-query lookups)
+- ``similarity``: the client of the ``image_similarity`` sidecar (the index
+  of a user's embeddings, similar-photo and text-query lookups)
 - ``embedding_jobs``: the Calculate CLIP embeddings job and the re-embedding of
   photos made by an earlier model
 - ``filters``: the photo list's search filter (semantic, OCR text and fields)
