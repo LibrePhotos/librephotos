@@ -30,11 +30,15 @@ vi.mock("@tanstack/react-router", () => ({
     return {};
   },
 }));
-vi.mock("../../api_client/photos/hooks/useFetchPhotosNotInAlbumQuery", () => ({
-  useFetchPhotosNotInAlbumQuery: (page: number, mediaType: MediaType) => {
-    stubs.requested.push([page, mediaType]);
-    // The same object on every render, like React Query's cached data.
-    return { status: "success", data: stubs.page, isPlaceholderData: false };
+vi.mock("../../api_client/photos/hooks/useFetchPhotosNotInAlbumPages", () => ({
+  useFetchPhotosNotInAlbumPages: (pages: readonly number[], mediaType: MediaType) => {
+    stubs.requested.push([pages.at(-1) ?? 0, mediaType]);
+    return {
+      answers: pages.map(page => (page === 1 ? { data: stubs.page, at: 1 } : undefined)),
+      failed: pages.map(() => false),
+      fetching: pages.map(() => false),
+      refetch: pages.map(() => () => Promise.resolve()),
+    };
   },
 }));
 vi.mock("../../components/photolist/useMediaTypeFilter", () => ({ useMediaTypeFilter: () => stubs.media }));

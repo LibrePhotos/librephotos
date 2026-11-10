@@ -21,9 +21,9 @@ const stubs = vi.hoisted(() => ({
 vi.mock("../../api", () => ({ apiClient: { get: stubs.get } }));
 
 const { useFetchRecentlyAddedPhotosQuery } = await import("./useFetchRecentlyAddedPhotosQuery");
-const { useFetchPhotosWithoutTimestampQuery } = await import("./useFetchPhotosWithoutTimestampQuery");
-const { useFetchPhotosWithoutLocationQuery } = await import("./useFetchPhotosWithoutLocationQuery");
-const { useFetchPhotosNotInAlbumQuery } = await import("./useFetchPhotosNotInAlbumQuery");
+const { useFetchPhotosWithoutTimestampPages } = await import("./useFetchPhotosWithoutTimestampPages");
+const { useFetchPhotosWithoutLocationPages } = await import("./useFetchPhotosWithoutLocationPages");
+const { useFetchPhotosNotInAlbumPages } = await import("./useFetchPhotosNotInAlbumPages");
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -64,14 +64,14 @@ describe("the media-filtered photo lists", () => {
   });
 
   it("keys a No timestamp page by the media filter and asks for it", async () => {
-    const client = await renderHook(() => useFetchPhotosWithoutTimestampQuery(3, "documents"));
+    const client = await renderHook(() => useFetchPhotosWithoutTimestampPages([3], "documents"));
 
     expect(client.getQueryData(photoGridKeys.withoutTimestamp(3, "documents"))).toBeDefined();
     expect(stubs.get).toHaveBeenLastCalledWith("/photos/notimestamp/?page=3&is_document=true");
   });
 
   it("keys a No location page by the media filter and asks for it", async () => {
-    const client = await renderHook(() => useFetchPhotosWithoutLocationQuery(2, "screenshots"));
+    const client = await renderHook(() => useFetchPhotosWithoutLocationPages([2], "screenshots"));
 
     expect(client.getQueryData(photoGridKeys.withoutLocation(2, "screenshots"))).toBeDefined();
     expect(client.getQueryData(photoGridKeys.withoutLocation(2, "all"))).toBeUndefined();
@@ -79,7 +79,7 @@ describe("the media-filtered photo lists", () => {
   });
 
   it("keys a Not in an album page by the media filter and asks for it", async () => {
-    const client = await renderHook(() => useFetchPhotosNotInAlbumQuery(2, "videos"));
+    const client = await renderHook(() => useFetchPhotosNotInAlbumPages([2], "videos"));
 
     expect(client.getQueryData(photoGridKeys.notInAlbum(2, "videos"))).toBeDefined();
     expect(client.getQueryData(photoGridKeys.notInAlbum(2, "all"))).toBeUndefined();
@@ -87,7 +87,7 @@ describe("the media-filtered photo lists", () => {
   });
 
   it("asks Not in an album for everything by default", async () => {
-    await renderHook(() => useFetchPhotosNotInAlbumQuery(1));
+    await renderHook(() => useFetchPhotosNotInAlbumPages([1]));
 
     expect(stubs.get).toHaveBeenLastCalledWith("/photos/no-album/?page=1");
   });
