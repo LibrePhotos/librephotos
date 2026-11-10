@@ -225,7 +225,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "chunked_upload",
-    "django_extensions",
     "constance",
     "constance.backends.database",
     "django_q",

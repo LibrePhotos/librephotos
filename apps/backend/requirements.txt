@@ -5,8 +5,6 @@ django-allauth[socialaccount]==65.21.1
 django-constance==4.5.0
 django-cors-headers==4.9.0
 django-cryptography-5==2.0.3
-django-extensions==4.1
-django-silk==5.6.0
 djangorestframework==3.18.3
 djangorestframework-simplejwt==5.5.1
 drf-spectacular==0.30.0

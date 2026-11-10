@@ -7,6 +7,12 @@ coverage==7.17.2
 Faker==40.44.0
 setuptools==84.2.1
 pyfakefs==6.3.2
+# Development only: librephotos/settings/development.py adds them to
+# INSTALLED_APPS when they are installed (the DEBUG=1 image build installs this
+# file). Silk profiles requests under /api/silk; django-extensions brings
+# shell_plus, runserver_plus and show_urls.
+django-silk==5.6.0
+django-extensions==4.1
 ruff==0.15.22
 # Dead-code check (scripts/check_dead_code.py); lint-backend.yml installs this pin.
 vulture==2.16
