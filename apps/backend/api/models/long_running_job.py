@@ -9,7 +9,7 @@ from typing import Any
 
 from django.conf import settings
 from django.db import models
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, Greatest
 from django.db.models.lookups import GreaterThanOrEqual, LessThan
 from django.utils import timezone
 
@@ -29,9 +29,19 @@ def stuck_job_hours() -> int:
     return hours
 
 
-def _last_sign_of_life() -> Coalesce:
+def _last_report() -> Coalesce:
     """A job's last progress, else its start, else its queueing."""
     return Coalesce("last_progress_at", "started_at", "queued_at")
+
+
+def _last_sign_of_life() -> Greatest:
+    """``_last_report``, or the stuck-job cleanup's last sighting, when later.
+
+    The cleanup records when it found a task of the job in the queue
+    (``queue_seen_at``): a job waiting its turn there is alive.
+    """
+    # Greatest of a NULL is NULL on SQLite: an unseen job falls back to its report.
+    return Greatest(_last_report(), Coalesce("queue_seen_at", _last_report()))
 
 
 class JobCancelledError(Exception):
@@ -59,8 +69,10 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
         queued job counts as running. Rows that ``stuck()`` would return are
         left out, so an orphan (OOM, restart, uncaught exception) does not
         block anything while it waits for the hourly ``cleanup_stuck_jobs``
-        (#1919). Duplicate-start refusal and ``/api/rqavailable/`` both read
-        this.
+        (#1919). A job whose task still waits in the queue is not stuck: the
+        hourly cleanup records seeing it there (``queue_seen_at``) long before
+        the threshold. Duplicate-start refusal and ``/api/rqavailable/`` both
+        read this.
         """
         cutoff = timezone.now() - timedelta(hours=stuck_job_hours())
         return self.filter(GreaterThanOrEqual(_last_sign_of_life(), cutoff)).filter(
@@ -94,6 +106,14 @@ class LongRunningJobQuerySet(OwnedQuerySet["LongRunningJob"]):
         return self.filter(LessThan(_last_sign_of_life(), cutoff)).filter(
             finished=False
         )
+
+    def silent(self, hours: int) -> LongRunningJobQuerySet:
+        """Unfinished jobs that reported nothing for ``hours``, wherever their tasks are.
+
+        What the stuck-job cleanup looks for in the queue (``queue_seen_at``).
+        """
+        cutoff = timezone.now() - timedelta(hours=hours)
+        return self.filter(LessThan(_last_report(), cutoff)).filter(finished=False)
 
     def baselines(self, job_type: int) -> LongRunningJobQuerySet:
         """Runs of ``job_type`` an incremental run may start after, newest first.
@@ -298,6 +318,9 @@ class LongRunningJob(models.Model):
     # When the job last reported progress; the stuck-job cleanup counts from
     # here (#2248).
     last_progress_at = models.DateTimeField(null=True, blank=True)
+    # When the hourly cleanup last found a task of the job in the queue
+    # (``api.jobs.cleanup``): a sign of life for a job that waits its turn.
+    queue_seen_at = models.DateTimeField(null=True, blank=True)
     # New fields for detailed progress reporting
     progress_step = models.CharField(
         max_length=100, null=True, blank=True

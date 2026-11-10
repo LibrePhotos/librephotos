@@ -10,6 +10,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AddField(
+            model_name='longrunningjob',
+            name='queue_seen_at',
+            field=models.DateTimeField(blank=True, null=True),
+        ),
         migrations.CreateModel(
             name='CountedJobItem',
             fields=[
