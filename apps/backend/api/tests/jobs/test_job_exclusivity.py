@@ -13,9 +13,10 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase
 
 from api.directory_watcher import processing_jobs
-from api.drf.exceptions import JobAlreadyRunning
+from api.drf.exceptions import JobAlreadyRunning, QueueBusy
 from api.jobs.queue import enqueue_job, reserve_job
 from api.models import LongRunningJob
+from api.runtime.ml_models import start_model_download
 from api.tests.utils import create_test_job, create_test_user
 
 J = LongRunningJob
@@ -137,3 +138,39 @@ class ScanFacesTailTest(TestCase):
             reserve_job(self.user, J.JOB_CLUSTER_ALL_FACES)
 
         self.assertEqual(refused.exception.job_id, running.job_id)
+
+
+class InstanceWideRefusalAnswerTest(TestCase):
+    """A refusal names the running job only to someone who can open it."""
+
+    def setUp(self) -> None:
+        self.admin = create_test_user(is_admin=True)
+        queue = patch("api.jobs.queue.AsyncTask")
+        queue.start()
+        self.addCleanup(queue.stop)
+        self.running = enqueue_job(
+            self.admin, J.JOB_DOWNLOAD_MODELS, job_task, self.admin
+        )
+
+    def test_another_admin_is_told_the_job_to_follow(self) -> None:
+        other_admin = create_test_user(is_admin=True)
+
+        with self.assertRaises(JobAlreadyRunning) as refused:
+            enqueue_job(other_admin, J.JOB_DOWNLOAD_MODELS, job_task, other_admin)
+
+        self.assertEqual(refused.exception.job_id, self.running.job_id)
+
+    def test_a_user_who_cannot_see_it_is_told_the_queue_is_busy(self) -> None:
+        user = create_test_user()
+
+        with self.assertRaises(QueueBusy) as refused:
+            enqueue_job(user, J.JOB_DOWNLOAD_MODELS, job_task, user)
+
+        self.assertNotIn(self.running.job_id, str(refused.exception.detail))
+        self.assertFalse(hasattr(refused.exception, "entry_fields"))
+
+    def test_the_model_download_of_a_user_counts_it_as_running(self) -> None:
+        user = create_test_user()
+
+        with patch("api.runtime.ml_models.model_download_running", return_value=False):
+            self.assertTrue(start_model_download(user))

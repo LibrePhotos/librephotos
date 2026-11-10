@@ -90,6 +90,17 @@ class JobAlreadyRunning(Conflict):
         self.entry_fields = {"job_id": job_id}
 
 
+class QueueBusy(Conflict):
+    """A job that rules this start out is running, one the caller cannot open.
+
+    Such as an instance-wide job another user started: unlike
+    ``JobAlreadyRunning`` it carries no ``job_id`` to follow.
+    """
+
+    default_detail = "Another job is running. Start this one when it has finished."
+    default_code = "queue_busy"
+
+
 class NameConflict(Conflict):
     """Names of the photos to move are taken in the target folder (#352).
 

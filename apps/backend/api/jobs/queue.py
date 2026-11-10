@@ -46,7 +46,7 @@ from django_q.brokers import get_broker
 from django_q.models import OrmQ, Schedule
 from django_q.tasks import AsyncTask, Chain, schedule
 
-from api.drf.exceptions import JobAlreadyRunning
+from api.drf.exceptions import JobAlreadyRunning, QueueBusy
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
 
@@ -122,7 +122,9 @@ def _refuse_running(user: User, job_types: Sequence[int]) -> None:
     """``JobAlreadyRunning`` when a job that rules these out is queued or running.
 
     One of the same types of the user's, a scan while a move or rename runs
-    (and the other way round), or an instance-wide one of anyone's.
+    (and the other way round), or an instance-wide one of anyone's. An
+    instance-wide job the user cannot open (another user's, and the user is
+    not staff, as in the job list) is ``QueueBusy``, without its id.
     """
     types = _refused_types(job_types)
     instance_wide = types & LongRunningJob.INSTANCE_WIDE_JOB_TYPES
@@ -136,8 +138,11 @@ def _refuse_running(user: User, job_types: Sequence[int]) -> None:
         .order_by("queued_at")
         .first()
     )
-    if running is not None:
-        raise JobAlreadyRunning(running.job_id, running.get_job_type_display())
+    if running is None:
+        return
+    if running.started_by_id != user.pk and not (user.is_staff or user.is_superuser):
+        raise QueueBusy()
+    raise JobAlreadyRunning(running.job_id, running.get_job_type_display())
 
 
 def _queue_after_commit(

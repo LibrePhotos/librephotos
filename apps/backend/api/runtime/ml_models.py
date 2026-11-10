@@ -14,7 +14,7 @@ import requests
 from constance import config as site_config
 from django.conf import settings
 
-from api.drf.exceptions import JobAlreadyRunning
+from api.drf.exceptions import JobAlreadyRunning, QueueBusy
 from api.jobs.queue import Task, enqueue_job
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
@@ -693,7 +693,7 @@ def start_model_download(user: User) -> bool:
     try:
         enqueue_job(user, LongRunningJob.JOB_DOWNLOAD_MODELS, download_models, user)
         return True
-    except JobAlreadyRunning:
+    except JobAlreadyRunning, QueueBusy:
         return True
     except Exception:
         logger.exception("Failed to queue the model download")
