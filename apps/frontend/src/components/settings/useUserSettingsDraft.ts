@@ -1,8 +1,8 @@
 import type { User } from "@librephotos/api-client";
-import { isEqual } from "lodash-es";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useServerDraft } from "../../hooks/useServerDraft";
 import { reportUserSaveError } from "../../util/apiErrors";
+import { plainDataEqual } from "../../util/helpers";
 
 /**
  * The user's settings as a page edits them before its "Save changes?" prompt saves them all: the
@@ -24,7 +24,7 @@ export function useUserSettingsDraft(stored: User | undefined) {
         return false;
       }
     },
-    isEqual,
+    isEqual: plainDataEqual,
     keepOnFailure: true,
   });
 

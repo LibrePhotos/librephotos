@@ -1,6 +1,6 @@
-import { throttle } from "lodash-es";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
+import { throttle } from "../../util/helpers";
 
 const HIDE_AFTER_MS = 2500;
 // A scroll of more than this many pixels within a second shows the scrubber.

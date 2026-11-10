@@ -252,6 +252,10 @@ describe("eslint.config.mjs convention bans", () => {
 
   // The client by any relative path, and the other ways to fetch or spell a media path.
   it.each([
+    // lodash in every spelling: there is no lodash dependency (src/util/helpers.ts)
+    ["src/components/Sample.tsx", `import { debounce } from "lodash-es";`, "lodash"],
+    ["src/components/Sample.tsx", `import debounce from "lodash/debounce";`, "lodash"],
+    ["src/components/Sample.tsx", `import debounce from "lodash.debounce";`, "lodash"],
     ["src/components/Sample.tsx", `import { apiClient } from "../api_client/api";`, "api-client-import"],
     ["src/routes/_protected/sample.tsx", `import { apiClient } from "../../api_client/api";`, "api-client-import"],
     [

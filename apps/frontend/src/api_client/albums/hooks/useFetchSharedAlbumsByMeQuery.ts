@@ -1,6 +1,6 @@
 import { albumKeys, endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { groupBy, toPairs } from "lodash-es";
+import { groupEntries } from "../../../util/helpers";
 import { apiClient } from "../../api";
 import type { UserAlbumList } from "../types";
 
@@ -24,10 +24,12 @@ export const useFetchSharedAlbumsByMeQuery = () =>
         });
       });
       // Group by recipient ID
-      const grouped: UserAlbumsGroupedByUserId[] = toPairs(groupBy(albumsByRecipient, "recipientId")).map(el => ({
-        user_id: parseInt(el[0], 10),
-        albums: el[1].map(item => item.album),
-      }));
+      const grouped: UserAlbumsGroupedByUserId[] = groupEntries(albumsByRecipient, entry => entry.recipientId).map(
+        el => ({
+          user_id: parseInt(el[0], 10),
+          albums: el[1].map(item => item.album),
+        })
+      );
       return grouped;
     },
   });

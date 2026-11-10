@@ -1,7 +1,7 @@
 import type { FaceAnalysisMethod } from "@librephotos/api-client";
-import { flatten, uniqBy } from "lodash-es";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
 import type { CompletePersonFace, CompletePersonFaceList, PersonFace } from "../../../api_client/faces";
+import { uniqBy } from "../../../util/helpers";
 import type { ScrollerData } from "../../scrollscrubber/scrollScrubberTypes";
 import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
 import { buildFaceGridRows, faceGridLayout, faceRowHeights, layoutWidthOf } from "../faceGridRows";
@@ -129,7 +129,7 @@ export function useVirtualizedGrid(
   const requestPagesForSection = useCallback(
     ({ rowOverscanStartIndex, rowOverscanStopIndex }: RenderedSection) => {
       const cells = getCellContentsForTab(activeTab);
-      const sectionCells = flatten<GridCell>(cells.slice(rowOverscanStartIndex, rowOverscanStopIndex + 1));
+      const sectionCells = cells.slice(rowOverscanStartIndex, rowOverscanStopIndex + 1).flat();
 
       const relevantInfos = sectionCells.flatMap(cell => {
         const needed = pageNeededBy(cell);
@@ -185,7 +185,7 @@ export function useVirtualizedGrid(
 
   // Get flattened cell contents for cell range selection
   const getFlattenedCells = useCallback(
-    (): GridCell[] => flatten<GridCell>(getCellContentsForTab(activeTab)),
+    (): GridCell[] => getCellContentsForTab(activeTab).flat(),
     [activeTab, getCellContentsForTab]
   );
 

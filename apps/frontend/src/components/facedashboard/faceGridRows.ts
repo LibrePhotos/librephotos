@@ -1,4 +1,4 @@
-import { chunk } from "lodash-es";
+import { chunk } from "../../util/helpers";
 import type { GridRows } from "./hooks/useVirtualizedGrid";
 import { isPersonCell } from "./hooks/useVirtualizedGrid";
 

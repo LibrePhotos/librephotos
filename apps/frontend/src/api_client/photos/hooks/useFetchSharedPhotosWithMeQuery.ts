@@ -1,6 +1,6 @@
 import { endpoints, photoGridKeys } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { groupBy, toPairs } from "lodash-es";
+import { groupEntries } from "../../../util/helpers";
 import { apiClient } from "../../api";
 
 export const useFetchSharedPhotosWithMeQuery = () =>
@@ -8,6 +8,9 @@ export const useFetchSharedPhotosWithMeQuery = () =>
     queryKey: photoGridKeys.sharedWithMe(),
     queryFn: async () => {
       const results = await endpoints.fetchSharedPhotosWithMe(apiClient);
-      return toPairs(groupBy(results, "owner.id")).map(el => ({ userId: parseInt(el[0], 10), photos: el[1] }));
+      return groupEntries(results, photo => photo.owner?.id).map(el => ({
+        userId: parseInt(el[0], 10),
+        photos: el[1],
+      }));
     },
   });

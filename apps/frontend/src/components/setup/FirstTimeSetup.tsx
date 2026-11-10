@@ -4,7 +4,6 @@ import { schemaResolver, useForm } from "@mantine/form";
 import type { UseFormReturnType } from "@mantine/form";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { isEqual } from "lodash-es";
 import React, { useMemo, useState } from "react";
 import type { FormEventHandler } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +15,7 @@ import { useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } fr
 import { useServerDraft } from "../../hooks/useServerDraft";
 import { makeSignupSchema } from "../../routes/-signup.schema";
 import { reportSignupError, reportUserSaveError } from "../../util/apiErrors";
+import { plainDataEqual } from "../../util/helpers";
 import { AuthCard } from "../auth/AuthCard";
 import { SignupFields } from "../auth/SignupFields";
 import type { SignupValues } from "../auth/SignupFields";
@@ -88,7 +88,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
           return false;
         }
       },
-      isEqual,
+      isEqual: plainDataEqual,
       // A refused save is toasted by the QueryClient; the step stays with the switches as set.
       keepOnFailure: true,
     }

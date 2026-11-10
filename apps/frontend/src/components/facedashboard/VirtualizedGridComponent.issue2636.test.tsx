@@ -6,7 +6,6 @@
  */
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
-import { flatten } from "lodash-es";
 import React, { act, createRef } from "react";
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -60,7 +59,7 @@ const LIST = [
   group(0, UNKNOWN_PERSON_NAME, UNKNOWN_PERSON_NAME, [cropless(31)]),
 ];
 const ROWS: GridRows = calculateFaceGridCells(LIST, 4, new Set()).cellContents;
-const CELLS = flatten<GridCell>(ROWS);
+const CELLS: GridCell[] = ROWS.flat();
 
 const stubs = vi.hoisted(() => ({ remove: vi.fn<(face: { id: number }) => void>() }));
 const actions: FaceActionHandlers = {

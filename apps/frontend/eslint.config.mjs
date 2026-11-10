@@ -40,10 +40,11 @@ export const importBans = [
     message: "Dialogs are components opened with useDisclosure, not imperative modals.open*().",
   },
   {
-    // lodash itself is not a dependency (its CommonJS build drags in the whole library); lodash-es is.
+    // Neither is a dependency: native code, or the few helpers src/util/helpers.ts has.
     id: "lodash",
-    name: "lodash",
-    message: 'Import from "lodash-es" (lodash itself is not a dependency).',
+    group: ["lodash", "lodash/*", "lodash-es", "lodash-es/*", "lodash.*"],
+    message:
+      "lodash is not a dependency: use native code, or groupEntries, orderBy, chunk, uniqBy, plainDataEqual, deburr, escapeRegExp, debounce or throttle from src/util/helpers.ts.",
   },
   {
     // dayjs is only Mantine's date-picker glue (its locales are loaded in i18n.ts); dates are luxon.

@@ -2,7 +2,6 @@ import { Box } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconSettingsAutomation as SettingsAutomation } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import { sortBy } from "lodash-es";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchAutoAlbumQuery } from "../../../api_client/albums/hooks";
@@ -16,6 +15,7 @@ import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { validatePhotoSearch } from "../../../components/photolist/photoSearch";
 import { useEventTitle } from "../../../hooks/useEventTitle";
 import { formatPhotoDaySpan } from "../../../util/dateUtils";
+import { orderBy } from "../../../util/helpers";
 
 export const Route = createFileRoute("/_protected/album/events/$id")({
   component: AlbumAutoGalleryView,
@@ -46,7 +46,7 @@ function AlbumAutoGalleryView() {
     );
   }
 
-  const photos = sortBy(album.photos, "exif_timestamp").map((el, idx) => ({ ...el, idx }));
+  const photos = orderBy(album.photos, [[photo => photo.exif_timestamp, "asc"]]).map((el, idx) => ({ ...el, idx }));
   const hasGPSCoordinates = photos.some(photo => photo.exif_gps_lat !== null && photo.exif_gps_lon !== null);
   const groupedPhotos = eventPhotoGroups(photos);
 

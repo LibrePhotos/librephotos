@@ -1,6 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { z } from "zod";
-import { STORAGE_KEYS, useStoredState } from "../../../util/storage";
+import { readStored, STORAGE_KEYS, writeStored } from "../../../util/storage";
 import { FacesTab } from "../facesTab";
 
 /** Each tab's saved scroll position; a tab without one is not scrolled when it opens. */
@@ -24,18 +24,19 @@ const StoredPositions = z
 
 // Custom hook to manage tab scroll positions in localStorage
 export function useTabScrollPositions() {
-  const [tabPositions, updateTabPositions] = useStoredState<TabPositions>(
-    STORAGE_KEYS.facesTabScrollPositions,
-    StoredPositions,
-    DEFAULT_TAB_POSITIONS
+  const [tabPositions, setTabPositions] = useState<TabPositions>(() =>
+    readStored(STORAGE_KEYS.facesTabScrollPositions, StoredPositions, DEFAULT_TAB_POSITIONS)
   );
+  const latest = useRef(tabPositions);
 
-  const updatePosition = useCallback(
-    (tab: FacesTab, position: number) => {
-      updateTabPositions(prev => ({ ...prev, [tab]: position }));
-    },
-    [updateTabPositions]
-  );
+  // Written straight away, not from a state update: the dashboard saves the position it is left
+  // at as it unmounts, and a state update made then never runs.
+  const updatePosition = useCallback((tab: FacesTab, position: number) => {
+    const next = { ...latest.current, [tab]: position };
+    latest.current = next;
+    writeStored(STORAGE_KEYS.facesTabScrollPositions, next);
+    setTabPositions(next);
+  }, []);
 
   return { tabPositions, updatePosition };
 }

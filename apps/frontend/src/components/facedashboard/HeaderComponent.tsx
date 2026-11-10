@@ -12,7 +12,6 @@ import {
 } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
 import cx from "clsx";
-import { uniqBy } from "lodash-es";
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,6 +21,7 @@ import {
 } from "../../api_client/albums/hooks";
 import { useRestoreFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
 import type { CompletePersonFace } from "../../api_client/faces/types";
+import { uniqBy } from "../../util/helpers";
 import { PersonRenameModal } from "../album/PersonRenameModal";
 import { DeletePersonModal } from "./DeletePersonModal";
 import { canConfirmFace, canRestoreAll, hasPersonMenu, isNamedPerson } from "./faceActionRules";

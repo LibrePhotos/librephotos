@@ -1,5 +1,3 @@
-import { uniq } from "lodash-es";
-
 // The reverse geocoder's answer, stored as it came (Photo.geolocation_json)
 type GeolocatedPhoto = Readonly<{ geolocation_json?: unknown }>;
 
@@ -76,5 +74,5 @@ function townName(geolocation: unknown): string {
  * and some photos were never geocoded; those used to throw and take the whole event page down.
  */
 export function eventLocationNames(photos: readonly GeolocatedPhoto[]): string[] {
-  return uniq(photos.map(photo => townName(photo.geolocation_json)).filter(Boolean));
+  return [...new Set(photos.map(photo => townName(photo.geolocation_json)).filter(Boolean))];
 }

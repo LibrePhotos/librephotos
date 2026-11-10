@@ -1,9 +1,9 @@
 import type { PhotoOrder, User } from "@librephotos/api-client";
 import { useDebouncedCallback } from "@mantine/hooks";
-import { isEqual } from "lodash-es";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useSetPhotoOrderMutation } from "../../api_client/user/hooks/usePhotoOrder";
 import { useServerDraft } from "../../hooks/useServerDraft";
+import { plainDataEqual } from "../../util/helpers";
 import { ScrubberStyle } from "../scrollscrubber/scrollScrubberTypes";
 
 export type HeaderSize = "large" | "normal" | "small";
@@ -60,7 +60,7 @@ export const usePhotoListPreferences = (userSelfDetails: PreferenceFields | unde
           { onSuccess: () => resolve(true), onError: () => resolve(false) }
         );
       }),
-    isEqual,
+    isEqual: plainDataEqual,
   });
   // Changes made within one pause are saved together.
   const flush = useDebouncedCallback(() => void draft.commit(), 500);

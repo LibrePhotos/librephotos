@@ -1,5 +1,5 @@
 import { Media, type PhotoSimple } from "@librephotos/api-client";
-import { groupBy } from "lodash-es";
+import { groupEntries } from "../../util/helpers";
 
 /** An event photo (`PhotoSimple`) as a grid tile of the event page. */
 export function eventGridPhoto(photo: PhotoSimple) {
@@ -39,8 +39,7 @@ export function eventGridPhoto(photo: PhotoSimple) {
 
 /** The event's photos, already sorted by time, as one group per day for the grid. */
 export function eventPhotoGroups(photos: PhotoSimple[]) {
-  const byDate = groupBy(photos, photo => photo.exif_timestamp.split("T")[0]);
-  return Object.entries(byDate).map(([date, items]) => ({
+  return groupEntries(photos, photo => photo.exif_timestamp.split("T")[0]).map(([date, items]) => ({
     date,
     location: null,
     items: items.map(eventGridPhoto),
