@@ -46,6 +46,7 @@ const stubs = vi.hoisted(() => ({
     refetch: vi.fn<() => Promise<unknown>>(),
   },
   listProps: undefined as PhotoListViewProps | undefined,
+  renders: [] as PhotoListViewProps[],
   noScanDirectory: false,
   userFailed: false,
   userRefetch: vi.fn<() => Promise<unknown>>(),
@@ -86,6 +87,7 @@ vi.mock("../../components/memories/MemoriesStrip", () => ({ MemoriesStrip: () =>
 vi.mock("../../components/photolist/PhotoListView", () => ({
   PhotoListView: (props: PhotoListViewProps) => {
     stubs.listProps = props;
+    stubs.renders.push(props);
     return null;
   },
 }));
@@ -285,5 +287,34 @@ describe("a failed timeline request (#2221)", () => {
   it("passes no error while the photos are there", async () => {
     await renderTimeline();
     expect(listProps().error).toBeUndefined();
+  });
+});
+
+describe("the timeline's flat photo list", () => {
+  it("never hands the lightbox the last filter's photos with the new filter's groups", async () => {
+    const photo = { id: "a1", image_hash: "a1", aspectRatio: 1, isTemp: false };
+    const loaded = { ...stubs.listResult, data: [{ id: 1, date: "2026-01-01", location: "", items: [photo] }] };
+    stubs.listResult = loaded;
+    try {
+      const Timeline = defined(stubs.component);
+      const root = createRoot(document.createElement("div"));
+      await act(async () => {
+        root.render(<Timeline />);
+      });
+      // A new filter: its list is not in yet.
+      stubs.listResult = { ...loaded, data: undefined, isLoading: true };
+      stubs.renders = [];
+      await act(async () => {
+        root.render(<Timeline />);
+      });
+      expect(stubs.renders.length).toBeGreaterThan(0);
+      stubs.renders.forEach(props => {
+        expect(props.photoset).toEqual([]);
+        expect(props.idx2hash).toEqual([]);
+      });
+      await act(async () => root.unmount());
+    } finally {
+      stubs.listResult = { ...loaded, data: [], isLoading: false };
+    }
   });
 });

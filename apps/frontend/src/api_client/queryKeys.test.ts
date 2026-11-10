@@ -80,7 +80,7 @@ const domains: Record<string, Domain> = {
           { before: ["photoGrid", "userAlbum", "7"], after: photoGridKeys.userAlbum("7") },
           { before: ["photoGrid", "notInAlbum"], after: photoGridKeys.kind("notInAlbum") },
         ],
-        refreshes: ["useFetchUserAlbumsQuery", "useFetchUserAlbumQuery", "useFetchPhotosNotInAlbumQuery"],
+        refreshes: ["useFetchUserAlbumsQuery", "useFetchUserAlbumQuery", "useFetchPhotosNotInAlbumPages"],
       },
       {
         mutation: "useDeleteAutoAlbumMutation",
@@ -275,17 +275,17 @@ const domains: Record<string, Domain> = {
         before: ["photoGrid", "search", "beach", "all", "semantic"],
         after: photoGridKeys.search("beach", "all", "semantic"),
       },
-      useFetchPhotosWithoutTimestampQuery: {
+      useFetchPhotosWithoutTimestampPages: {
         // Keyed by the media filter since #2216.
         before: ["photoGrid", "withoutTimestamp", 2, "all"],
         after: photoGridKeys.withoutTimestamp(2, "all"),
       },
-      useFetchPhotosWithoutLocationQuery: {
+      useFetchPhotosWithoutLocationPages: {
         before: ["photoGrid", "withoutLocation", 2, "all"],
         after: photoGridKeys.withoutLocation(2, "all"),
       },
       // New in #530, keyed like No timestamp.
-      useFetchPhotosNotInAlbumQuery: {
+      useFetchPhotosNotInAlbumPages: {
         before: ["photoGrid", "notInAlbum", 2, "all"],
         after: photoGridKeys.notInAlbum(2, "all"),
       },
@@ -317,9 +317,9 @@ const domains: Record<string, Domain> = {
           "useFetchThingsAlbumQuery",
           "useFetchTagAlbumQuery",
           "useSearchPhotosQuery",
-          "useFetchPhotosWithoutTimestampQuery",
-          "useFetchPhotosWithoutLocationQuery",
-          "useFetchPhotosNotInAlbumQuery",
+          "useFetchPhotosWithoutTimestampPages",
+          "useFetchPhotosWithoutLocationPages",
+          "useFetchPhotosNotInAlbumPages",
           "useFetchMyPublicPhotosQuery",
           "useFetchSharedPhotosByMeQuery",
           "useFetchSharedPhotosWithMeQuery",

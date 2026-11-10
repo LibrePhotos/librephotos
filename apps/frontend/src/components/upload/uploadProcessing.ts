@@ -1,5 +1,5 @@
 import type { ImportJob, UploadFailedFile, UploadStatus } from "@librephotos/api-client";
-import type { UploadItem } from "./useUploadQueue";
+import type { UploadItem } from "./uploadQueueState";
 
 /** The server reads at most this many job ids and photo ids in one status request. */
 const MAX_FOLLOWED_IDS = 100;
@@ -30,7 +30,7 @@ export type RowServerState =
   | { kind: "failed"; failure?: UploadFailedFile };
 
 /** An uploaded file the server imports, with the ids `/upload/complete/` answered. */
-type TrackedItem = UploadItem & { jobId: string; photoId: string };
+type TrackedItem = Extract<UploadItem, { status: "done" }> & { jobId: string; photoId: string };
 
 const isTracked = (item: UploadItem): item is TrackedItem =>
   item.status === "done" && item.jobId !== undefined && item.photoId !== undefined;
@@ -45,7 +45,7 @@ export function rowServerState(item: UploadItem, outcomes: ServerOutcomes): RowS
 
 /** The import jobs the card's files went into, the newest last. */
 export function followedJobIds(items: UploadItem[]): string[] {
-  const ids = new Set(items.flatMap(item => (item.jobId ? [item.jobId] : [])));
+  const ids = new Set(items.flatMap(item => (item.status === "done" && item.jobId ? [item.jobId] : [])));
   return [...ids].slice(-MAX_FOLLOWED_IDS);
 }
 

@@ -21,7 +21,7 @@ import { defined } from "../../util/defined.test-utils";
 import { tempPigPhoto } from "../../util/util";
 
 type PhotoListViewProps = React.ComponentProps<typeof PhotoListView>;
-type PageResult = { data?: { count: number; results: PigPhoto[] }; isPlaceholderData: boolean };
+type PageResult = { data: { count: number; results: PigPhoto[] }; at: number };
 
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
@@ -48,11 +48,16 @@ vi.mock("@tanstack/react-router", () => ({
     return {};
   },
 }));
-vi.mock("../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery", () => ({
-  useFetchPhotosWithoutTimestampQuery: (page: number, mediaType: MediaType) => {
-    stubs.requestedPages.push(page);
+vi.mock("../../api_client/photos/hooks/useFetchPhotosWithoutTimestampPages", () => ({
+  useFetchPhotosWithoutTimestampPages: (pages: readonly number[], mediaType: MediaType) => {
+    stubs.requestedPages.push(pages.at(-1) ?? 0);
     stubs.requestedMedia.push(mediaType);
-    return { status: "success", ...stubs.pages[page] };
+    return {
+      answers: pages.map(page => stubs.pages[page]),
+      failed: pages.map(() => false),
+      fetching: pages.map(() => false),
+      refetch: pages.map(() => () => Promise.resolve()),
+    };
   },
 }));
 vi.mock("../../components/photolist/useMediaTypeFilter", () => ({ useMediaTypeFilter: () => stubs.media }));
@@ -76,9 +81,9 @@ beforeAll(async () => {
 }, 30_000);
 
 describe("the no-timestamp page", () => {
-  it("fills each page into its own slots and ignores the placeholder of the previous page", async () => {
+  it("fills each page into its own slots, and a page still loading keeps its placeholders", async () => {
     const page1 = { count: 250, results: photos(1) };
-    stubs.pages = { 1: { data: page1, isPlaceholderData: false } };
+    stubs.pages = { 1: { data: page1, at: 1 } };
     const NoTimestamp = defined(stubs.component);
     const root = createRoot(document.createElement("div"));
 
@@ -90,7 +95,6 @@ describe("the no-timestamp page", () => {
     expect(defined(stubs.photoset[100]).isTemp).toBe(true);
 
     // Scrolling reaches the placeholders of page 2, which is still loading
-    stubs.pages[2] = { data: page1, isPlaceholderData: true };
     await act(async () => {
       defined(stubs.updateItems)([tempPigPhoto("temp-150")]);
     });
@@ -99,7 +103,7 @@ describe("the no-timestamp page", () => {
     expect(stubs.photoset.filter(photo => photo.id === "p1-0")).toHaveLength(1);
 
     // Page 2 arrives
-    stubs.pages[2] = { data: { count: 250, results: photos(2) }, isPlaceholderData: false };
+    stubs.pages[2] = { data: { count: 250, results: photos(2) }, at: 2 };
     await act(async () => {
       root.render(<NoTimestamp />);
     });
@@ -115,7 +119,7 @@ describe("the no-timestamp page", () => {
   });
 
   it("asks for the media filter in the URL and drops the empty state while it filters", async () => {
-    stubs.pages = { 1: { data: { count: 0, results: [] }, isPlaceholderData: false } };
+    stubs.pages = { 1: { data: { count: 0, results: [] }, at: 1 } };
     const NoTimestamp = defined(stubs.component);
     const root = createRoot(document.createElement("div"));
 
@@ -143,7 +147,7 @@ describe("the no-timestamp page", () => {
   // #2227: only 100 photos are loaded at a time, so select all has to name the whole set
   // with a server-side query: undated photos, stacked ones too, narrowed by the media filter.
   it("selects all through a server-side query for every undated photo", async () => {
-    stubs.pages = { 1: { data: { count: 350, results: photos(1) }, isPlaceholderData: false } };
+    stubs.pages = { 1: { data: { count: 350, results: photos(1) }, at: 1 } };
     const NoTimestamp = defined(stubs.component);
     const root = createRoot(document.createElement("div"));
 

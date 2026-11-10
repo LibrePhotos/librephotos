@@ -32,8 +32,8 @@ vi.mock("../upload/UploadContext", async importOriginal => ({
 
 const queue = (isUploading: boolean): UploadQueue => ({
   items: [{ id: "a", file: new File([], "a.jpg"), status: isUploading ? "uploading" : "done", progress: 0 }],
+  run: isUploading ? "uploading" : "idle",
   isUploading,
-  isCancelling: false,
   start: vi.fn<UploadQueue["start"]>(),
   retry: vi.fn<UploadQueue["retry"]>(),
   cancel: vi.fn<UploadQueue["cancel"]>(),

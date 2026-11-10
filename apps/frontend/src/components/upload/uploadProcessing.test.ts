@@ -1,5 +1,6 @@
 import type { ImportJob, UploadStatus } from "@librephotos/api-client";
 import { describe, expect, it } from "vitest";
+import { uploadItem } from "./uploadItem.test-utils";
 import {
   absorbStatus,
   followedJobIds,
@@ -10,18 +11,15 @@ import {
   rowServerState,
   type ServerOutcomes,
 } from "./uploadProcessing";
-import type { UploadItem } from "./useUploadQueue";
+import type { UploadItem } from "./uploadQueueState";
 
 const file = new File([new Uint8Array(4)], "a.jpg", { type: "image/jpeg" });
-const row = (id: string, patch: Partial<UploadItem> = {}): UploadItem => ({
-  id,
+const row = (id: string): UploadItem => uploadItem(id, "done", { file, progress: 100 });
+const uploaded = (photoId: string, jobId = "j1") => ({
+  id: photoId,
   file,
-  status: "done",
   progress: 100,
-  ...patch,
-});
-const uploaded = (photoId: string, jobId = "j1"): UploadItem & { jobId: string; photoId: string } => ({
-  ...row(photoId),
+  status: "done" as const,
   jobId,
   photoId,
 });
@@ -56,7 +54,7 @@ const failure = (photo_id: string, stage: string) => ({ photo_id, file: "a.jpg",
 
 describe("rowServerState", () => {
   it("does not follow a file that is not uploaded, or one the server named no job for", () => {
-    expect(rowServerState(row("a", { status: "uploading", jobId: "j1", photoId: "p" }), NO_OUTCOMES).kind).toBe(
+    expect(rowServerState(uploadItem("a", "uploading", { file, jobId: "j1", photoId: "p" }), NO_OUTCOMES).kind).toBe(
       "untracked"
     );
     expect(rowServerState(row("a"), NO_OUTCOMES).kind).toBe("untracked");

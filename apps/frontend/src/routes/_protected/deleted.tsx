@@ -1,9 +1,8 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
 import { Text } from "@mantine/core";
 import { IconTrash as Trash } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
@@ -11,9 +10,9 @@ import { useListFailure } from "../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
+import { useGroupedPhotos } from "../../components/photolist/useGroupedPhotos";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 import { EmptyTrashButton, useTrashCounts } from "../../components/trash/EmptyTrashButton";
-import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/deleted")({
   component: DeletedPhotos,
@@ -25,7 +24,6 @@ export const Route = createFileRoute("/_protected/deleted")({
 function DeletedPhotos() {
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
   const photosQuery = useFetchDateAlbumsQuery({ photosetType: Photoset.IN_TRASHCAN, mediaType });
   const { data: photosGroupedByDate, isLoading } = photosQuery;
@@ -37,9 +35,7 @@ function DeletedPhotos() {
   // Days a photo stays in the trash (#2203); 0, or a server without the setting: until emptied.
   const retentionDays = useGetSettingsQuery().data?.trash_retention_days ?? 0;
 
-  useEffect(() => {
-    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
-  }, [photosGroupedByDate]);
+  const { groups, photosFlat } = useGroupedPhotos(photosGroupedByDate);
 
   // Pig reports the day groups on screen; their placeholders name the pages still to load.
   const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.IN_TRASHCAN, mediaType });
@@ -68,7 +64,7 @@ function DeletedPhotos() {
       // Empty trash, left of Select and in the ⋯: the whole trash, whatever the media filter shows;
       // it waits for the job it starts.
       headerActions={<EmptyTrashButton total={trash.total} shownCount={photosFlat.length} />}
-      photoset={photosGroupedByDate ?? []}
+      photoset={groups}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable

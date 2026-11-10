@@ -1,6 +1,6 @@
 import { useDisclosure } from "@mantine/hooks";
 import { useOptionalUpload } from "./UploadContext";
-import type { UploadStatus } from "./useUploadQueue";
+import type { UploadStatus } from "./uploadQueueState";
 
 const UNFINISHED: ReadonlySet<UploadStatus> = new Set(["pending", "hashing", "uploading"]);
 

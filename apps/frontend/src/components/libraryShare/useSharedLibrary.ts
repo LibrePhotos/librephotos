@@ -1,9 +1,7 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
-import { useEffect, useState } from "react";
 import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
-import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import { useListFailure } from "../common/useListFailure";
+import { useGroupedPhotos } from "../photolist/useGroupedPhotos";
 import { useLibraryShares } from "./useLibraryShares";
 
 /**
@@ -18,10 +16,7 @@ export function useSharedLibrary(ownerId: number) {
     { skip: share === undefined }
   );
   const failure = useListFailure(photosQuery);
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
-  useEffect(() => {
-    if (photosQuery.data) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosQuery.data));
-  }, [photosQuery.data]);
+  const { groups, photosFlat } = useGroupedPhotos(photosQuery.data);
 
   // Pig reports the day groups on screen; their placeholders name the pages still to load.
   const updateGroups = useDateAlbumDayPages(
@@ -32,7 +27,7 @@ export function useSharedLibrary(ownerId: number) {
   return {
     share,
     loadingShares: loading,
-    groups: photosQuery.data ?? [],
+    groups,
     photosFlat,
     loadingPhotos: photosQuery.isLoading,
     failure,

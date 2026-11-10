@@ -1,16 +1,15 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
 import { IconEyeOff as EyeOff } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
+import { useGroupedPhotos } from "../../components/photolist/useGroupedPhotos";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
-import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/hidden")({
   component: HiddenPhotos,
@@ -22,7 +21,6 @@ export const Route = createFileRoute("/_protected/hidden")({
 function HiddenPhotos() {
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
   const photosQuery = useFetchDateAlbumsQuery({
     photosetType: Photoset.HIDDEN,
@@ -31,9 +29,7 @@ function HiddenPhotos() {
   const { data: photosGroupedByDate, isLoading } = photosQuery;
   const listFailure = useListFailure(photosQuery);
 
-  useEffect(() => {
-    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
-  }, [photosGroupedByDate]);
+  const { groups, photosFlat } = useGroupedPhotos(photosGroupedByDate);
 
   // Pig reports the day groups on screen; their placeholders name the pages still to load.
   const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.HIDDEN, mediaType });
@@ -51,7 +47,7 @@ function HiddenPhotos() {
     <PhotoListView
       title={t("photos.hidden")}
       loading={isLoading}
-      photoset={photosGroupedByDate ?? []}
+      photoset={groups}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable

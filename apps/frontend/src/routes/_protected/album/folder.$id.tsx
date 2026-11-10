@@ -1,11 +1,10 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
 import type { MantineFontSize } from "@mantine/core";
 import { Box, Button, Group, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconFolder as Folder, IconArrowLeft } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   useDateAlbumDayPages,
@@ -16,8 +15,8 @@ import { FolderActionsMenu } from "../../../components/album/FolderActionsMenu";
 import { FolderListModal } from "../../../components/album/FolderListModal";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import { useGroupedPhotos } from "../../../components/photolist/useGroupedPhotos";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
-import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/folder/$id")({
   component: FolderDetail,
@@ -60,7 +59,6 @@ function FolderDetail() {
   const folderPath = decodeFolderId(id);
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const [folderListOpened, { open: openFolderList, close: closeFolderList }] = useDisclosure(false);
   // Responsive breakpoints, in the theme's em values so they follow the browser font size
   const theme = useMantineTheme();
@@ -78,11 +76,7 @@ function FolderDetail() {
   const { data: folderData } = useFetchFolderSubfoldersQuery(folderPath);
   const subfolders = folderData?.results || [];
 
-  useEffect(() => {
-    if (photosGroupedByDate) {
-      setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
-    }
-  }, [photosGroupedByDate]);
+  const { groups, photosFlat } = useGroupedPhotos(photosGroupedByDate);
 
   // Pig reports the day groups on screen; their placeholders name the pages still to load.
   const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.NONE, folder: folderPath, mediaType });
@@ -217,7 +211,7 @@ function FolderDetail() {
         ) : undefined
       }
       loading={isLoading}
-      photoset={photosGroupedByDate ?? []}
+      photoset={groups}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       mediaType={mediaType}

@@ -1,12 +1,12 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDateAlbumDayPages, useFetchDateAlbumsQuery, usePublicAlbumQuery } from "../../api_client/albums/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { validatePhotoSearch } from "../../components/photolist/photoSearch";
+import { useGroupedPhotos } from "../../components/photolist/useGroupedPhotos";
 import { isUndatedShare } from "../../components/sharing/publicAlbum";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
@@ -22,8 +22,6 @@ function UserPublicPage() {
   const { users } = Route.useParams();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
 
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
-
   const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery(
     {
       photosetType: Photoset.PUBLIC,
@@ -32,9 +30,7 @@ function UserPublicPage() {
     // Disable this query when a specific album is requested
   );
 
-  useEffect(() => {
-    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
-  }, [photosGroupedByDate]);
+  const { groups, photosFlat } = useGroupedPhotos(photosGroupedByDate);
 
   // Pig reports the day groups on screen; their placeholders name the pages still to load.
   const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.PUBLIC, username: users });
@@ -71,7 +67,7 @@ function UserPublicPage() {
     <PhotoListView
       title={pageTitle}
       loading={isLoading}
-      photoset={photosGroupedByDate ?? []}
+      photoset={groups}
       idx2hash={photosFlat}
       isPublic={currentUser?.username !== users}
       updateGroups={getAlbums}

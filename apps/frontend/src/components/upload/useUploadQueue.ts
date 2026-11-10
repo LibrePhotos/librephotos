@@ -1,5 +1,5 @@
 import type { UploadCompleteResponse } from "@librephotos/api-client";
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import {
   invalidateUploadQueries,
   isUploadAlbumRefusal,
@@ -13,43 +13,28 @@ import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useC
 import i18n from "../../i18n";
 import { fileExistingIntoAlbums, type ExistingInAlbum } from "./albumFiling";
 import { calculateChunks, calculateMD5, UploadCancelledError } from "./chunkedUpload";
-
-export type UploadStatus = "pending" | "hashing" | "uploading" | "done" | "duplicate" | "error" | "cancelled";
-
-/** One of the user's own albums an upload files into (#612). */
-export type UploadAlbumTarget = { id: number; title: string };
-
-/**
- * How filing into the album came out, where it differs from "uploaded into it": a file the library
- * already had was added to it, or the album refused the file (locked or deleted meanwhile), which
- * went to the library only.
- */
-export type AlbumOutcome = "added_existing" | "library_only";
-
-export type UploadItem = {
-  id: string;
-  file: File;
-  status: UploadStatus;
-  /** 0..100, bytes of this file sent so far */
-  progress: number;
-  error?: string;
-  /** The album the file goes into; none for the library alone. */
-  album?: UploadAlbumTarget;
-  albumOutcome?: AlbumOutcome;
-  /** The import job processing the uploaded file, and the photo it made (#2737; newer servers). */
-  jobId?: string;
-  photoId?: string;
-};
+import {
+  EMPTY_QUEUE,
+  nextPending,
+  reduceQueue,
+  type AlbumOutcome,
+  type Finished,
+  type QueueEvent,
+  type QueueRun,
+  type QueueState,
+  type UploadAlbumTarget,
+  type UploadItem,
+} from "./uploadQueueState";
 
 export type UploadQueue = {
   items: UploadItem[];
+  run: QueueRun;
+  /** The worker is running (`run` is not idle). */
   isUploading: boolean;
-  /** Between cancel() and the end of the file in flight (its current chunk or hash slice). */
-  isCancelling: boolean;
   /** Append files to the queue, filed into `album` when given, and start uploading if idle. */
   start: (files: File[], album?: UploadAlbumTarget) => void;
-  /** Re-queue the given items; anything not failed or cancelled is ignored. */
-  retry: (targets: UploadItem[]) => void;
+  /** Re-queue these items; one not failed or cancelled by now (a second click) is ignored. */
+  retry: (ids: readonly string[]) => void;
   /**
    * Stop the running upload: waiting files and the file in flight end as "cancelled",
    * finished files stay. Files added afterwards upload normally.
@@ -60,24 +45,50 @@ export type UploadQueue = {
 };
 
 /** What one file's run ends in: whether a new file landed, the album it was filed into, its import job. */
-type Processed = { uploaded: boolean; filedInto?: number; jobId?: string };
+type Processed = { uploaded: boolean; filedInto?: number; jobId?: string; existing?: ExistingInAlbum };
 
 /** How the server took a completed upload: its import job and photo, or a file it already had. */
 type Completed = { albumOutcome?: AlbumOutcome; answer: UploadCompleteResponse };
 
 /** The row of a completed upload; the server answers a file it already had with `detail` and no job. */
-const completedRow = ({ albumOutcome, answer }: Completed): Partial<UploadItem> => ({
-  status: !answer.job_id && answer.detail ? "duplicate" : "done",
-  progress: 100,
-  albumOutcome,
-  jobId: answer.job_id ?? undefined,
-  photoId: answer.photo_id ?? undefined,
-});
+const finishedRow = ({ albumOutcome, answer }: Completed): Finished => {
+  const photoId = answer.photo_id ?? undefined;
+  if (!answer.job_id && answer.detail) return { status: "duplicate", albumOutcome, photoId };
+  return { status: "done", albumOutcome, jobId: answer.job_id ?? undefined, photoId };
+};
 
-/** A queued item and the cancel generation it was queued in; cancel() bumps the generation. */
-type QueuedUpload = { item: UploadItem; generation: number };
+/** What one run of the worker collects for the end of the run. */
+type Run = { uploadedAny: boolean; filled: Set<number>; jobIds: Set<string>; existing: ExistingInAlbum[] };
 
 type User = { id: number };
+
+type QueueStore = {
+  get: () => QueueState;
+  dispatch: (event: QueueEvent) => void;
+  subscribe: (listener: () => void) => () => void;
+};
+
+/**
+ * The queue's state in one place that the worker reads synchronously and React renders from, so
+ * the worker's "am I running" and the card's never disagree, not even for a render.
+ */
+function createQueueStore(): QueueStore {
+  let state = EMPTY_QUEUE;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => state,
+    dispatch: event => {
+      const next = reduceQueue(state, event);
+      if (next === state) return;
+      state = next;
+      listeners.forEach(listener => listener());
+    },
+    subscribe: listener => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
 
 const sequentially = <T>(list: T[], fn: (item: T) => Promise<void>): Promise<void> =>
   list.reduce((chain, item) => chain.then(() => fn(item)), Promise.resolve());
@@ -94,6 +105,17 @@ const errorMessage = (err: unknown): string => {
   return "";
 };
 
+/** A file the library already has, to file into its album once the queue drains. */
+const existingIn = (item: UploadItem, photoId: string | null | undefined): ExistingInAlbum | undefined =>
+  item.album && photoId ? { itemId: item.id, albumId: item.album.id, photoId } : undefined;
+
+const note = (current: Run, { uploaded, filedInto, jobId, existing }: Processed) => {
+  current.uploadedAny = uploaded || current.uploadedAny;
+  if (filedInto !== undefined) current.filled.add(filedInto);
+  if (jobId) current.jobIds.add(jobId);
+  if (existing) current.existing.push(existing);
+};
+
 /**
  * Upload state that outlives the button which started it: files are pushed
  * through one sequential worker (the server is easily overwhelmed by parallel
@@ -101,6 +123,7 @@ const errorMessage = (err: unknown): string => {
  * When the worker drains, the run's import jobs are sealed (#2737); the photo
  * queries are refreshed as the server makes the photos ready
  * (`useUploadProcessing`), or at once by a server that names no import job.
+ * Every change goes through `reduceQueue` (`uploadQueueState.ts`).
  */
 export function useUploadQueue(): UploadQueue {
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
@@ -108,29 +131,18 @@ export function useUploadQueue(): UploadQueue {
   // The card reports a failed file, and an album refusal is retried without the album.
   const uploadFinishedMutation = useUploadFinishedMutation({ reportsErrors: true });
   const refreshAlbums = useRefreshUploadAlbums();
-  const [items, setItems] = useState<UploadItem[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [store] = useState(createQueueStore);
+  const { items, run } = useSyncExternalStore(store.subscribe, store.get);
+  const { dispatch } = store;
 
   const userRef = useRef(userSelfDetails);
   userRef.current = userSelfDetails;
-  const [isCancelling, setIsCancelling] = useState(false);
-  const pendingRef = useRef<QueuedUpload[]>([]);
-  const drainingRef = useRef(false);
-  const generationRef = useRef(0);
-  /** Files the library already had, to add to their album once the queue drains. */
-  const existingRef = useRef<ExistingInAlbum[]>([]);
 
-  const patchItem = (id: string, patch: Partial<UploadItem>) => {
-    setItems(prev => prev.map(it => (it.id === id ? { ...it, ...patch } : it)));
-  };
+  /** The file in flight is cancelled from cancel() until it ends. */
+  const isCancelled = () => store.get().run === "cancelling";
 
   /** Sends the file in chunks and completes it; resolves to how filing into its album came out. */
-  const uploadFile = async (
-    item: UploadItem,
-    user: User,
-    md5: string,
-    isCancelled: () => boolean
-  ): Promise<Completed> => {
+  const uploadFile = async (item: UploadItem, user: User, md5: string): Promise<Completed> => {
     const throwIfCancelled = () => {
       if (isCancelled()) throw new UploadCancelledError();
     };
@@ -150,7 +162,7 @@ export function useUploadQueue(): UploadQueue {
       offset = response.offset;
       uploadId = response.upload_id;
       sent += chunk.size;
-      patchItem(item.id, { progress: file.size ? Math.round((sent / file.size) * 100) : 100 });
+      dispatch({ type: "progress", id: item.id, progress: file.size ? Math.round((sent / file.size) * 100) : 100 });
     });
 
     throwIfCancelled();
@@ -178,13 +190,7 @@ export function useUploadQueue(): UploadQueue {
     }
   };
 
-  /** A file the library already has: filed into its album later, when the server told its id. */
-  const noteExisting = (item: UploadItem, photoId: string | null | undefined) => {
-    if (item.album && photoId) existingRef.current.push({ itemId: item.id, albumId: item.album.id, photoId });
-  };
-
-  const processOne = async ({ item, generation }: QueuedUpload): Promise<Processed> => {
-    const isCancelled = () => generation !== generationRef.current;
+  const processOne = async (item: UploadItem): Promise<Processed> => {
     try {
       const user = userRef.current;
       if (!user) throw new Error(i18n.t("upload.not_signed_in"));
@@ -193,102 +199,80 @@ export function useUploadQueue(): UploadQueue {
       // waiting on one used to stall every file queued after it.
       if (item.file.size === 0) throw new Error(i18n.t("upload.empty_file"));
 
-      patchItem(item.id, { status: "hashing", progress: 0, error: undefined });
+      dispatch({ type: "hashing", id: item.id });
       const md5 = await calculateMD5(item.file, isCancelled);
       const known = await uploadExists(md5, user.id);
       if (known.exists) {
-        patchItem(item.id, { status: "duplicate", progress: 100 });
-        noteExisting(item, known.photo_id);
-        return { uploaded: false };
+        dispatch({ type: "finished", id: item.id, result: { status: "duplicate" } });
+        return { uploaded: false, existing: existingIn(item, known.photo_id) };
       }
 
-      patchItem(item.id, { status: "uploading", progress: 0 });
-      const completed = await uploadFile(item, user, md5, isCancelled);
-      const row = completedRow(completed);
-      patchItem(item.id, row);
-      const uploaded = row.status === "done";
-      const filedInto = uploaded && !completed.albumOutcome ? item.album?.id : undefined;
-      return { uploaded, filedInto, jobId: row.jobId };
+      dispatch({ type: "uploading", id: item.id });
+      const completed = await uploadFile(item, user, md5);
+      const row = finishedRow(completed);
+      dispatch({ type: "finished", id: item.id, result: row });
+      if (row.status === "duplicate") return { uploaded: false };
+      return { uploaded: true, filedInto: completed.albumOutcome ? undefined : item.album?.id, jobId: row.jobId };
     } catch (err) {
       // A request that fails after cancel() is part of the cancel, not an error.
-      patchItem(
-        item.id,
-        isCancelled() ? { status: "cancelled", progress: 0 } : { status: "error", error: errorMessage(err) }
-      );
+      dispatch({
+        type: "stopped",
+        id: item.id,
+        result: isCancelled() ? { status: "cancelled" } : { status: "error", error: errorMessage(err) },
+      });
       return { uploaded: false };
     }
   };
 
   /** Adds the files the library already had to their albums; resolves to the albums filled. */
-  const fileExisting = async (): Promise<number[]> => {
-    const outcomes = await fileExistingIntoAlbums(existingRef.current.splice(0));
-    outcomes.forEach(({ itemId, outcome }) => patchItem(itemId, { albumOutcome: outcome }));
+  const fileExisting = async (existing: ExistingInAlbum[]): Promise<number[]> => {
+    const outcomes = await fileExistingIntoAlbums(existing);
+    dispatch({ type: "filed", outcomes });
     return outcomes.filter(o => o.outcome === "added_existing").map(o => o.albumId);
   };
 
-  const drain = async () => {
-    if (drainingRef.current) return;
-    drainingRef.current = true;
-    setIsUploading(true);
-    let uploadedAny = false;
-    const filled = new Set<number>();
-    const jobIds = new Set<string>();
+  const drain = async (): Promise<void> => {
+    if (store.get().run !== "idle" || !nextPending(store.get())) return;
+    dispatch({ type: "runStarted" });
+    const current: Run = { uploadedAny: false, filled: new Set(), jobIds: new Set(), existing: [] };
     const next = async (): Promise<void> => {
-      const queued = pendingRef.current.shift();
+      const queued = nextPending(store.get());
       if (!queued) return;
-      const { uploaded, filedInto, jobId } = await processOne(queued);
-      uploadedAny = uploaded || uploadedAny;
-      if (filedInto !== undefined) filled.add(filedInto);
-      if (jobId) jobIds.add(jobId);
-      setIsCancelling(false);
+      note(current, await processOne(queued));
+      dispatch({ type: "fileEnded" });
       await next();
     };
     try {
       await next();
-      (await fileExisting()).forEach(id => filled.add(id));
+      (await fileExisting(current.existing)).forEach(id => current.filled.add(id));
     } finally {
-      drainingRef.current = false;
-      setIsUploading(false);
-      setIsCancelling(false);
+      dispatch({ type: "runEnded" });
       // The run's import jobs can finish now; the card follows them and refreshes the timeline as
       // photos become ready. A server that names no job gets the refresh now, as before #2739.
-      void sealUploadImports([...jobIds]);
-      if (uploadedAny && jobIds.size === 0) invalidateUploadQueries();
-      refreshAlbums([...filled]);
+      void sealUploadImports([...current.jobIds]);
+      if (current.uploadedAny && current.jobIds.size === 0) invalidateUploadQueries();
+      refreshAlbums([...current.filled]);
+      // Files added while the run filed known files into their albums found the worker running.
+      void drain();
     }
   };
 
-  const enqueue = (queued: UploadItem[]) => {
-    if (queued.length === 0) return;
-    const generation = generationRef.current;
-    pendingRef.current.push(...queued.map(item => ({ item, generation })));
+  const start = (files: File[], album?: UploadAlbumTarget) => {
+    dispatch({
+      type: "added",
+      items: files.map(file => ({ id: newId(), file, status: "pending", progress: 0, album })),
+    });
     void drain();
   };
 
-  const start = (files: File[], album?: UploadAlbumTarget) => {
-    const queued = files.map(file => ({ id: newId(), file, status: "pending" as const, progress: 0, album }));
-    setItems(prev => [...prev, ...queued]);
-    enqueue(queued);
+  const retry = (ids: readonly string[]) => {
+    dispatch({ type: "retried", ids });
+    void drain();
   };
 
-  const retry = (targets: UploadItem[]) => {
-    const retryable = targets.filter(it => it.status === "error" || it.status === "cancelled");
-    retryable.forEach(it => patchItem(it.id, { status: "pending", progress: 0, error: undefined }));
-    enqueue(retryable.map(it => ({ ...it, status: "pending" as const, progress: 0, error: undefined })));
-  };
+  const cancel = () => dispatch({ type: "cancel" });
 
-  const cancel = () => {
-    if (!drainingRef.current) return;
-    generationRef.current += 1;
-    const dropped = new Set(pendingRef.current.splice(0).map(queued => queued.item.id));
-    setItems(prev => prev.map(it => (dropped.has(it.id) ? { ...it, status: "cancelled", progress: 0 } : it)));
-    setIsCancelling(true);
-  };
+  const reset = () => dispatch({ type: "reset" });
 
-  const reset = () => {
-    if (drainingRef.current) return;
-    setItems([]);
-  };
-
-  return { items, isUploading, isCancelling, start, retry, cancel, reset };
+  return { items, run, isUploading: run !== "idle", start, retry, cancel, reset };
 }

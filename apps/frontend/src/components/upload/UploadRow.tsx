@@ -9,8 +9,8 @@ import { MediaThumbnail } from "../common/MediaThumbnail";
 import { AlbumOutcomeNote } from "./UploadAlbumStrip";
 import type { RowServerState } from "./uploadProcessing";
 import classes from "./UploadProgressCard.module.css";
+import type { UploadItem, UploadStatus } from "./uploadQueueState";
 import { useFileThumbnail } from "./useFileThumbnail";
-import type { UploadItem, UploadStatus } from "./useUploadQueue";
 
 const isBusy = (status: UploadStatus) => status === "hashing" || status === "uploading";
 
@@ -101,7 +101,7 @@ function RowThumbnail({ item, ready }: { item: UploadItem; ready: boolean }) {
   const local = useFileThumbnail(item.file);
   const [broken, setBroken] = useState(false);
   const isVideo = item.file.type.startsWith("video/");
-  if (ready && item.photoId)
+  if (ready && item.status === "done" && item.photoId)
     return <MediaThumbnail imageHash={item.photoId} size={32} video={isVideo} radius={6} className={classes.thumb} />;
   if (local && !broken)
     return <img src={local} alt="" className={classes.thumb} decoding="async" onError={() => setBroken(true)} />;
@@ -113,7 +113,7 @@ function RowThumbnail({ item, ready }: { item: UploadItem; ready: boolean }) {
   );
 }
 
-type Props = { item: UploadItem; server: RowServerState; onRetry: (item: UploadItem) => void };
+type Props = { item: UploadItem; server: RowServerState; onRetry: (id: string) => void };
 
 /**
  * One file of the upload card: a flat 44px row of the card's one list (hairlines between rows),
@@ -144,7 +144,7 @@ export function UploadRow({ item, server, onRetry }: Props) {
           variant="subtle"
           className={classes.noShrink}
           leftSection={<IconRotateClockwise size={12} />}
-          onClick={() => onRetry(item)}
+          onClick={() => onRetry(item.id)}
         >
           {t("upload.retry")}
         </Button>

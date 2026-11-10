@@ -1,8 +1,7 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
 import { IconUser as User } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDateAlbumDayPages, useFetchDateAlbumsQuery, useFetchPersonQuery } from "../../../api_client/albums/hooks";
 import { personNotFoundState } from "../../../components/album/albumNotFound";
@@ -16,8 +15,8 @@ import { useListFailure } from "../../../components/common/useListFailure";
 import type { CollectionHeader } from "../../../components/photolist/DefaultHeader";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import { useGroupedPhotos } from "../../../components/photolist/useGroupedPhotos";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
-import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/persons/$id")({
   component: AlbumPersonGallery,
@@ -32,7 +31,6 @@ function AlbumPersonGallery(): React.JSX.Element {
   const { id } = Route.useParams();
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const personId = Number(id);
   // The person itself, not a search of the People list: that missed anyone past its first page
   // and showed "Loading" for good for a deleted person (#2207).
@@ -52,9 +50,7 @@ function AlbumPersonGallery(): React.JSX.Element {
   const photosFailure = useListFailure(photosQuery);
   const personFailure = useListFailure(personQuery);
 
-  useEffect(() => {
-    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
-  }, [photosGroupedByDate]);
+  const { groups, photosFlat } = useGroupedPhotos(photosGroupedByDate);
 
   // Pig reports the day groups on screen; their placeholders name the pages still to load.
   const getAlbums = useDateAlbumDayPages({
@@ -77,16 +73,14 @@ function AlbumPersonGallery(): React.JSX.Element {
         }
         // The days of their photos, and the birth date and age under the name (#2751), or "Add birth date"
         additionalSubHeader={
-          person ? (
-            <PersonMeta person={person} groups={photosGroupedByDate ?? []} onBirthDate={birthDate.openFrom} />
-          ) : undefined
+          person ? <PersonMeta person={person} groups={groups} onBirthDate={birthDate.openFrom} /> : undefined
         }
         groupNote={birthDate.groupNote}
         // New photos of a shared person wait for review (#668)
         banner={person ? <PersonShareReviewBanner person={person} /> : undefined}
         error={photosFailure ?? personFailure}
         emptyStateConfig={notFound ? personNotFoundState(t, <User size={40} />) : undefined}
-        photoset={photosGroupedByDate ?? []}
+        photoset={groups}
         idx2hash={photosFlat}
         updateGroups={getAlbums}
         selectable
@@ -96,12 +90,7 @@ function AlbumPersonGallery(): React.JSX.Element {
         photosetQuery={{ person: personNumber, ...mediaTypeToBulkQuery(mediaType) }}
       />
       {person && (
-        <PersonBirthDateModal
-          opened={birthDate.opened}
-          onClose={birthDate.close}
-          person={person}
-          groups={photosGroupedByDate ?? []}
-        />
+        <PersonBirthDateModal opened={birthDate.opened} onClose={birthDate.close} person={person} groups={groups} />
       )}
     </>
   );

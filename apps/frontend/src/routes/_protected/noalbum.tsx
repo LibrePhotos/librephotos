@@ -1,14 +1,14 @@
 import { IconAlbumOff as AlbumOff } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchPhotosNotInAlbumQuery } from "../../api_client/photos/hooks/useFetchPhotosNotInAlbumQuery";
+import { useFetchPhotosNotInAlbumPages } from "../../api_client/photos/hooks/useFetchPhotosNotInAlbumPages";
 import { useListFailure } from "../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
-import { usePagedPhotoList } from "../../components/photolist/usePagedPhotoList";
+import { usePagedPhotoList, useRequestedPages } from "../../components/photolist/usePagedPhotoList";
 
 export const Route = createFileRoute("/_protected/noalbum")({
   component: NotInAlbumPhotosView,
@@ -21,10 +21,10 @@ export const Route = createFileRoute("/_protected/noalbum")({
 function NotInAlbumPhotosView() {
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();
-  const [page, setPage] = useState(1);
-  const photosQuery = useFetchPhotosNotInAlbumQuery(page, mediaType);
-  const listFailure = useListFailure(photosQuery);
-  const { photosFlat, loadVisiblePage } = usePagedPhotoList(photosQuery, page, setPage);
+  const requested = useRequestedPages();
+  const photoPages = useFetchPhotosNotInAlbumPages(requested.pages, mediaType);
+  const { photosFlat, loadVisiblePage, firstPage } = usePagedPhotoList(requested, photoPages);
+  const listFailure = useListFailure(firstPage);
 
   const emptyStateConfig: EmptyStateConfig = useMemo(
     () => ({
@@ -40,7 +40,7 @@ function NotInAlbumPhotosView() {
   return (
     <PhotoListView
       title={t("photos.notinalbum")}
-      loading={photosQuery.status === "pending"}
+      loading={firstPage.data === undefined && !firstPage.isError}
       photoset={photosFlat}
       idx2hash={photosFlat}
       numberOfItems={photosFlat.length}

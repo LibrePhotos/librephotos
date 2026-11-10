@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useBeforeUnloadWarning } from "../../hooks/useBeforeUnloadWarning";
 import { useScreenWakeLock } from "../../hooks/useScreenWakeLock";
+import type { UploadAlbumTarget } from "./uploadQueueState";
 import { useUploadProcessing, type UploadProcessing } from "./useUploadProcessing";
-import { useUploadQueue, type UploadAlbumTarget, type UploadQueue } from "./useUploadQueue";
+import { useUploadQueue, type UploadQueue } from "./useUploadQueue";
 
 const UploadContext = createContext<UploadQueue | null>(null);
 // Its own context: the account menu and the timeline read the server side without the queue.

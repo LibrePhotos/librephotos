@@ -1,15 +1,15 @@
 import type { BulkPhotoQuery } from "@librephotos/api-client";
 import { IconCalendarOff as CalendarOff } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery";
+import { useFetchPhotosWithoutTimestampPages } from "../../api_client/photos/hooks/useFetchPhotosWithoutTimestampPages";
 import { useListFailure } from "../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
-import { usePagedPhotoList } from "../../components/photolist/usePagedPhotoList";
+import { usePagedPhotoList, useRequestedPages } from "../../components/photolist/usePagedPhotoList";
 
 // The page loads 100 photos at a time, so select all names the whole set for the server.
 // The list shows stacked photos too, not only each stack's primary photo.
@@ -25,10 +25,10 @@ export const Route = createFileRoute("/_protected/notimestamp")({
 function NoTimestampPhotosView() {
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();
-  const [page, setPage] = useState(1);
-  const photosQuery = useFetchPhotosWithoutTimestampQuery(page, mediaType);
-  const listFailure = useListFailure(photosQuery);
-  const { photosFlat, loadVisiblePage } = usePagedPhotoList(photosQuery, page, setPage);
+  const requested = useRequestedPages();
+  const photoPages = useFetchPhotosWithoutTimestampPages(requested.pages, mediaType);
+  const { photosFlat, loadVisiblePage, firstPage } = usePagedPhotoList(requested, photoPages);
+  const listFailure = useListFailure(firstPage);
 
   const emptyStateConfig: EmptyStateConfig = useMemo(
     () => ({
@@ -42,7 +42,7 @@ function NoTimestampPhotosView() {
   return (
     <PhotoListView
       title={t("photos.notimestamp")}
-      loading={photosQuery.status === "pending"}
+      loading={firstPage.data === undefined && !firstPage.isError}
       photoset={photosFlat}
       idx2hash={photosFlat}
       numberOfItems={photosFlat.length}
