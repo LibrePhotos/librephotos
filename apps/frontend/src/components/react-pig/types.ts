@@ -120,7 +120,6 @@ export type PigSettings = {
   bgColor: string;
   primaryImageBufferHeight: number;
   secondaryImageBufferHeight: number;
-  expandedSize: number;
   groupByDate: boolean;
   breakpoint: number;
   groupGapSm: number;

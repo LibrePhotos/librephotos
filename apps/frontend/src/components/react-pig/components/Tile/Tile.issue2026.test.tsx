@@ -15,8 +15,6 @@ import { forgetLoaded } from "../../utils/loadedImages";
 import Tile from "./Tile";
 import { PREVIEW_DELAY_MS } from "./useClipPreview";
 
-const settings = { gridGap: 8, bgColor: "#fff", expandedSize: 1000 };
-
 function getUrl(imageHash: string, size: number, poster = false) {
   return `/media/${imageHash}?h=${size}${poster ? "&poster" : ""}`;
 }
@@ -42,36 +40,32 @@ let container: HTMLDivElement | null = null;
 let root: ReturnType<typeof createRoot> | null = null;
 let reducedMotion = false;
 
-function tile(item: VideoItem, scrollSpeed: ScrollSpeed, activeTileId: string | null) {
+function tile(item: VideoItem, scrollSpeed: ScrollSpeed) {
   return (
     <Tile
       item={item}
       containerWidth={1200}
-      containerOffsetTop={0}
       getUrl={getUrl}
-      activeTileId={activeTileId}
       handleClick={() => {}}
       handleSelection={() => {}}
       selected={false}
       selectable
-      windowHeight={900}
       scrollSpeed={scrollSpeed}
-      settings={settings}
     />
   );
 }
 
-function renderTile(item = videoItem(), scrollSpeed: ScrollSpeed = "slow", activeTileId: string | null = null) {
+function renderTile(item = videoItem(), scrollSpeed: ScrollSpeed = "slow") {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => defined(root).render(tile(item, scrollSpeed, activeTileId)));
+  act(() => defined(root).render(tile(item, scrollSpeed)));
   const button = defined(container.querySelector("button"));
   return { button, wrapper: defined(button.parentElement) };
 }
 
 function rerender(item: VideoItem, scrollSpeed: ScrollSpeed) {
-  act(() => defined(root).render(tile(item, scrollSpeed, null)));
+  act(() => defined(root).render(tile(item, scrollSpeed)));
 }
 
 // React derives onPointerEnter/onPointerLeave from pointerover/pointerout.
@@ -251,12 +245,6 @@ describe("issue 2026: a still poster, and the clip only on hover", () => {
 
     expect(button.querySelector("video")).toBeNull();
     expect(sources(button, "img")).toContain("/media/hash1?h=400&poster");
-  });
-
-  it("plays the full size clip in an expanded tile", () => {
-    const { button } = renderTile(videoItem(), "slow", "video-1");
-
-    expect(sources(button, "video")).toEqual(["/media/hash1?h=1000"]);
   });
 
   it("falls back to the clip for a video without a poster yet", () => {

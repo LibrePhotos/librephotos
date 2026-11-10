@@ -49,7 +49,6 @@ export type PigProps<T extends ImageItem> = {
   groupGapLg?: number;
   breakpoint?: number;
   sortFunc?: ((a: PigEntry<T>, b: PigEntry<T>) => number) | null;
-  expandedSize?: number;
   bgColor?: string;
   handleClick?: ((event: React.MouseEvent, item: T) => void) | null;
   selectable?: boolean;
@@ -89,6 +88,9 @@ export type PigHandle<T extends ImageItem = ImageItem> = {
 //   return tempPhotos;
 // }
 
+/** A grid without a click handler ignores clicks on its tiles. */
+function noClick() {}
+
 function Pig<T extends ImageItem>(
   {
     imageData,
@@ -102,7 +104,6 @@ function Pig<T extends ImageItem>(
     groupGapLg = 36,
     breakpoint = 800,
     sortFunc = null,
-    expandedSize = 1000,
     bgColor = "inherit",
     handleClick: propHandleClick = null,
     selectable = false,
@@ -127,8 +128,6 @@ function Pig<T extends ImageItem>(
   const [renderedItems, setRenderedItems] = useState<PigLayout<T>>({ grouped: false, tiles: [] });
   const [selectedItems, setSelectedItems] = useState<T[]>([]);
   const [scrollSpeed, setScrollSpeed] = useState<ScrollSpeed>("slow");
-  // The tile expanded in place by the default click handler, by id.
-  const [activeTileId, setActiveTileId] = useState<T["id"] | null>(null);
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -144,21 +143,9 @@ function Pig<T extends ImageItem>(
     });
   }, []);
 
-  const defaultHandleClick = useCallback((event: React.MouseEvent, item: T): void => {
-    // if an image is already the width of the container, don't expand it on click
-    if (item.style?.width && item.style.width >= containerWidthRef.current) {
-      setActiveTileId(null);
-      return;
-    }
-    // A placeholder has nothing to show expanded.
-    if (item.isTemp) return;
-
-    setActiveTileId(prevId => (item.id !== prevId ? item.id : null));
-  }, []);
-
   // Instance variables (use refs for mutable values that don't trigger re-renders)
   const getUrlFunc = useRef<(imageHash: string, size: number) => string>(propGetUrl || getUrl);
-  const handleClickFunc = useRef<(event: React.MouseEvent, item: T) => void>(propHandleClick || defaultHandleClick);
+  const handleClickFunc = useRef<(event: React.MouseEvent, item: T) => void>(propHandleClick || noClick);
   const handleSelectionFunc = useRef<(item: T) => void>(propHandleSelection || defaultHandleSelection);
   const selectableRef = useRef<boolean>(selectable);
   // The caller's data until the first layout, then the laid-out entries.
@@ -208,7 +195,6 @@ function Pig<T extends ImageItem>(
       bgColor,
       primaryImageBufferHeight,
       secondaryImageBufferHeight,
-      expandedSize,
       groupByDate,
       breakpoint,
       groupGapSm,
@@ -220,7 +206,6 @@ function Pig<T extends ImageItem>(
       bgColor,
       primaryImageBufferHeight,
       secondaryImageBufferHeight,
-      expandedSize,
       groupByDate,
       breakpoint,
       groupGapSm,
@@ -304,11 +289,8 @@ function Pig<T extends ImageItem>(
         setScrollSpeed(s); // scroll idle callback
       });
       setScrollSpeed(speed);
-
-      // dismiss any active Tile
-      if (activeTileId !== null) setActiveTileId(null);
     });
-  }, [activeTileId, setRenderedItemsFunc]);
+  }, [setRenderedItemsFunc]);
 
   const onResize = useCallback(() => {
     const layout = getUpdatedImageLayout();
@@ -364,7 +346,7 @@ function Pig<T extends ImageItem>(
   // Update refs when props change
   useEffect(() => {
     getUrlFunc.current = propGetUrl || getUrl;
-    handleClickFunc.current = propHandleClick || defaultHandleClick;
+    handleClickFunc.current = propHandleClick || noClick;
     handleSelectionFunc.current = propHandleSelection || defaultHandleSelection;
     selectableRef.current = selectable;
     numberOfItemsRef.current = numberOfItems || imageData.length;
@@ -379,7 +361,6 @@ function Pig<T extends ImageItem>(
     imageData,
     propUpdateGroups,
     propUpdateItems,
-    defaultHandleClick,
     defaultHandleSelection,
   ]);
 
@@ -389,9 +370,7 @@ function Pig<T extends ImageItem>(
       return (
         <Tile
           key={`tile-${item.id?.toString() || item.image_hash || Math.random().toString(36)}`}
-          windowHeight={windowHeightRef.current}
           containerWidth={containerWidthRef.current}
-          containerOffsetTop={containerOffsetTopRef.current}
           item={item}
           getUrl={getUrlFunc.current}
           handleClick={handleClickFunc.current}
@@ -402,8 +381,6 @@ function Pig<T extends ImageItem>(
               ? propSelectedItems.findIndex(selectedItem => selectedItem.id === item.id) >= 0
               : selectedItems.includes(item)
           }
-          activeTileId={activeTileId}
-          settings={settings}
           scrollSpeed={scrollSpeed}
           toprightoverlay={toprightoverlay}
           bottomleftoverlay={bottomleftoverlay}
@@ -411,29 +388,14 @@ function Pig<T extends ImageItem>(
         />
       );
     },
-    [
-      toprightoverlay,
-      bottomleftoverlay,
-      bottomrightoverlay,
-      settings,
-      selectedItems,
-      activeTileId,
-      scrollSpeed,
-      propSelectedItems,
-    ]
+    [toprightoverlay, bottomleftoverlay, bottomrightoverlay, selectedItems, scrollSpeed, propSelectedItems]
   );
 
   const renderGroup = useCallback(
     (group: LaidOutGroup<T>) => {
       return (
         <React.Fragment key={group.date}>
-          <GroupHeader
-            settings={settings}
-            group={group}
-            activeTileId={activeTileId}
-            textAlignment={textAlignment}
-            headerSize={headerSize}
-          />
+          <GroupHeader settings={settings} group={group} textAlignment={textAlignment} headerSize={headerSize} />
           {group.items.map((item, index) => (
             <React.Fragment key={item.id?.toString() || item.image_hash || `group-item-${index}`}>
               {renderTile(item)}
@@ -442,7 +404,7 @@ function Pig<T extends ImageItem>(
         </React.Fragment>
       );
     },
-    [settings, activeTileId, renderTile, textAlignment, headerSize]
+    [settings, renderTile, textAlignment, headerSize]
   );
 
   const renderFlat = useCallback((item: LaidOutTile<T>) => renderTile(item), [renderTile]);

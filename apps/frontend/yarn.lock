@@ -3063,15 +3063,6 @@ formatly@^0.11.4:
     fd-package-json "^2.0.0"
     package-manager-detector "^1.8.0"
 
-framer-motion@14.10.1:
-  version "14.10.1"
-  resolved "https://registry.yarnpkg.com/framer-motion/-/framer-motion-14.10.1.tgz#f0f0eecb35af669fc612895f2805e6cd05f9c936"
-  integrity sha512-hT8WLczAcreOHG4EHymMtATztwUc3al1/88/stal3tpxYkMefGNzIPHHgFFHW3iLnrNY36BrKKJDuT2V7o8Tfw==
-  dependencies:
-    motion-dom "14.10.1"
-    motion-utils "14.7.0"
-    tslib "^2.4.0"
-
 fsevents@~2.3.3:
   version "2.3.3"
   resolved "https://registry.yarnpkg.com/fsevents/-/fsevents-2.3.3.tgz#cac6407785d03675a2a5e1a5305c697b347d90d6"
@@ -3915,26 +3906,6 @@ minimist@^1.2.8:
   version "1.2.8"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.8.tgz#c1a464e7693302e082a075cee0c057741ac4772c"
   integrity sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==
-
-motion-dom@14.10.1:
-  version "14.10.1"
-  resolved "https://registry.yarnpkg.com/motion-dom/-/motion-dom-14.10.1.tgz#4d9f94ace916ca1aa4b66ca2f45242fe934320ee"
-  integrity sha512-NzVzM7y3JJl3rYlVN4yM6kbziab/tHNBEV6gqOoAQIg8npHlIMhW2oPnzr0HkP+rR8xMoiX9+zSZ4BLaVuJadw==
-  dependencies:
-    motion-utils "14.7.0"
-
-motion-utils@14.7.0:
-  version "14.7.0"
-  resolved "https://registry.yarnpkg.com/motion-utils/-/motion-utils-14.7.0.tgz#8577b2fb176dcb2496812a8b314ba80b7d834c84"
-  integrity sha512-woO0/Nb7ys75f94fjvQi/6leiHGvZUYkeHUPEZ3vxsV+9OpEVhkxp01x8MlRwX0zt31EqgXsKDAoBoJLC148Tw==
-
-motion@^14.0.0:
-  version "14.10.1"
-  resolved "https://registry.yarnpkg.com/motion/-/motion-14.10.1.tgz#6c67c3f7d706699f109ac3b82ba34ee9db50e5c4"
-  integrity sha512-CRlxgrRmG5SNu5jxyYmiw3Oo6IrPq8xhQ0EmOm6WS6tx956G6O4WqVBA8ovrIwt4Sb/A9M0j2T2Vca7ze5PkRQ==
-  dependencies:
-    framer-motion "14.10.1"
-    tslib "^2.4.0"
 
 ms@^2.1.3:
   version "2.1.3"

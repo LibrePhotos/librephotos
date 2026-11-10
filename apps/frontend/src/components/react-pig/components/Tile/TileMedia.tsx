@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import type { ImageItem, LaidOutTile, PigSettings, ScrollSpeed, TileUrl } from "../../types";
+import type { ImageItem, LaidOutTile, ScrollSpeed, TileUrl } from "../../types";
 import getImageHeight from "../../utils/getImageHeight";
 import { thumbhashDataUrl, withThumbhashVersion } from "../../utils/thumbhashDataUrl";
-import { ExpandedClip, GridClip, PreviewClip } from "./TileClips";
+import { GridClip, PreviewClip } from "./TileClips";
 import { TileImages } from "./TileImages";
 
 /**
@@ -32,22 +32,12 @@ type Props = Readonly<{
   getUrl: TileUrl;
   containerWidth: number;
   scrollSpeed: ScrollSpeed;
-  settings: Pick<PigSettings, "expandedSize">;
-  isExpanded: boolean;
   /** Whether the pointer rests on the tile or it has keyboard focus; only a poster tile uses it. */
   previewing: boolean;
 }>;
 
 /** The pictures or clips inside a tile's button. */
-export function TileMedia({
-  item,
-  getUrl: unversionedUrl,
-  containerWidth,
-  scrollSpeed,
-  settings,
-  isExpanded,
-  previewing,
-}: Props) {
+export function TileMedia({ item, getUrl: unversionedUrl, containerWidth, scrollSpeed, previewing }: Props) {
   const [clipFailed, setClipFailed] = useState(false);
   const kind = tileMediaKind(item, clipFailed);
   if (kind === "none") return null;
@@ -59,17 +49,9 @@ export function TileMedia({
   const gridHeight = getImageHeight(containerWidth);
   const showFull = scrollSpeed === "slow";
   const onClipError = () => setClipFailed(true);
-  const expandedClip = isExpanded && kind !== "images" && (
-    <ExpandedClip src={getUrl(imageHash, settings.expandedSize)} onFailed={onClipError} />
-  );
 
   if (kind === "clip") {
-    return (
-      <>
-        {showFull && <GridClip src={getUrl(imageHash, gridHeight)} onFailed={onClipError} />}
-        {expandedClip}
-      </>
-    );
+    return showFull && <GridClip src={getUrl(imageHash, gridHeight)} onFailed={onClipError} />;
   }
 
   const poster = kind === "poster";
@@ -82,12 +64,10 @@ export function TileMedia({
         gridHeight={gridHeight}
         width={item.style.width}
         height={item.style.height}
-        expandedSrc={isExpanded && !poster ? getUrl(imageHash, settings.expandedSize) : null}
       />
       {poster && previewing && showFull && !clipFailed && (
         <PreviewClip src={getUrl(imageHash, gridHeight)} onFailed={onClipError} />
       )}
-      {expandedClip}
     </>
   );
 }

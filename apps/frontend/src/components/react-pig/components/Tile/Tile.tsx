@@ -1,8 +1,6 @@
-import { motion } from "motion/react";
-import React, { useLayoutEffect, useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import type { ImageItem, LaidOutTile, PigOverlay, PigSettings, ScrollSpeed, TileUrl } from "../../types";
-import getTileMeasurements from "../../utils/getTileMeasurements";
+import type { ImageItem, LaidOutTile, PigOverlay, ScrollSpeed, TileUrl } from "../../types";
 import styles from "./styles.module.css";
 import { tileLabel } from "./tileLabel";
 import { showsPoster, TileMedia } from "./TileMedia";
@@ -11,54 +9,26 @@ import { useClipPreview } from "./useClipPreview";
 type TileProps<T extends ImageItem> = {
   item: LaidOutTile<T>;
   containerWidth: number;
-  /** Null until Pig has measured its container. */
-  containerOffsetTop: number | null;
   getUrl: TileUrl;
-  /** The id of the tile expanded in place, if any. */
-  activeTileId: ImageItem["id"] | null;
   handleClick: (event: React.MouseEvent<HTMLButtonElement>, item: T) => void;
   handleSelection: (item: T) => void;
   selected: boolean;
   selectable: boolean;
-  windowHeight: number;
   scrollSpeed: ScrollSpeed;
-  settings: Pick<PigSettings, "gridGap" | "bgColor" | "expandedSize">;
   toprightoverlay?: PigOverlay<T> | null;
   bottomleftoverlay?: PigOverlay<T> | null;
   bottomrightoverlay?: PigOverlay<T> | null;
 };
 
-const springTransition = { type: "spring", mass: 1.5, stiffness: 400, damping: 40 } as const;
-// A new layout (a day's page arrived, the width changed) moves a tile at once: the grid keeps the
-// reader's place by scrolling in the same frame, and a spring would slide the tile away and back.
-const relayoutTransition = { duration: 0 } as const;
-
-type TilePlace = { x: number; y: number; width: number; height: number; expanded: boolean };
-
-/** Whether the layout, rather than selecting or expanding, moved or resized the tile. */
-function movedByLayout(previous: TilePlace | null, current: TilePlace): boolean {
-  if (previous === null || previous.expanded !== current.expanded) return false;
-  return (
-    previous.x !== current.x ||
-    previous.y !== current.y ||
-    previous.width !== current.width ||
-    previous.height !== current.height
-  );
-}
-
 function TileComponent<T extends ImageItem>({
   item,
   containerWidth,
-  containerOffsetTop,
   getUrl,
-  activeTileId,
   handleClick,
   handleSelection,
   selected,
   selectable,
-  windowHeight,
   scrollSpeed,
-  settings,
   toprightoverlay = null,
   bottomleftoverlay = null,
   bottomrightoverlay = null,
@@ -67,73 +37,34 @@ function TileComponent<T extends ImageItem>({
   const isTemp = !!item.isTemp;
   const isSelectable = selectable;
   const isSelected = selected;
-  const isExpanded = activeTileId !== null && activeTileId === item.id;
   const isVideo = !isTemp && item.type !== undefined && item.type.includes("video");
   // A video with a poster mounts its clip only while it is pointed at or focused (#2026).
   const { previewing, handlers: previewHandlers } = useClipPreview(showsPoster(item));
-
-  // Where the layout put the tile at the last commit, to tell a new layout from a selection.
-  const place: TilePlace = {
-    x: item.style.translateX,
-    y: item.style.translateY,
-    width: item.style.width,
-    height: item.style.height,
-    expanded: isExpanded,
-  };
-  const placeRef = useRef<TilePlace | null>(null);
-  const transition = movedByLayout(placeRef.current, place) ? relayoutTransition : springTransition;
-  useLayoutEffect(() => {
-    placeRef.current = place;
-  });
 
   const TopRightOverlay = toprightoverlay;
   const BottomLeftOverlay = bottomleftoverlay;
   const BottomRightOverlay = bottomrightoverlay;
 
-  const { calcWidth, calcHeight, offsetX, offsetY } = getTileMeasurements({
-    item,
-    windowHeight,
-    settings,
-    containerWidth,
-    containerOffsetTop,
-  });
-
-  // A selected tile keeps its cell: the photo inside it shrinks onto a tinted cell (styles.module.css),
-  // as in Google Photos, so neighbours never move.
-  function getWidth(exp: boolean) {
-    return exp ? `${Math.ceil(calcWidth)}px` : `${item.style.width}px`;
-  }
-
-  function getHeight(exp: boolean) {
-    return exp ? `${Math.ceil(calcHeight)}px` : `${item.style.height}px`;
-  }
-
   const label = useMemo(() => tileLabel(item, isVideo, t), [item, isVideo, t]);
 
-  // The wrapper carries the position and animation; the button and the
+  // The wrapper carries the place the layout gave the tile; the button and the
   // selection checkbox sit side by side in it, because a checkbox inside a
   // button is invalid interactive nesting that assistive tech cannot reach.
+  // A new layout (a day's page arrived, the width changed) moves the tile at
+  // once: the grid keeps the reader's place by scrolling in the same frame.
+  // A selected tile keeps its cell: the photo inside it shrinks onto a tinted
+  // cell (styles.module.css), as in Google Photos, so neighbours never move.
   return (
-    <motion.div
+    <div
       className={styles.pigTile}
-      initial={false}
-      animate={{
-        width: getWidth(isExpanded),
-        height: getHeight(isExpanded),
-        zIndex: isExpanded ? 10 : 0,
-        x: isExpanded ? offsetX : item.style.translateX,
-        y: isExpanded ? offsetY : item.style.translateY,
-      }}
-      transition={transition}
       {...previewHandlers}
       style={{
-        outline: isExpanded ? `${settings.gridGap}px solid ${settings.bgColor}` : undefined,
+        width: `${item.style.width}px`,
+        height: `${item.style.height}px`,
+        transform: `translate(${item.style.translateX}px, ${item.style.translateY}px)`,
         // Videos (and placeholders) have no dominant colour: a neutral fill
         // instead of a see-through hole while they load.
         backgroundColor: item.dominantColor || "var(--mantine-color-default-hover)",
-        position: "absolute",
-        left: 0,
-        top: 0,
       }}
     >
       <button
@@ -147,8 +78,6 @@ function TileComponent<T extends ImageItem>({
           getUrl={getUrl}
           containerWidth={containerWidth}
           scrollSpeed={scrollSpeed}
-          settings={settings}
-          isExpanded={isExpanded}
           previewing={previewing}
         />
 
@@ -173,7 +102,7 @@ function TileComponent<T extends ImageItem>({
           />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 

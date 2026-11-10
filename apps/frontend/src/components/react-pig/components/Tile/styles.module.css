@@ -7,6 +7,8 @@
   top: 0;
   outline-style: solid;
   outline: 0;
+  /* Its own stacking level under the date headers, as motion's inline z-index gave it. */
+  z-index: 0;
   will-change: transform, width, height, outline-color;
 }
 

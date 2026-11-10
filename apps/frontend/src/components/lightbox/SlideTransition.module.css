@@ -1,5 +1,67 @@
-/* The main photo fills its slide while it fades in or out. */
-.slide {
+/*
+ * The main photo and, while it fades out, the one before it, stacked in the same box. The timing is
+ * the one motion ran: 0.15 s on cubic-bezier(0.4, 0, 0.2, 1), the next photo growing from 98 % as
+ * it fades in, the last one growing to 102 % as it fades out.
+ */
+/* One grid cell for both, so neither is positioned: the photo's own layers keep their containing block. */
+.stage {
+  display: grid;
+  grid-template: 100% / 100%;
   width: 100%;
   height: 100%;
+}
+
+.slide {
+  grid-area: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.entering {
+  animation: slideIn 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Under the next photo, and out of the way of the pointer. */
+.leaving {
+  pointer-events: none;
+  animation: slideOut 150ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes slideOut {
+  to {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* A slideshow (#1457) would zoom every few seconds: with reduced motion the photos only crossfade. */
+@media (prefers-reduced-motion: reduce) {
+  .entering {
+    animation-name: fadeIn;
+  }
+
+  .leaving {
+    animation-name: fadeOut;
+  }
 }
