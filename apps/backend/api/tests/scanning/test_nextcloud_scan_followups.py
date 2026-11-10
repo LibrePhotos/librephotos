@@ -14,16 +14,16 @@ from unittest import mock
 
 import pyvips
 from django.test import TestCase, override_settings
-from owncloud import FileInfo
 
 from api.directory_watcher import file_handlers
 from api.models import LongRunningJob
 from api.tests.utils import create_test_user, patch_nextcloud_dns
 from nextcloud import directory_watcher
+from nextcloud.webdav import RemoteFile
 
 
-def _remote_file(path: str) -> FileInfo:
-    return FileInfo(path, "file", {"{DAV:}getcontenttype": "image/png"})
+def _remote_file(path: str) -> RemoteFile:
+    return RemoteFile(path, {"{DAV:}getcontenttype": "image/png"})
 
 
 class NextcloudScanFollowupsTest(TestCase):

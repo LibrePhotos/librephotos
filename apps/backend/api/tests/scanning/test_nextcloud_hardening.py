@@ -22,7 +22,6 @@ from django.test import (
     TransactionTestCase,
     override_settings,
 )
-from owncloud import FileInfo
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
@@ -35,6 +34,7 @@ from nextcloud.server_address import (
     is_safe_server_address,
     validate_server_address,
 )
+from nextcloud.webdav import RemoteFile
 
 LISTDIR_URL = "/api/nextcloud/listdir/?fpath=/"
 SCANPHOTOS_URL = "/api/nextcloud/scanphotos"
@@ -150,7 +150,6 @@ class GuardedClientRedirectTest(SimpleTestCase):
 
     def _hook(self):
         nc = GuardedClient("https://cloud.example.com")
-        nc._session = requests.Session()
         hooks = nc._session.hooks["response"]
         self.assertEqual(1, len(hooks))
         return hooks[0]
@@ -164,7 +163,7 @@ class GuardedClientRedirectTest(SimpleTestCase):
             response.headers["location"] = location
         return response
 
-    def test_session_created_by_login_carries_the_redirect_check(self):
+    def test_the_session_after_login_carries_the_redirect_check(self):
         nc = GuardedClient("https://cloud.example.com")
         with mock.patch.object(GuardedClient, "_update_capabilities"):
             nc.login("alice", "app-password")
@@ -373,7 +372,7 @@ class ScanPhotosDownloadTest(TestCase):
 
     def _scan(self, remote_paths):
         def collect(nc, path, photos):
-            photos.extend(FileInfo(p, "file", {}) for p in remote_paths)
+            photos.extend(RemoteFile(p, {}) for p in remote_paths)
 
         job_id = uuid.uuid4()
         with mock.patch(

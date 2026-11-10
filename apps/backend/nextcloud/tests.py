@@ -1,6 +1,6 @@
 """The Nextcloud address check reads the address the way requests will dial it.
 
-``urlparse`` and urllib3 (which requests, and so pyocclient, connects through)
+``urlparse`` and urllib3 (which requests, and so the Nextcloud client, connects through)
 do not always agree on the host of a URL: a backslash ends the authority for
 urllib3 but not for ``urlparse``. ``http://127.0.0.1:8163\\@8.8.8.8/`` passed
 the check as 8.8.8.8 while the request went to 127.0.0.1:8163.
@@ -102,7 +102,6 @@ class RedirectParserDifferentialTest(SimpleTestCase):
 
     def test_redirect_hops_get_the_same_check(self):
         nc = GuardedClient("https://cloud.example.com")
-        nc._session = requests.Session()
         hook = nc._session.hooks["response"][0]
         for location in BACKSLASH_ADDRESSES + USERINFO_ADDRESSES:
             response = requests.Response()
@@ -115,7 +114,6 @@ class RedirectParserDifferentialTest(SimpleTestCase):
 
     def test_a_location_the_url_splitter_rejects_is_refused(self):
         nc = GuardedClient("https://cloud.example.com")
-        nc._session = requests.Session()
         hook = nc._session.hooks["response"][0]
         response = requests.Response()
         response.status_code = 302

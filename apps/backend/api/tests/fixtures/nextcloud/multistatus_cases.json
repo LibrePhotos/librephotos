@@ -1,0 +1,866 @@
+[
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/webdav",
+  "name": "folder",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\"?>\n<d:multistatus xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">\n <d:response><d:href>/remote.php/webdav/Photos/</d:href><d:propstat><d:prop><d:getlastmodified>Mon, 03 Nov 2025 10:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:quota-used-bytes>123</d:quota-used-bytes><d:getetag>\"abc\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/remote.php/webdav/Photos/Urlaub%202024/</d:href><d:propstat><d:prop><d:getlastmodified>Tue, 04 Nov 2025 11:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:getetag>\"d1\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/remote.php/webdav/Photos/Bild%20%231%20(100%25).jpg</d:href><d:propstat><d:prop><d:getlastmodified>Wed, 05 Nov 2025 12:30:00 GMT</d:getlastmodified><d:getcontentlength>2048</d:getcontentlength><d:resourcetype/><d:getetag>\"f1\"</d:getetag><d:getcontenttype>image/jpeg</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/remote.php/webdav/Photos/a%2Bb%3F%20%C3%BC%E6%97%A5.png</d:href><d:propstat><d:prop><d:getlastmodified>Thu, 06 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>10</d:getcontentlength><d:resourcetype/><d:getcontenttype>image/png</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/remote.php/webdav/Photos/IMG_0001.CR3</d:href><d:propstat><d:prop><d:getlastmodified>Fri, 07 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>99</d:getcontentlength><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getcontenttype/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>\n</d:multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Mon, 03 Nov 2025 10:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}quota-used-bytes": "123",
+     "{DAV:}getetag": "\"abc\""
+    }
+   },
+   {
+    "path": "/Photos/Urlaub 2024/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Tue, 04 Nov 2025 11:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"d1\""
+    }
+   },
+   {
+    "path": "/Photos/Bild #1 (100%).jpg",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Wed, 05 Nov 2025 12:30:00 GMT",
+     "{DAV:}getcontentlength": "2048",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"f1\"",
+     "{DAV:}getcontenttype": "image/jpeg"
+    }
+   },
+   {
+    "path": "/Photos/a+b? ü日.png",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Thu, 06 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "10",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getcontenttype": "image/png"
+    }
+   },
+   {
+    "path": "/Photos/IMG_0001.CR3",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Fri, 07 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "99",
+     "{DAV:}resourcetype": null
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/webdav",
+  "name": "folder",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\"?>\n<d:multistatus xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">\n <d:response><d:href>https://cloud.example/remote.php/webdav/Photos/</d:href><d:propstat><d:prop><d:getlastmodified>Mon, 03 Nov 2025 10:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:quota-used-bytes>123</d:quota-used-bytes><d:getetag>\"abc\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://cloud.example/remote.php/webdav/Photos/Urlaub%202024/</d:href><d:propstat><d:prop><d:getlastmodified>Tue, 04 Nov 2025 11:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:getetag>\"d1\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://cloud.example/remote.php/webdav/Photos/Bild%20%231%20(100%25).jpg</d:href><d:propstat><d:prop><d:getlastmodified>Wed, 05 Nov 2025 12:30:00 GMT</d:getlastmodified><d:getcontentlength>2048</d:getcontentlength><d:resourcetype/><d:getetag>\"f1\"</d:getetag><d:getcontenttype>image/jpeg</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://cloud.example/remote.php/webdav/Photos/a%2Bb%3F%20%C3%BC%E6%97%A5.png</d:href><d:propstat><d:prop><d:getlastmodified>Thu, 06 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>10</d:getcontentlength><d:resourcetype/><d:getcontenttype>image/png</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://cloud.example/remote.php/webdav/Photos/IMG_0001.CR3</d:href><d:propstat><d:prop><d:getlastmodified>Fri, 07 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>99</d:getcontentlength><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getcontenttype/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>\n</d:multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Mon, 03 Nov 2025 10:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}quota-used-bytes": "123",
+     "{DAV:}getetag": "\"abc\""
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/Urlaub 2024/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Tue, 04 Nov 2025 11:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"d1\""
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/Bild #1 (100%).jpg",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Wed, 05 Nov 2025 12:30:00 GMT",
+     "{DAV:}getcontentlength": "2048",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"f1\"",
+     "{DAV:}getcontenttype": "image/jpeg"
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/a+b? ü日.png",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Thu, 06 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "10",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getcontenttype": "image/png"
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/IMG_0001.CR3",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Fri, 07 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "99",
+     "{DAV:}resourcetype": null
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/webdav",
+  "name": "upper",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>/remote.php/webdav/Photos/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/remote.php/webdav/Photos/x.heic</D:href><D:propstat><D:prop><D:getcontenttype>image/heic</D:getcontenttype><D:getcontentlength>5</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "/Photos/x.heic",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "image/heic",
+     "{DAV:}getcontentlength": "5"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/webdav",
+  "name": "upper",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://cloud.example/remote.php/webdav/Photos/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>https://cloud.example/remote.php/webdav/Photos/x.heic</D:href><D:propstat><D:prop><D:getcontenttype>image/heic</D:getcontenttype><D:getcontentlength>5</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/x.heic",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "image/heic",
+     "{DAV:}getcontentlength": "5"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/webdav",
+  "name": "default_ns",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\"?>\n<multistatus xmlns=\"DAV:\"><response><href>/remote.php/webdav/Photos/</href><propstat><prop><resourcetype><collection/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>/remote.php/webdav/Photos/clip.mp4</href><propstat><prop><getcontenttype>video/mp4</getcontenttype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "/Photos/clip.mp4",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "video/mp4"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/webdav",
+  "name": "default_ns",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\"?>\n<multistatus xmlns=\"DAV:\"><response><href>https://cloud.example/remote.php/webdav/Photos/</href><propstat><prop><resourcetype><collection/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>https://cloud.example/remote.php/webdav/Photos/clip.mp4</href><propstat><prop><getcontenttype>video/mp4</getcontenttype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/webdav/Photos/clip.mp4",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "video/mp4"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/dav/files/anna",
+  "name": "folder",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\"?>\n<d:multistatus xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">\n <d:response><d:href>/remote.php/dav/files/anna/Photos/</d:href><d:propstat><d:prop><d:getlastmodified>Mon, 03 Nov 2025 10:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:quota-used-bytes>123</d:quota-used-bytes><d:getetag>\"abc\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/remote.php/dav/files/anna/Photos/Urlaub%202024/</d:href><d:propstat><d:prop><d:getlastmodified>Tue, 04 Nov 2025 11:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:getetag>\"d1\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/remote.php/dav/files/anna/Photos/Bild%20%231%20(100%25).jpg</d:href><d:propstat><d:prop><d:getlastmodified>Wed, 05 Nov 2025 12:30:00 GMT</d:getlastmodified><d:getcontentlength>2048</d:getcontentlength><d:resourcetype/><d:getetag>\"f1\"</d:getetag><d:getcontenttype>image/jpeg</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/remote.php/dav/files/anna/Photos/a%2Bb%3F%20%C3%BC%E6%97%A5.png</d:href><d:propstat><d:prop><d:getlastmodified>Thu, 06 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>10</d:getcontentlength><d:resourcetype/><d:getcontenttype>image/png</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/remote.php/dav/files/anna/Photos/IMG_0001.CR3</d:href><d:propstat><d:prop><d:getlastmodified>Fri, 07 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>99</d:getcontentlength><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getcontenttype/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>\n</d:multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Mon, 03 Nov 2025 10:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}quota-used-bytes": "123",
+     "{DAV:}getetag": "\"abc\""
+    }
+   },
+   {
+    "path": "/Photos/Urlaub 2024/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Tue, 04 Nov 2025 11:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"d1\""
+    }
+   },
+   {
+    "path": "/Photos/Bild #1 (100%).jpg",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Wed, 05 Nov 2025 12:30:00 GMT",
+     "{DAV:}getcontentlength": "2048",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"f1\"",
+     "{DAV:}getcontenttype": "image/jpeg"
+    }
+   },
+   {
+    "path": "/Photos/a+b? ü日.png",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Thu, 06 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "10",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getcontenttype": "image/png"
+    }
+   },
+   {
+    "path": "/Photos/IMG_0001.CR3",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Fri, 07 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "99",
+     "{DAV:}resourcetype": null
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/dav/files/anna",
+  "name": "folder",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\"?>\n<d:multistatus xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">\n <d:response><d:href>https://cloud.example/remote.php/dav/files/anna/Photos/</d:href><d:propstat><d:prop><d:getlastmodified>Mon, 03 Nov 2025 10:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:quota-used-bytes>123</d:quota-used-bytes><d:getetag>\"abc\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://cloud.example/remote.php/dav/files/anna/Photos/Urlaub%202024/</d:href><d:propstat><d:prop><d:getlastmodified>Tue, 04 Nov 2025 11:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:getetag>\"d1\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://cloud.example/remote.php/dav/files/anna/Photos/Bild%20%231%20(100%25).jpg</d:href><d:propstat><d:prop><d:getlastmodified>Wed, 05 Nov 2025 12:30:00 GMT</d:getlastmodified><d:getcontentlength>2048</d:getcontentlength><d:resourcetype/><d:getetag>\"f1\"</d:getetag><d:getcontenttype>image/jpeg</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://cloud.example/remote.php/dav/files/anna/Photos/a%2Bb%3F%20%C3%BC%E6%97%A5.png</d:href><d:propstat><d:prop><d:getlastmodified>Thu, 06 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>10</d:getcontentlength><d:resourcetype/><d:getcontenttype>image/png</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://cloud.example/remote.php/dav/files/anna/Photos/IMG_0001.CR3</d:href><d:propstat><d:prop><d:getlastmodified>Fri, 07 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>99</d:getcontentlength><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getcontenttype/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>\n</d:multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Mon, 03 Nov 2025 10:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}quota-used-bytes": "123",
+     "{DAV:}getetag": "\"abc\""
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/Urlaub 2024/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Tue, 04 Nov 2025 11:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"d1\""
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/Bild #1 (100%).jpg",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Wed, 05 Nov 2025 12:30:00 GMT",
+     "{DAV:}getcontentlength": "2048",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"f1\"",
+     "{DAV:}getcontenttype": "image/jpeg"
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/a+b? ü日.png",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Thu, 06 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "10",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getcontenttype": "image/png"
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/IMG_0001.CR3",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Fri, 07 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "99",
+     "{DAV:}resourcetype": null
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/dav/files/anna",
+  "name": "upper",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>/remote.php/dav/files/anna/Photos/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/remote.php/dav/files/anna/Photos/x.heic</D:href><D:propstat><D:prop><D:getcontenttype>image/heic</D:getcontenttype><D:getcontentlength>5</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "/Photos/x.heic",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "image/heic",
+     "{DAV:}getcontentlength": "5"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/dav/files/anna",
+  "name": "upper",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://cloud.example/remote.php/dav/files/anna/Photos/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>https://cloud.example/remote.php/dav/files/anna/Photos/x.heic</D:href><D:propstat><D:prop><D:getcontenttype>image/heic</D:getcontenttype><D:getcontentlength>5</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/x.heic",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "image/heic",
+     "{DAV:}getcontentlength": "5"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/dav/files/anna",
+  "name": "default_ns",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\"?>\n<multistatus xmlns=\"DAV:\"><response><href>/remote.php/dav/files/anna/Photos/</href><propstat><prop><resourcetype><collection/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>/remote.php/dav/files/anna/Photos/clip.mp4</href><propstat><prop><getcontenttype>video/mp4</getcontenttype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "/Photos/clip.mp4",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "video/mp4"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://cloud.example/",
+  "user": "anna",
+  "endpoint": "remote.php/dav/files/anna",
+  "name": "default_ns",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\"?>\n<multistatus xmlns=\"DAV:\"><response><href>https://cloud.example/remote.php/dav/files/anna/Photos/</href><propstat><prop><resourcetype><collection/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>https://cloud.example/remote.php/dav/files/anna/Photos/clip.mp4</href><propstat><prop><getcontenttype>video/mp4</getcontenttype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "https://cloud.example/remote.php/dav/files/anna/Photos/clip.mp4",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "video/mp4"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/webdav",
+  "name": "folder",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\"?>\n<d:multistatus xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">\n <d:response><d:href>/nextcloud/remote.php/webdav/Photos/</d:href><d:propstat><d:prop><d:getlastmodified>Mon, 03 Nov 2025 10:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:quota-used-bytes>123</d:quota-used-bytes><d:getetag>\"abc\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/nextcloud/remote.php/webdav/Photos/Urlaub%202024/</d:href><d:propstat><d:prop><d:getlastmodified>Tue, 04 Nov 2025 11:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:getetag>\"d1\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/nextcloud/remote.php/webdav/Photos/Bild%20%231%20(100%25).jpg</d:href><d:propstat><d:prop><d:getlastmodified>Wed, 05 Nov 2025 12:30:00 GMT</d:getlastmodified><d:getcontentlength>2048</d:getcontentlength><d:resourcetype/><d:getetag>\"f1\"</d:getetag><d:getcontenttype>image/jpeg</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/nextcloud/remote.php/webdav/Photos/a%2Bb%3F%20%C3%BC%E6%97%A5.png</d:href><d:propstat><d:prop><d:getlastmodified>Thu, 06 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>10</d:getcontentlength><d:resourcetype/><d:getcontenttype>image/png</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/nextcloud/remote.php/webdav/Photos/IMG_0001.CR3</d:href><d:propstat><d:prop><d:getlastmodified>Fri, 07 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>99</d:getcontentlength><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getcontenttype/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>\n</d:multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Mon, 03 Nov 2025 10:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}quota-used-bytes": "123",
+     "{DAV:}getetag": "\"abc\""
+    }
+   },
+   {
+    "path": "/Photos/Urlaub 2024/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Tue, 04 Nov 2025 11:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"d1\""
+    }
+   },
+   {
+    "path": "/Photos/Bild #1 (100%).jpg",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Wed, 05 Nov 2025 12:30:00 GMT",
+     "{DAV:}getcontentlength": "2048",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"f1\"",
+     "{DAV:}getcontenttype": "image/jpeg"
+    }
+   },
+   {
+    "path": "/Photos/a+b? ü日.png",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Thu, 06 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "10",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getcontenttype": "image/png"
+    }
+   },
+   {
+    "path": "/Photos/IMG_0001.CR3",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Fri, 07 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "99",
+     "{DAV:}resourcetype": null
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/webdav",
+  "name": "folder",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\"?>\n<d:multistatus xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">\n <d:response><d:href>https://example.com/nextcloud/remote.php/webdav/Photos/</d:href><d:propstat><d:prop><d:getlastmodified>Mon, 03 Nov 2025 10:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:quota-used-bytes>123</d:quota-used-bytes><d:getetag>\"abc\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://example.com/nextcloud/remote.php/webdav/Photos/Urlaub%202024/</d:href><d:propstat><d:prop><d:getlastmodified>Tue, 04 Nov 2025 11:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:getetag>\"d1\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://example.com/nextcloud/remote.php/webdav/Photos/Bild%20%231%20(100%25).jpg</d:href><d:propstat><d:prop><d:getlastmodified>Wed, 05 Nov 2025 12:30:00 GMT</d:getlastmodified><d:getcontentlength>2048</d:getcontentlength><d:resourcetype/><d:getetag>\"f1\"</d:getetag><d:getcontenttype>image/jpeg</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://example.com/nextcloud/remote.php/webdav/Photos/a%2Bb%3F%20%C3%BC%E6%97%A5.png</d:href><d:propstat><d:prop><d:getlastmodified>Thu, 06 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>10</d:getcontentlength><d:resourcetype/><d:getcontenttype>image/png</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://example.com/nextcloud/remote.php/webdav/Photos/IMG_0001.CR3</d:href><d:propstat><d:prop><d:getlastmodified>Fri, 07 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>99</d:getcontentlength><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getcontenttype/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>\n</d:multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Mon, 03 Nov 2025 10:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}quota-used-bytes": "123",
+     "{DAV:}getetag": "\"abc\""
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/Urlaub 2024/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Tue, 04 Nov 2025 11:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"d1\""
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/Bild #1 (100%).jpg",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Wed, 05 Nov 2025 12:30:00 GMT",
+     "{DAV:}getcontentlength": "2048",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"f1\"",
+     "{DAV:}getcontenttype": "image/jpeg"
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/a+b? ü日.png",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Thu, 06 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "10",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getcontenttype": "image/png"
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/IMG_0001.CR3",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Fri, 07 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "99",
+     "{DAV:}resourcetype": null
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/webdav",
+  "name": "upper",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>/nextcloud/remote.php/webdav/Photos/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/nextcloud/remote.php/webdav/Photos/x.heic</D:href><D:propstat><D:prop><D:getcontenttype>image/heic</D:getcontenttype><D:getcontentlength>5</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "/Photos/x.heic",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "image/heic",
+     "{DAV:}getcontentlength": "5"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/webdav",
+  "name": "upper",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://example.com/nextcloud/remote.php/webdav/Photos/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>https://example.com/nextcloud/remote.php/webdav/Photos/x.heic</D:href><D:propstat><D:prop><D:getcontenttype>image/heic</D:getcontenttype><D:getcontentlength>5</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/x.heic",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "image/heic",
+     "{DAV:}getcontentlength": "5"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/webdav",
+  "name": "default_ns",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\"?>\n<multistatus xmlns=\"DAV:\"><response><href>/nextcloud/remote.php/webdav/Photos/</href><propstat><prop><resourcetype><collection/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>/nextcloud/remote.php/webdav/Photos/clip.mp4</href><propstat><prop><getcontenttype>video/mp4</getcontenttype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "/Photos/clip.mp4",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "video/mp4"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/webdav",
+  "name": "default_ns",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\"?>\n<multistatus xmlns=\"DAV:\"><response><href>https://example.com/nextcloud/remote.php/webdav/Photos/</href><propstat><prop><resourcetype><collection/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>https://example.com/nextcloud/remote.php/webdav/Photos/clip.mp4</href><propstat><prop><getcontenttype>video/mp4</getcontenttype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/webdav/Photos/clip.mp4",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "video/mp4"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/dav/files/bob%20smith",
+  "name": "folder",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\"?>\n<d:multistatus xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">\n <d:response><d:href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/</d:href><d:propstat><d:prop><d:getlastmodified>Mon, 03 Nov 2025 10:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:quota-used-bytes>123</d:quota-used-bytes><d:getetag>\"abc\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/Urlaub%202024/</d:href><d:propstat><d:prop><d:getlastmodified>Tue, 04 Nov 2025 11:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:getetag>\"d1\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/Bild%20%231%20(100%25).jpg</d:href><d:propstat><d:prop><d:getlastmodified>Wed, 05 Nov 2025 12:30:00 GMT</d:getlastmodified><d:getcontentlength>2048</d:getcontentlength><d:resourcetype/><d:getetag>\"f1\"</d:getetag><d:getcontenttype>image/jpeg</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/a%2Bb%3F%20%C3%BC%E6%97%A5.png</d:href><d:propstat><d:prop><d:getlastmodified>Thu, 06 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>10</d:getcontentlength><d:resourcetype/><d:getcontenttype>image/png</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/IMG_0001.CR3</d:href><d:propstat><d:prop><d:getlastmodified>Fri, 07 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>99</d:getcontentlength><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getcontenttype/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>\n</d:multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Mon, 03 Nov 2025 10:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}quota-used-bytes": "123",
+     "{DAV:}getetag": "\"abc\""
+    }
+   },
+   {
+    "path": "/Photos/Urlaub 2024/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Tue, 04 Nov 2025 11:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"d1\""
+    }
+   },
+   {
+    "path": "/Photos/Bild #1 (100%).jpg",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Wed, 05 Nov 2025 12:30:00 GMT",
+     "{DAV:}getcontentlength": "2048",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"f1\"",
+     "{DAV:}getcontenttype": "image/jpeg"
+    }
+   },
+   {
+    "path": "/Photos/a+b? ü日.png",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Thu, 06 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "10",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getcontenttype": "image/png"
+    }
+   },
+   {
+    "path": "/Photos/IMG_0001.CR3",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Fri, 07 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "99",
+     "{DAV:}resourcetype": null
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/dav/files/bob%20smith",
+  "name": "folder",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\"?>\n<d:multistatus xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">\n <d:response><d:href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/</d:href><d:propstat><d:prop><d:getlastmodified>Mon, 03 Nov 2025 10:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:quota-used-bytes>123</d:quota-used-bytes><d:getetag>\"abc\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/Urlaub%202024/</d:href><d:propstat><d:prop><d:getlastmodified>Tue, 04 Nov 2025 11:00:00 GMT</d:getlastmodified><d:resourcetype><d:collection/></d:resourcetype><d:getetag>\"d1\"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/Bild%20%231%20(100%25).jpg</d:href><d:propstat><d:prop><d:getlastmodified>Wed, 05 Nov 2025 12:30:00 GMT</d:getlastmodified><d:getcontentlength>2048</d:getcontentlength><d:resourcetype/><d:getetag>\"f1\"</d:getetag><d:getcontenttype>image/jpeg</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/a%2Bb%3F%20%C3%BC%E6%97%A5.png</d:href><d:propstat><d:prop><d:getlastmodified>Thu, 06 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>10</d:getcontentlength><d:resourcetype/><d:getcontenttype>image/png</d:getcontenttype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>\n <d:response><d:href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/IMG_0001.CR3</d:href><d:propstat><d:prop><d:getlastmodified>Fri, 07 Nov 2025 08:00:00 GMT</d:getlastmodified><d:getcontentlength>99</d:getcontentlength><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getcontenttype/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>\n</d:multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Mon, 03 Nov 2025 10:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}quota-used-bytes": "123",
+     "{DAV:}getetag": "\"abc\""
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/Urlaub 2024/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}getlastmodified": "Tue, 04 Nov 2025 11:00:00 GMT",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"d1\""
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/Bild #1 (100%).jpg",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Wed, 05 Nov 2025 12:30:00 GMT",
+     "{DAV:}getcontentlength": "2048",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getetag": "\"f1\"",
+     "{DAV:}getcontenttype": "image/jpeg"
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/a+b? ü日.png",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Thu, 06 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "10",
+     "{DAV:}resourcetype": null,
+     "{DAV:}getcontenttype": "image/png"
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/IMG_0001.CR3",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getlastmodified": "Fri, 07 Nov 2025 08:00:00 GMT",
+     "{DAV:}getcontentlength": "99",
+     "{DAV:}resourcetype": null
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/dav/files/bob%20smith",
+  "name": "upper",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/x.heic</D:href><D:propstat><D:prop><D:getcontenttype>image/heic</D:getcontenttype><D:getcontentlength>5</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "/Photos/x.heic",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "image/heic",
+     "{DAV:}getcontentlength": "5"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/dav/files/bob%20smith",
+  "name": "upper",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<D:multistatus xmlns:D=\"DAV:\"><D:response><D:href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/</D:href><D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response><D:response><D:href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/x.heic</D:href><D:propstat><D:prop><D:getcontenttype>image/heic</D:getcontenttype><D:getcontentlength>5</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response></D:multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/x.heic",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "image/heic",
+     "{DAV:}getcontentlength": "5"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/dav/files/bob%20smith",
+  "name": "default_ns",
+  "absolute": false,
+  "body": "<?xml version=\"1.0\"?>\n<multistatus xmlns=\"DAV:\"><response><href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/</href><propstat><prop><resourcetype><collection/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>/nextcloud/remote.php/dav/files/bob%20smith/Photos/clip.mp4</href><propstat><prop><getcontenttype>video/mp4</getcontenttype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+  "pyocclient": [
+   {
+    "path": "/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "/Photos/clip.mp4",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "video/mp4"
+    }
+   }
+  ]
+ },
+ {
+  "server": "https://example.com/nextcloud/",
+  "user": "bob smith",
+  "endpoint": "remote.php/dav/files/bob%20smith",
+  "name": "default_ns",
+  "absolute": true,
+  "body": "<?xml version=\"1.0\"?>\n<multistatus xmlns=\"DAV:\"><response><href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/</href><propstat><prop><resourcetype><collection/></resourcetype></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>https://example.com/nextcloud/remote.php/dav/files/bob%20smith/Photos/clip.mp4</href><propstat><prop><getcontenttype>video/mp4</getcontenttype></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>",
+  "pyocclient": [
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/",
+    "is_dir": true,
+    "attributes": {
+     "{DAV:}resourcetype": null
+    }
+   },
+   {
+    "path": "https://example.com/nextcloud/remote.php/dav/files/bob smith/Photos/clip.mp4",
+    "is_dir": false,
+    "attributes": {
+     "{DAV:}getcontenttype": "video/mp4"
+    }
+   }
+  ]
+ }
+]

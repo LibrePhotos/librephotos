@@ -35,23 +35,24 @@ can index, in every sub folder of the watch directory.
 """
 
 from django.test import SimpleTestCase
-from owncloud import FileInfo
 
 from api.photos.media_files import is_raw
 from nextcloud.directory_watcher import collect_photos, isValidNCMedia
+from nextcloud.webdav import RemoteFile
 
 
 def make_dir(path):
-    """A WebDAV collection as owncloud's client hands it to us."""
+    """A WebDAV collection as the Nextcloud client hands it to us."""
     if not path.endswith("/"):
         path += "/"
-    return FileInfo(path, "dir", {"{DAV:}getcontenttype": "httpd/unix-directory"})
+    return RemoteFile(
+        path, {"{DAV:}getcontenttype": "httpd/unix-directory"}, directory=True
+    )
 
 
 def make_file(path, content_type):
-    return FileInfo(
+    return RemoteFile(
         path,
-        "file",
         {
             "{DAV:}getcontenttype": content_type,
             "{DAV:}getcontentlength": "1024",
@@ -60,10 +61,10 @@ def make_file(path, content_type):
 
 
 class FakeNextcloudClient:
-    """Minimal stand-in for ``owncloud.Client`` backed by an in-memory tree.
+    """Minimal stand-in for the Nextcloud client backed by an in-memory tree.
 
     Mirrors the real client: ``list()`` returns the *children* of a collection
-    (the collection itself is stripped by owncloud), directory entries have a
+    (the collection itself is left out by the client), directory entries have a
     trailing slash in ``path`` and ``is_dir()`` is True for them.
     """
 

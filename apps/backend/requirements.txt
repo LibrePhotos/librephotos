@@ -29,7 +29,7 @@ ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/window
 ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
 psycopg[binary]==3.3.8
 # Imported directly, so declared here instead of left to other packages: requests
-# (sidecars, geocoders, Nextcloud, updates) came only through pyocclient, urllib3
+# (sidecars, geocoders, the Nextcloud client, updates), urllib3
 # (api/runtime/sidecars.py, nextcloud/server_address.py) through requests and
 # sentry-sdk, cryptography (api/updates/signature.py) through django-cryptography-5,
 # numpy through onnxruntime and opencv. opencv-python-headless 5 and timezonefinder 8
@@ -38,9 +38,6 @@ requests==2.34.2
 urllib3==2.8.0
 cryptography==50.0.2
 numpy==2.5.4
-# Nextcloud client. PyPI 0.6 is the last release; master only adds a port fix to
-# from_public_link (unused here) plus docs. The upstream repo is archived.
-pyocclient==0.6
 tzdata==2026.6
 # pyvips-binary bundles libvips, but without HEVC (HEIC), JPEG XL, BMP and JPEG 2000
 # loaders; api/thumbnails/decoding.py falls back to Pillow with these two plugins.

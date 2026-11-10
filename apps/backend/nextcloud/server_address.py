@@ -9,7 +9,7 @@ or the cloud provider's metadata endpoint on a link-local address.
 it resolves to, so a DNS name cannot smuggle in an address a literal IP would
 have been refused for. The address is parsed twice: once the way Python's
 ``urlparse`` reads it and once the way urllib3 (which ``requests`` and so
-pyocclient connect through) reads it. The two disagree on some addresses, for
+the Nextcloud client connect through) reads it. The two disagree on some addresses, for
 example ``http://127.0.0.1:8163\\@8.8.8.8/`` is 8.8.8.8 to ``urlparse`` but
 127.0.0.1 to urllib3, so both hosts are checked and an address they do not
 agree on is refused. Loopback, link-local, multicast, unspecified and
@@ -21,9 +21,11 @@ turns that off for instances whose users should not reach the local network.
 
 The check runs before the connection is made, so it does not pin the address:
 a DNS answer that changes between the check and the connection is not caught.
-Redirects are checked hop by hop by ``GuardedClient``.
+Redirects are checked hop by hop on the session ``guarded_session`` builds,
+the only session ``GuardedClient`` (``nextcloud.webdav.NextcloudClient``)
+ever sends through.
 
-``GuardedClient`` also decides what the server's TLS certificate is checked
+``guarded_session`` also decides what the server's TLS certificate is checked
 against: the public certificate authorities, or the file ``NEXTCLOUD_CA_BUNDLE``
 names, for a Nextcloud with a self-signed certificate or one from a private CA
 (#539). Certificate checking itself cannot be switched off.
@@ -39,14 +41,14 @@ import ssl
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin, urlparse
 
-import owncloud as nextcloud
+import requests
 from django.conf import settings
 from urllib3.exceptions import LocationParseError
 from urllib3.util import parse_url
 
-if TYPE_CHECKING:
-    import requests
+from nextcloud.webdav import NextcloudClient, UnexpectedHostError, has_dot_segment
 
+if TYPE_CHECKING:
     from api.models.user import User
 
 _ALLOWED_SCHEMES = {"http", "https"}
@@ -59,12 +61,12 @@ _IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 logger = logging.getLogger(__name__)
 
 
-class UnsafeServerAddress(ValueError):
-    """The Nextcloud server address must not be contacted."""
-
-
 class CABundleError(ValueError):
     """``NEXTCLOUD_CA_BUNDLE`` is set but names no usable certificate file."""
+
+
+class UnsafeServerAddress(ValueError):
+    """The Nextcloud server address must not be contacted."""
 
 
 def private_addresses_allowed() -> bool:
@@ -152,10 +154,32 @@ def _check_host(host: str, port: int, allow_private: bool) -> None:
 
 
 def validate_server_address(url: str) -> None:
-    """Raise ``UnsafeServerAddress`` unless ``url`` may be contacted."""
+    """Raise ``UnsafeServerAddress`` unless ``url`` may be stored and contacted.
+
+    A server address is a scheme, a host and an optional path: a query, a
+    fragment or parameters (``?``, ``#``, ``;``) are refused, so every URL the
+    client builds from it stays on its host, and so is a ``.`` or ``..``
+    folder in the path, which would send the requests to another path than
+    the one the client reads the answers against.
+    """
     url = (url or "").strip()
     if not url:
         raise UnsafeServerAddress("No Nextcloud server address is set.")
+    if any(mark in url for mark in "?#;"):
+        raise UnsafeServerAddress(
+            "The Nextcloud server address has to be a plain address such as "
+            "https://cloud.example.com/nextcloud, without ?, # or ;."
+        )
+    _check_destination(url)
+    if has_dot_segment(url):
+        raise UnsafeServerAddress(
+            "The Nextcloud server address has to be a plain address such as "
+            "https://cloud.example.com/nextcloud, without . or .. folders."
+        )
+
+
+def _check_destination(url: str) -> None:
+    """Raise ``UnsafeServerAddress`` unless the host ``url`` names may be contacted."""
     try:
         parsed = urlparse(url)
         port = parsed.port
@@ -237,35 +261,39 @@ def _refuse_unsafe_redirect(
             raise UnsafeServerAddress(
                 "The Nextcloud server address is not a URL."
             ) from e
-        validate_server_address(target)
+        # A redirect target may carry a query; its host gets the full check.
+        _check_destination(target)
     return response
 
 
-class GuardedClient(nextcloud.Client):
-    """A pyocclient ``Client`` that refuses to follow redirects to unsafe hosts.
+def guarded_session() -> requests.Session:
+    """The session every Nextcloud request goes through.
 
-    pyocclient creates its ``requests`` session inside ``login()``, so the
-    redirect check is attached whenever a session is assigned. ``login()``
-    then sets ``session.verify`` from ``verify_certs``, which is always
-    ``certificate_check()``: a caller cannot pass ``verify_certs=False``.
+    Its TLS check is ``certificate_check()`` (raises ``CABundleError``), and
+    every redirect hop passes ``validate_server_address`` before it is
+    followed. The client sets its credentials on it and a timeout on every
+    request.
     """
-
-    def __init__(self, url: str, **kwargs: Any) -> None:
-        kwargs["verify_certs"] = certificate_check()
-        super().__init__(url, **kwargs)
-
-    @property
-    def _session(self) -> requests.Session | None:
-        return self.__dict__.get("_guarded_session")
-
-    @_session.setter
-    def _session(self, session: requests.Session | None) -> None:
-        if session is not None:
-            session.hooks["response"].append(_refuse_unsafe_redirect)
-        self.__dict__["_guarded_session"] = session
+    session = requests.Session()
+    session.verify = certificate_check()
+    session.hooks["response"].append(_refuse_unsafe_redirect)
+    return session
 
 
-def connect(user: User) -> nextcloud.Client:
+class GuardedClient(NextcloudClient):
+    """The Nextcloud client on a ``guarded_session``; nothing can swap it."""
+
+    def __init__(self, url: str) -> None:
+        super().__init__(url, guarded_session())
+
+    def _checked(self, url: str) -> str:
+        try:
+            return super()._checked(url)
+        except UnexpectedHostError as error:
+            raise UnsafeServerAddress(str(error)) from error
+
+
+def connect(user: User) -> NextcloudClient:
     """Log in to ``user``'s Nextcloud after checking the server address.
 
     Raises ``UnsafeServerAddress`` or ``CABundleError`` before connecting.

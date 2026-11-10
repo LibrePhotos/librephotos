@@ -1,6 +1,5 @@
 import logging
 
-import owncloud as nextcloud
 import requests
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
@@ -25,6 +24,7 @@ from nextcloud.server_address import (
     connect,
     validate_server_address,
 )
+from nextcloud.webdav import ResponseError, UnsafeRemotePathError
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,9 @@ class ListDir(APIView):
             )
         except (UnsafeServerAddress, CABundleError) as e:
             raise ValidationError(str(e)) from e
-        except nextcloud.ResponseError as e:
+        except UnsafeRemotePathError as e:
+            raise ValidationError("The folder path is not a plain path.") from e
+        except ResponseError as e:
             logger.warning("Nextcloud responded with an error: %s", e)
             raise ValidationError(str(e)) from e
         except requests.exceptions.RequestException as e:

@@ -30,13 +30,13 @@ import contextlib
 import uuid
 from unittest import mock
 
-import owncloud
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
 from api.tests.utils import create_test_user, patch_nextcloud_dns
 from nextcloud.directory_watcher import scan_photos as nextcloud_scan_photos
+from nextcloud.webdav import ResponseError
 
 RQ_AVAILABLE_URL = "/api/rqavailable/"
 
@@ -62,7 +62,7 @@ class NextcloudScanFailureLeavesQueueBlockedTest(TestCase):
         the job row is left in, not about whether the call raises.
         """
         fake_client = mock.MagicMock()
-        fake_client.login.side_effect = owncloud.HTTPResponseError(401)
+        fake_client.login.side_effect = ResponseError(401)
         with mock.patch(
             "nextcloud.server_address.GuardedClient", return_value=fake_client
         ):
