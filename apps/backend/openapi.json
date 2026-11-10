@@ -17388,6 +17388,14 @@
         "type": "string",
         "description": "* `photo` - photo\n* `screenshot` - screenshot\n* `document` - document\n* `auto` - auto"
       },
+      "CategorySourceEnum": {
+        "enum": [
+          "auto",
+          "user"
+        ],
+        "type": "string",
+        "description": "* `auto` - Detector\n* `user` - User"
+      },
       "CheckFileContentsRequestRequest": {
         "type": "object",
         "description": "``POST /api/check-file-contents/``: whose files, and which folder of them.",
@@ -24398,7 +24406,11 @@
             "readOnly": true
           },
           "category_source": {
-            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CategorySourceEnum"
+              }
+            ],
             "readOnly": true
           },
           "owner": {
@@ -24753,7 +24765,11 @@
             "type": "boolean"
           },
           "category_source": {
-            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CategorySourceEnum"
+              }
+            ],
             "readOnly": true
           },
           "geocoded": {
