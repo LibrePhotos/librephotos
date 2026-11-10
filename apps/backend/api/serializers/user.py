@@ -23,9 +23,9 @@ from api.albums.timeline_filter import validate_default_timeline_filter
 from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import enqueue_job
 from api.metadata.date_rule_checks import changed_rule_problem
-from api.metadata.time_zones import ALL_TIME_ZONES
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
+from api.models.time_zones import ALL_TIME_ZONES
 from api.models.user import (
     get_default_public_sharing_settings,
     public_sharing_settings,

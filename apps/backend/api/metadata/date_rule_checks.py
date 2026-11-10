@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from api.metadata.date_patterns import DatePatternError, compile_date_pattern
 from api.metadata.datetime_rules import PREDEFINED_REGEXPS, RuleTypes
 from api.metadata.tags import Tags
-from api.metadata.time_zones import ALL_TIME_ZONES_SET
+from api.models.time_zones import ALL_TIME_ZONES_SET
 
 
 @dataclass(frozen=True)

@@ -9,13 +9,13 @@ from django.db import models
 from django_cryptography.fields import encrypt
 
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON
-from api.metadata.time_zones import ALL_TIME_ZONES_SET
 from api.models.photo_license import LICENSE_MAX_LENGTH, PhotoLicense
+from api.models.time_zones import ALL_TIME_ZONES_SET
 from api.stacks.burst_rules import get_default_burst_detection_rules
 
 
 def validate_time_zone(value: object) -> None:
-    """``value`` is an IANA time zone name of ``api.metadata.time_zones``, exactly.
+    """``value`` is an IANA time zone name of ``api.models.time_zones``, exactly.
 
     A validator rather than ``choices``: the names follow the pinned tzdata
     package, and a tzdata update must not need a migration.

@@ -1,6 +1,6 @@
 """``User.default_timezone`` is checked by a validator instead of ``choices``.
 
-The names are the same (``api.metadata.time_zones.ALL_TIME_ZONES``, the list
+The names are the same (``api.models.time_zones.ALL_TIME_ZONES``, the list
 pytz gave), but they now follow the pinned tzdata package, so a tzdata update
 needs no migration. No SQL: no row changes.
 """

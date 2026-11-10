@@ -1,4 +1,4 @@
-"""api.metadata.time_zones: the zone list, name lookups and reading a wall clock in a zone.
+"""api.models.time_zones: the zone list, name lookups and reading a wall clock in a zone.
 
 The expected values were taken from pytz 2026.6 (``pytz.all_timezones``,
 ``pytz.timezone``, ``zone.localize``), which this module replaced.
@@ -15,7 +15,7 @@ from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 
 from api.metadata.datetime_rules import RuleContext, TimeExtractionRule
-from api.metadata.time_zones import ALL_TIME_ZONES, localize, time_zone
+from api.models.time_zones import ALL_TIME_ZONES, localize, time_zone
 from api.models.user import validate_time_zone
 from api.tests.utils import create_test_user
 

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from api.metadata.date_patterns import compile_date_pattern
 from api.metadata.tags import LOCAL_TIME_TAG_OFFSETS, Tags
-from api.metadata.time_zones import ALL_TIME_ZONES, localize, time_zone
+from api.models.time_zones import ALL_TIME_ZONES, localize, time_zone
 
 if TYPE_CHECKING:
     from timezonefinder import TimezoneFinder
