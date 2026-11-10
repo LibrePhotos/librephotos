@@ -10,11 +10,11 @@ and the job reported success.
 """
 
 import importlib
+import json
 import os
 import tempfile
 from unittest.mock import MagicMock, patch
 
-import numpy as np
 import requests
 from django.db import connection
 from django.db.models import JSONField, Value
@@ -59,6 +59,11 @@ class _TempStore(SimpleTestCase):
         self.addCleanup(self.tmp.cleanup)
         self.store = os.path.join(self.tmp.name, "similarity")
 
+    def index_at(self):
+        index = RetrievalIndex(self.store)
+        self.addCleanup(index.close)  # Windows cannot delete a mapped file
+        return index
+
     def rebuild(self, index, user_id, pages):
         token = index.begin_rebuild(user_id)
         for hashes, embeddings in pages:
@@ -68,20 +73,24 @@ class _TempStore(SimpleTestCase):
 
 class PersistenceTest(_TempStore):
     def test_a_restarted_sidecar_answers_from_the_saved_index(self):
-        self.rebuild(RetrievalIndex(self.store), 3, [(["a", "b"], [unit(0), unit(1)])])
+        self.rebuild(self.index_at(), 3, [(["a", "b"], [unit(0), unit(1)])])
 
-        restarted = RetrievalIndex(self.store)
+        restarted = self.index_at()
         self.assertEqual(restarted.indices, {})
         self.assertEqual(restarted.search_similar(3, unit(1), n=5, thres=0.5), ["b"])
         self.assertEqual(restarted.indices[3].ntotal, 2)
 
-    def test_the_index_is_one_file_per_user(self):
-        self.rebuild(RetrievalIndex(self.store), 3, [(["a"], [unit(0)])])
+    def test_the_index_is_a_manifest_and_one_generation_per_user(self):
+        self.rebuild(self.index_at(), 3, [(["a"], [unit(0)])])
 
-        self.assertEqual(os.listdir(self.store), ["3.npz"])
+        names = sorted(os.listdir(self.store))
+        self.assertEqual(len(names), 3, names)
+        self.assertRegex(names[0], r"^3\.[0-9a-f]{16}\.f32$")
+        self.assertEqual(names[1], names[0].replace(".f32", ".hashes"))
+        self.assertEqual(names[2], "3.index.json")
 
     def test_a_user_without_an_index_has_no_similar_photos(self):
-        index = RetrievalIndex(self.store)
+        index = self.index_at()
         with patch.object(retrieval_index, "logger") as logger:
             self.assertEqual(index.search_similar(9, unit(0)), [])
             self.assertEqual(index.search_similar(9, unit(0)), [])
@@ -90,44 +99,42 @@ class PersistenceTest(_TempStore):
         self.assertIn("Calculate CLIP embeddings", logger.warning.call_args.args[0])
 
     def test_fewer_photos_than_asked_for_are_not_padded(self):
-        index = RetrievalIndex(self.store)
+        index = self.index_at()
         self.rebuild(index, 1, [(["a"], [unit(0)])])
 
         self.assertEqual(index.search_similar(1, unit(0), n=10, thres=-1e30), ["a"])
 
     def test_a_file_that_does_not_add_up_is_ignored(self):
-        os.makedirs(self.store)
-        index = retrieval_index.faiss.IndexFlatIP(DIM)
-        index.add(np.array([unit(0)], dtype=np.float32))
-        with open(os.path.join(self.store, "4.npz"), "wb") as out:
-            np.savez(
-                out,
-                index=retrieval_index.faiss.serialize_index(index),
-                image_hashes=np.array(["a", "b"]),
-            )
+        self.rebuild(self.index_at(), 4, [(["a"], [unit(0)])])
+        manifest_path = os.path.join(self.store, "4.index.json")
+        with open(manifest_path, encoding="utf-8") as handle:
+            manifest = json.load(handle)
+        manifest["count"] = 2  # two photos, one vector
+        with open(manifest_path, "w", encoding="utf-8") as handle:
+            json.dump(manifest, handle)
 
-        self.assertEqual(RetrievalIndex(self.store).search_similar(4, unit(0)), [])
+        with patch.object(retrieval_index, "logger") as logger:
+            self.assertEqual(self.index_at().search_similar(4, unit(0)), [])
+        self.assertIn("ignoring it", logger.error.call_args.args[0])
 
     def test_delete_forgets_the_file_too(self):
-        index = RetrievalIndex(self.store)
+        index = self.index_at()
         self.rebuild(index, 5, [(["a"], [unit(0)])])
 
         index.remove_user(5)
 
         self.assertEqual(os.listdir(self.store), [])
-        self.assertEqual(RetrievalIndex(self.store).search_similar(5, unit(0)), [])
+        self.assertEqual(self.index_at().search_similar(5, unit(0)), [])
 
     def test_the_incremental_path_is_saved_as_well(self):
-        RetrievalIndex(self.store).build_index_for_user(6, ["a"], [unit(0)])
+        self.index_at().build_index_for_user(6, ["a"], [unit(0)])
 
-        self.assertEqual(
-            RetrievalIndex(self.store).search_similar(6, unit(0), thres=0.5), ["a"]
-        )
+        self.assertEqual(self.index_at().search_similar(6, unit(0), thres=0.5), ["a"])
 
 
 class AtomicRebuildTest(_TempStore):
     def test_searches_use_the_old_index_until_the_rebuild_commits(self):
-        index = RetrievalIndex(self.store)
+        index = self.index_at()
         self.rebuild(index, 1, [(["old"], [unit(0)])])
 
         token = index.begin_rebuild(1)
@@ -138,7 +145,7 @@ class AtomicRebuildTest(_TempStore):
         self.assertEqual(index.search_similar(1, unit(0), thres=0.5), ["new"])
 
     def test_pages_add_up(self):
-        index = RetrievalIndex(self.store)
+        index = self.index_at()
         size = self.rebuild(
             index, 1, [(["a"], [unit(0)]), (["b", "c"], [unit(1), unit(2)])]
         )
@@ -147,8 +154,9 @@ class AtomicRebuildTest(_TempStore):
         self.assertEqual(index.image_hashes[1], ["a", "b", "c"])
 
     def test_a_failed_write_keeps_the_old_file_and_leaves_no_temporary(self):
-        index = RetrievalIndex(self.store)
+        index = self.index_at()
         self.rebuild(index, 1, [(["old"], [unit(0)])])
+        before = sorted(os.listdir(self.store))
 
         token = index.begin_rebuild(1)
         index.add_to_rebuild(1, token, ["new"], [unit(0)])
@@ -156,28 +164,27 @@ class AtomicRebuildTest(_TempStore):
             with self.assertRaises(OSError):
                 index.commit_rebuild(1, token)
 
-        self.assertEqual(os.listdir(self.store), ["1.npz"])
-        self.assertEqual(
-            RetrievalIndex(self.store).search_similar(1, unit(0), thres=0.5), ["old"]
-        )
+        self.assertEqual(sorted(os.listdir(self.store)), before)
+        self.assertEqual(self.index_at().search_similar(1, unit(0), thres=0.5), ["old"])
         # Nor did the half-finished rebuild reach the live index.
         self.assertEqual(index.search_similar(1, unit(0), thres=0.5), ["old"])
 
     def test_a_page_with_mismatched_hashes_is_refused(self):
-        index = RetrievalIndex(self.store)
+        index = self.index_at()
         token = index.begin_rebuild(1)
         with self.assertRaises(retrieval_index.IndexBuildError):
             index.add_to_rebuild(1, token, ["a", "b"], [unit(0)])
 
     def test_a_page_without_a_begun_rebuild_is_refused(self):
         with self.assertRaises(retrieval_index.IndexBuildError):
-            RetrievalIndex(self.store).commit_rebuild(1, "never begun")
+            self.index_at().commit_rebuild(1, "never begun")
 
 
 class SidecarRoutesTest(_TempStore):
     def setUp(self):
         super().setUp()
         self.main = _load_main(self.tmp.name)
+        self.addCleanup(self.main.index.close)
         self.main.app.config["TESTING"] = True
         self.client = self.main.app.test_client()
 

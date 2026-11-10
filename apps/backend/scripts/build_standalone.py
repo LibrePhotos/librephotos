@@ -130,10 +130,6 @@ NOFOLLOW = [
 # for them only decides what is included, which applies to bytecode too.
 # Module counts from --generate-c-only.
 BYTECODE_MODULES = [
-    # SWIG's 680 KB of generated proxy classes: Nuitka turns it into a 636k-line
-    # C file that MSVC on the runner (16 GB) cannot compile ("C1002: compiler is
-    # out of heap space in pass 2"). Its methods only forward to _swigfaiss.
-    "faiss.swigfaiss",
     "django",  # 907
     "allauth",  # 838, mostly one module per login provider
     "psycopg",  # 83, the PostgreSQL driver (the standalone build runs SQLite)

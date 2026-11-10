@@ -3,25 +3,26 @@
 Pins the CURRENT behavior of ``RetrievalIndex.build_index_for_user`` (and,
 where it is needed to observe the resulting state, ``search_similar``).
 
-No ML models, network or exiftool binaries are involved -- FAISS is a pure
-in-process C++ library and is exercised for real, the module logger is
-patched so the log side effects can be asserted.
+No ML models, network or exiftool binaries are involved; the index runs in
+memory (no ``store_dir``) and the module logger is patched so the log side
+effects can be asserted.
 
 Quirks pinned here that a refactor must preserve:
   * Early returns are *silent* -- the method always returns ``None`` and
     never raises for the guarded cases.
   * The per-user index and hash list are created **before** the shape
     validation runs, so a rejected call still leaves an empty
-    ``IndexFlatIP`` in ``self.indices`` and an empty list in
-    ``self.image_hashes`` as a side effect.
+    index in ``self.indices`` and an empty list in ``self.image_hashes``
+    as a side effect.
   * The ``image_embeddings`` falsy check happens before anything else, so
     ``None``/``[]`` never create an index at all.
-  * A 1-D input is reshaped to ``(1, -1)`` **without** any length check, so
-    a short 1-D vector reaches ``faiss.add`` and the resulting
-    ``AssertionError`` is swallowed by the ``except Exception`` handler.
-  * ``image_hashes`` and ``image_embeddings`` are never checked against each
-    other: mismatched lengths are accepted and the hash list simply gets
-    every hash appended (see ``test_hash_embedding_count_mismatch_*``).
+  * A 1-D input is reshaped to ``(1, -1)`` and then checked like any other:
+    a short 1-D vector is logged and nothing is added. (FAISS used to raise
+    on it inside ``add``, which was logged and swallowed the same way.)
+  * ``image_hashes`` and ``image_embeddings`` must have the same length: a
+    page where they differ is logged and adds nothing, so the vectors and
+    the hashes never disagree. (The FAISS version added both anyway; see
+    ``test_hash_embedding_count_mismatch_*``.)
   * BUG: ``if not image_embeddings`` evaluates the truthiness of a numpy
     array, so passing an ``ndarray`` with >1 element raises ``ValueError``
     before the method does anything (``test_multi_row_numpy_input_...``).
@@ -44,7 +45,7 @@ def vec(value=0.0, size=embedding_size):
 
 
 class BuildIndexForUserGuardTests(TestCase):
-    """Branches that return early without touching FAISS."""
+    """Branches that return early without adding anything."""
 
     def setUp(self):
         self.index = RetrievalIndex()
@@ -92,16 +93,13 @@ class BuildIndexForUserGuardTests(TestCase):
         self.assertEqual(self.index.image_hashes[7], [])
         self.assertIn("Unexpected embedding shape", self.logger.error.call_args[0][0])
 
-    def test_short_one_dimensional_vector_fails_inside_faiss_and_is_swallowed(self):
-        # Reshaped to (1, 3) without a length check -> faiss raises
-        # AssertionError -> caught by ``except Exception``.
+    def test_short_one_dimensional_vector_is_rejected(self):
+        # Reshaped to (1, 3), then refused for its width.
         self.assertIsNone(self.index.build_index_for_user(7, ["h1"], [1.0, 2.0, 3.0]))
         self.assertEqual(self.index.indices[7].ntotal, 0)
         self.assertEqual(self.index.image_hashes[7], [])
         self.logger.error.assert_called_once()
-        self.assertIn(
-            "Error adding embeddings to index", self.logger.error.call_args[0][0]
-        )
+        self.assertIn("Expected embedding size", self.logger.error.call_args[0][0])
 
     def test_ragged_embeddings_raise_value_error(self):
         with self.assertRaises(ValueError):
@@ -172,16 +170,19 @@ class BuildIndexForUserHappyPathTests(TestCase):
         self.assertEqual(self.index.image_hashes[2], ["h2", "h3"])
 
     def test_hash_embedding_count_mismatch_more_hashes(self):
-        # No validation: all hashes are appended even though only one vector
-        # was indexed.
+        # Refused whole: a hash without its vector would answer for another
+        # photo's row.
         self.index.build_index_for_user(1, ["h1", "h2", "h3"], [vec(1.0)])
-        self.assertEqual(self.index.indices[1].ntotal, 1)
-        self.assertEqual(self.index.image_hashes[1], ["h1", "h2", "h3"])
+        self.assertEqual(self.index.indices[1].ntotal, 0)
+        self.assertEqual(self.index.image_hashes[1], [])
+        self.assertIn(
+            "3 image hashes for 1 embeddings", self.logger.error.call_args[0][2]
+        )
 
     def test_hash_embedding_count_mismatch_fewer_hashes(self):
         self.index.build_index_for_user(1, ["h1"], [vec(1.0), vec(2.0)])
-        self.assertEqual(self.index.indices[1].ntotal, 2)
-        self.assertEqual(self.index.image_hashes[1], ["h1"])
+        self.assertEqual(self.index.indices[1].ntotal, 0)
+        self.assertEqual(self.index.image_hashes[1], [])
 
     def test_logs_start_and_finish(self):
         self.index.build_index_for_user(1, ["h1"], [vec(1.0)])

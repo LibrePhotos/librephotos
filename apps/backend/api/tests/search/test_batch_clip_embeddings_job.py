@@ -1,7 +1,7 @@
 """Tests for ``api.search.embedding_jobs.batch_calculate_clip_embedding``.
 
 Everything heavy is mocked: the CLIP sidecar call (``create_clip_embeddings``)
-and the FAISS index rebuild (``build_image_similarity_index``) are patched
+and the similarity index rebuild (``build_image_similarity_index``) are patched
 out, and ``os.path.exists`` is patched so no thumbnail files need to exist on
 disk. The job has no ML runtime of its own any more; the sidecar owns the
 model and its threading.

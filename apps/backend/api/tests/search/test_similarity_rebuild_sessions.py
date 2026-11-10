@@ -49,6 +49,7 @@ class _Store(SimpleTestCase):
         self.index = RetrievalIndex(
             os.path.join(self.tmp.name, "similarity"), clock=self.clock
         )
+        self.addCleanup(self.index.close)  # Windows cannot delete a mapped file
 
     def found(self, axis):
         return self.index.search_similar(1, unit(axis), n=10, thres=0.5)
@@ -132,6 +133,7 @@ class RebuildRoutesTest(SimpleTestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.main = _load_main(self.tmp.name)
+        self.addCleanup(self.main.index.close)
         self.main.app.config["TESTING"] = True
         self.client = self.main.app.test_client()
 
