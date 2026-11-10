@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { useKeyedState } from "../../hooks/useKeyedState";
 
 type Args = {
   /** Start playing as a slideshow instead of waiting for the "s" hotkey. */
@@ -10,77 +11,83 @@ type Args = {
   mainSrc: string;
   nextSrc: string | null;
   onMoveNextRequest: () => void;
+  /**
+   * The viewer is busy with the photo (zoomed, in the 360° view, a face being drawn, live text,
+   * an unsaved edit): the slideshow waits, and goes on from where it was once this is false.
+   */
+  held?: boolean;
 };
 
 /** How often the progress ring moves, in milliseconds. */
 const PROGRESS_STEP_MS = 50;
 
+/** What a video in the slideshow has done; a photo stays "showing". */
+type ItemProgress = "showing" | "ended" | "unplayable";
+
 /**
  * The lightbox's slideshow: on or off, the seconds per photo (the user's setting until changed
- * here), and the progress ring. A photo moves on when its time is up, a video when it has ended;
- * past the last item the slideshow stops.
+ * here), and the progress ring. A photo moves on when its time is up, a video when it has ended,
+ * and a video that cannot play after a photo's time; past the last item the slideshow stops.
  */
-export function useSlideshow({ startSlideshow, isPublic, type, mainSrc, nextSrc, onMoveNextRequest }: Args) {
+export function useSlideshow({ startSlideshow, isPublic, type, mainSrc, nextSrc, onMoveNextRequest, held }: Args) {
   const [isSlideshowActive, setIsSlideshowActive] = useState(startSlideshow ?? false);
   const [localSlideshowInterval, setSlideshowInterval] = useState<number | null>(null);
-  const [slideshowProgress, setSlideshowProgress] = useState(0);
+  const [progress, setProgress] = useKeyedState(mainSrc, () => 0);
+  const [item, setItem] = useKeyedState<ItemProgress>(mainSrc, () => "showing");
+  // The time already shown, kept while the slideshow is held.
+  const elapsed = useRef({ item: mainSrc, ms: 0 });
 
   // The user's default interval (skipped on public pages)
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery(isPublic);
   const slideshowInterval = localSlideshowInterval ?? userSelfDetails?.slideshow_interval ?? 5;
 
-  useEffect(() => {
-    setSlideshowProgress(0);
-  }, [mainSrc]);
+  // Read when the time is up, so a new list (or its step function) does not restart the timer.
+  const advance = useEffectEvent(() => {
+    if (nextSrc) onMoveNextRequest();
+    else setIsSlideshowActive(false);
+  });
 
-  // Slideshow timer and progress for images
+  const running = isSlideshowActive && !held;
+  const timed = type === "photo" || item === "unplayable";
   useEffect(() => {
-    if (!isSlideshowActive || type === "video" || type === "embedded") {
-      setSlideshowProgress(0);
-      return;
-    }
-
+    if (!running || !timed) return;
+    if (elapsed.current.item !== mainSrc) elapsed.current = { item: mainSrc, ms: 0 };
     const totalDuration = slideshowInterval * 1000;
-    let elapsed = 0;
-
     const progressTimer = setInterval(() => {
-      elapsed += PROGRESS_STEP_MS;
-      setSlideshowProgress(Math.min((elapsed / totalDuration) * 100, 100));
-
-      if (elapsed >= totalDuration) {
+      const ms = elapsed.current.ms + PROGRESS_STEP_MS;
+      elapsed.current = { item: mainSrc, ms };
+      setProgress(() => Math.min((ms / totalDuration) * 100, 100));
+      if (ms >= totalDuration) {
         clearInterval(progressTimer);
-        if (nextSrc) {
-          onMoveNextRequest();
-        } else {
-          // Stop slideshow if no more images
-          setIsSlideshowActive(false);
-        }
+        advance();
       }
     }, PROGRESS_STEP_MS);
-
     return () => clearInterval(progressTimer);
-  }, [isSlideshowActive, type, mainSrc, slideshowInterval, nextSrc, onMoveNextRequest]);
+  }, [running, timed, mainSrc, slideshowInterval, setProgress]);
 
-  // Handle video ended - advance to next if slideshow is active
+  useEffect(() => {
+    if (running && item === "ended") advance();
+  }, [running, item]);
+
   const handleVideoEnded = useCallback(() => {
-    if (isSlideshowActive && nextSrc) {
-      onMoveNextRequest();
-    } else if (isSlideshowActive && !nextSrc) {
-      // Stop slideshow if no more items
-      setIsSlideshowActive(false);
-    }
-  }, [isSlideshowActive, nextSrc, onMoveNextRequest]);
+    if (isSlideshowActive) setItem(() => "ended");
+  }, [isSlideshowActive, setItem]);
+
+  const handleVideoUnplayable = useCallback(() => setItem(() => "unplayable"), [setItem]);
 
   const toggleSlideshow = useCallback(() => {
+    elapsed.current = { item: "", ms: 0 };
+    setProgress(() => 0);
     setIsSlideshowActive(prev => !prev);
-  }, []);
+  }, [setProgress]);
 
   return {
     isSlideshowActive,
     toggleSlideshow,
     slideshowInterval,
     setSlideshowInterval,
-    slideshowProgress,
+    slideshowProgress: isSlideshowActive ? progress : 0,
     handleVideoEnded,
+    handleVideoUnplayable,
   };
 }

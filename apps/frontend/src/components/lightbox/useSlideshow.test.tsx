@@ -1,4 +1,4 @@
-/** The lightbox's slideshow timer, moved out of ContentViewer unchanged. */
+/** The lightbox's slideshow: its timer, what it waits for, and what holds it. */
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -119,5 +119,49 @@ describe("useSlideshow", () => {
 
     expect(show.current().isSlideshowActive).toBe(true);
     expect(show.current().slideshowProgress).toBe(0);
+  });
+
+  it("holds while the viewer is in another mode, and goes on from where it was", async () => {
+    const show = await renderSlideshow();
+    await act(async () => vi.advanceTimersByTime(2500));
+
+    await show.rerender({ held: true });
+    await act(async () => vi.advanceTimersByTime(10000));
+    expect(show.onMoveNextRequest).not.toHaveBeenCalled();
+    expect(show.current().slideshowProgress).toBe(50);
+
+    await show.rerender({ held: false });
+    await act(async () => vi.advanceTimersByTime(2500));
+    expect(show.onMoveNextRequest).toHaveBeenCalledOnce();
+  });
+
+  it("keeps its time when the list behind it hands it a new step function", async () => {
+    const show = await renderSlideshow();
+    await act(async () => vi.advanceTimersByTime(2500));
+
+    const onMoveNextRequest = vi.fn<() => void>();
+    await show.rerender({ onMoveNextRequest, nextSrc: "b2" });
+    await act(async () => vi.advanceTimersByTime(2500));
+
+    expect(onMoveNextRequest).toHaveBeenCalledOnce();
+  });
+
+  it("gives a video that cannot play a photo's time instead of waiting for its end", async () => {
+    const show = await renderSlideshow({ type: "video" });
+
+    await act(async () => show.current().handleVideoUnplayable());
+    await act(async () => vi.advanceTimersByTime(5000));
+
+    expect(show.onMoveNextRequest).toHaveBeenCalledOnce();
+  });
+
+  it("moves on from a video that ended while it was held once it is let go", async () => {
+    const show = await renderSlideshow({ type: "video", held: true });
+
+    await act(async () => show.current().handleVideoEnded());
+    expect(show.onMoveNextRequest).not.toHaveBeenCalled();
+
+    await show.rerender({ held: false });
+    expect(show.onMoveNextRequest).toHaveBeenCalledOnce();
   });
 });

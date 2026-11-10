@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useKeyedState } from "../../hooks/useKeyedState";
 import { notification } from "../../service/notifications";
 import { canShowPhotoSphere } from "./photoSphere";
 
@@ -29,22 +30,18 @@ type Args = {
  */
 export function usePanoramaMode({ sphere, photoKey }: Args): PanoramaMode {
   const { t } = useTranslation();
-  const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    setActive(false);
-  }, [photoKey]);
+  const [active, setActive] = useKeyedState(photoKey, () => false);
 
   const blockedReason = sphere && !canShowPhotoSphere() ? t("lightbox.panorama.nowebgl") : undefined;
   const usable = sphere && blockedReason === undefined;
   const toggle = useCallback(() => {
     if (usable) setActive(shown => !shown);
-  }, [usable]);
-  const exit = useCallback(() => setActive(false), []);
+  }, [usable, setActive]);
+  const exit = useCallback(() => setActive(() => false), [setActive]);
   const fail = useCallback(() => {
-    setActive(false);
+    setActive(() => false);
     notification.error(t("lightbox.panorama.loadfailed"));
-  }, [t]);
+  }, [t, setActive]);
 
   return { available: sphere, blockedReason, active: active && usable, toggle, exit, fail };
 }

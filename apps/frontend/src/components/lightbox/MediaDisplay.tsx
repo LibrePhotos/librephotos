@@ -63,6 +63,8 @@ export type MediaDisplayProps = {
   /** A public page: the server never converts for an anonymous visitor. */
   isPublic?: boolean;
   onEnded?: () => void;
+  /** The main video turned out not to play at all. */
+  onUnplayable?: () => void;
   rotationAngle?: number;
   imageCacheKey?: number;
   suppressRotationTransition?: boolean;
@@ -102,6 +104,7 @@ function VideoMedia({
   photoDetails,
   isPublic = false,
   onEnded,
+  onUnplayable,
 }: ResolvedProps & { embedded: boolean }) {
   // Backend strips extension via fname.split(".")[0], so .mp4 suffix is safe
   // and helps the browser identify the content type for native playback.
@@ -134,6 +137,7 @@ function VideoMedia({
       controls={isMainContent}
       playing={isMainContent && playing}
       onEnded={isMainContent ? onEnded : undefined}
+      onUnplayable={isMainContent ? onUnplayable : undefined}
       // A motion photo's clip is served as it is, never converted.
       convertible={!embedded}
       // Opened from a face in a later frame: the main video starts there (#2762).
