@@ -1,7 +1,10 @@
-import CryptoJS from "crypto-js";
+import { isHashMessage, md5OfBlob } from "./md5Hashing";
 
 // < 1MB chunks, because of the nginx default client_max_body_size
 const CHUNK_SIZE = 1000000;
+
+/** How much of a file is read at a time to hash it: one slice is in memory at most. */
+const HASH_SLICE_BYTES = 25 * 1024 * 1024;
 
 /** Thrown when the user cancels the upload of the file being hashed or sent. */
 export class UploadCancelledError extends Error {
@@ -11,55 +14,73 @@ export class UploadCancelledError extends Error {
   }
 }
 
+/** The one failure an upload reports for a file that could not be read to its end. */
+const readFailure = () => new DOMException("Problem parsing input file.");
+
+/** The hashing worker, or null where there is none (tests, a browser without module workers). */
+function startHashWorker(): Worker | null {
+  if (typeof Worker !== "function") return null;
+  try {
+    return new Worker(new URL("./md5Worker.ts", import.meta.url), { type: "module", name: "md5" });
+  } catch {
+    return null;
+  }
+}
+
+/** The same hash on the page's own thread, where no worker can run. */
+async function md5InPage(file: Blob, isCancelled: () => boolean, sliceBytes: number): Promise<string> {
+  try {
+    const md5 = await md5OfBlob(file, sliceBytes, () => !isCancelled());
+    if (md5 === null) throw new UploadCancelledError();
+    return md5;
+  } catch (error) {
+    throw error instanceof UploadCancelledError ? error : readFailure();
+  }
+}
+
 /**
- * MD5 of the whole file, read in 25 MB slices. `isCancelled` is asked between
- * slices, so a cancelled upload stops hashing a large video within one slice.
+ * MD5 of the whole file, as hex: the server compares it with the MD5 of the file it assembled from
+ * the chunks. It is read in 25 MB slices in a worker, so hashing a large video never blocks the page.
+ * `isCancelled` is asked between slices, so a cancelled upload stops hashing (and the worker, with
+ * the slice it holds, goes) within one slice. A worker that cannot start (a Content-Security-Policy
+ * without `worker-src 'self'`, say) leaves the hashing to the page.
  */
 export function calculateMD5(
-  file: File,
+  file: Blob,
   isCancelled: () => boolean = () => false,
-  blockSize: number = 25 * 1024 * 1024
+  sliceBytes: number = HASH_SLICE_BYTES
 ): Promise<string> {
-  // An empty file has nothing to read; onload would see "" and never settle.
-  if (file.size === 0) {
-    return Promise.resolve(CryptoJS.algo.MD5.create().finalize().toString(CryptoJS.enc.Hex));
-  }
-  const reader = new FileReader();
-  let offset = 0;
-  const md5 = CryptoJS.algo.MD5.create();
+  const worker = startHashWorker();
+  if (worker === null) return md5InPage(file, isCancelled, sliceBytes);
   return new Promise<string>((resolve, reject) => {
-    function readNext() {
-      reader.readAsBinaryString(file.slice(offset, offset + blockSize));
-    }
-
-    reader.onerror = () => {
-      reader.abort();
-      reject(new DOMException("Problem parsing input file."));
+    let answered = false;
+    const finish = (settle: () => void) => {
+      worker.terminate();
+      settle();
     };
-
-    reader.onload = () => {
-      // readAsBinaryString reads to a string
-      const { result } = reader;
-      if (typeof result !== "string") return;
-      // A short read (the file shrank while hashing) would otherwise wait forever.
-      if (result.length === 0 && offset < file.size) {
-        reject(new DOMException("Problem parsing input file."));
-        return;
+    worker.addEventListener("message", (event: MessageEvent<unknown>) => {
+      const message = event.data;
+      if (!isHashMessage(message)) return;
+      answered = true;
+      switch (message.type) {
+        case "slice":
+          if (isCancelled()) finish(() => reject(new UploadCancelledError()));
+          return;
+        case "done":
+          finish(() => resolve(message.md5));
+          return;
+        case "failed":
+          finish(() => reject(readFailure()));
+          return;
       }
-      offset += result.length;
-      md5.update(CryptoJS.enc.Latin1.parse(result));
-      if (offset >= file.size) {
-        resolve(md5.finalize().toString(CryptoJS.enc.Hex));
-        return;
-      }
-      if (isCancelled()) {
-        reject(new UploadCancelledError());
-        return;
-      }
-      readNext();
-    };
-
-    readNext();
+    });
+    worker.addEventListener("error", event => {
+      event.preventDefault();
+      // The worker never ran (its script did not load): hash on the page instead.
+      if (!answered) finish(() => resolve(md5InPage(file, isCancelled, sliceBytes)));
+      else finish(() => reject(readFailure()));
+    });
+    worker.postMessage({ file, sliceBytes });
   });
 }
 
