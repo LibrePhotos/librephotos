@@ -61,7 +61,6 @@ INCLUDE_PACKAGES = [
     "django_q",
     "corsheaders",
     "django_extensions",
-    "django_filters",
     "allauth",
     "whitenoise",
     "uvicorn",

@@ -701,7 +701,6 @@ REST_FRAMEWORK = {
     # api.drf.openapi.AutoSchema: responses of model serializers list every field
     # as required, which is what DRF writes.
     "DEFAULT_SCHEMA_CLASS": "api.drf.openapi.AutoSchema",
-    "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     # One pagination style for every list (api/drf/pagination.py, #2327).
     "DEFAULT_PAGINATION_CLASS": "api.drf.pagination.DefaultPagination",
     "EXCEPTION_HANDLER": "api.views.exception_handler.custom_exception_handler",
