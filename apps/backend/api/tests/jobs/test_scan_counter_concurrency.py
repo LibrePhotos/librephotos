@@ -116,7 +116,7 @@ class FinishedTransitionTest(TestCase):
         self.assertLess(first_finished_at, start + datetime.timedelta(seconds=2))
         self.assertEqual(self.job.finished_at, first_finished_at)
 
-    def test_error_after_finish_still_counts_but_does_not_refinish(self):
+    def test_error_after_finish_neither_counts_nor_refinishes(self):
         start, clock = self._ticking_clock()
         with patch.object(utils.timezone, "now", side_effect=clock):
             update_scan_counter(self.job.job_id)
@@ -124,7 +124,9 @@ class FinishedTransitionTest(TestCase):
 
         self.job.refresh_from_db()
         self.assertLess(self.job.finished_at, start + datetime.timedelta(seconds=2))
-        self.assertEqual(self.job.result["error_count"], 1)
+        self.assertEqual(self.job.progress_current, 1)
+        self.assertFalse(self.job.failed)
+        self.assertIsNone(self.job.result)
 
     def test_finish_runs_completion_hook_once(self):
         with patch.object(utils, "_on_job_finished") as hook:

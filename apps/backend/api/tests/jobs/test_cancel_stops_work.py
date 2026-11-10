@@ -30,8 +30,6 @@ from api.search import embedding_jobs
 from api.stacks import detection as stack_detection
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
-CANCELLED = {"status": "cancelled"}
-
 
 class CancelTestCase(TestCase):
     job_type = LongRunningJob.JOB_SCAN_PHOTOS
@@ -53,7 +51,8 @@ class CancelTestCase(TestCase):
         self.assertTrue(job.cancelled)
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
-        self.assertEqual(job.result, CANCELLED)
+        # What the job recorded before the cancel stays next to the status.
+        self.assertEqual(job.result["status"], "cancelled")
 
 
 class StopIfCancelledTest(CancelTestCase):
@@ -102,7 +101,8 @@ class ScanCancelTest(CancelTestCase):
         self.assertFalse(Photo.objects.exists())
         self.assertFalse(File.objects.filter(path=path).exists())
         self.assert_cancelled()
-        self.assertEqual(self.job().progress_current, 1)
+        # An ended job counts no more items.
+        self.assertEqual(self.job().progress_current, 0)
 
     def test_single_file_of_a_cancelled_scan_imports_nothing(self):
         path = _write_image(os.path.join(self.tmpdir, "IMG_2.png"), 11)

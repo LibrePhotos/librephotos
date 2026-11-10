@@ -32,18 +32,17 @@ class LongRunningJobCancelModelTest(TestCase):
         self.assertIsNotNone(job.finished_at)
         self.assertEqual(job.result, {"status": "cancelled"})
 
-    def test_cancel_already_finished_job_still_works_at_model_level(self):
-        """Model-level cancel() doesn't guard against finished jobs."""
+    def test_cancel_of_a_finished_job_leaves_it_finished(self):
         job = LongRunningJob.create_job(
             user=self.user,
             job_type=LongRunningJob.JOB_SCAN_PHOTOS,
             start_now=True,
         )
         job.complete()
-        job.cancel()
+        self.assertFalse(job.cancel())
 
         job.refresh_from_db()
-        self.assertTrue(job.cancelled)
+        self.assertFalse(job.cancelled)
         self.assertTrue(job.finished)
 
 
@@ -168,14 +167,12 @@ class UpdateScanCounterCancellationTest(TestCase):
         job.update_progress(current=0, target=10)
         job.cancel()
 
-        # Call update_scan_counter - it should not unmark the finished state
         update_scan_counter(job.job_id)
 
         job.refresh_from_db()
         self.assertTrue(job.cancelled)
         self.assertTrue(job.finished)
-        # progress_current is incremented but the job remains cancelled
-        self.assertEqual(job.progress_current, 1)
+        self.assertEqual(job.progress_current, 0)
 
 
 class JobRowWritesTest(TestCase):

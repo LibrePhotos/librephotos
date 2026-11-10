@@ -294,7 +294,8 @@ class ClaimTest(TestCase):
 
         store.assert_not_called()
         job.refresh_from_db()
-        self.assertIsNone(job.started_at)
+        # It started when it was cancelled, not when its task ran.
+        self.assertEqual(job.started_at, job.finished_at)
         self.assertTrue(job.cancelled)
         self.assertEqual(LongRunningJob.objects.count(), 1)
 

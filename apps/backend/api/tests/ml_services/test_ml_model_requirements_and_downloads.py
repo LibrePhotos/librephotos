@@ -354,7 +354,8 @@ class DownloadModelsJobTest(TestCase):
 
         download_model.assert_not_called()
         job.refresh_from_db()
-        self.assertIsNone(job.started_at)
+        # It started when it was cancelled, not when its task ran.
+        self.assertEqual(job.started_at, job.finished_at)
         self.assertEqual(LongRunningJob.objects.count(), 1)
 
     def test_job_completes_when_every_model_downloads(self):
