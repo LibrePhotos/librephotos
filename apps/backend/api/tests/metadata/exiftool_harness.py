@@ -39,13 +39,17 @@ from types import SimpleNamespace, TracebackType
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
-import exiftool
 import PIL.Image
 import requests
 from django.test import TestCase, override_settings
 
+from api.metadata.exiftool_client import (
+    GROUPED_NUMERIC,
+    Answer,
+    ExifTool,
+    ExifToolProcess,
+)
 from api.metadata.reader import existing_sidecars, sidecar_for_write
-from api.metadata.writer import ExifToolProcess
 from api.models.photo import Photo
 from api.models.user import User
 from api.photos.media_files import get_or_create_file
@@ -146,7 +150,7 @@ def _same_number(written: str, found: object) -> bool:
         return False
 
 
-class RecordingExifTool(exiftool.ExifTool):
+class RecordingExifTool(ExifTool):
     """An ExifTool process shared by every read of a test class.
 
     ``start``, ``terminate`` and the context manager are no-ops once it runs,
@@ -156,18 +160,18 @@ class RecordingExifTool(exiftool.ExifTool):
     """
 
     def __init__(self, common_args: list[str] | None = None) -> None:
-        super().__init__(EXIFTOOL, common_args=common_args)
+        super().__init__(GROUPED_NUMERIC if common_args is None else common_args)
         self.writes: list[WriteRecord] = []
 
     def start(self) -> None:
         if not self.running:
             super().start()
 
-    def terminate(self, wait_timeout: int = 30) -> None:
+    def terminate(self) -> None:
         """Owned by the test class; see ``stop``."""
 
     def stop(self) -> None:
-        exiftool.ExifTool.terminate(self)
+        ExifTool.terminate(self)
 
     def __enter__(self) -> RecordingExifTool:
         self.start()
@@ -183,7 +187,7 @@ class RecordingExifTool(exiftool.ExifTool):
 
     def prepare(self, path: str, *arguments: str) -> None:
         """Tag a fixture, without recording it as a write under test."""
-        output = exiftool.ExifTool.execute(
+        output = ExifTool.execute(
             self,
             *(os.fsencode(argument) for argument in arguments),
             b"-overwrite_original",
@@ -258,12 +262,12 @@ class RecordingWriterProcess:
     def alive(self) -> bool:
         return self._process.alive
 
-    def execute(self, arguments: Sequence[bytes], timeout: float) -> tuple[str, int]:
-        output, status = self._process.execute(arguments, timeout)
+    def run(self, arguments: Sequence[bytes], timeout: float) -> Answer:
+        answer = self._process.run(arguments, timeout)
         self._recorder.writes.append(
-            self._recorder.check_write(tuple(arguments), output.encode())
+            self._recorder.check_write(tuple(arguments), answer.stdout)
         )
-        return output, status
+        return answer
 
     def kill(self) -> None:
         self._process.kill()
@@ -352,10 +356,7 @@ class RealExifToolTestCase(TestCase):
                     post=_exif_service_post, error_detail=sidecars.error_detail
                 ),
             ),
-            patch(
-                "api.metadata.writer.exiftool",
-                SimpleNamespace(ExifTool=shared_exiftool),
-            ),
+            patch("api.metadata.writer._orientation_reader", shared_exiftool),
             patch("api.metadata.writer._start_process", shared_writer_process),
             patch.object(exif_service, "static_et", cls.exiftool),
             patch.object(exif_service, "static_struct_et", cls.struct_exiftool),

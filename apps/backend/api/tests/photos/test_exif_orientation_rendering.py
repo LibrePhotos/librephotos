@@ -31,7 +31,7 @@ from api.thumbnails.render import (
 
 
 def _exiftool_available():
-    return shutil.which(binaries.exiftool()) is not None
+    return shutil.which(binaries.resolve("exiftool")) is not None
 
 
 def _picture():

@@ -3,7 +3,7 @@
 ``write_metadata`` raises ``MetadataWriteError`` when ExifTool did not write
 what it was asked to (#2294): a read-only library, a damaged file, a tag
 ExifTool does not know or a tag the target cannot hold. ExifTool's stderr is
-read together with its stdout, so its warnings and errors reach the caller.
+read along with its stdout, so its warnings and errors reach the caller.
 
 Each ``write_metadata`` call starts its own ExifTool, unless it runs inside
 ``one_exiftool_process()``, which a job writing many photos opens once.
@@ -11,18 +11,20 @@ Each ``write_metadata`` call starts its own ExifTool, unless it runs inside
 
 import logging
 import os
-import queue
 import re
-import threading
-import time
 from collections.abc import Collection, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import Enum
 
-import exiftool
-
+from api.metadata.exiftool_client import (
+    Answer,
+    ExifTool,
+    ExifToolError,
+    ExifToolProcess,
+    decode_output,
+)
 from api.metadata.orientation import SHOWN_ORIENTATION_TAGS, shown_orientation
 from api.metadata.reader import sidecar_for_write
 from api.mime import HEIF_EXTENSIONS, extension
@@ -79,15 +81,12 @@ def _xml_escaped(value: str) -> str:
 # target: ExifTool copies the whole file (a long video) to a temporary file.
 WRITE_TIMEOUT_SECONDS = 60
 WRITE_BYTES_PER_SECOND = 10 * 1024 * 1024
-# How long a stopping ExifTool gets to exit before it is killed.
-STOP_TIMEOUT_SECONDS = 10
 
 _SUMMARY = re.compile(
     r"^\s*(\d+) (?:image files (updated|created|unchanged)"
     r"|files weren't (updated) due to errors)",
     re.MULTILINE,
 )
-_STATUS = re.compile(rb"\{status (\d+)\}\s*$")
 
 
 class MetadataWriteError(Exception):
@@ -132,100 +131,6 @@ def _argument(tag: str, value: str | int) -> bytes:
     return os.fsencode(argument)
 
 
-class ExifToolProcess:
-    """``exiftool -stay_open``: one process for many writes.
-
-    Its stderr goes into the same pipe as stdout, so the warnings and errors
-    of a command arrive before the ``{readyN}`` that ends it. A thread reads
-    the pipe, which lets ``execute`` give up after a timeout on every
-    platform (Windows has no ``select`` for pipes).
-    """
-
-    def __init__(self) -> None:
-        self._process = binaries.start_tool(
-            "exiftool",
-            ["-stay_open", "True", "-@", "-", "-common_args", "-n"],
-            stdin=binaries.PIPE,
-            stdout=binaries.PIPE,
-            stderr=binaries.STDOUT,
-        )
-        self._output: queue.Queue[bytes] = queue.Queue()
-        self._pending = b""
-        self._commands = 0
-        self._stopped = False
-        threading.Thread(
-            target=self._pump, name="exiftool-writer-output", daemon=True
-        ).start()
-
-    @property
-    def alive(self) -> bool:
-        """Whether it still takes commands: not stopped, killed or crashed."""
-        return not self._stopped and self._process.poll() is None
-
-    def _pump(self) -> None:
-        stdout = self._process.stdout
-        assert stdout is not None
-        while chunk := os.read(stdout.fileno(), 65536):
-            self._output.put(chunk)
-        self._output.put(b"")  # end of output: the process is gone
-
-    def execute(self, arguments: Sequence[bytes], timeout: float) -> tuple[str, int]:
-        """Run one command; ExifTool's output and exit status.
-
-        Raises ``OSError`` when ExifTool has exited, ``TimeoutError`` when
-        it did not answer within ``timeout`` seconds (it is killed then).
-        """
-        self._commands += 1
-        ready = b"{ready%d}" % self._commands
-        command = [*arguments, b"-echo3", b"{status ${status}}"]
-        stdin = self._process.stdin
-        assert stdin is not None
-        try:
-            stdin.write(b"\n".join([*command, b"-execute%d" % self._commands, b""]))
-            stdin.flush()
-        except OSError:
-            self._stopped = True
-            raise
-        deadline = time.monotonic() + timeout
-        while ready not in self._pending:
-            try:
-                chunk = self._output.get(timeout=max(deadline - time.monotonic(), 0))
-            except queue.Empty:
-                self.kill()
-                raise TimeoutError(f"ExifTool did not answer within {timeout:g} s")
-            if not chunk:
-                self._stopped = True
-                raise OSError("ExifTool exited")
-            self._pending += chunk
-        output, _, self._pending = self._pending.partition(ready)
-        output = output.rstrip()
-        status = _STATUS.search(output)
-        if status is None:
-            raise OSError("ExifTool answered without an exit status")
-        text = output[: status.start()].decode("utf-8", errors="replace")
-        return text, int(status.group(1))
-
-    def kill(self) -> None:
-        self._stopped = True
-        binaries.kill(self._process)
-
-    def close(self) -> None:
-        """Stop ExifTool, killing it if it does not exit in time."""
-        if self.alive:
-            self._stopped = True
-            stdin = self._process.stdin
-            assert stdin is not None
-            try:
-                stdin.write(b"-stay_open\nFalse\n")
-                stdin.flush()
-                stdin.close()
-            except OSError:
-                pass  # already gone
-            if binaries.wait(self._process, STOP_TIMEOUT_SECONDS) is not None:
-                return
-        binaries.kill(self._process)
-
-
 def _start_process() -> ExifToolProcess:
     return ExifToolProcess()
 
@@ -253,10 +158,10 @@ class _Session:
         timeout = WRITE_TIMEOUT_SECONDS + size / WRITE_BYTES_PER_SECOND
         command = [*options, *arguments, b"-overwrite_original", os.fsencode(target)]
         try:
-            output, status = self._process.execute(command, timeout)
-        except (OSError, TimeoutError) as error:
+            answer = self._process.run(command, timeout)
+        except ExifToolError as error:
             raise MetadataWriteError(target, str(error)) from error
-        return _outcome(target, arguments, output, status)
+        return _outcome(target, arguments, _report(answer), answer.status)
 
     def close(self) -> None:
         if self._process is not None:
@@ -283,6 +188,16 @@ def one_exiftool_process() -> Iterator[None]:
     finally:
         _session.reset(token)
         session.close()
+
+
+def _report(answer: Answer) -> str:
+    """What ExifTool printed for a write: its summary (stdout), then its
+    warnings and errors (stderr)."""
+    return "\n".join(
+        part
+        for part in (decode_output(answer.stdout), decode_output(answer.stderr))
+        if part
+    )
 
 
 def _requested_tags(arguments: list[bytes]) -> tuple[set[str], bool]:
@@ -372,6 +287,11 @@ def write_metadata(
         return session.write(target, arguments, option_arguments)
 
 
+def _orientation_reader() -> ExifTool:
+    """An ExifTool of its own for one orientation read (grouped keys, numbers)."""
+    return ExifTool()
+
+
 def read_orientation(media_file: str) -> int | None:
     """The EXIF Orientation stored in *media_file* itself.
 
@@ -382,7 +302,7 @@ def read_orientation(media_file: str) -> int | None:
     the file cannot be read at all.
     """
     try:
-        with exiftool.ExifTool(binaries.exiftool()) as et:
+        with _orientation_reader() as et:
             value = et.get_tag("EXIF:Orientation", media_file)
     except Exception:
         logger.exception("could not read the orientation of %s", media_file)
@@ -403,11 +323,20 @@ def read_shown_orientation(media_file: str) -> int | None:
     if extension(media_file) not in HEIF_EXTENSIONS:
         return read_orientation(media_file)
     try:
-        with exiftool.ExifTool(binaries.exiftool()) as et:
+        with _orientation_reader() as et:
             found = et.get_tags(SHOWN_ORIENTATION_TAGS, media_file)
     except Exception:
         logger.exception("ExifTool could not read the orientation of a HEIF file")
         return None
     return shown_orientation(
-        media_file, *(found.get(tag) for tag in SHOWN_ORIENTATION_TAGS)
+        media_file,
+        *(_orientation_value(found.get(tag)) for tag in SHOWN_ORIENTATION_TAGS),
     )
+
+
+def _orientation_value(value: object) -> int | str | None:
+    """A value as ``shown_orientation`` takes it: ExifTool answers these with
+    ``-n`` as integers; anything else counts as absent."""
+    if isinstance(value, bool) or not isinstance(value, int | str):
+        return None
+    return value

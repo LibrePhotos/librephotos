@@ -379,7 +379,7 @@ class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
 
 
 def _exiftool_available():
-    return shutil.which(binaries.exiftool()) is not None
+    return shutil.which(binaries.resolve("exiftool")) is not None
 
 
 @unittest.skipUnless(_exiftool_available(), "exiftool binary not available")

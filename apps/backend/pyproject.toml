@@ -121,7 +121,8 @@ allow-star-arg-any = true
 # It builds the environment of the sidecars it starts, and supervises them.
 "api/runtime/supervisor.py" = ["TID251"]
 # The one runner of external tools.
-"api/runtime/binaries.py" = ["TID251"]
+# PLW1509: start_piped_tool's preexec_fn only calls a prctl bound in the parent.
+"api/runtime/binaries.py" = ["TID251", "PLW1509"]
 # The one module that queues background work (issue #2333).
 "api/jobs/queue.py" = ["TID251"]
 # The update's folder swap: it starts the new release with the environment
@@ -158,7 +159,7 @@ enable_error_code = ["ignore-without-code", "truthy-bool", "redundant-expr"]
 
 [[tool.mypy.overrides]]          # untyped third-party packages and sidecar-local imports
 module = ["allauth.*", "constance.*", "cpuinfo.*", "diskcache.*", "django_q.*",
-          "exiftool.*", "filetype.*", "geopy.*", "onnxruntime.*", "onnxruntime_ep_webgpu",
+          "filetype.*", "geopy.*", "onnxruntime.*", "onnxruntime_ep_webgpu",
           "owncloud.*", "pyclipper.*", "pystray.*", "pyvips.*", "tokenizers.*",
           "lfm2_vl", "openclip.*", "ppocr.*", "retrieval_index", "utils", "vulture"]
 ignore_missing_imports = true
@@ -227,10 +228,11 @@ allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
 id = "django-free"
-name = "Sidecars and the sidecar client never import Django"
+name = "Sidecars, the sidecar client and the ExifTool client never import Django"
 type = "forbidden"
 # The sidecars read their ports from api.runtime.sidecars, and run without Django.
-source_modules = ["service", "image_similarity", "api.runtime.sidecars"]
+# The exif sidecar and api.metadata.writer share api.metadata.exiftool_client.
+source_modules = ["service", "image_similarity", "api.runtime.sidecars", "api.metadata.exiftool_client"]
 forbidden_modules = ["django"]
 
 [[tool.importlinter.contracts]]

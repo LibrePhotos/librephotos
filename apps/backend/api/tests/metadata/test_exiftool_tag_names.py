@@ -234,7 +234,7 @@ class VideoTagReadTest(SimpleTestCase):
         return path
 
     def _read(self, path, tags):
-        # The exif service reads with -G -n (pyexiftool's defaults).
+        # The exif service reads with -G -n (the defaults of api.metadata.exiftool_client.ExifTool).
         result = run_exiftool("-j", "-G", "-n", *(f"-{tag}" for tag in tags), path)
         return json.loads(result.stdout)[0]
 

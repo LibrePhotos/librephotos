@@ -16,12 +16,14 @@ searches System32 before PATH, so a bare "ffmpeg" could still pick up a stray
 copy there; resolving first honours PATH order.
 """
 
+import ctypes
 import logging
 import os
 import shutil
 import signal
 import subprocess
-from collections.abc import Sequence
+import sys
+from collections.abc import Callable, Sequence
 from typing import IO, Literal, overload
 
 logger = logging.getLogger(__name__)
@@ -90,10 +92,6 @@ def available(name: str) -> bool:
 
 def ffmpeg() -> str:
     return resolve("ffmpeg")
-
-
-def exiftool() -> str:
-    return resolve("exiftool")
 
 
 def stderr_tail(stderr: bytes | str | None) -> str:
@@ -255,6 +253,56 @@ def start_tool(
             stdout=stdout,
             stderr=stderr,
             start_new_session=True,
+        )
+    except OSError as error:
+        logger.warning("%s could not be started: %s", name, error)
+        raise ToolMissingError(name, str(error)) from error
+
+
+# prctl(2) option: the signal the kernel sends a process when its parent dies.
+_PR_SET_PDEATHSIG = 1
+
+
+def _parent_death_signal() -> Callable[[], None] | None:
+    """What a forked child runs before exec to get SIGTERM when its parent dies.
+
+    Linux only. libc's prctl is looked up here, in the parent: the child of a
+    process with threads must not import or load anything before exec.
+    """
+    if not sys.platform.startswith("linux"):
+        return None
+    prctl = ctypes.CDLL(None, use_errno=True).prctl
+    parent = os.getpid()
+
+    def die_with_parent() -> None:
+        prctl(_PR_SET_PDEATHSIG, signal.SIGTERM)
+        if os.getppid() != parent:  # the parent died before prctl took effect
+            os._exit(1)
+
+    return die_with_parent
+
+
+def start_piped_tool(
+    name: str, args: Sequence[str], *, die_with_parent: bool
+) -> Process:
+    """Start the tool ``name`` with ``args`` and a pipe on stdin, stdout and stderr.
+
+    For a tool fed commands for as long as it runs (``exiftool -stay_open``).
+    A new session, as ``start_tool``. ``die_with_parent`` stops the tool when
+    the thread that started it exits (Linux): ExifTool keeps waiting when its
+    stdin closes, so a sidecar that is killed would leave it behind. Only for
+    a tool started from a thread that lives as long as the tool should.
+    Raises :class:`ToolMissingError` when it cannot be started.
+    """
+    try:
+        return subprocess.Popen(
+            [resolve(name), *args],
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+            start_new_session=True,
+            # Prepared in the parent, see _parent_death_signal.
+            preexec_fn=_parent_death_signal() if die_with_parent else None,
         )
     except OSError as error:
         logger.warning("%s could not be started: %s", name, error)

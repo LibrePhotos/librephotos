@@ -1,11 +1,10 @@
 import os
-import shutil
 from collections import Counter
 from typing import Any
 
-import exiftool
 from flask.typing import ResponseReturnValue
 
+from api.metadata.exiftool_client import ExifTool, without_paths
 from api.metadata.tags import SIDECAR_EQUIVALENTS, describes_the_file
 from api.mime import METADATA_EXTENSIONS, extension
 from service._common import (
@@ -24,10 +23,10 @@ from service.exif.geolocate import (
 )
 from service.exif.tag_validation import is_safe_media_path, is_safe_tag_name
 
-# Absolute path: the exiftool-bin wheel is on PATH, but Windows searches System32 first.
-EXIFTOOL = shutil.which("exiftool") or "exiftool"
-static_et = exiftool.ExifTool(EXIFTOOL)
-static_struct_et = exiftool.ExifTool(EXIFTOOL, common_args=["-struct"])
+# Grouped keys and numbers (-G -n) for /get-tags and /geolocate; -struct alone
+# (ungrouped, print-converted) for structured reads and /all-tags.
+static_et = ExifTool()
+static_struct_et = ExifTool(common_args=["-struct"])
 
 
 def stop_exiftools() -> None:
@@ -59,7 +58,7 @@ def parse_get_tags_request() -> tuple[Any, ...] | None:
         return None
 
 
-def running_exiftool(struct: object) -> exiftool.ExifTool:
+def running_exiftool(struct: object) -> ExifTool:
     et = static_struct_et if struct else static_et
     if not et.running:
         et.start()
@@ -97,7 +96,7 @@ ValuesWithOrigins = tuple[list[object], list[int | None]]
 
 
 def value_with_origin(
-    et: exiftool.ExifTool, tag: str, files_by_reverse_priority: list[str]
+    et: ExifTool, tag: str, files_by_reverse_priority: list[str]
 ) -> tuple[object, int | None]:
     """*tag* asked per file, the last file that has it winning, and that file's index."""
     value: object = None
@@ -175,7 +174,7 @@ def _ungrouped(data: dict[str, object]) -> bool:
 
 
 def _file_values(
-    et: exiftool.ExifTool,
+    et: ExifTool,
     tags: list[str],
     file: str,
     data: dict[str, object],
@@ -201,7 +200,7 @@ def _file_values(
 
 
 def values_with_origins(
-    et: exiftool.ExifTool, tags: list[str], files_by_reverse_priority: list[str]
+    et: ExifTool, tags: list[str], files_by_reverse_priority: list[str]
 ) -> ValuesWithOrigins:
     """Every requested tag from every file in one ExifTool command, with the
     index of the file each value came from.
@@ -274,7 +273,7 @@ def get_tags() -> ResponseReturnValue:
             # Not an empty answer: that reads as "no tags", and the photo would be
             # stored without a date or location that a rescan never comes back for.
             log.error("error reading tags from %s: %s", files_by_reverse_priority, exc)
-            return {"error": str(exc)}, 500
+            return {"error": without_paths(str(exc), files_by_reverse_priority)}, 500
 
     answer = {"values": _in_requested_order(safe, found[0])}
     if with_origins:

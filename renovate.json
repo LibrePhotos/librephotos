@@ -17,11 +17,6 @@
       "automerge": true
     },
     {
-      "description": "Never bump PyExifTool. Pinned to 0.4.9; 0.5.x breaks metadata extraction.",
-      "matchPackageNames": ["PyExifTool", "pyexiftool"],
-      "enabled": false
-    },
-    {
       "description": "Never auto-bump timezonefinder: it has Windows and arm64 wheels built by prebuilt-wheels.yml and pinned by URL in apps/backend/requirements.txt next to the PyPI pin. Renovate would move the PyPI line alone. Bump every line together by hand and re-run the workflow.",
       "matchPackageNames": ["timezonefinder"],
       "enabled": false

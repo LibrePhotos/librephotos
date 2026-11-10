@@ -147,7 +147,8 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - External tools (ffmpeg, ffprobe, ExifTool, git, nvidia-smi) run only through `api.runtime.binaries`:
   `run_tool(name, args, timeout=...)` (the timeout has no default; a hung tool fails the call, never
   the worker) or `start_tool` for a long-running stream. Ruff TID251 bans `subprocess` elsewhere
-  (exceptions in `pyproject.toml`).
+  (exceptions in `pyproject.toml`). A long-lived ExifTool (`-stay_open`) is `api.metadata.exiftool_client`:
+  `ExifTool` for reads (the exif sidecar; restarts a dead or hung process), `ExifToolProcess` for writes.
 - Metadata write-back is tested against real ExifTool, not a mocked `write_metadata`: a new caller of
   it needs a round-trip test on `RealExifToolTestCase` (`api/tests/metadata/exiftool_harness.py`) in
   `api/tests/metadata/test_write_back_round_trip.py`, whose guard fails until it is listed there.

@@ -14,12 +14,12 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
-import exiftool
 import PIL.Image
 from constance.test import override_config
 from django.test import SimpleTestCase, TestCase
 
 from api.geocode.photo_location import geocode_status, geolocate_photo, needs_geocoding
+from api.metadata.exiftool_client import ExifTool
 from api.models import Photo
 from api.models.album_place import AlbumPlace
 from api.models.photo_search import PhotoSearch
@@ -35,11 +35,11 @@ MID_ATLANTIC = (40.0, -35.0)
 class RealExifToolMixin:
     """The sidecar's Flask app on a real ExifTool process of its own."""
 
-    et: exiftool.ExifTool
+    et: ExifTool
 
     @classmethod
     def start_exiftool(cls) -> None:
-        cls.et = exiftool.ExifTool(EXIFTOOL)
+        cls.et = ExifTool()
         cls.et.start()
 
     def route_to_sidecar(self) -> None:

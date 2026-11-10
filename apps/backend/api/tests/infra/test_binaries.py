@@ -169,6 +169,29 @@ class StartToolTest(SimpleTestCase):
         self.assertEqual(binaries.wait(process, 30), 4)
 
 
+class StartPipedToolTest(SimpleTestCase):
+    def test_a_pipe_on_every_stream(self):
+        process = binaries.start_piped_tool(
+            PYTHON,
+            python(
+                "import sys; sys.stderr.write(sys.stdin.read().upper()); print('out')"
+            ),
+            die_with_parent=True,
+        )
+        self.addCleanup(process.kill)
+        stdout, stderr = process.communicate(b"in", timeout=30)
+        self.assertEqual((stdout.strip(), stderr), (b"out", b"IN"))
+
+    def test_a_missing_tool_raises_tool_missing(self):
+        with (
+            self.assertLogs("api.runtime.binaries", "WARNING"),
+            self.assertRaises(binaries.ToolMissingError),
+        ):
+            binaries.start_piped_tool(
+                "librephotos-no-such-tool", [], die_with_parent=False
+            )
+
+
 class AvailableTest(SimpleTestCase):
     def test_a_tool_that_is_there(self):
         self.assertTrue(binaries.available(PYTHON))
