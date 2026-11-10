@@ -3,7 +3,7 @@
 unloads the engine when the watchdog finds the sidecar idle.
 
 Importing this module never starts the server or loads the model, so the engine
-is fully testable via ppocr.* without touching Flask/gevent.
+is fully testable via ppocr.* without touching Flask or the server.
 """
 
 import os

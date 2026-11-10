@@ -10,6 +10,8 @@ djangorestframework-simplejwt==5.5.1
 drf-spectacular==0.30.0
 faiss-cpu==1.15.1
 Flask==3.1.3
+# Imported directly (service/_common.py); Flask brings it too.
+Werkzeug==3.1.9
 geopy==2.5.0
 uvicorn[standard]==0.54.0
 # Runs the WSGI app under uvicorn with real streaming; Django's ASGI handler would buffer
@@ -55,7 +57,6 @@ timezonefinder==8.2.4; sys_platform != "win32" and (sys_platform != "linux" or p
 timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/timezonefinder-8.2.4-cp314-cp314-win_amd64.whl ; sys_platform == "win32"
 # No aarch64 wheel on PyPI either; built by prebuilt-wheels.yml for the arm64 image.
 timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/timezonefinder-8.2.4-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
-gevent==26.9.0
 filetype==1.2.0
 rawpy==0.28.0
 django-q2==1.11.1

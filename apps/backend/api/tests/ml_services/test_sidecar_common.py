@@ -175,18 +175,18 @@ class ServeTest(SimpleTestCase):
     def test_binds_loopback_on_the_port_from_services(self):
         with (
             patch.dict(os.environ),
-            patch("gevent.pywsgi.WSGIServer") as server,
+            patch("service._wsgi_server.serve") as server,
         ):
             os.environ.pop("SERVICE_HOST", None)
             _common.serve_forever(_app(), "ocr")
 
         self.assertEqual(server.call_args.args[0], ("127.0.0.1", SERVICES["ocr"]))
-        server.return_value.serve_forever.assert_called_once_with()
+        server.assert_called_once()
 
     def test_service_host_overrides_the_bind_address(self):
         with (
             patch.dict(os.environ, {"SERVICE_HOST": "0.0.0.0"}),
-            patch("gevent.pywsgi.WSGIServer") as server,
+            patch("service._wsgi_server.serve") as server,
         ):
             _common.serve_forever(_app(), "exif")
 
