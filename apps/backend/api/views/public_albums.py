@@ -3,8 +3,6 @@ from typing import Any
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_slug
 from django.db import IntegrityError, transaction
-from django.db.models import Q
-from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -136,11 +134,8 @@ class PublicAlbumBySlug(APIView):
     )
     def get(self, request: Request, slug: str) -> Response:
         album = (
-            AlbumUser.objects.filter(Q(share__enabled=True) & Q(share__slug=slug))
-            .filter(
-                Q(share__expires_at__isnull=True)
-                | Q(share__expires_at__gte=timezone.now())
-            )
+            AlbumUser.objects.filter(share__slug=slug)
+            .filter(AlbumUserShare.active_q("share__"))
             .select_related("share", "owner")
             .first()
         )
@@ -177,11 +172,8 @@ class PublicPhotoDetailBySlug(APIView):
     def get(self, request: Request, slug: str, photo_id: str) -> Response:
         # Find the public album
         album = (
-            AlbumUser.objects.filter(Q(share__enabled=True) & Q(share__slug=slug))
-            .filter(
-                Q(share__expires_at__isnull=True)
-                | Q(share__expires_at__gte=timezone.now())
-            )
+            AlbumUser.objects.filter(share__slug=slug)
+            .filter(AlbumUserShare.active_q("share__"))
             .select_related("share", "owner")
             .first()
         )

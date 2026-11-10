@@ -1,4 +1,5 @@
 from constance import config as site_config
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import permissions
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -44,16 +45,24 @@ class IsSuperUser(permissions.BasePermission):
         return bool(request.user.is_superuser)
 
 
+def may_create_account(actor: User | AnonymousUser) -> bool:
+    """Whether ``actor`` may make an account: staff, anyone while the instance
+    has no admin yet (first-time setup), or anyone while sign-ups are open.
+
+    Sign-up asks again under its lock (``SignupUserSerializer``): the first
+    admin may have been made while the request waited.
+    """
+    is_admin = bool(actor.is_staff)
+    is_first_time_setup = not User.objects.filter(is_superuser=True).exists()
+    is_registration_allowed = bool(site_config.ALLOW_REGISTRATION)
+    return bool(is_admin or is_first_time_setup or is_registration_allowed)
+
+
 class IsAdminOrFirstTimeSetupOrRegistrationAllowed(permissions.BasePermission):
     def has_permission(self, request: Request, view: APIView) -> bool:
         if request.method in permissions.SAFE_METHODS:
             return True
-
-        is_admin = bool(request.user) and request.user.is_staff
-        is_first_time_setup = not User.objects.filter(is_superuser=True).exists()
-        is_registration_allowed = bool(site_config.ALLOW_REGISTRATION)
-
-        return bool(is_admin or is_first_time_setup or is_registration_allowed)
+        return may_create_account(request.user)
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):

@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import identify_hasher
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.db import transaction
 from django.db.models import Count, Prefetch, Q, QuerySet
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -16,6 +17,8 @@ from api.accounts.directories import (
     auto_create_user_directory,
     normalize_scan_directory,
 )
+from api.accounts.permissions import may_create_account
+from api.accounts.signup_lock import hold_signups
 from api.albums.timeline_filter import validate_default_timeline_filter
 from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import enqueue_job
@@ -100,8 +103,6 @@ USER_UPDATE_FIELDS = (
     ),
     ("last_seen_release", None),
     ("show_whats_new", None),
-    ("support_prompt_seen", None),
-    ("rewind_seen_year", None),
     ("default_license", None),
     ("default_creator", None),
     ("default_copyright", None),
@@ -172,6 +173,28 @@ def validate_rule_exif_tag_names(value: object, field_label: str) -> object:
                     f"start with '-' or ':'."
                 )
     return value
+
+
+# The prompts a user has seen: they only move forward (``mark_prompts_seen``).
+ONE_WAY_FIELDS = ("support_prompt_seen", "rewind_seen_year")
+
+
+def mark_prompts_seen(user: User, values: dict[str, Any]) -> None:
+    """Record that ``user`` saw the thank-you dialog or a year's Rewind.
+
+    ``support_prompt_seen`` only turns on and ``rewind_seen_year`` only goes
+    up, each in one conditional UPDATE: a stale tab or an older client
+    saving what it read earlier must not show a seen dialog again.
+    """
+    if not values:
+        return
+    users = User.objects.filter(pk=user.pk)
+    if values.get("support_prompt_seen"):
+        users.filter(support_prompt_seen=False).update(support_prompt_seen=True)
+    year = values.get("rewind_seen_year")
+    if year is not None:
+        users.filter(rewind_seen_year__lt=year).update(rewind_seen_year=year)
+    user.refresh_from_db(fields=list(ONE_WAY_FIELDS))
 
 
 def set_password_if_allowed(instance: User, validated_data: dict[str, Any]) -> None:
@@ -309,7 +332,8 @@ class UserSerializer(serializers.ModelSerializer):
             "last_seen_release": {"required": False},
             "show_whats_new": {"required": False},
             # The thank-you dialog after the first processed library, and the
-            # last year whose Rewind the user saw.
+            # last year whose Rewind the user saw; neither goes back
+            # (mark_prompts_seen).
             "support_prompt_seen": {"required": False},
             "rewind_seen_year": {"required": False, "min_value": 0, "max_value": 9999},
         }
@@ -490,8 +514,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         # user can only update the following
+        password = []
         if "password" in validated_data:
             set_password_if_allowed(instance, validated_data)
+            password = ["password"]
+        seen = {
+            field: validated_data.pop(field)
+            for field in ONE_WAY_FIELDS
+            if field in validated_data
+        }
         for field, log_message in USER_UPDATE_FIELDS:
             if field not in validated_data:
                 continue
@@ -499,15 +530,21 @@ class UserSerializer(serializers.ModelSerializer):
             if field == "semantic_search_topk":
                 self.queue_semantic_search_jobs(instance, value)
             setattr(instance, field, value)
-            instance.save()
+            # The field alone: the instance was read when the request came
+            # in, and a whole-row save put back what others wrote since.
+            instance.save(update_fields=[field, *password])
             if log_message:
                 logger.info(log_message.format(value=value, username=instance.username))
-
+        mark_prompts_seen(instance, seen)
         return instance
 
     def queue_semantic_search_jobs(
         self, instance: User, new_semantic_search_topk: int
     ) -> None:
+        """Turning semantic search on (Off, 0, to a number of results) starts
+        Calculate Clip Embeddings for the user, so search has embeddings to
+        answer from; documented under that job in the docs' job system page.
+        A change between two numbers starts nothing."""
         if instance.semantic_search_topk != 0 or new_semantic_search_topk <= 0:
             return
         user = User.objects.get(id=instance.id)
@@ -645,20 +682,43 @@ class SignupUserSerializer(serializers.ModelSerializer):
         # hasher library did it) left an account behind that held the password
         # in plain text, was not an admin, and blocked its username for good:
         # first-time setup then answered every attempt with "already exists".
-        should_be_superuser = not User.objects.filter(is_superuser=True).exists()
-        password = validated_data.pop("password")
-        # validate_username() only lets a taken name through for an abandoned
-        # sign-up, which is then completed instead of blocking setup for good.
-        user = User.objects.filter(username=validated_data["username"]).first()
-        if user is None:
-            user = User()
-        for field, value in validated_data.items():
-            setattr(user, field, value)
-        user.set_password(password)
-        user.is_staff = should_be_superuser
-        user.is_superuser = should_be_superuser
-        user.save()
+        with transaction.atomic():
+            hold_signups()
+            user = self._account_to_write(validated_data["username"])
+            # The first account is the admin. Asked under the lock: two first
+            # sign-ups at once both saw no admin and both became one.
+            should_be_superuser = not User.objects.filter(is_superuser=True).exists()
+            password = validated_data.pop("password")
+            for field, value in validated_data.items():
+                setattr(user, field, value)
+            user.set_password(password)
+            user.is_staff = should_be_superuser
+            user.is_superuser = should_be_superuser
+            user.save()
         auto_create_user_directory(user)
+        return user
+
+    def _account_to_write(self, username: str) -> User:
+        """The row this sign-up writes, checked again under the lock.
+
+        The permission and ``validate_username`` ran before it: since then,
+        another sign-up may have made the first admin (which ends first-time
+        setup, and with sign-ups closed this caller may not make an account)
+        or taken the name. A taken name is only completed for an abandoned
+        sign-up, instead of blocking setup for good.
+        """
+        request = self.context.get("request")
+        if request is not None and not may_create_account(request.user):
+            raise PermissionDenied(
+                "This server has been set up already.", code="setup_done"
+            )
+        user = User.objects.filter(username=username).first()
+        if user is None:
+            return User()
+        if not is_abandoned_signup(user):
+            raise ValidationError(
+                {"username": User._meta.get_field("username").error_messages["unique"]}
+            )
         return user
 
 

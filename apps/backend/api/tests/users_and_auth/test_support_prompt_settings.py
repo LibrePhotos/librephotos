@@ -13,6 +13,8 @@ from constance.test import override_config
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.models import User
+from api.serializers.user import UserSerializer
 from api.tests.utils import create_test_user
 
 
@@ -49,6 +51,42 @@ class SupportPromptUserFieldsTest(TestCase):
         self.other.refresh_from_db()
         self.assertFalse(self.other.support_prompt_seen)
         self.assertEqual(self.other.rewind_seen_year, 0)
+
+    def test_neither_goes_back(self):
+        """A stale tab or an older client closing a dialog it showed from old
+        data must not bring a seen dialog back."""
+        User.objects.filter(pk=self.user.pk).update(
+            support_prompt_seen=True, rewind_seen_year=2026
+        )
+        response = self.client.patch(
+            f"/api/user/{self.user.id}/",
+            {"support_prompt_seen": False, "rewind_seen_year": 2025},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertIs(response.json()["support_prompt_seen"], True)
+        self.assertEqual(response.json()["rewind_seen_year"], 2026)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.support_prompt_seen)
+        self.assertEqual(self.user.rewind_seen_year, 2026)
+
+    def test_another_setting_saved_from_an_older_copy_keeps_them(self):
+        """Two requests at once: one closes Rewind, the other, holding the
+        user as it was before, saves a setting."""
+        stale = User.objects.get(pk=self.user.pk)
+        User.objects.filter(pk=self.user.pk).update(
+            support_prompt_seen=True, rewind_seen_year=2026
+        )
+
+        serializer = UserSerializer(stale, data={"first_name": "Ada"}, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Ada")
+        self.assertTrue(self.user.support_prompt_seen)
+        self.assertEqual(self.user.rewind_seen_year, 2026)
 
     def test_a_negative_year_is_refused(self):
         response = self.client.patch(

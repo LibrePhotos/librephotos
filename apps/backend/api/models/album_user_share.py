@@ -38,12 +38,24 @@ class AlbumUserShare(models.Model):
                 candidate = f"{base}-{idx}"
             self.slug = candidate
 
+    @staticmethod
+    def active_q(prefix: str = "") -> models.Q:
+        """The live public links, as a ``Q`` on shares, or through ``prefix``
+        (``"share__"`` from an album, ``"albumuser__share__"`` from a photo).
+
+        The one rule for "the link opens": turned on and not expired. An
+        expired link keeps ``enabled`` and its slug, so the owner can give it
+        a new date and the same link opens again.
+        """
+        return models.Q(**{f"{prefix}enabled": True}) & (
+            models.Q(**{f"{prefix}expires_at__isnull": True})
+            | models.Q(**{f"{prefix}expires_at__gte": timezone.now()})
+        )
+
     def is_active(self) -> bool:
-        if not self.enabled:
-            return False
-        if self.expires_at is None:
-            return True
-        return self.expires_at >= timezone.now()
+        return AlbumUserShare.objects.filter(
+            AlbumUserShare.active_q(), pk=self.pk
+        ).exists()
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         if self.enabled and not self.slug:

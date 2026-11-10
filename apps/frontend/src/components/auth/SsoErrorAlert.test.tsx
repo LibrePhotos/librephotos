@@ -66,4 +66,8 @@ describe("SsoErrorAlert", () => {
       "More than one LibrePhotos account uses this email address."
     );
   });
+
+  it("says the account is turned off", () => {
+    expect(renderAt("?sso_error=account_inactive").textContent).toContain("This LibrePhotos account is turned off.");
+  });
 });

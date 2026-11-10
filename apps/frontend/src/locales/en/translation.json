@@ -1668,6 +1668,7 @@
       "errornotauthenticated": "The sign-in did not complete. Please try again.",
       "errorpublicurlnotconfigured": "Single sign-on is not fully configured: the administrator needs to set this server's public URL (FRONTEND_BASE_URL).",
       "erroremailambiguous": "More than one LibrePhotos account uses this email address. Ask an administrator to fix it.",
+      "erroraccountinactive": "This LibrePhotos account is turned off. Ask an administrator to turn it back on.",
       "errorprovidercancelled": "Sign-in was cancelled at your identity provider.",
       "errorprovider": "Your identity provider could not complete the sign-in. Check the server logs for details.",
       "errorunknown": "Single sign-on failed. Please try again or use your password.",

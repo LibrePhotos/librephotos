@@ -14,8 +14,6 @@ export const MetadataEdit = z.object({
   new_value: z.unknown(),
   user: z.number(),
   user_name: z.string(),
-  synced_to_file: z.boolean(),
-  synced_at: z.string().nullable(),
   created_at: z.string(),
 });
 export type MetadataEdit = z.infer<typeof MetadataEdit>;

@@ -21575,16 +21575,6 @@
             "type": "string",
             "readOnly": true
           },
-          "synced_to_file": {
-            "type": "boolean",
-            "readOnly": true
-          },
-          "synced_at": {
-            "type": "string",
-            "format": "date-time",
-            "readOnly": true,
-            "nullable": true
-          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -21597,8 +21587,6 @@
           "id",
           "new_value",
           "old_value",
-          "synced_at",
-          "synced_to_file",
           "user",
           "user_name"
         ]
