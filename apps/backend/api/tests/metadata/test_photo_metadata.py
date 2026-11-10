@@ -295,7 +295,6 @@ class MetadataEditModelTestCase(TestCase):
         self.assertEqual(edit.field_name, "title")
         self.assertEqual(edit.old_value, "Old Title")
         self.assertEqual(edit.new_value, "New Title")
-        self.assertFalse(edit.synced_to_file)
 
     def test_edit_records_ordered_by_created_at(self):
         """Test edit records are ordered by creation time."""

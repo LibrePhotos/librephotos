@@ -37,8 +37,6 @@ class MetadataEditSerializer(serializers.ModelSerializer):
             "new_value",
             "user",
             "user_name",
-            "synced_to_file",
-            "synced_at",
             "created_at",
         )
         read_only_fields = fields

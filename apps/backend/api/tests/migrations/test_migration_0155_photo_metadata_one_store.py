@@ -16,7 +16,6 @@ from django.test import TransactionTestCase
 
 from api.models import Photo
 from api.models.photo_caption import PhotoCaption
-from api.models.photo_metadata import MetadataEdit
 from api.models.photo_search import PhotoSearch
 
 from ..utils import create_test_photo, create_test_user
@@ -54,14 +53,16 @@ class PhotoMetadataOneStoreMigrationTest(TransactionTestCase):
         PhotoMetadata.objects.update_or_create(photo_id=photo.pk, defaults=values)
 
     def edit(self, photo, field_name, new_value, minutes=0):
-        edit = MetadataEdit.objects.create(
-            photo=photo,
-            user=self.user,
+        # The model of that version: today's has lost columns it still has.
+        OldMetadataEdit = self.old_apps.get_model("api", "MetadataEdit")
+        edit = OldMetadataEdit.objects.create(
+            photo_id=photo.pk,
+            user_id=self.user.pk,
             field_name=field_name,
             old_value=None,
             new_value=new_value,
         )
-        MetadataEdit.objects.filter(pk=edit.pk).update(
+        OldMetadataEdit.objects.filter(pk=edit.pk).update(
             created_at=WHEN + datetime.timedelta(minutes=minutes)
         )
 
