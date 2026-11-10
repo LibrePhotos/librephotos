@@ -17,9 +17,9 @@ from api.photos.retention import cleanup_deleted_photos, empty_expired_trash
 from api.tests.utils import create_test_photo, create_test_user
 
 
-def _set_last_modified(photo, when):
-    """last_modified is auto_now, so it can only be back-dated with a queryset update."""
-    Photo.objects.filter(pk=photo.pk).update(last_modified=when)
+def _set_removed_at(photo, when):
+    """When the photo was removed; the cleanup counts from it, not last_modified."""
+    Photo.objects.filter(pk=photo.pk).update(removed_at=when)
 
 
 class CleanupDeletedPhotosTest(TestCase):
@@ -29,9 +29,9 @@ class CleanupDeletedPhotosTest(TestCase):
     def test_only_photos_removed_longer_than_retention_are_purged(self):
         now = timezone.now()
         old_photo = create_test_photo(owner=self.user, removed=True)
-        _set_last_modified(old_photo, now - timedelta(days=60))
+        _set_removed_at(old_photo, now - timedelta(days=60))
         recent_photo = create_test_photo(owner=self.user, removed=True)
-        _set_last_modified(recent_photo, now - timedelta(days=1))
+        _set_removed_at(recent_photo, now - timedelta(days=1))
 
         cleanup_deleted_photos()
 
@@ -46,7 +46,7 @@ class CleanupDeletedPhotosTest(TestCase):
 
     def test_photos_not_removed_are_never_purged(self):
         photo = create_test_photo(owner=self.user)
-        _set_last_modified(photo, timezone.now() - timedelta(days=365))
+        _set_removed_at(photo, timezone.now() - timedelta(days=365))
 
         cleanup_deleted_photos()
 
@@ -56,7 +56,7 @@ class CleanupDeletedPhotosTest(TestCase):
         now = timezone.now()
         photos = [create_test_photo(owner=self.user, removed=True) for _ in range(2)]
         for photo in photos:
-            _set_last_modified(photo, now - timedelta(days=60))
+            _set_removed_at(photo, now - timedelta(days=60))
         broken = photos[0].pk
         real_delete = Photo.delete
 
@@ -153,7 +153,7 @@ class EmptyExpiredTrashTest(TestCase):
         def remove(photo):
             if photo.pk == broken.pk:
                 raise PermissionError("read-only library")
-            real_remove(photo)
+            return real_remove(photo)
 
         with (
             patch.object(files, "remove_photo", remove),

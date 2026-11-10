@@ -134,16 +134,16 @@ class DeletePhotosTest(TestCase):
         image_hashes = [p.image_hash for p in photos]
         failing_path = photos[1].main_file.path
 
-        real_remove = os.remove
+        real_replace = os.replace
 
-        def remove_unless_protected(path, *args, **kwargs):
+        def move_unless_protected(path, *args, **kwargs):
             if path == failing_path:
                 raise PermissionError(13, "Permission denied", path)
-            return real_remove(path, *args, **kwargs)
+            return real_replace(path, *args, **kwargs)
 
         payload = {"image_hashes": image_hashes}
         headers = {"Content-Type": "application/json"}
-        with patch("api.photos.files.os.remove", side_effect=remove_unless_protected):
+        with patch("api.photos.files.os.replace", side_effect=move_unless_protected):
             response = self.client.delete(
                 "/api/photosedit/delete/", format="json", data=payload, headers=headers
             )
@@ -170,16 +170,16 @@ class DeletePhotosTest(TestCase):
             photo.files.add(photo.main_file)
         failing_path = photos[1].main_file.path
 
-        real_remove = os.remove
+        real_replace = os.replace
 
-        def remove_unless_protected(path, *args, **kwargs):
+        def move_unless_protected(path, *args, **kwargs):
             if path == failing_path:
                 raise PermissionError(13, "Permission denied", path)
-            return real_remove(path, *args, **kwargs)
+            return real_replace(path, *args, **kwargs)
 
         payload = {"select_all": True, "query": {}}
         headers = {"Content-Type": "application/json"}
-        with patch("api.photos.files.os.remove", side_effect=remove_unless_protected):
+        with patch("api.photos.files.os.replace", side_effect=move_unless_protected):
             response = self.client.delete(
                 "/api/photosedit/delete/", format="json", data=payload, headers=headers
             )

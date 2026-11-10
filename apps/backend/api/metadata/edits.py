@@ -185,7 +185,7 @@ def set_capture_time(photo: Photo, value: datetime | None, user: User) -> None:
     # A date typed in has no known UTC offset (#2768); without one, the rules
     # give it again.
     photo.exif_timestamp_offset = None
-    photo.save()
+    photo.save(update_fields=["timestamp", "exif_timestamp_offset", "last_modified"])
     if date_changed:
         write_photo_metadata_on_commit(photo, ["timestamp"])
     extract_date_time(photo)

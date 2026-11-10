@@ -199,8 +199,12 @@ class Duplicate(models.Model):
         # Trash others if requested
         if trash_others:
             other_photos = self.photos.exclude(pk=kept_photo.pk)
-            # Trashing takes these photos out of their tags' counts, and a
-            # plain UPDATE fires no m2m signal to say so.
+            # Trashing takes these photos out of their tags' and people's
+            # counts, and a plain UPDATE fires no m2m signal to say so.
+            from api.models.person import (
+                person_ids_for_photos,
+                refresh_person_face_counts,
+            )
             from api.models.photo import trash_photos
             from api.models.tag import (
                 refresh_tag_photo_counts,
@@ -208,8 +212,10 @@ class Duplicate(models.Model):
             )
 
             affected_tag_ids = tag_ids_for_photos(other_photos)
+            affected_person_ids = person_ids_for_photos(other_photos)
             self.trashed_count = trash_photos(other_photos)
             refresh_tag_photo_counts(affected_tag_ids)
+            refresh_person_face_counts(affected_person_ids)
 
         self.save()
         return self

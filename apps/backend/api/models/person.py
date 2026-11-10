@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import TYPE_CHECKING
 
 from django.core.validators import MinLengthValidator
 from django.db import models
+from django.db.models import Count, F, Q, QuerySet
+from django.utils import timezone
 
 from api.models.person_group import PersonGroup
-from api.models.photo import Photo
+from api.models.photo import Photo, visible_photo_q
 from api.models.scopes import OwnedQuerySet
 from api.models.user import User
 
@@ -101,10 +104,7 @@ class Person(models.Model):
         # The count is scoped to the owner's photos, so there must be an owner.
         assert self.cluster_owner is not None
         self.face_count = self.faces.filter(
-            deleted=False,
-            photo__hidden=False,
-            photo__in_trashcan=False,
-            photo__owner=self.cluster_owner.id,
+            counted_face_q(), photo__owner=self.cluster_owner.id
         ).count()
         self.save()
 
@@ -119,6 +119,50 @@ class Person(models.Model):
             self.cover_photo = first_face.photo
             self.cover_face = first_face
             self.save()
+
+
+def counted_face_q(through: str = "") -> Q:
+    """The faces ``Person.face_count`` counts, as a ``Q``: not deleted, on a
+    photo the lists show (``visible_photo_q``, as the faces views count).
+
+    ``through`` reaches the faces through a relation (``"faces__"``).
+    """
+    return Q(**{f"{through}deleted": False}) & visible_photo_q(f"{through}photo__")
+
+
+def person_ids_for_photos(photos: QuerySet[Photo]) -> list[int]:
+    """The ids of the people with a face on one of ``photos``."""
+    return list(
+        Person.objects.filter(faces__photo__in=photos)
+        .values_list("pk", flat=True)
+        .distinct()
+    )
+
+
+def refresh_person_face_counts(person_ids: Collection[int]) -> int:
+    """Recompute ``face_count`` for ``person_ids`` (``_calculate_face_count``).
+
+    Hiding, trashing or restoring a photo is a queryset UPDATE, which leaves
+    the stored count of the people on it behind. ``last_modified`` is set by
+    hand, so the delta-sync feed carries the new count. Returns the number
+    of people whose count changed.
+    """
+    counted = counted_face_q("faces__") & Q(
+        faces__photo__owner=F("cluster_owner")  # owner-scope: the person's own photos
+    )
+    people = Person.objects.filter(pk__in=person_ids).annotate(
+        counted=Count("faces", filter=counted)
+    )
+    now = timezone.now()
+    changed = []
+    for person in people:
+        counted_faces = getattr(person, "counted")
+        if person.face_count != counted_faces:
+            person.face_count = counted_faces
+            person.last_modified = now
+            changed.append(person)
+    Person.objects.bulk_update(changed, ["face_count", "last_modified"])
+    return len(changed)
 
 
 def get_or_create_person(

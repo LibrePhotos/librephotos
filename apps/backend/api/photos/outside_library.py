@@ -26,6 +26,7 @@ from api.models.album_thing import (
     refresh_album_thing_photo_counts,
 )
 from api.models.long_running_job import JobCancelledError
+from api.models.person import person_ids_for_photos, refresh_person_face_counts
 from api.models.photo import trash_photos
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.photos.paths import (
@@ -82,9 +83,11 @@ def _trash(photos: QuerySet[Photo]) -> int:
     """Trash ``photos`` and refresh the counts a queryset update leaves stale."""
     tag_ids = tag_ids_for_photos(photos)
     thing_ids = album_thing_ids_for_photos(photos)
+    person_ids = person_ids_for_photos(photos)
     count = trash_photos(photos)
     refresh_tag_photo_counts(tag_ids)
     refresh_album_thing_photo_counts(thing_ids)
+    refresh_person_face_counts(person_ids)
     return count
 
 

@@ -11,10 +11,12 @@ import enum
 import logging
 import os
 import shutil
+import uuid
 from collections.abc import Callable, Collection, Container, Iterable, Mapping
 from typing import TYPE_CHECKING, Literal, NamedTuple
 
 from django.db import transaction
+from django.utils import timezone
 
 from api.metadata.reader import existing_sidecars
 from api.models.file import File, FileCopy
@@ -23,9 +25,14 @@ from api.photos import indexed_mtimes
 from api.video import transcode_cache
 
 if TYPE_CHECKING:
+    from api.models.duplicate import Duplicate
     from api.models.photo import Photo
+    from api.models.photo_stack import PhotoStack
 
 logger = logging.getLogger(__name__)
+
+# What a file being deleted with its photo is renamed to first; no scan reads it.
+_DELETING_SUFFIX = ".librephotos-deleting"
 
 
 def missing_files(photo: Photo, among: Container[str] | None = None) -> list[File]:
@@ -81,92 +88,132 @@ def detach_missing_files(photo: Photo, missing: list[File] | None = None) -> Non
         photo.save(update_fields=["last_modified"])
 
 
-def remove_photo(photo: Photo) -> None:
+def remove_photo(photo: Photo) -> bool:
     """Delete the photo's unshared files from disk and mark it removed.
 
-    Files another photo still uses are only unlinked. Stacks and duplicate
-    groups left with one photo or none are dissolved.
+    Only a photo still in the trash and not removed yet: the row is re-read,
+    so a photo restored after a caller listed it (Empty trash) is left alone
+    and False comes back. Files another photo still uses are only unlinked.
+    Stacks and duplicate groups left with one photo or none are dissolved.
+
+    All or nothing: the files are first renamed aside, and one that cannot
+    be (a read-only library) puts the others back and rolls the rows back,
+    so the photo stays in the trash whole. The renamed files are deleted
+    once the removal is committed.
     """
-    # Store stack references before cleanup (ManyToMany)
-    photo_stacks = list(photo.stacks.all())
+    staged: list[tuple[str, str]] = []
+    try:
+        with transaction.atomic():
+            if not _mark_removed(photo):
+                return False
+            _dissolve_groups(photo)
+            staged = _stage_for_deletion(_unlink_files(photo))
+            image_hash = photo.image_hash
+            transaction.on_commit(lambda: _delete_staged(staged, image_hash))
+    except Exception:
+        _unstage(staged)
+        raise
+    return True
 
-    # Store duplicate group references before cleanup (ManyToMany)
-    photo_duplicates = list(photo.duplicates.all())
 
-    # Handle file cleanup - only delete files not shared with other Photos
+def _mark_removed(photo: Photo) -> bool:
+    """Trashed to removed, in one conditional UPDATE; False if it was not trashed."""
+    from api.models.photo import Photo
+
+    now = timezone.now()
+    marked = Photo.objects.filter(pk=photo.pk, in_trashcan=True, removed=False).update(
+        removed=True, removed_at=now, main_file=None, last_modified=now
+    )
+    if marked:
+        photo.removed, photo.removed_at, photo.main_file = True, now, None
+    return bool(marked)
+
+
+def _unlink_files(photo: Photo) -> list[str]:
+    """Take the photo's files away; the paths of those only it used."""
+    paths: list[str] = []
     for file in photo.files.all():
-        # Check if this file is used by other Photos (via files M2M or as main_file)
-        other_photos_using_file = (
+        shared = (
             file.photo_set.exclude(pk=photo.pk).exists()
             or file.main_photo.exclude(pk=photo.pk).exists()
         )
-
-        if other_photos_using_file:
-            # File is shared - just unlink from this photo, don't delete
+        if shared:
             logger.info(
-                "File %s is shared with other photos, unlinking only", file.path
+                "File %s is shared with other photos, unlinking only", file.hash
             )
-            photo.files.remove(file)
-        else:
-            # File is only used by this photo - safe to delete
-            if os.path.isfile(file.path):
-                logger.info("Removing photo %s", file.path)
-                os.remove(file.path)
-            file.delete()
+            continue
+        paths.append(file.path)
+        file.delete()
+    photo.files.clear()
+    return paths
 
-    photo.files.set([])
-    photo.main_file = None
-    photo.removed = True
 
-    # A cached transcode outlives the photo otherwise: it is named after the
-    # image hash, which no longer belongs to anything, so nothing would ever
-    # serve it and nothing would ever reclaim it until the cache filled up.
-    transcode_cache.discard(photo.image_hash)
+def _stage_for_deletion(paths: Iterable[str]) -> list[tuple[str, str]]:
+    """Rename each file on disk aside; on a failure put the renamed ones back."""
+    staged: list[tuple[str, str]] = []
+    try:
+        for path in paths:
+            if os.path.isfile(path):
+                aside = f"{path}.{uuid.uuid4().hex}{_DELETING_SUFFIX}"
+                os.replace(path, aside)
+                staged.append((path, aside))
+    except OSError:
+        _unstage(staged)
+        raise
+    return staged
 
-    # Clear all stack references from this photo (ManyToMany)
+
+def _unstage(staged: list[tuple[str, str]]) -> None:
+    for path, aside in reversed(staged):
+        try:
+            os.replace(aside, path)
+        except OSError:
+            logger.exception("Could not put back the file renamed to %s", aside)
+
+
+def _delete_staged(staged: list[tuple[str, str]], image_hash: str) -> None:
+    """After the commit: delete the renamed files and the cached transcode.
+
+    A cached transcode is named after the image hash, which no longer belongs
+    to anything, so nothing would ever serve it or reclaim it.
+    """
+    transcode_cache.discard(image_hash)
+    for _path, aside in staged:
+        try:
+            os.remove(aside)
+        except OSError:
+            logger.exception("Could not delete the removed file %s", aside)
+
+
+def _dissolve_groups(photo: Photo) -> None:
+    """Drop the photo from its stacks and duplicate groups, and dissolve a
+    group left with one photo or none."""
+    groups: list[PhotoStack | Duplicate] = [
+        *photo.stacks.all(),
+        *photo.duplicates.all(),
+    ]
     photo.stacks.clear()
-
-    # Clear all duplicate group references from this photo (ManyToMany)
     photo.duplicates.clear()
-
-    photo.save()
-
-    # Clean up stacks if they're now empty or have only one photo left
-    for photo_stack in photo_stacks:
-        remaining_photos = photo_stack.photos.filter(removed=False).count()
-        if remaining_photos <= 1:
-            # If 0 or 1 photos left, delete the stack (no longer a valid grouping)
+    for group in groups:
+        remaining = group.photos.filter(removed=False).count()
+        if remaining <= 1:
             logger.info(
-                "Deleting photo stack %s - only %s photos remaining",
-                photo_stack.id,
-                remaining_photos,
+                "Deleting %s %s - only %s photos remaining",
+                type(group).__name__,
+                group.id,
+                remaining,
             )
-            # Unlink remaining photos from stack first
-            for remaining_photo in photo_stack.photos.all():
-                remaining_photo.stacks.remove(photo_stack)
-            photo_stack.delete()
-
-    # Clean up duplicate groups if they're now empty or have only one photo left
-    for duplicate in photo_duplicates:
-        remaining_photos = duplicate.photos.filter(removed=False).count()
-        if remaining_photos <= 1:
-            # If 0 or 1 photos left, delete the duplicate group (no longer valid)
-            logger.info(
-                "Deleting duplicate group %s - only %s photos remaining",
-                duplicate.id,
-                remaining_photos,
-            )
-            # Unlink remaining photos from duplicate first
-            for remaining_photo in duplicate.photos.all():
-                remaining_photo.duplicates.remove(duplicate)
-            duplicate.delete()
+            group.photos.clear()
+            group.delete()
 
 
 class Removal(NamedTuple):
-    """What ``remove_photos`` did: how many photos went, which ones failed."""
+    """What ``remove_photos`` did: how many photos went, which ones failed,
+    and which were no longer in the trash (restored meanwhile)."""
 
     removed: int
     failed: list[Photo]
+    skipped: list[Photo]
 
 
 def remove_photos(
@@ -181,19 +228,21 @@ def remove_photos(
     """
     removed = 0
     failed: list[Photo] = []
+    skipped: list[Photo] = []
     for done, photo in enumerate(photos, start=1):
         try:
-            remove_photo(photo)
+            if remove_photo(photo):
+                removed += 1
+            else:
+                skipped.append(photo)
         except Exception:
             logger.exception(
                 "Could not delete photo %s, skipping it.", photo.image_hash
             )
             failed.append(photo)
-        else:
-            removed += 1
         if progress is not None:
             progress(done)
-    return Removal(removed, failed)
+    return Removal(removed, failed, skipped)
 
 
 # ------------------------------------------------------------------ moving

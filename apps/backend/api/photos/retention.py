@@ -17,7 +17,7 @@ import logging
 from datetime import timedelta
 
 from constance import config as site_config
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from api.models import DeletionLog, LongRunningJob, Photo, User
@@ -33,11 +33,12 @@ MAX_JOB_ERRORS = 20
 def cleanup_deleted_photos() -> None:
     """Delete the rows of photos removed more than 30 days ago.
 
-    One row that fails to delete is logged and skipped, so it cannot stop the
-    rest of the day's sweep.
+    Counted from ``removed_at``: ``last_modified`` moves with any write to the
+    row, so a removed photo could stay forever. One row that fails to delete
+    is logged and skipped, so it cannot stop the rest of the day's sweep.
     """
     deleted_photos = Photo.objects.filter(
-        Q(removed=True) & Q(last_modified__lte=timezone.now() - timedelta(days=30))
+        removed=True, removed_at__lte=timezone.now() - timedelta(days=30)
     )
     for photo in deleted_photos:
         try:
@@ -56,8 +57,8 @@ def trash_retention_days() -> int:
 def expired_trash(days: int) -> QuerySet[Photo]:
     """Every user's photos trashed more than ``days`` days ago.
 
-    A photo with no ``trashed_at`` (a writer that skipped ``trash_photos``)
-    never expires.
+    Every photo in the trash has a ``trashed_at``: ``trash_photos`` sets it,
+    and migrations 0173 and 0234 gave one to the rows that had none.
     """
     return Photo.objects.filter(
         in_trashcan=True,
@@ -111,8 +112,9 @@ def empty_trash_job(user: User, job_id: str | None = None) -> None:
 
     Only ``user``'s own photos. Progress is one step per photo, and a cancel
     stops the job after the photo it is on; the photos deleted until then
-    stay deleted. The job fails, with the counts, when a photo could not be
-    deleted.
+    stay deleted. A photo restored while the job runs is left alone
+    (``remove_photo`` re-reads it). The job fails, with the counts, when a
+    photo could not be deleted.
     """
     job = LongRunningJob.claim(user, LongRunningJob.JOB_EMPTY_TRASH, job_id)
     if job is None:
