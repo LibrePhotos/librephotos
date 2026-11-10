@@ -17558,7 +17558,7 @@
       },
       "CpuInfo": {
         "type": "object",
-        "description": "py-cpuinfo's ``get_cpu_info()`` with numeric cache sizes\n(``api.dataviz.stats._get_cpu_info``).\n\nOnly the first seven keys are always there: py-cpuinfo drops every key it\ncannot read, or reads as empty or 0.",
+        "description": "The CPU in the keys of py-cpuinfo's ``get_cpu_info()``, which reported\nit up to 1.6.0 (``api.dataviz.cpu_info``).\n\nOnly the first seven keys are always there; every other one is left out\nwhen the platform does not tell it. ``cpuinfo_version`` and\n``cpuinfo_version_string`` name no py-cpuinfo any more: ``[]`` and ``\"\"``.",
         "properties": {
           "python_version": {
             "type": "string"

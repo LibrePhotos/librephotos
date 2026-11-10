@@ -54,10 +54,10 @@ def _feature(text, center=None):
 
 
 class ServerStatsBaseTest(TestCase):
-    """Common patching: cpuinfo is slow, nvidia-smi must never be run."""
+    """Common patching: a fixed CPU, and nvidia-smi must never be run."""
 
     def setUp(self):
-        cpu_patch = patch("cpuinfo.get_cpu_info", return_value=dict(CPU_INFO))
+        cpu_patch = patch("api.dataviz.stats.get_cpu_info", return_value=dict(CPU_INFO))
         self.mock_cpu = cpu_patch.start()
         self.addCleanup(cpu_patch.stop)
         available_patch = patch(
@@ -155,26 +155,6 @@ class GetServerStatsGpuBranchTest(ServerStatsBaseTest):
             stats = get_server_stats()
         self.assertEqual(stats["gpu_name"], "")
         self.assertEqual(stats["gpu_memory_in_mb"], "")
-
-
-class GetServerStatsCpuCacheCoercionTest(ServerStatsBaseTest):
-    def test_cache_fields_coerced_and_unparseable_dropped(self):
-        self.mock_cpu.return_value = {
-            "brand_raw": "Test CPU",
-            "l1_data_cache_size": "1.3 MiB",
-            "l1_instruction_cache_size": 32768,
-            "l2_cache_size": "garbage",
-            # l3_cache_size intentionally absent -> stays absent
-        }
-        cpu_info = get_server_stats()["cpu_info"]
-        self.assertEqual(cpu_info["l1_data_cache_size"], round(1.3 * 1024 * 1024))
-        self.assertEqual(cpu_info["l1_instruction_cache_size"], 32768)
-        self.assertNotIn("l2_cache_size", cpu_info)
-        self.assertNotIn("l3_cache_size", cpu_info)
-
-    def test_float_cache_size_is_truncated_to_int(self):
-        self.mock_cpu.return_value = {"l3_cache_size": 1024.9}
-        self.assertEqual(get_server_stats()["cpu_info"]["l3_cache_size"], 1024)
 
 
 class GetServerStatsPerUserTest(ServerStatsBaseTest):

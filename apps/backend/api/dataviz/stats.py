@@ -14,6 +14,7 @@ from django.db.models import Count, Exists, Model, OuterRef, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
 from api.dataviz.color_palettes import hex_palette
+from api.dataviz.cpu_info import get_cpu_info
 from api.lazy_import import LazyModule
 from api.models import (
     AlbumAuto,
@@ -109,68 +110,6 @@ def calc_megabytes(bytes: int | None) -> int:
     if bytes == 0 or bytes is None:
         return 0
     return round((bytes / 1024) / 1024)
-
-
-def _coerce_cache_size(value: object) -> int | None:
-    """Normalize a py-cpuinfo cache-size field to an int (bytes), or None.
-
-    py-cpuinfo returns these as ints on most CPUs, but ``_friendly_bytes_to_int``
-    falls back to the raw string (e.g. "1.3 MiB", "32 KiB") when the value can't be
-    parsed as a plain int -- seen on hardware like the Xeon Gold 6148 via newer
-    lscpu. The frontend stats schema requires a number, so coerce here to keep the
-    API contract numeric. See issue #1864.
-    """
-    if value is None or isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        return int(value)
-    if isinstance(value, str):
-        import re
-
-        match = re.match(
-            r"^\s*([0-9]*\.?[0-9]+)\s*([KMGT]?i?B)?\s*$", value, re.IGNORECASE
-        )
-        if not match:
-            return None
-        number = float(match.group(1))
-        unit = (match.group(2) or "B").upper()
-        multipliers = {
-            "B": 1,
-            "KB": 1000,
-            "KIB": 1024,
-            "MB": 1000**2,
-            "MIB": 1024**2,
-            "GB": 1000**3,
-            "GIB": 1024**3,
-            "TB": 1000**4,
-            "TIB": 1024**4,
-        }
-        return int(round(number * multipliers.get(unit, 1)))
-    return None
-
-
-def _get_cpu_info() -> dict[str, Any]:
-    # CPU architecture, Speed, Number of Cores, 64bit / 32 Bits
-    import cpuinfo
-
-    cpu_info = cpuinfo.get_cpu_info()
-    # py-cpuinfo may report cache sizes as non-numeric strings on some CPUs; keep
-    # the API numeric so the frontend's number schema doesn't reject them (#1864).
-    for cache_field in (
-        "l1_data_cache_size",
-        "l1_instruction_cache_size",
-        "l2_cache_size",
-        "l3_cache_size",
-    ):
-        if cache_field in cpu_info:
-            coerced = _coerce_cache_size(cpu_info[cache_field])
-            if coerced is None:
-                del cpu_info[cache_field]
-            else:
-                cpu_info[cache_field] = coerced
-    return cpu_info
 
 
 # nvidia-smi answers at once, or hangs on a wedged driver.
@@ -295,7 +234,7 @@ def get_server_stats() -> dict[str, Any]:
 
     import psutil
 
-    cpu_info = _get_cpu_info()
+    cpu_info = get_cpu_info()
     available_ram = calc_megabytes(psutil.virtual_memory().total)
     gpu_name, gpu_memory = _get_gpu_info()
     total_storage, used_storage, free_storage = shutil.disk_usage("/")

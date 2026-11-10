@@ -95,16 +95,17 @@ class ApiHelpSerializer(serializers.Serializer[None]):
 
 
 class CpuInfoSerializer(serializers.Serializer[None]):
-    """py-cpuinfo's ``get_cpu_info()`` with numeric cache sizes
-    (``api.dataviz.stats._get_cpu_info``).
+    """The CPU in the keys of py-cpuinfo's ``get_cpu_info()``, which reported
+    it up to 1.6.0 (``api.dataviz.cpu_info``).
 
-    Only the first seven keys are always there: py-cpuinfo drops every key it
-    cannot read, or reads as empty or 0.
+    Only the first seven keys are always there; every other one is left out
+    when the platform does not tell it. ``cpuinfo_version`` and
+    ``cpuinfo_version_string`` name no py-cpuinfo any more: ``[]`` and ``""``.
     """
 
     python_version = serializers.CharField()
     cpuinfo_version = serializers.ListField(child=serializers.IntegerField())
-    cpuinfo_version_string = serializers.CharField()
+    cpuinfo_version_string = serializers.CharField(allow_blank=True)
     arch = serializers.CharField()
     bits = serializers.IntegerField()
     count = serializers.IntegerField()
