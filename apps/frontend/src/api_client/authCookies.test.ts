@@ -8,13 +8,20 @@
  * straight back in. jsdom scopes cookies by path the way a browser does, so the
  * sequence is replayed here page by page.
  */
-import { Cookies } from "react-cookie";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fromUnixSeconds } from "../util/dateUtils";
-import { authCookieOptions, clearAuthCookies, setAuthCookie } from "./authCookies";
+import { authCookieOptions, clearAuthCookies, getAuthCookie, setAuthCookie } from "./authCookies";
 
 function visit(path: string) {
   window.history.pushState({}, "", path);
+}
+
+/**
+ * What older builds did (react-cookie's set with no path): the browser scopes the cookie to the
+ * folder of the page that set it.
+ */
+function setUnscoped(name: string, value: string) {
+  document.cookie = `${name}=${value}`;
 }
 
 function accessCookies() {
@@ -74,7 +81,7 @@ describe("auth cookies", () => {
   it("also clears a copy an older version left in this page's folder", () => {
     visit("/search/hdr_hlg_hevc");
     // What the old code did: no path, so the browser scoped it to /search.
-    new Cookies().set("access", "old-scoped");
+    setUnscoped("access", "old-scoped");
 
     clearAuthCookies();
 
@@ -83,7 +90,7 @@ describe("auth cookies", () => {
 
   it("also clears a copy an older version left in a folder above this page", () => {
     visit("/search/hdr_hlg_hevc");
-    new Cookies().set("access", "old-scoped");
+    setUnscoped("access", "old-scoped");
     visit("/search/deep/page");
 
     clearAuthCookies();
@@ -95,10 +102,10 @@ describe("auth cookies", () => {
     // VITE_PUBLIC_URL=/librephotos: the old login page scoped its copy to
     // /librephotos, a refresh on a search page to /librephotos/search.
     visit("/librephotos/login");
-    new Cookies().set("access", "old-login");
-    new Cookies().set("refresh", "old-refresh");
+    setUnscoped("access", "old-login");
+    setUnscoped("refresh", "old-refresh");
     visit("/librephotos/search/hdr_hlg_hevc");
-    new Cookies().set("access", "old-refreshed");
+    setUnscoped("access", "old-refreshed");
     setAuthCookie("refresh", "refresh-token");
 
     clearAuthCookies();
@@ -108,21 +115,22 @@ describe("auth cookies", () => {
 
   it("reads the fresh token on a page an older version left a copy on", () => {
     visit("/search/hdr_hlg_hevc");
-    new Cookies().set("access", "old-scoped");
+    setUnscoped("access", "old-scoped");
 
     setAuthCookie("access", "refreshed");
 
     expect(accessCookies()).toEqual(["access=refreshed"]);
-    expect(new Cookies().get("access")).toBe("refreshed");
+    expect(getAuthCookie("access")).toBe("refreshed");
   });
 
   it("was broken with the old calls, which is what this pins", () => {
     visit("/login");
-    new Cookies().set("access", "from-login");
+    setUnscoped("access", "from-login");
     visit("/search/hdr_hlg_hevc");
-    new Cookies().set("access", "refreshed");
+    setUnscoped("access", "refreshed");
 
-    new Cookies().remove("access");
+    // The old remove, with no path either.
+    document.cookie = "access=; Max-Age=0";
 
     expect(accessCookies()).toEqual(["access=from-login"]);
   });
@@ -139,37 +147,41 @@ describe("auth cookie lifetime (Remember me, #2024)", () => {
     vi.restoreAllMocks();
   });
 
-  function optionsOfSet(name: "access" | "refresh", value: string) {
-    const set = vi.spyOn(Cookies.prototype, "set");
+  /** The one cookie string setAuthCookie writes on a page at the root. */
+  function cookieSet(name: "access" | "refresh", value: string) {
+    const set = vi.spyOn(Document.prototype, "cookie", "set");
     setAuthCookie(name, value);
     expect(set).toHaveBeenCalledTimes(1);
-    return set.mock.calls[0]?.[2];
+    return set.mock.calls[0]?.[0];
   }
 
   it("keeps a remembered sign-in's tokens until the sign-in ends", () => {
     const until = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+    const expires = fromUnixSeconds(until).toJSDate().toUTCString();
 
     for (const name of ["access", "refresh"] as const) {
-      expect(optionsOfSet(name, token({ exp: until, remember_until: until }))).toEqual({
-        path: "/",
-        sameSite: "lax",
-        secure: false,
-        expires: fromUnixSeconds(until).toJSDate(),
-      });
+      const value = token({ exp: until, remember_until: until });
+      expect(cookieSet(name, value)).toBe(`${name}=${value}; Path=/; Expires=${expires}; SameSite=Lax`);
       vi.restoreAllMocks();
     }
   });
 
   it("leaves a plain sign-in's tokens as session cookies", () => {
-    expect(optionsOfSet("access", token({ exp: 1 }))?.expires).toBeUndefined();
+    const value = token({ exp: 1 });
+    expect(cookieSet("access", value)).toBe(`access=${value}; Path=/; SameSite=Lax`);
   });
 
   it("ignores a claim that is not a number", () => {
-    expect(optionsOfSet("access", token({ remember_until: "soon" }))?.expires).toBeUndefined();
+    expect(cookieSet("access", token({ remember_until: "soon" }))).not.toContain("Expires");
+  });
+
+  it("ignores a claim too large to be a date", () => {
+    // react-cookie threw on the invalid date, so such a token could not be stored at all.
+    expect(cookieSet("access", token({ remember_until: 1e20 }))).not.toContain("Expires");
   });
 
   it("stores a value that is not a JWT as a session cookie", () => {
-    expect(optionsOfSet("access", "from-login")?.expires).toBeUndefined();
+    expect(cookieSet("access", "from-login")).toBe("access=from-login; Path=/; SameSite=Lax");
   });
 
   it("is still read back after a remembered sign-in", () => {
@@ -177,6 +189,17 @@ describe("auth cookie lifetime (Remember me, #2024)", () => {
 
     setAuthCookie("access", value);
 
-    expect(new Cookies().get("access")).toBe(value);
+    expect(getAuthCookie("access")).toBe(value);
+  });
+});
+
+describe("a page whose folder cannot be named in a cookie path", () => {
+  it("still logs out, from the folders it can name", () => {
+    visit("/login");
+    setAuthCookie("access", "from-login");
+    visit("/a;b/page");
+
+    expect(() => clearAuthCookies()).not.toThrow();
+    expect(accessCookies()).toEqual([]);
   });
 });

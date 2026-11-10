@@ -86,7 +86,6 @@
     "motion": "^14.0.0",
     "react": "19.3.1",
     "react-avatar-editor": "16.0.0",
-    "react-cookie": "^8.0.0",
     "react-dom": "19.3.1",
     "react-dropzone": "^20.0.0",
     "react-i18next": "^17.0.0",
