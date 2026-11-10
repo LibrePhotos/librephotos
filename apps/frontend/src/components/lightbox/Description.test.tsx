@@ -10,7 +10,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
-import { Description } from "./Description";
+import { captionInput, Description } from "./Description";
 import hashtagClasses from "./Hashtag.module.css";
 import { createUnsavedDrafts, UnsavedDraftsContext } from "./unsavedDrafts";
 
@@ -72,6 +72,8 @@ beforeAll(async () => {
   Range.prototype.getBoundingClientRect = () => new DOMRect();
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
+  // The editor is a chunk of its own, which the lightbox prefetches: loaded first here too.
+  await captionInput.preload();
 });
 
 beforeEach(() => {
@@ -109,6 +111,9 @@ async function render(
   });
 }
 
+/** The caption as text, as it shows while it is not edited; undefined while the editor is open. */
+const shownCaption = (container: HTMLElement) => container.querySelector("[class*=captionText]")?.textContent;
+
 const editorElement = (container: HTMLElement) => defined(container.querySelector<HTMLElement>(".ProseMirror"));
 
 /** Types at the caret, as the user would; tiptap keeps its editor on the DOM node. */
@@ -134,7 +139,13 @@ describe("Description", () => {
     const { container, root } = mount();
     await render(root, photo("a", "Sunset at the #beach"));
 
-    expect(editorElement(container).getAttribute("contenteditable")).toBe("false");
+    // As text, without loading the editor.
+    expect(container.querySelector(".ProseMirror")).toBeNull();
+    expect(shownCaption(container)).toBe("Sunset at the #beach");
+    expect(container.querySelector(`span.${defined(hashtagClasses.hashtag)}`)?.textContent).toBe("#beach");
+
+    // The editor shows the hashtag as a mention of the same look.
+    await clickLabelled(container, "Edit caption");
     expect(editorElement(container).textContent).toBe("Sunset at the #beach");
     expect(container.querySelector(`span.${defined(hashtagClasses.hashtag)}[data-type="mention"]`)?.textContent).toBe(
       "#beach"
@@ -176,8 +187,8 @@ describe("Description", () => {
     expect(editorElement(container).textContent).toBe("Saved text and a draft");
 
     await clickLabelled(container, "Cancel");
-    expect(editorElement(container).getAttribute("contenteditable")).toBe("false");
-    expect(editorElement(container).textContent).toBe("Saved text");
+    expect(container.querySelector(".ProseMirror")).toBeNull();
+    expect(shownCaption(container)).toBe("Saved text");
     expect(saveCaption).not.toHaveBeenCalled();
   });
 
@@ -200,7 +211,7 @@ describe("Description", () => {
     await clickLabelled(container, "Edit caption");
     await clickLabelled(container, "Save");
     expect(saveCaption).not.toHaveBeenCalled();
-    expect(editorElement(container).getAttribute("contenteditable")).toBe("false");
+    expect(container.querySelector(".ProseMirror")).toBeNull();
 
     await clickLabelled(container, "Edit caption");
     await type(container, " and a draft");
@@ -214,8 +225,8 @@ describe("Description", () => {
     await clickLabelled(container, "Edit caption");
 
     await render(root, photo("b", "Photo B"));
-    expect(editorElement(container).getAttribute("contenteditable")).toBe("false");
-    expect(editorElement(container).textContent).toBe("Photo B");
+    expect(container.querySelector(".ProseMirror")).toBeNull();
+    expect(shownCaption(container)).toBe("Photo B");
     expect(container.querySelector('button[aria-label="Save"]')).toBeNull();
   });
 
@@ -301,7 +312,9 @@ describe("Description's unsaved draft (#2284)", () => {
     expect(drafts.dirtyFields()).toEqual(["caption"]);
     await settleSave("saved");
     expect(drafts.dirtyFields()).toEqual([]);
-    expect(editorElement(container).getAttribute("contenteditable")).toBe("false");
+    expect(container.querySelector(".ProseMirror")).toBeNull();
+    // The saved text, before the refetch brings it back from the server.
+    expect(shownCaption(container)).toBe("Saved text and a draft");
   });
 
   it("stays open and unsaved with the draft when the save fails", async () => {

@@ -11,3 +11,17 @@
 .caption[data-read-only] :global(.ProseMirror) {
   padding: 0;
 }
+
+/*
+ * A caption shown as text (CaptionText) reads as the read-only editor did: Mantine's typography
+ * (md type, its line height), one paragraph, words wrapped as ProseMirror wraps them.
+ */
+.captionText {
+  font-size: var(--mantine-font-size-md);
+  line-height: var(--mantine-line-height);
+  overflow-wrap: break-word;
+}
+
+.captionText p {
+  margin: 0;
+}

@@ -2,17 +2,55 @@ import type { Photo as PhotoType, UserPlace } from "@librephotos/api-client";
 import { ActionIcon, Box, Group, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPencil, IconMapPin as MapPin } from "@tabler/icons-react";
-import React from "react";
+import React, { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { formatCoordinates } from "../../util/exifFormat";
-import { LocationMap } from "../LocationMap";
-import { LocationPickerModal } from "../map/LocationPickerModal";
+import { FeatureBoundary } from "../common/FeatureBoundary";
+import { lazyWithPreload } from "../common/lazyWithPreload";
+import { PageLoader } from "../common/PageLoader";
+import type { LocationMap as LocationMapComponent } from "../LocationMap";
+import locationMapClasses from "../LocationMap.module.css";
+import { LOCATION_MAP_HEIGHT } from "../locationMapHeight";
+import type { LocationPickerModal as LocationPickerComponent } from "../map/LocationPickerModal";
 import { PLACE_ICONS } from "../places/placeIcons";
 import { CoordinatesLine } from "./CoordinatesLine";
 import { placeRegion, shortPlace } from "./placeName";
 import { ROW_ICON } from "./SectionTitle";
 import classes from "./Sidebar.module.css";
+
+/**
+ * The map and the location picker (MapLibre, about 300 kB gzipped) are their own chunk, loaded when
+ * the section first shows a map; the lightbox prefetches it when it opens (see Lightbox.tsx).
+ */
+export const locationMap = lazyWithPreload<React.ComponentProps<typeof LocationMapComponent>>(
+  async () => (await import("../LocationMap")).LocationMap
+);
+const locationPicker = lazyWithPreload<React.ComponentProps<typeof LocationPickerComponent>>(
+  async () => (await import("../map/LocationPickerModal")).LocationPickerModal
+);
+
+/** The photo's map; until its chunk is in, the quiet surface the map itself shows until it is drawn. */
+function MapSlot(props: React.ComponentProps<typeof LocationMapComponent>) {
+  return (
+    <FeatureBoundary name="map" onReset={locationMap.retry}>
+      <Suspense fallback={<Box h={LOCATION_MAP_HEIGHT} className={locationMapClasses.frame} />}>
+        <locationMap.Component {...props} />
+      </Suspense>
+    </FeatureBoundary>
+  );
+}
+
+/** The location picker, in the dialog LocationSection opens. */
+function PickerSlot(props: React.ComponentProps<typeof LocationPickerComponent>) {
+  return (
+    <FeatureBoundary name="location-picker" onReset={locationPicker.retry}>
+      <Suspense fallback={<PageLoader />}>
+        <locationPicker.Component {...props} />
+      </Suspense>
+    </FeatureBoundary>
+  );
+}
 
 type LocationSectionProps = {
   /** The coordinates are null where the viewer may not see them; the map then stays hidden. */
@@ -167,7 +205,7 @@ export function LocationSection({
           <Box h={mapHeight} className={classes.map}>
             {/* No key per photo: LocationMap recentres on new coordinates itself, and a
                 remount would rebuild the WebGL map on every arrow-key step. */}
-            <LocationMap photos={[photoDetail]} />
+            <MapSlot photos={[photoDetail]} />
           </Box>
         )}
       </Stack>
@@ -180,7 +218,7 @@ export function LocationSection({
           closeOnEscape={!nestedOpened}
         >
           {/* The picked spot belongs to one photo: a step to the next one starts the picker afresh. */}
-          <LocationPickerModal
+          <PickerSlot
             key={photoDetail.image_hash}
             imageHash={photoDetail.image_hash}
             onClose={close}

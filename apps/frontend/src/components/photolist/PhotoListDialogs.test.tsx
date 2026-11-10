@@ -10,6 +10,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
+import { lightbox as lightboxChunk } from "../lightbox/LazyLightbox";
 import type { Lightbox } from "../lightbox/Lightbox";
 import { PhotoListDialogs } from "./PhotoListDialogs";
 import type { Selected } from "./photoListSelection";
@@ -106,7 +107,9 @@ function render({ isPublic = false, dialogs = makeDialogs(), lightboxState = lig
 
 const modal = (name: string) => defined(rendered.modals.get(name), `the ${name} modal`);
 
-beforeAll(() => {
+beforeAll(async () => {
+  // The lightbox is a chunk of its own: loaded first, as the grid prefetches it.
+  await lightboxChunk.preload();
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 

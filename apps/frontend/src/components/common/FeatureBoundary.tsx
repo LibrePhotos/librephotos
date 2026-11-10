@@ -15,6 +15,8 @@ type FeatureBoundaryProps = Readonly<{
   name: string;
   /** When any of these change, a failed boundary renders its children again. */
   resetKeys?: readonly unknown[];
+  /** Called by Retry before the children render again: a lazy chunk that failed to load loads again. */
+  onReset?: () => void;
   /** Replaces the inline fallback, for a feature that needs its own frame (the lightbox's dialog). */
   fallback?: (props: FallbackProps) => React.ReactNode;
 }>;
@@ -70,6 +72,7 @@ export class FeatureBoundary extends React.Component<FeatureBoundaryProps, Featu
   }
 
   reset = (): void => {
+    this.props.onReset?.();
     this.setState({ error: undefined, failed: false });
   };
 

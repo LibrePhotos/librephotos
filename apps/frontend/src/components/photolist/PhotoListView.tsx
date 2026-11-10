@@ -8,7 +8,9 @@ import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { PAGE_GUTTER_PX, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { formatDateForPhotoGroups, type GroupNote } from "../../util/util";
+import { whenIdle } from "../common/lazyWithPreload";
 import type { ListFailure } from "../common/useListFailure";
+import { lightbox as lightboxChunk } from "../lightbox/LazyLightbox";
 import Pig from "../react-pig";
 import type { PigHandle, PigVisibleGroup } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
@@ -246,6 +248,9 @@ function PhotoListViewComponent({
   useEffect(() => {
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
+
+  // The lightbox is a chunk of its own: fetched once the grid has settled, so a click opens it at once.
+  useEffect(() => whenIdle(lightboxChunk.prefetch), []);
 
   const { throttledUpdateGroups, throttledUpdateItems } = usePhotoListThrottledUpdates(updateGroups, updateItems);
 

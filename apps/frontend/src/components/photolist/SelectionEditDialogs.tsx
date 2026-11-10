@@ -1,6 +1,10 @@
-import React from "react";
+import { Modal } from "@mantine/core";
+import React, { Suspense } from "react";
 import type { PhotoSelection } from "../../api_client/photos/photoSelection";
-import { BulkLocationModal } from "../map/BulkLocationModal";
+import { FeatureBoundary, FeatureFallback } from "../common/FeatureBoundary";
+import { lazyWithPreload } from "../common/lazyWithPreload";
+import { PageLoader } from "../common/PageLoader";
+import type { BulkLocationModal as BulkLocationComponent } from "../map/BulkLocationModal";
 import { MovePhotosModal } from "../movephotos/MovePhotosModal";
 import { RenamePhotosModal } from "../movephotos/RenamePhotosModal";
 import { SetRightsModal } from "../rights/SetRightsModal";
@@ -16,6 +20,34 @@ type Props = Readonly<{
   /** The page's path: on a folder page the move dialog marks that folder. */
   pathname: string;
 }>;
+
+type BulkLocationProps = React.ComponentProps<typeof BulkLocationComponent>;
+
+// The location dialog brings MapLibre (about 300 kB gzipped): its own chunk, loaded when it opens, so
+// every photo grid does not carry the map.
+export const bulkLocation = lazyWithPreload<BulkLocationProps>(
+  async () => (await import("../map/BulkLocationModal")).BulkLocationModal
+);
+
+/** The location dialog; while its chunk loads, a dialog of the same kind with a spinner. */
+function BulkLocationSlot(props: BulkLocationProps) {
+  const pending = (body: React.ReactNode) => (
+    <Modal opened onClose={props.onClose} centered>
+      {body}
+    </Modal>
+  );
+  return (
+    <FeatureBoundary
+      name="bulk-location"
+      onReset={bulkLocation.retry}
+      fallback={({ reset }) => pending(<FeatureFallback reset={reset} />)}
+    >
+      <Suspense fallback={pending(<PageLoader />)}>
+        <bulkLocation.Component {...props} />
+      </Suspense>
+    </FeatureBoundary>
+  );
+}
 
 const FOLDER_PAGE = "/album/folder/";
 
@@ -35,7 +67,7 @@ export function SelectionEditDialogs({ dialogs, selection, onDone, pathname }: P
       {dateTime.opened && (
         <ChangeDateTimeModal opened onClose={dateTime.close} selection={selection()} onSaved={onDone} />
       )}
-      {location.opened && <BulkLocationModal opened onClose={location.close} selection={selection()} onDone={onDone} />}
+      {location.opened && <BulkLocationSlot opened onClose={location.close} selection={selection()} onDone={onDone} />}
       {move.opened && (
         <MovePhotosModal
           opened
