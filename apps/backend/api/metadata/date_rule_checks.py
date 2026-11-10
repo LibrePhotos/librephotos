@@ -26,11 +26,10 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 
-import pytz
-
 from api.metadata.date_patterns import DatePatternError, compile_date_pattern
 from api.metadata.datetime_rules import PREDEFINED_REGEXPS, RuleTypes
 from api.metadata.tags import Tags
+from api.models.time_zones import ALL_TIME_ZONES_SET
 
 
 @dataclass(frozen=True)
@@ -137,7 +136,7 @@ def _time_zone_problem(value: object) -> str | None:
     if isinstance(value, str) and value.lower() in TIME_ZONE_KEYWORDS:
         return None
     if isinstance(value, str) and value.startswith(ZONE_PREFIX):
-        if value[len(ZONE_PREFIX) :] in pytz.all_timezones_set:
+        if value[len(ZONE_PREFIX) :] in ALL_TIME_ZONES_SET:
             return None
         return f"Unknown time zone {value[len(ZONE_PREFIX) :]!r}."
     return "Must be utc, gps_timezonefinder, user_default, server_local or name:<zone>."

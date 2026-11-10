@@ -10,9 +10,8 @@ UI language.
 """
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
-import pytz
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -34,7 +33,7 @@ from api.tests.utils import (
 
 
 def utc(*args):
-    return datetime(*args).replace(tzinfo=pytz.utc)
+    return datetime(*args).replace(tzinfo=UTC)
 
 
 def parts(**overrides) -> TitleParts:

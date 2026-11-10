@@ -1,8 +1,8 @@
 import datetime
 import json
+from datetime import UTC
 from unittest.mock import patch
 
-import pytz
 from django.test import TestCase
 from django.utils.dateparse import parse_datetime
 from rest_framework.test import APIClient
@@ -137,9 +137,7 @@ class DefaultRulesOrderTest(TestCase):
                 Tags.DATE_TIME: "2001:02:03 04:05:06",
             }
         )
-        self.assertEqual(
-            datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=pytz.utc), result
-        )
+        self.assertEqual(datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=UTC), result)
 
     def test_date_time_original_wins_when_there_is_no_date_created(self):
         result = self._extract(
@@ -148,15 +146,11 @@ class DefaultRulesOrderTest(TestCase):
                 Tags.DATE_TIME: "2001:02:03 04:05:06",
             }
         )
-        self.assertEqual(
-            datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=pytz.utc), result
-        )
+        self.assertEqual(datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=UTC), result)
 
     def test_modify_date_is_still_used_as_a_last_resort(self):
         result = self._extract({Tags.DATE_TIME: "2001:02:03 04:05:06"})
-        self.assertEqual(
-            datetime.datetime(2001, 2, 3, 4, 5, 6, tzinfo=pytz.utc), result
-        )
+        self.assertEqual(datetime.datetime(2001, 2, 3, 4, 5, 6, tzinfo=UTC), result)
 
     def test_the_old_timestamp_set_by_user_rule_matches_nothing(self):
         # A list saved by an older client may still hold rule 14; a date set
@@ -214,7 +208,7 @@ class DefaultVideoRulesTest(TestCase):
                 Tags.QUICKTIME_CREATE_DATE: "2024:04:03 10:00:00",
             }
         )
-        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=pytz.utc), result)
+        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=UTC), result)
 
     def test_the_stated_local_time_wins_over_the_gps_time_zone(self):
         # Shot in San Francisco, the position says Berlin (a wrong fix or a
@@ -226,14 +220,14 @@ class DefaultVideoRulesTest(TestCase):
             },
             gps=(52.52, 13.405),
         )
-        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=pytz.utc), result)
+        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=UTC), result)
 
     def test_a_video_without_creation_date_still_uses_create_date(self):
         result = self._extract(
             {Tags.QUICKTIME_CREATE_DATE: "2024:04:03 10:00:00"},
             gps=self.SAN_FRANCISCO,
         )
-        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=pytz.utc), result)
+        self.assertEqual(datetime.datetime(2024, 4, 3, 3, 0, tzinfo=UTC), result)
 
     def test_a_matroska_date_is_converted_with_the_position(self):
         result = self._extract(
@@ -241,13 +235,13 @@ class DefaultVideoRulesTest(TestCase):
             gps=self.SAN_FRANCISCO,
             path="/videos/clip.mkv",
         )
-        self.assertEqual(datetime.datetime(2025, 3, 12, 10, 0, tzinfo=pytz.utc), result)
+        self.assertEqual(datetime.datetime(2025, 3, 12, 10, 0, tzinfo=UTC), result)
 
     def test_a_matroska_date_falls_back_to_the_default_time_zone(self):
         result = self._extract(
             {Tags.MATROSKA_DATE: "2025:03:12 17:00:00Z"}, path="/videos/clip.webm"
         )
-        self.assertEqual(datetime.datetime(2025, 3, 12, 18, 0, tzinfo=pytz.utc), result)
+        self.assertEqual(datetime.datetime(2025, 3, 12, 18, 0, tzinfo=UTC), result)
 
     def test_a_date_in_the_file_name_wins_over_the_default_time_zone(self):
         # Rule 3 (file name, local time) stays above rule 19, as above rule 4.
@@ -255,7 +249,7 @@ class DefaultVideoRulesTest(TestCase):
             {Tags.MATROSKA_DATE: "2025:03:12 17:00:00Z"},
             path="/videos/VID_20250312_170000.mkv",
         )
-        self.assertEqual(datetime.datetime(2025, 3, 12, 17, 0, tzinfo=pytz.utc), result)
+        self.assertEqual(datetime.datetime(2025, 3, 12, 17, 0, tzinfo=UTC), result)
 
 
 class BrokenCustomRegexpRuleTest(TestCase):
@@ -300,9 +294,7 @@ class BrokenCustomRegexpRuleTest(TestCase):
     def _assert_falls_through(self, custom_regexp):
         with self.assertLogs("api.metadata.datetime_rules", "WARNING"):
             result = self._extract_with(custom_regexp)
-        self.assertEqual(
-            datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=pytz.utc), result
-        )
+        self.assertEqual(datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=UTC), result)
 
     def test_more_than_seven_groups(self):
         self._assert_falls_through(
@@ -320,11 +312,11 @@ class BrokenCustomRegexpRuleTest(TestCase):
 
     def test_unmatched_optional_time_group_defaults_to_zero(self):
         result = self._extract_with(r"(\d{4})/(\d\d)/(\d\d)/(x\d)?")
-        self.assertEqual(datetime.datetime(2020, 1, 2, tzinfo=pytz.utc), result)
+        self.assertEqual(datetime.datetime(2020, 1, 2, tzinfo=UTC), result)
 
 
-CAMERA_DATE = datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=pytz.utc)
-MANUAL_DATE = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=pytz.utc)
+CAMERA_DATE = datetime.datetime(2005, 1, 2, 3, 4, 5, tzinfo=UTC)
+MANUAL_DATE = datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=UTC)
 
 
 def _camera_metadata(path, tags, **kwargs):
@@ -429,7 +421,7 @@ class ManualDateOverrideTest(TestCase):
 
 SAN_FRANCISCO = (37.7749, -122.4194)
 # 2025-06-01 23:30 in San Francisco (UTC-07:00 in summer) is 06:30 UTC on the 2nd.
-LOCAL_EVENING = datetime.datetime(2025, 6, 1, 23, 30, tzinfo=pytz.utc)
+LOCAL_EVENING = datetime.datetime(2025, 6, 1, 23, 30, tzinfo=UTC)
 
 
 def _read(exif_values, rules=None, gps=(None, None), default_tz="UTC"):
@@ -477,7 +469,7 @@ class UtcValueOfALocalTimeTagTest(TestCase):
             default_tz="Europe/Berlin",
         )
         self.assertEqual(
-            CaptureTime(datetime.datetime(2025, 6, 2, 8, 30, tzinfo=pytz.utc), 120, 16),
+            CaptureTime(datetime.datetime(2025, 6, 2, 8, 30, tzinfo=UTC), 120, 16),
             found,
         )
 
@@ -523,9 +515,7 @@ class UtcValueOfALocalTimeTagTest(TestCase):
             gps=SAN_FRANCISCO,
         )
         self.assertEqual(
-            CaptureTime(
-                datetime.datetime(2025, 6, 2, 6, 30, tzinfo=pytz.utc), None, 13
-            ),
+            CaptureTime(datetime.datetime(2025, 6, 2, 6, 30, tzinfo=UTC), None, 13),
             found,
         )
 
@@ -546,7 +536,7 @@ class UtcValueOfALocalTimeTagTest(TestCase):
             RuleContext(None, None, "UTC"),
         )
         self.assertEqual(
-            CaptureTime(datetime.datetime(2025, 6, 2, 8, 30, tzinfo=pytz.utc), 540),
+            CaptureTime(datetime.datetime(2025, 6, 2, 8, 30, tzinfo=UTC), 540),
             found,
         )
 
@@ -594,9 +584,7 @@ class CaptureTimeOffsetTest(TestCase):
             {Tags.QUICKTIME_CREATE_DATE: "2025:06:02 06:30:00"}, gps=SAN_FRANCISCO
         )
         self.assertEqual(
-            CaptureTime(
-                datetime.datetime(2025, 1, 1, 22, 30, tzinfo=pytz.utc), -480, 2
-            ),
+            CaptureTime(datetime.datetime(2025, 1, 1, 22, 30, tzinfo=UTC), -480, 2),
             winter,
         )
         self.assertEqual(CaptureTime(LOCAL_EVENING, -420, 2), summer)
@@ -625,7 +613,7 @@ class CaptureTimeOffsetTest(TestCase):
             {Tags.QUICKTIME_CREATE_DATE: "2025:06:02 06:30:00"},
             RuleContext(None, None, "UTC"),
         )
-        local = datetime.datetime(2025, 6, 2, 6, 30, tzinfo=pytz.utc).astimezone()
+        local = datetime.datetime(2025, 6, 2, 6, 30, tzinfo=UTC).astimezone()
         offset = local.utcoffset()
         assert found is not None and offset is not None
         self.assertEqual(int(offset.total_seconds()) // 60, found.utc_offset)

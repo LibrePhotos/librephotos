@@ -16,9 +16,8 @@ album's ``timestamp`` so existing albums keep matching, and existing titles
 only change when the user regenerates them (``regenerate_event_titles``).
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
-import pytz
 from django.test import TestCase
 
 from api.albums.auto_albums import generate_event_albums
@@ -33,7 +32,7 @@ GROUPING_KEY_OFFSET = timedelta(hours=11, minutes=59)
 
 
 def utc(*args):
-    return datetime(*args).replace(tzinfo=pytz.utc)
+    return datetime(*args).replace(tzinfo=UTC)
 
 
 class AutoAlbumTitleTimeOfDayTest(TestCase):

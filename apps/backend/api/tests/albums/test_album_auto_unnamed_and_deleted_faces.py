@@ -14,9 +14,8 @@ row per *labelled* face, and everything the algorithms have not matched yet has
 ``person = None``.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
-import pytz
 from django.test import TestCase
 
 from api.models import AlbumAuto
@@ -31,7 +30,7 @@ from api.tests.utils import (
 
 
 def utc(*args):
-    return datetime(*args).replace(tzinfo=pytz.utc)
+    return datetime(*args).replace(tzinfo=UTC)
 
 
 class AlbumAutoTitleWithUnnamedFacesTest(TestCase):

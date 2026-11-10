@@ -1,13 +1,10 @@
 from datetime import datetime
 from itertools import groupby
 
-import pytz
 from django.db.models import QuerySet
 from rest_framework.request import Request
 
 from api.models import Photo
-
-utc = pytz.UTC
 
 
 class PhotosGroupedByDate:
