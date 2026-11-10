@@ -21,9 +21,10 @@ export const useUpdateUserMutation = ({ silent = false, ...options }: UpdateUser
       if (!silent) {
         notification.updateUser(data.username);
       }
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
-      queryClient.invalidateQueries({ queryKey: userKeys.list() });
-      queryClient.invalidateQueries({ queryKey: folderKeys.nextcloudDirs() });
+      void queryClient.invalidateQueries({ queryKey: userKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: folderKeys.nextcloudDirs() });
+      // Returned: a settings page shows the stored profile again once the save is done, so the
+      // save is done when the profile has been read again, not before.
+      return queryClient.invalidateQueries({ queryKey: userKeys.selfDetails() });
     },
   });

@@ -1,7 +1,8 @@
+import type { SiteSettings as SiteSettingsValues } from "@librephotos/api-client";
 import { Button, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import type { TFunction } from "i18next";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { ErrorState } from "../common/ErrorState";
@@ -16,7 +17,7 @@ import { SectionLink } from "./SettingsSection";
 import { SsoSettingsGroup } from "./SsoSettings";
 import { TrashRetentionSetting } from "./TrashRetentionSetting";
 import { UpdateCheckSetting } from "./UpdateCheckSetting";
-import { useSaveSiteSettings } from "./useSaveSiteSettings";
+import { useSiteSettingDraft } from "./useSiteSettingDraft";
 
 /** What an option's label says about it, after the product name; translated at render time. */
 type OptionHint = "default" | "lightweight_default" | "fastest" | "most_accurate" | "offline";
@@ -72,8 +73,6 @@ const CAPTIONING_MODELS: ModelOption[] = [
   { value: "none", label: "" },
 ];
 
-const DEFAULT_CAPTIONING_MODEL = "lfm2_vl_450m";
-
 const OCR_MODELS: ModelOption[] = [
   { value: "none", label: "" },
   { value: "ppocrv6_tiny", label: "PP-OCRv6 Tiny", hint: "fastest" },
@@ -124,7 +123,7 @@ export function SiteSettings() {
   const failure = useListFailure(settingsQuery);
 
   if (settingsQuery.data) {
-    return <SiteSettingsForm />;
+    return <SiteSettingsForm settings={settingsQuery.data} />;
   }
   return (
     <SettingsCard>
@@ -137,83 +136,59 @@ export function SiteSettings() {
   );
 }
 
-function SiteSettingsForm() {
-  const [mapApiKey, setMapApiKey] = useState("");
-  const [mapApiProvider, setMapApiProvider] = useState<string>("exiftool");
-  const [mapTileProvider, setMapTileProvider] = useState<string>("photoprism");
-  const [allowRegistration, setAllowRegistration] = useState(false);
-  const [allowUpload, setAllowUpload] = useState(false);
-  const [nextcloudEnabled, setNextcloudEnabled] = useState(false);
-  const [autoCreateUserDirectory, setAutoCreateUserDirectory] = useState(false);
-  const [captioningModel, setCaptioningModel] = useState(DEFAULT_CAPTIONING_MODEL);
-  const [ocrModel, setOcrModel] = useState(OCR_DISABLED);
-  // Restored when the user backs out of the OCR confirmation dialog.
-  const [previousOcrModel, setPreviousOcrModel] = useState(OCR_DISABLED);
-  const [faceRecognitionModel, setFaceRecognitionModel] = useState("buffalo_sc");
-  const [warning, setWarning] = useState("none");
+/**
+ * Each control shows its stored value until it is changed, then the change while it is saved; a
+ * refused save shows the stored value again. A fetch of the settings never undoes a change.
+ */
+function SiteSettingsForm({ settings }: Readonly<{ settings: SiteSettingsValues }>) {
+  const mapApiKey = useSiteSettingDraft(settings.map_api_key, value => ({ map_api_key: value }));
+  const mapApiProvider = useSiteSettingDraft(settings.map_api_provider, value => ({ map_api_provider: value }));
+  const mapTileProvider = useSiteSettingDraft(settings.map_tile_provider, value => ({ map_tile_provider: value }));
+  const allowRegistration = useSiteSettingDraft(settings.allow_registration, value => ({ allow_registration: value }));
+  const allowUpload = useSiteSettingDraft(settings.allow_upload, value => ({ allow_upload: value }));
+  const nextcloudEnabled = useSiteSettingDraft(settings.nextcloud_enabled, value => ({ nextcloud_enabled: value }));
+  const autoCreateUserDirectory = useSiteSettingDraft(settings.auto_create_user_directory ?? false, value => ({
+    auto_create_user_directory: value,
+  }));
+  const captioningModel = useSiteSettingDraft(settings.captioning_model, value => ({ captioning_model: value }));
+  // A model picked here waits as the draft while the confirmation is open.
+  const ocrModel = useSiteSettingDraft(normalizeOcrModel(settings.ocr_model), value => ({ ocr_model: value }));
+  const faceRecognitionModel = useSiteSettingDraft(settings.face_recognition_model, value => ({
+    face_recognition_model: value,
+  }));
   const { t } = useTranslation();
-  const { data: settings, isLoading, dataUpdatedAt } = useGetSettingsQuery();
-  const save = useSaveSiteSettings();
   const [opened, { open, close }] = useDisclosure(false);
-  const mapProvider = MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider);
+  const mapProvider = MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider.value);
 
-  // The text fields save on blur and on Enter; only send what actually changed.
-  const saveMapApiKey = () => {
-    if (settings && mapApiKey !== settings.map_api_key) {
-      save({ map_api_key: mapApiKey });
-    }
-  };
+  // The text fields save on blur and on Enter; only what changed is sent.
+  const saveMapApiKey = () => void mapApiKey.commit();
 
-  const dismissWarning = () => {
-    if (warning === "ocr") {
-      setOcrModel(previousOcrModel);
-    }
+  const dismissOcrWarning = () => {
+    ocrModel.discard();
     close();
   };
 
-  const confirmWarning = () => {
-    if (warning === "ocr") {
-      save({ ocr_model: ocrModel });
-      setPreviousOcrModel(ocrModel);
-    }
+  const confirmOcrWarning = () => {
+    void ocrModel.commit();
     close();
   };
-
-  useEffect(() => {
-    if (!isLoading && settings) {
-      setMapApiKey(settings.map_api_key);
-      setMapApiProvider(settings.map_api_provider);
-      setMapTileProvider(settings.map_tile_provider);
-      setAllowRegistration(settings.allow_registration);
-      setAllowUpload(settings.allow_upload);
-      setNextcloudEnabled(settings.nextcloud_enabled);
-      setAutoCreateUserDirectory(settings.auto_create_user_directory ?? false);
-      setCaptioningModel(settings.captioning_model);
-      setOcrModel(normalizeOcrModel(settings.ocr_model));
-      setPreviousOcrModel(normalizeOcrModel(settings.ocr_model));
-      setFaceRecognitionModel(settings.face_recognition_model);
-    }
-    // dataUpdatedAt: a reload that brings back the same values still resets the controls
-  }, [settings, isLoading, dataUpdatedAt]);
 
   // A fragment: the dialog and the card, inside the admin page's admin-site section.
   return (
     <>
       <Modal
         opened={opened}
-        onClose={dismissWarning}
+        onClose={dismissOcrWarning}
         // Plain text: the title is already an h2, and the app theme styles it like every other dialog.
-        title={warning === "ocr" ? t("sitesettings.ocr_warning_header") : t("sitesettings.ram_warning_header")}
+        title={t("sitesettings.ocr_warning_header")}
       >
         <Stack>
-          <Text>
-            {warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.heavyweight_process_warning")}
-          </Text>
+          <Text>{t("sitesettings.ocr_warning")}</Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={dismissWarning}>
+            <Button variant="default" onClick={dismissOcrWarning}>
               {t("cancel")}
             </Button>
-            <Button onClick={confirmWarning} color="red">
+            <Button onClick={confirmOcrWarning} color="red">
               {t("save")}
             </Button>
           </Group>
@@ -229,24 +204,24 @@ function SiteSettingsForm() {
 
           <Switch
             label={t("sitesettings.header")}
-            onChange={() => save({ allow_registration: !allowRegistration })}
-            checked={allowRegistration}
+            onChange={event => void allowRegistration.commit(event.currentTarget.checked)}
+            checked={allowRegistration.value}
           />
           <Switch
             label={t("sitesettings.headerupload")}
-            onChange={() => save({ allow_upload: !allowUpload })}
-            checked={allowUpload}
+            onChange={event => void allowUpload.commit(event.currentTarget.checked)}
+            checked={allowUpload.value}
           />
           <Switch
             label={t("sitesettings.headernextcloud")}
-            onChange={() => save({ nextcloud_enabled: !nextcloudEnabled })}
-            checked={nextcloudEnabled}
+            onChange={event => void nextcloudEnabled.commit(event.currentTarget.checked)}
+            checked={nextcloudEnabled.value}
           />
           <Switch
             label={t("sitesettings.headerautocreateuserdirectory")}
             description={t("sitesettings.autocreateuserdirectory")}
-            onChange={() => save({ auto_create_user_directory: !autoCreateUserDirectory })}
-            checked={autoCreateUserDirectory}
+            onChange={event => void autoCreateUserDirectory.commit(event.currentTarget.checked)}
+            checked={autoCreateUserDirectory.value}
           />
           <UpdateCheckSetting />
           <NoticeSiteSettings />
@@ -272,11 +247,9 @@ function SiteSettingsForm() {
                 searchable
                 allowDeselect={false}
                 data={translateOptions(MAP_API_PROVIDERS, t, "")}
-                value={mapApiProvider}
+                value={mapApiProvider.value}
                 onChange={provider => {
-                  if (!provider) return;
-                  setMapApiProvider(provider);
-                  save({ map_api_provider: provider });
+                  if (provider) void mapApiProvider.commit(provider);
                 }}
               />
             </Grid.Col>
@@ -293,14 +266,14 @@ function SiteSettingsForm() {
                 </Grid.Col>
                 <Grid.Col span={CONTROL_SPAN}>
                   <TextInput
-                    value={mapApiKey}
+                    value={mapApiKey.value}
                     onKeyDown={e => {
                       if (e.key === "Enter") {
                         saveMapApiKey();
                       }
                     }}
                     onBlur={saveMapApiKey}
-                    onChange={e => setMapApiKey(e.target.value)}
+                    onChange={e => mapApiKey.edit(e.target.value)}
                   />
                 </Grid.Col>
               </>
@@ -317,12 +290,8 @@ function SiteSettingsForm() {
               <Select
                 allowDeselect={false}
                 data={translateOptions(MAP_TILE_PROVIDERS, t, t("sitesettings.maptile_none"))}
-                value={mapTileProvider}
-                onChange={provider => {
-                  const value = provider || "photoprism";
-                  setMapTileProvider(value);
-                  save({ map_tile_provider: value });
-                }}
+                value={mapTileProvider.value}
+                onChange={provider => void mapTileProvider.commit(provider || "photoprism")}
               />
             </Grid.Col>
             <Grid.Col span={LABEL_SPAN}>
@@ -338,11 +307,9 @@ function SiteSettingsForm() {
                 searchable
                 allowDeselect={false}
                 data={translateOptions(CAPTIONING_MODELS, t, t("sitesettings.model_none"))}
-                value={captioningModel}
+                value={captioningModel.value}
                 onChange={model => {
-                  if (!model) return;
-                  save({ captioning_model: model });
-                  setCaptioningModel(model);
+                  if (model) void captioningModel.commit(model);
                 }}
               />
             </Grid.Col>
@@ -359,17 +326,15 @@ function SiteSettingsForm() {
                 searchable
                 allowDeselect={false}
                 data={translateOptions(OCR_MODELS, t, t("sitesettings.model_none"))}
-                value={ocrModel}
+                value={ocrModel.value}
                 onChange={model => {
                   const value = normalizeOcrModel(model);
-                  setOcrModel(value);
                   if (value === OCR_DISABLED) {
-                    setPreviousOcrModel(value);
-                    save({ ocr_model: value });
+                    void ocrModel.commit(value);
                     return;
                   }
                   // Turning OCR on has privacy consequences, so let the admin confirm first.
-                  setWarning("ocr");
+                  ocrModel.edit(value);
                   open();
                 }}
               />
@@ -387,12 +352,8 @@ function SiteSettingsForm() {
                 searchable
                 allowDeselect={false}
                 data={translateOptions(FACE_RECOGNITION_MODELS, t, t("sitesettings.model_none"))}
-                value={faceRecognitionModel}
-                onChange={model => {
-                  const value = model ?? "buffalo_sc";
-                  save({ face_recognition_model: value });
-                  setFaceRecognitionModel(value);
-                }}
+                value={faceRecognitionModel.value}
+                onChange={model => void faceRecognitionModel.commit(model ?? "buffalo_sc")}
               />
             </Grid.Col>
           </Grid>

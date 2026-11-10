@@ -17,7 +17,7 @@ type NavigateOptions = { hash?: string; replace?: boolean; resetScroll?: boolean
 const mocks = vi.hoisted(() => ({
   hash: "",
   navigate: vi.fn<(options: NavigateOptions) => Promise<void>>(),
-  copy: vi.fn<(text: string) => void>(),
+  copy: vi.fn<(text: string) => boolean>(() => true),
   success: vi.fn<(message: string) => void>(),
   fetching: 0,
 }));
@@ -32,7 +32,7 @@ vi.mock("@tanstack/react-query", async importOriginal => ({
   useIsFetching: () => mocks.fetching,
 }));
 vi.mock("../../service/notifications", () => ({ notification: { success: mocks.success } }));
-vi.mock("../../util/util", () => ({ copyToClipboard: mocks.copy }));
+vi.mock("../../util/util", () => ({ copyText: async (text: string) => mocks.copy(text) }));
 
 const SECTIONS = [
   { id: "test-first", label: "First card" },
@@ -80,7 +80,7 @@ beforeEach(() => {
   mocks.fetching = 0;
   mocks.navigate.mockReset();
   mocks.navigate.mockResolvedValue(undefined);
-  mocks.copy.mockReset();
+  mocks.copy.mockReset().mockReturnValue(true);
   mocks.success.mockReset();
   scrolled.mockReset();
   tops.clear();
@@ -241,6 +241,22 @@ describe("SectionNav", () => {
     expect(mocks.copy).toHaveBeenCalledWith(expect.stringMatching(/#test-second$/));
     expect(mocks.success).toHaveBeenCalledWith("sectionnav.linkcopied");
     expect(mocks.navigate).toHaveBeenCalledWith(expect.objectContaining({ hash: "test-second" }));
+  });
+
+  it("says nothing was copied when the browser refused the write", async () => {
+    mocks.copy.mockReturnValueOnce(false);
+    await render();
+
+    const link = defined(
+      container.querySelector<HTMLAnchorElement>('#test-second a[aria-label="sectionnav.copylink"]'),
+      "the copy link"
+    );
+    await act(async () => {
+      link.click();
+    });
+
+    expect(mocks.copy).toHaveBeenCalledOnce();
+    expect(mocks.success).not.toHaveBeenCalled();
   });
 
   it("shows no # link outside a page with section navigation", async () => {

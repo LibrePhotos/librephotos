@@ -45,7 +45,11 @@ const stubs = vi.hoisted(() => ({
 vi.mock("../../api_client/albums/hooks", () => ({
   useToggleUserAlbumPublicMutation: () => ({ mutate: stubs.togglePublic, isPending: false }),
   useFetchUserAlbumQuery: () => ({ data: stubs.album, refetch: () => Promise.resolve() }),
-  useShareUserAlbumMutation: () => ({ mutate: stubs.share, isPending: false }),
+  useShareUserAlbumMutation: () => ({
+    mutate: stubs.share,
+    mutateAsync: async (params: Parameters<Share>[0]) => stubs.share(params),
+    isPending: false,
+  }),
   useSetAlbumMemberCeilingMutation: () => ({ mutate: stubs.setCeiling, isPending: false }),
 }));
 vi.mock("../../api_client/user/hooks", () => ({
@@ -214,10 +218,7 @@ describe("ModalAlbumShare roles (#464)", () => {
 
     await pick("Clara Ruiz", "Can view");
 
-    expect(stubs.share).toHaveBeenCalledWith(
-      { albumId: "5", userId: "3", share: true, role: "viewer" },
-      expect.anything()
-    );
+    expect(stubs.share).toHaveBeenCalledWith({ albumId: "5", userId: "3", share: true, role: "viewer" });
   });
 
   it("asks before taking a contributor's photos out, saying how many", async () => {
@@ -231,10 +232,7 @@ describe("ModalAlbumShare roles (#464)", () => {
 
     await click(dialogButton("Remove"));
 
-    expect(stubs.share).toHaveBeenCalledWith(
-      { albumId: "5", userId: "2", share: false, role: undefined },
-      expect.anything()
-    );
+    expect(stubs.share).toHaveBeenCalledWith({ albumId: "5", userId: "2", share: false, role: undefined });
   });
 
   it("shows the owner's ceiling and saves a change at once", async () => {

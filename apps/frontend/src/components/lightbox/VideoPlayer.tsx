@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useMediaDiagnosticsQuery } from "../../api_client/media";
 import { probeMedia } from "../../api_client/media/mediaUrl";
-import { copyToClipboard } from "../../util/util";
+import { copyText } from "../../util/util";
 import { useSeekShortcut } from "./useSeekShortcut";
 import { useVideoStart } from "./useVideoStart";
 import type { DiagnosticFact, VideoErrorKind } from "./videoFailure";
@@ -288,12 +288,13 @@ export const VideoPlayer = memo(function VideoPlayer({
     ].join("\n");
   };
 
-  const handleCopy = () => {
-    copyToClipboard(buildReport());
-    setCopied(true);
-    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-    copiedTimerRef.current = setTimeout(() => setCopied(false), 1200);
-  };
+  // "Copied" only once the report is on the clipboard.
+  const handleCopy = () =>
+    void copyText(buildReport()).then(copied => {
+      setCopied(copied);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 1200);
+    });
 
   const renderDiagnostics = () => {
     const facts = diagnosticFacts();

@@ -15,7 +15,7 @@ import { deletesMoreThan, TrashRetentionSetting } from "./TrashRetentionSetting"
 type Preview = { data?: TrashRetentionPreview; isError: boolean };
 
 const stubs = vi.hoisted(() => ({
-  save: vi.fn<(input: SiteSettingsUpdate) => void>(),
+  save: vi.fn<(input: SiteSettingsUpdate) => Promise<boolean>>(),
   query: { data: undefined as Partial<SiteSettings> | undefined, dataUpdatedAt: 1 },
   preview: { isError: false } as Preview,
   previewDays: [] as (number | null)[],
@@ -28,17 +28,20 @@ vi.mock("../../api_client/settings/hooks", () => ({
     return stubs.preview;
   },
 }));
-vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => stubs.save }));
+vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettingsAsync: () => stubs.save }));
 
 let container: HTMLElement;
+let rerender: (next: React.ReactNode) => Promise<void>;
+
+const ui = () => (
+  <Grid>
+    <TrashRetentionSetting />
+  </Grid>
+);
 
 async function render(stored: number) {
   stubs.query = { data: { trash_retention_days: stored }, dataUpdatedAt: 1 };
-  ({ container } = await renderInMantine(
-    <Grid>
-      <TrashRetentionSetting />
-    </Grid>
-  ));
+  ({ container, rerender } = await renderInMantine(ui()));
 }
 
 const field = () => defined(container.querySelector<HTMLInputElement>("input"));
@@ -67,7 +70,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  stubs.save.mockReset();
+  stubs.save.mockReset().mockResolvedValue(true);
   document.body.innerHTML = "";
 });
 
@@ -111,6 +114,28 @@ describe("TrashRetentionSetting", () => {
 
     await click(dialogButton("Delete automatically"));
     expect(stubs.save).toHaveBeenCalledWith({ trash_retention_days: 30 });
+  });
+
+  it("keeps the value waiting for the confirmation when the settings are fetched again", async () => {
+    stubs.preview = { isError: false, data: { days: 30, photo_count: 0, user_count: 0 } };
+    await render(0);
+    await typeAndBlur("30");
+
+    stubs.query = { data: { trash_retention_days: 0 }, dataUpdatedAt: 2 };
+    await rerender(ui());
+    expect(field().value).toBe("30 days");
+
+    await click(dialogButton("Delete automatically"));
+    expect(stubs.save).toHaveBeenCalledWith({ trash_retention_days: 30 });
+  });
+
+  it("puts the stored value back when the save is refused", async () => {
+    stubs.save.mockResolvedValue(false);
+    await render(30);
+
+    await typeAndBlur("60");
+
+    expect(field().value).toBe("30 days");
   });
 
   it("puts the stored value back when the admin backs out", async () => {

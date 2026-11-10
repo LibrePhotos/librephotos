@@ -1,8 +1,8 @@
 import { Grid, NumberInput, Stack, Text, TextInput } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
-import { useSaveSiteSettings } from "./useSaveSiteSettings";
+import { useSiteSettingDraft } from "./useSiteSettingDraft";
 
 // Label and control side by side from the sm breakpoint up, stacked on a phone.
 export const LABEL_SPAN = { base: 12, sm: 8 };
@@ -22,40 +22,26 @@ export function SettingLabel({ header, description }: { header: string; descript
 }
 
 /**
- * The folder name patterns a scan ignores. Saves on blur and on Enter, only when changed. Like
- * the other site settings, every reload of the settings (also after a refused save) puts the
- * field back to what the server has (#2222).
+ * The folder name patterns a scan ignores. Saves on blur and on Enter, only when changed. What is
+ * typed stays while the settings are fetched again; a refused save puts the stored value back (#2222).
  */
 export function SkipPatternsSetting() {
   const { t } = useTranslation();
-  const { data: settings, dataUpdatedAt } = useGetSettingsQuery();
-  const save = useSaveSiteSettings();
-  const [skipPatterns, setSkipPatterns] = useState("");
-
-  useEffect(() => {
-    if (settings) setSkipPatterns(settings.skip_patterns);
-    // dataUpdatedAt: a reload that brings back the same values still resets the field
-  }, [settings, dataUpdatedAt]);
-
-  const saveSkipPatterns = () => {
-    if (settings && skipPatterns !== settings.skip_patterns) {
-      save({ skip_patterns: skipPatterns });
-    }
-  };
+  const { data: settings } = useGetSettingsQuery();
+  const skipPatterns = useSiteSettingDraft(settings?.skip_patterns ?? "", value => ({ skip_patterns: value }));
+  const commit = () => void skipPatterns.commit();
 
   return (
     <>
       <SettingLabel header={t("sitesettings.headerskippatterns")} description={t("sitesettings.skippatterns")} />
       <Grid.Col span={CONTROL_SPAN}>
         <TextInput
-          value={skipPatterns}
+          value={skipPatterns.value}
           onKeyDown={e => {
-            if (e.key === "Enter") {
-              saveSkipPatterns();
-            }
+            if (e.key === "Enter") commit();
           }}
-          onBlur={saveSkipPatterns}
-          onChange={event => setSkipPatterns(event.currentTarget.value)}
+          onBlur={commit}
+          onChange={event => skipPatterns.edit(event.currentTarget.value)}
         />
       </Grid.Col>
     </>
@@ -73,25 +59,19 @@ const toPercent = (fraction: number) => Math.round(fraction * 100);
  */
 export function MissingPhotosLimitSetting() {
   const { t } = useTranslation();
-  const { data: settings, dataUpdatedAt } = useGetSettingsQuery();
-  const save = useSaveSiteSettings();
+  const { data: settings } = useGetSettingsQuery();
   const stored = settings?.scan_missing_max_fraction ?? DEFAULT_MISSING_LIMIT;
-  const [percent, setPercent] = useState<number | string>(toPercent(stored));
-
-  useEffect(() => {
-    setPercent(toPercent(stored));
-    // dataUpdatedAt: a reload that brings back the same value still resets the field
-  }, [stored, dataUpdatedAt]);
+  const percent = useSiteSettingDraft<number | string>(toPercent(stored), value => ({
+    scan_missing_max_fraction: typeof value === "number" ? value / 100 : stored,
+  }));
 
   const savePercent = () => {
     // An emptied field puts back the stored value instead of saving nothing as 0%.
-    if (typeof percent !== "number") {
-      setPercent(toPercent(stored));
+    if (typeof percent.value !== "number") {
+      percent.discard();
       return;
     }
-    if (settings && percent !== toPercent(stored)) {
-      save({ scan_missing_max_fraction: percent / 100 });
-    }
+    void percent.commit();
   };
 
   return (
@@ -103,7 +83,7 @@ export function MissingPhotosLimitSetting() {
       <Grid.Col span={CONTROL_SPAN}>
         <NumberInput
           aria-label={t("sitesettings.headerscanmissingmaxfraction")}
-          value={percent}
+          value={percent.value}
           min={0}
           max={100}
           step={5}
@@ -116,7 +96,7 @@ export function MissingPhotosLimitSetting() {
             }
           }}
           onBlur={savePercent}
-          onChange={setPercent}
+          onChange={percent.edit}
         />
       </Grid.Col>
     </>

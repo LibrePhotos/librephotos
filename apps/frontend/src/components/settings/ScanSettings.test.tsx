@@ -26,13 +26,13 @@ const SETTINGS: SiteSettings = {
 };
 
 const stubs = vi.hoisted(() => ({
-  save: vi.fn<(input: Partial<SiteSettings>) => void>(),
+  save: vi.fn<(input: Partial<SiteSettings>) => Promise<boolean>>(),
   query: { data: undefined as SiteSettings | undefined, dataUpdatedAt: 1 },
 }));
 const save = stubs.save;
 
 vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => stubs.query }));
-vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => stubs.save }));
+vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettingsAsync: () => stubs.save }));
 let root: ReturnType<typeof createRoot>;
 let container: HTMLDivElement;
 
@@ -65,7 +65,7 @@ const render = async () => {
 };
 
 beforeEach(async () => {
-  save.mockReset();
+  save.mockReset().mockResolvedValue(true);
   stubs.query = { data: SETTINGS, dataUpdatedAt: 1 };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -84,13 +84,18 @@ const field = () => {
   return input;
 };
 
-const typeAndBlur = async (value: string) => {
+const typeInto = async (value: string) => {
   const input = field();
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
   await act(async () => {
     setter?.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
+};
+
+const typeAndBlur = async (value: string) => {
+  const input = field();
+  await typeInto(value);
   await act(async () => {
     input.focus();
     input.blur();
@@ -115,13 +120,20 @@ describe("MissingPhotosLimitSetting", () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it("puts the server's value back when the settings are reloaded", async () => {
+  it("puts the server's value back when the save is refused", async () => {
+    save.mockResolvedValue(false);
     await typeAndBlur("80");
-    // The save was refused; the same settings come back from a refetch.
-    stubs.query = { data: SETTINGS, dataUpdatedAt: 2 };
-    await render();
 
     expect(field().value).toBe("50%");
+  });
+
+  it("keeps what is being typed when the settings are fetched again", async () => {
+    await typeInto("80");
+    // A window focus or another field's save reads the settings again.
+    stubs.query = { data: { ...SETTINGS }, dataUpdatedAt: 2 };
+    await render();
+
+    expect(field().value).toBe("80%");
   });
 
   it("puts the stored value back when the field is emptied", async () => {

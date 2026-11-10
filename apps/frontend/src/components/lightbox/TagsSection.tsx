@@ -130,16 +130,17 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
   // Only ever started on a photo without tags, so the empty draft is right.
   const [editing, setEditing] = useState(startEditing);
   const [draftTags, setDraftTags] = useState<string[]>([]);
+  // Set for the whole save, every request included: a hook's isPending only follows its newest call.
+  const [isSaving, setIsSaving] = useState(false);
 
   const { data: photoTags } = useFetchPhotoTagsQuery(photoDetail.id);
   const { data: allTags } = useFetchTagsQuery();
   const { mutateAsync: createTag } = useCreateTagMutation();
-  const { mutateAsync: addPhotos, isPending: isAdding } = useAddPhotosToTagMutation();
-  const { mutateAsync: removePhotos, isPending: isRemoving } = useRemovePhotosFromTagMutation();
+  const { mutateAsync: addPhotos } = useAddPhotosToTagMutation();
+  const { mutateAsync: removePhotos } = useRemovePhotosFromTagMutation();
   const isFromFile = useIsFromFile(photoDetail.id);
 
   const tags = photoTags ?? [];
-  const isSaving = isAdding || isRemoving;
   const dirty = editing && draftDiffers(draftTags, tags);
   useRegisterDraft("tags", dirty);
 
@@ -153,24 +154,32 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
     setDraftTags([]);
   };
 
+  const addTag = async (name: string) => {
+    // The account may already own the tag through another photo, but
+    // allTags only holds the first page - this is a shortcut past a
+    // request, not the check. Creating a tag that exists returns it.
+    const existing = allTags?.find(tag => tag.name === name);
+    const tag = existing ?? (await createTag({ name }));
+    await addPhotos({ id: tag.id, name, photos: [photoDetail.id] });
+  };
+
   const handleSave = async () => {
+    if (isSaving) return;
     const wanted = draftTags.map(name => name.trim()).filter(name => name.length > 0);
     const removed = tags.filter(tag => !wanted.includes(tag.name));
     const added = wanted.filter(name => !tags.some(tag => tag.name === name));
 
-    try {
-      await Promise.all(removed.map(tag => removePhotos({ id: tag.id, name: tag.name, photos: [photoDetail.id] })));
-      await Promise.all(
-        added.map(async name => {
-          // The account may already own the tag through another photo, but
-          // allTags only holds the first page - this is a shortcut past a
-          // request, not the check. Creating a tag that exists returns it.
-          const existing = allTags?.find(tag => tag.name === name);
-          const tag = existing ?? (await createTag({ name }));
-          await addPhotos({ id: tag.id, name, photos: [photoDetail.id] });
-        })
-      );
-    } catch {
+    // Every change is tried and every request settles before the editor says anything: one
+    // refused removal no longer skips the additions or leaves the others running unseen. The
+    // photo's tags are fetched again after each change that went through, so Save again sends
+    // only what is still missing.
+    setIsSaving(true);
+    const settled = await Promise.allSettled([
+      ...removed.map(tag => removePhotos({ id: tag.id, name: tag.name, photos: [photoDetail.id] })),
+      ...added.map(addTag),
+    ]);
+    setIsSaving(false);
+    if (settled.some(result => result.status === "rejected")) {
       // Keep the editor open so the edit is not silently lost, and say so:
       // a spinner that just stops looks exactly like a successful save.
       notification.requestFailed(t("lightbox.sidebar.editTags"), t("lightbox.sidebar.tagsSaveFailed"));

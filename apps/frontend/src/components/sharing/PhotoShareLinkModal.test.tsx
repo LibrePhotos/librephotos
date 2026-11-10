@@ -4,6 +4,9 @@
  * The link is shown with a copy button instead of being copied after the
  * request returns: by then the click that started it is gone, and Safari
  * refuses the clipboard write.
+ *
+ * The link was made by an effect on open, twice under StrictMode, and a failed
+ * replace cleared it and said "failed" although the old link still worked.
  */
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
@@ -14,20 +17,19 @@ import i18n from "../../i18n";
 import { PhotoShareLinkModal } from "./PhotoShareLinkModal";
 
 // The part of the real hook's result the dialog reads, so a change to its
-// mutate/data signature fails the typecheck here too.
+// mutate signatures fails the typecheck here too.
 type ShareMutation = ReturnType<typeof usePhotoShareMutation>;
-type ShareMutationFake = Pick<ShareMutation, "data" | "isPending" | "isError"> & {
+type ShareMutationFake = {
   mutate: Mock<ShareMutation["mutate"]>;
-  reset: Mock<ShareMutation["reset"]>;
+  mutateAsync: Mock<ShareMutation["mutateAsync"]>;
 };
 
 const mutation: ShareMutationFake = {
   mutate: vi.fn<ShareMutation["mutate"]>(),
-  reset: vi.fn<ShareMutation["reset"]>(),
-  data: undefined,
-  isPending: false,
-  isError: false,
+  mutateAsync: vi.fn<ShareMutation["mutateAsync"]>(),
 };
+
+const LINK = { enabled: true, slug: "abc", url: "/public/p/abc" };
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "https://photos.example" }));
 vi.mock("../../api_client/photos/hooks", () => ({ usePhotoShareMutation: () => mutation }));
@@ -51,10 +53,7 @@ beforeAll(async () => {
 beforeEach(() => {
   document.body.innerHTML = "";
   mutation.mutate.mockReset();
-  mutation.reset.mockReset();
-  mutation.data = undefined;
-  mutation.isPending = false;
-  mutation.isError = false;
+  mutation.mutateAsync.mockReset().mockResolvedValue(LINK);
 });
 
 async function renderModal(photoId: string | null, onClose = vi.fn<() => void>()) {
@@ -63,9 +62,11 @@ async function renderModal(photoId: string | null, onClose = vi.fn<() => void>()
   const root = createRoot(container);
   await act(async () => {
     root.render(
-      <MantineProvider env="test">
-        <PhotoShareLinkModal photoId={photoId} onClose={onClose} />
-      </MantineProvider>
+      <React.StrictMode>
+        <MantineProvider env="test">
+          <PhotoShareLinkModal photoId={photoId} onClose={onClose} />
+        </MantineProvider>
+      </React.StrictMode>
     );
   });
   return { onClose };
@@ -90,42 +91,52 @@ function confirmButton(label: string): HTMLButtonElement {
 }
 
 describe("PhotoShareLinkModal", () => {
-  it("creates the link when opened, without touching anything else", async () => {
+  it("creates the link once when opened, under StrictMode too, without touching anything else", async () => {
     await renderModal("photo-1");
 
-    expect(mutation.mutate).toHaveBeenCalledTimes(1);
-    expect(mutation.mutate).toHaveBeenCalledWith({ photoId: "photo-1", action: "enable" });
+    expect(mutation.mutateAsync).toHaveBeenCalledTimes(1);
+    expect(mutation.mutateAsync).toHaveBeenCalledWith({ photoId: "photo-1", action: "enable" });
+    expect(mutation.mutate).not.toHaveBeenCalled();
   });
 
   it("shows the full link so it can be copied from a fresh click", async () => {
-    mutation.data = { enabled: true, slug: "abc", url: "/public/p/abc" };
-
     await renderModal("photo-1");
 
     expect(document.querySelector("input")?.value).toBe("https://photos.example/public/p/abc");
   });
 
   it("replaces and revokes through the same mutation, closing after a revoke", async () => {
-    mutation.data = { enabled: true, slug: "abc", url: "/public/p/abc" };
     const { onClose } = await renderModal("photo-1");
-    mutation.mutate.mockClear();
+    mutation.mutateAsync.mockClear().mockResolvedValue({ ...LINK, url: "/public/p/new" });
 
     // Both end the link recipients already have, so each asks first.
     await act(async () => buttonNamed(i18n.t("sharing.rotateLink")).click());
-    expect(mutation.mutate).not.toHaveBeenCalled();
+    expect(mutation.mutateAsync).not.toHaveBeenCalled();
     await act(async () => confirmButton(i18n.t("sharing.rotateLink")).click());
-    expect(mutation.mutate).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "rotate" });
+    expect(mutation.mutateAsync).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "rotate" });
+    expect(document.querySelector("input")?.value).toBe("https://photos.example/public/p/new");
 
     await act(async () => buttonNamed(i18n.t("sharing.revokeLink")).click());
-    expect(mutation.mutate).toHaveBeenCalledTimes(1);
+    expect(mutation.mutate).not.toHaveBeenCalled();
     await act(async () => confirmButton(i18n.t("sharing.revokeLink")).click());
     expect(mutation.mutate).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "disable" }, { onSuccess: onClose });
   });
 
-  it("leaves the link alone when the confirmation is cancelled", async () => {
-    mutation.data = { enabled: true, slug: "abc", url: "/public/p/abc" };
+  it("keeps showing the old link, which still works, when replacing it fails", async () => {
     await renderModal("photo-1");
-    mutation.mutate.mockClear();
+    mutation.mutateAsync.mockRejectedValue(new Error("refused"));
+
+    await act(async () => buttonNamed(i18n.t("sharing.rotateLink")).click());
+    await act(async () => confirmButton(i18n.t("sharing.rotateLink")).click());
+
+    expect(document.querySelector("input")?.value).toBe("https://photos.example/public/p/abc");
+    expect(document.body.textContent).toContain(i18n.t("sharing.rotateLinkFailed"));
+    expect(document.body.textContent).not.toContain(i18n.t("sharing.photoLinkFailed"));
+  });
+
+  it("leaves the link alone when the confirmation is cancelled", async () => {
+    await renderModal("photo-1");
+    mutation.mutateAsync.mockClear();
 
     await act(async () => buttonNamed(i18n.t("sharing.revokeLink")).click());
     expect(document.body.textContent).toContain(i18n.t("sharing.revokeLinkConfirm"));
@@ -135,12 +146,12 @@ describe("PhotoShareLinkModal", () => {
     await act(async () => cancel?.click());
 
     expect(mutation.mutate).not.toHaveBeenCalled();
+    expect(mutation.mutateAsync).not.toHaveBeenCalled();
   });
 
   // The Modal hears Escape on window first: without an opt-out on the focused
   // button it closed the whole share dialog along with the confirmation.
   it("closes only the confirmation on Escape", async () => {
-    mutation.data = { enabled: true, slug: "abc", url: "/public/p/abc" };
     const { onClose } = await renderModal("photo-1");
 
     await act(async () => buttonNamed(i18n.t("sharing.revokeLink")).click());
@@ -156,7 +167,7 @@ describe("PhotoShareLinkModal", () => {
   });
 
   it("says so when the link could not be created", async () => {
-    mutation.isError = true;
+    mutation.mutateAsync.mockRejectedValue(new Error("refused"));
 
     await renderModal("photo-1");
 
@@ -168,6 +179,6 @@ describe("PhotoShareLinkModal", () => {
     await renderModal(null);
 
     expect(mutation.mutate).not.toHaveBeenCalled();
-    expect(mutation.reset).toHaveBeenCalled();
+    expect(mutation.mutateAsync).not.toHaveBeenCalled();
   });
 });

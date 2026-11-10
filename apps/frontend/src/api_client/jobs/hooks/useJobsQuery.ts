@@ -1,6 +1,6 @@
 import { endpoints, jobKeys, pollWhile } from "@librephotos/api-client";
 import type { JobListParams, JobsResponse } from "@librephotos/api-client";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../api";
 
 type UseJobsQueryOptions = {
@@ -16,4 +16,6 @@ export const useJobsQuery = (params: JobListParams, options: UseJobsQueryOptions
     // Fast only while a job on this page is unfinished; the idle cadence picks up new jobs.
     refetchInterval: pollWhile<JobsResponse>(page => page.results.some(job => !job.finished)),
     enabled: options.enabled ?? true,
+    // A list paged through keeps showing the page (and its count) it had until the next one is in.
+    placeholderData: keepPreviousData,
   });

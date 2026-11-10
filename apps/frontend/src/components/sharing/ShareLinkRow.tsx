@@ -1,8 +1,9 @@
 import { ActionIcon, Group, TextInput } from "@mantine/core";
+import { useTimeout } from "@mantine/hooks";
 import { IconCopy as CopyIcon, IconLink as LinkIcon, type TablerIcon } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { copyToClipboard } from "../../util/util";
+import { copyText } from "../../util/util";
 import { DisabledReason } from "../common/DisabledReason";
 
 type Props = Readonly<{
@@ -24,13 +25,15 @@ type Props = Readonly<{
 export function ShareLinkRow({ label, description, link, copyLabel, openLabel, openIcon: OpenIcon = LinkIcon }: Props) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  // Cleared on unmount, and started over by every copy so a second one is shown its full time.
+  const copiedTimer = useTimeout(() => setCopied(false), 1200);
   const noLinkYet = !link && t("sharing.generating");
 
-  const copy = () => {
-    if (!link) return;
-    copyToClipboard(link);
+  const copy = async () => {
+    if (!link || !(await copyText(link))) return;
     setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    copiedTimer.clear();
+    copiedTimer.start();
   };
   const open = () => {
     if (link) window.open(link, "_blank", "noopener,noreferrer");
@@ -53,7 +56,7 @@ export function ShareLinkRow({ label, description, link, copyLabel, openLabel, o
         opened={copied ? true : undefined}
         reason={noLinkYet}
       >
-        <ActionIcon variant="light" size="lg" aria-label={copyLabel} onClick={copy}>
+        <ActionIcon variant="light" size="lg" aria-label={copyLabel} onClick={() => void copy()}>
           <CopyIcon size={18} />
         </ActionIcon>
       </DisabledReason>

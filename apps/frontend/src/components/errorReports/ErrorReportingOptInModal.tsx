@@ -17,13 +17,15 @@ type Props = Readonly<{
   reports: readonly ErrorReport[];
   /** Turn sharing on; `true` also sends the saved reports. */
   onChoose: (sendSaved: boolean) => void;
+  /** The answer is being saved: the dialog waits for it. */
+  saving?: boolean;
 }>;
 
 /**
  * Turning error reporting on (#2938) asks on its own whether the reports saved so far go too, and
  * lists them first. Either answer turns sharing on; Cancel leaves the setting as it was.
  */
-export function ErrorReportingOptInModal({ opened, onClose, destination, reports, onChoose }: Props) {
+export function ErrorReportingOptInModal({ opened, onClose, destination, reports, onChoose, saving = false }: Props) {
   const { t } = useTranslation();
   const description =
     destination === "maintainers"
@@ -36,6 +38,9 @@ export function ErrorReportingOptInModal({ opened, onClose, destination, reports
       title={t("errorreports.optin_title")}
       size={DIALOG_SIZE.md}
       styles={modalTitleStyles}
+      closeOnClickOutside={!saving}
+      closeOnEscape={!saving}
+      withCloseButton={!saving}
     >
       <Stack gap="md">
         <Text fz="sm">{description}</Text>
@@ -55,13 +60,15 @@ export function ErrorReportingOptInModal({ opened, onClose, destination, reports
           </List>
         </ScrollArea.Autosize>
         <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="default" onClick={onClose} disabled={saving}>
             {t("errorreports.cancel")}
           </Button>
-          <Button variant="light" onClick={() => onChoose(false)}>
+          <Button variant="light" onClick={() => onChoose(false)} loading={saving}>
             {t("errorreports.optin_new_only")}
           </Button>
-          <Button onClick={() => onChoose(true)}>{t("errorreports.optin_send_saved")}</Button>
+          <Button onClick={() => onChoose(true)} loading={saving}>
+            {t("errorreports.optin_send_saved")}
+          </Button>
         </Group>
       </Stack>
     </Modal>

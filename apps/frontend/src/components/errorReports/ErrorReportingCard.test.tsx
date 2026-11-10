@@ -4,7 +4,7 @@
  * reports asks first, shows them, and sends them only when the admin says so.
  */
 import type { ErrorReport, SiteSettingsUpdate } from "@librephotos/api-client";
-import React from "react";
+import React, { act } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
@@ -20,7 +20,7 @@ type Settings = {
 const stubs = vi.hoisted(() => ({
   settings: undefined as Settings | undefined,
   reports: [] as ErrorReport[],
-  saved: [] as { input: SiteSettingsUpdate; onSaved?: () => void }[],
+  saved: [] as { input: SiteSettingsUpdate; onSaved?: () => void; onFailed?: () => void }[],
   sendAll: vi.fn<(variables: undefined) => void>(),
 }));
 
@@ -33,7 +33,8 @@ vi.mock("../../api_client/errorReports", () => ({
   useSendAllErrorReportsMutation: () => ({ mutate: stubs.sendAll }),
 }));
 vi.mock("../settings/useSaveSiteSettings", () => ({
-  useSaveSiteSettings: () => (input: SiteSettingsUpdate, onSaved?: () => void) => stubs.saved.push({ input, onSaved }),
+  useSaveSiteSettings: () => (input: SiteSettingsUpdate, onSaved?: () => void, onFailed?: () => void) =>
+    stubs.saved.push({ input, onSaved, onFailed }),
 }));
 vi.mock("../settings/SettingsSection", () => ({ SectionLink: () => null }));
 
@@ -127,6 +128,22 @@ describe("ErrorReportingCard", () => {
     expect(stubs.sendAll).not.toHaveBeenCalled();
     onSaved();
     expect(stubs.sendAll).toHaveBeenCalledOnce();
+  });
+
+  it("stays open until the choice is saved, and after a refused save", async () => {
+    stubs.reports = [report(1, "KeyError: 'width'")];
+    const { container } = await renderInMantine(<ErrorReportingCard />);
+    await pick(container, "maintainers");
+    await click(dialogButton(i18n.t("errorreports.optin_send_saved")));
+    expect(openDialog()).not.toBeNull();
+
+    await act(async () => defined(defined(stubs.saved[0]).onFailed, "the refused-save step")());
+    expect(openDialog()).not.toBeNull();
+    expect(stubs.sendAll).not.toHaveBeenCalled();
+
+    await click(dialogButton(i18n.t("errorreports.optin_send_saved")));
+    await act(async () => defined(defined(stubs.saved[1]).onSaved, "the after-save step")());
+    expect(openDialog()).toBeNull();
   });
 
   it("Cancel leaves the setting as it was", async () => {

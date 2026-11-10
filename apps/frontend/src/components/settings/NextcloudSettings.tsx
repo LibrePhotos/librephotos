@@ -30,43 +30,47 @@ function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetchi
   return <QuestionMark size={20} />;
 }
 
+/** The badge's colour, from the connection check alone. */
+function statusColor(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
+  if (isFetching) return "blue";
+  if (isSuccess && details.nextcloud_server_address) return "green";
+  return isError ? "red" : "gray";
+}
+
 type NextcloudSettingsProps = {
   userSelfDetails: User;
-  /** The pending edits, saved through the library's save dialog. */
-  editedUser: User | null;
-  setEditedUser: React.Dispatch<React.SetStateAction<User | null>>;
+  /** The profile with the pending edits, saved through the library's save dialog. */
+  editedUser: User;
+  /** Edits the pending profile, building on the edits made so far. */
+  onEdit: (update: (user: User) => User) => void;
   /** Why job buttons are off: a job is running. Undefined while the queue takes jobs. */
   busyReason?: string;
   isNextcloudFetching: boolean;
   isNextcloudSuccess: boolean;
   isNextcloudError: boolean;
-  nextcloudStatusColor: string;
 };
 
 /** The Nextcloud connection: its status, the credentials, the scan directory and the scan button. */
 export function NextcloudSettings({
   userSelfDetails,
   editedUser,
-  setEditedUser,
+  onEdit,
   busyReason,
   isNextcloudFetching,
   isNextcloudSuccess,
   isNextcloudError,
-  nextcloudStatusColor,
 }: NextcloudSettingsProps) {
   const { t } = useTranslation();
   const [modalNextcloudScanDirectoryOpen, { open: openNextcloudScanDirectory, close: closeNextcloudScanDirectory }] =
     useDisclosure(false);
   const scanNextcloudPhotos = useScanNextcloudPhotosMutation();
 
-  // Edits build on the pending edits, not on the saved profile, so that filling in one Nextcloud
-  // field keeps what was typed into the others. Read the value first: React clears
-  // currentTarget before a functional update runs.
+  // Read the value first: React clears currentTarget before the edit runs.
   const editNextcloudField =
     (field: "nextcloud_server_address" | "nextcloud_username" | "nextcloud_app_password") =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const { value } = event.currentTarget;
-      setEditedUser(prev => (prev ? { ...prev, [field]: value } : prev));
+      onEdit(user => ({ ...user, [field]: value }));
     };
   const handleNextcloudServerAddressChange = editNextcloudField("nextcloud_server_address");
   const handleNextcloudUsernameChange = editNextcloudField("nextcloud_username");
@@ -90,7 +94,7 @@ export function NextcloudSettings({
             <Badge
               leftSection={BadgeIcon(userSelfDetails, isNextcloudSuccess, isNextcloudError, isNextcloudFetching)}
               variant="outline"
-              color={nextcloudStatusColor}
+              color={statusColor(userSelfDetails, isNextcloudSuccess, isNextcloudError, isNextcloudFetching)}
               fullWidth
             >
               {!userSelfDetails.nextcloud_server_address && t("settings.nextcloudsetup")}
@@ -112,7 +116,7 @@ export function NextcloudSettings({
           <Grid.Col span={{ base: 12, sm: 5 }}>
             <TextInput
               onChange={handleNextcloudServerAddressChange}
-              value={editedUser?.nextcloud_server_address ?? ""}
+              value={editedUser.nextcloud_server_address ?? ""}
               placeholder={t("settings.serveradressplaceholder")}
             />
           </Grid.Col>
@@ -124,7 +128,7 @@ export function NextcloudSettings({
           <Grid.Col span={{ base: 12, sm: 5 }}>
             <TextInput
               onChange={handleNextcloudUsernameChange}
-              value={editedUser?.nextcloud_username ?? ""}
+              value={editedUser.nextcloud_username ?? ""}
               placeholder={t("settings.nextcloudusernameplaceholder")}
             />
           </Grid.Col>
@@ -141,7 +145,7 @@ export function NextcloudSettings({
               onChange={handleNextcloudPasswordChange}
               type="password"
               placeholder={t("settings.nextcloudpasswordplaceholder")}
-              value={editedUser?.nextcloud_app_password ?? ""}
+              value={editedUser.nextcloud_app_password ?? ""}
             />
           </Grid.Col>
         </Grid>
@@ -150,7 +154,7 @@ export function NextcloudSettings({
             <Stack gap={0}>
               <Trans i18nKey="settings.nextcloudscandirectory" />
               <Text size="sm" c="dimmed">
-                {editedUser?.nextcloud_scan_directory || t("settings.nextcloudscandirectoryplaceholder")}
+                {editedUser.nextcloud_scan_directory || t("settings.nextcloudscandirectoryplaceholder")}
               </Text>
             </Stack>
           </Grid.Col>
@@ -193,9 +197,9 @@ export function NextcloudSettings({
         </Grid>
       </Stack>
       <ModalNextcloudScanDirectoryEdit
-        path={editedUser?.nextcloud_scan_directory ?? userSelfDetails.nextcloud_scan_directory ?? ""}
+        path={editedUser.nextcloud_scan_directory ?? ""}
         isOpen={modalNextcloudScanDirectoryOpen}
-        onChange={path => setEditedUser(prev => (prev ? { ...prev, nextcloud_scan_directory: path } : prev))}
+        onChange={path => onEdit(user => ({ ...user, nextcloud_scan_directory: path }))}
         onClose={() => {
           closeNextcloudScanDirectory();
         }}

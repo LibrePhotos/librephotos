@@ -2,12 +2,12 @@ import { Alert, Grid, NumberInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery, useTrashRetentionPreviewQuery } from "../../api_client/settings/hooks";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { CONTROL_SPAN, SettingLabel } from "./ScanSettings";
-import { useSaveSiteSettings } from "./useSaveSiteSettings";
+import { useSiteSettingDraft } from "./useSiteSettingDraft";
 
 // SiteSettingsRequest.trash_retention_days in the backend: 0 (never) to a hundred years.
 const MAX_RETENTION_DAYS = 36500;
@@ -42,42 +42,37 @@ function previewSentence(preview: PreviewState, t: TFunction): string {
  */
 export function TrashRetentionSetting() {
   const { t } = useTranslation();
-  const { data: settings, dataUpdatedAt } = useGetSettingsQuery();
-  const save = useSaveSiteSettings();
+  const { data: settings } = useGetSettingsQuery();
   const stored = settings?.trash_retention_days ?? 0;
-  const [days, setDays] = useState<number | string>(stored);
+  const days = useSiteSettingDraft<number | string>(stored, value => ({
+    trash_retention_days: typeof value === "number" ? value : stored,
+  }));
   // The value waiting for the confirmation, and the count for it.
   const [pending, setPending] = useState<number | null>(null);
   const [confirmOpen, { open, close }] = useDisclosure(false);
   const preview = useTrashRetentionPreviewQuery(confirmOpen ? pending : null);
 
-  useEffect(() => {
-    setDays(stored);
-    // dataUpdatedAt: a reload that brings back the same value still resets the field
-  }, [stored, dataUpdatedAt]);
-
   const commit = () => {
     // An emptied field puts back the stored value instead of saving nothing as 0.
-    if (typeof days !== "number") {
-      setDays(stored);
+    if (typeof days.value !== "number") {
+      days.discard();
       return;
     }
-    if (!settings || days === stored) return;
-    if (deletesMoreThan(stored, days)) {
-      setPending(days);
+    if (deletesMoreThan(stored, days.value)) {
+      setPending(days.value);
       open();
       return;
     }
-    save({ trash_retention_days: days });
+    void days.commit();
   };
 
   const cancel = () => {
-    setDays(stored);
+    days.discard();
     close();
   };
 
   const confirm = () => {
-    if (pending !== null) save({ trash_retention_days: pending });
+    if (pending !== null) void days.commit(pending);
     close();
   };
 
@@ -87,7 +82,7 @@ export function TrashRetentionSetting() {
       <Grid.Col span={CONTROL_SPAN}>
         <NumberInput
           aria-label={t("sitesettings.headertrashretention")}
-          value={days}
+          value={days.value}
           min={0}
           max={MAX_RETENTION_DAYS}
           clampBehavior="strict"
@@ -98,7 +93,7 @@ export function TrashRetentionSetting() {
             if (e.key === "Enter") commit();
           }}
           onBlur={commit}
-          onChange={setDays}
+          onChange={days.edit}
         />
       </Grid.Col>
       {stored > 0 && (

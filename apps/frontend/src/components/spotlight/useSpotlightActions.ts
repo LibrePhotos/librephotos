@@ -125,7 +125,13 @@ export function useSpotlightActions(query: string = "") {
   // The raw scheme is "auto" on the default setting; the computed one says which
   // theme is showing, so the toggle offers the other one.
   const colorScheme = useComputedColorScheme("light", { getInitialValueInEffect: false });
-  const { options: searchOptions, filterOptions, isLoading: isSearchLoading } = useSearch();
+  const {
+    options: searchOptions,
+    filterOptions,
+    isLoading: isSearchLoading,
+    failed: isSearchFailed,
+    retry: retrySearch,
+  } = useSearch();
 
   // Worker and mutation hooks - only query when authenticated
   const { data: worker } = useWorkerQuery({ enabled: isAuthenticated });
@@ -297,6 +303,22 @@ export function useSpotlightActions(query: string = "") {
     };
   }, [query, t, navigate]);
 
+  // A list of suggestions failed to load: say so where they would be, and offer to try again
+  const searchFailedAction: SpotlightAction | null = useMemo(
+    () =>
+      isSearchFailed
+        ? {
+            id: "search-failed",
+            label: t("spotlight.suggestionsFailed"),
+            leftSection: React.createElement(IconRefresh, iconProps),
+            onClick: retrySearch,
+            // Shown whatever is typed
+            keywords: [query.trim().toLowerCase()],
+          }
+        : null,
+    [isSearchFailed, retrySearch, t, query]
+  );
+
   // Build grouped actions
   const actions: SpotlightActionGroup[] = useMemo(() => {
     const groups: SpotlightActionGroup[] = [];
@@ -309,6 +331,7 @@ export function useSpotlightActions(query: string = "") {
     } else {
       allSearchActions.push(...searchActions.slice(0, EMPTY_QUERY_SEARCH_SUGGESTIONS));
     }
+    if (searchFailedAction) allSearchActions.push(searchFailedAction);
 
     if (allSearchActions.length > 0) {
       groups.push({
@@ -335,7 +358,16 @@ export function useSpotlightActions(query: string = "") {
     });
 
     return groups;
-  }, [t, isAuthenticated, searchForQueryAction, searchActions, navigationActions, jobActions, quickActions]);
+  }, [
+    t,
+    isAuthenticated,
+    searchForQueryAction,
+    searchActions,
+    searchFailedAction,
+    navigationActions,
+    jobActions,
+    quickActions,
+  ]);
 
   return {
     actions,

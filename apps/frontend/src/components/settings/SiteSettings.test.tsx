@@ -10,7 +10,7 @@ import { defined } from "../../util/defined.test-utils";
 import { SiteSettings } from "./SiteSettings";
 
 const mocks = vi.hoisted(() => ({
-  save: vi.fn<(input: SiteSettingsUpdate) => void>(),
+  save: vi.fn<(input: SiteSettingsUpdate) => Promise<boolean>>(),
   settingsQuery: {
     isLoading: false,
     dataUpdatedAt: 1,
@@ -33,7 +33,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => mocks.settingsQuery }));
-vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => mocks.save }));
+vi.mock("./useSaveSiteSettings", () => ({
+  useSaveSiteSettingsAsync: () => mocks.save,
+  useSaveSiteSettings: () => (input: SiteSettingsUpdate) => void mocks.save(input),
+}));
 // Its own test: TrashRetentionSetting.test.tsx.
 vi.mock("./TrashRetentionSetting", () => ({ TrashRetentionSetting: () => null }));
 vi.mock("./UpdateCheckSetting", () => ({ UpdateCheckSetting: () => null }));
@@ -75,7 +78,7 @@ let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
 beforeEach(async () => {
-  mocks.save.mockReset();
+  mocks.save.mockReset().mockResolvedValue(true);
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -128,6 +131,41 @@ describe("SiteSettings", () => {
   it("saves a switch as soon as it is flipped", async () => {
     await act(async () => switchLabelled("sitesettings.headerupload").click());
     expect(mocks.save).toHaveBeenCalledWith({ allow_upload: false });
+  });
+
+  it("sends each flip of a switch, also two quick ones before the first save is back", async () => {
+    mocks.save.mockReturnValue(new Promise<boolean>(() => {}));
+    await act(async () => switchLabelled("sitesettings.headerupload").click());
+    await act(async () => switchLabelled("sitesettings.headerupload").click());
+    expect(mocks.save.mock.calls.map(([input]) => input)).toEqual([{ allow_upload: false }, { allow_upload: true }]);
+  });
+
+  it("shows the stored value of a switch again when its save is refused", async () => {
+    mocks.save.mockResolvedValue(false);
+    await act(async () => switchLabelled("sitesettings.headerupload").click());
+    expect(switchLabelled("sitesettings.headerupload").checked).toBe(true);
+  });
+
+  it("keeps an API key being typed when the settings are fetched again", async () => {
+    await renderWithMapProvider("mapbox");
+    const field = defined(inputShowing(""), "the API key field");
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    await act(async () => {
+      setter?.call(field, "secret-key");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    mocks.settingsQuery.dataUpdatedAt = 2;
+    mocks.settingsQuery.data = { ...mocks.settingsQuery.data };
+    await act(async () => {
+      root.render(
+        <MantineProvider>
+          <SiteSettings key="mapbox" />
+        </MantineProvider>
+      );
+    });
+    expect(inputShowing("secret-key")).toBeDefined();
+    expect(mocks.save).not.toHaveBeenCalled();
   });
 
   it("offers the offline ExifTool provider without an API key field", async () => {

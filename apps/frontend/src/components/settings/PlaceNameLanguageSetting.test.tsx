@@ -11,7 +11,7 @@ import { PlaceNameLanguageSetting } from "./PlaceNameLanguageSetting";
 type LookUpOptions = { onSuccess?: () => void; onSettled?: () => void };
 
 const mocks = vi.hoisted(() => ({
-  save: vi.fn<(input: SiteSettingsUpdate) => void>(),
+  save: vi.fn<(input: SiteSettingsUpdate) => Promise<boolean>>(),
   lookUpPlaces: vi.fn<(variables: undefined, options: LookUpOptions) => void>(),
   settingsQuery: { dataUpdatedAt: 1, data: { geocode_language: "" } },
 }));
@@ -20,7 +20,7 @@ vi.mock("../../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => m
 vi.mock("../../api_client/jobs/hooks", () => ({
   useLookUpPlacesMutation: () => ({ mutate: mocks.lookUpPlaces, isPending: false }),
 }));
-vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettings: () => mocks.save }));
+vi.mock("./useSaveSiteSettings", () => ({ useSaveSiteSettingsAsync: () => mocks.save }));
 
 let root: Root;
 let container: HTMLDivElement;
@@ -52,6 +52,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.save.mockResolvedValue(true);
   mocks.settingsQuery = { dataUpdatedAt: 1, data: { geocode_language: "" } };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -133,6 +134,15 @@ describe("PlaceNameLanguageSetting", () => {
     const options = defined(mocks.lookUpPlaces.mock.calls[0])[1];
     await act(async () => options.onSuccess?.());
     expect(container.textContent).not.toContain("New lookups");
+  });
+
+  it("keeps the language picked while its save runs and the settings are fetched again", async () => {
+    mocks.save.mockReturnValue(new Promise<boolean>(() => {}));
+    await render();
+    await choose("German (de)");
+
+    await serverStores("");
+    expect(select().value).toBe("German (de)");
   });
 
   it("can put the lookup off", async () => {

@@ -73,6 +73,8 @@ vi.mock("../../service/useSearch", async importOriginal => ({
     options: stubs.searchOptions,
     filterOptions: vi.fn<(...args: unknown[]) => void>(),
     isLoading: false,
+    failed: false,
+    retry: vi.fn<() => void>(),
   }),
 }));
 

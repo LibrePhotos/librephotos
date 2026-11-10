@@ -1,5 +1,5 @@
 import type { PlaceAlbumInfo, ThingAlbumInfo, UserAlbumInfo } from "@librephotos/api-client";
-import { useCallback, useEffect, useEffectEvent, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useFetchPeopleAlbumsQuery,
   useFetchPlacesAlbumsQuery,
@@ -79,59 +79,61 @@ function toPersonOption(item: Person): SearchOption {
   return { value: item.name, type: SearchOptionType.PEOPLE, data: item.id, thumbnail: item.face_url };
 }
 
+/**
+ * The suggestions for what is typed into the palette, worked out from the query and whatever has
+ * loaded: they follow every refetch, and a list that failed or is still loading only leaves its
+ * own group out instead of all of them. `failed` says a list could not be loaded; `retry` asks for
+ * those again.
+ */
 export function useSearch() {
   // Skip queries on public pages to avoid 401 errors
   const isPublicPage = typeof window !== "undefined" && window.location.pathname.startsWith("/public");
-  const { data: searchExamples, isLoading: isExamplesLoading } = useSearchExamplesQuery(isPublicPage);
-  const { data: placeAlbums, isLoading: isPlacesLoading } = useFetchPlacesAlbumsQuery(isPublicPage);
-  const { data: thingAlbums, isLoading: isThingsLoading } = useFetchThingsAlbumsQuery(isPublicPage);
-  const { data: userAlbums, isLoading: isAlbumsLoading } = useFetchUserAlbumsQuery(isPublicPage);
-  const { data: people, isLoading: isPeopleLoading } = useFetchPeopleAlbumsQuery(isPublicPage);
-  const [options, setOptions] = useState<SearchOption[]>([]);
-  const isLoading = isExamplesLoading || isPlacesLoading || isThingsLoading || isAlbumsLoading || isPeopleLoading;
+  const examplesQuery = useSearchExamplesQuery(isPublicPage);
+  const placesQuery = useFetchPlacesAlbumsQuery(isPublicPage);
+  const thingsQuery = useFetchThingsAlbumsQuery(isPublicPage);
+  const userAlbumsQuery = useFetchUserAlbumsQuery(isPublicPage);
+  const peopleQuery = useFetchPeopleAlbumsQuery(isPublicPage);
+  const [query, setQuery] = useState("");
+  const queries = [examplesQuery, placesQuery, thingsQuery, userAlbumsQuery, peopleQuery];
+  const isLoading = queries.some(q => q.isLoading);
+  const failed = queries.some(q => q.isError);
 
-  const filterOptions = useCallback(
-    (q: string = "") => {
-      if (!searchExamples || !placeAlbums || !thingAlbums || !userAlbums || !people) {
-        return;
-      }
-      setOptions([
-        ...searchExamples
-          .filter(item => isSearchExample(item) && fuzzyMatch(q, item))
-          .slice(0, 2)
-          .map(toExampleOption),
-        ...placeAlbums
-          .filter(item => fuzzyMatch(q, item.title))
-          .slice(0, 2)
-          .map(toPlaceOption),
-        ...thingAlbums
-          .filter(item => fuzzyMatch(q, item.title))
-          .slice(0, 2)
-          .map(toThingOption),
-        ...userAlbums
-          .filter(item => fuzzyMatch(q, item.title))
-          .slice(0, 2)
-          .map(toUserAlbumOption),
-        ...people
-          .filter(item => fuzzyMatch(q, item.name))
-          .slice(0, 9)
-          .map(toPersonOption),
-      ]);
-    },
-    [placeAlbums, searchExamples, thingAlbums, userAlbums, people]
+  const { data: searchExamples } = examplesQuery;
+  const { data: placeAlbums } = placesQuery;
+  const { data: thingAlbums } = thingsQuery;
+  const { data: userAlbums } = userAlbumsQuery;
+  const { data: people } = peopleQuery;
+  const options = useMemo(
+    (): SearchOption[] => [
+      ...(searchExamples ?? [])
+        .filter(item => isSearchExample(item) && fuzzyMatch(query, item))
+        .slice(0, 2)
+        .map(toExampleOption),
+      ...(placeAlbums ?? [])
+        .filter(item => fuzzyMatch(query, item.title))
+        .slice(0, 2)
+        .map(toPlaceOption),
+      ...(thingAlbums ?? [])
+        .filter(item => fuzzyMatch(query, item.title))
+        .slice(0, 2)
+        .map(toThingOption),
+      ...(userAlbums ?? [])
+        .filter(item => fuzzyMatch(query, item.title))
+        .slice(0, 2)
+        .map(toUserAlbumOption),
+      ...(people ?? [])
+        .filter(item => fuzzyMatch(query, item.name))
+        .slice(0, 9)
+        .map(toPersonOption),
+    ],
+    [query, searchExamples, placeAlbums, thingAlbums, userAlbums, people]
   );
-
-  // Seed the unfiltered options once everything has loaded. Deliberately not
-  // re-run when filterOptions changes (any refetch): that would replace the
-  // options for the query the user is typing with the unfiltered list.
-  const seedOptions = useEffectEvent(() => filterOptions(""));
-  useEffect(() => {
-    if (!isLoading) seedOptions();
-  }, [isLoading]);
 
   return {
     options,
-    filterOptions,
+    filterOptions: setQuery,
     isLoading,
+    failed,
+    retry: () => queries.filter(q => q.isError).forEach(q => void q.refetch()),
   };
 }

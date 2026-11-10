@@ -23,7 +23,7 @@ import { Settings } from "./Settings";
 
 const mocks = vi.hoisted(() => ({
   user: {} as Record<string, unknown>,
-  mutate: vi.fn<(user: unknown) => void>(),
+  save: vi.fn<(user: unknown) => Promise<unknown>>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -38,7 +38,7 @@ vi.mock("../../api_client/settings", () => ({
 }));
 vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserSelfDetailsQuery: () => ({ data: mocks.user }),
-  useUpdateUserMutation: () => ({ mutate: mocks.mutate, isPending: false }),
+  useUpdateUserMutation: () => ({ mutateAsync: mocks.save, isPending: false }),
 }));
 vi.mock("./ConfigBurstDetection", () => ({ ConfigBurstDetection: () => null }));
 vi.mock("./ConfigDateTime", () => ({ ConfigDateTime: () => null }));
@@ -73,7 +73,7 @@ let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
 beforeEach(async () => {
-  mocks.mutate.mockReset();
+  mocks.save.mockReset();
   mocks.user = {
     id: 1,
     username: "admin",
@@ -93,16 +93,23 @@ beforeEach(async () => {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
+  await renderPage();
+});
+
+const queryClient = new QueryClient();
+
+/** Renders the page again in place, as a fetch of the profile would. */
+async function renderPage() {
   await act(async () => {
     root.render(
-      <QueryClientProvider client={new QueryClient()}>
+      <QueryClientProvider client={queryClient}>
         <MantineProvider>
           <Settings />
         </MantineProvider>
       </QueryClientProvider>
     );
   });
-});
+}
 
 afterEach(async () => {
   await act(async () => {
@@ -277,5 +284,19 @@ describe("Settings rating style (#2202)", () => {
     expect(stars.checked).toBe(true);
     expect(container.textContent).toContain("Rate photos with 1 to 5 stars");
     expect(container.textContent).not.toContain("removing a favorite sets it to 0");
+  });
+
+  it("keeps the pick when the profile is fetched again before it is saved", async () => {
+    const stars = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="radio"]')).find(
+      input => input.value === "stars"
+    );
+    if (!stars) throw new Error("no Stars option");
+    await act(async () => stars.click());
+
+    mocks.user = { ...mocks.user };
+    await renderPage();
+
+    expect(stars.checked).toBe(true);
+    expect(mocks.save).not.toHaveBeenCalled();
   });
 });
