@@ -74,7 +74,6 @@ _.capture_envelope
 
 # Test hooks that reset module-level caches between tests.
 _.reset_probe_cache  # function in api/video/ffmpeg_budget.py
-_.reset_for_tests  # function in api/geocode/rate_limit.py
 
 # Dead: only tests call these. Delete them together with their tests, or
 # point the tests at the function they wrap.

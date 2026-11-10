@@ -3,8 +3,8 @@
 The rate limiter exists because LibrePhotos was firing reverse_geocode
 calls faster than nominatim's 1-request-per-second courtesy limit
 permits, causing slow/timed-out responses and a self-reinforcing
-hammer-the-server loop. State is held in a ``diskcache.Cache`` so
-multiple django-q2 worker processes coordinate through one set of
+hammer-the-server loop. State is held in a SQLite database under BASE_DATA
+so multiple django-q2 worker processes coordinate through one set of
 timestamps instead of each independently respecting the delay.
 
 These tests pin the sleep behaviour, provider configuration, and
@@ -12,9 +12,14 @@ cross-process coordination so regressions don't silently disable any
 of those properties.
 """
 
+import os
+import subprocess
+import sys
 import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
+import psutil
 from django.test import SimpleTestCase, override_settings
 
 from api.geocode import rate_limit
@@ -25,10 +30,8 @@ class WaitBehaviourTest(SimpleTestCase):
         self._tmpdir = tempfile.TemporaryDirectory()
         self._override = override_settings(BASE_DATA=self._tmpdir.name)
         self._override.enable()
-        rate_limit.reset_for_tests()
 
     def tearDown(self):
-        rate_limit.reset_for_tests()
         self._override.disable()
         self._tmpdir.cleanup()
 
@@ -105,37 +108,117 @@ class ProviderConfigTest(SimpleTestCase):
         self.assertGreater(rate_limit._delay_for("some-future-provider"), 0)
 
 
+BACKEND = Path(__file__).resolve().parents[3]
+
+# A worker: wait for the provider ``calls`` times, print when each wait ended.
+WORKER = """
+import sys, time
+from api.geocode.rate_limit import RateLimitStore
+store = RateLimitStore(sys.argv[1])
+print("ready", flush=True)
+sys.stdin.readline()  # start together
+for _ in range(int(sys.argv[3])):
+    store.wait("nominatim", float(sys.argv[2]))
+    print(repr(time.time()), flush=True)
+"""
+
+# Takes the write lock and keeps it until killed.
+HOLDER = """
+import sqlite3, sys, time
+connection = sqlite3.connect(sys.argv[1], isolation_level=None)
+connection.execute("CREATE TABLE IF NOT EXISTS last_call (provider TEXT PRIMARY KEY, called_at REAL NOT NULL)")
+connection.execute("BEGIN IMMEDIATE")
+connection.execute("INSERT OR REPLACE INTO last_call VALUES ('nominatim', 1e12)")
+print("locked", flush=True)
+time.sleep(600)
+"""
+
+
+def kill_tree(process):
+    """Kill ``process`` and its children: a venv's python.exe on Windows is a
+    launcher that runs the interpreter as its child."""
+    try:
+        children = psutil.Process(process.pid).children(recursive=True)
+    except psutil.NoSuchProcess:
+        children = []
+    for child in children:
+        try:
+            child.kill()
+        except psutil.NoSuchProcess:
+            pass
+    process.kill()
+    process.wait(30)
+    psutil.wait_procs(children, timeout=30)
+
+
 class CrossProcessCoordinationTest(SimpleTestCase):
-    """The whole point of switching from per-process state to a diskcache
-    is that a second worker process sees timestamps the first one wrote.
-    We simulate the second worker by closing and re-opening the cache.
-    """
+    """Worker processes share the timestamps: real processes, real SQLite."""
 
     def setUp(self):
         self._tmpdir = tempfile.TemporaryDirectory()
-        self._override = override_settings(BASE_DATA=self._tmpdir.name)
-        self._override.enable()
-        rate_limit.reset_for_tests()
+        self.addCleanup(self._tmpdir.cleanup)
+        self.database = os.path.join(self._tmpdir.name, "rate.sqlite3")
 
-    def tearDown(self):
-        rate_limit.reset_for_tests()
-        self._override.disable()
-        self._tmpdir.cleanup()
+    def python(self, code, *args):
+        process = subprocess.Popen(
+            [sys.executable, "-c", code, self.database, *args],
+            cwd=BACKEND,
+            env={**os.environ, "PYTHONPATH": str(BACKEND)},
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        self.addCleanup(kill_tree, process)
+        return process
 
-    def test_fresh_cache_handle_sees_prior_workers_timestamp(self):
+    def test_concurrent_workers_keep_the_delay_between_all_their_calls(self):
+        delay, workers, calls = 0.2, 4, 3
+        processes = [
+            self.python(WORKER, str(delay), str(calls)) for _ in range(workers)
+        ]
+        for process in processes:
+            self.assertEqual(process.stdout.readline().strip(), "ready")
+        for process in processes:
+            process.stdin.write("go\n")
+            process.stdin.flush()
+        times = []
+        for process in processes:
+            output, _ = process.communicate(timeout=60)
+            times.extend(float(line) for line in output.split())
+        times.sort()
+        self.assertEqual(len(times), workers * calls)
+        gaps = [later - earlier for earlier, later in zip(times, times[1:])]
+        # Each call is recorded inside the lock before the worker prints, so
+        # the printed times can only be later; allow for that jitter.
+        self.assertGreater(min(gaps), delay * 0.75, gaps)
+        self.assertGreaterEqual(times[-1] - times[0], delay * (len(times) - 1) * 0.9)
+
+    def test_a_worker_killed_holding_the_lock_does_not_block_the_others(self):
+        holder = self.python(HOLDER)
+        self.assertEqual(holder.stdout.readline().strip(), "locked")
+        kill_tree(holder)
+        # Its uncommitted timestamp (far in the future) was rolled back.
+        store = rate_limit.RateLimitStore(self.database)
         with patch("api.geocode.rate_limit._sleep") as mock_sleep:
-            with patch("api.geocode.rate_limit._now", return_value=2000.0):
-                rate_limit.wait("nominatim")
+            store.wait("nominatim", 1.1)
         mock_sleep.assert_not_called()
-        # Simulate a different worker process by dropping the cache handle.
-        # The next call must re-open the same directory and find the
-        # previously written timestamp.
-        rate_limit._cache.close()
-        rate_limit._cache = None
-        with patch("api.geocode.rate_limit._sleep") as mock_sleep:
-            with patch(
-                "api.geocode.rate_limit._now",
-                side_effect=[2000.1, 2001.2],
+
+    def test_a_restarted_process_sees_the_timestamp_another_wrote(self):
+        rate_limit.RateLimitStore(self.database).wait("nominatim", 0.0001)
+        remaining = rate_limit.RateLimitStore(self.database).claim("nominatim", 600)
+        self.assertGreater(remaining, 590)
+
+
+class LegacyCacheTest(SimpleTestCase):
+    def test_the_old_diskcache_directory_is_removed_once(self):
+        with tempfile.TemporaryDirectory() as base:
+            legacy = os.path.join(base, "geocode_rate_limit")
+            os.makedirs(legacy)
+            with open(os.path.join(legacy, "cache.db"), "wb") as handle:
+                handle.write(b"SQLite format 3")
+            with (
+                override_settings(BASE_DATA=base),
+                patch("api.geocode.rate_limit._sleep"),
             ):
                 rate_limit.wait("nominatim")
-        mock_sleep.assert_called_once()
+            self.assertEqual(os.listdir(base), ["geocode_rate_limit.sqlite3"])
