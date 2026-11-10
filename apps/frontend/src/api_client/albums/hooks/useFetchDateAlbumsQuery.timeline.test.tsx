@@ -194,6 +194,44 @@ describe("date-album queries with a timeline filter", () => {
     }
   });
 
+  it("asks a failed day page again when the list reports it on screen again", async () => {
+    stubs.queryClient.clear();
+    stubs.get.mockReset();
+    let photoRequests = 0;
+    stubs.get.mockImplementation(async endpoint => {
+      if (!new URL(endpoint, "http://x").pathname.endsWith("/photos/")) return { page_after: [] };
+      photoRequests += 1;
+      if (photoRequests === 1) throw new Error("offline");
+      return { items: [], next: null };
+    });
+    const root = createRoot(document.createElement("div"));
+    const show = async () => {
+      await act(async () => {
+        root.render(
+          <QueryClientProvider client={stubs.queryClient}>
+            <OnScreen pages={[[20251018, 1]]} />
+          </QueryClientProvider>
+        );
+      });
+      for (let i = 0; i < 5; i++) {
+        await act(async () => {
+          await new Promise(resolve => {
+            setTimeout(resolve, 0);
+          });
+        });
+      }
+    };
+    await show();
+    expect(photoRequests).toBe(1);
+
+    // The same placeholders, reported again (the user scrolled a little): no need to scroll away first.
+    await show();
+    expect(photoRequests).toBe(2);
+    const key = photoGridKeys.dateAlbumDay(dateAlbumsListKey({ photosetType: Photoset.NONE }), 20251018, 1);
+    expect(stubs.queryClient.getQueryState(key)?.status).toBe("success");
+    await act(async () => root.unmount());
+  });
+
   it("fills a shared library's days only from that library's cached pages (#2731)", async () => {
     stubs.get.mockReset();
     stubs.get.mockResolvedValue({

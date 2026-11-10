@@ -1,6 +1,14 @@
 import { endpoints, photoGridKeys } from "@librephotos/api-client";
-import type { DateAlbumsListKey, DayPhotosPage, IncompleteDatePhotosGroup, PhotoOrder } from "@librephotos/api-client";
-import { useQueries, type QueryClient } from "@tanstack/react-query";
+import type {
+  DateAlbumsListKey,
+  DayPhotosPage,
+  IncompleteDatePhotosGroup,
+  PhotoOrder,
+  PigPhoto,
+} from "@librephotos/api-client";
+import { useQueries, useQueryClient, type Query, type QueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
+import type { PigVisibleGroup } from "../../../components/photolist/PhotoListView";
 import { useDayPagesOnScreen } from "../../../components/photolist/visibleDayPages";
 import { apiClient, ApiError } from "../../api";
 import { usePhotoOrder } from "../../user/hooks/usePhotoOrder";
@@ -103,17 +111,30 @@ function dayPageQuery(day: DayRequest, page: number) {
   };
 }
 
+/** A day page that failed and is not being asked again; with an observer, it is on screen. */
+const failedOnScreen = (query: Query) =>
+  query.state.status === "error" && query.state.fetchStatus === "idle" && query.getObserversCount() > 0;
+
 /**
  * Loads the day pages of the list `listOptions` that are on screen, all at once, and returns the
  * `updateGroups` the photo list reports them through. Each page merges into the list as it arrives.
+ * A page that failed is asked again each time the list reports placeholders on screen, so it does
+ * not stay blank until it is scrolled away and back.
  */
 export const useDateAlbumDayPages = (listOptions: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
   const photoOrder = usePhotoOrder();
   const options = { ...listOptions, order: photoOrder.order };
-  const { pages, updateGroups } = useDayPagesOnScreen(JSON.stringify(dateAlbumsListKey(options)));
+  const { pages, updateGroups: reportPages } = useDayPagesOnScreen(JSON.stringify(dateAlbumsListKey(options)));
+  const queryClient = useQueryClient();
   const enabled = !queryOptions?.skip && photoOrder.ready;
   useQueries({
     queries: pages.map(({ day, page }) => ({ ...dayPageQuery({ ...options, album_date_id: day }, page), enabled })),
   });
-  return updateGroups;
+  return useCallback(
+    (visibleGroups: PigVisibleGroup<PigPhoto>[]) => {
+      reportPages(visibleGroups);
+      void queryClient.refetchQueries({ queryKey: photoGridKeys.kind("dateAlbum"), predicate: failedOnScreen });
+    },
+    [reportPages, queryClient]
+  );
 };
