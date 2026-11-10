@@ -914,6 +914,13 @@ class MetadataEdit(models.Model):
     old_value = models.JSONField(null=True, blank=True, encoder=DjangoJSONEncoder)
     new_value = models.JSONField(null=True, blank=True, encoder=DjangoJSONEncoder)
 
+    # Never written or read: the write-back writes a photo's current values,
+    # not one edit. Kept so a rolling deploy's old container, which still
+    # writes them, works while the new one starts; to be dropped in a later
+    # release.
+    synced_to_file = models.BooleanField(default=False)
+    synced_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

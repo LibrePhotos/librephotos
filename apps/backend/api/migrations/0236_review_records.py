@@ -1,4 +1,4 @@
-"""What a duplicate review did, and two MetadataEdit columns nothing wrote.
+"""What a duplicate review did.
 
 - ``Duplicate.trashed_photos``: the photos a resolve moved to the trash, the
   only ones a revert takes out again. A group resolved before this records
@@ -7,8 +7,6 @@
 - "Not duplicates" used to unlink the photos and leave an empty row behind,
   which no list showed and nothing could undo. It keeps the photos now; the
   empty dismissed rows are deleted.
-- ``MetadataEdit.synced_to_file`` and ``synced_at`` were never written: the
-  write-back writes a photo's current values, not one edit.
 """
 
 from django.db import migrations, models
@@ -41,14 +39,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="metadataedit",
-            name="synced_at",
-        ),
-        migrations.RemoveField(
-            model_name="metadataedit",
-            name="synced_to_file",
-        ),
         migrations.AddField(
             model_name="duplicate",
             name="trashed_photos",
