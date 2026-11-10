@@ -31,7 +31,7 @@ class SniffTests(unittest.TestCase):
         self.assertEqual(sniffed_mime_type(_write("a.mov", qt)), "video/quicktime")
 
     def test_3gp_with_only_3gpp_brands_is_video(self):
-        # Old phones list no MP4 brand. filetype 1.2.0's 3GP matcher compares
+        # Old phones list no MP4 brand. filetype 1.2.0's 3GP matcher (kept as is) compares
         # "ftyp3gp" with the first bytes (the box size), so it never matches,
         # and only the MP4 matcher's isom/mp41/mp42 brands caught 3GPs (#2418).
         old = _ftyp(b"3gp4", b"3gp4", b"3gp5", b"3g2a")
