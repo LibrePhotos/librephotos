@@ -130,9 +130,10 @@ def generate_face_embeddings(
         db.connections.close_all()
 
         for idx, face in enumerate(_listed(face_ids, faces, job_id)):
-            if _scan_cancelled(idx, job_id, "Generate face embeddings job cancelled"):
-                return
-            if _face_detection_turned_off(idx, lrj):
+            cancelled = _scan_cancelled(
+                idx, job_id, "Generate face embeddings job cancelled"
+            )
+            if cancelled or _face_detection_turned_off(idx, lrj):
                 return
             _encode_face(face, job_id)
             if heartbeat is not None:
@@ -1165,9 +1166,8 @@ def scan_faces(
 
         unreachable = 0
         for idx, photo in enumerate(_listed(listed, existing_photos, job_id)):
-            if _scan_cancelled(idx, job_id, "Scan faces job cancelled"):
-                return
-            if _face_detection_turned_off(idx, lrj):
+            cancelled = _scan_cancelled(idx, job_id, "Scan faces job cancelled")
+            if cancelled or _face_detection_turned_off(idx, lrj):
                 return
             failure = _extract_faces_for_photo(photo, job_id)
             if isinstance(failure, requests.ConnectionError | requests.Timeout):
