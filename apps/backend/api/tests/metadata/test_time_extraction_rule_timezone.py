@@ -7,16 +7,32 @@ utc / name: / unknown) and about the exception types that escape, because
 callers (_transform_tz) rely on the (success, tz) tuple protocol and on
 ValueError/UnknownTimeZoneError propagating out.
 
-timezonefinder is imported lazily inside _get_tz; every test that reaches
-that branch patches timezonefinder.TimezoneFinder so no geo data is loaded.
+timezonefinder is imported lazily, on the first GPS lookup, and the process
+keeps one TimezoneFinder (ProcessTimezoneFinder). Every test that reaches that
+branch gets a fresh holder and patches timezonefinder.TimezoneFinder, so no geo
+data is loaded and an instance cached by another test is never used.
 """
 
+import os
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytz
-from django.test import TestCase
+from django.conf import settings
+from django.test import SimpleTestCase, TestCase
 
-from api.metadata.datetime_rules import RuleTypes, TimeExtractionRule, _check_gps_ok
+from api.metadata import datetime_rules
+from api.metadata.datetime_rules import (
+    ProcessTimezoneFinder,
+    RuleTypes,
+    TimeExtractionRule,
+    _check_gps_ok,
+    _get_gps_tz,
+)
 
 
 def make_rule(**extra):
@@ -25,8 +41,18 @@ def make_rule(**extra):
     return TimeExtractionRule(params)
 
 
+def use_fresh_timezone_finder(test: SimpleTestCase) -> None:
+    """Give ``test`` a process finder that has not made its TimezoneFinder yet."""
+    patcher = patch.object(datetime_rules, "_timezones", ProcessTimezoneFinder())
+    patcher.start()
+    test.addCleanup(patcher.stop)
+
+
 class GetTzGpsBranchTest(TestCase):
     """description == 'gps_timezonefinder'."""
+
+    def setUp(self):
+        use_fresh_timezone_finder(self)
 
     def _patched_finder(self, tz_name):
         finder_instance = MagicMock()
@@ -267,3 +293,87 @@ class TransformTzIntegrationTest(TestCase):
         )
         # ... and the offset Moscow has then is kept (#2768).
         self.assertEqual(180, result.utc_offset)
+
+
+class ProcessTimezoneFinderTest(SimpleTestCase):
+    """Building a TimezoneFinder takes about a second; a process builds one."""
+
+    def setUp(self):
+        use_fresh_timezone_finder(self)
+        self.finder = MagicMock()
+        self.finder.timezone_at.return_value = "Europe/Berlin"
+        self.finder_cls = MagicMock(return_value=self.finder)
+        patcher = patch("timezonefinder.TimezoneFinder", self.finder_cls)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_every_lookup_shares_one_finder(self):
+        for lat, lon in [(52.52, 13.40), (48.14, 11.58), (53.55, 9.99)]:
+            self.assertEqual(
+                _get_gps_tz(lat, lon), (True, pytz.timezone("Europe/Berlin"))
+            )
+
+        self.finder_cls.assert_called_once_with()
+        self.assertEqual(self.finder.timezone_at.call_count, 3)
+
+    def test_threads_share_one_finder(self):
+        def slow_build():
+            # Long enough for every thread to arrive while the first one builds.
+            time.sleep(0.05)
+            return self.finder
+
+        self.finder_cls.side_effect = slow_build
+        results = []
+        start = threading.Barrier(8)
+
+        def look_up():
+            start.wait()
+            results.append(_get_gps_tz(52.52, 13.40))
+
+        threads = [threading.Thread(target=look_up) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        self.finder_cls.assert_called_once_with()
+        self.assertEqual(results, [(True, pytz.timezone("Europe/Berlin"))] * 8)
+
+    def test_no_finder_without_a_gps_position(self):
+        self.assertEqual(_get_gps_tz(None, None), (False, None))
+        self.assertEqual(_get_gps_tz(0.0, 0.0), (False, None))
+
+        self.finder_cls.assert_not_called()
+
+
+PROBE = """
+import sys
+
+import django
+
+django.setup()
+
+import api.directory_watcher.file_handlers
+import api.metadata.datetime_rules
+import librephotos.urls
+
+print("timezonefinder" in sys.modules)
+"""
+
+
+class TimezoneFinderImportTest(SimpleTestCase):
+    def test_starting_the_app_does_not_import_timezonefinder(self):
+        # Only the first GPS lookup pays for the import and the index.
+        backend = Path(settings.BASE_DIR).parent
+        environ = dict(os.environ)
+        environ.update({"PYTHONPATH": str(backend), "SECRET_KEY": "test-secret-key"})
+        result = subprocess.run(
+            [sys.executable, "-c", PROBE],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=str(backend),
+            env=environ,
+        )
+
+        self.assertEqual(result.stdout.strip().splitlines()[-1], "False")
