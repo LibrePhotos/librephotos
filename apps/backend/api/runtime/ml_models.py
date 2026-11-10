@@ -4,7 +4,10 @@ import hashlib
 import logging
 import math
 import os
+import shutil
 import tarfile
+import tempfile
+import uuid
 import zipfile
 from collections.abc import Iterator
 from pathlib import Path
@@ -313,6 +316,12 @@ def _model_target_exists(model_folder: Path, model: MlModel) -> bool:
 
 
 def _unpack_archive(archive_path: Path, model_folder: Path, model: MlModel) -> None:
+    """Unpack the archive so that ``model_folder / target-dir`` holds the model.
+
+    ``model_folder`` is a staging directory (see download_model): a tar
+    bundle names its members from the models root down, a zip holds the
+    target directory's own files.
+    """
     unpack_command = model["unpack-command"]
     if unpack_command == "tar -zxC":
         with tarfile.open(archive_path, mode="r:gz") as tar:
@@ -326,6 +335,54 @@ def _unpack_archive(archive_path: Path, model_folder: Path, model: MlModel) -> N
         with zipfile.ZipFile(archive_path) as archive:
             archive.extractall(path=target_dir)
         _flatten_wrapper_dir(target_dir)
+
+
+def _install_archive(model_folder: Path, model: MlModel) -> None:
+    """Download, unpack and move the model's archive into place in one rename.
+
+    Everything happens in a staging directory of its own next to the models,
+    so two downloads of one model never share a file, and the target
+    directory only ever appears whole: a crash mid-extraction leaves a
+    staging directory, never a target that ``_model_target_exists`` takes
+    for an installed model.
+    """
+    model_folder.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(dir=model_folder, prefix=f".{model['name']}."))
+    try:
+        archive_path = _get_download_target(staging / "archive", model)
+        _download_file(model["url"], archive_path, model["name"], model.get("sha256"))
+        unpacked = staging / "unpacked"
+        _unpack_archive(archive_path, unpacked, model)
+        staged = unpacked / model["target-dir"]
+        if not staged.is_dir():
+            raise OSError(
+                f"the archive of {model['name']} holds no {model['target-dir']}"
+            )
+        _replace_dir(staged, model_folder / model["target-dir"])
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+
+
+def _replace_dir(staged: Path, target: Path) -> None:
+    """Move ``staged`` to ``target``, setting aside what is there first.
+
+    Not one ``os.replace``: a directory cannot replace a non-empty one. The
+    target is only missing between the two renames.
+    """
+    target.parent.mkdir(parents=True, exist_ok=True)
+    aside: Path | None = None
+    if target.exists():
+        aside = target.with_name(f".{target.name}.{uuid.uuid4().hex}.old")
+        target.rename(aside)
+    try:
+        staged.rename(target)
+    except OSError:
+        # Another download of the same model got there between the renames.
+        if not target.is_dir():
+            raise
+    finally:
+        if aside is not None:
+            shutil.rmtree(aside, ignore_errors=True)
 
 
 def _flatten_wrapper_dir(target_dir: Path | str) -> None:
@@ -375,17 +432,15 @@ def download_model(model: MlModel) -> None:
         return
 
     logger.info("Downloading model %s", model["name"])
-    target_path = _get_download_target(model_folder, model)
-
-    _download_file(model["url"], target_path, model["name"], model.get("sha256"))
-
     if model["unpack-command"]:
-        try:
-            _unpack_archive(target_path, model_folder, model)
-        finally:
-            # Drop the archive whether or not extraction worked: a corrupt one
-            # left behind is never useful and would only be re-read next run.
-            Path(target_path).unlink(missing_ok=True)
+        _install_archive(model_folder, model)
+    else:
+        _download_file(
+            model["url"],
+            _get_download_target(model_folder, model),
+            model["name"],
+            model.get("sha256"),
+        )
 
     _download_missing_additional_files(model_folder, model)
 
@@ -481,9 +536,10 @@ def _download_file(
 ) -> None:
     """Download a single file with progress tracking.
 
-    The download is streamed to a temporary sibling and only moved into place
-    once it completed successfully. Nothing that is not a fully downloaded file
-    ever reaches ``target_path``, so a failed transfer cannot leave behind a
+    The download is streamed to a temporary sibling of its own (two downloads
+    of one file never write the same one) and only moved into place once it
+    completed successfully. Nothing that is not a fully downloaded file ever
+    reaches ``target_path``, so a failed transfer cannot leave behind a
     corrupt archive or - worse, for models that are stored unpacked - a file
     that later checks happily accept as an installed model.
 
@@ -497,7 +553,11 @@ def _download_file(
     """
     target_path = Path(target_path)
     target_path.parent.mkdir(parents=True, exist_ok=True)
-    partial_path = target_path.with_name(target_path.name + ".part")
+    handle, partial_name = tempfile.mkstemp(
+        dir=target_path.parent, prefix=f".{target_path.name}.", suffix=".part"
+    )
+    os.close(handle)
+    partial_path = Path(partial_name)
 
     hasher = hashlib.sha256() if expected_sha256 else None
 
@@ -539,6 +599,8 @@ def _download_file(
     except Exception:
         partial_path.unlink(missing_ok=True)
         raise
+    # What an older version left of a download cut short.
+    target_path.with_name(target_path.name + ".part").unlink(missing_ok=True)
 
 
 def download_models(user: User, job_id: str | None = None) -> None:

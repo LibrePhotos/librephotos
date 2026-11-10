@@ -86,6 +86,11 @@ def _make_zip_bytes(members):
     return buffer.getvalue()
 
 
+def _unpacks_target(archive_path, model_folder, model):
+    """An ``_unpack_archive`` stand-in that unpacks an empty target directory."""
+    (Path(model_folder) / model["target-dir"]).mkdir(parents=True)
+
+
 def _responder(payload):
     """A ``requests.get`` replacement returning a fresh response per call."""
 
@@ -147,7 +152,10 @@ class DownloadModelSkipBranchesTest(TestCase):
 
             with override_settings(MEDIA_ROOT=str(media_root)):
                 with patch("api.runtime.ml_models._download_file") as download_file:
-                    with patch("api.runtime.ml_models._unpack_archive") as unpack:
+                    with patch(
+                        "api.runtime.ml_models._unpack_archive",
+                        side_effect=_unpacks_target,
+                    ) as unpack:
                         download_model(model)
 
             self.assertEqual(1, download_file.call_count)
@@ -289,11 +297,9 @@ class DownloadModelUnpackTest(TestCase):
             unpack.assert_not_called()
             self.assertEqual(payload, (model_folder / "custom_plain.bin").read_bytes())
 
-    def test_unknown_unpack_command_leaves_the_downloaded_file_deleted(self):
-        # BEHAVIOUR NOTE (pinned, arguably a bug): an unrecognised truthy
-        # unpack-command makes _unpack_archive a no-op, but download_model's
-        # ``finally`` still unlinks the downloaded file - so nothing survives
-        # and no error is raised.
+    def test_unknown_unpack_command_fails_and_leaves_nothing(self):
+        # An unrecognised unpack-command unpacks nothing, so the archive holds
+        # no target directory: a failed download, with the staging removed.
         payload = b"whatever"
         model = {
             "id": 903,
@@ -309,7 +315,8 @@ class DownloadModelUnpackTest(TestCase):
             model_folder = media_root / "data_models"
             with override_settings(MEDIA_ROOT=str(media_root)):
                 with patch("api.runtime.ml_models.requests.get", _responder(payload)):
-                    download_model(model)
+                    with self.assertRaisesRegex(OSError, "holds no custom_unknown"):
+                        download_model(model)
 
             self.assertEqual([], list(model_folder.iterdir()))
 
@@ -443,7 +450,10 @@ class DownloadModelDoesNotMutateInputTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             with override_settings(MEDIA_ROOT=str(media_root)):
                 with patch("api.runtime.ml_models._download_file"):
-                    with patch("api.runtime.ml_models._unpack_archive"):
+                    with patch(
+                        "api.runtime.ml_models._unpack_archive",
+                        side_effect=_unpacks_target,
+                    ):
                         download_model(model)
         self.assertEqual(before, model)
 
@@ -458,7 +468,10 @@ class DownloadModelFaceRecognitionExistsTest(TestCase):
 
             with override_settings(MEDIA_ROOT=str(media_root)):
                 with patch("api.runtime.ml_models._download_file") as download_file:
-                    with patch("api.runtime.ml_models._unpack_archive"):
+                    with patch(
+                        "api.runtime.ml_models._unpack_archive",
+                        side_effect=_unpacks_target,
+                    ):
                         download_model(model)
 
             self.assertEqual(1, download_file.call_count)
