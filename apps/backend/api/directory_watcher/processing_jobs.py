@@ -7,12 +7,12 @@ metadata like location information, image tags, and face detection.
 
 import logging
 import traceback
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Sequence
 from uuid import UUID
 
 import requests
 from django import db
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Model, Q, QuerySet
 from django.utils import timezone
 
 from api.classification import captioning
@@ -119,10 +119,11 @@ def generate_face_embeddings(
 
     try:
         faces = faces_missing_encoding(user)
-        lrj.update_progress(current=0, target=faces.count())
+        face_ids = list(faces.values_list("pk", flat=True))
+        lrj.update_progress(current=0, target=len(face_ids))
         db.connections.close_all()
 
-        for idx, face in enumerate(faces):
+        for idx, face in enumerate(_listed(face_ids, faces, job_id)):
             if _scan_cancelled(idx, job_id, "Generate face embeddings job cancelled"):
                 return
             _encode_face(face, job_id)
@@ -155,15 +156,49 @@ def _limit_to_photos_added_since_last_scan(
     return existing_photos.filter(added_on__gt=last_scan.started_at)
 
 
-def _begin_photo_scan(lrj: LongRunningJob, existing_photos: QuerySet[Photo]) -> bool:
-    """Publish the job's target and report whether there is any work to do."""
-    target = existing_photos.count()
-    lrj.update_progress(current=0, target=target)
-    if target == 0:
+# Rows a job that walks its list loads at a time.
+LISTED_CHUNK = 500
+
+
+def _begin_photo_scan(
+    lrj: LongRunningJob, existing_photos: QuerySet[Photo]
+) -> list[UUID]:
+    """List the photos the job covers, once, and publish their number as its target.
+
+    The job queues or walks exactly this list. Its selection is read once
+    because other writers change it meanwhile (a photo gets its things, its
+    faces, its probe): a second read used to disagree with the target, so the
+    job either stayed running short of it until the stuck-job cleanup failed
+    it, or finished, and queued its follow-ups, before its work was done.
+    Empty when there is nothing to do; the job is then complete.
+    """
+    photo_ids = list(dict.fromkeys(existing_photos.values_list("pk", flat=True)))
+    lrj.update_progress(current=0, target=len(photo_ids))
+    if not photo_ids:
         lrj.complete()
-        return False
+        return []
     db.connections.close_all()
-    return True
+    return photo_ids
+
+
+def _listed[M: Model](
+    ids: Sequence[object], rows: QuerySet[M], job_id: UUID | str
+) -> Iterator[M]:
+    """The rows of ``ids`` still in ``rows``, loaded ``LISTED_CHUNK`` at a time.
+
+    For a job that walks the list ``_begin_photo_scan`` made: a row deleted,
+    or done by another writer, since then (no longer in ``rows``) is counted
+    as done, so the job still reaches its target.
+    """
+    for start in range(0, len(ids), LISTED_CHUNK):
+        chunk = ids[start : start + LISTED_CHUNK]
+        loaded = rows.in_bulk(chunk)
+        for pk in chunk:
+            row = loaded.get(pk)
+            if row is None:
+                update_scan_counter(job_id)
+            else:
+                yield row
 
 
 def _scan_cancelled(idx: int, job_id: UUID | str, message: str) -> bool:
@@ -176,17 +211,16 @@ def _scan_cancelled(idx: int, job_id: UUID | str, message: str) -> bool:
 
 def _queue_per_photo_tasks(
     task: Callable[..., object],
-    photos: QuerySet[Photo],
+    photo_ids: list[UUID],
     job_id: UUID | str,
     cancelled_message: str,
     **task_kwargs: object,
 ) -> None:
-    """Queue ``task(photo_id, job_id, **task_kwargs)`` for each photo.
+    """Queue ``task(photo_id, job_id, **task_kwargs)`` for each listed photo.
 
     The queue gets primary keys, not pickled ``Photo`` instances: the payload
     stays small and the worker works on the row as it is when the task runs.
     """
-    photo_ids = photos.values_list("pk", flat=True)
     for idx, photo_id in enumerate(photo_ids):
         if _scan_cancelled(idx, job_id, cancelled_message):
             return
@@ -271,13 +305,13 @@ def generate_tags(user: User, job_id: UUID, full_scan: bool = False) -> None:
         return
 
     try:
-        existing_photos = photos_to_tag(user, full_scan)
-        if not _begin_photo_scan(lrj, existing_photos):
+        photo_ids = _begin_photo_scan(lrj, photos_to_tag(user, full_scan))
+        if not photo_ids:
             return
 
         _queue_per_photo_tasks(
             generate_tag_job,
-            existing_photos,
+            photo_ids,
             job_id,
             "Generate tags job cancelled",
             force=full_scan,
@@ -368,12 +402,12 @@ def generate_captions(user: User, job_id: UUID, full_scan: bool = False) -> None
             lrj.fail(error="The captioning model is not downloaded.")
             return
 
-        photos = photos_to_caption(user, full_scan)
-        if not _begin_photo_scan(lrj, photos):
+        photo_ids = _begin_photo_scan(lrj, photos_to_caption(user, full_scan))
+        if not photo_ids:
             return
 
         _queue_per_photo_tasks(
-            generate_caption_job, photos, job_id, "Generate captions job cancelled"
+            generate_caption_job, photo_ids, job_id, "Generate captions job cancelled"
         )
 
     except Exception as err:
@@ -520,11 +554,12 @@ def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
         else:
             existing_photos = photos_needing_ocr(user, ocr_model)
 
-        if not _begin_photo_scan(lrj, existing_photos):
+        photo_ids = _begin_photo_scan(lrj, existing_photos)
+        if not photo_ids:
             return
 
         _queue_per_photo_tasks(
-            generate_ocr_job, existing_photos, job_id, "Generate OCR job cancelled"
+            generate_ocr_job, photo_ids, job_id, "Generate OCR job cancelled"
         )
 
     except Exception as err:
@@ -747,14 +782,7 @@ def classify_media(user: User, job_id: UUID) -> None:
             .select_related("ocr")
         )
 
-        target = existing_photos.count()
-        if target == 0:
-            lrj.update_progress(current=0, target=0)
-            lrj.complete()
-            return
-
-        lrj.update_progress(current=0, target=target)
-        db.connections.close_all()
+        photo_ids = _begin_photo_scan(lrj, existing_photos)
 
         # Two accumulators: is_document is only ever written for photos whose
         # value actually changed (which implies they have OCR), so OCR-less
@@ -776,7 +804,7 @@ def classify_media(user: User, job_id: UUID) -> None:
                 )
                 pending_document.clear()
 
-        for idx, photo in enumerate(existing_photos.iterator()):
+        for idx, photo in enumerate(_listed(photo_ids, existing_photos, job_id)):
             # Check for cancellation periodically
             if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
                 logger.info("Classify media job cancelled")
@@ -892,9 +920,8 @@ def probe_videos(user: User, job_id: UUID) -> None:
         return
     try:
         videos = videos_to_probe(user).select_related("main_file", "thumbnail")
-        if not _begin_photo_scan(lrj, videos):
-            return
-        for idx, photo in enumerate(videos.iterator()):
+        photo_ids = _begin_photo_scan(lrj, videos)
+        for idx, photo in enumerate(_listed(photo_ids, videos, job_id)):
             if _scan_cancelled(idx, job_id, "Probe videos job cancelled"):
                 return
             error = None
@@ -943,11 +970,12 @@ def add_geolocation(user: User, job_id: UUID, full_scan: bool = False) -> None:
         )
         if not full_scan:
             existing_photos = existing_photos | owned.filter(needs_geocoding())
-        if not _begin_photo_scan(lrj, existing_photos):
+        photo_ids = _begin_photo_scan(lrj, existing_photos)
+        if not photo_ids:
             return
 
         _queue_per_photo_tasks(
-            geolocation_job, existing_photos, job_id, "Add geolocation job cancelled"
+            geolocation_job, photo_ids, job_id, "Add geolocation job cancelled"
         )
 
     except Exception as err:
@@ -967,12 +995,12 @@ def look_up_places(user: User, job_id: UUID) -> None:
     if lrj is None:
         return
     try:
-        photos = Photo.objects.filter(HAS_POSITION)
-        if not _begin_photo_scan(lrj, photos):
+        photo_ids = _begin_photo_scan(lrj, Photo.objects.filter(HAS_POSITION))
+        if not photo_ids:
             return
         _queue_per_photo_tasks(
             geolocation_job,
-            photos,
+            photo_ids,
             job_id,
             "Look up place names job cancelled",
             force=True,
@@ -1092,11 +1120,12 @@ def scan_faces(
         # Needs no face service, and photos already scanned have such faces too (#2642)
         photo_faces.restore_missing_crops(user)
         existing_photos = _faces_to_scan(user, full_scan, path, photo_ids)
-        if not _begin_photo_scan(lrj, existing_photos):
+        listed = _begin_photo_scan(lrj, existing_photos)
+        if not listed:
             return
 
         unreachable = 0
-        for idx, photo in enumerate(existing_photos):
+        for idx, photo in enumerate(_listed(listed, existing_photos, job_id)):
             if _scan_cancelled(idx, job_id, "Scan faces job cancelled"):
                 return
             failure = _extract_faces_for_photo(photo, job_id)
