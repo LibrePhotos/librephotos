@@ -1,6 +1,6 @@
 import { endpoints, photoGridKeys, type PigPhoto } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { groupBy, toPairs } from "lodash-es";
+import { groupEntries } from "../../../util/helpers";
 import { apiClient } from "../../api";
 
 /** What a "Shared with you" photo grid shows: a place or thing by its title, or a person by id. */
@@ -22,7 +22,10 @@ export const useFetchSharedGroupPhotosQuery = (ref: SharedGroupRef) => {
     queryKey: photoGridKeys.sharedWithMeGroup(kind, key),
     queryFn: async () => {
       const results = await fetchPhotos(kind, key);
-      return toPairs(groupBy(results, "owner.id")).map(el => ({ userId: parseInt(el[0], 10), photos: el[1] }));
+      return groupEntries(results, photo => photo.owner?.id).map(el => ({
+        userId: parseInt(el[0], 10),
+        photos: el[1],
+      }));
     },
     // A 404 means nothing is shared under it any more: asking again will not change that.
     retry: false,

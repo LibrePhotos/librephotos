@@ -3,7 +3,8 @@
  * localStorage. What comes back from there is not trusted: a value of the wrong shape is
  * dropped, field by field, instead of reaching the grid.
  */
-import React, { act } from "react";
+import { useDebouncedCallback } from "@mantine/hooks";
+import React, { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { STORAGE_KEYS } from "../../../util/storage";
@@ -39,8 +40,9 @@ async function renderHook<T>(useHook: () => T) {
       if (!rendered) throw new Error("the hook has not rendered");
       return rendered.value;
     },
-    cleanup: async () => {
+    cleanup: async (before?: () => void) => {
       await act(async () => {
+        before?.();
         root.unmount();
       });
     },
@@ -106,6 +108,39 @@ describe("useTabScrollPositions", () => {
     });
 
     await view.cleanup();
+  });
+
+  it("stores the position still waiting to be saved when the dashboard closes, once", async () => {
+    vi.useFakeTimers();
+    try {
+      const setItem = vi.spyOn(Storage.prototype, "setItem");
+      // As the dashboard saves: debounced, with the pending save made at unmount
+      const view = await renderHook(() => {
+        const { tabPositions, updatePosition } = useTabScrollPositions();
+        const [, setRenders] = useState(0);
+        const save = useDebouncedCallback(updatePosition, { delay: 300, flushOnUnmount: true });
+        return { tabPositions, save, rerender: () => setRenders(n => n + 1) };
+      });
+
+      act(() => {
+        view.current.save(FacesTab.enum.labeled, 100);
+        view.current.save(FacesTab.enum.labeled, 250);
+      });
+      vi.advanceTimersByTime(100);
+      expect(setItem).not.toHaveBeenCalled();
+
+      // The dashboard closes with a render of its own still queued, as it does in the app
+      await view.cleanup(() => view.current.rerender());
+      vi.advanceTimersByTime(1000);
+
+      const writes = setItem.mock.calls.filter(([key]) => key === STORAGE_KEYS.facesTabScrollPositions);
+      expect(writes).toHaveLength(1);
+      expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.facesTabScrollPositions) ?? "{}")).toMatchObject({
+        labeled: 250,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

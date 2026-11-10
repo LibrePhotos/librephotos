@@ -1,6 +1,6 @@
 import { albumKeys, endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { orderBy } from "lodash-es";
+import { orderBy } from "../../../util/helpers";
 import { apiClient } from "../../api";
 
 /** A person as the people pages show them: the id as a string, no nulls. */
@@ -37,7 +37,10 @@ export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
         birth_date: item.birth_date ?? null,
       }));
 
-      return orderBy(people, ["name", "face_count"], ["asc", "desc"]);
+      return orderBy(people, [
+        [person => person.name, "asc"],
+        [person => person.face_count, "desc"],
+      ]);
     },
     enabled: !skip,
   });

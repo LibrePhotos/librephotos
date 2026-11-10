@@ -1,7 +1,6 @@
 import { Group, RemoveScroll, Stack } from "@mantine/core";
-import { useCallbackRef, useDisclosure } from "@mantine/hooks";
+import { useCallbackRef, useDebouncedCallback, useDisclosure } from "@mantine/hooks";
 import { getRouteApi } from "@tanstack/react-router";
-import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PAGE_GUTTER_PX, TOP_MENU_HEIGHT } from "../../uiConstants";
@@ -118,11 +117,13 @@ export function FaceDashboard() {
   const lightboxItems = useMemo(() => withFaceVideoStart(idx2hash, lightboxStart), [idx2hash, lightboxStart]);
 
   // Debounced localStorage save - doesn't trigger re-renders, just persists position
-  const debouncedSavePosition = useRef(
-    debounce((tab: FacesTab, pos: number) => {
+  // A save still pending when the dashboard closes is made then (lodash's debounce made it 300 ms later).
+  const debouncedSavePosition = useDebouncedCallback(
+    (tab: FacesTab, pos: number) => {
       updatePosition(tab, pos);
-    }, 300)
-  ).current;
+    },
+    { delay: 300, flushOnUnmount: true }
+  );
 
   // Track scroll position in ref (no re-renders) for persistence only
   const currentScrollTop = useRef(0);

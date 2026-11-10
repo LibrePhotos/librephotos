@@ -1,6 +1,6 @@
-import { chunk } from "lodash-es";
 import React, { useMemo } from "react";
 import type { CompletePersonFace } from "../../api_client/faces/types";
+import { chunk } from "../../util/helpers";
 import classes from "./FaceGridRow.module.css";
 import type { FaceGridLayout, FaceRowKind } from "./faceGridRows";
 import type { GridCell } from "./hooks/useVirtualizedGrid";

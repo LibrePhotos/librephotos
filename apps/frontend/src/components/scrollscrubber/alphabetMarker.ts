@@ -1,5 +1,5 @@
 import { UNKNOWN_PERSON_NAME } from "@librephotos/api-client";
-import { deburr } from "lodash-es";
+import { deburr } from "../../util/helpers";
 
 /** The alphabet marker a label sorts under: its first letter, "#" for a digit, ":-)" for anything else. */
 export function alphabetMarkerLetter(label: string): string {

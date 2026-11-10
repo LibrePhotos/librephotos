@@ -1,6 +1,6 @@
-import { debounce } from "lodash-es";
 import { useEffect, useMemo, useState } from "react";
 import type { RefObject } from "react";
+import { debounce } from "../../util/helpers";
 
 type Options = Readonly<{
   /** The element around the scroll target (the scrubber's root). */

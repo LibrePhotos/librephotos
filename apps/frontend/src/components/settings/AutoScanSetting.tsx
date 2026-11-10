@@ -9,13 +9,13 @@ import {
   IconRefresh,
   type TablerIcon,
 } from "@tabler/icons-react";
-import { isEqual } from "lodash-es";
 import { Info } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { ICON_SIZE } from "../../uiConstants";
 import { firstDayOfWeek } from "../../util/dateUtils";
+import { plainDataEqual } from "../../util/helpers";
 import {
   AUTO_SCAN_FREQUENCIES,
   autoScanStatusLine,
@@ -92,7 +92,7 @@ function StartTime({ stored }: { stored: string }) {
 /** The custom days. Without a day nothing is saved and the saved schedule stays. */
 function Weekdays({ stored }: { stored: number[] }) {
   const { t } = useTranslation();
-  const days = useSiteSettingDraft(stored, value => ({ auto_scan_days: value }), isEqual);
+  const days = useSiteSettingDraft(stored, value => ({ auto_scan_days: value }), plainDataEqual);
   const names = Info.weekdays("short");
 
   const change = (picked: string[]) => {

@@ -47,7 +47,6 @@ export default defineConfig(({ mode }) => {
       react(wdyr ? { jsxImportSource: "@welldone-software/why-did-you-render" } : {}),
     ],
     resolve: {
-      // Bare `lodash` is banned by lint (eslint.config.mjs); import from "lodash-es".
       alias: [
         { find: /^@librephotos\/api-client$/, replacement: `${apiClientSrc}/index.ts` },
         { find: /^@librephotos\/api-client\/(schemas|transport|hooks)$/, replacement: `${apiClientSrc}/$1/index.ts` },
@@ -85,11 +84,6 @@ export default defineConfig(({ mode }) => {
             // e2e/ is the Playwright suite, run by its own runner against a live stack.
             exclude: [...configDefaults.exclude, "e2e/**"],
             css: true,
-            // lodash-es ships ~650 one-function ES modules, so every test file that
-            // imports it had Node resolve, stat and load all of them. Across a
-            // parallel run that costs 1-4 s per file. Pre-bundling it into a single
-            // module brings that down to ~0.1 s.
-            deps: { optimizer: { client: { enabled: true, include: ["lodash-es"] } } },
           },
         },
         {
