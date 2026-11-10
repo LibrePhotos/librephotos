@@ -8,6 +8,8 @@
   position: -webkit-sticky;
   position: sticky;
   top: 0;
+  /* Above the tiles (z-index 0) it sticks over. */
+  z-index: 2;
   width: 100%;
   line-height: 1.5;
   display: flex;

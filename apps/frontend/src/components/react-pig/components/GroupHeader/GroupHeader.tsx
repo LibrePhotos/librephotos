@@ -1,5 +1,5 @@
 import React from "react";
-import type { HeaderSize, ImageItem, PigSettings } from "../../types";
+import type { HeaderSize, PigSettings } from "../../types";
 import styles from "./styles.module.css";
 
 // A laid-out date group (Pig's GroupedImageItem after computeLayoutGroups).
@@ -17,7 +17,6 @@ type Group = {
 type GroupHeaderProps = {
   settings: Pick<PigSettings, "gridGap" | "bgColor">;
   group: Group;
-  activeTileId?: ImageItem["id"] | null;
   textAlignment?: "left" | "right";
   headerSize?: HeaderSize;
 };
@@ -35,7 +34,6 @@ const MIN_WIDTH_WITH_PLACE = 250;
 export default function GroupHeader({
   settings,
   group,
-  activeTileId = null,
   textAlignment = "right",
   headerSize = "large",
 }: GroupHeaderProps) {
@@ -54,10 +52,7 @@ export default function GroupHeader({
     >
       <div
         className={`${styles.headerInner} pig-header ${textAlignment === "left" ? styles.leftAligned : styles.rightAligned} ${styles[headerSize]}`}
-        style={{
-          backgroundColor: settings.bgColor,
-          zIndex: activeTileId !== null ? 1 : 2,
-        }}
+        style={{ backgroundColor: settings.bgColor }}
       >
         {textAlignment === "right" ? (
           <>

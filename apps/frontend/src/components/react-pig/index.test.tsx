@@ -175,69 +175,62 @@ describe("react-pig photo size", () => {
   });
 });
 
-describe("react-pig expanded tile", () => {
-  // Two tiles fill a 1000px row at 500px each, so neither is already full width.
-  // Their ids and hashes differ: the expanded tile is tracked by id.
-  const tile = (id: string, extra: { type?: string; isTemp?: boolean } = {}) => ({
+describe("react-pig tile clicks", () => {
+  // Two tiles fill a 1000px row at 500px each. A click is the caller's (PhotoListView opens the
+  // lightbox); the grid itself no longer expands a tile in place.
+  const tile = (id: string) => ({
     id: `photo-${id}`,
     image_hash: `hash-${id}`,
     aspectRatio: 1.5,
     dominantColor: "#123456",
-    ...extra,
+    type: "video",
   });
-
-  function renderGrid(tiles: ReturnType<typeof tile>[]) {
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-    act(() => {
-      defined(root).render(<Pig imageData={tiles} getUrl={(imageHash, size) => `/media/${imageHash}?h=${size}`} />);
-    });
-    const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>("button.pig-btn"));
-    const expandedSources = () =>
-      Array.from(defined(container).querySelectorAll<HTMLImageElement | HTMLVideoElement>("img, video"))
-        .map(media => media.getAttribute("src") ?? "")
-        .filter(src => src.endsWith("?h=1000"));
-    return { buttons, expandedSources };
-  }
 
   beforeAll(() => {
     HTMLMediaElement.prototype.pause = () => {};
     HTMLMediaElement.prototype.load = () => {};
   });
 
-  it("expands a clicked video in place, moves to another tile, and collapses on a second click", () => {
-    const { buttons, expandedSources } = renderGrid([tile("a", { type: "video" }), tile("b", { type: "video" })]);
-    expect(buttons).toHaveLength(2);
-    expect(expandedSources()).toEqual([]);
-
-    act(() => defined(buttons[0]).click());
-    expect(expandedSources()).toEqual(["/media/hash-a?h=1000"]);
-
-    act(() => defined(buttons[1]).click());
-    expect(expandedSources()).toEqual(["/media/hash-b?h=1000"]);
-
-    act(() => defined(buttons[1]).click());
-    expect(expandedSources()).toEqual([]);
-  });
-
-  it("lowers the date header under an expanded tile, but never expands a placeholder", () => {
+  it("hands a click to the caller and leaves the grid as it was", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
-    const group = { date: "2024-03-12", location: null, items: [tile("a", { isTemp: true }), tile("b")] };
+    const handleClick = vi.fn<(event: React.MouseEvent, item: ReturnType<typeof tile>) => void>();
     act(() => {
-      defined(root).render(<Pig imageData={[group]} groupByDate getUrl={imageHash => `/media/${imageHash}`} />);
+      defined(root).render(
+        <Pig
+          imageData={[tile("a"), tile("b")]}
+          handleClick={handleClick}
+          getUrl={(imageHash, size) => `/media/${imageHash}?h=${size}`}
+        />
+      );
     });
-    const header = defined(container.querySelector<HTMLElement>(".pig-header"));
-    const [placeholder, photo] = Array.from(container.querySelectorAll<HTMLButtonElement>("button.pig-btn"));
-    expect(header.style.zIndex).toBe("2");
+    const sources = () =>
+      Array.from(defined(container).querySelectorAll("img, video")).map(media => media.getAttribute("src"));
+    const before = sources();
+    const [first] = Array.from(container.querySelectorAll<HTMLButtonElement>("button.pig-btn"));
 
-    act(() => defined(placeholder).click());
-    expect(header.style.zIndex).toBe("2");
+    act(() => defined(first).click());
 
-    act(() => defined(photo).click());
-    expect(header.style.zIndex).toBe("1");
+    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(handleClick.mock.calls[0]?.[1]).toMatchObject({ id: "photo-a" });
+    expect(sources()).toEqual(before);
+  });
+
+  it("ignores a click without a handler", () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => {
+      defined(root).render(<Pig imageData={[tile("a"), tile("b")]} getUrl={imageHash => `/media/${imageHash}`} />);
+    });
+    const tiles = () => Array.from(defined(container).querySelectorAll<HTMLElement>("button.pig-btn"));
+    const places = () => tiles().map(button => defined(button.parentElement).getAttribute("style"));
+    const before = places();
+
+    act(() => defined(tiles()[0]).click());
+
+    expect(places()).toEqual(before);
   });
 });
 

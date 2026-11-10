@@ -54,10 +54,6 @@ vi.mock("@mantine/carousel", () => {
   Carousel.Slide = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
   return { Carousel };
 });
-vi.mock("motion/react", () => ({
-  AnimatePresence: ({ children }: { children?: React.ReactNode }) => children,
-  motion: { div: ({ children }: { children?: React.ReactNode }) => <div>{children}</div> },
-}));
 vi.mock("./MediaDisplay", () => ({
   MediaDisplay: (props: MediaDisplayProps) => {
     if (props.isMainContent) stubs.media.push(props);

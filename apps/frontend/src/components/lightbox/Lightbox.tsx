@@ -1,5 +1,4 @@
 import { Modal } from "@mantine/core";
-import { MotionConfig } from "motion/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useAuth } from "../../hooks/useAuth";
@@ -22,24 +21,22 @@ type ExtendedLightBoxProps = {
  * editor) shows a small dialog with Retry instead of replacing the page behind
  * it. Closing the lightbox unmounts the boundary, so the next open starts clean.
  *
- * With `prefers-reduced-motion`, motion leaves out the zoom as one photo gives way
- * to the next and only cross-fades: a slideshow (#1457) would zoom every few seconds.
+ * With `prefers-reduced-motion`, one photo gives way to the next with a crossfade and
+ * no zoom (SlideTransition.module.css): a slideshow (#1457) would zoom every few seconds.
  */
 export function Lightbox(props: ExtendedLightBoxProps) {
   const { onCloseRequest } = props;
   return (
-    <MotionConfig reducedMotion="user">
-      <FeatureBoundary
-        name="lightbox"
-        fallback={({ reset }) => (
-          <Modal opened onClose={onCloseRequest} centered>
-            <FeatureFallback reset={reset} />
-          </Modal>
-        )}
-      >
-        <LightboxViewer {...props} />
-      </FeatureBoundary>
-    </MotionConfig>
+    <FeatureBoundary
+      name="lightbox"
+      fallback={({ reset }) => (
+        <Modal opened onClose={onCloseRequest} centered>
+          <FeatureFallback reset={reset} />
+        </Modal>
+      )}
+    >
+      <LightboxViewer {...props} />
+    </FeatureBoundary>
   );
 }
 

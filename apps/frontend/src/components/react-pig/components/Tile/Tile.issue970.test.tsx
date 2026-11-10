@@ -37,13 +37,6 @@ function getUrl(imageHash: string) {
   return `${SERVER}/media/square_thumbnails/${imageHash}`;
 }
 
-const settings = {
-  gridGap: 8,
-  bgColor: "#fff",
-
-  expandedSize: 1000,
-};
-
 function videoItem(index: number) {
   const hash = `videohash${index}`;
   return {
@@ -62,39 +55,35 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container: HTMLDivElement | null = null;
 let root: ReturnType<typeof createRoot> | null = null;
 
-function tileElements(count: number, scrollSpeed: ScrollSpeed, activeTileId: string | null = null) {
+function tileElements(count: number, scrollSpeed: ScrollSpeed) {
   return Array.from({ length: count }, (_, i) => videoItem(i)).map(item => (
     <Tile
       key={item.id}
       item={item}
       containerWidth={1200}
-      containerOffsetTop={0}
       getUrl={getUrl}
-      activeTileId={activeTileId}
       handleClick={() => {}}
       handleSelection={() => {}}
       selected={false}
       selectable={false}
-      windowHeight={900}
       scrollSpeed={scrollSpeed}
-      settings={settings}
     />
   ));
 }
 
-function renderTiles(count: number, scrollSpeed: ScrollSpeed = "slow", activeTileId: string | null = null) {
+function renderTiles(count: number, scrollSpeed: ScrollSpeed = "slow") {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
-    defined(root).render(<>{tileElements(count, scrollSpeed, activeTileId)}</>);
+    defined(root).render(<>{tileElements(count, scrollSpeed)}</>);
   });
   return container;
 }
 
-function rerenderTiles(count: number, scrollSpeed: ScrollSpeed, activeTileId: string | null = null) {
+function rerenderTiles(count: number, scrollSpeed: ScrollSpeed) {
   act(() => {
-    defined(root).render(<>{tileElements(count, scrollSpeed, activeTileId)}</>);
+    defined(root).render(<>{tileElements(count, scrollSpeed)}</>);
   });
 }
 
@@ -152,16 +141,6 @@ describe("issue 970: listing a huge amount of videos", () => {
     const video = defined(renderTiles(1).querySelector("video"));
 
     // The tile stays mounted, only the <video> inside it goes away.
-    rerenderTiles(1, "fast");
-
-    expect(defined(container).querySelector("video")).toBeNull();
-    expectReleased(video);
-  });
-
-  it("releases the media element when the expanded tile is dismissed", () => {
-    const expandedId = videoItem(0).id;
-    const video = defined(renderTiles(1, "fast", expandedId).querySelector("video"));
-
     rerenderTiles(1, "fast");
 
     expect(defined(container).querySelector("video")).toBeNull();

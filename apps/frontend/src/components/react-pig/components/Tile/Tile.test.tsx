@@ -8,8 +8,6 @@ import type { ImageItem, ScrollSpeed } from "../../types";
 import { forgetLoaded } from "../../utils/loadedImages";
 import Tile from "./Tile";
 
-const settings = { gridGap: 8, bgColor: "#fff", expandedSize: 1000 };
-
 // A 100 x 60 gradient's ThumbHash, as the backend stores it.
 const SKY_THUMBHASH = "4QYKhJqGh4eAh4iHiHeAdQj4iA==";
 
@@ -42,7 +40,6 @@ function renderTile(
     selectable = true,
     handleClick = vi.fn<(event: React.MouseEvent<HTMLButtonElement>, clicked: PhotoItem) => void>(),
     handleSelection = vi.fn<(selected: PhotoItem) => void>(),
-    activeTileId = null as ImageItem["id"] | null,
     scrollSpeed = "slow" as ScrollSpeed,
   } = {}
 ) {
@@ -54,16 +51,12 @@ function renderTile(
       <Tile
         item={item}
         containerWidth={1200}
-        containerOffsetTop={0}
         getUrl={(imageHash: string, size: number) => `/media/${imageHash}?h=${size}`}
-        activeTileId={activeTileId}
         handleClick={handleClick}
         handleSelection={handleSelection}
         selected={false}
         selectable={selectable}
-        windowHeight={900}
         scrollSpeed={scrollSpeed}
-        settings={settings}
       />
     );
   });
@@ -293,42 +286,56 @@ describe("react-pig Tile media", () => {
     expect(defined(grid).className).toMatch(/pigFullLoaded/);
   });
 
-  it("expands the tile whose id is active, and loads its full size image", () => {
-    const { button } = renderTile(photoItem(), { activeTileId: "photo-1" });
+  it("sits where the layout put it, at once, and moves at once when the layout changes", () => {
+    const item = { ...photoItem(), style: { width: 200, height: 133, translateX: 12.5, translateY: 340 } };
+    const { button } = renderTile(item);
+    const tile = defined(button.parentElement);
 
-    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toContain(
-      "/media/hash1?h=1000"
-    );
+    expect(tile.style.transform).toBe("translate(12.5px, 340px)");
+    expect(tile.style.width).toBe("200px");
+    expect(tile.style.height).toBe("133px");
+    expect(tile.style.backgroundColor).toBe("rgb(18, 52, 86)");
+
+    act(() => {
+      defined(root).render(
+        <Tile
+          item={{ ...item, style: { width: 305.085, height: 203.39, translateX: 0, translateY: 32 } }}
+          containerWidth={1200}
+          getUrl={(imageHash: string, size: number) => `/media/${imageHash}?h=${size}`}
+          handleClick={() => {}}
+          handleSelection={() => {}}
+          selected={false}
+          selectable
+          scrollSpeed="slow"
+        />
+      );
+    });
+
+    // The same element, already at its new place: no animation runs between the two layouts.
+    expect(button.parentElement).toBe(tile);
+    expect(tile.style.transform).toBe("translate(0px, 32px)");
+    expect(tile.style.width).toBe("305.085px");
+    expect(tile.style.height).toBe("203.39px");
+    expect(tile.getAnimations?.() ?? []).toEqual([]);
   });
 
-  it("gives an expanded tile's button only real class names", () => {
-    const { button } = renderTile(photoItem(), { activeTileId: "photo-1" });
+  it("opens through the grid's click handler and shows no larger copy of itself", () => {
+    const { button, handleClick } = renderTile(photoItem({ type: "video" }));
 
-    expect(button.className.split(" ")).not.toContain("undefined");
-  });
+    act(() => button.click());
 
-  it("leaves a tile alone when another tile is active", () => {
-    const { button } = renderTile(photoItem(), { activeTileId: "photo-2" });
-
-    expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).not.toContain(
-      "/media/hash1?h=1000"
-    );
-  });
-
-  it("expands a video tile by its id into a second, full size video", () => {
-    const { button } = renderTile(photoItem({ type: "video" }), { activeTileId: "photo-1" });
-
-    const videos = Array.from(button.querySelectorAll("video")).map(video => video.getAttribute("src"));
-    expect(videos).toEqual(["/media/hash1?h=400", "/media/hash1?h=1000"]);
+    expect(handleClick).toHaveBeenCalledTimes(1);
+    expect(Array.from(button.querySelectorAll("video")).map(video => video.getAttribute("src"))).toEqual([
+      "/media/hash1?h=400",
+    ]);
   });
 
   it("shows a video with a still square as an image (#649)", () => {
-    const { button } = renderTile(photoItem({ type: "video", animated_preview: false }), { activeTileId: "photo-1" });
+    const { button } = renderTile(photoItem({ type: "video", animated_preview: false }));
 
     expect(button.querySelector("video")).toBeNull();
     expect(Array.from(button.querySelectorAll("img")).map(img => img.getAttribute("src"))).toEqual([
       "/media/hash1?h=400",
-      "/media/hash1?h=1000",
     ]);
     // The overlay's play icon and the label say it is a video.
     expect(button.getAttribute("aria-label")).toMatch(/^Video taken /);

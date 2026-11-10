@@ -56,22 +56,3 @@ export function PreviewClip({ src, onFailed }: ClipProps) {
     />
   );
 }
-
-/** The full size clip of an expanded video tile. */
-export function ExpandedClip({ src, onFailed }: ClipProps) {
-  const ref = useReleaseOnDetach();
-  return (
-    <video
-      ref={ref}
-      className={styles.pigImg}
-      src={src}
-      preload="metadata"
-      onMouseOver={event => void event.currentTarget.play()}
-      onMouseOut={event => event.currentTarget.pause()}
-      onError={onFailed}
-      muted
-      loop
-      playsInline
-    />
-  );
-}
