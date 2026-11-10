@@ -82,16 +82,37 @@ class StuckJobCleanupTest(TestCase):
         self.assertEqual(fail_stuck_jobs(), 0)
         self.assert_running(job)
 
-    def test_fails_a_job_whose_cluster_went_away(self) -> None:
-        # Its lease ran out: no cluster renews it any more.
+    def test_waits_for_the_task_of_a_job_whose_cluster_went_away(self) -> None:
+        # Its lease ran out: the next cluster takes it again. Its job is
+        # failed once the task has run and left the queue.
         job = self.silent_job()
         task_id = queue_task(self.user.pk, job_id=job.job_id)
         OrmQ.objects.filter(pk=task_id).update(
             lock=timezone.now() - datetime.timedelta(seconds=1)
         )
 
+        self.assertEqual(fail_stuck_jobs(), 0)
+        self.assert_running(job)
+
+        OrmQ.objects.filter(pk=task_id).delete()
         self.assertEqual(fail_stuck_jobs(), 1)
         self.assert_failed(job)
+
+    def test_leaves_alone_a_queued_job_whose_task_still_waits(self) -> None:
+        # Behind another user's scan of a large library, for days.
+        job = self.silent_job()
+        J.objects.filter(pk=job.pk).update(started_at=None)
+        queue_task(self.user.pk, job_id=job.job_id)
+
+        self.assertEqual(fail_stuck_jobs(), 0)
+        self.assert_running(job)
+
+    def test_leaves_alone_a_job_whose_per_item_tasks_still_wait(self) -> None:
+        job = self.silent_job()
+        queue_task(uuid.uuid4(), job.job_id)
+
+        self.assertEqual(fail_stuck_jobs(), 0)
+        self.assert_running(job)
 
     def test_fails_a_job_no_held_task_names(self) -> None:
         job, other = self.silent_job(), self.silent_job()

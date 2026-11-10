@@ -7,12 +7,12 @@ metadata like location information, image tags, and face detection.
 
 import logging
 import traceback
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Sequence
 from uuid import UUID
 
 import requests
 from django import db
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Model, Q, QuerySet
 from django.utils import timezone
 
 from api.classification import captioning
@@ -20,6 +20,7 @@ from api.classification.documents import classify_document
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
+    item_key,
     update_batch_counter,
     update_scan_counter,
 )
@@ -33,7 +34,7 @@ from api.geocode.photo_location import (
     geolocate_photo,
     needs_geocoding,
 )
-from api.jobs.queue import enqueue_job, enqueue_task
+from api.jobs.queue import enqueue_job, enqueue_task, reserve_job
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
 from api.models import Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
@@ -41,6 +42,7 @@ from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
 from api.photos.paths import folder_path_q
 from api.runtime import sidecars
+from api.runtime.features import feature_enabled
 from api.runtime.ml_models import captioning_model_exists
 from api.search import semantic
 from api.search.semantic import OPENCLIP, TAG_THING_TYPE
@@ -118,10 +120,11 @@ def generate_face_embeddings(
 
     try:
         faces = faces_missing_encoding(user)
-        lrj.update_progress(current=0, target=faces.count())
+        face_ids = list(faces.values_list("pk", flat=True))
+        lrj.update_progress(current=0, target=len(face_ids))
         db.connections.close_all()
 
-        for idx, face in enumerate(faces):
+        for idx, face in enumerate(_listed(face_ids, faces, job_id)):
             if _scan_cancelled(idx, job_id, "Generate face embeddings job cancelled"):
                 return
             _encode_face(face, job_id)
@@ -154,15 +157,49 @@ def _limit_to_photos_added_since_last_scan(
     return existing_photos.filter(added_on__gt=last_scan.started_at)
 
 
-def _begin_photo_scan(lrj: LongRunningJob, existing_photos: QuerySet[Photo]) -> bool:
-    """Publish the job's target and report whether there is any work to do."""
-    target = existing_photos.count()
-    lrj.update_progress(current=0, target=target)
-    if target == 0:
+# Rows a job that walks its list loads at a time.
+LISTED_CHUNK = 500
+
+
+def _begin_photo_scan(
+    lrj: LongRunningJob, existing_photos: QuerySet[Photo]
+) -> list[UUID]:
+    """List the photos the job covers, once, and publish their number as its target.
+
+    The job queues or walks exactly this list. Its selection is read once
+    because other writers change it meanwhile (a photo gets its things, its
+    faces, its probe): a second read used to disagree with the target, so the
+    job either stayed running short of it until the stuck-job cleanup failed
+    it, or finished, and queued its follow-ups, before its work was done.
+    Empty when there is nothing to do; the job is then complete.
+    """
+    photo_ids = list(dict.fromkeys(existing_photos.values_list("pk", flat=True)))
+    lrj.update_progress(current=0, target=len(photo_ids))
+    if not photo_ids:
         lrj.complete()
-        return False
+        return []
     db.connections.close_all()
-    return True
+    return photo_ids
+
+
+def _listed[M: Model](
+    ids: Sequence[object], rows: QuerySet[M], job_id: UUID | str
+) -> Iterator[M]:
+    """The rows of ``ids`` still in ``rows``, loaded ``LISTED_CHUNK`` at a time.
+
+    For a job that walks the list ``_begin_photo_scan`` made: a row deleted,
+    or done by another writer, since then (no longer in ``rows``) is counted
+    as done, so the job still reaches its target.
+    """
+    for start in range(0, len(ids), LISTED_CHUNK):
+        chunk = ids[start : start + LISTED_CHUNK]
+        loaded = rows.in_bulk(chunk)
+        for pk in chunk:
+            row = loaded.get(pk)
+            if row is None:
+                update_scan_counter(job_id)
+            else:
+                yield row
 
 
 def _scan_cancelled(idx: int, job_id: UUID | str, message: str) -> bool:
@@ -175,17 +212,16 @@ def _scan_cancelled(idx: int, job_id: UUID | str, message: str) -> bool:
 
 def _queue_per_photo_tasks(
     task: Callable[..., object],
-    photos: QuerySet[Photo],
+    photo_ids: list[UUID],
     job_id: UUID | str,
     cancelled_message: str,
     **task_kwargs: object,
 ) -> None:
-    """Queue ``task(photo_id, job_id, **task_kwargs)`` for each photo.
+    """Queue ``task(photo_id, job_id, **task_kwargs)`` for each listed photo.
 
     The queue gets primary keys, not pickled ``Photo`` instances: the payload
     stays small and the worker works on the row as it is when the task runs.
     """
-    photo_ids = photos.values_list("pk", flat=True)
     for idx, photo_id in enumerate(photo_ids):
         if _scan_cancelled(idx, job_id, cancelled_message):
             return
@@ -208,8 +244,15 @@ def _photo_for_task(photo_id: UUID | Photo, job_id: UUID | str) -> Photo | None:
     photo = Photo.objects.filter(pk=photo_id).first()
     if photo is None:
         logger.info("Photo %s is gone, nothing to do for job %s", photo_id, job_id)
-        update_scan_counter(job_id)
+        _count_photo(job_id, photo_id)
     return photo
+
+
+def _count_photo(
+    job_id: UUID | str, photo_id: UUID, failed: bool = False, error: str | None = None
+) -> None:
+    """Count the photo of a queued per-photo task, once however often it runs."""
+    update_scan_counter(job_id, failed, error, item=item_key("photo", photo_id))
 
 
 def _record_photo_error(photo: Photo, err: Exception) -> str:
@@ -270,13 +313,13 @@ def generate_tags(user: User, job_id: UUID, full_scan: bool = False) -> None:
         return
 
     try:
-        existing_photos = photos_to_tag(user, full_scan)
-        if not _begin_photo_scan(lrj, existing_photos):
+        photo_ids = _begin_photo_scan(lrj, photos_to_tag(user, full_scan))
+        if not photo_ids:
             return
 
         _queue_per_photo_tasks(
             generate_tag_job,
-            existing_photos,
+            photo_ids,
             job_id,
             "Generate tags job cancelled",
             force=full_scan,
@@ -309,7 +352,7 @@ def generate_tag_job(photo_id: UUID | Photo, job_id: str, force: bool = False) -
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
-    update_scan_counter(job_id, failed, error)
+    _count_photo(job_id, photo.pk, failed, error)
 
 
 def photos_to_caption(user: User, full_scan: bool) -> QuerySet[Photo]:
@@ -367,12 +410,12 @@ def generate_captions(user: User, job_id: UUID, full_scan: bool = False) -> None
             lrj.fail(error="The captioning model is not downloaded.")
             return
 
-        photos = photos_to_caption(user, full_scan)
-        if not _begin_photo_scan(lrj, photos):
+        photo_ids = _begin_photo_scan(lrj, photos_to_caption(user, full_scan))
+        if not photo_ids:
             return
 
         _queue_per_photo_tasks(
-            generate_caption_job, photos, job_id, "Generate captions job cancelled"
+            generate_caption_job, photo_ids, job_id, "Generate captions job cancelled"
         )
 
     except Exception as err:
@@ -401,7 +444,7 @@ def generate_caption_job(photo_id: UUID | Photo, job_id: str) -> None:
             captioning.caption_photo(caption)
         except Exception as err:
             error = _record_photo_error(photo, err)
-    update_scan_counter(job_id, error is not None, error)
+    _count_photo(job_id, photo.pk, error is not None, error)
 
 
 # Minimum per-block confidence handed to the OCR sidecar (its contract default).
@@ -519,11 +562,12 @@ def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
         else:
             existing_photos = photos_needing_ocr(user, ocr_model)
 
-        if not _begin_photo_scan(lrj, existing_photos):
+        photo_ids = _begin_photo_scan(lrj, existing_photos)
+        if not photo_ids:
             return
 
         _queue_per_photo_tasks(
-            generate_ocr_job, existing_photos, job_id, "Generate OCR job cancelled"
+            generate_ocr_job, photo_ids, job_id, "Generate OCR job cancelled"
         )
 
     except Exception as err:
@@ -552,7 +596,7 @@ def generate_ocr_job(photo_id: UUID | Photo, job_id: str) -> None:
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
-    update_scan_counter(job_id, failed, error)
+    _count_photo(job_id, photo.pk, failed, error)
 
 
 def _count_ocr_failure(photo: Photo, err: Exception) -> None:
@@ -746,14 +790,7 @@ def classify_media(user: User, job_id: UUID) -> None:
             .select_related("ocr")
         )
 
-        target = existing_photos.count()
-        if target == 0:
-            lrj.update_progress(current=0, target=0)
-            lrj.complete()
-            return
-
-        lrj.update_progress(current=0, target=target)
-        db.connections.close_all()
+        photo_ids = _begin_photo_scan(lrj, existing_photos)
 
         # Two accumulators: is_document is only ever written for photos whose
         # value actually changed (which implies they have OCR), so OCR-less
@@ -775,7 +812,7 @@ def classify_media(user: User, job_id: UUID) -> None:
                 )
                 pending_document.clear()
 
-        for idx, photo in enumerate(existing_photos.iterator()):
+        for idx, photo in enumerate(_listed(photo_ids, existing_photos, job_id)):
             # Check for cancellation periodically
             if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
                 logger.info("Classify media job cancelled")
@@ -891,9 +928,8 @@ def probe_videos(user: User, job_id: UUID) -> None:
         return
     try:
         videos = videos_to_probe(user).select_related("main_file", "thumbnail")
-        if not _begin_photo_scan(lrj, videos):
-            return
-        for idx, photo in enumerate(videos.iterator()):
+        photo_ids = _begin_photo_scan(lrj, videos)
+        for idx, photo in enumerate(_listed(photo_ids, videos, job_id)):
             if _scan_cancelled(idx, job_id, "Probe videos job cancelled"):
                 return
             error = None
@@ -942,11 +978,12 @@ def add_geolocation(user: User, job_id: UUID, full_scan: bool = False) -> None:
         )
         if not full_scan:
             existing_photos = existing_photos | owned.filter(needs_geocoding())
-        if not _begin_photo_scan(lrj, existing_photos):
+        photo_ids = _begin_photo_scan(lrj, existing_photos)
+        if not photo_ids:
             return
 
         _queue_per_photo_tasks(
-            geolocation_job, existing_photos, job_id, "Add geolocation job cancelled"
+            geolocation_job, photo_ids, job_id, "Add geolocation job cancelled"
         )
 
     except Exception as err:
@@ -966,12 +1003,12 @@ def look_up_places(user: User, job_id: UUID) -> None:
     if lrj is None:
         return
     try:
-        photos = Photo.objects.filter(HAS_POSITION)
-        if not _begin_photo_scan(lrj, photos):
+        photo_ids = _begin_photo_scan(lrj, Photo.objects.filter(HAS_POSITION))
+        if not photo_ids:
             return
         _queue_per_photo_tasks(
             geolocation_job,
-            photos,
+            photo_ids,
             job_id,
             "Look up place names job cancelled",
             force=True,
@@ -1002,7 +1039,7 @@ def geolocation_job(photo_id: UUID | Photo, job_id: UUID, force: bool = False) -
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
-    update_scan_counter(job_id, failed, error)
+    _count_photo(job_id, photo.pk, failed, error)
 
 
 # Consecutive photos the face service could not be reached for before Scan
@@ -1091,11 +1128,12 @@ def scan_faces(
         # Needs no face service, and photos already scanned have such faces too (#2642)
         photo_faces.restore_missing_crops(user)
         existing_photos = _faces_to_scan(user, full_scan, path, photo_ids)
-        if not _begin_photo_scan(lrj, existing_photos):
+        listed = _begin_photo_scan(lrj, existing_photos)
+        if not listed:
             return
 
         unreachable = 0
-        for idx, photo in enumerate(existing_photos):
+        for idx, photo in enumerate(_listed(listed, existing_photos, job_id)):
             if _scan_cancelled(idx, job_id, "Scan faces job cancelled"):
                 return
             failure = _extract_faces_for_photo(photo, job_id)
@@ -1115,5 +1153,30 @@ def scan_faces(
         lrj.fail(error=err)
         return
 
-    generate_face_embeddings(user)
-    cluster_all_faces(user)
+    _encode_and_cluster(user)
+
+
+def _encode_and_cluster(user: User) -> None:
+    """Scan Faces' last steps: encode the faces left without one, then cluster.
+
+    Each runs under a row of its own written as for a user's start
+    (``reserve_job``), so neither runs beside the same job queued or started
+    by the user, which does that work already. Encoding writes no row when
+    no face needs it, clustering none while it is turned off.
+    """
+    if faces_missing_encoding(user).exists():
+        _run_reserved(
+            user, LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS, generate_face_embeddings
+        )
+    if feature_enabled("FACE_CLUSTER"):
+        _run_reserved(user, LongRunningJob.JOB_CLUSTER_ALL_FACES, cluster_all_faces)
+
+
+def _run_reserved(user: User, job_type: int, work: Callable[..., object]) -> None:
+    """Run ``work(user, job_id=...)`` here under a reserved row, unless refused."""
+    try:
+        job = reserve_job(user, job_type)
+    except JobAlreadyRunning as running:
+        logger.info("user %s: job %s does this work already", user.id, running.job_id)
+        return
+    work(user, job_id=job.job_id)

@@ -6,13 +6,13 @@ failure the same way.
 """
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 
-from api.drf.exceptions import JobAlreadyRunning
-from api.jobs.queue import JobStep, Task, TaskFunc, enqueue_chain
+from api.drf.exceptions import JobAlreadyRunning, QueueBusy
+from api.jobs.queue import JobStep, Task, TaskFunc, enqueue_chain, reserve_job
 from api.models import LongRunningJob
 from api.models.user import User
 
@@ -31,7 +31,8 @@ def enqueue_for_request(
     The rows are written before the request answers (``api.jobs.queue``). A
     second start while one of these jobs is queued or running is a 409 with
     code ``job_already_running`` whose entry carries the running job's
-    ``job_id``. When queuing fails (the broker is unreachable, say) the rows
+    ``job_id`` (``queue_busy``, without it, for another user's instance-wide
+    job the caller cannot open). When queuing fails (the broker is unreachable, say) the rows
     are marked failed and the client gets a 500 (code ``job_start_failed``)
     rather than a 200 carrying ``"status": False``.
     """
@@ -39,7 +40,7 @@ def enqueue_for_request(
         return enqueue_chain(
             user, steps, prerequisites=prerequisites, exclusive=exclusive
         )
-    except JobAlreadyRunning:
+    except JobAlreadyRunning, QueueBusy:
         raise
     except Exception as error:
         logger.exception("Could not start %s", description)
@@ -81,3 +82,28 @@ def start_job(
     return start_jobs(
         user, [JobStep(job_type, func, args, kwargs)], description, prerequisites
     )
+
+
+def run_in_request[R](
+    user: User,
+    job_type: int,
+    work: Callable[[], R],
+    result: Callable[[R], Mapping[str, object]],
+) -> R:
+    """Do ``work`` within the request, under a row of ``job_type`` while it runs.
+
+    A move or rename of a few photos runs in the request, without a task. Its
+    row is written and refused like a start (``reserve_job``: a 409
+    ``job_already_running``), so the jobs that may not run beside it, such as
+    a scan, are refused until it is done. The row ends completed with
+    ``result(outcome)``, or failed with the error ``work`` raised.
+    """
+    job = reserve_job(user, job_type)
+    job.start()
+    try:
+        outcome = work()
+    except Exception as error:
+        job.fail(error=error)
+        raise
+    job.complete(result=dict(result(outcome)))
+    return outcome

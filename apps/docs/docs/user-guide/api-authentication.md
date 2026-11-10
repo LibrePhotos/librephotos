@@ -163,7 +163,8 @@ Every API error (a status of 400 or above) has the same JSON body:
 | `model_downloading`   | 503    | `/api/photosedit/generateim2txt/`                           | The captioning model is being downloaded; retry after the `Retry-After` seconds.                                                            |
 | `email_send_failed`   | 502    | `/api/email-config/test/`                                   | The mail server refused the test email; `message` is its own answer.                                                                        |
 | `job_start_failed`    | 500    | job endpoints (`/api/scanphotos/`, `/api/trainfaces/`, ...) | The background job could not be queued.                                                                                                     |
-| `job_already_running` | 409    | job endpoints (`/api/scanphotos/`, `/api/trainfaces/`, ...) | A job of this kind is already queued or running for you. The entry also carries that job's `job_id`; follow it instead of starting another. |
+| `job_already_running` | 409    | job endpoints (`/api/scanphotos/`, `/api/trainfaces/`, ...) | A job of this kind is already queued or running for you, or, for a job over the whole server, for anyone; or a scan of yours is refused while a move or rename of your photos runs, and the other way round. The entry also carries that job's `job_id`; follow it instead of starting another. |
+| `queue_busy`          | 409    | job endpoints | A job over the whole server that someone else started, and you cannot open, is running. The entry carries no `job_id`: start yours again when it has finished. |
 
 Development builds append an extra entry with `field` `auth` (code `authentication_help`) to a 401 or 403; read the first entry. Media file requests (`/media/...`) are the exception: they answer without a body, as described above.
 

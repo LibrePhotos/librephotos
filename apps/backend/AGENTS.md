@@ -115,8 +115,12 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   never add a side effect to `save()`. `api/tests/infra/test_models_do_no_io.py` fails on an I/O import or call in `api/models/`.
 - Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `django_q.tasks`
   elsewhere): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
-  start is a 409 `job_already_running` carrying the running `job_id`), `enqueue_followup` (queued by
-  a job), `enqueue_chain`, and `enqueue_task` for pieces of a running job. A new job: a `JOB_*` type
+  start is a 409 `job_already_running` carrying the running `job_id`; `INSTANCE_WIDE_JOB_TYPES` are
+  one per instance, scans and moves refuse each other), `enqueue_followup` (queued by
+  a job), `enqueue_chain`, `reserve_job` for a job a task runs inline, and `enqueue_task` for pieces
+  of a running job, which count their item with `item=item_key(...)` so a redelivered task counts
+  once (`api/tests/jobs/test_redelivered_tasks.py`). A fan-out job lists its items once
+  (`_begin_photo_scan`) and queues or walks exactly that list. A new job: a `JOB_*` type
   (with its `JOB_TYPES` entry and migration), a task taking `job_id` that starts with
   `LongRunningJob.claim` and returns when it gets `None` (cancelled while queued), started from a view
   through `start_job` (`api/jobs/start.py`). Tests: `api/tests/jobs/test_job_queue.py`.

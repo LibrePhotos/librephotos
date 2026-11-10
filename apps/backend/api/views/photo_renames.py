@@ -15,7 +15,7 @@ from api.drf.exceptions import Conflict
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
 from api.jobs.queue import JobStep
-from api.jobs.start import enqueue_for_request
+from api.jobs.start import enqueue_for_request, run_in_request
 from api.models import LongRunningJob, Photo
 from api.models.user import User
 from api.photos import moves, renames
@@ -90,7 +90,12 @@ class RenamePhotosView(APIView):
             )
         if len(photos) > moves.SYNC_MOVE_LIMIT:
             return self._start_job(user, photos, data["pattern"])
-        result = renames.rename_photos(photos, data["pattern"])
+        result = run_in_request(
+            user,
+            LongRunningJob.JOB_RENAME_PHOTOS,
+            lambda: renames.rename_photos(photos, data["pattern"]),
+            renames.RenameResult.as_dict,
+        )
         logger.info(
             "Renamed %s photos for user %s (%s undated, %s failed).",
             result.renamed,

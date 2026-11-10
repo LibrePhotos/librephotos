@@ -22,7 +22,11 @@ from dataclasses import dataclass, field
 
 from django.db.models import Q, QuerySet
 
-from api.directory_watcher.utils import is_job_cancelled, update_batch_counter
+from api.directory_watcher.utils import (
+    is_job_cancelled,
+    item_key,
+    update_batch_counter,
+)
 from api.jobs.queue import enqueue_task
 from api.metadata.photo_writer import (
     FIELD_WRITERS,
@@ -285,9 +289,12 @@ def write_metadata_batch(
     """
     if is_job_cancelled(job_id):
         return
+    batch = item_key("batch", *photo_ids)
     user = User.objects.filter(pk=user_id).first()
     if user is None or write_target(user) != use_sidecar:
-        update_batch_counter(job_id, len(photo_ids), {SKIPPED: len(photo_ids)}, [])
+        update_batch_counter(
+            job_id, len(photo_ids), {SKIPPED: len(photo_ids)}, [], item=batch
+        )
         return
     outcome = write_photos(user, photo_ids, types, use_sidecar)
     update_batch_counter(
@@ -295,4 +302,5 @@ def write_metadata_batch(
         len(photo_ids),
         {WRITTEN: outcome.written, SKIPPED: outcome.skipped},
         outcome.errors,
+        item=batch,
     )

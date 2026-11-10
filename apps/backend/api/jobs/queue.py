@@ -7,19 +7,23 @@ receives the row's id as ``job_id`` and claims the row when it starts
 (``LongRunningJob.claim``); a job cancelled while it waited is then skipped.
 
 - ``enqueue_job``: a job started by a user. It refuses a second start while a
-  job of the same type is queued or running for that user
-  (``JobAlreadyRunning``, a 409 carrying the running job's ``job_id``).
+  job of the same type is queued or running for that user, or for anyone
+  when the job is instance-wide, and a scan while a move or rename runs and
+  the other way round (``JobAlreadyRunning``, a 409 carrying the running
+  job's ``job_id``).
 - ``enqueue_followup``: a job queued by another job (the scan's follow-ups);
   the same without the refusal.
 - ``enqueue_chain``: several jobs that run one after the other, each with its
   own row, all written up front.
+- ``reserve_job``: the row of a job a running task does inline, refused like
+  ``enqueue_job``.
 - ``enqueue_task``: work without a row of its own,
   such as the per-photo pieces of a running job (they carry its ``job_id``)
   or untracked maintenance.
 - ``schedule_once`` / ``schedule_once_by`` / ``ensure_schedule`` / ``replace_schedule`` /
   ``remove_schedule``: django-q schedules; ``next_scheduled_run`` reads one.
 - ``tasks_are_waiting``: whether the queue has drained.
-- ``held_job_ids``: the jobs whose tasks a live cluster holds.
+- ``held_job_ids``: the jobs the queue holds a task of, taken or waiting.
 
 The ruff rule TID251 (``pyproject.toml``) fails any other module importing
 ``django_q.tasks``. ``transcode_cache`` fills its cache from a thread while a
@@ -36,12 +40,13 @@ from datetime import datetime
 from typing import NamedTuple
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django_q.brokers import get_broker
 from django_q.models import OrmQ, Schedule
 from django_q.tasks import AsyncTask, Chain, schedule
 
-from api.drf.exceptions import JobAlreadyRunning
+from api.drf.exceptions import JobAlreadyRunning, QueueBusy
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
 
@@ -87,16 +92,57 @@ def _check_call(step: JobStep) -> None:
         raise TypeError(f"{name} cannot be called as queued: {error}") from error
 
 
+def _refused_types(job_types: Sequence[int]) -> set[int]:
+    """``job_types`` and the types that may not run beside them for one user."""
+    types = set(job_types)
+    for side, other in (
+        (LongRunningJob.SCAN_JOB_TYPES, LongRunningJob.PATH_CHANGE_JOB_TYPES),
+        (LongRunningJob.PATH_CHANGE_JOB_TYPES, LongRunningJob.SCAN_JOB_TYPES),
+    ):
+        if types.intersection(side):
+            types.update(other)
+    return types
+
+
+def _lock_starts(user: User, job_types: Sequence[int]) -> None:
+    """Serialise the starts that ``_refuse_running`` compares these with.
+
+    The user's row for their own jobs; every user's row, in one order, for an
+    instance-wide job, which any admin's start must see. PostgreSQL only:
+    SQLite has no row locks, and its IMMEDIATE transactions
+    (settings/_sqlite.py) serialise the whole block instead.
+    """
+    users = User.objects.select_for_update()
+    if LongRunningJob.INSTANCE_WIDE_JOB_TYPES.isdisjoint(job_types):
+        users = users.filter(pk=user.pk)
+    list(users.order_by("pk").values_list("pk"))
+
+
 def _refuse_running(user: User, job_types: Sequence[int]) -> None:
+    """``JobAlreadyRunning`` when a job that rules these out is queued or running.
+
+    One of the same types of the user's, a scan while a move or rename runs
+    (and the other way round), or an instance-wide one of anyone's. An
+    instance-wide job the user cannot open (another user's, and the user is
+    not staff, as in the job list) is ``QueueBusy``, without its id.
+    """
+    types = _refused_types(job_types)
+    instance_wide = types & LongRunningJob.INSTANCE_WIDE_JOB_TYPES
+    jobs = LongRunningJob.objects
     running = (
-        LongRunningJob.objects.running()
-        .owned_by(user)
-        .filter(job_type__in=job_types)
+        jobs.running()
+        .filter(
+            (jobs.owner_q(user) & Q(job_type__in=types - instance_wide))
+            | Q(job_type__in=instance_wide)
+        )
         .order_by("queued_at")
         .first()
     )
-    if running is not None:
-        raise JobAlreadyRunning(running.job_id, running.get_job_type_display())
+    if running is None:
+        return
+    if running.started_by_id != user.pk and not (user.is_staff or user.is_superuser):
+        raise QueueBusy()
+    raise JobAlreadyRunning(running.job_id, running.get_job_type_display())
 
 
 def _queue_after_commit(
@@ -151,12 +197,10 @@ def enqueue_chain(
         _check_call(step)
 
     with transaction.atomic():
-        # Serialises concurrent starts by the same user on PostgreSQL. SQLite
-        # has no row locks; its IMMEDIATE transactions (settings/_sqlite.py)
-        # serialise the whole block instead.
-        list(User.objects.select_for_update().filter(pk=user.pk).values_list("pk"))
+        job_types = [step.job_type for step in steps]
+        _lock_starts(user, job_types)
         if exclusive:
-            _refuse_running(user, [step.job_type for step in steps])
+            _refuse_running(user, job_types)
         jobs = [
             LongRunningJob.create_job(user=user, job_type=step.job_type)
             for step in steps
@@ -225,6 +269,20 @@ def enqueue_followup(
         exclusive=False,
         **kwargs,
     )
+
+
+def reserve_job(user: User, job_type: int) -> LongRunningJob:
+    """Write a queued row for a job the calling task runs itself, right away.
+
+    Refused like ``enqueue_job`` (``JobAlreadyRunning``), so work a running
+    job does inline, such as the face encoding and clustering at the end of
+    Scan Faces, does not run beside the same job started by the user. The
+    caller passes the row's id as ``job_id`` to the work, which claims it.
+    """
+    with transaction.atomic():
+        _lock_starts(user, [job_type])
+        _refuse_running(user, [job_type])
+        return LongRunningJob.create_job(user=user, job_type=job_type)
 
 
 def enqueue_task(func: TaskFunc, *args: object, **kwargs: object) -> None:
@@ -333,20 +391,26 @@ def tasks_are_waiting() -> bool:
 
 
 def remove_queued_tasks(job_id: str) -> int:
-    """Best effort: drop the queued tasks of job ``job_id`` from the ORM broker.
+    """Best effort: drop the waiting tasks of job ``job_id`` from the ORM broker.
 
     The broker stores signed, pickled payloads, so each queued task is opened
-    and its arguments compared with the id. This is bounded by
-    ``Q_CLUSTER["queue_limit"]`` and runs only when a user cancels a job.
+    and its arguments compared with the id. Runs only when a user cancels a
+    job. A task a cluster has taken (locked) is left to it: its worker runs
+    on whatever happens to the row, and acknowledges it when done. So is a
+    task that heads a chain: deleting it would drop the chain's later jobs,
+    and the task itself only finds its job cancelled and passes the chain on.
     Returns the number of tasks removed.
     """
     removed = 0
     try:
-        for queued in OrmQ.objects.all():
+        waiting = OrmQ.objects.filter(lock__lte=timezone.now())
+        for queued in waiting.only("payload").iterator():
             try:
-                if any(str(value) == job_id for value in _arguments(queued.task)):
-                    queued.delete()
-                    removed += 1
+                if _removable(queued.task, job_id):
+                    # Unless a cluster took it meanwhile.
+                    removed += OrmQ.objects.filter(
+                        pk=queued.pk, lock__lte=timezone.now()
+                    ).delete()[0]
             except Exception:
                 logger.exception(
                     "Could not read queued task %s, skipping it", queued.id
@@ -357,18 +421,29 @@ def remove_queued_tasks(job_id: str) -> int:
     return removed
 
 
-def held_job_ids() -> set[str]:
-    """The ids of the jobs whose tasks a live cluster holds.
+def _removable(task: Mapping[str, object], job_id: str) -> bool:
+    if task.get("chain"):
+        return False
+    return any(str(value) == job_id for value in _arguments(task))
 
-    A taken task stays locked while the cluster that took it renews its lease
-    (``api.jobs.broker``), so these jobs are alive however long they have been
-    silent: a long step such as the clustering of Find Similar Faces reports
-    no progress until it ends. A job chained after a held task counts too: it
-    waits for that task. Read from the payloads of the locked rows, at most
-    ``Q_CLUSTER["queue_limit"]`` plus one per worker for each cluster.
+
+def held_job_ids() -> set[str]:
+    """The ids of the jobs the queue still holds a task of.
+
+    Taken or waiting. A taken task stays locked while the cluster that took
+    it renews its lease (``api.jobs.broker``), so its job is alive however
+    long it has been silent: a long step such as the clustering of Find
+    Similar Faces reports no progress until it ends. A waiting task runs
+    once the tasks ahead of it have, which takes days behind a scan of a
+    large library; one whose lease ran out is handed out again. A job
+    chained after a task counts too: it waits for that task. Read from every
+    payload of this cluster's queue, plus the rows other clusters hold.
     """
     ids: set[str] = set()
-    for queued in OrmQ.objects.filter(lock__gt=timezone.now()):
+    rows = OrmQ.objects.filter(
+        Q(key=get_broker().list_key) | Q(lock__gt=timezone.now())
+    )
+    for queued in rows.only("payload").iterator():
         # A payload that does not open reads as {"id": "*<error>"}: no ids.
         task = queued.task
         values = _arguments(task)
