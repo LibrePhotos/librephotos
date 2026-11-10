@@ -17,7 +17,6 @@ uvicorn[standard]==0.54.0
 # Runs the WSGI app under uvicorn with real streaming; Django's ASGI handler would buffer
 # every sync StreamingHttpResponse/FileResponse.
 a2wsgi==1.10.10
-markupsafe==3.0.4
 Pillow==13.0.0
 # ExifTool wrapped by scripts/build_exiftool_wheel.py: the official .exe on Windows,
 # the Perl distribution elsewhere (needs a perl on PATH).
