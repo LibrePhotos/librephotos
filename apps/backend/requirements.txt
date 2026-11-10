@@ -55,7 +55,6 @@ timezonefinder==8.2.4; sys_platform != "win32" and (sys_platform != "linux" or p
 timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/timezonefinder-8.2.4-cp314-cp314-win_amd64.whl ; sys_platform == "win32"
 # No aarch64 wheel on PyPI either; built by prebuilt-wheels.yml for the arm64 image.
 timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/timezonefinder-8.2.4-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
-filetype==1.2.0
 rawpy==0.28.0
 django-q2==1.11.1
 diskcache==5.6.3

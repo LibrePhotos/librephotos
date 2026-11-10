@@ -38,7 +38,7 @@ def _write_bytes(path: str, payload: bytes) -> str:
     return path
 
 
-# A JPEG start-of-image + APP0 marker followed by junk: filetype sniffs it as
+# A JPEG start-of-image + APP0 marker followed by junk: the sniff says
 # image/jpeg, but no loader can open it.
 CORRUPT_JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 60
 PP3_SIDECAR = b"[Version]\nAppVersion=5.8\nVersion=349\n"

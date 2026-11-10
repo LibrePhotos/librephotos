@@ -51,7 +51,7 @@ class OriginalMimeTypeTest(TestCase):
         self.assertEqual(original_mime_type(_write(".tif", TIFF_BYTES)), "image/tiff")
 
     def test_jpeg_xl_has_a_type_without_a_sniff(self):
-        # filetype has no JPEG XL matcher and mimetypes may not know .jxl.
+        # A missing file has no sniff, and mimetypes may not know .jxl.
         self.assertEqual(original_mime_type(_media_path(".jxl")), "image/jxl")
 
     def test_a_missing_file_falls_back_to_its_extension(self):
