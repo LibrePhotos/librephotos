@@ -137,6 +137,27 @@ class MisreadAnswersAreRefusedTest(_LoggedIn):
         with self.assertRaisesMessage(InvalidAnswerError, "no listing"):
             self.nc.list("/A/")
 
+    def test_the_folder_and_only_entries_outside_it_is_incomplete(self):
+        self.answer("/A/", listing("/A/", "/B/x.jpg", "/A/Sub/deeper.jpg", "/"))
+        found = self.nc.list("/A/")
+        self.assertEqual(found, [])
+        self.assertEqual(found.skipped, 3)
+
+    def test_what_does_not_count_as_left_out(self):
+        # The folder itself (also under the other WebDAV root), and entries
+        # in it whatever they are.
+        body = listing("/A/", "/A/notes.txt", "/A/Sub/")[: -len("</d:multistatus>")] + (
+            b"<d:response><d:href>/remote.php/dav/files/anna/A/</d:href></d:response>"
+            b"<d:response><d:href>/remote.php/dav/files/anna/A/y.jpg</d:href></d:response>"
+            b"</d:multistatus>"
+        )
+        self.answer("/A/", body)
+        found = self.nc.list("/A/")
+        self.assertEqual(
+            [f.path for f in found], ["/A/notes.txt", "/A/Sub/", "/A/y.jpg"]
+        )
+        self.assertEqual(found.skipped, 0)
+
     def test_an_empty_folder_is_empty(self):
         self.answer("/A/", listing("/A/"))
         self.assertEqual(self.nc.list("/A/"), [])

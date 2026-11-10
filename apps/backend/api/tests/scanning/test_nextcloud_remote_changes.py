@@ -275,6 +275,21 @@ class NextcloudRemoteChangesTest(TestCase):
         self.assertFalse(File.objects.get(path=self._local("b.png")).missing)
         self.assertIn("c.png", self._processed())
 
+    def test_a_listing_of_only_entries_outside_the_folder_flags_nothing(self):
+        self.server["/Photos/a.png"] = (_png(9), JAN_2019)
+        self._scan()
+
+        def outside_only(path):
+            found = Listing()
+            found.skipped = 1  # what list() answers for /Photos/ + /Other/x.png
+            return found
+
+        self.nc.list.side_effect = outside_only
+
+        self._scan()
+
+        self.assertFalse(File.objects.get(path=self._local("a.png")).missing)
+
     def test_a_listing_that_is_refused_fails_the_scan_and_flags_nothing(self):
         self._delete_b_and_add_c()
         self.nc.list.side_effect = InvalidAnswerError(

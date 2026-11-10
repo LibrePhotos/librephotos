@@ -150,8 +150,8 @@ class RemoteFile:
 
 class Listing(list[RemoteFile]):
     """A folder's entries, and how many the answer named that were left out
-    because they are not plain paths below the user's WebDAV root
-    (``skipped``): a listing with any is incomplete."""
+    (``skipped``): not plain paths below the user's WebDAV root, or not in
+    the listed folder. A listing with any is incomplete."""
 
     skipped: int = 0
 
@@ -376,7 +376,7 @@ class NextcloudClient:
 
         The folder itself and any entry a server names outside it are left
         out; ``skipped`` on the answer counts the entries left out for not
-        being plain paths below the WebDAV root. Raises ResponseError for an
+        being plain paths below the WebDAV root or not being in the folder. Raises ResponseError for an
         error status, InvalidAnswerError for an answer that is not a readable
         listing, is too large, or names neither the folder nor anything in it,
         UnsafeRemotePathError for a ``path`` with ``..`` and the like.
@@ -400,6 +400,7 @@ class NextcloudClient:
                 listed.append(item)
             else:
                 logger.debug("Left %r out of a Nextcloud listing: not in it", item.path)
+                listed.skipped += 1
 
         response = self._request(
             "PROPFIND", self._webdav_url + quote(path), headers={"Depth": "1"}
@@ -427,8 +428,8 @@ class NextcloudClient:
             raise InvalidAnswerError(207, "the answer does not list the folder")
         if listed.skipped:
             logger.warning(
-                "Left %d entries out of a Nextcloud listing: they are not below "
-                "the user's WebDAV folder",
+                "Left %d entries out of a Nextcloud listing: they are not in "
+                "the listed folder below the user's WebDAV folder",
                 listed.skipped,
             )
         return listed
