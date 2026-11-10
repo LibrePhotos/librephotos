@@ -19,7 +19,7 @@ receives the row's id as ``job_id`` and claims the row when it starts
 - ``schedule_once`` / ``schedule_once_by`` / ``ensure_schedule`` / ``replace_schedule`` /
   ``remove_schedule``: django-q schedules; ``next_scheduled_run`` reads one.
 - ``tasks_are_waiting``: whether the queue has drained.
-- ``held_job_ids``: the jobs whose tasks a live cluster holds.
+- ``held_job_ids``: the jobs the queue holds a task of, taken or waiting.
 
 The ruff rule TID251 (``pyproject.toml``) fails any other module importing
 ``django_q.tasks``. ``transcode_cache`` fills its cache from a thread while a
@@ -36,6 +36,7 @@ from datetime import datetime
 from typing import NamedTuple
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django_q.brokers import get_broker
 from django_q.models import OrmQ, Schedule
@@ -333,20 +334,26 @@ def tasks_are_waiting() -> bool:
 
 
 def remove_queued_tasks(job_id: str) -> int:
-    """Best effort: drop the queued tasks of job ``job_id`` from the ORM broker.
+    """Best effort: drop the waiting tasks of job ``job_id`` from the ORM broker.
 
     The broker stores signed, pickled payloads, so each queued task is opened
-    and its arguments compared with the id. This is bounded by
-    ``Q_CLUSTER["queue_limit"]`` and runs only when a user cancels a job.
+    and its arguments compared with the id. Runs only when a user cancels a
+    job. A task a cluster has taken (locked) is left to it: its worker runs
+    on whatever happens to the row, and acknowledges it when done. So is a
+    task that heads a chain: deleting it would drop the chain's later jobs,
+    and the task itself only finds its job cancelled and passes the chain on.
     Returns the number of tasks removed.
     """
     removed = 0
     try:
-        for queued in OrmQ.objects.all():
+        waiting = OrmQ.objects.filter(lock__lte=timezone.now())
+        for queued in waiting.only("payload").iterator():
             try:
-                if any(str(value) == job_id for value in _arguments(queued.task)):
-                    queued.delete()
-                    removed += 1
+                if _removable(queued.task, job_id):
+                    # Unless a cluster took it meanwhile.
+                    removed += OrmQ.objects.filter(
+                        pk=queued.pk, lock__lte=timezone.now()
+                    ).delete()[0]
             except Exception:
                 logger.exception(
                     "Could not read queued task %s, skipping it", queued.id
@@ -357,18 +364,29 @@ def remove_queued_tasks(job_id: str) -> int:
     return removed
 
 
-def held_job_ids() -> set[str]:
-    """The ids of the jobs whose tasks a live cluster holds.
+def _removable(task: Mapping[str, object], job_id: str) -> bool:
+    if task.get("chain"):
+        return False
+    return any(str(value) == job_id for value in _arguments(task))
 
-    A taken task stays locked while the cluster that took it renews its lease
-    (``api.jobs.broker``), so these jobs are alive however long they have been
-    silent: a long step such as the clustering of Find Similar Faces reports
-    no progress until it ends. A job chained after a held task counts too: it
-    waits for that task. Read from the payloads of the locked rows, at most
-    ``Q_CLUSTER["queue_limit"]`` plus one per worker for each cluster.
+
+def held_job_ids() -> set[str]:
+    """The ids of the jobs the queue still holds a task of.
+
+    Taken or waiting. A taken task stays locked while the cluster that took
+    it renews its lease (``api.jobs.broker``), so its job is alive however
+    long it has been silent: a long step such as the clustering of Find
+    Similar Faces reports no progress until it ends. A waiting task runs
+    once the tasks ahead of it have, which takes days behind a scan of a
+    large library; one whose lease ran out is handed out again. A job
+    chained after a task counts too: it waits for that task. Read from every
+    payload of this cluster's queue, plus the rows other clusters hold.
     """
     ids: set[str] = set()
-    for queued in OrmQ.objects.filter(lock__gt=timezone.now()):
+    rows = OrmQ.objects.filter(
+        Q(key=get_broker().list_key) | Q(lock__gt=timezone.now())
+    )
+    for queued in rows.only("payload").iterator():
         # A payload that does not open reads as {"id": "*<error>"}: no ids.
         task = queued.task
         values = _arguments(task)

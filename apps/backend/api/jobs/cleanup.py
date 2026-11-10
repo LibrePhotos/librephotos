@@ -4,9 +4,11 @@
 for ``STUCK_JOB_HOURS``. Progress alone says nothing about a job whose one
 long step reports none until it ends: the clustering of Find Similar Faces
 ran for more than three hours on a library of 96k faces (#2867). Failed while
-it worked, such a job then succeeded and still showed "failed". A task a live
-cluster holds is renewed while that cluster runs (``api.jobs.broker``), so
-its job is alive; only the jobs no held task names are failed.
+it worked, such a job then succeeded and still showed "failed". Nor about a
+job whose tasks wait in the queue behind another user's scan of a large
+library, for days. A task a live cluster holds is renewed while that cluster
+runs (``api.jobs.broker``), and a waiting one runs in its turn, so their jobs
+are alive; only the jobs no task in the queue names are failed.
 """
 
 from __future__ import annotations
@@ -20,5 +22,8 @@ OLD_STUCK_JOBS_FUNC = "api.models.long_running_job.LongRunningJob.cleanup_stuck_
 
 
 def fail_stuck_jobs() -> int:
-    """Fail the stuck jobs that no task of a live cluster names; how many."""
+    """Fail the stuck jobs that no task in the queue names; how many."""
+    if not LongRunningJob.objects.stuck().exists():
+        # Reading the queue opens every payload in it: only when needed.
+        return 0
     return LongRunningJob.cleanup_stuck_jobs(alive=held_job_ids())
