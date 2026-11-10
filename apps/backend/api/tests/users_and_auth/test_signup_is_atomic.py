@@ -113,3 +113,61 @@ class AbandonedSignupTest(TestCase):
         self.assertEqual(
             User.objects.get(username="admin").password, "typed in plain text"
         )
+
+
+class ConcurrentFirstSignupTest(TestCase):
+    """Two people open a fresh server's first-time setup at once.
+
+    Both requests passed the permission and both saw no admin, so both
+    accounts became superusers. Sign-ups now take a lock (``hold_signups``)
+    and decide under it; the other sign-up committing while this one waited
+    is what the patched lock does here.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def other_signup_finished_first(self):
+        create_test_user(username="first", is_admin=True)
+
+    def sign_up(self):
+        with patch(
+            "api.serializers.user.hold_signups",
+            side_effect=self.other_signup_finished_first,
+        ):
+            return self.client.post("/api/user/", SIGNUP, format="json")
+
+    def test_with_sign_ups_closed_the_second_is_refused(self):
+        response = self.sign_up()
+
+        self.assertEqual(response.status_code, 403, response.content)
+        self.assertEqual(response.json()["errors"][0]["code"], "setup_done")
+        self.assertFalse(User.objects.filter(username="admin").exists())
+
+    def test_with_sign_ups_open_the_second_is_a_plain_account(self):
+        from constance.test import override_config
+
+        with override_config(ALLOW_REGISTRATION=True):
+            response = self.sign_up()
+
+        self.assertEqual(response.status_code, 201, response.content)
+        user = User.objects.get(username="admin")
+        self.assertFalse(user.is_superuser or user.is_staff)
+        self.assertEqual(User.objects.filter(is_superuser=True).count(), 1)
+
+    def test_a_name_taken_while_waiting_is_refused(self):
+        from constance.test import override_config
+
+        def took_the_name():
+            create_test_user(username="admin", password="theirs", is_admin=True)
+
+        with (
+            override_config(ALLOW_REGISTRATION=True),
+            patch("api.serializers.user.hold_signups", side_effect=took_the_name),
+        ):
+            response = self.client.post("/api/user/", SIGNUP, format="json")
+
+        # The other sign-up's row goes with this test's rolled-back
+        # transaction; on a server it is committed and stays theirs.
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(response.json()["errors"][0]["field"], "username")
