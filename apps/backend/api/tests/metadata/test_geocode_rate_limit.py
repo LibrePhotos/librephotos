@@ -110,16 +110,16 @@ class ProviderConfigTest(SimpleTestCase):
 
 BACKEND = Path(__file__).resolve().parents[3]
 
-# A worker: wait for the provider ``calls`` times, print when each wait ended.
+# A worker: wait for the provider ``calls`` times, print the time the store
+# recorded for each call.
 WORKER = """
-import sys, time
+import sys
 from api.geocode.rate_limit import RateLimitStore
 store = RateLimitStore(sys.argv[1])
 print("ready", flush=True)
 sys.stdin.readline()  # start together
 for _ in range(int(sys.argv[3])):
-    store.wait("nominatim", float(sys.argv[2]))
-    print(repr(time.time()), flush=True)
+    print(repr(store.wait("nominatim", float(sys.argv[2]))), flush=True)
 """
 
 # Takes the write lock and keeps it until killed.
@@ -187,11 +187,11 @@ class CrossProcessCoordinationTest(SimpleTestCase):
             times.extend(float(line) for line in output.split())
         times.sort()
         self.assertEqual(len(times), workers * calls)
+        # The times the store recorded, each taken inside its transaction:
+        # no two calls by any of the workers are closer than the delay.
+        self.assertEqual(len(set(times)), len(times))
         gaps = [later - earlier for earlier, later in zip(times, times[1:])]
-        # Each call is recorded inside the lock before the worker prints, so
-        # the printed times can only be later; allow for that jitter.
-        self.assertGreater(min(gaps), delay * 0.75, gaps)
-        self.assertGreaterEqual(times[-1] - times[0], delay * (len(times) - 1) * 0.9)
+        self.assertGreaterEqual(min(gaps), delay, gaps)
 
     def test_a_worker_killed_holding_the_lock_does_not_block_the_others(self):
         holder = self.python(HOLDER)
@@ -205,8 +205,9 @@ class CrossProcessCoordinationTest(SimpleTestCase):
 
     def test_a_restarted_process_sees_the_timestamp_another_wrote(self):
         rate_limit.RateLimitStore(self.database).wait("nominatim", 0.0001)
-        remaining = rate_limit.RateLimitStore(self.database).claim("nominatim", 600)
-        self.assertGreater(remaining, 590)
+        claim = rate_limit.RateLimitStore(self.database).claim("nominatim", 600)
+        self.assertIsNone(claim.at)
+        self.assertGreater(claim.remaining, 590)
 
 
 class LegacyCacheTest(SimpleTestCase):

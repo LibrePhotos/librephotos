@@ -30,6 +30,7 @@ import os
 import shutil
 import sqlite3
 import time
+from dataclasses import dataclass
 
 from django.conf import settings
 
@@ -72,6 +73,15 @@ def _delay_for(provider: str) -> float:
     return _MIN_DELAY_PER_PROVIDER.get(provider, _DEFAULT_MIN_DELAY)
 
 
+@dataclass(frozen=True)
+class Claim:
+    """One check: ``at`` is the time recorded for this call (taken inside the
+    transaction), else None and ``remaining`` says how long to wait."""
+
+    remaining: float
+    at: float | None
+
+
 class RateLimitStore:
     """The last call of each provider, in the SQLite database at ``path``."""
 
@@ -90,9 +100,9 @@ class RateLimitStore:
         )
         return connection
 
-    def claim(self, provider: str, delay: float) -> float:
+    def claim(self, provider: str, delay: float) -> Claim:
         """Record a call of ``provider`` now if ``delay`` has passed since the
-        last one; answer 0, else the seconds left (nothing recorded)."""
+        last one, else answer the seconds left (nothing recorded)."""
         connection = self._connect()
         try:
             connection.execute("BEGIN IMMEDIATE")
@@ -103,23 +113,24 @@ class RateLimitStore:
             elapsed = now - (row[0] if row else 0.0)
             if elapsed < delay:
                 connection.execute("ROLLBACK")
-                return delay - elapsed
+                return Claim(remaining=delay - elapsed, at=None)
             connection.execute(
                 "INSERT INTO last_call (provider, called_at) VALUES (?, ?) "
                 "ON CONFLICT (provider) DO UPDATE SET called_at = excluded.called_at",
                 (provider, now),
             )
             connection.execute("COMMIT")
-            return 0.0
+            return Claim(remaining=0.0, at=now)
         finally:
             connection.close()
 
-    def wait(self, provider: str, delay: float) -> None:
+    def wait(self, provider: str, delay: float) -> float:
         """Block until ``delay`` seconds have passed since the last recorded
-        call of ``provider``, then record this one."""
-        while (remaining := self.claim(provider, delay)) > 0:
+        call of ``provider``, then record this one; answer the time recorded."""
+        while (claim := self.claim(provider, delay)).at is None:
             # Outside the transaction, so other workers are not held up.
-            _sleep(remaining)
+            _sleep(claim.remaining)
+        return claim.at
 
 
 def _store() -> RateLimitStore:
