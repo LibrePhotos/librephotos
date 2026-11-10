@@ -31,8 +31,11 @@ def _health(service="tags", **body):
 
 class IdleSidecarTest(SimpleTestCase):
     def setUp(self):
-        supervisor._last_health.clear()
-        self.addCleanup(supervisor._last_health.clear)
+        # The sidecars these tests turn off are found not running, so a real
+        # one on this machine is never stopped.
+        self.enterContext(
+            patch("api.runtime.supervisor._service_process_running", return_value=False)
+        )
 
     @patch("api.runtime.supervisor.requests.get")
     def test_an_idle_sidecar_is_healthy(self, get):
@@ -132,7 +135,12 @@ class ProcessHandleTest(SimpleTestCase):
         running.poll.return_value = None
         supervisor._processes.update({"exif": exited, "tags": running})
 
-        with patch("api.runtime.supervisor.is_service_enabled", return_value=False):
+        with (
+            patch("api.runtime.supervisor.is_service_enabled", return_value=False),
+            patch(
+                "api.runtime.supervisor._service_process_running", return_value=False
+            ),
+        ):
             supervisor.check_services()
 
         exited.poll.assert_called()

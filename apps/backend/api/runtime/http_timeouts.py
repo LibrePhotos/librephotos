@@ -28,6 +28,27 @@ CLIP_EMBED = (CONNECT_TIMEOUT, 120)
 CAPTION = (CONNECT_TIMEOUT, 180)
 OCR = (CONNECT_TIMEOUT, 180)
 
+# The watchdog's second probe of a sidecar whose process runs but which
+# missed HEALTH_CHECK: as long as any client waits for a reply. One that
+# cannot answer /health within that is failing every request anyway.
+PATIENT_HEALTH_CHECK = (
+    CONNECT_TIMEOUT,
+    max(
+        timeout[1]
+        for timeout in (
+            UNLOAD_MODEL,
+            EXIF,
+            FACE,
+            SIMILARITY,
+            TAGS,
+            THUMBNAIL,
+            CLIP_EMBED,
+            CAPTION,
+            OCR,
+        )
+    ),
+)
+
 # Not a sidecar: a model file from its mirror (api.runtime.ml_models). With stream=True
 # the read timeout bounds the wait for each chunk, not the whole download, so
 # a large model on a slow line still finishes; a mirror that stops sending
