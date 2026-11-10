@@ -39,6 +39,7 @@ from api.models import (
     Photo,
     User,
 )
+from api.models.album_user_share import AlbumUserShare
 from api.models.photo import visible_photo_q
 from api.serializers.album_collection import (
     UserAlbumCollectionsRequest,
@@ -404,17 +405,10 @@ class AlbumUserViewSet(
             # the album's id alone, which counts up and would list them all.
             query = parse_query(self.request, AlbumUserQuery)
             username = query["username"]
-            from django.utils import timezone
-
             if not query["slug"]:
                 return AlbumUser.objects.none()
             base_qs = AlbumUser.objects.filter(
-                Q(share__enabled=True)
-                & Q(share__slug=query["slug"])
-                & (
-                    Q(share__expires_at__isnull=True)
-                    | Q(share__expires_at__gte=timezone.now())
-                )
+                AlbumUserShare.active_q("share__"), share__slug=query["slug"]
             )
             if username:
                 base_qs = base_qs.filter(owner__username=username)

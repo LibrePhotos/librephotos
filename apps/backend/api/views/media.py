@@ -12,7 +12,7 @@ from functools import partial
 from urllib.parse import quote
 
 from django.conf import settings
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.db.models.fields.files import FieldFile
 from django.http import (
     HttpResponse,
@@ -20,7 +20,6 @@ from django.http import (
     HttpResponseForbidden,
     StreamingHttpResponse,
 )
-from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -788,12 +787,6 @@ class MediaServingView(APIView):
             return response
         return self._serve_file_direct(_original_path(photo), content_type)
 
-    def _public_album_active_q(self, prefix: str = "") -> Q:
-        return Q(**{f"{prefix}share__enabled": True}) & (
-            Q(**{f"{prefix}share__expires_at__isnull": True})
-            | Q(**{f"{prefix}share__expires_at__gte": timezone.now()})
-        )
-
     def _in_public_album(self, photo: Photo) -> bool:
         """Whether an active public link of one of its owner's albums vouches.
 
@@ -805,7 +798,7 @@ class MediaServingView(APIView):
         return (
             AlbumUserPhoto.objects.of_album_owner()
             .filter(photo=photo)
-            .filter(self._public_album_active_q("albumuser__"))
+            .filter(AlbumUserShare.active_q("albumuser__share__"))
             .exists()
         )
 
@@ -821,7 +814,7 @@ class MediaServingView(APIView):
         albums = (
             AlbumUserPhoto.objects.of_album_owner()
             .filter(photo=photo)
-            .filter(self._public_album_active_q("albumuser__"))
+            .filter(AlbumUserShare.active_q("albumuser__share__"))
             .values("albumuser_id")
         )
         shares = AlbumUserShare.objects.filter(album_id__in=albums).select_related(
@@ -1208,7 +1201,7 @@ class MediaServingView(APIView):
     ) -> HttpResponseBase:
         album = (
             AlbumUser.objects.filter(id=album_id)
-            .filter(self._public_album_active_q())
+            .filter(AlbumUserShare.active_q("share__"))
             .select_related("share", "owner")
             .first()
         )
