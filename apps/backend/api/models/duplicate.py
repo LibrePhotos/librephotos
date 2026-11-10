@@ -135,7 +135,7 @@ class Duplicate(models.Model):
     trashed_count = models.IntegerField(default=0)
 
     # The photos the resolve moved to the trash, which a revert takes out again.
-    trashed_photos = models.ManyToManyField(
+    trashed_photos: models.ManyToManyField[Photo, Model] = models.ManyToManyField(
         "Photo", blank=True, related_name="trashed_by_duplicates"
     )
 
@@ -236,7 +236,7 @@ class Duplicate(models.Model):
         counted = _counted_on(photos)
         trashed = trash_photos(photos)
         _refresh_counts(counted)
-        self.trashed_photos.set(photo_ids)
+        self.trashed_photos.set(photos)
         return trashed
 
     def _undo_resolution(self) -> int:
