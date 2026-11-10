@@ -1,7 +1,12 @@
 import datetime
 import logging
 import os
+import secrets
 import tempfile
+import time
+from collections import deque
+from collections.abc import Callable
+from dataclasses import dataclass
 
 import faiss
 import numpy as np
@@ -11,6 +16,10 @@ import numpy.typing as npt
 logger = logging.getLogger("image_similarity")
 
 embedding_size = 512
+
+# A rebuild whose client sent no page for this long is dropped: the client
+# died, and pages without a token go to the live index again.
+REBUILD_TTL_SECONDS = 600.0
 
 
 def _reshaped_embeddings(
@@ -41,23 +50,58 @@ class IndexBuildError(ValueError):
     """A page of a rebuild could not be added; the rebuild is abandoned."""
 
 
+class RebuildNotOpenError(IndexBuildError):
+    """The page's token names no open rebuild of the user's index.
+
+    ``superseded`` when a newer rebuild of the same index took over, which
+    finishes the work; otherwise the rebuild expired, was committed or
+    abandoned, or the sidecar restarted.
+    """
+
+    def __init__(self, message: str, *, superseded: bool) -> None:
+        super().__init__(message)
+        self.superseded = superseded
+
+
+@dataclass
+class _Rebuild:
+    token: str
+    index: faiss.Index
+    image_hashes: list[str]
+    touched_at: float
+
+
 class RetrievalIndex:
     """Per-user FAISS indices, kept on disk so a sidecar restart loses nothing.
 
     With a ``store_dir`` every user's index is saved there as
     ``<user_id>.npz`` (the serialized FAISS index and its image hashes in one
     file, so the two can never disagree) and read back on that user's first
-    search after a restart. A rebuild (``begin_rebuild``, ``add_to_rebuild``,
-    ``commit_rebuild``) fills a staging index while searches keep using the
-    old one, writes the new file to a temporary name and swaps it in with
-    ``os.replace``, then swaps it in memory.
+    search after a restart.
+
+    A rebuild is a session: ``begin_rebuild`` answers a token that
+    ``add_to_rebuild``, ``commit_rebuild`` and ``abandon_rebuild`` must
+    present. Its pages fill a staging index while searches keep using the old
+    one; the commit writes the new file to a temporary name, swaps it in with
+    ``os.replace``, then swaps it in memory. A newer begin for the same user
+    supersedes the open rebuild, and one without a page for ``rebuild_ttl``
+    seconds expires.
     """
 
-    def __init__(self, store_dir: str | None = None) -> None:
+    def __init__(
+        self,
+        store_dir: str | None = None,
+        *,
+        rebuild_ttl: float = REBUILD_TTL_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         self.indices: dict[int, faiss.Index] = {}
         self.image_hashes: dict[int, list[str]] = {}
         self.store_dir = store_dir
-        self._staging: dict[int, tuple[faiss.Index, list[str]]] = {}
+        self._rebuild_ttl = rebuild_ttl
+        self._clock = clock
+        self._staging: dict[int, _Rebuild] = {}
+        self._superseded: deque[str] = deque(maxlen=64)
         self._warned_missing: set[int] = set()
 
     # ---------------------------------------------------------- persistence
@@ -134,24 +178,66 @@ class RetrievalIndex:
                 pass
 
     # -------------------------------------------------------------- rebuild
-    def rebuilding(self, user_id: int) -> bool:
-        return user_id in self._staging
+    def _open_rebuild(self, user_id: int) -> _Rebuild | None:
+        rebuild = self._staging.get(user_id)
+        if rebuild is None:
+            return None
+        if self._clock() - rebuild.touched_at > self._rebuild_ttl:
+            logger.warning(
+                "the rebuild of the similarity index of user %s got no page for "
+                "%.0f s; dropped",
+                user_id,
+                self._rebuild_ttl,
+            )
+            del self._staging[user_id]
+            return None
+        return rebuild
 
-    def staged_size(self, user_id: int) -> int:
-        return self._staging[user_id][0].ntotal
+    def _session(self, user_id: int, token: str) -> _Rebuild:
+        rebuild = self._open_rebuild(user_id)
+        if rebuild is not None and rebuild.token == token:
+            rebuild.touched_at = self._clock()
+            return rebuild
+        superseded = token in self._superseded
+        state = "was superseded by a newer one" if superseded else "is not open"
+        raise RebuildNotOpenError(
+            f"this rebuild of the index of user {user_id} {state}",
+            superseded=superseded,
+        )
 
-    def abandon_rebuild(self, user_id: int) -> None:
-        self._staging.pop(user_id, None)
+    def staged_size(self, user_id: int, token: str) -> int:
+        return self._session(user_id, token).index.ntotal
 
-    def begin_rebuild(self, user_id: int) -> None:
+    def abandon_rebuild(self, user_id: int, token: str) -> None:
+        rebuild = self._staging.get(user_id)
+        if rebuild is not None and rebuild.token == token:
+            del self._staging[user_id]
+
+    def begin_rebuild(self, user_id: int) -> str:
+        """Open a rebuild of the user's index; the token its pages present."""
+        previous = self._open_rebuild(user_id)
+        if previous is not None:
+            logger.info(
+                "a newer rebuild of the similarity index of user %s supersedes "
+                "the open one",
+                user_id,
+            )
+            self._superseded.append(previous.token)
         logger.info("rebuilding the similarity index of user %s", user_id)
-        self._staging[user_id] = (faiss.IndexFlatIP(embedding_size), [])
+        token = secrets.token_hex(16)
+        self._staging[user_id] = _Rebuild(
+            token, faiss.IndexFlatIP(embedding_size), [], self._clock()
+        )
+        return token
 
     def add_to_rebuild(
-        self, user_id: int, image_hashes: list[str], image_embeddings: list[list[float]]
+        self,
+        user_id: int,
+        token: str,
+        image_hashes: list[str],
+        image_embeddings: list[list[float]],
     ) -> None:
-        if user_id not in self._staging:
-            raise IndexBuildError(f"no rebuild in progress for user {user_id}")
+        rebuild = self._session(user_id, token)
         if not image_embeddings:
             return
         if len(image_hashes) != len(image_embeddings):
@@ -164,20 +250,20 @@ class RetrievalIndex:
         )
         if embeddings_array is None:
             raise IndexBuildError("embeddings of the wrong shape")
-        index, hashes = self._staging[user_id]
-        index.add(embeddings_array)
-        hashes.extend(image_hashes)
+        rebuild.index.add(embeddings_array)
+        rebuild.image_hashes.extend(image_hashes)
 
-    def commit_rebuild(self, user_id: int) -> int:
-        if user_id not in self._staging:
-            raise IndexBuildError(f"no rebuild in progress for user {user_id}")
-        index, image_hashes = self._staging.pop(user_id)
-        self._save(user_id, index, image_hashes)
-        self.indices[user_id] = index
-        self.image_hashes[user_id] = image_hashes
+    def commit_rebuild(self, user_id: int, token: str) -> int:
+        rebuild = self._session(user_id, token)
+        del self._staging[user_id]
+        self._save(user_id, rebuild.index, rebuild.image_hashes)
+        self.indices[user_id] = rebuild.index
+        self.image_hashes[user_id] = rebuild.image_hashes
         self._warned_missing.discard(user_id)
-        logger.info("similarity index of user %s now holds %s", user_id, index.ntotal)
-        return index.ntotal
+        logger.info(
+            "similarity index of user %s now holds %s", user_id, rebuild.index.ntotal
+        )
+        return rebuild.index.ntotal
 
     # ---------------------------------------------------------- incremental
     def build_index_for_user(
@@ -210,6 +296,7 @@ class RetrievalIndex:
 
         if not self._add_embeddings(user_id, image_hashes, embeddings_array):
             return
+        self._add_to_open_rebuild(user_id, image_hashes, embeddings_array)
 
         self._save(user_id, self.indices[user_id], self.image_hashes[user_id])
 
@@ -235,6 +322,20 @@ class RetrievalIndex:
             )
             return False
         return True
+
+    def _add_to_open_rebuild(
+        self,
+        user_id: int,
+        image_hashes: list[str],
+        embeddings_array: npt.NDArray[np.float32],
+    ) -> None:
+        # The commit replaces the live index with the staged one, which would
+        # drop these otherwise.
+        rebuild = self._open_rebuild(user_id)
+        if rebuild is None:
+            return
+        rebuild.index.add(embeddings_array)
+        rebuild.image_hashes.extend(image_hashes)
 
     # --------------------------------------------------------------- search
     def search_similar(
