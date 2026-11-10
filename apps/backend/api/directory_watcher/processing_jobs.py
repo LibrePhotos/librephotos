@@ -33,7 +33,7 @@ from api.geocode.photo_location import (
     geolocate_photo,
     needs_geocoding,
 )
-from api.jobs.queue import enqueue_job, enqueue_task
+from api.jobs.queue import enqueue_job, enqueue_task, reserve_job
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
 from api.models import Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
@@ -41,6 +41,7 @@ from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
 from api.photos.paths import folder_path_q
 from api.runtime import sidecars
+from api.runtime.features import feature_enabled
 from api.runtime.ml_models import captioning_model_exists
 from api.search import semantic
 from api.search.semantic import OPENCLIP, TAG_THING_TYPE
@@ -1115,5 +1116,30 @@ def scan_faces(
         lrj.fail(error=err)
         return
 
-    generate_face_embeddings(user)
-    cluster_all_faces(user)
+    _encode_and_cluster(user)
+
+
+def _encode_and_cluster(user: User) -> None:
+    """Scan Faces' last steps: encode the faces left without one, then cluster.
+
+    Each runs under a row of its own written as for a user's start
+    (``reserve_job``), so neither runs beside the same job queued or started
+    by the user, which does that work already. Encoding writes no row when
+    no face needs it, clustering none while it is turned off.
+    """
+    if faces_missing_encoding(user).exists():
+        _run_reserved(
+            user, LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS, generate_face_embeddings
+        )
+    if feature_enabled("FACE_CLUSTER"):
+        _run_reserved(user, LongRunningJob.JOB_CLUSTER_ALL_FACES, cluster_all_faces)
+
+
+def _run_reserved(user: User, job_type: int, work: Callable[..., object]) -> None:
+    """Run ``work(user, job_id=...)`` here under a reserved row, unless refused."""
+    try:
+        job = reserve_job(user, job_type)
+    except JobAlreadyRunning as running:
+        logger.info("user %s: job %s does this work already", user.id, running.job_id)
+        return
+    work(user, job_id=job.job_id)

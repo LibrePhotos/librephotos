@@ -242,6 +242,32 @@ class LongRunningJob(models.Model):
         (JOB_REMOVE_SMALL_THUMBNAILS, "Remove Small Thumbnails"),
     )
 
+    # The jobs that read the paths of a user's files, and those that change
+    # them: neither starts while the other is queued or running for the user.
+    SCAN_JOB_TYPES = (
+        JOB_SCAN_PHOTOS,
+        JOB_SCAN_MISSING_PHOTOS,
+        JOB_DELETE_MISSING_PHOTOS,
+        JOB_REPAIR_FILE_VARIANTS,
+    )
+    PATH_CHANGE_JOB_TYPES = (JOB_MOVE_PHOTOS, JOB_RENAME_PHOTOS)
+
+    # Jobs over every user's photos or the instance's files: one at a time on
+    # the instance, whichever admin starts it.
+    INSTANCE_WIDE_JOB_TYPES = frozenset(
+        {
+            JOB_DOWNLOAD_MODELS,
+            JOB_STRIP_THUMBNAIL_METADATA,
+            JOB_REFRESH_EXPOSURE_TIMES,
+            JOB_LOOK_UP_PLACES,
+            JOB_CHECK_FILE_CONTENTS,
+            JOB_MAKE_VIDEO_POSTERS,
+            JOB_REPAIR_TURNED_FACES,
+            JOB_MAKE_THUMBHASHES,
+            JOB_REMOVE_SMALL_THUMBNAILS,
+        }
+    )
+
     # The ``result`` key a photo scan of the user's whole scan directory sets.
     LIBRARY_SCAN = "library_scan"
 

@@ -244,10 +244,10 @@ class ScanFacesCharacterizationTest(TestCase):
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
 
-        # Embedding generation and clustering always run afterwards, called
-        # directly with no job id: each writes its own row when it has work.
-        mock_embed.assert_called_once_with(self.user)
-        mock_cluster.assert_called_once_with(self.user)
+        # No face needs an encoding; clustering runs afterwards, here, under
+        # a row reserved like a user's start (test_job_exclusivity).
+        mock_embed.assert_not_called()
+        mock_cluster.assert_called_once()
 
         self.assertEqual(len(photos), 2)
 

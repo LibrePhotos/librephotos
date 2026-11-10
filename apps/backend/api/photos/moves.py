@@ -65,14 +65,6 @@ REFUSED_SHARED_FILE = "shared_file"
 REFUSED_NOT_ON_DISK = "not_on_disk"
 REFUSAL_REASONS = (REFUSED_NEXTCLOUD, REFUSED_SHARED_FILE, REFUSED_NOT_ON_DISK)
 
-#: The jobs a move must not run beside: they read the paths a move changes.
-SCAN_JOB_TYPES = (
-    LongRunningJob.JOB_SCAN_PHOTOS,
-    LongRunningJob.JOB_SCAN_MISSING_PHOTOS,
-    LongRunningJob.JOB_DELETE_MISSING_PHOTOS,
-    LongRunningJob.JOB_REPAIR_FILE_VARIANTS,
-)
-
 
 class InvalidTargetError(Exception):
     """The target folder is not one the user may move photos to.
@@ -171,11 +163,15 @@ def refusal(photo: Photo) -> str | None:
 
 
 def scan_running(user: User) -> bool:
-    """Whether a scan of ``user``'s library is queued or running."""
+    """Whether a scan of ``user``'s library is queued or running.
+
+    The scans read the paths a move changes (``LongRunningJob.SCAN_JOB_TYPES``);
+    a scan started while a move job runs is refused in turn (``api.jobs.queue``).
+    """
     return (
         LongRunningJob.objects.owned_by(user)
         .running()
-        .filter(job_type__in=SCAN_JOB_TYPES)
+        .filter(job_type__in=LongRunningJob.SCAN_JOB_TYPES)
         .exists()
     )
 
