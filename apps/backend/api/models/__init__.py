@@ -12,6 +12,7 @@ from api.models.album_user import (
 from api.models.album_user_share import AlbumUserShare
 from api.models.cluster import Cluster
 from api.models.copy_budget import CopyBudget
+from api.models.counted_job_item import CountedJobItem
 from api.models.deletion_log import DeletionLog
 from api.models.duplicate import Duplicate
 from api.models.email_config import EmailConfig
@@ -52,6 +53,7 @@ __all__ = [
     "AlbumUserShare",
     "Cluster",
     "CopyBudget",
+    "CountedJobItem",
     "DeletionLog",
     "Duplicate",
     "EmailConfig",

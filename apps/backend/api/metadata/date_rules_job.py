@@ -15,7 +15,11 @@ import uuid
 from django.db import transaction
 from django.db.models import QuerySet
 
-from api.directory_watcher.utils import is_job_cancelled, update_batch_counter
+from api.directory_watcher.utils import (
+    is_job_cancelled,
+    item_key,
+    update_batch_counter,
+)
 from api.jobs.queue import enqueue_task
 from api.metadata import takeout
 from api.metadata.photo_datetime import reapply_date_rules
@@ -113,5 +117,9 @@ def _reapply_batch(photo_ids: list[uuid.UUID], job_id: str) -> None:
         else:
             unchanged += 1
     update_batch_counter(
-        job_id, len(photo_ids), {MOVED: moved, UNCHANGED: unchanged}, errors
+        job_id,
+        len(photo_ids),
+        {MOVED: moved, UNCHANGED: unchanged},
+        errors,
+        item=item_key("batch", *photo_ids),
     )

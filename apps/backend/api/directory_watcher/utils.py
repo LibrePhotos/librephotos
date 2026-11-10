@@ -3,6 +3,7 @@ Utility functions for directory scanning and job management.
 """
 
 import copy
+import hashlib
 import logging
 import os
 import stat
@@ -11,10 +12,11 @@ from typing import Any, NamedTuple
 from uuid import UUID
 
 from constance import config as site_config
+from django.db import IntegrityError, transaction
 from django.db.models import F, Q
 from django.utils import timezone
 
-from api.models import LongRunningJob
+from api.models import CountedJobItem, LongRunningJob
 from api.photos.paths import is_valid_path
 
 logger = logging.getLogger(__name__)
@@ -475,8 +477,39 @@ _FINISH_HOOKS: dict[int, Callable[[UUID | str, int | None], None]] = {
 }
 
 
+def item_key(*parts: object) -> str:
+    """The key ``update_scan_counter`` counts the item named by ``parts`` under.
+
+    A kind and what tells the item apart within its job: a photo id, a file
+    group's paths, a batch's photo ids. Hashed, so any of them fits.
+    """
+    named = "\0".join(str(part) for part in parts)
+    return hashlib.blake2b(named.encode(), digest_size=16).hexdigest()
+
+
+def _first_count(job_id: UUID | str, item: str | None) -> bool:
+    """Record ``item`` as counted for the job; ``False`` when it was already.
+
+    In the caller's transaction, so the record and the count it guards land
+    together: a task the broker hands out again after it counted is not
+    counted twice (``CountedJobItem``).
+    """
+    if item is None:
+        return True
+    try:
+        with transaction.atomic():
+            CountedJobItem.objects.create(job_id=str(job_id), item=item)
+    except IntegrityError:
+        logger.info("job %s: item %s was counted already", job_id, item)
+        return False
+    return True
+
+
 def update_scan_counter(
-    job_id: UUID | str, failed: bool = False, error: str | None = None
+    job_id: UUID | str,
+    failed: bool = False,
+    error: str | None = None,
+    item: str | None = None,
 ) -> None:
     """
     Count one item of a long-running job, and finish the job at its target.
@@ -490,24 +523,33 @@ def update_scan_counter(
         job_id: The job ID to update
         failed: Whether this item failed processing
         error: Error message if failed
+        item: The item's ``item_key``, for a task the broker may deliver
+            again: an item is counted once
     """
-    if failed or error:
+    with transaction.atomic():
+        if not _first_count(job_id, item):
+            return
+        if failed or error:
 
-        def add_error(result: dict[str, Any], job: LongRunningJob) -> dict[str, Any]:
-            return {
-                "progress_current": F("progress_current") + 1,
-                "last_progress_at": timezone.now(),
-                "failed": record_item_error(result, error, job.progress_target),
-            }
+            def add_error(
+                result: dict[str, Any], job: LongRunningJob
+            ) -> dict[str, Any]:
+                return {
+                    "progress_current": F("progress_current") + 1,
+                    "last_progress_at": timezone.now(),
+                    "failed": record_item_error(result, error, job.progress_target),
+                }
 
-        counted = update_job_result(job_id, add_error, unfinished_only=True) is not None
-    else:
-        counted = bool(
-            LongRunningJob.objects.filter(job_id=job_id, finished=False).update(
-                progress_current=F("progress_current") + 1,
-                last_progress_at=timezone.now(),
+            counted = (
+                update_job_result(job_id, add_error, unfinished_only=True) is not None
             )
-        )
+        else:
+            counted = bool(
+                LongRunningJob.objects.filter(job_id=job_id, finished=False).update(
+                    progress_current=F("progress_current") + 1,
+                    last_progress_at=timezone.now(),
+                )
+            )
     if counted:
         finish_job_if_complete(job_id)
 
@@ -517,13 +559,14 @@ def update_batch_counter(
     done: int,
     counts: dict[str, int],
     errors: list[str],
+    item: str | None = None,
 ) -> None:
     """``update_scan_counter`` for a batch of ``done`` items.
 
     Adds ``counts`` to the same keys of the job's result (``{"moved": 3}``),
     records ``errors`` as failed items and advances the progress by ``done``,
     all in one write, then finishes the job once it reached its target. A
-    job that has ended is left as it is.
+    job that has ended is left as it is. ``item`` is the batch's ``item_key``.
     """
 
     def add_batch(result: dict[str, Any], job: LongRunningJob) -> dict[str, Any]:
@@ -537,6 +580,9 @@ def update_batch_counter(
             fields["failed"] = record_item_error(result, error, job.progress_target)
         return fields
 
-    if update_job_result(job_id, add_batch, unfinished_only=True) is None:
-        return
+    with transaction.atomic():
+        if not _first_count(job_id, item):
+            return
+        if update_job_result(job_id, add_batch, unfinished_only=True) is None:
+            return
     finish_job_if_complete(job_id)

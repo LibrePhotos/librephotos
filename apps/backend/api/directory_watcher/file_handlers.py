@@ -27,7 +27,11 @@ from api.directory_watcher.file_grouping import (
     select_main_file,
 )
 from api.directory_watcher.generated_content import discard_generated_content
-from api.directory_watcher.utils import is_job_cancelled, update_scan_counter
+from api.directory_watcher.utils import (
+    is_job_cancelled,
+    item_key,
+    update_scan_counter,
+)
 from api.duplicates.perceptual_hash import (
     are_duplicates,
     calculate_hash_from_thumbnail,
@@ -845,7 +849,12 @@ def handle_new_image(
         except Exception:
             logger.exception("job %s: could not load image %s", job_id, path)
     finally:
-        update_scan_counter(job_id, failed=error is not None, error=error)
+        update_scan_counter(
+            job_id,
+            failed=error is not None,
+            error=error,
+            item=item_key("file", path),
+        )
 
 
 def process_uploaded_photo(photo: Photo, path: str, job_id: UUID | str) -> None:
@@ -1001,7 +1010,12 @@ def _handle_media_group(
         _log_file_group_failure(job_id, file_paths, e)
         error = _describe_failure(", ".join(file_paths), e)
     finally:
-        update_scan_counter(job_id, failed=error is not None, error=error)
+        update_scan_counter(
+            job_id,
+            failed=error is not None,
+            error=error,
+            item=item_key("group", *file_paths),
+        )
 
 
 def _probe_videos_unfinished(user: User) -> bool:

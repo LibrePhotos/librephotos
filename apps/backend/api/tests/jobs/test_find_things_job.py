@@ -18,6 +18,7 @@ from api.directory_watcher.processing_jobs import (
     generate_tags,
     photos_to_tag,
 )
+from api.directory_watcher.utils import item_key
 from api.jobs.queue import Task
 from api.models import LongRunningJob
 from api.runtime.ml_models import download_models
@@ -91,7 +92,9 @@ class GenerateTagJobForceTest(TestCase):
             generate_tag_job(photo.pk, job.job_id, force=True)
 
         self.assertTrue(tag.call_args.kwargs["force"])
-        counter.assert_called_once_with(job.job_id, False, None)
+        counter.assert_called_once_with(
+            job.job_id, False, None, item=item_key("photo", photo.pk)
+        )
 
 
 @patch("api.views.scan_triggers.missing_models_prerequisites", return_value=[])

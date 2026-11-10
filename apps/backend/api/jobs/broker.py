@@ -12,7 +12,8 @@ lock every ``RENEW_EVERY`` for as long as it lives. Once the cluster is gone
 its tasks are handed out again within ``LEASE``, to whichever cluster runs
 next. A task whose cluster died while running it therefore runs again: a
 task that starts a job skips the second delivery (``LongRunningJob.claim``),
-and the per-item tasks are safe to repeat.
+and a per-item task counts its item once (``CountedJobItem``), so its job's
+progress does not pass the work it queued.
 
 A failed task is acknowledged too. Its failure is in the result table, and
 under a lease that its cluster keeps renewing it would otherwise run again

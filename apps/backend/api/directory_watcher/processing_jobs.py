@@ -20,6 +20,7 @@ from api.classification.documents import classify_document
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
+    item_key,
     update_batch_counter,
     update_scan_counter,
 )
@@ -243,8 +244,15 @@ def _photo_for_task(photo_id: UUID | Photo, job_id: UUID | str) -> Photo | None:
     photo = Photo.objects.filter(pk=photo_id).first()
     if photo is None:
         logger.info("Photo %s is gone, nothing to do for job %s", photo_id, job_id)
-        update_scan_counter(job_id)
+        _count_photo(job_id, photo_id)
     return photo
+
+
+def _count_photo(
+    job_id: UUID | str, photo_id: UUID, failed: bool = False, error: str | None = None
+) -> None:
+    """Count the photo of a queued per-photo task, once however often it runs."""
+    update_scan_counter(job_id, failed, error, item=item_key("photo", photo_id))
 
 
 def _record_photo_error(photo: Photo, err: Exception) -> str:
@@ -344,7 +352,7 @@ def generate_tag_job(photo_id: UUID | Photo, job_id: str, force: bool = False) -
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
-    update_scan_counter(job_id, failed, error)
+    _count_photo(job_id, photo.pk, failed, error)
 
 
 def photos_to_caption(user: User, full_scan: bool) -> QuerySet[Photo]:
@@ -436,7 +444,7 @@ def generate_caption_job(photo_id: UUID | Photo, job_id: str) -> None:
             captioning.caption_photo(caption)
         except Exception as err:
             error = _record_photo_error(photo, err)
-    update_scan_counter(job_id, error is not None, error)
+    _count_photo(job_id, photo.pk, error is not None, error)
 
 
 # Minimum per-block confidence handed to the OCR sidecar (its contract default).
@@ -588,7 +596,7 @@ def generate_ocr_job(photo_id: UUID | Photo, job_id: str) -> None:
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
-    update_scan_counter(job_id, failed, error)
+    _count_photo(job_id, photo.pk, failed, error)
 
 
 def _count_ocr_failure(photo: Photo, err: Exception) -> None:
@@ -1031,7 +1039,7 @@ def geolocation_job(photo_id: UUID | Photo, job_id: UUID, force: bool = False) -
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
-    update_scan_counter(job_id, failed, error)
+    _count_photo(job_id, photo.pk, failed, error)
 
 
 # Consecutive photos the face service could not be reached for before Scan

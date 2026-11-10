@@ -14,6 +14,7 @@ are alive; only the jobs no task in the queue names are failed.
 from __future__ import annotations
 
 from api.jobs.queue import held_job_ids
+from api.models import CountedJobItem
 from api.models.long_running_job import LongRunningJob
 
 STUCK_JOBS_FUNC = "api.jobs.cleanup.fail_stuck_jobs"
@@ -22,7 +23,12 @@ OLD_STUCK_JOBS_FUNC = "api.models.long_running_job.LongRunningJob.cleanup_stuck_
 
 
 def fail_stuck_jobs() -> int:
-    """Fail the stuck jobs that no task in the queue names; how many."""
+    """Fail the stuck jobs that no task in the queue names; how many.
+
+    Also drops the counted items (``CountedJobItem``) of the jobs that ended.
+    """
+    unfinished = LongRunningJob.objects.filter(finished=False).values("job_id")
+    CountedJobItem.objects.exclude(job_id__in=unfinished).delete()
     if not LongRunningJob.objects.stuck().exists():
         # Reading the queue opens every payload in it: only when needed.
         return 0
