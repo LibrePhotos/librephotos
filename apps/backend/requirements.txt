@@ -56,7 +56,6 @@ timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/wi
 timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/timezonefinder-8.2.4-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
 rawpy==0.28.0
 django-q2==1.11.1
-diskcache==5.6.3
 psutil==7.2.2
 concurrent-log-handler==0.9.31
 # Error reporting (#2938): captures errors into the saved error reports (api/error_reports).
