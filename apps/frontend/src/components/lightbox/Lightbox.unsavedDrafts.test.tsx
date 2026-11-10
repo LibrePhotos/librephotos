@@ -325,7 +325,7 @@ describe("lightbox with an unsaved edit", () => {
     expect(draft()).toBeUndefined();
   });
 
-  it("drops the question when the edit is saved meanwhile, and the next step goes through", async () => {
+  it("takes the held step once the edit is saved meanwhile, as it lets a held Back go", async () => {
     const { photo } = await openLightbox();
     await click("Type a caption");
     await click("Next photo");
@@ -334,11 +334,23 @@ describe("lightbox with an unsaved edit", () => {
     // A save that was in flight lands: the draft equals the saved value again.
     await click("Undo typing");
 
-    await vi.waitFor(() => expect(discardDialog()).toBeNull());
-    expect(photo()).toBe("a");
-    await click("Next photo");
     await vi.waitFor(() => expect(photo()).toBe("b"));
-    expect(discardDialog()).toBeNull();
+    await vi.waitFor(() => expect(discardDialog()).toBeNull());
+    await click("Next photo");
+    await vi.waitFor(() => expect(photo()).toBe("c"));
+  });
+
+  it("answers a Back pressed while a step is held with one question, for the Back", async () => {
+    const { photo } = await openLightbox();
+    await click("Type a caption");
+    await click("Next photo");
+    await vi.waitFor(() => expect(discardDialog()).not.toBeNull());
+
+    await act(async () => window.history.back());
+    await click("Discard");
+
+    await vi.waitFor(() => expect(photo()).toBeUndefined());
+    await vi.waitFor(() => expect(discardDialog()).toBeNull());
   });
 
   it("asks before trashing the photo, and Keep editing leaves it alone", async () => {
