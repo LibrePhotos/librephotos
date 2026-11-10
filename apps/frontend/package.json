@@ -39,7 +39,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@floating-ui/dom": "^1.8.0",
     "@mantine/carousel": "^9.7.3",
-    "@mantine/charts": "^9.7.3",
     "@mantine/core": "^9.7.3",
     "@mantine/dates": "^9.7.3",
     "@mantine/form": "^9.7.3",
@@ -83,9 +82,7 @@
     "react-dom": "19.3.1",
     "react-dropzone": "^20.0.0",
     "react-i18next": "^17.0.0",
-    "react-is": "19.3.1",
     "react-map-gl": "^8.1.3",
-    "recharts": "^3.10.1",
     "thumbhash": "0.1.1",
     "zod": "4.6.7"
   },

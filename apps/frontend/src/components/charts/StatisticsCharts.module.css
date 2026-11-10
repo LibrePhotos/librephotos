@@ -1,10 +1,81 @@
-/* The statistics charts' tooltips and the location timeline's legend. */
-.tooltip {
+/* The statistics charts (MonthBarChart, StayBarChart), their tooltips and the location timeline's legend. */
+.chartFrame {
+  position: relative;
+}
+
+.chart {
+  display: block;
+  overflow: visible;
+}
+
+.gridLine {
+  stroke: var(--mantine-color-default-border);
+  shape-rendering: crispEdges;
+}
+
+.valueLabel,
+.yearLabel {
+  fill: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  dominant-baseline: middle;
+}
+
+.valueLabel {
+  text-anchor: end;
+}
+
+.yearLabel {
+  text-anchor: middle;
+}
+
+/* The column of the bar shown in the tooltip. */
+.cursor {
+  fill: var(--mantine-primary-color-light);
+}
+
+.bar {
+  fill: var(--mantine-primary-color-filled);
+}
+
+.bar:focus,
+.stay:focus {
+  outline: none;
+}
+
+.bar:focus-visible path,
+.stay:focus-visible rect {
+  stroke: var(--mantine-color-text);
+  stroke-width: 2;
+}
+
+/* A hairline of the page between two stays, so neighbouring tints read as two places. */
+.staySegment {
+  stroke: var(--mantine-color-body);
+  stroke-width: 2;
+}
+
+/* The stay shown in the tooltip stands out: the others fade, and it is outlined in the text colour,
+   which shows on every tint in both schemes, the palest ones included. */
+.chart[data-active] .stay:not([data-active]) .staySegment {
+  opacity: 0.45;
+}
+
+.stay[data-active] .staySegment {
+  stroke: var(--mantine-color-text);
+}
+
+/* Takes the pointer over the plot, so a bar's whole column answers it. */
+.pointerSurface {
+  fill: transparent;
+}
+
+.tooltipAnchor,
+.tooltipDropdown {
+  pointer-events: none;
+}
+
+.tooltipDropdown {
   padding: 8px 12px;
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  background: var(--mantine-color-body);
-  box-shadow: var(--mantine-shadow-md);
 }
 
 .tooltipTitle {
@@ -41,7 +112,11 @@
   border-radius: 2px;
 }
 
-/* The timeline chart's box: measured before the chart draws, so it holds its height meanwhile. */
+/* The charts' boxes: measured before the chart draws, so they hold their height meanwhile. */
 .timelinePlot {
   height: 280px;
+}
+
+.stayPlot {
+  height: 56px;
 }

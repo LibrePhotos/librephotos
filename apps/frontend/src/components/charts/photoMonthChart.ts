@@ -6,17 +6,18 @@ type ChartBucket = 1 | 3 | 12;
 /** One bar: its key ("2009-4"), what the tooltip names ("Apr – Jun 2009"), its year and photo count. */
 export type MonthBar = { key: string; month: string; year: number; Photos: number };
 
-/** The narrowest slot a bar gets: a 6px bar and its gap (`BAR_GAP` of the slot). */
+/** The narrowest slot a bar gets: a 6px bar and its gap (`BAR_GAP_SHARE` of the slot). */
 const MIN_SLOT_PX = 8;
 
 /** The share of a slot left empty between two bars. */
-export const BAR_GAP = "25%";
+export const BAR_GAP_SHARE = 0.25;
 
 /** About this much axis room per year label, so the labels never touch. */
 const YEAR_LABEL_PX = 56;
 
-/** The y axis and the chart's own padding, which the plot does not get. */
-const PLOT_INSET_PX = 56;
+/** The most the count axis takes left of the plot (MonthBarChart); the plot runs to the right edge. */
+export const PLOT_INSET_LEFT_PX = 48;
+const PLOT_INSET_PX = PLOT_INSET_LEFT_PX;
 
 const BUCKETS: ReadonlyArray<ChartBucket> = [1, 3, 12];
 
