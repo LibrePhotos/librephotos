@@ -20,7 +20,7 @@ def free_inconsistent_leases(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0226_remove_small_thumbnails_job"),
+        ("api", "0231_job_items_and_queue_seen"),
     ]
 
     operations = [
