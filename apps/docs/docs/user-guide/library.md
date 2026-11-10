@@ -23,13 +23,13 @@ After a scan or an upload, LibrePhotos keeps working on the new photos for a whi
 
 | Stage | What is left |
 | --- | --- |
-| **Thumbnails** | Photos without a thumbnail; they show a grey square. **Run now** reads their files again (as a [rescan](#rescan-some-photos)). |
+| **Thumbnails** | Photos without a thumbnail, or whose thumbnail has no size yet; such photos show a grey square or are missing from the timeline. **Run now** reads their files again (as a [rescan](#rescan-some-photos)), and so does the next **Scan**. |
 | **Things** | Photos not checked for things yet (only while [Things](./feature-toggles.md) are on). |
 | **Search** | Photos without search data for the current search model. |
 | **Places** | Photos with a GPS position whose place name was not looked up yet (only while reverse geocoding is on). |
 | **Face detection** | Photos not checked for faces yet (only while face detection is on). |
 | **Face recognition data** | Faces that cannot be grouped into people yet. **Run now** prepares them and, while face grouping is on, groups them. |
-| **Text in photos** | Photos the selected [text recognition](./text-recognition.md) model has not read yet. A photo it failed on three times is left out. |
+| **Text in photos** | Photos the selected [text recognition](./text-recognition.md) model has not read yet. A photo it failed on three times is left out; **Extract** on the Library page tries it again. |
 | **Captions** | Photos without a generated caption (only while [captions](./image-captioning.md) are on). |
 
 The header says how many stages are done. **Run now** starts the job that does what is left of that stage, for your photos only: the same job the scan runs afterwards, never one that starts over. While the stage's job runs, its row shows the progress and a **View job** link instead. When the last run of a stage could not process some photos, the row says how many and links to the [job list](./job-system.md), where the job lists them. Like every job button, **Run now** waits while another job runs.
@@ -250,7 +250,7 @@ In the **Nextcloud** section, click **Scan** to download and scan photos from yo
 - A file that changed on the server (it is newer or has another size) is downloaded again and processed again. An XMP sidecar that changed has its photo processed again, so ratings and keywords edited in another app arrive.
 - A file that is unchanged is neither downloaded nor processed again.
 - <Since version="1.5.0" /> An unchanged exact copy at another path is skipped too, rather than processing the same photo again on every scan.
-- A file deleted on the server is flagged missing, as a file deleted from a local library is: it shows up under **Remove missing photos**, and the photo and the local copy stay until you remove them. If the file comes back, the next scan attaches it again.
+- A file deleted on the server is flagged missing, as a file deleted from a local library is: it shows up under **Remove missing photos**, and the photo and the local copy stay until you remove them. If the file comes back, the next scan attaches it again. <Since version="1.7.0" /> The scan flags them as its last step, after every new file was imported, so a cancelled or failed scan flags nothing, and a file moved on the server is attached at its new place before it leaves the old one. Up to 1.6.0, a scan flagged them before importing anything.
 
 A downloaded copy keeps the file's modification time on the server, so the "File modified time" [date rules](./settings/date-rules.md) date it by the server's time, not by the day of the download. Copies downloaded by an older version get that time on the next scan, which processes them once more to read their date again.
 
