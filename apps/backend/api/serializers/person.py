@@ -1,5 +1,4 @@
 import datetime
-import logging
 from collections.abc import Callable
 from typing import Any, TypeVar
 
@@ -11,8 +10,6 @@ from rest_framework import serializers
 from api.drf.request_user import request_user
 from api.models import Face, Person, PersonGroup, Photo, User
 from api.serializers.fields import loaded_list
-
-logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
@@ -161,23 +158,6 @@ class PersonSerializer(serializers.ModelSerializer):
     def _requester(self) -> User:
         # PersonViewSet runs behind IsAuthenticated, so the request has a user.
         return request_user(self.context["request"])
-
-    def create(self, validated_data: dict[str, Any]) -> Person:
-        name = validated_data.pop("name")
-        if len(name.strip()) == 0:
-            raise serializers.ValidationError("Name cannot be empty")
-        owner = self._requester()
-        qs = Person.objects.owned_by(owner).filter(name=name)
-        if qs.exists():
-            return qs[0]
-        else:
-            new_person = Person()
-            new_person.name = name
-            new_person.cluster_owner = owner
-            new_person.kind = Person.KIND_USER
-            new_person.save()
-            logger.info("created person %s", new_person.id)
-            return new_person
 
     def validate_birth_date(self, value: datetime.date | None) -> datetime.date | None:
         # A day of slack: the owner's today can be the server's tomorrow.

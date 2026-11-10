@@ -78,12 +78,19 @@ class PersonMergeTest(TestCase):
     def test_moves_the_suggestions(self) -> None:
         self._merge(self.robert, self.bob)
 
-        for face in (self.bob_face1, self.suggested):
-            moved = Face.objects.get(pk=face.pk)
-            self.assertEqual(self.robert.pk, moved.cluster_person_id)
-            self.assertEqual(self.robert.pk, moved.classification_person_id)
+        moved = Face.objects.get(pk=self.suggested.pk)
+        self.assertEqual(self.robert.pk, moved.cluster_person_id)
+        self.assertEqual(self.robert.pk, moved.classification_person_id)
         # A suggestion is no label.
-        self.assertIsNone(Face.objects.get(pk=self.suggested.pk).person_id)
+        self.assertIsNone(moved.person_id)
+
+    def test_a_labelled_face_keeps_no_suggestions(self) -> None:
+        self._merge(self.robert, self.bob)
+
+        relabelled = Face.objects.get(pk=self.bob_face1.pk)
+        self.assertEqual(self.robert.pk, relabelled.person_id)
+        self.assertIsNone(relabelled.cluster_person_id)
+        self.assertIsNone(relabelled.classification_person_id)
 
     def test_moves_the_clusters(self) -> None:
         cluster = create_test_cluster(self.user, person=self.bob)

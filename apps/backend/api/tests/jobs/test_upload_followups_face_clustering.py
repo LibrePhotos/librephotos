@@ -13,7 +13,7 @@ from django.test import TestCase
 from django.utils import timezone
 from django_q.models import Schedule
 
-from api.faces.classify import cluster_all_faces
+from api.faces.classify import ClusterPlan, cluster_all_faces
 from api.faces.clustering_gate import (
     BUSY_RETRY,
     CLUSTER_INTERVAL,
@@ -298,7 +298,7 @@ class ClusteringMovesTheWatermarkTest(ClusterNewFacesTestBase):
         super().setUp()
         for name, kwargs in (
             ("feature_enabled", {"return_value": True}),
-            ("create_all_clusters", {"return_value": 0}),
+            ("plan_clusters", {"return_value": ClusterPlan([], 1, 0)}),
             ("enqueue_followup", {}),
         ):
             patcher = mock.patch(f"api.faces.classify.{name}", **kwargs)
@@ -319,11 +319,11 @@ class ClusteringMovesTheWatermarkTest(ClusterNewFacesTestBase):
     def test_a_face_added_while_it_clusters_stays_new(self):
         last = _add_faces(self.user, 5)
 
-        def add_a_face(user, lrj):
+        def add_a_face(user):
             _add_faces(self.user, 1)
-            return 0
+            return ClusterPlan([], 1, 0)
 
-        self.classify_create_all_clusters.side_effect = add_a_face
+        self.classify_plan_clusters.side_effect = add_a_face
 
         cluster_all_faces(self.user)
 
@@ -331,7 +331,7 @@ class ClusteringMovesTheWatermarkTest(ClusterNewFacesTestBase):
 
     def test_a_failed_clustering_leaves_the_watermark(self):
         _add_faces(self.user, 5)
-        self.classify_create_all_clusters.side_effect = RuntimeError("hdbscan")
+        self.classify_plan_clusters.side_effect = RuntimeError("hdbscan")
 
         self.assertFalse(cluster_all_faces(self.user))
 

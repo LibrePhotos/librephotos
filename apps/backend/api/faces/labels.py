@@ -107,8 +107,11 @@ def relabel_faces(
     """Give ``faces`` the person ``person``, or send them back to unknown.
 
     Only the requester's own faces are touched, whatever ``faces`` selects.
-    ``person=None`` is "not this person": the cluster and classifier
-    suggestions go too, so the face lands in the unknown faces.
+    The cluster and classifier suggestions go either way: a labelled face is
+    never predicted again, so they would only come back as stale suggestions
+    when the face loses its person (the person deleted). ``person=None`` is
+    "not this person", and the face lands in the unknown faces. The undo
+    (``restore_labels``) gives the suggestions back from ``previous``.
 
     ``queue_write`` writes the face tags in the background once the
     transaction commits, for a relabel whose size has no bound (a merge
@@ -122,9 +125,8 @@ def relabel_faces(
     affected_person_ids = {face.person_id for face in loaded if face.person_id}
     for face in loaded:
         face.person = person
-        if person is None:
-            face.cluster_person = None
-            face.classification_person = None
+        face.cluster_person = None
+        face.classification_person = None
     Face.objects.bulk_update(
         loaded, ["person", "cluster_person", "classification_person"]
     )
@@ -343,6 +345,7 @@ def _refresh_people(
         if cover_id in new_person_of and new_person_of[cover_id] != affected.pk:
             affected.cover_face = None
             affected.cover_photo = None
+            affected.save(update_fields=["cover_face", "cover_photo", "last_modified"])
         affected._calculate_face_count()
         affected._set_default_cover_photo()
 

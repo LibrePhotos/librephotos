@@ -37,6 +37,10 @@ class Person(models.Model):
     UNKNOWN_PERSON_NAME = "Unknown - Other"
     KIND_USER = "USER"
     KIND_CLUSTER = "CLUSTER"
+    # Legacy: older versions kept "Unknown - Other" as a person of this kind.
+    # Nothing creates one now; existing rows are read like cluster people and
+    # deleted by the next Find Similar Faces. Kept as a choice because those
+    # rows and the clients' kind enum still carry it.
     KIND_UNKNOWN = "UNKNOWN"
     KIND_CHOICES = (
         (KIND_USER, "User Labelled"),
@@ -106,7 +110,7 @@ class Person(models.Model):
         self.face_count = self.faces.filter(
             counted_face_q(), photo__owner=self.cluster_owner.id
         ).count()
-        self.save()
+        self.save(update_fields=["face_count", "last_modified"])
 
     def _set_default_cover_photo(self) -> None:
         # A deleted face keeps its person, but is no cover for it. Only a face
@@ -118,7 +122,7 @@ class Person(models.Model):
         if not self.cover_photo and first_face is not None:
             self.cover_photo = first_face.photo
             self.cover_face = first_face
-            self.save()
+            self.save(update_fields=["cover_photo", "cover_face", "last_modified"])
 
 
 def counted_face_q(through: str = "") -> Q:
@@ -166,6 +170,8 @@ def refresh_person_face_counts(person_ids: Collection[int]) -> int:
 
 
 def get_or_create_person(
-    name: str, owner: User | None = None, kind: str = Person.KIND_UNKNOWN
+    name: str,
+    owner: User | None,
+    kind: str,
 ) -> Person:
     return Person.objects.get_or_create(name=name, cluster_owner=owner, kind=kind)[0]

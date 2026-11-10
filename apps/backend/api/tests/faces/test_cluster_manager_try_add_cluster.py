@@ -268,9 +268,9 @@ class TryAddClusterTestCase(TestCase):
         self.assertIsNotNone(face.cluster_id)
         self.assertIsNone(face.cluster_person)
 
-    def test_known_faces_branch_ignores_unknown_faces(self):
-        """QUIRK: when at least one known face is present, faces without a
-        person are collected but never assigned to any cluster."""
+    def test_known_faces_branch_files_unknown_faces_under_the_person(self):
+        """Faces without a person in a cluster with known faces join the known
+        person's cluster; they used to keep no cluster at all."""
         alice = create_test_person(name="Alice", cluster_owner=self.user)
         known = self._face(70, person=alice)
         unknown = self._face(71)
@@ -281,8 +281,8 @@ class TryAddClusterTestCase(TestCase):
         known.refresh_from_db()
         unknown.refresh_from_db()
         self.assertEqual(known.cluster_id, result[0].id)
-        self.assertIsNone(unknown.cluster_id)
-        self.assertIsNone(unknown.cluster_person)
+        self.assertEqual(unknown.cluster_id, result[0].id)
+        self.assertIsNone(unknown.person)
 
         # the mean encoding only reflects the known face
         result[0].refresh_from_db()

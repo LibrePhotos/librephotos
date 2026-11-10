@@ -158,14 +158,17 @@ class GenerateEncodingTest(SimpleTestCase):
         with (
             patch("api.faces.photo_faces.get_face_encodings", return_value=[None]),
             patch("api.faces.photo_faces.face_model_name", return_value="buffalo_sc"),
+            patch(
+                "api.faces.photo_faces._store_encoding_result", return_value=True
+            ) as store,
         ):
             with self.assertRaisesRegex(NoFaceInRegionError, "no face"):
                 generate_face_encoding(face)
 
         self.assertEqual(face.encoding, "")
         # #2888: the face remembers the model, so the next runs skip it.
-        self.assertEqual(face.unmatched_by, "buffalo_sc")
-        face.save.assert_called_once_with(update_fields=["unmatched_by"])
+        self.assertEqual(store.call_args.kwargs, {"unmatched_by": "buffalo_sc"})
+        face.save.assert_not_called()
 
 
 def _ok_response(json_body=None):
