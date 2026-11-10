@@ -1,5 +1,6 @@
 import type { SocialGraph as SocialGraphData } from "@librephotos/api-client";
 import { useComputedColorScheme } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import { IconShare } from "@tabler/icons-react";
 import { drag } from "d3-drag";
 import type { D3DragEvent, SubjectPosition } from "d3-drag";
@@ -9,7 +10,6 @@ import { select } from "d3-selection";
 import { zoom as d3Zoom } from "d3-zoom";
 import type { D3ZoomEvent } from "d3-zoom";
 import React, { useCallback, useEffect, useRef } from "react";
-import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchSocialGraphQuery } from "../../api_client/stats/hooks";
 import { SOCIAL_GRAPH_COLORS } from "../../theme/chartColors";
@@ -154,7 +154,7 @@ export function SocialGraph({ height }: Props) {
   const graphQuery = useFetchSocialGraphQuery();
   const { data, isFetching, isSuccess } = graphQuery;
   const listFailure = useListFailure(graphQuery);
-  const { observe: observeChange, width } = useDimensions({ onResize: ({ observe }) => observe() });
+  const { ref: observeChange, width } = useElementSize<HTMLDivElement>();
   const { t } = useTranslation();
 
   let graph: React.JSX.Element;

@@ -62,7 +62,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>((prop
   }));
 
   return (
-    // tippy mounts this on document.body, outside the Mantine tree, but the theme's
+    // The suggestion popup mounts this on document.body, outside the Mantine tree, but the theme's
     // CSS variables are global, so it can still follow the colour scheme.
     <div
       style={{

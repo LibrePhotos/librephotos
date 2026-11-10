@@ -1,0 +1,8 @@
+/* Mounted on document.body, above the lightbox (whose sidebar sits at 250). */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--mantine-z-index-max);
+  max-width: 350px;
+}

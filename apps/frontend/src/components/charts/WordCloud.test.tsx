@@ -21,13 +21,24 @@ vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 vi.mock("../../api_client/stats/hooks", () => ({
   useFetchWordCloudQuery: () => ({ data: cloud, isLoading: false, isError: false }),
 }));
-// jsdom does no layout: a fixed width, so the cloud has room to place its words
-vi.mock("react-cool-dimensions", () => ({ default: () => ({ observe: () => {}, width: 800 }) }));
-// Handed to the hook above as its polyfill, so it only has to exist
+// jsdom does no layout and has no ResizeObserver: one that reports a fixed width as soon as it
+// observes, so the cloud has room to place its words.
+const CONTAINER_WIDTH = 800;
 vi.stubGlobal(
   "ResizeObserver",
   class {
-    observe() {}
+    constructor(private readonly callback: ResizeObserverCallback) {}
+    observe(target: Element) {
+      const size = { inlineSize: CONTAINER_WIDTH, blockSize: 0 };
+      const entry: ResizeObserverEntry = {
+        target,
+        borderBoxSize: [size],
+        contentBoxSize: [size],
+        devicePixelContentBoxSize: [size],
+        contentRect: new DOMRect(0, 0, CONTAINER_WIDTH, 0),
+      };
+      this.callback([entry], this);
+    }
     unobserve() {}
     disconnect() {}
   }
@@ -69,8 +80,13 @@ async function render(type: string) {
       </MantineProvider>
     )
   );
+  // The size hook reads the observer's report in the next animation frame.
+  await act(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+  rendered = container;
   return [...container.querySelectorAll("svg text")];
 }
+
+let rendered: HTMLElement | undefined;
 
 /** A word's shown text, without the <title> a translated thing carries. */
 const shown = (word: Element) =>
@@ -92,6 +108,12 @@ describe("WordCloud", () => {
 
     await act(async () => words[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(navigate).toHaveBeenCalledWith({ to: "/search/beach" });
+  });
+
+  it("sizes the cloud to the width its container reports, less its margin", async () => {
+    await render("captions");
+
+    expect(rendered?.querySelector("svg")?.getAttribute("width")).toBe(String(CONTAINER_WIDTH - 50));
   });
 
   it("leaves people and places as they are", async () => {
