@@ -114,7 +114,7 @@ class DuplicateModelTest(TestCase):
         self.assertEqual(duplicate.trashed_count, 0)
 
     def test_dismiss_duplicate(self):
-        """Test dismissing a duplicate unlinks photos."""
+        """Dismissing keeps the photos, so detection does not offer them again."""
         duplicate = Duplicate.create_or_merge(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
@@ -124,8 +124,7 @@ class DuplicateModelTest(TestCase):
 
         duplicate.refresh_from_db()
         self.assertEqual(duplicate.review_status, Duplicate.ReviewStatus.DISMISSED)
-        # Photos should be unlinked
-        self.assertEqual(duplicate.photo_count, 0)
+        self.assertEqual(duplicate.photo_count, 2)
 
     def test_revert_resolved_duplicate(self):
         """Test reverting a resolved duplicate restores photos."""

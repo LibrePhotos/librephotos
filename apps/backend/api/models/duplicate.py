@@ -21,8 +21,8 @@ import uuid
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from django.db import models
-from django.db.models import Model
+from django.db import models, transaction
+from django.db.models import Model, QuerySet
 from django.utils import timezone
 
 from api.models.scopes import OwnedQuerySet
@@ -38,6 +38,29 @@ if TYPE_CHECKING:
 
 class DuplicateQuerySet(OwnedQuerySet["Duplicate"]):
     """Scoped to its owner through ``owner``."""
+
+
+# The tags and the people that count some photos: (tag ids, person ids).
+Counted = tuple[list[int], list[int]]
+
+
+def _counted_on(photos: QuerySet[Photo]) -> Counted:
+    """The tags and people of ``photos``, read before trashing or restoring them."""
+    from api.models.person import person_ids_for_photos
+    from api.models.tag import tag_ids_for_photos
+
+    return tag_ids_for_photos(photos), person_ids_for_photos(photos)
+
+
+def _refresh_counts(counted: Counted) -> None:
+    """Trashing and restoring are plain UPDATEs, which fire no m2m signal: the
+    tags' photo counts and the people's face counts are refreshed by hand."""
+    from api.models.person import refresh_person_face_counts
+    from api.models.tag import refresh_tag_photo_counts
+
+    tag_ids, person_ids = counted
+    refresh_tag_photo_counts(tag_ids)
+    refresh_person_face_counts(person_ids)
 
 
 class Duplicate(models.Model):
@@ -111,6 +134,11 @@ class Duplicate(models.Model):
     # Number of photos trashed when resolved
     trashed_count = models.IntegerField(default=0)
 
+    # The photos the resolve moved to the trash, which a revert takes out again.
+    trashed_photos = models.ManyToManyField(
+        "Photo", blank=True, related_name="trashed_by_duplicates"
+    )
+
     # Optional note from user
     note = models.TextField(blank=True, null=True)
 
@@ -183,73 +211,114 @@ class Duplicate(models.Model):
         self.save(update_fields=["potential_savings", "updated_at"])
         return self.potential_savings
 
+    # What a review writes; the lock in ``_lock`` makes the rest current.
+    REVIEW_FIELDS = (
+        "review_status",
+        "kept_photo",
+        "reviewed_at",
+        "trashed_count",
+        "updated_at",
+    )
+
+    def _lock(self) -> None:
+        """Hold this group's row until the transaction ends, and read it.
+
+        Two requests (a double click, two tabs) may hold a copy of the group
+        loaded before the other's review; each review starts from the row.
+        """
+        self.refresh_from_db(from_queryset=Duplicate.objects.select_for_update())
+
+    def _trash(self, photo_ids: list[uuid.UUID]) -> int:
+        """Trash ``photo_ids`` and remember them as this group's doing."""
+        from api.models.photo import Photo, trash_photos
+
+        photos = Photo.objects.filter(pk__in=photo_ids)
+        counted = _counted_on(photos)
+        trashed = trash_photos(photos)
+        _refresh_counts(counted)
+        self.trashed_photos.set(photo_ids)
+        return trashed
+
+    def _undo_resolution(self) -> int:
+        """Take the photos this group's resolve trashed out of the trash.
+
+        Only those: a photo of the group trashed on its own, before or after
+        the resolve, stays where the user put it. Returns how many came back.
+        """
+        from api.models.photo import Photo, restore_photos
+
+        photo_ids = list(
+            self.trashed_photos.filter(in_trashcan=True).values_list("pk", flat=True)
+        )
+        photos = Photo.objects.filter(pk__in=photo_ids)
+        counted = _counted_on(photos)
+        restored = restore_photos(photos)
+        _refresh_counts(counted)
+        self.trashed_photos.clear()
+        self.trashed_count = 0
+        return restored
+
     def resolve(self, kept_photo: Photo, trash_others: bool = True) -> Self:
+        """Keep ``kept_photo`` and, with ``trash_others``, trash the others.
+
+        Resolving a resolved group picks again: what the first resolve
+        trashed comes back first. A photo already in the trash is not this
+        group's doing, so revert leaves it there.
         """
-        Mark the duplicate as resolved by selecting a photo to keep.
-
-        Args:
-            kept_photo: The Photo instance to keep
-            trash_others: Whether to move other photos to trash
-        """
-        # Set the kept photo
-        self.kept_photo = kept_photo
-        self.review_status = self.ReviewStatus.RESOLVED
-        self.reviewed_at = timezone.now()
-
-        # Trash others if requested
-        if trash_others:
-            other_photos = self.photos.exclude(pk=kept_photo.pk)
-            # Trashing takes these photos out of their tags' and people's
-            # counts, and a plain UPDATE fires no m2m signal to say so.
-            from api.models.person import (
-                person_ids_for_photos,
-                refresh_person_face_counts,
-            )
-            from api.models.photo import trash_photos
-            from api.models.tag import (
-                refresh_tag_photo_counts,
-                tag_ids_for_photos,
-            )
-
-            affected_tag_ids = tag_ids_for_photos(other_photos)
-            affected_person_ids = person_ids_for_photos(other_photos)
-            self.trashed_count = trash_photos(other_photos)
-            refresh_tag_photo_counts(affected_tag_ids)
-            refresh_person_face_counts(affected_person_ids)
-
-        self.save()
+        with transaction.atomic():
+            self._lock()
+            self._undo_resolution()
+            if trash_others:
+                others = self.photos.exclude(pk=kept_photo.pk).filter(in_trashcan=False)
+                self.trashed_count = self._trash(
+                    list(others.values_list("pk", flat=True))
+                )
+            self.kept_photo = kept_photo
+            self.review_status = self.ReviewStatus.RESOLVED
+            self.reviewed_at = timezone.now()
+            self.save(update_fields=self.REVIEW_FIELDS)
         return self
 
     def dismiss(self) -> Self:
-        """Mark as 'not actually duplicates' and unlink photos from group."""
-        self.review_status = self.ReviewStatus.DISMISSED
-        self.reviewed_at = timezone.now()
-
-        # Unlink photos from duplicate group (ManyToMany)
-        for photo in self.photos.all():
-            photo.duplicates.remove(self)
-
-        self.save()
+        """ "Not duplicates": the group stays, with its photos, so detection
+        does not offer them again (``create_or_merge``). A resolve is undone."""
+        with transaction.atomic():
+            self._lock()
+            self._undo_resolution()
+            self.kept_photo = None
+            self.review_status = self.ReviewStatus.DISMISSED
+            self.reviewed_at = timezone.now()
+            self.save(update_fields=self.REVIEW_FIELDS)
         return self
 
     def revert(self) -> int:
-        """Revert a resolved duplicate, restoring trashed photos."""
-        if self.review_status != self.ReviewStatus.RESOLVED:
-            return 0
+        """Back to pending, with what the resolve trashed out of the trash.
 
-        # Restore trashed photos in this duplicate group
-        from api.models.photo import restore_photos
+        Returns how many photos came back; 0 for a group that is not resolved.
+        """
+        with transaction.atomic():
+            self._lock()
+            if self.review_status != self.ReviewStatus.RESOLVED:
+                return 0
+            restored = self._undo_resolution()
+            self.kept_photo = None
+            self.review_status = self.ReviewStatus.PENDING
+            self.reviewed_at = None
+            self.save(update_fields=self.REVIEW_FIELDS)
+        return restored
 
-        restored_count = restore_photos(self.photos.filter(in_trashcan=True))
-
-        # Reset to pending
+    def _reopen_if_grown(self, photo_ids_before: set[uuid.UUID]) -> None:
+        """A dismissed group that gained a photo asks again: "not duplicates"
+        was said of the photos it had."""
+        if self.review_status != self.ReviewStatus.DISMISSED:
+            return
+        if not self.photos.exclude(pk__in=photo_ids_before).exists():
+            return
+        Duplicate.objects.filter(
+            pk=self.pk, review_status=self.ReviewStatus.DISMISSED
+        ).update(review_status=self.ReviewStatus.PENDING, reviewed_at=None)
         self.review_status = self.ReviewStatus.PENDING
-        self.kept_photo = None
-        self.trashed_count = 0
         self.reviewed_at = None
-
-        self.save()
-        return restored_count
 
     def merge_with(self, other_duplicate: Duplicate) -> None:
         """
@@ -306,6 +375,7 @@ class Duplicate(models.Model):
             target_duplicate = existing_duplicates.first()
             # exists() just returned True for this same queryset.
             assert target_duplicate is not None
+            photo_ids_before = set(target_duplicate.photos.values_list("pk", flat=True))
             for duplicate in existing_duplicates[1:]:
                 target_duplicate.merge_with(duplicate)
 
@@ -314,6 +384,7 @@ class Duplicate(models.Model):
                 if not photo.duplicates.filter(pk=target_duplicate.pk).exists():
                     photo.duplicates.add(target_duplicate)
 
+            target_duplicate._reopen_if_grown(photo_ids_before)
             target_duplicate.calculate_potential_savings()
             return target_duplicate
         else:

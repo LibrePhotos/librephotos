@@ -92,8 +92,8 @@ Click on a duplicate group to open the review modal:
 
 #### Other Actions
 
-- **"Not duplicates"** — Dismiss the group if the photos aren't actually duplicates. The group's status changes to **Dismissed** and its photos are unlinked from the group. Because the page only lists groups that still contain two or more photos, a dismissed group then disappears from view entirely — including from the **Dismissed** filter — even though it is still counted in the **Dismissed (N)** tab. This can't be undone from the interface.
-- **"Revert & restore photos"** — For **resolved** groups only: undo the resolution, restore the trashed photos from the trash, and set the group back to **Pending**. Dismissed groups can't be reverted — the server rejects the request, and dismissing has already unlinked the photos rather than trashing them.
+- **"Not duplicates"** — Dismiss the group if the photos aren't actually duplicates. The group's status changes to **Dismissed** and it is listed under the **Dismissed** filter with its photos. Detection does not offer these photos again; a group that gains a new photo (a further copy found later) goes back to **Pending**. Dismissing a resolved group first takes the photos its resolution trashed out of the trash. <Since version="1.7.0" /> Up to 1.6.0, dismissing unlinked the photos, so a dismissed group was listed nowhere and the next detection offered the same photos again.
+- **"Revert & restore photos"** — For **resolved** groups only: undo the resolution, restore the photos that resolving moved to the trash, and set the group back to **Pending**. A photo of the group that you trashed yourself, before or after resolving, stays in the trash. Dismissed groups can't be reverted. <Since version="1.7.0" /> Up to 1.6.0, reverting restored every photo of the group that was in the trash.
 - **Delete group** — Remove the duplicate group record entirely.
 
 ### Batch Operations
