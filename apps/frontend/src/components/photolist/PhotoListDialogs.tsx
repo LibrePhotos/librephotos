@@ -1,7 +1,7 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { useMemo } from "react";
 import { AlbumThreadContext } from "../lightbox/albumThread";
-import { Lightbox } from "../lightbox/Lightbox";
+import { LazyLightbox } from "../lightbox/LazyLightbox";
 import type { LightboxItem } from "../lightbox/lightbox.types";
 import { videoStartOf } from "../lightbox/videoStart";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
@@ -77,7 +77,7 @@ export function PhotoListDialogs({
       {lightbox.lightboxOpen && (
         // A user album's photos carry its comments and likes (#262).
         <AlbumThreadContext.Provider value={isUserAlbum ? albumID : undefined}>
-          <Lightbox
+          <LazyLightbox
             isPublic={isPublic}
             publicAlbumSlug={publicAlbumSlug}
             idx2hash={lightboxItems}

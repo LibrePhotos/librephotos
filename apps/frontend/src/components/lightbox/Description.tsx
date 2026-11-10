@@ -1,30 +1,32 @@
 import type { Photo as PhotoType } from "@librephotos/api-client";
 import { ActionIcon, Group, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
-import { RichTextEditor } from "@mantine/tiptap";
 import { IconCheck, IconPencil, IconX, IconWand as Wand } from "@tabler/icons-react";
-import Document from "@tiptap/extension-document";
-import Mention from "@tiptap/extension-mention";
-import Paragraph from "@tiptap/extension-paragraph";
-import { Text as TipTapText } from "@tiptap/extension-text";
-import { useEditor } from "@tiptap/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
 import { autoTagsOf, generatedCaptionOf, userCaptionOf } from "../../api_client/photos/captions";
 import { useGenerateImageToTextCaptionMutation, useSavePhotoCaptionMutation } from "../../api_client/photos/hooks";
 import { useGetSettingsQuery } from "../../api_client/settings/hooks";
-import { fuzzyMatch } from "../../util/util";
 import { DisabledReason } from "../common/DisabledReason";
+import { FeatureBoundary } from "../common/FeatureBoundary";
+import { lazyWithPreload } from "../common/lazyWithPreload";
 import { AISuggestionButton } from "./AISuggestionButton";
-import classes from "./Description.module.css";
-import hashtagClasses from "./Hashtag.module.css";
+import type { CaptionInputProps } from "./CaptionInput";
+import { CaptionText } from "./CaptionText";
 import { SectionTitle } from "./SectionTitle";
 import sectionClasses from "./Sidebar.module.css";
-import suggestion from "./Suggestion";
 import { ThingBadges } from "./ThingBadges";
 import { UnsavedBadge } from "./UnsavedBadge";
 import { useRegisterDraft } from "./unsavedDrafts";
 import { WriteBackHint } from "./WriteBackHint";
+
+/**
+ * The editor (tiptap and ProseMirror) is its own chunk, loaded when a caption is edited; the
+ * lightbox prefetches it when it opens (see Lightbox.tsx).
+ */
+export const captionInput = lazyWithPreload<CaptionInputProps>(
+  async () => (await import("./CaptionInput")).CaptionInput
+);
 
 type Props = Readonly<{
   isPublic: boolean;
@@ -38,11 +40,6 @@ type Props = Readonly<{
   /** Open the editor at once: the photo page's "Add ..." asked for it. */
   startEditing?: boolean;
 }>;
-
-/** Captions are saved as plain text; the editor shows their hashtags as mentions. */
-function captionToEditorHtml(caption: string): string {
-  return caption.replace(/#(\w+)/g, '<span data-type="mention" data-id=$1>#$1</span>');
-}
 
 export function Description(props: Props) {
   // The draft belongs to one photo: remount when the photo changes, or an editor
@@ -168,6 +165,17 @@ function EmptyField({ isPublic, onAdd }: Readonly<{ isPublic: boolean; onAdd: ()
   );
 }
 
+/** The editor, once its chunk is in; until then the draft as text, where the editor will be. */
+function CaptionInputSlot(props: CaptionInputProps) {
+  return (
+    <FeatureBoundary name="caption-editor" onReset={captionInput.retry}>
+      <Suspense fallback={<CaptionText caption={props.initialCaption} />}>
+        <captionInput.Component {...props} />
+      </Suspense>
+    </FeatureBoundary>
+  );
+}
+
 function CaptionEditor(props: Props) {
   const { photoDetail, isPublic, heading, startEditing = false } = props;
   // Only the owner edits, so only the owner needs the hashtag suggestions; a
@@ -182,102 +190,61 @@ function CaptionEditor(props: Props) {
 
   const [mode, setMode] = useState<EditorMode>(startEditing && !isPublic ? "editing" : "viewing");
   const editMode = mode !== "viewing";
-  const [imageCaption, setImageCaption] = useState<string | null>(null);
+  // The caption on screen: the saved one, or the draft while editing (and the saved text until a
+  // refetch brings it back from the server).
+  const [imageCaption, setImageCaption] = useState(savedCaption);
+  // A new editor for new content: the editor takes its text only when it is created.
+  const [editorKey, setEditorKey] = useState(0);
   const { mutate: updateCaption } = useSavePhotoCaptionMutation();
   const { mutate: generateImageToTextCaptions, isPending: generatingCaptionIm2txt } =
     useGenerateImageToTextCaptionMutation();
 
-  // The editor reads its extensions once, when it is created, so the hashtag
-  // suggestions look the albums up when asked instead of closing over them.
-  const hashtagsRef = useRef<string[]>([]);
-  hashtagsRef.current = (thingAlbums ?? [])
-    .filter(item => item.thing_type === "hashtag_attribute")
-    .map(item => item.title);
+  const hashtags = useMemo(
+    () => (thingAlbums ?? []).filter(item => item.thing_type === "hashtag_attribute").map(item => item.title),
+    [thingAlbums]
+  );
 
-  const editor = useEditor({
-    editable: editMode,
-    autofocus: editMode ? "end" : false,
-    extensions: [
-      Document,
-      Paragraph,
-      TipTapText,
-      Mention.configure({
-        HTMLAttributes: {
-          class: hashtagClasses.hashtag,
-        },
-        // renderLabel is deprecated in tiptap v3 and warns on every render.
-        renderText({ options, node }) {
-          return `${options.suggestion.char}${node.attrs.label ?? node.attrs.id}`;
-        },
-        renderHTML({ options, node }) {
-          return ["span", options.HTMLAttributes, `${options.suggestion.char}${node.attrs.label ?? node.attrs.id}`];
-        },
-        suggestion: {
-          items: ({ query }) => {
-            const matches = hashtagsRef.current.filter(title => fuzzyMatch(query, title)).slice(0, 5);
-            // Offer what was typed as a new hashtag, but not an empty one for a
-            // bare "#", and not a second copy of an existing one.
-            if (query && !matches.includes(query)) {
-              matches.push(query);
-            }
-            return matches.reverse();
-          },
-          char: suggestion.char,
-          render: suggestion.render,
-        },
-      }),
-    ],
-    content: imageCaption,
-    onUpdate({ editor }) {
-      setImageCaption(editor.getText());
-    },
-  });
-
-  const showSavedCaption = useCallback(() => {
-    editor?.commands.setContent(captionToEditorHtml(savedCaption));
+  // Only when the saved caption itself changes: a refetch that brings a generated suggestion must
+  // not throw away what is being typed. Adjusted while rendering, as React documents it for state
+  // derived from a prop.
+  const [shownSaved, setShownSaved] = useState(savedCaption);
+  if (shownSaved !== savedCaption) {
+    setShownSaved(savedCaption);
     setImageCaption(savedCaption);
-  }, [editor, savedCaption]);
+    setEditorKey(key => key + 1);
+  }
 
-  // Only when the saved caption itself changes: a refetch that brings a
-  // generated suggestion must not throw away what is being typed.
-  useEffect(() => showSavedCaption(), [showSavedCaption]);
-
-  const setEditing = (editing: boolean) => {
-    setMode(editing ? "editing" : "viewing");
-    // useEditor only reads `editable` when it creates the editor.
-    editor?.setEditable(editing);
-    if (editing) {
-      editor?.commands.focus("end");
-    }
+  const replaceText = (caption: string) => {
+    setImageCaption(caption);
+    setEditorKey(key => key + 1);
   };
 
   const onCancel = () => {
-    setEditing(false);
-    showSavedCaption();
+    setMode("viewing");
+    setImageCaption(savedCaption);
   };
 
   const onSave = () => {
     if (mode === "saving") return;
     // Save sits where the pencil was, so a double-click saves straight away:
     // an unchanged caption is not written again (nor announced as saved).
-    if ((imageCaption ?? "") === savedCaption) {
-      setEditing(false);
+    if (imageCaption === savedCaption) {
+      setMode("viewing");
       return;
     }
     setMode("saving");
-    editor?.setEditable(false);
     updateCaption(
-      { id: photoDetail.image_hash, caption: imageCaption || "" },
-      { onSuccess: () => setEditing(false), onError: () => setEditing(true) }
+      { id: photoDetail.image_hash, caption: imageCaption },
+      { onSuccess: () => setMode("viewing"), onError: () => setMode("editing") }
     );
   };
 
   // Compared as Save compares it: an editor opened and left unchanged holds nothing to lose.
-  const dirty = editMode && (imageCaption ?? "") !== savedCaption;
+  const dirty = editMode && imageCaption !== savedCaption;
   useRegisterDraft("caption", dirty);
 
   const im2txt = generatedCaptionOf(photoDetail.captions_json);
-  const isEmpty = !editMode && !(imageCaption ?? savedCaption);
+  const isEmpty = !editMode && !imageCaption;
 
   return (
     <Stack>
@@ -288,32 +255,27 @@ function CaptionEditor(props: Props) {
           mode={mode}
           isPublic={isPublic}
           generating={generatingCaptionIm2txt}
-          onEdit={() => setEditing(true)}
+          onEdit={() => setMode("editing")}
           onGenerate={() => generateImageToTextCaptions({ id: photoDetail.image_hash })}
           onCancel={onCancel}
           onSave={onSave}
         />
-        {im2txt && editMode && !imageCaption?.includes(im2txt) && (
+        {im2txt && editMode && !imageCaption.includes(im2txt) && (
           <div>
-            <AISuggestionButton
-              suggestion={im2txt}
-              onClick={() => {
-                editor?.commands.setContent(im2txt);
-                setImageCaption(im2txt);
-              }}
-            />
+            <AISuggestionButton suggestion={im2txt} onClick={() => replaceText(im2txt)} />
           </div>
         )}
-        {isEmpty && <EmptyField isPublic={isPublic} onAdd={() => setEditing(true)} />}
-        {/* Hidden rather than unmounted when empty, so the editor keeps its view. */}
-        <RichTextEditor
-          editor={editor}
-          className={classes.caption}
-          mod={{ "read-only": !editMode }}
-          display={isEmpty ? "none" : undefined}
-        >
-          <RichTextEditor.Content />
-        </RichTextEditor>
+        {isEmpty && <EmptyField isPublic={isPublic} onAdd={() => setMode("editing")} />}
+        {editMode && (
+          <CaptionInputSlot
+            key={editorKey}
+            initialCaption={imageCaption}
+            editable={mode === "editing"}
+            hashtags={hashtags}
+            onChange={setImageCaption}
+          />
+        )}
+        {!editMode && !isEmpty && <CaptionText caption={imageCaption} />}
         {editMode && <WriteBackHint field="caption" />}
       </Stack>
       {autoTags && autoTags.length > 0 && (

@@ -6,7 +6,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { MovePhotosModal } from "../movephotos/MovePhotosModal";
-import { SelectionEditDialogs } from "./SelectionEditDialogs";
+import { bulkLocation, SelectionEditDialogs } from "./SelectionEditDialogs";
 import type { SelectionEditDialogState } from "./useSelectionEditDialogs";
 
 const stubs = vi.hoisted(() => ({
@@ -45,8 +45,10 @@ vi.mock("./ChangeDateTimeModal", () => ({
   },
 }));
 
-beforeAll(() => {
+beforeAll(async () => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  // The location dialog is a chunk of its own: loaded first, so it mounts as the others do.
+  await bulkLocation.preload();
 });
 
 const closed = { opened: false, open: () => {}, close: () => {} };

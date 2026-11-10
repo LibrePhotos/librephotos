@@ -8,6 +8,7 @@ import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
 import { MediaThumbnail } from "./common/MediaThumbnail";
 import classes from "./LocationMap.module.css";
+import { LOCATION_MAP_HEIGHT } from "./locationMapHeight";
 import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 import { ignoreMissingStyleImages } from "./map/mapImages";
 import { ThemedMap } from "./map/ThemedMap";
@@ -29,7 +30,7 @@ const POPUP_THUMBNAIL_SIZE = 200;
 
 export function LocationMap({ photos }: Props) {
   const { t } = useTranslation();
-  const height = "200px";
+  const height = LOCATION_MAP_HEIGHT;
   const [popupInfo, setPopupInfo] = useState<LocatedPhoto | null>(null);
   // Null while map display is turned off
   const { mapStyle } = useMapStyle();

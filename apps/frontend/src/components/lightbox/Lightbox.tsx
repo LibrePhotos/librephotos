@@ -3,14 +3,20 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useAuth } from "../../hooks/useAuth";
 import { FeatureBoundary, FeatureFallback } from "../common/FeatureBoundary";
+import { afterDelayWhenIdle } from "../common/lazyWithPreload";
 import { ContentViewer } from "./ContentViewer";
+import { captionInput } from "./Description";
 import { DiscardDraftsModal } from "./DiscardDraftsModal";
 import type { LightboxItem, LightBoxProps } from "./lightbox.types";
 import { adoptsLive, indexOfId, neighbour } from "./lightboxNavigation";
 import { LightboxTitle } from "./LightboxTitle";
+import { locationMap } from "./LocationSection";
 import { UnsavedDraftsContext } from "./unsavedDrafts";
 import { useLightboxDraftsGuard } from "./useUnsavedDraftsGuard";
 import { VideoStartContext, videoStartFor } from "./videoStart";
+
+/** How long after the lightbox opens its info panel's chunks are fetched (see LightboxViewer). */
+const SIDEBAR_PREFETCH_DELAY_MS = 1500;
 
 type ExtendedLightBoxProps = {
   onImageChange?: (imageId: string) => void;
@@ -82,6 +88,18 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
   // shared with you (#2731).
   const { userId } = useAuth();
   const readOnly = isPublic || Boolean(photoDetails?.shared_library) || isSomeoneElses(photoDetails?.owner?.id, userId);
+
+  // The info panel's map and caption editor are chunks of their own: fetched once the photo is up
+  // (they are about 400 kB gzipped, which the photo's own download and decode must not wait for),
+  // so the panel opens without a spinner. Only an owner's page can edit a caption.
+  useEffect(
+    () =>
+      afterDelayWhenIdle(() => {
+        locationMap.prefetch();
+        if (!isPublic) captionInput.prefetch();
+      }, SIDEBAR_PREFETCH_DELAY_MS),
+    [isPublic]
+  );
 
   // The grid follows the photo shown, so it is there when the lightbox closes. Only when the
   // photo's place changes: not again for every day page the grid loads meanwhile.
