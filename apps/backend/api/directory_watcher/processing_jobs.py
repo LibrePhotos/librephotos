@@ -38,6 +38,7 @@ from api.jobs.queue import enqueue_job, enqueue_task, reserve_job
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
 from api.models import Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
+from api.models.photo import CategorySource
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
 from api.photos.paths import folder_path_q
@@ -107,7 +108,11 @@ def generate_face_embeddings(
         heartbeat: Called after every face; the upload follow-ups renew
             their lease with it
     """
-    if not faces_missing_encoding(user).exists():
+    if (
+        not feature_enabled("FACE_DETECTION")
+        or not faces_missing_encoding(user).exists()
+    ):
+        # Turned off while the job waited: its sidecar is stopped too.
         LongRunningJob.complete_unclaimed(job_id)
         return
 
@@ -126,6 +131,8 @@ def generate_face_embeddings(
 
         for idx, face in enumerate(_listed(face_ids, faces, job_id)):
             if _scan_cancelled(idx, job_id, "Generate face embeddings job cancelled"):
+                return
+            if _face_detection_turned_off(idx, lrj):
                 return
             _encode_face(face, job_id)
             if heartbeat is not None:
@@ -262,6 +269,19 @@ def _record_photo_error(photo: Photo, err: Exception) -> str:
 
 # A photo without a big thumbnail (no Thumbnail row, or its file never made).
 MISSING_BIG_THUMBNAIL = Q(thumbnail__isnull=True) | Q(thumbnail__thumbnail_big="")
+# A photo whose thumbnails are not ready: no big one, or no aspect ratio,
+# which keeps it out of every grid (``visible_photo_q``).
+THUMBNAIL_NOT_READY = MISSING_BIG_THUMBNAIL | Q(thumbnail__aspect_ratio__isnull=True)
+
+
+def needs_thumbnails() -> Q:
+    """Photos with a file whose thumbnails are not ready; a read of their file makes them.
+
+    The "thumbnails" stage of the processing status counts these, and an
+    incremental scan reads their files again (``scan_jobs._known_paths``),
+    so a render or aspect ratio that failed is tried by the next scan.
+    """
+    return Q(removed=False) & THUMBNAIL_NOT_READY
 
 
 def needs_things() -> Q:
@@ -469,9 +489,9 @@ def ocr_image_source(photo: Photo) -> str | None:
         return None
 
 
-# A photo whose OCR call failed this many times is no longer picked up by an
-# incremental run (scan and upload follow-ups, a manual Extract); a full run
-# ("Extract text again for all photos") still tries it.
+# A photo whose OCR call failed this many times is given up on: the scan and
+# upload follow-ups no longer pick it up. Extract started by hand and a full
+# run ("Extract text again for all photos") still try it.
 OCR_MAX_FAILURES = 3
 
 
@@ -492,24 +512,29 @@ def active_ocr_model() -> str | None:
     return str(ocr_model)
 
 
-def photos_needing_ocr(user: User, ocr_model: str) -> QuerySet[Photo]:
+def photos_needing_ocr(
+    user: User, ocr_model: str, retry_given_up: bool = False
+) -> QuerySet[Photo]:
     """The user's photos an incremental OCR run reads.
 
     Selected by need, not by when they were added (#2736): no text stored by
     ``ocr_model`` yet (so a model switch reads them again), a big thumbnail to
     read (a photo whose thumbnail is not ready waits for a later run), and
-    fewer than ``OCR_MAX_FAILURES`` failed calls.
+    fewer than ``OCR_MAX_FAILURES`` failed calls, unless ``retry_given_up``.
     """
-    return Photo.objects.owned_by(user).filter(needs_ocr(ocr_model))
+    unread = _ocr_unread(ocr_model)
+    return Photo.objects.owned_by(user).filter(
+        unread if retry_given_up else needs_ocr(ocr_model)
+    )
+
+
+def _ocr_unread(ocr_model: str) -> Q:
+    return Q(video=False) & ~MISSING_BIG_THUMBNAIL & ~Q(ocr__engine=ocr_model)
 
 
 def needs_ocr(ocr_model: str) -> Q:
     """``photos_needing_ocr`` as a ``Q`` (one-to-one relations only, #2741)."""
-    return (
-        Q(video=False, ocr_failures__lt=OCR_MAX_FAILURES)
-        & ~MISSING_BIG_THUMBNAIL
-        & ~Q(ocr__engine=ocr_model)
-    )
+    return _ocr_unread(ocr_model) & Q(ocr_failures__lt=OCR_MAX_FAILURES)
 
 
 def ocr_has_work(user: User) -> bool:
@@ -530,7 +555,9 @@ def queue_ocr_followup(user: User) -> bool:
     return True
 
 
-def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
+def generate_ocr(
+    user: User, job_id: UUID, full_scan: bool = False, retry_given_up: bool = False
+) -> None:
     """
     Extract text (OCR) from photos via the OCR sidecar.
 
@@ -543,6 +570,8 @@ def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
         full_scan: If True, reprocess every (non-video) photo regardless of
             what OCR data already exists or how often it failed; otherwise
             the photos ``photos_needing_ocr`` selects
+        retry_given_up: Also the photos without text that failed
+            ``OCR_MAX_FAILURES`` times (Extract started by hand)
     """
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_GENERATE_OCR, job_id)
     if lrj is None:
@@ -560,7 +589,7 @@ def generate_ocr(user: User, job_id: UUID, full_scan: bool = False) -> None:
         if full_scan:
             existing_photos = Photo.objects.owned_by(user).filter(video=False)
         else:
-            existing_photos = photos_needing_ocr(user, ocr_model)
+            existing_photos = photos_needing_ocr(user, ocr_model, retry_given_up)
 
         photo_ids = _begin_photo_scan(lrj, existing_photos)
         if not photo_ids:
@@ -672,7 +701,7 @@ def _derive_is_document(
     only re-sends a photo whose ``last_modified`` moved. Returns the value in
     force after the call (unchanged for user-corrected photos).
     """
-    if photo.category_source == "user":
+    if photo.category_source == CategorySource.USER:
         return photo.is_document
 
     new_value = classify_document(
@@ -786,7 +815,7 @@ def classify_media(user: User, job_id: UUID) -> None:
         # not issue an extra query just to discover whether OCR exists.
         existing_photos = (
             Photo.objects.owned_by(user)
-            .exclude(category_source="user")
+            .exclude(category_source=CategorySource.USER)
             .select_related("ocr")
         )
 
@@ -1088,8 +1117,8 @@ def _faces_to_scan(
     return photos.filter(_FACES_NOT_SCANNED)
 
 
-# Photos Scan Faces can read (a Thumbnail row), and those it has not read yet.
-_FACE_SCANNABLE = Q(thumbnail__thumbnail_big__isnull=False)
+# Photos Scan Faces can read (a big thumbnail), and those it has not read yet.
+_FACE_SCANNABLE = ~MISSING_BIG_THUMBNAIL
 _FACES_NOT_SCANNED = Q(faces_scanned_at__isnull=True)
 
 
@@ -1125,6 +1154,8 @@ def scan_faces(
         return
 
     try:
+        if _face_detection_turned_off(0, lrj):
+            return
         # Needs no face service, and photos already scanned have such faces too (#2642)
         photo_faces.restore_missing_crops(user)
         existing_photos = _faces_to_scan(user, full_scan, path, photo_ids)
@@ -1135,6 +1166,8 @@ def scan_faces(
         unreachable = 0
         for idx, photo in enumerate(_listed(listed, existing_photos, job_id)):
             if _scan_cancelled(idx, job_id, "Scan faces job cancelled"):
+                return
+            if _face_detection_turned_off(idx, lrj):
                 return
             failure = _extract_faces_for_photo(photo, job_id)
             if isinstance(failure, requests.ConnectionError | requests.Timeout):
@@ -1154,6 +1187,21 @@ def scan_faces(
         return
 
     _encode_and_cluster(user)
+
+
+def _face_detection_turned_off(idx: int, lrj: LongRunningJob) -> bool:
+    """Whether face detection was turned off; the job is then complete.
+
+    Checked when a face job starts and then as often as cancellation: the
+    watchdog stops the face sidecar within a minute, and asking it about
+    every photo or face left only fails slowly. What is left stays to do
+    (``faces_scanned_at``, an empty encoding) for when it is on again.
+    """
+    if idx % CANCELLATION_CHECK_INTERVAL or feature_enabled("FACE_DETECTION"):
+        return False
+    logger.info("job %s: face detection is turned off, stopping", lrj.job_id)
+    lrj.complete()
+    return True
 
 
 def _encode_and_cluster(user: User) -> None:

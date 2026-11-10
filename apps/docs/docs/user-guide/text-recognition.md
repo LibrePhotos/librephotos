@@ -52,7 +52,7 @@ Both start an **Extract text (OCR)** job, which you can follow under **Account m
 
 <Since version="1.5.0" /> While a model is selected, the job also starts by itself after a scan and a few minutes after an upload, for the photos still without text. Selecting a model therefore reads your whole library after the next scan or upload, a little at a time. Up to 1.4.0, it only ran when you clicked **Extract**.
 
-A photo the text recognition service failed on three times is no longer read by these runs or by **Extract**. **Extract text again for all photos** still tries it. When the service could not be reached at all, that does not count as a failure.
+A photo the text recognition service failed on three times is no longer read by these automatic runs. <Since version="1.7.0" /> **Extract** tries it again, and so does **Extract text again for all photos**. Up to 1.6.0, only **Extract text again for all photos** did. When the service could not be reached at all, that does not count as a failure.
 
 If the administrator changes the model later, **Extract** also reads again the photos that were read with the previous model.
 

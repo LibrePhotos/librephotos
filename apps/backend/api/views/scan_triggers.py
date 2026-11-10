@@ -344,6 +344,8 @@ class GenerateOcrView(APIView):
             generate_ocr,
             user,
             full_scan=full_scan,
+            # By hand, the photos the follow-ups gave up on are tried again.
+            retry_given_up=not full_scan,
             description="text recognition",
         )
 

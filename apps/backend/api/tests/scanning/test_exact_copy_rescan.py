@@ -23,8 +23,8 @@ from api.directory_watcher.scan_jobs import (
     _partition_scan_paths,
     _select_groups_to_process,
 )
-from api.models import File, FileCopy, Photo
-from api.tests.utils import create_test_file, create_test_user
+from api.models import File, FileCopy, Photo, Thumbnail
+from api.tests.utils import create_test_file, create_test_thumbnail, create_test_user
 
 MODULE = "api.directory_watcher.file_handlers"
 
@@ -42,9 +42,12 @@ class ExactCopyRescanTestCase(TestCase):
         shutil.copyfile(self.original, self.copy)
 
         # _process_photo stands in for thumbnails, EXIF and the rest; it is
-        # what sets metadata_read_at, which makes a path known to the scan.
+        # what sets metadata_read_at and makes the thumbnails, which makes a
+        # path known to the scan.
         def process(photo, *_args):
             Photo.objects.filter(pk=photo.pk).update(metadata_read_at=timezone.now())
+            if not Thumbnail.objects.filter(photo=photo).exists():
+                create_test_thumbnail(photo)
 
         patcher = patch(f"{MODULE}._process_photo", side_effect=process)
         self.process_photo = patcher.start()

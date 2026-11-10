@@ -20,12 +20,18 @@ from django.test import TestCase, override_settings
 from api.directory_watcher import scan_photos
 from api.directory_watcher.file_handlers import handle_new_image
 from api.metadata.reader import MetadataReadError
-from api.models import LongRunningJob, Photo
+from api.models import LongRunningJob, Photo, Thumbnail
 from api.tests.scanning.test_sidecar_association_on_scan import (
     SlowIngestQueue,
     create_unique_png,
 )
 from api.tests.utils import create_test_job, create_test_user
+
+
+def _ready_thumbnail(thumbnail: Thumbnail) -> None:
+    thumbnail.thumbnail_big.name = f"thumbnails_big/{thumbnail.photo.image_hash}.webp"
+    thumbnail.aspect_ratio = 1.0
+    thumbnail.save()
 
 
 class FailedMetadataReadIsRetriedTest(TestCase):
@@ -65,7 +71,6 @@ class FailedMetadataReadIsRetriedTest(TestCase):
         with ExitStack() as stack:
             for target in (
                 "api.thumbnails.decoding.thumbnail",
-                "api.thumbnails.render.generate_thumbnail",
                 "api.thumbnails.render.calculate_aspect_ratio",
                 "api.thumbnails.render.calculate_dominant_color",
                 "api.directory_watcher.scan_jobs._queue_followup_jobs",
@@ -73,6 +78,13 @@ class FailedMetadataReadIsRetriedTest(TestCase):
                 "api.directory_watcher.file_handlers.has_embedded_motion_video",
             ):
                 stack.enter_context(patch(target, return_value=False))
+            # A thumbnail that is ready, or the next scan reads the file again.
+            stack.enter_context(
+                patch(
+                    "api.thumbnails.render.generate_thumbnail",
+                    side_effect=_ready_thumbnail,
+                )
+            )
             for target in (
                 "api.metadata.photo_reader.get_metadata",
                 "api.metadata.photo_datetime.get_metadata",
