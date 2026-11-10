@@ -77,6 +77,9 @@ def detach_missing_files(photo: Photo, missing: list[File] | None = None) -> Non
     ``cleanup_deleted_photos``. Only a photo that actually lost a file is
     touched, and only its ``last_modified``: the relation itself is already
     written by ``remove()``, and the bump is what tells the sync feed.
+
+    When the main file is among them, a file the photo still has on disk
+    takes its place (``stand_in_for_main_file``).
     """
     if missing is None:
         missing = missing_files(photo)
@@ -84,8 +87,46 @@ def detach_missing_files(photo: Photo, missing: list[File] | None = None) -> Non
         photo.files.remove(file)
         file.missing = True
         file.save()
-    if missing:
+    if missing and not stand_in_for_main_file(photo):
         photo.save(update_fields=["last_modified"])
+
+
+def stand_in_for_main_file(photo: Photo) -> bool:
+    """Make another file of the photo its main file when the main file is gone.
+
+    A photo whose JPEG was deleted but whose RAW, video or other image is
+    still there is not missing: the best of those (``select_main_file``)
+    becomes the main file. Left pointing at the gone file, the photo lost its
+    main file when "Remove missing photos" deleted the missing file rows, and
+    the next click removed the photo with its RAW still on disk.
+
+    Sidecars never stand in. A photo with nothing but sidecars left keeps
+    the gone main file, which is what makes it missing (``PhotoQuerySet.missing``)
+    and lets the file be adopted again if it comes back. Returns whether the
+    main file changed; the save bumps ``last_modified``.
+    """
+    from api.directory_watcher.file_grouping import select_main_file
+
+    # Read again: the caller may hold the main file from before it was flagged.
+    gone = File.objects.filter(pk=photo.main_file_id, missing=True).first()
+    if gone is None:
+        return False
+    # A query, not ``all()``: a prefetched ``files`` still lists what was
+    # just removed.
+    survivors = photo.files.exclude(type=File.METADATA_FILE).exclude(missing=True)
+    stand_in = select_main_file(list(survivors))
+    if stand_in is None:
+        return False
+    photo.main_file = stand_in
+    photo.video = stand_in.type == File.VIDEO
+    photo.save(update_fields=["main_file", "video"])
+    logger.info(
+        "photo %s: main file %s is gone, %s stands in",
+        photo.image_hash,
+        gone.hash,
+        stand_in.hash,
+    )
+    return True
 
 
 def remove_photo(photo: Photo) -> bool:

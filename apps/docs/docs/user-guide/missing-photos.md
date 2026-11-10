@@ -28,6 +28,8 @@ LibrePhotos only marks photos as missing during its missing-file check. This che
 
 It is therefore skipped for scans that only cover a specific set of files or a single subdirectory — such as an upload, a [rescan of some photos](./library.md#rescan-some-photos) or a [scan of files a watcher reported](./auto-scan.md#tell-librephotos-about-new-files) — unless that scan is a full scan. It is also skipped when the scan had to skip a folder it could not read. The check looks at your own photos, and for each one whose file can no longer be found on disk, it marks the photo as missing.
 
+A photo made of several files counts as missing only when no file of its own is left: a sidecar (`.xmp`) alone does not keep it. <Since version="1.7.0" /> When the main file of a RAW+JPEG pair, or of a Live Photo, is gone but the other file is still there, that file takes its place, and the photo is not missing. If the main file comes back, the next scan makes it the main file again. Up to 1.6.0, such a photo was removed by the second **Remove missing photos**, and a photo with only a sidecar left took two runs to remove.
+
 Simply opening, viewing, or downloading a photo whose file has gone does **not** mark it as missing — you will just get an error for that one photo. The missing-photo count only updates after a scan has run this check.
 
 Common scenarios that cause missing photos:
