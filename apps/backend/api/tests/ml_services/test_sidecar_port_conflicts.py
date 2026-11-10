@@ -301,7 +301,7 @@ class ConfigurablePortTest(SimpleTestCase):
         with (
             patch.dict(sidecars.SERVICES, module.SERVICES),
             patch.dict(os.environ),
-            patch("gevent.pywsgi.WSGIServer") as server,
+            patch("service._wsgi_server.serve") as server,
         ):
             os.environ.pop("SERVICE_HOST", None)
             _common.serve_forever(MagicMock(), "exif")

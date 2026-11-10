@@ -23,7 +23,8 @@ backend root on their PYTHONPATH, so this module imports as
       and an unexpected exception with ``{"error": "..."}`` and 500.
 
 ``serve_forever(app, name)``
-    Serves the app with gevent on the port api.runtime.sidecars.SERVICES gives the
+    Serves the app (``service._wsgi_server``: one thread, one request at a
+    time, keep-alive) on the port api.runtime.sidecars.SERVICES gives the
     sidecar, on loopback unless SERVICE_HOST says otherwise: the sidecars
     have no authentication, and the backend only ever calls them on
     127.0.0.1. Each main.py wraps it in the ``serve()`` the standalone build
@@ -182,9 +183,8 @@ def release_memory() -> None:
 
 
 def serve_forever(app: Flask, name: str) -> None:
-    from gevent.pywsgi import WSGIServer
-
     from api.runtime.sidecars import SERVICES
+    from service._wsgi_server import serve
 
     log = logger(name)
     # What the settings-free startup noticed before a handler existed, such
@@ -193,4 +193,4 @@ def serve_forever(app: Flask, name: str) -> None:
         log.log(level, message)
     log.info("%s: service starting", name)
     host = env_str("SERVICE_HOST", DEFAULT_HOST)
-    WSGIServer((host, SERVICES[name]), app).serve_forever()
+    serve((host, SERVICES[name]), app, log)

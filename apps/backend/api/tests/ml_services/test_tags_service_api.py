@@ -4,7 +4,7 @@
 imported by the Django app, and its top-level import (``from openclip.openclip
 import ...``) only resolves when ``service/tags`` itself is on ``sys.path``. So
 the module is loaded here by file path with that package stubbed into
-``sys.modules``. Flask and gevent are the real packages; no model, no network,
+``sys.modules``. Flask is the real package; no model, no network,
 no ML.
 
 Behaviour pinned here:

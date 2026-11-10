@@ -241,7 +241,6 @@ def nuitka_command(output_dir, jobs, version, cache=True):
         f"--product-version={version}",
         "--file-description=LibrePhotos standalone server",
         "--python-flag=-u",
-        "--enable-plugin=gevent",
         # `manage shell -c` passes -c through argv, which Nuitka's guard against
         # a program re-running itself otherwise refuses.
         "--no-deployment-flag=self-execution",
