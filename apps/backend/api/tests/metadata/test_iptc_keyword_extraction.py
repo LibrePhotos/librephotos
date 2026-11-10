@@ -19,10 +19,10 @@ import shutil
 import uuid
 from unittest.mock import patch
 
-import exiftool
 from django.test import TestCase
 from django.utils import timezone
 
+from api.metadata.exiftool_client import ExifTool
 from api.metadata.photo_reader import extract_exif_data
 from api.models import Photo
 from api.models.photo_search import PhotoSearch
@@ -49,7 +49,7 @@ def _read_tags_with_exiftool(file_path, tags):
     Returns a list of values, one per tag (``None`` when not found).
     Uses a context manager so the exiftool process is always cleaned up.
     """
-    with exiftool.ExifTool() as et:
+    with ExifTool() as et:
         return [et.get_tag(tag, file_path) for tag in tags]
 
 
@@ -68,7 +68,7 @@ def _exiftool_get_metadata(
     else:
         files = _get_existing_metadata_files_reversed(media_file, try_sidecar)
 
-    with exiftool.ExifTool() as et:
+    with ExifTool() as et:
         values = []
         for tag in tags:
             value = None

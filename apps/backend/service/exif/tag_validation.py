@@ -1,8 +1,8 @@
 """Validate ExifTool tag names and media paths before they become arguments.
 
 The exif sidecar drives ExifTool in ``-stay_open`` mode: every argument is a
-line written to ExifTool's stdin (PyExifTool joins them with ``\n`` and ends
-the batch with ``-execute``). A tag name is passed as ``-<tag>``, so a tag
+line written to ExifTool's stdin (``api.metadata.exiftool_client`` joins them
+with ``\n`` and ends the command with ``-execute``). A tag name is passed as ``-<tag>``, so a tag
 that is not a plain tag name escapes the read it was meant to be:
 
 * a tag containing ``=`` turns the read into a write or rename --

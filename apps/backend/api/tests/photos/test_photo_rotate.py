@@ -274,7 +274,7 @@ class RotateCharacterizationTest(TestCase):
         self, regen, write_metadata
     ):
         """exiftool reports a failed write (read-only library, locked file) on
-        stdout and PyExifTool does not raise. The file still says 1, so the
+        stdout and ExifTool exits normally. The file still says 1, so the
         rotation must stay in the database."""
         photo = self._media_file_photo()
 

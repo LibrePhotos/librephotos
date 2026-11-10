@@ -1,7 +1,7 @@
 """A metadata write ExifTool could not make is reported, not passed off as done (#2294).
 
-``write_metadata`` used to drop ExifTool's answer, and PyExifTool sends its
-stderr to /dev/null, so a read-only library, a damaged file, a misspelt tag
+``write_metadata`` used to drop ExifTool's answer, and PyExifTool (since
+replaced by api.metadata.exiftool_client) sent its stderr to /dev/null, so a read-only library, a damaged file, a misspelt tag
 or a tag the target cannot hold all looked like success. Real ExifTool, no
 mocks.
 """
@@ -289,7 +289,7 @@ class OneExifToolProcessPerJobTest(TestCase):
             photo_ids.append(photo.id)
 
         with patch(
-            "api.metadata.writer.binaries.start_tool", wraps=binaries.start_tool
+            "api.runtime.binaries.start_piped_tool", wraps=binaries.start_piped_tool
         ) as start_tool:
             failures = write_photo_ratings(photo_ids, use_sidecar=True)
 
@@ -307,14 +307,14 @@ class OneExifToolProcessPerJobTest(TestCase):
             PIL.Image.new("RGB", (8, 8)).save(paths[-1])
 
         started = []
-        real_start_tool = binaries.start_tool
+        real_start_tool = binaries.start_piped_tool
 
         def start_tool(*args, **kwargs):
             started.append(real_start_tool(*args, **kwargs))
             return started[-1]
 
         with (
-            patch("api.metadata.writer.binaries.start_tool", start_tool),
+            patch("api.runtime.binaries.start_piped_tool", start_tool),
             one_exiftool_process(),
         ):
             write_metadata(paths[0], {Tags.RATING: 1}, use_sidecar=False)

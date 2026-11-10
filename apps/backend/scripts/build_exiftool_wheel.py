@@ -5,7 +5,7 @@ Perl distribution for everything else (needs a perl on PATH).
 
 writes exiftool_bin-<ver>-py3-none-win_amd64.whl and exiftool_bin-<ver>-py3-none-any.whl.
 The package puts its folder on PATH when imported, and a .pth imports it at
-interpreter start, so `exiftool` is found by PyExifTool and any subprocess.
+interpreter start, so `exiftool` is found by api.runtime.binaries and any subprocess.
 """
 
 import base64

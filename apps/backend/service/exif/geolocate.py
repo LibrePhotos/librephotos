@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import math
 
-import exiftool
+from api.metadata.exiftool_client import ExifTool
 
 # GeoNames feature codes ExifTool leaves out: sections of a populated place.
 FEATURE_FILTER = "-PPLX"
@@ -123,7 +123,7 @@ def _ungrouped(data: dict[str, object]) -> dict[str, object]:
 
 
 def geolocate(
-    et: exiftool.ExifTool, point: Point, max_distance_km: float | None
+    et: ExifTool, point: Point, max_distance_km: float | None
 ) -> dict[str, object] | None:
     """The nearest town to *point*, as ExifTool's Geolocation tags by name.
 
@@ -131,7 +131,8 @@ def geolocate(
     runs with ``-n``, so ``GeolocationDistance`` is a number of km and
     ``GeolocationPosition`` the town's ``"<lat> <lon>"``.
     """
-    answer = et.execute_json(*lookup_args(point, max_distance_km))
+    # Checked here as well: the sidecar's tests answer with a stand-in.
+    answer: object = et.execute_json(*lookup_args(point, max_distance_km))
     if not isinstance(answer, list) or len(answer) != 1:
         raise ValueError("ExifTool answered a lookup without one result")
     data = answer[0]

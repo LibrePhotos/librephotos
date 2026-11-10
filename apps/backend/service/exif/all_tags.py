@@ -24,7 +24,7 @@ import json
 import os
 from typing import TypedDict
 
-import exiftool
+from api.metadata.exiftool_client import ExifTool, decode_output, without_paths
 
 ARGS = ("-G0:1", "-a", "-api", "StructFormat=JSONQ")
 DROPPED_GROUPS = frozenset({"System", "ExifTool"})
@@ -37,7 +37,11 @@ class TagGroup(TypedDict):
 
 
 class FileNotReadableError(Exception):
-    """ExifTool answered nothing for the file: it is gone or not a file it reads."""
+    """ExifTool answered nothing for the file: it is gone or not a file it reads.
+
+    The message is ExifTool's reason from its stderr, the path replaced by
+    "the file".
+    """
 
 
 def _split_key(key: str) -> tuple[str, str, str]:
@@ -77,24 +81,24 @@ def group_tags(data: dict[str, object]) -> list[TagGroup]:
     return list(groups.values())
 
 
-def _decode(output: bytes) -> str:
-    try:
-        return output.decode("utf-8")
-    except UnicodeDecodeError:
-        # As PyExifTool's execute_json: some files carry Latin-1 text.
-        return output.decode("latin-1")
+def _reason(stderr: str, path: str) -> str:
+    """ExifTool's complaint about *path*, without the server path in it."""
+    lines = [line for line in without_paths(stderr, [path]).splitlines() if line]
+    return lines[0] if lines else "ExifTool could not read the file"
 
 
-def read_all_tags(et: exiftool.ExifTool, path: str) -> list[TagGroup]:
+def read_all_tags(et: ExifTool, path: str) -> list[TagGroup]:
     """Every tag of *path*, grouped. *et* runs with ``-struct`` and without ``-n``.
 
-    Raises FileNotReadableError when ExifTool answers nothing (it prints the reason
-    on stderr only), and ValueError for an answer that is not one JSON object.
+    Raises FileNotReadableError when ExifTool answers nothing, with the reason
+    it printed on stderr, and ValueError for an answer that is not one JSON
+    object.
     """
     args = ["-j", *ARGS, path]
-    output = _decode(et.execute(*(os.fsencode(arg) for arg in args))).strip()
+    answer = et.run(*(os.fsencode(arg) for arg in args))
+    output = decode_output(answer.stdout).strip()
     if not output:
-        raise FileNotReadableError("ExifTool could not read the file")
+        raise FileNotReadableError(_reason(answer.stderr_text(), path))
     answers = json.loads(output)
     if not isinstance(answers, list) or len(answers) != 1:
         raise ValueError("ExifTool answered with an unexpected shape")

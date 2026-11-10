@@ -349,14 +349,21 @@ class HangingExifToolTest(MediaRootTestCase):
 
 
 def _video_tools_available():
-    return bool(shutil.which(binaries.exiftool()) and shutil.which(binaries.ffmpeg()))
+    return bool(
+        shutil.which(binaries.resolve("exiftool")) and shutil.which(binaries.ffmpeg())
+    )
 
 
 @unittest.skipUnless(_video_tools_available(), "ffmpeg or exiftool not available")
 class StripVideoThumbnailMetadataTest(MediaRootTestCase):
     def _location(self, path):
         return subprocess.run(
-            [binaries.exiftool(), "-s3", "-UserData:LocationInformation", path],
+            [
+                binaries.resolve("exiftool"),
+                "-s3",
+                "-UserData:LocationInformation",
+                path,
+            ],
             capture_output=True,
             text=True,
         ).stdout.strip()

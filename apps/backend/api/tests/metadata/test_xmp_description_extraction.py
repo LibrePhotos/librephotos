@@ -20,11 +20,11 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-import exiftool
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from api.metadata.exiftool_client import ExifTool
 from api.metadata.photo_reader import EXIF_VALUE_NAMES, extract_exif_data
 from api.models import Photo
 from api.models.album_thing import AlbumThing
@@ -70,7 +70,7 @@ def _exiftool_get_metadata(
     else:
         files = _get_existing_metadata_files_reversed(media_file, try_sidecar)
 
-    with exiftool.ExifTool() as et:
+    with ExifTool() as et:
         values = []
         for tag in tags:
             value = None
@@ -129,7 +129,7 @@ class XMPDescriptionIntegrationTest(TestCase):
 
     def test_image_itself_carries_no_description(self):
         """The fixture JPEG is bare, so the sidecar is the only source."""
-        with exiftool.ExifTool() as et:
+        with ExifTool() as et:
             self.assertIsNone(et.get_tag("XMP:Description", self.tmp_path))
 
     def test_extract_exif_data_reads_description_from_sidecar(self):
@@ -366,7 +366,7 @@ class LangAltWithoutDefaultTest(TestCase):
 
     def test_x_default_tag_alone_finds_nothing(self):
         """Why the fallback exists: XMP:Description is empty here."""
-        with exiftool.ExifTool() as et:
+        with ExifTool() as et:
             self.assertIsNone(et.get_tag("XMP:Description", self.photo.main_file.path))
 
     def test_first_language_entry_is_imported(self):

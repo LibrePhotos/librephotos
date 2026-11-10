@@ -11,10 +11,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import exiftool
 import PIL.Image
 from django.test import SimpleTestCase
 
+from api.metadata.exiftool_client import Answer, ExifTool
 from service.exif import main as exif_main
 from service.exif.all_tags import FileNotReadableError, group_tags, read_all_tags
 
@@ -79,14 +79,18 @@ class GroupTagsTest(SimpleTestCase):
 
 
 class FakeExifTool:
-    def __init__(self, output: bytes = b"") -> None:
+    def __init__(self, output: bytes = b"", stderr: bytes = b"") -> None:
         self.output = output
+        self.stderr = stderr
         self.running = True
         self.params: tuple[bytes, ...] = ()
 
-    def execute(self, *params: bytes) -> bytes:
+    def start(self) -> None:
+        pass
+
+    def run(self, *params: bytes) -> Answer:
         self.params = params
-        return self.output
+        return Answer(self.output, self.stderr, 1 if self.stderr else 0)
 
 
 class ReadAllTagsTest(SimpleTestCase):
@@ -103,6 +107,13 @@ class ReadAllTagsTest(SimpleTestCase):
     def test_no_answer_means_the_file_is_not_readable(self):
         with self.assertRaises(FileNotReadableError):
             read_all_tags(FakeExifTool(b""), "/x.jpg")
+
+    def test_the_reason_is_exiftools_without_the_path(self):
+        fake = FakeExifTool(b"", b"Error: File format error - /x.jpg\n")
+        with self.assertRaisesMessage(
+            FileNotReadableError, "Error: File format error - the file"
+        ):
+            read_all_tags(fake, "/x.jpg")
 
     def test_an_unexpected_answer_is_an_error(self):
         for output in (b"[]", b"[1]", b"{}", b"not json"):
@@ -178,7 +189,7 @@ class AllTagsRealExifToolTest(SimpleTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.struct = exiftool.ExifTool(EXIFTOOL, common_args=["-struct"])
+        cls.struct = ExifTool(common_args=["-struct"])
         cls.struct.start()
         cls.addClassCleanup(cls.struct.terminate)
         cls.directory = tempfile.mkdtemp(prefix="librephotos-all-tags-real-")

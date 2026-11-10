@@ -1,6 +1,6 @@
 """Line breaks in written values must not reach ExifTool as new arguments.
 
-PyExifTool feeds ``exiftool -stay_open True -@ -`` one argument per line, so
+ExifTool runs as ``exiftool -stay_open True -@ -``, one argument per line, so
 a person name like ``"Joe\\n-if\\n<perl>"`` used to become an ``-if`` option
 whose Perl expression ExifTool evaluated.
 """
@@ -24,7 +24,7 @@ INJECTED = "Joe\n-IFD0:Copyright=INJECTED"
 
 def _exiftool():
     try:
-        return binaries.exiftool()
+        return binaries.resolve("exiftool")
     except Exception:
         return shutil.which("exiftool")
 
