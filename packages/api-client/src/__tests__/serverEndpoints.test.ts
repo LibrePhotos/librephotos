@@ -189,10 +189,25 @@ describe("server", () => {
     expect(defined(stats.users[1]).album.min).toBeNull();
   });
 
-  // py-cpuinfo always reports these seven keys and drops every other one it cannot read, or reads
+  // These seven keys are always there (py-cpuinfo's up to 1.6.0, the server's own reader since),
+  // and every other one is left out when the server cannot read it, or reads
   // as empty or 0: an ARM board without lscpu has no vendor, brand or flags, and a CPU whose model
   // number is 0 has no `model`.
-  it("reads CPU info with only the keys py-cpuinfo always reports", () => {
+  it("reads CPU info without a py-cpuinfo version (1.7.0 and later)", () => {
+    const cpuInfo = {
+      python_version: "3.14.9.final.0 (64 bit)",
+      cpuinfo_version: [],
+      cpuinfo_version_string: "",
+      arch: "X86_64",
+      bits: 64,
+      count: 12,
+      arch_string_raw: "AMD64",
+      brand_raw: "AMD Ryzen 5 2600X Six-Core Processor",
+    };
+    expect(ServerStats.safeParse({ ...serverStats, cpu_info: cpuInfo }).success).toBe(true);
+  });
+
+  it("reads CPU info with only the keys that are always there", () => {
     const cpuInfo = {
       python_version: "3.11.9.final.0 (64 bit)",
       cpuinfo_version: [9, 0, 0],

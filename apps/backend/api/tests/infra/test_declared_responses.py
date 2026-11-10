@@ -137,14 +137,14 @@ class ServerAdminResponsesTest(DeclaredResponseTestCase):
         album = create_test_album_user(owner=owner)
         album.photos.add(photo)
         create_test_face(photo=photo, person=create_test_person(cluster_owner=owner))
-        # py-cpuinfo's real answer for this machine; nvidia-smi is never run.
+        # The real answer for this machine; nvidia-smi is never run.
         with patch("api.dataviz.stats.binaries.available", return_value=False):
             self.assert_declared("/api/serverstats/", "/api/serverstats/")
 
     def test_server_stats_with_a_gpu(self) -> None:
         with (
             patch("api.dataviz.stats._get_gpu_info", return_value=("GPU", 6144)),
-            patch("cpuinfo.get_cpu_info", return_value=self._cpu_info()),
+            patch("api.dataviz.stats.get_cpu_info", return_value=self._cpu_info()),
         ):
             self.assert_declared("/api/serverstats/", "/api/serverstats/")
 
@@ -159,7 +159,7 @@ class ServerAdminResponsesTest(DeclaredResponseTestCase):
             "count": 4,
             "arch_string_raw": "aarch64",
             "hardware_raw": "BCM2835",
-            "l2_cache_size": "512 KiB",
+            "l2_cache_size": 524288,
         }
 
     def test_server_log_tail(self) -> None:

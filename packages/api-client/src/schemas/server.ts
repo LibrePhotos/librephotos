@@ -79,9 +79,10 @@ export const ServerLogs = z.object({
 export type ServerLogs = z.infer<typeof ServerLogs>;
 
 /**
- * py-cpuinfo's get_cpu_info() (api/dataviz/stats.py _get_cpu_info), with numeric cache sizes. Only
- * the first seven keys are always there: py-cpuinfo drops every other one it cannot read, or reads
- * as empty or 0 (an ARM board without lscpu has no vendor, brand or flags; model 0 has no `model`).
+ * The CPU in the keys py-cpuinfo's get_cpu_info() used up to 1.6.0 (api/dataviz/cpu_info.py), with
+ * numeric cache sizes. Only the first seven keys are always there; since 1.7.0 cpuinfo_version is []
+ * and cpuinfo_version_string "". Every other key is left out when the platform does not tell it, or
+ * reads as empty or 0 (an ARM server names no brand; Windows has no flags; model 0 has no `model`).
  */
 const CpuInfo = z.object({
   python_version: z.string(),
