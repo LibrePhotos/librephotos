@@ -17,6 +17,9 @@ Quirks pinned here that a refactor must preserve:
   * The "Offsets do not match" error carries an extra ``offset`` key in its
     payload; every other error payload only has ``detail``.
   * With ``do_md5_check = False`` an ``md5`` POST value is ignored entirely.
+  * The save hooks (``pre_save``/``save``/``post_save``) run for a new upload
+    only: a chunk or a completion of an existing one moves the row with a
+    conditional update (``test_chunked_upload_transitions``).
   * ``ChunkedUploadView.create_chunked_upload`` is BROKEN under this project's
     settings (``CHUNKED_UPLOAD_TO = "chunked_uploads"``): saving the empty
     placeholder with ``name=""`` raises ``SuspiciousFileOperation``. That is why
@@ -106,7 +109,8 @@ class ChunkedUploadViewTestBase(TestCase):
         upload = view.create_chunked_upload(save=False, **attrs)
         upload.save()
         if content:
-            upload.append_chunk(chunk_file(content), chunk_size=len(content))
+            upload.write_chunk(chunk_file(content), 0)
+            upload.offset = len(content)
             upload.save()
         return upload
 
@@ -479,14 +483,15 @@ class ChunkedUploadCompleteViewPostTest(ChunkedUploadViewTestBase):
         self.assertEqual(upload.status, UPLOADING)
         self.assertIsNone(upload.completed_on)
 
-    def test_expired_uploads_are_still_completable(self):
-        """Quirk: unlike ChunkedUploadView, expiry is not checked on completion."""
+    def test_expired_upload_raises_410(self):
         upload = self.make_upload(content=CHUNK)
         request = self.complete_request(upload_id=upload.upload_id, md5=upload.md5)
         view = self.make_view(request)
         with patch("chunked_upload.models.EXPIRATION_DELTA", timedelta(days=-1)):
-            response = view._post(request)
-        self.assertEqual(response.status_code, 200)
+            with self.assertRaises(ChunkedUploadError) as ctx:
+                view._post(request)
+        self.assertEqual(ctx.exception.status_code, 410)
+        self.assertEqual(ctx.exception.data, {"detail": "Upload has expired"})
 
     # ----------------------------------------------------------- happy path
     def test_happy_path_marks_complete_and_calls_on_completion(self):
@@ -516,7 +521,7 @@ class ChunkedUploadCompleteViewPostTest(ChunkedUploadViewTestBase):
         uploaded_file.seek(0)
         self.assertEqual(uploaded_file.read(), CHUNK)
 
-    def test_save_hooks_receive_new_false_on_completion(self):
+    def test_save_hooks_do_not_run_on_completion(self):
         upload = self.make_upload(content=CHUNK)
         request = self.complete_request(upload_id=upload.upload_id, md5=upload.md5)
         view = self.make_view(request)
@@ -524,4 +529,4 @@ class ChunkedUploadCompleteViewPostTest(ChunkedUploadViewTestBase):
         view.pre_save = lambda cu, req, new=False: seen.append(("pre", new))
         view.post_save = lambda cu, req, new=False: seen.append(("post", new))
         view._post(request)
-        self.assertEqual(seen, [("pre", False), ("post", False)])
+        self.assertEqual(seen, [])

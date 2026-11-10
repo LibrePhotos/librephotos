@@ -29,12 +29,12 @@ from api.jobs.upload_import import (
     attach_upload,
     import_uploaded_photo,
     record_upload,
-    release_upload,
     seal_upload_imports,
     sweep_upload_imports,
 )
 from api.models import LongRunningJob, Photo
 from api.models.long_running_job import LongRunningJobQuerySet
+from api.tests.jobs.test_stuck_job_cleanup import hold, queue_task
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 J = LongRunningJob
@@ -130,17 +130,6 @@ class AttachUploadTest(TestCase):
         self.assertNotEqual(sealed_meanwhile.pk, job.pk)
         self.assertEqual(1, _job(sealed_meanwhile).progress_target)
         self.assertEqual(1, _job(job).progress_target)
-
-    def test_a_released_upload_is_taken_back_and_can_finish_the_job(self):
-        job = _open_import(self.user, progress_target=2, progress_current=1)
-        J.objects.filter(pk=job.pk).update(sealed=True)
-
-        with mock.patch(FOLLOWUPS):
-            release_upload(job.job_id)
-
-        job = _job(job)
-        self.assertEqual(1, job.progress_target)
-        self.assertTrue(job.finished)
 
 
 class SealTest(TestCase):
@@ -278,6 +267,17 @@ class SweepTest(TestCase):
     def test_waits_while_the_queue_holds_tasks(self):
         job = self._lost_job()
         self.waiting.return_value = True
+
+        sweep_upload_imports()
+
+        self.assertFalse(_job(job).finished)
+        self.followups.assert_not_called()
+
+    def test_a_job_whose_task_a_live_cluster_holds_is_not_lost(self):
+        # One long upload (a video) is silent past LOST_AFTER while a worker
+        # runs it; the queue is empty because a taken task is not waiting.
+        job = self._lost_job()
+        hold(queue_task("photo-id", "/library/video.mp4", job.job_id))
 
         sweep_upload_imports()
 

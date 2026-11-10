@@ -35,7 +35,7 @@ While files upload, a card in the bottom right corner lists them with their stat
 - **Cancel** in the card stops the upload. The file being sent stops after its current 1 MB chunk, and every file that was not uploaded yet is marked *Cancelled*. Files that already finished stay in your library. **Retry** in the card uploads the cancelled and failed files again, as long as the tab is open.
 - Closing or reloading the tab while an upload runs asks first, with your browser's own *Leave site?* dialog. Moving to another page inside LibrePhotos does not stop the upload.
 - Logging out while an upload runs asks first too: **Stop and log out** cancels the upload, **Keep uploading** keeps it going.
-- A cancelled or abandoned upload leaves a partial file on the server. A daily cleanup on the server deletes them once they are more than a day old. `python manage.py delete_expired_uploads` does the same by hand.
+- A cancelled or abandoned upload leaves a partial file on the server. A daily cleanup on the server deletes it once it got no new data for a day. `python manage.py delete_expired_uploads` does the same by hand. <Since version="1.7.0" /> Up to 1.6.0 the day counted from the start of the upload, so a very long upload could be deleted while it was still running.
 
 ### After the upload: processing on the server
 

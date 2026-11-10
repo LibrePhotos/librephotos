@@ -1,7 +1,8 @@
 """Remove chunked uploads that were never finished in time.
 
 A cancelled or abandoned web upload leaves its staged ``.part`` file and its
-row behind. ``start_job_cleanup_service`` schedules
+row behind. Expiry counts from the upload's last chunk or completion
+(``updated_on``), so a long upload that keeps sending chunks is kept. ``start_job_cleanup_service`` schedules
 ``delete_expired_uploads`` daily by dotted path; the ``delete_expired_uploads``
 management command runs the same function by hand.
 """
@@ -18,19 +19,17 @@ from chunked_upload.settings import EXPIRATION_DELTA
 def delete_expired_uploads(
     confirm: Callable[[ChunkedUpload], bool] | None = None,
 ) -> dict[int, int]:
-    """Delete uploads created more than ``EXPIRATION_DELTA`` ago, with their files.
+    """Delete uploads idle for more than ``EXPIRATION_DELTA``, with their files.
 
     ``confirm`` is asked about each upload first; ``None`` deletes them all.
-    Returns how many were deleted per status (``UPLOADING``, ``COMPLETE``).
+    An upload that took a chunk since it was read is kept. Returns how many
+    were deleted per status (``UPLOADING``, ``COMPLETE``).
     """
     count = {UPLOADING: 0, COMPLETE: 0}
-    expired = ChunkedUpload.objects.filter(
-        created_on__lt=timezone.now() - EXPIRATION_DELTA
-    )
-    for chunked_upload in expired:
+    cutoff = timezone.now() - EXPIRATION_DELTA
+    for chunked_upload in ChunkedUpload.objects.filter(updated_on__lt=cutoff):
         if confirm is not None and not confirm(chunked_upload):
             continue
-        count[chunked_upload.status] += 1
-        # One by one, so ChunkedUpload.delete removes each staged file too.
-        chunked_upload.delete()
+        if chunked_upload.delete_if_idle(cutoff):
+            count[chunked_upload.status] += 1
     return count

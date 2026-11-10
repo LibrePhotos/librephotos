@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from constance import config as site_config
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 from django.db.models import QuerySet
 from django.db.models.fields.files import FieldFile
 from django.http import HttpRequest, HttpResponse
@@ -38,7 +39,6 @@ from api.jobs.queue import enqueue_task
 from api.jobs.upload_import import (
     attach_upload,
     import_uploaded_photo,
-    release_upload,
     seal_upload_imports,
 )
 from api.jobs.upload_status import upload_status
@@ -432,14 +432,17 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         """Make the photo and queue its processing, counted on the user's
         Import Uploads job (#2737), whose id the response carries.
 
-        A file that makes no photo (a sidecar, embedded media) has nothing
-        to process and is not counted.
+        One transaction: the photo, the count and the task (the broker's
+        queue is in the same database) are all written or none is, so a
+        failure leaves no photo that nothing processes. A file that makes no
+        photo (a sidecar, embedded media) has nothing to process and is not
+        counted.
         """
-        photo = create_new_image(user, photo_path)
-        if photo is None:
-            return
-        job = attach_upload(user)
-        try:
+        with transaction.atomic():
+            photo = create_new_image(user, photo_path)
+            if photo is None:
+                return
+            job = attach_upload(user)
             enqueue_task(
                 import_uploaded_photo,
                 str(photo.pk),
@@ -448,15 +451,40 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
                 device_time=device_time,
                 album_id=album.id if album else None,
             )
-        except Exception:
-            release_upload(job.job_id)
-            raise
         self.import_job_id = job.job_id
         self.photo_id = str(photo.pk)
+
+    def copy_and_import(
+        self,
+        user: User,
+        staged_path: str,
+        photo_path: str,
+        device_time: CaptureTime | None,
+        album: AlbumUser | None,
+    ) -> None:
+        """Copy the staged file into the library and import it.
+
+        A failure removes the copy it made: left on disk, a retry of the
+        completion would find it there and answer "Photo duplicated" without
+        importing it.
+        """
+        copied_here = not os.path.exists(photo_path)
+        try:
+            shutil.copyfile(staged_path, photo_path)
+            self.import_photo(user, photo_path, device_time=device_time, album=album)
+        except Exception:
+            if copied_here and os.path.exists(photo_path):
+                os.remove(photo_path)
+            raise
 
     def on_completion(
         self, uploaded_file: UploadedFile, request: HttpRequest
     ) -> HttpResponse | None:
+        """Import the staged upload, deleting it last.
+
+        Until the staged upload is deleted, a failure leaves it for a retry of
+        the completion (``ChunkedUploadCompleteView`` reopens it).
+        """
         user = authenticate_upload_request(request)
         validate_scan_directory(user)
         album = self.target_album(user, request, uploaded_file)
@@ -480,36 +508,42 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         image_hash = calculate_hash(user, staged_path)
         photo_path = self.target_path(user, device, filename, image_hash)
 
-        if photo_path:
-            shutil.copyfile(staged_path, photo_path)
-
-        self.delete_chunked_upload(request, uploaded_file)
-
         if not photo_path:
-            existing = self.existing_photo(user, image_hash)
-            if album and existing:
-                # A file the library already holds still goes into the album
-                # it was uploaded to (#612).
-                add_photo_to_user_album(existing, album.id)
-            # The chunked-upload views are plain Django views: their own
-            # Response renders itself, a DRF one would not.
-            return ChunkedResponse(
-                {
-                    "detail": "Photo duplicated. No new import performed.",
-                    "photo_id": existing.pk if existing else None,
-                },
-                status=http_status.HTTP_200_OK,
+            return self.answer_duplicate(
+                user, image_hash, album, request, uploaded_file
             )
 
         # Optional client-supplied capture time, used as a timestamp fallback
         # for photos that carry no EXIF date (doc 04 §5, issue #614).
-        self.import_photo(
-            user,
-            photo_path,
-            device_time=device_capture_time(request.POST, user.default_timezone),
-            album=album,
-        )
+        device_time = device_capture_time(request.POST, user.default_timezone)
+        self.copy_and_import(user, staged_path, photo_path, device_time, album)
+        self.delete_chunked_upload(request, uploaded_file)
         return None
+
+    def answer_duplicate(
+        self,
+        user: User,
+        image_hash: str,
+        album: AlbumUser | None,
+        request: HttpRequest,
+        uploaded_file: UploadedFile,
+    ) -> HttpResponse:
+        """The answer for a file the library already holds; the upload goes."""
+        existing = self.existing_photo(user, image_hash)
+        if album and existing:
+            # A file the library already holds still goes into the album
+            # it was uploaded to (#612).
+            add_photo_to_user_album(existing, album.id)
+        self.delete_chunked_upload(request, uploaded_file)
+        # The chunked-upload views are plain Django views: their own
+        # Response renders itself, a DRF one would not.
+        return ChunkedResponse(
+            {
+                "detail": "Photo duplicated. No new import performed.",
+                "photo_id": existing.pk if existing else None,
+            },
+            status=http_status.HTTP_200_OK,
+        )
 
     def target_album(
         self, user: User, request: HttpRequest, uploaded_file: UploadedFile

@@ -12,7 +12,7 @@ from unittest import mock
 
 from constance.test import override_config
 from django.core.management import call_command
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
 from django_q.models import Schedule
@@ -182,6 +182,25 @@ class FollowupLeaseTest(TestCase):
         self.assertEqual(1, _schedules(self.user).count())
 
 
+class LeaseStateConstraintTest(TestCase):
+    def setUp(self):
+        self.user = create_test_user()
+        create_test_upload_followup_state(self.user)
+
+    def assert_refused(self, **fields):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            UploadFollowupState.objects.owned_by(self.user).update(**fields)
+
+    def test_a_holder_always_has_an_expiry(self):
+        self.assert_refused(lease_holder="token")
+
+    def test_an_expiry_always_has_a_holder(self):
+        self.assert_refused(lease_expires_at=timezone.now())
+
+    def test_dirty_needs_a_lease(self):
+        self.assert_refused(dirty=True)
+
+
 class RunUploadFollowupsTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
@@ -326,6 +345,28 @@ class RunUploadFollowupsTest(TestCase):
 
         self.encode.assert_not_called()
         self.assertEqual(1, _schedules(self.user).count())
+
+    def test_a_run_of_a_dead_holder_is_redone_once_its_lease_expires(self):
+        # The worker died mid-run; the broker hands its task out again within
+        # its own lease, while the follow-up lease still looks held.
+        self._embedded_photo()
+        request_upload_followups(self.user)
+        _schedules(self.user).delete()
+        FollowupLease.acquire(self.user)
+        expires = _state(self.user).lease_expires_at
+
+        run_upload_followups(self.user.id)
+
+        self.index.assert_not_called()
+        [schedule] = _schedules(self.user)
+        self.assertEqual(expires, schedule.next_run)
+
+        UploadFollowupState.objects.owned_by(self.user).update(
+            lease_expires_at=timezone.now() - timedelta(seconds=1)
+        )
+        run_upload_followups(self.user.id)
+
+        self.index.assert_called_once_with(self.user)
 
     def test_a_deleted_user_is_skipped(self):
         user_id = self.user.id
