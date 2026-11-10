@@ -1,6 +1,5 @@
 import type { PigPhoto } from "@librephotos/api-client";
 import { useMemo } from "react";
-import type { SelectionState } from "../../api_client/photos/types";
 import { AlbumThreadContext } from "../lightbox/albumThread";
 import { Lightbox } from "../lightbox/Lightbox";
 import type { LightboxItem } from "../lightbox/lightbox.types";
@@ -9,6 +8,7 @@ import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import { ModalTagEdit } from "../modals/ModalTagEdit";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
+import type { Selected } from "./photoListSelection";
 import type { PhotoListDialogState } from "./usePhotoListDialogs";
 import type { PhotoListLightbox } from "./usePhotoListLightbox";
 import type { PhotoListSlideshow } from "./usePhotoListSlideshow";
@@ -39,13 +39,13 @@ type Props = Readonly<{
   idx2hash: PigPhoto[];
   /** The list's title: on a person's page, the person's name. */
   title: string;
-  totalCount: number;
-  selectionState: SelectionState;
-  updateSelectionState: (state: Partial<SelectionState>) => void;
+  selected: Selected;
+  /** Ends select mode: after the add-to-album and tag modals. */
+  onSelectionDone: () => void;
 }>;
 
-// The lightbox and the modals a photo list opens. The add-to-album, tag and share modals clear the
-// selection when they close.
+// The lightbox and the modals a photo list opens. The add-to-album and tag modals end select mode
+// when they close.
 export function PhotoListDialogs({
   dialogs,
   lightbox,
@@ -56,9 +56,8 @@ export function PhotoListDialogs({
   albumID,
   idx2hash,
   title,
-  totalCount,
-  selectionState,
-  updateSelectionState,
+  selected,
+  onSelectionDone,
 }: Props) {
   // Mapped once per list, not on every render: a 200k-photo timeline is 200k new objects each time,
   // and the lightbox keeps stepping through the same array while the grid behind it refills.
@@ -70,7 +69,7 @@ export function PhotoListDialogs({
 
   const closeAndClearSelection = (close: () => void) => {
     close();
-    updateSelectionState({ selectedItems: [], selectMode: false, selectAllMode: false, selectAllQuery: undefined });
+    onSelectionDone();
   };
 
   return (
@@ -94,31 +93,21 @@ export function PhotoListDialogs({
         <AlbumEditModal
           isOpen={dialogs.addToAlbum.opened}
           onRequestClose={() => closeAndClearSelection(dialogs.addToAlbum.close)}
-          selectedImages={selectionState.selectedItems}
-          selectAllMode={selectionState.selectAllMode}
-          selectAllQuery={selectionState.selectAllQuery}
-          totalCount={totalCount}
+          selection={selected}
         />
       )}
       {!isPublic && (
         <ModalTagEdit
           isOpen={dialogs.tag.opened}
           onRequestClose={() => closeAndClearSelection(dialogs.tag.close)}
-          selectedImages={selectionState.selectedItems}
-          selectAllMode={selectionState.selectAllMode}
-          selectAllQuery={selectionState.selectAllQuery}
-          totalCount={totalCount}
+          selection={selected}
         />
       )}
       {!isPublic && (
         <ModalPhotosShare
           isOpen={dialogs.sharePhotos.opened}
           onRequestClose={dialogs.sharePhotos.close}
-          // Placeholder tiles that never loaded have no hash.
-          selectedImageHashes={selectionState.selectedItems.filter(i => !i.isTemp).map(i => i.image_hash)}
-          selectAllMode={selectionState.selectAllMode}
-          selectAllQuery={selectionState.selectAllQuery}
-          totalCount={totalCount}
+          selection={selected}
         />
       )}
       {!isPublic && isUserAlbum && (

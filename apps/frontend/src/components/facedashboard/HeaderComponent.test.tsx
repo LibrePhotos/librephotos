@@ -64,18 +64,15 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 }, 60000);
 
-beforeEach(async () => {
-  stubs.rename.mockReset();
-  container = document.createElement("div");
-  document.body.appendChild(container);
-  root = createRoot(container);
-  const cell: CompletePersonFace = {
-    id: 7,
-    name: "Sofia",
-    kind: "USER",
-    face_count: 1,
-    faces: [{ id: 1, image: "/f.jpg", face_url: "/f.jpg", photo: "p1", person_label_probability: 1, isTemp: false }],
-  };
+const cell: CompletePersonFace = {
+  id: 7,
+  name: "Sofia",
+  kind: "USER",
+  face_count: 1,
+  faces: [{ id: 1, image: "/f.jpg", face_url: "/f.jpg", photo: "p1", person_label_probability: 1, isTemp: false }],
+};
+
+async function renderHeader(selectedFaces: HeaderProps["selectedFaces"] = []) {
   await act(async () => {
     root.render(
       // env="test": no transitions or portals, so the menu and dialog render in place
@@ -83,7 +80,7 @@ beforeEach(async () => {
         <HeaderComponent
           cell={cell}
           style={{}}
-          selectedFaces={[]}
+          selectedFaces={selectedFaces}
           setSelectedFaces={vi.fn<HeaderProps["setSelectedFaces"]>()}
           onToggleCollapse={vi.fn<() => void>()}
           coverUrl={undefined}
@@ -93,6 +90,14 @@ beforeEach(async () => {
       </MantineProvider>
     );
   });
+}
+
+beforeEach(async () => {
+  stubs.rename.mockReset();
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await renderHeader();
 });
 
 afterEach(async () => {
@@ -218,5 +223,21 @@ describe("closing the dialogs", () => {
     await click(button("Delete"));
 
     expect(document.activeElement).toBe(menuTrigger());
+  });
+});
+
+// The checkbox kept its own copy: picking the group's faces one by one left it unchecked, and
+// unpicking one left it checked, so its next click did the opposite of what it showed.
+describe("the group checkbox", () => {
+  const checkbox = () => rendered(container.querySelector<HTMLInputElement>('input[type="checkbox"]'), "the checkbox");
+
+  it("shows whether the group's faces are selected, however they were picked", async () => {
+    expect(checkbox().checked).toBe(false);
+
+    await renderHeader([{ face_id: 1, face_url: "/f.jpg" }]);
+    expect(checkbox().checked).toBe(true);
+
+    await renderHeader([]);
+    expect(checkbox().checked).toBe(false);
   });
 });

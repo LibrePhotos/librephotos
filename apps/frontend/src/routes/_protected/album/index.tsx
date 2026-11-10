@@ -1,9 +1,8 @@
 import { Skeleton, Stack, Text } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { IconFolder, IconSettingsAutomation, IconTag, IconTags } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import clsx from "clsx";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   useAllFolderSubfolders,
@@ -19,6 +18,7 @@ import { HubPeopleRow } from "../../../components/album/HubPeopleRow";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { DeleteUserAlbumModal, RenameUserAlbumModal } from "../../../components/album/UserAlbumModals";
+import { useUserAlbumDialogs } from "../../../components/album/useUserAlbumDialogs";
 import { ErrorState } from "../../../components/common/ErrorState";
 import { useListFailure } from "../../../components/common/useListFailure";
 import { PageBody } from "../../../components/PageBody";
@@ -37,13 +37,7 @@ function AlbumExplore() {
   const { t } = useTranslation();
   const eventTitle = useEventTitle();
 
-  // Album action state
-  const [albumID, setAlbumID] = useState("");
-  const [albumOwner, setAlbumOwner] = useState("");
-  const [albumTitle, setAlbumTitle] = useState("");
-  const [isDeleteDialogOpen, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
-  const [isRenameDialogOpen, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
-  const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
+  const albumDialogs = useUserAlbumDialogs();
 
   // Fetch all album types
   const peopleQuery = useFetchPeopleAlbumsQuery();
@@ -57,27 +51,6 @@ function AlbumExplore() {
   const { subfolders: folders, isLoading: isLoadingFolders } = useAllFolderSubfolders();
   const { data: autoAlbums, isLoading: isLoadingAuto } = useFetchAutoAlbumsQuery();
   const { data: tags, isLoading: isLoadingTags } = useFetchTagsQuery();
-
-  // Action handlers
-  const openDeleteDialog = (id: string, title: string) => {
-    showDeleteDialog();
-    setAlbumID(id);
-    setAlbumTitle(title);
-  };
-
-  const openRenameDialog = (id: string, title: string) => {
-    showRenameDialog();
-    setAlbumID(id);
-    setAlbumTitle(title);
-  };
-
-  const openShareDialog = (id: string, title: string) => {
-    showShareDialog();
-    setAlbumID(id);
-    setAlbumTitle(title);
-    const album = userAlbums?.find(a => `${a.id}` === id);
-    if (album) setAlbumOwner(album.owner.username);
-  };
 
   // Transform albums to AlbumPreview format
   const thingsPreview = (thingsAlbums ?? []).map(album => ({
@@ -160,9 +133,9 @@ function AlbumExplore() {
                     album={album}
                     size={HUB_CARD_WIDTH}
                     showActions
-                    onRename={openRenameDialog}
-                    onShare={openShareDialog}
-                    onDelete={openDeleteDialog}
+                    onRename={albumDialogs.rename.open}
+                    onShare={albumDialogs.share.open}
+                    onDelete={albumDialogs.remove.open}
                   />
                 ))}
               </div>
@@ -225,26 +198,25 @@ function AlbumExplore() {
         </Stack>
 
         <RenameUserAlbumModal
-          opened={isRenameDialogOpen}
-          onClose={hideRenameDialog}
-          albumId={albumID}
-          albumTitle={albumTitle}
+          opened={albumDialogs.rename.opened}
+          onClose={albumDialogs.rename.close}
+          albumId={albumDialogs.album.id}
+          albumTitle={albumDialogs.album.title}
           existingTitles={userAlbums?.map(album => album.title) ?? []}
         />
 
         {/* Share Modal */}
         <ModalAlbumShare
-          isOpen={isShareDialogOpen}
-          onRequestClose={hideShareDialog}
-          albumID={albumID}
-          ownerUsername={albumOwner}
+          isOpen={albumDialogs.share.opened}
+          onRequestClose={albumDialogs.share.close}
+          albumID={albumDialogs.album.id}
         />
 
         <DeleteUserAlbumModal
-          opened={isDeleteDialogOpen}
-          onClose={hideDeleteDialog}
-          albumId={albumID}
-          albumTitle={albumTitle}
+          opened={albumDialogs.remove.opened}
+          onClose={albumDialogs.remove.close}
+          albumId={albumDialogs.album.id}
+          albumTitle={albumDialogs.album.title}
         />
       </PageBody>
     </>

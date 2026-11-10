@@ -8,7 +8,7 @@ import type { AlbumCoverType } from "./SelectionActions";
 
 // Makes the one selected photo the album's cover, from the selection menu. Picking a cover
 // without a selection is the album / person page's "⋮" (#2240).
-export const usePhotoListAlbumCover = (albumID: string | undefined, selectedItems: PigPhoto[]) => {
+export const usePhotoListAlbumCover = (albumID: string | undefined, selectedItems: readonly PigPhoto[]) => {
   const setUserAlbumCover = useSetUserAlbumCoverMutation();
   const setPersonAlbumCover = useSetPersonAlbumCoverMutation();
   const setEventCover = useSetEventCoverMutation();

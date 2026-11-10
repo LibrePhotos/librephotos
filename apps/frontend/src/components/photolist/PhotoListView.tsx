@@ -20,6 +20,7 @@ import { DefaultHeader, type CollectionHeader } from "./DefaultHeader";
 import { MediaTypeHint } from "./MediaTypeHint";
 import { PhotoListDialogs } from "./PhotoListDialogs";
 import { PhotoListFallback } from "./PhotoListFallback";
+import { selectedOf } from "./photoListSelection";
 import { PhotoListSelectionBar } from "./PhotoListSelectionBar";
 import { PhotoListToolbar } from "./PhotoListToolbar";
 import classes from "./PhotoListView.module.css";
@@ -248,23 +249,18 @@ function PhotoListViewComponent({
 
   const { throttledUpdateGroups, throttledUpdateItems } = usePhotoListThrottledUpdates(updateGroups, updateItems);
 
-  const {
-    selectionState,
-    selectionStateRef,
-    updateSelectionState,
-    handleSelection,
-    handleSelections,
-    pigSelectedItems,
-  } = usePhotoListSelection(idx2hash, mediaType, photosetQuery);
-  const dialogs = usePhotoListDialogs(isPublic, selectionStateRef);
-  const setAlbumCover = usePhotoListAlbumCover(albumID, selectionState.selectedItems);
-  const selectMode = usePhotoListSelectMode(selectionState, updateSelectionState, !lightbox.lightboxOpen);
-  const totalCount = selectionState.totalCount || numberOfItems || idx2hash.length;
+  const { selection, readSelection, dispatch, handleSelection, handleSelections, pigSelectedItems } =
+    usePhotoListSelection(idx2hash, mediaType, photosetQuery);
+  const dialogs = usePhotoListDialogs({ isPublic, readSelection, hotkeyEnabled: !lightbox.lightboxOpen });
+  const setAlbumCover = usePhotoListAlbumCover(albumID, selection.kind === "some" ? selection.items : []);
+  const selectMode = usePhotoListSelectMode(selection, dispatch, !lightbox.lightboxOpen);
+  // Live: a select all counts the photos the list has now, not those it had when it started
+  const totalCount = numberOfItems || idx2hash.length;
 
   const handleClick = usePhotoListClick({
     idx2hashRef,
     selectable,
-    selectionStateRef,
+    readSelection,
     handleSelection,
     handleSelections,
     currentImageIndexRef: lightbox.currentImageIndexRef,
@@ -332,9 +328,9 @@ function PhotoListViewComponent({
           {header === undefined && !showsSelectionBar && filterBar}
           {showsSelectionBar && (
             <PhotoListSelectionBar
-              selectionState={selectionState}
+              selection={selection}
               idx2hash={idx2hash}
-              updateSelectionState={updateSelectionState}
+              dispatch={dispatch}
               photosetQuery={photosetQuery}
               totalCount={totalCount}
               albumID={albumID}
@@ -413,9 +409,8 @@ function PhotoListViewComponent({
         albumID={albumID}
         idx2hash={idx2hash}
         title={title}
-        totalCount={totalCount}
-        selectionState={selectionState}
-        updateSelectionState={updateSelectionState}
+        selected={selectedOf(selection, totalCount)}
+        onSelectionDone={selectMode.exit}
       />
     </RemoveScroll>
   );

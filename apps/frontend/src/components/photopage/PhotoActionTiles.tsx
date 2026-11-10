@@ -228,7 +228,11 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
         </Menu.Dropdown>
       </Menu>
       <PhotoShareLinkModal photoId={actions.sharingPhotoId} onClose={actions.closeShareLink} />
-      <AlbumEditModal isOpen={albumOpened} onRequestClose={closeAlbum} selectedImages={[albumItem]} />
+      <AlbumEditModal
+        isOpen={albumOpened}
+        onRequestClose={closeAlbum}
+        selection={{ kind: "some", items: [albumItem] }}
+      />
       {moveOpened && (
         <MovePhotosModal
           opened

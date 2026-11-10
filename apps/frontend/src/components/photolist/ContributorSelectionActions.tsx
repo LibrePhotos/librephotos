@@ -1,34 +1,33 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Button } from "@mantine/core";
 import { IconFileMinus } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotosFromSharedAlbumMutation } from "../../api_client/albums/hooks";
-import type { SelectionState } from "../../api_client/photos/types";
 import { useAuth } from "../../hooks/useAuth";
 import { ICON_SIZE } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { pickedPhotos } from "./photoListSelection";
+import type { Selected } from "./photoListSelection";
 
 type Props = Readonly<{
-  selectedItems: PigPhoto[];
-  selectAllMode: boolean;
+  selected: Selected;
   albumID: string;
   albumLocked: boolean;
   title: string;
-  updateSelectionState: (state: Partial<SelectionState>) => void;
+  onDone: () => void;
 }>;
 
 /** Why a contributor cannot take the selection out of the album, or nothing when they can. */
 export function contributorRemoveReason(
   t: TFunction,
-  selection: Pick<Props, "selectedItems" | "selectAllMode" | "albumLocked">,
+  { selected, albumLocked }: Pick<Props, "selected" | "albumLocked">,
   myId: number | null
 ): string | undefined {
-  if (selection.selectAllMode) return t("collab.selectAllRemove");
-  if (selection.albumLocked) return t("useralbum.lockedCannotRemove");
-  if (selection.selectedItems.length === 0) return t("selectionactions.selectphotosfirst");
-  if (selection.selectedItems.some(item => item.owner?.id !== myId)) return t("collab.onlyYourOwn");
+  if (selected.kind === "all") return t("collab.selectAllRemove");
+  if (albumLocked) return t("useralbum.lockedCannotRemove");
+  if (selected.items.length === 0) return t("selectionactions.selectphotosfirst");
+  if (selected.items.some(item => item.owner?.id !== myId)) return t("collab.onlyYourOwn");
   return undefined;
 }
 
@@ -40,7 +39,7 @@ export function ContributorSelectionActions(props: Props) {
   const { t } = useTranslation();
   const { userId } = useAuth();
   const remove = useRemovePhotosFromSharedAlbumMutation();
-  const { selectedItems, albumID, title, updateSelectionState } = props;
+  const { selected, albumID, title, onDone } = props;
   return (
     <DisabledReason reason={contributorRemoveReason(t, props, userId)} position="bottom">
       <Button
@@ -51,8 +50,8 @@ export function ContributorSelectionActions(props: Props) {
         leftSection={<IconFileMinus size={ICON_SIZE.menu} />}
         onClick={() =>
           remove.mutate(
-            { albumId: albumID, title, photoIds: selectedItems.map(item => item.id) },
-            { onSuccess: () => updateSelectionState({ selectMode: false, selectedItems: [] }) }
+            { albumId: albumID, title, photoIds: pickedPhotos(selected).map(item => item.id) },
+            { onSuccess: onDone }
           )
         }
       >

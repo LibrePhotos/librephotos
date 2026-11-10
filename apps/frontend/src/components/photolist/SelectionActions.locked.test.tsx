@@ -68,14 +68,17 @@ async function openActionsMenu(props: Partial<Props>) {
         <SelectionActions
           albumID="867"
           title="Trip"
-          selectedItems={[
-            PigPhoto.parse({
-              id: "00000000-0000-4000-8000-000000000867",
-              image_hash: "photo-hash",
-              aspectRatio: 1,
-            }),
-          ]}
-          updateSelectionState={vi.fn<Props["updateSelectionState"]>()}
+          selected={{
+            kind: "some",
+            items: [
+              PigPhoto.parse({
+                id: "00000000-0000-4000-8000-000000000867",
+                image_hash: "photo-hash",
+                aspectRatio: 1,
+              }),
+            ],
+          }}
+          onDone={vi.fn<Props["onDone"]>()}
           onSharePhotos={vi.fn<Props["onSharePhotos"]>()}
           onShareAlbum={vi.fn<Props["onShareAlbum"]>()}
           onAddToAlbum={vi.fn<Props["onAddToAlbum"]>()}
@@ -148,7 +151,9 @@ describe("locked album selection actions", () => {
 
   it("says removal does not work with Select all", async () => {
     hooks.remove.mockClear();
-    const { menuItem, cleanup } = await openActionsMenu({ selectAllMode: true, selectedItems: [] });
+    const { menuItem, cleanup } = await openActionsMenu({
+      selected: { kind: "all", query: { favorite: true }, excluded: [], total: 1 },
+    });
     try {
       const remove = defined(menuItem("selectionactions.removephotos"), "remove");
       expectDisabledWithReason(remove, "Not available with Select all");

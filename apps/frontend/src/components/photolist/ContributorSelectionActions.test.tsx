@@ -52,7 +52,12 @@ describe("contributorRemoveReason", () => {
   const reason = (selectedItems: PigPhoto[], extra: { selectAllMode?: boolean; albumLocked?: boolean } = {}) =>
     contributorRemoveReason(
       t,
-      { selectedItems, selectAllMode: extra.selectAllMode ?? false, albumLocked: extra.albumLocked ?? false },
+      {
+        selected: extra.selectAllMode
+          ? { kind: "all", query: { favorite: true }, excluded: [], total: 3 }
+          : { kind: "some", items: selectedItems },
+        albumLocked: extra.albumLocked ?? false,
+      },
       9
     );
 
@@ -72,12 +77,11 @@ describe("ContributorSelectionActions", () => {
   it("removes the selected photos of the contributor", async () => {
     await renderInMantine(
       <ContributorSelectionActions
-        selectedItems={[photo("b1", ben)]}
-        selectAllMode={false}
+        selected={{ kind: "some", items: [photo("b1", ben)] }}
         albumID="40"
         albumLocked={false}
         title="Bruno and Mila"
-        updateSelectionState={() => {}}
+        onDone={() => {}}
       />
     );
     await click(defined(document.querySelector("button"), "the button"));
@@ -90,12 +94,11 @@ describe("ContributorSelectionActions", () => {
   it("does nothing for a photo someone else added", async () => {
     await renderInMantine(
       <ContributorSelectionActions
-        selectedItems={[photo("a1", anna)]}
-        selectAllMode={false}
+        selected={{ kind: "some", items: [photo("a1", anna)] }}
         albumID="40"
         albumLocked={false}
         title="Bruno and Mila"
-        updateSelectionState={() => {}}
+        onDone={() => {}}
       />
     );
     const button = defined(document.querySelector("button"), "the button");

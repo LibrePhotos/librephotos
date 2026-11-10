@@ -12,7 +12,7 @@ import { ICON_SIZE } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
 
 type Props = Readonly<{
-  selectedItems: PigPhoto[];
+  selectedItems: readonly PigPhoto[];
   selectAllMode: boolean;
   /** The hashes of the selected photos that have loaded. */
   imageHashes: string[];
@@ -21,7 +21,7 @@ type Props = Readonly<{
 }>;
 
 /** The manual stacks the selected photos are in, one entry per photo and stack. */
-function manualStackPhotos(selectedItems: PigPhoto[]) {
+function manualStackPhotos(selectedItems: readonly PigPhoto[]) {
   return selectedItems.flatMap(item =>
     (item.stacks ?? [])
       .filter(stack => stack.type === "manual")

@@ -9,10 +9,10 @@ import type { PigPhoto } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { SelectionState } from "../../api_client/photos/types";
 import { defined } from "../../util/defined.test-utils";
 import type { Lightbox } from "../lightbox/Lightbox";
 import { PhotoListDialogs } from "./PhotoListDialogs";
+import type { Selected } from "./photoListSelection";
 import type { PhotoListDialogState } from "./usePhotoListDialogs";
 import type { PhotoListLightbox } from "./usePhotoListLightbox";
 
@@ -76,13 +76,12 @@ const lightbox: PhotoListLightbox = {
   handleLightboxImageChange: () => {},
 };
 
-const selection: SelectionState = { selectedItems: [photo], selectMode: true, selectAllMode: false };
-const cleared = { selectedItems: [], selectMode: false, selectAllMode: false, selectAllQuery: undefined };
+const selected: Selected = { kind: "some", items: [photo] };
 
 let unmount: (() => void) | undefined;
 
 function render({ isPublic = false, dialogs = makeDialogs(), lightboxState = lightbox, items = [photo] } = {}) {
-  const updateSelectionState = vi.fn<(state: Partial<SelectionState>) => void>();
+  const onSelectionDone = vi.fn<() => void>();
   const closeSlideshow = vi.fn<() => void>();
   const root = createRoot(document.createElement("div"));
   act(() =>
@@ -96,14 +95,13 @@ function render({ isPublic = false, dialogs = makeDialogs(), lightboxState = lig
         albumID="7"
         idx2hash={items}
         title="Anna"
-        totalCount={1}
-        selectionState={selection}
-        updateSelectionState={updateSelectionState}
+        selected={selected}
+        onSelectionDone={onSelectionDone}
       />
     )
   );
   unmount = () => act(() => root.unmount());
-  return { dialogs, updateSelectionState, closeSlideshow };
+  return { dialogs, onSelectionDone, closeSlideshow };
 }
 
 const modal = (name: string) => defined(rendered.modals.get(name), `the ${name} modal`);
@@ -160,20 +158,20 @@ describe("PhotoListDialogs", () => {
   });
 
   it.each(["addToAlbum", "tag"] as const)("clears the selection when the %s modal closes", name => {
-    const { dialogs, updateSelectionState } = render();
+    const { dialogs, onSelectionDone } = render();
 
     modal(name).onRequestClose();
 
     expect(dialogs[name].close).toHaveBeenCalledTimes(1);
-    expect(updateSelectionState).toHaveBeenCalledWith(cleared);
+    expect(onSelectionDone).toHaveBeenCalledTimes(1);
   });
 
   it.each(["sharePhotos", "albumShare"] as const)("only closes the %s modal", name => {
-    const { dialogs, updateSelectionState } = render();
+    const { dialogs, onSelectionDone } = render();
 
     modal(name).onRequestClose();
 
     expect(dialogs[name].close).toHaveBeenCalledTimes(1);
-    expect(updateSelectionState).not.toHaveBeenCalled();
+    expect(onSelectionDone).not.toHaveBeenCalled();
   });
 });

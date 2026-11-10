@@ -97,7 +97,6 @@ function AlbumUserGallery() {
         idx2hash={flatPhotos}
         isPublic={isPublic}
         albumID={albumID}
-        ownerUsername={album?.owner.username}
         albumLocked={album?.locked ?? false}
         // A contributor selects to take out the photos they added (#464)
         contributor={album?.my_role === "contributor"}

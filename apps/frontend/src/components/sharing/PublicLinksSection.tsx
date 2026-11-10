@@ -131,7 +131,6 @@ export function PublicLinksSection() {
         isOpen={isShareDialogOpen}
         onRequestClose={shareDialog.close}
         albumID={sharedAlbum ? `${sharedAlbum.id}` : ""}
-        ownerUsername={sharedAlbum?.owner.username ?? ""}
       />
     </>
   );

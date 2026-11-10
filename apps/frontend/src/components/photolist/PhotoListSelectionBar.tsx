@@ -4,9 +4,10 @@ import { IconX } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { SelectionState } from "../../api_client/photos/types";
 import { ICON_SIZE, PAGE_GUTTER_PX, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { ContributorSelectionActions } from "./ContributorSelectionActions";
+import { selectedOf } from "./photoListSelection";
+import type { ListSelection, SelectionEvent } from "./photoListSelection";
 import classes from "./PhotoListSelectionBar.module.css";
 import { SelectionActions } from "./SelectionActions";
 import type { AlbumCoverType } from "./SelectionActions";
@@ -15,9 +16,9 @@ import { TrashcanActions } from "./TrashcanActions";
 import type { PhotoListDialogState } from "./usePhotoListDialogs";
 
 type Props = Readonly<{
-  selectionState: SelectionState;
+  selection: ListSelection;
   idx2hash: PigPhoto[];
-  updateSelectionState: (state: Partial<SelectionState>) => void;
+  dispatch: (event: SelectionEvent) => void;
   photosetQuery?: BulkPhotoQuery;
   totalCount: number;
   albumID?: string;
@@ -37,9 +38,9 @@ type Props = Readonly<{
 // The selection bar under a photo list's toolbar, while selecting (#2240): leave select mode
 // (✕), the selection count, the actions on the selected photos and the trashcan actions.
 export function PhotoListSelectionBar({
-  selectionState,
+  selection,
   idx2hash,
-  updateSelectionState,
+  dispatch,
   photosetQuery,
   totalCount,
   albumID,
@@ -54,6 +55,7 @@ export function PhotoListSelectionBar({
 }: Props) {
   const location = useLocation();
   const { t } = useTranslation();
+  const selected = selectedOf(selection, totalCount);
   return (
     <Box className={classes.bar} mx={PAGE_GUTTER_PX} role="toolbar" aria-label={t("selectionbar.toolbar")}>
       <Group justify="space-between" gap="xs" wrap="nowrap">
@@ -72,10 +74,9 @@ export function PhotoListSelectionBar({
             </ActionIcon>
           </Tooltip>
           <SelectionBar
-            selectAllMode={selectionState.selectAllMode}
-            selectedItems={selectionState.selectedItems}
+            selection={selection}
+            dispatch={dispatch}
             idx2hash={idx2hash}
-            updateSelectionState={updateSelectionState}
             photosetQuery={photosetQuery}
             totalCount={totalCount}
           />
@@ -83,20 +84,16 @@ export function PhotoListSelectionBar({
         <Group justify="flex-end" gap="xs" wrap="nowrap" className={classes.actions}>
           {contributor && (
             <ContributorSelectionActions
-              selectedItems={selectionState.selectedItems}
-              selectAllMode={selectionState.selectAllMode}
+              selected={selected}
               albumID={albumID ?? ""}
               albumLocked={albumLocked}
               title={title}
-              updateSelectionState={updateSelectionState}
+              onDone={onClose}
             />
           )}
           {!contributor && !location.pathname.startsWith("/deleted") && (
             <SelectionActions
-              selectedItems={selectionState.selectedItems}
-              selectAllMode={selectionState.selectAllMode}
-              selectAllQuery={selectionState.selectAllQuery}
-              totalCount={totalCount}
+              selected={selected}
               albumID={albumID}
               ownerUsername={ownerUsername}
               albumLocked={albumLocked}
@@ -106,18 +103,10 @@ export function PhotoListSelectionBar({
               onShareAlbum={() => dialogs.albumShare.open()}
               onAddToAlbum={() => dialogs.addToAlbum.open()}
               onAddTags={() => dialogs.tag.open()}
-              updateSelectionState={updateSelectionState}
+              onDone={onClose}
             />
           )}
-          {!contributor && (
-            <TrashcanActions
-              selectedItems={selectionState.selectedItems}
-              selectAllMode={selectionState.selectAllMode}
-              selectAllQuery={selectionState.selectAllQuery}
-              totalCount={totalCount}
-              updateSelectionState={updateSelectionState}
-            />
-          )}
+          {!contributor && <TrashcanActions selected={selected} onDone={onClose} />}
         </Group>
       </Group>
     </Box>

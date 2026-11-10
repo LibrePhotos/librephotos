@@ -1,4 +1,3 @@
-import type { BulkPhotoQuery } from "@librephotos/api-client";
 import {
   ActionIcon,
   Badge,
@@ -22,16 +21,15 @@ import { parseInstant } from "../../util/dateUtils";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import { UserAvatar } from "../common/UserAvatar";
 import { DIALOG_SIZE } from "../modals/dialogSize";
+import { pickedPhotos, toPhotoSelection } from "../photolist/photoListSelection";
+import type { PhotoRef, Selected } from "../photolist/photoListSelection";
 import { selectionLabel } from "../photolist/selectionLabel";
 import filterUsers from "./utils";
 
 type Props = Readonly<{
-  selectedImageHashes: string[];
+  selection: Selected<PhotoRef>;
   isOpen: boolean;
   onRequestClose: () => void;
-  selectAllMode?: boolean;
-  selectAllQuery?: BulkPhotoQuery;
-  totalCount?: number;
 }>;
 
 export function ModalPhotosShare(props: Props) {
@@ -39,28 +37,11 @@ export function ModalPhotosShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
   const { data: users = [], isFetching: isUsersLoading, isSuccess: isUsersLoaded } = useFetchUserListQuery();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
-  const { selectedImageHashes, isOpen, onRequestClose, selectAllMode = false, selectAllQuery, totalCount } = props;
+  const { selection, isOpen, onRequestClose } = props;
   const { mutate: updatePhotoSharing } = useUpdatePhotoSharingMutation();
 
-  // In selectAllMode, selectedImageHashes contains exclusions
-  const excludedHashes = selectAllMode ? selectedImageHashes : [];
-
   const handleShare = (targetUser: (typeof users)[0], share: boolean) => {
-    if (selectAllMode) {
-      updatePhotoSharing({
-        select_all: true,
-        query: selectAllQuery ?? {},
-        excluded_hashes: excludedHashes,
-        val_shared: share,
-        target_user: targetUser,
-      });
-    } else {
-      updatePhotoSharing({
-        image_hashes: selectedImageHashes,
-        val_shared: share,
-        target_user: targetUser,
-      });
-    }
+    updatePhotoSharing({ ...toPhotoSelection(selection), val_shared: share, target_user: targetUser });
   };
 
   return (
@@ -76,21 +57,18 @@ export function ModalPhotosShare(props: Props) {
       {/* No focus ring at open: nothing is focused until Tab */}
       <FocusTrap.InitialFocus />
       <Stack>
-        {selectAllMode ? (
+        {selection.kind === "all" ? (
           <Badge color="blue" size="lg" variant="light">
-            {selectionLabel(t, {
-              selectAllMode,
-              total: totalCount ?? 0,
-              excluded: excludedHashes.length,
-              selected: selectedImageHashes.length,
-            })}
+            {selectionLabel(t, selection)}
           </Badge>
         ) : (
           <ScrollArea>
             <Group>
-              {selectedImageHashes.slice(0, 100).map(imageHash => (
-                <MediaThumbnail key={imageHash} imageHash={imageHash} size={40} radius="xl" />
-              ))}
+              {pickedPhotos(selection)
+                .slice(0, 100)
+                .map(({ image_hash: imageHash }) => (
+                  <MediaThumbnail key={imageHash} imageHash={imageHash} size={40} radius="xl" />
+                ))}
             </Group>
           </ScrollArea>
         )}

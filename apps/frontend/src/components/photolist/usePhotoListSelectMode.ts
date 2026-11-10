@@ -1,18 +1,7 @@
 import { useHotkeys } from "@mantine/hooks";
 import { useEffect, useRef } from "react";
-import type { SelectionState } from "../../api_client/photos/types";
-
-const CLEARED: Partial<SelectionState> = {
-  selectMode: false,
-  selectAllMode: false,
-  selectedItems: [],
-  selectAllQuery: undefined,
-};
-
-/** Selecting: select mode is on, select all is, or a photo is ticked. */
-function isSelecting({ selectMode, selectAllMode, selectedItems }: SelectionState): boolean {
-  return selectMode || selectAllMode || selectedItems.length > 0;
-}
+import { isSelecting } from "./photoListSelection";
+import type { ListSelection, SelectionEvent } from "./photoListSelection";
 
 // An Escape meant for an open menu, dialog or popover closes that, not select mode.
 function insideOverlay(target: EventTarget | null): boolean {
@@ -34,25 +23,25 @@ function focusWasDropped(): boolean {
  * with focus inside it, focus goes back to the Select button instead of the top of the page.
  */
 export function usePhotoListSelectMode(
-  selectionState: SelectionState,
-  updateSelectionState: (state: Partial<SelectionState>) => void,
+  selection: ListSelection,
+  dispatch: (event: SelectionEvent) => void,
   escapeEnabled: boolean
 ) {
-  const selecting = isSelecting(selectionState);
+  const selecting = isSelecting(selection);
   const selectButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   // Set by the Select button: the bar that opens next takes focus.
   const focusBar = useRef(false);
   const wasSelecting = useRef(selecting);
 
-  const exit = () => updateSelectionState(CLEARED);
+  const exit = () => dispatch({ type: "clear" });
   const toggle = () => {
     if (selecting) {
       exit();
       return;
     }
     focusBar.current = true;
-    updateSelectionState({ selectMode: true });
+    dispatch({ type: "enter" });
   };
 
   useEffect(() => {

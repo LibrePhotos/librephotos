@@ -1,10 +1,12 @@
-import { Media, type BulkPhotoQuery, type PigPhoto } from "@librephotos/api-client";
+import { Media } from "@librephotos/api-client";
 import { Badge, Button, Divider, Group, Modal, Stack, TagsInput, Text } from "@mantine/core";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchTagsQuery, useTagPhotosByNameMutation } from "../../api_client/tags/hooks";
 import { notification } from "../../service/notifications";
 import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
+import { pickedPhotos, selectAllOf, selectedCount } from "../photolist/photoListSelection";
+import type { PhotoRef, Selected } from "../photolist/photoListSelection";
 import { selectionLabel } from "../photolist/selectionLabel";
 import { Tile } from "../Tile";
 import { DIALOG_SIZE } from "./dialogSize";
@@ -17,15 +19,11 @@ const MAX_PREVIEW_TILES = 12;
 type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
-  /** In select-all mode this holds the EXCLUDED items, not the selection. */
-  selectedImages: readonly Pick<PigPhoto, "id" | "image_hash" | "type">[];
-  selectAllMode?: boolean;
-  selectAllQuery?: BulkPhotoQuery;
-  totalCount?: number;
+  selection: Selected<PhotoRef>;
 }>;
 
 export function ModalTagEdit(props: Props) {
-  const { isOpen, onRequestClose, selectedImages, selectAllMode = false, selectAllQuery, totalCount } = props;
+  const { isOpen, onRequestClose, selection } = props;
   const { t } = useTranslation();
   const [draftTags, setDraftTags] = useState<string[]>([]);
   // What is typed but not yet committed to a pill. TagsInput only turns text
@@ -36,8 +34,8 @@ export function ModalTagEdit(props: Props) {
   const { data: allTags } = useFetchTagsQuery();
   const { mutateAsync: tagPhotos, isPending } = useTagPhotosByNameMutation();
 
-  const excludedHashes = selectAllMode ? selectedImages.map(image => image.image_hash) : [];
-  const photoCount = selectAllMode ? Math.max(0, (totalCount ?? 0) - selectedImages.length) : selectedImages.length;
+  const selectedImages = pickedPhotos(selection);
+  const photoCount = selectedCount(selection);
 
   // Trimmed, deduped, and empties dropped -- "beach, , beach," is one tag.
   const names = Array.from(
@@ -58,8 +56,8 @@ export function ModalTagEdit(props: Props) {
     try {
       await tagPhotos({
         names,
-        photos: selectAllMode ? undefined : selectedImages.map(image => image.id),
-        selectAll: selectAllMode ? { query: selectAllQuery ?? {}, excludedHashes } : undefined,
+        photos: selection.kind === "all" ? undefined : selectedImages.map(image => image.id),
+        selectAll: selectAllOf(selection),
         photoCount,
       });
     } catch {
@@ -84,14 +82,9 @@ export function ModalTagEdit(props: Props) {
       <Stack>
         <Text c="dimmed">{t("modaltag.selectedimages", { count: photoCount })}</Text>
 
-        {selectAllMode ? (
+        {selection.kind === "all" ? (
           <Badge color="blue" size="lg" variant="light">
-            {selectionLabel(t, {
-              selectAllMode,
-              total: totalCount ?? 0,
-              excluded: excludedHashes.length,
-              selected: selectedImages.length,
-            })}
+            {selectionLabel(t, selection)}
           </Badge>
         ) : (
           <Group gap="xs">

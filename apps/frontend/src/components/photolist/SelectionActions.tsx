@@ -1,4 +1,4 @@
-import type { BulkPhotoQuery, PhotoCategory, PigPhoto } from "@librephotos/api-client";
+import type { PhotoCategory } from "@librephotos/api-client";
 import { ActionIcon, Group, Menu } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -18,8 +18,6 @@ import {
   useSetPhotosCategoryMutation,
   useSetPhotosPublicMutation,
 } from "../../api_client/photos/hooks";
-import type { PhotoSelection } from "../../api_client/photos/photoSelection";
-import type { SelectionState } from "../../api_client/photos/types";
 import { useAuth } from "../../hooks/useAuth";
 import { ICON_SIZE, TOOLBAR_ACTION_SIZE } from "../../uiConstants";
 import { copyToClipboard } from "../../util/util";
@@ -29,6 +27,8 @@ import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 import { AddToMenu } from "./AddToMenu";
 import { albumPageKind, AlbumSelectionActions, type AlbumPageKind } from "./AlbumSelectionActions";
 import { SelectionFileItems } from "./FileActionItems";
+import { hasSelection, pickedPhotos, selectedCount, toPhotoSelection } from "./photoListSelection";
+import type { Selected } from "./photoListSelection";
 import { SelectionEditDialogs } from "./SelectionEditDialogs";
 import { SelectionEditItems, SelectionMarkAsItems } from "./SelectionEditItems";
 import { selectionLabel } from "./selectionLabel";
@@ -42,11 +42,9 @@ import { useSelectionEditDialogs } from "./useSelectionEditDialogs";
 export type AlbumCoverType = AlbumPageKind;
 
 type Props = {
-  selectedItems: PigPhoto[];
-  selectAllMode?: boolean;
-  selectAllQuery?: BulkPhotoQuery;
-  totalCount?: number;
-  updateSelectionState: (state: Partial<SelectionState>) => void;
+  selected: Selected;
+  /** An action was sent: select mode ends. */
+  onDone: () => void;
   onSharePhotos: () => void;
   setAlbumCover: (actionType: AlbumCoverType) => void;
   onShareAlbum: () => void;
@@ -69,11 +67,8 @@ export function SelectionActions(props: Readonly<Props>) {
   const downloadPhotoArchive = useDownloadPhotosMutation();
 
   const {
-    selectedItems,
-    selectAllMode = false,
-    selectAllQuery,
-    totalCount,
-    updateSelectionState,
+    selected,
+    onDone: resetSelection,
     onSharePhotos,
     onShareAlbum,
     title,
@@ -84,42 +79,17 @@ export function SelectionActions(props: Readonly<Props>) {
     albumLocked = false,
   } = props;
 
-  // Helper to reset selection state after action
-  const resetSelection = () => {
-    updateSelectionState({
-      selectMode: false,
-      selectAllMode: false,
-      selectedItems: [],
-      selectAllQuery: undefined,
-    });
-  };
-
-  // Helper to get valid image hashes (filter out temp items for non-selectAll mode)
-  const getImageHashes = () => selectedItems.filter(i => !i.isTemp).map(i => i.image_hash);
-
-  // Helper to get excluded hashes for selectAll mode
-  // Placeholder tiles that never loaded have no hash.
-  const getExcludedHashes = () => selectedItems.map(i => i.image_hash).filter(Boolean);
-
-  // The selection as a bulk photo mutation takes it
-  const photoSelection = (): PhotoSelection =>
-    selectAllMode
-      ? { select_all: true, query: selectAllQuery ?? {}, excluded_hashes: getExcludedHashes() }
-      : { image_hashes: getImageHashes() };
+  const selectAllMode = selected.kind === "all";
+  // The photos picked one by one: none after Select all
+  const selectedItems = pickedPhotos(selected);
+  const getImageHashes = () => selectedItems.map(i => i.image_hash);
+  const photoSelection = () => toPhotoSelection(selected);
 
   // The menus' headings say what they act on, in the selection bar's words
-  const selection = selectionLabel(t, {
-    selectAllMode,
-    total: totalCount ?? 0,
-    // In select-all mode the list holds the exclusions
-    excluded: selectedItems.length,
-    selected: selectedItems.length,
-  });
+  const selection = selectionLabel(t, selected);
 
-  // Check if any action is possible
-  const hasSelection = selectAllMode || selectedItems.length > 0;
   // Why the photo actions are off (#2608): they say so, and stay in the menu's arrow-key order.
-  const noSelection = !hasSelection && t("selectionactions.selectphotosfirst");
+  const noSelection = !hasSelection(selected) && t("selectionactions.selectphotosfirst");
 
   // Fix the media category of the selection; pinned as set by the user, so
   // rescans and Classify Media keep it.
@@ -145,7 +115,7 @@ export function SelectionActions(props: Readonly<Props>) {
   // Archive or Unarchive: one of them when every selected tile says whether it is archived. After
   // Select all only the Archive page's are known to be.
   const onArchivePage = location.pathname.startsWith("/archived");
-  let archivePair: Pair = pairFor(selectedItems.filter(item => !item.isTemp).map(item => item.archived));
+  let archivePair: Pair = pairFor(selectedItems.map(item => item.archived));
   if (selectAllMode) archivePair = onArchivePage ? "off" : "both";
 
   // Download modal state
@@ -154,13 +124,8 @@ export function SelectionActions(props: Readonly<Props>) {
   const editDialogs = useSelectionEditDialogs();
   const albumPage = albumPageKind(location.pathname);
 
-  // In select-all mode the modal can only show an upper bound, because the
-  // server-side query is the source of truth and the excluded set may contain
-  // hashes that aren't currently in `selectedItems` (e.g. items scrolled out of
-  // virtualised view). Subtracting still gives a reasonable estimate for the UI.
-  const downloadPhotoCount = selectAllMode
-    ? Math.max(0, (totalCount ?? 0) - getExcludedHashes().length)
-    : getImageHashes().length;
+  // After Select all an upper bound: the excluded photos may include some the query no longer matches
+  const downloadPhotoCount = selectedCount(selected);
 
   const handleDownloadConfirm = (options: { includeStackedPhotos: boolean }) => {
     downloadPhotoArchive.mutate({ ...photoSelection(), userId, includeStackedPhotos: options.includeStackedPhotos });
@@ -187,7 +152,7 @@ export function SelectionActions(props: Readonly<Props>) {
           onClose={closeRemoveFromPerson}
           personId={`${albumID ?? ""}`}
           personName={title}
-          photoIds={selectedItems.filter(i => !i.isTemp).map(i => i.id)}
+          photoIds={selectedItems.map(i => i.id)}
           onRemoved={resetSelection}
         />
       )}
