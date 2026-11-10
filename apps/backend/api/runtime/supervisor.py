@@ -2,7 +2,10 @@ import logging
 import os
 import subprocess
 import time
+import uuid
 from collections.abc import Collection, Iterable
+from dataclasses import dataclass
+from enum import Enum, StrEnum
 from typing import Any
 
 import requests
@@ -136,9 +139,6 @@ def disabled_reason(service: str) -> str:
 # killed stays a zombie until its parent waits for it.
 _processes: dict[str, subprocess.Popen[bytes]] = {}
 
-# The last /health body of each sidecar, for the idle check that follows it.
-_last_health: dict[str, dict[str, Any]] = {}
-
 # A sidecar with a model loaded and no request for this long is asked to
 # unload it: the memory goes back without losing the process.
 IDLE_UNLOAD_SECONDS = 120
@@ -165,68 +165,203 @@ _start_errors: dict[str, str] = {}
 _logged_errors: set[str] = set()
 
 
-def check_services() -> None:
-    _reap_exited()
-    for service in SERVICES.keys():
-        if not is_service_enabled(service):
-            # Silent on purpose: this runs every minute, and startup already
-            # logged the reason once.
-            continue
+class SidecarStatus(StrEnum):
+    """What the watchdog finds a sidecar doing; WATCHDOG_ACTIONS says what then."""
 
-        if not is_healthy(service):
-            stop_service(service)
-            logger.info("Restarting %s", service)
-            start_service(service)
-        else:
-            unload_idle_model(service)
+    # Its feature is off and no process runs it.
+    OFF = "off"
+    # Its feature was turned off while it ran.
+    OFF_BUT_RUNNING = "off_but_running"
+    # Enabled, but nothing answers and no process runs it.
+    DOWN = "down"
+    # Answers its health check as itself.
+    UP = "up"
+    # Too slow for the quick probe, but answered the patient one.
+    BUSY = "busy"
+    # Its process runs, but it answers no probe within a client's longest wait.
+    HUNG = "hung"
+    # Another program answers on its port.
+    FOREIGN = "foreign"
+
+
+class WatchdogAction(StrEnum):
+    NOTHING = "nothing"
+    STOP = "stop"
+    RESTART = "restart"
+    UNLOAD_IDLE = "unload_idle"
+
+
+WATCHDOG_ACTIONS: dict[SidecarStatus, WatchdogAction] = {
+    SidecarStatus.OFF: WatchdogAction.NOTHING,
+    SidecarStatus.OFF_BUT_RUNNING: WatchdogAction.STOP,
+    SidecarStatus.DOWN: WatchdogAction.RESTART,
+    SidecarStatus.UP: WatchdogAction.UNLOAD_IDLE,
+    SidecarStatus.BUSY: WatchdogAction.NOTHING,
+    SidecarStatus.HUNG: WatchdogAction.RESTART,
+    # The start that follows names the program holding the port.
+    SidecarStatus.FOREIGN: WatchdogAction.RESTART,
+}
+
+
+@dataclass(frozen=True)
+class SidecarCheck:
+    status: SidecarStatus
+    # The /health body of a sidecar that answered.
+    health: dict[str, Any] | None = None
+
+
+class _Probe(Enum):
+    ANSWERED = "answered"
+    FOREIGN = "foreign"
+    SILENT = "silent"
+
+
+# How long one watchdog run may hold a sidecar: longer than its patient
+# probe (PATIENT_HEALTH_CHECK), a stop (twice STOP_GRACE_SECONDS) and a start
+# (START_TIMEOUT_SECONDS) together.
+WATCH_LEASE_SECONDS = 300.0
+
+
+def check_services() -> None:
+    """The per-minute watchdog: check every sidecar and act on what it finds.
+
+    A run that waits on a busy sidecar's patient probe outlasts the minute,
+    so the next one starts in another worker meanwhile. Each sidecar is
+    checked under a lease (SidecarWatchLease): the second run passes over a
+    sidecar the first one still checks instead of probing or restarting it
+    as well.
+    """
+    _reap_exited()
+    holder = uuid.uuid4().hex
+    for service in SERVICES.keys():
+        if not _take_watch(service, holder):
+            logger.debug("Service %s is being checked by another watchdog run", service)
+            continue
+        try:
+            _act_on(service, check_service(service))
+        finally:
+            _give_back_watch(service, holder)
+
+
+def _take_watch(service: str, holder: str) -> bool:
+    from api.models.sidecar_watch_lease import SidecarWatchLease
+
+    try:
+        return SidecarWatchLease.objects.take(service, holder, WATCH_LEASE_SECONDS)
+    except DatabaseError as e:
+        # A database that is down must not stop the watchdog: the sidecars
+        # matter most when the rest is struggling.
+        logger.warning("Watching %s without a lease: %s", service, e)
+        return True
+
+
+def _give_back_watch(service: str, holder: str) -> None:
+    from api.models.sidecar_watch_lease import SidecarWatchLease
+
+    try:
+        SidecarWatchLease.objects.give_back(service, holder)
+    except DatabaseError as e:
+        logger.warning("Could not give back the watch of %s: %s", service, e)
+
+
+def check_service(service: str) -> SidecarCheck:
+    """What the sidecar is doing, for the watchdog to act on.
+
+    Decided from this check alone: the watchdog runs in whichever worker
+    picks up the schedule, so nothing is remembered between two checks.
+    """
+    if not is_service_enabled(service):
+        # A process check, not a probe: nothing should be listening.
+        if _service_process_running(service):
+            return SidecarCheck(SidecarStatus.OFF_BUT_RUNNING)
+        return SidecarCheck(SidecarStatus.OFF)
+    from api.runtime.http_timeouts import HEALTH_CHECK
+
+    probe, health = _probe(service, HEALTH_CHECK)
+    if probe is _Probe.ANSWERED:
+        return SidecarCheck(SidecarStatus.UP, health)
+    if probe is _Probe.FOREIGN:
+        return SidecarCheck(SidecarStatus.FOREIGN)
+    return _check_silent(service)
+
+
+def _check_silent(service: str) -> SidecarCheck:
+    """An enabled sidecar that missed the quick probe: down, busy or hung."""
+    if not _service_process_running(service):
+        return SidecarCheck(SidecarStatus.DOWN)
+    from api.runtime.http_timeouts import PATIENT_HEALTH_CHECK
+
+    # A sidecar works on one request at a time and answers /health between
+    # them, so one busy with a long batch misses the quick probe. Within a
+    # client's longest wait it answers, unless it hangs.
+    probe, health = _probe(service, PATIENT_HEALTH_CHECK)
+    if probe is _Probe.ANSWERED:
+        return SidecarCheck(SidecarStatus.BUSY, health)
+    return SidecarCheck(SidecarStatus.HUNG)
+
+
+def _act_on(service: str, check: SidecarCheck) -> None:
+    action = WATCHDOG_ACTIONS[check.status]
+    if action is WatchdogAction.STOP:
+        logger.info("Stopping %s: %s", service, disabled_reason(service))
+        stop_service(service)
+    elif action is WatchdogAction.RESTART:
+        stop_service(service)
+        logger.info("Restarting %s (%s)", service, check.status)
+        start_service(service)
+    elif action is WatchdogAction.UNLOAD_IDLE:
+        unload_idle_model(service, check.health or {})
+
+
+def _probe(
+    service: str, timeout: tuple[float, float]
+) -> tuple[_Probe, dict[str, Any] | None]:
+    """Ask the sidecar's /health; raises ValueError for a name not in SERVICES."""
+    try:
+        response = requests.get(sidecar_url(service, "/health"), timeout=timeout)
+    except requests.RequestException:
+        return _Probe.SILENT, None
+    body = (
+        _sidecar_health(response, service) if response.status_code == HTTP_OK else None
+    )
+    if body is None:
+        # Another program on the port that happens to answer /health:
+        # healthy for it, useless for us (#2324).
+        _log_error_once(
+            "Port %s answers but is not LibrePhotos' %s service%s",
+            SERVICES[service],
+            service,
+            _owner_suffix(SERVICES[service]),
+        )
+        return _Probe.FOREIGN, None
+    return _Probe.ANSWERED, body
 
 
 def is_healthy(service: str) -> bool:
-    """Whether the sidecar answers its health check (or is busy, see below).
+    """Whether the sidecar answers its health check, or runs but is busy.
 
-    An idle sidecar is healthy: its memory is reclaimed by unload_idle_model,
-    not by a restart.
+    The quick probe only, for the Services page: a running process that does
+    not answer counts as busy here. The watchdog tells busy from hung with
+    check_service. An idle sidecar is healthy: its memory is reclaimed by
+    unload_idle_model, not by a restart.
     """
-    _last_health.pop(service, None)
-    try:
-        from api.runtime.http_timeouts import HEALTH_CHECK
+    from api.runtime.http_timeouts import HEALTH_CHECK
 
-        res = requests.get(sidecar_url(service, "/health"), timeout=HEALTH_CHECK)
-        if res.status_code != HTTP_OK:
-            return False
-        body = _sidecar_health(res, service)
-        if body is None:
-            # Another program on the port that happens to answer /health:
-            # healthy for it, useless for us (#2324).
-            _log_error_once(
-                "Port %s answers but is not LibrePhotos' %s service%s",
-                SERVICES[service],
-                service,
-                _owner_suffix(SERVICES[service]),
-            )
-            return False
-        _last_health[service] = body
-        return True
-    except requests.RequestException as e:
-        # The sidecars serve one request at a time, and a tag or embedding
-        # batch takes far longer than the health probe allows, so a probe that
-        # times out or is refused during a scan means "busy" as often as
-        # "dead". Restarting a busy sidecar fails the request it was serving
-        # and loses that photo's tags or embedding; a process that is still
-        # there is left alone, only one that has gone is restarted.
-        if _service_process_running(service):
-            logger.info(
-                "Service %s did not answer its health check but is running: %s",
-                service,
-                e,
-            )
-            return True
-        logger.warning("Service %s is not running: %s", service, e)
-        return False
+    try:
+        probe, _ = _probe(service, HEALTH_CHECK)
     except ValueError as e:
         # sidecar_url: a name that is not in SERVICES.
         logger.exception("Error checking health of %s: %s", service, str(e))
         return False
+    if probe is not _Probe.SILENT:
+        return probe is _Probe.ANSWERED
+    if _service_process_running(service):
+        logger.info(
+            "Service %s did not answer its health check but is running", service
+        )
+        return True
+    logger.warning("Service %s is not running", service)
+    return False
 
 
 def _sidecar_health(response: requests.Response, service: str) -> dict[str, Any] | None:
@@ -313,13 +448,12 @@ def start_error(service: str) -> str | None:
     return _start_errors.get(service)
 
 
-def unload_idle_model(service: str) -> bool:
+def unload_idle_model(service: str, health: dict[str, Any]) -> bool:
     """Ask a sidecar idle for IDLE_UNLOAD_SECONDS to unload its model.
 
-    Reads the /health answer is_healthy just got; a sidecar that holds no
-    model reports ``model_loaded`` as None and is never asked.
+    ``health`` is the /health answer check_service just got; a sidecar that
+    holds no model reports ``model_loaded`` as None and is never asked.
     """
-    health = _last_health.pop(service, None) or {}
     last_request_time = health.get("last_request_time")
     if health.get("model_loaded") is not True or last_request_time is None:
         return False
@@ -438,6 +572,22 @@ def _is_service_process(cmdline: list[str] | None, service: str) -> bool:
     return script.endswith(_service_script(service)) and "python" in interpreter
 
 
+class StartOutcome(StrEnum):
+    """How a start of one sidecar ended; only the first two are a running one."""
+
+    STARTED = "started"
+    ALREADY_RUNNING = "already_running"
+    DISABLED = "disabled"
+    UNKNOWN = "unknown"
+    PORT_CONFLICT = "port_conflict"
+    EXITED = "exited"
+    TIMED_OUT = "timed_out"
+
+    @property
+    def ok(self) -> bool:
+        return self in (StartOutcome.STARTED, StartOutcome.ALREADY_RUNNING)
+
+
 def start_service(service: str) -> bool:
     """Start one sidecar and wait until it answers; see start_services."""
     return start_services([service])[service]
@@ -454,39 +604,42 @@ def start_services(services: Iterable[str]) -> dict[str, bool]:
 
     All of them are started first and waited for together, so the start
     takes as long as the slowest sidecar, not the sum of them. One that is
-    still loading after START_TIMEOUT_SECONDS counts as started; the
-    watchdog checks it again.
+    still silent after START_TIMEOUT_SECONDS did not start: it is left
+    running, and the watchdog restarts it if it stays silent (HUNG).
     """
-    results: dict[str, bool] = {}
+    outcomes: dict[str, StartOutcome] = {}
     launched: dict[str, subprocess.Popen[bytes]] = {}
     for service in services:
         _start_errors.pop(service, None)
-        if not is_service_enabled(service):
-            logger.info(
-                "Service '%s' not started: %s", service, disabled_reason(service)
-            )
-            results[service] = False
-            continue
-        if service not in SERVICES:
-            logger.warning("Unknown service: %s", service)
-            results[service] = False
-            continue
-        if _answers_as_itself(service):
-            logger.info("Service '%s' is already running", service)
-            results[service] = True
-            continue
-        conflict = port_conflict(service)
-        if conflict is not None:
-            _start_failed(service, conflict)
-            results[service] = False
+        outcome = _refused_start(service)
+        if outcome is not None:
+            outcomes[service] = outcome
             continue
         process = subprocess.Popen(
             _service_command(service), env=_service_environment()
         )
         _processes[service] = process
         launched[service] = process
-    results.update(_wait_until_up(launched))
-    return results
+    outcomes.update(_wait_until_up(launched))
+    return {service: outcome.ok for service, outcome in outcomes.items()}
+
+
+def _refused_start(service: str) -> StartOutcome | None:
+    """Why the sidecar is not to be started now, or None to start it."""
+    if not is_service_enabled(service):
+        logger.info("Service '%s' not started: %s", service, disabled_reason(service))
+        return StartOutcome.DISABLED
+    if service not in SERVICES:
+        logger.warning("Unknown service: %s", service)
+        return StartOutcome.UNKNOWN
+    if _answers_as_itself(service):
+        logger.info("Service '%s' is already running", service)
+        return StartOutcome.ALREADY_RUNNING
+    conflict = port_conflict(service)
+    if conflict is not None:
+        _start_failed(service, conflict)
+        return StartOutcome.PORT_CONFLICT
+    return None
 
 
 def _start_failed(service: str, reason: str) -> None:
@@ -502,9 +655,9 @@ def _start_failed(service: str, reason: str) -> None:
 
 def _wait_until_up(
     launched: dict[str, subprocess.Popen[bytes]],
-) -> dict[str, bool]:
+) -> dict[str, StartOutcome]:
     """Wait for each just started sidecar to answer, exit, or run out of time."""
-    results: dict[str, bool] = {}
+    results: dict[str, StartOutcome] = {}
     pending = dict(launched)
     deadline = time.monotonic() + START_TIMEOUT_SECONDS
     while pending:
@@ -513,9 +666,9 @@ def _wait_until_up(
                 logger.info(
                     "Service '%s' started on port %s", service, SERVICES[service]
                 )
-                results[service] = True
+                results[service] = StartOutcome.STARTED
             elif process.poll() is not None:
-                results[service] = False
+                results[service] = StartOutcome.EXITED
                 _exited_during_start(service, process.returncode)
             else:
                 continue
@@ -524,15 +677,23 @@ def _wait_until_up(
             break
         time.sleep(START_POLL_SECONDS)
     for service in pending:
-        logger.warning(
-            "Service '%s' has not answered on port %s within %.0f s; it is still "
-            "starting, and the watchdog checks it again",
-            service,
-            SERVICES[service],
-            START_TIMEOUT_SECONDS,
-        )
-        results[service] = True
+        _start_timed_out(service)
+        results[service] = StartOutcome.TIMED_OUT
     return results
+
+
+def _start_timed_out(service: str) -> None:
+    reason = (
+        f"it has not answered on port {SERVICES[service]} within "
+        f"{START_TIMEOUT_SECONDS:.0f} s"
+    )
+    _start_errors[service] = reason
+    logger.warning(
+        "Service '%s' could not start: %s. It is left running in case it is only "
+        "slow to load; the watchdog restarts it if it stays silent",
+        service,
+        reason,
+    )
 
 
 def _exited_during_start(service: str, returncode: int) -> None:

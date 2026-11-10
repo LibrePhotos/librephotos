@@ -16,6 +16,7 @@ from django.db.utils import OperationalError
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
+from api.runtime import supervisor
 from api.runtime.features import forget_site_switches
 from api.runtime.supervisor import (
     SERVICE_FEATURE_FLAGS,
@@ -41,6 +42,13 @@ def _no_constance_table(config: object, key: str) -> object:
 
 # A database that is not up yet: the site settings cannot be read.
 UNREADABLE_CONFIG = patch("constance.base.Config.__getattr__", new=_no_constance_table)
+
+# Every enabled sidecar is down: no health answer, no process. Also keeps
+# the watchdog from finding (and stopping) a real sidecar on this machine.
+SILENT = (supervisor._Probe.SILENT, None)
+NO_SIDECAR_PROCESSES = patch(
+    "api.runtime.supervisor._service_process_running", new=lambda service: False
+)
 
 
 def spawned_services(popen_mock):
@@ -148,7 +156,8 @@ class ServiceSiteSettingTest(TestCase):
         self.assertFalse(start_service("face_recognition"))
         popen_mock.assert_not_called()
 
-    @patch("api.runtime.supervisor.is_healthy", return_value=False)
+    @NO_SIDECAR_PROCESSES
+    @patch("api.runtime.supervisor._probe", return_value=SILENT)
     @patch("api.runtime.supervisor.stop_service")
     @patch("api.runtime.supervisor.start_service")
     def test_the_watchdog_follows_the_site_setting(
@@ -244,7 +253,8 @@ class StartAllCommandTest(TestCase):
 
 
 @UNREADABLE_CONFIG
-@patch("api.runtime.supervisor.is_healthy", return_value=False)
+@NO_SIDECAR_PROCESSES
+@patch("api.runtime.supervisor._probe", return_value=SILENT)
 @patch("api.runtime.supervisor.stop_service")
 @patch("api.runtime.supervisor.start_service")
 class CheckServicesTest(TestCase):
@@ -346,7 +356,8 @@ class OcrSiteGateTest(TestCase):
         self.assertIn("ocr", spawned_services(popen_mock))
 
     @override_config(OCR_MODEL="ppocrv6_small")
-    @patch("api.runtime.supervisor.is_healthy", return_value=False)
+    @NO_SIDECAR_PROCESSES
+    @patch("api.runtime.supervisor._probe", return_value=SILENT)
     @patch("api.runtime.supervisor.stop_service")
     def test_the_watchdog_brings_it_up_after_the_admin_selects_a_model(
         self, stop_mock, healthy_mock, popen_mock

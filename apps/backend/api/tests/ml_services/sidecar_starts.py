@@ -9,9 +9,11 @@ sidecar happens to run.
 from collections.abc import Callable
 from unittest.mock import patch
 
+from api.runtime.supervisor import StartOutcome
 
-def _all_up(launched: dict[str, object]) -> dict[str, bool]:
-    return dict.fromkeys(launched, True)
+
+def _all_up(launched: dict[str, object]) -> dict[str, StartOutcome]:
+    return dict.fromkeys(launched, StartOutcome.STARTED)
 
 
 def fake_sidecar_starts[Target: Callable[..., object] | type](target: Target) -> Target:

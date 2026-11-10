@@ -234,6 +234,8 @@ services:
 
 The backend runs its heavy models in separate sidecar processes, and a watchdog restarts any of them that dies. A switch that is off keeps its service from being started at all, and the watchdog leaves it alone rather than bringing it back a minute later — which is where the memory saving actually comes from, since a loaded model costs its memory whether or not anything asks it a question.
 
+<Since version="1.7.0" /> A service whose switch is turned off while it runs is stopped at the watchdog's next check, within a minute. A service that still runs but answers no health check for three minutes, longer than any request to it may take, counts as hung and is restarted; one that is only busy answers in time and is left alone.
+
 | Switch | Service that stops being started |
 | --- | --- |
 | `FEATURE_FACE_DETECTION` | `face_recognition` |

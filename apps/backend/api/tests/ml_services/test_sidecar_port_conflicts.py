@@ -183,7 +183,7 @@ class StartVerificationTest(SimpleTestCase):
         self.assertIn("it exited with code 3", logs.output[0])
         self.assertEqual(supervisor.start_error("tags"), "it exited with code 3")
 
-    def test_one_still_loading_after_the_timeout_counts_as_started(self):
+    def test_one_still_silent_after_the_timeout_did_not_start(self):
         with (
             patch("api.runtime.supervisor._answers_as_itself", return_value=False),
             patch("api.runtime.supervisor.bind_error", return_value=None),
@@ -191,8 +191,9 @@ class StartVerificationTest(SimpleTestCase):
             patch("api.runtime.supervisor.START_TIMEOUT_SECONDS", 0),
             self.assertLogs("api.runtime.supervisor", "WARNING") as logs,
         ):
-            self.assertTrue(supervisor.start_service("face_recognition"))
-        self.assertIn("still starting", logs.output[0])
+            self.assertFalse(supervisor.start_service("face_recognition"))
+        self.assertIn("has not answered", logs.output[0])
+        self.assertIn("left running", logs.output[0])
 
     def test_one_already_answering_is_not_started_twice(self):
         with (

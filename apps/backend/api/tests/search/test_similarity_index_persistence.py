@@ -60,10 +60,10 @@ class _TempStore(SimpleTestCase):
         self.store = os.path.join(self.tmp.name, "similarity")
 
     def rebuild(self, index, user_id, pages):
-        index.begin_rebuild(user_id)
+        token = index.begin_rebuild(user_id)
         for hashes, embeddings in pages:
-            index.add_to_rebuild(user_id, hashes, embeddings)
-        return index.commit_rebuild(user_id)
+            index.add_to_rebuild(user_id, token, hashes, embeddings)
+        return index.commit_rebuild(user_id, token)
 
 
 class PersistenceTest(_TempStore):
@@ -130,11 +130,11 @@ class AtomicRebuildTest(_TempStore):
         index = RetrievalIndex(self.store)
         self.rebuild(index, 1, [(["old"], [unit(0)])])
 
-        index.begin_rebuild(1)
-        index.add_to_rebuild(1, ["new"], [unit(0)])
+        token = index.begin_rebuild(1)
+        index.add_to_rebuild(1, token, ["new"], [unit(0)])
         self.assertEqual(index.search_similar(1, unit(0), thres=0.5), ["old"])
 
-        index.commit_rebuild(1)
+        index.commit_rebuild(1, token)
         self.assertEqual(index.search_similar(1, unit(0), thres=0.5), ["new"])
 
     def test_pages_add_up(self):
@@ -150,11 +150,11 @@ class AtomicRebuildTest(_TempStore):
         index = RetrievalIndex(self.store)
         self.rebuild(index, 1, [(["old"], [unit(0)])])
 
-        index.begin_rebuild(1)
-        index.add_to_rebuild(1, ["new"], [unit(0)])
+        token = index.begin_rebuild(1)
+        index.add_to_rebuild(1, token, ["new"], [unit(0)])
         with patch.object(retrieval_index.os, "replace", side_effect=OSError("full")):
             with self.assertRaises(OSError):
-                index.commit_rebuild(1)
+                index.commit_rebuild(1, token)
 
         self.assertEqual(os.listdir(self.store), ["1.npz"])
         self.assertEqual(
@@ -165,13 +165,13 @@ class AtomicRebuildTest(_TempStore):
 
     def test_a_page_with_mismatched_hashes_is_refused(self):
         index = RetrievalIndex(self.store)
-        index.begin_rebuild(1)
+        token = index.begin_rebuild(1)
         with self.assertRaises(retrieval_index.IndexBuildError):
-            index.add_to_rebuild(1, ["a", "b"], [unit(0)])
+            index.add_to_rebuild(1, token, ["a", "b"], [unit(0)])
 
     def test_a_page_without_a_begun_rebuild_is_refused(self):
         with self.assertRaises(retrieval_index.IndexBuildError):
-            RetrievalIndex(self.store).commit_rebuild(1)
+            RetrievalIndex(self.store).commit_rebuild(1, "never begun")
 
 
 class SidecarRoutesTest(_TempStore):
@@ -202,10 +202,14 @@ class SidecarRoutesTest(_TempStore):
             {"image_hashes": [], "image_embeddings": [], "commit": True},
         ]
         sizes = []
+        token = None
         for page in pages:
+            if token is not None:
+                page["rebuild_token"] = token
             response = self.client.post("/build/", json={"user_id": 2, **page})
             self.assertEqual(response.status_code, 200, response.get_json())
             sizes.append(response.get_json()["index_size"])
+            token = response.get_json()["rebuild_token"]
         self.assertEqual(sizes, [1, 2, 2])
 
         response = self.client.post(
@@ -215,7 +219,7 @@ class SidecarRoutesTest(_TempStore):
         self.assertEqual(response.get_json()["result"], ["b"])
 
     def test_a_bad_page_abandons_the_rebuild_with_a_400(self):
-        self.client.post(
+        begun = self.client.post(
             "/build/",
             json={
                 "user_id": 2,
@@ -224,6 +228,7 @@ class SidecarRoutesTest(_TempStore):
                 "begin": True,
             },
         )
+        self.assertEqual(begun.status_code, 400)
         response = self.client.post(
             "/build/",
             json={
@@ -231,10 +236,11 @@ class SidecarRoutesTest(_TempStore):
                 "image_hashes": [],
                 "image_embeddings": [],
                 "commit": True,
+                "rebuild_token": "anything",
             },
         )
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 409)
         self.assertIs(response.get_json()["status"], False)
 
     def test_a_user_id_must_be_an_integer(self):
@@ -260,7 +266,11 @@ def _build_reply(status=True, index_size=0):
     response = MagicMock()
     response.status_code = 200
     response.raise_for_status.return_value = None
-    response.json.return_value = {"status": status, "index_size": index_size}
+    response.json.return_value = {
+        "status": status,
+        "index_size": index_size,
+        "rebuild_token": "token",
+    }
     return response
 
 

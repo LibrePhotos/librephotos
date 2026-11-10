@@ -6,11 +6,16 @@ forgets them until the next Calculate CLIP embeddings job.
 
 ``POST /build/``
     ``{"user_id", "image_hashes", "image_embeddings"}`` plus, for a rebuild,
-    ``"begin": true`` on the first page and ``"commit": true`` on the last:
-    the pages fill a staging index that replaces the user's index (on disk,
-    then in memory) only once the last page arrived. Without the flags a page
-    is added to the live index, as before. Answers ``{"status": true,
-    "index_size": n}``, or ``{"status": false, "error": ...}`` with 400.
+    ``"begin": true`` on the first page, whose answer carries a
+    ``"rebuild_token"`` that every later page sends back, and ``"commit":
+    true`` on the last: the pages fill a staging index that replaces the
+    user's index (on disk, then in memory) only once the last page arrived.
+    A newer begin for the same user supersedes the open rebuild, and one
+    without a page for ten minutes expires; a page of either is answered 409
+    with ``"code": "rebuild_superseded"`` or ``"rebuild_not_open"``. A page
+    without a token is added to the live index (and to the open rebuild, so
+    its commit keeps it). Answers ``{"status": true, "index_size": n}``, or
+    ``{"status": false, "error": ...}`` with 400.
 ``DELETE /build/``
     ``{"user_id"}``: forget the user's index, on disk too.
 ``POST /search/``
@@ -21,7 +26,7 @@ forgets them until the next Calculate CLIP embeddings job.
 import os
 
 from flask.typing import ResponseReturnValue
-from retrieval_index import IndexBuildError, RetrievalIndex
+from retrieval_index import IndexBuildError, RebuildNotOpenError, RetrievalIndex
 
 from librephotos.env import protected_media_root
 from service._common import create_app, json_fields, logger, serve_forever
@@ -41,37 +46,65 @@ def _user_id(value: object) -> int:
     return value
 
 
-def _failed(message: str, status: int = 400) -> tuple[dict[str, object], int]:
+def _failed(
+    message: str, status: int = 400, code: str | None = None
+) -> tuple[dict[str, object], int]:
     log.error(message)
-    return {"status": False, "error": message}, status
+    body: dict[str, object] = {"status": False, "error": message}
+    if code is not None:
+        body["code"] = code
+    return body, status
 
 
 @app.route("/build/", methods=["POST"])
 def build_index() -> ResponseReturnValue:
-    user_id, image_hashes, image_embeddings, begin, commit = json_fields(
-        "user_id", "image_hashes", "image_embeddings", begin=False, commit=False
+    user_id, image_hashes, image_embeddings, begin, commit, token = json_fields(
+        "user_id",
+        "image_hashes",
+        "image_embeddings",
+        begin=False,
+        commit=False,
+        rebuild_token=None,
     )
     try:
         user_id = _user_id(user_id)
     except ValueError as e:
         return _failed(str(e))
 
-    if not (begin or commit or index.rebuilding(user_id)):
+    if begin:
+        token = index.begin_rebuild(user_id)
+    elif token is None:
+        if commit:
+            return _failed("a commit needs the rebuild_token of its begin")
         index.build_index_for_user(user_id, image_hashes, image_embeddings)
         live = index.indices.get(user_id)
         return {"status": True, "index_size": 0 if live is None else live.ntotal}
+    elif not isinstance(token, str):
+        return _failed(f"rebuild_token must be a string, not {token!r}")
+    return _rebuild_page(user_id, token, image_hashes, image_embeddings, commit)
 
+
+def _rebuild_page(
+    user_id: int,
+    token: str,
+    image_hashes: list[str],
+    image_embeddings: list[list[float]],
+    commit: bool,
+) -> ResponseReturnValue:
     try:
-        if begin:
-            index.begin_rebuild(user_id)
-        index.add_to_rebuild(user_id, image_hashes, image_embeddings)
-        if not commit:
-            return {"status": True, "index_size": index.staged_size(user_id)}
-        return {"status": True, "index_size": index.commit_rebuild(user_id)}
+        index.add_to_rebuild(user_id, token, image_hashes, image_embeddings)
+        if commit:
+            size = index.commit_rebuild(user_id, token)
+        else:
+            size = index.staged_size(user_id, token)
+    except RebuildNotOpenError as e:
+        code = "rebuild_superseded" if e.superseded else "rebuild_not_open"
+        return _failed(str(e), 409, code)
     except IndexBuildError as e:
         # A rebuild missing a page must not replace the index.
-        index.abandon_rebuild(user_id)
+        index.abandon_rebuild(user_id, token)
         return _failed(f"rebuild for user {user_id} abandoned: {e}")
+    return {"status": True, "index_size": size, "rebuild_token": token}
 
 
 @app.route("/build/", methods=["DELETE"])
