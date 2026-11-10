@@ -2,7 +2,7 @@ import { Photoset } from "@librephotos/api-client";
 import { ActionIcon, Button, Loader, useMantineTheme } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconTrashX } from "@tabler/icons-react";
-import React, { useCallback, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useEmptyTrashMutation, useFollowEmptyTrashJob } from "../../api_client/photos/hooks";
@@ -28,10 +28,8 @@ export function EmptyTrashButton({ total, shownCount }: Props): React.JSX.Elemen
   const theme = useMantineTheme();
   const compact = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
   const [confirmOpen, { open, close }] = useDisclosure(false);
-  const [jobId, setJobId] = useState<string | null>(null);
   const emptyTrash = useEmptyTrashMutation();
-  const stopFollowing = useCallback(() => setJobId(null), []);
-  useFollowEmptyTrashJob(jobId, stopFollowing);
+  const jobId = useFollowEmptyTrashJob();
 
   if (!total) {
     return null;
@@ -42,12 +40,7 @@ export function EmptyTrashButton({ total, shownCount }: Props): React.JSX.Elemen
   const icon = running ? <Loader size={ICON_SIZE.toolbar} color="red" /> : <IconTrashX size={ICON_SIZE.toolbar} />;
 
   const confirm = () => {
-    emptyTrash.mutate(total, {
-      onSuccess: id => {
-        setJobId(id);
-        close();
-      },
-    });
+    emptyTrash.mutate(total, { onSuccess: close });
   };
 
   const button = compact ? (

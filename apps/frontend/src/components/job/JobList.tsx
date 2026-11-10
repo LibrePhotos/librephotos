@@ -20,6 +20,7 @@ import { parseInstant } from "../../util/dateUtils";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
 import { SectionLink } from "../settings/SettingsSection";
+import { useStepBackFromMissingPage } from "../stacks-duplicates/useStepBackFromMissingPage";
 import { CancelJobButton } from "./CancelJobButton";
 import { JobActionsMenu } from "./JobActionsMenu";
 import classes from "./JobList.module.css";
@@ -69,6 +70,8 @@ export function JobList({ variant = "admin" }: IJobList) {
   const jobsQuery = useJobsQuery({ page: activePage, pageSize, mine });
   const { data: jobs, isLoading } = jobsQuery;
   const listFailure = useListFailure(jobsQuery);
+  // Remove finished jobs can empty the last page: its next poll answers 404.
+  useStepBackFromMissingPage(activePage, setActivePage, jobsQuery.error);
 
   // The query keeps the previous page while the next one loads, so the page count stays put.
   const jobCount = jobs?.count ?? 0;

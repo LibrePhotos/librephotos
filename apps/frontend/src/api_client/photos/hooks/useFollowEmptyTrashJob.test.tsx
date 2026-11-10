@@ -8,15 +8,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { jobFixture } from "../../../components/job/jobFixture.test-utils";
+import { followedJobs } from "../../jobs/followedJobs";
+import { fakeJobServer } from "../../jobs/jobServer.test-utils";
 import { reportEmptyTrash, useFollowEmptyTrashJob } from "./useFollowEmptyTrashJob";
 
 type EndedJob = Pick<Job, "job_id" | "finished" | "failed" | "cancelled" | "result">;
 
 const stubs = vi.hoisted(() => ({
-  jobs: [] as EndedJob[],
-  enabled: [] as (boolean | undefined)[],
   notification: {
     jobCancelled: vi.fn<() => void>(),
+    jobLost: vi.fn<() => void>(),
     trashEmptied: vi.fn<(count: number) => void>(),
     trashEmptiedWithErrors: vi.fn<(deleted: number, failed: number) => void>(),
     trashEmptyFailed: vi.fn<() => void>(),
@@ -24,20 +26,15 @@ const stubs = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../service/notifications", () => ({ notification: stubs.notification }));
-vi.mock("../../jobs/hooks/useJobsQuery", () => ({
-  useJobsQuery: (_params: unknown, options: { enabled?: boolean }) => {
-    stubs.enabled.push(options.enabled);
-    return { data: { results: stubs.jobs } };
-  },
-}));
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
+const unmounts: (() => void)[] = [];
 afterEach(() => {
-  stubs.jobs = [];
-  stubs.enabled = [];
+  while (unmounts.length) unmounts.pop()?.();
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
@@ -50,12 +47,25 @@ const job = (fields: Partial<EndedJob>): EndedJob => ({
   ...fields,
 });
 
-async function follow(jobId: string | null) {
-  const client = new QueryClient();
+async function flush() {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await act(async () => {
+      await new Promise(resolve => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+}
+
+/** Mounts the trash page's follower; `jobs` is the user's job list. */
+async function mountFollower(jobs: EndedJob[]) {
+  const server = fakeJobServer();
+  server.setJobs(jobs.map((fields, index) => jobFixture({ id: index + 1, ...fields })));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const invalidate = vi.spyOn(client, "invalidateQueries");
-  const onEnded = vi.fn<() => void>();
+  let jobId: string | null = null;
   function Host() {
-    useFollowEmptyTrashJob(jobId, onEnded);
+    jobId = useFollowEmptyTrashJob();
     return null;
   }
   const root = createRoot(document.createElement("div"));
@@ -66,35 +76,56 @@ async function follow(jobId: string | null) {
       </QueryClientProvider>
     );
   });
-  act(() => root.unmount());
-  return { invalidate, onEnded };
+  await flush();
+  let mounted = true;
+  const unmount = () => {
+    if (mounted) act(() => root.unmount());
+    mounted = false;
+  };
+  unmounts.push(unmount);
+  return { invalidate, fetchMock: server.fetchMock, followed: () => jobId, unmount };
 }
 
 describe("useFollowEmptyTrashJob", () => {
   it("reports the ended job, refreshes the grids and counts, and stops following", async () => {
-    stubs.jobs = [job({ job_id: "other", finished: false }), job({})];
-    const { invalidate, onEnded } = await follow("job-uuid");
+    followedJobs.follow("emptyTrash", "ended-uuid");
+    const { invalidate, followed } = await mountFollower([
+      job({ job_id: "other", finished: false }),
+      job({ job_id: "ended-uuid" }),
+    ]);
 
     expect(stubs.notification.trashEmptied).toHaveBeenCalledWith(12);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: photoGridKeys.all });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: statsKeys.counts() });
-    expect(onEnded).toHaveBeenCalledTimes(1);
+    expect(followed()).toBeNull();
   });
 
-  it("waits while the job runs", async () => {
-    stubs.jobs = [job({ finished: false })];
-    const { onEnded } = await follow("job-uuid");
+  it("waits while the job runs, also on a trash page opened again", async () => {
+    followedJobs.follow("emptyTrash", "running-uuid");
+    const first = await mountFollower([job({ job_id: "running-uuid", finished: false })]);
+    expect(first.followed()).toBe("running-uuid");
+    first.unmount();
 
-    expect(onEnded).not.toHaveBeenCalled();
+    const again = await mountFollower([job({ job_id: "running-uuid", finished: false })]);
+    expect(again.followed()).toBe("running-uuid");
     expect(stubs.notification.trashEmptied).not.toHaveBeenCalled();
+    followedJobs.release("emptyTrash", "running-uuid");
+  });
+
+  it("stops waiting, and says so, when the job was removed from the list", async () => {
+    followedJobs.follow("emptyTrash", "removed-uuid");
+    const { followed } = await mountFollower([job({ job_id: "other" })]);
+
+    expect(stubs.notification.jobLost).toHaveBeenCalledTimes(1);
+    expect(stubs.notification.trashEmptied).not.toHaveBeenCalled();
+    expect(followed()).toBeNull();
   });
 
   it("does not read the job list while nothing is followed", async () => {
-    stubs.jobs = [job({})];
-    const { onEnded } = await follow(null);
+    const { fetchMock, followed } = await mountFollower([job({})]);
 
-    expect(stubs.enabled).toEqual([false]);
-    expect(onEnded).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(followed()).toBeNull();
   });
 });
 

@@ -164,6 +164,22 @@ describe("the first-run setup form", () => {
     );
   });
 
+  it("signs in again, not up, when the sign-in after the sign-up failed", async () => {
+    stubs.signup.mockImplementation((_variables, options) => options.onSuccess?.());
+    await renderSetup();
+    await fillAndSubmit(ADMIN);
+    expect(stubs.login).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain(i18n.t("login.setupsigninagain"));
+
+    stubs.login.mockImplementation((_variables, options) => options.onSuccess?.());
+    await fillAndSubmit(ADMIN);
+
+    expect(stubs.signup).toHaveBeenCalledTimes(1);
+    expect(stubs.login).toHaveBeenCalledTimes(2);
+    expect(stubs.login).toHaveBeenLastCalledWith({ username: "admin", password: "analytical" }, expect.anything());
+    expect(container.textContent).toContain(i18n.t("sitesettings.headerupload"));
+  });
+
   it("refuses an invalid address and passwords that differ", async () => {
     await renderSetup();
     await fillAndSubmit({ ...ADMIN, email: "admin@", passwordConfirm: "analytic" });

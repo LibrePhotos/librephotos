@@ -10,6 +10,9 @@ import { apiClient, ApiError } from "./api";
 vi.mock("../service/notifications", () => ({
   notification: new Proxy({}, { get: () => () => {} }),
 }));
+// The full page loads the session ends with (jsdom cannot navigate).
+const pageLoads = vi.hoisted(() => [] as string[]);
+vi.mock("./pageLoad", () => ({ loadPage: (url: string) => pageLoads.push(url) }));
 
 function stubResponse(status: number, body: string | null, contentType = "application/json") {
   const response = new Response(body, {
@@ -244,6 +247,40 @@ describe("apiClient token refresh", () => {
     });
     expect(calls.filter(call => call.url.endsWith("/auth/token/refresh/"))).toHaveLength(1);
     expect(calls.filter(call => call.url.endsWith("/auth/token/blacklist/"))).toHaveLength(1);
+  });
+
+  it("loads the login page once, to say the session ran out and come back here", async () => {
+    pageLoads.length = 0;
+    const { apiClient: client } = await freshClient();
+    window.history.pushState({}, "", "/settings?tab=jobs");
+    setCookie("access", fakeJwt(300));
+    setCookie("refresh", "refresh-token");
+    stubFetch([
+      [endsWith("/auth/token/refresh/"), () => later(json({ detail: "invalid" }, 401))],
+      [url => url.includes("/photos/"), () => json({ detail: "expired" }, 401)],
+    ]);
+
+    await Promise.allSettled(Array.from({ length: 3 }, (_, i) => client.get(`/photos/${i}/`)));
+
+    expect(pageLoads).toEqual(["/login?session=expired&redirect=%2Fsettings%3Ftab%3Djobs"]);
+    expect(document.cookie).not.toContain("refresh-token");
+  });
+
+  it("drops a stale token once on the login page, however many requests fail", async () => {
+    pageLoads.length = 0;
+    const { apiClient: client } = await freshClient();
+    window.history.pushState({}, "", "/login");
+    setCookie("refresh", "stale-refresh-token");
+    const calls = stubFetch([
+      [endsWith("/auth/token/refresh/"), () => later(json({ detail: "invalid" }, 401))],
+      [endsWith("/auth/token/blacklist/"), () => later(json({}))],
+      [url => url.includes("/sitesettings/"), () => json({ detail: "expired" }, 401)],
+    ]);
+
+    await Promise.allSettled(Array.from({ length: 3 }, () => client.get("/sitesettings/")));
+
+    expect(calls.filter(call => call.url.endsWith("/auth/token/blacklist/"))).toHaveLength(1);
+    expect(pageLoads).toEqual([]);
   });
 
   it("logs out on the server even when no refresh token is left", async () => {

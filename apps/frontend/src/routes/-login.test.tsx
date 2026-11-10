@@ -14,7 +14,7 @@ import i18n from "../i18n";
 import { defined } from "../util/defined.test-utils";
 import { safeRedirect } from "./login";
 
-type ValidateSearch = (search: Record<string, unknown>) => { redirect?: string };
+type ValidateSearch = (search: Record<string, unknown>) => { redirect?: string; session?: string };
 
 const stubs = vi.hoisted(() => ({
   component: undefined as React.ComponentType | undefined,
@@ -143,6 +143,8 @@ describe("safeRedirect", () => {
   it("is what the route's search validator applies", () => {
     expect(defined(stubs.validateSearch)({ redirect: "/albums" })).toEqual({ redirect: "/albums" });
     expect(defined(stubs.validateSearch)({ redirect: "//evil.example" })).toEqual({ redirect: undefined });
+    expect(defined(stubs.validateSearch)({ session: "expired" })).toEqual({ session: "expired" });
+    expect(defined(stubs.validateSearch)({ session: "<b>hi</b>" })).toEqual({});
   });
 });
 

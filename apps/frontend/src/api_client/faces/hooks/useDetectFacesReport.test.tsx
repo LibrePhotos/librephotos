@@ -14,8 +14,8 @@ import { useDetectFacesReport, type DetectFacesOutcome } from "./useDetectFacesR
 type Ended = Pick<Job, "job_id" | "failed">;
 
 const followed = vi.hoisted(() => ({ jobId: null as string | null, onEnded: (_job: Ended) => {} }));
-vi.mock("../../jobs/hooks/useFollowOwnJob", () => ({
-  useFollowOwnJob: (jobId: string | null, onEnded: (job: Ended) => void) => {
+vi.mock("../../jobs/hooks/useFollowJob", () => ({
+  useFollowJob: (jobId: string | null, onEnded: (job: Ended) => void) => {
     followed.jobId = jobId;
     followed.onEnded = onEnded;
     return undefined;

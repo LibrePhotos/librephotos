@@ -34,13 +34,11 @@ vi.mock("../../api_client/jobs/hooks/useUpgradeTasks", () => ({
 }));
 vi.mock("../../api_client/jobs/hooks", () => ({
   useCancelJobMutation: () => ({ mutate: stubs.cancelJob, isPending: false }),
+  useWorkerQuery: () => ({ data: stubs.worker }),
 }));
 vi.mock("../upload/UploadContext", async importOriginal => ({
   ...(await importOriginal<typeof import("../upload/UploadContext")>()),
   useOptionalUploadProcessing: (): Pick<UploadProcessing, "openImports"> => ({ openImports: stubs.openImports }),
-}));
-vi.mock("../../hooks/useWorkerStatus", () => ({
-  useWorkerStatus: () => ({ currentData: stubs.worker, workerRunningJob: stubs.worker?.job_detail ?? null }),
 }));
 
 const job = (overrides: Partial<JobDetail> = {}): JobDetail => ({

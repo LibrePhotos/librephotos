@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useIsFirstTimeSetupQuery } from "../api_client/auth";
+import { SESSION_EXPIRED } from "../api_client/session";
 import { LoginForm } from "../components/auth/LoginForm";
+import { useSessionExpiredNotice } from "../components/auth/useSessionExpiredNotice";
 import { FirstTimeSetup } from "../components/setup/FirstTimeSetup";
 import { isStringEmpty } from "../util/stringUtils";
 
@@ -29,8 +31,9 @@ export function safeRedirect(value: unknown): string | undefined {
 
 export const Route = createFileRoute("/login")({
   component: Login,
-  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string; session?: typeof SESSION_EXPIRED } => ({
     redirect: safeRedirect(search.redirect),
+    session: search.session === SESSION_EXPIRED ? SESSION_EXPIRED : undefined,
   }),
 });
 
@@ -79,25 +82,23 @@ export const initialFormState: SignUpForm = {
   email: "",
 };
 
+/** The first-time setup on this page: not (yet) needed, running, or completed. */
+type SetupFlow = "none" | "running" | "completed";
+
 function Login(): React.JSX.Element {
-  const { redirect } = Route.useSearch();
+  const { redirect, session } = Route.useSearch();
+  useSessionExpiredNotice(session === SESSION_EXPIRED, redirect);
   const { data: isFirstTimeSetup, isLoading } = useIsFirstTimeSetupQuery();
-  const [firstTimeFlow, setFirstTimeFlow] = useState(false);
+  const [setup, setSetup] = useState<SetupFlow>("none");
+  // Once started, the setup runs to its end: its sign-up turns the server's answer false.
+  if (setup === "none" && !isLoading && isFirstTimeSetup) {
+    setSetup("running");
+  }
 
-  useEffect(() => {
-    if (!isLoading && isFirstTimeSetup) {
-      setFirstTimeFlow(true);
-    }
-  }, [isFirstTimeSetup, isLoading]);
-
-  if (firstTimeFlow || (!isLoading && isFirstTimeSetup)) {
+  if (setup === "running") {
     return (
       <div className="login-page">
-        <FirstTimeSetup
-          onComplete={() => {
-            setFirstTimeFlow(false);
-          }}
-        />
+        <FirstTimeSetup onComplete={() => setSetup("completed")} />
       </div>
     );
   }

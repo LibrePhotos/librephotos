@@ -8,6 +8,7 @@ import shellClasses from "../../components/menubars/AppShellChrome.module.css";
 import { FooterMenu } from "../../components/menubars/FooterMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
+import { PromptQueueProvider } from "../../components/prompts/PromptQueueProvider";
 import { KeyboardShortcuts } from "../../components/shortcuts/KeyboardShortcuts";
 import { SpotlightProvider } from "../../components/spotlight";
 import { SupportProvider } from "../../components/support/SupportProvider";
@@ -37,47 +38,47 @@ function AppShellProtected() {
       {/* Here, not in __root: its search queries need a session, and login,
           signup and public pages have none (each fired 401s on load). */}
       <SpotlightProvider />
-      {/* Asks an admin once about error reporting (#2938). Inside the upload provider: it waits
-          while files upload. */}
-      <ErrorReportingPrompt />
-      {/* The What's new card after an update, and the dialog the account menu opens (#2305). Inside
-          the upload provider: the card waits while the upload card is open. */}
-      <WhatsNewProvider>
-        {/* The thank-you dialog once the first library is processed, and Rewind around Christmas.
-            Inside the upload provider: neither shows while files upload. */}
-        <SupportProvider>
-          {/* Files dropped anywhere in the app are uploaded; not on login or public pages. */}
-          <UploadDropTarget>
-            {/* The g chords and the ? list (#2037); the account menu opens the list too. */}
-            <KeyboardShortcuts>
-              <AppShell
-                header={{ height: TOP_MENU_HEIGHT }}
-                navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
-                footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
-                transitionDuration={0}
-                classNames={{ header: shellClasses.chrome, navbar: shellClasses.chrome, main: shellClasses.main }}
-              >
-                <AppShell.Header>
-                  <TopMenu />
-                </AppShell.Header>
-                <AppShell.Navbar>
-                  <SideMenuNarrow />
-                </AppShell.Navbar>
-                <AppShell.Main>
-                  <div className={shellClasses.content}>
-                    <Outlet />
-                  </div>
-                </AppShell.Main>
-                {/* The footer is the phone navigation. A 0px footer on desktop still
+      {/* One dialog of the prompts below at a time, none opening by itself while files upload. */}
+      <PromptQueueProvider>
+        {/* Asks an admin once about error reporting (#2938). */}
+        <ErrorReportingPrompt />
+        {/* The What's new card after an update, and the dialog the account menu opens (#2305). */}
+        <WhatsNewProvider>
+          {/* The thank-you dialog once the first library is processed, and Rewind around Christmas. */}
+          <SupportProvider>
+            {/* Files dropped anywhere in the app are uploaded; not on login or public pages. */}
+            <UploadDropTarget>
+              {/* The g chords and the ? list (#2037); the account menu opens the list too. */}
+              <KeyboardShortcuts>
+                <AppShell
+                  header={{ height: TOP_MENU_HEIGHT }}
+                  navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
+                  footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
+                  transitionDuration={0}
+                  classNames={{ header: shellClasses.chrome, navbar: shellClasses.chrome, main: shellClasses.main }}
+                >
+                  <AppShell.Header>
+                    <TopMenu />
+                  </AppShell.Header>
+                  <AppShell.Navbar>
+                    <SideMenuNarrow />
+                  </AppShell.Navbar>
+                  <AppShell.Main>
+                    <div className={shellClasses.content}>
+                      <Outlet />
+                    </div>
+                  </AppShell.Main>
+                  {/* The footer is the phone navigation. A 0px footer on desktop still
               drew a 1px border and left its links in the tab order. */}
-                <AppShell.Footer hiddenFrom="sm">
-                  <FooterMenu />
-                </AppShell.Footer>
-              </AppShell>
-            </KeyboardShortcuts>
-          </UploadDropTarget>
-        </SupportProvider>
-      </WhatsNewProvider>
+                  <AppShell.Footer hiddenFrom="sm">
+                    <FooterMenu />
+                  </AppShell.Footer>
+                </AppShell>
+              </KeyboardShortcuts>
+            </UploadDropTarget>
+          </SupportProvider>
+        </WhatsNewProvider>
+      </PromptQueueProvider>
       <UploadProgressCard />
     </UploadProvider>
   );

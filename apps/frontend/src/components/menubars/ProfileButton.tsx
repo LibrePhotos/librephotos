@@ -17,7 +17,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { useLogoutMutation } from "../../api_client/auth";
 import { useOpenUpgradeTaskCount } from "../../api_client/jobs/hooks/useUpgradeTasks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { useWorkerStatus } from "../../hooks/useWorkerStatus";
+import { useJobQueue } from "../../hooks/useJobQueue";
 import { UserAvatar, userDisplayName } from "../common/UserAvatar";
 import { CancelJobModal } from "../job/CancelJobModal";
 import { ShortcutHint } from "../shortcuts/ShortcutHint";
@@ -47,9 +47,8 @@ export function ProfileButton(): React.ReactNode {
   const support = useSupport();
   // Rewind, the user's year in photos, around Christmas only.
   const rewindYear = rewindSeasonYear(new Date());
-  const { workerRunningJob, currentData } = useWorkerStatus();
-  // Busy only once the worker has answered; no ring while the first poll is in flight.
-  const workerBusy = currentData !== undefined && !currentData.queue_can_accept_job;
+  // Not busy until the worker has answered: no ring while the first poll is in flight.
+  const { busy: workerBusy, job: workerRunningJob } = useJobQueue();
   // Uploads the server is still importing (#2739), from this browser or a phone. They never make
   // the worker busy, so they get their own menu section; the ring shows them when nothing else runs.
   const openImports = useOptionalUploadProcessing()?.openImports ?? [];

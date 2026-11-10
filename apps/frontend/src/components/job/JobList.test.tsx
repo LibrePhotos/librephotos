@@ -13,6 +13,7 @@
  *     "waiting" Duration cell used to shift Cancel and Remove one column right,
  *     where the card clipped them.
  */
+import { ApiError } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -61,16 +62,23 @@ const job = {
   started_by: { id: 3, username: "dotan", first_name: "", last_name: "" },
 };
 
-const jobsData: { results: (typeof job)[]; failed: boolean } = { results: [job], failed: false };
+const jobsData: { results: (typeof job)[]; failed: boolean; count?: number; missingPage?: number } = {
+  results: [job],
+  failed: false,
+};
 const refetch = vi.fn<() => Promise<unknown>>();
 
 vi.mock("../../api_client/jobs/hooks", () => ({
-  useJobsQuery: (...args: unknown[]) => {
-    useJobsQuery(...args);
+  useJobsQuery: (params: { page?: number }, ...rest: unknown[]) => {
+    useJobsQuery(params, ...rest);
+    if (params.page === jobsData.missingPage) {
+      const error = new ApiError(404, "/jobs/", "Invalid page.");
+      return { data: undefined, error, isLoading: false, isError: true, refetch };
+    }
     return jobsData.failed
       ? { data: undefined, isLoading: false, isError: true, refetch }
       : {
-          data: { count: jobsData.results.length, results: jobsData.results },
+          data: { count: jobsData.count ?? jobsData.results.length, results: jobsData.results },
           isLoading: false,
           isError: false,
           refetch,
@@ -147,6 +155,8 @@ describe("JobList", () => {
   afterEach(() => {
     jobsData.results = [job];
     jobsData.failed = false;
+    jobsData.count = undefined;
+    jobsData.missingPage = undefined;
     refetch.mockReset();
   });
 
@@ -275,6 +285,20 @@ describe("JobList", () => {
     );
     await act(async () => defined(retry).dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(refetch).toHaveBeenCalledTimes(1);
+    await unmount();
+  });
+
+  it("steps back a page when its page is gone, as after Remove finished jobs on the last page", async () => {
+    jobsData.count = 11;
+    const { container, unmount } = await render(<JobList variant="mine" />);
+    jobsData.missingPage = 2;
+
+    const pageTwo = [...container.querySelectorAll("button")].find(button => button.textContent === "2");
+    await click(defined(pageTwo));
+
+    expect(useJobsQuery.mock.calls.at(-1)?.[0]).toMatchObject({ page: 1 });
+    const current = container.querySelector("button[data-active]");
+    expect(current?.textContent).toBe("1");
     await unmount();
   });
 });

@@ -1,11 +1,12 @@
-import type { Job } from "@librephotos/api-client";
+import type { Job, JobDetail } from "@librephotos/api-client";
 import { endpoints, jobKeys, settingsKeys } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
+import { followedJobs } from "../followedJobs";
 import { startJob } from "../startJob";
-import { useFollowOwnJob } from "./useFollowOwnJob";
+import { useFollowedJob } from "./useFollowedJob";
 
 const countIn = (result: Job["result"], key: string): number => {
   const value = result?.[key];
@@ -25,12 +26,11 @@ export function reportWriteMetadata(job: Pick<Job, "cancelled" | "failed" | "res
 
 /**
  * Write the edits already in LibrePhotos to the files (#2287): starts the job, follows it and says
- * how it went. `job` is the running job while the job list knows it (for its progress); `running`
- * is true from the click until the job ended.
+ * how it went. `job` is the running job once it is found (for its progress); `running` is true
+ * from the click until the job ended, also on a page opened again while it runs.
  */
 export function useWriteMetadataToFiles() {
   const queryClient = useQueryClient();
-  const [jobId, setJobId] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: async () => {
       const start = await startJob(() => endpoints.writeMetadataToFiles(apiClient));
@@ -41,21 +41,21 @@ export function useWriteMetadataToFiles() {
       return start.data.job_id;
     },
     onSuccess: id => {
-      setJobId(id);
+      followedJobs.follow("writeMetadata", id);
       void queryClient.invalidateQueries({ queryKey: jobKeys.all });
       void queryClient.invalidateQueries({ queryKey: jobKeys.worker() });
     },
   });
   const report = useCallback(
-    (ended: Job) => {
+    (ended: JobDetail) => {
       reportWriteMetadata(ended);
       // A rotation written into a media file moves into the file: the counts change.
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
-      setJobId(null);
     },
     [queryClient]
   );
-  const job = useFollowOwnJob(jobId, report);
+  const { jobId, follow } = useFollowedJob("writeMetadata", report);
+  const job = follow.state === "running" || follow.state === "ended" ? follow.job : undefined;
 
   return { start: () => mutation.mutate(), running: jobId !== null || mutation.isPending, job };
 }

@@ -32,7 +32,13 @@ export const detectFacesReports = {
   /** The job `jobId` ended, and the photo's faces were fetched again. */
   finish(photoId: string, jobId: string, failed: boolean): void {
     const report = reports.get(photoId);
-    if (report?.jobId === jobId) update(photoId, { ...report, state: failed ? "failed" : "done" });
+    if (report?.jobId === jobId && report.state === "running") {
+      update(photoId, { ...report, state: failed ? "failed" : "done" });
+    }
+  },
+  /** The job `jobId` was removed before it ended: there is nothing to say about the photo. */
+  lose(photoId: string, jobId: string): void {
+    if (reports.get(photoId)?.jobId === jobId) update(photoId, undefined);
   },
   dismiss(photoId: string): void {
     update(photoId, undefined);

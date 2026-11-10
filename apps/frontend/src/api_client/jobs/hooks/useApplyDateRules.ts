@@ -1,12 +1,13 @@
-import type { Job } from "@librephotos/api-client";
+import type { Job, JobDetail } from "@librephotos/api-client";
 import { endpoints, jobKeys } from "@librephotos/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
 import { invalidatePhotoLists } from "../../photos/invalidatePhotoLists";
+import { followedJobs } from "../followedJobs";
 import { startJob } from "../startJob";
-import { useFollowOwnJob } from "./useFollowOwnJob";
+import { useFollowedJob } from "./useFollowedJob";
 
 const countIn = (result: Job["result"], key: string): number => {
   const value = result?.[key];
@@ -31,11 +32,11 @@ export function reportDateRules(job: Pick<Job, "cancelled" | "failed" | "result"
 /**
  * Apply date rules to existing photos (#437): starts the job that reads the date of every photo
  * again with the user's current date rules, then follows it and says how it went (photos moved,
- * photos that keep the date set by hand). `running` is true from the click until the job ended.
+ * photos that keep the date set by hand). `running` is true from the click until the job ended, on
+ * every component that uses this hook, and again when a page is opened while the job still runs.
  */
 export function useApplyDateRules() {
   const queryClient = useQueryClient();
-  const [jobId, setJobId] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: async () => {
       const start = await startJob(() => endpoints.reapplyDateRules(apiClient));
@@ -46,21 +47,20 @@ export function useApplyDateRules() {
       return start.data.job_id;
     },
     onSuccess: id => {
-      setJobId(id);
+      followedJobs.follow("applyDateRules", id);
       void queryClient.invalidateQueries({ queryKey: jobKeys.all });
       void queryClient.invalidateQueries({ queryKey: jobKeys.worker() });
     },
   });
   const report = useCallback(
-    (ended: Job) => {
+    (ended: JobDetail) => {
       reportDateRules(ended);
       // The photos moved to other days: every grid and the timeline's day groups.
       invalidatePhotoLists(queryClient);
-      setJobId(null);
     },
     [queryClient]
   );
-  useFollowOwnJob(jobId, report);
+  const { jobId } = useFollowedJob("applyDateRules", report);
 
   return { start: () => mutation.mutate(), running: jobId !== null || mutation.isPending };
 }
