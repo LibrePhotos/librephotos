@@ -37,13 +37,13 @@ must come back as a handled client error, never as an unhandled 500.
 
 from unittest import mock
 
-import owncloud
 import requests
 from constance.test import override_config
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.tests.utils import create_test_user, patch_nextcloud_dns
+from nextcloud.webdav import ResponseError
 
 LISTDIR_URL = "/api/nextcloud/listdir/?fpath=/"
 
@@ -100,9 +100,7 @@ class NextcloudListDirErrorHandlingTest(TestCase):
 
     def test_rejected_app_password_returns_bad_request_not_server_error(self):
         """Nextcloud answering 401 must surface as the documented 400."""
-        factory = self._client_factory(
-            login_side_effect=owncloud.HTTPResponseError(401)
-        )
+        factory = self._client_factory(login_side_effect=ResponseError(401))
 
         with mock.patch("nextcloud.server_address.GuardedClient", factory):
             response = self.client.get(LISTDIR_URL)

@@ -23,16 +23,19 @@ from api.photos.paths import folder_path_q, nextcloud_media_root
 from nextcloud.server_address import connect
 
 if TYPE_CHECKING:
-    import owncloud
+    from nextcloud.webdav import NextcloudClient
 
 logger = logging.getLogger(__name__)
 
 
 class _RemoteFile(Protocol):
-    """The part of a pyocclient ``FileInfo`` the scan reads."""
+    """The part of a listed file the scan reads (``nextcloud.webdav.RemoteFile``)."""
 
-    path: str
-    attributes: Mapping[str, str]
+    @property
+    def path(self) -> str: ...
+
+    @property
+    def attributes(self) -> Mapping[str, str | None]: ...
 
     def is_dir(self) -> bool: ...
 
@@ -63,7 +66,7 @@ def isValidNCMedia(file_obj: _RemoteFile) -> bool:
         return False
 
 
-def collect_photos(nc: owncloud.Client, path: str, photos: list[_RemoteFile]) -> None:
+def collect_photos(nc: NextcloudClient, path: str, photos: list[_RemoteFile]) -> None:
     for x in nc.list(path):
         if not x.is_dir() and isValidNCMedia(x):
             photos.append(x)
@@ -160,7 +163,7 @@ def local_path_for(root: str, remote_path: str) -> str | None:
 
 
 def download(
-    nc: owncloud.Client,
+    nc: NextcloudClient,
     remote_path: str,
     local_path: str,
     mtime: float | None = None,
@@ -244,7 +247,7 @@ class _SyncResult:
 
 
 def _sync_local_copies(
-    nc: owncloud.Client,
+    nc: NextcloudClient,
     root: str,
     remote_files: list[_RemoteFile],
     indexed: set[str],

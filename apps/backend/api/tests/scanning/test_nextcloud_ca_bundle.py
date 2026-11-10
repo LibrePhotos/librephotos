@@ -124,11 +124,14 @@ class GuardedClientCertificateTest(SimpleTestCase):
         self.assertEqual(1, len(nc._session.hooks["response"]))
 
     def test_certificate_checking_cannot_be_switched_off(self):
+        # The client has no switch for it: its session is built with the check.
+        with self.assertRaises(TypeError):
+            GuardedClient("https://cloud.example.com", verify_certs=False)
         bundle = _pem_bundle(self)
         with override_settings(NEXTCLOUD_CA_BUNDLE=""):
-            self.assertIs(True, _logged_in_client(verify_certs=False)._session.verify)
+            self.assertIs(True, _logged_in_client()._session.verify)
         with override_settings(NEXTCLOUD_CA_BUNDLE=bundle):
-            nc = _logged_in_client(verify_certs=False)
+            nc = _logged_in_client()
         self.assertEqual(bundle, nc._session.verify)
 
     def test_a_broken_bundle_stops_the_client_before_it_connects(self):

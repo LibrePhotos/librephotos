@@ -9,7 +9,7 @@ or the cloud provider's metadata endpoint on a link-local address.
 it resolves to, so a DNS name cannot smuggle in an address a literal IP would
 have been refused for. The address is parsed twice: once the way Python's
 ``urlparse`` reads it and once the way urllib3 (which ``requests`` and so
-pyocclient connect through) reads it. The two disagree on some addresses, for
+the Nextcloud client connect through) reads it. The two disagree on some addresses, for
 example ``http://127.0.0.1:8163\\@8.8.8.8/`` is 8.8.8.8 to ``urlparse`` but
 127.0.0.1 to urllib3, so both hosts are checked and an address they do not
 agree on is refused. Loopback, link-local, multicast, unspecified and
@@ -21,9 +21,11 @@ turns that off for instances whose users should not reach the local network.
 
 The check runs before the connection is made, so it does not pin the address:
 a DNS answer that changes between the check and the connection is not caught.
-Redirects are checked hop by hop by ``GuardedClient``.
+Redirects are checked hop by hop on the session ``guarded_session`` builds,
+the only session ``GuardedClient`` (``nextcloud.webdav.NextcloudClient``)
+ever sends through.
 
-``GuardedClient`` also decides what the server's TLS certificate is checked
+``guarded_session`` also decides what the server's TLS certificate is checked
 against: the public certificate authorities, or the file ``NEXTCLOUD_CA_BUNDLE``
 names, for a Nextcloud with a self-signed certificate or one from a private CA
 (#539). Certificate checking itself cannot be switched off.
@@ -39,14 +41,14 @@ import ssl
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin, urlparse
 
-import owncloud as nextcloud
+import requests
 from django.conf import settings
 from urllib3.exceptions import LocationParseError
 from urllib3.util import parse_url
 
-if TYPE_CHECKING:
-    import requests
+from nextcloud.webdav import NextcloudClient
 
+if TYPE_CHECKING:
     from api.models.user import User
 
 _ALLOWED_SCHEMES = {"http", "https"}
@@ -241,31 +243,28 @@ def _refuse_unsafe_redirect(
     return response
 
 
-class GuardedClient(nextcloud.Client):
-    """A pyocclient ``Client`` that refuses to follow redirects to unsafe hosts.
+def guarded_session() -> requests.Session:
+    """The session every Nextcloud request goes through.
 
-    pyocclient creates its ``requests`` session inside ``login()``, so the
-    redirect check is attached whenever a session is assigned. ``login()``
-    then sets ``session.verify`` from ``verify_certs``, which is always
-    ``certificate_check()``: a caller cannot pass ``verify_certs=False``.
+    Its TLS check is ``certificate_check()`` (raises ``CABundleError``), and
+    every redirect hop passes ``validate_server_address`` before it is
+    followed. The client sets its credentials on it and a timeout on every
+    request.
     """
-
-    def __init__(self, url: str, **kwargs: Any) -> None:
-        kwargs["verify_certs"] = certificate_check()
-        super().__init__(url, **kwargs)
-
-    @property
-    def _session(self) -> requests.Session | None:
-        return self.__dict__.get("_guarded_session")
-
-    @_session.setter
-    def _session(self, session: requests.Session | None) -> None:
-        if session is not None:
-            session.hooks["response"].append(_refuse_unsafe_redirect)
-        self.__dict__["_guarded_session"] = session
+    session = requests.Session()
+    session.verify = certificate_check()
+    session.hooks["response"].append(_refuse_unsafe_redirect)
+    return session
 
 
-def connect(user: User) -> nextcloud.Client:
+class GuardedClient(NextcloudClient):
+    """The Nextcloud client on a ``guarded_session``; nothing can swap it."""
+
+    def __init__(self, url: str) -> None:
+        super().__init__(url, guarded_session())
+
+
+def connect(user: User) -> NextcloudClient:
     """Log in to ``user``'s Nextcloud after checking the server address.
 
     Raises ``UnsafeServerAddress`` or ``CABundleError`` before connecting.

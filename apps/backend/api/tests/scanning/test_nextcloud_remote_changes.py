@@ -19,7 +19,6 @@ from unittest import mock
 
 import pyvips
 from django.test import TestCase, override_settings
-from owncloud import FileInfo
 
 from api.metadata.datetime_rules import OTHER_RULES_PARAMS
 from api.metadata.photo_datetime import extract_date_time
@@ -27,6 +26,7 @@ from api.metadata.photo_writer import write_photo_metadata
 from api.models import File, LongRunningJob, Photo, User
 from api.tests.utils import create_test_photo, create_test_user, patch_nextcloud_dns
 from nextcloud import directory_watcher
+from nextcloud.webdav import RemoteFile
 
 JAN_2019 = datetime.datetime(2019, 1, 15, 12, 0, tzinfo=datetime.UTC)
 MAR_2020 = datetime.datetime(2020, 3, 1, 9, 30, tzinfo=datetime.UTC)
@@ -74,9 +74,8 @@ class NextcloudRemoteChangesTest(TestCase):
 
     def _list(self, path):
         return [
-            FileInfo(
+            RemoteFile(
                 remote_path,
-                "file",
                 {
                     "{DAV:}getcontenttype": (
                         "application/octet-stream"
