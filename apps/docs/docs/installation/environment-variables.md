@@ -426,7 +426,7 @@ Releases after 1.3.0 keep the key in `protected_media` instead and move an exist
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `DEBUG` | _(off)_ | Set to exactly `1` to run the development settings (`librephotos.settings.development`), with Django's debug mode on, which shows tracebacks to whoever gets an error, and uvicorn with `--reload`. `true` does not count. The bundled Compose file sets `DEBUG=0`. |
+| `DEBUG` | _(off)_ | Set to exactly `1` to run the development settings (`librephotos.settings.development`), with Django's debug mode on, which shows tracebacks to whoever gets an error, and uvicorn with `--reload`. `true` does not count. <Since version="1.7.0" /> The released images do not include the development tools (Silk under `/api/silk`); the development compose build adds them. The bundled Compose file sets `DEBUG=0`. |
 
 This is for working on LibrePhotos, not for a server other people use.
 

@@ -126,7 +126,7 @@ Several overrides are comma-separated (`api.directory_watcher=DEBUG,api.runtime.
 
 ### Using silk
 
-In order to debug queries, start the backend container in dev mode. Then you can access silk under /api/silk. Silk is a live profiling and inspection tool for the Django framework. Silk intercepts and stores HTTP requests and database queries before presenting them in a user interface for further inspection.
+In order to debug queries, start the backend container in dev mode (`deploy/compose/docker-compose.dev.yml`, which builds the image with `requirements.dev.txt`). Then you can access silk under /api/silk. Silk is a live profiling and inspection tool for the Django framework. Silk intercepts and stores HTTP requests and database queries before presenting them in a user interface for further inspection.
 
 ## 🏙️ Structure
 

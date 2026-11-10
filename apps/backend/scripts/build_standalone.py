@@ -60,8 +60,6 @@ INCLUDE_PACKAGES = [
     "constance",
     "django_q",
     "corsheaders",
-    "django_extensions",
-    "django_filters",
     "allauth",
     "whitenoise",
     "uvicorn",
@@ -84,7 +82,6 @@ INCLUDE_PACKAGE_DATA = [
     "rest_framework",
     "allauth",
     "constance",
-    "django_extensions",
     "timezonefinder",
     "tzdata",
     "certifi",
@@ -102,7 +99,9 @@ NOFOLLOW = [
     "jupyter",
     "notebook",
     "tkinter",
+    # Development only (requirements.dev.txt), which a build venv may have.
     "silk",
+    "django_extensions",
     "coverage",
     # Not installed any more: insightface, scikit-learn and hdbscan, whose
     # plotting helpers imported it, are gone (#2856, #2858). Listed so an
@@ -111,8 +110,8 @@ NOFOLLOW = [
     "mpl_toolkits",
     # Optional imports nothing in LibrePhotos needs (counted with
     # --generate-c-only): DRF guards pygments with try/except ImportError, and
-    # prompt_toolkit and ipdb serve django-extensions' shell_plus and
-    # runserver_plus, which the standalone build does not offer. pip and
+    # prompt_toolkit and ipdb are development tools (requirements.dev.txt) that
+    # a build venv may still have installed. pip and
     # huggingface_hub (with httpx2, httpcore2, anyio) came in through
     # insightface and albumentations, which are gone; they stay listed so a
     # new optional importer does not compile them back in.
@@ -137,7 +136,6 @@ BYTECODE_MODULES = [
     "faiss.swigfaiss",
     "django",  # 907
     "allauth",  # 838, mostly one module per login provider
-    "django_extensions",  # 103
     "psycopg",  # 83, the PostgreSQL driver (the standalone build runs SQLite)
     "rest_framework",  # 73
     "django_q",  # 66

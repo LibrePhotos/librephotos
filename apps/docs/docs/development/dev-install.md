@@ -250,7 +250,7 @@ When done, press `Ctrl+P` followed by `Ctrl+Q` to detach without stopping the co
 
 **Using Django Silk:**
 
-In development mode, access `/api/silk` for request profiling and SQL query analysis.
+In development mode, access `/api/silk` for request profiling and SQL query analysis. <Since version="1.7.0" /> Silk and django-extensions (`shell_plus`, `show_urls`) are in `requirements.dev.txt`, which the development compose build installs; the released images leave them out.
 
 ### Frontend (React)
 

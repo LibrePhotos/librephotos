@@ -8,7 +8,6 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, TypedDict
 
-from bulk_update.helper import bulk_update
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
@@ -100,6 +99,9 @@ FACE_PREDICTION_COLUMNS = [
     "cluster_person",
     "cluster_probability",
 ]
+# Faces held before their predictions are written. Django's bulk_update splits
+# a write further when the database caps the query parameters (SQLite).
+FACE_WRITE_BATCH = 200
 
 
 def build_person_color_map(user: User) -> dict[int, str]:
@@ -630,11 +632,11 @@ def classify_face_page(
         if commit_time < datetime.datetime.now():
             lrj.update_progress(current=idx + 1, target=target_count)
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-        if len(face_stack) > 200:
-            bulk_update(face_stack, update_fields=FACE_PREDICTION_COLUMNS)
+        if len(face_stack) > FACE_WRITE_BATCH:
+            Face.objects.bulk_update(face_stack, FACE_PREDICTION_COLUMNS)
             face_stack = []
 
-    bulk_update(face_stack, update_fields=FACE_PREDICTION_COLUMNS)
+    Face.objects.bulk_update(face_stack, FACE_PREDICTION_COLUMNS)
 
 
 def fit_person_classifier(data_known: _FaceData) -> MLPClassifier | None:
