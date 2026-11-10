@@ -1,15 +1,17 @@
 import { ActionIcon, Alert, Button, Center, Code, Group, Loader, Stack, Text, Tooltip } from "@mantine/core";
 import { IconCopy as CopyIcon } from "@tabler/icons-react";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useMediaDiagnosticsQuery } from "../../api_client/media";
 import { probeMedia } from "../../api_client/media/mediaUrl";
 import { copyText } from "../../util/util";
 import { useSeekShortcut } from "./useSeekShortcut";
+import { useVideoPlayback } from "./useVideoPlayback";
 import { useVideoStart } from "./useVideoStart";
 import type { DiagnosticFact, VideoErrorKind } from "./videoFailure";
 import { classifyVideoFailure, factToText, formatSeekDistance, REMEDY_KEYS } from "./videoFailure";
+import { shownError } from "./videoPlayback";
 import classes from "./VideoPlayer.module.css";
 import type { VideoStart } from "./videoStart";
 import { VideoStartNote } from "./VideoStartNote";
@@ -33,6 +35,8 @@ type VideoPlayerProps = {
   playing: boolean;
   mediaHash?: string;
   onEnded?: () => void;
+  /** The video turned out not to play at all (the error panel is up), so it will never end. */
+  onUnplayable?: () => void;
   /**
    * Whether the server can convert this clip at all. A motion photo's clip is
    * always served as it is, so advising a conversion setting would not help.
@@ -65,6 +69,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   playing,
   mediaHash,
   onEnded,
+  onUnplayable,
   convertible = true,
   start,
 }: VideoPlayerProps) {
@@ -72,53 +77,35 @@ export const VideoPlayer = memo(function VideoPlayer({
   const { data: auth } = useAccessToken();
   const isAdmin = !!auth?.access?.is_admin;
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [errorKind, setErrorKind] = useState<VideoErrorKind | null>(null);
-  const [errorStatus, setErrorStatus] = useState<number | null>(null);
-  const [probing, setProbing] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [playback, dispatch] = useVideoPlayback(url);
   const [copied, setCopied] = useState(false);
-  const readyFiredRef = useRef(false);
-  // Whether the original was refused and the converted copy is playing instead.
-  // Mirrored in a ref for the probe, which outlives the render it started in.
-  const [usingFallback, setUsingFallback] = useState(false);
-  const usingFallbackRef = useRef(false);
+  const usingFallback = playback.source === "conversion";
   const src = usingFallback && fallbackUrl ? fallbackUrl : url;
   const videoStart = useVideoStart(videoRef, start, src);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Bumped on every probe so a stale answer cannot overwrite a newer one after
-  // the user has already navigated to a different video.
-  const probeRef = useRef(0);
   const seekHint = useSeekShortcut(videoRef, url);
 
-  const hasError = errorKind !== null;
+  const shown = shownError(playback);
+  const errorKind = shown?.kind ?? null;
+  const errorStatus = shown?.status ?? null;
+  const hasError = shown !== null;
+  const probing = playback.phase === "probing";
+  const loading = playback.phase === "loading" || (probing && playback.quiet);
+  const ready = playback.phase === "ready";
   // Only the permission case has anything to diagnose, and only an administrator
   // may see it: the answer is made of absolute paths, ownership and mode bits,
   // which are no use to someone who cannot act on them.
   const { data: diagnostics } = useMediaDiagnosticsQuery(mediaHash, errorKind === "permission" && isAdmin);
 
-  // Reset state when url changes
-  useEffect(() => {
-    setLoading(true);
-    setErrorKind(null);
-    setErrorStatus(null);
-    setProbing(false);
-    setRetryCount(0);
-    setUsingFallback(false);
-    usingFallbackRef.current = false;
-    readyFiredRef.current = false;
-    probeRef.current += 1;
-  }, [url]);
-
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || loading || hasError) return;
+    if (!video || !ready) return;
     if (playing) {
       video.play().catch(() => {});
     } else {
       video.pause();
     }
-  }, [playing, loading, hasError]);
+  }, [playing, ready]);
 
   useEffect(
     () => () => {
@@ -127,28 +114,12 @@ export const VideoPlayer = memo(function VideoPlayer({
     []
   );
 
-  const handleCanPlay = useCallback(() => {
-    if (!readyFiredRef.current) {
-      readyFiredRef.current = true;
-      setLoading(false);
-    }
-  }, []);
-
-  const handleError = useCallback(() => {
-    // With a conversion still in reserve the probe most likely ends in a retry,
-    // so keep the spinner up instead of flashing an error panel for a moment.
-    const mayFallBack = !!fallbackUrl && !usingFallbackRef.current;
-    if (mayFallBack) {
-      setLoading(true);
-    } else {
-      setLoading(false);
-      setErrorKind("unknown");
-    }
-    setProbing(true);
-
-    probeRef.current += 1;
-    const probeId = probeRef.current;
-
+  // The probe asks the server why the element failed. An answer for a video or an attempt no
+  // longer shown is dropped: the cleanup runs as soon as either changes.
+  const hasConversion = !!fallbackUrl;
+  useEffect(() => {
+    if (!probing) return;
+    let current = true;
     const probe = async () => {
       let kind: VideoErrorKind;
       let status: number | null = null;
@@ -163,36 +134,24 @@ export const VideoPlayer = memo(function VideoPlayer({
         // rather than inventing a cause.
         kind = "unknown";
       }
-      if (probeRef.current !== probeId) return;
-      // The file arrived whole and the browser still refused it, which is the
-      // one failure a conversion fixes -- so convert before saying anything.
-      if (kind === "format" && fallbackUrl && !usingFallbackRef.current) {
-        usingFallbackRef.current = true;
-        readyFiredRef.current = false;
-        setUsingFallback(true);
-        setErrorKind(null);
-        setProbing(false);
-        setLoading(true);
-        return;
-      }
-      setLoading(false);
-      setErrorKind(kind);
-      setErrorStatus(status);
-      setProbing(false);
+      if (current) dispatch({ type: "probed", kind, status, hasConversion });
     };
-
     void probe();
-  }, [src, fallbackUrl]);
+    return () => {
+      current = false;
+    };
+  }, [probing, src, hasConversion, dispatch]);
 
-  const handleRetry = useCallback(() => {
-    setErrorKind(null);
-    setErrorStatus(null);
-    setProbing(false);
-    setLoading(true);
-    readyFiredRef.current = false;
-    probeRef.current += 1;
-    setRetryCount(prev => prev + 1);
-  }, []);
+  // A slideshow moves on from a video that cannot play, as it never ends.
+  const reportUnplayable = useEffectEvent(() => onUnplayable?.());
+  const failed = playback.phase === "failed";
+  useEffect(() => {
+    if (failed) reportUnplayable();
+  }, [failed]);
+
+  const handleCanPlay = useCallback(() => dispatch({ type: "canPlay" }), [dispatch]);
+  const handleError = useCallback(() => dispatch({ type: "error", hasConversion }), [dispatch, hasConversion]);
+  const handleRetry = useCallback(() => dispatch({ type: "retry" }), [dispatch]);
 
   const errorTitle = () => {
     switch (errorKind) {
@@ -426,9 +385,9 @@ export const VideoPlayer = memo(function VideoPlayer({
       <video
         ref={videoRef}
         // `url` too: when it changes to the stream already playing (the details
-        // arrived after the fallback picked it), the reset above clears the
-        // ready flag, and only a fresh element fires canplay again.
-        key={`${url}|${src}-${retryCount}`}
+        // arrived after the fallback picked it), the player starts loading again,
+        // and only a fresh element fires canplay again.
+        key={`${url}|${src}-${playback.attempt}`}
         src={src}
         poster={posterUrl}
         controls={controls}
