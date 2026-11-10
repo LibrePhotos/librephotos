@@ -17,7 +17,7 @@ from api.drf.exceptions import Conflict, NameConflict
 from api.drf.params import parse_body, parse_query
 from api.drf.request_user import request_user
 from api.jobs.queue import JobStep
-from api.jobs.start import enqueue_for_request
+from api.jobs.start import enqueue_for_request, run_in_request
 from api.models import LongRunningJob, Photo
 from api.models.user import User
 from api.photos import moves
@@ -160,7 +160,12 @@ class MovePhotosView(APIView):
         chosen: OnConflict = "rename" if data.get("on_conflict") == "rename" else "skip"
         if plan.photo_count > moves.SYNC_MOVE_LIMIT:
             return self._start_job(user, photos, target, data, chosen)
-        result = moves.move_photos(plan, chosen)
+        result = run_in_request(
+            user,
+            LongRunningJob.JOB_MOVE_PHOTOS,
+            lambda: moves.move_photos(plan, chosen),
+            moves.MoveResult.as_dict,
+        )
         logger.info(
             "Moved %s photos for user %s (%s skipped, %s failed).",
             result.moved,
