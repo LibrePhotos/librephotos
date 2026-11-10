@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0226_remove_small_thumbnails_job'),
+        ('api', '0230_job_outcome_repair'),
     ]
 
     operations = [
