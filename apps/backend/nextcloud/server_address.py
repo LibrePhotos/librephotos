@@ -46,7 +46,7 @@ from django.conf import settings
 from urllib3.exceptions import LocationParseError
 from urllib3.util import parse_url
 
-from nextcloud.webdav import NextcloudClient
+from nextcloud.webdav import NextcloudClient, UnexpectedHostError
 
 if TYPE_CHECKING:
     from api.models.user import User
@@ -61,12 +61,12 @@ _IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 logger = logging.getLogger(__name__)
 
 
-class UnsafeServerAddress(ValueError):
-    """The Nextcloud server address must not be contacted."""
-
-
 class CABundleError(ValueError):
     """``NEXTCLOUD_CA_BUNDLE`` is set but names no usable certificate file."""
+
+
+class UnsafeServerAddress(ValueError):
+    """The Nextcloud server address must not be contacted."""
 
 
 def private_addresses_allowed() -> bool:
@@ -154,10 +154,25 @@ def _check_host(host: str, port: int, allow_private: bool) -> None:
 
 
 def validate_server_address(url: str) -> None:
-    """Raise ``UnsafeServerAddress`` unless ``url`` may be contacted."""
+    """Raise ``UnsafeServerAddress`` unless ``url`` may be stored and contacted.
+
+    A server address is a scheme, a host and an optional path: a query, a
+    fragment or parameters (``?``, ``#``, ``;``) are refused, so every URL the
+    client builds from it stays on its host.
+    """
     url = (url or "").strip()
     if not url:
         raise UnsafeServerAddress("No Nextcloud server address is set.")
+    if any(mark in url for mark in "?#;"):
+        raise UnsafeServerAddress(
+            "The Nextcloud server address has to be a plain address such as "
+            "https://cloud.example.com/nextcloud, without ?, # or ;."
+        )
+    _check_destination(url)
+
+
+def _check_destination(url: str) -> None:
+    """Raise ``UnsafeServerAddress`` unless the host ``url`` names may be contacted."""
     try:
         parsed = urlparse(url)
         port = parsed.port
@@ -239,7 +254,8 @@ def _refuse_unsafe_redirect(
             raise UnsafeServerAddress(
                 "The Nextcloud server address is not a URL."
             ) from e
-        validate_server_address(target)
+        # A redirect target may carry a query; its host gets the full check.
+        _check_destination(target)
     return response
 
 
@@ -262,6 +278,12 @@ class GuardedClient(NextcloudClient):
 
     def __init__(self, url: str) -> None:
         super().__init__(url, guarded_session())
+
+    def _checked(self, url: str) -> str:
+        try:
+            return super()._checked(url)
+        except UnexpectedHostError as error:
+            raise UnsafeServerAddress(str(error)) from error
 
 
 def connect(user: User) -> NextcloudClient:

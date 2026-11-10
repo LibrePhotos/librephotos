@@ -5,7 +5,7 @@ import logging
 import os
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, Protocol
@@ -66,12 +66,58 @@ def isValidNCMedia(file_obj: _RemoteFile) -> bool:
         return False
 
 
+# How deep and how large a scan directory may be. Far beyond any photo
+# library, so only a server that answers in circles or without end hits them.
+MAX_FOLDER_DEPTH = 100
+MAX_LISTED_ENTRIES = 5_000_000
+
+
+class NextcloudWalkLimitError(Exception):
+    """The scan directory is deeper or larger than a scan walks."""
+
+
 def collect_photos(nc: NextcloudClient, path: str, photos: list[_RemoteFile]) -> None:
-    for x in nc.list(path):
-        if not x.is_dir() and isValidNCMedia(x):
-            photos.append(x)
+    """Every media file below ``path``, depth first in listing order.
+
+    Each folder is listed once, at most ``MAX_FOLDER_DEPTH`` folders deep and
+    ``MAX_LISTED_ENTRIES`` entries in all; beyond either the scan fails with
+    NextcloudWalkLimitError rather than walk on.
+    """
+    visited: set[str] = set()
+    listed = 0
+    # Iterators over listings, so files and folders keep the order of the
+    # recursion this replaced.
+    stack: list[Iterator[_RemoteFile]] = []
+
+    def enter(folder: str) -> None:
+        nonlocal listed
+        key = folder.rstrip("/") + "/"
+        if key in visited:
+            return
+        visited.add(key)
+        if len(stack) >= MAX_FOLDER_DEPTH:
+            raise NextcloudWalkLimitError(
+                f"The Nextcloud scan directory is more than {MAX_FOLDER_DEPTH} "
+                "folders deep."
+            )
+        entries = nc.list(folder)
+        listed += len(entries)
+        if listed > MAX_LISTED_ENTRIES:
+            raise NextcloudWalkLimitError(
+                f"The Nextcloud scan directory holds more than {MAX_LISTED_ENTRIES} "
+                "files and folders."
+            )
+        stack.append(iter(entries))
+
+    enter(path)
+    while stack:
+        x = next(stack[-1], None)
+        if x is None:
+            stack.pop()
         elif x.is_dir():
-            collect_photos(nc, x.path, photos)
+            enter(x.path)
+        elif isValidNCMedia(x):
+            photos.append(x)
 
 
 def remote_mtime(file_obj: _RemoteFile) -> float | None:
