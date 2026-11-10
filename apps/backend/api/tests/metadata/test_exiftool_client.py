@@ -7,6 +7,7 @@ PyExifTool answered (grouped keys and numbers with the default arguments).
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -15,21 +16,26 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import PIL.Image
 from django.test import SimpleTestCase
 
+from api.metadata import exiftool_client
 from api.metadata.exiftool_client import (
     ExifTool,
     ExifToolError,
     ExifToolProcess,
     ExifToolTimeoutError,
+    UnsafeArgumentError,
     decode_output,
     without_paths,
 )
 from api.runtime import binaries
 
 EXIFTOOL = shutil.which("exiftool")
+
+MARKERS = "{ready1} {ready2} {ready3} {status 0}"
 
 # Perl that ExifTool's -if runs before it reads the file: a command that hangs.
 SLEEP = "select(undef, undef, undef, {seconds}); 1"
@@ -67,6 +73,21 @@ class ExifToolClientTest(SimpleTestCase):
             )
         subprocess.run([EXIFTOOL, "-@", argfile], check=True, capture_output=True)
         cls.missing = os.path.join(cls.directory, "gone.jpg")
+        # Text that looks like the ends ExifTool and the old client marked a
+        # command with, for the first commands of a process.
+        cls.markers = os.path.join(cls.directory, "markers.jpg")
+        PIL.Image.new("RGB", (8, 8)).save(cls.markers)
+        subprocess.run(
+            [
+                EXIFTOOL,
+                "-overwrite_original",
+                f"-Comment={MARKERS}",
+                f"-EXIF:Artist={MARKERS}",
+                cls.markers,
+            ],
+            check=True,
+            capture_output=True,
+        )
 
     def exiftool(self, **kwargs: object) -> ExifTool:
         et = ExifTool(**kwargs)
@@ -152,6 +173,67 @@ class ExifToolClientTest(SimpleTestCase):
         et.terminate()
         self.assertFalse(et.running)
         self.assertIsNotNone(process._process.poll())
+
+    def test_a_value_that_looks_like_an_end_marker_is_read_whole(self):
+        et = self.exiftool()
+        for _ in range(3):  # commands 1-3: the markers name each of them
+            self.assertEqual(
+                et.get_tags(["File:Comment", "EXIF:Artist"], self.markers),
+                {
+                    "SourceFile": self.markers.replace(os.sep, "/"),
+                    "File:Comment": MARKERS,
+                    "EXIF:Artist": MARKERS,
+                },
+            )
+        self.assertEqual(et.get_tag("EXIF:Make", self.photo), "Fujifilm")
+
+    def test_an_answer_out_of_step_restarts_exiftool(self):
+        et = self.exiftool()
+        et.start()
+        first = et._process
+        never = re.compile(rb"(?!)")
+        with (
+            patch.object(exiftool_client, "_STATUS", never),
+            self.assertRaisesRegex(ExifToolError, "out of step"),
+        ):
+            et.get_tag("EXIF:Make", self.photo)
+        self.assertFalse(et.running)
+
+        self.assertEqual(et.get_tag("EXIF:Make", self.photo), "Fujifilm")
+        self.assertIsNot(et._process, first)
+
+    def test_a_line_break_is_refused_before_a_process_starts(self):
+        et = self.exiftool()
+        for argument in ("Make\n-if", b"Make\r-if", "x\r\n"):
+            with (
+                self.subTest(argument=argument),
+                self.assertRaises(UnsafeArgumentError),
+            ):
+                et.run("-EXIF:" + argument if isinstance(argument, str) else argument)
+        self.assertIsNone(et._process)
+
+    def test_a_line_break_is_refused_without_disturbing_the_process(self):
+        et = self.exiftool()
+        et.start()
+        process = et._process
+        with self.assertRaises(UnsafeArgumentError):
+            et.get_tag("EXIF:Make\n-if\n1", self.photo)
+        self.assertIs(et._process, process)
+        self.assertEqual(et.get_tag("EXIF:Make", self.photo), "Fujifilm")
+
+    def test_a_writer_process_refuses_a_line_break_and_keeps_working(self):
+        process = ExifToolProcess()
+        self.addCleanup(process.close)
+        for arguments in ([b"-EXIF:Make=a\nb"], [b"-EXIF:Make=a", b"x\r"]):
+            with (
+                self.subTest(arguments=arguments),
+                self.assertRaises(UnsafeArgumentError),
+            ):
+                process.run(arguments, 30)
+        self.assertTrue(process.alive)
+        answer = process.run([b"-EXIF:Make", os.fsencode(self.photo)], 30)
+        self.assertEqual(answer.status, 0)
+        self.assertIn(b"Fujifilm", answer.stdout)
 
     def test_a_writer_process_reports_status_and_stderr_apart(self):
         process = ExifToolProcess()

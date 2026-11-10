@@ -23,6 +23,7 @@ import json
 import os
 import queue
 import re
+import secrets
 import sys
 import threading
 import time
@@ -54,6 +55,26 @@ class ExifToolError(Exception):
 
 class ExifToolTimeoutError(ExifToolError, TimeoutError):
     """ExifTool did not answer a command in time; it was killed."""
+
+
+class UnsafeArgumentError(ExifToolError, ValueError):
+    """An argument holds a line break; nothing was sent to ExifTool."""
+
+
+def refuse_line_breaks(arguments: Sequence[str | bytes]) -> None:
+    """Raise ``UnsafeArgumentError`` if any argument holds a line break.
+
+    ExifTool reads one argument per line, so a line break inside one would
+    start another argument (an option such as ``-if <perl>``). The callers
+    check their own input too; this is the last check before the pipe.
+    """
+    for argument in arguments:
+        if isinstance(argument, bytes):
+            unsafe = b"\n" in argument or b"\r" in argument
+        else:
+            unsafe = "\n" in argument or "\r" in argument
+        if unsafe:
+            raise UnsafeArgumentError("refusing an ExifTool argument with a line break")
 
 
 @dataclass(frozen=True)
@@ -119,6 +140,7 @@ class ExifToolProcess:
         self._stdout = _Pipe(self._process.stdout, "exiftool-stdout")
         self._stderr = _Pipe(self._process.stderr, "exiftool-stderr")
         self._commands = 0
+        self._token = b"lp-" + secrets.token_hex(16).encode()
         self._stopped = False
 
     @property
@@ -129,19 +151,26 @@ class ExifToolProcess:
     def run(self, arguments: Sequence[bytes], timeout: float) -> Answer:
         """Run one command (one argument per item).
 
-        Raises ``ExifToolError`` when ExifTool has exited, with what it said
-        on stderr, and ``ExifToolTimeoutError`` when it did not finish within
-        ``timeout`` seconds (it is killed then). No argument may hold a line
-        break: ExifTool reads one argument per line.
+        Raises ``UnsafeArgumentError`` before sending anything when an
+        argument holds a line break (ExifTool reads one argument per line, so
+        it would start another one: ``-if <perl>`` runs code),
+        ``ExifToolError`` when ExifTool has exited, with what it said on
+        stderr, or its answer was out of step (it is killed then), and
+        ``ExifToolTimeoutError`` when it did not finish within ``timeout``
+        seconds (it is killed then).
         """
+        refuse_line_breaks(arguments)
         self._commands += 1
+        # The end of this command's output on each stream: a token of this
+        # process that no file can guess, so a value cannot end it early.
+        done = b"%s:%d" % (self._token, self._commands)
         ready = b"{ready%d}" % self._commands
         command = [
             *arguments,
             b"-echo3",
-            b"{status ${status}}",
+            b"{status ${status}}" + done,
             b"-echo4",
-            ready,
+            done,
             b"-execute%d" % self._commands,
         ]
         stdin = self._process.stdin
@@ -154,22 +183,29 @@ class ExifToolProcess:
             raise self._exited() from error
         deadline = time.monotonic() + timeout
         try:
-            stdout = self._stdout.read_until(ready, deadline)
+            stdout = self._stdout.read_until(done, deadline)
+            # ExifTool's own {readyN} follows the token, and nothing else.
+            between = (
+                self._stdout.read_until(ready, deadline) if stdout is not None else None
+            )
             stderr = (
-                self._stderr.read_until(ready, deadline) if stdout is not None else None
+                self._stderr.read_until(done, deadline) if between is not None else None
             )
         except queue.Empty:
             self.kill()
             raise ExifToolTimeoutError(
                 f"ExifTool did not answer within {timeout:g} s"
             ) from None
-        if stdout is None or stderr is None:
+        if stdout is None or between is None or stderr is None:
             self._stopped = True
             raise self._exited()
         stdout = stdout.rstrip()
         status = _STATUS.search(stdout)
-        if status is None:
-            raise ExifToolError("ExifTool answered without an exit status")
+        if status is None or between.strip():
+            # The streams are out of step: what is left in the pipes belongs
+            # to no command. Start the next command on a fresh ExifTool.
+            self.kill()
+            raise ExifToolError("ExifTool's answer was out of step; restarting it")
         return Answer(stdout[: status.start()], stderr, int(status.group(1)))
 
     def _exited(self) -> ExifToolError:
@@ -274,6 +310,7 @@ class ExifTool:
         self.terminate()
 
     def run(self, *params: str | bytes) -> Answer:
+        refuse_line_breaks(params)  # before a process is started for it
         self.start()
         assert self._process is not None
         return self._process.run([_fsencode(param) for param in params], self.timeout)
