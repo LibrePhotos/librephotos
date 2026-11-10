@@ -25,6 +25,7 @@ from api.metadata.library_write import WRITE_TYPES
 from api.metadata.rights import PhotoRightsData, rights_of
 from api.mime import original_mime_type
 from api.models import Face, File, Person, Photo, User
+from api.models.photo import CategorySource
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
@@ -521,7 +522,7 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             return
         for field in category_fields:
             setattr(instance, field, validated_data.pop(field))
-        instance.category_source = "user"
+        instance.category_source = CategorySource.USER
         # last_modified named so auto_now reaches the row: the mobile delta
         # sync only re-sends a photo whose last_modified moved.
         instance.save(

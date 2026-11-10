@@ -249,6 +249,17 @@ class LocationSource(models.TextChoices):
     USER = "user", "User"
 
 
+class CategorySource(models.TextChoices):
+    """Who set a photo's media category flags (``Photo.category_source``).
+
+    The detectors (a scan, Classify Media, OCR) change only an ``AUTO`` photo's
+    flags; a correction in the lightbox pins them as ``USER``.
+    """
+
+    AUTO = "auto", "Detector"
+    USER = "user", "User"
+
+
 _PhotoManagerBase = models.Manager.from_queryset(PhotoQuerySet)
 
 
@@ -365,11 +376,12 @@ class Photo(SyncedModel):
     archived = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     # Media category flags. ``category_source`` records who set them so a
-    # rescan/backfill never clobbers a manual correction: "auto" (detector) or
-    # "user" (manually corrected in the UI).
+    # rescan/backfill never clobbers a manual correction (``CategorySource``).
     is_screenshot = models.BooleanField(default=False, db_index=True)
     is_document = models.BooleanField(default=False, db_index=True)
-    category_source = models.CharField(max_length=8, default="auto")
+    category_source = models.CharField(
+        max_length=8, default=CategorySource.AUTO, choices=CategorySource.choices
+    )
     video_length = models.TextField(blank=True, null=True)
     # What ffprobe said about a video's first stream and container, asked once
     # at scan time (see api.video.color.probe). NULL: never probed. "": probed,

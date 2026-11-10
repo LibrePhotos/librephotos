@@ -52,7 +52,12 @@ from api.models.album_thing import (
     refresh_album_thing_photo_counts,
 )
 from api.models.person import person_ids_for_photos, refresh_person_face_counts
-from api.models.photo import restore_photos, shared_library_q, trash_photos
+from api.models.photo import (
+    CategorySource,
+    restore_photos,
+    shared_library_q,
+    trash_photos,
+)
 from api.models.photo_caption import PhotoCaption
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.photos.files import remove_photos
@@ -588,7 +593,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
         return {
             "is_screenshot": is_screenshot,
             "is_document": is_document,
-            "category_source": "user",
+            "category_source": CategorySource.USER,
         }
 
     def check_select_all(self, value: object) -> None:
@@ -602,7 +607,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
     def differs(self, user: User, value: object) -> Q:
         if value == self.AUTO:
             # A photo still on automatic already has the detectors' flags.
-            return ~Q(category_source="auto")
+            return ~Q(category_source=CategorySource.AUTO)
         changes = ~Q(**self.new_values(user, value))
         if value != "photo":
             # A video is never made a screenshot or a document: the lightbox
@@ -626,7 +631,7 @@ class SetPhotosCategory(BulkPhotoMutationView):
             is_screenshot, is_document = detect_media_category(photo)
             photo.is_screenshot = is_screenshot
             photo.is_document = bool(is_document)
-            photo.category_source = "auto"
+            photo.category_source = CategorySource.AUTO
             photo.last_modified = now
             reset.append(photo)
         Photo.objects.bulk_update(
