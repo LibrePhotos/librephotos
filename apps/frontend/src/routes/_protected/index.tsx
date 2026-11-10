@@ -1,9 +1,8 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
 import { Text } from "@mantine/core";
 import { IconFilterOff as FilterOff, IconPhoto as Photo } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
@@ -21,13 +20,13 @@ import {
   validateTimelineSearch,
 } from "../../components/photolist/timelineFilter";
 import { TimelineFilterPopover } from "../../components/photolist/TimelineFilterPopover";
+import { useGroupedPhotos } from "../../components/photolist/useGroupedPhotos";
 import { useHasNoScanDirectory } from "../../components/photolist/useScanEmptyStateAction";
 import { useTimelineFilter } from "../../components/photolist/useTimelineFilter";
 import { useOptionalUploadProcessing } from "../../components/upload";
 import { importCounts } from "../../components/upload/uploadProcessing";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { i18nResolvedLanguage } from "../../i18n";
-import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/")({
   component: TimestampPhotos,
@@ -39,7 +38,6 @@ export const Route = createFileRoute("/_protected/")({
 
 function TimestampPhotos() {
   const { t } = useTranslation();
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const { workerRunningJob } = useWorkerStatus();
   // Uploads still being imported (#2739): the photos are on their way, like a running scan's.
   const openImports = useOptionalUploadProcessing()?.openImports;
@@ -69,9 +67,7 @@ function TimestampPhotos() {
   const { data: photosGroupedByDate, isLoading, refetch } = photosQuery;
   const listFailure = useListFailure(photosQuery);
 
-  useEffect(() => {
-    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
-  }, [photosGroupedByDate]);
+  const { groups, photosFlat } = useGroupedPhotos(photosGroupedByDate);
 
   // Pig reports the date groups on screen; their placeholder tiles name the
   // pages of those days still to load. Pages are keyed by the filter, so after
@@ -193,7 +189,7 @@ function TimestampPhotos() {
     <PhotoListView
       title={t("photos.photos")}
       loading={isLoading || (!filterReady && !filterFailure)}
-      photoset={photosGroupedByDate ?? []}
+      photoset={groups}
       idx2hash={photosFlat}
       updateGroups={getAlbums}
       selectable

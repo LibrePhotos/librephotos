@@ -1,7 +1,6 @@
-import type { DatePhotosGroup, PigPhoto } from "@librephotos/api-client";
 import { IconBookmark as Bookmark, IconCloudUpload } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserAlbumQuery } from "../../../api_client/albums/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
@@ -14,10 +13,10 @@ import { UserAlbumHeaderMenu } from "../../../components/album/UserAlbumHeaderMe
 import { UserAlbumIdentity } from "../../../components/album/UserAlbumIdentity";
 import { DEFAULT_MEDIA_TYPE, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView, type EmptyStateConfig } from "../../../components/photolist/PhotoListView";
+import { useGroupedPhotos } from "../../../components/photolist/useGroupedPhotos";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import { useAlbumUpload } from "../../../components/upload/useAlbumUpload";
 import { formatPhotoDaySpan } from "../../../util/dateUtils";
-import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/user/$id")({
   component: AlbumUserGallery,
@@ -25,9 +24,6 @@ export const Route = createFileRoute("/_protected/album/user/$id")({
 });
 
 function AlbumUserGallery() {
-  const [flatPhotos, setFlatPhotos] = useState<PigPhoto[]>([]);
-  const [groupedPhotos, setGroupedPhotos] = useState<DatePhotosGroup[]>([]);
-  const [isPublic, setIsPublic] = useState(false);
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
   const { id: albumID } = Route.useParams();
   const mediaType = useMediaTypeFilter();
@@ -39,17 +35,12 @@ function AlbumUserGallery() {
   const notFound = isError && !album;
   const { t } = useTranslation();
 
-  useEffect(() => {
-    if (!album) {
-      return;
-    }
-    setIsPublic(album.owner && album.owner.id !== currentUser?.id);
-    setGroupedPhotos(album.grouped_photos);
-    setFlatPhotos(getPhotosFlatFromGroupedByDate(album.grouped_photos));
-  }, [album, currentUser]);
+  const { groups: groupedPhotos, photosFlat: flatPhotos } = useGroupedPhotos(album?.grouped_photos);
 
   // Known once both the album and who is looking are: an owner never sees "Leave album" first.
   const ownAlbum = album && currentUser ? album.owner.id === currentUser.id : undefined;
+  // Read-only only once it is known to be someone else's: until then the list waits for the user.
+  const isPublic = ownAlbum === false;
   // The owner uploads into the album from its "⋮", its empty state, or by dropping files (#612)
   const upload = useAlbumUpload(album && ownAlbum ? { id: album.id, title: album.title, locked: album.locked } : null);
   let headerMenu: React.ReactNode;

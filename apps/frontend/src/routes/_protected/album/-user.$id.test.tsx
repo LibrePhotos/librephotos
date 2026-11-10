@@ -162,6 +162,8 @@ describe("the user album page", () => {
     const props = await render();
 
     expect(props.headerMenu).toBeUndefined();
+    // Not someone else's album either: the list waits for the user instead of a read-only view.
+    expect(props.isPublic).toBe(false);
   });
 
   it("offers no menu for an album that is not there", async () => {

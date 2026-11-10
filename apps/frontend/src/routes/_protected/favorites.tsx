@@ -1,16 +1,15 @@
-import type { PigPhoto } from "@librephotos/api-client";
 import { Photoset } from "@librephotos/api-client";
 import { IconStar as Star } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useDateAlbumDayPages, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { useListFailure } from "../../components/common/useListFailure";
 import { mediaTypeToBulkQuery, validateMediaSearch } from "../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { EmptyStateConfig } from "../../components/photolist/PhotoListView";
+import { useGroupedPhotos } from "../../components/photolist/useGroupedPhotos";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
-import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/favorites")({
   component: FavoritePhotos,
@@ -22,7 +21,6 @@ export const Route = createFileRoute("/_protected/favorites")({
 function FavoritePhotos() {
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();
-  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
   const photosQuery = useFetchDateAlbumsQuery({
     photosetType: Photoset.FAVORITES,
@@ -31,9 +29,7 @@ function FavoritePhotos() {
   const { data: photosGroupedByDate, isLoading } = photosQuery;
   const listFailure = useListFailure(photosQuery);
 
-  useEffect(() => {
-    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
-  }, [photosGroupedByDate]);
+  const { groups, photosFlat } = useGroupedPhotos(photosGroupedByDate);
 
   // Pig reports the day groups on screen; their placeholders name the pages still to load.
   const getAlbums = useDateAlbumDayPages({ photosetType: Photoset.FAVORITES, mediaType });
@@ -51,7 +47,7 @@ function FavoritePhotos() {
     <PhotoListView
       title={t("photos.favorite")}
       loading={isLoading}
-      photoset={photosGroupedByDate ?? []}
+      photoset={groups}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
