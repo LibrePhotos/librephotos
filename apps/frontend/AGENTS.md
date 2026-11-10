@@ -64,7 +64,8 @@ green CI run. To develop against a local backend, copy `.env.development.example
   a `queryFn` reads goes into the key (`@tanstack/query/exhaustive-deps`). Hooks get the client from
   `useQueryClient()`; the `queryClient` singleton is for `api_client/api.ts` and `index.tsx` (`ban/query-client-singleton`).
 - Cookies go through `src/api_client/authCookies.ts` (`getAuthCookie`, `setAuthCookie`, `clearAuthCookies`),
-  which gives them their flags (path `/`, SameSite=Lax, Secure on HTTPS); lint bans `react-cookie` elsewhere.
+  which gives them their flags (path `/`, SameSite=Lax, Secure on HTTPS) over `documentCookie.ts`; lint bans `document.cookie`
+  everywhere else (`ban/document-cookie`; tests may read it).
   The `jwt` cookie is HttpOnly and the server clears it on logout (`/api/auth/token/blacklist/`).
 - Follow a job or wait on a condition with `pollWhile`, `pollUntil` or `invalidateAfter` from
   `@librephotos/api-client` (`packages/api-client/src/polling.ts`), with a `POLL_*_MS` name for the

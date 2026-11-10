@@ -60,13 +60,6 @@ export const importBans = [
       "Toasts go through service/notifications (notification.success, error, warning or hide), not @mantine/notifications.",
     allowIn: ["src/service/notifications/**/*.{ts,tsx}", "src/App.tsx"],
   },
-  {
-    // Cookies have one home, so the auth cookies keep one set of flags (path, SameSite, Secure).
-    id: "react-cookie",
-    name: "react-cookie",
-    message: "Read and write cookies through src/api_client/authCookies.ts.",
-    allowIn: ["src/api_client/authCookies.ts", "src/api_client/authCookies.test.ts"],
-  },
   // Lists and grids (AGENTS.md): photo layouts render through components/photolist/PhotoListView and
   // fixed-size tiles through components/virtual/TileGrid, so every long list is virtualized one way.
   {
@@ -455,6 +448,15 @@ export const propertyBans = [
     message:
       "Call endpoints.<name>(apiClient, ...) from @librephotos/api-client; add the endpoint and its schema there (AGENTS.md, API layer).",
     allowIn: ["src/api_client/api.ts", ...TEST_FILES],
+  },
+  {
+    // Cookies have one home, so the auth cookies keep one set of flags (path, SameSite, Secure) and
+    // one encoding: authCookies.ts over documentCookie.ts. Tests read the jar to check what was stored.
+    id: "document-cookie",
+    object: "document",
+    property: "cookie",
+    message: "Read and write cookies through src/api_client/authCookies.ts.",
+    allowIn: ["src/api_client/documentCookie.ts", ...TEST_FILES],
   },
   { id: "square-thumbnail-url", property: "squareThumbnail", ...squareThumbnail },
   { id: "square-thumbnail-small-url", property: "squareThumbnailSmall", ...squareThumbnail },

@@ -1,6 +1,6 @@
 import { jwtDecode } from "jwt-decode";
-import { Cookies } from "react-cookie";
 import { fromUnixSeconds } from "../util/dateUtils";
+import { isCookiePath, readCookie, removeCookie, writeCookie } from "./documentCookie";
 
 /**
  * The web keeps its JWTs in script-readable cookies, and every one of them
@@ -46,6 +46,9 @@ const AUTH_COOKIES = ["access", "refresh", "jwt"] as const;
  * only one). A page sees the cookies of its own folder and of every folder
  * above it, so a copy made on any of those pages -- the login page of a
  * subpath install at `/librephotos`, say -- is one of these.
+ *
+ * A folder whose name holds a `;` cannot be named in a cookie's `Path` (the `;` would start
+ * another attribute), so it is left out rather than failing the logout.
  */
 function visibleCookieFolders() {
   const folders: string[] = [AUTH_COOKIE_PATH];
@@ -55,16 +58,12 @@ function visibleCookieFolders() {
     folder += `/${segment}`;
     folders.push(folder);
   }
-  return folders;
+  return folders.filter(isCookiePath);
 }
 
-/**
- * A JWT cookie's value, or undefined when it is not set. The cookie library
- * returns whatever it parsed; a token is never JSON, so it stays a string.
- */
+/** A JWT cookie's value, or undefined when it is not set. */
 export function getAuthCookie(name: "access" | "refresh"): string | undefined {
-  const value: unknown = new Cookies().get(name);
-  return typeof value === "string" ? value : undefined;
+  return readCookie(name);
 }
 
 /**
@@ -91,22 +90,20 @@ function rememberedUntil(token: string): Date | undefined {
  * nothing else to remember.
  */
 export function setAuthCookie(name: "access" | "refresh", value: string) {
-  const cookies = new Cookies();
   // A copy an earlier version scoped to a folder is listed before the `/` one
   // on this page -- longer paths come first -- and would be read instead of
   // the fresh token.
   for (const folder of visibleCookieFolders().slice(1)) {
-    cookies.remove(name, { path: folder });
+    removeCookie(name, folder);
   }
-  cookies.set(name, value, { ...authCookieOptions(), expires: rememberedUntil(value) });
+  writeCookie(name, value, { ...authCookieOptions(), expires: rememberedUntil(value) });
 }
 
 export function clearAuthCookies() {
-  const cookies = new Cookies();
   for (const name of AUTH_COOKIES) {
     // The `/` cookie, and any copy an earlier version left above this page.
     for (const folder of visibleCookieFolders()) {
-      cookies.remove(name, { path: folder });
+      removeCookie(name, folder);
     }
   }
 }
