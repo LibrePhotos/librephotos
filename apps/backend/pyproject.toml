@@ -208,6 +208,8 @@ ignore_imports = [
   # The rule modules give User its JSON field defaults; migrations reference
   # those defaults by path in api.models.user, so they stay there.
   "api.models.user -> api.metadata.datetime_rules",
+  # validate_time_zone checks default_timezone against the zone list.
+  "api.models.user -> api.metadata.time_zones",
   "api.models.user -> api.stacks.burst_rules",
   # OPENCLIP and TAG_THING_TYPE, the model's name as stored in captions_json,
   # clip_embeddings_model and thing_type. api.search.semantic defines them and

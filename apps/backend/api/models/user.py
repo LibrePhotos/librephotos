@@ -1,16 +1,29 @@
 import os
 from typing import Any
 
-import pytz
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django_cryptography.fields import encrypt
 
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON
+from api.metadata.time_zones import ALL_TIME_ZONES_SET
 from api.models.photo_license import LICENSE_MAX_LENGTH, PhotoLicense
 from api.stacks.burst_rules import get_default_burst_detection_rules
+
+
+def validate_time_zone(value: object) -> None:
+    """``value`` is an IANA time zone name of ``api.metadata.time_zones``, exactly.
+
+    A validator rather than ``choices``: the names follow the pinned tzdata
+    package, and a tzdata update must not need a migration.
+    """
+    if not isinstance(value, str) or value not in ALL_TIME_ZONES_SET:
+        raise ValidationError(
+            "%(value)s is not a known time zone.", params={"value": value}
+        )
 
 
 def get_default_config_datetime_rules() -> str:  # This is a callable
@@ -124,10 +137,7 @@ class User(AbstractUser):
     burst_detection_rules = models.JSONField(
         default=get_default_config_burst_detection_rules
     )
-    default_timezone = models.TextField(
-        choices=[(x, x) for x in pytz.all_timezones],
-        default="UTC",
-    )
+    default_timezone = models.TextField(default="UTC", validators=[validate_time_zone])
     public_sharing = models.BooleanField(default=False)
     public_sharing_defaults = models.JSONField(
         default=get_default_public_sharing_settings

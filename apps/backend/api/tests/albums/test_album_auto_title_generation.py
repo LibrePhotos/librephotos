@@ -7,10 +7,9 @@ implementation has quirks or outright bugs (documented inline), the tests
 assert the quirky behavior so a refactor that silently changes it is caught.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-import pytz
 from django.test import TestCase
 
 from api.models.person import Person
@@ -24,7 +23,7 @@ from api.tests.utils import (
 
 
 def utc(*args):
-    return datetime(*args).replace(tzinfo=pytz.utc)
+    return datetime(*args).replace(tzinfo=UTC)
 
 
 class GenerateTitleTestCase(TestCase):

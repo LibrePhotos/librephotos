@@ -18,9 +18,8 @@ Two distinct defects in ``api.albums.auto_albums.generate_event_albums`` are cov
    for the very same library once the auto albums were already there.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
-import pytz
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -29,7 +28,7 @@ from api.albums.auto_albums import generate_event_albums
 from api.models import AlbumAuto, LongRunningJob
 from api.tests.utils import create_test_photo, create_test_user
 
-BASE = datetime(2020, 1, 1, 12, 0, 0, tzinfo=pytz.utc)
+BASE = datetime(2020, 1, 1, 12, 0, 0, tzinfo=UTC)
 
 
 def make_group(user, start, size):

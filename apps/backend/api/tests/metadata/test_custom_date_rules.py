@@ -7,9 +7,9 @@ import os
 import re
 import time
 import uuid
+from datetime import UTC
 from unittest.mock import patch
 
-import pytz
 from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 
@@ -259,7 +259,7 @@ class CustomRuleScanTest(TestCase):
 
         photo = Photo.objects.get(pk=photo.pk)
         self.assertEqual(
-            datetime.datetime(2023, 1, 1, 12, 0, 5, tzinfo=pytz.utc),
+            datetime.datetime(2023, 1, 1, 12, 0, 5, tzinfo=UTC),
             photo.exif_timestamp,
         )
         self.assertEqual(NAME_RULE["id"], photo.exif_timestamp_source)

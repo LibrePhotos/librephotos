@@ -6,9 +6,8 @@ Events list, the event page and the mobile sync feed show it while it stays
 visible, and event generation keeps it.
 """
 
-from datetime import timedelta
+from datetime import UTC, timedelta
 
-import pytz
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -24,7 +23,7 @@ from api.tests.utils import (
     create_test_user,
 )
 
-BASE = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=pytz.utc)
+BASE = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=UTC)
 
 
 class EventCoverTestBase(TestCase):

@@ -9,13 +9,12 @@ import re
 import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import UTC, datetime, timedelta, timezone, tzinfo
 from typing import TYPE_CHECKING, Any
-
-import pytz
 
 from api.metadata.date_patterns import compile_date_pattern
 from api.metadata.tags import LOCAL_TIME_TAG_OFFSETS, Tags
+from api.metadata.time_zones import ALL_TIME_ZONES, localize, time_zone
 
 if TYPE_CHECKING:
     from timezonefinder import TimezoneFinder
@@ -248,7 +247,7 @@ class RuleTypes:
 
 class TimeExtractionRule:
     """The goal is to help extract local time, but for historical reason it is expected the returned
-    datetime will have timezone to be set to pytz.utc (so local time + timezone equal to UTC)..
+    datetime will have timezone to be set to UTC (so local time + timezone equal to UTC)..
     ``apply`` returns it as a ``CaptureTime``, with the UTC offset of that local time where the
     rule knows it.
 
@@ -500,13 +499,13 @@ class TimeExtractionRule:
         if description == "gps_timezonefinder":
             return _get_gps_tz(gps_lat, gps_lon)
         if description == "user_default":
-            return (True, pytz.timezone(user_default_tz))
+            return (True, time_zone(user_default_tz))
         if description == "server_local":
             return (True, None)
         if description.lower() == "utc":
-            return (True, pytz.utc)
+            return (True, UTC)
         if description.startswith("name:"):
-            return (True, pytz.timezone(description[5:]))
+            return (True, time_zone(description[5:]))
         raise ValueError(f"Unknown tz description {description}")
 
     def _transform_tz(
@@ -523,7 +522,7 @@ class TimeExtractionRule:
         if not dt:
             return None
         if not self.params.get("transform_tz"):
-            return CaptureTime(dt.replace(tzinfo=pytz.utc))
+            return CaptureTime(dt.replace(tzinfo=UTC))
         has_source_tz, source_tz = self._get_tz(
             self.params["source_tz"], gps_lat, gps_lon, user_default_tz
         )
@@ -535,11 +534,13 @@ class TimeExtractionRule:
         if not has_report_tz:
             return None
         # Either of source_tz or report_tz might be None - meaning that we want to use
-        # server local timezone
-        local = datetime.fromtimestamp(
-            dt.replace(tzinfo=source_tz).timestamp(), report_tz
-        )
-        return CaptureTime(local.replace(tzinfo=pytz.utc), _offset_of(local))
+        # server local timezone. dt's wall clock (also an aware one: a file
+        # time, in UTC) is read in source_tz at the offset of that date.
+        wall_clock = dt.replace(tzinfo=None)
+        source = localize(wall_clock, source_tz) if source_tz else wall_clock
+        local = datetime.fromtimestamp(source.timestamp(), report_tz)
+        # fold=0: the wall clock is all that is kept, tagged UTC.
+        return CaptureTime(local.replace(tzinfo=UTC, fold=0), _offset_of(local))
 
     def _apply_exif(
         self, exif_tags: dict[str, object], context: RuleContext
@@ -599,9 +600,9 @@ class TimeExtractionRule:
     ) -> CaptureTime | None:
         file_property = self.params.get("file_property")
         if file_property == "mtime":
-            dt = datetime.fromtimestamp(os.path.getmtime(path), pytz.utc)
+            dt = datetime.fromtimestamp(os.path.getmtime(path), UTC)
         elif file_property == "ctime":
-            dt = datetime.fromtimestamp(os.path.getctime(path), pytz.utc)
+            dt = datetime.fromtimestamp(os.path.getctime(path), UTC)
         else:
             raise ValueError(f"Unknown file_property {file_property}")
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
@@ -611,7 +612,7 @@ class TimeExtractionRule:
         if taken_at is None:
             return None
         # _transform_tz reads a naive time in source_tz; this one is UTC.
-        utc = datetime.fromtimestamp(taken_at.timestamp(), pytz.utc)
+        utc = datetime.fromtimestamp(taken_at.timestamp(), UTC)
         return self._transform_tz(
             utc.replace(tzinfo=None),
             context.gps_lat,
@@ -635,7 +636,7 @@ def _local_time(
     offset = _utc_offset_minutes(suffix)
     if offset is None:
         offset = _utc_offset_minutes(stated_offset)
-    return CaptureTime(wall_clock.replace(tzinfo=pytz.utc), offset)
+    return CaptureTime(wall_clock.replace(tzinfo=UTC), offset)
 
 
 def _utc_to_local(
@@ -648,18 +649,16 @@ def _utc_to_local(
         zone = timezone(timedelta(minutes=stated_offset))
     else:
         has_gps_tz, gps_tz = _get_gps_tz(context.gps_lat, context.gps_lon)
-        zone = (
-            gps_tz if has_gps_tz and gps_tz else pytz.timezone(context.user_default_tz)
-        )
-    local = utc_time.replace(tzinfo=pytz.utc).astimezone(zone)
-    return CaptureTime(local.replace(tzinfo=pytz.utc), _offset_of(local))
+        zone = gps_tz if has_gps_tz and gps_tz else time_zone(context.user_default_tz)
+    local = utc_time.replace(tzinfo=UTC).astimezone(zone)
+    return CaptureTime(local.replace(tzinfo=UTC, fold=0), _offset_of(local))
 
 
 def _get_gps_tz(lat: float | None, lon: float | None) -> tuple[bool, tzinfo | None]:
     if lat is None or lon is None or not _check_gps_ok(lat, lon):
         return (False, None)
     tz_name = _timezones.timezone_name_at(lat, lon)
-    return (True, pytz.timezone(tz_name)) if tz_name else (False, None)
+    return (True, time_zone(tz_name)) if tz_name else (False, None)
 
 
 class ProcessTimezoneFinder:
@@ -697,8 +696,6 @@ def _check_gps_ok(lat: float | None, lon: float | None) -> bool:
         and (lat != 0.0 or lon != 0.0)
     )
 
-
-ALL_TIME_ZONES = pytz.all_timezones
 
 # Id 14 was "Timestamp set by user"; migration 0167 removed it from saved
 # lists. Do not reuse it.
@@ -887,7 +884,7 @@ PREDEFINED_RULES_PARAMS = list(map(set_as_default_rule, DEFAULT_RULES_PARAMS)) +
 
 DEFAULT_RULES_JSON = rules_json(DEFAULT_RULES_PARAMS)
 PREDEFINED_RULES_JSON = rules_json(PREDEFINED_RULES_PARAMS)
-ALL_TIME_ZONES_JSON = rules_json(ALL_TIME_ZONES)
+ALL_TIME_ZONES_JSON = rules_json(list(ALL_TIME_ZONES))
 
 
 def as_rules(configs: list[dict[str, Any]]) -> list[TimeExtractionRule]:
@@ -936,7 +933,7 @@ class RuleOutcome:
 
 
 # What a rule saved through the API can raise while it runs: an unknown time
-# zone (pytz.UnknownTimeZoneError is a KeyError), a broken expression, a
+# zone (ZoneInfoNotFoundError is a KeyError), a broken expression, a
 # missing file for a file time rule.
 _RULE_ERRORS = (ValueError, KeyError, re.error, OSError)
 

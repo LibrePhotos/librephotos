@@ -41,7 +41,6 @@ numpy==2.5.4
 # Nextcloud client. PyPI 0.6 is the last release; master only adds a port fix to
 # from_public_link (unused here) plus docs. The upstream repo is archived.
 pyocclient==0.6
-pytz==2026.6
 tzdata==2026.6
 # pyvips-binary bundles libvips, but without HEVC (HEIC), JPEG XL, BMP and JPEG 2000
 # loaders; api/thumbnails/decoding.py falls back to Pillow with these two plugins.

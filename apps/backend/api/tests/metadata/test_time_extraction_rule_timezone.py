@@ -5,7 +5,7 @@ api/metadata/datetime_rules.py before it is refactored. They are deliberately
 exhaustive about the branch structure (gps / user_default / server_local /
 utc / name: / unknown) and about the exception types that escape, because
 callers (_transform_tz) rely on the (success, tz) tuple protocol and on
-ValueError/UnknownTimeZoneError propagating out.
+ValueError/ZoneInfoNotFoundError propagating out.
 
 timezonefinder is imported lazily, on the first GPS lookup, and the process
 keeps one TimezoneFinder (ProcessTimezoneFinder). Every test that reaches that
@@ -18,10 +18,11 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import UTC
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-import pytz
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
@@ -66,7 +67,7 @@ class GetTzGpsBranchTest(TestCase):
         with patch("timezonefinder.TimezoneFinder", finder_cls):
             ok, tz = rule._get_tz("gps_timezonefinder", 55.75, 37.61, "UTC")
         self.assertTrue(ok)
-        self.assertEqual(tz, pytz.timezone("Europe/Moscow"))
+        self.assertEqual(tz, ZoneInfo("Europe/Moscow"))
         # lat/lon are passed as keyword args in this exact mapping.
         finder_instance.timezone_at.assert_called_once_with(lng=37.61, lat=55.75)
 
@@ -79,7 +80,7 @@ class GetTzGpsBranchTest(TestCase):
         self.assertEqual((ok, tz), (False, None))
 
     def test_gps_finder_returns_empty_string_is_failure(self):
-        """Falsy tz name is treated the same as None (no pytz lookup attempted)."""
+        """Falsy tz name is treated the same as None (no zone lookup attempted)."""
         rule = make_rule()
         finder_cls, _ = self._patched_finder("")
         with patch("timezonefinder.TimezoneFinder", finder_cls):
@@ -133,14 +134,14 @@ class GetTzGpsBranchTest(TestCase):
         with patch("timezonefinder.TimezoneFinder", finder_cls):
             ok, tz = rule._get_tz("gps_timezonefinder", 0.0, 5.0, "UTC")
         self.assertTrue(ok)
-        self.assertEqual(tz, pytz.timezone("Africa/Accra"))
+        self.assertEqual(tz, ZoneInfo("Africa/Accra"))
 
     def test_gps_unknown_zone_name_raises(self):
-        """A tz name pytz does not know propagates UnknownTimeZoneError."""
+        """An unknown tz name propagates ZoneInfoNotFoundError (a KeyError)."""
         rule = make_rule()
         finder_cls, _ = self._patched_finder("Mars/Olympus_Mons")
         with patch("timezonefinder.TimezoneFinder", finder_cls):
-            with self.assertRaises(pytz.exceptions.UnknownTimeZoneError):
+            with self.assertRaises(ZoneInfoNotFoundError):
                 rule._get_tz("gps_timezonefinder", 55.75, 37.61, "UTC")
 
     def test_check_gps_ok_helper_matches_branch(self):
@@ -154,23 +155,23 @@ class GetTzStaticBranchesTest(TestCase):
         rule = make_rule()
         ok, tz = rule._get_tz("user_default", None, None, "Europe/Berlin")
         self.assertTrue(ok)
-        self.assertEqual(tz, pytz.timezone("Europe/Berlin"))
+        self.assertEqual(tz, ZoneInfo("Europe/Berlin"))
 
     def test_user_default_ignores_gps(self):
         rule = make_rule()
         ok, tz = rule._get_tz("user_default", 55.75, 37.61, "US/Pacific")
         self.assertTrue(ok)
-        self.assertEqual(tz, pytz.timezone("US/Pacific"))
+        self.assertEqual(tz, ZoneInfo("US/Pacific"))
 
     def test_user_default_none_raises(self):
         """No guard: a missing user default tz blows up rather than returning (False, None)."""
         rule = make_rule()
-        with self.assertRaises(pytz.exceptions.UnknownTimeZoneError):
+        with self.assertRaises(ZoneInfoNotFoundError):
             rule._get_tz("user_default", None, None, None)
 
     def test_user_default_invalid_raises(self):
         rule = make_rule()
-        with self.assertRaises(pytz.exceptions.UnknownTimeZoneError):
+        with self.assertRaises(ZoneInfoNotFoundError):
             rule._get_tz("user_default", None, None, "Not/AZone")
 
     def test_server_local_returns_success_with_none_tz(self):
@@ -184,28 +185,28 @@ class GetTzStaticBranchesTest(TestCase):
             with self.subTest(desc=desc):
                 ok, tz = rule._get_tz(desc, None, None, "Europe/Berlin")
                 self.assertTrue(ok)
-                self.assertIs(tz, pytz.utc)
+                self.assertIs(tz, UTC)
 
     def test_named_timezone(self):
         rule = make_rule()
         ok, tz = rule._get_tz("name:Europe/Moscow", None, None, "UTC")
         self.assertTrue(ok)
-        self.assertEqual(tz, pytz.timezone("Europe/Moscow"))
+        self.assertEqual(tz, ZoneInfo("Europe/Moscow"))
 
     def test_named_timezone_utc(self):
         rule = make_rule()
         ok, tz = rule._get_tz("name:UTC", None, None, "UTC")
         self.assertTrue(ok)
-        self.assertIs(tz, pytz.utc)
+        self.assertIs(tz, UTC)
 
     def test_named_timezone_unknown_raises(self):
         rule = make_rule()
-        with self.assertRaises(pytz.exceptions.UnknownTimeZoneError):
+        with self.assertRaises(ZoneInfoNotFoundError):
             rule._get_tz("name:Bogus/Zone", None, None, "UTC")
 
     def test_named_timezone_empty_name_raises(self):
         rule = make_rule()
-        with self.assertRaises(pytz.exceptions.UnknownTimeZoneError):
+        with self.assertRaises(ZoneInfoNotFoundError):
             rule._get_tz("name:", None, None, "UTC")
 
     def test_name_prefix_is_case_sensitive(self):
@@ -276,7 +277,7 @@ class TransformTzIntegrationTest(TestCase):
         dt = datetime.datetime(2020, 1, 1, 12, 0, 0)
         result = rule._transform_tz(dt, None, None, "UTC")
         self.assertIsNotNone(result)
-        self.assertEqual(result.local_time.tzinfo, pytz.utc)
+        self.assertEqual(result.local_time.tzinfo, UTC)
 
     def test_named_source_and_report_tz_shift(self):
         import datetime
@@ -289,7 +290,7 @@ class TransformTzIntegrationTest(TestCase):
         # Moscow is UTC+3; the tz is then stamped as utc by _transform_tz.
         self.assertEqual(
             result.local_time,
-            datetime.datetime(2020, 1, 1, 15, 0, 0, tzinfo=pytz.utc),
+            datetime.datetime(2020, 1, 1, 15, 0, 0, tzinfo=UTC),
         )
         # ... and the offset Moscow has then is kept (#2768).
         self.assertEqual(180, result.utc_offset)
@@ -309,9 +310,7 @@ class ProcessTimezoneFinderTest(SimpleTestCase):
 
     def test_every_lookup_shares_one_finder(self):
         for lat, lon in [(52.52, 13.40), (48.14, 11.58), (53.55, 9.99)]:
-            self.assertEqual(
-                _get_gps_tz(lat, lon), (True, pytz.timezone("Europe/Berlin"))
-            )
+            self.assertEqual(_get_gps_tz(lat, lon), (True, ZoneInfo("Europe/Berlin")))
 
         self.finder_cls.assert_called_once_with()
         self.assertEqual(self.finder.timezone_at.call_count, 3)
@@ -337,7 +336,7 @@ class ProcessTimezoneFinderTest(SimpleTestCase):
             thread.join()
 
         self.finder_cls.assert_called_once_with()
-        self.assertEqual(results, [(True, pytz.timezone("Europe/Berlin"))] * 8)
+        self.assertEqual(results, [(True, ZoneInfo("Europe/Berlin"))] * 8)
 
     def test_no_finder_without_a_gps_position(self):
         self.assertEqual(_get_gps_tz(None, None), (False, None))

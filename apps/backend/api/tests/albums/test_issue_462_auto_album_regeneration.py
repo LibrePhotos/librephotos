@@ -31,9 +31,8 @@ which leave the user staring at two auto albums for one single event:
    all.
 """
 
-from datetime import timedelta
+from datetime import UTC, timedelta
 
-import pytz
 from django.test import TestCase
 from django.utils import timezone
 
@@ -41,7 +40,7 @@ from api.albums.auto_albums import generate_event_albums
 from api.models import AlbumAuto
 from api.tests.utils import create_test_photo, create_test_user
 
-BASE = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=pytz.utc)
+BASE = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=UTC)
 
 
 def make_photo(user, offset_hours):

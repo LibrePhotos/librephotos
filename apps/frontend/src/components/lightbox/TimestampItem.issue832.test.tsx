@@ -5,7 +5,7 @@
  * Backend contract (api/metadata/datetime_rules.py, TimeExtractionRule docstring):
  *
  *   "The goal is to help extract local time, but for historical reason it is
- *    expected the returned datetime will have timezone to be set to pytz.utc
+ *    expected the returned datetime will have timezone to be set to UTC
  *    (so local time + timezone equal to UTC)."
  *
  * i.e. `Photo.exif_timestamp` holds the *local wall-clock time the picture was

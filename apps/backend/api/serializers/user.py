@@ -23,6 +23,7 @@ from api.albums.timeline_filter import validate_default_timeline_filter
 from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import enqueue_job
 from api.metadata.date_rule_checks import changed_rule_problem
+from api.metadata.time_zones import ALL_TIME_ZONES
 from api.models import LongRunningJob, Photo, User
 from api.models.photo import visible_photo_q
 from api.models.user import (
@@ -281,6 +282,9 @@ class UserSerializer(serializers.ModelSerializer):
     photo_count = serializers.SerializerMethodField()
     avatar_url = serializers.SerializerMethodField()
     avatar = AvatarField(required=False, allow_null=True, max_length=100)
+    # The names the model validates (validate_time_zone), as a choice so the
+    # API lists them.
+    default_timezone = serializers.ChoiceField(choices=ALL_TIME_ZONES, required=False)
 
     class Meta:
         model = User
