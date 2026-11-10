@@ -50,6 +50,18 @@ class LibraryShareQuerySet(OwnedQuerySet["LibraryShare"]):
 
 
 class LibraryShare(models.Model):
+    # The owner's switches: what the recipient sees of each photo
+    # (``api.sharing.grants.LibraryGrant``).
+    GRANT_FIELDS = frozenset(
+        {
+            "share_location",
+            "share_faces",
+            "share_camera_info",
+            "share_captions",
+            "share_originals",
+        }
+    )
+
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="library_shares_given"
     )

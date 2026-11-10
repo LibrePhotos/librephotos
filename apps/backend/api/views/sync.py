@@ -446,15 +446,14 @@ class SyncPlaceAlbumsView(BaseSyncView[AlbumPlace]):
 )
 class SyncTagAlbumsView(BaseSyncView[Tag]):
     entity = DeletionLog.ENTITY_TAG
-    values_fields = ("id", "title", "photo_count", "last_modified")
+    values_fields = ("id", "name", "photo_count", "last_modified")
 
     def scoped_queryset(self, user: User) -> QuerySet[Tag]:
-        # Tag.name is the title; alias via annotate-free values mapping below.
         return Tag.objects.owned_by(user)
 
     def _materialize(self, qs: QuerySet[Tag], limit: int, user: User) -> list[Row]:
-        fields = ("id", "name", "photo_count", "last_modified")
-        rows: list[Row] = list(qs.values(*fields)[:limit])
+        # The feed calls Tag.name the title, as the other album feeds do.
+        rows = super()._materialize(qs, limit, user)
         for r in rows:
             r["title"] = r.pop("name")
         return rows

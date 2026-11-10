@@ -135,6 +135,11 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   is garbage collected outside DEBUG); no `@receiver`. File removal goes through `transaction.on_commit`.
   Queryset `update()`/`delete()` and `bulk_create` send no signals, so callers run the
   `refresh_*_photo_counts` helpers themselves. `api/tests/infra/test_signal_receivers.py` enforces this.
+- The mobile delta feed (`api/views/sync.py`) re-sends a row only when its `last_modified` moved. A feed model is a
+  `SyncedModel` (`api/models/synced.py`) listing the columns its feed sends in `SYNCED_FIELDS`; a queryset
+  `update()`/`bulk_update()` or `save(update_fields=...)` naming one bumps `last_modified` by itself, other columns
+  never do. A new feed column goes into that list, a related one into `RELATED_PHOTO_COLUMNS` with the writer that
+  bumps the photo (`api/tests/infra/test_sync_feed_writes.py` fails otherwise).
 - Logging: `logger = logging.getLogger(__name__)`, lazy `%` arguments, never f-strings; carry the job id,
   user id or `image_hash`, never usernames, paths or captions above DEBUG. No `print()` (ruff G004 and
   T20): settings modules use `librephotos.logging_bootstrap.defer(level, message)`, management commands

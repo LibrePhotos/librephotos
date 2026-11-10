@@ -7,6 +7,7 @@ from django.db.models import Exists, F, OuterRef, Q, QuerySet
 
 from api.models.photo import Photo
 from api.models.scopes import SharedOwnedQuerySet
+from api.models.synced import SyncedModel
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
@@ -28,7 +29,11 @@ class AlbumUserQuerySet(SharedOwnedQuerySet["AlbumUser"]):
     """Scoped to its owner through ``owner``."""
 
 
-class AlbumUser(models.Model):
+class AlbumUser(SyncedModel):
+    SYNCED_FIELDS = frozenset(
+        {"title", "owner", "favorited", "cover_photo", "created_on"}
+    )
+
     title = models.CharField(max_length=512)
     created_on = models.DateTimeField(auto_now=True, db_index=True)
     photos = models.ManyToManyField(Photo, through="AlbumUserPhoto")

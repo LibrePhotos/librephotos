@@ -12,6 +12,7 @@ from api.models.person import Person
 from api.models.photo import Photo
 from api.models.place_names import short_place_name
 from api.models.scopes import SharedOwnedQuerySet
+from api.models.synced import SyncedModel
 from api.models.user import User, get_deleted_user
 from api.models.user_place import UserPlace
 
@@ -218,7 +219,9 @@ class AlbumAutoQuerySet(SharedOwnedQuerySet["AlbumAuto"]):
     """Scoped to its owner through ``owner``."""
 
 
-class AlbumAuto(models.Model):
+class AlbumAuto(SyncedModel):
+    SYNCED_FIELDS = frozenset({"title", "timestamp", "favorited", "cover_photo"})
+
     title = models.CharField(
         blank=False, null=False, max_length=512, default="Untitled Album"
     )

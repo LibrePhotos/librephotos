@@ -2,6 +2,7 @@ from django.db import models
 
 from api.models.photo import Photo
 from api.models.scopes import SharedOwnedQuerySet
+from api.models.synced import SyncedModel
 from api.models.user import User, get_deleted_user
 
 
@@ -9,7 +10,9 @@ class AlbumPlaceQuerySet(SharedOwnedQuerySet["AlbumPlace"]):
     """Scoped to its owner through ``owner``."""
 
 
-class AlbumPlace(models.Model):
+class AlbumPlace(SyncedModel):
+    SYNCED_FIELDS = frozenset({"title", "geolocation_level"})
+
     title = models.CharField(max_length=512, db_index=True)
     photos = models.ManyToManyField(Photo)
     geolocation_level = models.IntegerField(db_index=True, null=True)

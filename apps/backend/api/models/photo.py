@@ -16,6 +16,7 @@ from api.models.library_share import LibraryShare
 from api.models.photo_stack import PhotoStack
 from api.models.place_names import town_name
 from api.models.scopes import SharedOwnedQuerySet
+from api.models.synced import SyncedModel
 from api.models.user import User, get_deleted_user
 
 if TYPE_CHECKING:
@@ -256,7 +257,32 @@ class VisiblePhotoManager(_PhotoManagerBase["Photo"]):
         return super().get_queryset().filter(visible_photo_q())
 
 
-class Photo(models.Model):
+class Photo(SyncedModel):
+    # What ``GET /api/sync/photos/`` sends of the row (``PHOTO_VALUES``); its
+    # ``has_motion`` comes from the main file.
+    SYNCED_FIELDS = frozenset(
+        {
+            "image_hash",
+            "owner",
+            "main_file",
+            "exif_timestamp",
+            "timestamp",
+            "added_on",
+            "video",
+            "video_length",
+            "rating",
+            "hidden",
+            "archived",
+            "is_screenshot",
+            "is_document",
+            "in_trashcan",
+            "removed",
+            "public",
+            "exif_gps_lat",
+            "exif_gps_lon",
+        }
+    )
+
     # UUID primary key (like Immich) - enables flexible asset management
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 

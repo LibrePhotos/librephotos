@@ -10,6 +10,12 @@ Two jobs:
    events that leave no ``last_modified`` trace a client can follow:
    hard deletes (``post_delete``) and visibility losses (un-sharing).
 
+3. **Re-send the photos a library share redacts.** The photo feed carries
+   no library-shared photos, only those shared with the recipient directly,
+   and redacts them by the owner's library share. Starting, changing (a
+   switch) or ending the share bumps them, so the phone pulls them again
+   with what it may see now. Nothing leaves the feed, so no tombstone.
+
 Registered from :meth:`api.apps.ApiConfig.ready` so every model is loaded first.
 
 Note: ``SetPhotosShared`` manipulates the ``Photo.shared_to`` through table
@@ -24,7 +30,7 @@ from collections.abc import Callable, Collection, Iterable
 from typing import Any
 
 from django.db import models
-from django.db.models.signals import m2m_changed, post_delete, pre_delete
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete
 from django.utils import timezone
 
 from api.models.album_auto import AlbumAuto
@@ -32,6 +38,7 @@ from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.deletion_log import DeletionLog
+from api.models.library_share import LibraryShare
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.tag import Tag
@@ -312,6 +319,33 @@ def _person_tombstone(sender: type[Person], instance: Person, **kwargs: Any) -> 
 
 
 # --------------------------------------------------------------------------- #
+# Library shares: re-send the photos they redact
+# --------------------------------------------------------------------------- #
+def _resend_redacted_photos(share: LibraryShare) -> None:
+    """Bump the owner's photos shared with the recipient directly."""
+    Photo.objects.filter(
+        Photo.objects.owner_q(share.owner), shared_to=share.recipient_id
+    ).update(last_modified=timezone.now())
+
+
+def _library_share_saved(
+    sender: type[LibraryShare],
+    instance: LibraryShare,
+    created: bool,
+    update_fields: frozenset[str] | None,
+    **kwargs: Any,
+) -> None:
+    if created or update_fields is None or update_fields & LibraryShare.GRANT_FIELDS:
+        _resend_redacted_photos(instance)
+
+
+def _library_share_deleted(
+    sender: type[LibraryShare], instance: LibraryShare, **kwargs: Any
+) -> None:
+    _resend_redacted_photos(instance)
+
+
+# --------------------------------------------------------------------------- #
 # registration
 # --------------------------------------------------------------------------- #
 def register() -> None:
@@ -374,6 +408,17 @@ def register() -> None:
             weak=False,
             dispatch_uid=f"api.sync_signals.tombstone_{entity}",
         )
+
+    post_save.connect(
+        _library_share_saved,
+        sender=LibraryShare,
+        dispatch_uid="api.sync_signals.library_share_saved",
+    )
+    post_delete.connect(
+        _library_share_deleted,
+        sender=LibraryShare,
+        dispatch_uid="api.sync_signals.library_share_deleted",
+    )
 
     pre_delete.connect(
         _person_tombstone,

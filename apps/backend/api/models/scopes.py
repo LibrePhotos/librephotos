@@ -12,12 +12,14 @@ fails on a new inline owner filter.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, TypeVar
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import models
 from django.db.models import Q, QuerySet
 
+from api.models.synced import bulk_fields_with_last_modified, with_last_modified
 from api.models.user import User
 
 if TYPE_CHECKING:
@@ -54,6 +56,17 @@ class OwnedQuerySet(QuerySet[_M]):
         if account is None:
             return self.none()
         return self.filter(self.owner_q(account))
+
+    def update(self, **kwargs: Any) -> int:
+        """``QuerySet.update``; a column the delta feed sends bumps the rows."""
+        return super().update(**with_last_modified(self.model, kwargs))
+
+    def bulk_update(
+        self, objs: Iterable[_M], fields: Iterable[str], batch_size: int | None = None
+    ) -> int:
+        """``QuerySet.bulk_update``; a column the delta feed sends bumps the rows."""
+        rows, columns = bulk_fields_with_last_modified(self.model, objs, fields)
+        return super().bulk_update(rows, columns, batch_size=batch_size)
 
     def get_owned(self, user: User | AnonymousUser | None, **lookup: object) -> _M:
         """``owned_by(user).get(**lookup)``: another user's row raises
