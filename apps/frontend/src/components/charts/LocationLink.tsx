@@ -1,30 +1,7 @@
 import { Loader, Text } from "@mantine/core";
 import { useHotkeys, useViewportSize } from "@mantine/hooks";
 import { IconVectorTriangle } from "@tabler/icons-react";
-import { LinearGradient } from "@visx/gradient";
-import { Group as VisxGroup } from "@visx/group";
-import { Tree } from "@visx/hierarchy";
-import {
-  LinkHorizontal,
-  LinkHorizontalCurve,
-  LinkHorizontalLine,
-  LinkHorizontalStep,
-  LinkRadial,
-  LinkRadialCurve,
-  LinkRadialLine,
-  LinkRadialStep,
-  LinkVertical,
-  LinkVerticalCurve,
-  LinkVerticalLine,
-  LinkVerticalStep,
-} from "@visx/shape";
-// d3-hierarchy runs at 3.x, but its types here are @types/d3-hierarchy 1.x, which @visx/hierarchy
-// and @visx/shape depend on: Tree and the Link components are typed against those, so the nodes
-// built here must be too. Nothing this file uses changed between the two (hierarchy, the point
-// node and link types). @types/d3-shape is pinned to the version @visx/vendor pins.
 import { hierarchy } from "d3-hierarchy";
-import type { HierarchyPointLink, HierarchyPointNode } from "d3-hierarchy";
-import { pointRadial } from "d3-shape";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchLocationTreeQuery } from "../../api_client/stats/hooks";
@@ -35,6 +12,7 @@ import styles from "./LocationLink.module.css";
 import { PlaceTreeToolbar, PlaceTreeZoomControls } from "./PlaceTreeControls";
 import type { TreeLayout, TreeLinkType, TreeOrientation } from "./PlaceTreeControls";
 import { initiallyOpenPlaces } from "./placeTreeDefaults";
+import { layoutPlaceTree, linkPath, nodePoint } from "./placeTreeGeometry";
 
 type NodeData = {
   name: string;
@@ -43,48 +21,6 @@ type NodeData = {
   isExpanded?: boolean;
   hex?: string;
 };
-
-/** What every link of the tree is drawn with; only the step and curve links read percent. */
-type TreeLinkProps = {
-  data: HierarchyPointLink<NodeData>;
-  percent: number;
-  stroke: string;
-  strokeWidth: number;
-  strokeLinecap: "round";
-  fill: string;
-  className?: string;
-};
-
-// visx types LinkRadial's angle and radius as required, but they default to the node's x and y
-const nodeX = (node: HierarchyPointNode<NodeData>) => node.x;
-const nodeY = (node: HierarchyPointNode<NodeData>) => node.y;
-
-function LinkRadialDiagonal(props: TreeLinkProps) {
-  return <LinkRadial {...props} angle={nodeX} radius={nodeY} />;
-}
-
-function linkComponentFor(
-  layout: TreeLayout,
-  orientation: TreeOrientation,
-  linkType: TreeLinkType
-): React.ComponentType<TreeLinkProps> {
-  if (layout === "polar") {
-    if (linkType === "step") return LinkRadialStep;
-    if (linkType === "curve") return LinkRadialCurve;
-    if (linkType === "line") return LinkRadialLine;
-    return LinkRadialDiagonal;
-  }
-  if (orientation === "vertical") {
-    if (linkType === "step") return LinkVerticalStep;
-    if (linkType === "curve") return LinkVerticalCurve;
-    if (linkType === "line") return LinkVerticalLine;
-    return LinkVertical;
-  }
-  if (linkType === "step") return LinkHorizontalStep;
-  if (linkType === "curve") return LinkHorizontalCurve;
-  if (linkType === "line") return LinkHorizontalLine;
-  return LinkHorizontal;
-}
 
 type Props = Readonly<{
   margin?: {
@@ -107,7 +43,6 @@ type TooltipData = {
   hasChildren: boolean;
 };
 
-const STEP_PERCENT = 0.5;
 const ZOOM_STEP = 0.15;
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
@@ -381,6 +316,11 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
   }
 
   const processedData = processData(locationSunburst);
+  const shape = { layout, orientation, linkType };
+  const laidOut = layoutPlaceTree(
+    hierarchy(processedData, d => (d.isExpanded ? d.children : null)),
+    [sizeWidth, sizeHeight]
+  );
 
   return (
     <div ref={containerRef} className={styles.container} style={{ height }}>
@@ -409,164 +349,118 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
         aria-label={t("placetree.ariaLabel")}
       >
         <defs>
-          <LinearGradient
-            id="node-gradient-root"
-            from={LOCATION_NODE_GRADIENTS.root.from}
-            to={LOCATION_NODE_GRADIENTS.root.to}
-            vertical={false}
-          />
-          <LinearGradient
-            id="node-gradient-branch"
-            from={LOCATION_NODE_GRADIENTS.branch.from}
-            to={LOCATION_NODE_GRADIENTS.branch.to}
-            vertical={false}
-          />
-          <LinearGradient
-            id="node-gradient-leaf"
-            from={LOCATION_NODE_GRADIENTS.leaf.from}
-            to={LOCATION_NODE_GRADIENTS.leaf.to}
-            vertical={false}
-          />
           <filter id="node-shadow" x="-20%" y="-20%" width="140%" height="140%">
             <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.25" />
           </filter>
         </defs>
 
         <g transform={`translate(${translate.x},${translate.y}) scale(${zoom})`}>
-          <Tree
-            top={margin.top + SVG_PADDING}
-            left={margin.left + SVG_PADDING}
-            root={hierarchy(processedData, d => (d.isExpanded ? d.children : null))}
-            size={[sizeWidth, sizeHeight]}
-            separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
-          >
-            {tree => (
-              <VisxGroup top={origin.y} left={origin.x}>
-                {/* Links */}
-                {tree.links().map((link, i) => {
-                  const key = `link-${layout}-${linkType}-${i}`;
-                  const LinkComponent = linkComponentFor(layout, orientation, linkType);
+          <g transform={`translate(${origin.x}, ${origin.y})`}>
+            {laidOut.links().map((link, i) => {
+              const key = `link-${layout}-${linkType}-${i}`;
+              return (
+                <path
+                  key={key}
+                  d={linkPath(link, shape)}
+                  stroke={LOCATION_LINK_COLOR}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  fill="none"
+                  className={styles.link}
+                />
+              );
+            })}
 
-                  return (
-                    <LinkComponent
-                      key={key}
-                      data={link}
-                      percent={STEP_PERCENT}
-                      stroke={LOCATION_LINK_COLOR}
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      fill="none"
-                      className={styles.link}
-                    />
-                  );
-                })}
+            {/* Nodes */}
+            {laidOut.descendants().map((node, idx) => {
+              const key = `node-${node.x}-${node.y}-${idx}`;
+              const [left, top] = nodePoint(node, shape);
 
-                {/* Nodes */}
-                {tree.descendants().map((node, idx) => {
-                  const key = `node-${node.x}-${node.y}-${idx}`;
-                  let top: number;
-                  let left: number;
+              const nodeData = node.data;
+              const colors = getNodeColor(node);
+              const hasChildren = !!nodeData.children?.length;
+              const isExpanded = expandedNodes.has(nodeData.name);
 
-                  if (layout === "polar") {
-                    const [radialX, radialY] = pointRadial(node.x, node.y);
-                    top = radialY;
-                    left = radialX;
-                  } else if (orientation === "vertical") {
-                    top = node.y;
-                    left = node.x;
-                  } else {
-                    top = node.x;
-                    left = node.y;
-                  }
+              // Cut long names to the box, left of the expand glyph; the tooltip has the full name
+              const indicatorSpace = hasChildren ? INDICATOR_SPACE : 0;
+              const rectWidth =
+                node.depth === 0
+                  ? Math.min(
+                      ROOT_MAX_WIDTH,
+                      Math.max(RECT_WIDTH, measureLabel(nodeData.name) + 2 * LABEL_PADDING + indicatorSpace)
+                    )
+                  : RECT_WIDTH;
+              const displayName = fitLabel(nodeData.name, rectWidth - 2 * LABEL_PADDING - indicatorSpace);
+              const labelX = -indicatorSpace / 2;
 
-                  const nodeData = node.data;
-                  const colors = getNodeColor(node);
-                  const hasChildren = !!nodeData.children?.length;
-                  const isExpanded = expandedNodes.has(nodeData.name);
-
-                  // Cut long names to the box, left of the expand glyph; the tooltip has the full name
-                  const indicatorSpace = hasChildren ? INDICATOR_SPACE : 0;
-                  const rectWidth =
-                    node.depth === 0
-                      ? Math.min(
-                          ROOT_MAX_WIDTH,
-                          Math.max(RECT_WIDTH, measureLabel(nodeData.name) + 2 * LABEL_PADDING + indicatorSpace)
-                        )
-                      : RECT_WIDTH;
-                  const displayName = fitLabel(nodeData.name, rectWidth - 2 * LABEL_PADDING - indicatorSpace);
-                  const labelX = -indicatorSpace / 2;
-
-                  return (
-                    <VisxGroup
-                      key={key}
-                      top={top}
-                      left={left}
-                      className={styles.nodeGroup}
-                      onClick={() => handleNodeClick(node)}
-                      onMouseEnter={e => handleNodeMouseEnter(e, nodeData)}
-                      onMouseLeave={handleNodeMouseLeave}
+              return (
+                <g
+                  key={key}
+                  transform={`translate(${left}, ${top})`}
+                  className={styles.nodeGroup}
+                  onClick={() => handleNodeClick(node)}
+                  onMouseEnter={e => handleNodeMouseEnter(e, nodeData)}
+                  onMouseLeave={handleNodeMouseLeave}
+                >
+                  <defs>
+                    <linearGradient id={`node-grad-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor={colors.from} />
+                      <stop offset="100%" stopColor={colors.to} />
+                    </linearGradient>
+                  </defs>
+                  <rect
+                    height={RECT_HEIGHT}
+                    width={rectWidth}
+                    y={-RECT_HEIGHT / 2}
+                    x={-rectWidth / 2}
+                    fill={`url(#node-grad-${idx})`}
+                    rx={8}
+                    className={styles.nodeRect}
+                    style={{ filter: "url(#node-shadow)" }}
+                  />
+                  <text
+                    y={nodeData.value ? -2 : 1}
+                    x={labelX}
+                    fontSize={12}
+                    fontFamily="system-ui, -apple-system, sans-serif"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="white"
+                    className={styles.nodeText}
+                  >
+                    {displayName}
+                  </text>
+                  {nodeData.value && (
+                    <text
+                      y={10}
+                      x={labelX}
+                      fontSize={10}
+                      fontFamily="system-ui, -apple-system, sans-serif"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill={LOCATION_NODE_TEXT_COLORS.count}
+                      className={styles.nodeText}
                     >
-                      <defs>
-                        <linearGradient id={`node-grad-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor={colors.from} />
-                          <stop offset="100%" stopColor={colors.to} />
-                        </linearGradient>
-                      </defs>
-                      <rect
-                        height={RECT_HEIGHT}
-                        width={rectWidth}
-                        y={-RECT_HEIGHT / 2}
-                        x={-rectWidth / 2}
-                        fill={`url(#node-grad-${idx})`}
-                        rx={8}
-                        className={styles.nodeRect}
-                        style={{ filter: "url(#node-shadow)" }}
-                      />
-                      <text
-                        y={nodeData.value ? -2 : 1}
-                        x={labelX}
-                        fontSize={12}
-                        fontFamily="system-ui, -apple-system, sans-serif"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fill="white"
-                        className={styles.nodeText}
-                      >
-                        {displayName}
-                      </text>
-                      {nodeData.value && (
-                        <text
-                          y={10}
-                          x={labelX}
-                          fontSize={10}
-                          fontFamily="system-ui, -apple-system, sans-serif"
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill={LOCATION_NODE_TEXT_COLORS.count}
-                          className={styles.nodeText}
-                        >
-                          {photoCount(nodeData.value)}
-                        </text>
-                      )}
-                      {hasChildren && (
-                        <text
-                          y={0}
-                          x={rectWidth / 2 - 12}
-                          fontSize={14}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill={LOCATION_NODE_TEXT_COLORS.indicator}
-                          className={styles.expandIndicator}
-                        >
-                          {isExpanded ? "−" : "+"}
-                        </text>
-                      )}
-                    </VisxGroup>
-                  );
-                })}
-              </VisxGroup>
-            )}
-          </Tree>
+                      {photoCount(nodeData.value)}
+                    </text>
+                  )}
+                  {hasChildren && (
+                    <text
+                      y={0}
+                      x={rectWidth / 2 - 12}
+                      fontSize={14}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill={LOCATION_NODE_TEXT_COLORS.indicator}
+                      className={styles.expandIndicator}
+                    >
+                      {isExpanded ? "−" : "+"}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </g>
         </g>
       </svg>
 

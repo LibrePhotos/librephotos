@@ -21,7 +21,7 @@ import styles from "./LocationLink.module.css";
 
 export type TreeLayout = "cartesian" | "polar";
 export type TreeOrientation = "horizontal" | "vertical";
-export type TreeLinkType = "diagonal" | "step" | "curve" | "line";
+export type TreeLinkType = "step" | "curve" | "line";
 
 type ToggleOption<T extends string> = Readonly<{ value: T; label: ParseKeys; icon: ReactNode }>;
 
@@ -35,7 +35,6 @@ const ORIENTATIONS: readonly ToggleOption<TreeOrientation>[] = [
   { value: "vertical", label: "placetree.vertical", icon: <IconArrowsVertical size={18} /> },
 ];
 
-// "diagonal" is drawn but has no button of its own.
 const LINK_TYPES: readonly ToggleOption<TreeLinkType>[] = [
   { value: "curve", label: "placetree.curve", icon: <IconRouteAltLeft size={18} /> },
   { value: "step", label: "placetree.step", icon: <IconStairs size={18} /> },
