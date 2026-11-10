@@ -147,6 +147,6 @@ A failed attempt returns to the login page with an explanation. The usual causes
 | More than one account uses this email address | Give each LibrePhotos account its own email address (or clear it on the ones that should not log in over SSO) |
 | Sign-in was cancelled at your identity provider | Nothing to fix: the user pressed Cancel or declined access. Try again |
 | Your identity provider could not complete the sign-in | Look in the server log for the line starting `SSO login via`; it names the reason (for example an expired login, or the provider refusing the client secret) |
-| Single sign-on failed | The matching account is deactivated: turn it back on, or ask an administrator to |
+| This LibrePhotos account is turned off | The matching account is deactivated: turn it back on |
 | Public URL not configured | Set `FRONTEND_BASE_URL` |
 | Provider-side "invalid redirect URI" | The redirect URI at your provider must match the callback URL above exactly, including the trailing slash |

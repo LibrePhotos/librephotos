@@ -14,6 +14,7 @@ describe("ssoErrorMessageKey", () => {
     expect(ssoErrorMessageKey("not_authenticated")).toBe("login.sso.errornotauthenticated");
     expect(ssoErrorMessageKey("public_url_not_configured")).toBe("login.sso.errorpublicurlnotconfigured");
     expect(ssoErrorMessageKey("email_ambiguous")).toBe("login.sso.erroremailambiguous");
+    expect(ssoErrorMessageKey("account_inactive")).toBe("login.sso.erroraccountinactive");
   });
 
   it("maps the failures the identity provider reports", () => {
