@@ -1,9 +1,9 @@
 import type { WordCloudResponse } from "@librephotos/api-client";
 import { Title } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import { IconCloud } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
-import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useFetchWordCloudQuery } from "../../api_client/stats/hooks";
 import { useThingLabel } from "../../hooks/useThingLabel";
@@ -178,13 +178,7 @@ function cloudWords(
 }
 
 export function WordCloud(props: Props) {
-  const { observe: observeChange, width } = useDimensions({
-    onResize: ({ observe }) => {
-      observe();
-    },
-    useBorderBoxSize: true,
-    polyfill: ResizeObserver,
-  });
+  const { ref: observeChange, width } = useElementSize<HTMLDivElement>();
   const { height, type } = props;
   const wordCloudQuery = useFetchWordCloudQuery();
   const { data: wordCloud, isLoading } = wordCloudQuery;

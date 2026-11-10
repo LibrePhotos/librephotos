@@ -12,10 +12,9 @@ import {
   Tooltip,
   useComputedColorScheme,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useElementSize } from "@mantine/hooks";
 import { IconMoodSmile, IconUser, IconUserQuestion } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFacesQuery";
 import { serverAddress } from "../../api_client/urls";
@@ -70,9 +69,7 @@ export function FaceClusterGraph({ height }: Props) {
   const colorScheme = useComputedColorScheme();
   const isDark = colorScheme === "dark";
 
-  const { observe: observeChange, width } = useDimensions({
-    onResize: ({ observe }) => observe(),
-  });
+  const { ref: observeChange, width } = useElementSize<HTMLDivElement>();
 
   const clusterQuery = useClusterFacesQuery();
   const { data: facesVis, isFetching: clustering, isSuccess: clustered } = clusterQuery;
