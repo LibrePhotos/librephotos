@@ -26,7 +26,7 @@ def forwards(apps: Apps, schema_editor: BaseDatabaseSchemaEditor | None) -> None
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0226_remove_small_thumbnails_job"),
+        ("api", "0232_upload_followup_lease_constraints"),
     ]
 
     operations = [
