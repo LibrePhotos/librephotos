@@ -3,8 +3,8 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
+import type { UploadItem } from "./uploadQueueState";
 import { useUploadProcessing, type UploadProcessing } from "./useUploadProcessing";
-import type { UploadItem } from "./useUploadQueue";
 
 type Answer = { data: UploadStatus | undefined; isPlaceholderData: boolean; dataUpdatedAt: number };
 

@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import classes from "./UploadProgressCard.module.css";
-import type { UploadAlbumTarget, UploadItem } from "./useUploadQueue";
+import { albumOutcomeOf, type UploadAlbumTarget, type UploadItem } from "./uploadQueueState";
 
 /** The album every file of the list goes into, or null for the library or a mix of albums. */
 function commonAlbum(items: UploadItem[]): UploadAlbumTarget | null {
@@ -15,9 +15,10 @@ function commonAlbum(items: UploadItem[]): UploadAlbumTarget | null {
 
 /** Files that ended up in the album: uploaded into it, or already in the library and added. */
 const filedCount = (items: UploadItem[]) =>
-  items.filter(
-    item => (item.status === "done" && item.albumOutcome !== "library_only") || item.albumOutcome === "added_existing"
-  ).length;
+  items.filter(item => {
+    const outcome = albumOutcomeOf(item);
+    return (item.status === "done" && outcome !== "library_only") || outcome === "added_existing";
+  }).length;
 
 /**
  * The upload card's line naming the album the files go into (#612): "Adding to Porto 2025", then
@@ -63,14 +64,15 @@ export function UploadAlbumStrip({ items, isUploading }: { items: UploadItem[]; 
 /** Under a file's name: how filing it into its album came out, where that is worth saying. */
 export function AlbumOutcomeNote({ item }: { item: UploadItem }) {
   const { t } = useTranslation();
-  if (item.albumOutcome === "added_existing") {
+  const outcome = albumOutcomeOf(item);
+  if (outcome === "added_existing") {
     return (
       <Text size="xs" c="dimmed" mt={4} lh={1.3}>
         {t("upload.album.existing_added")}
       </Text>
     );
   }
-  if (item.albumOutcome === "library_only") {
+  if (outcome === "library_only") {
     return (
       <Text size="xs" c="orange" mt={4} lh={1.3}>
         {t("upload.album.library_only")}

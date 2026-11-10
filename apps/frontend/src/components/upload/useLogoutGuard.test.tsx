@@ -5,8 +5,10 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { LogoutWhileUploadingModal } from "./LogoutWhileUploadingModal";
+import { uploadItem } from "./uploadItem.test-utils";
+import type { UploadItem } from "./uploadQueueState";
 import { useLogoutGuard } from "./useLogoutGuard";
-import type { UploadItem, UploadQueue } from "./useUploadQueue";
+import type { UploadQueue } from "./useUploadQueue";
 
 const stubs = vi.hoisted(() => ({
   queue: null as UploadQueue | null,
@@ -19,13 +21,13 @@ vi.mock("./UploadContext", () => ({ useOptionalUpload: () => stubs.queue }));
 let nextId = 0;
 const item = (status: UploadItem["status"]): UploadItem => {
   nextId += 1;
-  return { id: `item-${nextId}`, file: new File([], `${status}.jpg`), status, progress: 0 };
+  return uploadItem(`item-${nextId}`, status, { file: new File([], `${status}.jpg`) });
 };
 
 const queue = (isUploading: boolean, items: UploadItem[]): UploadQueue => ({
   items,
+  run: isUploading ? "uploading" : "idle",
   isUploading,
-  isCancelling: false,
   start: vi.fn<UploadQueue["start"]>(),
   retry: vi.fn<UploadQueue["retry"]>(),
   cancel: stubs.cancel,

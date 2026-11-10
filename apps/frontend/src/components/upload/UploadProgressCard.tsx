@@ -47,8 +47,8 @@ function RetryAllButton({ summary, onRetry }: { summary: Summary; onRetry: () =>
 /** While uploading: a labelled Cancel (no confirmation, cancelled files can be retried). Afterwards: close. */
 function StopOrCloseButton() {
   const { t } = useTranslation();
-  const { isUploading, isCancelling, cancel, reset } = useUpload();
-  if (!isUploading) {
+  const { run, cancel, reset } = useUpload();
+  if (run === "idle") {
     return (
       <Tooltip label={t("upload.close")}>
         <ActionIcon
@@ -64,7 +64,7 @@ function StopOrCloseButton() {
     );
   }
   return (
-    <DisabledReason label={t("upload.cancel_hint")} reason={isCancelling && t("upload.cancelling")}>
+    <DisabledReason label={t("upload.cancel_hint")} reason={run === "cancelling" && t("upload.cancelling")}>
       <Button
         size="compact-sm"
         // Neutral: cancelling is not destructive (cancelled files can be retried); red is for failures.
@@ -145,16 +145,21 @@ function StallNote({ minutes }: { minutes: number | null }) {
  * files until they are ready (#2739).
  */
 export function UploadProgressCard() {
+  const { items } = useUpload();
+  const first = items[0];
+  // Keyed by the list's first file: a closed card's next upload opens expanded.
+  return first ? <UploadCard key={first.id} /> : null;
+}
+
+function UploadCard() {
   const { t } = useTranslation();
-  const { items, isUploading, isCancelling, retry } = useUpload();
+  const { items, run, isUploading, retry } = useUpload();
   const processing = useOptionalUploadProcessing() ?? NOT_FOLLOWED;
   const [collapsed, setCollapsed] = useState(false);
 
   const summary = useMemo(() => summarise(items), [items]);
-  const stage = cardStage(isUploading, isCancelling, processing.phase);
+  const stage = cardStage(run, processing.phase);
   const { title, detail } = useCardHeading(stage, summary, processing);
-
-  if (items.length === 0) return null;
 
   return (
     <Paper
@@ -201,7 +206,7 @@ export function UploadProgressCard() {
       <UploadAlbumStrip items={items} isUploading={isUploading} />
 
       {!isUploading && summary.errors + summary.cancelled > 0 && (
-        <RetryAllButton summary={summary} onRetry={() => retry(items)} />
+        <RetryAllButton summary={summary} onRetry={() => retry(items.map(item => item.id))} />
       )}
 
       {!collapsed && (
@@ -211,7 +216,7 @@ export function UploadProgressCard() {
               key={item.id}
               item={item}
               server={rowServerState(item, processing.outcomes)}
-              onRetry={it => retry([it])}
+              onRetry={id => retry([id])}
             />
           ))}
         </Box>

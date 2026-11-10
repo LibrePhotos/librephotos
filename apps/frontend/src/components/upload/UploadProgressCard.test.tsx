@@ -5,16 +5,18 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
 import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
+import { uploadItem } from "./uploadItem.test-utils";
 import { NO_OUTCOMES } from "./uploadProcessing";
 import { UploadProgressCard } from "./UploadProgressCard";
+import type { AlbumOutcome, UploadItem, UploadStatus } from "./uploadQueueState";
 import type { UploadProcessing } from "./useUploadProcessing";
-import type { UploadItem, UploadQueue } from "./useUploadQueue";
+import type { UploadQueue } from "./useUploadQueue";
 
 const stubs = vi.hoisted(() => {
   const queue: UploadQueue = {
     items: [],
+    run: "idle",
     isUploading: false,
-    isCancelling: false,
     start: vi.fn<UploadQueue["start"]>(),
     retry: vi.fn<UploadQueue["retry"]>(),
     cancel: vi.fn<UploadQueue["cancel"]>(),
@@ -34,13 +36,12 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-const item = (name: string, status: UploadItem["status"], progress = 0, error?: string): UploadItem => ({
-  id: name,
-  file: new File([new Uint8Array(100)], name, { type: name.endsWith(".mp4") ? "video/mp4" : "image/jpeg" }),
-  status,
-  progress,
-  error,
-});
+const item = (name: string, status: UploadStatus, progress = 0, error?: string): UploadItem =>
+  uploadItem(name, status, {
+    file: new File([new Uint8Array(100)], name, { type: name.endsWith(".mp4") ? "video/mp4" : "image/jpeg" }),
+    progress,
+    error,
+  });
 
 let root: Root;
 let container: HTMLDivElement;
@@ -48,7 +49,7 @@ let container: HTMLDivElement;
 const render = async (items: UploadItem[], isUploading: boolean, isCancelling = false) => {
   stubs.queue.items = items;
   stubs.queue.isUploading = isUploading;
-  stubs.queue.isCancelling = isCancelling;
+  stubs.queue.run = isCancelling ? "cancelling" : isUploading ? "uploading" : "idle";
   await act(async () => {
     root.render(
       <MantineProvider>
@@ -148,7 +149,7 @@ describe("UploadProgressCard", () => {
     const retryAll = defined(byTestId("upload-retry-all"));
     expect(retryAll.textContent).toContain("Retry 2 uploads");
     await click(retryAll);
-    expect(stubs.queue.retry).toHaveBeenCalledWith(items);
+    expect(stubs.queue.retry).toHaveBeenCalledWith(items.map(it => it.id));
   });
 
   it("names the cancelled files in the retry button when nothing failed", async () => {
@@ -168,7 +169,7 @@ describe("UploadProgressCard", () => {
     const retryAll = defined(byTestId("upload-retry-all"));
     expect(retryAll.textContent).toContain("Retry 2 failed uploads");
     await click(retryAll);
-    expect(stubs.queue.retry).toHaveBeenCalledWith(items);
+    expect(stubs.queue.retry).toHaveBeenCalledWith(items.map(it => it.id));
 
     await click(byTestId("upload-close"));
     expect(stubs.queue.reset).toHaveBeenCalledTimes(1);
@@ -184,13 +185,21 @@ describe("UploadProgressCard", () => {
     expect(defined(byTestId("upload-progress-card")).textContent).toContain("1 duplicate");
   });
 
+  it("opens the next upload expanded after a collapsed card was closed", async () => {
+    await render([item("a.jpg", "done", 100)], false);
+    await click(container.querySelector<HTMLElement>('[aria-label="Collapse list"]'));
+    expect(container.querySelectorAll('[data-testid="upload-row"]')).toHaveLength(0);
+
+    await render([], false);
+    await render([item("b.jpg", "uploading", 10)], true);
+
+    expect(container.querySelectorAll('[data-testid="upload-row"]')).toHaveLength(1);
+  });
+
   describe("into an album (#612)", () => {
     const porto = { id: 12, title: "Porto 2025" };
-    const inPorto = (it: UploadItem, albumOutcome?: UploadItem["albumOutcome"]): UploadItem => ({
-      ...it,
-      album: porto,
-      albumOutcome,
-    });
+    const inPorto = (it: UploadItem, albumOutcome?: AlbumOutcome): UploadItem =>
+      uploadItem(it.id, it.status, { file: it.file, progress: it.progress, album: porto, albumOutcome, error: "Boom" });
     const strip = () => byTestId("upload-album-strip");
 
     it("names the album while uploading", async () => {
@@ -234,11 +243,8 @@ describe("UploadProgressCard", () => {
   });
 
   describe("after the upload, while the server imports the files (#2739)", () => {
-    const uploaded = (name: string, photoId: string): UploadItem => ({
-      ...item(name, "done", 100),
-      jobId: "job-1",
-      photoId,
-    });
+    const uploaded = (name: string, photoId: string): UploadItem =>
+      uploadItem(name, "done", { file: item(name, "done").file, progress: 100, jobId: "job-1", photoId });
     const files = [uploaded("a.jpg", "p1"), uploaded("b.jpg", "p2"), uploaded("c.jpg", "p3")];
     const following = (patch: Partial<UploadProcessing>): UploadProcessing => ({
       phase: "processing",

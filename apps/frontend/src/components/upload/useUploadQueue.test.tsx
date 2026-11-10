@@ -3,6 +3,8 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
+import { errorOf, jobOf, photoOf } from "./uploadItem.test-utils";
+import { albumOutcomeOf } from "./uploadQueueState";
 import { useUploadQueue, type UploadQueue } from "./useUploadQueue";
 
 const stubs = vi.hoisted(() => ({
@@ -93,7 +95,7 @@ describe("useUploadQueue", () => {
     });
     await settle();
 
-    expect(latest.items.map(i => [i.file.name, i.status, i.jobId, i.photoId])).toEqual([
+    expect(latest.items.map(i => [i.file.name, i.status, jobOf(i), photoOf(i)])).toEqual([
       ["a.jpg", "done", "j1", "p1"],
       ["b.jpg", "done", "j1", "p2"],
       // The server already had it: a duplicate, not counted in any import.
@@ -138,11 +140,11 @@ describe("useUploadQueue", () => {
     await settle();
 
     expect(latest.items[0]?.status).toBe("error");
-    expect(latest.items[0]?.error).toBe("Network down");
+    expect(errorOf(latest.items[0])).toBe("Network down");
     expect(stubs.invalidate).not.toHaveBeenCalled();
 
     await act(async () => {
-      latest.retry(latest.items);
+      latest.retry(latest.items.map(i => i.id));
     });
     await settle();
 
@@ -159,10 +161,28 @@ describe("useUploadQueue", () => {
     expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      latest.retry(latest.items);
+      latest.retry(latest.items.map(i => i.id));
     });
     await settle();
     expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it("uploads a failed file once when Retry is clicked twice before the card renders again", async () => {
+    stubs.uploadChunk.mockRejectedValueOnce(new Error("Network down"));
+    await act(async () => {
+      latest.start([file("broken.jpg", 10)]);
+    });
+    await settle();
+    const ids = latest.items.map(i => i.id);
+
+    await act(async () => {
+      latest.retry(ids);
+      latest.retry(ids);
+    });
+    await settle();
+
+    expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
+    expect(latest.items.map(i => i.status)).toEqual(["done"]);
   });
 
   it("queues files added while an upload is running instead of uploading in parallel", async () => {
@@ -237,7 +257,7 @@ describe("useUploadQueue", () => {
       ["empty.jpg", "error"],
       ["ok.jpg", "done"],
     ]);
-    expect(latest.items[0]?.error).toBeTruthy();
+    expect(errorOf(latest.items[0])).toBeTruthy();
     expect(stubs.uploadFinished).toHaveBeenCalledTimes(1);
   });
   describe("into an album (#612)", () => {
@@ -253,7 +273,7 @@ describe("useUploadQueue", () => {
       });
       await settle();
 
-      expect(latest.items.map(i => [i.status, i.album, i.albumOutcome])).toEqual([
+      expect(latest.items.map(i => [i.status, i.album, albumOutcomeOf(i)])).toEqual([
         ["done", porto, undefined],
         ["done", porto, undefined],
       ]);
@@ -284,12 +304,36 @@ describe("useUploadQueue", () => {
       expect(stubs.patch).toHaveBeenCalledExactlyOnceWith("/albums/user/edit/12/", {
         photos: ["p1", "p2"],
       });
-      expect(latest.items.map(i => [i.status, i.albumOutcome])).toEqual([
+      expect(latest.items.map(i => [i.status, albumOutcomeOf(i)])).toEqual([
         ["duplicate", "added_existing"],
         ["duplicate", "added_existing"],
       ]);
       expect(stubs.refreshAlbums).toHaveBeenCalledExactlyOnceWith([12]);
       expect(stubs.invalidate).not.toHaveBeenCalled();
+    });
+
+    it("uploads files added while the run files known files into their album", async () => {
+      stubs.exists.mockImplementation(async url => ({ exists: url.includes("known"), photo_id: "p1" }));
+      let releaseFiling = () => {};
+      stubs.patch.mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            releaseFiling = () => resolve({ id: 12 });
+          })
+      );
+      await act(async () => {
+        latest.start([file("known.jpg", 10)], porto);
+      });
+      await tick();
+      expect(stubs.patch).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        latest.start([file("new.jpg", 10)]);
+      });
+      await act(async () => releaseFiling());
+      await settle();
+
+      expect(latest.items.map(i => i.status)).toEqual(["duplicate", "done"]);
     });
 
     it("leaves a known file in the library when the album will not take it", async () => {
@@ -300,7 +344,7 @@ describe("useUploadQueue", () => {
       });
       await settle();
 
-      expect(latest.items[0]?.albumOutcome).toBe("library_only");
+      expect(albumOutcomeOf(defined(latest.items[0]))).toBe("library_only");
       expect(stubs.refreshAlbums).toHaveBeenCalledExactlyOnceWith([]);
     });
 
@@ -312,7 +356,7 @@ describe("useUploadQueue", () => {
       await settle();
 
       expect(stubs.patch).not.toHaveBeenCalled();
-      expect(latest.items[0]?.albumOutcome).toBeUndefined();
+      expect(albumOutcomeOf(defined(latest.items[0]))).toBeUndefined();
     });
 
     it.each(["album_locked", "album_not_found"])(
@@ -352,7 +396,7 @@ describe("useUploadQueue", () => {
       });
       await settle();
       await act(async () => {
-        latest.retry(latest.items);
+        latest.retry(latest.items.map(i => i.id));
       });
       await settle();
 
@@ -385,7 +429,7 @@ describe("useUploadQueue", () => {
       await act(async () => {
         latest.cancel();
       });
-      expect(latest.isCancelling).toBe(true);
+      expect(latest.run).toBe("cancelling");
       expect(latest.isUploading).toBe(true);
       expect(latest.items.map(i => i.status)).toEqual(["uploading", "cancelled", "cancelled"]);
 
@@ -395,7 +439,7 @@ describe("useUploadQueue", () => {
       await settle();
 
       expect(latest.items.map(i => i.status)).toEqual(["cancelled", "cancelled", "cancelled"]);
-      expect(latest.isCancelling).toBe(false);
+      expect(latest.run).not.toBe("cancelling");
       expect(stubs.uploadChunk).toHaveBeenCalledTimes(1);
       expect(stubs.uploadFinished).not.toHaveBeenCalled();
       expect(stubs.invalidate).not.toHaveBeenCalled();
@@ -464,7 +508,7 @@ describe("useUploadQueue", () => {
       await settle();
 
       expect(latest.items[0]?.status).toBe("cancelled");
-      expect(latest.items[0]?.error).toBeUndefined();
+      expect(errorOf(latest.items[0])).toBeUndefined();
     });
 
     it("uploads files added after cancel, and retry re-queues the cancelled ones", async () => {
@@ -489,7 +533,7 @@ describe("useUploadQueue", () => {
       ]);
 
       await act(async () => {
-        latest.retry(latest.items);
+        latest.retry(latest.items.map(i => i.id));
       });
       await settle();
 
@@ -507,7 +551,7 @@ describe("useUploadQueue", () => {
       });
 
       expect(latest.items[0]?.status).toBe("done");
-      expect(latest.isCancelling).toBe(false);
+      expect(latest.run).not.toBe("cancelling");
     });
   });
 });

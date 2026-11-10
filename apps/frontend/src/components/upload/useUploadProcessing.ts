@@ -13,7 +13,7 @@ import {
   type ProcessingPhase,
   type ServerOutcomes,
 } from "./uploadProcessing";
-import type { UploadItem } from "./useUploadQueue";
+import type { UploadItem } from "./uploadQueueState";
 
 /** The timeline is refreshed at most this often while photos become ready. */
 const REFRESH_EVERY_MS = 10_000;

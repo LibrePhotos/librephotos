@@ -1,5 +1,5 @@
 import { addUploadsToAlbum } from "../../api_client/upload";
-import type { AlbumOutcome } from "./useUploadQueue";
+import type { AlbumOutcome } from "./uploadQueueState";
 
 /** A queued file the library already had, and the album it was dropped into. */
 export type ExistingInAlbum = { itemId: string; albumId: number; photoId: string };

@@ -1,8 +1,8 @@
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import type { ProcessingPhase } from "./uploadProcessing";
+import type { QueueRun, UploadItem, UploadStatus } from "./uploadQueueState";
 import type { UploadProcessing } from "./useUploadProcessing";
-import type { UploadItem, UploadStatus } from "./useUploadQueue";
 
 export type Summary = {
   total: number;
@@ -37,9 +37,15 @@ export function summarise(items: UploadItem[]): Summary {
 /** The card's state for its title, bar and live region. */
 export type CardStage = "cancelling" | "uploading" | ProcessingPhase;
 
-export function cardStage(isUploading: boolean, isCancelling: boolean, phase: ProcessingPhase): CardStage {
-  if (isCancelling) return "cancelling";
-  return isUploading ? "uploading" : phase;
+export function cardStage(run: QueueRun, phase: ProcessingPhase): CardStage {
+  switch (run) {
+    case "cancelling":
+      return "cancelling";
+    case "uploading":
+      return "uploading";
+    case "idle":
+      return phase;
+  }
 }
 
 type Heading = { title: string; detail: string };
