@@ -36,7 +36,7 @@ jobs:
           # package-lock.json (apps/mobile + packages/* are workspaces).
           # better-sqlite3 must stay >= 12 here: 11.x aborts jest workers on
           # Node 24 (Statement destructor after env teardown).
-          node-version: '24'
+          node-version: '26'
           cache: npm
           cache-dependency-path: package-lock.json
       - name: Install (workspaces)
