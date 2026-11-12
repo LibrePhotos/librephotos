@@ -137,12 +137,17 @@ export type MountedEditor = Readonly<{
 }>;
 
 /** The editor on a photo of user 1, with fakes for the renderer and the source; settled after the first frame. */
-export async function mountEditor(photo: Partial<Photo> = {}): Promise<MountedEditor> {
+/**
+ * The editor on a fake renderer and source. With `sourceArrives`, the source comes in when that
+ * promise settles, and the mount returns at once instead of waiting for the canvas.
+ */
+export async function mountEditor(photo: Partial<Photo> = {}, sourceArrives?: Promise<void>): Promise<MountedEditor> {
   const renderer = fakeRenderer();
   const source = fakeSource();
   const services: EditorServices = {
     createRenderer: () => renderer,
-    loadSource: () => Promise.resolve(source),
+    loadSource: () => (sourceArrives ?? Promise.resolve()).then(() => source),
+    prepareRenderer: () => {},
   };
   const onClose = vi.fn<() => void>();
   const container = document.createElement("div");
@@ -158,7 +163,8 @@ export async function mountEditor(photo: Partial<Photo> = {}): Promise<MountedEd
     );
   });
   // The source and the first frame come in over a few animation frames; slower on a busy machine.
-  for (let waited = 0; waited < 50 && !document.querySelector('canvas[aria-label="Edited photo"]'); waited++) {
+  const waits = sourceArrives ? 0 : 50;
+  for (let waited = 0; waited < waits && !document.querySelector('canvas[aria-label="Edited photo"]'); waited++) {
     await settle();
   }
   await settle();

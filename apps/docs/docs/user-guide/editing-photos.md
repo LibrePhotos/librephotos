@@ -181,7 +181,9 @@ picture carries no metadata from the original file, such as the GPS position.
 ## RAW files
 
 :::note
-A RAW file is developed by the server from the RAW data, with a neutral starting look. It can look
+A RAW file is developed by the server from the RAW data, with a neutral starting look. While the
+editor opens, it shows the photo as the viewer did; the editable picture follows within a second
+or two. It can look
 different from the JPEG your camera makes, which has the camera maker's own colours and contrast.
 There are no lens corrections and no camera profiles yet. RAW data holds more detail in the
 highlights than a JPEG, so **Highlights** and **Exposure** can bring back bright areas that look

@@ -51,7 +51,7 @@ export type ZoomOriginal = {
  * same version: the thumbnails are made again from it when the save's render was smaller than they
  * are (a tight crop), and the full-size URL answers the rendition instead of that render.
  */
-function mediaVersion(imageCacheKey: number, details: OriginalZoomDetails | null | undefined): string {
+export function mediaVersion(imageCacheKey: number, details: OriginalZoomDetails | null | undefined): string {
   const edit = details?.edit;
   // Joined, not a template: a template starting "e" would read as a translation key pattern.
   const editKey = edit ? ["e", edit.version, "-", edit.rendition].join("") : "";

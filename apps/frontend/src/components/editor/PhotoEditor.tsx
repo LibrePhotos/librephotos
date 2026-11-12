@@ -5,10 +5,12 @@ import { IconArrowLeft } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { usePhotoEditQuery } from "../../api_client/editing/photoEdits";
+import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { ErrorState } from "../common/ErrorState";
 import { FeatureBoundary, FeatureFallback } from "../common/FeatureBoundary";
 import { PageLoader } from "../common/PageLoader";
 import { TOOLBAR_BUTTON, TOOLBAR_ICON_SIZE } from "../lightbox/LightboxToolbarButton";
+import { mediaVersion } from "../lightbox/useZoomOriginal";
 import { ViewerDarkScope } from "../lightbox/ViewerDarkScope";
 import classes from "./PhotoEditor.module.css";
 import { EditorWorkspace } from "./shell/EditorWorkspace";
@@ -78,9 +80,28 @@ function EditorLoader({ photo, onClose }: PhotoEditorProps) {
           </Button>
         </Stack>
       ) : (
-        <PageLoader label={t("editor.loading")} />
+        <>
+          <EditorPlaceholder photo={photo} />
+          <PageLoader label={t("editor.loading")} />
+        </>
       )}
     </EditorFrame>
+  );
+}
+
+/**
+ * While the edit source loads (a RAW file takes a second or two): the picture the viewer just
+ * showed, dimmed under the loader, so the editor opens on the photo instead of on an empty screen.
+ * The URL is the viewer's, so the browser answers it from its cache.
+ */
+function EditorPlaceholder({ photo }: Readonly<{ photo: Photo }>) {
+  return (
+    <img
+      className={classes.placeholder}
+      src={`${mediaUrl.bigThumbnail(photo.image_hash)}${mediaVersion(0, photo)}`}
+      alt=""
+      data-editor-placeholder="true"
+    />
   );
 }
 

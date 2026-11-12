@@ -122,6 +122,27 @@ describe("PhotoEditor", { timeout: 20000 }, () => {
     expect(source.closed()).toBe(1);
   });
 
+  it("shows the viewer's picture under the loader until the source is in", async () => {
+    let arrive = () => {};
+    const arrived = new Promise<void>(resolve => {
+      arrive = resolve;
+    });
+    stubs.edit = editOf();
+    editor = await mountEditor(
+      { image_hash: "abc", edit: { version: 3, rendition: "ready", width: 4000, height: 3000 } },
+      arrived
+    );
+    const placeholder = () => document.querySelector<HTMLImageElement>('img[data-editor-placeholder="true"]');
+    // The viewer's own URL (its edit's version), so the browser has it already.
+    expect(placeholder()?.getAttribute("src")).toBe("/media/thumbnails_big/abc?v=e3-ready");
+    expect(byLabel("Opening the editor")).toBeTruthy();
+    expect(document.querySelector('canvas[aria-label="Edited photo"]')).toBeNull();
+    await act(async () => arrive());
+    for (let waited = 0; waited < 50 && placeholder(); waited++) await settle();
+    expect(placeholder()).toBeNull();
+    expect(document.querySelector('canvas[aria-label="Edited photo"]')).not.toBeNull();
+  });
+
   it("makes one history step of a slider drag, undone and redone from the keyboard", async () => {
     await open();
     await drag("Contrast", [120, 140, 160, 180]);

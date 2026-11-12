@@ -20,6 +20,23 @@
 }
 
 .frameBody {
+  position: relative;
   flex: 1;
   min-height: 0;
+}
+
+/* The viewer's picture behind the loader while the editor loads (the loader stays readable on it). */
+.placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  object-fit: contain;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.placeholder + * {
+  position: relative;
 }

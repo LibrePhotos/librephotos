@@ -5,8 +5,9 @@ import type { EditSource } from "./engine/editSource";
 type Loaded = Readonly<{ key: string; source?: EditSource; failed?: boolean }>;
 
 /**
- * The photo's edit source, fetched and decoded when the editor opens (several megabytes, so not
- * cached), and freed when the editor closes. `retry` fetches it again after a failure.
+ * The photo's edit source, fetched and decoded when the editor opens, and freed when the editor
+ * closes; the browser revalidates its copy by ETag. While it downloads, the renderer's shaders are
+ * compiled once, so the preview starts sooner. `retry` fetches it again after a failure.
  */
 export function useEditSource(photoId: string) {
   const services = useEditorServices();
@@ -31,7 +32,11 @@ export function useEditSource(photoId: string) {
         if (live) setLoaded({ key, failed: true });
       }
     );
+    // In a task of its own, after the request went out (the API client awaits its token first):
+    // the compile blocks the page for a moment, the download goes on meanwhile.
+    const prepare = setTimeout(() => services.prepareRenderer(), 0);
     return () => {
+      clearTimeout(prepare);
       live = false;
       if (kept) releaseSource(kept);
     };
