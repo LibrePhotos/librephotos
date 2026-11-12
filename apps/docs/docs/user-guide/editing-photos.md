@@ -37,7 +37,9 @@ often helps.
 
 Open a photo in the [photo viewer](./viewing-photos.md#photo-viewer-lightbox) and click the edit
 button in the toolbar, next to **Share link** (tooltip *Edit (E)*), or press `e`. On a phone the
-button is in the bar at the bottom of the screen.
+button is in the bar at the bottom of the screen. On a photo's own [page](./viewing-photos.md#photo-page),
+the **Edit** button under the title opens the editor too. When you close the editor, the focus goes
+back to the edit button.
 
 On a photo you already edited, the button is highlighted and its tooltip says *Edit (E). This
 photo is edited*. The grids show no badge for edited photos: they show the edited picture.
@@ -62,7 +64,10 @@ Simple mode has three tabs:
 | **Filters** | A small preview of the photo with each look: **Original**, **Vivid**, **Warm**, **Cool**, **Fade**, **Matte**, **Punch**, **Golden**, **Cinematic**, **Mono**, **Mono contrast**, **Sepia** and **Film**. **Strength** makes the chosen look weaker or stronger. |
 | **Crop & rotate** | The crop frame, **Aspect ratio**, **Straighten**, and **Rotate and flip**. **Reset crop and rotation** takes them back. |
 
-**Auto** sets the light of the photo from its histogram, as a starting point you can change.
+**Auto** sets the light of the photo from its histogram, as a starting point you can change. It
+reads the photo as you framed it, so it is not available while the crop tool is open.
+**Brightness** covers about two stops each way; a brighter or darker setting made in the advanced
+mode's **Exposure** shows as it is, and the slider moves on from there.
 Picking a filter replaces the filter you picked before instead of adding to it, and **Original**
 takes it off again. A filter never changes the crop.
 
@@ -118,23 +123,27 @@ new change.
 The history is saved with the edit, up to the last 200 steps. When you open the editor again, on
 this or any other device, the history is still there and you can go back to any step.
 
-## Comparing with the original
+## Comparing before and after
 
-- **Hold to compare**: hold down the compare button in the top bar, or the `\` key, to see the
-  photo without its adjustments. It keeps the crop and rotation, so you compare the same framing.
+- **Hold to compare**: hold down the compare button in the top bar (tooltip *Hold to see the photo
+  before its adjustments, with its crop and rotation (\)*), or the `\` key, to see the photo without
+  its adjustments. It keeps the crop and rotation, so you compare the same framing.
 - **Before and after side by side**: the button next to it, or `y`, splits the photo into
   **Before** on the left and **After** on the right. Drag the divider, or move it with the arrow
   keys. The split view is not available while you crop.
 
 ## Saving
 
-Nothing changes on the photo until you click **Save**. The editor then closes, says *Edit saved*,
-and you are back in the photo viewer:
+Nothing changes on the photo until you click **Save**. While the server saves, the editor says
+*Saving the edit…* and takes no input, so what is saved is what you see. When the server has
+answered, the editor closes, says *Edit saved*, and you are back in the photo viewer:
 
 - The thumbnails and the photo viewer show the edit right away.
 - The server makes the edited picture at full size in the background, which can take a few seconds
   for a large photo or a RAW file. Until it is ready, zooming in shows the display-size version,
   with the label *The edited photo is still being prepared at full size*.
+
+If the save fails, the editor says why and stays open with your changes, so you can try again.
 
 If you close the editor (or press `Escape`, go back or follow a link) with changes that are not
 saved, it asks *Save your changes?*: **Discard** drops them, **Keep editing** stays in the editor and
@@ -146,15 +155,16 @@ Like any step, you can undo it, and it is only kept when you save.
 ### Reverting to the original
 
 **Revert to original...** in the editor's **⋮** removes the edit for good: its settings, its history
-and the edited copies. LibrePhotos asks first (*Revert to the original?*), then the photo shows its
-original again everywhere. The option is shown once a photo has a saved edit.
+and the edited copies. LibrePhotos asks first (*Revert to the original?*); while it reverts the editor says *Reverting to
+the original…*, then the photo shows its original again everywhere. The option is shown once a photo has a saved edit.
 
 Rotating an edited photo with the rotate items in the photo viewer turns its edit, crop included,
 and adds the turn to its history.
 
 ## Downloads and sharing {#downloads-and-sharing}
 
-On a photo you edited, the photo viewer's **⋮** (*More actions*) has two downloads:
+On a photo you edited, the photo viewer's **⋮** (*More actions*) and the **Download** button of the
+photo's [page](./viewing-photos.md#photo-page) have two downloads:
 
 - **Download edited**: the edited picture at full size, as a JPEG named after the original with
   `-edited` added. It is available once the server has made it.

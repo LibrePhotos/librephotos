@@ -11,7 +11,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import "../../i18n";
 import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";
 import { LightboxEditButton } from "./LightboxEditButton";
-import { PhotoEditorLauncherContext } from "./photoEditorLauncher";
+import { EditorClosedContext, PhotoEditorLauncherContext } from "./photoEditorLauncher";
 import { makePhoto } from "./photoFixture.test-utils";
 
 const stubs = vi.hoisted(() => ({ supported: true }));
@@ -37,7 +37,7 @@ afterEach(async () => {
   stubs.supported = true;
 });
 
-async function renderButton(photo: Partial<Photo>, { type = "photo", launcher = true } = {}) {
+async function renderButton(photo: Partial<Photo>, { type = "photo", launcher = true, editorClosed = false } = {}) {
   const open = vi.fn<() => void>();
   const commands = createLightboxCommands();
   const container = document.createElement("div");
@@ -48,7 +48,9 @@ async function renderButton(photo: Partial<Photo>, { type = "photo", launcher = 
       <MantineProvider env="test">
         <LightboxCommandsContext.Provider value={commands}>
           <PhotoEditorLauncherContext.Provider value={launcher ? open : null}>
-            <LightboxEditButton photo={makePhoto(photo)} type={type} />
+            <EditorClosedContext.Provider value={editorClosed}>
+              <LightboxEditButton photo={makePhoto(photo)} type={type} />
+            </EditorClosedContext.Provider>
           </PhotoEditorLauncherContext.Provider>
         </LightboxCommandsContext.Provider>
       </MantineProvider>
@@ -70,6 +72,12 @@ describe("LightboxEditButton", () => {
     expect(open).toHaveBeenCalledTimes(1);
     await act(async () => commands.emit("edit"));
     expect(open).toHaveBeenCalledTimes(2);
+  });
+
+  it("asks the viewer's focus trap for the focus once the editor has closed", async () => {
+    expect((await renderButton({ video: false })).button?.hasAttribute("data-autofocus")).toBe(false);
+    const { button } = await renderButton({ video: false }, { editorClosed: true });
+    expect(button?.hasAttribute("data-autofocus")).toBe(true);
   });
 
   it("is not there for a video", async () => {

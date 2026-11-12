@@ -12,6 +12,8 @@ import type { LibraryPhoto } from "../libraryShare/libraryShareFields";
 import { LibraryPhotoDetails } from "./LibraryPhotoDetails";
 import { makePhoto } from "./photoFixture.test-utils";
 
+const stubs = vi.hoisted(() => ({ save: vi.fn<(url: string, name: string) => Promise<void>>() }));
+vi.mock("../../api_client/media/saveMedia", () => ({ saveMediaFile: stubs.save }));
 vi.mock("./TimestampItem", () => ({ TimestampItem: () => <p>date</p> }));
 vi.mock("./LocationSection", () => ({ LocationSection: () => <p>location section</p> }));
 vi.mock("./PeopleSection", () => ({ PeopleSection: () => <p>people section</p> }));
@@ -86,7 +88,10 @@ describe("LibraryPhotoDetails", () => {
     expect(text).toContain("Anna doesn't share camera information with you");
     expect(text).toContain("Anna doesn't share captions with you");
     expect(text).toContain("Downloads are full-size copies without the file's metadata.");
-    expect(document.querySelector("a[download]")?.getAttribute("download")).toBe("h.jpg");
+    stubs.save.mockResolvedValue();
+    const download = [...document.querySelectorAll("button")].find(button => button.textContent === "Download");
+    await act(async () => download?.click());
+    expect(stubs.save).toHaveBeenCalledWith("/media/photos/h", "h.jpg");
     expect(text).not.toContain("location section");
   });
 

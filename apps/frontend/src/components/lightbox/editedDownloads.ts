@@ -11,6 +11,16 @@ export function originalFileUrl(imageHash: string): string {
   return `${mediaUrl.photo(imageHash)}?original=1`;
 }
 
+/**
+ * Where a link labelled with the photo's file name points: the original file itself. For an edited
+ * photo that takes `?original=1` (its owner's details are the only ones with `edit`); the plain
+ * address answers the edit.
+ */
+export function originalHref(photo: Pick<Photo, "image_hash" | "edit">): string {
+  const edited = photo.edit !== null && photo.edit !== undefined && photo.edit.rendition !== "none";
+  return edited ? originalFileUrl(photo.image_hash) : mediaUrl.photo(photo.image_hash);
+}
+
 /** The original's file name: the last part of its first path; the hash when there is none. */
 export function originalFileName(photo: Pick<Photo, "image_path" | "image_hash">): string {
   return photo.image_path[0]?.split(/[\\/]/).pop() || photo.image_hash;

@@ -1,5 +1,5 @@
 import { Box } from "@mantine/core";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { DrawnFrame } from "../canvas/usePreview";
 import { useEditor } from "../EditorContext";
@@ -37,6 +37,13 @@ export function CropOverlay({ frame, pixelRatio }: Props) {
 
   const drag = useRef<Drag | null>(null);
   const moved = useRef<Recipe | null>(null);
+  // Undo (Ctrl+Z) during a drag drops its live crop: the drag ends there, and letting go adds nothing.
+  const live = session.live;
+  useEffect(() => {
+    if (live !== null) return;
+    drag.current = null;
+    moved.current = null;
+  }, [live]);
 
   const show = (start: Drag, delta: Point) => {
     const drawn = dragCrop(start.crop, start.handle, delta, ratio, minSize);

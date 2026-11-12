@@ -28,6 +28,7 @@ import { LightboxControls } from "./LightboxControls";
 import { liveTextBlocks, mainSlide } from "./lightboxSlide";
 import { MediaDisplay } from "./MediaDisplay";
 import { photoActionHotkeys } from "./photoActionHotkeys";
+import { useEditorJustClosed } from "./photoEditorLauncher";
 import { Sidebar } from "./Sidebar";
 import { SlideTransition } from "./SlideTransition";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
@@ -95,8 +96,8 @@ export function ContentViewer({
   // A drawn box is read against the layer's on-screen rect, which stays right
   // through zoom and pan but not through rotation: the rect of a rotated
   // rectangle is its bounding box, so the fractions would not line up.
-  const isRotated = rotationAngle % 360 !== 0;
-  const addFaceBlockedReason = isRotated ? t("lightbox.addface.rotated") : undefined;
+  const addFaceBlockedReason = rotationAngle % 360 !== 0 ? t("lightbox.addface.rotated") : undefined;
+  const editorClosed = useEditorJustClosed();
 
   // Copy to clipboard: the toolbar menu and Ctrl/Cmd+C, for still photos on
   // pages that have an image clipboard at all (secure contexts only).
@@ -228,8 +229,9 @@ export function ContentViewer({
           <Modal.Body
             ref={contentRef}
             // The focus trap otherwise lands on the first toolbar button, which
-            // then shows a focus ring as soon as a shortcut key is pressed.
-            data-autofocus
+            // then shows a focus ring as soon as a shortcut key is pressed. Back
+            // from the editor, the Edit button takes it (LightboxEditButton).
+            data-autofocus={!editorClosed || undefined}
             tabIndex={-1}
             className={classes.body}
           >

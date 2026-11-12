@@ -12,9 +12,10 @@ import { editedDownloads } from "./editedDownloads";
 /**
  * The owner's ⋮ items for an edited photo: Download edited (the edited JPEG, once the server has
  * made it at full size; until then it says why it waits) and Download original (the untouched
- * file), each saved under its own name. Nothing for a photo without an edit.
+ * file), each saved under its own name. Nothing for a photo without an edit. In the lightbox's ⋮
+ * menu after a divider; at the top of the photo page's Download menu without one.
  */
-export function EditedDownloadItems({ photo }: Readonly<{ photo: Photo }>) {
+export function EditedDownloadItems({ photo, divider = true }: Readonly<{ photo: Photo; divider?: boolean }>) {
   const { t } = useTranslation();
   const downloads = editedDownloads(photo);
   if (!downloads) return null;
@@ -38,7 +39,7 @@ export function EditedDownloadItems({ photo }: Readonly<{ photo: Photo }>) {
   );
   return (
     <>
-      <Menu.Divider />
+      {divider && <Menu.Divider />}
       {editedReason ? (
         <DisabledReason reason={editedReason} position="left">
           {editedItem}

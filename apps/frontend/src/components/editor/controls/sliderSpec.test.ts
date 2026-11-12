@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatValue, parseValue, sliderSpec, snapValue } from "./sliderSpec";
+import { formatValue, including, parseValue, sliderSpec, snapValue } from "./sliderSpec";
 
 describe("sliderSpec", () => {
   it("steps Exposure in hundredths of a stop and the others in whole numbers", () => {
@@ -13,6 +13,22 @@ describe("sliderSpec", () => {
   it("takes a narrower range inside the control's own", () => {
     expect(sliderSpec("light.exposure", { min: -2, max: 2 })).toMatchObject({ min: -2, max: 2 });
     expect(sliderSpec("light.contrast", { min: -500, max: 50 })).toMatchObject({ min: -100, max: 50 });
+  });
+});
+
+describe("a narrower range and a value outside it", () => {
+  const brightness = sliderSpec("light.exposure", { min: -2, max: 2 });
+
+  it("grows to hold the value, so it shows and steps from the real one", () => {
+    const grown = including(brightness, 3.5);
+    expect([grown.min, grown.max]).toEqual([-2, 3.5]);
+    expect(formatValue(grown, 3.5)).toBe("+3.50");
+    expect(snapValue(grown, 3.5 + grown.step)).toBe(3.5);
+    expect(including(brightness, -4.25).min).toBe(-4.25);
+  });
+
+  it("stays as it is for a value inside it", () => {
+    expect(including(brightness, 1.5)).toBe(brightness);
   });
 });
 

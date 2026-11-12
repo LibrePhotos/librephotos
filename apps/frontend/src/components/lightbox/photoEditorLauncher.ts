@@ -10,3 +10,13 @@ export const PhotoEditorLauncherContext = createContext<(() => void) | null>(nul
 export function usePhotoEditorLauncher(): (() => void) | null {
   return useContext(PhotoEditorLauncherContext);
 }
+
+/**
+ * The editor was just closed: the Edit button that opened it was unmounted with the viewer, so the
+ * viewer, coming back, puts the focus on its new Edit button (`data-autofocus`) instead of its body.
+ */
+export const EditorClosedContext = createContext(false);
+
+export function useEditorJustClosed(): boolean {
+  return useContext(EditorClosedContext);
+}

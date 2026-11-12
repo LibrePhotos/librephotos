@@ -41,6 +41,20 @@ export function sliderSpec(path: NumberControlPath, range?: SliderRange): Slider
   };
 }
 
+/**
+ * The spec grown to hold `value` when a narrower range than the control's leaves it out (the simple
+ * mode's Brightness at an exposure set in the advanced mode): the slider shows the real value and an
+ * arrow key moves on from it, never back to the edge of the narrower range.
+ */
+export function including(spec: SliderSpec, value: number): SliderSpec {
+  if (!Number.isFinite(value) || (value >= spec.min && value <= spec.max)) return spec;
+  // On the step's grid, as the slider shows the value.
+  const shown = Number(value.toFixed(spec.decimals));
+  const min = Math.min(spec.min, shown);
+  const max = Math.max(spec.max, shown);
+  return { ...spec, min, max, bipolar: min < 0 && max > 0 };
+}
+
 /** A value on the slider's grid (its step) and inside its range. */
 export function snapValue(spec: SliderSpec, value: number): number {
   const clamped = Math.min(spec.max, Math.max(spec.min, Number.isFinite(value) ? value : spec.origin));

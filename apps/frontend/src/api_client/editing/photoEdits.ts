@@ -31,7 +31,11 @@ function refreshEditedPhoto(queryClient: QueryClient) {
   ]);
 }
 
-/** Save a photo's edit; the answer (the new version and rendition state) replaces the cached edit. */
+/**
+ * Save a photo's edit; the answer (the new version and rendition state) replaces the cached edit.
+ * The mutation settles when the server has answered: the editor closes then, and the details and
+ * grids it refreshes come in behind it.
+ */
 export const useSavePhotoEditMutation = (options?: MutationErrorOptions) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -39,22 +43,24 @@ export const useSavePhotoEditMutation = (options?: MutationErrorOptions) => {
     meta: mutationErrorMeta(options),
     onSuccess: (saved: PhotoEdit, { photoId }) => {
       queryClient.setQueryData(photoKeys.edit(photoId), saved);
-      return refreshEditedPhoto(queryClient);
+      void refreshEditedPhoto(queryClient);
     },
   });
 };
 
-/** Remove a photo's edit, history and rendition: the photo shows its original again. */
+/**
+ * Remove a photo's edit, history and rendition: the photo shows its original again. Like a save, it
+ * settles when the server has answered, not after the refreshes.
+ */
 export const useDeletePhotoEditMutation = (options?: MutationErrorOptions) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (photoId: string) => endpoints.deletePhotoEdit(apiClient, photoId),
     meta: mutationErrorMeta(options),
-    onSuccess: (_result, photoId) =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: photoKeys.edit(photoId) }),
-        refreshEditedPhoto(queryClient),
-      ]),
+    onSuccess: (_result, photoId) => {
+      void queryClient.invalidateQueries({ queryKey: photoKeys.edit(photoId) });
+      void refreshEditedPhoto(queryClient);
+    },
   });
 };
 

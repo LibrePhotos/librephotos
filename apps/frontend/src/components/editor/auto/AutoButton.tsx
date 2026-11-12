@@ -10,18 +10,21 @@ import { autoTone, withAutoTone } from "./autoTone";
 /**
  * Auto: sets Exposure, Contrast, Highlights, Shadows, Whites and Blacks from the histogram of the
  * photo before its edits (its framing kept), as one `auto` step. In the simple Adjust tab and the
- * advanced Light section.
+ * advanced Light section. Not while the crop tool is open: the picture then is the uncropped frame,
+ * not the framing Auto reads.
  */
 function AutoButton() {
   const { t } = useTranslation();
-  const { session, commands, preview, ready } = useEditor();
+  const { session, commands, preview, ready, cropActive } = useEditor();
+  const reason = (!ready && t("editor.auto.notReady")) || (cropActive && t("editor.auto.inCrop"));
   const run = () => {
+    if (reason) return;
     const histogram = preview.renderer()?.histogram("before");
     if (!histogram) return;
     commands.apply("auto", withAutoTone(session.committed, autoTone(histogram.luma)));
   };
   return (
-    <DisabledReason reason={!ready && t("editor.auto.notReady")} label={t("editor.auto.hint")}>
+    <DisabledReason reason={reason} label={t("editor.auto.hint")}>
       <Button size="compact-sm" variant="light" leftSection={<IconWand size={ICON_SIZE.inline} />} onClick={run}>
         {t("editor.auto.label")}
       </Button>

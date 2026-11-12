@@ -12,7 +12,7 @@ import type { LightboxItem, LightBoxProps } from "./lightbox.types";
 import { adoptsLive, indexOfId, neighbour } from "./lightboxNavigation";
 import { LightboxTitle } from "./LightboxTitle";
 import { locationMap } from "./LocationSection";
-import { PhotoEditorLauncherContext } from "./photoEditorLauncher";
+import { EditorClosedContext, PhotoEditorLauncherContext } from "./photoEditorLauncher";
 import { UnsavedDraftsContext } from "./unsavedDrafts";
 import { useLightboxDraftsGuard } from "./useUnsavedDraftsGuard";
 import { VideoStartContext, videoStartFor } from "./videoStart";
@@ -191,7 +191,12 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
   // trashes, the arrows step) can act under it; closing it shows the same photo again.
   const editedPhoto = editingId === lightboxImageId && !readOnly ? photoDetails : undefined;
   const openEditor = useCallback(() => guard(() => setEditingId(lightboxImageId)), [guard, lightboxImageId]);
-  const closeEditor = useCallback(() => setEditingId(null), []);
+  // Closing it gives the focus back to the viewer's Edit button (see EditorClosedContext).
+  const [editorClosed, setEditorClosed] = useState(false);
+  const closeEditor = useCallback(() => {
+    setEditingId(null);
+    setEditorClosed(true);
+  }, []);
 
   // A viewer who is not the owner gets no photo details, only what the grid knows.
   const gridItem = readOnly ? currentItem : undefined;
@@ -200,38 +205,40 @@ function LightboxViewer(props: ExtendedLightBoxProps) {
     <UnsavedDraftsContext.Provider value={drafts}>
       <VideoStartContext.Provider value={videoStartFor(items, lightboxImageId)}>
         <PhotoEditorLauncherContext.Provider value={readOnly ? null : openEditor}>
-          {editedPhoto ? (
-            <LazyPhotoEditor photo={editedPhoto} onClose={closeEditor} />
-          ) : (
-            <ContentViewer
-              mainSrc={lightboxImageId}
-              mainSrcHash={currentImageHash}
-              nextSrc={nextId}
-              nextSrcHash={nextItem?.image_hash ?? null}
-              prevSrc={prevId}
-              prevSrcHash={prevItem?.image_hash ?? null}
-              isPublic={readOnly}
-              publicAlbumSlug={publicAlbumSlug}
-              type={mediaType}
-              enableZoom={mediaType === "photo"}
-              onCloseRequest={handleCloseRequest}
-              onMovePrevRequest={onMovePrevRequest}
-              onMoveNextRequest={onMoveNextRequest}
-              onPhotoSelect={handlePhotoSelect}
-              onTrashToggled={handleTrashToggled}
-              beforeTrash={guard}
-              startSlideshow={startSlideshow}
-              gridItem={gridItem}
-              toolbarTitle={
-                <LightboxTitle
-                  // A viewer who is not the owner has no details: the grid's date and place
-                  timestamp={photoDetails?.exif_timestamp ?? currentItem?.date}
-                  place={photoDetails?.search_location ?? currentItem?.location}
-                  position={position}
-                />
-              }
-            />
-          )}
+          <EditorClosedContext.Provider value={editorClosed}>
+            {editedPhoto ? (
+              <LazyPhotoEditor photo={editedPhoto} onClose={closeEditor} />
+            ) : (
+              <ContentViewer
+                mainSrc={lightboxImageId}
+                mainSrcHash={currentImageHash}
+                nextSrc={nextId}
+                nextSrcHash={nextItem?.image_hash ?? null}
+                prevSrc={prevId}
+                prevSrcHash={prevItem?.image_hash ?? null}
+                isPublic={readOnly}
+                publicAlbumSlug={publicAlbumSlug}
+                type={mediaType}
+                enableZoom={mediaType === "photo"}
+                onCloseRequest={handleCloseRequest}
+                onMovePrevRequest={onMovePrevRequest}
+                onMoveNextRequest={onMoveNextRequest}
+                onPhotoSelect={handlePhotoSelect}
+                onTrashToggled={handleTrashToggled}
+                beforeTrash={guard}
+                startSlideshow={startSlideshow}
+                gridItem={gridItem}
+                toolbarTitle={
+                  <LightboxTitle
+                    // A viewer who is not the owner has no details: the grid's date and place
+                    timestamp={photoDetails?.exif_timestamp ?? currentItem?.date}
+                    place={photoDetails?.search_location ?? currentItem?.location}
+                    position={position}
+                  />
+                }
+              />
+            )}
+          </EditorClosedContext.Provider>
         </PhotoEditorLauncherContext.Provider>
       </VideoStartContext.Provider>
       <DiscardDraftsModal

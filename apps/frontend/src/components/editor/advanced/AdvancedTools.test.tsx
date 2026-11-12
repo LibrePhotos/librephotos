@@ -221,6 +221,26 @@ describe("advanced tools", { timeout: 20000 }, () => {
     expect(edit.settings.light?.exposure ?? 0).toBeGreaterThan(0.5);
   });
 
+  it("offers no Auto while the crop tool is open, and says why", async () => {
+    const { renderer } = await open();
+    await click(buttonWithText("Crop & rotate"));
+    await settle();
+    const auto = buttonWithText("Auto");
+    expect(auto.getAttribute("aria-disabled")).toBe("true");
+    expect(document.body.textContent).toContain("Not available while cropping: close the crop tool first");
+    await click(auto);
+    expect(renderer.histogramCalls).not.toContain("before");
+  });
+
+  it("names the compare button for what it shows: the adjustments off, the crop and rotation kept", async () => {
+    await open();
+    const label = byLabel(
+      `Hold to see the photo before its adjustments, with its crop and rotation (${String.fromCharCode(92)})`
+    );
+    expect(label.tagName).toBe("BUTTON");
+    expect(document.querySelector('[aria-label*="original"]')).toBeNull();
+  });
+
   it("switches the split view with Y and its button, and draws it", async () => {
     const { renderer } = await open();
     await press("y");

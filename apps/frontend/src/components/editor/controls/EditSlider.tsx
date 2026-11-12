@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from "react";
 import { useEditor } from "../EditorContext";
 import { numberControl, readNumber, type NumberControlPath } from "../engine/controls";
 import { onlySets } from "../state/session";
-import { sliderSpec, type SliderRange } from "./sliderSpec";
+import { including, sliderSpec, type SliderRange } from "./sliderSpec";
 import { ValueSlider } from "./ValueSlider";
 
 export type EditSliderProps = Readonly<{
@@ -12,7 +12,10 @@ export type EditSliderProps = Readonly<{
   label: string;
   /** The accessible name where the label alone is ambiguous; default: the label. */
   name?: string;
-  /** A narrower range than the control's (the simple mode's Brightness is about two stops each way). */
+  /**
+   * A narrower range than the control's (the simple mode's Brightness is about two stops each way);
+   * it grows to hold a value set outside it.
+   */
   range?: SliderRange;
 }>;
 
@@ -28,6 +31,7 @@ export function EditSlider({ path, label, name, range }: EditSliderProps) {
     () => sliderSpec(path, min === undefined || max === undefined ? undefined : { min, max }),
     [path, min, max]
   );
+  const value = readNumber(session.recipe, path);
   const pressedAt = useRef<number | null>(null);
   const reset = () => {
     const from = pressedAt.current;
@@ -42,8 +46,8 @@ export function EditSlider({ path, label, name, range }: EditSliderProps) {
     <ValueSlider
       label={label}
       name={name}
-      spec={spec}
-      value={readNumber(session.recipe, path)}
+      spec={including(spec, value)}
+      value={value}
       onLive={value => commands.setControl(path, value, "live")}
       onCommit={commands.commit}
       onSet={value => commands.setControl(path, value, "set")}

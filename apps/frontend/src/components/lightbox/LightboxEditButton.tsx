@@ -8,7 +8,7 @@ import { canEdit } from "../editor/engine/canEdit";
 import { photoEditor } from "../editor/LazyPhotoEditor";
 import { useLightboxCommands } from "./lightboxCommands";
 import { TOOLBAR_BUTTON, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
-import { usePhotoEditorLauncher } from "./photoEditorLauncher";
+import { useEditorJustClosed, usePhotoEditorLauncher } from "./photoEditorLauncher";
 
 type Props = Readonly<{
   /** The viewer's own photo with its details loaded. */
@@ -26,6 +26,7 @@ export function LightboxEditButton({ photo, type }: Props) {
   const { t } = useTranslation();
   const open = usePhotoEditorLauncher();
   const commands = useLightboxCommands();
+  const editorClosed = useEditorJustClosed();
   const supported = useMemo(canEdit, []);
   const editable = open !== null && type !== "video" && !photo.video;
   const usable = editable && supported;
@@ -45,6 +46,8 @@ export function LightboxEditButton({ photo, type }: Props) {
         {...TOOLBAR_BUTTON}
         aria-label={label}
         mod={{ active: edited }}
+        // Back from the editor: the viewer's focus trap puts the focus here.
+        data-autofocus={editorClosed || undefined}
         onClick={open}
         // The editor is its own chunk: fetched once the pointer or the focus says it may be wanted.
         onPointerEnter={photoEditor.prefetch}

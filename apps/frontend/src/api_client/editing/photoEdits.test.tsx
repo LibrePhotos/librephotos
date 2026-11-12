@@ -97,6 +97,31 @@ describe("photo edit hooks", () => {
     expect(invalidated(invalidate)).toEqual([photoKeys.details(), photoGridKeys.all]);
   });
 
+  it("settles a save or a delete when the server answers, without waiting for the refreshes", async () => {
+    stubs.request.mockResolvedValue({ ...EDIT, version: 4 });
+    stubs.delete.mockResolvedValue(null);
+    const client = new QueryClient();
+    // The grids and details never come back: the editor must not wait for them to close.
+    vi.spyOn(client, "invalidateQueries").mockReturnValue(new Promise<void>(() => {}));
+    const { result, unmount } = await renderHook(
+      () => ({ save: useSavePhotoEditMutation(), remove: useDeletePhotoEditMutation() }),
+      client
+    );
+    const edit: PhotoEditUpdate = { settings: { version: 1 }, history: [], history_cursor: -1 };
+    const settled: string[] = [];
+    await act(async () => {
+      defined(result.current).save.mutate({ photoId: PHOTO_ID, edit }, { onSuccess: () => void settled.push("saved") });
+      defined(result.current).remove.mutate(PHOTO_ID, { onSuccess: () => void settled.push("reverted") });
+      await new Promise(resolve => {
+        setTimeout(resolve, 0);
+      });
+    });
+    expect(settled.sort()).toEqual(["reverted", "saved"]);
+    expect(defined(result.current).save.isPending).toBe(false);
+    expect(defined(result.current).remove.isPending).toBe(false);
+    await unmount();
+  });
+
   it("deletes and refreshes the edit, the details and every grid", async () => {
     stubs.delete.mockResolvedValue(null);
     const client = new QueryClient();

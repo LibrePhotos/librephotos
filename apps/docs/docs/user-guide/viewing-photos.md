@@ -228,7 +228,7 @@ A small label in the photo's lower-left corner says what you are looking at whil
 - **Preview** with the reason when the browser cannot show the original: RAW, HEIC, TIFF and JPEG XL files, and photos you turned with the rotate buttons (the file itself is not turned). The **Original** link next to it downloads the file.
 - **The original did not load** with **Try again** when loading it failed.
 
-<Since version="1.7.0" /> On a photo you [edited](./editing-photos.md), zooming in loads the edited picture at full size. While the server is still making it, the label says **Preview** with *The edited photo is still being prepared at full size*.
+<Since version="1.7.0" /> On a photo you [edited](./editing-photos.md), zooming in loads the edited picture at full size, and the label says so: **Loading the edited photo**, then **Edited · 3000 × 2000**, which shrinks to **Edited**. While the server is still making it, the label says **Preview** with *The edited photo is still being prepared at full size*, without an **Original** link: the original file is **Download original** in the viewer's ⋮.
 
 Photos no bigger than the display-size version need nothing more, and animated GIFs always show the original. The original loads only when you are signed in and may download it anyway: your own photos and photos shared with you. Visitors of a [public album](./sharing.md#the-public-album-experience) or a public photo link keep the display-size version.
 
@@ -396,7 +396,8 @@ Under the title, labelled buttons hold the photo's actions:
 - **Favorite**: mark the photo as a favorite, or remove the mark. The button is yellow while it is one. In stars mode it is a wider **Rating** tile with five stars instead, which work as in the photo viewer (see [Rating photos with stars](#rating-photos-with-stars)).
 - **Share**: create a revocable link to this photo, as **Share link** in the lightbox does (see [Revocable Photo Links](./sharing.md#revocable-photo-links)). The button is green while the photo has a live link.
 - **Album**: add the photo to one of your albums, or to a new one.
-- **Download**: download the original file. When the photo has more than one file (a RAW next to its JPEG, the video of a Live Photo), it opens a list to pick the file from.
+- <Since version="1.7.0" /> **Edit**: open the [photo editor](./editing-photos.md) on this photo. Still photos only.
+- **Download**: download the original file. When the photo has more than one file (a RAW next to its JPEG, the video of a Live Photo), it opens a list to pick the file from. <Since version="1.7.0" /> On a photo you [edited](./editing-photos.md#downloads-and-sharing), it always opens the list, with **Download edited** and **Download original** first.
 - **More**: **Copy image** (still photos, HTTPS only), **Rotate 90° counter-clockwise** and **Rotate 90° clockwise** (still photos), **Hide photo** / **Show photo**, **Archive photo** / **Unarchive photo**, **Open in viewer**, and **Move to trash** / **Restore from trash**.
 
 A photo in the trash, hidden or archived says so above these buttons, with a button to restore it, show it again or unarchive it.

@@ -14,6 +14,7 @@ import type { ViewMode } from "../engine/renderer";
 import { SimpleMode } from "../simple/SimpleMode";
 import { canRedo, canUndo, hasSavedEdit, isDirty } from "../state/session";
 import { useEditSession } from "../state/useEditSession";
+import { BusyStatus } from "./BusyStatus";
 import { useEditorHotkeys } from "./editorHotkeys";
 import { useEditorMode, type EditorMode } from "./editorMode";
 import { EditorTopBar, ModeSwitch } from "./EditorTopBar";
@@ -84,6 +85,9 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
   const guard = useEditorLeaveGuard(dirty, onClose);
   const persistence = useEditorPersistence({ photoId: photo.id, session, onSaved: commands.saved, onDone: onClose });
 
+  // While a save or a revert runs, the editor takes no input: what it sends is what it shows.
+  const busy = persistence.saving || persistence.reverting;
+
   const copyPaste = useCopyPaste(session, commands);
   const toggleSplit = () => {
     if (!cropActive) setSplitView(on => !on);
@@ -94,6 +98,7 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
     copy: copyPaste.copy,
     paste: copyPaste.paste,
     toggleSplit,
+    inert: busy,
     onCompare: setComparing,
     onEscape: event => {
       if (!escapeTargetsDialog(event.target, root.current?.closest('[role="dialog"]') ?? null)) return;
@@ -118,59 +123,65 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
 
   return (
     <EditorContext.Provider value={api}>
-      <div
-        ref={root}
-        className={classes.shell}
-        data-compact={compact || undefined}
-        data-panel-collapsed={(compact && panelCollapsed) || undefined}
-      >
-        <EditorTopBar
-          fileName={fileNameOf(photo)}
-          mode={mode}
-          onModeChange={changeMode}
-          canUndo={canUndo(session)}
-          canRedo={canRedo(session)}
-          onUndo={commands.undo}
-          onRedo={commands.redo}
-          onCompare={setComparing}
-          comparing={comparing}
-          splitView={splitView && !cropActive}
-          onToggleSplit={toggleSplit}
-          splitReason={cropActive && t("editor.split.inCrop")}
-          onCopy={copyPaste.copy}
-          onPaste={copyPaste.paste}
-          canReset={!isIdentity(session.recipe)}
-          onReset={() => commands.apply("reset", DEFAULT_RECIPE)}
-          canRevert={hasSavedEdit(edit)}
-          onRevert={persistence.askRevert}
-          dirty={dirty}
-          saving={persistence.saving}
-          onSave={() => {
-            if (dirty) persistence.save();
-          }}
-          onClose={guard.requestClose}
-          compact={compact}
-        />
-        <div className={classes.main}>
-          <EditorStage
-            preview={preview}
-            canvasRef={setCanvas}
-            recipe={session.recipe}
-            mode={viewMode(comparing, splitView && !cropActive)}
-            split={split}
-            onSplitChange={setSplit}
-            cropActive={cropActive}
+      <div className={classes.frame} aria-busy={busy}>
+        <div
+          ref={root}
+          className={classes.shell}
+          inert={busy}
+          data-compact={compact || undefined}
+          data-panel-collapsed={(compact && panelCollapsed) || undefined}
+        >
+          <EditorTopBar
+            fileName={fileNameOf(photo)}
+            mode={mode}
+            onModeChange={changeMode}
+            canUndo={canUndo(session)}
+            canRedo={canRedo(session)}
+            onUndo={commands.undo}
+            onRedo={commands.redo}
+            onCompare={setComparing}
+            comparing={comparing}
+            splitView={splitView && !cropActive}
+            onToggleSplit={toggleSplit}
+            splitReason={cropActive && t("editor.split.inCrop")}
+            onCopy={copyPaste.copy}
+            onPaste={copyPaste.paste}
+            canReset={!isIdentity(session.recipe)}
+            onReset={() => commands.apply("reset", DEFAULT_RECIPE)}
+            canRevert={hasSavedEdit(edit)}
+            onRevert={persistence.askRevert}
+            dirty={dirty}
+            saving={persistence.saving}
+            onSave={() => {
+              if (dirty) persistence.save();
+            }}
+            onClose={guard.requestClose}
+            compact={compact}
           />
-          <aside className={classes.panel} aria-label={t("editor.panel")}>
-            {compact && (
-              <div className={classes.panelHeader}>
-                <ModeSwitch mode={mode} onModeChange={changeMode} />
-                <PanelToggle collapsed={panelCollapsed} onToggle={() => setPanelCollapsed(value => !value)} />
-              </div>
-            )}
-            <div className={classes.panelBody}>{mode === "simple" ? <SimpleMode /> : <AdvancedMode />}</div>
-          </aside>
+          <div className={classes.main}>
+            <EditorStage
+              preview={preview}
+              canvasRef={setCanvas}
+              recipe={session.recipe}
+              mode={viewMode(comparing, splitView && !cropActive)}
+              split={split}
+              onSplitChange={setSplit}
+              cropActive={cropActive}
+            />
+            <aside className={classes.panel} aria-label={t("editor.panel")}>
+              {compact && (
+                <div className={classes.panelHeader}>
+                  <ModeSwitch mode={mode} onModeChange={changeMode} />
+                  <PanelToggle collapsed={panelCollapsed} onToggle={() => setPanelCollapsed(value => !value)} />
+                </div>
+              )}
+              <div className={classes.panelBody}>{mode === "simple" ? <SimpleMode /> : <AdvancedMode />}</div>
+            </aside>
+          </div>
         </div>
+        <BusyStatus
+          label={persistence.saving ? t("editor.saving") : persistence.reverting ? t("editor.reverting") : null}
+        />
       </div>
       <UnsavedEditModal
         opened={guard.question !== null}

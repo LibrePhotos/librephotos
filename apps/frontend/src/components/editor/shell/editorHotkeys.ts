@@ -40,25 +40,37 @@ type Keys = Readonly<{
   paste: () => void;
   /** Y: the split view on or off. */
   toggleSplit: () => void;
+  /** A save or a revert is running: no key acts, Escape and undo included. */
+  inert: boolean;
 }>;
 
 /**
  * The editor's keys: Ctrl+Z (⌘Z) undoes, Ctrl+Shift+Z and Ctrl+Y redo, the backslash shows the
  * original while held, Y switches the split view, Ctrl+Shift+C and Ctrl+Shift+V copy and paste the
  * settings, Escape leaves (the caller decides what it leaves first). None act while a text field has
- * the focus.
+ * the focus, and none while the editor is inert (a save or a revert is running).
  */
-export function useEditorHotkeys({ undo, redo, onCompare, onEscape, copy, paste, toggleSplit }: Keys) {
+export function useEditorHotkeys({ undo, redo, onCompare, onEscape, copy, paste, toggleSplit, inert }: Keys) {
+  const inertNow = useRef(inert);
+  useEffect(() => {
+    inertNow.current = inert;
+  });
+  /** The handler while the editor takes keys; nothing while it is inert. */
+  const live =
+    <A extends unknown[]>(run: (...args: A) => void) =>
+    (...args: A) => {
+      if (!inertNow.current) run(...args);
+    };
   // Mantine skips every <input> by default, the Simple | Advanced radios too: typesText decides instead.
   useHotkeys(
     [
-      outsideText("mod+Z", undo),
-      outsideText("mod+shift+Z", redo),
-      outsideText("mod+Y", redo),
-      outsideText("mod+shift+C", copy),
-      outsideText("mod+shift+V", paste),
-      outsideText("Y", toggleSplit),
-      outsideText("Escape", onEscape),
+      outsideText("mod+Z", live(undo)),
+      outsideText("mod+shift+Z", live(redo)),
+      outsideText("mod+Y", live(redo)),
+      outsideText("mod+shift+C", live(copy)),
+      outsideText("mod+shift+V", live(paste)),
+      outsideText("Y", live(toggleSplit)),
+      outsideText("Escape", live(onEscape)),
     ],
     []
   );
@@ -69,7 +81,7 @@ export function useEditorHotkeys({ undo, redo, onCompare, onEscape, copy, paste,
   useEffect(() => {
     let holding = false;
     const down = (event: KeyboardEvent) => {
-      if (event.key !== COMPARE_KEY || event.repeat || typesText(event.target)) return;
+      if (event.key !== COMPARE_KEY || event.repeat || typesText(event.target) || inertNow.current) return;
       holding = true;
       compare.current(true);
     };

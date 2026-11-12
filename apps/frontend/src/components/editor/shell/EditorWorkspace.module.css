@@ -13,31 +13,32 @@
   min-height: 0;
 }
 
+/* The panel holds its header (on a phone) and the body under it; only the body scrolls, so nothing
+   scrolled ever passes above or behind the header. */
 .panel {
   display: flex;
   flex-direction: column;
   flex: none;
   width: 340px;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   border-inline-start: 1px solid var(--mantine-color-default-border);
   background: var(--mantine-color-body);
 }
 
 .panelBody {
   display: flex;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-/* On a phone it stays at the top while the panel scrolls: its toggle folds the panel away. */
+/* On a phone it stays above the scrolling body: its toggle folds the panel away. */
 .panelHeader {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   box-sizing: border-box;
-  height: var(--editor-panel-header);
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,7 +54,6 @@
 }
 
 .shell[data-compact] .panel {
-  --editor-panel-header: 52px;
   width: auto;
   height: 46dvh;
   border-inline-start: none;
@@ -69,4 +69,26 @@
 
 .shell[data-panel-collapsed] .panelBody {
   display: none;
+}
+
+/* The workspace with what may lie over it: the busy state of a save or a revert. */
+.frame {
+  position: relative;
+}
+
+.busy[data-active] {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-scrim-black-30);
+}
+
+.busyCard {
+  padding: 10px 16px;
+  border-radius: var(--mantine-radius-xl);
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-md);
 }

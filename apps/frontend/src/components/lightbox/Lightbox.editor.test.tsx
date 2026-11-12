@@ -13,7 +13,7 @@ import "../../i18n";
 import { Lightbox } from "./Lightbox";
 import type { LightboxItem } from "./lightbox.types";
 import { useLightboxCommands } from "./lightboxCommands";
-import { usePhotoEditorLauncher } from "./photoEditorLauncher";
+import { useEditorJustClosed, usePhotoEditorLauncher } from "./photoEditorLauncher";
 import { makePhoto } from "./photoFixture.test-utils";
 
 const stubs = vi.hoisted(() => ({
@@ -21,13 +21,17 @@ const stubs = vi.hoisted(() => ({
   details: undefined as Photo | undefined,
 }));
 
-/** The toolbar: an Edit button when the lightbox offers the editor, and the trash command (D). */
+/**
+ * The toolbar: an Edit button when the lightbox offers the editor (taking the focus back from it as
+ * LightboxEditButton does), and the trash command (D).
+ */
 function ToolbarStub() {
   const openEditor = usePhotoEditorLauncher();
+  const editorClosed = useEditorJustClosed();
   const commands = useLightboxCommands();
   useEffect(() => commands.on("delete", stubs.trash), [commands]);
   return openEditor ? (
-    <button type="button" onClick={openEditor}>
+    <button type="button" onClick={openEditor} data-autofocus={editorClosed || undefined}>
       Edit
     </button>
   ) : (
@@ -151,6 +155,19 @@ describe("the photo editor in the lightbox", () => {
     expect(stubs.trash).toHaveBeenCalledTimes(1);
     await key("ArrowRight");
     expect(onImageChange).toHaveBeenCalledWith("b");
+  });
+
+  it("gives the focus back to the Edit button when the editor closes", async () => {
+    await open();
+    await act(async () => button("Edit")?.click());
+    await act(async () => button("Close editor")?.click());
+    // The viewer's focus trap places the focus a task after it mounts.
+    await act(async () => {
+      await new Promise(resolve => {
+        setTimeout(resolve, 20);
+      });
+    });
+    expect(document.activeElement).toBe(button("Edit"));
   });
 
   it("offers no editor for someone else's photo", async () => {

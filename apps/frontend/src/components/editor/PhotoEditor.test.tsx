@@ -237,4 +237,60 @@ describe("PhotoEditor", { timeout: 20000 }, () => {
     expect(crop.cx).toBeGreaterThan(0.5);
     expect(crop.w / crop.h).toBeCloseTo(300 / 400, 6);
   });
+
+  it("shows an exposure beyond Brightness's range as it is, and an arrow key steps from it", async () => {
+    const settings = { version: 1 as const, light: { exposure: 3.5 } };
+    await open(
+      editOf({
+        version: 1,
+        settings,
+        history: [{ action: "set", control: "light.exposure", value: 3.5, at: "2026-11-12T00:00:00Z", settings }],
+        history_cursor: 0,
+      })
+    );
+    expect(valueOf("Brightness").value).toBe("+3.50");
+    const thumb = defined(document.querySelector<HTMLElement>('[role="slider"][aria-label="Brightness"]'));
+    await act(async () => {
+      thumb.focus();
+    });
+    await act(async () => {
+      thumb.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    await settle();
+    // Brighter never lands on the narrower range's edge (+2), which would darken the photo.
+    expect(valueOf("Brightness").value).toBe("+3.50");
+    await act(async () => {
+      thumb.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    });
+    await settle();
+    expect(valueOf("Brightness").value).toBe("+3.49");
+  });
+
+  it("drops a crop drag that Ctrl+Z undid while it ran: releasing adds no crop step", async () => {
+    await open();
+    await click(buttonWithText("Crop & rotate"));
+    await settle();
+    await click(buttonWithText("1:1"));
+    await settle();
+    const frame = byLabel("Crop frame. The arrow keys move it, with Shift in larger steps.");
+    const fire = (type: string, x: number) =>
+      frame.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: x, clientY: 100, button: 0 }));
+    await act(async () => {
+      fire("pointerdown", 100);
+    });
+    await act(async () => {
+      fire("pointermove", 60);
+    });
+    await press("z", { ctrlKey: true });
+    await act(async () => {
+      fire("pointermove", 40);
+    });
+    await act(async () => {
+      fire("pointerup", 40);
+    });
+    await settle();
+
+    await click(saveButton());
+    expect(lastSaved().edit.history.map(step => step.action)).toEqual(["set"]);
+  });
 });

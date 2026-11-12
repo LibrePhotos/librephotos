@@ -1245,6 +1245,12 @@
       "retry": "Try again",
       "preview": "Preview",
       "download": "Download the original",
+      "edited": {
+        "loading": "Loading the edited photo",
+        "shown": "Edited",
+        "shownsize": "Edited · {{width}} × {{height}}",
+        "failed": "The edited photo did not load"
+      },
       "reason": {
         "raw": "RAW files can't be shown in the browser",
         "heic": "HEIC files can't be shown in the browser",
@@ -3491,6 +3497,7 @@
       "share": "Share",
       "album": "Album",
       "albumhint": "Add to album",
+      "edit": "Edit",
       "download": "Download",
       "more": "More"
     },
@@ -4531,7 +4538,7 @@
     "redo": "Redo ({{shortcut}})",
     "nothingToUndo": "Nothing to undo",
     "nothingToRedo": "Nothing to redo",
-    "compare": "Hold to compare with the original (\\)",
+    "compare": "Hold to see the photo before its adjustments, with its crop and rotation (\\)",
     "reset": "Reset all edits",
     "nothingToReset": "Nothing to reset",
     "more": "More actions",
@@ -4539,6 +4546,8 @@
     "save": "Save",
     "nothingToSave": "No changes to save",
     "saved": "Edit saved",
+    "saving": "Saving the edit…",
+    "reverting": "Reverting to the original…",
     "reverted": "The photo shows its original again",
     "mode": {
       "label": "Editing mode",
@@ -4741,7 +4750,8 @@
     "auto": {
       "label": "Auto",
       "hint": "Set the light from this photo's histogram",
-      "notReady": "The photo is still loading"
+      "notReady": "The photo is still loading",
+      "inCrop": "Not available while cropping: close the crop tool first"
     },
     "split": {
       "toggle": "Before and after side by side (Y)",

@@ -11,6 +11,7 @@ import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { fileNameOf, folderOf } from "../photopage/photoPageText";
 import { CameraInfoSection } from "./CameraInfoSection";
 import { DetailsList } from "./DetailsList";
+import { originalHref } from "./editedDownloads";
 import { cameraDetails, fileFacts } from "./photoDetails";
 import { ROW_ICON } from "./SectionTitle";
 import classes from "./Sidebar.module.css";
@@ -70,7 +71,7 @@ function PhotoInfoSection({
           {/* Plain text that opens the file: a file name, not a call to action. Two lines, so a
               long camera or stock-site name still reads; the format and category sit under it. */}
           <Anchor
-            href={mediaUrl.photo(photoDetail.image_hash)}
+            href={originalHref(photoDetail)}
             target="_blank"
             c="var(--mantine-color-text)"
             underline="hover"
