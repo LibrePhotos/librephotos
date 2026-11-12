@@ -183,7 +183,8 @@ def _load_linear16(
     with rawpy.imread(path) as raw:
         sizes = raw.sizes
         full_w, full_h = int(sizes.width), int(sizes.height)
-        if sizes.flip in (5, 6):
+        # Flips 4 to 7 (bit 4) transpose: orientations 5 to 8.
+        if sizes.flip & 4:
             full_w, full_h = full_h, full_w
         half = long_edge is not None and 2 * long_edge <= max(full_w, full_h)
         linear = raw.postprocess(
@@ -194,6 +195,11 @@ def _load_linear16(
             gamma=(1.0, 1.0),
             output_color=rawpy.ColorSpace.sRGB,
             highlight_mode=rawpy.HighlightMode.Clip,
+            # LibRaw's default (0.75) takes the brightest pixel as the clipping
+            # point when it is above 75 % of the white level, which brightens a
+            # picture without clipped highlights by up to 0.4 stop: 1.0 would
+            # depend on the picture instead of being where the sensor clips.
+            adjust_maximum_thr=0.0,
             half_size=half,
         )
     if long_edge is not None and max(linear.shape[:2]) > long_edge:

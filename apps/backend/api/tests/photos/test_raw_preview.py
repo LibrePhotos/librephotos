@@ -92,6 +92,17 @@ class RawPreviewTest(SimpleTestCase):
         self.assertEqual((image.width, image.height), (1620, 1080))
         self.assertEqual(_red_corner(image), "br")
 
+    def test_libraw_mirrored_rotations_are_applied(self):
+        # flip 4 is TIFF orientation 5 (transpose), flip 7 is orientation 7
+        # (transverse): both portrait, as LibRaw develops them.
+        image = _preview((5184, 3456), _jpeg(5184, 3456), flip=4)
+        self.assertEqual((image.width, image.height), (720, 1080))
+        self.assertEqual(_red_corner(image), "tl")
+
+        image = _preview((5184, 3456), _jpeg(5184, 3456), flip=7)
+        self.assertEqual((image.width, image.height), (720, 1080))
+        self.assertEqual(_red_corner(image), "br")
+
     def test_preview_exif_orientation_is_ignored_and_dropped(self):
         # LibRaw's flip decides, and the thumbnail must carry no orientation
         # a browser would apply a second time.
