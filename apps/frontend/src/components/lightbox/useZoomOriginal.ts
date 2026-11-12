@@ -34,14 +34,32 @@ export type ZoomOriginal = {
 };
 
 /**
+ * The `?v=` that keeps a cached picture of an earlier state from showing: the rotation made here,
+ * or the edit's version (photo editing; the server keeps a versioned thumbnail for a year). The
+ * full-size view serves the original until the edit's rendition is ready and the edited JPEG
+ * after, so its key names the rendition state too (`fullSize`).
+ */
+function mediaVersion(
+  imageCacheKey: number,
+  details: OriginalZoomDetails | null | undefined,
+  fullSize: boolean
+): string {
+  const edit = details?.edit;
+  // Joined, not a template: a template starting "e" would read as a translation key pattern.
+  const editKey = edit ? ["e", edit.version, ...(fullSize ? ["-", edit.rendition] : [])].join("") : "";
+  const version = [editKey, imageCacheKey ? String(imageCacheKey) : ""].filter(Boolean).join("-");
+  return version ? `?v=${version}` : "";
+}
+
+/**
  * Which file the lightbox's photo shows (#2742): the big thumbnail, swapped
  * for the original once the user zooms into a photo whose original the
  * browser can draw and that is bigger; an animated original from the start.
  */
 export function useZoomOriginal(args: Args): ZoomOriginal {
   const { mediaHash = "", imageCacheKey, details, isMainContent, magnified } = args;
-  const version = imageCacheKey ? `?v=${imageCacheKey}` : "";
-  const originalUrl = `${mediaUrl.photo(mediaHash)}${version}`;
+  const version = mediaVersion(imageCacheKey, details, false);
+  const originalUrl = `${mediaUrl.photo(mediaHash)}${mediaVersion(imageCacheKey, details, true)}`;
   const plan = originalZoomPlan({
     details,
     isMainContent,

@@ -9,6 +9,7 @@ import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { isPhotoSphere } from "../panorama/photoSphere";
 import classes from "./ContentViewer.module.css";
+import { escapeTargetsDialog } from "./escapeTarget";
 import { ImagePreloader } from "./ImagePreloader";
 import {
   COPY_KEY,
@@ -38,20 +39,6 @@ import { ViewerDarkScope } from "./ViewerDarkScope";
 
 /** The Embla carousel API that Mantine's Carousel hands to getEmblaApi. */
 type EmblaApi = Parameters<NonNullable<CarouselProps["getEmblaApi"]>>[0];
-
-/**
- * Whether an Escape keypress is the lightbox's to handle. A dialog opened on
- * top of it (naming a face, picking a location, the share link) portals its
- * own `role="dialog"` and closes itself on Escape, and Mantine marks an open
- * menu or combobox the same way it does for its own modals; the lightbox must
- * not close with them.
- */
-export function escapeTargetsLightbox(target: EventTarget | null, lightboxDialog: Element | null): boolean {
-  if (!(target instanceof Element)) return true;
-  if (target.getAttribute("data-mantine-stop-propagation") === "true") return false;
-  const dialog = target.closest('[role="dialog"]');
-  return !dialog || dialog === lightboxDialog;
-}
 
 export function ContentViewer({
   mainSrc,
@@ -168,7 +155,7 @@ export function ContentViewer({
   });
 
   const handleEscape = (event: KeyboardEvent) => {
-    if (!escapeTargetsLightbox(event.target, contentRef.current?.closest('[role="dialog"]') ?? null)) return;
+    if (!escapeTargetsDialog(event.target, contentRef.current?.closest('[role="dialog"]') ?? null)) return;
     // Escape leaves the 360° view first, as it gave the arrow keys to looking around.
     if (panorama.active) panorama.exit();
     else handleClose();

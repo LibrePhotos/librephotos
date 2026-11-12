@@ -1,0 +1,25 @@
+.body {
+  height: 100dvh;
+  padding: 0;
+}
+
+.scope {
+  height: 100%;
+}
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--mantine-color-body);
+}
+
+.frameBar {
+  flex: none;
+  padding: 8px;
+}
+
+.frameBody {
+  flex: 1;
+  min-height: 0;
+}

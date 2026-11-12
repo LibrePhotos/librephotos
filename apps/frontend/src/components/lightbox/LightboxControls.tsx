@@ -12,6 +12,7 @@ import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { useLightboxCommands } from "./lightboxCommands";
 import classes from "./LightboxControls.module.css";
+import { LightboxEditButton } from "./LightboxEditButton";
 import { LightboxMoreMenu, ShareButton, TrashButton } from "./LightboxPhotoActions";
 import { LightboxRating } from "./LightboxRating";
 import { LightboxToolbarButton, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
@@ -98,8 +99,8 @@ function RunningSlideshow({
  * The lightbox toolbar, over the top of the photo on a soft gradient: back on the left, the photo's
  * date, place and position in the middle (`title`); on the right the buttons used most, in Google
  * Photos' and Immich's order (360° view and live text when the photo has them, then Share,
- * favorite or stars, Info, Delete) and a ⋮ with the rest, labelled, zoom included. On a phone
- * (useCompactViewer) the top keeps back, a one-line date, favorite and ⋮, and Share, Info and
+ * Edit, favorite or stars, Info, Delete) and a ⋮ with the rest, labelled, zoom included. On a phone
+ * (useCompactViewer) the top keeps back, a one-line date, favorite and ⋮, and Share, Edit, Info and
  * Delete move to a bar at the bottom, under the thumb. Every action keeps its keyboard shortcut.
  */
 export function LightboxControls({
@@ -175,6 +176,7 @@ export function LightboxControls({
       : undefined;
 
   const share = ownPhoto && <ShareButton actions={actions} />;
+  const edit = ownPhoto && <LightboxEditButton photo={ownPhoto} type={type} />;
   const info = (
     <LightboxToolbarButton label={infoLabel} onClick={() => setLightBoxSidebarShow(!lightboxSidebarShow)}>
       {lightboxSidebarShow ? <InfoCircleFilled size={TOOLBAR_ICON_SIZE} /> : <InfoCircle size={TOOLBAR_ICON_SIZE} />}
@@ -211,6 +213,7 @@ export function LightboxControls({
             <Loader size={TOOLBAR_ICON_SIZE} color="gray" mx={10} />
           )}
           {!compact && share}
+          {!compact && edit}
           {ownPhoto && <LightboxRating actions={actions} />}
           {!compact && info}
           {!compact && trash}
@@ -235,6 +238,7 @@ export function LightboxControls({
       {compact && (
         <div className={classes.bottomBar}>
           {share}
+          {edit}
           {info}
           {trash}
         </div>

@@ -1,0 +1,18 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.list {
+  flex: none;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--mantine-color-body);
+}
+
+.panel {
+  padding: 12px 16px 16px;
+}

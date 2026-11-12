@@ -14,6 +14,8 @@ type LightboxCommandArgs = {
   archive: [];
   public: [];
   delete: [];
+  /** Open the photo editor on the photo shown (E). */
+  edit: [];
   /** Seconds to move the playhead; negative goes back. */
   seek: [seconds: number];
   /** Play from the moment a face appears (#2762); `name` is its person's, empty when unnamed. */
@@ -38,6 +40,7 @@ export function createLightboxCommands(): LightboxCommands {
     archive: new Set(),
     public: new Set(),
     delete: new Set(),
+    edit: new Set(),
     seek: new Set(),
     seekTo: new Set(),
   };

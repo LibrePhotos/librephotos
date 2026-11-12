@@ -1251,7 +1251,9 @@
         "tiff": "TIFF files can't be shown in the browser",
         "jxl": "JPEG XL files can't be shown in the browser",
         "other": "This file type can't be shown in the browser",
-        "rotated": "Rotated photos zoom in on the preview"
+        "rotated": "Rotated photos zoom in on the preview",
+        "rendering": "The edited photo is still being prepared at full size",
+        "renditionFailed": "The edited photo could not be made at full size"
       }
     },
     "controls": {
@@ -4505,5 +4507,139 @@
     "prompt_not_now": "Not now",
     "prompt_review_one": "Review the {{count}} saved report",
     "prompt_review_other": "Review the {{count}} saved reports"
+  },
+  "editor": {
+    "open": "Edit (E)",
+    "unsupported": {
+      "short": "This browser can't run the editor: it needs WebGL 2",
+      "long": "This browser can't run the photo editor. It needs WebGL 2 with floating-point render targets: try a current Chrome, Edge, Firefox or Safari, or turn on hardware acceleration."
+    },
+    "renderFailed": "The preview could not be drawn. Close the editor and open it again.",
+    "contextLost": "The graphics card was reset. The preview comes back in a moment.",
+    "canvas": "Edited photo",
+    "panel": "Edit controls",
+    "loading": "Opening the editor",
+    "backToPhoto": "Back to the photo",
+    "close": "Close (Escape)",
+    "undo": "Undo ({{shortcut}})",
+    "redo": "Redo ({{shortcut}})",
+    "nothingToUndo": "Nothing to undo",
+    "nothingToRedo": "Nothing to redo",
+    "compare": "Hold to compare with the original (\\)",
+    "reset": "Reset all edits",
+    "nothingToReset": "Nothing to reset",
+    "more": "More actions",
+    "revert": "Revert to original...",
+    "save": "Save",
+    "nothingToSave": "No changes to save",
+    "saved": "Edit saved",
+    "reverted": "The photo shows its original again",
+    "mode": {
+      "label": "Editing mode",
+      "simple": "Simple",
+      "advanced": "Advanced"
+    },
+    "zoom": {
+      "percent": "{{percent}}%",
+      "fit": "Fit",
+      "actual": "100%"
+    },
+    "slider": {
+      "reset": "Reset {{control}}"
+    },
+    "section": {
+      "reset": "Reset {{section}}"
+    },
+    "unsaved": {
+      "title": "Save your changes?",
+      "message": "Your edits to this photo are not saved yet.",
+      "discard": "Discard",
+      "keep": "Keep editing"
+    },
+    "revertDialog": {
+      "title": "Revert to the original?",
+      "message": "This removes the edit and its history, and the photo shows its original again. The original file itself was never changed.",
+      "confirm": "Revert"
+    },
+    "simple": {
+      "adjust": "Adjust",
+      "filters": "Filters",
+      "crop": "Crop & rotate",
+      "brightness": "Brightness",
+      "contrast": "Contrast",
+      "highlights": "Highlights",
+      "shadows": "Shadows",
+      "saturation": "Saturation",
+      "warmth": "Warmth",
+      "tint": "Tint",
+      "sharpness": "Sharpness",
+      "vignette": "Vignette",
+      "resetAdjustments": "Reset adjustments"
+    },
+    "filters": {
+      "original": "Original",
+      "vivid": "Vivid",
+      "warm": "Warm",
+      "cool": "Cool",
+      "fade": "Fade",
+      "matte": "Matte",
+      "punch": "Punch",
+      "golden": "Golden",
+      "cinematic": "Cinematic",
+      "mono": "Mono",
+      "monoContrast": "Mono contrast",
+      "sepia": "Sepia",
+      "film": "Film",
+      "strength": "Strength"
+    },
+    "crop": {
+      "frame": "Crop frame. The arrow keys move it, with Shift in larger steps.",
+      "frameRole": "crop frame",
+      "aspect": "Aspect ratio",
+      "free": "Free",
+      "original": "Original",
+      "swap": "Swap orientation",
+      "swapUnavailable": "This aspect ratio has only one orientation",
+      "straighten": "Straighten",
+      "rotateFlip": "Rotate and flip",
+      "rotateLeft": "Rotate left",
+      "rotateRight": "Rotate right",
+      "flipHorizontal": "Flip horizontally",
+      "flipVertical": "Flip vertically",
+      "reset": "Reset crop and rotation"
+    },
+    "advanced": {
+      "light": "Light",
+      "color": "Color",
+      "effects": "Effects",
+      "detail": "Detail",
+      "crop": "Crop & rotate"
+    },
+    "control": {
+      "exposure": "Exposure",
+      "contrast": "Contrast",
+      "highlights": "Highlights",
+      "shadows": "Shadows",
+      "whites": "Whites",
+      "blacks": "Blacks",
+      "temperature": "Temperature",
+      "tint": "Tint",
+      "vibrance": "Vibrance",
+      "saturation": "Saturation",
+      "texture": "Texture",
+      "clarity": "Clarity",
+      "dehaze": "Dehaze",
+      "vignette": "Vignette",
+      "midpoint": "Midpoint",
+      "feather": "Feather",
+      "roundness": "Roundness",
+      "grain": "Grain",
+      "grainSize": "Grain size",
+      "roughness": "Roughness",
+      "sharpening": "Sharpening",
+      "radius": "Radius",
+      "noiseReduction": "Noise reduction",
+      "colorNoise": "Color noise"
+    }
   }
 }

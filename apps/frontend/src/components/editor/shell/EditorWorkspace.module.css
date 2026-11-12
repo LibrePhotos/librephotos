@@ -1,0 +1,47 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 340px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-inline-start: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: center;
+  flex: none;
+  padding: 8px 12px 4px;
+}
+
+/* A phone: the picture on top, the panel as a bottom sheet with its own scroll. */
+.shell[data-compact] .main {
+  flex-direction: column;
+}
+
+.shell[data-compact] .panel {
+  width: auto;
+  height: 46dvh;
+  border-inline-start: none;
+  border-top: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-lg) var(--mantine-radius-lg) 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

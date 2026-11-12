@@ -2,13 +2,13 @@ import type { Photo } from "@librephotos/api-client";
 
 /** What the zoom decision reads from the photo's details. */
 export type OriginalZoomDetails = Partial<
-  Pick<Photo, "original_mime_type" | "width" | "height" | "local_orientation" | "video">
+  Pick<Photo, "original_mime_type" | "width" | "height" | "local_orientation" | "video" | "edit">
 >;
 
 export type PixelSize = { width: number; height: number };
 
 /** Why zooming stays on the big thumbnail although the original is bigger. */
-export type PreviewReason = "raw" | "heic" | "tiff" | "jxl" | "other" | "rotated";
+export type PreviewReason = "raw" | "heic" | "tiff" | "jxl" | "other" | "rotated" | "rendering" | "renditionFailed";
 
 /**
  * What zooming in shows (#2742):
@@ -68,12 +68,35 @@ export type OriginalZoomInput = {
   rotatedHere: boolean;
 };
 
+/**
+ * An edited photo (photo editing): its full-size view is the rendition, a JPEG of the edited size
+ * whatever the original's type, drawn upright. While the server still makes it (or could not) the
+ * full-size view would show the unedited original, so the zoom stays on the edited thumbnail.
+ */
+function editedPlan(details: OriginalZoomDetails, input: OriginalZoomInput): OriginalZoomPlan | null {
+  const edit = details.edit;
+  if (!edit || edit.rendition === "none") return null;
+  if (input.rotatedHere) return { kind: "preview", reason: "rotated" };
+  switch (edit.rendition) {
+    case "pending":
+      return { kind: "preview", reason: "rendering" };
+    case "failed":
+      return { kind: "preview", reason: "renditionFailed" };
+    case "ready": {
+      const size = { width: edit.width, height: edit.height };
+      return biggerThan(size, input.thumbnailSize) ? { kind: "load" } : { kind: "original", size };
+    }
+  }
+}
+
 /** What zooming into the photo shows; see OriginalZoomPlan. */
 export function originalZoomPlan(input: OriginalZoomInput): OriginalZoomPlan {
   const { details, isMainContent, isPublic } = input;
   const mime = details?.original_mime_type;
   if (!isMainContent || isPublic || !details || details.video || !mime) return { kind: "none" };
   if (ANIMATED_TYPES.has(mime)) return { kind: "original", size: knownSize(details) };
+  const edited = editedPlan(details, input);
+  if (edited) return edited;
   if (!DRAWABLE_TYPES.has(mime)) return { kind: "preview", reason: PREVIEW_REASONS[mime] ?? "other" };
   // The browser draws the file as it is, without the turn the user gave it in LibrePhotos.
   if (input.rotatedHere || (details.local_orientation ?? 1) !== 1) return { kind: "preview", reason: "rotated" };
