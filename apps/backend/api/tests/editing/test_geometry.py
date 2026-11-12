@@ -6,10 +6,13 @@ import numpy as np
 from django.test import SimpleTestCase
 
 from api.editing.geometry import (
+    Box,
+    Frame,
+    box_to_output,
+    box_to_source,
     default_crop_scale,
     make_frame,
     mirror_geometry,
-    move_box,
     output_size,
     round_half_up,
     turn_geometry,
@@ -185,6 +188,11 @@ class TurnGeometryTest(SimpleTestCase):
         self.assertEqual(mirror_geometry(locked).aspect, "4:5")
 
 
+def move_box(before: Frame, after: Frame, box: Box) -> Box:
+    """A box on ``before``'s picture onto ``after``'s, through the source."""
+    return box_to_output(after, box_to_source(before, box))
+
+
 class MoveBoxTest(SimpleTestCase):
     def test_a_crop_by_hand(self):
         before = make_frame(Geometry(), 120, 80)
@@ -209,3 +217,9 @@ class MoveBoxTest(SimpleTestCase):
         self.assertEqual((left, right), (0.0, 0.0))
         self.assertAlmostEqual(top, 0.2)
         self.assertAlmostEqual(bottom, 0.4)
+
+    def test_back_to_the_source_is_not_clamped(self):
+        crop = make_frame(Geometry(crop=Crop(cx=0.5, cy=0.5, w=0.5, h=0.5)), 120, 80)
+        # The whole crop and a quarter of it again to its left, off the crop.
+        box = box_to_source(crop, (-0.25, 0.0, 1.0, 1.0))
+        np.testing.assert_allclose(box, (0.125, 0.25, 0.75, 0.75), atol=1e-12)

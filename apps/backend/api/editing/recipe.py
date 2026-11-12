@@ -288,7 +288,11 @@ def _key(f: dataclasses.Field[object]) -> str:
 def _number(value: object, path: str) -> float:
     if isinstance(value, bool) or not isinstance(value, int | float):
         raise ValueError(f"{path}: expected a number")
-    number = float(value)
+    try:
+        number = float(value)
+    except OverflowError:
+        # An integer too large for a float: JSON allows any number of digits.
+        raise ValueError(f"{path}: expected a finite number") from None
     if not math.isfinite(number):
         raise ValueError(f"{path}: expected a finite number")
     return number

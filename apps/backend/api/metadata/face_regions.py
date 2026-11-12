@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, TypedDict
 
 import PIL.Image
 
+from api.editing.faces import to_original_box
 from api.editing.geometry import Box
-from api.editing.thumbnail_source import to_original_box
 from api.metadata.orientation import (
     SHOWN_ORIENTATION_TAGS,
     region_to_stored,
@@ -354,12 +354,13 @@ def _face_region(
     face: Face,
     thumbnail_size: tuple[int, int],
     orientation: int,
-    to_original: Callable[[Box], Box],
+    to_original: Callable[[Face, Box], Box],
 ) -> _FaceRegion:
     """``face`` as a region of the stored image; only a user's label names it."""
     width, height = thumbnail_size
     # The thumbnail of an edited photo may show a crop or a turn of the file.
     left, top, right, bottom = to_original(
+        face,
         (
             face.location_left / width,
             face.location_top / height,

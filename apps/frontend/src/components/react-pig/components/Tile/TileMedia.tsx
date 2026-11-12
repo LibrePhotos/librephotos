@@ -41,9 +41,10 @@ export function TileMedia({ item, getUrl: unversionedUrl, containerWidth, scroll
   const [clipFailed, setClipFailed] = useState(false);
   const kind = tileMediaKind(item, clipFailed);
   if (kind === "none") return null;
-  // Versioned by the photo's ThumbHash, so the browser may keep each picture (api.serving.caching).
+  // Versioned by the photo's ThumbHash and its edit's version, so the browser may keep each picture
+  // (api.serving.caching).
   const getUrl: TileUrl = (hash, size, poster) =>
-    withThumbhashVersion(unversionedUrl(hash, size, poster), item.thumbhash);
+    withThumbhashVersion(unversionedUrl(hash, size, poster), item.thumbhash, item.thumbnail_version);
   // A placeholder has no image yet; a loaded tile always has one.
   const imageHash = item.image_hash ?? "";
   const gridHeight = getImageHeight(containerWidth);

@@ -269,13 +269,29 @@ class EditHistoryStepSerializer(serializers.Serializer[None]):
     settings = EditRecipeSerializer()
 
 
+class _ParsedJSONField(serializers.Field[object, object, object, object]):
+    """JSON taken and answered as it is: ``PhotoEditUpdateRequest.validate`` checks it.
+
+    Not DRF's ``JSONField``: its own check (encoding it without NaN or
+    infinity) would refuse a number too large for a float with a bare
+    ``invalid``; the parsers answer that with the error code and the dotted
+    path of the documented 400.
+    """
+
+    def to_internal_value(self, data: object) -> object:
+        return data
+
+    def to_representation(self, value: object) -> object:
+        return value
+
+
 @extend_schema_field(EditRecipeSerializer)
-class RecipeField(serializers.JSONField):
+class RecipeField(_ParsedJSONField):
     """A recipe as its JSON; ``PhotoEditUpdateRequest.validate`` parses it."""
 
 
 @extend_schema_field(EditHistoryStepSerializer(many=True))
-class HistoryField(serializers.JSONField):
+class HistoryField(_ParsedJSONField):
     """The history steps as their JSON; ``PhotoEditUpdateRequest.validate`` checks them."""
 
 
@@ -306,7 +322,12 @@ def _step_value(value: object, field: str) -> Json:
     if value is None or isinstance(value, bool):
         return value
     if isinstance(value, int | float):
-        if not math.isfinite(value):
+        try:
+            finite = math.isfinite(value)
+        except OverflowError:
+            # An integer too large for a float.
+            finite = False
+        if not finite:
             raise _invalid(field, "Expected a finite number.", "invalid_step")
         return value
     if isinstance(value, str) and len(value) <= MAX_VALUE_LENGTH:

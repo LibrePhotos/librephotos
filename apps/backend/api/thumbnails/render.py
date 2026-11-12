@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 from PIL import Image
 
+from api.editing.faces import place_after_regeneration
 from api.editing.thumbnail_source import shows_edit, thumbnail_source
 from api.lazy_import import LazyModule
 from api.mime import EXIF_ORIENTED_EXTENSIONS, extension
@@ -24,7 +25,7 @@ from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import is_raw
 from api.runtime import binaries, sidecars
 from api.runtime.features import feature_enabled
-from api.thumbnails import face_boxes, thumbhash
+from api.thumbnails import thumbhash
 from api.video import color
 from api.video.no_metadata import NO_METADATA
 
@@ -784,9 +785,10 @@ def regenerate_thumbnails(
 
     calculate_aspect_ratio(thumbnail)
     refresh_perceptual_hash(thumbnail)
-    # BIG_THUMBNAIL_HEIGHT may have changed since the faces were found.
+    # BIG_THUMBNAIL_HEIGHT may have changed since the faces were found; an
+    # edit's crop or turn keeps the boxes on the unedited picture.
     if rescale_faces:
-        face_boxes.rescale_face_boxes(
+        place_after_regeneration(
             thumbnail.photo, big_before, big_thumbnail_size(photo_hash)
         )
 

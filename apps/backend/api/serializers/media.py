@@ -23,12 +23,13 @@ class MediaQuery(serializers.Serializer[None]):
     )
     original = QueryFlagField(
         true_values={"1"},
-        help_text="1 asks for an edited photo's original file instead of its edit",
+        help_text="1 asks for an edited photo's original file instead of its edit; "
+        "only its owner gets it, anyone else gets the edit",
     )
     v = serializers.CharField(
         required=False,
-        help_text="A thumbnail's version (the grid sends a digest of its ThumbHash): "
-        "with it the thumbnail may be cached for a year",
+        help_text="A thumbnail's version (the grid sends a digest of its ThumbHash "
+        "and its thumbnail_version): with it the thumbnail may be cached for a year",
     )
 
 

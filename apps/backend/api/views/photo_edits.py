@@ -52,7 +52,7 @@ def _state(photo: Photo) -> Response:
 
 
 class PhotoEditView(APIView):
-    """Read, save or remove a photo's edit."""
+    """Read, save or revert a photo's edit."""
 
     permission_classes = [IsAuthenticated]
 
@@ -60,7 +60,9 @@ class PhotoEditView(APIView):
         operation_id="photo_edit_retrieve",
         description=(
             "The photo's edit: recipe, history and rendition. A photo never edited "
-            "answers the default recipe with version 0. Owner only (404 otherwise)."
+            "answers the default recipe with version 0; a reverted one the default "
+            "recipe at its last version, which never goes back. Owner only (404 "
+            "otherwise)."
         ),
         responses={200: PhotoEditStateSerializer},
     )
@@ -96,13 +98,15 @@ class PhotoEditView(APIView):
     @extend_schema(
         operation_id="photo_edit_destroy",
         description=(
-            "Remove the photo's edit, its history and its rendition; the photo "
-            "shows its original again."
+            "Revert the photo to its original: the default recipe, no history, no "
+            "rendition, and a new version (it never goes back, so a cached picture "
+            "of an earlier version is never shown). The thumbnails and the face "
+            "boxes are those of the original again."
         ),
         responses={204: None},
     )
     def delete(self, request: Request, photo_id: uuid.UUID) -> Response:
-        renditions.delete_edit(_owned_photo(request, photo_id))
+        renditions.reset_edit(_owned_photo(request, photo_id))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

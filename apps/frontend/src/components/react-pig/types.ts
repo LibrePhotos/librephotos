@@ -31,6 +31,11 @@ export type ImageItem = {
   dominantColor?: string;
   /** The picture in ~25 bytes (base64 ThumbHash): shown, blurred, until the image has loaded. */
   thumbhash?: string | null;
+  /**
+   * The version of the photo's edit (0 without one), folded into the tile's address with the
+   * ThumbHash: a subtle edit may leave the ThumbHash as it was. Older servers do not send it.
+   */
+  thumbnail_version?: number;
   type?: string;
   /** When it was taken; Tile puts it in its label. */
   date?: string | null;

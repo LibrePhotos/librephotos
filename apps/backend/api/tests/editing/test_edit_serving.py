@@ -31,9 +31,9 @@ class RenditionServingTest(EditedPhotoTestCase):
         self.save(CROP)
 
     @override_settings(SERVE_FRONTEND=True)
-    def test_the_original_until_the_rendition_is_ready(self):
+    def test_the_save_render_until_the_rendition_is_ready(self):
         response = self.client.get(self.media_url)
-        self.assertEqual(_size(_content(response)), (WIDTH, HEIGHT))
+        self.assertEqual(_size(_content(response)), (60, 40))
 
     @override_settings(SERVE_FRONTEND=True)
     def test_served_directly(self):

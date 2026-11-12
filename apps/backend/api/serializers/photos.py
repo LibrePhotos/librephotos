@@ -3,7 +3,16 @@ from datetime import datetime
 from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count, Model, OuterRef, Prefetch, QuerySet, Subquery
+from django.db.models import (
+    Count,
+    F,
+    Model,
+    OuterRef,
+    Prefetch,
+    QuerySet,
+    Subquery,
+    Value,
+)
 from django.db.models.functions import Coalesce
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
@@ -109,6 +118,10 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     # The grid's placeholder until the thumbnail loads (base64 ThumbHash);
     # null for a photo scanned before it existed, which shows dominantColor.
     thumbhash = serializers.SerializerMethodField()
+    # The photo's edit version (0 without an edit; it goes on growing
+    # through reverts): the grid folds it into the thumbnail URL with the
+    # ThumbHash, which a subtle edit may leave unchanged.
+    thumbnail_version = serializers.SerializerMethodField()
     aspectRatio = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
@@ -138,6 +151,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "image_hash",
             "dominantColor",
             "thumbhash",
+            "thumbnail_version",
             "url",
             "location",
             "date",
@@ -244,6 +258,11 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
         thumbnail = thumbnail_of(obj)
         return thumbnail.thumbhash if thumbnail else None
 
+    def get_thumbnail_version(self, obj: Photo) -> int:
+        """The version of the photo's edit, 0 without one; it never goes back (a
+        revert raises it too). Grids fold it into the thumbnail URL's ``v``."""
+        return loaded_count(obj, THUMBNAIL_VERSION)
+
     def get_type(self, obj: Photo) -> str:
         if obj.video:
             return "video"
@@ -333,6 +352,10 @@ class SearchResultsSerializer(serializers.Serializer[None]):
     results = GroupedPhotosSerializer(many=True)
 
 
+# The annotation ``PhotoSummarySerializer.get_thumbnail_version`` reads.
+THUMBNAIL_VERSION = "thumbnail_version_annotation"
+
+
 def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
     """Load everything ``PhotoSummarySerializer`` reads in a constant number of queries.
 
@@ -379,6 +402,8 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "files",  # Prefetch files for get_has_raw_variant()
         )
         .select_related("thumbnail", "search_instance", "main_file")
+        # The edit row is a reverse one-to-one: a LEFT JOIN, one row per photo.
+        .annotate(**{THUMBNAIL_VERSION: Coalesce(F("edit__version"), Value(0))})
         .only(
             "image_hash",
             "thumbnail__aspect_ratio",

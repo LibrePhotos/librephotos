@@ -232,18 +232,34 @@ def mirror_geometry(geometry: Geometry) -> Geometry:
 type Box = tuple[float, float, float, float]
 
 
-def move_box(before: Frame, after: Frame, box: Box) -> Box:
-    """``box`` on the picture of ``before``, moved onto the picture of ``after``.
-
-    Both frames render the same source. The corners go to the source and into
-    the new picture; the result is their bounding box, clamped to the picture
-    (empty, with ``left == right`` or ``top == bottom``, when the box is outside).
-    """
-    left, top, right, bottom = box
-    xs: list[float] = []
-    ys: list[float] = []
-    for u, v in ((left, top), (right, top), (left, bottom), (right, bottom)):
-        x, y = after.to_output_normalised(*before.to_source_normalised(u, v))
-        xs.append(min(1.0, max(0.0, x)))
-        ys.append(min(1.0, max(0.0, y)))
+def _bounds(points: list[tuple[float, float]]) -> Box:
+    xs = [x for x, _ in points]
+    ys = [y for _, y in points]
     return min(xs), min(ys), max(xs), max(ys)
+
+
+def _corners(box: Box) -> list[tuple[float, float]]:
+    left, top, right, bottom = box
+    return [(left, top), (right, top), (left, bottom), (right, bottom)]
+
+
+def box_to_source(frame: Frame, box: Box) -> Box:
+    """``box`` on the picture of ``frame``, on its source (0 to 1), not clamped.
+
+    The bounding box of its corners; it may reach past the source.
+    """
+    return _bounds([frame.to_source_normalised(u, v) for u, v in _corners(box)])
+
+
+def box_to_output(frame: Frame, box: Box) -> Box:
+    """``box`` on ``frame``'s source (0 to 1), on its picture, clamped to it.
+
+    The bounding box of its corners; empty (``left == right`` or ``top ==
+    bottom``) when the box is outside the picture.
+    """
+    return _bounds(
+        [
+            (min(1.0, max(0.0, x)), min(1.0, max(0.0, y)))
+            for x, y in (frame.to_output_normalised(s, t) for s, t in _corners(box))
+        ]
+    )

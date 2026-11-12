@@ -10,7 +10,7 @@ import numpy as np
 
 from api.editing import files, renditions
 from api.editing import source as source_module
-from api.editing.thumbnail_source import to_original_box
+from api.editing.faces import to_original_box
 from api.metadata import face_regions
 from api.metadata.photo_writer import rotate_photo
 from api.models import Face, Photo, PhotoEdit

@@ -203,6 +203,8 @@ SUMMARY_FIELDS: FieldRules = {
     "image_hash": (ALWAYS, None),
     "dominantColor": (ALWAYS, None),
     "thumbhash": (ALWAYS, None),
+    # The thumbnails everyone sees show the edit: their URL changes with it.
+    "thumbnail_version": (ALWAYS, None),
     "url": (ALWAYS, None),
     "location": ("location", ""),
     "date": ("timestamps", ""),

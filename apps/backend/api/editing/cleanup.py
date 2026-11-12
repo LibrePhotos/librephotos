@@ -1,7 +1,8 @@
 """Removing a photo's edit files when its edit row goes.
 
-The row goes with the DELETE of the edit and, by cascade, with the photo
-(trash emptied, a missing file cleaned up, an account deleted). Regenerating
+The row goes only with the photo, by cascade (trash emptied, a missing file
+cleaned up, an account deleted): reverting an edit resets the row instead
+(``api.editing.renditions.reset_edit``), which removes the files itself. Regenerating
 the thumbnails never removes them (``api.photos.file_cleanup`` deletes only
 thumbnails and share copies).
 """

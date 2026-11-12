@@ -41,8 +41,8 @@ from django.db.models import QuerySet
 
 from api.faces import extractor
 from api.faces.geometry import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
-from api.faces.photo_faces import cut_crop
-from api.metadata.reader import MetadataReadError, sidecar_files_for_photo
+from api.faces.photo_faces import cut_crop, read_face_regions
+from api.metadata.reader import MetadataReadError
 from api.models import Face, LongRunningJob, Person, Photo, User
 from api.models.long_running_job import JobCancelledError
 from api.thumbnails.face_boxes import FACE_BOX_FIELDS
@@ -101,16 +101,7 @@ def _regions(
 ) -> list[extractor.FaceLocation]:
     """The photo's face regions, as the scan reads them with ``detected``."""
     assert photo.main_file is not None  # photos_to_check
-    return (
-        extractor.extract_from_exif(
-            photo.main_file.path,
-            photo.thumbnail.thumbnail_big.path,
-            sidecar_files_for_photo(photo),
-            local_orientation=photo.local_orientation,
-            detected_faces=detected,
-        )
-        or []
-    )
+    return read_face_regions(photo, photo.thumbnail.thumbnail_big.path, detected) or []
 
 
 def turned_regions(photo: Photo, faces: list[Face]) -> list[tuple[FaceBox, FaceBox]]:

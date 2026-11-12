@@ -102,6 +102,10 @@ export const PigPhoto = z.object({
   // The tile's placeholder until its thumbnail loads: a base64 ThumbHash. Null for a photo scanned
   // before the backend made them, absent from backends that predate them (the dominant colour shows).
   thumbhash: z.string().nullish(),
+  // The version of the photo's edit, 0 without one; it only grows, through reverts too. The grid
+  // folds it into its thumbnail addresses with the ThumbHash, which a subtle edit may leave as it
+  // was. Optional: older servers do not send it.
+  thumbnail_version: z.number().int().nonnegative().optional(),
   // Legacy: the backend still sends the image hash here; read `image_hash`.
   url: z.string().optional(),
   location: z.string().optional(),

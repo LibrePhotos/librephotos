@@ -84,17 +84,28 @@ class EditRoundTripTest(EditedPhotoTestCase):
         self.assertEqual(saved["rendition"], "none")
         self.assertEqual(saved["history"], history)
 
-    def test_delete_removes_the_edit(self):
+    def test_delete_resets_the_edit_and_its_version_goes_on(self):
         self.save(EXPOSURE)
+        self.save(CROP)
 
         response = self.delete_edit()
 
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(PhotoEdit.objects.filter(pk=self.photo.pk).exists())
-        self.assertEqual(self.client.get(self.url()).json()["version"], 0)
+        reverted = self.client.get(self.url()).json()
+        self.assertEqual(reverted["settings"], {"version": 1})
+        self.assertEqual(reverted["history"], [])
+        self.assertEqual(reverted["history_cursor"], -1)
+        self.assertEqual(reverted["rendition"], "none")
+        self.assertEqual(reverted["version"], 3)
+        self.assertIsNotNone(reverted["updated_at"])
+        detail = self.client.get(f"/api/photos/{self.photo.pk}/").json()
+        self.assertIsNone(detail["edit"])
+        # A later save goes on from there: no version names two pictures.
+        self.assertEqual(self.save(EXPOSURE)["version"], 4)
 
     def test_delete_without_an_edit_is_fine(self):
         self.assertEqual(self.delete_edit().status_code, 204)
+        self.assertFalse(PhotoEdit.objects.filter(pk=self.photo.pk).exists())
 
 
 class EditValidationTest(EditedPhotoTestCase):

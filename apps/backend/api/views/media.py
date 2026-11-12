@@ -34,7 +34,7 @@ from api.accounts.authentication import (
 )
 from api.drf.params import parse_query
 from api.editing.files import EDITS_DIR
-from api.editing.renditions import shown_file
+from api.editing.renditions import NoEditedFileError, edited_picture
 from api.mime import mime_type, still_content_type
 from api.models import AlbumUser, AlbumUserPhoto, Photo
 from api.models.album_user_share import AlbumUserShare
@@ -765,6 +765,33 @@ class MediaServingView(APIView):
         )
         return response
 
+    def _edited_response(
+        self, photo: Photo, use_proxy: bool
+    ) -> HttpResponseBase | None:
+        """The edited picture of an edited photo; None to serve its original.
+
+        Only the photo's owner ever gets the original of an edited photo, and
+        only by asking (``?original=1``); anyone else asking is answered the
+        edited picture as if they had not, so the parameter tells them
+        nothing. The edited picture is the rendition when it is ready, else
+        the save's render (``api.editing.renditions.edited_picture``). A
+        photo whose recipe changes nothing has nothing to hide: None.
+        """
+        requester = self._requester(self.request)
+        if (
+            requester is not None
+            and requester.id == photo.owner_id
+            and parse_query(self.request, MediaQuery)["original"]
+        ):
+            return None
+        try:
+            picture = edited_picture(photo)
+        except NoEditedFileError:
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        if picture is None:
+            return None
+        return self._rendition_response(picture.path, use_proxy)
+
     def _generate_response_original(
         self,
         photo: Photo,
@@ -774,17 +801,16 @@ class MediaServingView(APIView):
     ) -> HttpResponseBase:
         """Serve the photo's file (path == "photos").
 
-        An edited photo's rendition once it is ready, unless the request asks
-        for its original (``?original=1``); the untouched original otherwise.
+        An edited photo's edited picture (``_edited_response``); the untouched
+        original otherwise.
         Videos go through ffmpeg first when the requester enabled "Always
         transcode videos", exactly like the thumbnail/video paths do.
         """
         if photo.video and transcode_videos:
             return self._transcoded_video_response(photo, use_proxy=use_proxy)
-        original = parse_query(self.request, MediaQuery)["original"]
-        rendition = None if original else shown_file(photo)
-        if rendition is not None:
-            return self._rendition_response(rendition, use_proxy)
+        edited = self._edited_response(photo, use_proxy)
+        if edited is not None:
+            return edited
         content_type = self._original_content_type(photo)
 
         if use_proxy:
@@ -996,15 +1022,20 @@ class MediaServingView(APIView):
         """The full-size copy without metadata a recipient gets instead of the
         original when its owner does not share original files (also a member
         of a collaborative album, counted by ``allow_new``). An edited
-        still's copy is made from its rendition once that is ready."""
+        still's copy is made from its edited picture, never its original."""
         original = _original_path(photo)
         requester = self._requester(self.request)
         try:
+            picture = edited_picture(photo)
+        except NoEditedFileError:
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        try:
             copy = ensure_copy(
                 photo,
-                shown_file(photo) or original,
+                picture.path if picture else original,
                 requester.pk if requester else 0,
                 allow_new,
+                tag=picture.tag if picture else "",
             )
         except CopyUnavailableError:
             # Still being made by another request, or this recipient made

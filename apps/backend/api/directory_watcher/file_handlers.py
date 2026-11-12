@@ -37,6 +37,7 @@ from api.duplicates.perceptual_hash import (
     calculate_hash_from_thumbnail,
     calculate_perceptual_hash,
 )
+from api.editing import renditions
 from api.editing.thumbnail_source import shows_edit
 from api.metadata import edits, photo_reader, takeout
 from api.metadata.datetime_rules import CaptureTime
@@ -425,18 +426,23 @@ def rekey_replaced_file(user: User, path: str, hash_value: str) -> Reindexed | N
                 # The picture may or may not have changed, or changed a
                 # little, so the thumbnails are rebuilt in place, under the
                 # image hash the face crops are named after, and nothing
-                # labelled is thrown away.
+                # labelled is thrown away. An edit is rendered again from
+                # the new file.
                 _discard_cheap_derived_content(photo, photo_hash)
                 rebuild_photo_ids.append(photo.pk)
                 continue
             _discard_derived_content(photo, photo_hash)
+            # A crop made for the old picture is not applied to the new one.
+            renditions.forget_edit(photo, photo_hash)
             photo.image_hash = hash_for_owner(hash_value, photo.owner_id)
             photo.added_on = timezone.now()
             photo.save(update_fields=["image_hash", "added_on", "last_modified"])
             rebuild_photo_ids.append(photo.pk)
 
     for photo in Photo.objects.filter(pk__in=rebuild_photo_ids):
-        _regenerate_thumbnails(photo)
+        # An edited photo's thumbnails come with its edit rendered again.
+        if verdict == NEW_PICTURE or not renditions.render_again(photo):
+            _regenerate_thumbnails(photo)
 
     if verdict == NEW_PICTURE and main_photo:
         _attach_embedded_motion_video(user, main_photo, new_file)

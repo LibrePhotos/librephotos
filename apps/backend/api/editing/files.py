@@ -11,13 +11,17 @@ Two files per edited photo, under ``MEDIA_ROOT/edits/`` and named after its
   so nothing renders the recipe again only to make a thumbnail.
 
 Both are written to a part file beside them and moved into place, so a reader
-never sees half a file.
+never sees half a file. A save changes them, and the thumbnails, inside its
+transaction; ``DiskChange`` keeps what it replaced until the transaction
+commits and puts it back if it does not, so the disk shows what the database
+says.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import shutil
 import uuid
 from typing import TYPE_CHECKING, Final
 
@@ -40,6 +44,8 @@ PREVIEW_SUFFIX: Final = ".preview" + JPEG_EXTENSION
 # source, read once per thumbnail: kept close to lossless.
 RENDITION_JPEG: Final[dict[str, int]] = {"quality": 92, "subsampling": 2}
 PREVIEW_JPEG: Final[dict[str, int]] = {"quality": 95, "subsampling": 0}
+# A file a save replaced, kept beside it until the save commits.
+KEPT_SUFFIX: Final = ".kept"
 
 
 def rendition_path(image_hash: str) -> str:
@@ -81,3 +87,65 @@ def remove_edit_files(image_hash: str) -> None:
     """Delete the rendition and the preview of the photo with ``image_hash``."""
     remove(rendition_path(image_hash))
     remove(preview_path(image_hash))
+
+
+def _keep_copy(path: str, kept: str) -> None:
+    """``kept`` becomes a copy of ``path``: a hard link where the disk has them."""
+    try:
+        os.link(path, kept)
+    except OSError:
+        shutil.copy2(path, kept)
+
+
+class DiskChange:
+    """The files one save changes, and how to undo it.
+
+    ``keep`` is called before a file is replaced or made: an existing file is
+    linked (or copied) beside itself, a missing one is remembered as missing.
+    ``roll_back`` returns every kept path to how it was; with
+    ``photo_gone`` (the photo was deleted meanwhile, its files with it) it
+    removes them instead. ``discard`` drops the kept copies once the save
+    committed.
+    """
+
+    def __init__(self) -> None:
+        # (path, the kept copy or None when the path had no file).
+        self._kept: list[tuple[str, str | None]] = []
+        self._paths: set[str] = set()
+
+    def keep(self, path: str) -> None:
+        if path in self._paths:
+            return
+        self._paths.add(path)
+        if not os.path.exists(path):
+            self._kept.append((path, None))
+            return
+        kept = f"{path}.{uuid.uuid4().hex}{KEPT_SUFFIX}"
+        _keep_copy(path, kept)
+        self._kept.append((path, kept))
+
+    def install(self, part: str, final: str) -> None:
+        """Move ``part`` to ``final``, keeping what ``final`` was."""
+        self.keep(final)
+        move_into_place(part, final)
+
+    def roll_back(self, photo_gone: bool) -> None:
+        for path, kept in reversed(self._kept):
+            if kept is None or photo_gone:
+                remove(path)
+                if kept is not None:
+                    remove(kept)
+                continue
+            try:
+                os.replace(kept, path)
+            except OSError:
+                logger.error(
+                    "could not put back a file of an edit: %s", os.path.basename(path)
+                )
+        self._kept = []
+
+    def discard(self) -> None:
+        for _, kept in self._kept:
+            if kept is not None:
+                remove(kept)
+        self._kept = []

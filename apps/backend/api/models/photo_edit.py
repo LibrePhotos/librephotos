@@ -14,7 +14,12 @@ def default_recipe_json() -> dict[str, int]:
 
 
 class PhotoEdit(models.Model):
-    """The edit of one photo, owner only; no row means never edited."""
+    """The edit of one photo, owner only; no row means never edited.
+
+    Reverting an edit resets the row rather than deleting it, so ``version``
+    never repeats for a photo: clients put it into media URLs that are
+    cached for a year. The row goes with its photo.
+    """
 
     class Rendition(models.TextChoices):
         # No edit to show: the recipe changes nothing.
@@ -35,7 +40,9 @@ class PhotoEdit(models.Model):
     history = models.JSONField(default=list)
     # The step whose recipe ``settings`` is; -1 is the default recipe.
     history_cursor = models.IntegerField(default=-1)
-    # Up by one on every save; a background render of an older one is dropped.
+    # Up by one on every save and every revert, never back: a background
+    # render of an older one is dropped, and a cached picture of one is
+    # never shown for another.
     version = models.PositiveIntegerField(default=0)
     rendition = models.CharField(
         max_length=8, choices=Rendition.choices, default=Rendition.NONE
@@ -47,6 +54,14 @@ class PhotoEdit(models.Model):
     # boxes are moved through when the geometry changes.
     source_width = models.PositiveIntegerField(null=True, blank=True)
     source_height = models.PositiveIntegerField(null=True, blank=True)
+    # While the edit changes the geometry, each face's box on the unedited
+    # picture, so a crop or a turn never loses a box that left the picture:
+    # {"<face id>": {"unedited": [left, top, right, bottom] (0 to 1 across the
+    # upright source), "shown": [left, top, right, bottom] (the big thumbnail
+    # pixels last written to the face), "original": the face's pixels on the
+    # unedited big thumbnail and "size": its [width, height], when the face
+    # was there before the first geometry edit}. Empty without a geometry edit.
+    face_boxes = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

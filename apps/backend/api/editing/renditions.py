@@ -1,4 +1,4 @@
-"""Saving, rotating and removing a photo's edit, and rendering it.
+"""Saving, rotating and reverting a photo's edit, and rendering it.
 
 A save stores the recipe (``PhotoEdit.version`` up by one) and, when the
 recipe changes something, renders it twice:
@@ -10,10 +10,13 @@ recipe changes something, renders it twice:
 2. in a background task, at full size, into the rendition, which the
    full-size view and the metadata-free copies serve once it is ``ready``.
 
-A task of a version that is no longer the row's writes nothing. A recipe
-that changes nothing has no rendition: the files go and the thumbnails come
-from the original again. When the geometry changes, the face boxes, stored
-in big-thumbnail pixels, move from the old picture to the new one.
+A task of a version that is no longer the row's writes nothing. A revert
+resets the row (version up by one again, never back) instead of deleting it,
+so a version names one picture of a photo forever. A recipe that changes
+nothing has no rendition: the files go and the thumbnails come from the
+original again. The files a save changes follow its transaction
+(``files.DiskChange``): replaced inside it, put back if it rolls back. When
+the geometry changes, the face boxes move with it (``api.editing.faces``).
 """
 
 from __future__ import annotations
@@ -24,20 +27,21 @@ import math
 import os
 import time
 import uuid
+from collections.abc import Callable
 from functools import partial
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from api.editing import files
+from api.editing.faces import Placement, geometry_frame, place_face_boxes
 from api.editing.geometry import (
     Frame,
     default_crop_scale,
-    make_frame,
     mirror_geometry,
-    move_box,
     output_size,
     turn_geometry,
 )
@@ -52,9 +56,10 @@ from api.editing.recipe import (
 )
 from api.editing.source import SRGB8_FILE_EDGE, Source, encode_source_file, load_source
 from api.jobs.queue import enqueue_task
-from api.models import Face, Photo, PhotoEdit
+from api.models import Photo, PhotoEdit
+from api.models.photo_edit import default_recipe_json
+from api.models.thumbnail import thumbnail_file_paths
 from api.sharing.copies import delete_copies
-from api.thumbnails import face_boxes
 from api.thumbnails import render as thumbnails
 
 if TYPE_CHECKING:
@@ -68,6 +73,11 @@ logger = logging.getLogger(__name__)
 # panorama or a large BIG_THUMBNAIL_HEIGHT stops here, and the thumbnails are
 # made again from the rendition when it is ready.
 PREVIEW_LONG_EDGE_CAP: Final = 2048
+# The long edge the source is loaded at for the save's render at most. A
+# small crop needs the source larger than the render (a 0.1 crop of a 2048 px
+# render, a 20480 px source); past this the render comes out smaller and the
+# thumbnails are made again from the rendition.
+PREVIEW_LOAD_CAP: Final = 4096
 # How many pixels short of the height it wants the big thumbnail may be (the
 # rounding of two resizes) before the rendition replaces it.
 THUMBNAIL_SHORT_BY: Final = 2
@@ -87,6 +97,10 @@ class FileMissingError(Exception):
 
 class RenderError(Exception):
     """The photo's file could not be read or rendered."""
+
+
+class NoEditedFileError(Exception):
+    """The photo shows an edit, and no file of it can be served."""
 
 
 # What rendering an edit outside a request can fail with: the file gone or
@@ -154,18 +168,22 @@ def _preview_long_edge(
 
 
 def _preview_source(path: str, local_orientation: int, geometry: Geometry) -> Source:
-    """The source reduced as far as the save's render allows.
+    """The source reduced as far as the save's render allows, at most ``PREVIEW_LOAD_CAP``.
 
     Loaded at the cap's size over the crop; loaded again, larger, when the
     crop turns out to need more (a straightened panorama).
     """
-    long_edge = math.ceil(PREVIEW_LONG_EDGE_CAP / _smallest_crop_side(geometry))
+    long_edge = min(
+        math.ceil(PREVIEW_LONG_EDGE_CAP / _smallest_crop_side(geometry)),
+        PREVIEW_LOAD_CAP,
+    )
     source = _loaded(path, local_orientation, long_edge)
     wanted = _preview_long_edge(geometry, source.full_width, source.full_height)
     reached = max(output_size(geometry, source.width, source.height))
     if reached < wanted and source.width < source.full_width:
-        larger = math.ceil(long_edge * wanted / reached) + 1
-        source = _loaded(path, local_orientation, larger)
+        larger = min(math.ceil(long_edge * wanted / reached) + 1, PREVIEW_LOAD_CAP)
+        if larger > long_edge:
+            source = _loaded(path, local_orientation, larger)
     return source
 
 
@@ -219,63 +237,13 @@ def restore_preview(photo: Photo, edit: PhotoEdit) -> bool:
 # --- Showing an edit ------------------------------------------------------------
 
 
-def _shown_frame(edit: PhotoEdit | None, fallback: Size) -> Frame:
-    """The frame of the picture the thumbnails show for ``edit``.
-
-    The original (an identity frame) when the edit is not shown. ``fallback``
-    is the source size when the row has none yet.
-    """
-    width = edit.source_width if edit is not None and edit.source_width else fallback[0]
-    height = (
-        edit.source_height if edit is not None and edit.source_height else fallback[1]
-    )
-    if edit is None or not edit.shown:
-        return make_frame(Geometry(), width, height)
-    return make_frame(recipe_from_json(edit.settings).geometry, width, height)
-
-
-def _pixels(
-    size: Size, box: tuple[float, float, float, float]
-) -> tuple[int, int, int, int]:
-    """A normalised box in pixels of a picture of ``size``, at least one pixel wide and high."""
-    width, height = size
-    left, top, right, bottom = (
-        round(box[0] * width),
-        round(box[1] * height),
-        round(box[2] * width),
-        round(box[3] * height),
-    )
-    # A box moved out of the picture is empty: one pixel at the edge it left by.
-    if right <= left:
-        left = min(left, width - 1)
-        right = left + 1
-    if bottom <= top:
-        top = min(top, height - 1)
-        bottom = top + 1
-    return left, top, right, bottom
-
-
-def _move_face_boxes(
-    photo: Photo, before: Frame, after: Frame, size_before: Size, size_after: Size
+def _show(
+    photo: Photo,
+    edit: PhotoEdit,
+    before: Frame | None,
+    after: Frame | None,
+    disk: files.DiskChange,
 ) -> None:
-    """Move ``photo``'s face boxes from the thumbnail of ``before`` to the one of ``after``."""
-    faces = list(Face.objects.filter(photo=photo))
-    for face in faces:
-        box = (
-            face.location_left / size_before[0],
-            face.location_top / size_before[1],
-            face.location_right / size_before[0],
-            face.location_bottom / size_before[1],
-        )
-        left, top, right, bottom = _pixels(size_after, move_box(before, after, box))
-        face.location_left, face.location_top = left, top
-        face.location_right, face.location_bottom = right, bottom
-        # A new box in a new thumbnail: the face model may find a face in it.
-        face.unmatched_by = ""
-    Face.objects.bulk_update(faces, [*face_boxes.FACE_BOX_FIELDS, "unmatched_by"])
-
-
-def _show(photo: Photo, before: Frame, after: Frame) -> None:
     """Make ``photo``'s thumbnails again and keep its face boxes on its faces.
 
     A photo the scan has not made thumbnails for yet gets them from the scan,
@@ -285,16 +253,17 @@ def _show(photo: Photo, before: Frame, after: Frame) -> None:
     if thumbnail is None:
         return
     size_before = thumbnails.big_thumbnail_size(photo.image_hash)
+    for path in thumbnail_file_paths(photo.image_hash):
+        disk.keep(path)
     thumbnails.regenerate_thumbnails(thumbnail, rescale_faces=False)
     # The placeholder colour is kept once set; an edit changes the colours.
     thumbnails.refresh_dominant_color(thumbnail)
     size_after = thumbnails.big_thumbnail_size(photo.image_hash)
     if size_before is None or size_after is None:
         return
-    if before == after:
-        face_boxes.rescale_face_boxes(photo, size_before, size_after)
-        return
-    _move_face_boxes(photo, before, after, size_before, size_after)
+    place_face_boxes(
+        photo, edit, Placement(before, size_before), Placement(after, size_after)
+    )
 
 
 def _touch(photo: Photo) -> None:
@@ -307,9 +276,80 @@ def _queue_rendition(photo_id: uuid.UUID, version: int) -> None:
         enqueue_task(render_rendition, photo_id, version)
     except Exception:
         logger.exception("could not queue the rendition of photo %s", photo_id)
-        PhotoEdit.objects.filter(pk=photo_id, version=version).update(
-            rendition=PhotoEdit.Rendition.FAILED
-        )
+        PhotoEdit.objects.filter(
+            pk=photo_id, version=version, rendition=PhotoEdit.Rendition.PENDING
+        ).update(rendition=PhotoEdit.Rendition.FAILED)
+
+
+def _photo_exists(photo_id: uuid.UUID) -> bool:
+    return Photo.objects.filter(pk=photo_id).exists()
+
+
+def _after_store(image_hash: str, rendition_too: bool, preview_too: bool) -> None:
+    """What a stored edit leaves behind once it commits: the files of before, the copies."""
+    if rendition_too:
+        # A rendition of an earlier version is never served again; the new
+        # version's preview is in place by now.
+        files.remove(files.rendition_path(image_hash))
+    if preview_too:
+        files.remove(files.preview_path(image_hash))
+    # Copies of the picture before, including one finished during the save.
+    delete_copies(image_hash)
+
+
+def _store(
+    photo: Photo,
+    preview: _Preview | None,
+    change: Callable[[PhotoEdit], None],
+    create: bool = True,
+) -> PhotoEdit | None:
+    """Apply ``change`` to ``photo``'s edit, a new version, and show it.
+
+    ``preview`` is the save's render of the new recipe, None when it changes
+    nothing. Without ``create`` a photo with no edit is left alone (None).
+    The preview file and the thumbnails are replaced inside the transaction
+    and put back if it does not commit; the old rendition goes once it has.
+    """
+    image_hash = photo.image_hash
+    disk = files.DiskChange()
+    try:
+        with transaction.atomic():
+            edit = PhotoEdit.objects.select_for_update().filter(pk=photo.pk).first()
+            if edit is None:
+                if not create:
+                    return None
+                edit = PhotoEdit(photo=photo)
+            before = geometry_frame(edit)
+            was_shown = edit.shown
+            change(edit)
+            edit.version += 1
+            if preview is None:
+                edit.rendition = PhotoEdit.Rendition.NONE
+                edit.width = edit.height = None
+            else:
+                disk.install(preview.part, files.preview_path(image_hash))
+                edit.rendition = PhotoEdit.Rendition.PENDING
+                edit.width, edit.height = preview.width, preview.height
+                edit.source_width = preview.source_width
+                edit.source_height = preview.source_height
+            edit.save()
+            if was_shown or edit.shown:
+                # Regenerating the thumbnails deletes the copies made for shares.
+                _show(photo, edit, before, geometry_frame(edit), disk)
+            elif edit.face_boxes:
+                edit.face_boxes = {}
+                edit.save(update_fields=["face_boxes"])
+            _touch(photo)
+            transaction.on_commit(
+                partial(_after_store, image_hash, was_shown, preview is None)
+            )
+            if edit.shown:
+                transaction.on_commit(partial(_queue_rendition, photo.pk, edit.version))
+    except Exception:
+        disk.roll_back(photo_gone=not _photo_exists(photo.pk))
+        raise
+    transaction.on_commit(disk.discard)
+    return edit
 
 
 def save_edit(
@@ -322,68 +362,97 @@ def save_edit(
     """
     path = editable_file(photo)
     preview = None if is_identity(recipe) else _render_preview(photo, path, recipe)
+
+    def change(edit: PhotoEdit) -> None:
+        edit.settings = recipe_to_json(recipe)
+        edit.history = list(history)
+        edit.history_cursor = history_cursor
+
     try:
-        with transaction.atomic():
-            edit = PhotoEdit.objects.select_for_update().filter(pk=photo.pk).first()
-            if edit is None:
-                edit = PhotoEdit(photo=photo)
-            fallback = (
-                (preview.source_width, preview.source_height)
-                if preview is not None
-                else (edit.source_width or 1, edit.source_height or 1)
-            )
-            before = _shown_frame(edit, fallback)
-            was_shown = edit.shown
-            edit.settings = recipe_to_json(recipe)
-            edit.history = list(history)
-            edit.history_cursor = history_cursor
-            edit.version += 1
-            # A rendition of an earlier version is never served again.
-            image_hash = photo.image_hash
-            transaction.on_commit(
-                partial(files.remove, files.rendition_path(image_hash))
-            )
-            if preview is None:
-                edit.rendition = PhotoEdit.Rendition.NONE
-                edit.width = edit.height = None
-                transaction.on_commit(
-                    partial(files.remove, files.preview_path(image_hash))
-                )
-            else:
-                files.move_into_place(preview.part, files.preview_path(image_hash))
-                preview = dataclasses.replace(preview, part="")
-                edit.rendition = PhotoEdit.Rendition.PENDING
-                edit.width, edit.height = preview.width, preview.height
-                edit.source_width, edit.source_height = fallback
-            edit.save()
-            if was_shown or edit.shown:
-                # Regenerating the thumbnails deletes the copies made for shares.
-                _show(photo, before, _shown_frame(edit, fallback))
-            _touch(photo)
-            if edit.shown:
-                transaction.on_commit(partial(_queue_rendition, photo.pk, edit.version))
+        edit = _store(photo, preview, change)
     finally:
-        if preview is not None and preview.part:
+        if preview is not None:
             files.remove(preview.part)
+    assert edit is not None  # created when missing
     return edit
 
 
-def delete_edit(photo: Photo) -> None:
-    """Remove ``photo``'s edit, its history and its files; show the original again.
+def _reset(edit: PhotoEdit) -> None:
+    edit.settings = default_recipe_json()
+    edit.history = []
+    edit.history_cursor = -1
 
-    The files go once the delete commits (``api.editing.cleanup``).
+
+def reset_edit(photo: Photo) -> None:
+    """Revert ``photo`` to its original: default recipe, no history, a new version.
+
+    The row stays (its version goes on from here, so no cached picture of an
+    earlier version is ever shown for a later one); the rendition and the
+    preview go once the reset commits, the thumbnails show the original and
+    the face boxes are where they were before the edit. A photo never edited
+    is left alone.
     """
+    _store(photo, None, _reset, create=False)
+
+
+def render_again(photo: Photo) -> bool:
+    """Render ``photo``'s edit again from its file, which changed; whether that made its thumbnails.
+
+    The stored recipe on the new file: a new version, a new preview and
+    thumbnails, the rendition queued. False for a photo that shows no edit,
+    and for a file the edit cannot be rendered from, which marks the edit
+    ``failed`` with its files gone: the caller makes the thumbnails.
+    """
+    edit = PhotoEdit.objects.filter(pk=photo.pk).first()
+    if edit is None or not edit.shown:
+        return False
+    recipe = recipe_from_json(edit.settings)
+    history: list[HistoryStep] = list(edit.history)
+    try:
+        save_edit(photo, recipe, history, edit.history_cursor)
+    except _RENDER_ERRORS as error:
+        logger.error(
+            "photo %s: cannot render its edit on the new file: %s",
+            photo.image_hash,
+            type(error).__name__,
+        )
+        _mark_unrenderable(photo)
+        return False
+    return True
+
+
+def _mark_unrenderable(photo: Photo) -> None:
     with transaction.atomic():
         edit = PhotoEdit.objects.select_for_update().filter(pk=photo.pk).first()
         if edit is None:
             return
-        fallback = (edit.source_width or 1, edit.source_height or 1)
-        before = _shown_frame(edit, fallback)
-        was_shown = edit.shown
-        edit.delete()
-        if was_shown:
-            _show(photo, before, _shown_frame(None, fallback))
-        _touch(photo)
+        edit.version += 1
+        edit.rendition = PhotoEdit.Rendition.FAILED
+        edit.save(update_fields=["version", "rendition", "updated_at"])
+        transaction.on_commit(partial(files.remove_edit_files, photo.image_hash))
+        transaction.on_commit(partial(delete_copies, photo.image_hash))
+
+
+def forget_edit(photo: Photo, old_hash: str) -> None:
+    """Reset the edit of a photo whose file is now another picture.
+
+    In the caller's transaction, before the photo takes the new picture's
+    hash: a crop made for the old picture must not be applied to the new one.
+    The files under ``old_hash`` go once it commits; the caller makes the
+    thumbnails again (from the original, the edit changing nothing now) and
+    drops the faces.
+    """
+    edit = PhotoEdit.objects.select_for_update().filter(pk=photo.pk).first()
+    if edit is None:
+        return
+    _reset(edit)
+    edit.version += 1
+    edit.rendition = PhotoEdit.Rendition.NONE
+    edit.width = edit.height = None
+    edit.source_width = edit.source_height = None
+    edit.face_boxes = {}
+    edit.save()
+    transaction.on_commit(partial(files.remove_edit_files, old_hash))
 
 
 # --- Rotating an edited photo ---------------------------------------------------
@@ -446,16 +515,43 @@ def _render_full(photo: Photo, settings_json: Json) -> npt.NDArray[np.uint8]:
     return _rendered(source, recipe_from_json(settings_json), None)
 
 
+def _pending(photo_id: uuid.UUID, version: int) -> QuerySet[PhotoEdit]:
+    return PhotoEdit.objects.filter(
+        pk=photo_id, version=version, rendition=PhotoEdit.Rendition.PENDING
+    )
+
+
+class _StaleError(Exception):
+    """The edit moved on while its rendition rendered."""
+
+
+def _after_rendition(photo: Photo, version: int, height: int) -> None:
+    """Once a rendition is ready: drop the preview, the copies, a short thumbnail."""
+    image_hash = photo.image_hash
+    if PhotoEdit.objects.filter(
+        pk=photo.pk, version=version, rendition=PhotoEdit.Rendition.READY
+    ).exists():
+        # Not when a newer save has put its own preview there since.
+        files.remove(files.preview_path(image_hash))
+    # Copies made from the preview while it rendered show the smaller picture.
+    delete_copies(image_hash)
+    thumbnail = getattr(photo, "thumbnail", None)
+    if thumbnail is not None and _thumbnail_short(photo, height):
+        thumbnails.regenerate_thumbnails(thumbnail)
+
+
 def render_rendition(photo_id: uuid.UUID, version: int) -> None:
     """The background task of a save: write the full-size rendition of ``version``.
 
     Writes nothing when the edit has moved on to another version (or is
-    gone) before or while it renders. A failure marks it ``failed``; the
-    thumbnails keep the save's render.
+    gone) before or while it renders: the row is marked ``ready`` by one
+    update conditional on the version, before the file is put in place, in
+    one transaction. A failure marks it ``failed``; the thumbnails keep the
+    save's render.
     """
     edit = (
-        PhotoEdit.objects.select_related("photo", "photo__main_file")
-        .filter(pk=photo_id, version=version, rendition=PhotoEdit.Rendition.PENDING)
+        _pending(photo_id, version)
+        .select_related("photo", "photo__main_file", "photo__thumbnail")
         .first()
     )
     if edit is None:
@@ -476,55 +572,74 @@ def render_rendition(photo_id: uuid.UUID, version: int) -> None:
             version,
             type(error).__name__,
         )
-        PhotoEdit.objects.filter(pk=photo_id, version=version).update(
-            rendition=PhotoEdit.Rendition.FAILED
-        )
+        _pending(photo_id, version).update(rendition=PhotoEdit.Rendition.FAILED)
         return
     height, width = int(pixels.shape[0]), int(pixels.shape[1])
-    with transaction.atomic():
-        current = (
-            PhotoEdit.objects.select_for_update()
-            .filter(pk=photo_id, version=version)
-            .first()
-        )
-        if current is None:
-            files.remove(part)
-            return
-        try:
+    try:
+        with transaction.atomic():
+            ready = _pending(photo_id, version).update(
+                rendition=PhotoEdit.Rendition.READY,
+                width=width,
+                height=height,
+                updated_at=timezone.now(),
+            )
+            if not ready:
+                raise _StaleError(image_hash)
             files.move_into_place(part, files.rendition_path(image_hash))
-        except OSError:
-            # Windows: the rendition of an earlier version is being served.
-            logger.error("photo %s: cannot put its rendition in place", image_hash)
-            files.remove(part)
-            current.rendition = PhotoEdit.Rendition.FAILED
-            current.save(update_fields=["rendition", "updated_at"])
-            return
-        files.remove(files.preview_path(image_hash))
-        current.rendition = PhotoEdit.Rendition.READY
-        current.width, current.height = width, height
-        current.save(update_fields=["rendition", "width", "height", "updated_at"])
-        _touch(photo)
+            _touch(photo)
+            transaction.on_commit(partial(_after_rendition, photo, version, height))
+    except _StaleError:
+        files.remove(part)
+        return
+    except OSError:
+        # Windows: the rendition of an earlier version is being served.
+        logger.error("photo %s: cannot put its rendition in place", image_hash)
+        files.remove(part)
+        _pending(photo_id, version).update(rendition=PhotoEdit.Rendition.FAILED)
+        return
     logger.info(
         "photo %s: edit version %s rendered at full size in %.2f s",
         image_hash,
         version,
         time.monotonic() - started,
     )
-    # Copies made from the original while it rendered show the old picture.
-    delete_copies(image_hash)
-    thumbnail = getattr(photo, "thumbnail", None)
-    if thumbnail is not None and _thumbnail_short(photo, height):
-        thumbnails.regenerate_thumbnails(thumbnail)
 
 
-def shown_file(photo: Photo) -> str | None:
-    """The rendition the full-size view serves for ``photo``, or None for the original."""
+# --- What the full-size view serves ---------------------------------------------
+
+
+class EditedPicture(NamedTuple):
+    """The file of an edited photo the full-size view serves."""
+
+    path: str
+    # Names a copy made from it (``api.sharing.copies``): one per version and
+    # file, so a copy of another picture of the photo is never served.
+    tag: str
+
+
+def edited_picture(photo: Photo) -> EditedPicture | None:
+    """The edited picture of ``photo`` at the largest size there is; None for the original.
+
+    None when the photo has nothing to hide: a video, no edit, or a recipe
+    that changes nothing. Otherwise never the original: the rendition when it
+    is ready, else the save's render (the edited picture, smaller), else a
+    rendition of an earlier version still on disk; a lost save's render is
+    made again. Raises ``NoEditedFileError`` when none of that works.
+    """
     if photo.video:
         return None
-    edit = PhotoEdit.objects.filter(
-        pk=photo.pk, rendition=PhotoEdit.Rendition.READY
-    ).first()
-    if edit is None:
+    edit = PhotoEdit.objects.filter(pk=photo.pk).first()
+    if edit is None or not edit.shown:
         return None
-    path = files.rendition_path(photo.image_hash)
-    return path if os.path.exists(path) else None
+    rendition = files.rendition_path(photo.image_hash)
+    preview = files.preview_path(photo.image_hash)
+    version = f"edit{edit.version}"
+    if edit.rendition == PhotoEdit.Rendition.READY and os.path.exists(rendition):
+        return EditedPicture(rendition, version)
+    if os.path.exists(preview):
+        return EditedPicture(preview, f"{version}-preview")
+    if os.path.exists(rendition):
+        return EditedPicture(rendition, f"{version}-earlier")
+    if restore_preview(photo, edit):
+        return EditedPicture(preview, f"{version}-preview")
+    raise NoEditedFileError(photo.image_hash)
