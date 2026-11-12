@@ -16,6 +16,8 @@ When you shoot in RAW+JPEG mode, your camera creates two files for each shot (e.
 
 This happens whenever both files are in the same folder and have the same name, like `IMG_001.CR2` and `IMG_001.jpg`, and there is no setting for it: both files stay in your library, as one photo with a RAW variant. A RAW in another folder, for example on a second memory card, becomes a photo of its own. The **Stack RAW+JPEG pairs** switch that 1.2.1 and older showed on the Library page and in first-time setup did nothing, and is gone since 1.3.0.
 
+<Since version="1.7.0" /> The [photo editor](./editing-photos.md#raw-files) works on the photo's main file, so a RAW+JPEG pair is edited from its JPEG. A RAW file that is a photo of its own is edited from its RAW data.
+
 ### Live Photos
 
 Live Photos (common on iPhones) consist of a still image and a short video clip. LibrePhotos detects these and groups the image and video as file variants of a single photo.

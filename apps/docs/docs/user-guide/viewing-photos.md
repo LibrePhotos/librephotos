@@ -193,6 +193,7 @@ The toolbar at the top starts with the back arrow (**Close**), which returns to 
 - **360° view** - <Since version="1.5.0" /> Look around in a [360° photo sphere](#photo-spheres) instead of seeing it flat. Shown only for photo spheres.
 - **Select text in photo** - Lay the recognised text over the photo so you can select and copy it. Shown only on your own photos where [text recognition](./text-recognition.md) found text.
 - **Share link** (share icon) - Create a revocable link to this one photo and show it with a copy button, plus **Replace link** and **Revoke**. The icon is green while the photo has a live link. This does not make the photo public; see [Revocable Photo Links](./sharing.md#revocable-photo-links).
+- **Edit** - <Since version="1.7.0" /> Open the [photo editor](./editing-photos.md) to crop, straighten and adjust the photo. Your own still photos only. The button is highlighted on a photo you edited.
 - **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark. In stars mode this is a row of five stars instead (see [Rating photos with stars](#rating-photos-with-stars)).
 - **Show info panel** / **Hide info panel** - Show or hide the photo details sidebar.
 - **Delete photo** (trash icon) - Move the photo to trash. On a photo in the trash it is **Restore photo**.
@@ -212,7 +213,7 @@ Each item in the menu shows its keyboard shortcut (see [Keyboard Shortcuts](#key
 
 The share link, favorite, delete, hide, archive and rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the zoom, slideshow, copy and fullscreen items in the ⋮, the info panel button and the back arrow.
 
-There is no download button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
+There is no download button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu. <Since version="1.7.0" /> On a photo you [edited](./editing-photos.md#downloads-and-sharing), the ⋮ also has **Download edited** and **Download original**.
 
 To put a single photo on the clipboard, open it and press the **Copy to clipboard** button or `Ctrl` + `c` (`⌘` + `c` on macOS). The browser's own right-click menu on the picture offers **Copy image** as well.
 
@@ -226,6 +227,8 @@ A small label in the photo's lower-left corner says what you are looking at whil
 - **Original · 6000 × 4000** once the original is shown, which shrinks to **Original** after two seconds. The viewer keeps the original until you move to another photo.
 - **Preview** with the reason when the browser cannot show the original: RAW, HEIC, TIFF and JPEG XL files, and photos you turned with the rotate buttons (the file itself is not turned). The **Original** link next to it downloads the file.
 - **The original did not load** with **Try again** when loading it failed.
+
+<Since version="1.7.0" /> On a photo you [edited](./editing-photos.md), zooming in loads the edited picture at full size. While the server is still making it, the label says **Preview** with *The edited photo is still being prepared at full size*.
 
 Photos no bigger than the display-size version need nothing more, and animated GIFs always show the original. The original loads only when you are signed in and may download it anyway: your own photos and photos shared with you. Visitors of a [public album](./sharing.md#the-public-album-experience) or a public photo link keep the display-size version.
 
@@ -255,6 +258,7 @@ Rotation in LibrePhotos is **non-destructive**:
 - Each rotation composes on top of the previous one, so rotating clockwise twice produces a 180° rotation and four times returns the photo to its original orientation.
 - The change applies to the photo for every viewer, not just your own session.
 - Rotation is only available for still images. Videos cannot be rotated from the lightbox.
+- <Since version="1.7.0" /> On a photo you [edited](./editing-photos.md), the rotation turns the edit, crop included, and is added to the edit's history.
 
 Your **Write edits to files** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle:
 
@@ -444,6 +448,7 @@ The account menu shows the same keys next to its pages, and **Keyboard shortcuts
 | `h` | Hide / unhide photo |
 | `a` | Archive / unarchive photo |
 | `p` | Open the photo's share link dialog |
+| `e` | <Since version="1.7.0" /> Open the [photo editor](./editing-photos.md) (your own still photos) |
 | `d` | Move photo to trash |
 | `g` | Toggle fullscreen |
 | `s` | Start / stop slideshow |
