@@ -20,3 +20,11 @@ float eotf1(float e) {
 vec3 eotf(vec3 e) {
   return vec3(eotf1(e.r), eotf1(e.g), eotf1(e.b));
 }
+
+// A bilinear read of a render target at `pixel` (a position in its pixels). Its picture fills the
+// bottom-left `size` corner of a texture of `capacity` pixels; clamping to the outer pixel centres
+// never filters in what lies past the picture, and reads what CLAMP_TO_EDGE reads on a texture of
+// exactly `size`.
+vec4 cornerTexture(sampler2D t, vec2 pixel, vec2 size, vec2 capacity) {
+  return texture(t, clamp(pixel, vec2(0.5), size - 0.5) / capacity);
+}

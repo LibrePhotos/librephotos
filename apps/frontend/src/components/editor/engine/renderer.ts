@@ -17,6 +17,7 @@ import {
   tableTexture,
   type Program,
   type Target,
+  type TargetFormat,
 } from "./glResources";
 import { histogramOf, type Histogram } from "./histogram";
 import {
@@ -26,6 +27,7 @@ import {
   needsNoiseReduction,
   needsPlanes,
   planeSize,
+  targetCapacity,
   workingSize,
 } from "./passes";
 import {
@@ -37,6 +39,7 @@ import {
   runPlane,
   runPresent,
   type PassContext,
+  type PlaneInput,
 } from "./pipeline";
 import { beforeRecipe, DEFAULT_RECIPE, type Recipe } from "./recipe";
 import { FRAGMENT_SHADERS, VERTEX_SHADER, type PassName } from "./shaders";
@@ -75,6 +78,14 @@ type LastRender = Readonly<{ after: Target; recipe: Recipe; geometryKey: string;
 
 const HISTOGRAM_EDGE = 256;
 const MODES: Readonly<Record<ViewMode, 0 | 1 | 2>> = { after: 0, before: 1, split: 2 };
+
+/** What develop reads for a plane while the planes are off: the 1x1 `empty` table. */
+const noPlane = (tables: Readonly<{ empty: WebGLTexture }>): PlaneInput => ({
+  texture: tables.empty,
+  width: 1,
+  height: 1,
+  capacity: { width: 1, height: 1 },
+});
 
 function openContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGL2RenderingContext {
   const gl = canvas.getContext("webgl2", { antialias: false, depth: false, stencil: false, premultipliedAlpha: true });
@@ -180,15 +191,20 @@ export class EditRenderer {
     return this.lost || this.gl.isContextLost();
   }
 
-  /** The long edge a working picture may have. */
-  private maxEdge(): number {
+  /** The GPU's largest texture (and renderbuffer) edge. */
+  private textureLimit(): number {
     const gl = this.gl;
     const limit = Math.min(
       Number(gl.getParameter(gl.MAX_TEXTURE_SIZE)),
       Number(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE))
     );
     // A lost context answers 0; the size is only a guess until it is back.
-    const known = limit > 0 ? limit : 4096;
+    return limit > 0 ? limit : 4096;
+  }
+
+  /** The long edge a working picture may have. */
+  private maxEdge(): number {
+    const known = this.textureLimit();
     return Math.min(known, this.options.maxWorkingEdge ?? known);
   }
 
@@ -219,15 +235,21 @@ export class EditRenderer {
     return { gl: this.gl, programs: this.programs, target: (role, size, format) => this.target(role, size, format) };
   }
 
-  private target(role: string, size: Size, format: "half" | "byte"): Target {
+  /**
+   * The target of a role for a picture of `size`. It keeps its texture while the picture fits:
+   * a new texture costs many times a pass, and a straighten or crop drag changes the size on every
+   * frame. A picture that does not fit (a turn swaps the edges) gets a new texture of its own size
+   * plus room to grow; stages rerun then, since every stage's key holds the picture size.
+   */
+  private target(role: string, size: Size, format: TargetFormat): Target {
     const existing = this.targets.get(role);
-    if (existing && existing.width === size.width && existing.height === size.height && existing.format === format) {
-      return existing;
-    }
-    deleteTarget(this.gl, existing);
-    const created = createTarget(this.gl, size, format);
-    this.targets.set(role, created);
-    return created;
+    const fits =
+      existing?.format === format && existing.capacity.width >= size.width && existing.capacity.height >= size.height;
+    if (!fits) deleteTarget(this.gl, existing);
+    const target = fits ? existing : createTarget(this.gl, targetCapacity(size, this.textureLimit()), format);
+    const resized = { ...target, width: size.width, height: size.height };
+    this.targets.set(role, resized);
+    return resized;
   }
 
   /** Run a stage when its inputs changed since its last run; true when it ran. */
@@ -298,7 +320,7 @@ export class EditRenderer {
         0.02 * Math.min(256, Math.max(picture.width, picture.height))
       );
     });
-    const planeTexture = (role: string) => (planes ? (this.targets.get(role)?.texture ?? tables.empty) : tables.empty);
+    const planeInput = (role: string) => (planes ? (this.targets.get(role) ?? noPlane(tables)) : noPlane(tables));
 
     this.uploadTables(recipe);
     const sourceMax = source.kind === "linear16" ? source.header.max : 1;
@@ -320,8 +342,8 @@ export class EditRenderer {
       : this.target("developedByte", picture, "byte");
     const developRan = this.stage("develop", developKey, () => {
       const inputs = {
-        coarse: planeTexture("coarse"),
-        fine: planeTexture("fine"),
+        coarse: planeInput("coarse"),
+        fine: planeInput("fine"),
         light: tables.light,
         curve: tables.curve,
         hue: tables.hue,
@@ -365,8 +387,8 @@ export class EditRenderer {
     if (!geometry || !tables) return last.after;
     this.stage("before", JSON.stringify([last.geometryKey, last.sourceMax]), () => {
       const inputs = {
-        coarse: tables.empty,
-        fine: tables.empty,
+        coarse: noPlane(tables),
+        fine: noPlane(tables),
         light: tables.light,
         curve: tables.curve,
         hue: tables.hue,
@@ -397,6 +419,7 @@ export class EditRenderer {
       split: 0,
     } as const;
     runPresent(context, shown, shown, present, out);
+    // Only the corner the present pass drew: the texture may be larger.
     const pixels = new Uint8Array(size.width * size.height * 4);
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, out.framebuffer);
     this.gl.readPixels(0, 0, size.width, size.height, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);

@@ -55,6 +55,19 @@ export function planeSize(picture: Size, maxEdge: number): Size {
   return picture.width >= picture.height ? { width: lp, height: sp } : { width: sp, height: lp };
 }
 
+/** Render target textures grow in steps of this many pixels per edge. */
+const TARGET_STEP = 256;
+
+/**
+ * The texture size a render target gets when a picture of `size` does not fit the one it has: each
+ * edge rounded up to a multiple of 256, at most `limit` (the GPU's largest texture). The slack lets
+ * a straighten or crop drag reuse the texture while the picture grows a little.
+ */
+export function targetCapacity(size: Size, limit: number): Size {
+  const edge = (pixels: number) => Math.max(pixels, Math.min(limit, Math.ceil(pixels / TARGET_STEP) * TARGET_STEP));
+  return { width: edge(size.width), height: edge(size.height) };
+}
+
 /** The develop pass's uniforms (stage 4). */
 export type DevelopUniforms = Readonly<{
   k: Float32Array;

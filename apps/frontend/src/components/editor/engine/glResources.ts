@@ -117,12 +117,17 @@ export function createProgram(gl: WebGL2RenderingContext, vertex: string, fragme
   return new Program(gl, program);
 }
 
-/** A texture the passes render into, with its framebuffer. */
+/**
+ * A texture the passes render into, with its framebuffer. The texture is `capacity` pixels and the
+ * picture fills its bottom-left `width` x `height` corner, so a picture that changes size within
+ * the capacity (every frame of a straighten or crop drag) keeps its texture.
+ */
 export type Target = Readonly<{
   texture: WebGLTexture;
   framebuffer: WebGLFramebuffer;
   width: number;
   height: number;
+  capacity: Size;
   format: TargetFormat;
 }>;
 
@@ -136,15 +141,17 @@ function setSampling(gl: WebGL2RenderingContext, minFilter: number) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
-export function createTarget(gl: WebGL2RenderingContext, size: Size, format: TargetFormat): Target {
+/** A target whose texture is `capacity` pixels, its picture filling all of it until it is resized. */
+export function createTarget(gl: WebGL2RenderingContext, capacity: Size, format: TargetFormat): Target {
+  const { width, height } = capacity;
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
   if (format === "half") {
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, size.width, size.height);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, width, height);
     setSampling(gl, gl.LINEAR);
   } else {
-    const levels = Math.floor(Math.log2(Math.max(size.width, size.height))) + 1;
-    gl.texStorage2D(gl.TEXTURE_2D, levels, gl.RGBA8, size.width, size.height);
+    const levels = Math.floor(Math.log2(Math.max(width, height))) + 1;
+    gl.texStorage2D(gl.TEXTURE_2D, levels, gl.RGBA8, width, height);
     setSampling(gl, gl.LINEAR_MIPMAP_LINEAR);
   }
   const framebuffer = gl.createFramebuffer();
@@ -157,7 +164,7 @@ export function createTarget(gl: WebGL2RenderingContext, size: Size, format: Tar
     gl.deleteTexture(texture);
     throw new EditorUnsupportedError("float-targets", `framebuffer status ${status}`);
   }
-  return { texture, framebuffer, width: size.width, height: size.height, format };
+  return { texture, framebuffer, width, height, capacity: { width, height }, format };
 }
 
 export function deleteTarget(gl: WebGL2RenderingContext, target: Target | null | undefined): void {

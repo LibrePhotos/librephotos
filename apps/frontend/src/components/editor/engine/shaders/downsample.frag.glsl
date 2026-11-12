@@ -6,16 +6,21 @@ precision highp float;
 uniform sampler2D uInput;
 uniform vec2 uSize;
 uniform vec2 uInputSize;
+uniform vec2 uInputCapacity;
 uniform bool uValues;
 out vec4 outColor;
 
+vec4 tap(vec2 pixel) {
+  return cornerTexture(uInput, pixel, uInputSize, uInputCapacity);
+}
+
 void main() {
-  vec2 uv = gl_FragCoord.xy / uSize;
-  vec2 quarter = 0.25 * (uInputSize / uSize) / uInputSize;
-  vec4 sum = texture(uInput, uv + vec2(-quarter.x, -quarter.y));
-  sum += texture(uInput, uv + vec2(quarter.x, -quarter.y));
-  sum += texture(uInput, uv + vec2(-quarter.x, quarter.y));
-  sum += texture(uInput, uv + vec2(quarter.x, quarter.y));
+  vec2 center = (gl_FragCoord.xy / uSize) * uInputSize;
+  vec2 quarter = 0.25 * uInputSize / uSize;
+  vec4 sum = tap(center + vec2(-quarter.x, -quarter.y));
+  sum += tap(center + vec2(quarter.x, -quarter.y));
+  sum += tap(center + vec2(-quarter.x, quarter.y));
+  sum += tap(center + vec2(quarter.x, quarter.y));
   vec4 average = sum * 0.25;
   if (uValues) {
     vec3 c = average.rgb;

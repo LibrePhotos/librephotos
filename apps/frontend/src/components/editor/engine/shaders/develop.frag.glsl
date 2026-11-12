@@ -10,6 +10,10 @@ uniform sampler2D uLightTable;
 uniform sampler2D uCurveTable;
 uniform sampler2D uHueTable;
 uniform vec2 uSize;
+uniform vec2 uCoarseSize;
+uniform vec2 uCoarseCapacity;
+uniform vec2 uFineSize;
+uniform vec2 uFineCapacity;
 uniform vec3 uK;
 uniform float uGain;
 uniform float uM;
@@ -61,7 +65,9 @@ float rollOff(float c) {
   if (uM > 1.0 && c > K) {
     float t = (c - K) / (uM - K);
     float p = (uM - K) / (1.0 - K);
-    c = K + (1.0 - K) * (1.0 - pow(1.0 - t, p));
+    // A GPU divides by multiplying with an approximate reciprocal, so t can come out a hair above 1
+    // just under uM; pow of a negative number is NaN, which the clamp turned into a 0 channel.
+    c = K + (1.0 - K) * (1.0 - pow(max(1.0 - t, 0.0), p));
   }
   return clamp(c, 0.0, 1.0);
 }
@@ -104,14 +110,16 @@ vec3 colour(vec3 e) {
 }
 
 void main() {
-  vec2 uv = gl_FragCoord.xy / uSize;
-  vec4 d = texelFetch(uInput, ivec2(gl_FragCoord.xy), 0);
+  // A byte target is drawn past its picture too: those pixels repeat the picture's edge pixel.
+  vec2 pixel = min(gl_FragCoord.xy, uSize - 0.5);
+  vec2 uv = pixel / uSize;
+  vec4 d = texelFetch(uInput, ivec2(pixel), 0);
   vec3 rgb = d.rgb;
   float ly = log2(max(luma(rgb), 0.0001));
-  vec2 coarse = texture(uPlaneCoarse, uv).rg;
+  vec2 coarse = cornerTexture(uPlaneCoarse, uv * uCoarseSize, uCoarseSize, uCoarseCapacity).rg;
   float lc = coarse.r;
   float dk = coarse.g;
-  float lf = texture(uPlaneFine, uv).r;
+  float lf = cornerTexture(uPlaneFine, uv * uFineSize, uFineSize, uFineCapacity).r;
 
   // 4.1 Dehaze
   if (uDehaze != 0.0) {

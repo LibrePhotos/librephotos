@@ -9,6 +9,7 @@ import {
   needsNoiseReduction,
   needsPlanes,
   planeSize,
+  targetCapacity,
   workingSize,
 } from "./passes";
 import { DEFAULT_RECIPE } from "./recipe";
@@ -59,6 +60,18 @@ describe("sizes", () => {
       width: 1024,
       height: 680,
     });
+  });
+
+  it("gives render targets room to grow, in steps of 256 up to the GPU's limit", () => {
+    expect(targetCapacity({ width: 2560, height: 1707 }, 16384)).toEqual({ width: 2560, height: 1792 });
+    expect(targetCapacity({ width: 1, height: 257 }, 16384)).toEqual({ width: 256, height: 512 });
+    expect(targetCapacity({ width: 4000, height: 3000 }, 4096)).toEqual({ width: 4096, height: 3072 });
+    expect(targetCapacity({ width: 4090, height: 2049 }, 4096)).toEqual({ width: 4096, height: 2304 });
+    expect(targetCapacity({ width: 4096, height: 100 }, 4096)).toEqual({ width: 4096, height: 256 });
+  });
+
+  it("keeps each edge's own size: a turned picture gets a turned texture, not a square one", () => {
+    expect(targetCapacity({ width: 1707, height: 2560 }, 16384)).toEqual({ width: 1792, height: 2560 });
   });
 });
 

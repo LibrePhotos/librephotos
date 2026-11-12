@@ -5,6 +5,7 @@ precision highp int;
 //#include common
 uniform sampler2D uInput;
 uniform vec2 uSize;
+uniform vec2 uInputCapacity;
 uniform float uSharpen;
 uniform float uSigma;
 uniform float uVignette;
@@ -39,8 +40,10 @@ float valueNoise(vec2 g) {
 }
 
 void main() {
-  vec2 uv = gl_FragCoord.xy / uSize;
-  vec4 center = texelFetch(uInput, ivec2(gl_FragCoord.xy), 0);
+  // The target is drawn past its picture too: those pixels repeat the picture's edge pixel.
+  vec2 pixel = min(gl_FragCoord.xy, uSize - 0.5);
+  vec2 uv = pixel / uSize;
+  vec4 center = texelFetch(uInput, ivec2(pixel), 0);
   vec3 e = center.rgb;
 
   // 5.1 Sharpening
@@ -52,7 +55,7 @@ void main() {
       for (int i = -2; i <= 2; i++) {
         vec2 offset = vec2(float(i), float(j));
         float w = exp(-dot(offset, offset) / 2.0);
-        blur += w * luma(texture(uInput, uv + offset * uSigma / uSize).rgb);
+        blur += w * luma(cornerTexture(uInput, pixel + offset * uSigma, uSize, uInputCapacity).rgb);
         total += w;
       }
     }
