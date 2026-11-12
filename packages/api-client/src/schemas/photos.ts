@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Media, PageFields, PigPhoto, ProjectionType, SimpleUser, StackTypeEnum, UuidString } from "./common";
+import { PhotoEditSummary } from "./photoEdits";
 import { PhotoRights } from "./photoRights";
 import { FileTypeFilter } from "./search";
 
@@ -208,6 +209,9 @@ export const Photo = z.object({
   // Copyright, creator and license (#425), null without any; sent to everyone who sees the photo.
   // Optional: older backends do not send it.
   rights: PhotoRights.nullable().optional(),
+  // The edited picture (photo editing), null for a photo without a rendition. Optional: older
+  // servers do not send it.
+  edit: PhotoEditSummary.nullable().optional(),
 });
 export type Photo = z.infer<typeof Photo>;
 

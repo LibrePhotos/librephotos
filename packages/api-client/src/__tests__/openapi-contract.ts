@@ -34,7 +34,8 @@ export interface SchemaNode {
   const?: unknown;
   properties?: Record<string, SchemaNode>;
   required?: string[];
-  items?: SchemaNode;
+  /** `false` after a tuple's `prefixItems` (zod 4's JSON Schema of `z.tuple`). */
+  items?: SchemaNode | boolean;
   prefixItems?: SchemaNode[];
   additionalProperties?: boolean | SchemaNode;
   allOf?: SchemaNode[];
@@ -55,7 +56,7 @@ export const SchemaNode: z.ZodType<SchemaNode> = z.lazy(() =>
     const: z.unknown().optional(),
     properties: z.record(z.string(), SchemaNode).optional(),
     required: z.string().array().optional(),
-    items: SchemaNode.optional(),
+    items: z.union([z.boolean(), SchemaNode]).optional(),
     prefixItems: SchemaNode.array().optional(),
     additionalProperties: z.union([z.boolean(), SchemaNode]).optional(),
     allOf: SchemaNode.array().optional(),
@@ -211,7 +212,7 @@ export function toShape(node: SchemaNode, components: Record<string, SchemaNode>
     shape.types.add("object");
     shape.open = true;
   }
-  if (node.items !== undefined) {
+  if (node.items !== undefined && typeof node.items !== "boolean") {
     shape.types.add("array");
     shape.items = toShape(node.items, components, seen);
   } else if (node.prefixItems !== undefined) {

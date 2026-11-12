@@ -193,6 +193,8 @@ export const photoKeys = {
   /** What renaming a selection after its dates would do (#2773), keyed by the selection and the pattern. */
   renamePreview: (selection: Record<string, unknown>, pattern: string) =>
     [...photoRoot, "renamePreview", selection, pattern] as const,
+  /** A photo's edit (recipe, history, rendition state), by the photo's id. */
+  edit: (photoId: string) => [...photoRoot, "edit", photoId] as const,
 };
 
 // The album lists and pickers. An album's photos are a grid: photoGridKeys.
