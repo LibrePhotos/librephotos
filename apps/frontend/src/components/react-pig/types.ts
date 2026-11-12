@@ -32,8 +32,9 @@ export type ImageItem = {
   /** The picture in ~25 bytes (base64 ThumbHash): shown, blurred, until the image has loaded. */
   thumbhash?: string | null;
   /**
-   * The version of the photo's edit (0 without one), folded into the tile's address with the
-   * ThumbHash: a subtle edit may leave the ThumbHash as it was. Older servers do not send it.
+   * Which thumbnails of the photo's edit it shows (0 without one; it moves on every save and revert
+   * and when the full-size rendition is ready), folded into the tile's address with the ThumbHash:
+   * a subtle edit may leave the ThumbHash as it was. Older servers do not send it.
    */
   thumbnail_version?: number;
   type?: string;

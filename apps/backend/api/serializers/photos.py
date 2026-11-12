@@ -4,6 +4,7 @@ from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import (
+    Case,
     Count,
     F,
     Model,
@@ -12,6 +13,7 @@ from django.db.models import (
     QuerySet,
     Subquery,
     Value,
+    When,
 )
 from django.db.models.functions import Coalesce
 from drf_spectacular.types import OpenApiTypes
@@ -259,8 +261,11 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
         return thumbnail.thumbhash if thumbnail else None
 
     def get_thumbnail_version(self, obj: Photo) -> int:
-        """The version of the photo's edit, 0 without one; it never goes back (a
-        revert raises it too). Grids fold it into the thumbnail URL's ``v``."""
+        """Which thumbnails of the photo's edit the grid shows: twice the edit's
+        version, plus one once its full-size rendition is ready (the thumbnails
+        are made again from it when the save's render was smaller than they
+        are). 0 without an edit; it never goes back (a save or a revert raises
+        the version). Grids fold it into the thumbnail URL's ``v``."""
         return loaded_count(obj, THUMBNAIL_VERSION)
 
     def get_type(self, obj: Photo) -> str:
@@ -356,6 +361,16 @@ class SearchResultsSerializer(serializers.Serializer[None]):
 THUMBNAIL_VERSION = "thumbnail_version_annotation"
 
 
+def _thumbnail_version() -> Coalesce:
+    """``2 * version + 1`` once the edit's rendition is ready, ``2 * version``
+    before; 0 without an edit row (see ``get_thumbnail_version``)."""
+    ready = Case(
+        When(edit__rendition=PhotoEdit.Rendition.READY, then=Value(1)),
+        default=Value(0),
+    )
+    return Coalesce(F("edit__version") * 2 + ready, Value(0))
+
+
 def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
     """Load everything ``PhotoSummarySerializer`` reads in a constant number of queries.
 
@@ -403,7 +418,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
         )
         .select_related("thumbnail", "search_instance", "main_file")
         # The edit row is a reverse one-to-one: a LEFT JOIN, one row per photo.
-        .annotate(**{THUMBNAIL_VERSION: Coalesce(F("edit__version"), Value(0))})
+        .annotate(**{THUMBNAIL_VERSION: _thumbnail_version()})
         .only(
             "image_hash",
             "thumbnail__aspect_ratio",

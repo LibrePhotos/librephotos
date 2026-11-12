@@ -27678,7 +27678,7 @@
           },
           "thumbnail_version": {
             "type": "integer",
-            "description": "The version of the photo's edit, 0 without one; it never goes back (a\nrevert raises it too). Grids fold it into the thumbnail URL's ``v``.",
+            "description": "Which thumbnails of the photo's edit the grid shows: twice the edit's\nversion, plus one once its full-size rendition is ready (the thumbnails\nare made again from it when the save's render was smaller than they\nare). 0 without an edit; it never goes back (a save or a revert raises\nthe version). Grids fold it into the thumbnail URL's ``v``.",
             "readOnly": true
           },
           "url": {

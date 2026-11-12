@@ -36,7 +36,8 @@ export function thumbhashDataUrl(hash: string | null | undefined): string | null
  * `url` with a short digest of the photo's ThumbHash and its `thumbnail_version` as `?v=`. The
  * backend makes the ThumbHash again whenever it builds the thumbnails again (a rotation), and the
  * thumbnail version goes up with every saved or reverted edit, whose thumbnails a subtle change
- * (sharpening, grain) can leave with the same ThumbHash. So a changed picture gets a new address,
+ * (sharpening, grain) can leave with the same ThumbHash, and once more when the edit's full-size
+ * rendition is ready (the thumbnails are made again from it after a tight crop). So a changed picture gets a new address,
  * and the server lets the browser keep each one for a year without asking again. A photo without
  * an edit (version 0, or a server that does not send it) keeps the address it always had.
  * Unchanged with neither.
