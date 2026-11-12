@@ -1377,6 +1377,12 @@
       },
       "undo": "Undo",
       "videoonlyphoto": "A video can only be marked as a photo"
+    },
+    "download": {
+      "edited": "Download edited",
+      "original": "Download original",
+      "editedFailed": "The edited photo could not be made at full size. Open the editor and save again.",
+      "failed": "The download did not work. Try again."
     }
   },
   "exif": {
@@ -4613,7 +4619,13 @@
       "color": "Color",
       "effects": "Effects",
       "detail": "Detail",
-      "crop": "Crop & rotate"
+      "crop": "Crop & rotate",
+      "presets": "Presets",
+      "toneCurve": "Tone curve",
+      "colorMixer": "Color mixer",
+      "bwMix": "B&W mix",
+      "colorGrading": "Color grading",
+      "history": "History"
     },
     "control": {
       "exposure": "Exposure",
@@ -4640,6 +4652,107 @@
       "radius": "Radius",
       "noiseReduction": "Noise reduction",
       "colorNoise": "Color noise"
+    },
+    "openEdited": "Edit (E). This photo is edited",
+    "histogram": {
+      "label": "Histogram",
+      "shadowsClipped": "Shadows clipped",
+      "highlightsClipped": "Highlights clipped"
+    },
+    "curve": {
+      "channel": "Curve channel",
+      "master": "All",
+      "red": "Red",
+      "green": "Green",
+      "blue": "Blue",
+      "box": "Tone curve ({{channel}}). Click the curve to add a point.",
+      "point": "Point {{index}} of {{count}} ({{channel}}). The arrow keys move it, Delete removes it.",
+      "pointValue": "Input {{input}} · Output {{output}}",
+      "hint": "Click the curve to add a point. Double-click a point or drag it out to remove it.",
+      "reset": "Reset curve ({{channel}})"
+    },
+    "color": {
+      "treatment": "Treatment",
+      "color": "Color",
+      "bw": "Black & white"
+    },
+    "band": {
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "aqua": "Aqua",
+      "blue": "Blue",
+      "purple": "Purple",
+      "magenta": "Magenta"
+    },
+    "mixer": {
+      "bands": "Color bands",
+      "bandChanged": "{{band}} (changed)",
+      "hue": "Hue",
+      "saturation": "Saturation",
+      "luminance": "Luminance"
+    },
+    "grading": {
+      "shadows": "Shadows",
+      "midtones": "Midtones",
+      "highlights": "Highlights",
+      "global": "Global",
+      "readout": "{{hue}}° · {{sat}}",
+      "wheel": "{{wheel}} color wheel. The left and right arrow keys turn the hue, up and down change the amount.",
+      "valueText": "Hue {{hue}}°, amount {{sat}}",
+      "luminance": "Luminance",
+      "wheelLuminance": "{{wheel}} luminance",
+      "blending": "Blending",
+      "balance": "Balance"
+    },
+    "presets": {
+      "list": "Presets"
+    },
+    "copyPaste": {
+      "copy": "Copy settings",
+      "paste": "Paste settings",
+      "copied": "Settings copied. Open another photo and choose Paste settings.",
+      "nothing": "Nothing to paste yet: choose Copy settings on an edited photo first."
+    },
+    "history": {
+      "list": "Edit history",
+      "original": "Original",
+      "crop": "Crop",
+      "preset": "Filter: {{name}}",
+      "auto": "Auto",
+      "paste": "Paste settings",
+      "reset": "Reset",
+      "import": "Import",
+      "unknown": "Edit",
+      "rotate": "Rotate {{degrees}}°",
+      "aspect": "Aspect ratio {{ratio}}",
+      "curveMaster": "Tone curve",
+      "curveRed": "Tone curve: Red",
+      "curveGreen": "Tone curve: Green",
+      "curveBlue": "Tone curve: Blue",
+      "mixerHue": "{{band}} hue",
+      "mixerSaturation": "{{band}} saturation",
+      "mixerLuminance": "{{band}} luminance",
+      "bwMix": "B&W {{band}}",
+      "wheel": "{{wheel}} color",
+      "treatmentColor": "Back to color"
+    },
+    "auto": {
+      "label": "Auto",
+      "hint": "Set the light from this photo's histogram",
+      "notReady": "The photo is still loading"
+    },
+    "split": {
+      "toggle": "Before and after side by side (Y)",
+      "before": "Before",
+      "after": "After",
+      "divider": "Divider between before and after. The arrow keys move it.",
+      "inCrop": "Not available while cropping"
+    },
+    "panelToggle": {
+      "collapse": "Hide the controls",
+      "expand": "Show the controls"
     }
   }
 }

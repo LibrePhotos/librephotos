@@ -207,7 +207,9 @@ describe("PhotoEditor", { timeout: 20000 }, () => {
 
   it("offers no Revert for a photo without a saved edit", async () => {
     await open();
-    expect(() => byLabel("More actions")).toThrow();
+    await click(byLabel("More actions"));
+    expect(buttonWithText("Copy settings")).toBeTruthy();
+    expect(() => buttonWithText("Revert to original...")).toThrow();
   });
 
   it("moves the crop frame with the arrow keys as one crop step", async () => {

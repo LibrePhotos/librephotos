@@ -5,12 +5,23 @@
  * presets, history) are added by appending to ADVANCED_SECTIONS; SECTION_ORDER says where each one
  * goes, so the list's order of appending does not matter.
  */
+import { EDIT_BANDS } from "@librephotos/api-client";
 import type { ParseKeys } from "i18next";
 import type React from "react";
-import { withDefaultGeometry, withDefaults } from "../controls/resetControls";
+import { AutoRow } from "../auto/AutoButton";
+import { BwMixPanel } from "../color/BwMixPanel";
+import { MIXER_CHANNELS } from "../color/colorLabels";
+import { MixerPanel } from "../color/MixerPanel";
+import { TreatmentSwitch } from "../color/TreatmentSwitch";
+import { anyChanged, withDefaultGeometry, withDefaults } from "../controls/resetControls";
 import { CropControls } from "../crop/CropControls";
+import { ToneCurvePanel } from "../curve/ToneCurvePanel";
 import type { NumberControlPath } from "../engine/controls";
-import { changesGeometry, type Recipe } from "../engine/recipe";
+import { changesGeometry, DEFAULT_RECIPE, sameValue, type Recipe } from "../engine/recipe";
+import { PresetsPanel } from "../filters/PresetsPanel";
+import { GradingPanel } from "../grading/GradingPanel";
+import { HistogramPanel } from "../histogram/HistogramPanel";
+import { HistoryPanel } from "../history/HistoryPanel";
 
 /** Every section the advanced mode has or is planned to have. */
 type AdvancedSectionId =
@@ -51,6 +62,10 @@ export type AdvancedSection = Readonly<{
   controls?: readonly NumberControlPath[];
   /** The section's own content, below its sliders (or instead of them). Reads the editor with useEditor(). */
   Content?: React.ComponentType;
+  /** Shown above its sliders (Auto, the Color | Black & white switch). */
+  Top?: React.ComponentType;
+  /** Whether the section is shown for this recipe (the B&W mix only for black and white); default: always. */
+  shown?: (recipe: Recipe) => boolean;
   /** What the section's Reset makes of the recipe (one `reset` step); default: its `controls` at their defaults. */
   reset?: (recipe: Recipe) => Recipe;
   /** Whether the section holds a change (shows its Reset); default: any of its `controls` changed. */
@@ -89,12 +104,61 @@ const DETAIL: readonly NumberControlPath[] = [
   "detail.nr_color",
 ];
 
+const MIXER: readonly NumberControlPath[] = EDIT_BANDS.flatMap(band =>
+  MIXER_CHANNELS.map(channel => `mixer.${band}.${channel}` as const)
+);
+const BW_MIX: readonly NumberControlPath[] = EDIT_BANDS.map(band => `bw_mix.${band}` as const);
+const isBw = (recipe: Recipe) => recipe.color.treatment === "bw";
+
 /** The sections of the advanced mode. Append a new panel here. */
 export const ADVANCED_SECTIONS: AdvancedSection[] = [
-  { id: "light", title: "editor.advanced.light", controls: LIGHT },
-  { id: "color", title: "editor.advanced.color", controls: COLOR },
+  { id: "histogram", Content: HistogramPanel },
+  {
+    id: "presets",
+    title: "editor.advanced.presets",
+    Content: PresetsPanel,
+    // Taking the look off is the Original row; the section has no Reset of its own.
+    changed: () => false,
+    collapsed: true,
+  },
+  { id: "light", title: "editor.advanced.light", controls: LIGHT, Top: AutoRow },
+  {
+    id: "toneCurve",
+    title: "editor.advanced.toneCurve",
+    Content: ToneCurvePanel,
+    reset: recipe => ({ ...recipe, curve: DEFAULT_RECIPE.curve }),
+    changed: recipe => !sameValue(recipe.curve, DEFAULT_RECIPE.curve),
+    collapsed: true,
+  },
+  { id: "color", title: "editor.advanced.color", controls: COLOR, Top: TreatmentSwitch },
+  {
+    id: "colorMixer",
+    title: "editor.advanced.colorMixer",
+    Content: MixerPanel,
+    reset: recipe => withDefaults(recipe, MIXER),
+    changed: recipe => anyChanged(recipe, MIXER),
+    shown: recipe => !isBw(recipe),
+    collapsed: true,
+  },
+  {
+    id: "bwMix",
+    title: "editor.advanced.bwMix",
+    Content: BwMixPanel,
+    reset: recipe => withDefaults(recipe, BW_MIX),
+    changed: recipe => anyChanged(recipe, BW_MIX),
+    shown: isBw,
+  },
+  {
+    id: "colorGrading",
+    title: "editor.advanced.colorGrading",
+    Content: GradingPanel,
+    reset: recipe => ({ ...recipe, grading: DEFAULT_RECIPE.grading }),
+    changed: recipe => !sameValue(recipe.grading, DEFAULT_RECIPE.grading),
+    collapsed: true,
+  },
   { id: "effects", title: "editor.advanced.effects", controls: EFFECTS, collapsed: true },
   { id: "detail", title: "editor.advanced.detail", controls: DETAIL, collapsed: true },
+  { id: "history", title: "editor.advanced.history", Content: HistoryPanel, changed: () => false },
   {
     id: "crop",
     title: "editor.advanced.crop",
@@ -114,31 +178,3 @@ export function resetSection(section: AdvancedSection, recipe: Recipe): Recipe {
 export function orderedSections(sections: readonly AdvancedSection[]): AdvancedSection[] {
   return [...sections].sort((a, b) => SECTION_ORDER[a.id] - SECTION_ORDER[b.id]);
 }
-
-/** Every number control's label in the advanced mode (the recipe table's UI labels). */
-export const CONTROL_LABELS: Readonly<Partial<Record<NumberControlPath, ParseKeys>>> = {
-  "light.exposure": "editor.control.exposure",
-  "light.contrast": "editor.control.contrast",
-  "light.highlights": "editor.control.highlights",
-  "light.shadows": "editor.control.shadows",
-  "light.whites": "editor.control.whites",
-  "light.blacks": "editor.control.blacks",
-  "wb.temp": "editor.control.temperature",
-  "wb.tint": "editor.control.tint",
-  "color.vibrance": "editor.control.vibrance",
-  "color.saturation": "editor.control.saturation",
-  "effects.texture": "editor.control.texture",
-  "effects.clarity": "editor.control.clarity",
-  "effects.dehaze": "editor.control.dehaze",
-  "vignette.amount": "editor.control.vignette",
-  "vignette.midpoint": "editor.control.midpoint",
-  "vignette.feather": "editor.control.feather",
-  "vignette.roundness": "editor.control.roundness",
-  "grain.amount": "editor.control.grain",
-  "grain.size": "editor.control.grainSize",
-  "grain.roughness": "editor.control.roughness",
-  "detail.sharpen_amount": "editor.control.sharpening",
-  "detail.sharpen_radius": "editor.control.radius",
-  "detail.nr_luminance": "editor.control.noiseReduction",
-  "detail.nr_color": "editor.control.colorNoise",
-};

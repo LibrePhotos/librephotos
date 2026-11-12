@@ -18,6 +18,11 @@ type Args = Readonly<{
   onZoom: (zoom: ZoomState) => void;
 }>;
 
+/** A drag that starts on a control over the picture (the split view's divider) is that control's. */
+function ownsDrag(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest("[data-own-drag]") !== null;
+}
+
 /**
  * Zooming and panning the canvas: the wheel and a pinch zoom around the pointer, a drag pans a
  * zoomed picture, a double click goes between fitted and 100 %. Positions are taken in canvas pixels.
@@ -67,9 +72,9 @@ export function useStageGestures({ stage, drawn, pixelRatio, locked, onZoom }: A
         const scale = start.view.scale * (distance / Math.max(1, start.distance));
         zoomTo(zoomAround(start.view, scale, toCanvas(ox, oy), frame.canvas, frame.picture, frame.margin));
       },
-      onDrag: ({ delta: [dx, dy], pinching, tap }) => {
+      onDrag: ({ delta: [dx, dy], pinching, tap, event }) => {
         const { drawn: frame, locked: off, pixelRatio: ratio } = latest.current;
-        if (off || pinching || tap || !frame) return;
+        if (off || pinching || tap || !frame || ownsDrag(event.target)) return;
         const from = base(frame);
         if (isFitted(from, frame.canvas, frame.picture, frame.margin)) return;
         zoomTo(panBy(from, { x: dx * ratio, y: dy * ratio }, frame.canvas, frame.picture));

@@ -14,7 +14,7 @@ export const TABLE_SIZE = 1024;
 /** Entries of the hue table; entry `i` is at `h = i` degrees. */
 const HUE_TABLE_SIZE = 360;
 /** Where each mixer band sits on the hue circle, in degrees, in the order of EDIT_BANDS. */
-const BAND_HUES = [29, 55, 105, 142, 195, 262, 298, 330] as const;
+export const BAND_HUES = [29, 55, 105, 142, 195, 262, 298, 330] as const;
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
 

@@ -79,9 +79,14 @@ export type SessionAction =
   | Readonly<{ type: "saved"; edit: PhotoEditUpdate }>;
 
 /** The recipe of the step at `index` (the default recipe for -1). */
-function recipeAt(history: readonly EditHistoryStep[], index: number): Recipe {
+export function recipeAt(history: readonly EditHistoryStep[], index: number): Recipe {
   const step = history[index];
   return step ? toDense(step.settings) : DEFAULT_RECIPE;
+}
+
+/** Whether the steps after `from` up to `to` all set `control` (what a double click's first press made). */
+export function onlySets(history: readonly EditHistoryStep[], from: number, to: number, control: ControlPath): boolean {
+  return history.slice(from + 1, to + 1).every(step => step.action === "set" && step.control === control);
 }
 
 /** What the server stores of a session: the recipe under the cursor, the history and the cursor. */
@@ -112,6 +117,15 @@ export function createSession(edit?: PhotoEditUpdate): EditSession {
     live: null,
     saved: fingerprint({ settings: opened.settings, history, history_cursor: cursor }),
   };
+}
+
+/**
+ * Whether a saved edit has something Revert to original takes back: a recipe that changes the
+ * photo (any key besides `version`; the server stores recipes sparse), or a history. A reverted edit keeps its row with a raised version (so a version number is
+ * never reused for another picture), the default recipe and no history: nothing to revert.
+ */
+export function hasSavedEdit(edit: PhotoEditUpdate): boolean {
+  return edit.history.length > 0 || Object.keys(edit.settings).some(key => key !== "version");
 }
 
 /** Whether the session differs from what was last loaded or saved (a drag in progress counts). */

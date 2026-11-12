@@ -13,6 +13,7 @@ import { makePhoto } from "../lightbox/photoFixture.test-utils";
 import { EditorServicesContext, type EditorServices, type PreviewRenderer } from "./editorServices";
 import type { EditSource } from "./engine/editSource";
 import { fitView, outputSize } from "./engine/geometry";
+import type { Histogram } from "./engine/histogram";
 import type { Recipe } from "./engine/recipe";
 import type { RenderOptions } from "./engine/renderer";
 import { PhotoEditor } from "./PhotoEditor";
@@ -30,6 +31,10 @@ function fakeSource(): EditSource & { closed: () => number } {
 type FakeRenderer = PreviewRenderer & {
   frames: { recipe: Recipe; options: RenderOptions }[];
   disposed: boolean;
+  /** What histogram() answers (both pictures); null by default. */
+  histogramValue: Histogram | null;
+  /** Which picture each histogram() call asked for. */
+  histogramCalls: ("after" | "before")[];
 };
 
 /** A renderer that draws nothing and reports the picture the real one would. */
@@ -37,6 +42,8 @@ function fakeRenderer(): FakeRenderer {
   const fake: FakeRenderer = {
     frames: [],
     disposed: false,
+    histogramValue: null,
+    histogramCalls: [],
     setSource: () => Promise.resolve(),
     pictureSize: (recipe, fullFrame = false) => outputSize(recipe.geometry, SOURCE_SIZE, fullFrame),
     render: (recipe, options = {}) => {
@@ -45,7 +52,10 @@ function fakeRenderer(): FakeRenderer {
       const picture = outputSize(recipe.geometry, SOURCE_SIZE, fullFrame);
       return { picture, view: options.view ?? fitView({ width: 800, height: 600 }, picture), fullFrame };
     },
-    histogram: () => null,
+    histogram: (picture = "after") => {
+      fake.histogramCalls.push(picture);
+      return fake.histogramValue;
+    },
     isContextLost: () => false,
     dispose: () => {
       fake.disposed = true;
@@ -87,8 +97,13 @@ export function stubBrowser() {
     disconnect() {}
   };
   Element.prototype.scrollIntoView = () => {};
-  // The looks' thumbnails are read from a canvas jsdom cannot draw.
+  // The looks' thumbnails are read from a canvas jsdom cannot draw, and the panels paint none.
   HTMLCanvasElement.prototype.toDataURL = () => "data:image/jpeg;base64,";
+  Object.defineProperty(HTMLCanvasElement.prototype, "getContext", { configurable: true, value: () => null });
+  // jsdom has no pointer capture; the drags of the curve, the wheels and the split divider use it.
+  Element.prototype.setPointerCapture = () => {};
+  Element.prototype.hasPointerCapture = () => true;
+  Element.prototype.releasePointerCapture = () => {};
 }
 
 /** A few animation frames and the promises they settle. */

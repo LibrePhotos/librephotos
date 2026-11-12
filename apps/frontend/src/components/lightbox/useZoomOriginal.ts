@@ -1,4 +1,5 @@
 import { mediaUrl } from "../../api_client/media/mediaUrl";
+import { originalFileUrl } from "./editedDownloads";
 import { isAnimatedOriginal, originalZoomPlan, type OriginalZoomDetails, type PixelSize } from "./originalZoom";
 import { chipState, type ChipState } from "./ResolutionChip";
 import { useOriginalImage } from "./useOriginalImage";
@@ -26,6 +27,12 @@ export type ZoomOriginal = {
   chip: ChipState | null;
   retry: () => void;
   originalUrl: string;
+  /**
+   * What the chip's download link fetches: the original file. For an edited photo (its owner only)
+   * that is `?original=1`; the URL without it answers the edited picture, a reduced one until the
+   * rendition is ready.
+   */
+  downloadUrl: string;
   /**
    * What the 360° viewer draws a photo sphere from (#483): the original where zooming may load it,
    * so the sphere is sharp, else the big thumbnail (a public page, a HEIC, a turned photo).
@@ -78,6 +85,7 @@ export function useZoomOriginal(args: Args): ZoomOriginal {
     chip: chipState(plan, original),
     retry: original.retry,
     originalUrl,
+    downloadUrl: details?.edit ? originalFileUrl(mediaHash) : originalUrl,
     panoramaSrc: originalAllowed ? originalUrl : thumbnailUrl,
   };
 }

@@ -11,6 +11,8 @@ import { resolveView, type ZoomState } from "./viewMath";
 export type FrameInput = Readonly<{
   recipe: Recipe;
   mode: ViewMode;
+  /** The split view's divider, as a fraction of the canvas width. */
+  split: number;
   zoom: ZoomState;
   /** The crop tool's full frame instead of the crop. */
   fullFrame: boolean;
@@ -63,7 +65,12 @@ export function usePreview(canvas: HTMLCanvasElement | null, source: EditSource)
     const picture = current.pictureSize(frame.recipe, frame.fullFrame);
     if (!picture) return;
     const view = resolveView(frame.zoom, size, picture, frame.margin);
-    const info = current.render(frame.recipe, { mode: frame.mode, view, showFullFrame: frame.fullFrame });
+    const info = current.render(frame.recipe, {
+      mode: frame.mode,
+      split: frame.split,
+      view,
+      showFullFrame: frame.fullFrame,
+    });
     if (!info) return;
     const next = { ...info, canvas: size, margin: frame.margin };
     setDrawn(previous => (sameFrame(previous, next) ? previous : next));

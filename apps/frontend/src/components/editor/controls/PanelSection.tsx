@@ -5,6 +5,7 @@ import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../../uiConstants";
 import classes from "./PanelSection.module.css";
+import { SectionOpenContext } from "./sectionOpen";
 
 export type PanelSectionProps = Readonly<{
   title: string;
@@ -64,7 +65,9 @@ export function PanelSection({
         )}
       </Group>
       <Collapse expanded={isOpen} id={contentId}>
-        <div className={classes.content}>{children}</div>
+        <SectionOpenContext.Provider value={isOpen}>
+          <div className={classes.content}>{children}</div>
+        </SectionOpenContext.Provider>
       </Collapse>
     </section>
   );

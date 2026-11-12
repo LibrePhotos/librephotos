@@ -10,14 +10,17 @@ import { usePreview } from "../canvas/usePreview";
 import { EditorContext, type EditorApi } from "../EditorContext";
 import type { EditSource } from "../engine/editSource";
 import { DEFAULT_RECIPE, isIdentity } from "../engine/recipe";
+import type { ViewMode } from "../engine/renderer";
 import { SimpleMode } from "../simple/SimpleMode";
-import { canRedo, canUndo, isDirty } from "../state/session";
+import { canRedo, canUndo, hasSavedEdit, isDirty } from "../state/session";
 import { useEditSession } from "../state/useEditSession";
 import { useEditorHotkeys } from "./editorHotkeys";
 import { useEditorMode, type EditorMode } from "./editorMode";
 import { EditorTopBar, ModeSwitch } from "./EditorTopBar";
 import classes from "./EditorWorkspace.module.css";
+import { PanelToggle } from "./PanelToggle";
 import { UnsavedEditModal } from "./UnsavedEditModal";
+import { useCopyPaste } from "./useCopyPaste";
 import { useEditorLeaveGuard } from "./useEditorLeaveGuard";
 import { useEditorPersistence } from "./useEditorPersistence";
 
@@ -28,6 +31,12 @@ type Props = Readonly<{
   source: EditSource;
   onClose: () => void;
 }>;
+
+/** What the canvas shows: the original while compare is held, else the split view or the edit. */
+function viewMode(comparing: boolean, split: boolean): ViewMode {
+  if (comparing) return "before";
+  return split ? "split" : "after";
+}
 
 /** The file name shown in the bar: the last part of the photo's first path. */
 function fileNameOf(photo: Photo): string {
@@ -44,6 +53,9 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
   const [session, commands] = useEditSession(edit);
   const [mode, setMode] = useEditorMode();
   const [comparing, setComparing] = useState(false);
+  const [splitView, setSplitView] = useState(false);
+  const [split, setSplit] = useState(0.5);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [cropActive, setCropShown] = useState(false);
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -56,6 +68,8 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
       if (!active && session.live?.action === "set" && session.live.control === "geometry.crop") {
         commands.apply("crop", session.recipe);
       }
+      // The crop tool shows the full frame: the split view turns itself off.
+      if (active) setSplitView(false);
       setCropShown(active);
     },
     [session, commands]
@@ -70,9 +84,16 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
   const guard = useEditorLeaveGuard(dirty, onClose);
   const persistence = useEditorPersistence({ photoId: photo.id, session, onSaved: commands.saved, onDone: onClose });
 
+  const copyPaste = useCopyPaste(session, commands);
+  const toggleSplit = () => {
+    if (!cropActive) setSplitView(on => !on);
+  };
   useEditorHotkeys({
     undo: commands.undo,
     redo: commands.redo,
+    copy: copyPaste.copy,
+    paste: copyPaste.paste,
+    toggleSplit,
     onCompare: setComparing,
     onEscape: event => {
       if (!escapeTargetsDialog(event.target, root.current?.closest('[role="dialog"]') ?? null)) return;
@@ -97,7 +118,12 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
 
   return (
     <EditorContext.Provider value={api}>
-      <div ref={root} className={classes.shell} data-compact={compact || undefined}>
+      <div
+        ref={root}
+        className={classes.shell}
+        data-compact={compact || undefined}
+        data-panel-collapsed={(compact && panelCollapsed) || undefined}
+      >
         <EditorTopBar
           fileName={fileNameOf(photo)}
           mode={mode}
@@ -108,9 +134,14 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
           onRedo={commands.redo}
           onCompare={setComparing}
           comparing={comparing}
+          splitView={splitView && !cropActive}
+          onToggleSplit={toggleSplit}
+          splitReason={cropActive && t("editor.split.inCrop")}
+          onCopy={copyPaste.copy}
+          onPaste={copyPaste.paste}
           canReset={!isIdentity(session.recipe)}
           onReset={() => commands.apply("reset", DEFAULT_RECIPE)}
-          canRevert={edit.version > 0}
+          canRevert={hasSavedEdit(edit)}
           onRevert={persistence.askRevert}
           dirty={dirty}
           saving={persistence.saving}
@@ -125,16 +156,19 @@ export function EditorWorkspace({ photo, edit, source, onClose }: Props) {
             preview={preview}
             canvasRef={setCanvas}
             recipe={session.recipe}
-            mode={comparing ? "before" : "after"}
+            mode={viewMode(comparing, splitView && !cropActive)}
+            split={split}
+            onSplitChange={setSplit}
             cropActive={cropActive}
           />
           <aside className={classes.panel} aria-label={t("editor.panel")}>
             {compact && (
               <div className={classes.panelHeader}>
                 <ModeSwitch mode={mode} onModeChange={changeMode} />
+                <PanelToggle collapsed={panelCollapsed} onToggle={() => setPanelCollapsed(value => !value)} />
               </div>
             )}
-            {mode === "simple" ? <SimpleMode /> : <AdvancedMode />}
+            <div className={classes.panelBody}>{mode === "simple" ? <SimpleMode /> : <AdvancedMode />}</div>
           </aside>
         </div>
       </div>

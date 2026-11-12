@@ -94,4 +94,16 @@ describe("LightboxEditButton", () => {
     await act(async () => commands.emit("edit"));
     expect(open).not.toHaveBeenCalled();
   });
+
+  it("is drawn switched on, and says so, for a photo with an edit", async () => {
+    const { button } = await renderButton({
+      video: false,
+      edit: { version: 2, rendition: "ready", width: 4, height: 3 },
+    });
+    expect(button).toBeNull();
+    const edited = document.querySelector<HTMLButtonElement>('button[aria-label="Edit (E). This photo is edited"]');
+    expect(edited?.hasAttribute("data-active")).toBe(true);
+    const plain = (await renderButton({ video: false, edit: null })).button;
+    expect(plain?.hasAttribute("data-active")).toBe(false);
+  });
 });

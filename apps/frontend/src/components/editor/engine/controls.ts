@@ -177,7 +177,7 @@ function withValue(node: unknown, keys: readonly string[], value: unknown): unkn
   return { ...node, [key]: withValue(node[key], rest, value) };
 }
 
-function isNumberControl(path: ControlPath): path is NumberControlPath {
+export function isNumberControl(path: ControlPath): path is NumberControlPath {
   return NUMBER_CONTROLS.some(control => control === path);
 }
 

@@ -15,6 +15,8 @@ export const STORAGE_KEYS = {
   albumSortTags: "lp:albumSort.tags.v1",
   albumSortThings: "lp:albumSort.things.v1",
   albumSortUserAlbums: "lp:albumSort.userAlbums.v1",
+  // The photo editor's copied look (Copy settings): a sparse edit recipe without geometry, or null
+  editorCopiedLook: "lp:editor.copiedLook.v1",
   // The photo editor's mode the user last chose: Simple or Advanced
   editorMode: "lp:editor.mode.v1",
   facesCollapsedPersons: "lp:faces.collapsedPersons.v1",

@@ -6,6 +6,7 @@ import { CropOverlay } from "../crop/CropOverlay";
 import type { Recipe } from "../engine/recipe";
 import type { ViewMode } from "../engine/renderer";
 import classes from "./EditorStage.module.css";
+import { SplitDivider } from "./SplitDivider";
 import type { usePreview } from "./usePreview";
 import { useStageGestures } from "./useStageGestures";
 import { FIT, type ZoomState } from "./viewMath";
@@ -22,6 +23,9 @@ type Props = Readonly<{
   canvasRef: (canvas: HTMLCanvasElement | null) => void;
   recipe: Recipe;
   mode: ViewMode;
+  /** The split view's divider (mode `split`), as a fraction of the width, and its change. */
+  split: number;
+  onSplitChange: (split: number) => void;
   /** The crop tool: the full frame, fitted, with the crop frame over it. */
   cropActive: boolean;
 }>;
@@ -31,7 +35,7 @@ type Props = Readonly<{
  * default, zoomed with the wheel or a pinch and panned by dragging, with a zoom readout. A loader
  * covers it until the first frame is drawn; a lost GPU context says so until it comes back.
  */
-export function EditorStage({ preview, canvasRef, recipe, mode, cropActive }: Props) {
+export function EditorStage({ preview, canvasRef, recipe, mode, split, onSplitChange, cropActive }: Props) {
   const { t } = useTranslation();
   const stage = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<ZoomState>(FIT);
@@ -68,11 +72,12 @@ export function EditorStage({ preview, canvasRef, recipe, mode, cropActive }: Pr
     request({
       recipe,
       mode,
+      split,
       zoom,
       fullFrame: cropActive,
       margin: (cropActive ? CROP_MARGIN : FIT_MARGIN) * pixelRatio,
     });
-  }, [cssSize, pixelRatio, recipe, mode, zoom, cropActive, request, status]);
+  }, [cssSize, pixelRatio, recipe, mode, split, zoom, cropActive, request, status]);
 
   const onDoubleClick = useStageGestures({ stage, drawn, pixelRatio, locked: cropActive, onZoom: setZoom });
 
@@ -94,6 +99,9 @@ export function EditorStage({ preview, canvasRef, recipe, mode, cropActive }: Pr
       />
       {cropActive && drawn?.fullFrame && <CropOverlay frame={drawn} pixelRatio={pixelRatio} />}
       {!cropActive && drawn && <ZoomReadout drawn={drawn} onZoom={setZoom} />}
+      {mode === "split" && drawn && (
+        <SplitDivider split={split} onChange={onSplitChange} width={cssSize.width} height={cssSize.height} />
+      )}
       {drawn === null && (status === "starting" || status === "ready") && (
         <div className={classes.cover}>
           <PageLoader />

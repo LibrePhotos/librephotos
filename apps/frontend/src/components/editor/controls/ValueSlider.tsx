@@ -6,6 +6,8 @@ import classes from "./ValueSlider.module.css";
 
 export type ValueSliderProps = Readonly<{
   label: string;
+  /** The accessible name where the visible label alone is ambiguous ("Shadows luminance"); default: the label. */
+  name?: string;
   spec: SliderSpec;
   value: number;
   /** The value while the user drags (or presses an arrow key): shown at once. */
@@ -32,6 +34,7 @@ export type ValueSliderProps = Readonly<{
  */
 export function ValueSlider({
   label,
+  name = label,
   spec,
   value,
   onLive,
@@ -53,14 +56,14 @@ export function ValueSlider({
           onClick={event => {
             if (event.detail === 0) onReset();
           }}
-          aria-label={t("editor.slider.reset", { control: label })}
+          aria-label={t("editor.slider.reset", { control: name })}
         >
           <Text size="sm" component="span">
             {label}
           </Text>
         </UnstyledButton>
         <Group gap={2} wrap="nowrap">
-          <ValueField id={inputId} label={label} spec={spec} value={value} onSet={onSet} />
+          <ValueField id={inputId} label={name} spec={spec} value={value} onSet={onSet} />
           {unit && (
             <Text size="xs" c="dimmed" component="span" aria-hidden>
               {unit}
@@ -83,7 +86,7 @@ export function ValueSlider({
         startPointValue={spec.bipolar ? 0 : undefined}
         marks={[{ value: spec.origin }]}
         label={null}
-        thumbLabel={label}
+        thumbLabel={name}
         onMouseDownCapture={event => {
           if (event.detail === 1) onPressStart?.();
         }}

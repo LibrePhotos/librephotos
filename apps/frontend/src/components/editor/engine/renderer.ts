@@ -70,6 +70,9 @@ export type RendererOptions = Readonly<{
 
 type Stage = "geometry" | "noise" | "planes" | "develop" | "finish" | "before" | "tables";
 
+/** What the last render drew: its finished picture and what its "before" picture is made from. */
+type LastRender = Readonly<{ after: Target; recipe: Recipe; geometryKey: string; sourceMax: number; picture: Size }>;
+
 const HISTOGRAM_EDGE = 256;
 const MODES: Readonly<Record<ViewMode, 0 | 1 | 2>> = { after: 0, before: 1, split: 2 };
 
@@ -92,7 +95,7 @@ export class EditRenderer {
   private readonly targets = new Map<string, Target>();
   private keys: Partial<Record<Stage, string>> = {};
   private tables: { light: WebGLTexture; curve: WebGLTexture; hue: WebGLTexture; empty: WebGLTexture } | null = null;
-  private last: Readonly<{ after: Target; before: Target; picture: Size }> | null = null;
+  private last: LastRender | null = null;
   private lost = false;
   private disposed = false;
 
@@ -345,39 +348,45 @@ export class EditRenderer {
       refreshMipmaps(this.gl, developed);
     }
 
-    let before = after;
-    if (mode !== "after") {
-      before = this.target("before", picture, "byte");
-      const target = before;
-      this.stage("before", JSON.stringify([geometryKey, sourceMax]), () => {
-        const identity = beforeRecipe(recipe);
-        const inputs = {
-          coarse: tables.empty,
-          fine: tables.empty,
-          light: tables.light,
-          curve: tables.curve,
-          hue: tables.hue,
-        };
-        runDevelop(context, geometry, inputs, developUniforms(identity, sourceMax), target);
-        refreshMipmaps(this.gl, target);
-      });
-    }
-
+    const last = { after, recipe, geometryKey, sourceMax, picture };
+    const before = mode === "after" ? after : this.beforeTarget(context, last);
     const canvas = { width: this.canvas.width, height: this.canvas.height };
     const view = options.view ?? fitView(canvas, picture);
     runPresent(context, after, before, { canvas, picture, view, mode: MODES[mode], split: options.split ?? 0.5 }, null);
-    this.last = { after, before, picture };
+    this.last = last;
     return { picture, view, fullFrame };
   }
 
+  /** The "before" picture of a render (its recipe's geometry only), developed when it is not yet. */
+  private beforeTarget(context: PassContext, last: LastRender): Target {
+    const target = this.target("before", last.picture, "byte");
+    const geometry = this.targets.get("geometry");
+    const tables = this.tables;
+    if (!geometry || !tables) return last.after;
+    this.stage("before", JSON.stringify([last.geometryKey, last.sourceMax]), () => {
+      const inputs = {
+        coarse: tables.empty,
+        fine: tables.empty,
+        light: tables.light,
+        curve: tables.curve,
+        hue: tables.hue,
+      };
+      runDevelop(context, geometry, inputs, developUniforms(beforeRecipe(last.recipe), last.sourceMax), target);
+      refreshMipmaps(this.gl, target);
+    });
+    return target;
+  }
+
   /**
-   * The histogram of the last render's finished picture, from a small readback (at most 256
+   * The histogram of the last render's finished picture (`after`), or of its "before" picture (the
+   * photo with only the recipe's geometry, what Auto reads), from a small readback (at most 256
    * pixels along its long edge). It waits for the GPU: call it throttled, not on every frame.
    */
-  histogram(): Histogram | null {
+  histogram(picture: "after" | "before" = "after"): Histogram | null {
     const context = this.context();
     const last = this.last;
     if (this.isContextLost() || !context || !last) return null;
+    const shown = picture === "after" ? last.after : this.beforeTarget(context, last);
     const size = capSize(last.picture, HISTOGRAM_EDGE);
     const out = this.target("histogram", size, "byte");
     const present = {
@@ -387,7 +396,7 @@ export class EditRenderer {
       mode: 0,
       split: 0,
     } as const;
-    runPresent(context, last.after, last.after, present, out);
+    runPresent(context, shown, shown, present, out);
     const pixels = new Uint8Array(size.width * size.height * 4);
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, out.framebuffer);
     this.gl.readPixels(0, 0, size.width, size.height, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);

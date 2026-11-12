@@ -4,6 +4,9 @@ import {
   IconArrowBackUp,
   IconArrowForwardUp,
   IconArrowLeft,
+  IconClipboard,
+  IconColumns2,
+  IconCopy,
   IconDotsVertical,
   IconHistory,
   IconRestore,
@@ -13,6 +16,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../../uiConstants";
 import { DisabledReason } from "../../common/DisabledReason";
+import { menuShortcut } from "../../common/menuShortcut";
 import { Segmented } from "../../common/Segmented";
 import { TOOLBAR_BUTTON, TOOLBAR_ICON_SIZE } from "../../lightbox/LightboxToolbarButton";
 import { modShortcut } from "./editorHotkeys";
@@ -31,6 +35,14 @@ export type EditorTopBarProps = Readonly<{
   /** Held down (the button, or the backslash key): the picture without its edits. */
   onCompare: (holding: boolean) => void;
   comparing: boolean;
+  /** The split view (before left of a divider, after right) is on. */
+  splitView: boolean;
+  onToggleSplit: () => void;
+  /** Why the split view cannot be switched on now (the crop tool); false when it can. */
+  splitReason: string | false;
+  /** Copy settings and Paste settings, in the ⋮. */
+  onCopy: () => void;
+  onPaste: () => void;
   /** The recipe changes something: Reset has work to do. */
   canReset: boolean;
   onReset: () => void;
@@ -73,6 +85,7 @@ export function EditorTopBar(props: EditorTopBarProps) {
   const redoLabel = t("editor.redo", { shortcut: modShortcut("Shift+Z") });
   const compareLabel = t("editor.compare");
   const resetLabel = t("editor.reset");
+  const splitLabel = t("editor.split.toggle");
   return (
     <header className={classes.bar} data-compact={compact || undefined}>
       <Tooltip label={t("editor.close")} position="bottom">
@@ -108,6 +121,17 @@ export function EditorTopBar(props: EditorTopBarProps) {
             <IconSquareHalf size={TOOLBAR_ICON_SIZE} />
           </ActionIcon>
         </Tooltip>
+        <DisabledReason reason={props.splitReason} label={splitLabel} position="bottom">
+          <ActionIcon
+            {...TOOLBAR_BUTTON}
+            aria-label={splitLabel}
+            aria-pressed={props.splitView}
+            mod={{ active: props.splitView }}
+            onClick={props.onToggleSplit}
+          >
+            <IconColumns2 size={TOOLBAR_ICON_SIZE} />
+          </ActionIcon>
+        </DisabledReason>
         {!compact && (
           <BarButton label={resetLabel} reason={!canReset && t("editor.nothingToReset")} onClick={onReset}>
             <IconRestore size={TOOLBAR_ICON_SIZE} />
@@ -140,12 +164,11 @@ export function ModeSwitch({ mode, onModeChange }: Pick<EditorTopBarProps, "mode
   );
 }
 
-/** The ⋮: Reset on a phone, and Revert to original for a photo with a saved edit. */
-function MoreMenu({ compact, canReset, onReset, canRevert, onRevert }: EditorTopBarProps) {
+/** The ⋮: Copy and Paste settings, Reset on a phone, and Revert to original for a photo with a saved edit. */
+function MoreMenu({ compact, canReset, onReset, canRevert, onRevert, onCopy, onPaste }: EditorTopBarProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
   const label = t("editor.more");
-  if (!compact && !canRevert) return null;
   return (
     <Menu position="bottom-end" withinPortal={false} opened={opened} onChange={next => (next ? open() : close())}>
       <Menu.Target>
@@ -156,6 +179,17 @@ function MoreMenu({ compact, canReset, onReset, canRevert, onRevert }: EditorTop
         </Tooltip>
       </Menu.Target>
       <Menu.Dropdown>
+        <Menu.Item leftSection={<IconCopy size={ICON_SIZE.menu} />} {...menuShortcut("mod+Shift+C")} onClick={onCopy}>
+          {t("editor.copyPaste.copy")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconClipboard size={ICON_SIZE.menu} />}
+          {...menuShortcut("mod+Shift+V")}
+          onClick={onPaste}
+        >
+          {t("editor.copyPaste.paste")}
+        </Menu.Item>
+        {(compact || canRevert) && <Menu.Divider />}
         {compact && (
           <DisabledReason reason={!canReset && t("editor.nothingToReset")} position="left">
             <Menu.Item leftSection={<IconRestore size={ICON_SIZE.menu} />} onClick={onReset}>

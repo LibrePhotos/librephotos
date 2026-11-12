@@ -2,6 +2,7 @@ import { Button, Group, Stack } from "@mantine/core";
 import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { AutoRow } from "../auto/AutoButton";
 import { EditSlider } from "../controls/EditSlider";
 import { anyChanged, withDefaults } from "../controls/resetControls";
 import type { SliderRange } from "../controls/sliderSpec";
@@ -28,12 +29,13 @@ const SIMPLE_CONTROLS: readonly SimpleControl[] = [
 
 const PATHS = SIMPLE_CONTROLS.map(control => control.path);
 
-/** The Adjust tab: nine sliders and a reset for all of them (one step). */
+/** The Adjust tab: Auto, nine sliders and a reset for all of them (one step). */
 export function AdjustPanel() {
   const { t } = useTranslation();
   const { session, commands } = useEditor();
   return (
     <Stack gap={4}>
+      <AutoRow />
       {SIMPLE_CONTROLS.map(control => (
         <EditSlider key={control.path} path={control.path} label={t(control.label)} range={control.range} />
       ))}

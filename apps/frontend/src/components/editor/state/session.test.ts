@@ -8,6 +8,7 @@ import {
   canUndo,
   controlAction,
   createSession,
+  hasSavedEdit,
   HISTORY_LIMIT,
   isDirty,
   sessionReducer,
@@ -199,5 +200,14 @@ describe("editing session", () => {
     );
     expect(session.recipe.light.exposure).toBe(2);
     expect(session.history).toHaveLength(3);
+  });
+
+  it("has something to revert only for a recipe that changes the photo, or a history", () => {
+    const reverted: PhotoEditUpdate = { settings: { version: 1 }, history: [], history_cursor: -1 };
+    expect(hasSavedEdit(reverted)).toBe(false);
+    expect(hasSavedEdit({ ...reverted, settings: { version: 1, light: { exposure: 1 } } })).toBe(true);
+    expect(hasSavedEdit({ ...reverted, settings: { version: 1, geometry: { aspect: "1:1" } } })).toBe(true);
+    const step = { action: "reset" as const, at: "2026-11-12T09:30:00Z", settings: { version: 1 as const } };
+    expect(hasSavedEdit({ ...reverted, history: [step], history_cursor: 0 })).toBe(true);
   });
 });

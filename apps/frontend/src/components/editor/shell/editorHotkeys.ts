@@ -1,4 +1,4 @@
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys, type HotkeyItem } from "@mantine/hooks";
 import { useEffect, useRef } from "react";
 
 /** The before/after comparison key, held down. */
@@ -10,13 +10,25 @@ export function modShortcut(key: string): string {
   return isApple ? `⌘${key.replace("Shift+", "⇧")}` : `Ctrl+${key}`;
 }
 
-/** A key typed into a field is the field's. */
+/** Inputs that take typed text; a radio (the Simple | Advanced switch) or a checkbox does not. */
+const TEXT_INPUT_TYPES = new Set(["text", "search", "email", "url", "tel", "password", "number"]);
+
+/** A key typed into a field is the field's; one pressed on a switch or a button is the editor's. */
 function typesText(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
-  );
+  if (target instanceof HTMLInputElement) return TEXT_INPUT_TYPES.has(target.type);
+  return target instanceof HTMLElement && (target.isContentEditable || ["TEXTAREA", "SELECT"].includes(target.tagName));
 }
+
+/** A hotkey that leaves a text field's keys to it (its own undo, a typed Y): handled, and its default stopped, elsewhere. */
+const outsideText = (keys: string, run: (event: KeyboardEvent) => void): HotkeyItem => [
+  keys,
+  event => {
+    if (typesText(event.target)) return;
+    event.preventDefault();
+    run(event);
+  },
+  { preventDefault: false },
+];
 
 type Keys = Readonly<{
   undo: () => void;
@@ -24,20 +36,32 @@ type Keys = Readonly<{
   /** The backslash is held down (true) or let go (false). */
   onCompare: (holding: boolean) => void;
   onEscape: (event: KeyboardEvent) => void;
+  copy: () => void;
+  paste: () => void;
+  /** Y: the split view on or off. */
+  toggleSplit: () => void;
 }>;
 
 /**
  * The editor's keys: Ctrl+Z (⌘Z) undoes, Ctrl+Shift+Z and Ctrl+Y redo, the backslash shows the
- * original while held, Escape leaves (the caller decides what it leaves first). None act while a
- * text field has the focus.
+ * original while held, Y switches the split view, Ctrl+Shift+C and Ctrl+Shift+V copy and paste the
+ * settings, Escape leaves (the caller decides what it leaves first). None act while a text field has
+ * the focus.
  */
-export function useEditorHotkeys({ undo, redo, onCompare, onEscape }: Keys) {
-  useHotkeys([
-    ["mod+Z", undo],
-    ["mod+shift+Z", redo],
-    ["mod+Y", redo],
-    ["Escape", onEscape],
-  ]);
+export function useEditorHotkeys({ undo, redo, onCompare, onEscape, copy, paste, toggleSplit }: Keys) {
+  // Mantine skips every <input> by default, the Simple | Advanced radios too: typesText decides instead.
+  useHotkeys(
+    [
+      outsideText("mod+Z", undo),
+      outsideText("mod+shift+Z", redo),
+      outsideText("mod+Y", redo),
+      outsideText("mod+shift+C", copy),
+      outsideText("mod+shift+V", paste),
+      outsideText("Y", toggleSplit),
+      outsideText("Escape", onEscape),
+    ],
+    []
+  );
   const compare = useRef(onCompare);
   useEffect(() => {
     compare.current = onCompare;

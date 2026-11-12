@@ -18,7 +18,8 @@ type Props = Readonly<{
 }>;
 
 /**
- * Edit (E): opens the photo editor on the viewer's own still photo. A browser that cannot run the
+ * Edit (E): opens the photo editor on the viewer's own still photo, drawn switched on for a photo
+ * that has an edit. A browser that cannot run the
  * editor (no WebGL2 with float targets) keeps the button, which says why it does nothing.
  */
 export function LightboxEditButton({ photo, type }: Props) {
@@ -35,12 +36,15 @@ export function LightboxEditButton({ photo, type }: Props) {
   }, [usable, open, commands]);
 
   if (!editable) return null;
-  const label = t("editor.open");
+  // An edited photo: the button is drawn switched on, and its name says so.
+  const edited = photo.edit !== null && photo.edit !== undefined && photo.edit.rendition !== "none";
+  const label = edited ? t("editor.openEdited") : t("editor.open");
   return (
     <DisabledReason reason={!supported && t("editor.unsupported.short")} label={label} position="bottom">
       <ActionIcon
         {...TOOLBAR_BUTTON}
         aria-label={label}
+        mod={{ active: edited }}
         onClick={open}
         // The editor is its own chunk: fetched once the pointer or the focus says it may be wanted.
         onPointerEnter={photoEditor.prefetch}

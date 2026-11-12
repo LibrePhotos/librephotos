@@ -11,10 +11,19 @@ const THUMBNAIL_EDGE = 160;
 export type FilterThumbnails = ReadonlyMap<string, string>;
 
 /**
- * The thumbnails made for a source, kept while the source lives: the Filters tab unmounts its
- * effects while hidden, and opening it again must not render them again.
+ * The thumbnails made for a source and a framing (the recipe's geometry), kept while the source
+ * lives: the Filters tab unmounts its effects while hidden, and opening it again must not render
+ * them again unless the photo was cropped or turned meanwhile.
  */
-const made = new WeakMap<EditSource, Map<string, string>>();
+const made = new WeakMap<EditSource, Map<string, Map<string, string>>>();
+
+function keptFor(source: EditSource, framing: string): Map<string, string> {
+  const bySource = made.get(source) ?? new Map<string, Map<string, string>>();
+  made.set(source, bySource);
+  const kept = bySource.get(framing) ?? new Map<string, string>();
+  bySource.set(framing, kept);
+  return kept;
+}
 
 /** Wait for the next frame, so the main preview and the input keep their turn. */
 const nextFrame = () =>
@@ -24,12 +33,14 @@ const nextFrame = () =>
 
 /**
  * Small pictures of this photo with each look, drawn by one low-resolution renderer on a canvas
- * that is never shown, one look per animation frame, once per source. `base` is the photo before
- * any look (its crop included). Nothing is drawn until `enabled` (the main preview's first frame).
+ * that is never shown, one look per animation frame, once per source and framing. `base` is the
+ * photo before any look (its crop included). Nothing is drawn until `enabled` (the main preview's
+ * first frame, and the panel showing them is open).
  */
 export function useFilterThumbnails(source: EditSource, base: Recipe, enabled: boolean): FilterThumbnails {
   const services = useEditorServices();
-  const [thumbnails, setThumbnails] = useState<FilterThumbnails>(() => new Map(made.get(source)));
+  const framing = JSON.stringify(base.geometry);
+  const [thumbnails, setThumbnails] = useState<FilterThumbnails>(() => new Map(made.get(source)?.get(framing)));
   // Read when the thumbnails are made: they show the photo as it was then, not again for each edit.
   const baseAtStart = useRef(base);
   useEffect(() => {
@@ -37,8 +48,7 @@ export function useFilterThumbnails(source: EditSource, base: Recipe, enabled: b
   });
 
   useEffect(() => {
-    const kept = made.get(source) ?? new Map<string, string>();
-    made.set(source, kept);
+    const kept = keptFor(source, framing);
     const from = baseAtStart.current;
     const wanted = [
       { id: ORIGINAL_FILTER, recipe: from },
@@ -80,7 +90,7 @@ export function useFilterThumbnails(source: EditSource, base: Recipe, enabled: b
     return () => {
       stopped = true;
     };
-  }, [source, enabled, services]);
+  }, [source, framing, enabled, services]);
 
   return thumbnails;
 }

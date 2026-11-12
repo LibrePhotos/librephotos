@@ -1,7 +1,7 @@
-import type { EditHistoryStep } from "@librephotos/api-client";
 import React, { useMemo, useRef } from "react";
 import { useEditor } from "../EditorContext";
 import { numberControl, readNumber, type NumberControlPath } from "../engine/controls";
+import { onlySets } from "../state/session";
 import { sliderSpec, type SliderRange } from "./sliderSpec";
 import { ValueSlider } from "./ValueSlider";
 
@@ -10,20 +10,17 @@ export type EditSliderProps = Readonly<{
   path: NumberControlPath;
   /** The control's name, translated. */
   label: string;
+  /** The accessible name where the label alone is ambiguous; default: the label. */
+  name?: string;
   /** A narrower range than the control's (the simple mode's Brightness is about two stops each way). */
   range?: SliderRange;
 }>;
-
-/** Whether the steps after `from` up to `to` all set `control` (what a double click's first press made). */
-function onlySets(history: readonly EditHistoryStep[], from: number, to: number, control: NumberControlPath): boolean {
-  return history.slice(from + 1, to + 1).every(step => step.action === "set" && step.control === control);
-}
 
 /**
  * A slider bound to one number control of the session: drag is live and one step on release, a key
  * press or a typed value one step, a double click resets the control to its default in one step.
  */
-export function EditSlider({ path, label, range }: EditSliderProps) {
+export function EditSlider({ path, label, name, range }: EditSliderProps) {
   const { session, commands } = useEditor();
   const min = range?.min;
   const max = range?.max;
@@ -44,6 +41,7 @@ export function EditSlider({ path, label, range }: EditSliderProps) {
   return (
     <ValueSlider
       label={label}
+      name={name}
       spec={spec}
       value={readNumber(session.recipe, path)}
       onLive={value => commands.setControl(path, value, "live")}
