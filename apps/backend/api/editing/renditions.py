@@ -54,7 +54,12 @@ from api.editing.recipe import (
     recipe_from_json,
     recipe_to_json,
 )
-from api.editing.source import SRGB8_FILE_EDGE, Source, encode_source_file, load_source
+from api.editing.source import (
+    Source,
+    encode_source_file,
+    load_source,
+    source_file_edge,
+)
 from api.jobs.queue import enqueue_task
 from api.models import Photo, PhotoEdit
 from api.models.photo_edit import default_recipe_json
@@ -141,7 +146,7 @@ def edit_source_file(photo: Photo) -> bytes:
     """The edit source file ("LPES") the web editor's preview works on."""
     path = editable_file(photo)
     return encode_source_file(
-        _loaded(path, photo.local_orientation or 1, SRGB8_FILE_EDGE)
+        _loaded(path, photo.local_orientation or 1, source_file_edge(path))
     )
 
 

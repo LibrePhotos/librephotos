@@ -1,17 +1,19 @@
-"""RAW files through the real LibRaw: the source, the render and the edit API.
+"""RAW files through the real decoders: the source, the render and the edit API.
 
 The RAW is a DNG written by ``dng.write_dng`` from the patches of
-``dng.test_card``, so every number below is known. ``rawpy`` is imported here
-on purpose: it is pinned in ``requirements.txt`` without a marker, and an
-environment without it fails this module instead of skipping it.
+``dng.test_card``, so every number below is known. ``flashraw`` and ``rawpy``
+are imported here on purpose: both are pinned in ``requirements.txt`` without a
+marker, and an environment without one fails this module instead of skipping
+it. FlashRaw develops by default; ``LibRawSourceTest`` runs the source tests
+again through LibRaw, which takes over for a file FlashRaw cannot read.
 
 Tolerance of a source value: 0.002 plus 0.5 % (``assert_source``). The test
-card's values reach LibRaw through the 14-bit sensor values of the DNG (a step
-of 1 / 15871), LibRaw's integer white balance and scaling, the demosaic (exact
-in the middle of a flat patch, which is all ``patch_centre`` reads) and the
+card's values reach the decoder through the 14-bit sensor values of the DNG (a
+step of 1 / 15871), its white balance and scaling, the demosaic (exact in the
+middle of a flat patch, which is all ``patch_centre`` reads) and the
 square-root 16-bit encoding of the source (a step of 2e-4 relative at the
-darkest grey). Measured, the error is about 1e-4; the margin is for LibRaw
-versions that round differently. A rendered value may be off by 2 of 255, the
+darkest grey). Measured, the error is about 1e-4; the margin is for versions
+that round differently. A rendered value may be off by 2 of 255, the
 renderers' own agreement (``photo-editing.md``, "Agreement between the
 renderers").
 """
@@ -26,17 +28,27 @@ import tempfile
 import zlib
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
+import flashraw
 import numpy as np
 import numpy.typing as npt
 import PIL.Image
 import rawpy
 from django.test import SimpleTestCase
 
+from api.editing import source as source_module
 from api.editing.files import rendition_path
 from api.editing.pipeline import render
 from api.editing.recipe import recipe_from_json
-from api.editing.source import RAW_BASE_GAIN, Source, load_source
+from api.editing.source import (
+    LINEAR16_FILE_EDGE,
+    RAW_BASE_GAIN,
+    SRGB8_FILE_EDGE,
+    Source,
+    load_source,
+    source_file_edge,
+)
 from api.tests.editing.dng import (
     COLUMNS,
     PATCHES,
@@ -99,13 +111,15 @@ def dng_bytes(
         return Path(path).read_bytes()
 
 
-class RawpyIsRequiredTest(SimpleTestCase):
-    def test_rawpy_is_pinned_for_every_platform(self) -> None:
+class DecodersAreRequiredTest(SimpleTestCase):
+    def test_both_decoders_are_pinned_for_every_platform(self) -> None:
         lines = (BACKEND_ROOT / "requirements.txt").read_text().splitlines()
-        pins = [line for line in lines if re.match(r"rawpy\b", line)]
-        self.assertEqual(len(pins), 1, pins)
-        self.assertRegex(pins[0], r"^rawpy==[\d.]+$")
-        self.assertTrue(rawpy.__version__)
+        for name, module in (("rawpy", rawpy), ("flashraw", flashraw)):
+            with self.subTest(name):
+                pins = [line for line in lines if re.match(rf"{name}\b", line)]
+                self.assertEqual(len(pins), 1, pins)
+                self.assertRegex(pins[0], rf"^{name}==[\d.]+$")
+                self.assertTrue(module.__version__)
 
 
 class RawSourceTest(SimpleTestCase):
@@ -199,6 +213,60 @@ class RawSourceTest(SimpleTestCase):
         self.assert_source(linear(source))
         smaller = load_source(self.write(), 1, long_edge=60)
         self.assertEqual(smaller.pixels.shape, (40, 60, 3))
+
+
+class LibRawSourceTest(RawSourceTest):
+    """The same source through LibRaw, as for a file FlashRaw cannot read."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        patcher = mock.patch.object(
+            source_module,
+            "_develop_flashraw",
+            side_effect=flashraw.UnsupportedFormatError("not this one"),
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+
+class DecoderChoiceTest(SimpleTestCase):
+    def setUp(self) -> None:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.directory = directory.name
+        self.path = os.path.join(self.directory, "card.dng")
+        Path(self.path).write_bytes(dng_bytes())
+
+    def test_flashraw_develops_without_libraw(self) -> None:
+        with mock.patch.object(
+            source_module, "_develop_libraw", side_effect=AssertionError("LibRaw ran")
+        ):
+            source = load_source(self.path, 1)
+        self.assertEqual(source.pixels.shape, (HEIGHT, WIDTH, 3))
+
+    def test_libraw_takes_over_when_flashraw_fails(self) -> None:
+        failing = mock.patch.object(
+            source_module,
+            "_develop_flashraw",
+            side_effect=flashraw.CorruptFileError("truncated"),
+        )
+        with failing, self.assertLogs(source_module.logger, "INFO") as logs:
+            source = load_source(self.path, 1)
+        self.assertEqual(source.pixels.shape, (HEIGHT, WIDTH, 3))
+        self.assertIn("CorruptFileError", logs.output[0])
+        # The path stays out of the log.
+        self.assertNotIn("card.dng", logs.output[0])
+
+    def test_a_file_neither_reads_fails_with_libraws_error(self) -> None:
+        path = os.path.join(self.directory, "broken.dng")
+        Path(path).write_bytes(b"not a raw file at all")
+        with self.assertRaises(rawpy.LibRawError):
+            load_source(path, 1)
+
+    def test_the_edit_source_of_a_raw_is_loaded_at_its_payload_size(self) -> None:
+        # Half the work for most sensors: a 2x2 binned development, no demosaic.
+        self.assertEqual(source_file_edge("photo.NEF"), LINEAR16_FILE_EDGE)
+        self.assertEqual(source_file_edge("photo.jpg"), SRGB8_FILE_EDGE)
 
 
 class RawRenderTest(SimpleTestCase):

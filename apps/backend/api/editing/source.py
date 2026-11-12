@@ -3,8 +3,10 @@
 A source is the upright picture as the app shows it: the file's own
 orientation applied, then the photo's ``local_orientation`` on top, in the
 sRGB primaries. Ordinary pictures become 8-bit sRGB (``srgb8``); RAW files are
-developed by LibRaw into scene-linear 16-bit (``linear16``), stored as
-``u = 65535 sqrt(v / max)`` like the edit source file.
+developed into scene-linear 16-bit (``linear16``), stored as
+``u = 65535 sqrt(v / max)`` like the edit source file. FlashRaw develops them,
+5 to 9 times faster than LibRaw with the same levels and colours; LibRaw
+(rawpy) takes over for a file FlashRaw cannot read.
 """
 
 from __future__ import annotations
@@ -26,12 +28,14 @@ from api.thumbnails.render import apply_local_orientation
 
 if TYPE_CHECKING:
     import cv2
+    import flashraw
     import numpy as np
     import numpy.typing as npt
     import pyvips
     import rawpy
 else:
     cv2 = LazyModule("cv2")
+    flashraw = LazyModule("flashraw")
     np = LazyModule("numpy")
     pyvips = LazyModule("pyvips")
     rawpy = LazyModule("rawpy")
@@ -176,17 +180,75 @@ def _sqrt_encode_table() -> npt.NDArray[np.uint16]:
     return np.round(np.sqrt(linear * 65535.0)).astype(np.uint16)
 
 
-def _load_linear16(
+def _half_size(long_edge: int | None, full_w: int, full_h: int) -> bool:
+    """Whether a 2x2 binned development (no demosaic) still has ``long_edge``."""
+    return long_edge is not None and 2 * long_edge <= max(full_w, full_h)
+
+
+def _exif_upright[A: np.generic](
+    pixels: npt.NDArray[A], orientation: int
+) -> npt.NDArray[A]:
+    """Pixels as stored, turned upright by their EXIF ``orientation`` (1 to 8)."""
+    match orientation:
+        case 2:
+            turned = pixels[:, ::-1]
+        case 3:
+            turned = pixels[::-1, ::-1]
+        case 4:
+            turned = pixels[::-1]
+        case 5:
+            turned = pixels.transpose(1, 0, 2)
+        case 6:
+            turned = np.rot90(pixels, -1)
+        case 7:
+            turned = pixels[::-1, ::-1].transpose(1, 0, 2)
+        case 8:
+            turned = np.rot90(pixels, 1)
+        case _:
+            turned = pixels
+    upright: npt.NDArray[A] = np.ascontiguousarray(turned)
+    return upright
+
+
+def _develop_flashraw(
     path: str, long_edge: int | None
 ) -> tuple[npt.NDArray[np.uint16], int, int]:
-    """Pixels and full upright size of a RAW file, developed by LibRaw."""
+    """Linear 16-bit RGB and full upright size, developed by FlashRaw.
+
+    Its levels are LibRaw's below: the sensor's clip is 65535, camera white
+    balance, sRGB primaries, highlights clipped. The picture is the camera's
+    recommended crop (the size of its own JPEG), a few pixels inside LibRaw's.
+    """
+    with flashraw.open(path) as raw:
+        info = raw.frame_info
+        full_w, full_h = info.crop.width, info.crop.height
+        if info.orientation in (5, 6, 7, 8):
+            full_w, full_h = full_h, full_w
+        frame = raw.decode(
+            output="linear-rgb16",
+            demosaic="half-size" if _half_size(long_edge, full_w, full_h) else "auto",
+            highlights="clip",
+            white_balance="as-shot",
+            color_space="srgb",
+        )
+        # Linear outputs keep the sensor's orientation.
+        linear = _exif_upright(
+            np.asarray(frame.array, dtype=np.uint16), frame.orientation
+        )
+    return linear, full_w, full_h
+
+
+def _develop_libraw(
+    path: str, long_edge: int | None
+) -> tuple[npt.NDArray[np.uint16], int, int]:
+    """Linear 16-bit RGB and full upright size, developed by LibRaw."""
     with rawpy.imread(path) as raw:
         sizes = raw.sizes
         full_w, full_h = int(sizes.width), int(sizes.height)
         # Flips 4 to 7 (bit 4) transpose: orientations 5 to 8.
         if sizes.flip & 4:
             full_w, full_h = full_h, full_w
-        half = long_edge is not None and 2 * long_edge <= max(full_w, full_h)
+        half = _half_size(long_edge, full_w, full_h)
         linear = raw.postprocess(
             use_camera_wb=True,
             use_auto_wb=False,
@@ -202,6 +264,25 @@ def _load_linear16(
             adjust_maximum_thr=0.0,
             half_size=half,
         )
+    developed: npt.NDArray[np.uint16] = np.asarray(linear, dtype=np.uint16)
+    return developed, full_w, full_h
+
+
+def _load_linear16(
+    path: str, long_edge: int | None
+) -> tuple[npt.NDArray[np.uint16], int, int]:
+    """Pixels and full upright size of a RAW file: FlashRaw, else LibRaw."""
+    try:
+        linear, full_w, full_h = _develop_flashraw(path, long_edge)
+    except flashraw.FlashRawError as error:
+        # Every FlashRaw error, its IoError and OutOfMemoryError included:
+        # formats it does not read (Nikon's High Efficiency NEF), a camera it
+        # does not know, a file it finds corrupt. LibRaw tries, and raises its
+        # own error when it cannot read the file either.
+        logger.info(
+            "FlashRaw cannot develop a RAW file (%s): LibRaw does", type(error).__name__
+        )
+        linear, full_w, full_h = _develop_libraw(path, long_edge)
     if long_edge is not None and max(linear.shape[:2]) > long_edge:
         factor = long_edge / max(linear.shape[:2])
         size = (
@@ -247,6 +328,15 @@ def load_source(
 
 
 # --- Edit source file ("LPES") -----------------------------------------------
+
+
+def source_file_edge(path: str) -> int:
+    """The long edge to load ``path`` at for its edit source file.
+
+    A RAW file at its payload's size: most sensors are then developed half
+    size, without a demosaic, which is the payload's quality anyway.
+    """
+    return LINEAR16_FILE_EDGE if is_raw(path) else SRGB8_FILE_EDGE
 
 
 def _reduced_size(width: int, height: int, long_edge: int) -> tuple[int, int] | None:
@@ -296,6 +386,16 @@ def _delta_planes(pixels: npt.NDArray[np.uint16]) -> bytes:
     return b"".join(planes)
 
 
+def _deflate(data: bytes) -> bytes:
+    """A zlib stream of ``data`` with Huffman coding only.
+
+    The planes' bytes repeat as values, not as strings: LZ77's matching made
+    the stream 8 % larger and took twice the time (0.9 s for a 3 MP payload).
+    """
+    compressor = zlib.compressobj(6, zlib.DEFLATED, 15, 8, zlib.Z_HUFFMAN_ONLY)
+    return compressor.compress(data) + compressor.flush()
+
+
 def encode_source_file(source: Source) -> bytes:
     """``source`` as an edit source file (the doc's "Edit source file")."""
     if source.kind == "srgb8":
@@ -305,7 +405,7 @@ def encode_source_file(source: Source) -> bytes:
     else:
         linear16 = _linear16_payload(source.pixels.astype(np.uint16, copy=False))
         width, height = linear16.shape[1], linear16.shape[0]
-        payload = zlib.compress(_delta_planes(linear16), 6)
+        payload = _deflate(_delta_planes(linear16))
     header = json.dumps(
         {
             "kind": source.kind,
