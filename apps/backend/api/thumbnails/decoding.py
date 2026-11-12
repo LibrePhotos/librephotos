@@ -60,8 +60,9 @@ def full_size(path: str) -> pyvips.Image:
         return _pillow_to_vips(path)
 
 
-# LibRaw's flip value as the EXIF orientation pyvips' autorot understands.
-_FLIP_TO_ORIENTATION = {3: 3, 5: 8, 6: 6}
+# LibRaw's flip value as the EXIF orientation pyvips' autorot understands
+# (4 and 7 are the mirrored quarter turns, orientations 5 and 7).
+_FLIP_TO_ORIENTATION = {3: 3, 4: 5, 5: 8, 6: 6, 7: 7}
 # Unconstrained side of a thumbnail box (vips wants a number).
 _ANY = 100_000
 # libvips loaders that take text files (matrixload_source, csvload_source too).
@@ -102,7 +103,7 @@ def raw_preview(path: str, height: int) -> pyvips.Image | None:
         return None
 
     orientation = _FLIP_TO_ORIENTATION.get(sizes.flip, 1)
-    sideways = orientation in (6, 8)
+    sideways = orientation in (5, 6, 7, 8)
     preview_height = header.width if sideways else header.height
     render_height = sizes.width if sideways else sizes.height
     if preview_height < min(height, render_height):

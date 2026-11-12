@@ -410,4 +410,11 @@ describe("loose objects keep the fields a newer server adds", () => {
     expect(PigPhoto.parse(tile).type).toBe(Media.IMAGE);
     expect(PigPhoto.safeParse({ ...tile, type: "hologram" }).success).toBe(false);
   });
+
+  it("keeps a tile's thumbnail version, which older servers do not send", () => {
+    const tile = { id: "3f2c1a4e-0b5d-4c7e-9a1f-2d3e4f5a6b7c", image_hash: "abc", aspectRatio: 1 };
+    expect(PigPhoto.parse({ ...tile, thumbnail_version: 4 }).thumbnail_version).toBe(4);
+    expect(PigPhoto.parse(tile).thumbnail_version).toBeUndefined();
+    expect(PigPhoto.safeParse({ ...tile, thumbnail_version: -1 }).success).toBe(false);
+  });
 });

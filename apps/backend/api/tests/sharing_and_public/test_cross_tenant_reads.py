@@ -255,6 +255,10 @@ class CrossTenantReadTest(TestCase):
             # The file is not on disk here, so the owner's read is a 404 too;
             # api/tests/metadata/test_raw_metadata.py reads real files.
             (f"/api/photos/{v.v_photo.pk}/metadata/raw/", None),
+            # A photo's edit and its source: the owner's alone (the owner's
+            # source read is a 404 here too, the file not being on disk).
+            (f"/api/photos/{v.v_photo.pk}/edit/", str(v.v_photo.pk)),
+            (f"/api/photos/{v.v_photo.pk}/edit/source/", None),
             # Reads the file through the exif service, which does not run here.
             (f"/api/datetime-rules/test/?photo_id={v.v_photo.pk}", None),
             ("/api/tags/", "victim-tag-name"),

@@ -62,6 +62,30 @@ describe("originalZoomPlan", () => {
   });
 });
 
+describe("originalZoomPlan for an edited photo", () => {
+  const edit = (rendition: "pending" | "ready" | "failed", width = 3000, height = 2000) => ({
+    version: 3,
+    rendition,
+    width,
+    height,
+  });
+
+  it("zooms into the rendition, a JPEG of the edited size, whatever the original's type and turn", () => {
+    expect(plan({}, { original_mime_type: "image/x-dcraw", edit: edit("ready") })).toEqual({ kind: "load" });
+    expect(plan({}, { local_orientation: 6, edit: edit("ready") })).toEqual({ kind: "load" });
+    expect(plan({}, { original_mime_type: "image/heic", edit: edit("ready", 1200, 800) })).toEqual({
+      kind: "original",
+      size: { width: 1200, height: 800 },
+    });
+  });
+
+  it("stays on the edited thumbnail while the rendition is made, or when it failed", () => {
+    expect(plan({}, { edit: edit("pending") })).toEqual({ kind: "preview", reason: "rendering" });
+    expect(plan({}, { edit: edit("failed") })).toEqual({ kind: "preview", reason: "renditionFailed" });
+    expect(plan({ rotatedHere: true }, { edit: edit("ready") })).toEqual({ kind: "preview", reason: "rotated" });
+  });
+});
+
 describe("isAnimatedOriginal", () => {
   it("is true for GIF and APNG only", () => {
     expect(isAnimatedOriginal({ original_mime_type: "image/gif" })).toBe(true);

@@ -1,0 +1,54 @@
+.root {
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: 72px;
+  border-radius: var(--mantine-radius-sm);
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-8));
+}
+
+.luma {
+  fill: light-dark(var(--mantine-color-gray-5), var(--mantine-color-gray-6));
+  fill-opacity: 0.55;
+}
+
+.r,
+.g,
+.b {
+  fill-opacity: 0.45;
+  mix-blend-mode: multiply;
+}
+
+[data-mantine-color-scheme="dark"] .r,
+[data-mantine-color-scheme="dark"] .g,
+[data-mantine-color-scheme="dark"] .b {
+  mix-blend-mode: screen;
+}
+
+.r {
+  fill: var(--mantine-color-red-6);
+}
+
+.g {
+  fill: var(--mantine-color-green-6);
+}
+
+.b {
+  fill: var(--mantine-color-blue-6);
+}
+
+.clip {
+  fill: var(--mantine-color-default-border);
+}
+
+.clip[data-on] {
+  fill: var(--mantine-color-yellow-5);
+}
+
+.note {
+  margin-top: 4px;
+}

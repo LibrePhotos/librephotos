@@ -1,0 +1,64 @@
+.root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.handle {
+  pointer-events: auto;
+  cursor: ew-resize;
+  outline: none;
+  touch-action: none;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.line {
+  stroke: var(--mantine-color-white);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 2px var(--app-scrim-black-60));
+}
+
+.knob {
+  fill: var(--app-scrim-black-60);
+  stroke: var(--mantine-color-white);
+  stroke-width: 2;
+}
+
+.handle:focus-visible .knob {
+  stroke: var(--mantine-primary-color-filled);
+  stroke-width: 3;
+}
+
+.arrows {
+  fill: none;
+  stroke: var(--mantine-color-white);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.before,
+.after {
+  position: absolute;
+  top: 12px;
+  opacity: 0.85;
+}
+
+.before {
+  left: 12px;
+}
+
+.after {
+  right: 12px;
+}

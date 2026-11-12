@@ -41,7 +41,7 @@ from api.tests.metadata.exiftool_harness import (
     quadrants,
 )
 from api.tests.utils import create_test_face, create_test_person, create_test_user
-from api.thumbnails.render import _apply_local_orientation
+from api.thumbnails.render import apply_local_orientation
 
 if TYPE_CHECKING:
     import pyvips
@@ -100,7 +100,7 @@ def _shown(
     stored: pyvips.Image, decoder_orientation: int, local_orientation: int
 ) -> pyvips.Image:
     """``stored`` as the big thumbnail shows it."""
-    return _apply_local_orientation(
+    return apply_local_orientation(
         autorotated(stored, decoder_orientation), local_orientation
     )
 

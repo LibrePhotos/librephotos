@@ -383,6 +383,36 @@ export async function fetchPublicAlbumPhoto(
   return parseResponse(S.PublicPhotoDetailResponse, res, "public photo detail");
 }
 
+/* ---- photo edits (non-destructive editing) ----------------------------- */
+
+const photoEditPath = (photoId: string) => `/photos/${encodeURIComponent(photoId)}/edit/`;
+
+/** A photo's edit; a photo never edited answers the default recipe with `version` 0. */
+export async function fetchPhotoEdit(client: ApiClient, photoId: string): Promise<S.PhotoEdit> {
+  const res = await client.get<unknown>(photoEditPath(photoId));
+  return parseResponse(S.PhotoEdit, res, "photo edit");
+}
+
+/**
+ * Save a photo's recipe and history. The server renders the thumbnails before it answers and the
+ * full-size rendition afterwards (`rendition: "pending"`). ApiError 400 `not_editable` for a video.
+ */
+export async function savePhotoEdit(client: ApiClient, photoId: string, edit: S.PhotoEditUpdate): Promise<S.PhotoEdit> {
+  const res = await client.request<unknown>(photoEditPath(photoId), { method: "PUT", body: edit });
+  return parseResponse(S.PhotoEdit, res, "photo edit");
+}
+
+/** Remove a photo's edit, its history and its rendition: the photo shows its original again. Answers 204. */
+export async function deletePhotoEdit(client: ApiClient, photoId: string): Promise<void> {
+  await client.delete(photoEditPath(photoId));
+}
+
+/** The reduced source the editor's preview works on, as an edit source file ("LPES"). */
+export async function fetchPhotoEditSource(client: ApiClient, photoId: string): Promise<ArrayBuffer> {
+  const blob = await client.getBlob(`${photoEditPath(photoId)}source/`);
+  return blob.arrayBuffer();
+}
+
 /* ---- photo links (one photo shared by URL, issue #2028) ---------------- */
 
 /** Create (or return the existing), rotate or revoke one photo's public link; answers the link. */

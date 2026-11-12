@@ -23,6 +23,7 @@ from django.db.utils import IntegrityError
 from django.utils import timezone
 
 import api.models
+from api.editing.faces import region_frame
 from api.faces import extractor, video_faces
 from api.faces.geometry import (
     FACE_OVERLAP_IOU_THRESHOLD,
@@ -167,11 +168,34 @@ def _face_regions(
     detected: list[extractor.FaceLocation] | None,
 ) -> list[extractor.FaceLocation] | None:
     """The photo's face regions from XMP, checked against ``detected``."""
+    return read_face_regions(photo, thumbnail_path, detected)
+
+
+def read_face_regions(
+    photo: Photo,
+    thumbnail_path: str,
+    detected: list[extractor.FaceLocation] | None,
+) -> list[extractor.FaceLocation] | None:
+    """The photo's face regions from XMP on its big thumbnail, checked against ``detected``.
+
+    Through the photo's edit when it crops or turns the picture
+    (``api.editing.faces.region_frame``): the regions are of the unedited one.
+    """
     assert photo.main_file is not None
+    sidecar_files = sidecar_files_for_photo(photo)
+    frame = region_frame(photo, thumbnail_path)
+    if frame is not None:
+        return extractor.extract_through_edit(
+            frame,
+            photo.main_file.path,
+            sidecar_files,
+            photo.local_orientation,
+            detected,
+        )
     return extractor.extract_from_exif(
         photo.main_file.path,
         thumbnail_path,
-        sidecar_files_for_photo(photo),
+        sidecar_files,
         local_orientation=photo.local_orientation,
         detected_faces=detected,
     )

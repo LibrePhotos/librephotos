@@ -3,7 +3,18 @@ from datetime import datetime
 from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count, Model, OuterRef, Prefetch, QuerySet, Subquery
+from django.db.models import (
+    Case,
+    Count,
+    F,
+    Model,
+    OuterRef,
+    Prefetch,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
@@ -18,6 +29,7 @@ from api.drf.params import (
     required_string,
 )
 from api.drf.request_user import request_user
+from api.editing.recipe import changes_geometry, recipe_from_json
 from api.faces.recipients import faces_shown_to, is_named
 from api.geocode.photo_location import GeocodeStatus, geocode_status, has_place
 from api.metadata import edits
@@ -27,6 +39,7 @@ from api.mime import original_mime_type
 from api.models import Face, File, Person, Photo, User
 from api.models.photo import CategorySource
 from api.models.photo_caption import PhotoCaption
+from api.models.photo_edit import PhotoEdit
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_search import PhotoSearch
@@ -37,6 +50,11 @@ from api.serializers.fields import (
     loaded_count,
     prefetched,
     shared_serializer,
+)
+from api.serializers.photo_edits import (
+    PhotoEditSummary,
+    PhotoEditSummarySerializer,
+    edit_summary,
 )
 from api.serializers.photo_metadata import (
     PhotoMetadataSummarySerializer,
@@ -102,6 +120,10 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     # The grid's placeholder until the thumbnail loads (base64 ThumbHash);
     # null for a photo scanned before it existed, which shows dominantColor.
     thumbhash = serializers.SerializerMethodField()
+    # The photo's edit version (0 without an edit; it goes on growing
+    # through reverts): the grid folds it into the thumbnail URL with the
+    # ThumbHash, which a subtle edit may leave unchanged.
+    thumbnail_version = serializers.SerializerMethodField()
     aspectRatio = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
@@ -131,6 +153,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "image_hash",
             "dominantColor",
             "thumbhash",
+            "thumbnail_version",
             "url",
             "location",
             "date",
@@ -237,6 +260,14 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
         thumbnail = thumbnail_of(obj)
         return thumbnail.thumbhash if thumbnail else None
 
+    def get_thumbnail_version(self, obj: Photo) -> int:
+        """Which thumbnails of the photo's edit the grid shows: twice the edit's
+        version, plus one once its full-size rendition is ready (the thumbnails
+        are made again from it when the save's render was smaller than they
+        are). 0 without an edit; it never goes back (a save or a revert raises
+        the version). Grids fold it into the thumbnail URL's ``v``."""
+        return loaded_count(obj, THUMBNAIL_VERSION)
+
     def get_type(self, obj: Photo) -> str:
         if obj.video:
             return "video"
@@ -326,6 +357,20 @@ class SearchResultsSerializer(serializers.Serializer[None]):
     results = GroupedPhotosSerializer(many=True)
 
 
+# The annotation ``PhotoSummarySerializer.get_thumbnail_version`` reads.
+THUMBNAIL_VERSION = "thumbnail_version_annotation"
+
+
+def _thumbnail_version() -> Coalesce:
+    """``2 * version + 1`` once the edit's rendition is ready, ``2 * version``
+    before; 0 without an edit row (see ``get_thumbnail_version``)."""
+    ready = Case(
+        When(edit__rendition=PhotoEdit.Rendition.READY, then=Value(1)),
+        default=Value(0),
+    )
+    return Coalesce(F("edit__version") * 2 + ready, Value(0))
+
+
 def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
     """Load everything ``PhotoSummarySerializer`` reads in a constant number of queries.
 
@@ -372,6 +417,8 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "files",  # Prefetch files for get_has_raw_variant()
         )
         .select_related("thumbnail", "search_instance", "main_file")
+        # The edit row is a reverse one-to-one: a LEFT JOIN, one row per photo.
+        .annotate(**{THUMBNAIL_VERSION: _thumbnail_version()})
         .only(
             "image_hash",
             "thumbnail__aspect_ratio",
@@ -642,6 +689,21 @@ class LibraryGrantSerializer(serializers.Serializer[None]):
     originals = serializers.BooleanField()
 
 
+def _edit_of(photo: Photo) -> PhotoEdit | None:
+    """The photo's edit row, loaded with the photo (``select_related("edit")``)."""
+    try:
+        return photo.edit
+    except PhotoEdit.DoesNotExist:
+        return None
+
+
+def _edit_changes_geometry(edit: PhotoEdit | None) -> bool:
+    """Whether the thumbnails show an edit framed differently from the original."""
+    if edit is None or not edit.shown:
+        return False
+    return changes_geometry(recipe_from_json(edit.settings))
+
+
 class PhotoSerializer(serializers.ModelSerializer):
     square_thumbnail_url = serializers.SerializerMethodField()
     big_thumbnail_url = serializers.SerializerMethodField()
@@ -666,6 +728,8 @@ class PhotoSerializer(serializers.ModelSerializer):
     metadata = serializers.SerializerMethodField()
     # OCR text and normalized block geometry for the "live text" overlay
     ocr = serializers.SerializerMethodField()
+    # The edited picture (``api.editing``): its version and size, owner only.
+    edit = serializers.SerializerMethodField()
     # What the video is, in the form the browser's canPlayType() takes, so the
     # frontend asks for a conversion only when this browser cannot play it.
     video_playback_type = serializers.SerializerMethodField()
@@ -770,6 +834,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "stacks",
             "metadata",
             "ocr",
+            "edit",
             "local_orientation",
             "original_mime_type",
             # "equirectangular" for a 360° photo sphere the lightbox can open
@@ -957,7 +1022,10 @@ class PhotoSerializer(serializers.ModelSerializer):
         blocks = []
         width = ocr.source_width or 0
         height = ocr.source_height or 0
-        if width > 0 and height > 0 and isinstance(ocr.blocks, list):
+        # The boxes are in the original's frame; an edit that crops or turns
+        # the picture shows another one, so its text comes without positions.
+        positioned = not _edit_changes_geometry(_edit_of(obj))
+        if positioned and width > 0 and height > 0 and isinstance(ocr.blocks, list):
             for block in ocr.blocks:
                 box = block.get("box") if isinstance(block, dict) else None
                 text = block.get("text") if isinstance(block, dict) else None
@@ -982,6 +1050,18 @@ class PhotoSerializer(serializers.ModelSerializer):
                 )
 
         return {"text": ocr.text or "", "blocks": blocks}
+
+    @extend_schema_field(PhotoEditSummarySerializer(allow_null=True))
+    def get_edit(self, obj: Photo) -> PhotoEditSummary | None:
+        """The edited picture, for its owner; null without a rendition.
+
+        Like ``ocr``, the owner's alone: the people a photo is shared with see
+        the edited picture without being told about the edit.
+        """
+        request = self.context.get("request")
+        if request is None or request.user != obj.owner:
+            return None
+        return edit_summary(_edit_of(obj))
 
     def get_similar_photos(self, obj: Photo) -> list:
         if self._visitor_grant(obj) is not None or self._album_grant(obj) is not None:

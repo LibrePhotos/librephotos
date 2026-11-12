@@ -1,0 +1,103 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--app-scrim-white-90);
+  /* Dims everything outside the crop; the stage clips the shadow. */
+  box-shadow: 0 0 0 100vmax var(--app-scrim-black-60);
+  cursor: move;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.frame:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 3px;
+}
+
+.columns,
+.rows {
+  position: absolute;
+  pointer-events: none;
+}
+
+.columns {
+  inset: 0 33.333%;
+  border-inline: 1px solid var(--app-scrim-white-35);
+}
+
+.rows {
+  inset: 33.333% 0;
+  border-block: 1px solid var(--app-scrim-white-35);
+}
+
+.handle {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin: -14px;
+  touch-action: none;
+}
+
+.handle::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 2px;
+  background: var(--mantine-color-white);
+  box-shadow: 0 0 0 1px var(--app-scrim-black-50);
+}
+
+.handle[data-handle="nw"] {
+  left: 0;
+  top: 0;
+  cursor: nwse-resize;
+}
+
+.handle[data-handle="n"] {
+  left: 50%;
+  top: 0;
+  cursor: ns-resize;
+}
+
+.handle[data-handle="ne"] {
+  left: 100%;
+  top: 0;
+  cursor: nesw-resize;
+}
+
+.handle[data-handle="e"] {
+  left: 100%;
+  top: 50%;
+  cursor: ew-resize;
+}
+
+.handle[data-handle="se"] {
+  left: 100%;
+  top: 100%;
+  cursor: nwse-resize;
+}
+
+.handle[data-handle="s"] {
+  left: 50%;
+  top: 100%;
+  cursor: ns-resize;
+}
+
+.handle[data-handle="sw"] {
+  left: 0;
+  top: 100%;
+  cursor: nesw-resize;
+}
+
+.handle[data-handle="w"] {
+  left: 0;
+  top: 50%;
+  cursor: ew-resize;
+}

@@ -27,11 +27,37 @@ export type ZoomOriginal = {
   retry: () => void;
   originalUrl: string;
   /**
+   * The photo shows its edit (photo editing, its owner only): what zooming in loads is the edited
+   * picture at full size, and the chip says so.
+   */
+  edited: boolean;
+  /**
+   * What the chip's download link fetches while the zoom stays on the preview: the original file.
+   * None for an edited photo: its full-size URL answers the edit, and the owner downloads the
+   * edited picture or the original from the menu, each by its name.
+   */
+  downloadUrl: string | null;
+  /**
    * What the 360° viewer draws a photo sphere from (#483): the original where zooming may load it,
    * so the sphere is sharp, else the big thumbnail (a public page, a HEIC, a turned photo).
    */
   panoramaSrc: string;
 };
+
+/**
+ * The `?v=` that keeps a cached picture of an earlier state from showing: the rotation made here,
+ * or the edit's version and its rendition state (photo editing; the server keeps a versioned
+ * picture for a year). Every picture of an edit changes when its rendition turns ready under the
+ * same version: the thumbnails are made again from it when the save's render was smaller than they
+ * are (a tight crop), and the full-size URL answers the rendition instead of that render.
+ */
+export function mediaVersion(imageCacheKey: number, details: OriginalZoomDetails | null | undefined): string {
+  const edit = details?.edit;
+  // Joined, not a template: a template starting "e" would read as a translation key pattern.
+  const editKey = edit ? ["e", edit.version, "-", edit.rendition].join("") : "";
+  const version = [editKey, imageCacheKey ? String(imageCacheKey) : ""].filter(Boolean).join("-");
+  return version ? `?v=${version}` : "";
+}
 
 /**
  * Which file the lightbox's photo shows (#2742): the big thumbnail, swapped
@@ -40,8 +66,9 @@ export type ZoomOriginal = {
  */
 export function useZoomOriginal(args: Args): ZoomOriginal {
   const { mediaHash = "", imageCacheKey, details, isMainContent, magnified } = args;
-  const version = imageCacheKey ? `?v=${imageCacheKey}` : "";
+  const version = mediaVersion(imageCacheKey, details);
   const originalUrl = `${mediaUrl.photo(mediaHash)}${version}`;
+  const edited = Boolean(details?.edit && details.edit.rendition !== "none");
   const plan = originalZoomPlan({
     details,
     isMainContent,
@@ -60,6 +87,8 @@ export function useZoomOriginal(args: Args): ZoomOriginal {
     chip: chipState(plan, original),
     retry: original.retry,
     originalUrl,
+    edited,
+    downloadUrl: edited ? null : originalUrl,
     panoramaSrc: originalAllowed ? originalUrl : thumbnailUrl,
   };
 }

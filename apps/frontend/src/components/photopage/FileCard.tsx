@@ -10,6 +10,7 @@ import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { AllMetadataButton } from "../allmetadata/AllMetadataButton";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { CategoryBadge } from "../lightbox/CategoryBadge";
+import { originalHref } from "../lightbox/editedDownloads";
 import { fileFacts } from "../lightbox/photoDetails";
 import { StackSection } from "../lightbox/StackSection";
 import { getVariantBadgeProps } from "../lightbox/VersionComponent";
@@ -93,13 +94,7 @@ export function FileCard({ photo }: Readonly<{ photo: Photo }>) {
     >
       <Stack gap="sm">
         <div>
-          <Anchor
-            href={mediaUrl.photo(photo.image_hash)}
-            target="_blank"
-            size="sm"
-            fw={600}
-            className={classes.fileName}
-          >
+          <Anchor href={originalHref(photo)} target="_blank" size="sm" fw={600} className={classes.fileName}>
             {mainPath !== undefined ? fileNameOf(mainPath) : t("photopage.unknownfilename")}
             <IconExternalLink size={14} aria-hidden className={classes.inlineIcon} />
           </Anchor>

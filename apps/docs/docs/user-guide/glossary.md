@@ -31,6 +31,12 @@ LibrePhotos on Docker runs in containers: small, separate environments that hold
 
 A new version sometimes changes how LibrePhotos stores its data. Developers call these changes migrations. LibrePhotos applies them by itself the first time the new version starts, so you do not have to do anything. The first start after an update can take longer because of this. Very old installs sometimes have to update in two steps, which the release notes then say. See [Upgrading](../installation/upgrading.md).
 
+## Edit {#edit}
+
+<Since version="1.7.0" />
+
+The changes you make to a photo in the photo editor: a crop, a filter, brighter light and so on. LibrePhotos stores them as settings with the photo and shows an edited copy of the picture; your original file is never changed. **Revert to original...** in the editor removes an edit. See [Editing photos](./editing-photos.md).
+
 ## EXIF and XMP {#exif-and-xmp}
 
 Two common kinds of [metadata](#metadata). **EXIF** is written by the camera or phone into the photo file: the date and time, the camera and lens, the settings, and often the GPS position where the photo was taken. **XMP** holds details that people and programs add later, such as keywords, ratings, people and captions. It is stored in the photo file or in a separate `.xmp` file next to it. See [Exif Data](./exif-data.md).

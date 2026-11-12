@@ -3,11 +3,13 @@ from __future__ import annotations
 import logging
 import os
 import unicodedata
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, TypedDict
 
 import PIL.Image
 
+from api.editing.faces import to_original_box
+from api.editing.geometry import Box
 from api.metadata.orientation import (
     SHOWN_ORIENTATION_TAGS,
     region_to_stored,
@@ -267,6 +269,7 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
         sidecar_files=sidecar_files,
     )
     region_info = _region_info(photo, sidecar_files)
+    to_original = to_original_box(photo)
     # The thumbnail shows the file under its own orientation (#2615) with the
     # user's LibrePhotos rotation on top (#2606).
     orientation = exif_orientation_showing(
@@ -275,7 +278,10 @@ def get_face_region_tags(photo: Photo, use_sidecar: bool) -> dict[str, TagValue]
     )
 
     return build_face_region_exiftool_args(
-        [_face_region(face, thumbnail_size, orientation) for face in faces],
+        [
+            _face_region(face, thumbnail_size, orientation, to_original)
+            for face in faces
+        ],
         image_width,
         image_height,
         previous_names=_names_to_unlist(photo, region_info),
@@ -345,16 +351,24 @@ def _thumbnail_size(photo: Photo) -> tuple[int, int] | None:
 
 
 def _face_region(
-    face: Face, thumbnail_size: tuple[int, int], orientation: int
+    face: Face,
+    thumbnail_size: tuple[int, int],
+    orientation: int,
+    to_original: Callable[[Face, Box], Box],
 ) -> _FaceRegion:
     """``face`` as a region of the stored image; only a user's label names it."""
-    x, y, w, h = thumbnail_coords_to_normalized(
-        face.location_top,
-        face.location_right,
-        face.location_bottom,
-        face.location_left,
-        *thumbnail_size,
+    width, height = thumbnail_size
+    # The thumbnail of an edited photo may show a crop or a turn of the file.
+    left, top, right, bottom = to_original(
+        face,
+        (
+            face.location_left / width,
+            face.location_top / height,
+            face.location_right / width,
+            face.location_bottom / height,
+        ),
     )
+    x, y, w, h = thumbnail_coords_to_normalized(top, right, bottom, left, 1, 1)
     x, y, w, h = region_to_stored((x, y, w, h), orientation)
     person = face.person
     name = person.name if person and person.kind == Person.KIND_USER else ""

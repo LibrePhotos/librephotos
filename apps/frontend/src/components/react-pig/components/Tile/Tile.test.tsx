@@ -11,7 +11,7 @@ import Tile from "./Tile";
 // A 100 x 60 gradient's ThumbHash, as the backend stores it.
 const SKY_THUMBHASH = "4QYKhJqGh4eAh4iHiHeAdQj4iA==";
 
-type PhotoItem = ReturnType<typeof photoItem> & { thumbhash?: string };
+type PhotoItem = ReturnType<typeof photoItem> & { thumbhash?: string; thumbnail_version?: number };
 
 function photoItem(
   overrides: Partial<
@@ -237,6 +237,30 @@ describe("react-pig Tile media", () => {
     const before = src(SKY_THUMBHASH);
     act(() => defined(root).unmount());
     expect(src("IAgSAwB5lZtfand4AAAAAAA=")).not.toBe(before);
+  });
+
+  it("asks for another address after an edit that leaves the ThumbHash as it was", () => {
+    const src = (thumbnail_version?: number) =>
+      Array.from(
+        renderTile({ ...photoItem(), thumbhash: SKY_THUMBHASH, thumbnail_version }).button.querySelectorAll("img")
+      )
+        .map(img => img.getAttribute("src") ?? "")
+        .find(address => address.startsWith("/media/"));
+    const unedited = src();
+    act(() => defined(root).unmount());
+    // Version 0 is a photo never edited: the address it always had.
+    expect(src(0)).toBe(unedited);
+    act(() => defined(root).unmount());
+    const edited = src(1);
+    act(() => defined(root).unmount());
+    // A revert raises the version again: never the address of an earlier picture.
+    const reverted = src(2);
+    expect(new Set([unedited, edited, reverted]).size).toBe(3);
+  });
+
+  it("versions the address of an edited photo without a ThumbHash", () => {
+    const { button } = renderTile({ ...photoItem(), thumbnail_version: 3 });
+    expect(defined(button.querySelector("img")).getAttribute("src")).toMatch(/^\/media\/hash1\?h=400&v=[0-9a-z]+$/);
   });
 
   it("shows a picture it showed before at once when the tile mounts again, without the placeholder", () => {

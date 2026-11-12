@@ -1,0 +1,46 @@
+.section {
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.header {
+  padding-inline-end: 8px;
+}
+
+.toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding-inline: 12px 4px;
+  color: var(--mantine-color-bright);
+}
+
+.toggle:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.chevron {
+  color: var(--mantine-color-dimmed);
+  transform: rotate(-90deg);
+  transition: transform 150ms ease;
+}
+
+.chevron[data-open] {
+  transform: none;
+}
+
+.content {
+  padding: 0 16px 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}

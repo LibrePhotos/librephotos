@@ -670,7 +670,8 @@ def rotate_photo(
 ) -> str | None:
     """Rotate the photo non-destructively.
 
-    Updates ``local_orientation`` and regenerates thumbnails. The change is
+    Updates ``local_orientation`` and regenerates thumbnails. A photo with
+    an edit is turned in its edit's geometry instead (``rotate_edit``). The change is
     stored in the DB and reflected in the regenerated thumbnails; the
     orientation reaches the file (or sidecar) only when the owner has
     ``save_metadata_to_disk`` on (``write_orientation_to_disk``).
@@ -699,11 +700,18 @@ def rotate_photo(
     if angle == 0 and not flip_horizontal:
         return None
 
+    # An edited photo turns inside its recipe, whose crop is in the frame
+    # local_orientation gives; its original is not touched.
+    from api.editing.renditions import rotate_edit
+
+    if rotate_edit(photo, angle, flip_horizontal):
+        return None
+
     from api.thumbnails import render
 
     # ``compose_orientation`` counts clockwise in EXIF terms, but the
     # renderer draws local orientation 6 as a turn counter-clockwise
-    # (``_apply_local_orientation``), so ``angle`` comes out counter-clockwise.
+    # (``apply_local_orientation``), so ``angle`` comes out counter-clockwise.
     photo.local_orientation = compose_orientation(
         photo.local_orientation,
         delta_angle_cw=angle,

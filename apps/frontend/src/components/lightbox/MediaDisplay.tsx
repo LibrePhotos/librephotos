@@ -245,7 +245,13 @@ function PhotoMedia(props: ResolvedProps) {
         />
         {isMainContent && <PhotoOverlays {...props} motion={motion} naturalSize={naturalSize} />}
         {zoom.chip && (
-          <ResolutionChip state={zoom.chip} visible={scale > 1} onRetry={zoom.retry} downloadUrl={zoom.originalUrl} />
+          <ResolutionChip
+            state={zoom.chip}
+            visible={scale > 1}
+            onRetry={zoom.retry}
+            edited={zoom.edited}
+            downloadUrl={zoom.downloadUrl}
+          />
         )}
       </div>
     </div>

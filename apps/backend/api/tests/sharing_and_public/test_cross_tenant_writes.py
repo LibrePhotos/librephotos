@@ -573,6 +573,16 @@ class CrossTenantWriteTest(TestCase):
                 {"title": "pwned"},
             ),
             ("post", f"/api/photos/{self.v_pub.pk}/metadata/revert-all", {}),
+            (
+                "put",
+                f"/api/photos/{self.v_pub.pk}/edit/",
+                {
+                    "settings": {"version": 1, "light": {"exposure": 1}},
+                    "history": [],
+                    "history_cursor": -1,
+                },
+            ),
+            ("delete", f"/api/photos/{self.v_pub.pk}/edit/", None),
             ("post", f"/api/photos/{self.v_pub.pk}/metadata/revert/{uuid.uuid4()}", {}),
             (
                 "patch",

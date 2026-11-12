@@ -784,7 +784,11 @@ class PhotoViewSet(
             # Its search runs over file paths, tags, people's names, captions
             # and places: of the requester's own photos only, never of a
             # photo they can merely read.
-            return own.prefetch_related("stacks").order_by("-exif_timestamp")
+            return (
+                own.select_related("edit")
+                .prefetch_related("stacks")
+                .order_by("-exif_timestamp")
+            )
         # The photos of the albums the requester owns or is a member of
         # (#464) and of the people shared with them (#668); PhotoSerializer
         # redacts them by those rules.
@@ -815,6 +819,7 @@ class PhotoViewSet(
                 "search_instance",
                 "metadata",
                 "ocr",
+                "edit",
             )
             .prefetch_related(
                 "stacks",

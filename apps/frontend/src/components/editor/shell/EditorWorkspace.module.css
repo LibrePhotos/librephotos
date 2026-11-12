@@ -1,0 +1,94 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* The panel holds its header (on a phone) and the body under it; only the body scrolls, so nothing
+   scrolled ever passes above or behind the header. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 340px;
+  min-height: 0;
+  overflow: hidden;
+  border-inline-start: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+}
+
+.panelBody {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* On a phone it stays above the scrolling body: its toggle folds the panel away. */
+.panelHeader {
+  box-sizing: border-box;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--mantine-color-body);
+  flex: none;
+  padding: 8px 12px 4px;
+}
+
+/* A phone: the picture on top, the panel as a bottom sheet with its own scroll. */
+.shell[data-compact] .main {
+  flex-direction: column;
+}
+
+.shell[data-compact] .panel {
+  width: auto;
+  height: 46dvh;
+  border-inline-start: none;
+  border-top: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-lg) var(--mantine-radius-lg) 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* The panel folded down to its header: the picture takes the rest. */
+.shell[data-panel-collapsed] .panel {
+  height: auto;
+}
+
+.shell[data-panel-collapsed] .panelBody {
+  display: none;
+}
+
+/* The workspace with what may lie over it: the busy state of a save or a revert. */
+.frame {
+  position: relative;
+}
+
+.busy[data-active] {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-scrim-black-30);
+}
+
+.busyCard {
+  padding: 10px 16px;
+  border-radius: var(--mantine-radius-xl);
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-md);
+}

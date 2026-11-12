@@ -760,6 +760,13 @@ SPECTACULAR_SETTINGS = {
         "RenameStatusEnum": "api.serializers.photo_renames.RENAME_STATUS_CHOICES",
         # A stage of the library processing status (#2741).
         "ProcessingStageEnum": "api.serializers.processing_status.PROCESSING_STAGES",
+        # Photo editing: the recipe's choices, a history step's action, the rendition.
+        "EditRecipeVersionEnum": "api.serializers.photo_edits.RECIPE_VERSIONS",
+        "EditOrientationEnum": "api.serializers.photo_edits.EDIT_ORIENTATIONS",
+        "EditAspectEnum": "api.serializers.photo_edits.EDIT_ASPECTS",
+        "EditTreatmentEnum": "api.serializers.photo_edits.EDIT_TREATMENTS",
+        "EditHistoryActionEnum": "api.serializers.photo_edits.HISTORY_ACTIONS",
+        "EditRenditionEnum": "api.serializers.photo_edits.RENDITION_STATES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

@@ -42,6 +42,12 @@ The thumbnails and not actually square. You see them in the overview, when you s
 
 In order to make all files viewable, we create thumbnails for them. These are only static, as they are also used for all ML algorithms and face recognition to have a consistent format. These are the files you actually see in the lightbox.
 
+### /edits
+
+<Since version="1.7.0" />
+
+The edited pictures of photos you edited in LibrePhotos: `<hash>.jpg` is the edited photo at full size, which the photo view, downloads of one photo and shares show, and `<hash>.preview.jpg` a smaller render the thumbnails are made from while the full size is being made. Your original files are never changed. A photo's files here go when you undo its edit or delete the photo. The edits themselves are in the database: if you delete this folder, the thumbnails are rendered again when they are next made, but the full-size view shows the original until the photo is saved again in the editor.
+
 ### /chunked_uploads
 
 When you upload a file, it gets uploaded in chunks. While the upload is incomplete, the files are saved in that folder.

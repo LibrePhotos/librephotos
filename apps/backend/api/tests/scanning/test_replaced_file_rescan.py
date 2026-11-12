@@ -401,7 +401,7 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
         """Rotate a quarter turn clockwise, as the lightbox's button does.
 
         The frontend sends -90 for it: ``rotate_photo`` counts its angle
-        counter-clockwise as rendered (``_apply_local_orientation``).
+        counter-clockwise as rendered (``apply_local_orientation``).
         """
         loaded = Photo.objects.get(pk=photo.pk)
         rotate_photo(loaded, -90)

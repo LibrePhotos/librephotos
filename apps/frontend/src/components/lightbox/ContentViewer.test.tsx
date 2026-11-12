@@ -11,7 +11,8 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
-import { ContentViewer, escapeTargetsLightbox } from "./ContentViewer";
+import { ContentViewer } from "./ContentViewer";
+import { escapeTargetsDialog } from "./escapeTarget";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { useLightboxCommands, type LightboxCommands } from "./lightboxCommands";
 import type { MediaDisplayProps } from "./MediaDisplay";
@@ -188,15 +189,15 @@ const NEXT_ITEM = { mainSrc: "c", mainSrcHash: "hc", prevSrc: "b", prevSrcHash: 
 /** What the overlay paints: pure black (the theme's "black" is the near-black text colour), opaque. */
 const OPAQUE_BLACK = "rgba(0, 0, 0, 1)";
 
-describe("escapeTargetsLightbox", () => {
+describe("escapeTargetsDialog", () => {
   it("claims a key pressed on the page or inside the lightbox", () => {
     const lightbox = document.createElement("div");
     lightbox.setAttribute("role", "dialog");
     const button = document.createElement("button");
     lightbox.appendChild(button);
 
-    expect(escapeTargetsLightbox(document.body, lightbox)).toBe(true);
-    expect(escapeTargetsLightbox(button, lightbox)).toBe(true);
+    expect(escapeTargetsDialog(document.body, lightbox)).toBe(true);
+    expect(escapeTargetsDialog(button, lightbox)).toBe(true);
   });
 
   it("leaves a key pressed in a dialog opened on top of it alone", () => {
@@ -207,14 +208,14 @@ describe("escapeTargetsLightbox", () => {
     const input = document.createElement("button");
     other.appendChild(input);
 
-    expect(escapeTargetsLightbox(input, lightbox)).toBe(false);
+    expect(escapeTargetsDialog(input, lightbox)).toBe(false);
   });
 
   it("leaves a key alone that Mantine marks for an open menu or combobox", () => {
     const item = document.createElement("button");
     item.setAttribute("data-mantine-stop-propagation", "true");
 
-    expect(escapeTargetsLightbox(item, null)).toBe(false);
+    expect(escapeTargetsDialog(item, null)).toBe(false);
   });
 });
 

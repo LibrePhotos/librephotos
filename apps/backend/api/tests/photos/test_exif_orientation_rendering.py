@@ -24,7 +24,7 @@ from api.metadata.writer import read_orientation, write_metadata
 from api.runtime import binaries
 from api.thumbnails import decoding
 from api.thumbnails.render import (
-    _apply_local_orientation,
+    apply_local_orientation,
     exif_orientation_showing,
     renders_exif_orientation,
 )
@@ -92,7 +92,7 @@ class ExifOrientationRenderingTest(SimpleTestCase):
         for on_disk in range(1, 9):
             for local in range(1, 9):
                 with self.subTest(on_disk=on_disk, local=local):
-                    shown = _apply_local_orientation(
+                    shown = apply_local_orientation(
                         pyvips.Image.new_from_array(rendered[on_disk]), local
                     ).numpy()
 

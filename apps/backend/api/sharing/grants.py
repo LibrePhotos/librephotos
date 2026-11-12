@@ -203,6 +203,8 @@ SUMMARY_FIELDS: FieldRules = {
     "image_hash": (ALWAYS, None),
     "dominantColor": (ALWAYS, None),
     "thumbhash": (ALWAYS, None),
+    # The thumbnails everyone sees show the edit: their URL changes with it.
+    "thumbnail_version": (ALWAYS, None),
     "url": (ALWAYS, None),
     "location": ("location", ""),
     "date": ("timestamps", ""),
@@ -297,6 +299,8 @@ DETAIL_FIELDS: FieldRules = {
     # Camera, keywords, title and the edit history in one block.
     "metadata": (NEVER, None),
     "ocr": (NEVER, None),
+    # The edit's version and size: the recipient sees the edited picture.
+    "edit": (NEVER, None),
     "local_orientation": (ALWAYS, None),
     "original_mime_type": (ALWAYS, None),
     "projection_type": (ALWAYS, None),

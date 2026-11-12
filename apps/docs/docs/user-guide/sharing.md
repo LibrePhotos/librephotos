@@ -188,6 +188,12 @@ When you also [share your whole library](#sharing-your-whole-library) with someo
 
 Public links do not use this setting: what a visitor of a public album or photo link sees is set by the [Photo details](#photo-details) of the link, and **Share detected faces** there also shows only the people you named.
 
+## Edited photos
+
+<Since version="1.7.0" />
+
+When you share a photo you [edited](./editing-photos.md), everyone you share it with sees and downloads the edited picture, never your original file: users you share it or an album with, album members, people you share your library with and visitors of a public link. This holds even with **Original files** or **Download original files** on, and while the full-size edited picture is still being made. See [Downloads and sharing](./editing-photos.md#downloads-and-sharing).
+
 ## Public Album Sharing via Link
 
 You can create a public link for any user album, making it accessible to anyone — even people without an account on your LibrePhotos instance.

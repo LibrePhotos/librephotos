@@ -41,8 +41,9 @@ function Harness() {
   return null;
 }
 
-// Stands in for fetch: the hook reads only ok and blob() of the archive response.
-const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Pick<Response, "ok" | "blob">>>();
+const ZIP_HEADERS = new Headers({ "Content-Type": "application/x-zip-compressed" });
+// Stands in for fetch: the hook reads only ok, the type in headers and blob() of the archive response.
+const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Pick<Response, "ok" | "blob" | "headers">>>();
 
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -56,7 +57,7 @@ beforeEach(async () => {
   vi.stubGlobal("fetch", fetchMock);
   window.URL.createObjectURL = vi.fn(() => "blob:zip");
   window.URL.revokeObjectURL = vi.fn<(url: string) => void>();
-  fetchMock.mockResolvedValue({ ok: true, blob: async () => new Blob(["zip"]) });
+  fetchMock.mockResolvedValue({ ok: true, headers: ZIP_HEADERS, blob: async () => new Blob(["zip"]) });
   stubs.post.mockResolvedValue({ url: UUID, job_id: "job-1" });
   stubs.delete.mockResolvedValue({});
   const root = createRoot(document.createElement("div"));
@@ -102,6 +103,7 @@ describe("useDownloadPhotosMutation", () => {
     let finishBlob: ((blob: Blob) => void) | undefined;
     fetchMock.mockResolvedValueOnce({
       ok: true,
+      headers: ZIP_HEADERS,
       blob: () =>
         new Promise<Blob>(resolve => {
           finishBlob = resolve;

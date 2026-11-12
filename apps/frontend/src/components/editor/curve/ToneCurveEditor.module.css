@@ -1,0 +1,79 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.box {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: visible;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.histogram {
+  fill: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-5));
+}
+
+.grid line {
+  stroke: var(--mantine-color-default-border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.diagonal {
+  stroke: var(--mantine-color-dimmed);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.5;
+}
+
+.curve {
+  fill: none;
+  stroke: var(--curve-color, var(--mantine-color-bright));
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.point {
+  fill: var(--mantine-color-body);
+  stroke: var(--curve-color, var(--mantine-color-bright));
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+  outline: none;
+}
+
+.point[data-selected] {
+  fill: var(--curve-color, var(--mantine-color-bright));
+}
+
+.point:focus-visible {
+  stroke: var(--mantine-primary-color-filled);
+  stroke-width: 3;
+}
+
+.readout {
+  min-height: 18px;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  font-variant-numeric: tabular-nums;
+}
+
+.root[data-channel="red"] {
+  --curve-color: var(--mantine-color-red-6);
+}
+
+.root[data-channel="green"] {
+  --curve-color: var(--mantine-color-green-6);
+}
+
+.root[data-channel="blue"] {
+  --curve-color: var(--mantine-color-blue-6);
+}

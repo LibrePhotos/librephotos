@@ -9,6 +9,8 @@ from django.db import transaction
 from django.utils import timezone
 from PIL import Image
 
+from api.editing.faces import place_after_regeneration
+from api.editing.thumbnail_source import shows_edit, thumbnail_source
 from api.lazy_import import LazyModule
 from api.mime import EXIF_ORIENTED_EXTENSIONS, extension
 from api.models.photo import Photo
@@ -23,7 +25,7 @@ from api.photos.file_cleanup import delete_thumbnail_files
 from api.photos.media_files import is_raw
 from api.runtime import binaries, sidecars
 from api.runtime.features import feature_enabled
-from api.thumbnails import face_boxes, thumbhash
+from api.thumbnails import thumbhash
 from api.video import color
 from api.video.no_metadata import NO_METADATA
 
@@ -56,7 +58,7 @@ _ORIENTATION_TRANSFORMS = {
 }
 
 
-def _apply_local_orientation(
+def apply_local_orientation(
     image: pyvips.Image, local_orientation: int
 ) -> pyvips.Image:
     """Apply a user-specified orientation transform to an already-upright pyvips image.
@@ -152,14 +154,14 @@ def exif_orientation_showing(exif_orientation: int, local_orientation: int) -> i
     A file tagged ``exif_orientation`` and rendered with ``local_orientation``
     on top looks exactly like the same file tagged with the returned value and
     rendered with no local orientation. Worked out by running both through
-    libvips' own autorotation and ``_apply_local_orientation`` on a small
+    libvips' own autorotation and ``apply_local_orientation`` on a small
     asymmetric image, because the two do not share a convention:
-    ``_apply_local_orientation`` renders 6 as a quarter turn counter-clockwise
+    ``apply_local_orientation`` renders 6 as a quarter turn counter-clockwise
     where EXIF 6 is clockwise (the frontend negates the angle it sends to
     match), so composing the numbers directly writes the opposite turn.
     """
     probe = pyvips.Image.new_from_array(np.arange(6, dtype=np.uint8).reshape(2, 3))
-    target = _apply_local_orientation(
+    target = apply_local_orientation(
         _autorotated(probe, exif_orientation), local_orientation
     ).numpy()
     for candidate in range(1, 9):
@@ -180,7 +182,7 @@ def _reorient_file_in_place(complete_path: str, local_orientation: int) -> None:
         return
     x = pyvips.Image.new_from_file(complete_path)
     x = x.copy_memory()
-    x = _apply_local_orientation(x, local_orientation)
+    x = apply_local_orientation(x, local_orientation)
     x.write_to_file(complete_path, **_big_webp())
 
 
@@ -228,7 +230,7 @@ def _resize_big_thumbnail(
 
 def _oriented(image: pyvips.Image, local_orientation: int) -> pyvips.Image:
     if local_orientation and local_orientation != 1:
-        return _apply_local_orientation(image, local_orientation)
+        return apply_local_orientation(image, local_orientation)
     return image
 
 
@@ -668,7 +670,10 @@ def _remove_replaced_video_squares(photo_hash: str, extension: str) -> None:
 
 
 def _create_missing_static_thumbnails(thumbnail: Thumbnail) -> None:
-    """A photo's three WebP thumbnails, those that are not on disk yet."""
+    """A photo's three WebP thumbnails, those that are not on disk yet.
+
+    Made from the photo's edit when it has one (``thumbnail_source``).
+    """
     photo = thumbnail.photo
     missing = [
         output_path
@@ -676,11 +681,14 @@ def _create_missing_static_thumbnails(thumbnail: Thumbnail) -> None:
         if not does_static_thumbnail_exist(output_path, photo.image_hash)
     ]
     if missing:
+        input_path, local_orientation = thumbnail_source(
+            photo, thumbnail.main_file_path()
+        )
         create_static_thumbnails(
-            input_path=thumbnail.main_file_path(),
+            input_path=input_path,
             hash=photo.image_hash,
             output_paths=missing,
-            local_orientation=getattr(photo, "local_orientation", 1) or 1,
+            local_orientation=local_orientation,
         )
 
 
@@ -734,7 +742,7 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
 
 
 def regenerate_thumbnails(
-    thumbnail: Thumbnail, keep_old_on_failure: bool = False
+    thumbnail: Thumbnail, keep_old_on_failure: bool = False, rescale_faces: bool = True
 ) -> None:
     """Delete all existing thumbnail files and regenerate them.
 
@@ -748,6 +756,9 @@ def regenerate_thumbnails(
     fails they are put back: a washed-out thumbnail beats none at all. A
     rotation or a rewritten file leaves the old ones showing a picture that
     is no longer the photo's, so those still start from nothing.
+
+    ``rescale_faces=False`` leaves the face boxes to the caller: a saved edit
+    moves them through its geometry (``api.editing.renditions``).
     """
     photo_hash = thumbnail.photo.image_hash
     big_before = big_thumbnail_size(photo_hash)
@@ -774,10 +785,12 @@ def regenerate_thumbnails(
 
     calculate_aspect_ratio(thumbnail)
     refresh_perceptual_hash(thumbnail)
-    # BIG_THUMBNAIL_HEIGHT may have changed since the faces were found.
-    face_boxes.rescale_face_boxes(
-        thumbnail.photo, big_before, big_thumbnail_size(photo_hash)
-    )
+    # BIG_THUMBNAIL_HEIGHT may have changed since the faces were found; an
+    # edit's crop or turn keeps the boxes on the unedited picture.
+    if rescale_faces:
+        place_after_regeneration(
+            thumbnail.photo, big_before, big_thumbnail_size(photo_hash)
+        )
 
 
 def refresh_dominant_color(thumbnail: Thumbnail) -> None:
@@ -839,8 +852,14 @@ def refresh_perceptual_hash(thumbnail: Thumbnail) -> None:
     The scan compares this against the file on disk to tell a rewritten
     file from a replaced one, so a stale value left behind by a rotation
     would cost the photo its faces on the next scan.
+
+    An edited photo keeps the hash of its original: the scan compares the
+    file, not the edit, and an edit is not a new picture.
     """
     from api.duplicates.perceptual_hash import calculate_hash_from_thumbnail
+
+    if shows_edit(thumbnail.photo):
+        return
 
     big = thumbnail.thumbnail_big
     if not big or not os.path.exists(big.path):

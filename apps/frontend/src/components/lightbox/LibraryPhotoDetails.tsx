@@ -11,6 +11,8 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
+import { saveMediaFile } from "../../api_client/media/saveMedia";
+import { notification } from "../../service/notifications";
 import { firstName, personName, type LibraryPhoto } from "../libraryShare/libraryShareFields";
 import { PublicRightsSection } from "../rights/PublicRightsSection";
 import { CameraInfoSection } from "./CameraInfoSection";
@@ -27,7 +29,9 @@ type Props = Readonly<{
 
 const ignore = () => {};
 
-// No file names are shared: a download is named by the photo's hash. A copy of a still is a JPEG.
+// No file names are shared: a download is named by the photo's hash. A copy of a still is a JPEG,
+// and so is an edited photo's original, which the owner's edit replaces for everyone else: a still
+// is saved through saveMediaFile, which gives the name the extension of the bytes it got.
 function downloadName(photo: LibraryPhoto): string {
   return photo.shared_library.originals || photo.video ? photo.image_hash : `${photo.image_hash}.jpg`;
 }
@@ -92,16 +96,31 @@ export function LibraryPhotoDetails({ photo, setFaceLocation }: Props) {
       )}
       <PublicRightsSection rights={photo.rights} />
       <Group gap="sm" wrap="nowrap">
-        <Button
-          component="a"
-          href={mediaUrl.photo(photo.image_hash)}
-          download={downloadName(photo)}
-          variant="default"
-          size="xs"
-          leftSection={<IconDownload size={14} />}
-        >
-          {t("librarySharing.download")}
-        </Button>
+        {photo.video ? (
+          <Button
+            component="a"
+            href={mediaUrl.photo(photo.image_hash)}
+            download={downloadName(photo)}
+            variant="default"
+            size="xs"
+            leftSection={<IconDownload size={14} />}
+          >
+            {t("librarySharing.download")}
+          </Button>
+        ) : (
+          <Button
+            variant="default"
+            size="xs"
+            leftSection={<IconDownload size={14} />}
+            onClick={() => {
+              saveMediaFile(mediaUrl.photo(photo.image_hash), downloadName(photo)).catch(() =>
+                notification.error(t("lightbox.download.failed"))
+              );
+            }}
+          >
+            {t("librarySharing.download")}
+          </Button>
+        )}
         {!grant.originals && (
           <Text size="xs" c="dimmed">
             {t("librarySharing.copiesOnlyNote")}
