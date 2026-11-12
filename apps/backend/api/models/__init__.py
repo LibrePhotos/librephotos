@@ -27,6 +27,7 @@ from api.models.person_group import PersonGroup
 from api.models.person_share import PersonShare, PersonSharePhoto
 from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
+from api.models.photo_edit import PhotoEdit
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_search import PhotoSearch
@@ -70,6 +71,7 @@ __all__ = [
     "PersonSharePhoto",
     "Photo",
     "PhotoCaption",
+    "PhotoEdit",
     "PhotoMetadata",
     "PhotoOcr",
     "PhotoSearch",

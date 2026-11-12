@@ -8216,6 +8216,179 @@
         }
       }
     },
+    "/api/photos/{photo_id}/edit/": {
+      "get": {
+        "operationId": "photo_edit_retrieve",
+        "description": "The photo's edit: recipe, history and rendition. A photo never edited answers the default recipe with version 0. Owner only (404 otherwise).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoEditState"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "photo_edit_update",
+        "description": "Save the photo's recipe and history. The thumbnails show the edit when this answers; the full-size rendition is rendered afterwards (rendition pending). 400 not_editable for a video, not_decodable for a file that is not a picture; 404 file_missing when the file is not on disk.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoEditUpdateRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoEditUpdateRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoEditUpdateRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoEditState"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "photo_edit_destroy",
+        "description": "Remove the photo's edit, its history and its rendition; the photo shows its original again.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/photos/{photo_id}/edit/source/": {
+      "get": {
+        "operationId": "photo_edit_source_retrieve",
+        "description": "The photo's edit source file (LPES, see the photo editing docs): the upright picture reduced for the editor's preview. Revalidated by ETag. 400 not_editable for a video, not_decodable for a file that is not a picture; 404 file_missing when the file is not on disk.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "photo_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": "An edit source file"
+          },
+          "304": {
+            "description": "Unchanged since the ETag sent"
+          }
+        }
+      }
+    },
     "/api/photos/{photo_id}/metadata/": {
       "get": {
         "operationId": "api_photos_metadata_retrieve",
@@ -15823,6 +15996,15 @@
             "required": true
           },
           {
+            "in": "query",
+            "name": "original",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "1 asks for an edited photo's original file instead of its edit"
+          },
+          {
             "in": "path",
             "name": "path",
             "schema": {
@@ -19292,6 +19474,1351 @@
         ],
         "type": "string",
         "description": "* `exact_copy` - Exact Copies\n* `visual_duplicate` - Visual Duplicates"
+      },
+      "EditAspectEnum": {
+        "enum": [
+          "original",
+          "1:1",
+          "4:5",
+          "5:4",
+          "5:7",
+          "7:5",
+          "2:3",
+          "3:2",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "16:10",
+          "10:16"
+        ],
+        "type": "string",
+        "description": "* `original` - original\n* `1:1` - 1:1\n* `4:5` - 4:5\n* `5:4` - 5:4\n* `5:7` - 5:7\n* `7:5` - 7:5\n* `2:3` - 2:3\n* `3:2` - 3:2\n* `4:3` - 4:3\n* `3:4` - 3:4\n* `16:9` - 16:9\n* `9:16` - 9:16\n* `16:10` - 16:10\n* `10:16` - 10:16"
+      },
+      "EditBand": {
+        "type": "object",
+        "description": "One band of the colour mixer.",
+        "properties": {
+          "hue": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "sat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "lum": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditBandRequest": {
+        "type": "object",
+        "description": "One band of the colour mixer.",
+        "properties": {
+          "hue": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "sat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "lum": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditBwMix": {
+        "type": "object",
+        "properties": {
+          "red": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "orange": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "yellow": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "green": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "aqua": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "blue": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "purple": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "magenta": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditBwMixRequest": {
+        "type": "object",
+        "properties": {
+          "red": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "orange": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "yellow": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "green": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "aqua": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "blue": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "purple": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "magenta": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditColor": {
+        "type": "object",
+        "properties": {
+          "vibrance": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "saturation": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "treatment": {
+            "$ref": "#/components/schemas/EditTreatmentEnum"
+          }
+        }
+      },
+      "EditColorRequest": {
+        "type": "object",
+        "properties": {
+          "vibrance": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "saturation": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "treatment": {
+            "$ref": "#/components/schemas/EditTreatmentEnum"
+          }
+        }
+      },
+      "EditCrop": {
+        "type": "object",
+        "description": "A crop: centre and size in parts of the oriented picture (w and h above 0).",
+        "properties": {
+          "cx": {
+            "type": "number",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "description": "Default 0.5"
+          },
+          "cy": {
+            "type": "number",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "description": "Default 0.5"
+          },
+          "w": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 1,
+            "description": "Above 0; default 1"
+          },
+          "h": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 1,
+            "description": "Above 0; default 1"
+          }
+        },
+        "required": [
+          "cx",
+          "cy",
+          "h",
+          "w"
+        ]
+      },
+      "EditCropRequest": {
+        "type": "object",
+        "description": "A crop: centre and size in parts of the oriented picture (w and h above 0).",
+        "properties": {
+          "cx": {
+            "type": "number",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "description": "Default 0.5"
+          },
+          "cy": {
+            "type": "number",
+            "format": "double",
+            "maximum": 1,
+            "minimum": 0,
+            "description": "Default 0.5"
+          },
+          "w": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 1,
+            "description": "Above 0; default 1"
+          },
+          "h": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 1,
+            "description": "Above 0; default 1"
+          }
+        },
+        "required": [
+          "cx",
+          "cy",
+          "h",
+          "w"
+        ]
+      },
+      "EditCurve": {
+        "type": "object",
+        "properties": {
+          "master": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "description": "Points [x, y], x strictly increasing; default [[0, 0], [1, 1]]",
+            "maxItems": 16,
+            "minItems": 2
+          },
+          "red": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "description": "Points [x, y], x strictly increasing; default [[0, 0], [1, 1]]",
+            "maxItems": 16,
+            "minItems": 2
+          },
+          "green": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "description": "Points [x, y], x strictly increasing; default [[0, 0], [1, 1]]",
+            "maxItems": 16,
+            "minItems": 2
+          },
+          "blue": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "description": "Points [x, y], x strictly increasing; default [[0, 0], [1, 1]]",
+            "maxItems": 16,
+            "minItems": 2
+          }
+        }
+      },
+      "EditCurveRequest": {
+        "type": "object",
+        "properties": {
+          "master": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "description": "Points [x, y], x strictly increasing; default [[0, 0], [1, 1]]",
+            "maxItems": 16,
+            "minItems": 2
+          },
+          "red": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "description": "Points [x, y], x strictly increasing; default [[0, 0], [1, 1]]",
+            "maxItems": 16,
+            "minItems": 2
+          },
+          "green": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "description": "Points [x, y], x strictly increasing; default [[0, 0], [1, 1]]",
+            "maxItems": 16,
+            "minItems": 2
+          },
+          "blue": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double",
+                "maximum": 1,
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "description": "Points [x, y], x strictly increasing; default [[0, 0], [1, 1]]",
+            "maxItems": 16,
+            "minItems": 2
+          }
+        }
+      },
+      "EditDetail": {
+        "type": "object",
+        "properties": {
+          "sharpen_amount": {
+            "type": "number",
+            "format": "double",
+            "maximum": 150,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "sharpen_radius": {
+            "type": "number",
+            "format": "double",
+            "maximum": 3,
+            "minimum": 0.5,
+            "description": "Default 1"
+          },
+          "nr_luminance": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "nr_color": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditDetailRequest": {
+        "type": "object",
+        "properties": {
+          "sharpen_amount": {
+            "type": "number",
+            "format": "double",
+            "maximum": 150,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "sharpen_radius": {
+            "type": "number",
+            "format": "double",
+            "maximum": 3,
+            "minimum": 0.5,
+            "description": "Default 1"
+          },
+          "nr_luminance": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "nr_color": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditEffects": {
+        "type": "object",
+        "properties": {
+          "texture": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "clarity": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "dehaze": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditEffectsRequest": {
+        "type": "object",
+        "properties": {
+          "texture": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "clarity": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "dehaze": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditGeometry": {
+        "type": "object",
+        "properties": {
+          "orientation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditOrientationEnum"
+              }
+            ],
+            "description": "Quarter turns clockwise, in degrees\n\n* `0` - 0\n* `90` - 90\n* `180` - 180\n* `270` - 270"
+          },
+          "flip_h": {
+            "type": "boolean"
+          },
+          "flip_v": {
+            "type": "boolean"
+          },
+          "straighten": {
+            "type": "number",
+            "format": "double",
+            "maximum": 45,
+            "minimum": -45,
+            "description": "Default 0"
+          },
+          "crop": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditCrop"
+              }
+            ],
+            "nullable": true
+          },
+          "aspect": {
+            "nullable": true,
+            "description": "The aspect ratio the crop is locked to (the editor's lock only)\n\n* `original` - original\n* `1:1` - 1:1\n* `4:5` - 4:5\n* `5:4` - 5:4\n* `5:7` - 5:7\n* `7:5` - 7:5\n* `2:3` - 2:3\n* `3:2` - 3:2\n* `4:3` - 4:3\n* `3:4` - 3:4\n* `16:9` - 16:9\n* `9:16` - 9:16\n* `16:10` - 16:10\n* `10:16` - 10:16",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EditAspectEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          }
+        }
+      },
+      "EditGeometryRequest": {
+        "type": "object",
+        "properties": {
+          "orientation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditOrientationEnum"
+              }
+            ],
+            "description": "Quarter turns clockwise, in degrees\n\n* `0` - 0\n* `90` - 90\n* `180` - 180\n* `270` - 270"
+          },
+          "flip_h": {
+            "type": "boolean"
+          },
+          "flip_v": {
+            "type": "boolean"
+          },
+          "straighten": {
+            "type": "number",
+            "format": "double",
+            "maximum": 45,
+            "minimum": -45,
+            "description": "Default 0"
+          },
+          "crop": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditCropRequest"
+              }
+            ],
+            "nullable": true
+          },
+          "aspect": {
+            "nullable": true,
+            "description": "The aspect ratio the crop is locked to (the editor's lock only)\n\n* `original` - original\n* `1:1` - 1:1\n* `4:5` - 4:5\n* `5:4` - 5:4\n* `5:7` - 5:7\n* `7:5` - 7:5\n* `2:3` - 2:3\n* `3:2` - 3:2\n* `4:3` - 4:3\n* `3:4` - 3:4\n* `16:9` - 16:9\n* `9:16` - 9:16\n* `16:10` - 16:10\n* `10:16` - 10:16",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EditAspectEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          }
+        }
+      },
+      "EditGrading": {
+        "type": "object",
+        "properties": {
+          "shadows": {
+            "$ref": "#/components/schemas/EditWheel"
+          },
+          "midtones": {
+            "$ref": "#/components/schemas/EditWheel"
+          },
+          "highlights": {
+            "$ref": "#/components/schemas/EditWheel"
+          },
+          "global": {
+            "$ref": "#/components/schemas/EditWheel"
+          },
+          "blending": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 50"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditGradingRequest": {
+        "type": "object",
+        "properties": {
+          "shadows": {
+            "$ref": "#/components/schemas/EditWheelRequest"
+          },
+          "midtones": {
+            "$ref": "#/components/schemas/EditWheelRequest"
+          },
+          "highlights": {
+            "$ref": "#/components/schemas/EditWheelRequest"
+          },
+          "global": {
+            "$ref": "#/components/schemas/EditWheelRequest"
+          },
+          "blending": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 50"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditGrain": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "size": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 25"
+          },
+          "roughness": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 50"
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 4294967295,
+            "minimum": 0,
+            "format": "int64"
+          }
+        }
+      },
+      "EditGrainRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "size": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 25"
+          },
+          "roughness": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 50"
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 4294967295,
+            "minimum": 0,
+            "format": "int64"
+          }
+        }
+      },
+      "EditHistoryActionEnum": {
+        "enum": [
+          "set",
+          "crop",
+          "preset",
+          "auto",
+          "paste",
+          "reset",
+          "import"
+        ],
+        "type": "string",
+        "description": "* `set` - set\n* `crop` - crop\n* `preset` - preset\n* `auto` - auto\n* `paste` - paste\n* `reset` - reset\n* `import` - import"
+      },
+      "EditHistoryStep": {
+        "type": "object",
+        "description": "One step of an edit's history: what it did and the recipe after it.",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/EditHistoryActionEnum"
+          },
+          "control": {
+            "type": "string",
+            "nullable": true,
+            "description": "The dotted path of the control a set step changed",
+            "maxLength": 64
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "maxLength": 64
+              }
+            ],
+            "nullable": true
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/EditRecipe"
+          }
+        },
+        "required": [
+          "action",
+          "at",
+          "settings"
+        ]
+      },
+      "EditHistoryStepRequest": {
+        "type": "object",
+        "description": "One step of an edit's history: what it did and the recipe after it.",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/EditHistoryActionEnum"
+          },
+          "control": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "description": "The dotted path of the control a set step changed",
+            "maxLength": 64
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string",
+                "maxLength": 64
+              }
+            ],
+            "nullable": true
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/EditRecipeRequest"
+          }
+        },
+        "required": [
+          "action",
+          "at",
+          "settings"
+        ]
+      },
+      "EditLight": {
+        "type": "object",
+        "properties": {
+          "exposure": {
+            "type": "number",
+            "format": "double",
+            "maximum": 5,
+            "minimum": -5,
+            "description": "Default 0"
+          },
+          "contrast": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "highlights": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "shadows": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "whites": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "blacks": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditLightRequest": {
+        "type": "object",
+        "properties": {
+          "exposure": {
+            "type": "number",
+            "format": "double",
+            "maximum": 5,
+            "minimum": -5,
+            "description": "Default 0"
+          },
+          "contrast": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "highlights": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "shadows": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "whites": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "blacks": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditMixer": {
+        "type": "object",
+        "properties": {
+          "red": {
+            "$ref": "#/components/schemas/EditBand"
+          },
+          "orange": {
+            "$ref": "#/components/schemas/EditBand"
+          },
+          "yellow": {
+            "$ref": "#/components/schemas/EditBand"
+          },
+          "green": {
+            "$ref": "#/components/schemas/EditBand"
+          },
+          "aqua": {
+            "$ref": "#/components/schemas/EditBand"
+          },
+          "blue": {
+            "$ref": "#/components/schemas/EditBand"
+          },
+          "purple": {
+            "$ref": "#/components/schemas/EditBand"
+          },
+          "magenta": {
+            "$ref": "#/components/schemas/EditBand"
+          }
+        }
+      },
+      "EditMixerRequest": {
+        "type": "object",
+        "properties": {
+          "red": {
+            "$ref": "#/components/schemas/EditBandRequest"
+          },
+          "orange": {
+            "$ref": "#/components/schemas/EditBandRequest"
+          },
+          "yellow": {
+            "$ref": "#/components/schemas/EditBandRequest"
+          },
+          "green": {
+            "$ref": "#/components/schemas/EditBandRequest"
+          },
+          "aqua": {
+            "$ref": "#/components/schemas/EditBandRequest"
+          },
+          "blue": {
+            "$ref": "#/components/schemas/EditBandRequest"
+          },
+          "purple": {
+            "$ref": "#/components/schemas/EditBandRequest"
+          },
+          "magenta": {
+            "$ref": "#/components/schemas/EditBandRequest"
+          }
+        }
+      },
+      "EditOrientationEnum": {
+        "enum": [
+          0,
+          90,
+          180,
+          270
+        ],
+        "type": "integer",
+        "description": "* `0` - 0\n* `90` - 90\n* `180` - 180\n* `270` - 270"
+      },
+      "EditRecipe": {
+        "type": "object",
+        "description": "An edit recipe: sparse, a missing key is its default; unknown keys are refused.",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/EditRecipeVersionEnum"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/EditGeometry"
+          },
+          "wb": {
+            "$ref": "#/components/schemas/EditWhiteBalance"
+          },
+          "light": {
+            "$ref": "#/components/schemas/EditLight"
+          },
+          "curve": {
+            "$ref": "#/components/schemas/EditCurve"
+          },
+          "color": {
+            "$ref": "#/components/schemas/EditColor"
+          },
+          "mixer": {
+            "$ref": "#/components/schemas/EditMixer"
+          },
+          "bw_mix": {
+            "$ref": "#/components/schemas/EditBwMix"
+          },
+          "grading": {
+            "$ref": "#/components/schemas/EditGrading"
+          },
+          "effects": {
+            "$ref": "#/components/schemas/EditEffects"
+          },
+          "vignette": {
+            "$ref": "#/components/schemas/EditVignette"
+          },
+          "grain": {
+            "$ref": "#/components/schemas/EditGrain"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/EditDetail"
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "EditRecipeRequest": {
+        "type": "object",
+        "description": "An edit recipe: sparse, a missing key is its default; unknown keys are refused.",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/EditRecipeVersionEnum"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/EditGeometryRequest"
+          },
+          "wb": {
+            "$ref": "#/components/schemas/EditWhiteBalanceRequest"
+          },
+          "light": {
+            "$ref": "#/components/schemas/EditLightRequest"
+          },
+          "curve": {
+            "$ref": "#/components/schemas/EditCurveRequest"
+          },
+          "color": {
+            "$ref": "#/components/schemas/EditColorRequest"
+          },
+          "mixer": {
+            "$ref": "#/components/schemas/EditMixerRequest"
+          },
+          "bw_mix": {
+            "$ref": "#/components/schemas/EditBwMixRequest"
+          },
+          "grading": {
+            "$ref": "#/components/schemas/EditGradingRequest"
+          },
+          "effects": {
+            "$ref": "#/components/schemas/EditEffectsRequest"
+          },
+          "vignette": {
+            "$ref": "#/components/schemas/EditVignetteRequest"
+          },
+          "grain": {
+            "$ref": "#/components/schemas/EditGrainRequest"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/EditDetailRequest"
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "EditRecipeVersionEnum": {
+        "enum": [
+          1
+        ],
+        "type": "integer",
+        "description": "* `1` - 1"
+      },
+      "EditRenditionEnum": {
+        "enum": [
+          "none",
+          "pending",
+          "ready",
+          "failed"
+        ],
+        "type": "string",
+        "description": "* `none` - none\n* `pending` - pending\n* `ready` - ready\n* `failed` - failed"
+      },
+      "EditTreatmentEnum": {
+        "enum": [
+          "color",
+          "bw"
+        ],
+        "type": "string",
+        "description": "* `color` - color\n* `bw` - bw"
+      },
+      "EditVignette": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "midpoint": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 50"
+          },
+          "feather": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 50"
+          },
+          "roundness": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditVignetteRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "midpoint": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 50"
+          },
+          "feather": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 50"
+          },
+          "roundness": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditWheel": {
+        "type": "object",
+        "description": "One colour grading wheel.",
+        "properties": {
+          "hue": {
+            "type": "number",
+            "format": "double",
+            "maximum": 360,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "sat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "lum": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditWheelRequest": {
+        "type": "object",
+        "description": "One colour grading wheel.",
+        "properties": {
+          "hue": {
+            "type": "number",
+            "format": "double",
+            "maximum": 360,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "sat": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "description": "Default 0"
+          },
+          "lum": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditWhiteBalance": {
+        "type": "object",
+        "properties": {
+          "temp": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "tint": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
+      },
+      "EditWhiteBalanceRequest": {
+        "type": "object",
+        "properties": {
+          "temp": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          },
+          "tint": {
+            "type": "number",
+            "format": "double",
+            "maximum": 100,
+            "minimum": -100,
+            "description": "Default 0"
+          }
+        }
       },
       "EmailConfigRequestRequest": {
         "type": "object",
@@ -24566,6 +26093,15 @@
             "description": "OCR text plus block geometry normalized to [0, 1], owner-only.\n\nOCR text is privacy-sensitive (receipts, letters, IDs), so it is served\nexclusively to the photo's owner: the detail endpoint also answers for\nshared and public photos (even anonymously), and those viewers must not\nreceive the extracted text. Without a request in the serializer context\nthe owner cannot be verified, so nothing is exposed.\n\nThe stored boxes are pixel coordinates in the OCR source image (the\noriginal file or the big thumbnail, whichever was fed to the sidecar).\nBoth share the photo's aspect ratio, so dividing by the stored source\ndimensions yields display-agnostic fractions the frontend can lay over\nany rendition. Rows written before the dimensions were stored get their\ntext but no blocks (no overlay is possible without a reference frame).",
             "readOnly": true
           },
+          "edit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhotoEditSummary"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "local_orientation": {
             "type": "integer",
             "maximum": 9223372036854775807,
@@ -24609,6 +26145,7 @@
           "category_source",
           "date_set_by_user",
           "digitalZoomRatio",
+          "edit",
           "embedded_media",
           "exif_gps_lat",
           "exif_gps_lon",
@@ -24865,6 +26402,98 @@
         },
         "required": [
           "image_hash"
+        ]
+      },
+      "PhotoEditState": {
+        "type": "object",
+        "description": "``GET``/``PUT /api/photos/<photo_id>/edit/``: a photo's edit.\n\nA photo never edited answers the default recipe with ``version`` 0 and\n``updated_at`` null.",
+        "properties": {
+          "photo_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/EditRecipe"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditHistoryStep"
+            }
+          },
+          "history_cursor": {
+            "type": "integer",
+            "minimum": -1
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rendition": {
+            "$ref": "#/components/schemas/EditRenditionEnum"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "history",
+          "history_cursor",
+          "photo_id",
+          "rendition",
+          "settings",
+          "updated_at",
+          "version"
+        ]
+      },
+      "PhotoEditSummary": {
+        "type": "object",
+        "description": "``Photo.edit``: the edited picture of a photo with a rendition, owner only.",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "rendition": {
+            "$ref": "#/components/schemas/EditRenditionEnum"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "height",
+          "rendition",
+          "version",
+          "width"
+        ]
+      },
+      "PhotoEditUpdateRequestRequest": {
+        "type": "object",
+        "description": "The body of ``PUT /api/photos/<photo_id>/edit/``.\n\n``settings`` is the recipe of the step under ``history_cursor`` (the\ndefault recipe at -1); with an empty history the cursor is -1.",
+        "properties": {
+          "settings": {
+            "$ref": "#/components/schemas/EditRecipeRequest"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditHistoryStepRequest"
+            }
+          },
+          "history_cursor": {
+            "type": "integer",
+            "minimum": -1
+          }
+        },
+        "required": [
+          "history",
+          "history_cursor",
+          "settings"
         ]
       },
       "PhotoGroupStats": {

@@ -79,6 +79,7 @@ from api.views import (
     person_groups,
     person_sharing,
     photo_dates,
+    photo_edits,
     photo_locations,
     photo_metadata,
     photo_moves,
@@ -776,6 +777,12 @@ urlpatterns = [
     path(
         "api/photos/<uuid:photo_id>/metadata/raw/",
         photo_metadata.RawMetadataView.as_view(),
+    ),
+    # A photo's non-destructive edit (apps/docs/docs/development/photo-editing.md)
+    path("api/photos/<uuid:photo_id>/edit/", photo_edits.PhotoEditView.as_view()),
+    path(
+        "api/photos/<uuid:photo_id>/edit/source/",
+        photo_edits.PhotoEditSourceView.as_view(),
     ),
     re_path(
         rf"^api/photos/(?P<photo_id>{PHOTO_KEY_REGEX})/metadata/history/?$",

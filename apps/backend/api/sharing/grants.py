@@ -297,6 +297,8 @@ DETAIL_FIELDS: FieldRules = {
     # Camera, keywords, title and the edit history in one block.
     "metadata": (NEVER, None),
     "ocr": (NEVER, None),
+    # The edit's version and size: the recipient sees the edited picture.
+    "edit": (NEVER, None),
     "local_orientation": (ALWAYS, None),
     "original_mime_type": (ALWAYS, None),
     "projection_type": (ALWAYS, None),

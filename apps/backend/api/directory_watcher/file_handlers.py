@@ -37,6 +37,7 @@ from api.duplicates.perceptual_hash import (
     calculate_hash_from_thumbnail,
     calculate_perceptual_hash,
 )
+from api.editing.thumbnail_source import shows_edit
 from api.metadata import edits, photo_reader, takeout
 from api.metadata.datetime_rules import CaptureTime
 from api.metadata.photo_datetime import extract_date_time
@@ -1163,8 +1164,13 @@ def _process_photo(
         "job %s: calculate aspect ratio: %s, elapsed: %s", job_id, path, elapsed
     )
 
-    # Calculate perceptual hash for duplicate detection
-    if thumbnail.thumbnail_big and os.path.exists(thumbnail.thumbnail_big.path):
+    # Calculate perceptual hash for duplicate detection; an edited photo keeps
+    # the hash of its original (``refresh_perceptual_hash``).
+    if (
+        thumbnail.thumbnail_big
+        and os.path.exists(thumbnail.thumbnail_big.path)
+        and not shows_edit(photo)
+    ):
         phash = calculate_hash_from_thumbnail(thumbnail.thumbnail_big.path)
         if phash:
             photo.perceptual_hash = phash

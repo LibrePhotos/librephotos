@@ -243,6 +243,8 @@ CLIENT_PATHS = {
     "/api/photos/edit/1/": "api.views.photos.PhotoEditViewSet delete=destroy,get=retrieve,patch=partial_update,put=update",
     "/api/photos/metadata/bulk": "api.views.photo_metadata.BulkMetadataView",
     "/api/photos/4f1c2d3e-0000-4000-8000-000000000001/metadata/raw/": "api.views.photo_metadata.RawMetadataView",
+    "/api/photos/4f1c2d3e-0000-4000-8000-000000000001/edit/": "api.views.photo_edits.PhotoEditView",
+    "/api/photos/4f1c2d3e-0000-4000-8000-000000000001/edit/source/": "api.views.photo_edits.PhotoEditSourceView",
     "/api/photos/located-nearby-in-time/": "api.views.photo_locations.LocatedNearbyInTimeView",
     "/api/photos/location-summary/": "api.views.photo_locations.LocationSummaryView",
     "/api/photos/map-points/": "api.views.places_map.PhotoMapPointsView",

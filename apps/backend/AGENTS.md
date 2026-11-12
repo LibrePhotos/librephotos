@@ -197,7 +197,8 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   area, e.g. `api/tests/metadata/`) and the domain packages: `accounts/` (JWT cookie auth, auth cookies,
   permission classes, throttles, allauth adapters, user deletion, public URL, mail backend), `albums/`
   (event albums, timeline filter), `classification/` (captions, document and screenshot heuristics),
-  `dataviz/` (stats, chart palettes), `directory_watcher/` (the scan pipeline), `drf/` (request parsing,
+  `dataviz/` (stats, chart palettes), `directory_watcher/` (the scan pipeline), `editing/` (the edit recipe,
+  its numpy renderer, a photo's renditions and the file its thumbnails are made from), `drf/` (request parsing,
   request user, API exceptions, pagination, OpenAPI schema class), `duplicates/`, `faces/` (face service
   client, detection, clustering, training, social graph, box overlap), `geocode/`, `jobs/` (the queue,
   starting a job from a request), `metadata/` (read, write, date rules, orientation), `photos/` (file type

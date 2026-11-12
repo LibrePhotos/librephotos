@@ -18,6 +18,7 @@ from api.drf.params import (
     required_string,
 )
 from api.drf.request_user import request_user
+from api.editing.recipe import changes_geometry, recipe_from_json
 from api.faces.recipients import faces_shown_to, is_named
 from api.geocode.photo_location import GeocodeStatus, geocode_status, has_place
 from api.metadata import edits
@@ -27,6 +28,7 @@ from api.mime import original_mime_type
 from api.models import Face, File, Person, Photo, User
 from api.models.photo import CategorySource
 from api.models.photo_caption import PhotoCaption
+from api.models.photo_edit import PhotoEdit
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_search import PhotoSearch
@@ -37,6 +39,11 @@ from api.serializers.fields import (
     loaded_count,
     prefetched,
     shared_serializer,
+)
+from api.serializers.photo_edits import (
+    PhotoEditSummary,
+    PhotoEditSummarySerializer,
+    edit_summary,
 )
 from api.serializers.photo_metadata import (
     PhotoMetadataSummarySerializer,
@@ -642,6 +649,21 @@ class LibraryGrantSerializer(serializers.Serializer[None]):
     originals = serializers.BooleanField()
 
 
+def _edit_of(photo: Photo) -> PhotoEdit | None:
+    """The photo's edit row, loaded with the photo (``select_related("edit")``)."""
+    try:
+        return photo.edit
+    except PhotoEdit.DoesNotExist:
+        return None
+
+
+def _edit_changes_geometry(edit: PhotoEdit | None) -> bool:
+    """Whether the thumbnails show an edit framed differently from the original."""
+    if edit is None or not edit.shown:
+        return False
+    return changes_geometry(recipe_from_json(edit.settings))
+
+
 class PhotoSerializer(serializers.ModelSerializer):
     square_thumbnail_url = serializers.SerializerMethodField()
     big_thumbnail_url = serializers.SerializerMethodField()
@@ -666,6 +688,8 @@ class PhotoSerializer(serializers.ModelSerializer):
     metadata = serializers.SerializerMethodField()
     # OCR text and normalized block geometry for the "live text" overlay
     ocr = serializers.SerializerMethodField()
+    # The edited picture (``api.editing``): its version and size, owner only.
+    edit = serializers.SerializerMethodField()
     # What the video is, in the form the browser's canPlayType() takes, so the
     # frontend asks for a conversion only when this browser cannot play it.
     video_playback_type = serializers.SerializerMethodField()
@@ -770,6 +794,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "stacks",
             "metadata",
             "ocr",
+            "edit",
             "local_orientation",
             "original_mime_type",
             # "equirectangular" for a 360° photo sphere the lightbox can open
@@ -957,7 +982,10 @@ class PhotoSerializer(serializers.ModelSerializer):
         blocks = []
         width = ocr.source_width or 0
         height = ocr.source_height or 0
-        if width > 0 and height > 0 and isinstance(ocr.blocks, list):
+        # The boxes are in the original's frame; an edit that crops or turns
+        # the picture shows another one, so its text comes without positions.
+        positioned = not _edit_changes_geometry(_edit_of(obj))
+        if positioned and width > 0 and height > 0 and isinstance(ocr.blocks, list):
             for block in ocr.blocks:
                 box = block.get("box") if isinstance(block, dict) else None
                 text = block.get("text") if isinstance(block, dict) else None
@@ -982,6 +1010,18 @@ class PhotoSerializer(serializers.ModelSerializer):
                 )
 
         return {"text": ocr.text or "", "blocks": blocks}
+
+    @extend_schema_field(PhotoEditSummarySerializer(allow_null=True))
+    def get_edit(self, obj: Photo) -> PhotoEditSummary | None:
+        """The edited picture, for its owner; null without a rendition.
+
+        Like ``ocr``, the owner's alone: the people a photo is shared with see
+        the edited picture without being told about the edit.
+        """
+        request = self.context.get("request")
+        if request is None or request.user != obj.owner:
+            return None
+        return edit_summary(_edit_of(obj))
 
     def get_similar_photos(self, obj: Photo) -> list:
         if self._visitor_grant(obj) is not None or self._album_grant(obj) is not None:

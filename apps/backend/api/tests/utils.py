@@ -39,6 +39,7 @@ from api.models.library_share import LibraryShare
 from api.models.long_running_job import LongRunningJob
 from api.models.person_group import PersonGroup
 from api.models.person_share import PersonShare, PersonSharePhoto
+from api.models.photo_edit import PhotoEdit
 from api.models.photo_metadata import MetadataEdit
 from api.models.photo_ocr import PhotoOcr
 from api.models.photo_stack import PhotoStack
@@ -372,6 +373,16 @@ def create_test_upgrade_task_state(key: str, **kwargs: Any) -> UpgradeTaskState:
 def create_test_photo_ocr(photo: Photo, **kwargs: Any) -> PhotoOcr:
     """The OCR result of ``photo``: no text unless given, read by ``kwargs["engine"]``."""
     return PhotoOcr.objects.create(photo=photo, **kwargs)
+
+
+def create_test_photo_edit(photo: Photo, **kwargs: Any) -> PhotoEdit:
+    """The edit of ``photo``: the default recipe, no history, ``version`` 1, no rendition.
+
+    Only the row: nothing is rendered, so the files of a ``ready`` rendition are
+    the test's to write (``api.editing.files``).
+    """
+    kwargs.setdefault("version", 1)
+    return PhotoEdit.objects.create(photo=photo, **kwargs)
 
 
 def create_test_upload_followup_state(user: User, **kwargs: Any) -> UploadFollowupState:
