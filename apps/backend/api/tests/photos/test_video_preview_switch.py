@@ -25,6 +25,13 @@ from api.tests.utils import create_test_photo, create_test_user
 from api.thumbnails import render
 
 SQUARE = "square_thumbnails"
+
+
+def _whole_webp(payload: bytes = b"VP8 not a picture") -> bytes:
+    """A WebP file as long as its RIFF header says: one a thumbnail pass keeps."""
+    return b"RIFF" + (len(payload) + 4).to_bytes(4, "little") + b"WEBP" + payload
+
+
 # The small squares of older releases, no longer made: their URLs are answered
 # with the square.
 LEGACY_SQUARE = "square_thumbnails_small"
@@ -155,14 +162,14 @@ class VideoSquareRenderTest(_MediaRootTestCase):
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
     def test_a_still_already_there_is_kept(self):
         photo = self._video()
-        self._write(SQUARE, photo, ".webp", b"kept")
+        self._write(SQUARE, photo, ".webp", _whole_webp(b"kept"))
 
         with mock.patch.object(render, "create_static_thumbnails") as stills:
             self._generate(photo)
 
         stills.assert_not_called()
         with open(self._path(SQUARE, photo, ".webp"), "rb") as handle:
-            self.assertEqual(handle.read(), b"kept")
+            self.assertEqual(handle.read(), _whole_webp(b"kept"))
 
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
     def test_the_clip_is_kept_when_the_save_fails(self):

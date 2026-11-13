@@ -541,7 +541,26 @@ def create_thumbnail_for_video(
 
 
 def does_static_thumbnail_exist(output_path: str, hash: str) -> bool:
-    return os.path.exists(_media_path(output_path, hash, ".webp"))
+    """Whether the WebP thumbnail is on disk, whole.
+
+    libvips creates the file before it writes the picture, so a worker killed
+    meanwhile leaves it empty or cut short; such a file is made again rather
+    than read as a thumbnail.
+    """
+    return _whole_webp(_media_path(output_path, hash, ".webp"))
+
+
+def _whole_webp(path: str) -> bool:
+    """Whether ``path`` is as long as its RIFF header says, from 12 bytes."""
+    try:
+        with open(path, "rb") as handle:
+            header = handle.read(12)
+            size = os.fstat(handle.fileno()).st_size
+    except OSError:
+        return False
+    if len(header) < 12 or header[:4] != b"RIFF" or header[8:] != b"WEBP":
+        return False
+    return int.from_bytes(header[4:8], "little") + 8 == size
 
 
 def big_thumbnail_size(hash: str) -> tuple[int, int] | None:
