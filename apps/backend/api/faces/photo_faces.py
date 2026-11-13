@@ -90,7 +90,7 @@ def extract_faces(photo: Photo, second_try: bool = False) -> None:
         _retry_face_extraction(photo, second_try)
         return
     except Exception as e:
-        logger.error("image %s: scan face failed", photo)
+        # The caller logs it, with its stack.
         if _fails_for_good(e):
             _mark_faces_scanned(photo)
         raise e

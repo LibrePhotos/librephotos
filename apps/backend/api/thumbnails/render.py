@@ -383,29 +383,23 @@ def create_static_thumbnails(
     file when only they are missing), which is what RAW files always did.
     """
     big_path = _media_path("thumbnails_big", hash, ".webp")
-    try:
-        big: pyvips.Image | None = None
-        if "thumbnails_big" in output_paths:
-            big = _render_big_thumbnail(input_path, big_path, local_orientation)
-        smaller = [path for path in output_paths if path != "thumbnails_big"]
-        if not smaller:
-            return
-        # The big thumbnail carries the EXIF and local orientation already.
-        if big is None:
-            big = _load_big_thumbnail(big_path)
-        big = big.copy_memory()
-        for output_path in smaller:
-            small = big.thumbnail_image(
-                10000,
-                height=SQUARE_THUMBNAIL_HEIGHTS[output_path],
-                size=pyvips.enums.Size.DOWN,
-            )
-            small.write_to_file(
-                _media_path(output_path, hash, ".webp"), **_square_webp()
-            )
-    except Exception as e:
-        logger.error("Could not create thumbnail for file %s", input_path)
-        raise e
+    big: pyvips.Image | None = None
+    if "thumbnails_big" in output_paths:
+        big = _render_big_thumbnail(input_path, big_path, local_orientation)
+    smaller = [path for path in output_paths if path != "thumbnails_big"]
+    if not smaller:
+        return
+    # The big thumbnail carries the EXIF and local orientation already.
+    if big is None:
+        big = _load_big_thumbnail(big_path)
+    big = big.copy_memory()
+    for output_path in smaller:
+        small = big.thumbnail_image(
+            10000,
+            height=SQUARE_THUMBNAIL_HEIGHTS[output_path],
+            size=pyvips.enums.Size.DOWN,
+        )
+        small.write_to_file(_media_path(output_path, hash, ".webp"), **_square_webp())
 
 
 # A five-second clip of a 4K HEVC video takes a slow ARM box well under a
@@ -481,29 +475,25 @@ def create_thumbnail_for_video(
     file_type: str,
     transfer: str | None = None,
 ) -> None:
-    try:
-        output = _media_path(output_path, hash, file_type)
-        command = [
-            "-y",
-            "-i",
-            input_path,
-            "-ss",
-            "00:00:00.000",
-            "-vframes",
-            "1",
-            *NO_METADATA,
-        ]
-        # No resizing here, so there is a filter only when the source is HDR and
-        # the grabbed frame would otherwise be washed out.
-        tonemap = color.video_filter(input_path, transfer=transfer)
-        if tonemap:
-            command += ["-filter:v", tonemap]
-        command.append(output)
+    output = _media_path(output_path, hash, file_type)
+    command = [
+        "-y",
+        "-i",
+        input_path,
+        "-ss",
+        "00:00:00.000",
+        "-vframes",
+        "1",
+        *NO_METADATA,
+    ]
+    # No resizing here, so there is a filter only when the source is HDR and
+    # the grabbed frame would otherwise be washed out.
+    tonemap = color.video_filter(input_path, transfer=transfer)
+    if tonemap:
+        command += ["-filter:v", tonemap]
+    command.append(output)
 
-        _run_ffmpeg(command, output)
-    except Exception as e:
-        logger.error("Could not create thumbnail for video file %s: %s", input_path, e)
-        raise e
+    _run_ffmpeg(command, output)
 
 
 def does_static_thumbnail_exist(output_path: str, hash: str) -> bool:
