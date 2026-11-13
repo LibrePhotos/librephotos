@@ -31,12 +31,13 @@ from api.jobs.broker import ReleaseGuardedORM
 LIST_KEY = "release-guard-test"
 # A task of the newer release: its module does not exist in this code.
 NEWER_RELEASE_FUNC = "api.not_in_this_release.task"
+# A task of this release. One whose function is missing never reaches a
+# worker (api/tests/jobs/test_stale_function_tasks.py).
+OWN_RELEASE_FUNC = "math.floor"
 
 
-def queue_newer_release_task(broker: ORM) -> int:
-    payload = SignedPackage.dumps(
-        {"id": "t1", "name": "t1", "func": NEWER_RELEASE_FUNC}
-    )
+def queue_newer_release_task(broker: ORM, func: str = NEWER_RELEASE_FUNC) -> int:
+    payload = SignedPackage.dumps({"id": "t1", "name": "t1", "func": func})
     task_id: int = broker.enqueue(payload)
     # Due now: a task is taken once its lock is in the past, and on Windows
     # the next clock reading can still equal the enqueue time.
@@ -91,7 +92,7 @@ class ReleaseGuardedBrokerTest(TestCase):
 
     def test_takes_tasks_from_a_database_of_its_own_release(self) -> None:
         guarded = ReleaseGuardedORM(list_key=LIST_KEY)
-        task_id = queue_newer_release_task(guarded)
+        task_id = queue_newer_release_task(guarded, OWN_RELEASE_FUNC)
 
         taken = guarded.dequeue() or []
 
@@ -103,7 +104,7 @@ class ReleaseGuardedBrokerTest(TestCase):
         # The deploy order: the old cluster is busy taking tasks, the new
         # release migrates, and seconds later queues its first scheduled task.
         guarded = ReleaseGuardedORM(list_key=LIST_KEY)
-        own_task = queue_newer_release_task(guarded)
+        own_task = queue_newer_release_task(guarded, OWN_RELEASE_FUNC)
         self.assertEqual([pk for pk, _ in guarded.dequeue() or []], [own_task])
 
         self.newer_release_migrates()

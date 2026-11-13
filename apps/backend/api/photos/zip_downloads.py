@@ -296,7 +296,7 @@ def delete_zip_file(filename: str) -> OSError | None:
         return None
     try:
         if not os.path.exists(file_path):
-            logger.error("Error while deleting file not found at : %s", file_path)
+            logger.warning("Zip download already deleted: %s", file_path)
             return None
         else:
             os.remove(file_path)

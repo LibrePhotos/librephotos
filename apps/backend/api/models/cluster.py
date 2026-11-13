@@ -62,6 +62,18 @@ class Cluster(models.Model):
 
     objects = ClusterQuerySet.as_manager()
 
+    class Meta:
+        constraints = [
+            # get_unknown_cluster relies on it: without it, two face scans at
+            # once each created the user's unknown cluster. Other ids repeat:
+            # a cluster of several people splits into one cluster per person.
+            models.UniqueConstraint(
+                fields=["owner"],
+                condition=models.Q(cluster_id=UNKNOWN_CLUSTER_ID),
+                name="one unknown cluster per owner",
+            )
+        ]
+
     def __str__(self) -> str:
         return str(self.id)
 

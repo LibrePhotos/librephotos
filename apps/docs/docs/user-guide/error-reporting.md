@@ -8,7 +8,7 @@ sidebar_position: 18
 
 When something breaks, LibrePhotos saves a report of the error on your server. Nothing leaves the server until an admin decides so: errors are kept, scrubbed, so you can still share them later, or never.
 
-Both the backend (the web server and the background workers) and the web app save their errors here. The web app hands its errors to your server, never to a reporting server directly.
+Both the backend (the web server and the background workers) and the web app save their errors here. The web app hands its errors to your server, never to a reporting server directly. <Since version="1.7.0" /> An error whose stack has no line of the web app's own scripts, such as one a browser extension throws in the page, is not saved.
 
 ## The choices
 
@@ -52,6 +52,8 @@ Before a report is saved, every text in it is scrubbed. These are replaced by pl
 - the file names of photos, videos, RAW and sidecar files;
 - usernames, first and last names and email addresses of users, and the names of people, albums, events and tags;
 - email addresses, IP addresses, URLs and this server's host names.
+
+<Since version="1.7.0" /> A name is replaced only in the text of a message, not in the names of code (files, modules, functions, error types) that the stack lists. A name that is a number, a word such as "from" or "not", or an HTTP method such as "POST" is left alone, so a tag with that name does not blank it out of every report.
 
 A report never holds: your photos, the request (its address, query, body, cookies and headers, login tokens included), the signed-in user, breadcrumbs, local variables, extra data, tags, the installed packages, other threads or the server's name.
 

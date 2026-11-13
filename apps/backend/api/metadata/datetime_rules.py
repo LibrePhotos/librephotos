@@ -215,7 +215,8 @@ def _extract_no_tz_datetime_from_str(
         )
         delta = parsed_datetime - datetime.now()
         if delta.days > 30:
-            logger.error(
+            # A wrong camera clock or a number in a file name: the rule skips it.
+            logger.warning(
                 "Error while parsing datetime from '%s': Parsed datetime is %s in the future.",
                 x,
                 delta.days,

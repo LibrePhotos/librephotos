@@ -171,12 +171,13 @@ class UnloadableTaskTest(TestCase):
 
         with (
             patch.object(Conf, "BULK", 2),
-            self.assertLogs("api.jobs.broker", "ERROR") as logs,
+            self.assertLogs("api.jobs.broker", "WARNING") as logs,
         ):
             taken = cluster.dequeue() or []
 
         self.assertEqual([pk for pk, _payload in taken], [good])
-        self.assertEqual(len(logs.records), 1)
+        # Expected after an update that moved code: a warning, not an error report.
+        self.assertEqual([record.levelname for record in logs.records], ["WARNING"])
         self.assertIn(str(bad), logs.output[0])
         self.assertFalse(OrmQ.objects.filter(pk=bad).exists())
         failure = Failure.objects.get()
@@ -193,7 +194,7 @@ class UnloadableTaskTest(TestCase):
     def test_a_task_of_a_module_that_moved_is_recorded_as_failed(self) -> None:
         bad = queue_moved_module_task()
 
-        with self.assertLogs("api.jobs.broker", "ERROR"):
+        with self.assertLogs("api.jobs.broker", "WARNING"):
             self.assertEqual(ReleaseGuardedORM(list_key=LIST_KEY).dequeue(), [])
 
         self.assertFalse(OrmQ.objects.filter(pk=bad).exists())
@@ -214,7 +215,7 @@ class UnloadableTaskTest(TestCase):
             )
         )
 
-        with self.assertLogs("api.jobs.broker", "ERROR"):
+        with self.assertLogs("api.jobs.broker", "WARNING"):
             self.assertEqual(ReleaseGuardedORM(list_key=LIST_KEY).dequeue(), [])
 
         self.assertFalse(OrmQ.objects.filter(pk=bad).exists())
@@ -231,7 +232,7 @@ class UnloadableTaskTest(TestCase):
 
         with (
             patch.object(Conf, "BULK", 2),
-            self.assertLogs("api.jobs.broker", "ERROR"),
+            self.assertLogs("api.jobs.broker", "WARNING"),
         ):
             taken = ReleaseGuardedORM(list_key=LIST_KEY).dequeue() or []
 
@@ -246,7 +247,7 @@ class UnloadableTaskTest(TestCase):
         with (
             patch.object(Conf, "BULK", 2),
             patch.object(broker_module, "save_task", side_effect=RuntimeError("db")),
-            self.assertLogs("api.jobs.broker", "ERROR"),
+            self.assertLogs("api.jobs.broker", "WARNING"),
         ):
             taken = ReleaseGuardedORM(list_key=LIST_KEY).dequeue() or []
 
@@ -268,7 +269,7 @@ class UnloadableTaskTest(TestCase):
         later = timezone.now() + LEASE + datetime.timedelta(seconds=1)
         with (
             patch("django.utils.timezone.now", return_value=later),
-            self.assertLogs("api.jobs.broker", "ERROR"),
+            self.assertLogs("api.jobs.broker", "WARNING"),
         ):
             self.assertEqual(cluster.dequeue(), [])
 
