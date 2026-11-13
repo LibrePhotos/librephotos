@@ -1,0 +1,434 @@
+.root {
+  --fc-yes: var(--app-tip);
+  --fc-partial: var(--app-warning);
+  --fc-no: var(--app-danger);
+  --fc-planned: var(--app-info);
+  --fc-muted: var(--app-note);
+  margin-bottom: 2rem;
+}
+
+/* ------------------------------------------------------------- Filters */
+
+.controls {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  background: var(--app-chrome);
+}
+
+.searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+}
+
+.search {
+  flex: 1 1 16rem;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface);
+  color: var(--app-text);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--app-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  accent-color: var(--app-primary-filled);
+  width: 1rem;
+  height: 1rem;
+}
+
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.groupLabel {
+  min-width: 6.5rem;
+  margin-right: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-dimmed);
+}
+
+.divider {
+  width: 1px;
+  height: 1.25rem;
+  margin-inline: 0.25rem;
+  background: var(--app-border);
+}
+
+.chip {
+  padding: 0.2rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--app-surface-tonal);
+  color: var(--app-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--app-surface-tonal-hover);
+}
+
+.chipActive,
+.chipActive:hover {
+  border-color: color-mix(in srgb, var(--app-primary-light-color) 40%, transparent);
+  background: var(--app-primary-light);
+  color: var(--app-primary-light-color);
+  font-weight: 600;
+}
+
+.chipDimmed,
+.chipDimmed:hover {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.hint {
+  font-size: 0.8125rem;
+  color: var(--app-dimmed);
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--app-dimmed);
+}
+
+.reset {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ifm-link-color);
+  font: inherit;
+  cursor: pointer;
+}
+
+.reset:hover {
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------------------- Table */
+
+/* Scrolls on both axes so the header row and the feature column can stick inside it. */
+.scroller {
+  position: relative;
+  max-height: min(78vh, 60rem);
+  overflow: auto;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  overscroll-behavior-x: contain;
+}
+
+.root .table {
+  display: table;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+}
+
+.root .table th,
+.root .table td {
+  border: 0;
+  border-bottom: 1px solid var(--app-border-soft);
+  padding: 0.45rem 0.6rem;
+}
+
+.root .table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-chrome);
+  vertical-align: bottom;
+}
+
+.root .table .corner {
+  left: 0;
+  z-index: 3;
+  min-width: 15rem;
+  color: var(--app-dimmed);
+}
+
+.productHead {
+  min-width: 6.5rem;
+  max-width: 8rem;
+  text-align: center !important;
+  white-space: normal;
+}
+
+.productHead a {
+  display: block;
+  color: var(--app-text);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.ours {
+  box-shadow: inset 0 -3px 0 var(--app-primary-filled);
+}
+
+.kind {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--app-dimmed);
+}
+
+.score {
+  display: inline-block;
+  margin-top: 0.3rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: var(--app-surface-tonal);
+  color: var(--app-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.scoreFull {
+  background: color-mix(in srgb, var(--fc-yes) 22%, transparent);
+}
+
+.root .table .categoryRow th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding-top: 1rem;
+  background: var(--app-body);
+  color: var(--app-text);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.categoryLabel {
+  position: sticky;
+  left: 0.6rem;
+}
+
+.root .table .featureHead {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 15rem;
+  max-width: 19rem;
+  background: var(--app-body);
+  color: var(--app-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 1px 0 0 var(--app-border-soft);
+}
+
+.featureHeadInner {
+  display: flex;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.featureName {
+  display: block;
+  line-height: 1.35;
+}
+
+.featureHint {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--app-dimmed);
+}
+
+.star {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--app-dimmed);
+  font-size: 1rem;
+  line-height: 1.4rem;
+  cursor: pointer;
+}
+
+.star:hover {
+  background: var(--app-hover);
+  color: var(--app-text);
+}
+
+.starOn,
+.starOn:hover {
+  color: var(--app-warning);
+}
+
+.root .table .neededRow > * {
+  background: color-mix(in srgb, var(--app-warning) 7%, var(--app-body));
+}
+
+.root .table tbody tr:hover > * {
+  background: var(--app-hover);
+}
+
+.cell {
+  min-width: 6.5rem;
+  max-width: 8rem;
+  text-align: center;
+  vertical-align: top;
+  color: var(--app-dimmed);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fc-status, var(--fc-muted)) 16%, transparent);
+  color: var(--fc-status, var(--fc-muted));
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.s_yes {
+  --fc-status: var(--fc-yes);
+}
+
+.s_partial,
+.s_plugin,
+.s_paid {
+  --fc-status: var(--fc-partial);
+}
+
+.s_planned {
+  --fc-status: var(--fc-planned);
+}
+
+.s_no {
+  --fc-status: var(--fc-no);
+}
+
+.s_na,
+.s_unknown {
+  --fc-status: var(--fc-muted);
+}
+
+.s_na .badge,
+.s_unknown .badge {
+  background: transparent;
+}
+
+.value {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--app-text);
+  overflow-wrap: anywhere;
+}
+
+.badge + .value {
+  margin-top: 0.2rem;
+}
+
+.noteMark {
+  margin-left: 0.15rem;
+  font-size: 0.625rem;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--app-dimmed);
+  cursor: help;
+}
+
+.note {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  text-align: left;
+  color: var(--app-dimmed);
+}
+
+.empty {
+  padding: 2rem !important;
+  text-align: center;
+  color: var(--app-dimmed);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- Legend */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--app-dimmed);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .groupLabel {
+    min-width: 100%;
+  }
+
+  .root .table .featureHead,
+  .root .table .corner {
+    min-width: 10rem;
+    max-width: 12rem;
+  }
+}
