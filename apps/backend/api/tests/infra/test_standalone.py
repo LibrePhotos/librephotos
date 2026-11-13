@@ -615,6 +615,42 @@ class NamedExecutableTest(SimpleTestCase):
         (path,), _ = set_executable.call_args
         self.assertEqual(os.path.basename(path), "librephotos-worker.exe")
 
+    def test_the_cluster_starts_from_the_binary_when_the_worker_name_is_gone(self):
+        # 1.6.0: qcluster died with WinError 2 at its first spawn, so no job
+        # ever ran. The link is a convenience; the binary itself is running.
+        def link_gone(argv):
+            if execute.call_count == 1:
+                os.remove(os.path.join(self.root.name, "librephotos-worker.exe"))
+                raise FileNotFoundError(2, "The system cannot find the file specified")
+
+        with (
+            patch("multiprocessing.set_executable") as set_executable,
+            patch(
+                "django.core.management.execute_from_command_line",
+                side_effect=link_gone,
+            ) as execute,
+        ):
+            standalone.run_manage(["qcluster"])
+
+        spawned_from = [call.args[0] for call in set_executable.call_args_list]
+        self.assertEqual(
+            [os.path.basename(path) for path in spawned_from],
+            ["librephotos-worker.exe", "librephotos.exe"],
+        )
+        self.assertEqual(execute.call_count, 2)
+
+    def test_a_cluster_failure_with_the_worker_name_in_place_is_raised(self):
+        with (
+            patch("multiprocessing.set_executable"),
+            patch(
+                "django.core.management.execute_from_command_line",
+                side_effect=FileNotFoundError(2, "a file the cluster opens"),
+            ) as execute,
+            self.assertRaises(FileNotFoundError),
+        ):
+            standalone.run_manage(["qcluster"])
+        self.assertEqual(execute.call_count, 1)
+
     def test_other_commands_leave_multiprocessing_alone(self):
         with (
             patch("multiprocessing.set_executable") as set_executable,
