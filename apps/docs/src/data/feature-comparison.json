@@ -2133,7 +2133,7 @@
    "cells": {
     "librephotos": {
      "s": "yes",
-     "n": "Burst and bracket stacks; RAW+JPEG and file variants grouped under one photo"
+     "n": "Burst stacks (filename, time and EXIF rules), manual stacks; RAW+JPEG and file variants grouped under one photo"
     },
     "immich": {
      "s": "yes",
