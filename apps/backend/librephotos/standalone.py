@@ -347,15 +347,28 @@ def run_manage(argv: list[str]) -> None:
     """Run a manage.py command in this process."""
     from django.core.management import execute_from_command_line
 
-    if argv[:1] == ["qcluster"]:
-        # django-q2's guard, pusher, monitor and workers are multiprocessing
-        # children; spawn starts them from this executable path.
-        worker = named_executable("worker")
-        if worker is not None:
-            import multiprocessing
+    worker = named_executable("worker") if argv[:1] == ["qcluster"] else None
+    if worker is None:
+        execute_from_command_line(["manage.py", *argv])
+        return
+    # django-q2's guard, pusher, monitor and workers are multiprocessing
+    # children; spawn starts them from this executable path.
+    import multiprocessing
 
-            multiprocessing.set_executable(worker)
-    execute_from_command_line(["manage.py", *argv])
+    multiprocessing.set_executable(worker)
+    try:
+        execute_from_command_line(["manage.py", *argv])
+    except FileNotFoundError:
+        # In 1.6.0 the cluster died at its first spawn with WinError 2, so no
+        # job ran: the file it spawns from was missing. The worker link is the
+        # one that can go after it was made (a virus scanner or a sync client
+        # taking a new .exe away); the binary itself is running.
+        binary = standalone_executable()
+        if binary is None or os.path.exists(worker):
+            raise
+        print(f"{worker} is gone; the job cluster starts from {binary}", flush=True)
+        multiprocessing.set_executable(binary)
+        execute_from_command_line(["manage.py", *argv])
 
 
 def service_module_name(name: str) -> str:
