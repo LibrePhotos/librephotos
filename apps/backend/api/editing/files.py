@@ -97,6 +97,19 @@ def _keep_copy(path: str, kept: str) -> None:
         shutil.copy2(path, kept)
 
 
+def _put_back(kept: str, path: str) -> None:
+    """Return ``path`` to the file ``kept`` holds.
+
+    A file the save never replaced is still a hard link of its kept copy, and
+    renaming one link of a file onto another does nothing on POSIX: the copy
+    would stay behind.
+    """
+    if os.path.exists(path) and os.path.samefile(kept, path):
+        remove(kept)
+    else:
+        os.replace(kept, path)
+
+
 class DiskChange:
     """The files one save changes, and how to undo it.
 
@@ -137,7 +150,7 @@ class DiskChange:
                     remove(kept)
                 continue
             try:
-                os.replace(kept, path)
+                _put_back(kept, path)
             except OSError:
                 logger.error(
                     "could not put back a file of an edit: %s", os.path.basename(path)
