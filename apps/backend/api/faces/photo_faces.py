@@ -35,7 +35,7 @@ from api.faces.geometry import (
 from api.faces.labels import recreate_search_captions
 from api.faces.recognition import face_model_name, get_face_encodings
 from api.lazy_import import LazyModule
-from api.metadata.reader import sidecar_files_for_photo
+from api.metadata.reader import MetadataReadError, sidecar_files_for_photo
 from api.runtime.features import feature_enabled
 
 if TYPE_CHECKING:
@@ -186,8 +186,20 @@ def _face_regions(
     thumbnail_path: str,
     detected: list[extractor.FaceLocation] | None,
 ) -> list[extractor.FaceLocation] | None:
-    """The photo's face regions from XMP, checked against ``detected``."""
-    return read_face_regions(photo, thumbnail_path, detected)
+    """The photo's face regions from XMP, checked against ``detected``.
+
+    Optional: when the exif service cannot read the file, the photo gets the
+    detected faces alone, and a Rescan Faces reads its regions again.
+    """
+    try:
+        return read_face_regions(photo, thumbnail_path, detected)
+    except MetadataReadError:
+        # The error names the file's path, which is only logged at DEBUG.
+        logger.warning(
+            "image %s: face regions not read, detected faces only", photo.image_hash
+        )
+        logger.debug("image %s: face regions not read", photo.image_hash, exc_info=True)
+        return None
 
 
 def read_face_regions(
