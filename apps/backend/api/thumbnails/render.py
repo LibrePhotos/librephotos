@@ -418,17 +418,51 @@ class VideoThumbnailError(RuntimeError):
     """ffmpeg failed, or never finished, making a video thumbnail."""
 
 
+# What ffmpeg prints when it decoded no frame to write, whether it then exits
+# 0 (an empty WebP, an mp4 with no frame) or fails (libwebp_anim flushed empty
+# reports "Cannot allocate memory").
+_NO_FRAME = "Output file is empty, nothing was encoded"
+
+
 def _run_ffmpeg(args: list[str], output: str) -> None:
     """Run ffmpeg to write *output*; raise VideoThumbnailError if it fails.
 
     A failed or killed run can leave a truncated file behind, which the next
     thumbnail pass would take for a finished one, so it is removed.
+
+    A run that writes no frame tries once more ignoring the file's edit list:
+    an iPhone clip's can start the video past every frame it holds, and
+    ffmpeg then decodes none. The option exists only for MOV and MP4, so it
+    fails on other files, which have no edit list to ignore.
+    """
+    if _wrote_a_frame(args, output):
+        return
+    if _wrote_a_frame(["-ignore_editlist", "1", *args], output, quiet=True):
+        return
+    _remove_partial(output)
+    raise VideoThumbnailError("ffmpeg decoded no frame of the video")
+
+
+def _wrote_a_frame(args: list[str], output: str, quiet: bool = False) -> bool:
+    """Run ffmpeg once; whether it wrote a frame.
+
+    Any other failure raises VideoThumbnailError, or with ``quiet`` counts
+    as no frame.
     """
     try:
-        binaries.run_tool("ffmpeg", args, timeout=FFMPEG_TIMEOUT)
+        stderr = binaries.run_tool("ffmpeg", args, timeout=FFMPEG_TIMEOUT).stderr
     except binaries.ToolError as e:
+        if quiet or _decoded_no_frame(e):
+            return False
         _remove_partial(output)
         raise VideoThumbnailError(str(e)) from e
+    return _NO_FRAME.encode() not in stderr
+
+
+def _decoded_no_frame(error: binaries.ToolError) -> bool:
+    return isinstance(error, binaries.ToolFailedError) and (
+        error.returncode is not None and _NO_FRAME in error.stderr_tail
+    )
 
 
 def _remove_partial(output: str) -> None:
