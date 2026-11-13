@@ -9,6 +9,7 @@ rotation still starts from nothing: its old thumbnails show the wrong turn.
 """
 
 import os
+import subprocess
 import tempfile
 from unittest import mock
 
@@ -44,7 +45,7 @@ def _ffmpeg_failing_on(fail_on):
             handle.write(b"new")
         if any(name in output for name in fail_on):
             raise binaries.ToolFailedError(tool, 1, "Invalid data")
-        return mock.Mock(returncode=0)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
 
     return mock.patch.object(render.binaries, "run_tool", side_effect=run)
 

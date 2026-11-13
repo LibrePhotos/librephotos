@@ -27,6 +27,13 @@ from api.tests.utils import create_test_job, create_test_photo, create_test_user
 from api.thumbnails import posters, render
 
 SQUARE = "square_thumbnails"
+
+
+def _whole_webp(payload: bytes = b"VP8 not a picture") -> bytes:
+    """A WebP file as long as its RIFF header says: one a thumbnail pass keeps."""
+    return b"RIFF" + (len(payload) + 4).to_bytes(4, "little") + b"WEBP" + payload
+
+
 # The small squares of older releases, no longer made: their URLs are answered
 # with the square.
 LEGACY_SQUARE = "square_thumbnails_small"
@@ -178,7 +185,7 @@ class PosterRenderTest(_MediaRootTestCase):
 
     def test_stills_already_there_are_only_marked(self):
         video = create_test_photo(owner=self.user, video=True)
-        self._write(SQUARE, video, ".webp")
+        self._write(SQUARE, video, ".webp", _whole_webp())
         with mock.patch.object(render, "create_static_thumbnails") as stills:
             render.create_video_posters(video.thumbnail)
         stills.assert_not_called()
@@ -187,7 +194,7 @@ class PosterRenderTest(_MediaRootTestCase):
     def test_a_poster_that_cannot_be_made_leaves_the_clips(self):
         """The poster is extra with the animated previews on: the tile plays the clip."""
         video = create_test_photo(owner=self.user, video=True)
-        self._write("thumbnails_big", video, ".webp", b"not a picture")
+        self._write("thumbnails_big", video, ".webp", _whole_webp())
         with mock.patch.object(render, "create_animated_thumbnail") as clip:
             with self.captureOnCommitCallbacks(execute=True):
                 render.generate_thumbnail(video.thumbnail)
@@ -200,7 +207,7 @@ class PosterRenderTest(_MediaRootTestCase):
     @override_config(VIDEO_PREVIEWS_ENABLED=False)
     def test_without_clips_a_still_that_cannot_be_made_fails(self):
         video = create_test_photo(owner=self.user, video=True)
-        self._write("thumbnails_big", video, ".webp", b"not a picture")
+        self._write("thumbnails_big", video, ".webp", _whole_webp())
         with self.assertRaises(pyvips.Error):
             render.generate_thumbnail(video.thumbnail)
 

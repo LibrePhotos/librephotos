@@ -9,6 +9,7 @@ as its first argument.
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Iterable
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -34,7 +35,7 @@ from api.faces.geometry import (
 from api.faces.labels import recreate_search_captions
 from api.faces.recognition import face_model_name, get_face_encodings
 from api.lazy_import import LazyModule
-from api.metadata.reader import sidecar_files_for_photo
+from api.metadata.reader import MetadataReadError, sidecar_files_for_photo
 from api.runtime.features import feature_enabled
 
 if TYPE_CHECKING:
@@ -80,6 +81,11 @@ def extract_faces(photo: Photo, second_try: bool = False) -> None:
     if not feature_enabled("FACE_DETECTION"):
         logger.info("Face detection is disabled")
         return
+    if not _big_thumbnail_on_disk(photo):
+        logger.warning(
+            "image %s: no big thumbnail to find faces in, skipped", photo.image_hash
+        )
+        return
 
     unknown_cluster: api.models.cluster.Cluster = (
         api.models.cluster.get_unknown_cluster(user=photo.owner)
@@ -95,6 +101,19 @@ def extract_faces(photo: Photo, second_try: bool = False) -> None:
             _mark_faces_scanned(photo)
         raise e
     _mark_faces_scanned(photo)
+
+
+def _big_thumbnail_on_disk(photo: Photo) -> bool:
+    """Whether the picture faces are found in is there.
+
+    Not when making it failed (the row names no file) or its file is gone.
+    The photo stays unscanned: the scan that makes its thumbnail puts it on
+    the next incremental Scan Faces.
+    """
+    thumbnail: api.models.thumbnail.Thumbnail | None = getattr(photo, "thumbnail", None)
+    if thumbnail is None or not thumbnail.thumbnail_big:
+        return False
+    return os.path.exists(thumbnail.thumbnail_big.path)
 
 
 def _fails_for_good(error: Exception) -> bool:
@@ -167,8 +186,20 @@ def _face_regions(
     thumbnail_path: str,
     detected: list[extractor.FaceLocation] | None,
 ) -> list[extractor.FaceLocation] | None:
-    """The photo's face regions from XMP, checked against ``detected``."""
-    return read_face_regions(photo, thumbnail_path, detected)
+    """The photo's face regions from XMP, checked against ``detected``.
+
+    Optional: when the exif service cannot read the file, the photo gets the
+    detected faces alone, and a Rescan Faces reads its regions again.
+    """
+    try:
+        return read_face_regions(photo, thumbnail_path, detected)
+    except MetadataReadError:
+        # The error names the file's path, which is only logged at DEBUG.
+        logger.warning(
+            "image %s: face regions not read, detected faces only", photo.image_hash
+        )
+        logger.debug("image %s: face regions not read", photo.image_hash, exc_info=True)
+        return None
 
 
 def read_face_regions(

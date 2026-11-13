@@ -315,6 +315,9 @@ class Detector:
         else:
             new_width = input_size[0]
             new_height = int(new_width * im_ratio)
+        if new_width < 1 or new_height < 1:
+            # Too thin to shrink onto the input (cv2.resize refuses 0 px): no face fits.
+            return np.zeros((0, 5), np.float32), np.zeros((0, 5, 2), np.float32)
         det_scale = float(new_height) / image.shape[0]
         resized_img = cv2.resize(image, (new_width, new_height))
         det_img = np.zeros((input_size[1], input_size[0], 3), dtype=np.uint8)

@@ -5,12 +5,16 @@ pillow-heif and pillow-jxl-plugin bring those to Pillow, so anything libvips
 rejects is decoded there, EXIF-rotated, and handed to pyvips as an array.
 """
 
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
+
 import numpy as np
 import pillow_heif
 import pillow_jxl  # noqa: F401  registers the JPEG XL plugin on import
 import pyvips
 import rawpy
-from PIL import Image, ImageOps
+from PIL import Image, ImageFile, ImageOps
 
 pillow_heif.register_heif_opener()
 # The Pillow path decodes the whole image into memory, so a crafted JPEG XL or BMP
@@ -20,10 +24,40 @@ pillow_heif.register_heif_opener()
 Image.MAX_IMAGE_PIXELS = 250_000_000
 
 
-def _pillow_to_vips(path: str) -> pyvips.Image:
+def _pillow_decode(path: str) -> pyvips.Image:
     with Image.open(path) as image:
         rgb = ImageOps.exif_transpose(image).convert("RGB")
         return pyvips.Image.new_from_array(np.asarray(rgb))
+
+
+# Pillow's switch for decoding a truncated file is module-wide.
+_TRUNCATED_LOADS = threading.Lock()
+
+
+@contextmanager
+def _truncated_images_allowed() -> Iterator[None]:
+    with _TRUNCATED_LOADS:
+        previous = ImageFile.LOAD_TRUNCATED_IMAGES
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
+        try:
+            yield
+        finally:
+            ImageFile.LOAD_TRUNCATED_IMAGES = previous
+
+
+def _pillow_to_vips(path: str) -> pyvips.Image:
+    """The file decoded by Pillow; one a few bytes short renders what is there.
+
+    Phones and cameras leave such files, and libvips renders a truncated JPEG
+    with its missing rows grey, as other photo apps do. Pillow refuses one
+    unless its module-wide switch is on, so the switch is on only for a
+    second try at a file that failed.
+    """
+    try:
+        return _pillow_decode(path)
+    except OSError:
+        with _truncated_images_allowed():
+            return _pillow_decode(path)
 
 
 def thumbnail(path: str, height: int) -> pyvips.Image:
