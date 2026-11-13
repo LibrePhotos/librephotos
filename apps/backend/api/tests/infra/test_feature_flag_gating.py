@@ -283,7 +283,16 @@ class FaceDetectionFeatureFlagTest(TestCase):
         self.client = APIClient()
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        self.photo = create_test_photo(owner=self.user)
+        self.photo = self._photo()
+
+    def _photo(self):
+        """A photo with a big thumbnail file; PIL.Image.open is patched to read it."""
+        photo = create_test_photo(owner=self.user)
+        path = photo.thumbnail.thumbnail_big.path
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        open(path, "wb").close()
+        self.addCleanup(os.remove, path)
+        return photo
 
     @patch("api.faces.photo_faces.PIL.Image.open")
     @patch("api.faces.photo_faces.extractor")
@@ -322,7 +331,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
     ):
         """extract_faces runs once per photo: no switch query per photo."""
         face_extractor_mock.extract_from_face_service.return_value = []
-        photos = [create_test_photo(owner=self.user) for _ in range(3)]
+        photos = [self._photo() for _ in range(3)]
         forget_site_switches()
         with patch(
             "api.runtime.features._read_site_switches",
