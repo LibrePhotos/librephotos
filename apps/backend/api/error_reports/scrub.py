@@ -488,9 +488,16 @@ _VOLATILE_ID = re.compile(
 )
 
 
+# django-q's "Failed '<function>' (<task name>) - <result>": every task has a
+# random name, so without this each failed task would be a report of its own.
+_DJANGO_Q_TASK_NAME = re.compile(r"^(Failed '[^']*') \([^)]*\)")
+
+
 def _grouping_text(text: Json) -> Json:
     """``text`` with its volatile ids replaced, for the fingerprint only."""
-    return _VOLATILE_ID.sub("<id>", text) if isinstance(text, str) else text
+    if not isinstance(text, str):
+        return text
+    return _VOLATILE_ID.sub("<id>", _DJANGO_Q_TASK_NAME.sub(r"\1 (<task>)", text))
 
 
 def fingerprint(event: Mapping[str, Json]) -> str:

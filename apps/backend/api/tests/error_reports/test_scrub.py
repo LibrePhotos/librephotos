@@ -354,6 +354,46 @@ class ScrubEventTest(SimpleTestCase):
         self.assertNotEqual(fingerprint(first), fingerprint(browser))
 
 
+def django_q_failure(func: str, task_name: str) -> JsonObject:
+    """The event django-q's monitor logs for a failed task, message filled in."""
+    message = (
+        f"Failed '{func}' ({task_name}) - Function {func} is not defined : "
+        "Traceback (most recent call last):\n"
+        '  File "site-packages/django_q/worker.py", line 102, in worker\n'
+        f"ValueError: Function {func} is not defined\n"
+    )
+    return {
+        "level": "error",
+        "logger": "django-q",
+        "logentry": {"message": message, "formatted": message},
+        "tags": {"source": SOURCE_SERVER},
+    }
+
+
+class DjangoQFailureGroupingTest(SimpleTestCase):
+    # In 1.6.0 each failed task of one function was a report of its own: the
+    # message names the task, and every task has a random name.
+    def test_failures_of_one_function_are_one_report(self) -> None:
+        func = "api.services.check_services"
+
+        self.assertEqual(
+            fingerprint(django_q_failure(func, "magazine-xray-jupiter-fix")),
+            fingerprint(django_q_failure(func, "pluto-iowa-may-alpha")),
+        )
+
+    def test_failures_of_different_functions_stay_apart(self) -> None:
+        self.assertNotEqual(
+            fingerprint(
+                django_q_failure("api.services.check_services", "pluto-iowa-may-alpha")
+            ),
+            fingerprint(
+                django_q_failure(
+                    "api.services.cleanup_deleted_photos", "pluto-iowa-may-alpha"
+                )
+            ),
+        )
+
+
 class ScrubTextTest(SimpleTestCase):
     def test_patterns(self) -> None:
         cases = {
