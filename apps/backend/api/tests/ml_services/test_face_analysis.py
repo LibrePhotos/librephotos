@@ -14,6 +14,7 @@ import sys
 import tempfile
 from inspect import signature
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import numpy as np
 from django.test import SimpleTestCase
@@ -221,6 +222,27 @@ class NmsTest(SimpleTestCase):
         )
 
         self.assertEqual([int(i) for i in Detector._nms(dets)], [0, 2])
+
+
+class TooThinPictureTest(SimpleTestCase):
+    """A picture that shrinks to no pixels on the detector's input has no faces.
+
+    One pixel wide and 1000 tall fits 0 x 640 into 640 x 640: ``cv2.resize``
+    failed its ``inv_scale_x > 0`` assertion, and the sidecar answered 500 for
+    the photo on every Scan Faces.
+    """
+
+    def test_no_faces_and_no_inference(self):
+        session = _session(*DETECTOR)
+        session.run = Mock(side_effect=AssertionError("ran the detector"))
+        detector = Detector(session)
+
+        for shape in ((1000, 1, 3), (1, 1000, 3)):
+            with self.subTest(shape=shape):
+                boxes, landmarks = detector.detect(np.zeros(shape, np.uint8))
+
+                self.assertEqual(boxes.shape, (0, 5))
+                self.assertEqual(landmarks.shape, (0, 5, 2))
 
 
 class FaceAnalysisGetTest(SimpleTestCase):
