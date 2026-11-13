@@ -24,7 +24,11 @@ a pickled reference to its function, so a task queued before an update that
 removed or moved that function raises when it is opened. In the pusher that
 ended the pusher, and the sentinel's next one took the same task: no queued
 work ran again. Here such a task leaves the queue and goes into the result
-table as a failure that names the missing code; the next tasks run.
+table as a failure that names the missing code; the next tasks run. So does a
+task that names its function by a dotted path that leads nowhere, as every
+task a schedule queued does: a worker would only fail it, and each failure
+was an error report of its own. Both are logged as warnings, since they are
+what an update that moved code leaves behind.
 
 The release guard. A rolling deploy (Coolify, a Kubernetes surge) keeps the
 old container running while the new one migrates and writes its startup
@@ -42,6 +46,7 @@ import io
 import logging
 import os
 import pickle
+import pydoc
 import threading
 import time
 import uuid
@@ -115,20 +120,37 @@ class ReleaseGuardedORM(ORM):
             return tasks
         loaded: list[tuple[int, str]] = []
         for pk, payload in tasks:
-            try:
-                loaded.append((pk, acknowledged_when_failed(payload)))
-            except Exception as error:
-                # Anything else that unpickling raises: the pusher would die
-                # on it. An empty list sends the pusher straight back here.
-                logger.exception(
-                    "Removed queued task %s, which this release cannot load", pk
-                )
-                self.fail_unloadable(pk, payload, error)
+            deliverable = self._deliverable(pk, payload)
+            if deliverable is not None:
+                loaded.append((pk, deliverable))
         with self._held_lock:
             self._held.update(pk for pk, _payload in loaded)
         if loaded:
             self._keep_renewing()
         return loaded
+
+    def _deliverable(self, pk: int, payload: str) -> str | None:
+        """Task ``pk`` as the workers get it, or None once it left the queue."""
+        try:
+            return acknowledged_when_failed(payload)
+        except MissingFunctionError as error:
+            logger.warning(
+                "Removed queued task %s: %s no longer exists, an older release "
+                "queued it",
+                pk,
+                error.path,
+            )
+            self.fail_unloadable(pk, payload, error)
+        except UnloadableTaskError as error:
+            # The pusher would die on it. An empty list sends the pusher
+            # straight back here.
+            logger.warning(
+                "Removed queued task %s, which this release cannot load",
+                pk,
+                exc_info=True,
+            )
+            self.fail_unloadable(pk, payload, error.cause)
+        return None
 
     def fail_unloadable(self, pk: int, payload: str, error: Exception) -> None:
         """Take task ``pk`` off the queue and record it as failed.
@@ -226,19 +248,51 @@ class ReleaseGuardedORM(ORM):
         return self._database_is_newer
 
 
+class UnloadableTaskError(Exception):
+    """A queued task that a worker could not run: ``cause`` says why."""
+
+    def __init__(self, cause: Exception) -> None:
+        super().__init__(f"{type(cause).__name__}: {cause}")
+        self.cause = cause
+
+
+class MissingFunctionError(UnloadableTaskError):
+    """A queued task names its function by a dotted path that leads nowhere."""
+
+    def __init__(self, path: str) -> None:
+        super().__init__(LookupError(f"Function {path} is not defined"))
+        self.path = path
+
+
+def _function_exists(path: str) -> bool:
+    """Whether the worker's own lookup (``pydoc.locate``) finds ``path``."""
+    try:
+        return pydoc.locate(path) is not None
+    except pydoc.ErrorDuringImport as error:
+        raise UnloadableTaskError(error) from error
+
+
 def acknowledged_when_failed(payload: str) -> str:
     """The task ``payload`` with ``ack_failure`` on, unless it sets the flag.
 
     django-q2 copies ``Q_CLUSTER["ack_failures"]`` into a task when it is
     queued, so that setting would miss the tasks already in the queue at an
-    upgrade.
+    upgrade. Raises ``UnloadableTaskError`` for a task no worker could run:
+    ``MissingFunctionError`` when it names a function that is gone.
     """
     try:
         task = SignedPackage.loads(payload)
     except TypeError, BadSignature:
         # The pusher logs it and deletes it.
         return payload
-    if not isinstance(task, dict) or "ack_failure" in task:
+    except Exception as error:
+        raise UnloadableTaskError(error) from error
+    if not isinstance(task, dict):
+        return payload
+    func = task.get("func")
+    if isinstance(func, str) and not _function_exists(func):
+        raise MissingFunctionError(func)
+    if "ack_failure" in task:
         return payload
     task["ack_failure"] = True
     signed: str = SignedPackage.dumps(task)
@@ -314,6 +368,8 @@ def unloadable_failure(payload: str, error: Exception) -> dict[str, object]:
     if not isinstance(task, dict):
         task = {}
     missing = serializer.missing
+    if isinstance(error, MissingFunctionError):
+        missing = [*missing, error.path]
     if missing:
         reason = (
             f"{', '.join(dict.fromkeys(missing))} no longer exists, so the task "
