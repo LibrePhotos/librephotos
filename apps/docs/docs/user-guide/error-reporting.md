@@ -53,6 +53,8 @@ Before a report is saved, every text in it is scrubbed. These are replaced by pl
 - usernames, first and last names and email addresses of users, and the names of people, albums, events and tags;
 - email addresses, IP addresses, URLs and this server's host names.
 
+<Since version="1.7.0" /> A name is replaced only in the text of a message, not in the names of code (files, modules, functions, error types) that the stack lists. A name that is a number, a word such as "from" or "not", or an HTTP method such as "POST" is left alone, so a tag with that name does not blank it out of every report.
+
 A report never holds: your photos, the request (its address, query, body, cookies and headers, login tokens included), the signed-in user, breadcrumbs, local variables, extra data, tags, the installed packages, other threads or the server's name.
 
 Paths of LibrePhotos' own code are kept, made relative (`api/photos/files.py`, `site-packages/django/...`), so a stack stays readable. The web app's script files are kept as paths only (`/assets/index-abc123.js`).

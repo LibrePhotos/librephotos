@@ -23,6 +23,13 @@ usernames, the names of people, albums and tags, email and IP addresses,
 URLs and this server's host names. Code paths are made relative (to the
 backend, ``site-packages`` or the Python install) instead, so stacks stay
 readable.
+
+A name is replaced only where it can name someone: in text, never in the
+names code goes by (a frame's file, module and function, an error's type, the
+logger) nor in a code reference inside text (``api/search/semantic.py``,
+``api.search.semantic``). Numbers, function words and HTTP methods are not
+names at all: tags come from the keywords of files, and in 1.6.0 such tags
+turned "POST", "Could not", "500 Server Error" and line numbers into ``<name>``.
 """
 
 from __future__ import annotations
@@ -78,6 +85,24 @@ MIN_NAME = 3
 MAX_NAMES = 20000
 # Host names that are words in messages, not secrets.
 COMMON_HOSTS = frozenset({"localhost", "backend", "frontend", "proxy", "db"})
+# Words every message is made of: English function words of three letters or
+# more (shorter names are skipped anyway) and the HTTP methods. A tag or an
+# album titled like one of them would otherwise blank them out of every report.
+ORDINARY_WORDS = frozenset(
+    """
+    about above across after again against all also among and any are around
+    because been before behind being below beside between both but can cannot
+    could did does doing down during each either else ever every few for from
+    had has have having her here hers him his how into its just less many more
+    most much must near neither nor not now off once one only onto other ought
+    our ours out over own per same shall she should since some such than that
+    the their theirs them then there these they this those though through thus
+    till too toward under unless until upon very via was were what when where
+    whether which while who whom whose why will with within without would yet
+    you your yours
+    get head post put patch delete options trace connect
+    """.split()
+)
 
 _URL = re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.-]*://[^\s'\"<>]+")
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
@@ -101,6 +126,10 @@ _MEDIA_FILE = re.compile(
     re.IGNORECASE,
 )
 _CASE = re.IGNORECASE if os.name == "nt" else 0
+# A Python source file, or a dotted path whose first part is a loaded module.
+_CODE_REFERENCE = re.compile(
+    r"[\w.\\/-]+\.py\b|\b(?P<package>[A-Za-z_]\w*)(?:\.[A-Za-z_]\w*)+"
+)
 
 
 def _alternation(words: Iterable[str]) -> str:
@@ -158,10 +187,39 @@ class ScrubContext:
 
     @functools.cached_property
     def _names(self) -> re.Pattern[str] | None:
-        names = [name for name in self.names if len(name) >= MIN_NAME]
+        names = [name for name in self.names if _is_name(name)]
         if not names:
             return None
         return re.compile(rf"(?<!\w)(?:{_alternation(names)})(?!\w)", re.IGNORECASE)
+
+
+def _is_name(word: str) -> bool:
+    """Whether ``word`` can name someone, rather than be part of any message."""
+    return (
+        len(word) >= MIN_NAME
+        and any(char.isalpha() for char in word)
+        and word.casefold() not in ORDINARY_WORDS
+    )
+
+
+def _code_spans(text: str) -> list[tuple[int, int]]:
+    return [
+        match.span()
+        for match in _CODE_REFERENCE.finditer(text)
+        if match["package"] is None or match["package"] in sys.modules
+    ]
+
+
+def _replace_names(text: str, names: re.Pattern[str]) -> str:
+    """``text`` with the names replaced, except inside code references."""
+    code = _code_spans(text)
+
+    def name_or_code(match: re.Match[str]) -> str:
+        if any(start <= match.start() < end for start, end in code):
+            return match.group(0)
+        return NAME
+
+    return names.sub(name_or_code, text)
 
 
 def _spellings(root: str) -> set[str]:
@@ -181,12 +239,18 @@ def _replace_ips(text: str) -> str:
 
 
 def scrub_text(
-    text: str, context: ScrubContext, *, limit: int = MAX_TEXT, paths: bool = True
+    text: str,
+    context: ScrubContext,
+    *,
+    limit: int = MAX_TEXT,
+    paths: bool = True,
+    names: bool = True,
 ) -> str:
     """``text`` without anything ``ScrubContext`` or the patterns call private.
 
     ``paths=False`` keeps absolute paths that are not below a known folder:
     for a script's URL path or a URL pattern, which name code, not files.
+    ``names=False`` keeps the names of people, albums and tags: for code.
     """
     text = _URL.sub(URL, text)
     text = _EMAIL.sub(EMAIL, text)
@@ -201,8 +265,8 @@ def scrub_text(
     text = _replace_ips(text)
     if context._hosts is not None:
         text = context._hosts.sub(HOST, text)
-    if context._names is not None:
-        text = context._names.sub(NAME, text)
+    if names and context._names is not None:
+        text = _replace_names(text, context._names)
     return text[:limit]
 
 
@@ -210,11 +274,20 @@ def scrub_path(path: str, context: ScrubContext) -> str:
     """A stack frame's file: code relative, a script URL as its path only."""
     if "://" in path:
         return scrub_text(urlsplit(path).path, context, paths=False)
-    return scrub_text(path, context)
+    return scrub_text(path, context, names=False)
 
 
 def _text(value: Json, context: ScrubContext, *, limit: int = MAX_TEXT) -> str | None:
     return scrub_text(value, context, limit=limit) if isinstance(value, str) else None
+
+
+def _code(
+    value: Json, context: ScrubContext, *, limit: int = MAX_CODE_LINE
+) -> str | None:
+    """A name from code (a function, a module, a type), which names no one."""
+    if not isinstance(value, str):
+        return None
+    return scrub_text(value, context, limit=limit, names=False)
 
 
 def _put(target: JsonObject, key: str, value: Json) -> None:
@@ -243,12 +316,14 @@ def _frame(raw: Mapping[str, Json], context: ScrubContext) -> JsonObject:
         if isinstance(value, str):
             frame[key] = scrub_path(value, context)
     for key in ("module", "function"):
-        _put(frame, key, _text(raw.get(key), context, limit=MAX_CODE_LINE))
+        _put(frame, key, _code(raw.get(key), context))
     for key in ("lineno", "colno"):
         _put(frame, key, _number(raw.get(key)))
     in_app = raw.get("in_app")
     if isinstance(in_app, bool):
         frame["in_app"] = in_app
+    # Lines of code are scrubbed like messages: a test or a script can spell
+    # out a name, which a function or module name never does.
     _put(
         frame,
         "context_line",
@@ -267,13 +342,13 @@ def _frame(raw: Mapping[str, Json], context: ScrubContext) -> JsonObject:
 
 def _exception(raw: Mapping[str, Json], context: ScrubContext) -> JsonObject:
     exception: JsonObject = {}
-    _put(exception, "type", _text(raw.get("type"), context, limit=MAX_CODE_LINE))
+    _put(exception, "type", _code(raw.get("type"), context))
     _put(exception, "value", _text(raw.get("value"), context))
-    _put(exception, "module", _text(raw.get("module"), context, limit=MAX_CODE_LINE))
+    _put(exception, "module", _code(raw.get("module"), context))
     mechanism = _object(raw.get("mechanism"))
     if mechanism:
         kept: JsonObject = {}
-        _put(kept, "type", _text(mechanism.get("type"), context, limit=64))
+        _put(kept, "type", _code(mechanism.get("type"), context, limit=64))
         handled = mechanism.get("handled")
         if isinstance(handled, bool):
             kept["handled"] = handled
@@ -310,7 +385,7 @@ def _header(
 ) -> JsonObject:
     out: JsonObject = {}
     for key in ("event_id", "platform", "level", "logger", "environment"):
-        _put(out, key, _text(event.get(key), context, limit=64))
+        _put(out, key, _code(event.get(key), context, limit=64))
     timestamp = event.get("timestamp")
     if isinstance(timestamp, str):
         out["timestamp"] = timestamp[:64]
@@ -321,7 +396,9 @@ def _header(
     transaction = event.get("transaction")
     if source == SOURCE_SERVER and isinstance(transaction, str):
         # A URL pattern (``/api/photos/{pk}/``), not the URL.
-        out["transaction"] = scrub_text(transaction, context, limit=256, paths=False)
+        out["transaction"] = scrub_text(
+            transaction, context, limit=256, paths=False, names=False
+        )
     return out
 
 

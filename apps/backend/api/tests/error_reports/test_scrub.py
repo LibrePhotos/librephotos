@@ -396,6 +396,75 @@ class ScrubTextTest(SimpleTestCase):
         self.assertEqual(len(scrub_text("x" * 5000, CONTEXT)), 2000)
 
 
+# Tags come from the keywords in files, and some are everyday words or
+# numbers. In 1.6.0 they turned "POST" into "<name>", "Could not" into "Could
+# <name>", "500 Server Error" into "<name> Server Error", line numbers into
+# "line <name>" and api/search/ into api/<name>/.
+WORDS_AS_NAMES = ScrubContext(
+    names=("Gretchen", "POST", "not", "from", "500", "102", "185", "search", "post")
+)
+
+
+class ScrubCommonWordsTest(SimpleTestCase):
+    def test_everyday_words_numbers_and_code_in_text_stay(self) -> None:
+        kept = (
+            "Could not create thumbnail for file <library>",
+            "Error while parsing datetime from '2035:09:19 05:37:53+02:00'",
+            "HTTPError: 500 Server Error: INTERNAL SERVER ERROR for url: <url>",
+            "OSError: image file is truncated (462 bytes not processed)",
+            "POST to the exif sidecar failed",
+            'File "site-packages/django_q/worker.py", line 102, in worker',
+            'File "api/search/semantic.py", line 165, in generate_photo_tags',
+            "Function api.search.semantic.generate_photo_tags is not defined",
+            "Error: Minified React error #185; visit <url> for the full message",
+        )
+        for text in kept:
+            with self.subTest(text=text):
+                self.assertEqual(scrub_text(text, WORDS_AS_NAMES), text)
+
+    def test_a_name_is_still_scrubbed(self) -> None:
+        self.assertEqual(
+            scrub_text("no face of Gretchen in photos tagged search", WORDS_AS_NAMES),
+            "no face of <name> in photos tagged <name>",
+        )
+
+    def test_code_in_a_stack_frame_keeps_its_names(self) -> None:
+        event: JsonObject = {
+            "logger": "api.search.semantic",
+            "exception": {
+                "values": [
+                    {
+                        "type": "ReadTimeout",
+                        "module": "requests.exceptions",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "filename": "api/search/semantic.py",
+                                    "abs_path": "/code/api/search/semantic.py",
+                                    "module": "api.search.semantic",
+                                    "function": "post",
+                                    "lineno": 165,
+                                    "context_line": "response = sidecars.post(",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+        context = ScrubContext(code_roots=(("/code", ""),), names=WORDS_AS_NAMES.names)
+
+        scrubbed = scrub_event(event, context, source=SOURCE_SERVER)
+
+        self.assertEqual(scrubbed["logger"], "api.search.semantic")
+        frame = dig(scrubbed, "exception", "values", 0, "stacktrace", "frames", 0)
+        self.assertEqual(text_at(frame, "filename"), "api/search/semantic.py")
+        self.assertEqual(text_at(frame, "abs_path"), "api/search/semantic.py")
+        self.assertEqual(text_at(frame, "module"), "api.search.semantic")
+        self.assertEqual(text_at(frame, "function"), "post")
+        self.assertEqual(text_at(frame, "context_line"), "response = sidecars.post(")
+
+
 @override_settings(DATA_ROOT="/data/photos")
 class ScrubContextTest(TestCase):
     def setUp(self) -> None:
