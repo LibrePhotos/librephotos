@@ -8,7 +8,7 @@ sidebar_position: 18
 
 When something breaks, LibrePhotos saves a report of the error on your server. Nothing leaves the server until an admin decides so: errors are kept, scrubbed, so you can still share them later, or never.
 
-Both the backend (the web server and the background workers) and the web app save their errors here. The web app hands its errors to your server, never to a reporting server directly.
+Both the backend (the web server and the background workers) and the web app save their errors here. The web app hands its errors to your server, never to a reporting server directly. <Since version="1.7.0" /> An error whose stack has no line of the web app's own scripts, such as one a browser extension throws in the page, is not saved.
 
 ## The choices
 
