@@ -61,7 +61,7 @@ services:
       - ../docker/backend/entrypoint.sh:/entrypoint.sh
 
   pgadmin:
-    image: dpage/pgadmin4:9.18
+    image: dpage/pgadmin4:9.19
     container_name: pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
