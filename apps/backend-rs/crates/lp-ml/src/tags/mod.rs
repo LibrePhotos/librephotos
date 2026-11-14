@@ -1,0 +1,72 @@
+//! Zero-shot scene tags (`service/tags`, sidecar :8011): MobileCLIP-S2
+//! (softmax over `tags.txt`, keeps scores of at least 0.02) or SigLIP 2
+//! (raw cosine, at least 0.05), at most 10 tags. Contract: `POST /generate-tags {image_path,
+//! confidence, tagging_model}` -> `{"tags": {...}}` (stored as-is under
+//! `captions_json[<model>]`); an unknown model is a 400.
+
+mod inprocess;
+pub mod npy;
+pub mod spm;
+pub mod tagger;
+
+pub use inprocess::InProcess;
+
+use async_trait::async_trait;
+use lp_sidecars::{SidecarError, Sidecars};
+use serde_json::Value;
+
+#[async_trait]
+pub trait TagsApi: Send + Sync {
+    /// The whole JSON reply (`{"tags": {...}}`).
+    async fn generate_tags(
+        &self,
+        image_path: &str,
+        confidence: f64,
+        tagging_model: &str,
+    ) -> Result<Value, SidecarError>;
+
+    /// [`generate_tags`](Self::generate_tags) plus the image tower's raw
+    /// embedding from the same run (semantic search on the tagging model).
+    /// In-process only.
+    async fn generate_tags_with_embedding(
+        &self,
+        _image_path: &str,
+        _confidence: f64,
+        _tagging_model: &str,
+    ) -> Result<(Value, Vec<f32>), SidecarError> {
+        Err(crate::not_implemented(crate::Service::Tags))
+    }
+
+    /// [`generate_tags_with_embedding`](Self::generate_tags_with_embedding) of
+    /// an image already in memory (the scan's big thumbnail before encoding).
+    /// In-process only.
+    async fn generate_tags_rgb(
+        &self,
+        _image: std::sync::Arc<image::RgbImage>,
+        _tagging_model: &str,
+    ) -> Result<(Value, Vec<f32>), SidecarError> {
+        Err(crate::not_implemented(crate::Service::Tags))
+    }
+
+    /// The raw image embedding of the tagging model's image tower, without
+    /// tags. In-process only.
+    async fn image_embedding(
+        &self,
+        _image_path: &str,
+        _tagging_model: &str,
+    ) -> Result<Vec<f32>, SidecarError> {
+        Err(crate::not_implemented(crate::Service::Tags))
+    }
+}
+
+#[async_trait]
+impl TagsApi for Sidecars {
+    async fn generate_tags(
+        &self,
+        image_path: &str,
+        confidence: f64,
+        tagging_model: &str,
+    ) -> Result<Value, SidecarError> {
+        Sidecars::generate_tags(self, image_path, confidence, tagging_model).await
+    }
+}

@@ -1,0 +1,2266 @@
+{
+ "environment": {
+  "commit": "131db0764",
+  "cpu": "AMD Ryzen 5 2600X Six-Core Processor",
+  "logical_cpus": 12,
+  "ram_gb": "32",
+  "os": "Microsoft Windows 11 Home 10.0.26100",
+  "platform": "Windows-10-10.0.26100-SP0",
+  "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "python": "3.11.9",
+  "django": "5.2.17",
+  "uvicorn": "0.53.0",
+  "psycopg": "3.3.4",
+  "a2wsgi": "1.10.10",
+  "django_q2": "1.11.1",
+  "libvips": "8.18",
+  "postgres": {
+   "server_version": "16.2",
+   "shared_buffers": "128MB",
+   "work_mem": "4MB",
+   "effective_cache_size": "4GB",
+   "max_connections": "100",
+   "fsync": "off",
+   "synchronous_commit": "off",
+   "full_page_writes": "off",
+   "jit": "on"
+  },
+  "cpu_sets": {
+   "server": "3f",
+   "postgres": "3c0",
+   "client": "c00"
+  },
+  "contenders": {
+   "django-shipped": {
+    "kind": "django",
+    "workers": 1,
+    "threads": 16
+   },
+   "django-tuned": {
+    "kind": "django",
+    "workers": 6,
+    "threads": 4
+   },
+   "rust": {
+    "kind": "rust",
+    "pool": 12
+   }
+  },
+  "summary": {
+   "Hardware": "AMD Ryzen 5 2600X Six-Core Processor, 12 logical CPUs (6 cores \u00d7 SMT), 32 GB RAM, NVMe SSD",
+   "OS": "Microsoft Windows 11 Home 10.0.26100",
+   "Commit": "experiment/rust-backend @ 131db0764 (Django = apps/backend of the same commit)",
+   "Rust": "rustc 1.95.0 (59807616e 2026-04-14), release profile lto=thin, codegen-units=1",
+   "Python": "CPython 3.11.9, Django 5.2.17, uvicorn 0.53.0, a2wsgi 1.10.10, psycopg 3.3.4, django-q2 1.11.1, libvips 8.18",
+   "Postgres": "16.2 on localhost:5433, shared_buffers 128MB, work_mem 4MB, fsync=off, synchronous_commit=off, full_page_writes=off (dev server, same for both backends)",
+   "CPU sets": "server CPUs 0-5 (mask 0x3f), Postgres 6-9 (0x3c0), load client 10-11 (0xc00); set with SetProcessAffinityMask on the process trees after start-up",
+   "Contenders": "django-shipped = uvicorn 1 worker \u00d7 WEB_THREADS=16; django-tuned = uvicorn 6 workers \u00d7 WEB_THREADS=4; rust = librephotos-rs serve, tokio default workers, LP_DB_POOL=12, LP_MEDIA_MODE=direct. Django: production settings, DEBUG off, CONN_MAX_AGE=600, no access log, SERVE_FRONTEND direct media (no nginx on this box). Same SECRET_KEY, same JWT for all."
+  }
+ },
+ "w1": [],
+ "attribution": [
+  {
+   "endpoint": "date_list",
+   "contender": "django-tuned",
+   "path": "/api/albums/date/list/",
+   "ds": "50k",
+   "queries": 3,
+   "db_ms": 199.697,
+   "bytes": 121457,
+   "latency_ms": 278.28409999983705,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_page_1",
+   "contender": "django-tuned",
+   "path": "/api/albums/date/1010/?page=1",
+   "ds": "50k",
+   "queries": 9,
+   "db_ms": 33.686,
+   "bytes": 12504,
+   "latency_ms": 71.24920000023849,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_page_deep",
+   "contender": "django-tuned",
+   "path": "/api/albums/date/949/?page=11",
+   "ds": "50k",
+   "queries": 9,
+   "db_ms": 57.928999999999995,
+   "bytes": 42671,
+   "latency_ms": 100.58859999980996,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "photo_detail",
+   "contender": "django-tuned",
+   "path": "/api/photos/3e9367a8cf8bf783f50ade55282dc5022/",
+   "ds": "50k",
+   "queries": 21,
+   "db_ms": 49.10800000000001,
+   "bytes": 2546,
+   "latency_ms": 91.85389999993276,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "persons",
+   "contender": "django-tuned",
+   "path": "/api/persons/?page_size=1000",
+   "ds": "50k",
+   "queries": 4,
+   "db_ms": 29.575,
+   "bytes": 18479,
+   "latency_ms": 57.3856999999407,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "user_self",
+   "contender": "django-tuned",
+   "path": "/api/user/2/",
+   "ds": "50k",
+   "queries": 21,
+   "db_ms": 9.479000000000001,
+   "bytes": 5858,
+   "latency_ms": 47.379199999795674,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "sitesettings",
+   "contender": "django-tuned",
+   "path": "/api/sitesettings",
+   "ds": "50k",
+   "queries": 14,
+   "db_ms": 5.929,
+   "bytes": 400,
+   "latency_ms": 18.200399999841466,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "rqavailable",
+   "contender": "django-tuned",
+   "path": "/api/rqavailable/",
+   "ds": "50k",
+   "queries": 4,
+   "db_ms": 4.714,
+   "bytes": 470,
+   "latency_ms": 42.409500000303524,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "jobs",
+   "contender": "django-tuned",
+   "path": "/api/jobs/?page_size=10&page=1&mine=true",
+   "ds": "50k",
+   "queries": 5,
+   "db_ms": 1.195,
+   "bytes": 1909,
+   "latency_ms": 11.081099999955768,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_user_list",
+   "contender": "django-tuned",
+   "path": "/api/albums/user/list/",
+   "ds": "50k",
+   "queries": 6,
+   "db_ms": 131.072,
+   "bytes": 59968,
+   "latency_ms": 264.2234999998436,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_thing_list",
+   "contender": "django-tuned",
+   "path": "/api/albums/thing/list/",
+   "ds": "50k",
+   "queries": 6,
+   "db_ms": 19.611,
+   "bytes": 54472,
+   "latency_ms": 77.82330000009097,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_place_list",
+   "contender": "django-tuned",
+   "path": "/api/albums/place/list/",
+   "ds": "50k",
+   "queries": 5,
+   "db_ms": 200.944,
+   "bytes": 14580,
+   "latency_ms": 217.51220000032845,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "search_text",
+   "contender": "django-tuned",
+   "path": "/api/photos/searchlist/?search=beach",
+   "ds": "50k",
+   "queries": 2732,
+   "db_ms": 976.3320000000036,
+   "bytes": 536007,
+   "latency_ms": 4407.996800000092,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_user_detail",
+   "contender": "django-tuned",
+   "path": "/api/albums/user/108/",
+   "ds": "50k",
+   "queries": 196,
+   "db_ms": 61.186000000000014,
+   "bytes": 15553,
+   "latency_ms": 274.1180000002714,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "media_square_small",
+   "contender": "django-tuned",
+   "path": "/media/square_thumbnails_small/3e9367a8cf8bf783f50ade55282dc5022",
+   "ds": "50k",
+   "queries": 5,
+   "db_ms": 1.6239999999999999,
+   "bytes": 5402,
+   "latency_ms": 164.43690000005518,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "media_big",
+   "contender": "django-tuned",
+   "path": "/media/thumbnails_big/3e9367a8cf8bf783f50ade55282dc5022",
+   "ds": "50k",
+   "queries": 5,
+   "db_ms": 1.808,
+   "bytes": 15548,
+   "latency_ms": 11.279199999989942,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_list",
+   "contender": "rust",
+   "path": "/api/albums/date/list/",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 95.299,
+   "bytes": 121457,
+   "latency_ms": 99.56970000030196,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_page_1",
+   "contender": "rust",
+   "path": "/api/albums/date/1010/?page=1",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 6.261,
+   "bytes": 12504,
+   "latency_ms": 8.901799999875948,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_page_deep",
+   "contender": "rust",
+   "path": "/api/albums/date/949/?page=11",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 18.661,
+   "bytes": 42671,
+   "latency_ms": 23.187400000097114,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "photo_detail",
+   "contender": "rust",
+   "path": "/api/photos/3e9367a8cf8bf783f50ade55282dc5022/",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 15.508000000000001,
+   "bytes": 2529,
+   "latency_ms": 18.118500000127824,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "persons",
+   "contender": "rust",
+   "path": "/api/persons/?page_size=1000",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 9.656,
+   "bytes": 18479,
+   "latency_ms": 12.623600000097213,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "user_self",
+   "contender": "rust",
+   "path": "/api/user/2/",
+   "ds": "50k",
+   "queries": 3,
+   "db_ms": 17.537,
+   "bytes": 5858,
+   "latency_ms": 18.901499999628868,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "sitesettings",
+   "contender": "rust",
+   "path": "/api/sitesettings",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 0.209,
+   "bytes": 400,
+   "latency_ms": 2.6877000000240514,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "rqavailable",
+   "contender": "rust",
+   "path": "/api/rqavailable/",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 0.624,
+   "bytes": 470,
+   "latency_ms": 2.6257999998051673,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "jobs",
+   "contender": "rust",
+   "path": "/api/jobs/?page_size=10&page=1&mine=true",
+   "ds": "50k",
+   "queries": 3,
+   "db_ms": 0.8450000000000001,
+   "bytes": 1909,
+   "latency_ms": 3.366399999777059,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_user_list",
+   "contender": "rust",
+   "path": "/api/albums/user/list/",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 35.599000000000004,
+   "bytes": 59968,
+   "latency_ms": 38.480600000184495,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_thing_list",
+   "contender": "rust",
+   "path": "/api/albums/thing/list/",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 5.156,
+   "bytes": 54472,
+   "latency_ms": 7.589400000142632,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_place_list",
+   "contender": "rust",
+   "path": "/api/albums/place/list/",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 1756.755,
+   "bytes": 14578,
+   "latency_ms": 1759.5741999998609,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "search_text",
+   "contender": "rust",
+   "path": "/api/photos/searchlist/?search=beach",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 2269.913,
+   "bytes": 536007,
+   "latency_ms": 2296.788899999683,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_user_detail",
+   "contender": "rust",
+   "path": "/api/albums/user/108/",
+   "ds": "50k",
+   "queries": 3,
+   "db_ms": 5.893000000000001,
+   "bytes": 15553,
+   "latency_ms": 9.18309999997291,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "media_square_small",
+   "contender": "rust",
+   "path": "/media/square_thumbnails_small/3e9367a8cf8bf783f50ade55282dc5022",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 2.5650000000000004,
+   "bytes": 5402,
+   "latency_ms": 5.024800000228424,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "media_big",
+   "contender": "rust",
+   "path": "/media/thumbnails_big/3e9367a8cf8bf783f50ade55282dc5022",
+   "ds": "50k",
+   "queries": 2,
+   "db_ms": 2.832,
+   "bytes": 15548,
+   "latency_ms": 6.246699999792327,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_list",
+   "contender": "django-tuned",
+   "path": "/api/albums/date/list/",
+   "ds": "250k",
+   "queries": 3,
+   "db_ms": 428.318,
+   "bytes": 238555,
+   "latency_ms": 478.52819999980056,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_page_1",
+   "contender": "django-tuned",
+   "path": "/api/albums/date/687/?page=1",
+   "ds": "250k",
+   "queries": 9,
+   "db_ms": 30.393,
+   "bytes": 24894,
+   "latency_ms": 61.89109999968423,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_page_deep",
+   "contender": "django-tuned",
+   "path": "/api/albums/date/317/?page=32",
+   "ds": "250k",
+   "queries": 9,
+   "db_ms": 209.53600000000003,
+   "bytes": 46450,
+   "latency_ms": 251.5972999999576,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "photo_detail",
+   "contender": "django-tuned",
+   "path": "/api/photos/457b16806fd4d27dbce54062e656ffec2/",
+   "ds": "250k",
+   "queries": 18,
+   "db_ms": 28.669999999999998,
+   "bytes": 1753,
+   "latency_ms": 53.59249999992244,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "persons",
+   "contender": "django-tuned",
+   "path": "/api/persons/?page_size=1000",
+   "ds": "250k",
+   "queries": 4,
+   "db_ms": 395.974,
+   "bytes": 91181,
+   "latency_ms": 491.2006000004112,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "user_self",
+   "contender": "django-tuned",
+   "path": "/api/user/2/",
+   "ds": "250k",
+   "queries": 21,
+   "db_ms": 56.843999999999994,
+   "bytes": 5860,
+   "latency_ms": 75.76540000036402,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "sitesettings",
+   "contender": "django-tuned",
+   "path": "/api/sitesettings",
+   "ds": "250k",
+   "queries": 14,
+   "db_ms": 6.5,
+   "bytes": 400,
+   "latency_ms": 22.919500000170956,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "rqavailable",
+   "contender": "django-tuned",
+   "path": "/api/rqavailable/",
+   "ds": "250k",
+   "queries": 4,
+   "db_ms": 4.7540000000000004,
+   "bytes": 470,
+   "latency_ms": 18.17669999991267,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "jobs",
+   "contender": "django-tuned",
+   "path": "/api/jobs/?page_size=10&page=1&mine=true",
+   "ds": "250k",
+   "queries": 5,
+   "db_ms": 0.96,
+   "bytes": 1909,
+   "latency_ms": 18.864799999846582,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_user_list",
+   "contender": "django-tuned",
+   "path": "/api/albums/user/list/",
+   "ds": "250k",
+   "queries": 6,
+   "db_ms": 599.6999999999999,
+   "bytes": 290891,
+   "latency_ms": 1124.343299999964,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_thing_list",
+   "contender": "django-tuned",
+   "path": "/api/albums/thing/list/",
+   "ds": "250k",
+   "queries": 6,
+   "db_ms": 6.607,
+   "bytes": 54564,
+   "latency_ms": 55.0825000000259,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_place_list",
+   "contender": "django-tuned",
+   "path": "/api/albums/place/list/",
+   "ds": "250k",
+   "queries": 5,
+   "db_ms": 1174.939,
+   "bytes": 14613,
+   "latency_ms": 1190.8330000001115,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "search_text",
+   "contender": "django-tuned",
+   "path": "/api/photos/searchlist/?search=beach",
+   "ds": "250k",
+   "queries": 14039,
+   "db_ms": 4602.1239999999725,
+   "bytes": 2693558,
+   "latency_ms": 17986.586700000316,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_user_detail",
+   "contender": "django-tuned",
+   "path": "/api/albums/user/324/",
+   "ds": "250k",
+   "queries": 202,
+   "db_ms": 36.53099999999996,
+   "bytes": 15847,
+   "latency_ms": 173.15030000008846,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "media_square_small",
+   "contender": "django-tuned",
+   "path": "/media/square_thumbnails_small/457b16806fd4d27dbce54062e656ffec2",
+   "ds": "250k",
+   "queries": 5,
+   "db_ms": 1.416,
+   "bytes": 5010,
+   "latency_ms": 9.996499999942898,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "media_big",
+   "contender": "django-tuned",
+   "path": "/media/thumbnails_big/457b16806fd4d27dbce54062e656ffec2",
+   "ds": "250k",
+   "queries": 5,
+   "db_ms": 1.345,
+   "bytes": 13612,
+   "latency_ms": 9.386300000187475,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_list",
+   "contender": "rust",
+   "path": "/api/albums/date/list/",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 645.54,
+   "bytes": 238555,
+   "latency_ms": 659.2581999998401,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_page_1",
+   "contender": "rust",
+   "path": "/api/albums/date/687/?page=1",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 7.3309999999999995,
+   "bytes": 24894,
+   "latency_ms": 10.382100000242644,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "date_page_deep",
+   "contender": "rust",
+   "path": "/api/albums/date/317/?page=32",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 36.698,
+   "bytes": 46450,
+   "latency_ms": 40.041500000370434,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "photo_detail",
+   "contender": "rust",
+   "path": "/api/photos/457b16806fd4d27dbce54062e656ffec2/",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 13.012,
+   "bytes": 1736,
+   "latency_ms": 15.856200000143872,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "persons",
+   "contender": "rust",
+   "path": "/api/persons/?page_size=1000",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 112.286,
+   "bytes": 91181,
+   "latency_ms": 123.34890000011,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "user_self",
+   "contender": "rust",
+   "path": "/api/user/2/",
+   "ds": "250k",
+   "queries": 3,
+   "db_ms": 111.984,
+   "bytes": 5860,
+   "latency_ms": 116.29070000026331,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "sitesettings",
+   "contender": "rust",
+   "path": "/api/sitesettings",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 0.188,
+   "bytes": 400,
+   "latency_ms": 13.865500000065367,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "rqavailable",
+   "contender": "rust",
+   "path": "/api/rqavailable/",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 0.5640000000000001,
+   "bytes": 470,
+   "latency_ms": 2.250000000003638,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "jobs",
+   "contender": "rust",
+   "path": "/api/jobs/?page_size=10&page=1&mine=true",
+   "ds": "250k",
+   "queries": 3,
+   "db_ms": 0.9810000000000001,
+   "bytes": 1909,
+   "latency_ms": 3.4281000002920337,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_user_list",
+   "contender": "rust",
+   "path": "/api/albums/user/list/",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 165.523,
+   "bytes": 290891,
+   "latency_ms": 171.79220000025452,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_thing_list",
+   "contender": "rust",
+   "path": "/api/albums/thing/list/",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 4.499,
+   "bytes": 54564,
+   "latency_ms": 6.923899999947025,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_place_list",
+   "contender": "rust",
+   "path": "/api/albums/place/list/",
+   "ds": "250k",
+   "queries": 12,
+   "db_ms": 13195.733,
+   "bytes": 14609,
+   "latency_ms": 13198.331799999778,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "search_text",
+   "contender": "rust",
+   "path": "/api/photos/searchlist/?search=beach",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 12603.598999999998,
+   "bytes": 2693558,
+   "latency_ms": 12641.566100000091,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "album_user_detail",
+   "contender": "rust",
+   "path": "/api/albums/user/324/",
+   "ds": "250k",
+   "queries": 3,
+   "db_ms": 6.625,
+   "bytes": 15847,
+   "latency_ms": 25.31829999998081,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "media_square_small",
+   "contender": "rust",
+   "path": "/media/square_thumbnails_small/457b16806fd4d27dbce54062e656ffec2",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 3.083,
+   "bytes": 5010,
+   "latency_ms": 7.124799999928655,
+   "status": 200,
+   "sample": null
+  },
+  {
+   "endpoint": "media_big",
+   "contender": "rust",
+   "path": "/media/thumbnails_big/457b16806fd4d27dbce54062e656ffec2",
+   "ds": "250k",
+   "queries": 2,
+   "db_ms": 2.877,
+   "bytes": 13612,
+   "latency_ms": 17.916499999955704,
+   "status": 200,
+   "sample": null
+  }
+ ],
+ "journeys": [],
+ "burst": [],
+ "resources": [],
+ "scan": [],
+ "dupes": [],
+ "validation": {
+  "fixture": [
+   {
+    "endpoint": "date_list",
+    "path": "/api/albums/date/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       14
+      ]
+     ],
+     "eq": [
+      [
+       "/results/0/id",
+       "5"
+      ],
+      [
+       "/results/0/numberOfItems",
+       5
+      ],
+      [
+       "/results/10/id",
+       "18"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 159.8,
+     "django-tuned": 2163.2,
+     "rust": 43.0
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "date_page_1",
+    "path": "/api/albums/date/5/?page=1",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results/items",
+       5
+      ]
+     ],
+     "eq": [
+      [
+       "/results/id",
+       "5"
+      ],
+      [
+       "/results/numberOfItems",
+       5
+      ],
+      [
+       "/results/items/0/id",
+       "e12f6def-85a4-430b-8236-95dc41d75936"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 131.5,
+     "django-tuned": 26.7,
+     "rust": 29.9
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "date_page_deep",
+    "path": "/api/albums/date/5/?page=1",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results/items",
+       5
+      ]
+     ],
+     "eq": [
+      [
+       "/results/id",
+       "5"
+      ],
+      [
+       "/results/items/0/id",
+       "e12f6def-85a4-430b-8236-95dc41d75936"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 113.9,
+     "django-tuned": 27.0,
+     "rust": 22.8
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "photo_detail",
+    "path": "/api/photos/78abeabed7ae10ae8897978f4bbea4c12/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/image_hash",
+       "78abeabed7ae10ae8897978f4bbea4c12"
+      ],
+      [
+       "/owner/id",
+       2
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 79.7,
+     "django-tuned": 68.3,
+     "rust": 76.7
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "persons",
+    "path": "/api/persons/?page_size=1000",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       2
+      ]
+     ],
+     "eq": [
+      [
+       "/count",
+       2
+      ],
+      [
+       "/results/0/id",
+       1
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 25.3,
+     "django-tuned": 26.2,
+     "rust": 4.3
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "user_self",
+    "path": "/api/user/2/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/id",
+       2
+      ],
+      [
+       "/username",
+       "alice"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 38.7,
+     "django-tuned": 50.1,
+     "rust": 72.6
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "sitesettings",
+    "path": "/api/sitesettings",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/allow_upload",
+       true
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 29.2,
+     "django-tuned": 16.8,
+     "rust": 3.4
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "rqavailable",
+    "path": "/api/rqavailable/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 19.6,
+     "django-tuned": 26.3,
+     "rust": 9.5
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "jobs",
+    "path": "/api/jobs/?page_size=10&page=1&mine=true",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       4
+      ]
+     ],
+     "eq": [
+      [
+       "/count",
+       4
+      ],
+      [
+       "/results/0/job_id",
+       "12357158-53de-4400-8975-59db3e84cd6e"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 31.7,
+     "django-tuned": 20.5,
+     "rust": 19.1
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_user_list",
+    "path": "/api/albums/user/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       5
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 43.4,
+     "django-tuned": 46.6,
+     "rust": 21.5
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_thing_list",
+    "path": "/api/albums/thing/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       7
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 24.2,
+     "django-tuned": 21.5,
+     "rust": 29.9
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_place_list",
+    "path": "/api/albums/place/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       8
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 30.1,
+     "django-tuned": 34.6,
+     "rust": 13.0
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "search_text",
+    "path": "/api/photos/searchlist/?search=beach",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       0
+      ]
+     ],
+     "eq": [
+      [
+       "/results/0/date",
+       null
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 18.8,
+     "django-tuned": 19.8,
+     "rust": 14.2
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_user_detail",
+    "path": "/api/albums/user/5/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/grouped_photos",
+       2
+      ]
+     ],
+     "eq": [
+      [
+       "/id",
+       "5"
+      ],
+      [
+       "/title",
+       "\u00dcn\u00efc\u00f6d\u00e9 \u2600 100% #;"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 50.1,
+     "django-tuned": 31.4,
+     "rust": 15.3
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "media_square_small",
+    "path": "/media/square_thumbnails_small/78abeabed7ae10ae8897978f4bbea4c12",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "bytes": 15523
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 149.8,
+     "django-tuned": 152.4,
+     "rust": 33.5
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "media_big",
+    "path": "/media/thumbnails_big/78abeabed7ae10ae8897978f4bbea4c12",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "bytes": 3318
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 9.4,
+     "django-tuned": 151.5,
+     "rust": 4.4
+    },
+    "dropped_eq": []
+   }
+  ],
+  "50k": [
+   {
+    "endpoint": "date_list",
+    "path": "/api/albums/date/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       1250
+      ]
+     ],
+     "eq": [
+      [
+       "/results/0/id",
+       "1010"
+      ],
+      [
+       "/results/0/numberOfItems",
+       23
+      ],
+      [
+       "/results/10/id",
+       "365"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 484.1,
+     "django-tuned": 167.7,
+     "rust": 342.4
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "date_page_1",
+    "path": "/api/albums/date/1010/?page=1",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results/items",
+       23
+      ]
+     ],
+     "eq": [
+      [
+       "/results/id",
+       "1010"
+      ],
+      [
+       "/results/numberOfItems",
+       23
+      ],
+      [
+       "/results/items/0/id",
+       "4639b03f-2082-4fc5-a981-80473b809de9"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 162.9,
+     "django-tuned": 2154.2,
+     "rust": 40.7
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "date_page_deep",
+    "path": "/api/albums/date/949/?page=11",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results/items",
+       79
+      ]
+     ],
+     "eq": [
+      [
+       "/results/id",
+       "949"
+      ],
+      [
+       "/results/items/0/id",
+       "37f0c4e9-c534-4761-8b9c-f032dd60de7d"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 123.1,
+     "django-tuned": 2209.8,
+     "rust": 53.4
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "photo_detail",
+    "path": "/api/photos/3e9367a8cf8bf783f50ade55282dc5022/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/image_hash",
+       "3e9367a8cf8bf783f50ade55282dc5022"
+      ],
+      [
+       "/owner/id",
+       2
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 77.2,
+     "django-tuned": 74.8,
+     "rust": 93.9
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "persons",
+    "path": "/api/persons/?page_size=1000",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       102
+      ]
+     ],
+     "eq": [
+      [
+       "/count",
+       102
+      ],
+      [
+       "/results/0/id",
+       1
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 58.3,
+     "django-tuned": 52.8,
+     "rust": 51.3
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "user_self",
+    "path": "/api/user/2/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/id",
+       2
+      ],
+      [
+       "/username",
+       "alice"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 32.3,
+     "django-tuned": 32.6,
+     "rust": 75.4
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "sitesettings",
+    "path": "/api/sitesettings",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/allow_upload",
+       true
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 33.0,
+     "django-tuned": 39.0,
+     "rust": 3.9
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "rqavailable",
+    "path": "/api/rqavailable/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 20.9,
+     "django-tuned": 23.0,
+     "rust": 14.3
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "jobs",
+    "path": "/api/jobs/?page_size=10&page=1&mine=true",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       4
+      ]
+     ],
+     "eq": [
+      [
+       "/count",
+       4
+      ],
+      [
+       "/results/0/job_id",
+       "12357158-53de-4400-8975-59db3e84cd6e"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 13.4,
+     "django-tuned": 8.7,
+     "rust": 10.5
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_user_list",
+    "path": "/api/albums/user/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       130
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 256.8,
+     "django-tuned": 223.5,
+     "rust": 49.7
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_thing_list",
+    "path": "/api/albums/thing/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       153
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 71.5,
+     "django-tuned": 85.6,
+     "rust": 23.4
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_place_list",
+    "path": "/api/albums/place/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       44
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 207.6,
+     "django-tuned": 187.7,
+     "rust": 1508.5
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "search_text",
+    "path": "/api/photos/searchlist/?search=beach",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       458
+      ]
+     ],
+     "eq": [
+      [
+       "/results/0/date",
+       "2026-06-29T08:36:19.697894Z"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 3636.2,
+     "django-tuned": 4084.4,
+     "rust": 2477.2
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_user_detail",
+    "path": "/api/albums/user/108/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/grouped_photos",
+       3
+      ]
+     ],
+     "eq": [
+      [
+       "/id",
+       "108"
+      ],
+      [
+       "/title",
+       "Album 0102"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 223.7,
+     "django-tuned": 225.5,
+     "rust": 35.9
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "media_square_small",
+    "path": "/media/square_thumbnails_small/3e9367a8cf8bf783f50ade55282dc5022",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "bytes": 5402
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 146.2,
+     "django-tuned": 139.1,
+     "rust": 47.5
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "media_big",
+    "path": "/media/thumbnails_big/3e9367a8cf8bf783f50ade55282dc5022",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "bytes": 15548
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 11.2,
+     "django-tuned": 153.5,
+     "rust": 6.8
+    },
+    "dropped_eq": []
+   }
+  ],
+  "250k": [
+   {
+    "endpoint": "date_list",
+    "path": "/api/albums/date/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       2436
+      ]
+     ],
+     "eq": [
+      [
+       "/results/0/id",
+       "687"
+      ],
+      [
+       "/results/0/numberOfItems",
+       46
+      ],
+      [
+       "/results/10/id",
+       "1519"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 803.9,
+     "django-tuned": 736.1,
+     "rust": 903.4
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "date_page_1",
+    "path": "/api/albums/date/687/?page=1",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results/items",
+       46
+      ]
+     ],
+     "eq": [
+      [
+       "/results/id",
+       "687"
+      ],
+      [
+       "/results/numberOfItems",
+       46
+      ],
+      [
+       "/results/items/0/id",
+       "2f033f5e-f495-4fee-b081-7331a100c029"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 195.3,
+     "django-tuned": 56.5,
+     "rust": 76.4
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "date_page_deep",
+    "path": "/api/albums/date/317/?page=32",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results/items",
+       86
+      ]
+     ],
+     "eq": [
+      [
+       "/results/id",
+       "317"
+      ],
+      [
+       "/results/items/0/id",
+       "0084f54e-29ff-49e6-9917-7ec61ccba47b"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 401.3,
+     "django-tuned": 287.3,
+     "rust": 132.6
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "photo_detail",
+    "path": "/api/photos/457b16806fd4d27dbce54062e656ffec2/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/image_hash",
+       "457b16806fd4d27dbce54062e656ffec2"
+      ],
+      [
+       "/owner/id",
+       2
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 76.7,
+     "django-tuned": 83.2,
+     "rust": 65.3
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "persons",
+    "path": "/api/persons/?page_size=1000",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       502
+      ]
+     ],
+     "eq": [
+      [
+       "/count",
+       502
+      ],
+      [
+       "/results/0/id",
+       1
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 532.3,
+     "django-tuned": 551.6,
+     "rust": 131.6
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "user_self",
+    "path": "/api/user/2/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/id",
+       2
+      ],
+      [
+       "/username",
+       "alice"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 120.5,
+     "django-tuned": 117.2,
+     "rust": 166.4
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "sitesettings",
+    "path": "/api/sitesettings",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": [
+      [
+       "/allow_upload",
+       true
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 38.5,
+     "django-tuned": 25.1,
+     "rust": 4.9
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "rqavailable",
+    "path": "/api/rqavailable/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 28.3,
+     "django-tuned": 27.3,
+     "rust": 18.3
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "jobs",
+    "path": "/api/jobs/?page_size=10&page=1&mine=true",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       4
+      ]
+     ],
+     "eq": [
+      [
+       "/count",
+       4
+      ],
+      [
+       "/results/0/job_id",
+       "12357158-53de-4400-8975-59db3e84cd6e"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 26.2,
+     "django-tuned": 16.5,
+     "rust": 27.8
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_user_list",
+    "path": "/api/albums/user/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       630
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 1357.7,
+     "django-tuned": 1324.5,
+     "rust": 337.9
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_thing_list",
+    "path": "/api/albums/thing/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       153
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 115.3,
+     "django-tuned": 90.1,
+     "rust": 26.9
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_place_list",
+    "path": "/api/albums/place/list/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       44
+      ]
+     ],
+     "eq": []
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 1653.5,
+     "django-tuned": 1600.6,
+     "rust": 16702.5
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "search_text",
+    "path": "/api/photos/searchlist/?search=beach",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/results",
+       1513
+      ]
+     ],
+     "eq": [
+      [
+       "/results/0/date",
+       "2026-06-27T21:11:44.048971Z"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 21734.4,
+     "django-tuned": 24200.6,
+     "rust": 13440.5
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "album_user_detail",
+    "path": "/api/albums/user/324/",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "len": [
+      [
+       "/grouped_photos",
+       2
+      ]
+     ],
+     "eq": [
+      [
+       "/id",
+       "324"
+      ],
+      [
+       "/title",
+       "Album 0318"
+      ]
+     ]
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 216.9,
+     "django-tuned": 235.0,
+     "rust": 44.1
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "media_square_small",
+    "path": "/media/square_thumbnails_small/457b16806fd4d27dbce54062e656ffec2",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "bytes": 5010
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 187.6,
+     "django-tuned": 156.9,
+     "rust": 10.7
+    },
+    "dropped_eq": []
+   },
+   {
+    "endpoint": "media_big",
+    "path": "/media/thumbnails_big/457b16806fd4d27dbce54062e656ffec2",
+    "ref_status": 200,
+    "check": {
+     "status": 200,
+     "bytes": 13612
+    },
+    "contenders": {
+     "django-shipped": [],
+     "django-tuned": [],
+     "rust": []
+    },
+    "first_ms": {
+     "django-shipped": 10.8,
+     "django-tuned": 147.0,
+     "rust": 12.1
+    },
+    "dropped_eq": []
+   }
+  ]
+ }
+}

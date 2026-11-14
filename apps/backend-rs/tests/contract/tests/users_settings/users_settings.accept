@@ -1,0 +1,17 @@
+# Accepted differences for run_suite.sh mut:users_settings (grep -E patterns
+# over dump_state.py diff lines).
+#
+# Salted password hashes never match.
+^~ api_user \[[0-9]+\] password: "argon2\$
+# Fernet tokens carry a timestamp and a random IV: the same secret encrypts
+# differently on every save (SMTP secret, and the Nextcloud app password
+# PATCH re-encrypts, on both servers).
+^~ api_emailconfig \[[0-9]+\] secret: "8000000000[0-9a-f]+" -> "8000000000[0-9a-f]+"$
+^~ api_user \[[0-9]+\] nextcloud_app_password: "8000000000[0-9a-f]+" -> "8000000000[0-9a-f]+"$
+# Turning semantic search on queues "Calculate Clip Embeddings" on both; only
+# the Rust worker runs it (Django has no qcluster here), creating its row.
+^\+ api_longrunningjob \[[0-9]+\]: .*"job_type": 6,
+# That job then rebuilds the similarity index in-process (the default), which
+# writes the user's index file into the media root; Django's twin has no
+# image_similarity sidecar running.
+^\+ files \["protected_media/similarity/[0-9]+\.f32"\]

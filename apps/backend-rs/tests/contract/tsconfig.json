@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": ["node", "vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@librephotos/api-client": ["../../../../packages/api-client/src/schemas/index.ts"],
+      "@fe/*": ["../../../frontend/src/api_client/*"],
+      "@api-schemas/*": ["../../../../packages/api-client/src/schemas/*"],
+      "zod": ["./node_modules/zod"]
+    }
+  },
+  "include": ["src", "tests", "vitest.config.ts"]
+}

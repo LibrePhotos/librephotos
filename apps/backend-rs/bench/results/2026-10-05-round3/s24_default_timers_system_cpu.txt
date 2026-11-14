@@ -1,0 +1,21 @@
+__Total                        1735.7
+_Idle                           548.3
+MsMpEng                          89.3
+SearchIndexer                    36.4
+WindowsTerminal                  28.9
+System                           27.8
+SearchProtocolHost               27.3
+chrome                           26.2
+svchost                          21.6
+claude                           21.1
+brave                            15.1
+WmiPrvSE                         14.2
+SearchFilterHost                  8.1
+dwm                               7.8
+python                            6.2
+postgres                          6.1
+NVIDIA Share                      3.7
+lsass                             2.8
+explorer                          2.5
+powershell                        2.0
+samples 79 window s 158.0

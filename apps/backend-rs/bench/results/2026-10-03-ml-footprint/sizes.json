@@ -1,0 +1,489 @@
+{
+ "local": {
+  "binaries": {
+   "as-is (lto thin, cgu 1)": {
+    "mb": 49.3,
+    "gzip_mb": 18.7
+   },
+   "as-is PDB (separate file, not shipped)": {
+    "mb": 8.6
+   },
+   "smallest": {
+    "config": "opt-level=\"z\",lto=\"fat\",codegen-units=1,panic=\"abort\",strip=true",
+    "build_s": 546,
+    "built": true,
+    "mb": 21.6,
+    "gzip_mb": 9.9
+   },
+   "opt_z": {
+    "config": "opt-level=\"z\"",
+    "build_s": 382,
+    "built": true,
+    "mb": 33.5,
+    "gzip_mb": 12.7
+   },
+   "opt_s": {
+    "config": "opt-level=\"s\"",
+    "build_s": 389,
+    "built": true,
+    "mb": 36.3,
+    "gzip_mb": 13.6
+   },
+   "lto_fat": {
+    "config": "lto=\"fat\"",
+    "build_s": 601,
+    "built": false,
+    "mb": null
+   },
+   "panic_abort": {
+    "config": "panic=\"abort\"",
+    "build_s": 501,
+    "built": true,
+    "mb": 34.9,
+    "gzip_mb": 15.1
+   },
+   "strip": {
+    "config": "strip=true",
+    "build_s": 536,
+    "built": true,
+    "mb": 49.3,
+    "gzip_mb": 18.7
+   }
+  },
+  "windows_runtime_mb": {
+   "onnxruntime.dll": 17.3,
+   "libvips-42 dll (pyvips-binary, all deps static)": 18.6,
+   "exiftool_bin dir (exiftool.exe + perl)": 34.6,
+   "ffmpeg_bin dir": 188.7
+  },
+  "models_mb": {
+   "clip_vit_b32": 608.0,
+   "face_recognition/models/antelopev2": 427.6,
+   "face_recognition/models/buffalo_l": 341.3,
+   "face_recognition/models/buffalo_m": 327.6,
+   "face_recognition/models/buffalo_s": 166.1,
+   "face_recognition/models/buffalo_sc": 16.1,
+   "lfm2_vl_450m": 368.2,
+   "mobileclip_s2": 401.1,
+   "ocr/ppocrv6_medium": 138.7,
+   "ocr/ppocrv6_small": 31.1,
+   "ocr/ppocrv6_tiny": 6.3,
+   "siglip2": 1509.6
+  }
+ },
+ "docker_hub": {
+  "librephotos": {
+   "latest": {
+    "pushed": "2026-09-29T13:13:47.799786Z",
+    "amd64": 572.0,
+    "arm64": 530.5
+   },
+   "1.2.1": {
+    "pushed": "2026-09-29T13:13:45.764067Z",
+    "amd64": 572.0,
+    "arm64": 530.5
+   },
+   "1.2.1-amd64": {
+    "pushed": "2026-09-29T13:13:27.90813Z",
+    "amd64": 572.0
+   },
+   "1.2.1-arm64": {
+    "pushed": "2026-09-29T13:13:04.005543Z",
+    "arm64": 530.5
+   },
+   "dev": {
+    "pushed": "2026-09-29T13:11:23.51427Z",
+    "amd64": 572.0,
+    "arm64": 530.5
+   }
+  },
+  "librephotos-unified": {
+   "latest": {
+    "pushed": "2026-09-29T13:14:14.589779Z",
+    "amd64": 575.5,
+    "arm64": 533.9
+   },
+   "1.2.1": {
+    "pushed": "2026-09-29T13:14:12.479753Z",
+    "amd64": 575.5,
+    "arm64": 533.9
+   },
+   "1.2.1-amd64": {
+    "pushed": "2026-09-29T13:13:41.346828Z",
+    "amd64": 575.5
+   },
+   "1.2.1-arm64": {
+    "pushed": "2026-09-29T13:13:27.760823Z",
+    "arm64": 533.9
+   },
+   "dev": {
+    "pushed": "2026-09-29T13:11:48.447669Z",
+    "amd64": 575.5,
+    "arm64": 533.9
+   }
+  },
+  "librephotos-base": {
+   "1.2.1": {
+    "pushed": "2026-09-29T13:11:24.234052Z",
+    "amd64": 69.6,
+    "arm64": 68.6
+   },
+   "1.2.0": {
+    "pushed": "2026-09-29T08:10:07.237931Z",
+    "amd64": 69.6,
+    "arm64": 68.6
+   },
+   "dev": {
+    "pushed": "2026-09-26T19:42:05.426485Z",
+    "amd64": 69.6,
+    "arm64": 68.6
+   },
+   "dev-arm64": {
+    "pushed": "2026-09-26T19:38:50.88938Z",
+    "arm64": 68.6
+   },
+   "dev-amd64": {
+    "pushed": "2026-09-26T19:38:45.897812Z",
+    "amd64": 69.6
+   }
+  },
+  "librephotos-frontend": {
+   "latest": {
+    "pushed": "2026-09-29T13:13:01.948421Z",
+    "amd64": 6.1,
+    "arm64": 5.9
+   },
+   "1.2.1": {
+    "pushed": "2026-09-29T13:12:59.317049Z",
+    "amd64": 6.1,
+    "arm64": 5.9
+   },
+   "1.2.1-amd64": {
+    "pushed": "2026-09-29T13:12:32.820759Z",
+    "amd64": 6.1
+   },
+   "1.2.1-arm64": {
+    "pushed": "2026-09-29T13:12:30.576394Z",
+    "arm64": 5.9
+   },
+   "1.2.0": {
+    "pushed": "2026-09-29T08:11:40.510861Z",
+    "amd64": 6.1,
+    "arm64": 5.9
+   }
+  },
+  "librephotos-proxy": {
+   "latest": {
+    "pushed": "2026-09-29T13:11:38.021351Z",
+    "amd64": 63.2,
+    "arm64": 61.5
+   },
+   "1.2.1": {
+    "pushed": "2026-09-29T13:11:36.281722Z",
+    "amd64": 63.2,
+    "arm64": 61.5
+   },
+   "1.2.0": {
+    "pushed": "2026-09-29T08:10:28.109236Z",
+    "amd64": 63.2,
+    "arm64": 61.5
+   },
+   "dev": {
+    "pushed": "2026-09-26T19:38:38.647681Z",
+    "amd64": 63.2,
+    "arm64": 61.5
+   },
+   "1.1.0": {
+    "pushed": "2026-08-28T08:25:39.320194Z",
+    "amd64": 63.3,
+    "arm64": 61.7
+   }
+  },
+  "librephotos-gpu": {
+   "latest": {
+    "pushed": "2026-09-29T13:15:01.514681Z",
+    "amd64": 2960.8
+   },
+   "1.2.1": {
+    "pushed": "2026-09-29T13:14:58.14498Z",
+    "amd64": 2960.8
+   },
+   "1.2.1-amd64": {
+    "pushed": "2026-09-29T13:14:27.158454Z",
+    "amd64": 2960.8
+   },
+   "dev": {
+    "pushed": "2026-09-29T13:12:38.304334Z",
+    "amd64": 2960.8
+   },
+   "dev-amd64": {
+    "pushed": "2026-09-29T13:11:54.165959Z",
+    "amd64": 2960.8
+   }
+  },
+  "debian:trixie-slim": {
+   "amd64": 29.8,
+   "arm64": 30.2
+  },
+  "gcr.io/distroless/cc-debian12": {
+   "amd64": 9.2,
+   "arm64": 9.0
+  }
+ },
+ "github_releases": {
+  "onnxruntime v1.27.0": {
+   "onnxruntime-linux-aarch64-1.27.0.tgz": 7.8,
+   "onnxruntime-linux-x64-1.27.0.tgz": 8.8,
+   "onnxruntime-win-x64-1.27.0.zip": 77.1
+  },
+  "BtbN/FFmpeg-Builds latest (n8.1)": {
+   "ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz": 150.3,
+   "ffmpeg-n8.1-latest-linux64-gpl-shared-8.1.tar.xz": 71.8,
+   "ffmpeg-n8.1-latest-linux64-lgpl-8.1.tar.xz": 137.0,
+   "ffmpeg-n8.1-latest-linux64-lgpl-shared-8.1.tar.xz": 65.6,
+   "ffmpeg-n8.1-latest-linuxarm64-gpl-8.1.tar.xz": 126.5,
+   "ffmpeg-n8.1-latest-linuxarm64-gpl-shared-8.1.tar.xz": 60.5,
+   "ffmpeg-n8.1-latest-linuxarm64-lgpl-8.1.tar.xz": 116.0,
+   "ffmpeg-n8.1-latest-linuxarm64-lgpl-shared-8.1.tar.xz": 56.0
+  }
+ },
+ "pypi_wheels": {
+  "onnxruntime": {
+   "aarch64": {
+    "wheel": "onnxruntime-1.27.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+    "wheel_mb": 16.4,
+    "unpacked_mb": 45.3,
+    "files": 352,
+    "big_files_mb": {
+     "onnxruntime/capi/onnxruntime_pybind11_state.cpython-312-aarch64-linux-gnu.so": 21.0,
+     "onnxruntime/capi/libonnxruntime.so.1.27.0": 20.0
+    }
+   },
+   "x86_64": {
+    "wheel": "onnxruntime-1.27.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+    "wheel_mb": 18.7,
+    "unpacked_mb": 53.0,
+    "files": 352,
+    "big_files_mb": {
+     "onnxruntime/capi/onnxruntime_pybind11_state.cpython-312-x86_64-linux-gnu.so": 25.3,
+     "onnxruntime/capi/libonnxruntime.so.1.27.0": 23.7
+    }
+   }
+  },
+  "pyvips-binary": {
+   "aarch64": {
+    "wheel": "pyvips_binary-8.18.6-cp37-abi3-manylinux_2_28_aarch64.whl",
+    "wheel_mb": 8.2,
+    "unpacked_mb": 18.9,
+    "files": 10,
+    "big_files_mb": {
+     "pyvips_binary.libs/libvips-2e7697c5.so.42": 18.2,
+     "_libvips.abi3.so": 0.7
+    }
+   },
+   "x86_64": {
+    "wheel": "pyvips_binary-8.18.6-cp37-abi3-manylinux_2_28_x86_64.whl",
+    "wheel_mb": 8.1,
+    "unpacked_mb": 19.0,
+    "files": 10,
+    "big_files_mb": {
+     "pyvips_binary.libs/libvips-66936813.so.42": 18.5
+    }
+   }
+  },
+  "exiftool-bin": {
+   "any": {
+    "wheel": "exiftool_bin-13.57-py3-none-any.whl",
+    "wheel_mb": 5.8,
+    "unpacked_mb": 20.9,
+    "files": 252,
+    "big_files_mb": {}
+   }
+  },
+  "ffmpeg-bin": {
+   "x86_64": {
+    "wheel": "ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_x86_64.whl",
+    "wheel_mb": 80.6,
+    "unpacked_mb": 200.7,
+    "files": 15,
+    "big_files_mb": {
+     "ffmpeg_bin/lib/libavcodec.so.63": 119.0,
+     "ffmpeg_bin/lib/libavfilter.so.12": 37.7,
+     "ffmpeg_bin/lib/libavformat.so.63": 26.2,
+     "ffmpeg_bin/lib/libavutil.so.61": 8.6,
+     "ffmpeg_bin/lib/libavdevice.so.63": 5.7,
+     "ffmpeg_bin/lib/libswscale.so.10": 2.3,
+     "ffmpeg_bin/lib/libswresample.so.7": 0.5
+    }
+   },
+   "aarch64": {
+    "wheel": "ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_aarch64.whl",
+    "wheel_mb": 71.5,
+    "unpacked_mb": 152.7,
+    "files": 15,
+    "big_files_mb": {
+     "ffmpeg_bin/lib/libavcodec.so.63": 86.8,
+     "ffmpeg_bin/lib/libavfilter.so.12": 30.1,
+     "ffmpeg_bin/lib/libavformat.so.63": 21.6,
+     "ffmpeg_bin/lib/libavutil.so.61": 6.2,
+     "ffmpeg_bin/lib/libavdevice.so.63": 5.3,
+     "ffmpeg_bin/lib/libswscale.so.10": 1.6
+    }
+   }
+  }
+ },
+ "debian_trixie": {
+  "amd64": {
+   "libvips": {
+    "packages": 121,
+    "installed_mb": 126.1,
+    "debs_mb": 40.2,
+    "largest_mb": {
+     "libmagickcore-7.q16-10": 7.0,
+     "libopenexr-3-1-30": 6.1,
+     "librsvg2-2": 6.0,
+     "shared-mime-info": 5.0,
+     "gnupg-l10n": 4.9,
+     "libpoppler147": 4.7
+    }
+   },
+   "exiftool+perl": {
+    "packages": 6,
+    "installed_mb": 76.1,
+    "debs_mb": 13.5,
+    "largest_mb": {
+     "libperl5.40": 28.6,
+     "libimage-exiftool-perl": 27.0,
+     "perl-modules-5.40": 19.5,
+     "perl": 0.8,
+     "libgdbm6t64": 0.1,
+     "libgdbm-compat4t64": 0.1
+    }
+   },
+   "ffmpeg": {
+    "packages": 207,
+    "installed_mb": 445.3,
+    "debs_mb": 133.3,
+    "largest_mb": {
+     "libllvm19": 123.7,
+     "mesa-libgallium": 40.6,
+     "libflite1": 26.9,
+     "libz3-4": 26.5,
+     "libx265-215": 16.4,
+     "libavcodec61": 16.2
+    }
+   },
+   "ca-certificates": {
+    "packages": 2,
+    "installed_mb": 2.8,
+    "debs_mb": 1.7,
+    "largest_mb": {
+     "openssl": 2.5,
+     "ca-certificates": 0.4
+    }
+   },
+   "vips+exiftool+ffmpeg+certs": {
+    "packages": 271,
+    "installed_mb": 585.8,
+    "debs_mb": 167.7,
+    "largest_mb": {
+     "libllvm19": 123.7,
+     "mesa-libgallium": 40.6,
+     "libperl5.40": 28.6,
+     "libimage-exiftool-perl": 27.0,
+     "libflite1": 26.9,
+     "libz3-4": 26.5
+    }
+   },
+   "vips+exiftool+certs": {
+    "packages": 129,
+    "installed_mb": 205.0,
+    "debs_mb": 55.3,
+    "largest_mb": {
+     "libperl5.40": 28.6,
+     "libimage-exiftool-perl": 27.0,
+     "perl-modules-5.40": 19.5,
+     "libmagickcore-7.q16-10": 7.0,
+     "libopenexr-3-1-30": 6.1,
+     "librsvg2-2": 6.0
+    }
+   }
+  },
+  "arm64": {
+   "libvips": {
+    "packages": 121,
+    "installed_mb": 130.7,
+    "debs_mb": 36.6,
+    "largest_mb": {
+     "libmagickcore-7.q16-10": 12.1,
+     "libopenexr-3-1-30": 6.1,
+     "librsvg2-2": 5.5,
+     "shared-mime-info": 5.1,
+     "gnupg-l10n": 4.9,
+     "libglib2.0-0t64": 4.9
+    }
+   },
+   "exiftool+perl": {
+    "packages": 6,
+    "installed_mb": 77.9,
+    "debs_mb": 13.3,
+    "largest_mb": {
+     "libperl5.40": 30.3,
+     "libimage-exiftool-perl": 27.0,
+     "perl-modules-5.40": 19.5,
+     "perl": 0.8,
+     "libgdbm6t64": 0.2,
+     "libgdbm-compat4t64": 0.1
+    }
+   },
+   "ffmpeg": {
+    "packages": 204,
+    "installed_mb": 410.3,
+    "debs_mb": 121.2,
+    "largest_mb": {
+     "libllvm19": 117.6,
+     "mesa-libgallium": 33.4,
+     "libflite1": 26.6,
+     "libz3-4": 25.7,
+     "libcodec2-1.2": 16.1,
+     "libavcodec61": 13.9
+    }
+   },
+   "ca-certificates": {
+    "packages": 2,
+    "installed_mb": 2.9,
+    "debs_mb": 1.6,
+    "largest_mb": {
+     "openssl": 2.5,
+     "ca-certificates": 0.4
+    }
+   },
+   "vips+exiftool+ffmpeg+certs": {
+    "packages": 268,
+    "installed_mb": 558.6,
+    "debs_mb": 154.0,
+    "largest_mb": {
+     "libllvm19": 117.6,
+     "mesa-libgallium": 33.4,
+     "libperl5.40": 30.3,
+     "libimage-exiftool-perl": 27.0,
+     "libflite1": 26.6,
+     "libz3-4": 25.7
+    }
+   },
+   "vips+exiftool+certs": {
+    "packages": 129,
+    "installed_mb": 211.5,
+    "debs_mb": 51.5,
+    "largest_mb": {
+     "libperl5.40": 30.3,
+     "libimage-exiftool-perl": 27.0,
+     "perl-modules-5.40": 19.5,
+     "libmagickcore-7.q16-10": 12.1,
+     "libopenexr-3-1-30": 6.1,
+     "librsvg2-2": 5.5
+    }
+   }
+  }
+ }
+}

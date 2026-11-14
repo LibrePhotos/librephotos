@@ -1,0 +1,13 @@
+# SQL lives in lp-db (reads: lp_db::<area>, writes: lp_db::write::<area>) and in
+# the job/ingest/task crates. Handler crates (lp-api, lp-media, lp-auth) must
+# not build queries; every other crate opts out with a crate-level allow.
+disallowed-methods = [
+    { path = "sqlx::query", reason = "SQL goes in lp-db (lp_db::<area> / lp_db::write::<area>)" },
+    { path = "sqlx::query_as", reason = "SQL goes in lp-db (lp_db::<area> / lp_db::write::<area>)" },
+    { path = "sqlx::query_scalar", reason = "SQL goes in lp-db (lp_db::<area> / lp_db::write::<area>)" },
+    { path = "sqlx::query_with", reason = "SQL goes in lp-db (lp_db::<area> / lp_db::write::<area>)" },
+    { path = "sqlx::query_as_with", reason = "SQL goes in lp-db (lp_db::<area> / lp_db::write::<area>)" },
+    { path = "sqlx::query_scalar_with", reason = "SQL goes in lp-db (lp_db::<area> / lp_db::write::<area>)" },
+    { path = "sqlx::raw_sql", reason = "SQL goes in lp-db (lp_db::<area> / lp_db::write::<area>)" },
+    { path = "sqlx::QueryBuilder::new", reason = "SQL goes in lp-db (lp_db::<area> / lp_db::write::<area>)" },
+]

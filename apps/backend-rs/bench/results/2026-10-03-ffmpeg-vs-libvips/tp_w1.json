@@ -1,0 +1,110 @@
+{
+ "jpeg_small (<=2 MP)|vips": {
+  "images": 146,
+  "wall_s": 12.09,
+  "images_per_s": 12.08,
+  "mean_latency_ms": 82.2
+ },
+ "jpeg_small (<=2 MP)|ffmpeg": {
+  "images": 82,
+  "wall_s": 12.12,
+  "images_per_s": 6.77,
+  "mean_latency_ms": 147.1
+ },
+ "jpeg_small (<=2 MP)|ffmpeg_3proc": {
+  "images": 42,
+  "wall_s": 12.37,
+  "images_per_s": 3.4,
+  "mean_latency_ms": 293.8
+ },
+ "jpeg_12mp|vips": {
+  "images": 46,
+  "wall_s": 12.16,
+  "images_per_s": 3.78,
+  "mean_latency_ms": 263.8
+ },
+ "jpeg_12mp|ffmpeg": {
+  "images": 34,
+  "wall_s": 12.03,
+  "images_per_s": 2.83,
+  "mean_latency_ms": 353.2
+ },
+ "jpeg_12mp|ffmpeg_3proc": {
+  "images": 22,
+  "wall_s": 13.06,
+  "images_per_s": 1.68,
+  "mean_latency_ms": 593.1
+ },
+ "jpeg_24mp|vips": {
+  "images": 36,
+  "wall_s": 12.43,
+  "images_per_s": 2.9,
+  "mean_latency_ms": 344.7
+ },
+ "jpeg_24mp|ffmpeg": {
+  "images": 26,
+  "wall_s": 12.15,
+  "images_per_s": 2.14,
+  "mean_latency_ms": 466.7
+ },
+ "jpeg_24mp|ffmpeg_3proc": {
+  "images": 18,
+  "wall_s": 12.53,
+  "images_per_s": 1.44,
+  "mean_latency_ms": 695.6
+ },
+ "png_6mp|vips": {
+  "images": 40,
+  "wall_s": 12.42,
+  "images_per_s": 3.22,
+  "mean_latency_ms": 309.9
+ },
+ "png_6mp|ffmpeg": {
+  "images": 22,
+  "wall_s": 12.03,
+  "images_per_s": 1.83,
+  "mean_latency_ms": 546.0
+ },
+ "png_6mp|ffmpeg_3proc": {
+  "images": 16,
+  "wall_s": 13.07,
+  "images_per_s": 1.22,
+  "mean_latency_ms": 816.0
+ },
+ "heic_12mp_grid|vips": {
+  "images": 20,
+  "wall_s": 12.56,
+  "images_per_s": 1.59,
+  "mean_latency_ms": 627.2
+ },
+ "heic_12mp_grid|ffmpeg": {
+  "images": 24,
+  "wall_s": 12.52,
+  "images_per_s": 1.92,
+  "mean_latency_ms": 520.8
+ },
+ "heic_12mp_grid|ffmpeg_3proc": {
+  "images": 16,
+  "wall_s": 12.15,
+  "images_per_s": 1.32,
+  "mean_latency_ms": 758.5
+ },
+ "panorama_24mp|vips": {
+  "images": 14,
+  "wall_s": 12.41,
+  "images_per_s": 1.13,
+  "mean_latency_ms": 885.5
+ },
+ "panorama_24mp|ffmpeg": {
+  "images": 12,
+  "wall_s": 12.17,
+  "images_per_s": 0.99,
+  "mean_latency_ms": 1013.7
+ },
+ "panorama_24mp|ffmpeg_3proc": {
+  "images": 8,
+  "wall_s": 14.86,
+  "images_per_s": 0.54,
+  "mean_latency_ms": 1856.6
+ }
+}
