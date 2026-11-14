@@ -19,6 +19,7 @@ from api.models import (
 )
 from api.models.long_running_job import JobCancelledError
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
+from api.photos.files import stand_in_for_main_file
 
 if TYPE_CHECKING:
     import numpy as np
@@ -247,10 +248,15 @@ def delete_missing_photos(user: User, job_id: uuid.UUID | str) -> int:
     if lrj is None:
         return 0
     try:
+        # A photo flagged by a scan from before the main file had a stand-in
+        # still points at its gone main file: let a file it has on disk take
+        # over first, or deleting the missing file rows below would leave it
+        # without a main file, and the next run would remove it.
+        for photo in Photo.objects.owned_by(user).filter(main_file__missing=True):
+            stand_in_for_main_file(photo)
+
         missing_pks = list(
-            Photo.objects.owned_by(user)
-            .filter(Q(files=None) | Q(main_file=None))
-            .values_list("pk", flat=True)
+            Photo.objects.owned_by(user).missing().values_list("pk", flat=True)
         )
         target = len(missing_pks)
         lrj.update_progress(current=0, target=target)

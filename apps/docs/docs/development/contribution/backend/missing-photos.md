@@ -58,16 +58,17 @@ The primary key is the UUID `id`, not `image_hash`. `image_hash` is an indexed b
 
 **A photo is considered missing when:**
 - `files=None` (no associated files), OR
-- `main_file=None` (no primary file reference)
+- `main_file=None` (no primary file reference), OR
+- its `main_file` is flagged `missing` and only sidecars (`METADATA_FILE`) are left in `files`
 
-Query for missing photos:
+Query for missing photos, `PhotoQuerySet.missing()` in `apps/backend/api/models/photo.py`:
 ```python
-missing_photos = Photo.objects.filter(
-    Q(owner=user) & (Q(files=None) | Q(main_file=None))
-)
+missing_photos = Photo.objects.owned_by(user).missing()
 ```
 
-The parentheses are load-bearing. Without them, Python's `&`-before-`|` precedence parses the filter as `(Q(owner=user) & Q(files=None)) | Q(main_file=None)`, which leaves the `main_file=None` branch unscoped and matches **every** user's photos — a cross-user data leak.
+Both `delete_missing_photos` and the stats count use it, so the badge counts exactly what **Remove missing photos** removes. It tests the files with `NOT EXISTS` subqueries rather than a join, so each photo comes back once.
+
+<Since version="1.7.0" /> Up to 1.6.0 the query was `Q(files=None) | Q(main_file=None)`. A photo with a sidecar left beside its gone main file matched neither, so the first **Remove missing photos** only deleted the missing `File` rows, which set `main_file` to NULL, and the photo went on the second run.
 
 ### Detection Mechanism
 
@@ -91,7 +92,7 @@ This method:
 3. If missing, removes the file from the photo and sets `file.missing = True`
 4. Saves changes to the database
 
-Note that it removes a vanished file from `photo.files` but deliberately leaves `main_file` pointing at it — this matters for relinking (see [Relinking Process](#relinking-process)).
+Note that it removes a vanished file from `photo.files`. When the vanished file is the main file, `stand_in_for_main_file` (`apps/backend/api/photos/files.py`) makes the best file still on disk the main file (`select_main_file`: an image, then a video, then a RAW), and sets `video` to match. Sidecars never stand in: a photo with nothing but sidecars left keeps `main_file` pointing at the vanished file, which is what makes it missing, and lets a reappearing file be relinked (see [Relinking Process](#relinking-process)). <Since version="1.7.0" /> Up to 1.6.0 `main_file` was always left on the vanished file, so a RAW+JPEG photo whose JPEG was deleted lost its main file when the missing `File` rows were deleted, and the next **Remove missing photos** removed it with its RAW still on disk.
 
 **When is this called?**
 - Only during the `scan_missing_photos` job (`apps/backend/api/directory_watcher/scan_jobs.py`). This is the sole production call site.
@@ -160,10 +161,13 @@ def delete_missing_photos(user, job_id):
         job_id=job_id,
     )
     try:
+        # Photos flagged before the main file had a stand-in: a file still on
+        # disk takes over before the missing File rows are deleted below.
+        for photo in Photo.objects.owned_by(user).filter(main_file__missing=True):
+            stand_in_for_main_file(photo)
+
         missing_pks = list(
-            Photo.objects.filter(
-                Q(owner=user) & (Q(files=None) | Q(main_file=None))
-            ).values_list("pk", flat=True)
+            Photo.objects.owned_by(user).missing().values_list("pk", flat=True)
         )
         target = len(missing_pks)
         lrj.update_progress(current=0, target=target)
@@ -279,9 +283,7 @@ Missing photo count is included in the user statistics API response.
 **Calculation**: `get_count_stats(user)` in `apps/backend/api/dataviz/stats.py`
 
 ```python
-num_missing_photos = Photo.objects.filter(
-    Q(owner=user) & Q(files=None) | Q(main_file=None)
-).count()
+num_missing_photos = Photo.objects.owned_by(user).missing().count()
 ```
 
 Returned in stats response as:
@@ -294,9 +296,7 @@ Returned in stats response as:
 ```
 
 :::note
-This count uses the same parenthesised, owner-scoped filter as `delete_missing_photos` — `Q(owner=user) & (Q(files=None) | Q(main_file=None))`. The parentheses matter: without them Python's `&`-before-`|` precedence would evaluate the expression as `(Q(owner=user) & Q(files=None)) | Q(main_file=None)`, leaving the second branch unscoped so that other users' photos with `main_file=None` were counted too. That was a real bug in `stats.py`, fixed along with a cross-user regression test.
-
-One caveat remains: the count has no `.distinct()`, and `files` is a reverse many-to-many, so a photo carrying several `File` rows is counted once per row. `delete_missing_photos` is unaffected because it deletes objects rather than counting rows.
+This count uses the same query as `delete_missing_photos`, `PhotoQuerySet.missing()`, so the badge and the run agree. Its subqueries are `NOT EXISTS`, so a photo with several `File` rows is counted once.
 :::
 
 ## Hash-Based Relinking
@@ -347,7 +347,7 @@ Relinking during a scan is driven by two independent pieces of the two-phase sca
 
    If a match is found, any files not already attached are added to it, and `main_file` is upgraded when a higher-priority variant appeared (per `FILE_TYPE_PRIORITY`). Only when no match exists is a new `Photo` created.
 
-The `Q(main_file__in=files)` arm is the load-bearing part. `_check_files()` detaches a missing file from `photo.files` but leaves `main_file` pointing at it, so matching on `main_file` is what stops a reappearing file from spawning a duplicate `Photo` with the same `image_hash`.
+The `Q(main_file__in=files)` arm is the load-bearing part. A photo left with only sidecars keeps `main_file` pointing at its missing file, so matching on `main_file` is what stops a reappearing file from spawning a duplicate `Photo` with the same `image_hash`. A photo whose RAW stood in for a missing JPEG is matched through the RAW in `files`, and the reappearing JPEG takes `main_file` back by priority.
 
 :::note
 `create_new_image` (`apps/backend/api/directory_watcher/file_handlers.py`) is the legacy single-file path, kept for uploads and the XMP-sidecar branch. It performs no `image_hash` lookup, no `removed`/`in_trashcan` restoration, and no `_check_files()` call — none of that relinking logic lives there any more. The behaviour above is exercised by `apps/backend/api/tests/test_missing_file_reappearance.py`.
