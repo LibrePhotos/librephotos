@@ -587,11 +587,14 @@ mod tests {
         assert!(order.iter().all(|(_, ok)| *ok));
         let pos = order.iter().position(|(n, _)| n == "screen").unwrap();
         assert!(pos <= 2, "screen finished at position {pos}: {order:?}");
-        // Thumbs are LIFO: the newest (thumb7) is served before older queued ones (thumb1;
-        // thumb0 may already be running when the rest arrive).
-        let p7 = order.iter().position(|(n, _)| n == "thumb7").unwrap();
-        let p1 = order.iter().position(|(n, _)| n == "thumb1").unwrap();
-        assert!(p7 < p1, "{order:?}");
+        // Thumbs are LIFO. With two workers only one runs thumbs, so they finish in the order
+        // they start: whichever got picked first (it depends on when the worker woke up), then
+        // the rest newest first.
+        let thumbs: Vec<usize> = order
+            .iter()
+            .filter_map(|(n, _)| n.strip_prefix("thumb")?.parse().ok())
+            .collect();
+        assert!(thumbs[1..].windows(2).all(|w| w[0] > w[1]), "{order:?}");
         std::fs::remove_dir_all(&dir).ok();
     }
 
@@ -619,9 +622,44 @@ mod tests {
         ask(&files[1], "stage-again".into(), Priority::High);
         let order: Vec<String> = (0..8).map(|_| rx.recv().unwrap().0).collect();
         let pos = |n: &str| order.iter().position(|o| o == n).unwrap();
-        assert!(pos("stage") <= 2, "{order:?}");
-        assert!(pos("stage-again") <= 3, "{order:?}");
+        // Both start before the filmstrip thumbs still queued (a worker may already have picked
+        // one or two of those before the stage asked, and LIFO serves the newest first).
+        for stage in ["stage", "stage-again"] {
+            assert!(
+                pos(stage) < pos("film3") && pos(stage) < pos("film2"),
+                "{order:?}"
+            );
+        }
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn lane_rules() {
+        let key = |n: &str| Key {
+            path: PathBuf::from(n),
+            mtime: 0,
+            kind: Kind::Thumb,
+            w: 320,
+            h: 320,
+        };
+        let mut st = State::default();
+        st.lanes[lane(Priority::Low)] = vec![key("film0"), key("film1")];
+        st.lanes[lane(Priority::Idle)] = vec![key("warm")];
+        st.lanes[lane(Priority::High)] = vec![key("stage")];
+        // High first, even with every other worker busy.
+        st.busy[lane(Priority::Low)] = 2;
+        assert_eq!(pick(&mut st, 3).map(|(k, _)| k), Some(key("stage")));
+        // Low never takes the last free worker.
+        assert_eq!(pick(&mut st, 3), None);
+        st.busy = [0; LANES];
+        // Low is LIFO.
+        assert_eq!(pick(&mut st, 3), Some((key("film1"), Priority::Low)));
+        // Idle waits while anything else is queued or running...
+        assert_eq!(pick(&mut st, 3), Some((key("film0"), Priority::Low)));
+        assert_eq!(pick(&mut st, 6), None);
+        // ...and runs once the rest is done.
+        st.busy = [0; LANES];
+        assert_eq!(pick(&mut st, 6), Some((key("warm"), Priority::Idle)));
     }
 
     #[test]
