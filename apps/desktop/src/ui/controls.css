@@ -1,0 +1,658 @@
+/*
+ * Mantine 9 components with the LibrePhotos web theme (apps/frontend/src/theme: controlsTheme,
+ * variantColors, Segmented, AuthCard, UploadProgressCard), as plain CSS for the desktop app's own
+ * primitives in src/ui/*.tsx. Tokens only (src/styles.css).
+ */
+
+/* ------------------------------------------------------------ Button variants and sizes
+   .btn (ui.css) is Mantine's sm "default" button; these add the web's other variants. */
+.btn.light {
+  background: var(--lp-color-primary-light);
+  color: var(--lp-color-primary-text);
+}
+.btn.light:hover:not(:disabled) {
+  background: var(--lp-color-primary-light-hover);
+}
+/* toolbarLook(): a neutral subtle button, the label in the readable secondary text colour. */
+.btn.subtle.neutral {
+  color: var(--lp-color-nav-text);
+  font-weight: var(--lp-font-weight-medium);
+}
+.btn.subtle.neutral:hover:not(:disabled) {
+  background: var(--lp-color-hover);
+}
+.btn.xs {
+  height: var(--lp-control-height-sm);
+  padding: 0 14px;
+  font-size: var(--lp-font-size-xs);
+  gap: 6px;
+}
+.btn.compact {
+  height: 26px;
+  padding: 0 10px;
+  gap: 6px;
+}
+.btn.lg {
+  height: 40px;
+}
+.btn.full {
+  width: 100%;
+}
+/* A disabled button keeps its shape: the outline of its variant and fainter text (controlsTheme). */
+.btn:disabled:not(.loading) {
+  border-color: var(--lp-color-border);
+  background: transparent;
+  color: var(--lp-color-text);
+}
+.btn.primary:disabled:not(.loading) {
+  border-color: transparent;
+  background: var(--lp-color-primary);
+  color: var(--lp-color-primary-contrast);
+}
+.btn.loading {
+  position: relative;
+  cursor: progress;
+}
+.btn.loading > :not(.loader) {
+  visibility: hidden;
+}
+.btn.loading > .loader {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+.btn > svg {
+  flex: none;
+}
+
+/* ------------------------------------------------------------ Loader (Mantine "oval") */
+.loader {
+  display: inline-block;
+  flex: none;
+  width: var(--loader-size, 18px);
+  height: var(--loader-size, 18px);
+  border: calc(var(--loader-size, 18px) / 8) solid color-mix(in srgb, currentColor 22%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  color: var(--lp-color-primary-text);
+  animation: lp-spin 0.8s linear infinite;
+}
+.btn .loader {
+  color: inherit;
+}
+@keyframes lp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------------ Inputs (TextInput, PasswordInput)
+   One input look: a filled grey field with a 1px border, 36px (40px in an auth card), 8px corners;
+   the label 14px/500 above it, the description and error in 12px under the label / the field. */
+.field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.field-label {
+  margin-bottom: 4px;
+  font-size: var(--lp-font-size-sm);
+  font-weight: var(--lp-font-weight-medium);
+  line-height: 1.45;
+}
+.field-description {
+  margin: -2px 0 6px;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+  line-height: 1.4;
+}
+.field-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.field-input {
+  width: 100%;
+  height: var(--lp-field-height, 36px);
+  padding: 0 12px;
+  border: 1px solid var(--lp-color-field-border);
+  border-radius: var(--lp-radius-md);
+  background: var(--lp-color-field);
+  color: var(--lp-color-text);
+  font: inherit;
+  font-size: var(--lp-font-size-sm);
+  line-height: 1;
+  outline: none;
+  transition: border-color var(--lp-duration-fast) ease;
+}
+.field-input::placeholder {
+  color: var(--lp-color-dimmed);
+  opacity: 0.8;
+}
+.field-input:focus,
+.field-input:focus-visible {
+  border-color: var(--lp-color-primary);
+  outline: none;
+}
+.field[data-error] .field-input {
+  border-color: var(--lp-color-danger-text);
+  color: var(--lp-color-danger-text);
+}
+.field-input.with-right {
+  padding-right: 40px;
+}
+.field-right {
+  position: absolute;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--lp-radius-sm);
+  background: transparent;
+  color: var(--lp-color-dimmed);
+  cursor: pointer;
+}
+.field-right:hover {
+  background: var(--lp-color-hover);
+  color: var(--lp-color-text);
+}
+.field-error {
+  margin-top: 5px;
+  color: var(--lp-color-danger-text);
+  font-size: var(--lp-font-size-xs);
+  line-height: 1.3;
+}
+
+/* ------------------------------------------------------------ Switch (md: 38 x 22 track)
+   A visible off track and a plain white thumb with a soft shadow (controlsTheme.module.css). */
+.switch {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--lp-space-3);
+  cursor: pointer;
+  user-select: none;
+}
+.switch[data-disabled] {
+  cursor: default;
+  opacity: 0.55;
+}
+.switch-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+.switch-track {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--lp-radius-round);
+  background: var(--lp-color-switch-off);
+  transition: background-color var(--lp-duration-base) ease;
+}
+.switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 0 1px rgba(0, 0, 0, 0.2);
+  transition: transform var(--lp-duration-base) var(--lp-ease);
+}
+.switch-input:checked + .switch-track {
+  background: var(--lp-color-primary);
+}
+.switch-input:checked + .switch-track .switch-thumb {
+  transform: translateX(16px);
+}
+.switch-input:focus-visible + .switch-track {
+  outline: 2px solid var(--lp-color-primary-text);
+  outline-offset: 2px;
+}
+.switch-text,
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--lp-font-size-sm);
+  line-height: 22px;
+}
+.switch-description {
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------ Checkbox (label row) */
+.checkbox {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--lp-space-3);
+  cursor: pointer;
+  user-select: none;
+}
+.checkbox .lp-checkbox {
+  margin-top: 1px;
+  border-color: var(--lp-color-control-ring);
+}
+.checkbox .lp-checkbox:checked {
+  border-color: var(--lp-color-primary);
+}
+.checkbox-text {
+  line-height: 22px;
+}
+
+/* ------------------------------------------------------------ SegmentedControl
+   The capsule: a grey pill track, the current segment raised on it (Segmented.module.css). */
+.segmented {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  padding: 3px;
+  border-radius: var(--lp-radius-round);
+  background: var(--lp-color-segment);
+}
+.segmented-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  height: 28px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--lp-radius-round);
+  background: transparent;
+  color: var(--lp-color-nav-icon);
+  font-size: var(--lp-font-size-sm);
+  font-weight: var(--lp-font-weight-medium);
+  line-height: 28px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--lp-duration-base) ease,
+    background-color var(--lp-duration-base) ease;
+}
+.segmented-item:hover {
+  color: var(--lp-color-text);
+}
+.segmented-item[aria-checked="true"] {
+  background: var(--lp-color-segment-active);
+  box-shadow: var(--lp-shadow-xs);
+  color: var(--lp-color-text);
+}
+.segmented-count {
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ Badge (Mantine Badge, light) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: var(--lp-radius-round);
+  background: var(--lp-color-primary-light);
+  color: var(--lp-color-primary-text);
+  font-size: 10px;
+  font-weight: var(--lp-font-weight-bold);
+  letter-spacing: 0.25px;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.badge.xs {
+  height: 16px;
+  padding: 0 6px;
+  font-size: 9px;
+}
+.badge.gray {
+  background: var(--lp-color-active);
+  color: var(--lp-color-dimmed);
+}
+.badge.orange {
+  background: var(--lp-color-warning-light);
+  color: var(--lp-color-warning-text);
+}
+.badge.teal {
+  background: var(--lp-color-success-light);
+  color: var(--lp-color-success-text);
+}
+.badge.red {
+  background: var(--lp-color-danger-light);
+  color: var(--lp-color-danger-text);
+}
+
+/* ------------------------------------------------------------ Progress */
+.progress {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  height: var(--progress-size, 4px);
+  border-radius: var(--lp-radius-round);
+  background: var(--lp-color-track);
+}
+.progress-section {
+  height: 100%;
+  background: var(--lp-color-primary);
+  transition: width 200ms ease;
+}
+.progress-section.muted {
+  background: color-mix(in srgb, var(--lp-color-primary) 40%, transparent);
+}
+.progress.gray .progress-section {
+  background: var(--lp-color-control-ring);
+}
+.progress.striped .progress-section {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 16px 16px;
+  animation: lp-stripes 1s linear infinite;
+}
+@keyframes lp-stripes {
+  from {
+    background-position: 16px 0;
+  }
+}
+
+/* ------------------------------------------------------------ Card (Mantine Card withBorder) */
+.card {
+  min-width: 0;
+  padding: var(--lp-space-5);
+  border: 1px solid var(--lp-color-border);
+  border-radius: var(--lp-radius-lg);
+  background: var(--lp-color-surface);
+  color: var(--lp-color-text);
+}
+.card-title {
+  margin: 0;
+  font-size: var(--lp-font-size-md);
+  font-weight: var(--lp-font-weight-bold);
+  line-height: 1.4;
+}
+.card-description {
+  margin: 0;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-sm);
+  line-height: 1.45;
+}
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--lp-space-3);
+  margin-bottom: var(--lp-space-3);
+}
+
+/* ------------------------------------------------------------ NavLink (sidebar row)
+   Full pills like Google Photos' and Immich's navigation (SideMenuNarrow.module.css .link). */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--lp-space-3);
+  width: calc(100% - 2 * var(--lp-space-2));
+  min-height: 40px;
+  margin: 2px var(--lp-space-2);
+  padding: 0 var(--lp-space-4);
+  border: 0;
+  border-radius: var(--lp-radius-round);
+  background: transparent;
+  color: var(--lp-color-nav-text);
+  font-size: var(--lp-font-size-sm);
+  font-weight: var(--lp-font-weight-medium);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.nav-link:hover:not([aria-current="page"]) {
+  background: var(--lp-color-nav-hover);
+}
+.nav-link[aria-current="page"] {
+  background: var(--lp-color-primary-light);
+  color: var(--lp-color-primary-text);
+  font-weight: var(--lp-font-weight-semibold);
+}
+.nav-link-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--lp-color-nav-icon);
+}
+.nav-link[aria-current="page"] .nav-link-icon {
+  color: inherit;
+}
+.nav-link-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-link-end {
+  flex: none;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.nav-link.dimmed {
+  color: var(--lp-color-dimmed);
+  font-weight: 400;
+}
+.nav-link.dimmed .nav-link-icon {
+  color: inherit;
+}
+
+/* ------------------------------------------------------------ Alert (Mantine Alert, light) */
+.alert {
+  display: flex;
+  gap: var(--lp-space-3);
+  padding: var(--lp-space-3) var(--lp-space-4);
+  border-radius: var(--lp-radius-md);
+  background: var(--lp-color-primary-light);
+  color: var(--lp-color-text);
+  font-size: var(--lp-font-size-sm);
+  line-height: 1.45;
+}
+.alert-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--lp-color-primary-text);
+}
+.alert-body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.alert-title {
+  margin-bottom: 2px;
+  color: var(--lp-color-primary-text);
+  font-weight: var(--lp-font-weight-bold);
+}
+.alert.red {
+  background: var(--lp-color-danger-light);
+}
+.alert.red .alert-icon,
+.alert.red .alert-title {
+  color: var(--lp-color-danger-text);
+}
+.alert.orange {
+  background: var(--lp-color-warning-light);
+}
+.alert.orange .alert-icon,
+.alert.orange .alert-title {
+  color: var(--lp-color-warning-text);
+}
+
+/* ------------------------------------------------------------ Avatar (initials, light variant) */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--avatar-size, 34px);
+  height: var(--avatar-size, 34px);
+  border-radius: 50%;
+  background: var(--lp-color-success-light);
+  color: var(--lp-color-success-text);
+  font-size: calc(var(--avatar-size, 34px) * 0.36);
+  font-weight: var(--lp-font-weight-bold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------ EmptyState
+   An 80px light ThemeIcon, an 18px/700 title, a dimmed description, then a light primary and a
+   subtle secondary button (components/common/EmptyState.tsx). */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--lp-space-4);
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 80px 0;
+  text-align: center;
+}
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--lp-radius-xl);
+  background: var(--lp-color-active);
+  color: var(--lp-color-dimmed);
+}
+.empty-icon.primary {
+  background: var(--lp-color-primary-light);
+  color: var(--lp-color-primary-text);
+}
+.empty-title {
+  margin: 0;
+  font-size: var(--lp-font-size-lg);
+  font-weight: var(--lp-font-weight-bold);
+  line-height: 1.35;
+}
+.empty-description {
+  margin: 0;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-sm);
+  line-height: 1.55;
+}
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--lp-space-2);
+  margin-top: var(--lp-space-4);
+}
+
+/* ------------------------------------------------------------ Modal (Mantine Modal defaults) */
+.modal {
+  width: min(var(--modal-width, 440px), calc(100vw - 32px));
+  padding: var(--lp-space-6);
+  border: 1px solid var(--lp-scrim-white-8);
+  border-radius: var(--lp-radius-lg);
+  background: var(--lp-color-surface);
+  color: var(--lp-color-text);
+  box-shadow: var(--lp-shadow-lg);
+}
+@media (prefers-color-scheme: light) {
+  .modal {
+    border-color: transparent;
+  }
+}
+.modal[open] {
+  animation: lp-modal-in var(--lp-duration-base) var(--lp-ease);
+}
+.modal::backdrop {
+  background: var(--lp-color-overlay);
+  backdrop-filter: blur(2px);
+}
+@keyframes lp-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+.modal-title {
+  margin: 0 0 var(--lp-space-3);
+  font-size: var(--lp-font-size-lg);
+  font-weight: var(--lp-font-weight-bold);
+}
+.modal-body {
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-sm);
+  overflow-wrap: anywhere;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--lp-space-2);
+  margin-top: var(--lp-space-6);
+}
+
+/* ------------------------------------------------------------ PageHeader (web PageHeader.module.css)
+   16px above the title and 12px below the header, the content's 20px gutter on both sides. */
+.page-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--lp-space-3);
+  padding: var(--lp-space-4) var(--lp-page-gutter) var(--lp-space-3);
+}
+.page-header.narrow {
+  max-width: calc(920px + 2 * var(--lp-page-gutter));
+}
+.page-header-text {
+  min-width: 0;
+}
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: var(--lp-space-2);
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 26px;
+  font-weight: var(--lp-font-weight-bold);
+  line-height: 32px;
+  letter-spacing: -0.01em;
+}
+.page-subtitle {
+  margin-top: 2px;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-sm);
+}
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--lp-space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader,
+  .progress.striped .progress-section {
+    animation-duration: 2.4s;
+  }
+  .modal[open] {
+    animation: none;
+  }
+}
