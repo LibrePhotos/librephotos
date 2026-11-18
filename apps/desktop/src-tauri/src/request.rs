@@ -53,7 +53,7 @@ pub struct ImageRequest {
     pub h: u32,
 }
 
-fn query_param(query: &str, key: &str) -> Option<String> {
+pub fn query_param(query: &str, key: &str) -> Option<String> {
     query.split('&').find_map(|pair| {
         let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
         // URLSearchParams encodes spaces as '+'.

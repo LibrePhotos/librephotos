@@ -32,6 +32,8 @@ export type ImageInfo = {
 export type ImageKind = "thumb" | "screen" | "full";
 /** Scheduling hint for the Rust pipeline: the stage's pictures are `high` (the default), the filmstrip `low`. */
 export type ImagePriority = "high" | "low";
+/** Deep-zoom pyramid of a big picture (CONTRACT.md "Tiles"): displayed full size, tile edge, level count. */
+export type TileInfo = { width: number; height: number; tileSize: number; levels: number };
 
 export const inTauri = isTauri();
 const isWindows = navigator.userAgent.includes("Windows");
@@ -47,6 +49,29 @@ export function imageUrl(file: FileEntry, kind: ImageKind, w = 0, h = 0, priorit
   }
   if (priority !== "high") q.set("p", priority);
   return `${base}/${kind}?${q.toString()}`;
+}
+
+/** URL of tile (`x`, `y`) of pyramid level `level` (0 = full resolution, each level halves). */
+export function tileUrl(file: FileEntry, level: number, x: number, y: number): string {
+  const base = isWindows ? "http://lpview.localhost" : "lpview://localhost";
+  const q = new URLSearchParams({
+    path: file.path,
+    v: String(file.modifiedMs),
+    level: String(level),
+    x: String(x),
+    y: String(y),
+  });
+  return `${base}/tile?${q.toString()}`;
+}
+
+/** The pyramid of a picture, or null when it is small enough for `full` (or not tileable). */
+export async function tileInfo(path: string): Promise<TileInfo | null> {
+  return inTauri ? invoke<TileInfo | null>("tile_info", { path }) : null;
+}
+
+/** The UI no longer shows tiles of `path`: Rust stops filling its pyramid in the background. */
+export async function tileRelease(path: string): Promise<void> {
+  if (inTauri) await invoke("tile_release", { path });
 }
 
 export async function initialPath(): Promise<string | null> {

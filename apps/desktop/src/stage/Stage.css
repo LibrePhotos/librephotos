@@ -38,6 +38,16 @@
   -webkit-user-drag: none;
 }
 
+/* Deep-zoom tiles: one canvas over the whole stage, drawn in device pixels (tileLayer.ts). */
+.stage-tiles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
 .stage-video {
   position: absolute;
   inset: 0;
