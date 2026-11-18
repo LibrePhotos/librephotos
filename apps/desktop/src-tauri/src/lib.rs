@@ -4,14 +4,20 @@
 //!   [`decode`] (WIC on Windows, FlashRaw for RAW, pure-Rust fallbacks).
 //! - Deep zoom: `lpview://.../tile` and `tile_info` -> [`tiles`] (pyramid, memory + disk caches).
 //! - Commands: [`listing`], [`info`], [`ops`].
+//! - The library (folders the user added, indexed and watched): [`library`]; the LibrePhotos
+//!   server connection (sign-in, API and media proxy, backup): [`server`]; their commands:
+//!   [`commands`].
 
+pub mod appdirs;
 pub mod cache;
+pub mod commands;
 pub mod decode;
 pub mod diskcache;
 pub mod formats;
 pub mod heif;
 pub mod info;
 pub mod jpegmeta;
+pub mod library;
 pub mod listing;
 pub mod ops;
 pub mod orient;
@@ -19,6 +25,7 @@ pub mod pipeline;
 pub mod pixels;
 pub mod protocol;
 pub mod request;
+pub mod server;
 pub mod tiles;
 
 use std::path::PathBuf;
@@ -28,12 +35,14 @@ use std::thread::JoinHandle;
 use serde::Serialize;
 use tauri::{Emitter, Manager, State};
 
+use crate::library::Library;
 use crate::pipeline::{Pipeline, Priority};
 use crate::request::{Kind, THUMB_EDGE};
+use crate::server::Server;
 use crate::tiles::{TileInfo, TileService};
 
 /// Run blocking work off the IPC thread.
-async fn blocking<T: Send + 'static>(
+pub(crate) async fn blocking<T: Send + 'static>(
     f: impl FnOnce() -> Result<T, String> + Send + 'static,
 ) -> Result<T, String> {
     tauri::async_runtime::spawn_blocking(f)
@@ -228,7 +237,13 @@ pub fn run() {
     let for_protocol = pipeline.clone();
     let tiles = TileService::new(tiles::disk::default_root(), tiles::disk::DEFAULT_CAP_BYTES);
     let tile_handler = tiles.clone();
-    let mut builder = tauri::Builder::default().manage(tiles);
+    let library = commands::open_library();
+    let server = commands::open_server(library.clone());
+    let for_remote = server.clone();
+    let mut builder = tauri::Builder::default()
+        .manage(tiles)
+        .manage(library)
+        .manage(server);
     // LPVIEW_MULTI_INSTANCE=1 lets test harnesses run several copies side by side.
     if std::env::var_os("LPVIEW_MULTI_INSTANCE").is_none() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -245,6 +260,9 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(pipeline)
         .setup(|app| {
+            let _ = commands::APP.set(app.handle().clone());
+            app.state::<Arc<Library>>().start();
+            app.state::<Arc<Server>>().start();
             if let Some(win) = app.get_webview_window("main")
                 && let (Ok(size), Ok(scale)) = (win.inner_size(), win.scale_factor())
             {
@@ -257,7 +275,10 @@ pub fn run() {
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("lpview", move |_ctx, request, responder| {
-            if tiles::is_tile_url(request.uri().path()) {
+            if request.uri().path() == "/remote" {
+                let query = request.uri().query();
+                commands::handle_remote(for_remote.clone(), query, move |r| responder.respond(r));
+            } else if tiles::is_tile_url(request.uri().path()) {
                 let query = request.uri().query();
                 tiles::handle(&tile_handler, query, move |r| responder.respond(r));
             } else {
@@ -276,7 +297,23 @@ pub fn run() {
             clear_cache,
             open_default_apps_settings,
             tile_info,
-            tile_release
+            tile_release,
+            commands::library_roots,
+            commands::library_add_root,
+            commands::library_remove_root,
+            commands::library_files,
+            commands::library_search,
+            commands::library_by_hashes,
+            commands::library_status,
+            commands::server_status,
+            commands::server_connect,
+            commands::server_disconnect,
+            commands::server_set_backup,
+            commands::server_set_paused,
+            commands::server_retry_failed,
+            commands::server_fetch,
+            commands::server_upload_file,
+            commands::server_remote_of
         ])
         .run(tauri::generate_context!())
         .expect("error while running the viewer");

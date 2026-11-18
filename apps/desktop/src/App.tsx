@@ -17,8 +17,11 @@ import {
   trashFile,
   type FileEntry,
 } from "./ipc";
-import { formatBytes } from "./lib/format";
+import { folderOf, formatBytes } from "./lib/format";
 import { errorText } from "./lib/infoCache";
+import { addLibraryRoot, serverUploadFile, type LibraryFile } from "./library/api";
+import { useLibraryStatus, useServerStatus } from "./library/hooks";
+import { LibraryView } from "./library/LibraryView";
 import { focusWindow, onFileDrop, onFullscreenChange, pickFile, setFullscreen, setWindowTitle } from "./platform";
 import { Slideshow } from "./stage/Slideshow";
 import { Stage, useNeighbours, type StageHandle } from "./stage/Stage";
@@ -103,6 +106,8 @@ function useIdle(ms: number, keepAwake: () => boolean): { idle: boolean; hideNow
 
 export function App() {
   const [view, setView] = useState<View | null>(null);
+  /** The library (src/library) or the viewer; a picture opened from outside always shows the viewer. */
+  const [mode, setMode] = useState<"viewer" | "library">("viewer");
   const [starting, setStarting] = useState(true);
   const [openError, setOpenError] = useState<string | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -139,6 +144,7 @@ export function App() {
         if (listing.files.length === 0) throw new Error(`No pictures or videos in ${listing.folder}`);
         setView({ folder: listing.folder, files: listing.files, index: clampIndex(listing.index, listing.files.length) });
         setOpenError(null);
+        setMode("viewer");
       } catch (err) {
         if (seq !== openSeq.current) return;
         const text = `Couldn't open ${path}: ${errorText(err)}`;
@@ -157,7 +163,10 @@ export function App() {
       path => {
         if (!live) return;
         if (path) void openPath(path);
-        else setStarting(false);
+        else {
+          setStarting(false);
+          setMode("library");
+        }
       },
       (err: unknown) => {
         if (!live) return;
@@ -203,8 +212,36 @@ export function App() {
   }, [files]);
 
   useEffect(() => {
-    setWindowTitle(current ? `${current.name} - ${APP_NAME}` : APP_NAME);
-  }, [current]);
+    if (mode === "library") setWindowTitle(`Library - ${APP_NAME}`);
+    else setWindowTitle(current ? `${current.name} - ${APP_NAME}` : APP_NAME);
+  }, [current, mode]);
+
+  // ------------------------------------------------------------ library
+
+  const libStatus = useLibraryStatus(mode === "viewer" ? (current?.path ?? null) : null);
+  const [server] = useServerStatus();
+  const openFromLibrary = useCallback((list: LibraryFile[], at: number) => {
+    if (list.length === 0) return;
+    openSeq.current++;
+    setView({ folder: "Library", files: list, index: clampIndex(at, list.length) });
+    setOpenError(null);
+    setMode("viewer");
+  }, []);
+  const addFolderToLibrary = useCallback(() => {
+    if (!current) return;
+    addLibraryRoot(folderOf(current.path)).then(
+      root => push(`Added ${root.path} to the library`),
+      (err: unknown) => push(`Couldn't add the folder: ${errorText(err)}`, "error"),
+    );
+  }, [current, push]);
+  const uploadToServer = useCallback(() => {
+    if (!current) return;
+    const name = current.name;
+    serverUploadFile(current.path).then(
+      r => push(r.state === "present" ? `${name} is already on LibrePhotos` : `Uploading ${name} to LibrePhotos`),
+      (err: unknown) => push(`Couldn't upload ${name}: ${errorText(err)}`, "error"),
+    );
+  }, [current, push]);
 
   // ------------------------------------------------------------ navigation
 
@@ -343,12 +380,15 @@ export function App() {
     open: openDialog,
     setDefaultViewer,
     clearCache,
+    library: () => setMode("library"),
+    addFolderToLibrary: libStatus && !libStatus.root && current ? addFolderToLibrary : undefined,
+    uploadToServer: server.connected && current && libStatus?.file?.remote !== "present" ? uploadToServer : undefined,
   };
 
   // ------------------------------------------------------------ keyboard
 
   const onKey = (e: KeyboardEvent) => {
-    if (confirmFile) return;
+    if (confirmFile || mode === "library") return;
     const target = e.target;
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
     if (slideshow) {
@@ -428,6 +468,10 @@ export function App() {
           if (ctrl) return false;
           setInfoOpen(o => !o);
           return true;
+        case "l":
+          if (ctrl) return false;
+          setMode("library");
+          return true;
       }
       return false;
     })();
@@ -461,6 +505,20 @@ export function App() {
   ]
     .filter(Boolean)
     .join(" ");
+
+  if (mode === "library") {
+    return (
+      <div className="app">
+        <LibraryView
+          onOpen={openFromLibrary}
+          onOpenPicture={openDialog}
+          onBack={files.length > 0 ? () => setMode("viewer") : null}
+          notify={push}
+        />
+        <Toasts toasts={toasts} />
+      </div>
+    );
+  }
 
   return (
     <div className={className}>

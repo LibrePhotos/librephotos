@@ -1,9 +1,11 @@
 import {
   IconAppWindow,
+  IconArrowLeft,
   IconArrowsMinimize,
   IconCopy,
   IconEraser,
   IconFolderOpen,
+  IconFolderPlus,
   IconInfoCircle,
   IconInfoCircleFilled,
   IconMaximize,
@@ -13,6 +15,7 @@ import {
   IconRotate,
   IconRotateClockwise,
   IconTrash,
+  IconUpload,
   IconZoomIn,
   IconZoomOut,
 } from "@tabler/icons-react";
@@ -42,6 +45,12 @@ export type TopBarActions = {
   open(): void;
   setDefaultViewer(): void;
   clearCache(): void;
+  /** Show the library (src/library). */
+  library(): void;
+  /** For a picture outside the library: add its folder. Undefined when it is in the library. */
+  addFolderToLibrary?: () => void;
+  /** Upload this one file to the connected LibrePhotos server. Undefined when not connected. */
+  uploadToServer?: () => void;
 };
 
 type Props = {
@@ -112,6 +121,7 @@ export function TopBar({ file, index, count, infoOpen, fullscreen, actions, onPo
   return (
     <header className="topbar" onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
       <div className="topbar-start">
+        <IconButton icon={IconArrowLeft} label="Library" shortcut="L" onClick={actions.library} />
         <IconButton icon={IconPhotoPlus} label="Open" shortcut="Ctrl+O" onClick={actions.open} />
         <div className="zoom-group needs-file opt-2" role="group" aria-label="Zoom">
           <IconButton icon={IconZoomOut} label="Zoom out" shortcut="-" onClick={actions.zoomOut} disabled={noPicture} />
@@ -187,6 +197,20 @@ export function TopBar({ file, index, count, infoOpen, fullscreen, actions, onPo
             [
               { icon: IconCopy, label: "Copy", shortcut: "Ctrl+C", onSelect: actions.copy, disabled: noPicture },
               { icon: IconFolderOpen, label: "Show in folder", onSelect: actions.reveal, disabled: none },
+            ],
+            [
+              {
+                icon: IconFolderPlus,
+                label: "Add this folder to library",
+                onSelect: () => actions.addFolderToLibrary?.(),
+                disabled: none || !actions.addFolderToLibrary,
+              },
+              {
+                icon: IconUpload,
+                label: "Upload to LibrePhotos",
+                onSelect: () => actions.uploadToServer?.(),
+                disabled: none || !actions.uploadToServer,
+              },
             ],
             [
               { icon: IconAppWindow, label: "Set as default photo viewer", onSelect: actions.setDefaultViewer },

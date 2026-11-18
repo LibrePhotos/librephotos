@@ -43,6 +43,9 @@ pub fn default_dir() -> Option<PathBuf> {
     if let Some(d) = std::env::var_os("LPVIEW_CACHE_DIR").filter(|d| !d.is_empty()) {
         return Some(PathBuf::from(d));
     }
+    if let Some(d) = crate::appdirs::override_dir() {
+        return Some(d.join("cache"));
+    }
     let env_dir = |k: &str| {
         std::env::var_os(k)
             .filter(|d| !d.is_empty())

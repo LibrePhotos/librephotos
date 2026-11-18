@@ -24,6 +24,7 @@ import {
   pathParts,
 } from "../lib/format";
 import { useImageInfo } from "../lib/infoCache";
+import { RemoteSection } from "../library/RemoteSection";
 import { DetailRow, Panel, Section } from "../ui/Panel";
 import "./InfoPanel.css";
 
@@ -183,6 +184,7 @@ export function InfoPanel({ file, onClose }: { file: FileEntry; onClose(): void 
         </div>
       )}
       {state.status === "ready" && <Details info={state.info} kind={file.kind} />}
+      <RemoteSection file={file} />
     </Panel>
   );
 }
