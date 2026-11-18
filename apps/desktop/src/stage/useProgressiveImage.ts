@@ -55,7 +55,8 @@ export function useProgressiveImage(file: FileEntry, box: Box | null, wantFull: 
   const [shown, setShown] = useState<Shown | null>(() => fromCache(file, box));
   const tokenRef = useRef(token);
   tokenRef.current = token;
-  const lastChange = useRef(0);
+  // -Infinity: the first picture after start-up is not "flipping fast" (that would delay `screen`).
+  const lastChange = useRef(-Infinity);
   const rapid = useRef(false);
   const prevPath = useRef(file.path);
 

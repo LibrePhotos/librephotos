@@ -20,7 +20,8 @@ pub mod protocol;
 pub mod request;
 
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 
 use serde::Serialize;
 use tauri::{Emitter, Manager, State};
@@ -48,9 +49,36 @@ fn initial_path() -> Option<String> {
     arg_path()
 }
 
+type Listing = Result<listing::FolderListing, String>;
+
+/// The listing of the command-line path, made while the webview boots (50 ms for 2000 files).
+static STARTUP_LISTING: Mutex<Option<(String, JoinHandle<Listing>)>> = Mutex::new(None);
+
+fn start_listing(path: String) {
+    let p = path.clone();
+    if let Ok(handle) = std::thread::Builder::new()
+        .name("lpview-startup-listing".into())
+        .spawn(move || listing::list_folder(&p))
+    {
+        *STARTUP_LISTING.lock().unwrap() = Some((path, handle));
+    }
+}
+
+/// The startup listing if it is for `path` (once), waiting for it if it is still running.
+fn take_startup_listing(path: &str) -> Option<Listing> {
+    let mut slot = STARTUP_LISTING.lock().unwrap();
+    if slot.as_ref().is_some_and(|(p, _)| p == path) {
+        let (_, handle) = slot.take()?;
+        drop(slot);
+        return handle.join().ok();
+    }
+    None
+}
+
 #[tauri::command]
 async fn list_folder(path: String) -> Result<listing::FolderListing, String> {
-    blocking(move || listing::list_folder(&path)).await
+    blocking(move || take_startup_listing(&path).unwrap_or_else(|| listing::list_folder(&path)))
+        .await
 }
 
 #[tauri::command]
@@ -176,6 +204,9 @@ pub fn run() {
         pipeline::DEFAULT_CACHE_BYTES,
         open_disk_cache(),
     ));
+    if let Some(path) = arg_path() {
+        start_listing(path);
+    }
     preload_initial(&pipeline, None);
     let for_protocol = pipeline.clone();
     let mut builder = tauri::Builder::default();

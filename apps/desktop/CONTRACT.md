@@ -100,4 +100,5 @@ request (queued, memory/disk hit, decode start/end) to stderr.
 
 At start-up Rust begins the `thumb` of the file given on the command line before the page exists,
 and its `screen` for the predicted stage box (window size minus the top bar and the filmstrip) as
-soon as the window exists, so the page's first requests join work already under way.
+soon as the window exists, so the page's first requests join work already under way. It also
+lists that folder while the webview boots; the page's first `list_folder` for that path gets it.
