@@ -5,7 +5,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import * as endpoints from "../endpoints";
-import { ApiError, createApiClient, createNativeFetch } from "../transport";
+import { ApiError, createApiClient, createNativeFetch, nativeFilePart } from "../transport";
 import type { NativeRequest, NativeResponse, NativeSend } from "../transport";
 import { ResponseParseError } from "../util/parse";
 import { defined } from "./defined";
@@ -177,5 +177,44 @@ describe("createNativeFetch", () => {
     expect(setAccessToken).toHaveBeenCalledWith("new-access");
     const retried = defined(send.mock.calls[2]?.[0]);
     expect(header(retried, "authorization")).toBe("Bearer new-access");
+  });
+
+  it("lists no file parts for an ordinary request", async () => {
+    const { client, sent } = nativeStack(() => json({ exists: false }));
+    await endpoints.uploadExists(client, "abc", 7);
+    expect(defined(sent[0]).fileParts).toEqual([]);
+  });
+
+  it("lets the native side fill in a file part, so the chunk's bytes never pass through JavaScript", async () => {
+    const chunk = new Uint8Array(1000).map((_, i) => (i * 7) % 256);
+    const { client, sent } = nativeStack(async request => {
+      // What the desktop's Rust side does: put the bytes the ref names where the marker is.
+      const body = defined(request.body);
+      const part = defined(request.fileParts[0]);
+      expect(part.ref).toEqual({ id: 3, offset: 0, len: 1000 });
+      const text = new TextDecoder("latin1").decode(body);
+      const at = text.indexOf(part.marker);
+      expect(at).toBeGreaterThan(0);
+      const spliced = new Uint8Array(body.length - part.marker.length + chunk.length);
+      spliced.set(body.subarray(0, at));
+      spliced.set(chunk, at);
+      spliced.set(body.subarray(at + part.marker.length), at + chunk.length);
+      request.body = spliced;
+      return json({ upload_id: "u1", offset: 1000 });
+    });
+    const form = new FormData();
+    form.append("file", nativeFilePart({ id: 3, offset: 0, len: 1000 }, "IMG_2.jpg"));
+    form.append("offset", "0");
+    await expect(endpoints.uploadChunk(client, { form_data: form, offset: 0, chunk_size: 1000 })).resolves.toEqual({
+      upload_id: "u1",
+      offset: 1000,
+    });
+    const request = defined(sent[0]);
+    expect(header(request, "content-range")).toBe("bytes 0-999/1000");
+    const received = await formOf(request);
+    const file = received.get("file");
+    if (!(file instanceof File)) throw new Error("the chunk is not a file part");
+    expect(file.name).toBe("IMG_2.jpg");
+    expect(new Uint8Array(await file.arrayBuffer())).toEqual(chunk);
   });
 });
