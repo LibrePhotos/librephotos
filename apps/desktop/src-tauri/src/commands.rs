@@ -116,24 +116,41 @@ pub async fn library_status(
 // ------------------------------------------------------------------ server
 
 #[tauri::command]
-pub async fn server_status(server: State<'_, Arc<Server>>) -> Result<server::ServerStatus, String> {
+pub async fn server_status(server: State<'_, Arc<Server>>) -> Result<server::ServerState, String> {
     let server = server.inner().clone();
-    blocking(move || Ok(server.status())).await
+    blocking(move || Ok(server.state())).await
 }
 
 #[tauri::command]
-pub async fn server_connect(
+pub fn server_session(server: State<'_, Arc<Server>>) -> server::Session {
+    server.session()
+}
+
+#[tauri::command]
+pub fn server_prepare_sign_in(
     server: State<'_, Arc<Server>>,
     url: String,
-    username: String,
-    password: String,
-) -> Result<server::ServerStatus, String> {
-    server.connect(&url, &username, &password).await
+) -> Result<String, String> {
+    server.prepare_sign_in(&url)
 }
 
 #[tauri::command]
-pub fn server_disconnect(server: State<'_, Arc<Server>>) {
-    server.disconnect();
+pub async fn server_signed_in(
+    server: State<'_, Arc<Server>>,
+    sign_in: server::SignIn,
+) -> Result<server::ServerState, String> {
+    let server = server.inner().clone();
+    blocking(move || server.signed_in(sign_in)).await
+}
+
+#[tauri::command]
+pub fn server_set_access(server: State<'_, Arc<Server>>, token: Option<String>) {
+    server.set_access(token);
+}
+
+#[tauri::command]
+pub fn server_signed_out(server: State<'_, Arc<Server>>, reason: Option<String>) {
+    server.signed_out(reason);
 }
 
 #[tauri::command]
@@ -147,18 +164,9 @@ pub fn server_set_paused(server: State<'_, Arc<Server>>, paused: bool) -> Result
 }
 
 #[tauri::command]
-pub fn server_retry_failed(server: State<'_, Arc<Server>>) -> Result<usize, String> {
-    server.retry_failed()
-}
-
-#[tauri::command]
-pub async fn server_fetch(
-    server: State<'_, Arc<Server>>,
-    method: String,
-    path: String,
-    body: Option<serde_json::Value>,
-) -> Result<serde_json::Value, String> {
-    server.fetch(&method, &path, body).await
+pub async fn server_retry_failed(server: State<'_, Arc<Server>>) -> Result<usize, String> {
+    let server = server.inner().clone();
+    blocking(move || server.retry_failed()).await
 }
 
 #[tauri::command]
@@ -170,12 +178,130 @@ pub async fn server_upload_file(
     blocking(move || server.upload_file(&path)).await
 }
 
+/// The api-client's native transport: one framed request in, one framed response out
+/// (`server::http`).
 #[tauri::command]
-pub async fn server_remote_of(
+pub async fn http_fetch(
+    server: State<'_, Arc<Server>>,
+    request: tauri::ipc::Request<'_>,
+) -> Result<tauri::ipc::Response, String> {
+    let tauri::ipc::InvokeBody::Raw(raw) = request.body() else {
+        return Err("http_fetch takes a framed binary request".into());
+    };
+    let (head, body) = server::http::unframe(raw)?;
+    let meta: server::http::RequestMeta =
+        serde_json::from_slice(head).map_err(|e| e.to_string())?;
+    let body = body.to_vec();
+    let server = server.inner().clone();
+    server.http(meta, body).await.map(tauri::ipc::Response::new)
+}
+
+#[tauri::command]
+pub fn http_fetch_abort(server: State<'_, Arc<Server>>, id: String) {
+    server.requests.abort(&id);
+}
+
+// ------------------------------------------------------------------ backup queue
+
+#[tauri::command]
+pub async fn backup_reset(server: State<'_, Arc<Server>>) -> Result<(), String> {
+    let server = server.inner().clone();
+    blocking(move || server.backup_reset()).await
+}
+
+#[tauri::command]
+pub async fn backup_claim_checks(
+    server: State<'_, Arc<Server>>,
+    limit: i64,
+) -> Result<Vec<library::db::Job>, String> {
+    let server = server.inner().clone();
+    blocking(move || server.claim_checks(limit)).await
+}
+
+#[tauri::command]
+pub async fn backup_claim_upload(
+    server: State<'_, Arc<Server>>,
+) -> Result<Option<library::db::Job>, String> {
+    let server = server.inner().clone();
+    blocking(move || server.claim_upload()).await
+}
+
+#[tauri::command]
+pub async fn backup_next_retry(server: State<'_, Arc<Server>>) -> Result<Option<i64>, String> {
+    let server = server.inner().clone();
+    blocking(move || server.next_retry()).await
+}
+
+#[tauri::command]
+pub async fn backup_hash(server: State<'_, Arc<Server>>, id: i64) -> Result<String, String> {
+    let server = server.inner().clone();
+    blocking(move || server.hash(id)).await
+}
+
+#[tauri::command]
+pub async fn backup_prepare(
+    server: State<'_, Arc<Server>>,
+    id: i64,
+) -> Result<server::backup::Prepared, String> {
+    let server = server.inner().clone();
+    blocking(move || server.prepare(id)).await
+}
+
+#[tauri::command]
+pub async fn backup_set_remote(
+    server: State<'_, Arc<Server>>,
+    id: i64,
+    state: String,
+    photo_id: Option<String>,
+) -> Result<(), String> {
+    let server = server.inner().clone();
+    blocking(move || server.set_remote(id, &state, photo_id.as_deref())).await
+}
+
+#[tauri::command]
+pub async fn backup_set_failed(
+    server: State<'_, Arc<Server>>,
+    id: i64,
+    error: String,
+    attempts: i64,
+    next_try_ms: i64,
+) -> Result<(), String> {
+    let server = server.inner().clone();
+    blocking(move || server.set_failed(id, &error, attempts, next_try_ms)).await
+}
+
+#[tauri::command]
+pub async fn backup_set_progress(
+    server: State<'_, Arc<Server>>,
+    id: i64,
+    upload_id: Option<String>,
+    offset: i64,
+) -> Result<(), String> {
+    let server = server.inner().clone();
+    blocking(move || server.set_progress(id, upload_id.as_deref(), offset)).await
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalOf {
+    id: i64,
+    #[serde(flatten)]
+    remote: server::RemoteOf,
+}
+
+/// A local file's row (made when it is outside the library), its MD5 and what the library knows.
+#[tauri::command]
+pub async fn backup_local_of(
     server: State<'_, Arc<Server>>,
     path: String,
-) -> Result<server::RemoteOf, String> {
-    server.remote_of(&path).await
+) -> Result<LocalOf, String> {
+    let server = server.inner().clone();
+    blocking(move || {
+        server
+            .local_of(&path)
+            .map(|(id, remote)| LocalOf { id, remote })
+    })
+    .await
 }
 
 // ------------------------------------------------------------------ wiring
@@ -216,23 +342,21 @@ pub fn open_server(lib: Arc<Library>) -> Arc<Server> {
         Box::new(store),
         Box::new(|| emit_event("server://status", ())),
     );
-    let s = server.clone();
-    lib.set_on_new(move || s.wake.notify_waiters());
+    // New files may need a backup: the UI's engine looks for work on this event.
+    lib.set_on_new(|| emit_event("server://status", ()));
     server
 }
 
-/// `lpview://.../remote?kind=square|big&hash=<image_hash>`: a server thumbnail through the
-/// signed-in session (CONTRACT.md "Server media").
+/// `lpview://.../remote?src=<media URL>`: a server thumbnail through the signed-in session
+/// (CONTRACT.md "Server media"). `src` is the URL `packages/api-client`'s media helpers build.
 pub fn handle_remote(
     server: Arc<Server>,
     query: Option<&str>,
     respond: impl FnOnce(tauri::http::Response<Vec<u8>>) + Send + 'static,
 ) {
-    let q = query.unwrap_or("");
-    let kind = request::query_param(q, "kind").unwrap_or_else(|| "square".into());
-    let hash = request::query_param(q, "hash").unwrap_or_default();
+    let src = request::query_param(query.unwrap_or(""), "src").unwrap_or_default();
     tauri::async_runtime::spawn(async move {
-        let r = match server.media(&kind, &hash).await {
+        let r = match server.media(&src).await {
             Ok((bytes, mime)) => tauri::http::Response::builder()
                 .status(200)
                 .header("Content-Type", mime)

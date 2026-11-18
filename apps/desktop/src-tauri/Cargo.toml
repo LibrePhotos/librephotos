@@ -33,10 +33,10 @@ arboard = { version = "3", default-features = false, features = ["image-data"] }
 rusqlite = { version = "0.40", features = ["bundled"] }
 notify = "8"
 md-5 = "0.10"
-reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "native-tls", "query"] }
+reqwest = { version = "0.13", default-features = false, features = ["native-tls"] }
 keyring = { version = "3", features = ["windows-native", "apple-native", "linux-native"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-tokio = { version = "1", features = ["time", "sync", "rt"] }
+tokio = { version = "1", features = ["time", "sync", "rt", "macros"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = [

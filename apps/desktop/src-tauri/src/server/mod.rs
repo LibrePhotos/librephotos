@@ -1,29 +1,32 @@
 //! The LibrePhotos server connection (CONTRACT.md "Server").
 //!
-//! - Settings (server URL, user, backup switch) in `settings.json` next to the library database;
-//!   the refresh token in the OS keychain; the access token only in memory, refreshed before it
-//!   expires and once more on a 401.
-//! - `fetch`: authenticated JSON requests for the UI, so CORS never applies and tokens never
-//!   reach JavaScript. Only `/api/...` paths of the connected server.
-//! - `media`: server thumbnails for the `lpview` scheme, with a disk cache.
-//! - [`worker`]: hashes library files, asks the server which it has, and uploads the rest.
+//! Every API request is made by the UI with `packages/api-client` (endpoint functions + zod
+//! schemas); Rust only carries the bytes. What stays native:
+//!
+//! - [`http`]: the api-client's transport (`createNativeFetch`): the UI hands over an encoded
+//!   request, Rust sends it with `reqwest` and hands back status, headers and body. CORS never
+//!   applies. Only URLs of the connected server (or the one being signed in to) go out.
+//! - Settings (server URL, user, backup switch) in `settings.json` next to the library database,
+//!   and the refresh token in the OS keychain. The UI's token supplier is fed from here at start
+//!   and tells Rust when it signs in, refreshes or signs out.
+//! - `media`: server thumbnails for the `lpview` scheme, with a disk cache, fetched with the access
+//!   token the UI last handed over.
+//! - [`backup`]: the durable backup queue in the library database, MD5 hashing and chunk reads for
+//!   the UI's backup engine.
 
 pub mod auth;
-pub mod worker;
+pub mod backup;
+pub mod http;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::library::Library;
 use crate::library::db::{self, RemoteCounts};
 use auth::SecretStore;
-
-/// Refresh the access token when it has less than this long to live.
-const REFRESH_MARGIN_S: i64 = 30;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
@@ -39,38 +42,40 @@ pub struct Settings {
     pub remote_key: Option<String>,
 }
 
-#[derive(Default)]
-struct Tokens {
-    access: Option<(String, i64)>,
-    refresh: Option<String>,
-}
-
+/// What Rust knows about the connection; the UI adds its upload progress and errors.
 #[derive(Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct Upload {
-    pub name: String,
-    pub sent: i64,
-    pub total: i64,
-}
-
-#[derive(Serialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ServerStatus {
+pub struct ServerState {
     pub connected: bool,
     pub url: Option<String>,
     pub username: Option<String>,
     pub user_id: Option<i64>,
     pub backup: bool,
     pub paused: bool,
-    /// Why the connection or the last request failed, for the UI.
+    /// Why the last sign-in ended ("Your sign-in expired. Sign in again."), until the next one.
     pub error: Option<String>,
     pub counts: RemoteCounts,
-    pub uploads: Vec<Upload>,
-    /// Upload speed over the last few seconds, bytes per second.
-    pub rate: f64,
-    /// Files uploaded and bytes sent since the app started.
-    pub uploaded_files: i64,
-    pub uploaded_bytes: i64,
+}
+
+/// The session the UI's token supplier starts from: settings plus the keychain's refresh token.
+#[derive(Serialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Session {
+    pub url: Option<String>,
+    pub username: Option<String>,
+    pub user_id: Option<i64>,
+    pub refresh: Option<String>,
+}
+
+/// What the UI reports after a successful sign-in (`/api/auth/token/obtain/` via api-client).
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SignIn {
+    pub url: String,
+    pub username: String,
+    pub user_id: i64,
+    pub refresh: String,
+    pub access: String,
 }
 
 /// What the server knows about one local file.
@@ -86,6 +91,12 @@ pub struct RemoteOf {
 
 pub type Emit = Box<dyn Fn() + Send + Sync>;
 
+#[derive(Default)]
+struct Tokens {
+    access: Option<String>,
+    refresh: Option<String>,
+}
+
 pub struct Server {
     pub(crate) lib: Arc<Library>,
     data_dir: PathBuf,
@@ -93,53 +104,26 @@ pub struct Server {
     pub(crate) http: reqwest::Client,
     settings: Mutex<Settings>,
     tokens: Mutex<Tokens>,
-    /// One refresh at a time.
-    refreshing: tokio::sync::Mutex<()>,
-    pub(crate) wake: tokio::sync::Notify,
+    /// The server being signed in to, which `http` may reach before the sign-in is saved.
+    signing_in: Mutex<Option<String>>,
     error: Mutex<Option<String>>,
-    pub(crate) stats: Mutex<worker::Stats>,
+    pub(crate) requests: http::InFlight,
     emit: Emit,
 }
 
-fn http_error(status: reqwest::StatusCode, body: &str) -> String {
-    let detail = serde_json::from_str::<Value>(body)
-        .ok()
-        .and_then(|v| {
-            v.get("detail")
-                .and_then(Value::as_str)
-                .map(str::to_owned)
-                .or_else(|| {
-                    v.get("errors")
-                        .and_then(|e| e.get(0))
-                        .and_then(|e| e.get("message"))
-                        .and_then(Value::as_str)
-                        .map(str::to_owned)
-                })
-        })
-        .unwrap_or_else(|| body.chars().take(200).collect());
-    if detail.trim().is_empty() {
-        format!("HTTP {status}")
-    } else {
-        format!("HTTP {}: {}", status.as_u16(), detail.trim())
-    }
-}
+/// The server thumbnail folders the media proxy serves (`packages/api-client` `media.ts`).
+const MEDIA_DIRS: [&str; 2] = ["square_thumbnails", "thumbnails_big"];
 
-/// `/api/...` without `..`, a scheme or a host: the only paths `fetch` sends anywhere.
-pub fn valid_api_path(path: &str) -> bool {
-    path.starts_with("/api/")
-        && !path.contains("..")
-        && !path.contains("://")
-        && !path.contains('\\')
-        && !path.contains('#')
-}
-
-/// The server thumbnail kinds the media proxy serves.
-pub fn media_dir(kind: &str) -> Option<&'static str> {
-    match kind {
-        "square" => Some("square_thumbnails"),
-        "big" => Some("thumbnails_big"),
-        _ => None,
-    }
+/// `<server>/media/<dir>/<file>` of the connected server -> (dir, file), for the server
+/// thumbnails only. `file` is an image hash (letters and digits), optionally `.webp`.
+pub fn media_path<'a>(base: &str, src: &'a str) -> Option<(&'a str, &'a str)> {
+    let rest = src.strip_prefix(base)?.strip_prefix("/media/")?;
+    let (dir, file) = rest.split_once('/')?;
+    let dir = MEDIA_DIRS.iter().find(|d| **d == dir)?;
+    let stem = file.strip_suffix(".webp").unwrap_or(file);
+    let ok =
+        !stem.is_empty() && stem.len() <= 80 && stem.bytes().all(|c| c.is_ascii_alphanumeric());
+    ok.then_some((dir, file))
 }
 
 fn sniff_mime(b: &[u8]) -> &'static str {
@@ -180,14 +164,12 @@ impl Server {
             http,
             settings: Mutex::new(settings),
             tokens: Mutex::new(Tokens::default()),
-            refreshing: tokio::sync::Mutex::new(()),
-            wake: tokio::sync::Notify::new(),
+            signing_in: Mutex::new(None),
             error: Mutex::new(None),
-            stats: Mutex::new(worker::Stats::default()),
+            requests: http::InFlight::default(),
             emit,
         });
-        let account = s.account();
-        if let Some(a) = account {
+        if let Some(a) = s.account() {
             s.tokens.lock().unwrap().refresh = s.secrets.get(&a);
         }
         s
@@ -229,33 +211,9 @@ impl Server {
         self.settings.lock().unwrap().user_id
     }
 
-    fn base(&self) -> Result<String, String> {
-        self.settings
-            .lock()
-            .unwrap()
-            .url
-            .clone()
-            .ok_or_else(|| "not connected to a server".into())
-    }
-
-    /// The server answered again: forget the last network error.
-    pub(crate) fn clear_error(&self) {
-        let had = self.error.lock().unwrap().take().is_some();
-        if had {
-            self.changed();
-        }
-    }
-
-    pub(crate) fn set_error(&self, e: Option<String>) {
-        *self.error.lock().unwrap() = e;
-        self.changed();
-    }
-
-    pub fn status(&self) -> ServerStatus {
+    pub fn state(&self) -> ServerState {
         let s = self.settings();
-        let counts = db::remote_counts(&self.lib.conn()).unwrap_or_default();
-        let stats = self.stats.lock().unwrap();
-        ServerStatus {
+        ServerState {
             connected: self.connected(),
             url: s.url,
             username: s.username,
@@ -263,265 +221,137 @@ impl Server {
             backup: s.backup,
             paused: s.paused,
             error: self.error.lock().unwrap().clone(),
-            counts,
-            uploads: stats.current.values().cloned().collect(),
-            rate: stats.rate(),
-            uploaded_files: stats.files,
-            uploaded_bytes: stats.bytes,
+            counts: db::remote_counts(&self.lib.conn()).unwrap_or_default(),
         }
     }
 
-    /// Signs in; on success the refresh token goes to the keychain and the worker starts.
-    pub async fn connect(
-        &self,
-        url: &str,
-        username: &str,
-        password: &str,
-    ) -> Result<ServerStatus, String> {
+    /// Where the UI's token supplier starts: the saved sign-in, if any.
+    pub fn session(&self) -> Session {
+        let s = self.settings();
+        let connected = self.connected();
+        Session {
+            url: s.url,
+            username: s.username,
+            user_id: s.user_id.filter(|_| connected),
+            refresh: self.tokens.lock().unwrap().refresh.clone(),
+        }
+    }
+
+    /// Normalises the address typed into the sign-in form and lets `http` reach it.
+    pub fn prepare_sign_in(&self, url: &str) -> Result<String, String> {
         let url = auth::normalize_url(url)?;
-        let res = self
-            .http
-            .post(format!("{url}/api/auth/token/obtain/"))
-            .json(&serde_json::json!({ "username": username, "password": password }))
-            .send()
-            .await
-            .map_err(|e| format!("couldn't reach {url}: {e}"))?;
-        let status = res.status();
-        let body = res.text().await.unwrap_or_default();
-        if status == reqwest::StatusCode::UNAUTHORIZED {
-            return Err("Wrong username or password".into());
+        *self.signing_in.lock().unwrap() = Some(url.clone());
+        Ok(url)
+    }
+
+    /// The UI signed in: the refresh token goes to the keychain, the settings to disk. Signing in
+    /// to another server or account resets every file's server state.
+    pub fn signed_in(&self, s: SignIn) -> Result<ServerState, String> {
+        if self.signing_in.lock().unwrap().as_deref() != Some(s.url.as_str())
+            && self.settings().url.as_deref() != Some(s.url.as_str())
+        {
+            return Err(format!("{} was not prepared for sign-in", s.url));
         }
-        if !status.is_success() {
-            return Err(http_error(status, &body));
-        }
-        let v: Value = serde_json::from_str(&body)
-            .map_err(|_| format!("{url} doesn't look like a LibrePhotos server"))?;
-        let (Some(access), Some(refresh)) = (v["access"].as_str(), v["refresh"].as_str()) else {
-            return Err(format!("{url} doesn't look like a LibrePhotos server"));
-        };
-        let claims = auth::claims(access).ok_or("the server's sign-in token has no user id")?;
         if let Some(old) = self.account() {
             self.secrets.delete(&old);
         }
-        let key = format!("{url}|{}", claims.user_id);
+        let key = format!("{}|{}", s.url, s.user_id);
         let same_server = self.settings().remote_key.as_deref() == Some(key.as_str());
-        self.save_settings(|s| {
-            s.url = Some(url.clone());
-            s.username = Some(username.to_string());
-            s.user_id = Some(claims.user_id);
-            s.remote_key = Some(key.clone());
+        self.save_settings(|st| {
+            st.url = Some(s.url.clone());
+            st.username = Some(s.username.clone());
+            st.user_id = Some(s.user_id);
+            st.remote_key = Some(key.clone());
         })?;
-        self.secrets.set(&format!("{url}|{username}"), refresh)?;
-        {
-            let mut t = self.tokens.lock().unwrap();
-            t.access = Some((access.to_string(), claims.exp));
-            t.refresh = Some(refresh.to_string());
-        }
+        self.secrets
+            .set(&format!("{}|{}", s.url, s.username), &s.refresh)?;
+        *self.tokens.lock().unwrap() = Tokens {
+            access: Some(s.access),
+            refresh: Some(s.refresh),
+        };
+        *self.signing_in.lock().unwrap() = None;
         if !same_server {
             db::forget_remote(&self.lib.conn()).map_err(|e| e.to_string())?;
             self.lib.notify_changed();
         }
         *self.error.lock().unwrap() = None;
-        self.wake.notify_waiters();
         self.changed();
-        Ok(self.status())
+        Ok(self.state())
+    }
+
+    /// The access token the UI's client holds now, for the media proxy.
+    pub fn set_access(&self, token: Option<String>) {
+        self.tokens.lock().unwrap().access = token;
     }
 
     /// Signs out: forgets the tokens (the keychain entry too). The address and user name stay
-    /// for the next sign-in form; the library keeps what it knew about the server.
-    pub fn disconnect(&self) {
+    /// for the next sign-in form; the library keeps what it knew about the server. `reason` is
+    /// shown until the next sign-in (an expired session, not a click on "Sign out").
+    pub fn signed_out(&self, reason: Option<String>) {
         if let Some(a) = self.account() {
             self.secrets.delete(&a);
         }
         *self.tokens.lock().unwrap() = Tokens::default();
         let _ = self.save_settings(|s| s.user_id = None);
-        *self.error.lock().unwrap() = None;
+        *self.error.lock().unwrap() = reason;
         self.changed();
     }
 
     pub fn set_backup(&self, on: bool) -> Result<(), String> {
         self.save_settings(|s| s.backup = on)?;
-        self.wake.notify_waiters();
         self.changed();
         Ok(())
     }
 
     pub fn set_paused(&self, paused: bool) -> Result<(), String> {
         self.save_settings(|s| s.paused = paused)?;
-        self.wake.notify_waiters();
         self.changed();
         Ok(())
     }
 
-    /// A valid access token, refreshed when it is about to expire (or when `force`).
-    pub(crate) async fn access_token(&self, force: bool) -> Result<String, String> {
-        let now = chrono::Utc::now().timestamp();
-        let fresh = |t: &Tokens| {
-            t.access
-                .as_ref()
-                .filter(|(_, exp)| *exp - REFRESH_MARGIN_S > now)
-                .map(|(a, _)| a.clone())
+    /// The origin `http` may send to: the connected server, or the one being signed in to.
+    pub(crate) fn allows(&self, url: &str) -> bool {
+        let under = |base: &str| {
+            url.strip_prefix(base)
+                .is_some_and(|rest| rest.starts_with('/'))
         };
-        let before = self.tokens.lock().unwrap().access.clone();
-        if !force && let Some(a) = fresh(&self.tokens.lock().unwrap()) {
-            return Ok(a);
-        }
-        let _guard = self.refreshing.lock().await;
-        // Someone else refreshed while we waited.
-        {
-            let t = self.tokens.lock().unwrap();
-            if t.access != before
-                && let Some(a) = fresh(&t)
-            {
-                return Ok(a);
-            }
-        }
-        let refresh = self
-            .tokens
-            .lock()
-            .unwrap()
-            .refresh
-            .clone()
-            .ok_or("not signed in")?;
-        let base = self.base()?;
-        let res = self
-            .http
-            .post(format!("{base}/api/auth/token/refresh/"))
-            .json(&serde_json::json!({ "refresh": refresh }))
-            .send()
-            .await
-            .map_err(|e| format!("couldn't reach {base}: {e}"))?;
-        let status = res.status();
-        let body = res.text().await.unwrap_or_default();
-        if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::BAD_REQUEST
-        {
-            // The refresh token expired or was revoked: sign in again.
-            if let Some(a) = self.account() {
-                self.secrets.delete(&a);
-            }
-            *self.tokens.lock().unwrap() = Tokens::default();
-            self.set_error(Some("Your sign-in expired. Sign in again.".into()));
-            return Err("signed out".into());
-        }
-        if !status.is_success() {
-            return Err(http_error(status, &body));
-        }
-        let v: Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
-        let access = v["access"].as_str().ok_or("no access token")?.to_string();
-        let exp = auth::claims(&access).map_or(now + 60, |c| c.exp);
-        let mut t = self.tokens.lock().unwrap();
-        t.access = Some((access.clone(), exp));
-        if let Some(r) = v["refresh"].as_str() {
-            // Rotated refresh tokens replace the stored one.
-            t.refresh = Some(r.to_string());
-            if let Some(a) = self.account() {
-                let _ = self.secrets.set(&a, r);
-            }
-        }
-        Ok(access)
+        let settings = self.settings();
+        settings.url.as_deref().is_some_and(under)
+            || self
+                .signing_in
+                .lock()
+                .unwrap()
+                .as_deref()
+                .is_some_and(under)
     }
 
-    /// Sends a request built by `build` with the access token; on a 401 refreshes once and
-    /// sends it again.
-    pub(crate) async fn send(
-        &self,
-        build: impl Fn(&str) -> reqwest::RequestBuilder,
-    ) -> Result<reqwest::Response, String> {
-        let base = self.base()?;
-        let token = self.access_token(false).await?;
-        let res = build(&base)
-            .bearer_auth(&token)
-            .send()
-            .await
-            .map_err(|e| format!("couldn't reach {base}: {e}"))?;
-        if res.status() != reqwest::StatusCode::UNAUTHORIZED {
-            return Ok(res);
-        }
-        let token = self.access_token(true).await?;
-        build(&base)
-            .bearer_auth(&token)
-            .send()
-            .await
-            .map_err(|e| format!("couldn't reach {base}: {e}"))
-    }
-
-    /// JSON request to `/api/...` of the connected server for the UI.
-    pub async fn fetch(
-        &self,
-        method: &str,
-        path: &str,
-        body: Option<Value>,
-    ) -> Result<Value, String> {
-        if !valid_api_path(path) {
-            return Err(format!("not an API path: {path}"));
-        }
-        let method = reqwest::Method::from_bytes(method.to_ascii_uppercase().as_bytes())
-            .map_err(|_| format!("bad method {method}"))?;
-        let res = self
-            .send(|base| {
-                let r = self.http.request(method.clone(), format!("{base}{path}"));
-                match &body {
-                    Some(b) => r.json(b),
-                    None => r,
-                }
-            })
-            .await?;
-        let status = res.status();
-        let text = res.text().await.map_err(|e| e.to_string())?;
-        if !status.is_success() {
-            return Err(http_error(status, &text));
-        }
-        if text.trim().is_empty() {
-            return Ok(Value::Null);
-        }
-        serde_json::from_str(&text).map_err(|e| format!("not JSON: {e}"))
-    }
-
-    /// `GET /api/exists/<md5><user id>` -> the photo id when the server has the file.
-    pub(crate) async fn exists(&self, md5: &str) -> Result<Option<String>, String> {
-        let uid = self.user_id().ok_or("not signed in")?;
-        let v = self
-            .fetch("GET", &format!("/api/exists/{md5}{uid}"), None)
-            .await?;
-        Ok(if v["exists"].as_bool() == Some(true) {
-            Some(match &v["photo_id"] {
-                Value::String(s) => s.clone(),
-                Value::Null => String::new(),
-                other => other.to_string(),
-            })
-        } else {
-            None
-        })
-    }
-
-    /// A server thumbnail (`kind` "square" or "big") of `image_hash`, from the disk cache or the
-    /// server. Err carries the HTTP status to answer.
-    pub async fn media(
-        &self,
-        kind: &str,
-        image_hash: &str,
-    ) -> Result<(Vec<u8>, &'static str), (u16, String)> {
-        let dir = media_dir(kind).ok_or((400, format!("unknown kind {kind}")))?;
-        if image_hash.is_empty()
-            || image_hash.len() > 80
-            || !image_hash.bytes().all(|c| c.is_ascii_alphanumeric())
-        {
-            return Err((400, "bad hash".into()));
-        }
+    /// A server thumbnail at `src` (a `packages/api-client` media URL of the connected server),
+    /// from the disk cache or the server. Err carries the HTTP status to answer.
+    pub async fn media(&self, src: &str) -> Result<(Vec<u8>, &'static str), (u16, String)> {
+        let base = self
+            .settings()
+            .url
+            .ok_or((503, "not connected".to_string()))?;
+        let (dir, file) = media_path(&base, src).ok_or((400, format!("not a thumbnail: {src}")))?;
         let uid = self.user_id().map(|u| u.to_string()).unwrap_or_default();
-        let file = self
+        let path = self
             .data_dir
             .join("server-media")
             .join(format!("{dir}-{uid}"))
-            .join(image_hash);
-        if let Ok(b) = std::fs::read(&file) {
+            .join(file);
+        if let Ok(b) = std::fs::read(&path) {
             let mime = sniff_mime(&b);
             return Ok((b, mime));
         }
-        let res = self
-            .send(|base| self.http.get(format!("{base}/media/{dir}/{image_hash}")))
+        let token = self.tokens.lock().unwrap().access.clone();
+        let mut req = self.http.get(src);
+        if let Some(t) = token {
+            req = req.bearer_auth(t);
+        }
+        let res = req
+            .send()
             .await
-            .map_err(|e| (502, e))?;
+            .map_err(|e| (502, format!("couldn't reach {base}: {e}")))?;
         let status = res.status();
         if !status.is_success() {
             return Err((status.as_u16(), format!("server answered {status}")));
@@ -531,12 +361,12 @@ impl Server {
             .await
             .map_err(|e| (502, e.to_string()))?
             .to_vec();
-        if let Some(parent) = file.parent()
+        if let Some(parent) = path.parent()
             && std::fs::create_dir_all(parent).is_ok()
         {
-            let tmp = file.with_extension("tmp");
+            let tmp = path.with_extension("tmp");
             if std::fs::write(&tmp, &bytes).is_ok() {
-                let _ = std::fs::rename(&tmp, &file);
+                let _ = std::fs::rename(&tmp, &path);
             }
         }
         let mime = sniff_mime(&bytes);
@@ -548,56 +378,71 @@ impl Server {
 mod tests {
     use super::*;
 
-    #[test]
-    fn api_paths() {
-        assert!(valid_api_path("/api/photos/searchlist/?search=x"));
-        assert!(!valid_api_path("/media/photos/x"));
-        assert!(!valid_api_path("/api/../admin"));
-        assert!(!valid_api_path("/api/x?u=http://evil"));
-        assert!(!valid_api_path("https://evil/api/"));
+    fn server(dir: &std::path::Path, store: auth::MemoryStore) -> Arc<Server> {
+        let lib = Library::open(db::open_memory().unwrap(), |_| ());
+        Server::new(lib, dir.to_path_buf(), Box::new(store), Box::new(|| ()))
     }
 
     #[test]
-    fn errors_and_mime() {
-        let s = reqwest::StatusCode::BAD_REQUEST;
+    fn media_paths_follow_the_api_client() {
+        let base = "http://h:8000";
+        let hash = "5d41402abc4b2a76b9719d911017c5921";
         assert_eq!(
-            http_error(s, r#"{"detail":"md5 checksum does not match"}"#),
-            "HTTP 400: md5 checksum does not match"
+            media_path(base, &format!("{base}/media/square_thumbnails/{hash}")),
+            Some(("square_thumbnails", hash))
         );
         assert_eq!(
-            http_error(s, r#"{"errors":[{"field":"album_id","message":"nope"}]}"#),
-            "HTTP 400: nope"
+            media_path(base, &format!("{base}/media/square_thumbnails/{hash}.webp")),
+            Some(("square_thumbnails", &*format!("{hash}.webp")))
         );
+        assert!(media_path(base, &format!("{base}/media/thumbnails_big/{hash}")).is_some());
+        assert!(media_path(base, &format!("{base}/media/photos/{hash}")).is_none());
+        assert!(media_path(base, &format!("http://evil/media/square_thumbnails/{hash}")).is_none());
+        assert!(media_path(base, &format!("{base}/media/square_thumbnails/../x")).is_none());
+        assert!(media_path(base, &format!("{base}/media/square_thumbnails/")).is_none());
         assert_eq!(sniff_mime(b"\xFF\xD8\xFF"), "image/jpeg");
         assert_eq!(sniff_mime(b"RIFF\0\0\0\0WEBPVP8 "), "image/webp");
     }
 
     #[test]
-    fn settings_survive_a_restart_and_tokens_stay_out_of_the_file() {
+    fn sign_in_saves_settings_and_keeps_tokens_out_of_the_file() {
         let dir = std::env::temp_dir().join(format!("lpview-server-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        let lib = Library::open(db::open_memory().unwrap(), |_| ());
-        let store = auth::MemoryStore::default();
-        store.set("http://h|bob", "refresh-token").unwrap();
-        let s = Server::new(lib.clone(), dir.clone(), Box::new(store), Box::new(|| ()));
+        let s = server(&dir, auth::MemoryStore::default());
         assert!(!s.connected());
-        s.save_settings(|st| {
-            st.url = Some("http://h".into());
-            st.username = Some("bob".into());
-            st.user_id = Some(3);
-            st.backup = true;
-        })
-        .unwrap();
+        let sign_in = SignIn {
+            url: "http://h".into(),
+            username: "bob".into(),
+            user_id: 3,
+            refresh: "refresh-token".into(),
+            access: "access-token".into(),
+        };
+        // Only a prepared server may be signed in to (and reached by `http`).
+        assert!(s.signed_in(sign_in.clone()).is_err());
+        assert!(!s.allows("http://h/api/auth/token/obtain/"));
+        assert_eq!(s.prepare_sign_in("h/api/").unwrap(), "https://h");
+        let url = s.prepare_sign_in("http://h").unwrap();
+        assert!(s.allows(&format!("{url}/api/auth/token/obtain/")));
+        assert!(!s.allows("http://hx/api/"));
+        s.signed_in(sign_in).unwrap();
+        s.set_backup(true).unwrap();
+        assert!(s.connected());
         let text = std::fs::read_to_string(dir.join("settings.json")).unwrap();
         assert!(!text.contains("refresh-token"));
+
         let store = auth::MemoryStore::default();
         store.set("http://h|bob", "refresh-token").unwrap();
-        let again = Server::new(lib, dir.clone(), Box::new(store), Box::new(|| ()));
+        let again = server(&dir, store);
         assert!(again.connected());
         assert!(again.settings().backup);
-        again.disconnect();
+        assert_eq!(again.session().refresh.as_deref(), Some("refresh-token"));
+        assert_eq!(again.session().user_id, Some(3));
+        assert!(again.allows("http://h/api/photos/"));
+        again.signed_out(Some("Your sign-in expired. Sign in again.".into()));
         assert!(!again.connected());
+        assert_eq!(again.session().refresh, None);
         assert_eq!(again.settings().username.as_deref(), Some("bob"));
+        assert!(again.state().error.is_some());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

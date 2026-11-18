@@ -90,7 +90,13 @@ fn init(conn: Connection) -> rusqlite::Result<Connection> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.busy_timeout(std::time::Duration::from_secs(5))?;
     conn.execute_batch(SCHEMA)?;
-    // Work a previous run was doing when it stopped starts over.
+    reset_in_flight(&conn)?;
+    Ok(conn)
+}
+
+/// Work a previous run (or a reloaded UI) was doing when it stopped starts over: checks are asked
+/// again, uploads resume from their saved offset.
+pub fn reset_in_flight(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute(
         "UPDATE files SET remote_state = 'unknown' WHERE remote_state = 'checking'",
         [],
@@ -99,7 +105,7 @@ fn init(conn: Connection) -> rusqlite::Result<Connection> {
         "UPDATE files SET remote_state = 'absent' WHERE remote_state = 'uploading'",
         [],
     )?;
-    Ok(conn)
+    Ok(())
 }
 
 pub fn kind_str(k: FileKind) -> &'static str {
@@ -494,8 +500,9 @@ pub fn by_id(conn: &Connection, id: i64) -> rusqlite::Result<Option<LibraryFile>
 
 // ------------------------------------------------------------------ server state
 
-/// A file the worker hashes, checks or uploads.
-#[derive(Debug, Clone)]
+/// A file the backup engine hashes, checks or uploads.
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Job {
     pub id: i64,
     pub path: String,
@@ -523,6 +530,15 @@ fn job_row(r: &rusqlite::Row) -> rusqlite::Result<Job> {
 }
 
 const JOB_COLS: &str = "id, path, name, size, mtime, md5, attempts, upload_id, upload_offset";
+
+pub fn job_by_id(conn: &Connection, id: i64) -> rusqlite::Result<Option<Job>> {
+    conn.query_row(
+        &format!("SELECT {JOB_COLS} FROM files WHERE id = ?1"),
+        [id],
+        job_row,
+    )
+    .optional()
+}
 
 /// Claims up to `limit` files whose server state is unknown (library files, newest first, after
 /// loose files the user asked to upload).

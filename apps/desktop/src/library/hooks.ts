@@ -7,13 +7,15 @@ import {
   onLibraryChanged,
   onLibraryProgress,
   onServerStatus,
-  serverStatus,
+  serverState,
   type LibraryFile,
   type LibraryProgress,
   type LibraryStatus,
   type Root,
   type ServerStatus,
 } from "./api";
+import { backupStats, onBackupChange } from "../server/backup";
+import { onSessionChange } from "../server/session";
 
 /**
  * Runs `load` now and again after events, at most once per `ms` (events come in storms while a
@@ -61,8 +63,20 @@ function useReloading<T>(
   return [value, run];
 }
 
+/** Rust's side of the connection (settings, library counts) plus the backup engine's progress. */
+async function serverStatus(): Promise<ServerStatus> {
+  const state = await serverState();
+  const stats = backupStats();
+  return { ...state, ...stats, error: stats.error ?? state.error };
+}
+
+function onAnyServerChange(handler: () => void): () => void {
+  const stops = [onServerStatus(handler), onBackupChange(handler), onSessionChange(handler)];
+  return () => stops.forEach(stop => stop());
+}
+
 export function useServerStatus(): [ServerStatus, () => void] {
-  return useReloading(serverStatus, onServerStatus, OFFLINE_STATUS, 250);
+  return useReloading(serverStatus, onAnyServerChange, OFFLINE_STATUS, 250);
 }
 
 export function useRoots(): [Root[], () => void] {

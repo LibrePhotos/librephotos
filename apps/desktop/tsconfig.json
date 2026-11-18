@@ -13,7 +13,11 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@librephotos/api-client/core": ["../../packages/api-client/src/core.ts"],
+      "zod": ["./node_modules/zod"]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }
