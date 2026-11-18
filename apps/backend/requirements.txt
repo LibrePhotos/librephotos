@@ -54,7 +54,7 @@ timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/wi
 rawpy==0.28.0
 # The editor develops RAW files with FlashRaw (api/editing/source.py), 5 to 9 times
 # faster than LibRaw; rawpy stays for what it cannot read and for embedded thumbnails.
-flashraw==0.2.0
+flashraw==0.3.1
 django-q2==1.11.1
 psutil==7.2.2
 concurrent-log-handler==0.9.31
