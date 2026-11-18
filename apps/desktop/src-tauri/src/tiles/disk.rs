@@ -16,6 +16,9 @@ pub fn default_root() -> Option<PathBuf> {
     if let Some(v) = std::env::var_os("LPVIEW_TILE_CACHE") {
         return (v != "off").then(|| PathBuf::from(v));
     }
+    if let Some(d) = crate::appdirs::override_dir() {
+        return Some(d.join("tiles"));
+    }
     let base = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from))
