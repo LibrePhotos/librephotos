@@ -523,5 +523,8 @@ pub fn encode_jpeg(p: &Pixels, quality: f32) -> Result<Vec<u8>, String> {
         drop(stream);
         out.truncate(pos as usize);
     }
+    // The buffer was sized for the worst case (raw size + 1 MB): give the rest back, or every
+    // cached JPEG keeps megabytes committed that the caches' byte budgets never see.
+    out.shrink_to_fit();
     Ok(out)
 }
