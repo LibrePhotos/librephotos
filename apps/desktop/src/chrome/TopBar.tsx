@@ -2,10 +2,10 @@ import {
   IconAppWindow,
   IconArrowsMinimize,
   IconCopy,
-  IconDots,
   IconEraser,
   IconFolderOpen,
   IconInfoCircle,
+  IconInfoCircleFilled,
   IconMaximize,
   IconMinimize,
   IconPhotoPlus,
@@ -15,12 +15,17 @@ import {
   IconTrash,
   IconZoomIn,
   IconZoomOut,
-  type Icon,
 } from "@tabler/icons-react";
-import { useEffect, useRef, useState } from "react";
 import type { FileEntry } from "../ipc";
+import { formatShortDate } from "../lib/format";
+import { useImageInfo } from "../lib/infoCache";
 import { useZoomPercent } from "../lib/zoomStore";
+import { IconButton } from "../ui/IconButton";
+import { Logo } from "../ui/Logo";
+import { Menu } from "../ui/Menu";
 import "./TopBar.css";
+
+export { IconButton };
 
 export type TopBarActions = {
   zoomIn(): void;
@@ -50,35 +55,6 @@ type Props = {
   onPointerLeave(): void;
 };
 
-type ButtonProps = {
-  icon: Icon;
-  label: string;
-  shortcut?: string;
-  onClick(): void;
-  disabled?: boolean;
-  pressed?: boolean;
-  tipEnd?: boolean;
-  /** Hidden when the window is narrow: 1 below 900 px, 2 below 680 px. */
-  optional?: 1 | 2;
-};
-
-export function IconButton({ icon: I, label, shortcut, onClick, disabled, pressed, tipEnd, optional }: ButtonProps) {
-  return (
-    <button
-      type="button"
-      className={`icon-btn${pressed ? " pressed" : ""}${optional ? ` opt-${optional}` : ""}`}
-      aria-label={shortcut ? `${label} (${shortcut})` : label}
-      aria-pressed={pressed}
-      data-tip={shortcut ? `${label}  ${shortcut}` : label}
-      data-tip-end={tipEnd ? "" : undefined}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <I size={18} stroke={1.6} />
-    </button>
-  );
-}
-
 function ZoomReadout({ onClick, disabled }: { onClick(): void; disabled: boolean }) {
   const percent = useZoomPercent();
   return (
@@ -95,172 +71,129 @@ function ZoomReadout({ onClick, disabled }: { onClick(): void; disabled: boolean
   );
 }
 
-type MenuItem = {
-  icon: Icon;
-  label: string;
-  onSelect(): void;
-  disabled?: boolean;
-  /** Only listed when the toolbar button with the same `optional` level is hidden. */
-  narrow?: 1 | 2;
-  separatorBefore?: boolean;
-};
-
-/** "More options": less-used actions, plus the toolbar buttons a narrow window hides. */
-function OverflowMenu({ items }: { items: MenuItem[] }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    /** Enabled items that are shown (narrow-only items are display: none on wide windows). */
-    const items = () =>
-      [...(menuRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [])].filter(
-        b => b.offsetParent !== null,
-      );
-    const close = (refocus: boolean) => {
-      setOpen(false);
-      if (refocus) buttonRef.current?.focus();
-    };
-    const onDown = (e: PointerEvent) => {
-      if (e.target instanceof Node && rootRef.current?.contains(e.target)) return;
-      close(false);
-    };
-    // While open, keys belong to the menu (capture phase: the viewer's shortcuts never see them).
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Tab") {
-        e.stopPropagation();
-        if (e.key === "Escape") e.preventDefault();
-        close(e.key === "Escape");
-        return;
-      }
-      if (e.key === "Enter" || e.key === " ") {
-        // Let the focused item's own click happen, but keep the viewer from seeing the key.
-        e.stopPropagation();
-        return;
-      }
-      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
-      e.stopPropagation();
-      e.preventDefault();
-      const buttons = items();
-      if (buttons.length === 0) return;
-      const at = buttons.findIndex(b => b === document.activeElement);
-      const next =
-        e.key === "Home"
-          ? 0
-          : e.key === "End"
-            ? buttons.length - 1
-            : (at + (e.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
-      buttons[next]?.focus();
-    };
-    const onBlur = () => close(false);
-    window.addEventListener("pointerdown", onDown, true);
-    window.addEventListener("keydown", onKey, true);
-    window.addEventListener("blur", onBlur);
-    items()[0]?.focus();
-    return () => {
-      window.removeEventListener("pointerdown", onDown, true);
-      window.removeEventListener("keydown", onKey, true);
-      window.removeEventListener("blur", onBlur);
-    };
-  }, [open]);
-
+/** The centred title, as the web lightbox has it: the name, then the date taken and the position. */
+function Title({ file, index, count }: { file: FileEntry | null; index: number; count: number }) {
+  // The stage asks for the same info (zoom to 100 %); the cache shares the one request.
+  const info = useImageInfo(file);
+  if (!file) {
+    return (
+      <div className="topbar-title brand">
+        <Logo size={24} />
+        <span className="topbar-name">LibrePhotos</span>
+      </div>
+    );
+  }
+  const taken = info.status === "ready" && info.info.takenAt ? formatShortDate(info.info.takenAt) : null;
   return (
-    <div className="overflow" ref={rootRef}>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={`icon-btn${open ? " pressed" : ""}`}
-        aria-label="More options"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        data-tip={open ? undefined : "More options"}
-        data-tip-end=""
-        onClick={() => setOpen(o => !o)}
-      >
-        <IconDots size={18} stroke={1.6} />
-      </button>
-      {open && (
-        <div ref={menuRef} className="menu" role="menu" aria-label="More options">
-          {items.map(({ icon: I, label, onSelect, disabled, narrow, separatorBefore }) => (
-            <div key={label} className={narrow ? `menu-narrow-${narrow}` : undefined}>
-              {separatorBefore && <div className="menu-sep" role="separator" />}
-              <button
-                type="button"
-                role="menuitem"
-                className="menu-item"
-                disabled={disabled}
-                onClick={() => {
-                  setOpen(false);
-                  buttonRef.current?.focus();
-                  onSelect();
-                }}
-              >
-                <I size={16} stroke={1.6} aria-hidden="true" />
-                <span>{label}</span>
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="topbar-title">
+      <span className="topbar-name" title={file.path}>
+        {file.name}
+      </span>
+      <span className="topbar-meta">
+        {taken && <span className="topbar-date">{taken}</span>}
+        <span className="topbar-count" aria-label={`Item ${index + 1} of ${count}`}>
+          {index + 1} of {count}
+        </span>
+      </span>
     </div>
   );
 }
 
+/**
+ * The viewer's toolbar, laid out like the web lightbox's: Open and the zoom controls on the left,
+ * the picture's name, date and position in the middle, the most used actions on the right (Info and
+ * Delete last, as on the web) and a ⋮ menu with the rest. Narrow windows move buttons into the menu
+ * (.opt-1 below 900 px, .opt-2 below 680 px); every action keeps its keyboard shortcut.
+ */
 export function TopBar({ file, index, count, infoOpen, fullscreen, actions, onPointerEnter, onPointerLeave }: Props) {
   const none = file === null;
   const video = file?.kind === "video";
+  const noPicture = none || video;
   return (
     <header className="topbar" onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
-      <div className="topbar-title">
-        <span className="topbar-name" title={file?.path}>
-          {file ? file.name : "LibrePhotos Viewer"}
-        </span>
-        {file && (
-          <span className="topbar-count" aria-label={`Item ${index + 1} of ${count}`}>
-            {index + 1} / {count}
-          </span>
-        )}
+      <div className="topbar-start">
+        <IconButton icon={IconPhotoPlus} label="Open" shortcut="Ctrl+O" onClick={actions.open} />
+        <div className="zoom-group needs-file opt-2" role="group" aria-label="Zoom">
+          <IconButton icon={IconZoomOut} label="Zoom out" shortcut="-" onClick={actions.zoomOut} disabled={noPicture} />
+          <ZoomReadout onClick={actions.toggleActual} disabled={noPicture} />
+          <IconButton icon={IconZoomIn} label="Zoom in" shortcut="+" onClick={actions.zoomIn} disabled={noPicture} />
+        </div>
       </div>
+      <Title file={file} index={index} count={count} />
       <div className="topbar-actions" role="toolbar" aria-label="Viewer actions">
-        <div className="group opt-2">
-          <IconButton icon={IconZoomOut} label="Zoom out" shortcut="-" onClick={actions.zoomOut} disabled={none || video} />
-          <ZoomReadout onClick={actions.toggleActual} disabled={none || video} />
-          <IconButton icon={IconZoomIn} label="Zoom in" shortcut="+" onClick={actions.zoomIn} disabled={none || video} />
-          <IconButton icon={IconArrowsMinimize} label="Fit to window" shortcut="0" onClick={actions.fit} disabled={none || video} optional={1} />
-        </div>
-        <div className="sep opt-2" />
-        <div className="group">
-          <IconButton icon={IconRotate} label="Rotate left" shortcut="Shift+R" onClick={() => actions.rotate(false)} disabled={none || video} optional={2} />
-          <IconButton icon={IconRotateClockwise} label="Rotate right" shortcut="R" onClick={() => actions.rotate(true)} disabled={none || video} optional={2} />
-          <IconButton icon={IconTrash} label="Delete" shortcut="Del" onClick={actions.remove} disabled={none} />
-          <IconButton icon={IconCopy} label="Copy" shortcut="Ctrl+C" onClick={actions.copy} disabled={none || video} optional={1} />
-          <IconButton icon={IconFolderOpen} label="Show in folder" onClick={actions.reveal} disabled={none} optional={1} />
-        </div>
-        <div className="sep" />
-        <div className="group">
-          <IconButton icon={IconInfoCircle} label="File info" shortcut="I" onClick={actions.toggleInfo} disabled={none} pressed={infoOpen} tipEnd />
-          <IconButton icon={IconPlayerPlay} label="Slideshow" shortcut="Space" onClick={actions.slideshow} disabled={none} tipEnd />
-          <IconButton
-            icon={fullscreen ? IconMinimize : IconMaximize}
-            label={fullscreen ? "Exit full screen" : "Full screen"}
-            shortcut="F11"
-            onClick={actions.toggleFullscreen}
-            tipEnd
-          />
-          <IconButton icon={IconPhotoPlus} label="Open" shortcut="Ctrl+O" onClick={actions.open} tipEnd />
-          <OverflowMenu
-            items={[
-              { icon: IconRotate, label: "Rotate left", onSelect: () => actions.rotate(false), disabled: none || video, narrow: 2 },
-              { icon: IconRotateClockwise, label: "Rotate right", onSelect: () => actions.rotate(true), disabled: none || video, narrow: 2 },
-              { icon: IconCopy, label: "Copy", onSelect: actions.copy, disabled: none || video, narrow: 1 },
-              { icon: IconFolderOpen, label: "Show in folder", onSelect: actions.reveal, disabled: none, narrow: 1 },
-              { icon: IconAppWindow, label: "Set as default photo viewer", onSelect: actions.setDefaultViewer, separatorBefore: true },
+        <IconButton
+          icon={IconRotateClockwise}
+          label="Rotate right"
+          shortcut="R"
+          onClick={() => actions.rotate(true)}
+          disabled={noPicture}
+          optional={1}
+          className="needs-file"
+        />
+        <IconButton
+          icon={IconPlayerPlay}
+          label="Slideshow"
+          shortcut="Space"
+          onClick={actions.slideshow}
+          disabled={none}
+          optional={1}
+          className="needs-file"
+        />
+        <IconButton
+          icon={fullscreen ? IconMinimize : IconMaximize}
+          label={fullscreen ? "Exit full screen" : "Full screen"}
+          shortcut="F11"
+          onClick={actions.toggleFullscreen}
+          optional={2}
+          className="needs-file"
+        />
+        <IconButton
+          icon={infoOpen ? IconInfoCircleFilled : IconInfoCircle}
+          label="Info"
+          shortcut="I"
+          onClick={actions.toggleInfo}
+          disabled={none}
+          pressed={infoOpen}
+          tipEnd
+          className="needs-file"
+        />
+        <IconButton
+          icon={IconTrash}
+          label="Delete"
+          shortcut="Del"
+          onClick={actions.remove}
+          disabled={none}
+          tipEnd
+          className="needs-file"
+        />
+        <Menu
+          label="More options"
+          groups={[
+            [
+              { icon: IconPlayerPlay, label: "Slideshow", shortcut: "Space", onSelect: actions.slideshow, disabled: none, className: "menu-narrow-1" },
+              {
+                icon: fullscreen ? IconMinimize : IconMaximize,
+                label: fullscreen ? "Exit full screen" : "Full screen",
+                shortcut: "F11",
+                onSelect: actions.toggleFullscreen,
+                className: "menu-narrow-2",
+              },
+              { icon: IconZoomIn, label: "Zoom in", shortcut: "+", onSelect: actions.zoomIn, disabled: noPicture, className: "menu-narrow-2" },
+              { icon: IconZoomOut, label: "Zoom out", shortcut: "-", onSelect: actions.zoomOut, disabled: noPicture, className: "menu-narrow-2" },
+              { icon: IconArrowsMinimize, label: "Fit to window", shortcut: "0", onSelect: actions.fit, disabled: noPicture },
+              { icon: IconRotateClockwise, label: "Rotate right", shortcut: "R", onSelect: () => actions.rotate(true), disabled: noPicture, className: "menu-narrow-1" },
+              { icon: IconRotate, label: "Rotate left", shortcut: "Shift+R", onSelect: () => actions.rotate(false), disabled: noPicture },
+            ],
+            [
+              { icon: IconCopy, label: "Copy", shortcut: "Ctrl+C", onSelect: actions.copy, disabled: noPicture },
+              { icon: IconFolderOpen, label: "Show in folder", onSelect: actions.reveal, disabled: none },
+            ],
+            [
+              { icon: IconAppWindow, label: "Set as default photo viewer", onSelect: actions.setDefaultViewer },
               { icon: IconEraser, label: "Clear thumbnail cache", onSelect: actions.clearCache },
-            ]}
-          />
-        </div>
+            ],
+          ]}
+        />
       </div>
     </header>
   );

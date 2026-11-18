@@ -6,11 +6,9 @@
     <meta name="color-scheme" content="dark light" />
     <title>LibrePhotos Viewer</title>
     <style>
-      /* First paint before the bundle loads: no white flash. */
-      html, body, #root { margin: 0; height: 100%; background: #1c1c1c; color: #f3f3f3; overflow: hidden; }
-      @media (prefers-color-scheme: light) {
-        html, body, #root { background: #f3f3f3; color: #1a1a1a; }
-      }
+      /* First paint before the bundle loads: the viewer's black stage (the usual launch opens a
+         picture), so there is no white flash. */
+      html, body, #root { margin: 0; height: 100%; background: #000; color: #ececee; overflow: hidden; }
     </style>
   </head>
   <body>

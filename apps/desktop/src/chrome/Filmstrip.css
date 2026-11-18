@@ -1,9 +1,11 @@
+/* The thumbnail strip under the stage (web: ThumbnailNavigation.module.css): 56px tiles with 6px
+   corners on the stage's black, the others dimmed until pointed at, the one shown outlined in white.
+   Its height is part of the stage box Rust predicts at start-up (--lp-filmstrip-height). */
 .filmstrip {
   flex-shrink: 0;
-  height: 76px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  z-index: 10;
+  height: var(--lp-filmstrip-height);
+  background: var(--lp-stage);
+  z-index: var(--lp-z-chrome);
 }
 
 .film-scroll {
@@ -22,8 +24,8 @@
 }
 .film-items {
   position: absolute;
-  top: 9px;
-  bottom: 9px;
+  top: 8px;
+  bottom: 12px;
   right: 0;
 }
 
@@ -34,17 +36,15 @@
   height: 56px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
-  background: var(--surface-3);
+  background: var(--lp-scrim-white-8);
   display: grid;
   place-items: center;
-  color: var(--text-3);
+  color: var(--lp-color-dimmed);
   cursor: pointer;
-  opacity: 0.72;
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease;
+  opacity: 0.6;
+  transition: opacity 150ms ease;
 }
 .film-item:hover {
   opacity: 1;
@@ -57,15 +57,13 @@
 }
 .film-item.active {
   opacity: 1;
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 2px solid #fff;
+  outline-offset: 1px;
 }
 .film-item:focus-visible {
-  outline: 2px solid var(--focus);
+  opacity: 1;
+  outline: 2px solid var(--lp-color-primary-text);
   outline-offset: 2px;
-}
-.film-item.active:focus-visible {
-  outline-color: var(--focus);
 }
 
 .film-badge {
@@ -76,7 +74,7 @@
   place-items: center;
   width: 18px;
   height: 18px;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.6);
+  border-radius: var(--lp-radius-sm);
+  background: var(--lp-scrim-black-60);
   color: #fff;
 }

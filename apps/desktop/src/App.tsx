@@ -450,7 +450,15 @@ export function App() {
     overChrome.current = false;
   };
 
-  const className = ["app", immersive && "immersive", chromeHidden && "chrome-hidden", slideshow && "slideshow-on"]
+  const className = [
+    "app",
+    // A picture is open (or about to be): the dark viewer chrome (styles.css, TopBar.css).
+    (current !== null || starting) && "viewing",
+    infoOpen && current !== null && !slideshow && "info-open",
+    immersive && "immersive",
+    chromeHidden && "chrome-hidden",
+    slideshow && "slideshow-on",
+  ]
     .filter(Boolean)
     .join(" ");
 

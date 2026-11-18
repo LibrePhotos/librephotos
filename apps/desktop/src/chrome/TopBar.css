@@ -1,24 +1,130 @@
+/* The viewer's toolbar (web: LightboxControls.module.css). Its height is part of the stage box Rust
+   predicts at start-up (--lp-topbar-height, CHROME_CSS_PX in src-tauri/src/lib.rs). The side
+   columns share the free width so the title stays centred until one of them needs more. While a
+   picture is open (.app.viewing) it takes the dark scheme and the stage's black, so bar and photo
+   read as one surface; with nothing open it follows the app's scheme. */
 .topbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  align-items: center;
+  gap: var(--lp-space-2);
+  height: var(--lp-topbar-height);
+  padding: 0 var(--lp-space-1);
+  flex-shrink: 0;
+  background: var(--lp-color-body);
+  color: var(--lp-color-text);
+  z-index: var(--lp-z-chrome);
+}
+.app.viewing > .topbar {
+  background: var(--lp-stage);
+  /* The web toolbar's white icons with a light tint on hover. */
+  --lp-icon-btn-color: var(--lp-scrim-white-90);
+  --lp-icon-btn-hover: var(--lp-scrim-white-12);
+  --lp-icon-btn-active: var(--lp-scrim-white-16);
+}
+.app:not(.viewing) > .topbar {
+  border-bottom: 1px solid var(--lp-color-border);
+}
+.app:not(.viewing) .topbar .needs-file {
+  display: none;
+}
+
+.topbar-start,
+.topbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 48px;
-  padding: 0 8px 0 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.topbar-title {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+  gap: 2px;
   min-width: 0;
-  flex: 1;
+}
+.topbar-start {
+  grid-column: 1;
+  justify-self: start;
+}
+.topbar-actions {
+  grid-column: 3;
+  justify-self: end;
 }
 
-/* Narrow windows drop secondary actions (they all keep their keyboard shortcuts). */
+.zoom-group {
+  display: flex;
+  align-items: center;
+  margin-left: var(--lp-space-2);
+}
+
+.zoom-readout {
+  position: relative;
+  height: var(--lp-action-size);
+  min-width: 52px;
+  padding: 0 var(--lp-space-2);
+  border: 0;
+  border-radius: var(--lp-radius-round);
+  background: transparent;
+  color: var(--lp-icon-btn-color, var(--lp-color-text));
+  font-size: var(--lp-font-size-xs);
+  font-weight: var(--lp-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--lp-duration-fast) ease;
+}
+.zoom-readout:hover:not(:disabled) {
+  background: var(--lp-icon-btn-hover, var(--lp-color-hover));
+}
+.zoom-readout:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The centred title: the name in 14px semibold, the date and position dimmed under it, each cut
+   short with an ellipsis rather than pushing into the buttons. */
+.topbar-title {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.3;
+}
+.topbar-title.brand {
+  flex-direction: row;
+  gap: var(--lp-space-2);
+}
+.topbar-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--lp-font-size-sm);
+  font-weight: var(--lp-font-weight-semibold);
+}
+.topbar-meta {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  max-width: 100%;
+  font-size: var(--lp-font-size-xs);
+  color: var(--lp-color-dimmed);
+  white-space: nowrap;
+}
+.app.viewing > .topbar .topbar-meta {
+  color: var(--lp-scrim-white-80);
+}
+.topbar-date {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-date::after {
+  content: " ·";
+}
+.topbar-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Narrow windows drop secondary actions into the ⋮ menu (they all keep their keyboard shortcuts). */
 @media (max-width: 900px) {
   .topbar .opt-1 {
     display: none;
@@ -29,185 +135,19 @@
     display: none;
   }
 }
-.topbar-name {
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.topbar-count {
-  font-size: 12px;
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.topbar-actions .group {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-.topbar-actions .sep {
-  width: 1px;
-  height: 20px;
-  background: var(--border-strong);
-  margin: 0 4px;
-}
-
-.icon-btn,
-.zoom-readout {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  height: 32px;
-  min-width: 36px;
-  padding: 0 8px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: transparent;
-  cursor: pointer;
-  transition: background-color 90ms ease;
-}
-.icon-btn:hover:not(:disabled),
-.zoom-readout:hover:not(:disabled) {
-  background: var(--hover-strong);
-}
-.icon-btn:active:not(:disabled),
-.zoom-readout:active:not(:disabled) {
-  background: var(--pressed);
-  color: var(--text-2);
-}
-.icon-btn:disabled,
-.zoom-readout:disabled {
-  color: var(--text-3);
-  opacity: 0.55;
-  cursor: default;
-}
-.icon-btn.pressed {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.zoom-readout {
-  min-width: 56px;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Tooltips: CSS only, appear after a short hover delay, below the bar. */
-[data-tip]::after {
-  content: attr(data-tip);
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translate(-50%, -2px);
-  padding: 5px 9px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
-  box-shadow: var(--shadow);
-  font-size: 12px;
-  font-weight: 400;
-  white-space: pre;
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease;
-  transition-delay: 0ms;
-  z-index: 50;
-}
-[data-tip-end]::after {
-  left: auto;
-  right: 0;
-  transform: translate(0, -2px);
-}
-[data-tip]:hover:not(:disabled)::after {
-  opacity: 1;
-  transform: translate(-50%, 0);
-  transition-delay: 500ms;
-}
-[data-tip-end]:hover:not(:disabled)::after {
-  transform: translate(0, 0);
-}
-
-/* "More options" menu */
-.overflow {
-  position: relative;
-}
-.menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 240px;
-  padding: 4px;
-  border-radius: 8px;
-  border: 1px solid var(--border-strong);
-  background: var(--acrylic);
-  backdrop-filter: blur(24px) saturate(150%);
-  box-shadow: var(--shadow);
-  z-index: 60;
-  animation: menu-in 120ms cubic-bezier(0.2, 0, 0, 1);
-}
-@keyframes menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
+@media (max-width: 520px) {
+  .topbar-date {
+    display: none;
   }
 }
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  height: 34px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  text-align: left;
-  font-size: 13px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.menu-item:hover:not(:disabled),
-.menu-item:focus-visible {
-  background: var(--hover-strong);
-  outline: none;
-}
-.menu-item:disabled {
-  color: var(--text-3);
-  cursor: default;
-}
-.menu-item svg {
-  flex-shrink: 0;
-  color: var(--text-2);
-}
-.menu-sep {
-  height: 1px;
-  margin: 4px 6px;
-  background: var(--border);
-}
-/* Toolbar buttons a narrow window hides show up in the menu instead (see .opt-1 / .opt-2). */
+
+/* Menu items standing in for hidden toolbar buttons: only listed when their button is hidden. */
 .menu-narrow-1,
 .menu-narrow-2 {
   display: none;
 }
-.menu-narrow-1 + :not(.menu-narrow-1):not(.menu-narrow-2) > .menu-sep:first-child {
-  display: none;
-}
 @media (max-width: 900px) {
   .menu-narrow-1 {
-    display: block;
-  }
-  .menu-narrow-1 + :not(.menu-narrow-1):not(.menu-narrow-2) > .menu-sep:first-child {
     display: block;
   }
 }

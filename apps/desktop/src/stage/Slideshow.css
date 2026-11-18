@@ -1,7 +1,7 @@
 .slideshow {
   position: absolute;
   inset: 0;
-  background: #000;
+  background: var(--lp-stage);
   overflow: hidden;
   cursor: none;
   z-index: 5;

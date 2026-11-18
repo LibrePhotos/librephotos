@@ -1,9 +1,11 @@
+/* Pure black behind a photo in both colour schemes, as the web lightbox, Google Photos and Immich
+   show one. */
 .stage {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: var(--stage);
+  background: var(--lp-stage);
 }
 
 .stage-surface {
@@ -65,35 +67,36 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  color: var(--text-2);
+  gap: var(--lp-space-1);
+  color: var(--lp-color-dimmed);
   text-align: center;
-  padding: 24px;
+  padding: var(--lp-space-6);
 }
 .stage-message svg {
-  color: var(--text-3);
-  margin-bottom: 4px;
+  color: var(--lp-color-dimmed);
+  margin-bottom: var(--lp-space-2);
 }
 .stage-message-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: var(--lp-font-size-md);
+  font-weight: var(--lp-font-weight-semibold);
+  color: var(--lp-color-text);
   word-break: break-all;
 }
 .stage-message-text {
-  font-size: 13px;
+  font-size: var(--lp-font-size-sm);
 }
 
+/* Mantine's oval Loader in the primary colour, shown only when a load takes a while. */
 .stage-spinner {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 28px;
-  height: 28px;
-  margin: -14px 0 0 -14px;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
   border-radius: 50%;
-  border: 2.5px solid color-mix(in srgb, var(--text) 18%, transparent);
-  border-top-color: var(--accent);
+  border: 3px solid var(--lp-scrim-white-16);
+  border-top-color: var(--lp-color-primary);
   opacity: 0;
   animation:
     spin 800ms linear infinite,
@@ -112,31 +115,33 @@
   }
 }
 
+/* Previous and next (web: ContentViewer.module.css): quiet dark circles over the photo, shown while
+   the pointer is on the stage. */
 .stage-nav {
   position: absolute;
   top: 50%;
-  width: 40px;
-  height: 64px;
-  margin-top: -32px;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  padding: 0;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--acrylic);
-  backdrop-filter: blur(20px) saturate(140%);
-  color: var(--text);
+  border: 0;
+  border-radius: var(--lp-radius-round);
+  background: var(--lp-scrim-black-35);
+  color: #fff;
   opacity: 0;
   transition:
-    opacity 160ms ease,
-    background-color 120ms ease;
+    opacity 150ms ease,
+    background-color 150ms ease;
   cursor: pointer;
-  z-index: 2;
+  z-index: var(--lp-z-stage-controls);
 }
 .stage-nav.prev {
-  left: 12px;
+  left: var(--lp-space-4);
 }
 .stage-nav.next {
-  right: 12px;
+  right: var(--lp-space-4);
 }
 .stage:hover .stage-nav,
 .stage-nav:focus-visible {
@@ -147,8 +152,8 @@
   pointer-events: none;
 }
 .stage-nav:hover {
-  background: var(--hover-strong);
+  background: var(--lp-scrim-black-60);
 }
 .stage-nav:active {
-  background: var(--pressed);
+  background: var(--lp-scrim-black-75);
 }

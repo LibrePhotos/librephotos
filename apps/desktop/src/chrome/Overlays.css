@@ -1,24 +1,32 @@
-/* Dialog */
+/* Dialog (web: the Modal defaults in App.tsx and dialogsTheme.module.css): centred, 16px corners,
+   24px padding, over a dimmed, softly blurred window; a hairline edge in the dark scheme. Rendered
+   outside the viewer's dark scope, so it follows the app's scheme. */
 .dialog {
-  width: min(380px, calc(100vw - 32px));
+  width: min(440px, calc(100vw - 32px));
   padding: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface-2);
-  color: var(--text);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--lp-dialog-edge, transparent);
+  border-radius: var(--lp-radius-lg);
+  background: var(--lp-color-surface);
+  color: var(--lp-color-text);
+  box-shadow: var(--lp-shadow-lg);
+}
+@media (prefers-color-scheme: dark) {
+  .dialog {
+    --lp-dialog-edge: var(--lp-scrim-white-8);
+  }
 }
 .dialog[open] {
-  animation: dialog-in 140ms cubic-bezier(0.2, 0, 0, 1);
+  animation: dialog-in var(--lp-duration-base) var(--lp-ease);
 }
 .dialog::backdrop {
-  background: rgba(0, 0, 0, 0.42);
-  animation: fade-in 140ms ease;
+  background: var(--lp-color-overlay);
+  backdrop-filter: blur(2px);
+  animation: fade-in var(--lp-duration-base) ease;
 }
 @keyframes dialog-in {
   from {
     opacity: 0;
-    transform: scale(1.04);
+    transform: translateY(8px) scale(0.98);
   }
 }
 @keyframes fade-in {
@@ -27,216 +35,226 @@
   }
 }
 .dialog form {
-  padding: 22px 24px 0;
+  padding: var(--lp-space-6);
+}
+.dialog-head {
+  display: flex;
+  align-items: center;
+  gap: var(--lp-space-3);
+  margin-bottom: var(--lp-space-3);
+}
+.dialog-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--lp-color-danger-light);
+  color: var(--lp-color-danger-text);
 }
 .dialog h2 {
-  margin: 0 0 8px;
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
+  margin: 0;
+  font-size: var(--lp-font-size-lg);
+  font-weight: var(--lp-font-weight-bold);
 }
 .dialog-file {
-  margin: 0 0 18px;
-  color: var(--text-2);
+  margin: 0 0 var(--lp-space-5);
+  color: var(--lp-color-dimmed);
   overflow-wrap: anywhere;
 }
 .check {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 22px;
+  gap: var(--lp-space-3);
   cursor: pointer;
   user-select: none;
 }
-.check input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: var(--accent);
-}
 .dialog-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: 0 -24px;
-  padding: 20px 24px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  border-radius: 0 0 8px 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--lp-space-2);
+  margin-top: var(--lp-space-6);
 }
 
-/* Toasts */
+/* Toasts (web: notificationsTheme.module.css): top right, just below the top bar, a status icon in
+   a softly tinted circle, a shadow that lifts them off a photo, a hairline in the dark scheme. */
 .toasts {
   position: absolute;
-  left: 50%;
-  bottom: 96px;
-  transform: translateX(-50%);
+  top: calc(var(--lp-topbar-height) + var(--lp-space-2));
+  right: var(--lp-space-5);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
+  gap: var(--lp-space-2);
   pointer-events: none;
-  z-index: 40;
+  z-index: var(--lp-z-toast);
+  transition: top var(--lp-duration-slow) var(--lp-ease);
 }
 .toast {
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: min(560px, calc(100vw - 32px));
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--acrylic);
-  backdrop-filter: blur(24px) saturate(150%);
-  box-shadow: var(--shadow);
-  font-size: 13px;
-  animation: toast-in 180ms cubic-bezier(0.2, 0, 0, 1);
+  gap: var(--lp-space-3);
+  width: min(380px, calc(100vw - 32px));
+  padding: var(--lp-space-3) var(--lp-space-4) var(--lp-space-3) var(--lp-space-3);
+  border: 1px solid var(--lp-toast-edge, transparent);
+  border-radius: var(--lp-radius-md);
+  background: var(--lp-color-surface);
+  color: var(--lp-color-text);
+  box-shadow: var(--lp-shadow-lg);
+  font-size: var(--lp-font-size-sm);
+  line-height: 1.45;
+  animation: toast-in var(--lp-duration-slow) var(--lp-ease);
+  --toast-accent: var(--lp-color-success-text);
 }
-.toast svg {
-  flex-shrink: 0;
-  color: var(--accent);
+@media (prefers-color-scheme: dark) {
+  .toast {
+    --lp-toast-edge: var(--lp-scrim-white-8);
+  }
 }
-.toast.error svg {
-  color: var(--danger);
+.toast.error {
+  --toast-accent: var(--lp-color-danger-text);
+}
+.toast-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--toast-accent) 15%, transparent);
+  color: var(--toast-accent);
+}
+.toast-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateX(24px);
   }
 }
 
-/* Empty state */
+/* Empty state (web: components/common EmptyState): the mark, a title, one line, the main action. */
 .empty {
   flex: 1;
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 16px;
-  padding: 16px;
-  background:
-    radial-gradient(1000px 500px at 50% 110%, var(--accent-soft), transparent 70%),
-    var(--stage);
+  gap: var(--lp-space-6);
+  padding: var(--lp-space-4);
+  background: var(--lp-color-body);
 }
 .empty-card {
-  width: min(420px, 100%);
-  padding: 40px 32px 32px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  width: min(440px, 100%);
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 .empty-logo {
-  width: 60px;
-  height: 60px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  color: var(--accent);
-  background: var(--accent-soft);
-  margin-bottom: 18px;
+  color: var(--lp-color-text);
+  margin-bottom: var(--lp-space-5);
 }
 .empty-card h1 {
-  margin: 0 0 6px;
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 600;
+  margin: 0 0 var(--lp-space-2);
+  font-size: 26px;
+  font-weight: var(--lp-font-weight-bold);
+  line-height: 1.25;
 }
 .empty-sub {
-  margin: 0 0 24px;
-  color: var(--text-2);
-  font-size: 13px;
+  margin: 0 0 var(--lp-space-6);
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-sm);
 }
+/* Mantine Alert, light variant, red. */
 .empty-error {
   display: flex;
-  gap: 8px;
+  gap: var(--lp-space-3);
   align-items: flex-start;
   text-align: left;
-  margin: 0 0 18px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--danger);
-  font-size: 13px;
+  margin: 0 0 var(--lp-space-5);
+  padding: var(--lp-space-3) var(--lp-space-4);
+  border-radius: var(--lp-radius-md);
+  background: var(--lp-color-danger-light);
+  color: var(--lp-color-danger-text);
+  font-size: var(--lp-font-size-sm);
   overflow-wrap: anywhere;
 }
-.btn.big {
-  min-height: 36px;
-  padding: 0 22px;
+.empty-error svg {
+  flex: none;
+  margin-top: 1px;
+}
+.empty-error span {
+  color: var(--lp-color-text);
 }
 .empty-hint {
-  margin: 12px 0 0;
-  color: var(--text-3);
-  font-size: 12px;
+  margin: var(--lp-space-4) 0 0;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
 }
 
-/* One-time "default photo viewer" suggestion under the empty-state card */
+/* One-time "default photo viewer" suggestion under the empty state: a bordered card. */
 .default-hint {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  width: min(420px, calc(100vw - 32px));
-  padding: 12px 8px 12px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 13px;
+  gap: var(--lp-space-3);
+  width: min(500px, calc(100vw - 32px));
+  padding: var(--lp-space-3) var(--lp-space-2) var(--lp-space-3) var(--lp-space-4);
+  border-radius: var(--lp-radius-md);
+  border: 1px solid var(--lp-color-border);
+  background: var(--lp-color-surface);
+  box-shadow: var(--lp-shadow-sm);
+  font-size: var(--lp-font-size-sm);
   animation: fade-in 200ms ease;
 }
 .default-hint > svg {
   flex-shrink: 0;
   margin-top: 1px;
-  color: var(--accent);
+  color: var(--lp-color-primary-text);
 }
 .default-hint-text {
   flex: 1;
   display: grid;
-  gap: 4px;
-  color: var(--text-2);
+  gap: 2px;
+  color: var(--lp-color-text);
 }
 .link-btn {
   justify-self: start;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--lp-color-primary-text);
+  font-weight: var(--lp-font-weight-semibold);
   cursor: pointer;
 }
 .link-btn:hover {
   text-decoration: underline;
 }
-.icon-btn.small {
-  height: 26px;
-  min-width: 26px;
-  padding: 0;
-}
 
-/* Drop target */
+/* Drop target (web: the upload drop overlay) */
 .drop-overlay {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  padding: var(--lp-space-6);
+  background: color-mix(in srgb, var(--lp-color-body) 75%, transparent);
   backdrop-filter: blur(6px);
-  z-index: 60;
-  animation: fade-in 120ms ease;
+  z-index: var(--lp-z-overlay);
+  animation: fade-in var(--lp-duration-fast) ease;
 }
 .drop-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 36px 56px;
-  border: 2px dashed var(--accent);
-  border-radius: 14px;
-  color: var(--accent);
-  font-size: 16px;
-  font-weight: 600;
+  gap: var(--lp-space-3);
+  padding: 40px 64px;
+  border: 2px dashed var(--lp-color-primary);
+  border-radius: var(--lp-radius-lg);
+  background: var(--lp-color-primary-light);
+  color: var(--lp-color-primary-text);
+  font-size: var(--lp-font-size-md);
+  font-weight: var(--lp-font-weight-semibold);
 }

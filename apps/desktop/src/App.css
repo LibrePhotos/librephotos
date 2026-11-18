@@ -20,26 +20,51 @@
   flex-direction: column;
 }
 
-/* Full screen and slideshow: the stage takes the whole window, chrome floats over it. */
+/* While a picture is open the window behind the chrome is the stage's black. */
+.app.viewing {
+  background: var(--lp-stage);
+}
+
+/* Toasts stay clear of the open info panel's heading. */
+.app.info-open .toasts {
+  right: calc(var(--lp-panel-width) + var(--lp-space-5));
+}
+@media (max-width: 760px) {
+  .app.info-open .toasts {
+    right: calc(300px + var(--lp-space-3));
+  }
+}
+
+/* Full screen and slideshow: the stage takes the whole window, chrome floats over it on the web
+   lightbox's scrims (black fading out), so the white title and icons read over a bright sky. The
+   scrims are the bars' own backgrounds, so they come and go with the bars. */
 .app.immersive .topbar,
 .app.immersive .filmstrip {
   position: absolute;
   left: 0;
   right: 0;
-  background: var(--acrylic);
-  backdrop-filter: blur(30px) saturate(150%);
   transition:
-    opacity 220ms ease,
-    transform 220ms cubic-bezier(0.2, 0, 0, 1);
+    opacity var(--lp-duration-slow) ease,
+    transform var(--lp-duration-slow) var(--lp-ease);
 }
 .app.immersive .topbar {
   top: 0;
+  height: 72px;
+  align-items: start;
+  padding-top: var(--lp-space-1);
+  background: linear-gradient(var(--lp-scrim-black-60), rgba(0, 0, 0, 0.25) 55%, transparent);
 }
 .app.immersive .filmstrip {
   bottom: 0;
+  height: 96px;
+  padding-top: 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.25) 35%, var(--lp-scrim-black-60));
 }
-.app.immersive .stage {
-  background: #000;
+.app.immersive .film-item:not(.active) {
+  opacity: 0.75;
+}
+.app.immersive .film-item:hover {
+  opacity: 1;
 }
 .app.chrome-hidden .topbar {
   opacity: 0;
@@ -56,5 +81,5 @@
   cursor: none;
 }
 .app.chrome-hidden .toasts {
-  bottom: 24px;
+  top: var(--lp-space-4);
 }

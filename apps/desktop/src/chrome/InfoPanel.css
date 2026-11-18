@@ -1,123 +1,72 @@
+/* The info panel (web: lightbox Sidebar.module.css): a 360px column beside the photo on the
+   stage's own black, set apart by a faint hairline, dark in either colour scheme (.lp-dark). */
 .info-panel {
-  width: 320px;
+  width: var(--lp-panel-width);
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  min-height: 0;
-  animation: info-in 160ms cubic-bezier(0.2, 0, 0, 1);
+  background: var(--lp-stage);
+  border-left: 1px solid var(--lp-scrim-white-8);
+  animation: info-in var(--lp-duration-base) var(--lp-ease);
 }
 @keyframes info-in {
   from {
     opacity: 0;
-    transform: translateX(12px);
+    transform: translateX(16px);
+  }
+}
+@media (max-width: 760px) {
+  .info-panel {
+    width: 300px;
   }
 }
 
-.info-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 8px 6px 20px;
-}
-.info-header h2 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.info-content {
-  flex: 1;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
-  padding: 6px 12px 20px;
-}
-
-.info-row {
-  display: flex;
-  gap: 14px;
-  padding: 10px 8px;
-  border-radius: 6px;
-}
-.info-row + .info-row {
-  border-top: 1px solid var(--border);
-  border-radius: 0;
-}
-.info-icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--text-3);
-}
-.info-body {
-  min-width: 0;
-  flex: 1;
-}
-.info-label {
-  font-size: 12px;
-  color: var(--text-3);
-  margin-bottom: 3px;
-}
-.info-value {
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-.info-strong {
-  font-weight: 600;
-}
-.info-sub {
-  color: var(--text-2);
-  font-size: 12.5px;
-}
-.info-sub.inline {
-  font-size: 13px;
+/* The file name: broken anywhere, so a long camera name never widens the panel. */
+.info-file-name {
+  word-break: break-all;
 }
 .info-mono {
   font-variant-numeric: tabular-nums;
 }
 .info-path {
-  font-size: 12.5px;
-  color: var(--text-2);
   user-select: text;
+  overflow-wrap: anywhere;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+.copy-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -3px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--lp-radius-sm);
+  background: transparent;
+  color: var(--lp-color-dimmed);
+  cursor: pointer;
 }
-.chip {
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface-3);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.copy-btn:hover {
+  background: var(--lp-color-hover);
+  color: var(--lp-color-text);
 }
 
-/* Label column as wide as the longest label (at most half the row, wider only for a single long
-   word); labels wrap between words only, values wrap anywhere in the rest of the row. */
+/* Labels in one column (as wide as the longest, at most half the row), values in the next, so the
+   values line up (web: DetailsList.module.css). */
 .info-extra {
   margin: 0;
   display: grid;
   grid-template-columns: fit-content(50%) minmax(0, 1fr);
-  column-gap: 14px;
-  row-gap: 5px;
+  gap: 6px var(--lp-space-4);
+  font-size: 13px;
+  line-height: 1.45;
 }
 .info-extra-row {
   display: contents;
 }
 .info-extra dt {
-  color: var(--text-2);
+  color: var(--lp-color-dimmed);
   overflow-wrap: normal;
   word-break: normal;
-  hyphens: none;
 }
 .info-extra dd {
   margin: 0;
@@ -127,50 +76,38 @@
 
 .info-error {
   display: flex;
-  gap: 12px;
-  padding: 12px;
-  margin: 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--danger);
+  gap: var(--lp-space-3);
+  padding: var(--lp-space-3);
+  border-radius: var(--lp-radius-md);
+  background: var(--lp-color-danger-light);
+  color: var(--lp-color-danger-text);
 }
-.info-error .info-strong {
-  color: var(--text);
+.info-error .detail-title {
+  color: var(--lp-color-text);
 }
 
 .info-skeleton {
-  padding: 4px 8px;
+  display: grid;
+  gap: var(--lp-space-5);
 }
 .sk-row {
   display: flex;
-  gap: 14px;
-  padding: 12px 0;
+  gap: var(--lp-space-4);
 }
 .sk-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  background: var(--surface-3);
+  flex: none;
+  width: 20px;
+  height: 20px;
 }
 .sk-lines {
   flex: 1;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 .sk-line {
-  height: 11px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--surface-3), var(--hover-strong), var(--surface-3));
-  background-size: 200% 100%;
-  animation: shimmer 1.2s linear infinite;
+  height: 12px;
 }
 .sk-line.short {
-  width: 30%;
-  height: 9px;
-}
-@keyframes shimmer {
-  to {
-    background-position: -200% 0;
-  }
+  width: 40%;
+  height: 10px;
 }

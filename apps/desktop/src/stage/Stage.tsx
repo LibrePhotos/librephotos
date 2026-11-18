@@ -73,7 +73,7 @@ export function Stage({ file, neighbours, handleRef, hasPrev, hasNext, onPrev, o
   const isVideo = file.kind === "video";
 
   return (
-    <div ref={rootRef} className={`stage${idle ? " idle" : ""}`}>
+    <div ref={rootRef} className={`stage lp-dark${idle ? " idle" : ""}`}>
       {isVideo ? (
         <VideoView key={tokenOf(file)} file={file} handleRef={handleRef} />
       ) : (
@@ -81,12 +81,12 @@ export function Stage({ file, neighbours, handleRef, hasPrev, hasNext, onPrev, o
       )}
       {hasPrev && (
         <button type="button" className="stage-nav prev" aria-label="Previous (Left arrow)" onClick={onPrev}>
-          <IconChevronLeft size={20} stroke={1.75} />
+          <IconChevronLeft size={22} stroke={2} aria-hidden="true" />
         </button>
       )}
       {hasNext && (
         <button type="button" className="stage-nav next" aria-label="Next (Right arrow)" onClick={onNext}>
-          <IconChevronRight size={20} stroke={1.75} />
+          <IconChevronRight size={22} stroke={2} aria-hidden="true" />
         </button>
       )}
     </div>
@@ -96,7 +96,7 @@ export function Stage({ file, neighbours, handleRef, hasPrev, hasNext, onPrev, o
 function Unsupported({ name, video }: { name: string; video: boolean }) {
   return (
     <div className="stage-message" role="status">
-      <IconPhotoOff size={40} stroke={1.25} />
+      <IconPhotoOff size={40} stroke={1.25} aria-hidden="true" />
       <div className="stage-message-name">{name}</div>
       <div className="stage-message-text">
         {video ? "This video can't be played yet" : "This format can't be shown yet"}

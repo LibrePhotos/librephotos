@@ -1,6 +1,8 @@
-import { IconAlertTriangle, IconAppWindow, IconCheck, IconFileUpload, IconPhotoPlus, IconX } from "@tabler/icons-react";
+import { IconAlertTriangle, IconAppWindow, IconCheck, IconFileUpload, IconPhotoPlus, IconTrash, IconX } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FileEntry } from "../ipc";
+import { IconButton } from "../ui/IconButton";
+import { Logo } from "../ui/Logo";
 import "./Overlays.css";
 
 // ---------------------------------------------------------------- delete confirmation
@@ -44,18 +46,23 @@ export function ConfirmDelete({
           onConfirm(dontAsk);
         }}
       >
-        <h2 id="confirm-title">Move to Recycle Bin?</h2>
+        <div className="dialog-head">
+          <span className="dialog-icon" aria-hidden="true">
+            <IconTrash size={20} stroke={1.75} />
+          </span>
+          <h2 id="confirm-title">Move to Recycle Bin?</h2>
+        </div>
         <p className="dialog-file">{file.name}</p>
         <label className="check">
-          <input type="checkbox" checked={dontAsk} onChange={e => setDontAsk(e.target.checked)} />
+          <input className="lp-checkbox" type="checkbox" checked={dontAsk} onChange={e => setDontAsk(e.target.checked)} />
           <span>Don't ask again</span>
         </label>
         <div className="dialog-actions">
-          <button ref={confirmRef} type="submit" className="btn primary">
-            Delete
-          </button>
           <button type="button" className="btn" onClick={onCancel}>
             Cancel
+          </button>
+          <button ref={confirmRef} type="submit" className="btn danger">
+            Delete
           </button>
         </div>
       </form>
@@ -83,8 +90,10 @@ export function Toasts({ toasts }: { toasts: Toast[] }) {
     <div className="toasts" role="status" aria-live="polite">
       {toasts.map(t => (
         <div key={t.id} className={`toast ${t.tone}`}>
-          {t.tone === "error" ? <IconAlertTriangle size={16} stroke={1.75} /> : <IconCheck size={16} stroke={2} />}
-          <span>{t.text}</span>
+          <span className="toast-icon" aria-hidden="true">
+            {t.tone === "error" ? <IconAlertTriangle size={18} stroke={2} /> : <IconCheck size={18} stroke={2.25} />}
+          </span>
+          <span className="toast-text">{t.text}</span>
         </div>
       ))}
     </div>
@@ -122,7 +131,7 @@ function DefaultViewerHint({ onSetDefault }: { onSetDefault(): void }) {
   };
   return (
     <div className="default-hint" role="note">
-      <IconAppWindow size={18} stroke={1.5} aria-hidden="true" />
+      <IconAppWindow size={20} stroke={1.5} aria-hidden="true" />
       <div className="default-hint-text">
         <span>Open pictures from File Explorer with LibrePhotos Viewer?</span>
         <button
@@ -136,9 +145,7 @@ function DefaultViewerHint({ onSetDefault }: { onSetDefault(): void }) {
           Set as default photo viewer
         </button>
       </div>
-      <button type="button" className="icon-btn small" aria-label="Dismiss" onClick={dismiss}>
-        <IconX size={14} stroke={1.75} />
-      </button>
+      <IconButton icon={IconX} label="Dismiss" onClick={dismiss} size="sm" noTip className="dimmed" />
     </div>
   );
 }
@@ -147,20 +154,22 @@ export function EmptyState({ error, onOpen, onSetDefault }: { error: string | nu
   return (
     <div className="empty">
       <div className="empty-card">
-        <div className="empty-logo" aria-hidden="true">
-          <IconPhotoPlus size={30} stroke={1.4} />
-        </div>
+        <Logo size={56} className="empty-logo" />
         <h1>LibrePhotos Viewer</h1>
         <p className="empty-sub">Fast, private, local. Your pictures stay on this computer.</p>
         {error && (
           <p className="empty-error" role="alert">
-            <IconAlertTriangle size={16} stroke={1.75} /> {error}
+            <IconAlertTriangle size={18} stroke={1.75} aria-hidden="true" />
+            <span>{error}</span>
           </p>
         )}
         <button type="button" className="btn primary big" onClick={onOpen}>
+          <IconPhotoPlus size={20} stroke={1.75} aria-hidden="true" />
           Open a picture
         </button>
-        <p className="empty-hint">or drop one here</p>
+        <p className="empty-hint">
+          or drop one here · <kbd className="kbd">Ctrl</kbd> <kbd className="kbd">O</kbd>
+        </p>
       </div>
       <DefaultViewerHint onSetDefault={onSetDefault} />
     </div>
@@ -171,7 +180,7 @@ export function DropOverlay() {
   return (
     <div className="drop-overlay" aria-hidden="true">
       <div className="drop-card">
-        <IconFileUpload size={36} stroke={1.4} />
+        <IconFileUpload size={40} stroke={1.5} />
         <span>Drop to open</span>
       </div>
     </div>

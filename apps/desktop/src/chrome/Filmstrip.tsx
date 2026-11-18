@@ -63,7 +63,7 @@ const Thumb = memo(function Thumb({
       onClick={() => onSelect(index)}
     >
       {failed ? (
-        <Fallback size={20} stroke={1.5} />
+        <Fallback size={20} stroke={1.5} aria-hidden="true" />
       ) : (
         src && (
           <img
@@ -156,7 +156,7 @@ export function Filmstrip({ files, index, onSelect, onPointerEnter, onPointerLea
   }
 
   return (
-    <nav className="filmstrip" aria-label="Filmstrip" onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+    <nav className="filmstrip lp-dark" aria-label="Filmstrip" onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
       <div ref={scrollRef} className="film-scroll">
         <div className="film-track" style={{ width: files.length * STEP - GAP + pad * 2 }}>
           <div className="film-items" style={{ left: pad }}>
