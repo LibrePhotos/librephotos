@@ -1,0 +1,427 @@
+/*
+ * Shared primitives, in the web app's Mantine look (tokens: src/styles.css). Plain classes so any
+ * view can use them without a component: .btn, .icon-btn, [data-tip], .menu, .panel, .section,
+ * .detail-row, .chip-strip, .kbd, .lp-checkbox.
+ */
+
+/* ------------------------------------------------------------ buttons
+   Mantine Button size sm: 36px, 8px corners, 14px semibold. .btn alone is the "default" variant
+   (a quiet grey pill, as the web theme's appVariantColorResolver draws it). */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lp-space-2);
+  height: var(--lp-control-height-md);
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--lp-radius-md);
+  background: var(--lp-color-default);
+  color: var(--lp-color-text);
+  font-size: var(--lp-font-size-sm);
+  font-weight: var(--lp-font-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--lp-duration-fast) ease;
+}
+.btn:hover:not(:disabled) {
+  background: var(--lp-color-default-hover);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn.primary {
+  background: var(--lp-color-primary);
+  color: var(--lp-color-primary-contrast);
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--lp-color-primary-hover);
+}
+.btn.danger {
+  background: var(--lp-color-danger);
+  color: #fff;
+}
+.btn.danger:hover:not(:disabled) {
+  background: var(--lp-color-danger-hover);
+}
+.btn.subtle {
+  background: transparent;
+  color: var(--lp-color-primary-text);
+}
+.btn.subtle:hover:not(:disabled) {
+  background: var(--lp-color-primary-light);
+}
+.btn.big {
+  height: 42px;
+  padding: 0 22px;
+  font-size: var(--lp-font-size-md);
+}
+
+/* ------------------------------------------------------------ icon buttons (IconButton)
+   Mantine ActionIcon variant="subtle" radius="xl": an icon in a round hit area, tinted on hover. */
+.icon-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--lp-action-size);
+  height: var(--lp-action-size);
+  padding: 0;
+  border: 0;
+  border-radius: var(--lp-radius-round);
+  background: transparent;
+  color: var(--lp-icon-btn-color, var(--lp-color-text));
+  cursor: pointer;
+  transition:
+    background-color var(--lp-duration-fast) ease,
+    color var(--lp-duration-fast) ease;
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--lp-icon-btn-hover, var(--lp-color-hover));
+}
+.icon-btn:active:not(:disabled) {
+  background: var(--lp-icon-btn-active, var(--lp-color-active));
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.icon-btn.pressed {
+  background: var(--lp-icon-btn-active, var(--lp-color-active));
+}
+.icon-btn.small {
+  width: var(--lp-action-size-sm);
+  height: var(--lp-action-size-sm);
+}
+.icon-btn.dimmed {
+  color: var(--lp-color-dimmed);
+}
+.icon-btn.dimmed:hover:not(:disabled) {
+  color: var(--lp-color-text);
+}
+
+/* ------------------------------------------------------------ tooltips
+   CSS only (no JS on hover): data-tip="Label" on any positioned element; it opens below after
+   400 ms, with an arrow, in Mantine's inverted tooltip colours. data-tip-end aligns its right edge
+   with the element (for buttons at the window's right edge). */
+[data-tip]::after,
+[data-tip]::before {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--lp-duration-fast) ease;
+  transition-delay: 0ms;
+  z-index: var(--lp-z-popover);
+}
+[data-tip]::after {
+  content: attr(data-tip);
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  border-radius: var(--lp-radius-md);
+  background: var(--lp-color-tooltip-bg);
+  color: var(--lp-color-tooltip-text);
+  font-size: var(--lp-font-size-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: pre;
+}
+[data-tip]::before {
+  content: "";
+  top: calc(100% + 3px);
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  background: var(--lp-color-tooltip-bg);
+  transform: rotate(45deg);
+}
+[data-tip-end]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+[data-tip]:hover:not(:disabled)::after,
+[data-tip]:hover:not(:disabled)::before,
+[data-tip]:focus-visible::after,
+[data-tip]:focus-visible::before {
+  opacity: 1;
+  transition-delay: 400ms;
+}
+[data-tip]:focus-visible::after,
+[data-tip]:focus-visible::before {
+  transition-delay: 0ms;
+}
+@media (hover: none) {
+  [data-tip]::after,
+  [data-tip]::before {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------ menus (Menu)
+   Mantine Menu with the web theme (menuTheme.module.css): a surface with 4px padding, rows of 36px,
+   18px dimmed icons, a dimmed shortcut at the end, hairline dividers. */
+.menu-root {
+  position: relative;
+}
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 240px;
+  padding: var(--lp-space-1);
+  border: 1px solid var(--lp-color-border);
+  border-radius: var(--lp-radius-md);
+  background: var(--lp-color-surface);
+  color: var(--lp-color-text);
+  box-shadow: var(--lp-shadow-md);
+  z-index: var(--lp-z-popover);
+  animation: lp-pop-in var(--lp-duration-fast) var(--lp-ease);
+  transform-origin: top right;
+}
+.menu.start {
+  right: auto;
+  left: 0;
+  transform-origin: top left;
+}
+@keyframes lp-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--lp-radius-sm);
+  background: transparent;
+  color: var(--lp-color-text);
+  text-align: left;
+  font-size: var(--lp-font-size-sm);
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible {
+  background: var(--lp-color-hover);
+  outline: none;
+}
+.menu-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.menu-item > svg {
+  flex-shrink: 0;
+  color: var(--lp-color-dimmed);
+}
+.menu-item.danger,
+.menu-item.danger > svg {
+  color: var(--lp-color-danger-text);
+}
+.menu-item.danger:hover:not(:disabled) {
+  background: var(--lp-color-danger-light);
+}
+.menu-label {
+  flex: 1;
+}
+.menu-shortcut {
+  margin-left: var(--lp-space-6);
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+}
+.menu-sep {
+  height: 1px;
+  margin: var(--lp-space-1) 0;
+  background: var(--lp-color-border);
+}
+.menu-heading {
+  padding: 8px 12px 4px;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+  font-weight: var(--lp-font-weight-semibold);
+}
+
+/* ------------------------------------------------------------ panels (Panel)
+   A side column: a 16px semibold title with a close button, then sections with small dimmed
+   headings (the web lightbox's info panel, Sidebar.module.css). */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  color: var(--lp-color-text);
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lp-space-2);
+  padding: var(--lp-space-2) var(--lp-space-2) var(--lp-space-2) var(--lp-space-4);
+  min-height: 56px;
+}
+.panel-title {
+  margin: 0;
+  font-size: var(--lp-font-size-md);
+  font-weight: var(--lp-font-weight-semibold);
+}
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--lp-space-2) var(--lp-space-4) var(--lp-space-6);
+  scrollbar-width: thin;
+  scrollbar-color: var(--lp-color-border) transparent;
+  display: grid;
+  align-content: start;
+  gap: 28px;
+}
+.section {
+  display: grid;
+  gap: var(--lp-space-3);
+  min-width: 0;
+}
+.section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--lp-font-weight-semibold);
+  line-height: 1.4;
+  color: var(--lp-color-dimmed);
+}
+.section-text {
+  margin: 0;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-sm);
+}
+
+/* One detail: a 20px dimmed icon level with the first line, a 14px medium title, 12px dimmed lines
+   under it. */
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--lp-space-4);
+  min-width: 0;
+}
+.detail-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--lp-color-dimmed);
+}
+.detail-body {
+  flex: 1;
+  min-width: 0;
+}
+.detail-title {
+  font-size: var(--lp-font-size-sm);
+  font-weight: var(--lp-font-weight-semibold);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.detail-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  margin-top: 2px;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* "a · b · c": a dot between whichever parts are there. */
+.dot-list > * + *::before {
+  content: "·";
+  margin: 0 6px;
+}
+
+/* Exposure strip: one hairline pill split into cells (ISO | mm | f | s), as Apple Photos and the
+   web lightbox show it. */
+.chip-strip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  margin: var(--lp-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  border: 1px solid var(--lp-color-border);
+  border-radius: 6px;
+}
+.chip-strip > li {
+  padding: 2px 8px;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.chip-strip > li + li {
+  border-left: 1px solid var(--lp-color-border);
+}
+
+/* Keyboard key */
+.kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid var(--lp-color-border);
+  border-bottom-width: 2px;
+  border-radius: var(--lp-radius-sm);
+  background: var(--lp-color-default);
+  color: var(--lp-color-text);
+  font-family: var(--lp-font-family-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Checkbox: Mantine's 20px box, 1.5px ring, filled with the primary colour when checked. */
+.lp-checkbox {
+  appearance: none;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 1.5px solid var(--lp-color-dimmed);
+  border-radius: var(--lp-radius-sm);
+  background: var(--lp-color-surface) center / 14px no-repeat;
+  cursor: pointer;
+  transition:
+    background-color var(--lp-duration-fast) ease,
+    border-color var(--lp-duration-fast) ease;
+}
+.lp-checkbox:checked {
+  border-color: var(--lp-color-primary);
+  background-color: var(--lp-color-primary);
+  background-image: var(--lp-checkbox-check);
+}
+
+/* Skeleton line */
+.skeleton {
+  border-radius: var(--lp-radius-sm);
+  background: var(--lp-color-skeleton);
+  animation: lp-skeleton 1.5s ease-in-out infinite;
+}
+@keyframes lp-skeleton {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .skeleton {
+    animation: none;
+  }
+}

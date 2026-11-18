@@ -1,56 +1,225 @@
+/*
+ * LibrePhotos desktop design tokens. One source for every view (viewer, library, settings), taken
+ * from the web app's Mantine 9 theme (apps/frontend/src/theme, App.tsx createTheme) so the desktop
+ * app reads as the same product. Use these, never raw colours, in new CSS.
+ *
+ * Schemes
+ *   :root              follows prefers-color-scheme (light or dark), like the web app.
+ *   .lp-dark           forces the dark values on a subtree. The photo viewer (top bar, stage,
+ *                      filmstrip, info panel) is dark in both schemes, as the web lightbox is
+ *                      (ViewerDarkScope): a light panel next to a black stage reads as a second app.
+ *   .lp-app-scheme     back to the app's scheme inside .lp-dark: menus and dialogs opened from the
+ *                      viewer keep the app's scheme, as Mantine's portalled dropdowns do on the web.
+ *
+ * Colours (scheme-aware)                     Mantine equivalent
+ *   --lp-color-body                          --mantine-color-body (page background)
+ *   --lp-color-surface                       Paper / Menu / Modal background
+ *   --lp-color-text, --lp-color-dimmed       --mantine-color-text, --mantine-color-dimmed
+ *   --lp-color-border                        --mantine-color-default-border (hairlines, dividers)
+ *   --lp-color-hover, --lp-color-active      subtle hover / pressed fill (transparent, any surface)
+ *   --lp-color-default(-hover)               "default" button: quiet grey pill, no border
+ *   --lp-color-primary(-hover|-contrast)     filled primary button and its text
+ *   --lp-color-primary-light(-hover)         tinted primary (selected rows, pressed toggles)
+ *   --lp-color-primary-text                  links, icons in the primary colour, focus ring
+ *   --lp-color-danger(-hover|-text|-light)   destructive actions (red 8 / 9, white text)
+ *   --lp-color-success-text                  success icons (teal)
+ *   --lp-color-tooltip-bg, -tooltip-text     tooltips (inverted: dark on light, light on dark)
+ *   --lp-color-overlay                       dialog backdrop
+ * Photo-side colours (the same in both schemes: they sit on pictures)
+ *   --lp-stage                               pure black behind a photo
+ *   --lp-scrim-black-35|60|75, --lp-scrim-white-8|12|16|20|80|90
+ *
+ * Shape and space
+ *   --lp-radius-xs|sm|md|lg|xl|round        2 / 4 / 8 / 16 / 32 px / pill (Mantine: md is the default)
+ *   --lp-space-1 .. --lp-space-8            4 / 8 / 12 / 16 / 20 / 24 / 32 px (md = 16, lg = 20)
+ *   --lp-shadow-sm|md|lg                    cards / menus / toasts and dialogs
+ * Type
+ *   --lp-font-family, --lp-font-family-mono
+ *   --lp-font-size-xs|sm|md|lg|xl           12 / 14 / 16 / 18 / 22 px
+ *   --lp-font-weight-medium|semibold|bold   500 / 600 / 700
+ *   --lp-line-height, --lp-line-height-tight 1.55 / 1.3
+ * Layers (z-index)
+ *   --lp-z-stage-controls < --lp-z-chrome < --lp-z-toast < --lp-z-popover < --lp-z-overlay
+ * Motion
+ *   --lp-ease (standard decelerate), --lp-duration-fast|base|slow  120 / 160 / 220 ms
+ * Sizes
+ *   --lp-control-height-sm|md               30 / 36 px buttons
+ *   --lp-action-size, --lp-action-size-sm   40 / 28 px round icon buttons (toolbar / inline)
+ *   --lp-topbar-height, --lp-filmstrip-height  48 / 76 px. src-tauri/src/lib.rs CHROME_CSS_PX
+ *                                           predicts the stage box from these: change both together.
+ *   --lp-panel-width                        360 px side panel
+ *
+ * Shared primitives (src/ui/ui.css, loaded by main.tsx after this file; src/ui/*.tsx): .btn (.primary .danger .subtle), .icon-btn
+ * (IconButton), [data-tip] tooltips, .menu (Menu), .panel / .section / .detail-row (Panel),
+ * .chip-strip, .kbd, .lp-checkbox. The legacy names at the end (--bg, --surface, --text, ...) are
+ * kept for code written before these tokens; do not use them in new code.
+ */
+
+/* ------------------------------------------------------------ scheme-independent tokens */
 :root {
-  color-scheme: dark;
-  --bg: #1c1c1c;
-  --stage: #1c1c1c;
-  --surface: #202020;
-  --surface-2: #2b2b2b;
-  --surface-3: #323232;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --text: #f3f3f3;
-  --text-2: #c8c8c8;
-  --text-3: #8f8f8f;
-  --accent: #60cdff;
-  --accent-text: #000;
-  --accent-soft: rgba(96, 205, 255, 0.14);
-  --hover: rgba(255, 255, 255, 0.06);
-  --hover-strong: rgba(255, 255, 255, 0.1);
-  --pressed: rgba(255, 255, 255, 0.04);
-  --acrylic: rgba(32, 32, 32, 0.78);
-  --danger: #ff99a4;
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
-  --focus: #fff;
-  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
-    "Helvetica Neue", Arial, sans-serif;
-  --font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --lp-stage: #000;
+  --lp-scrim-black-35: rgba(0, 0, 0, 0.35);
+  --lp-scrim-black-60: rgba(0, 0, 0, 0.6);
+  --lp-scrim-black-75: rgba(0, 0, 0, 0.75);
+  --lp-scrim-white-8: rgba(255, 255, 255, 0.08);
+  --lp-scrim-white-12: rgba(255, 255, 255, 0.12);
+  --lp-scrim-white-16: rgba(255, 255, 255, 0.16);
+  --lp-scrim-white-20: rgba(255, 255, 255, 0.2);
+  --lp-scrim-white-80: rgba(255, 255, 255, 0.8);
+  --lp-scrim-white-90: rgba(255, 255, 255, 0.9);
+
+  --lp-radius-xs: 2px;
+  --lp-radius-sm: 4px;
+  --lp-radius-md: 8px;
+  --lp-radius-lg: 16px;
+  --lp-radius-xl: 32px;
+  --lp-radius-round: 999px;
+
+  --lp-space-1: 4px;
+  --lp-space-2: 8px;
+  --lp-space-3: 12px;
+  --lp-space-4: 16px;
+  --lp-space-5: 20px;
+  --lp-space-6: 24px;
+  --lp-space-8: 32px;
+
+  --lp-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  --lp-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --lp-font-size-xs: 12px;
+  --lp-font-size-sm: 14px;
+  --lp-font-size-md: 16px;
+  --lp-font-size-lg: 18px;
+  --lp-font-size-xl: 22px;
+  --lp-font-weight-medium: 500;
+  --lp-font-weight-semibold: 600;
+  --lp-font-weight-bold: 700;
+  --lp-line-height: 1.55;
+  --lp-line-height-tight: 1.3;
+
+  --lp-z-stage-controls: 2;
+  --lp-z-chrome: 10;
+  --lp-z-toast: 40;
+  --lp-z-popover: 60;
+  --lp-z-overlay: 80;
+
+  --lp-ease: cubic-bezier(0.2, 0, 0, 1);
+  --lp-duration-fast: 120ms;
+  --lp-duration-base: 160ms;
+  --lp-duration-slow: 220ms;
+
+  --lp-control-height-sm: 30px;
+  --lp-control-height-md: 36px;
+  --lp-action-size: 40px;
+  --lp-action-size-sm: 28px;
+  --lp-topbar-height: 48px;
+  --lp-filmstrip-height: 76px;
+  --lp-panel-width: 360px;
 }
 
+/* ------------------------------------------------------------ dark (default, and .lp-dark) */
+:root,
+.lp-app-scheme,
+.lp-dark,
+.app.viewing > .topbar {
+  color-scheme: dark;
+  --lp-color-body: #121214;
+  --lp-color-surface: #1f1f23;
+  --lp-color-text: #ececee;
+  --lp-color-dimmed: #9a9aa2;
+  --lp-color-border: #37373d;
+  --lp-color-hover: rgba(255, 255, 255, 0.08);
+  --lp-color-active: rgba(255, 255, 255, 0.12);
+  --lp-color-default: #2a2a2f;
+  --lp-color-default-hover: #37373d;
+  --lp-color-primary: #a8c7fa;
+  --lp-color-primary-hover: #7cacf8;
+  --lp-color-primary-contrast: #0b3670;
+  --lp-color-primary-light: color-mix(in srgb, #a8c7fa 18%, transparent);
+  --lp-color-primary-light-hover: color-mix(in srgb, #a8c7fa 24%, transparent);
+  --lp-color-primary-text: #a8c7fa;
+  --lp-color-danger: #e03131;
+  --lp-color-danger-hover: #c92a2a;
+  --lp-color-danger-text: #ff8787;
+  --lp-color-danger-light: color-mix(in srgb, #fa5252 18%, transparent);
+  --lp-color-success-text: #38d9a9;
+  --lp-color-overlay: rgba(0, 0, 0, 0.55);
+  --lp-color-skeleton: #2a2a2f;
+  --lp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --lp-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --lp-shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.5);
+  --lp-checkbox-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b3670' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E");
+
+  /* Legacy names (before the --lp- tokens). Declared in every scope so they follow it. */
+  --bg: var(--lp-color-body);
+  --stage: var(--lp-stage);
+  --surface: var(--lp-color-surface);
+  --surface-2: var(--lp-color-surface);
+  --surface-3: var(--lp-color-default);
+  --border: var(--lp-color-border);
+  --border-strong: var(--lp-color-border);
+  --text: var(--lp-color-text);
+  --text-2: var(--lp-color-dimmed);
+  --text-3: var(--lp-color-dimmed);
+  --accent: var(--lp-color-primary);
+  --accent-text: var(--lp-color-primary-contrast);
+  --accent-soft: var(--lp-color-primary-light);
+  --hover: var(--lp-color-hover);
+  --hover-strong: var(--lp-color-active);
+  --pressed: var(--lp-color-hover);
+  --acrylic: var(--lp-color-surface);
+  --danger: var(--lp-color-danger-text);
+  --shadow: var(--lp-shadow-md);
+  --focus: var(--lp-color-primary-text);
+  --font: var(--lp-font-family);
+  --font-display: var(--lp-font-family);
+}
+
+/* Tooltips follow the app's scheme even inside the dark viewer (Mantine portals them to <body>). */
+:root,
+.lp-app-scheme {
+  --lp-color-tooltip-bg: #e9ecef;
+  --lp-color-tooltip-text: #000;
+}
+
+/* ------------------------------------------------------------ light */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root,
+  .lp-app-scheme {
     color-scheme: light;
-    --bg: #f3f3f3;
-    --stage: #f3f3f3;
-    --surface: #fbfbfb;
-    --surface-2: #ffffff;
-    --surface-3: #f0f0f0;
-    --border: rgba(0, 0, 0, 0.08);
-    --border-strong: rgba(0, 0, 0, 0.14);
-    --text: #1a1a1a;
-    --text-2: #444;
-    --text-3: #707070;
-    --accent: #005fb8;
-    --accent-text: #fff;
-    --accent-soft: rgba(0, 95, 184, 0.1);
-    --hover: rgba(0, 0, 0, 0.04);
-    --hover-strong: rgba(0, 0, 0, 0.07);
-    --pressed: rgba(0, 0, 0, 0.025);
-    --acrylic: rgba(249, 249, 249, 0.82);
-    --danger: #c42b1c;
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
-    --focus: #000;
+    --lp-color-body: #fff;
+    --lp-color-surface: #fff;
+    --lp-color-text: #1b1b1f;
+    --lp-color-dimmed: #5f6670;
+    --lp-color-border: #dee2e6;
+    --lp-color-hover: rgba(0, 0, 0, 0.05);
+    --lp-color-active: rgba(0, 0, 0, 0.08);
+    --lp-color-default: #f1f3f5;
+    --lp-color-default-hover: #e9ecef;
+    --lp-color-primary: #1a66d2;
+    --lp-color-primary-hover: #1557b5;
+    --lp-color-primary-contrast: #fff;
+    --lp-color-primary-light: rgba(26, 102, 210, 0.1);
+    --lp-color-primary-light-hover: rgba(26, 102, 210, 0.12);
+    --lp-color-primary-text: #1a66d2;
+    --lp-color-danger: #e03131;
+    --lp-color-danger-hover: #c92a2a;
+    --lp-color-danger-text: #e03131;
+    --lp-color-danger-light: rgba(250, 82, 82, 0.1);
+    --lp-color-success-text: #0ca678;
+    --lp-color-overlay: rgba(0, 0, 0, 0.55);
+    --lp-color-skeleton: #f1f3f5;
+    --lp-color-tooltip-bg: #212529;
+    --lp-color-tooltip-text: #fff;
+    --lp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+    --lp-shadow-md: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 15px -5px rgba(0, 0, 0, 0.08),
+      0 7px 7px -5px rgba(0, 0, 0, 0.04);
+    --lp-shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.15);
+    --lp-checkbox-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E");
   }
 }
 
+/* ------------------------------------------------------------ base */
 * {
   box-sizing: border-box;
 }
@@ -61,10 +230,11 @@ body,
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 14px;
+  background: var(--lp-color-body);
+  color: var(--lp-color-text);
+  font-family: var(--lp-font-family);
+  font-size: var(--lp-font-size-sm);
+  line-height: var(--lp-line-height);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -77,10 +247,18 @@ button {
   color: inherit;
 }
 
+h1,
+h2,
+h3,
+h4 {
+  font-weight: var(--lp-font-weight-bold);
+  line-height: var(--lp-line-height-tight);
+}
+
+/* Mantine's focus ring: 2px in the primary colour, 2px off the element, keyboard only. */
 :focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
-  border-radius: 4px;
+  outline: 2px solid var(--lp-color-primary-text);
+  outline-offset: 2px;
 }
 
 .sr-only {
@@ -93,30 +271,6 @@ button {
   white-space: nowrap;
 }
 
-/* Win11-style buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 32px;
-  padding: 0 14px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--hover-strong);
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 100ms ease;
-}
-.btn:hover {
-  background: color-mix(in srgb, var(--hover-strong) 100%, var(--hover));
-  filter: brightness(1.12);
-}
-.btn:active {
-  filter: brightness(0.95);
-}
-.btn.primary {
-  background: var(--accent);
-  color: var(--accent-text);
-  border-color: transparent;
+::selection {
+  background: var(--lp-color-primary-light-hover);
 }

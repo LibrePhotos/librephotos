@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { watchStartup } from "./lib/startupMarks";
 import "./styles.css";
+import "./ui/ui.css";
 
 watchStartup();
 
