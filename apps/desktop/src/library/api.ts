@@ -1,11 +1,16 @@
 /**
- * The library and server side of CONTRACT.md ("Library", "Server"). Every call into Rust for the
- * library view goes through here; outside Tauri the functions answer as an empty library with no
- * server, so the UI still renders in a plain browser.
+ * The library and server side of CONTRACT.md ("Library", "Server"). Every call the library view
+ * makes goes through here: library calls into Rust, server calls through `packages/api-client`
+ * (`src/server/`). Outside Tauri the functions answer as an empty library with no server, so the
+ * UI still renders in a plain browser.
  */
+import { bigThumbnailUrl, endpoints, squareThumbnailUrl } from "@librephotos/api-client/core";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { inTauri, type FileEntry } from "../ipc";
+import { wakeBackup } from "../server/backup";
+import { serverCall } from "../server/errors";
+import { client, serverUrl, signIn, signedInUser, signOut } from "../server/session";
 
 /** What the server knows about a file: see CONTRACT.md "Server state". */
 export type RemoteState = "unknown" | "checking" | "present" | "absent" | "uploading" | "failed";
@@ -91,26 +96,65 @@ export const libraryByHashes = (hashes: string[]): Promise<HashMatch[]> =>
 export const libraryStatus = (path: string): Promise<LibraryStatus> =>
   inTauri ? invoke<LibraryStatus>("library_status", { path }) : Promise.resolve({ root: null, file: null });
 
-export const serverStatus = (): Promise<ServerStatus> => (inTauri ? invoke<ServerStatus>("server_status") : Promise.resolve(OFFLINE_STATUS));
-export const serverConnect = (url: string, username: string, password: string): Promise<ServerStatus> =>
-  inTauri ? invoke<ServerStatus>("server_connect", { url, username, password }) : notInBrowser();
-export const serverDisconnect = (): Promise<void> => (inTauri ? invoke<void>("server_disconnect") : Promise.resolve());
-export const serverSetBackup = (on: boolean): Promise<void> => (inTauri ? invoke<void>("server_set_backup", { on }) : notInBrowser());
-export const serverSetPaused = (paused: boolean): Promise<void> =>
-  inTauri ? invoke<void>("server_set_paused", { paused }) : notInBrowser();
-export const serverRetryFailed = (): Promise<number> => (inTauri ? invoke<number>("server_retry_failed") : Promise.resolve(0));
-export const serverUploadFile = (path: string): Promise<RemoteOf> => (inTauri ? invoke<RemoteOf>("server_upload_file", { path }) : notInBrowser());
-export const serverRemoteOf = (path: string): Promise<RemoteOf> => (inTauri ? invoke<RemoteOf>("server_remote_of", { path }) : notInBrowser());
+/** What Rust knows about the connection (`server_status`); `useServerStatus` adds the engine's progress. */
+export type ServerState = Pick<ServerStatus, "connected" | "url" | "username" | "userId" | "backup" | "paused" | "error" | "counts">;
 
-/** An authenticated JSON request to `/api/...` of the connected server, sent by Rust. */
-export function serverFetch(path: string, method = "GET", body?: unknown): Promise<unknown> {
-  return inTauri ? invoke<unknown>("server_fetch", { method, path, body: body ?? null }) : notInBrowser();
+export const serverState = (): Promise<ServerState> => (inTauri ? invoke<ServerState>("server_status") : Promise.resolve(OFFLINE_STATUS));
+/** Signs in with the shared api-client (`endpoints.login`); see `src/server/session.ts`. */
+export const serverConnect = (url: string, username: string, password: string): Promise<void> => signIn(url, username, password);
+export const serverDisconnect = (): Promise<void> => signOut();
+export const serverSetBackup = async (on: boolean): Promise<void> => {
+  if (!inTauri) return notInBrowser();
+  await invoke<void>("server_set_backup", { on });
+  wakeBackup();
+};
+export const serverSetPaused = async (paused: boolean): Promise<void> => {
+  if (!inTauri) return notInBrowser();
+  await invoke<void>("server_set_paused", { paused });
+  wakeBackup();
+};
+export const serverRetryFailed = async (): Promise<number> => {
+  if (!inTauri) return 0;
+  const n = await invoke<number>("server_retry_failed");
+  wakeBackup();
+  return n;
+};
+/** Queues one file (in the library or not) for upload, whatever the backup switch says. */
+export const serverUploadFile = async (path: string): Promise<RemoteOf> => {
+  if (!inTauri) return notInBrowser();
+  const remote = await invoke<RemoteOf>("server_upload_file", { path });
+  wakeBackup();
+  return remote;
+};
+
+/**
+ * What the server knows about a local file: the library's answer, then `uploadExists` (api-client)
+ * for a fresh one, which is stored for the badges and the backup.
+ */
+export async function serverRemoteOf(path: string): Promise<RemoteOf> {
+  if (!inTauri) return notInBrowser();
+  const { id, ...local } = await invoke<RemoteOf & { id: number }>("backup_local_of", { path });
+  const userId = signedInUser();
+  if (userId === null || !local.md5 || local.state === "uploading") return local;
+  const md5 = local.md5;
+  const answer = await serverCall(() => endpoints.uploadExists(client, md5, userId));
+  const photoId = answer.exists ? (answer.photo_id ?? "") : null;
+  if (answer.exists || local.state !== "failed") {
+    await invoke("backup_set_remote", { id, state: answer.exists ? "present" : "absent", photoId });
+  }
+  const state: RemoteState = answer.exists ? "present" : local.state === "failed" ? "failed" : "absent";
+  return { ...local, state, photoId };
 }
 
-/** A server thumbnail through the signed-in session (`lpview` `/remote`, cached on disk). */
+/**
+ * A server thumbnail through the signed-in session (`lpview` `/remote`, cached on disk). The URL
+ * is the one `packages/api-client`'s media helpers build; Rust only fetches it.
+ */
 export function remoteThumbUrl(imageHash: string, kind: "square" | "big" = "square"): string {
+  const server = serverUrl() ?? "";
+  const src = kind === "big" ? bigThumbnailUrl(server, imageHash) : squareThumbnailUrl(server, imageHash);
   const base = navigator.userAgent.includes("Windows") ? "http://lpview.localhost" : "lpview://localhost";
-  return `${base}/remote?kind=${kind}&hash=${encodeURIComponent(imageHash)}`;
+  return `${base}/remote?src=${encodeURIComponent(src)}`;
 }
 
 function on<T>(event: string, handler: (payload: T) => void): () => void {

@@ -38,7 +38,6 @@ use tauri::{Emitter, Manager, State};
 use crate::library::Library;
 use crate::pipeline::{Pipeline, Priority};
 use crate::request::{Kind, THUMB_EDGE};
-use crate::server::Server;
 use crate::tiles::{TileInfo, TileService};
 
 /// Run blocking work off the IPC thread.
@@ -262,7 +261,6 @@ pub fn run() {
         .setup(|app| {
             let _ = commands::APP.set(app.handle().clone());
             app.state::<Arc<Library>>().start();
-            app.state::<Arc<Server>>().start();
             if let Some(win) = app.get_webview_window("main")
                 && let (Ok(size), Ok(scale)) = (win.inner_size(), win.scale_factor())
             {
@@ -306,14 +304,27 @@ pub fn run() {
             commands::library_by_hashes,
             commands::library_status,
             commands::server_status,
-            commands::server_connect,
-            commands::server_disconnect,
+            commands::server_session,
+            commands::server_prepare_sign_in,
+            commands::server_signed_in,
+            commands::server_set_access,
+            commands::server_signed_out,
             commands::server_set_backup,
             commands::server_set_paused,
             commands::server_retry_failed,
-            commands::server_fetch,
             commands::server_upload_file,
-            commands::server_remote_of
+            commands::http_fetch,
+            commands::http_fetch_abort,
+            commands::backup_reset,
+            commands::backup_claim_checks,
+            commands::backup_claim_upload,
+            commands::backup_next_retry,
+            commands::backup_hash,
+            commands::backup_prepare,
+            commands::backup_set_remote,
+            commands::backup_set_failed,
+            commands::backup_set_progress,
+            commands::backup_local_of
         ])
         .run(tauri::generate_context!())
         .expect("error while running the viewer");

@@ -56,7 +56,7 @@ React, expo-router, expo-image, zod and the shared api-client.
 | Background work | `sync/background/tasks.ts` (expo-background-task) | not needed: the app lives in the tray; `sync/triggers.ts` runs on a timer + folder events |
 | Online status | `hooks/use-online-status.ts` (expo-network) | `navigator.onLine` + Rust probe |
 | Share, save to device, clipboard, notifications | `features/viewer/shareMedia.ts`, `features/selection/saveToDevice.ts`, expo-clipboard, expo-notifications | Tauri dialog (save as), clipboard and notification plugins; "share" becomes "Show in folder" / drag out |
-| API requests | `packages/api-client` | same client; it already accepts an injected `fetch` (`transport/types.ts`), so pass Tauri's HTTP plugin `fetch` and CORS never applies |
+| API requests | `packages/api-client` | same client; its `fetch` is `createNativeFetch` over a Rust command (`http_fetch`, done in the viewer prototype: `apps/desktop/CONTRACT.md` "Server"), so CORS never applies |
 | Authenticated images (`mediaHeaders()` = Bearer) | expo-image with `headers` | a Rust `lpmedia://` protocol that adds the token and keeps an on-disk thumbnail cache (offline thumbnails for free); avoids relying on header support in expo-image's web `<img>` and on COEP rules for cross-origin images |
 
 How the swap is wired: Metro already resolves `*.web.ts` before `*.ts` (there is a

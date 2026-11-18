@@ -87,3 +87,20 @@ describe("password reset", () => {
     await expect(endpoints.requestPasswordReset(client, "ann@example.com")).rejects.toBeInstanceOf(ResponseParseError);
   });
 });
+
+describe("token refresh", () => {
+  it("trades the refresh token for an access token", async () => {
+    const { client, requests } = fakeServer({ access: "a2" });
+    await expect(endpoints.refreshAccessToken(client, "r1")).resolves.toEqual({ access: "a2" });
+    expect(defined(requests[0])).toEqual({
+      url: "https://demo.example.com/api/auth/token/refresh/",
+      method: "POST",
+      body: { refresh: "r1" },
+    });
+  });
+
+  it("fails loudly on an answer without an access token", async () => {
+    const { client } = fakeServer({ token: "a2" });
+    await expect(endpoints.refreshAccessToken(client, "r1")).rejects.toBeInstanceOf(ResponseParseError);
+  });
+});

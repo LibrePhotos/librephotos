@@ -200,28 +200,70 @@ type LibraryFile = FileEntry & {
 
 ## Server
 
-A LibrePhotos server connection. Rust sends every request (no CORS, tokens never reach JS).
+A LibrePhotos server connection. **Every request goes through `packages/api-client`**: the UI calls
+its endpoint functions (`endpoints.login`, `uploadExists`, `uploadChunk`, ...), which parse each
+answer with the shared zod schemas that the web and mobile apps use, so the desktop tests the same
+contracts. Rust only carries the bytes (`http_fetch`, the api-client's native transport), keeps the
+refresh token in the OS keychain and the backup queue in the library database.
+UI: `src/server/` (session, transport, backup engine, errors) and `src/library/{api,serverApi,hooks}.ts`.
 Rust: `src-tauri/src/server/`.
+
+The UI imports the package's React-free entry `@librephotos/api-client/core` (Vite alias and
+tsconfig `paths` to `../../packages/api-client/src/core.ts`, like the web app; its own `zod` 4, checked
+by `scripts/check-shared-deps.mjs`).
+
+| Endpoint (api-client) | Used for |
+|---|---|
+| `login` (`POST /api/auth/token/obtain/`) | sign-in |
+| `refreshAccessToken` (`POST /api/auth/token/refresh/`) | a minute before the access token expires, and at start; the transport also refreshes before/after a request on its own |
+| `logout` (`POST /api/auth/token/blacklist/`) | sign-out (best effort) |
+| `uploadExists` (`GET /api/exists/<md5><user id>`) | checker, dedupe before an upload, the info panel |
+| `uploadChunk` (`POST /api/upload/`) | 8 MB chunks, multipart (`file`, `offset`, `md5`, `upload_id` after the first; `Content-Range`) |
+| `completeUpload` (`POST /api/upload/complete/`) | `upload_id`, `md5`, `filename`, `device_modified_at` (ISO 8601 with offset) -> `photo_id`, `job_id` |
+| `sealUploadImports` (`POST /api/upload/seal/`) | when the upload queue runs dry |
+| `searchPhotos` (`GET /api/photos/searchlist/`) | server search merged into local search; the shape (flat or date groups) follows the user's `semantic_search_topk`, read once per sign-in with `fetchUserSelfDetails` |
+| `fetchPhotoDetails` (`GET /api/photos/<id>/`) | info panel: caption, people, tags, place, rating |
+| media helpers `squareThumbnailUrl`, `bigThumbnailUrl` | the URLs the media proxy fetches (below) |
+
+Contract errors: a `ResponseParseError` (an answer that breaks its schema) is logged as
+`[api-client] the answer of "<endpoint>" breaks its schema: <issues>` and shown as a toast, at most
+once per endpoint every 30 s (`src/server/errors.ts`, `onContractError`). It is never read as an
+empty answer.
 
 | Command | Args | Returns |
 |---|---|---|
-| `server_status` | none | `ServerStatus` |
-| `server_connect` | `{ url, username, password }` | `ServerStatus`. `url` may omit the scheme (`https://` is assumed, `http://` for localhost and private addresses) and may end in `/api`. Rejects with "Wrong username or password" on 401. |
-| `server_disconnect` | none | `null`; forgets the tokens (keychain too). Address and user name stay for the form; the library keeps what it knew. |
+| `server_status` | none | `ServerState` |
+| `server_session` | none | `{ url, username, userId, refresh }`: the saved sign-in the UI's token supplier starts from (`refresh` from the keychain, null when signed out) |
+| `server_prepare_sign_in` | `{ url }` | `string`: the normalised address (`https://` assumed, `http://` for localhost and private addresses, a trailing `/api` dropped; rejects for a bad one). `http_fetch` may reach it from now on. |
+| `server_signed_in` | `{ signIn: { url, username, userId, refresh, access } }` | `ServerState`; after `endpoints.login` succeeded: the refresh token goes to the keychain (service `LibrePhotos Viewer`, `LPVIEW_KEYRING_SERVICE` for tests; account `<url>\|<username>`), url/username/userId to `<data dir>/settings.json`. Another server or account resets every file's server state to `unknown` (hashes stay). Rejects for a URL that was not prepared. |
+| `server_set_access` | `{ token }` | `null`; the access token the client holds now (for the media proxy only) |
+| `server_signed_out` | `{ reason }` | `null`; forgets the tokens (keychain too); url and username stay. `reason` (an expired session) shows as `error` until the next sign-in. |
 | `server_set_backup` | `{ on }` | `null`; upload every library file the server lacks |
 | `server_set_paused` | `{ paused }` | `null`; pause uploads (checks go on) |
 | `server_retry_failed` | none | `number` of failed uploads that may try again now |
-| `server_fetch` | `{ method, path, body? }` | the JSON answer of `<server><path>`. `path` must start with `/api/` (no `..`, no scheme). Errors reject with `"HTTP <status>: <detail>"` or `"couldn't reach <url>: ..."`. |
-| `server_upload_file` | `{ path }` | `RemoteOf`; queues one file (in the library or not: a picture opened from anywhere) for upload, whatever the backup switch says |
-| `server_remote_of` | `{ path }` | `RemoteOf`; hashes the file if needed and asks the server (`/api/exists/`) |
+| `server_upload_file` | `{ path }` | `RemoteOf`; queues one file (in the library or not) for upload, whatever the backup switch says |
+| `http_fetch` | raw bytes (below) | raw bytes (below); rejects with a string when there is no answer |
+| `http_fetch_abort` | `{ id }` | `null`; cancels that request |
+
+`http_fetch` (the api-client's `createNativeFetch`, `src/server/transport.ts`, `src-tauri/src/server/http.rs`):
+one binary IPC message each way, `u32 LE n | n bytes of JSON head | body`. Request head
+`{ id, url, method, headers: [name, value][] }`, with the body as the webview encoded it (JSON, or
+multipart with its boundary in `content-type`); response head `{ status, statusText, headers }`.
+Any HTTP status is an answer. Only URLs under the connected server, or the one being signed in to,
+are sent; anything else rejects. The head may carry `fileParts: { marker, ref: { id, offset, len } }[]`
+(the api-client's `nativeFilePart`): Rust replaces each marker in the body with `len` bytes (at most
+64 MB) of library file `id` from `offset` before sending.
 
 ```ts
-type ServerStatus = {
+type ServerState = {
   connected: boolean; url: string | null; username: string | null; userId: number | null;
   backup: boolean; paused: boolean;
-  error: string | null;   // last network or sign-in problem ("Your sign-in expired. Sign in again.")
+  error: string | null;   // why the last sign-in ended ("Your sign-in expired. Sign in again.")
   counts: { total: number; unknown: number; present: number; absent: number; uploading: number;
             failed: number; wanted: number; pendingBytes: number };  // library files by state
+};
+// What the library's `useServerStatus` shows: ServerState plus the backup engine's progress.
+type ServerStatus = ServerState & {
   uploads: { name: string; sent: number; total: number }[];  // in flight
   rate: number;           // bytes/s over the last ~8 s
   uploadedFiles: number; uploadedBytes: number;  // since the app started
@@ -230,35 +272,62 @@ type RemoteOf = { state: RemoteState; photoId: string | null; md5: string | null
                   imageHash: string | null; inLibrary: boolean };
 ```
 
-- Sign-in: `POST /api/auth/token/obtain/` -> `{ access, refresh }`; the user id is the access
-  token's `user_id` claim. The refresh token goes to the OS keychain (service `LibrePhotos Viewer`,
-  `LPVIEW_KEYRING_SERVICE` for tests; account `<url>|<username>`), the access token stays in memory
-  and is refreshed (`/api/auth/token/refresh/`) 30 s before it expires and once more on a 401. A
-  refused refresh signs out. Settings (url, username, userId, backup, paused) are in
-  `<data dir>/settings.json`. Signing in to a different server or account resets every file's server
-  state to `unknown` (hashes stay).
+- Tokens: the UI's `TokenSupplier` (`src/server/session.ts`) holds both tokens in memory only
+  (never web storage), loaded from `server_session` at start. Each new access token goes to Rust
+  (`server_set_access`) and is refreshed a minute before it expires, so server thumbnails keep
+  loading while no API request is due. A refused refresh signs out (`server_signed_out` with the
+  "expired" reason).
 - Identity: a server photo's `image_hash` is the file's MD5 (hex) followed by the user id, so a
   local MD5 maps to the server without a lookup and back (`library_by_hashes`).
-- Checker (while connected): library files in state `unknown` are hashed (streamed MD5) and asked
-  about with `GET /api/exists/<md5><userId>`, newest first, 4 at a time -> `present` (with the photo
-  id) or `absent`. When a file becomes `present`, every other file with the same MD5 does too.
-- Uploader (2 at a time; library files only with backup on, hand-queued files always; never while
-  paused): re-checks `exists` (dedupe), then `POST /api/upload/` in 8 MB chunks (multipart `file`,
-  `offset`, `md5`, `upload_id` after the first; `Content-Range: bytes a-b/total`), saving
-  `upload_id` and offset after every chunk (an upload resumes after a restart; an expired one starts
-  over), then `POST /api/upload/complete/` (`upload_id`, `md5`, `filename`, `device_modified_at`) ->
-  `photo_id`, `job_id`. A file whose MD5 is being uploaded is not handed out twice. When the queue is
-  empty the collected `job_id`s are sealed (`POST /api/upload/seal/`). Failures retry after 10 s,
-  20 s, 40 s, ... (at most 6 attempts; network errors do not count). All of it lives in the library
-  database, so nothing is lost on restart.
 
 | Event | Payload | When |
 |---|---|---|
-| `server://status` | `null` | The connection, the backup switch or the upload progress changed: call `server_status`. |
+| `server://status` | `null` | The connection or the backup switch changed, or new library files appeared: call `server_status` (the backup engine also looks for work). |
+
+### Backup
+
+The engine is TypeScript (`src/server/backup.ts`) and starts with the app; its state lives in the
+library database, so nothing is lost on a restart or a reloaded UI.
+
+- Checker: library files in state `unknown` (`backup_claim_checks`, newest first, files queued by
+  hand first) are hashed (`backup_hash`, streamed MD5 in Rust) and asked about with `uploadExists`,
+  4 at a time -> `present` (with the photo id) or `absent` (`backup_set_remote`). When a file becomes
+  `present`, every other file with the same MD5 does too.
+- Uploaders (2 at a time; library files only with backup on, hand-queued files always; never while
+  paused): `backup_claim_upload`, `backup_prepare` (re-stat; a changed file is hashed again and starts
+  over), re-check `uploadExists` (dedupe), then `uploadChunk` per 8 MB chunk, whose file part is a
+  `nativeFilePart({ id, offset, len })` that `http_fetch` fills from the file (no chunk crosses IPC), saving `upload_id` and offset after every chunk
+  (`backup_set_progress`; an upload resumes after a restart; a 400 naming another offset continues
+  there, an expired upload, 404/410, starts over), then `completeUpload`. A file whose MD5 is being
+  uploaded is not handed out twice. When the queue is empty the collected `job_id`s are sealed with
+  `sealUploadImports`. Failures (`backup_set_failed`) retry after 10 s, 20 s, 40 s, ... (at most 6
+  attempts; network errors, 5xx, 429 and 401 do not count).
+- `backup_reset` (at engine start): checks in flight are asked again, uploads in flight resume.
+- Runs only while the window is open (the app has no tray yet).
+
+| Command | Args | Returns |
+|---|---|---|
+| `backup_reset` | none | `null` |
+| `backup_claim_checks` | `{ limit }` (1-256) | `Job[]`, now `checking` |
+| `backup_claim_upload` | none | `Job \| null`, now `uploading`; null while paused |
+| `backup_next_retry` | none | `number \| null`: ms since the epoch of the soonest due retry |
+| `backup_hash` | `{ id }` | `string`: the file's MD5, hashed now when unknown |
+| `backup_prepare` | `{ id }` | `{ md5, size, mtime, uploadId, offset }` |
+| `backup_set_remote` | `{ id, state: "present" \| "absent" \| "unknown", photoId }` | `null` |
+| `backup_set_failed` | `{ id, error, attempts, nextTryMs }` | `null` |
+| `backup_set_progress` | `{ id, uploadId, offset }` | `null` |
+| `backup_local_of` | `{ path }` | `RemoteOf & { id }`: the file's row (made when it is outside the library) and MD5; the UI then asks `uploadExists` and reports it |
+
+```ts
+type Job = { id: number; path: string; name: string; size: number; mtime: number; md5: string | null;
+             attempts: number; uploadId: string | null; uploadOffset: number };
+```
 
 ### Server media
 
-`<lpview base>/remote?kind=square|big&hash=<image_hash>`: the server's `square_thumbnails` /
-`thumbnails_big` image of a photo, fetched with the session's token and cached in
-`<data dir>/server-media/<kind>-<userId>/<hash>` (`Cache-Control: immutable`). 400 bad kind or hash,
-the server's status otherwise (502 when it cannot be reached).
+`<lpview base>/remote?src=<url>`: a server thumbnail, where `src` is the URL the api-client's media
+helpers build (`squareThumbnailUrl` / `bigThumbnailUrl` of the connected server; only
+`<server>/media/square_thumbnails/<hash>[.webp]` and `.../thumbnails_big/<hash>` are served),
+fetched with the access token the UI last handed over and cached in
+`<data dir>/server-media/<folder>-<userId>/<file>` (`Cache-Control: immutable`). 400 for any other
+`src`, the server's status otherwise (502 when it cannot be reached).

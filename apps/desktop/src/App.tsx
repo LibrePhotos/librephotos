@@ -22,6 +22,7 @@ import { errorText } from "./lib/infoCache";
 import { addLibraryRoot, serverUploadFile, type LibraryFile } from "./library/api";
 import { useLibraryStatus, useServerStatus } from "./library/hooks";
 import { LibraryView } from "./library/LibraryView";
+import { contractErrorText, onContractError } from "./server/errors";
 import { focusWindow, onFileDrop, onFullscreenChange, pickFile, setFullscreen, setWindowTitle } from "./platform";
 import { Slideshow } from "./stage/Slideshow";
 import { Stage, useNeighbours, type StageHandle } from "./stage/Stage";
@@ -121,6 +122,8 @@ export function App() {
   const slideshowEnteredFullscreen = useRef(false);
   const rotateChain = useRef<Promise<void>>(Promise.resolve());
   const { toasts, push } = useToasts();
+  // A server answer that breaks the shared api-client schemas is shown, not swallowed.
+  useEffect(() => onContractError(error => push(contractErrorText(error), "error")), [push]);
   const { idle, hideNow: hideChromeNow, wake: showChrome } = useIdle(IDLE_MS, () => overChrome.current || confirmFile !== null);
 
   const files = useMemo(() => view?.files ?? [], [view]);
