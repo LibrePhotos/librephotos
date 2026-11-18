@@ -1,0 +1,139 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 8px 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.topbar-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Narrow windows drop secondary actions (they all keep their keyboard shortcuts). */
+@media (max-width: 900px) {
+  .topbar .opt-1 {
+    display: none;
+  }
+}
+@media (max-width: 680px) {
+  .topbar .opt-2 {
+    display: none;
+  }
+}
+.topbar-name {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-count {
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.topbar-actions .group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.topbar-actions .sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+  margin: 0 4px;
+}
+
+.icon-btn,
+.zoom-readout {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  height: 32px;
+  min-width: 36px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 90ms ease;
+}
+.icon-btn:hover:not(:disabled),
+.zoom-readout:hover:not(:disabled) {
+  background: var(--hover-strong);
+}
+.icon-btn:active:not(:disabled),
+.zoom-readout:active:not(:disabled) {
+  background: var(--pressed);
+  color: var(--text-2);
+}
+.icon-btn:disabled,
+.zoom-readout:disabled {
+  color: var(--text-3);
+  opacity: 0.55;
+  cursor: default;
+}
+.icon-btn.pressed {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.zoom-readout {
+  min-width: 56px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tooltips: CSS only, appear after a short hover delay, below the bar. */
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, -2px);
+  padding: 5px 9px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  font-weight: 400;
+  white-space: pre;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  transition-delay: 0ms;
+  z-index: 50;
+}
+[data-tip-end]::after {
+  left: auto;
+  right: 0;
+  transform: translate(0, -2px);
+}
+[data-tip]:hover:not(:disabled)::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition-delay: 500ms;
+}
+[data-tip-end]:hover:not(:disabled)::after {
+  transform: translate(0, 0);
+}

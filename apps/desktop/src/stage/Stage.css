@@ -1,0 +1,144 @@
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--stage);
+}
+
+.stage-surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+.stage-surface.pannable {
+  cursor: grab;
+}
+.stage-surface.pannable.dragging {
+  cursor: grabbing;
+}
+
+.stage-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  contain: strict;
+}
+
+.stage-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-orientation: from-image;
+  -webkit-user-drag: none;
+}
+
+.stage-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  outline: none;
+}
+
+.stage-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-2);
+  text-align: center;
+  padding: 24px;
+}
+.stage-message svg {
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.stage-message-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-all;
+}
+.stage-message-text {
+  font-size: 13px;
+}
+
+.stage-spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, var(--text) 18%, transparent);
+  border-top-color: var(--accent);
+  opacity: 0;
+  animation:
+    spin 800ms linear infinite,
+    appear 150ms ease 350ms forwards;
+  pointer-events: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes appear {
+  to {
+    opacity: 1;
+  }
+}
+
+.stage-nav {
+  position: absolute;
+  top: 50%;
+  width: 40px;
+  height: 64px;
+  margin-top: -32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--acrylic);
+  backdrop-filter: blur(20px) saturate(140%);
+  color: var(--text);
+  opacity: 0;
+  transition:
+    opacity 160ms ease,
+    background-color 120ms ease;
+  cursor: pointer;
+  z-index: 2;
+}
+.stage-nav.prev {
+  left: 12px;
+}
+.stage-nav.next {
+  right: 12px;
+}
+.stage:hover .stage-nav,
+.stage-nav:focus-visible {
+  opacity: 1;
+}
+.stage.idle .stage-nav:not(:focus-visible) {
+  opacity: 0;
+  pointer-events: none;
+}
+.stage-nav:hover {
+  background: var(--hover-strong);
+}
+.stage-nav:active {
+  background: var(--pressed);
+}

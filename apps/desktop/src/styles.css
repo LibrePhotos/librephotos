@@ -1,0 +1,122 @@
+:root {
+  color-scheme: dark;
+  --bg: #1c1c1c;
+  --stage: #1c1c1c;
+  --surface: #202020;
+  --surface-2: #2b2b2b;
+  --surface-3: #323232;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text: #f3f3f3;
+  --text-2: #c8c8c8;
+  --text-3: #8f8f8f;
+  --accent: #60cdff;
+  --accent-text: #000;
+  --accent-soft: rgba(96, 205, 255, 0.14);
+  --hover: rgba(255, 255, 255, 0.06);
+  --hover-strong: rgba(255, 255, 255, 0.1);
+  --pressed: rgba(255, 255, 255, 0.04);
+  --acrylic: rgba(32, 32, 32, 0.78);
+  --danger: #ff99a4;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --focus: #fff;
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f3f3f3;
+    --stage: #f3f3f3;
+    --surface: #fbfbfb;
+    --surface-2: #ffffff;
+    --surface-3: #f0f0f0;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.14);
+    --text: #1a1a1a;
+    --text-2: #444;
+    --text-3: #707070;
+    --accent: #005fb8;
+    --accent-text: #fff;
+    --accent-soft: rgba(0, 95, 184, 0.1);
+    --hover: rgba(0, 0, 0, 0.04);
+    --hover-strong: rgba(0, 0, 0, 0.07);
+    --pressed: rgba(0, 0, 0, 0.025);
+    --acrylic: rgba(249, 249, 249, 0.82);
+    --danger: #c42b1c;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+    --focus: #000;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Win11-style buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--hover-strong);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 100ms ease;
+}
+.btn:hover {
+  background: color-mix(in srgb, var(--hover-strong) 100%, var(--hover));
+  filter: brightness(1.12);
+}
+.btn:active {
+  filter: brightness(0.95);
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+}

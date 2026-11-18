@@ -1,0 +1,198 @@
+/* Dialog */
+.dialog {
+  width: min(380px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.dialog[open] {
+  animation: dialog-in 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.42);
+  animation: fade-in 140ms ease;
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.dialog form {
+  padding: 22px 24px 0;
+}
+.dialog h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+.dialog-file {
+  margin: 0 0 18px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  cursor: pointer;
+  user-select: none;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 -24px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+}
+
+/* Toasts */
+.toasts {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 40;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--acrylic);
+  backdrop-filter: blur(24px) saturate(150%);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  animation: toast-in 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+.toast svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.toast.error svg {
+  color: var(--danger);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Empty state */
+.empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background:
+    radial-gradient(1000px 500px at 50% 110%, var(--accent-soft), transparent 70%),
+    var(--stage);
+}
+.empty-card {
+  width: min(420px, 100%);
+  padding: 40px 32px 32px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.empty-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--accent-soft);
+  margin-bottom: 18px;
+}
+.empty-card h1 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+}
+.empty-sub {
+  margin: 0 0 24px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.empty-error {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--danger);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.btn.big {
+  min-height: 36px;
+  padding: 0 22px;
+}
+.empty-hint {
+  margin: 12px 0 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+/* Drop target */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: blur(6px);
+  z-index: 60;
+  animation: fade-in 120ms ease;
+}
+.drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 36px 56px;
+  border: 2px dashed var(--accent);
+  border-radius: 14px;
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 600;
+}

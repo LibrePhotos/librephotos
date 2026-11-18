@@ -1,0 +1,130 @@
+//! File operations: trash, lossless rotate, reveal in the file manager, copy to clipboard.
+
+use std::path::Path;
+
+use crate::formats::{ext_of, is_jpeg};
+use crate::jpegmeta;
+use crate::listing::modified_ms;
+use crate::orient;
+
+pub fn trash_file(path: &str) -> Result<(), String> {
+    if !Path::new(path).exists() {
+        return Err(format!("{path} not found"));
+    }
+    trash::delete(path).map_err(|e| e.to_string())
+}
+
+/// Rotate a quarter turn on disk; returns the new modified time (ms).
+/// JPEG: EXIF orientation (in place when the tag exists). TIFF: EXIF orientation when the tag
+/// exists. PNG/BMP: lossless re-encode. Everything else: an error (the UI rotates in view only).
+pub fn rotate_file(path: &str, clockwise: bool) -> Result<i64, String> {
+    let p = Path::new(path);
+    let ext = ext_of(p);
+    if is_jpeg(&ext) {
+        let head = jpegmeta::read_head(p).map_err(|e| e.to_string())?;
+        let o = jpegmeta::parse_head(&head)
+            .ok_or("not a JPEG file")?
+            .orientation;
+        jpegmeta::set_file_orientation(p, orient::rotated(o, clockwise))?;
+    } else if matches!(ext.as_str(), "tif" | "tiff") {
+        let head = std::fs::read(p).map_err(|e| e.to_string())?;
+        let o = jpegmeta::tiff_orientation(&head);
+        jpegmeta::set_tiff_file_orientation(p, orient::rotated(o, clockwise))?;
+    } else if matches!(ext.as_str(), "png" | "bmp") {
+        rotate_reencode(p, clockwise)?;
+    } else {
+        return Err(format!(
+            "rotating .{ext} files on disk is not supported; rotated in view only"
+        ));
+    }
+    let meta = std::fs::metadata(p).map_err(|e| e.to_string())?;
+    Ok(modified_ms(&meta))
+}
+
+fn rotate_reencode(p: &Path, clockwise: bool) -> Result<(), String> {
+    let img = image::open(p).map_err(|e| e.to_string())?;
+    let img = if clockwise {
+        img.rotate90()
+    } else {
+        img.rotate270()
+    };
+    let fmt = image::ImageFormat::from_path(p).map_err(|e| e.to_string())?;
+    let mut buf = std::io::Cursor::new(Vec::new());
+    img.write_to(&mut buf, fmt).map_err(|e| e.to_string())?;
+    jpegmeta::replace_file(p, buf.get_ref())
+}
+
+pub fn reveal_in_folder(path: &str) -> Result<(), String> {
+    let p = Path::new(path);
+    if !p.exists() {
+        return Err(format!("{path} not found"));
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // explorer wants `/select,"C:\path with spaces\x.jpg"` verbatim.
+        std::process::Command::new("explorer")
+            .raw_arg(format!("/select,\"{path}\""))
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(p)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let dir = p.parent().unwrap_or(p);
+        std::process::Command::new("xdg-open")
+            .arg(dir)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Long edge of the image put on the clipboard.
+pub const CLIPBOARD_EDGE: u32 = 5120;
+
+pub fn copy_image(path: &str) -> Result<(), String> {
+    let px = crate::decode::pixels(Path::new(path), CLIPBOARD_EDGE)?;
+    let (width, height) = (px.width as usize, px.height as usize);
+    let bytes = px.into_rgba();
+    let mut cb = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+    cb.set_image(arboard::ImageData {
+        width,
+        height,
+        bytes: bytes.into(),
+    })
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rotates_png_losslessly_and_refuses_others() {
+        let dir = std::env::temp_dir().join(format!("lpview-ops-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("r.png");
+        let mut img = image::RgbImage::new(4, 2);
+        img.put_pixel(0, 0, image::Rgb([255, 0, 0]));
+        img.save(&p).unwrap();
+        rotate_file(p.to_str().unwrap(), true).unwrap();
+        let r = image::open(&p).unwrap().into_rgb8();
+        assert_eq!(r.dimensions(), (2, 4));
+        assert_eq!(
+            r.get_pixel(1, 0),
+            &image::Rgb([255, 0, 0]),
+            "top-left moved to top-right"
+        );
+        let w = dir.join("x.webp");
+        std::fs::write(&w, b"RIFF").unwrap();
+        assert!(rotate_file(w.to_str().unwrap(), true).is_err());
+    }
+}
