@@ -437,9 +437,16 @@ impl Library {
     }
 
     fn meta_loop(&self) {
+        let trace = std::env::var_os("LPVIEW_LIBRARY_TRACE").is_some();
+        let mut started: Option<(Instant, usize)> = None;
         loop {
             let batch = db::pending_meta(&self.conn(), META_BATCH).unwrap_or_default();
             if batch.is_empty() {
+                if let Some((t, n)) = started.take()
+                    && trace
+                {
+                    eprintln!("library: read metadata of {n} files in {:?}", t.elapsed());
+                }
                 self.progress();
                 let (m, c) = &self.meta_wake;
                 let mut woken = m.lock().unwrap();
@@ -449,6 +456,8 @@ impl Library {
                 *woken = false;
                 continue;
             }
+            let s = started.get_or_insert((Instant::now(), 0));
+            s.1 += batch.len();
             let next = Mutex::new(batch.iter());
             let results = Mutex::new(Vec::with_capacity(batch.len()));
             std::thread::scope(|s| {
@@ -632,6 +641,43 @@ mod tests {
             taken_ms("2023-03-15T10:00:00")
         );
         assert_eq!(taken_ms("junk"), None);
+    }
+
+    #[test]
+    fn copies_share_server_state_and_never_upload_twice() {
+        let dir = temp_dir("dupes");
+        for n in ["a.jpg", "copy of a.jpg", "b.jpg"] {
+            std::fs::write(dir.join(n), if n == "b.jpg" { "b" } else { "same" }).unwrap();
+        }
+        let lib = lib();
+        let root = lib.add_root(dir.to_str().unwrap()).unwrap();
+        lib.scan_root(&root);
+        let conn = lib.conn();
+        for f in db::list(&conn, None).unwrap() {
+            let md5 = if f.name == "b.jpg" { "bb" } else { "aa" };
+            db::set_md5(&conn, f.id, md5).unwrap();
+            db::set_remote(&conn, f.id, db::remote::ABSENT, None, None).unwrap();
+        }
+        // One copy is being uploaded: the other is not handed out meanwhile.
+        let first = db::claim_upload(&conn, true, 0).unwrap().unwrap();
+        let second = db::claim_upload(&conn, true, 0).unwrap().unwrap();
+        assert_ne!(first.md5, second.md5);
+        assert!(db::claim_upload(&conn, true, 0).unwrap().is_none());
+        let a = if first.md5.as_deref() == Some("aa") {
+            &first
+        } else {
+            &second
+        };
+        db::set_remote(&conn, a.id, db::remote::PRESENT, Some("p1"), None).unwrap();
+        let present: Vec<_> = db::list(&conn, None)
+            .unwrap()
+            .into_iter()
+            .filter(|f| f.remote == "present")
+            .map(|f| f.remote_id)
+            .collect();
+        assert_eq!(present, [Some("p1".to_string()), Some("p1".to_string())]);
+        drop(conn);
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

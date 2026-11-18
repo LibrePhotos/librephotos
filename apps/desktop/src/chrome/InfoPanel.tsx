@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 import type { FileEntry, ImageInfo } from "../ipc";
 import { cameraName, folderOf, formatBytes, formatCoordinate, formatMegapixels, formatModified, formatTaken } from "../lib/format";
 import { useImageInfo } from "../lib/infoCache";
+import { RemoteSection } from "../library/RemoteSection";
 import "./InfoPanel.css";
 
 function Row({ icon: I, label, children }: { icon: Icon; label: string; children: ReactNode }) {
@@ -137,6 +138,7 @@ export function InfoPanel({ file, onClose }: { file: FileEntry; onClose(): void 
           </div>
         )}
         {state.status === "ready" && <Details info={state.info} />}
+        <RemoteSection file={file} />
       </div>
     </aside>
   );

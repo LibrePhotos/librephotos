@@ -543,6 +543,7 @@ pub fn claim_upload(conn: &Connection, backup: bool, now_ms: i64) -> rusqlite::R
             "UPDATE files SET remote_state = 'uploading' WHERE id = (\
                SELECT id FROM files WHERE remote_state IN ('absent', 'failed') AND next_try_ms <= ?2 \
                AND attempts < ?3 AND (upload_wanted = 1 OR (?1 AND root_id IS NOT NULL)) \
+               AND (md5 IS NULL OR md5 NOT IN (SELECT md5 FROM files WHERE remote_state = 'uploading' AND md5 IS NOT NULL)) \
                ORDER BY upload_wanted DESC, sort_ms DESC LIMIT 1) RETURNING {JOB_COLS}"
         ),
         params![backup, now_ms, MAX_ATTEMPTS],
@@ -581,6 +582,13 @@ pub fn set_remote(
         conn.execute(
             "UPDATE files SET upload_wanted = 0, attempts = 0, upload_id = NULL, upload_offset = 0 WHERE id = ?1",
             [id],
+        )?;
+        // Copies of the same content are on the server too: no request, no upload for them.
+        conn.execute(
+            "UPDATE files SET remote_state = 'present', remote_id = ?2, remote_error = NULL, upload_wanted = 0, \
+             attempts = 0, upload_id = NULL, upload_offset = 0 \
+             WHERE md5 = (SELECT md5 FROM files WHERE id = ?1) AND id != ?1 AND remote_state NOT IN ('present', 'uploading')",
+            params![id, remote_id],
         )?;
     }
     Ok(())

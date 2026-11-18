@@ -238,6 +238,14 @@ impl Server {
             .ok_or_else(|| "not connected to a server".into())
     }
 
+    /// The server answered again: forget the last network error.
+    pub(crate) fn clear_error(&self) {
+        let had = self.error.lock().unwrap().take().is_some();
+        if had {
+            self.changed();
+        }
+    }
+
     pub(crate) fn set_error(&self, e: Option<String>) {
         *self.error.lock().unwrap() = e;
         self.changed();

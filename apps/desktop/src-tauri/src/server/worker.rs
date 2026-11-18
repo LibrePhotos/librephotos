@@ -162,6 +162,8 @@ impl Server {
             self.wake.notify_waiters();
             if offline {
                 tokio::time::sleep(OFFLINE_WAIT).await;
+            } else {
+                self.clear_error();
             }
         }
     }

@@ -5,7 +5,9 @@ import {
   IconDots,
   IconEraser,
   IconFolderOpen,
+  IconFolderPlus,
   IconInfoCircle,
+  IconLayoutGrid,
   IconMaximize,
   IconMinimize,
   IconPhotoPlus,
@@ -13,6 +15,7 @@ import {
   IconRotate,
   IconRotateClockwise,
   IconTrash,
+  IconUpload,
   IconZoomIn,
   IconZoomOut,
   type Icon,
@@ -37,6 +40,12 @@ export type TopBarActions = {
   open(): void;
   setDefaultViewer(): void;
   clearCache(): void;
+  /** Show the library (src/library). */
+  library(): void;
+  /** For a picture outside the library: add its folder. Undefined when it is in the library. */
+  addFolderToLibrary?: () => void;
+  /** Upload this one file to the connected LibrePhotos server. Undefined when not connected. */
+  uploadToServer?: () => void;
 };
 
 type Props = {
@@ -213,6 +222,7 @@ export function TopBar({ file, index, count, infoOpen, fullscreen, actions, onPo
   const video = file?.kind === "video";
   return (
     <header className="topbar" onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+      <IconButton icon={IconLayoutGrid} label="Library" shortcut="L" onClick={actions.library} />
       <div className="topbar-title">
         <span className="topbar-name" title={file?.path}>
           {file ? file.name : "LibrePhotos Viewer"}
@@ -256,6 +266,8 @@ export function TopBar({ file, index, count, infoOpen, fullscreen, actions, onPo
               { icon: IconRotateClockwise, label: "Rotate right", onSelect: () => actions.rotate(true), disabled: none || video, narrow: 2 },
               { icon: IconCopy, label: "Copy", onSelect: actions.copy, disabled: none || video, narrow: 1 },
               { icon: IconFolderOpen, label: "Show in folder", onSelect: actions.reveal, disabled: none, narrow: 1 },
+              { icon: IconFolderPlus, label: "Add this folder to library", onSelect: () => actions.addFolderToLibrary?.(), disabled: none || !actions.addFolderToLibrary, separatorBefore: true },
+              { icon: IconUpload, label: "Upload to LibrePhotos", onSelect: () => actions.uploadToServer?.(), disabled: none || !actions.uploadToServer },
               { icon: IconAppWindow, label: "Set as default photo viewer", onSelect: actions.setDefaultViewer, separatorBefore: true },
               { icon: IconEraser, label: "Clear thumbnail cache", onSelect: actions.clearCache },
             ]}
