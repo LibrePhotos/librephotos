@@ -2,6 +2,7 @@
 //!
 //! - `lpview://` pixels: [`protocol`] -> [`pipeline`] (pool, dedupe, LRU) -> [`decode`]
 //!   (WIC on Windows, FlashRaw for RAW, pure-Rust fallbacks).
+//! - Deep zoom: `lpview://.../tile` and `tile_info` -> [`tiles`] (pyramid, memory + disk caches).
 //! - Commands: [`listing`], [`info`], [`ops`].
 
 pub mod cache;
@@ -17,13 +18,15 @@ pub mod pipeline;
 pub mod pixels;
 pub mod protocol;
 pub mod request;
+pub mod tiles;
 
 use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, State};
 
 use crate::pipeline::Pipeline;
+use crate::tiles::{TileInfo, TileService};
 
 /// Run blocking work off the IPC thread.
 async fn blocking<T: Send + 'static>(
@@ -69,6 +72,20 @@ async fn copy_image(path: String) -> Result<(), String> {
     blocking(move || ops::copy_image(&path)).await
 }
 
+#[tauri::command]
+async fn tile_info(
+    tiles: State<'_, TileService>,
+    path: String,
+) -> Result<Option<TileInfo>, String> {
+    let tiles = tiles.inner().clone();
+    blocking(move || tiles.info(std::path::Path::new(&path))).await
+}
+
+#[tauri::command]
+fn tile_release(tiles: State<'_, TileService>, path: String) {
+    tiles.release(std::path::Path::new(&path));
+}
+
 #[derive(Clone, Serialize)]
 struct OpenPayload {
     path: String,
@@ -80,7 +97,9 @@ pub fn run() {
         pipeline::DEFAULT_WORKERS,
         pipeline::DEFAULT_CACHE_BYTES,
     ));
-    let mut builder = tauri::Builder::default();
+    let tiles = TileService::new(tiles::disk::default_root(), tiles::disk::DEFAULT_CAP_BYTES);
+    let tile_handler = tiles.clone();
+    let mut builder = tauri::Builder::default().manage(tiles);
     // LPVIEW_MULTI_INSTANCE=1 lets test harnesses run several copies side by side.
     if std::env::var_os("LPVIEW_MULTI_INSTANCE").is_none() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -96,7 +115,12 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_dialog::init())
         .register_asynchronous_uri_scheme_protocol("lpview", move |_ctx, request, responder| {
-            protocol::handle(&pipeline, &request, move |r| responder.respond(r));
+            if tiles::is_tile_url(request.uri().path()) {
+                let query = request.uri().query();
+                tiles::handle(&tile_handler, query, move |r| responder.respond(r));
+            } else {
+                protocol::handle(&pipeline, &request, move |r| responder.respond(r));
+            }
         })
         .invoke_handler(tauri::generate_handler![
             initial_path,
@@ -105,7 +129,9 @@ pub fn run() {
             trash_file,
             rotate_file,
             reveal_in_folder,
-            copy_image
+            copy_image,
+            tile_info,
+            tile_release
         ])
         .run(tauri::generate_context!())
         .expect("error while running the viewer");

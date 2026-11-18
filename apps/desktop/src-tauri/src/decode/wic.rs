@@ -436,10 +436,18 @@ unsafe fn hbitmap_pixels(h: HBITMAP) -> Result<Pixels, String> {
 
 /// JPEG through the WIC encoder (libjpeg-turbo class speed), for opaque pixels.
 pub fn encode_jpeg(p: &Pixels, quality: f32) -> Result<Vec<u8>, String> {
+    encode_jpeg_with(p, quality, false)
+}
+
+/// [`encode_jpeg`], optionally without chroma subsampling (4:4:4): pictures cut into tiles need
+/// it, since 4:2:0 chroma is reconstructed differently at a tile's edge than inside it.
+pub fn encode_jpeg_with(p: &Pixels, quality: f32, chroma444: bool) -> Result<Vec<u8>, String> {
     use std::mem::ManuallyDrop;
     use windows::Win32::System::Com::STREAM_SEEK_CUR;
     use windows::Win32::System::Com::StructuredStorage::{IPropertyBag2, PROPBAG2};
-    use windows::Win32::System::Variant::{VARIANT, VARIANT_0, VARIANT_0_0, VARIANT_0_0_0, VT_R4};
+    use windows::Win32::System::Variant::{
+        VARIANT, VARIANT_0, VARIANT_0_0, VARIANT_0_0_0, VT_R4, VT_UI1,
+    };
 
     // WIC's JPEG encoder takes BGR24.
     let bgr: std::borrow::Cow<[u8]> = match p.format {
@@ -502,6 +510,27 @@ pub fn encode_jpeg(p: &Pixels, quality: f32) -> Result<Vec<u8>, String> {
                 },
             };
             bag.Write(1, &opt, &val).map_err(err)?;
+            if chroma444 {
+                let mut name: Vec<u16> = "JpegYCrCbSubsampling\0".encode_utf16().collect();
+                let opt = PROPBAG2 {
+                    pstrName: windows::core::PWSTR(name.as_mut_ptr()),
+                    ..Default::default()
+                };
+                let val = VARIANT {
+                    Anonymous: VARIANT_0 {
+                        Anonymous: ManuallyDrop::new(VARIANT_0_0 {
+                            vt: VT_UI1,
+                            wReserved1: 0,
+                            wReserved2: 0,
+                            wReserved3: 0,
+                            Anonymous: VARIANT_0_0_0 {
+                                bVal: WICJpegYCrCbSubsampling444.0 as u8,
+                            },
+                        }),
+                    },
+                };
+                bag.Write(1, &opt, &val).map_err(err)?;
+            }
         }
         frame.Initialize(bag.as_ref()).map_err(err)?;
         frame.SetSize(p.width, p.height).map_err(err)?;
