@@ -80,8 +80,10 @@ pub fn run() {
         pipeline::DEFAULT_WORKERS,
         pipeline::DEFAULT_CACHE_BYTES,
     ));
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+    let mut builder = tauri::Builder::default();
+    // LPVIEW_MULTI_INSTANCE=1 lets test harnesses run several copies side by side.
+    if std::env::var_os("LPVIEW_MULTI_INSTANCE").is_none() {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(path) = argv.iter().skip(1).find(|a| !a.starts_with('-')) {
                 let _ = app.emit("viewer://open", OpenPayload { path: path.clone() });
             }
@@ -89,7 +91,9 @@ pub fn run() {
                 let _ = window.unminimize();
                 let _ = window.set_focus();
             }
-        }))
+        }));
+    }
+    builder
         .plugin(tauri_plugin_dialog::init())
         .register_asynchronous_uri_scheme_protocol("lpview", move |_ctx, request, responder| {
             protocol::handle(&pipeline, &request, move |r| responder.respond(r));
