@@ -37,10 +37,13 @@ windows = { version = "0.62", features = [
   "Win32_Graphics_Imaging",
   "Win32_System_Com",
   "Win32_System_Com_StructuredStorage",
+  "Win32_System_Registry",
+  "Win32_System_Threading",
   "Win32_System_Ole",
   "Win32_System_Variant",
   "Win32_UI_Shell",
   "Win32_UI_Shell_Common",
+  "Win32_UI_WindowsAndMessaging",
 ] }
 
 # Our pixel loops (orientation, swizzles) need optimising too; it is a small crate.

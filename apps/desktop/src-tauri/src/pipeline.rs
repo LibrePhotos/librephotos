@@ -1,20 +1,38 @@
-//! Decode scheduling: a bounded worker pool with two LIFO lanes (screen/full before thumbs, newest
-//! first), deduplication of identical in-flight requests, and an LRU of encoded thumb/screen
-//! responses keyed by (path, mtime, kind, w, h).
+//! Decode scheduling.
+//!
+//! - An in-memory LRU of encoded thumb/screen responses keyed by (path, mtime, kind, w, h), then
+//!   an optional [`DiskCache`] (looked up by two I/O threads, so a disk hit never waits behind a
+//!   decode), then a bounded pool of decode workers.
+//! - Identical in-flight requests share one decode.
+//! - Three lanes ([`Priority`]): `High` (the stage's pictures and neighbours) before `Low`
+//!   (filmstrip thumbs) before `Idle` (folder pre-warming). High and Low are LIFO (the newest
+//!   request is the one the user is looking at); Idle is FIFO in the order the UI gave. Low and Idle
+//!   never take the last worker, so a `screen` request always finds one free; Idle uses at most
+//!   [`IDLE_WORKERS`] and only runs when nothing else is queued.
+//! - Results that took a while to make are written to the disk cache in the background.
 
 use std::collections::HashMap;
 use std::panic::AssertUnwindSafe;
 use std::path::PathBuf;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use crate::cache::LruCache;
-use crate::decode::{self, RenderError};
+use crate::decode::{self, RenderError, Rendered};
+use crate::diskcache::DiskCache;
+use crate::formats::{FileKind, ext_of, kind_of_ext};
 use crate::listing::modified_ms;
 use crate::pixels::Encoded;
-use crate::request::Kind;
+pub use crate::request::Priority;
+use crate::request::{Kind, THUMB_EDGE};
 
 pub const DEFAULT_WORKERS: usize = 6;
 pub const DEFAULT_CACHE_BYTES: usize = 256 * 1024 * 1024;
+/// Decode workers pre-warming may occupy at once.
+pub const IDLE_WORKERS: usize = 2;
+const PROBE_THREADS: usize = 2;
+/// Renders faster than this are not worth a disk cache entry (embedded EXIF thumbnails).
+const DISK_MIN_RENDER: Duration = Duration::from_millis(12);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Key {
@@ -28,18 +46,30 @@ pub struct Key {
 pub type Reply = Result<Arc<Encoded>, RenderError>;
 pub type Waiter = Box<dyn FnOnce(Reply) + Send>;
 
+struct Job {
+    waiters: Vec<Waiter>,
+    size: u64,
+    prio: Priority,
+    /// Waiting in a lane (not probing, not decoding): it can still change lanes.
+    queued: bool,
+}
+
+const LANES: usize = 3;
+
 #[derive(Default)]
 struct State {
-    high: Vec<Key>,
-    low: Vec<Key>,
-    inflight: HashMap<Key, Vec<Waiter>>,
-    busy_low: usize,
+    probe: Vec<Key>,
+    lanes: [Vec<Key>; LANES],
+    inflight: HashMap<Key, Job>,
+    busy: [usize; LANES],
 }
 
 struct Inner {
     state: Mutex<State>,
     cv: Condvar,
+    probe_cv: Condvar,
     cache: Mutex<LruCache<Key, Arc<Encoded>>>,
+    disk: Option<DiskCache>,
     workers: usize,
 }
 
@@ -52,13 +82,56 @@ fn cacheable(kind: Kind) -> bool {
     kind != Kind::Full
 }
 
+fn lane(p: Priority) -> usize {
+    p as usize
+}
+
+/// Identity of a response in the disk cache; the size guards against same-mtime rewrites.
+fn disk_id(key: &Key, size: u64) -> String {
+    format!(
+        "{:?}|{}x{}|{}|{}|{}",
+        key.kind,
+        key.w,
+        key.h,
+        key.mtime,
+        size,
+        key.path.display()
+    )
+}
+
+/// `LPVIEW_TRACE=1` logs every request to stderr (scheduling measurements).
+fn trace_on() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("LPVIEW_TRACE").is_some())
+}
+
+fn trace(event: &str, key: &Key, prio: Priority, extra: &str) {
+    static T0: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+    if !trace_on() {
+        return;
+    }
+    let t = T0.get_or_init(Instant::now).elapsed().as_secs_f64() * 1000.0;
+    let name = key.path.file_name().unwrap_or_default().to_string_lossy();
+    eprintln!(
+        "lpview {t:9.1} {event:<7} {:?}/{prio:?} {name} {extra}",
+        key.kind
+    );
+}
+
 impl Pipeline {
     pub fn new(workers: usize, cache_bytes: usize) -> Pipeline {
+        Pipeline::with_disk(workers, cache_bytes, None)
+    }
+
+    pub fn with_disk(workers: usize, cache_bytes: usize, disk: Option<DiskCache>) -> Pipeline {
         let workers = workers.max(2);
+        let probes = if disk.is_some() { PROBE_THREADS } else { 0 };
         let inner = Arc::new(Inner {
             state: Mutex::new(State::default()),
             cv: Condvar::new(),
+            probe_cv: Condvar::new(),
             cache: Mutex::new(LruCache::new(cache_bytes)),
+            disk,
             workers,
         });
         for i in 0..workers {
@@ -68,13 +141,38 @@ impl Pipeline {
                 .spawn(move || worker(inner))
                 .expect("spawn decode worker");
         }
+        for i in 0..probes {
+            let inner = inner.clone();
+            std::thread::Builder::new()
+                .name(format!("lpview-disk-{i}"))
+                .spawn(move || prober(inner))
+                .expect("spawn disk reader");
+        }
         Pipeline { inner }
     }
 
-    /// Queue a request; `waiter` is called exactly once (inline on a cache hit).
+    /// Queue a request with the default priority for its kind (thumbs `Low`, others `High`).
     pub fn submit(&self, path: PathBuf, kind: Kind, w: u32, h: u32, waiter: Waiter) {
-        let mtime = match std::fs::metadata(&path) {
-            Ok(m) if m.is_file() => modified_ms(&m),
+        let prio = if kind == Kind::Thumb {
+            Priority::Low
+        } else {
+            Priority::High
+        };
+        self.submit_with(path, kind, w, h, prio, waiter);
+    }
+
+    /// Queue a request; `waiter` is called exactly once (inline on a memory cache hit).
+    pub fn submit_with(
+        &self,
+        path: PathBuf,
+        kind: Kind,
+        w: u32,
+        h: u32,
+        prio: Priority,
+        waiter: Waiter,
+    ) {
+        let (mtime, size) = match std::fs::metadata(&path) {
+            Ok(m) if m.is_file() => (modified_ms(&m), m.len()),
             _ => {
                 return waiter(Err(RenderError::NotFound(format!(
                     "{} not found",
@@ -92,31 +190,48 @@ impl Pipeline {
         if cacheable(kind)
             && let Some(hit) = self.inner.cache.lock().unwrap().get(&key)
         {
+            trace("memory", &key, prio, "");
             return waiter(Ok(hit));
         }
         let mut st = self.inner.state.lock().unwrap();
-        if let Some(ws) = st.inflight.get_mut(&key) {
-            ws.push(waiter);
-            // Asked again: move it to the top of its lane (it is wanted now).
-            let lane = if kind == Kind::Thumb {
-                &mut st.low
-            } else {
-                &mut st.high
-            };
-            if let Some(i) = lane.iter().position(|k| *k == key) {
-                let k = lane.remove(i);
-                lane.push(k);
+        if let Some(job) = st.inflight.get_mut(&key) {
+            job.waiters.push(waiter);
+            let (old, queued) = (job.prio, job.queued);
+            let new = old.min(prio);
+            job.prio = new;
+            // Asked again: move it to the top of its (possibly better) lane; it is wanted now.
+            if queued {
+                let from = &mut st.lanes[lane(old)];
+                if let Some(i) = from.iter().position(|k| *k == key) {
+                    let k = from.remove(i);
+                    st.lanes[lane(new)].push(k);
+                }
+                drop(st);
+                self.inner.cv.notify_all();
             }
+            trace("joined", &key, new, "");
             return;
         }
-        st.inflight.insert(key.clone(), vec![waiter]);
-        if kind == Kind::Thumb {
-            st.low.push(key);
+        let probe = self.inner.disk.is_some() && cacheable(kind);
+        trace("queued", &key, prio, if probe { "probe" } else { "" });
+        st.inflight.insert(
+            key.clone(),
+            Job {
+                waiters: vec![waiter],
+                size,
+                prio,
+                queued: !probe,
+            },
+        );
+        if probe {
+            st.probe.push(key);
+            drop(st);
+            self.inner.probe_cv.notify_one();
         } else {
-            st.high.push(key);
+            st.lanes[lane(prio)].push(key);
+            drop(st);
+            self.inner.cv.notify_all();
         }
-        drop(st);
-        self.inner.cv.notify_one();
     }
 
     /// Blocking variant (bench, tests, clipboard).
@@ -127,64 +242,260 @@ impl Pipeline {
             .unwrap_or_else(|_| Err(RenderError::Failed("pipeline stopped".into())))
     }
 
+    /// Replace the pre-warm queue: make the `thumb` of each file (in this order) into the disk
+    /// cache when nothing else is going on. Files already cached are skipped; an empty list
+    /// cancels. Returns how many were queued. Does blocking file I/O.
+    pub fn prewarm(&self, paths: Vec<PathBuf>) -> usize {
+        let Some(disk) = &self.inner.disk else {
+            return 0;
+        };
+        self.cancel_idle();
+        let mut todo = Vec::new();
+        for path in paths {
+            let worth = kind_of_ext(&ext_of(&path)).is_some_and(|k| k != FileKind::Video);
+            let Some(meta) = std::fs::metadata(&path)
+                .ok()
+                .filter(|m| worth && m.is_file())
+            else {
+                continue;
+            };
+            let key = Key {
+                path,
+                mtime: modified_ms(&meta),
+                kind: Kind::Thumb,
+                w: THUMB_EDGE,
+                h: THUMB_EDGE,
+            };
+            if !disk.contains(&disk_id(&key, meta.len())) {
+                todo.push((key, meta.len()));
+            }
+        }
+        let mut st = self.inner.state.lock().unwrap();
+        let mut n = 0;
+        // The lane pops from the back: push in reverse so the first path goes first.
+        for (key, size) in todo.into_iter().rev() {
+            if st.inflight.contains_key(&key) {
+                continue;
+            }
+            st.inflight.insert(
+                key.clone(),
+                Job {
+                    waiters: Vec::new(),
+                    size,
+                    prio: Priority::Idle,
+                    queued: true,
+                },
+            );
+            st.lanes[lane(Priority::Idle)].push(key);
+            n += 1;
+        }
+        drop(st);
+        self.inner.cv.notify_all();
+        n
+    }
+
+    fn cancel_idle(&self) {
+        let mut st = self.inner.state.lock().unwrap();
+        let idle = std::mem::take(&mut st.lanes[lane(Priority::Idle)]);
+        for k in idle {
+            // Pre-warm jobs have no waiters (a real request would have promoted them).
+            st.inflight.remove(&k);
+        }
+    }
+
+    /// Pre-warm jobs still waiting.
+    pub fn idle_queued(&self) -> usize {
+        self.inner.state.lock().unwrap().lanes[lane(Priority::Idle)].len()
+    }
+
     pub fn cache_stats(&self) -> (usize, usize) {
         let c = self.inner.cache.lock().unwrap();
         (c.len(), c.bytes())
     }
+
+    pub fn disk(&self) -> Option<&DiskCache> {
+        self.inner.disk.as_ref()
+    }
 }
 
-/// Decode one request synchronously (no cache, no pool).
-pub fn render_now(key: &Key) -> Result<Encoded, RenderError> {
+fn render_key(key: &Key) -> Result<(Encoded, bool), RenderError> {
     let r = std::panic::catch_unwind(AssertUnwindSafe(|| {
         let r = decode::render(&key.path, key.kind, key.w, key.h)?;
-        decode::finish(&key.path, r).map_err(RenderError::Failed)
+        let passthrough = matches!(r, Rendered::Passthrough);
+        decode::finish(&key.path, r)
+            .map(|e| (e, passthrough))
+            .map_err(RenderError::Failed)
     }));
     r.unwrap_or_else(|_| Err(RenderError::Failed("decoder panicked".into())))
 }
 
-fn worker(inner: Arc<Inner>) {
+/// Decode one request synchronously (no cache, no pool).
+pub fn render_now(key: &Key) -> Result<Encoded, RenderError> {
+    render_key(key).map(|(e, _)| e)
+}
+
+/// Disk lookups: a hit answers the waiters, a miss moves the job to its decode lane.
+fn prober(inner: Arc<Inner>) {
+    let disk = inner.disk.clone().expect("probe threads need a disk cache");
     loop {
-        let (key, low) = {
+        let (key, size) = {
             let mut st = inner.state.lock().unwrap();
             loop {
-                if let Some(k) = st.high.pop() {
-                    break (k, false);
+                if let Some(k) = st.probe.pop() {
+                    let size = st.inflight.get(&k).map_or(0, |j| j.size);
+                    break (k, size);
                 }
-                // Thumbs never take the last worker: a `screen` request always finds one free.
-                if st.busy_low + 1 < inner.workers
-                    && let Some(k) = st.low.pop()
-                {
-                    st.busy_low += 1;
-                    break (k, true);
-                }
-                st = inner.cv.wait(st).unwrap();
+                st = inner.probe_cv.wait(st).unwrap();
             }
         };
-        let reply: Reply = render_now(&key).map(Arc::new);
-        if let Ok(e) = &reply
-            && cacheable(key.kind)
-        {
+        let t0 = Instant::now();
+        if let Some(e) = disk.get(&disk_id(&key, size)) {
+            let e = Arc::new(e);
             inner
                 .cache
                 .lock()
                 .unwrap()
                 .insert(key.clone(), e.clone(), e.bytes.len() + 256);
-        }
-        let waiters = {
-            let mut st = inner.state.lock().unwrap();
-            if low {
-                st.busy_low -= 1;
+            let job = inner.state.lock().unwrap().inflight.remove(&key);
+            if let Some(job) = job {
+                let ms = format!("{:.1}ms", t0.elapsed().as_secs_f64() * 1000.0);
+                trace("disk", &key, job.prio, &ms);
+                for w in job.waiters {
+                    w(Ok(e.clone()));
+                }
             }
-            st.inflight.remove(&key).unwrap_or_default()
-        };
-        if low {
-            inner.cv.notify_one();
+            continue;
         }
-        for w in waiters {
+        let mut st = inner.state.lock().unwrap();
+        let Some(job) = st.inflight.get_mut(&key) else {
+            continue;
+        };
+        job.queued = true;
+        let l = lane(job.prio);
+        st.lanes[l].push(key);
+        drop(st);
+        inner.cv.notify_all();
+    }
+}
+
+/// Next job for a decode worker, or None when it has to wait.
+fn pick(st: &mut State, workers: usize) -> Option<(Key, Priority)> {
+    let take = |st: &mut State, p: Priority| {
+        let k = st.lanes[lane(p)].pop()?;
+        st.busy[lane(p)] += 1;
+        if let Some(j) = st.inflight.get_mut(&k) {
+            j.queued = false;
+        }
+        Some((k, p))
+    };
+    if let Some(r) = take(st, Priority::High) {
+        return Some(r);
+    }
+    // Low and Idle never take the last worker: a `screen` request always finds one free.
+    let background = st.busy[lane(Priority::Low)] + st.busy[lane(Priority::Idle)];
+    if background + 1 >= workers {
+        return None;
+    }
+    if let Some(r) = take(st, Priority::Low) {
+        return Some(r);
+    }
+    if st.busy[lane(Priority::High)] == 0
+        && st.busy[lane(Priority::Low)] == 0
+        && st.busy[lane(Priority::Idle)] < IDLE_WORKERS
+    {
+        return take(st, Priority::Idle);
+    }
+    None
+}
+
+fn worker(inner: Arc<Inner>) {
+    loop {
+        let (key, ran_as) = {
+            let mut st = inner.state.lock().unwrap();
+            loop {
+                if let Some(job) = pick(&mut st, inner.workers) {
+                    break job;
+                }
+                st = inner.cv.wait(st).unwrap();
+            }
+        };
+        let idle = ran_as == Priority::Idle;
+        if idle {
+            set_background_priority(true);
+        }
+        trace("start", &key, ran_as, "");
+        let t0 = Instant::now();
+        let out = render_key(&key);
+        let took = t0.elapsed();
+        if idle {
+            set_background_priority(false);
+        }
+        let mut passthrough = false;
+        let reply: Reply = out.map(|(e, pt)| {
+            passthrough = pt;
+            Arc::new(e)
+        });
+        let wanted =
+            |st: &MutexGuard<State>| st.inflight.get(&key).is_some_and(|j| !j.waiters.is_empty());
+        if let Ok(e) = &reply
+            && cacheable(key.kind)
+        {
+            // Pre-warmed thumbs nobody asked for go to disk only: they would push the pictures
+            // being looked at out of memory.
+            if !idle || wanted(&inner.state.lock().unwrap()) {
+                inner
+                    .cache
+                    .lock()
+                    .unwrap()
+                    .insert(key.clone(), e.clone(), e.bytes.len() + 256);
+            }
+        }
+        let job = {
+            let mut st = inner.state.lock().unwrap();
+            st.busy[lane(ran_as)] -= 1;
+            st.inflight.remove(&key)
+        };
+        inner.cv.notify_all();
+        let Some(job) = job else { continue };
+        trace(
+            "done",
+            &key,
+            job.prio,
+            &format!("{:.0}ms", took.as_secs_f64() * 1000.0),
+        );
+        if let (Ok(e), Some(disk)) = (&reply, &inner.disk)
+            && cacheable(key.kind)
+            && !passthrough
+            && took >= DISK_MIN_RENDER
+        {
+            disk.put(disk_id(&key, job.size), e.clone());
+        }
+        for w in job.waiters {
             w(reply.clone());
         }
     }
 }
+
+/// Lower the current thread's CPU and I/O priority while it pre-warms.
+#[cfg(windows)]
+fn set_background_priority(on: bool) {
+    use windows::Win32::System::Threading::{
+        GetCurrentThread, SetThreadPriority, THREAD_MODE_BACKGROUND_BEGIN,
+        THREAD_MODE_BACKGROUND_END,
+    };
+    let mode = if on {
+        THREAD_MODE_BACKGROUND_BEGIN
+    } else {
+        THREAD_MODE_BACKGROUND_END
+    };
+    // SAFETY: changes only the calling thread's own scheduling priority.
+    unsafe {
+        let _ = SetThreadPriority(GetCurrentThread(), mode);
+    }
+}
+
+#[cfg(not(windows))]
+fn set_background_priority(_on: bool) {}
 
 #[cfg(test)]
 mod tests {
@@ -197,6 +508,25 @@ mod tests {
         let img = image::RgbImage::from_pixel(64, 48, image::Rgb([10, 200, 30]));
         img.save(&p).unwrap();
         p
+    }
+
+    /// Noisy PNGs big enough that each decode takes a while.
+    fn slow_pngs(tag: &str, n: usize) -> (PathBuf, Vec<PathBuf>) {
+        let dir = std::env::temp_dir().join(format!("lpview-{tag}-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut img = image::RgbImage::new(1500, 1500);
+        for (i, p) in img.pixels_mut().enumerate() {
+            let v = (i as u32).wrapping_mul(2654435761);
+            *p = image::Rgb([v as u8, (v >> 8) as u8, (v >> 16) as u8]);
+        }
+        let files = (0..n)
+            .map(|i| {
+                let p = dir.join(format!("t{i}.png"));
+                img.save(&p).unwrap();
+                p
+            })
+            .collect();
+        (dir, files)
     }
 
     #[test]
@@ -232,21 +562,7 @@ mod tests {
 
     #[test]
     fn screen_requests_never_wait_behind_thumbs() {
-        let dir = std::env::temp_dir().join(format!("lpview-prio-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        // Noisy PNGs big enough that each thumb takes a while to decode.
-        let mut img = image::RgbImage::new(1500, 1500);
-        for (i, p) in img.pixels_mut().enumerate() {
-            let v = (i as u32).wrapping_mul(2654435761);
-            *p = image::Rgb([v as u8, (v >> 8) as u8, (v >> 16) as u8]);
-        }
-        let files: Vec<PathBuf> = (0..8)
-            .map(|i| {
-                let p = dir.join(format!("t{i}.png"));
-                img.save(&p).unwrap();
-                p
-            })
-            .collect();
+        let (dir, files) = slow_pngs("prio", 8);
         let pipe = Pipeline::new(2, 1 << 20);
         let (tx, rx) = std::sync::mpsc::channel();
         for (i, f) in files.iter().enumerate() {
@@ -276,6 +592,77 @@ mod tests {
         let p7 = order.iter().position(|(n, _)| n == "thumb7").unwrap();
         let p1 = order.iter().position(|(n, _)| n == "thumb1").unwrap();
         assert!(p7 < p1, "{order:?}");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn high_thumbs_jump_the_filmstrip_and_idle_waits() {
+        let (dir, files) = slow_pngs("lanes", 8);
+        let pipe = Pipeline::new(2, 1 << 20);
+        let (tx, rx) = std::sync::mpsc::channel();
+        let ask = |f: &PathBuf, name: String, prio| {
+            let tx = tx.clone();
+            pipe.submit_with(
+                f.clone(),
+                Kind::Thumb,
+                320,
+                320,
+                prio,
+                Box::new(move |r| _ = tx.send((name, r.is_ok()))),
+            );
+        };
+        for (i, f) in files.iter().enumerate().take(6) {
+            ask(f, format!("film{i}"), Priority::Low);
+        }
+        ask(&files[7], "stage".into(), Priority::High);
+        // A filmstrip thumb asked for again by the stage moves to the high lane.
+        ask(&files[1], "stage-again".into(), Priority::High);
+        let order: Vec<String> = (0..8).map(|_| rx.recv().unwrap().0).collect();
+        let pos = |n: &str| order.iter().position(|o| o == n).unwrap();
+        assert!(pos("stage") <= 2, "{order:?}");
+        assert!(pos("stage-again") <= 3, "{order:?}");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn disk_cache_round_trip_and_prewarm() {
+        let (dir, files) = slow_pngs("disk", 4);
+        let root = dir.join("cache");
+        let disk = DiskCache::open(root.clone(), 1 << 30).unwrap();
+        let pipe = Pipeline::with_disk(3, 1 << 20, Some(disk.clone()));
+        let first = pipe.get(files[0].clone(), Kind::Thumb, 320, 320).unwrap();
+        disk.flush();
+        assert_eq!(disk.stats().writes, 1, "a slow thumb is written to disk");
+        // A fresh process (new pipeline, empty memory) gets it from disk.
+        let pipe2 = Pipeline::with_disk(
+            3,
+            1 << 20,
+            Some(DiskCache::open(root.clone(), 1 << 30).unwrap()),
+        );
+        let again = pipe2.get(files[0].clone(), Kind::Thumb, 320, 320).unwrap();
+        assert_eq!(again.bytes, first.bytes);
+        assert_eq!(pipe2.disk().unwrap().stats().hits, 1);
+        // Pre-warm skips the cached one and fills in the rest.
+        assert_eq!(pipe2.prewarm(files.clone()), 3);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        while pipe2.idle_queued() > 0 || !pipe2.inner.state.lock().unwrap().inflight.is_empty() {
+            assert!(Instant::now() < deadline, "pre-warm did not finish");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        pipe2.disk().unwrap().flush();
+        assert_eq!(pipe2.prewarm(files.clone()), 0, "everything is cached now");
+        assert_eq!(
+            pipe2.cache_stats().0,
+            1,
+            "pre-warmed thumbs skip the memory cache"
+        );
+        // A file changed on disk is a different entry.
+        std::thread::sleep(Duration::from_millis(20));
+        image::RgbImage::from_pixel(10, 10, image::Rgb([1, 2, 3]))
+            .save(&files[0])
+            .unwrap();
+        let changed = pipe2.get(files[0].clone(), Kind::Thumb, 320, 320).unwrap();
+        assert_eq!((changed.width, changed.height), (10, 10));
         std::fs::remove_dir_all(&dir).ok();
     }
 

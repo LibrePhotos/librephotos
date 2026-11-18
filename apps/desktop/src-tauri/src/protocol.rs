@@ -75,11 +75,12 @@ pub fn handle(
         std::thread::spawn(move || respond(serve_range(&req.path, range.as_deref())));
         return;
     }
-    pipeline.submit(
+    pipeline.submit_with(
         req.path,
         req.kind,
         req.w,
         req.h,
+        request::priority(uri.query()),
         Box::new(move |r| respond(reply_response(r))),
     );
 }

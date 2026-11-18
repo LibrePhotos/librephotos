@@ -4,16 +4,20 @@ import { InfoPanel } from "./chrome/InfoPanel";
 import { ConfirmDelete, DropOverlay, EmptyState, Toasts, useToasts } from "./chrome/Overlays";
 import { TopBar, type TopBarActions } from "./chrome/TopBar";
 import {
+  clearThumbnailCache,
   copyImage,
   inTauri,
   initialPath,
   listFolder,
   onOpenRequest,
+  openDefaultAppsSettings,
+  prewarmThumbs,
   revealInFolder,
   rotateFile,
   trashFile,
   type FileEntry,
 } from "./ipc";
+import { formatBytes } from "./lib/format";
 import { errorText } from "./lib/infoCache";
 import { focusWindow, onFileDrop, onFullscreenChange, pickFile, setFullscreen, setWindowTitle } from "./platform";
 import { Slideshow } from "./stage/Slideshow";
@@ -23,9 +27,23 @@ import "./App.css";
 type View = { folder: string; files: FileEntry[]; index: number };
 
 const IDLE_MS = 2500;
+/** After opening a folder, wait this long (the first pictures come first) before pre-warming thumbs. */
+const PREWARM_DELAY_MS = 2000;
 const APP_NAME = "LibrePhotos Viewer";
 
 const clampIndex = (i: number, n: number) => Math.max(0, Math.min(n - 1, i));
+
+/** Paths ordered by distance from `index`: index, +1, -1, +2, -2, ... */
+export function nearestFirst(files: FileEntry[], index: number): string[] {
+  const out: string[] = [];
+  for (let d = 0; out.length < files.length && d <= files.length; d++) {
+    const after = files[index + d];
+    if (after) out.push(after.path);
+    const before = d > 0 ? files[index - d] : undefined;
+    if (before) out.push(before.path);
+  }
+  return out;
+}
 
 function withoutFile(view: View, path: string): View {
   const at = view.files.findIndex(f => f.path === path);
@@ -172,6 +190,18 @@ export function App() {
 
   useEffect(() => onFullscreenChange(setFs), []);
 
+  // Once a folder is open and its first pictures are up, let Rust make the rest of its thumbs into
+  // the disk cache in the background (nearest first), so the filmstrip is instant from then on.
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  useEffect(() => {
+    if (files.length < 2) return;
+    const timer = window.setTimeout(() => {
+      prewarmThumbs(nearestFirst(files, indexRef.current)).catch(() => undefined);
+    }, PREWARM_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [files]);
+
   useEffect(() => {
     setWindowTitle(current ? `${current.name} - ${APP_NAME}` : APP_NAME);
   }, [current]);
@@ -287,6 +317,17 @@ export function App() {
     );
   }, [openPath, push]);
 
+  const setDefaultViewer = useCallback(() => {
+    openDefaultAppsSettings().catch((err: unknown) => push(`Couldn't open the default apps settings: ${errorText(err)}`, "error"));
+  }, [push]);
+
+  const clearCache = useCallback(() => {
+    clearThumbnailCache().then(
+      bytes => push(`Cleared the thumbnail cache (${formatBytes(bytes)})`),
+      (err: unknown) => push(`Couldn't clear the thumbnail cache: ${errorText(err)}`, "error"),
+    );
+  }, [push]);
+
   const actions: TopBarActions = {
     zoomIn: () => stageRef.current?.zoomIn(),
     zoomOut: () => stageRef.current?.zoomOut(),
@@ -300,6 +341,8 @@ export function App() {
     slideshow: startSlideshow,
     toggleFullscreen: () => toggleFullscreen(),
     open: openDialog,
+    setDefaultViewer,
+    clearCache,
   };
 
   // ------------------------------------------------------------ keyboard
@@ -446,6 +489,7 @@ export function App() {
             <EmptyState
               error={openError ?? (view ? `No more pictures in ${view.folder}` : null)}
               onOpen={openDialog}
+              onSetDefault={setDefaultViewer}
             />
           )}
           {files.length > 0 && (

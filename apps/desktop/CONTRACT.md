@@ -17,6 +17,9 @@ All paths are absolute OS paths (`C:\Users\...` on Windows). Errors reject with 
 | `rotate_file` | `{ path, clockwise }` | `number`: the file's new modified time (ms). Rotates the file on disk losslessly where possible (EXIF orientation for JPEG/HEIC/TIFF, otherwise decode, rotate, re-encode). The UI busts its cache with the new mtime. |
 | `reveal_in_folder` | `{ path }` | `null`; opens Explorer/Finder/file manager with the file selected |
 | `copy_image` | `{ path }` | `null`; puts the decoded image (orientation applied) on the clipboard |
+| `prewarm_thumbs` | `{ paths }` | `number` queued. Replaces the pre-warm list: Rust makes the `thumb` of each file (in the given order, nearest first) into the disk cache when no other request is waiting, skipping files already cached. `[]` cancels. |
+| `clear_cache` | none | `number`: bytes deleted from the disk cache (also cancels pre-warming) |
+| `open_default_apps_settings` | none | `null`; opens Settings > Apps > Default apps at this app's page (`ms-settings:defaultapps?registeredAppUser=LibrePhotos%20Viewer`, or `registeredAppMachine=`, or plain `ms-settings:defaultapps` when the app is not registered). Windows only; rejects with "not supported yet" elsewhere. |
 
 ```ts
 type FileKind = "image" | "raw" | "video";
@@ -56,8 +59,13 @@ Drag and drop of files onto the window is handled in the UI with `getCurrentWebv
 
 URL shape (built by `src/ipc.ts` `imageUrl()`):
 
-- Windows (WebView2): `http://lpview.localhost/<kind>?path=<encodeURIComponent(path)>&w=<px>&h=<px>&v=<modifiedMs>`
-- macOS/Linux: `lpview://localhost/<kind>?path=...&w=...&h=...&v=...`
+- Windows (WebView2): `http://lpview.localhost/<kind>?path=<encodeURIComponent(path)>&w=<px>&h=<px>&v=<modifiedMs>[&p=low]`
+- macOS/Linux: `lpview://localhost/<kind>?path=...&w=...&h=...&v=...[&p=low]`
+
+`p` is a scheduling hint, not part of the picture's identity: no `p` (the stage, its neighbours) is
+served before `p=low` (the filmstrip), which is served before pre-warming. The filmstrip also hands
+out its loads a few at a time, visible items centre-out first (`src/lib/thumbQueue.ts`), since the
+webview sends all `<img>` requests at once and in DOM order.
 
 | kind | Meaning |
 |---|---|
@@ -78,3 +86,18 @@ Errors: 404 file missing, 415 unsupported format, 500 decode failure with a plai
 
 Rust keeps an LRU cache of encoded `screen`/`thumb` responses keyed by (path, mtime, kind, w, h) and
 decodes off the main thread. The UI prefetches the neighbours (+/-2) through the same URLs.
+
+## Disk cache
+
+Encoded `thumb` and `screen` responses that took at least 12 ms to make (so not pass-through files
+or embedded EXIF thumbnails) are also written to `%LOCALAPPDATA%\LibrePhotos Viewer\cache1\`
+(macOS `~/Library/Caches/LibrePhotos Viewer`, elsewhere `$XDG_CACHE_HOME/librephotos-viewer`), one
+file per response, keyed by kind, box, path, mtime and size. The size cap is 1 GB, least recently
+used first. Writes happen on a background thread (temp file + rename), lookups on two I/O threads,
+so a hit never waits behind a decode; two app instances can share the directory.
+`LPVIEW_CACHE_DIR` moves it, `LPVIEW_DISK_CACHE=0` turns it off, `LPVIEW_TRACE=1` logs every
+request (queued, memory/disk hit, decode start/end) to stderr.
+
+At start-up Rust begins the `thumb` of the file given on the command line before the page exists,
+and its `screen` for the predicted stage box (window size minus the top bar and the filmstrip) as
+soon as the window exists, so the page's first requests join work already under way.

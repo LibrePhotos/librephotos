@@ -20,6 +20,24 @@ impl Kind {
     }
 }
 
+/// Scheduling class of a request (`p=` in the URL). The stage's own pictures and their neighbours
+/// are `High` (the default), the filmstrip asks with `p=low`, folder pre-warming is `Idle`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Priority {
+    High,
+    Low,
+    Idle,
+}
+
+/// The `p=` parameter of an `lpview` query (`low` or `idle`; anything else is `High`).
+pub fn priority(query: Option<&str>) -> Priority {
+    match query_param(query.unwrap_or(""), "p").as_deref() {
+        Some("low") => Priority::Low,
+        Some("idle") => Priority::Idle,
+        _ => Priority::High,
+    }
+}
+
 /// Long edge of a `thumb`.
 pub const THUMB_EDGE: u32 = 320;
 /// `screen` box when the URL carries no (or a zero) size.
@@ -105,6 +123,14 @@ mod tests {
         let r = parse("thumb", Some("v=1&path=C%3A%5Cf%C3%BCr+mich%5Ca%2Bb.jpg")).unwrap();
         assert_eq!(r.path, PathBuf::from(r"C:\für mich\a+b.jpg"));
         assert_eq!((r.w, r.h), (THUMB_EDGE, THUMB_EDGE));
+    }
+
+    #[test]
+    fn priorities() {
+        assert_eq!(priority(Some("path=a.jpg&p=low")), Priority::Low);
+        assert_eq!(priority(Some("p=idle&path=a.jpg")), Priority::Idle);
+        assert_eq!(priority(Some("path=a.jpg")), Priority::High);
+        assert_eq!(priority(None), Priority::High);
     }
 
     #[test]

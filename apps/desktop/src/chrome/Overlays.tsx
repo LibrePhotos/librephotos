@@ -1,4 +1,4 @@
-import { IconAlertTriangle, IconCheck, IconFileUpload, IconPhotoPlus } from "@tabler/icons-react";
+import { IconAlertTriangle, IconAppWindow, IconCheck, IconFileUpload, IconPhotoPlus, IconX } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FileEntry } from "../ipc";
 import "./Overlays.css";
@@ -93,7 +93,57 @@ export function Toasts({ toasts }: { toasts: Toast[] }) {
 
 // ---------------------------------------------------------------- empty state and drop target
 
-export function EmptyState({ error, onOpen }: { error: string | null; onOpen(): void }) {
+const DEFAULT_HINT_KEY = "lpview.defaultViewerHint.dismissed";
+const isWindows = navigator.userAgent.includes("Windows");
+
+function readDismissed(): boolean {
+  try {
+    return localStorage.getItem(DEFAULT_HINT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeDismissed(): void {
+  try {
+    localStorage.setItem(DEFAULT_HINT_KEY, "1");
+  } catch {
+    // Storage blocked: the hint comes back next time, that's all.
+  }
+}
+
+/** One-time suggestion to make this the default photo viewer (Windows only: Settings has the switch). */
+function DefaultViewerHint({ onSetDefault }: { onSetDefault(): void }) {
+  const [visible, setVisible] = useState(() => isWindows && !readDismissed());
+  if (!visible) return null;
+  const dismiss = () => {
+    writeDismissed();
+    setVisible(false);
+  };
+  return (
+    <div className="default-hint" role="note">
+      <IconAppWindow size={18} stroke={1.5} aria-hidden="true" />
+      <div className="default-hint-text">
+        <span>Open pictures from File Explorer with LibrePhotos Viewer?</span>
+        <button
+          type="button"
+          className="link-btn"
+          onClick={() => {
+            dismiss();
+            onSetDefault();
+          }}
+        >
+          Set as default photo viewer
+        </button>
+      </div>
+      <button type="button" className="icon-btn small" aria-label="Dismiss" onClick={dismiss}>
+        <IconX size={14} stroke={1.75} />
+      </button>
+    </div>
+  );
+}
+
+export function EmptyState({ error, onOpen, onSetDefault }: { error: string | null; onOpen(): void; onSetDefault(): void }) {
   return (
     <div className="empty">
       <div className="empty-card">
@@ -112,6 +162,7 @@ export function EmptyState({ error, onOpen }: { error: string | null; onOpen(): 
         </button>
         <p className="empty-hint">or drop one here</p>
       </div>
+      <DefaultViewerHint onSetDefault={onSetDefault} />
     </div>
   );
 }

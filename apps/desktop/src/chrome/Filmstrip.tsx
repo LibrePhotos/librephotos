@@ -1,6 +1,7 @@
 import { IconCamera, IconMovie, IconPhoto } from "@tabler/icons-react";
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { imageUrl, type FileEntry } from "../ipc";
+import { enqueueThumb, filmRank, type Ticket } from "../lib/thumbQueue";
 import "./Filmstrip.css";
 
 const ITEM = 56;
@@ -16,18 +17,40 @@ type Props = {
   onPointerLeave(): void;
 };
 
+/** What the load queue ranks by: the current item and the items actually in view. */
+type Focus = { index: number; first: number; last: number };
+
 const Thumb = memo(function Thumb({
   file,
   index,
   active,
+  focus,
   onSelect,
 }: {
   file: FileEntry;
   index: number;
   active: boolean;
+  focus: RefObject<Focus>;
   onSelect(index: number): void;
 }) {
   const [failed, setFailed] = useState(false);
+  const [src, setSrc] = useState<string | null>(null);
+  const ticket = useRef<Ticket | null>(null);
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  const url = imageUrl(file, "thumb", 0, 0, "low");
+  useEffect(() => {
+    const t = enqueueThumb(
+      () => {
+        const f = focus.current;
+        return filmRank(indexRef.current, f.index, f.first, f.last);
+      },
+      () => setSrc(url),
+    );
+    ticket.current = t;
+    return () => t.cancel();
+  }, [url, focus]);
+  const settle = () => ticket.current?.release();
   const Fallback = file.kind === "video" ? IconMovie : file.kind === "raw" ? IconCamera : IconPhoto;
   return (
     <button
@@ -42,7 +65,19 @@ const Thumb = memo(function Thumb({
       {failed ? (
         <Fallback size={20} stroke={1.5} />
       ) : (
-        <img src={imageUrl(file, "thumb")} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed(true)} />
+        src && (
+          <img
+            src={src}
+            alt=""
+            decoding="async"
+            draggable={false}
+            onLoad={settle}
+            onError={() => {
+              settle();
+              setFailed(true);
+            }}
+          />
+        )
       )}
       {file.kind === "video" && !failed && (
         <span className="film-badge" aria-hidden="true">
@@ -103,12 +138,21 @@ export function Filmstrip({ files, index, onSelect, onPointerEnter, onPointerLea
     centred.current = true;
   }, [index, view.width, files.length]);
 
-  const first = Math.max(0, Math.floor((view.left - pad) / STEP) - OVERSCAN);
-  const last = Math.min(files.length - 1, Math.ceil((view.left + view.width - pad) / STEP) + OVERSCAN);
+  // Until the first centring, rank and render around where the strip is about to scroll to.
+  const left = centred.current ? view.left : index * STEP;
+  const firstVisible = Math.floor((left - pad) / STEP);
+  const lastVisible = Math.ceil((left + view.width - pad) / STEP);
+  const focus = useRef<Focus>({ index, first: firstVisible, last: lastVisible });
+  focus.current = { index, first: firstVisible, last: lastVisible };
+  const first = Math.max(0, firstVisible - OVERSCAN);
+  const last = view.width === 0 ? -1 : Math.min(files.length - 1, lastVisible + OVERSCAN);
   const items = [];
   for (let i = first; i <= last; i++) {
     const f = files[i];
-    if (f) items.push(<Thumb key={`${f.path}|${f.modifiedMs}`} file={f} index={i} active={i === index} onSelect={onSelect} />);
+    if (f)
+      items.push(
+        <Thumb key={`${f.path}|${f.modifiedMs}`} file={f} index={i} active={i === index} focus={focus} onSelect={onSelect} />,
+      );
   }
 
   return (

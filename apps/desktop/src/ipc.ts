@@ -30,12 +30,14 @@ export type ImageInfo = {
   extra: [string, string][];
 };
 export type ImageKind = "thumb" | "screen" | "full";
+/** Scheduling hint for the Rust pipeline: the stage's pictures are `high` (the default), the filmstrip `low`. */
+export type ImagePriority = "high" | "low";
 
 export const inTauri = isTauri();
 const isWindows = navigator.userAgent.includes("Windows");
 
 /** URL of a picture of `file` from the Rust `lpview` scheme (see CONTRACT.md). */
-export function imageUrl(file: FileEntry, kind: ImageKind, w = 0, h = 0): string {
+export function imageUrl(file: FileEntry, kind: ImageKind, w = 0, h = 0, priority: ImagePriority = "high"): string {
   if (!inTauri) return mockImageUrl(file, kind);
   const base = isWindows ? "http://lpview.localhost" : "lpview://localhost";
   const q = new URLSearchParams({ path: file.path, v: String(file.modifiedMs) });
@@ -43,6 +45,7 @@ export function imageUrl(file: FileEntry, kind: ImageKind, w = 0, h = 0): string
     q.set("w", String(Math.round(w)));
     q.set("h", String(Math.round(h)));
   }
+  if (priority !== "high") q.set("p", priority);
   return `${base}/${kind}?${q.toString()}`;
 }
 
@@ -76,6 +79,25 @@ export async function revealInFolder(path: string): Promise<void> {
 
 export async function copyImage(path: string): Promise<void> {
   if (inTauri) await invoke("copy_image", { path });
+}
+
+/**
+ * Make the thumbs of these files (nearest first) into the disk cache while the app is idle.
+ * Replaces the previous list; resolves to how many were queued.
+ */
+export async function prewarmThumbs(paths: string[]): Promise<number> {
+  return inTauri ? invoke<number>("prewarm_thumbs", { paths }) : 0;
+}
+
+/** Opens Settings at this app's Default apps page (Windows); rejects with a reason elsewhere. */
+export async function openDefaultAppsSettings(): Promise<void> {
+  if (inTauri) await invoke("open_default_apps_settings");
+  else throw new Error("only in the desktop app");
+}
+
+/** Empties the thumbnail cache on disk; resolves to the bytes freed. */
+export async function clearThumbnailCache(): Promise<number> {
+  return inTauri ? invoke<number>("clear_cache") : 0;
 }
 
 /** A second launch forwarded a file (double-click in Explorer while the viewer runs). */

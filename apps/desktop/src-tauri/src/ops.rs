@@ -103,9 +103,120 @@ pub fn copy_image(path: &str) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+/// The name the installer registers under `Software\RegisteredApplications` (the productName;
+/// see `windows/installer-hooks.nsh`).
+pub const REGISTERED_APP_NAME: &str = "LibrePhotos Viewer";
+
+/// Where this app is registered as a default-apps candidate on Windows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Registration {
+    User,
+    Machine,
+    None,
+}
+
+/// The `ms-settings:` URI of this app's page in Settings > Apps > Default apps. Without a
+/// registration (a dev build, an install without the hook) Settings has no page for the app, so
+/// the generic Default apps page opens instead.
+pub fn default_apps_uri(reg: Registration) -> String {
+    let name = percent_encoding::utf8_percent_encode(
+        REGISTERED_APP_NAME,
+        percent_encoding::NON_ALPHANUMERIC,
+    );
+    match reg {
+        Registration::User => format!("ms-settings:defaultapps?registeredAppUser={name}"),
+        Registration::Machine => format!("ms-settings:defaultapps?registeredAppMachine={name}"),
+        Registration::None => "ms-settings:defaultapps".into(),
+    }
+}
+
+#[cfg(windows)]
+fn registration() -> Registration {
+    use windows::Win32::System::Registry::{
+        HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ, RegGetValueW,
+    };
+    use windows::core::{HSTRING, w};
+    let name = HSTRING::from(REGISTERED_APP_NAME);
+    let has = |root: HKEY| {
+        // SAFETY: only asks whether the value exists; no output buffers.
+        unsafe {
+            RegGetValueW(
+                root,
+                w!(r"Software\RegisteredApplications"),
+                &name,
+                RRF_RT_REG_SZ,
+                None,
+                None,
+                None,
+            )
+            .is_ok()
+        }
+    };
+    if has(HKEY_CURRENT_USER) {
+        Registration::User
+    } else if has(HKEY_LOCAL_MACHINE) {
+        Registration::Machine
+    } else {
+        Registration::None
+    }
+}
+
+/// Windows 11 does not let apps make themselves the default: open the Settings page where the
+/// user can. Elsewhere: an error the UI shows as is.
+#[cfg(windows)]
+pub fn open_default_apps_settings() -> Result<(), String> {
+    use windows::Win32::UI::Shell::ShellExecuteW;
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+    use windows::core::{HSTRING, w};
+    let open = |uri: &str| {
+        // SAFETY: a plain ShellExecute of a URI with no parent window.
+        let r = unsafe {
+            ShellExecuteW(
+                None,
+                w!("open"),
+                &HSTRING::from(uri),
+                None,
+                None,
+                SW_SHOWNORMAL,
+            )
+        };
+        // ShellExecute reports success with a value above 32.
+        r.0 as usize > 32
+    };
+    let reg = registration();
+    if open(&default_apps_uri(reg))
+        || (reg != Registration::None && open(&default_apps_uri(Registration::None)))
+    {
+        Ok(())
+    } else {
+        Err("couldn't open Settings".into())
+    }
+}
+
+#[cfg(not(windows))]
+pub fn open_default_apps_settings() -> Result<(), String> {
+    Err("Setting the default photo viewer from the app isn't supported on this system yet".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_apps_uris() {
+        assert_eq!(
+            default_apps_uri(Registration::User),
+            "ms-settings:defaultapps?registeredAppUser=LibrePhotos%20Viewer"
+        );
+        assert_eq!(
+            default_apps_uri(Registration::Machine),
+            "ms-settings:defaultapps?registeredAppMachine=LibrePhotos%20Viewer"
+        );
+        assert_eq!(
+            default_apps_uri(Registration::None),
+            "ms-settings:defaultapps"
+        );
+    }
 
     #[test]
     fn rotates_png_losslessly_and_refuses_others() {

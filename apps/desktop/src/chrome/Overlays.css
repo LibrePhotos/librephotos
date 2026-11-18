@@ -110,7 +110,9 @@
 .empty {
   flex: 1;
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
   padding: 16px;
   background:
     radial-gradient(1000px 500px at 50% 110%, var(--accent-soft), transparent 70%),
@@ -171,6 +173,48 @@
   margin: 12px 0 0;
   color: var(--text-3);
   font-size: 12px;
+}
+
+/* One-time "default photo viewer" suggestion under the empty-state card */
+.default-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 12px 8px 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 13px;
+  animation: fade-in 200ms ease;
+}
+.default-hint > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent);
+}
+.default-hint-text {
+  flex: 1;
+  display: grid;
+  gap: 4px;
+  color: var(--text-2);
+}
+.link-btn {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+.link-btn:hover {
+  text-decoration: underline;
+}
+.icon-btn.small {
+  height: 26px;
+  min-width: 26px;
+  padding: 0;
 }
 
 /* Drop target */
