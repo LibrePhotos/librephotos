@@ -269,8 +269,10 @@ class OnCompletionBodyTest(OnCompletionTestBase):
         self.assertEqual(400, ctx.exception.status_code)
         self.assertEqual("File type not allowed", ctx.exception.data["detail"])
         chunked.delete.assert_called_once_with(delete_file=True)
-        # is_valid_media is given the temp file path and the user, positionally.
+        # is_valid_media is given the temp file path and the user, positionally,
+        # and the client's file name, whose extension the staged path lacks.
         self.assertEqual((self.source, self.user), is_valid_media.call_args[0])
+        self.assertEqual({"name": "pic.jpg"}, is_valid_media.call_args[1])
         # Nothing was written into the scan directory.
         self.assertFalse(os.path.exists(os.path.join(self.scan_dir, "uploads")))
         create_new_image.assert_not_called()
