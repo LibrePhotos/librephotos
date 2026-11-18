@@ -1,7 +1,10 @@
-import { IconCloud, IconHeartFilled } from "@tabler/icons-react";
-import { useEffect, useRef, useState } from "react";
+import { IconCloud, IconCloudUpload, IconHeartFilled } from "@tabler/icons-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { FileEntry } from "../ipc";
 import { errorText } from "../lib/infoCache";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Display";
+import { DetailRow } from "../ui/Panel";
 import { onLibraryChanged, serverRemoteOf, serverUploadFile, type RemoteOf } from "./api";
 import { useServerStatus } from "./hooks";
 import { hostOf } from "./ServerPanel";
@@ -69,58 +72,58 @@ export function RemoteSection({ file }: { file: FileEntry }) {
     );
   };
 
-  let body;
-  if (state.status === "loading") body = <div className="info-sub">Checking {host}…</div>;
-  else if (state.status === "error") body = <div className="info-sub">Couldn't ask {host}: {state.error}</div>;
-  else {
+  // One detail row of the info panel (ui/Panel DetailRow): what the server knows, as the web
+  // lightbox's sidebar shows it (title, dimmed lines, tags as light badges).
+  let title;
+  const sub: ReactNode[] = [];
+  let extra: ReactNode = null;
+  if (state.status === "loading") title = <span className="lp-remote-dim">Checking {host}…</span>;
+  else if (state.status === "error") {
+    title = `Couldn't ask ${host}`;
+    sub.push(state.error);
+  } else {
     const { remote, photo } = state;
     switch (remote.state) {
       case "present":
-        body = (
-          <>
-            <div className="info-strong" data-testid="remote-state">
-              On {host}
-              {photo?.favourite && <IconHeartFilled size={14} style={{ marginLeft: 6, verticalAlign: -2 }} aria-label="Favourite" />}
-            </div>
-            {photo?.caption && <div className="lp-remote-caption">“{photo.caption}”</div>}
-            {photo && photo.people.length > 0 && <div>People: {photo.people.join(", ")}</div>}
-            {photo?.place && <div className="info-sub">{photo.place}</div>}
-            {photo && photo.tags.length > 0 && (
-              <div className="chips">
-                {photo.tags.slice(0, 12).map(t => (
-                  <span key={t} className="chip">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )}
-          </>
+        title = (
+          <span data-testid="remote-state">
+            On {host}
+            {photo?.favourite && <IconHeartFilled size={14} className="lp-remote-heart" aria-label="Favourite" />}
+          </span>
         );
+        if (photo?.caption) sub.push(<span className="lp-remote-caption">“{photo.caption}”</span>);
+        if (photo && photo.people.length > 0) sub.push(`People: ${photo.people.join(", ")}`);
+        if (photo?.place) sub.push(photo.place);
+        if (photo && photo.tags.length > 0) {
+          extra = (
+            <div className="lp-remote-tags">
+              {photo.tags.slice(0, 12).map(t => (
+                <Badge key={t} tone="gray">
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          );
+        }
         break;
       case "uploading":
       case "checking":
-        body = <div className="info-strong" data-testid="remote-state">Uploading to {host}…</div>;
+        title = <span data-testid="remote-state">Uploading to {host}…</span>;
         break;
       default:
-        body = (
-          <>
-            <div className="info-strong" data-testid="remote-state">
-              {remote.state === "failed" ? "Upload failed" : `Not on ${host} yet`}
-            </div>
-            <button type="button" className="btn small" onClick={upload}>
+        title = <span data-testid="remote-state">{remote.state === "failed" ? "Upload failed" : `Not on ${host} yet`}</span>;
+        extra = (
+          <div className="lp-remote-actions">
+            <Button size="compact" variant="light" leftIcon={IconCloudUpload} onClick={upload}>
               Upload to LibrePhotos
-            </button>
-          </>
+            </Button>
+          </div>
         );
     }
   }
   return (
-    <div className="info-row">
-      <IconCloud className="info-icon" size={18} stroke={1.5} aria-hidden="true" />
-      <div className="info-body">
-        <div className="info-label">LibrePhotos</div>
-        <div className="info-value lp-remote">{body}</div>
-      </div>
-    </div>
+    <DetailRow icon={IconCloud} title={title} sub={sub} label="LibrePhotos">
+      {extra}
+    </DetailRow>
   );
 }

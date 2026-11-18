@@ -1,80 +1,73 @@
-import { IconCamera, IconCloudCheck, IconCloudOff, IconCloudUpload, IconMovie, IconPhoto } from "@tabler/icons-react";
+import { IconAlertTriangle, IconCamera, IconCloud, IconCloudCheck, IconCloudOff, IconCloudUpload, IconMovie, IconPhoto, IconPlayerPlayFilled } from "@tabler/icons-react";
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { imageUrl } from "../ipc";
 import { enqueueThumb, type Ticket } from "../lib/thumbQueue";
-import type { LibraryFile } from "./api";
-import { monthLabel } from "./dates";
+import { remoteThumbUrl, type LibraryFile } from "./api";
+import { dayKey, dayKeyOfIso, groupDayLabel } from "./dates";
+import { FALLBACK_ASPECT, firstBlockAt, justify, type Part, type Source } from "./layout";
+import type { ServerHit } from "./serverApi";
+import "./Grid.css";
 
-const TARGET = 172;
-const GAP = 4;
-const HEADER = 44;
-const OVERSCAN_PX = 600;
+const OVERSCAN_PX = 800;
+const NO_HITS: ServerHit[] = [];
+/** Below this a day sharing its line has room for its date only; the count moves into the tooltip
+ * (web GroupHeader MIN_WIDTH_WITH_PLACE). */
+const MIN_WIDTH_WITH_COUNT = 250;
+/** The page's content inset on each side (web PAGE_GUTTER); keep in step with Grid.css. */
+const GUTTER = 20;
 
-type Row =
-  | { kind: "header"; top: number; label: string; count: number }
-  | { kind: "items"; top: number; start: number; count: number };
+const photos = (n: number) => `${n.toLocaleString()} ${n === 1 ? "photo" : "photos"}`;
 
-export type Layout = { rows: Row[]; height: number; tile: number; columns: number };
-
-/** Month groups (files are newest first), each a header row and rows of square tiles. */
-export function layoutGrid(files: LibraryFile[], width: number): Layout {
-  const columns = Math.max(2, Math.floor((width + GAP) / (TARGET + GAP)));
-  const tile = Math.max(40, (width - (columns - 1) * GAP) / columns);
-  const rows: Row[] = [];
-  let top = 0;
-  let i = 0;
-  while (i < files.length) {
-    const first = files[i];
-    if (!first) break;
-    const label = monthLabel(first.takenMs);
-    let end = i + 1;
-    while (end < files.length && monthLabel(files[end]?.takenMs ?? 0) === label) end++;
-    rows.push({ kind: "header", top, label, count: end - i });
-    top += HEADER;
-    for (let s = i; s < end; s += columns) {
-      rows.push({ kind: "items", top, start: s, count: Math.min(columns, end - s) });
-      top += tile + GAP;
-    }
-    top += 12;
-    i = end;
-  }
-  return { rows, height: top, tile, columns };
+/** A file's width / height, from the library row (3:2 until its header has been read). */
+function aspectOf(f: LibraryFile | undefined): number {
+  if (!f || !f.width || !f.height) return FALLBACK_ASPECT;
+  // Very long panoramas and slivers would make a row a few pixels high or a tile unclickable.
+  return Math.min(4, Math.max(0.25, f.width / f.height));
 }
 
-/** First row whose bottom is below `y` (rows are sorted by top). */
-function firstRowAt(rows: Row[], y: number, tile: number): number {
-  let lo = 0;
-  let hi = rows.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    const r = rows[mid];
-    if (!r) break;
-    const bottom = r.top + (r.kind === "header" ? HEADER : tile);
-    if (bottom < y) lo = mid + 1;
-    else hi = mid;
+/** Day groups of a newest-first list: runs of the same day, each one part. */
+function dayParts<T>(items: T[], source: Source, keyOf: (item: T) => number | null, out: Part[]) {
+  let i = 0;
+  while (i < items.length) {
+    const first = items[i];
+    if (first === undefined) break;
+    const key = keyOf(first);
+    let end = i + 1;
+    while (end < items.length) {
+      const next = items[end];
+      if (next === undefined || keyOf(next) !== key) break;
+      end++;
+    }
+    out.push({ kind: "group", label: key === null ? "No date" : groupDayLabel(key), count: end - i, source, start: i, end });
+    i = end;
   }
-  return lo;
 }
 
 function RemoteBadge({ file }: { file: LibraryFile }) {
   switch (file.remote) {
     case "present":
       return (
-        <span className="lib-badge remote ok" title="On LibrePhotos">
-          <IconCloudCheck size={14} stroke={2} />
+        <span className="tile-badge" title="On LibrePhotos" data-remote="present">
+          <IconCloudCheck size={14} stroke={2} aria-label="On LibrePhotos" />
         </span>
       );
     case "uploading":
+    case "checking":
       return (
-        <span className="lib-badge remote busy" title="Uploading">
-          <IconCloudUpload size={14} stroke={2} />
+        <span className="tile-badge busy" title="Uploading to LibrePhotos" data-remote="uploading">
+          <IconCloudUpload size={14} stroke={2} aria-label="Uploading" />
+        </span>
+      );
+    case "failed":
+      return (
+        <span className="tile-badge" title="Upload failed" data-remote="failed">
+          <IconAlertTriangle size={14} stroke={2} aria-label="Upload failed" />
         </span>
       );
     case "absent":
-    case "failed":
       return (
-        <span className={`lib-badge remote local${file.remote === "failed" ? " failed" : ""}`} title={file.remote === "failed" ? "Upload failed" : "Only on this computer"}>
-          <IconCloudOff size={14} stroke={2} />
+        <span className="tile-badge" title="Only on this computer" data-remote="absent">
+          <IconCloudOff size={14} stroke={2} aria-label="Only on this computer" />
         </span>
       );
     default:
@@ -82,31 +75,26 @@ function RemoteBadge({ file }: { file: LibraryFile }) {
   }
 }
 
-const Tile = memo(function Tile({
-  file,
-  index,
-  left,
-  size,
-  rowTop,
-  center,
-  showRemote,
-  onOpen,
-}: {
+type TileProps = {
   file: LibraryFile;
   index: number;
   left: number;
-  size: number;
-  rowTop: number;
+  top: number;
+  width: number;
+  height: number;
   center: RefObject<number>;
   showRemote: boolean;
   onOpen(index: number): void;
-}) {
+};
+
+const Tile = memo(function Tile({ file, index, left, top, width, height, center, showRemote, onOpen }: TileProps) {
   const [src, setSrc] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const ticket = useRef<Ticket | null>(null);
   const url = imageUrl(file, "thumb", 0, 0, "low");
-  const topRef = useRef(rowTop);
-  topRef.current = rowTop;
+  const topRef = useRef(top);
+  topRef.current = top;
   useEffect(() => {
     // Visible tiles load nearest the middle of the view first (see lib/thumbQueue.ts).
     const t = enqueueThumb(
@@ -121,50 +109,121 @@ const Tile = memo(function Tile({
   return (
     <button
       type="button"
-      className="lib-tile"
-      style={{ left, width: size, height: size }}
+      className="tile"
+      style={{ left, top, width, height }}
       title={file.name}
       aria-label={file.name}
       onClick={() => onOpen(index)}
     >
-      {failed || !src ? (
-        <span className="lib-tile-fallback">{failed && <Fallback size={22} stroke={1.5} />}</span>
+      {failed ? (
+        <span className="tile-fallback">
+          <Fallback size={22} stroke={1.5} />
+        </span>
       ) : (
-        <img
-          src={src}
-          alt=""
-          decoding="async"
-          draggable={false}
-          onLoad={settle}
-          onError={() => {
-            settle();
-            setFailed(true);
-          }}
-        />
+        src && (
+          <img
+            src={src}
+            alt=""
+            decoding="async"
+            draggable={false}
+            className={loaded ? "loaded" : undefined}
+            onLoad={() => {
+              settle();
+              setLoaded(true);
+            }}
+            onError={() => {
+              settle();
+              setFailed(true);
+            }}
+          />
+        )
       )}
-      {file.kind === "video" && (
-        <span className="lib-badge kind">
-          <IconMovie size={13} stroke={2} />
+      {file.kind === "raw" && <span className="tile-corner top-right tile-badge">RAW</span>}
+      {(file.kind === "video" || (showRemote && file.remote !== "unknown")) && (
+        <span className="tile-corner bottom">
+          {showRemote ? <RemoteBadge file={file} /> : <span />}
+          {file.kind === "video" && (
+            <span className="tile-badge" aria-label="Video">
+              <IconPlayerPlayFilled size={14} />
+            </span>
+          )}
         </span>
       )}
-      {file.kind === "raw" && <span className="lib-badge kind text">RAW</span>}
-      {showRemote && <RemoteBadge file={file} />}
     </button>
   );
 });
 
-/** Virtualised, month-grouped grid of square tiles: only the rows in view are in the DOM. */
+const RemoteTile = memo(function RemoteTile({
+  hit,
+  left,
+  top,
+  width,
+  height,
+  onOpen,
+}: {
+  hit: ServerHit;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  onOpen(hit: ServerHit): void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <button
+      type="button"
+      className="tile"
+      style={{ left, top, width, height }}
+      aria-label="Photo on LibrePhotos"
+      onClick={() => onOpen(hit)}
+      data-testid="remote-tile"
+    >
+      <img
+        src={remoteThumbUrl(hit.imageHash)}
+        alt=""
+        decoding="async"
+        draggable={false}
+        className={loaded ? "loaded" : undefined}
+        onLoad={() => setLoaded(true)}
+      />
+      <span className="tile-corner bottom">
+        <span className="tile-badge" title="Only on LibrePhotos">
+          <IconCloud size={14} stroke={2} aria-label="Only on LibrePhotos" />
+        </span>
+        {hit.video && (
+          <span className="tile-badge" aria-label="Video">
+            <IconPlayerPlayFilled size={14} />
+          </span>
+        )}
+      </span>
+    </button>
+  );
+});
+
+/**
+ * The timeline: day groups of justified rows (web react-pig), virtualised. Only the blocks within
+ * the view (plus an overscan) are in the DOM; the layout is plain arithmetic over known aspect
+ * ratios, recomputed only when the list or the width changes.
+ */
 export function Grid({
   files,
   showRemote,
   onOpen,
   scrollKey,
+  remote,
+  onOpenRemote,
+  sections,
 }: {
   files: LibraryFile[];
   showRemote: boolean;
   onOpen(index: number): void;
   /** Scroll back to the top when this changes (a new list, not a refresh of the same one). */
   scrollKey: string;
+  /** Server-only search hits, after the local files. */
+  remote?: ServerHit[];
+  onOpenRemote?(hit: ServerHit): void;
+  /** Section headings over the local files and the server-only hits (search results). */
+  sections?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ top: 0, height: 0, width: 0 });
@@ -200,48 +259,81 @@ export function Grid({
     scrollRef.current?.scrollTo({ top: 0 });
   }, [scrollKey]);
 
-  const layout = useMemo(() => layoutGrid(files, Math.max(0, view.width - 32)), [files, view.width]);
+  const hits = remote ?? NO_HITS;
+  const parts = useMemo(() => {
+    const out: Part[] = [];
+    if (sections && files.length > 0) out.push({ kind: "section", id: "local", title: "On this computer", count: files.length });
+    dayParts(files, 0, f => dayKey(f.takenMs), out);
+    if (hits.length > 0) {
+      if (sections) out.push({ kind: "section", id: "remote", title: "Only on LibrePhotos", count: hits.length });
+      dayParts(hits, 1, h => dayKeyOfIso(h.date), out);
+    }
+    return out;
+  }, [files, hits, sections]);
+
+  const width = Math.max(0, view.width - 2 * GUTTER);
+  const layout = useMemo(
+    () => justify(parts, width, (source, i) => (source === 0 ? aspectOf(files[i]) : 1)),
+    [parts, width, files],
+  );
   center.current = view.top + view.height / 2;
 
-  const from = firstRowAt(layout.rows, view.top - OVERSCAN_PX, layout.tile);
+  const from = firstBlockAt(layout.blocks, view.top - OVERSCAN_PX);
   const bottom = view.top + view.height + OVERSCAN_PX;
   const out = [];
-  for (let r = from; r < layout.rows.length; r++) {
-    const row = layout.rows[r];
-    if (!row || row.top > bottom) break;
-    if (row.kind === "header") {
+  for (let b = from; b < layout.blocks.length; b++) {
+    const block = layout.blocks[b];
+    if (!block || block.top > bottom) break;
+    if (block.kind === "section") {
       out.push(
-        <div key={`h${row.top}`} className="lib-month" style={{ top: row.top, height: HEADER }}>
-          <span className="lib-month-label">{row.label}</span>
-          <span className="lib-month-count">{row.count.toLocaleString()}</span>
+        <div key={`s${block.id}`} className="grid-section" style={{ top: block.top, height: block.height }} data-testid={`section-${block.id}`}>
+          <h2 className="grid-section-title">{block.title}</h2>
+          <div className="grid-section-count">{photos(block.count)}</div>
         </div>,
       );
-      continue;
-    }
-    for (let c = 0; c < row.count; c++) {
-      const i = row.start + c;
-      const f = files[i];
-      if (!f) continue;
+    } else if (block.kind === "header") {
       out.push(
-        <div key={`${f.path}|${f.modifiedMs}`} className="lib-tile-slot" style={{ top: row.top }}>
+        <div
+          key={`h${block.top}|${block.left}`}
+          className="grid-day"
+          style={{ top: block.top, left: block.left, width: block.width, height: block.height }}
+          title={block.width < MIN_WIDTH_WITH_COUNT ? `${block.label} · ${photos(block.count)}` : undefined}
+        >
+          <span className="grid-day-date">{block.label}</span>
+          {block.width >= MIN_WIDTH_WITH_COUNT && <span className="grid-day-count">{photos(block.count)}</span>}
+        </div>,
+      );
+    } else {
+      for (const t of block.tiles) {
+        if (t.source === 1) {
+          const hit = hits[t.index];
+          if (!hit || !onOpenRemote) continue;
+          out.push(<RemoteTile key={`r${hit.imageHash}`} hit={hit} left={t.left} top={block.top} width={t.width} height={block.height} onOpen={onOpenRemote} />);
+          continue;
+        }
+        const f = files[t.index];
+        if (!f) continue;
+        out.push(
           <Tile
+            key={`${f.path}|${f.modifiedMs}`}
             file={f}
-            index={i}
-            left={c * (layout.tile + GAP)}
-            size={layout.tile}
-            rowTop={row.top}
+            index={t.index}
+            left={t.left}
+            top={block.top}
+            width={t.width}
+            height={block.height}
             center={center}
             showRemote={showRemote}
             onOpen={onOpen}
-          />
-        </div>,
-      );
+          />,
+        );
+      }
     }
   }
 
   return (
-    <div ref={scrollRef} className="lib-scroll" data-testid="library-grid">
-      <div className="lib-canvas" style={{ height: layout.height }}>
+    <div ref={scrollRef} className="grid-scroll" data-testid="library-grid">
+      <div className="grid-canvas" style={{ height: layout.height }}>
         {view.width > 0 && out}
       </div>
     </div>

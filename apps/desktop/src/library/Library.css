@@ -1,522 +1,318 @@
-/* Library view: sidebar + month-grouped grid. Uses only the tokens of styles.css. */
+/*
+ * The library window's shell, drawn as the web app's (components/menubars: AppShellChrome,
+ * TopMenu, SideMenuNarrow; spotlight/Spotlight.module.css): the header and the sidebar on the
+ * chrome colour, the page one step up with a rounded top-left corner set into it, no hairlines.
+ * Tokens only (src/styles.css). Pages: Pages.css; the grid: Grid.css.
+ */
 .library {
+  display: grid;
+  grid-template-columns: var(--lp-navbar-width) minmax(0, 1fr);
+  grid-template-rows: var(--lp-header-height) minmax(0, 1fr);
   height: 100%;
-  display: flex;
   min-height: 0;
-  background: var(--bg);
+  background: var(--lp-color-chrome);
 }
 
-.lib-side {
-  width: 264px;
-  flex: none;
+/* ------------------------------------------------------------ header */
+.lib-header {
+  grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
-  min-height: 0;
+  align-items: center;
+  min-width: 0;
 }
-.lib-side-head {
+/* The logo on the sidebar's icon column (its rows' 8px margin plus 16px padding). */
+.lib-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--lp-space-2);
+  flex: none;
+  width: var(--lp-navbar-width);
+  padding: 0 10px 0 22px;
+  user-select: none;
+}
+.lib-logo {
+  flex: none;
+}
+.lib-wordmark {
+  font-size: var(--lp-font-size-lg);
+  font-weight: var(--lp-font-weight-semibold);
+  letter-spacing: -0.01em;
+}
+/* The search field starts on the page content's left edge (the page gutter). */
+.lib-header-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  height: 48px;
-  padding: 0 12px 0 16px;
-}
-.lib-app-name {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
-}
-.lib-nav {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 4px 8px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.lib-nav-item {
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
-}
-.lib-nav-item.active {
-  background: var(--accent-soft);
-}
-.lib-nav-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 34px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 4px;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-}
-.lib-nav-main:hover {
-  background: var(--hover);
-}
-.lib-nav-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.lib-nav-count {
-  color: var(--text-3);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.lib-nav-remove {
-  opacity: 0;
-}
-.lib-nav-item:hover .lib-nav-remove,
-.lib-nav-remove:focus-visible {
-  opacity: 1;
-}
-.lib-nav-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 14px 0 2px;
-  padding: 0 4px 0 8px;
-  color: var(--text-3);
-  font-size: 12px;
-  font-weight: 600;
-  min-height: 28px;
-}
-.lib-hint {
-  margin: 4px 8px;
-  color: var(--text-3);
-  font-size: 13px;
-  line-height: 1.45;
-}
-.lib-strong {
-  font-weight: 600;
-}
-.lib-sub {
-  color: var(--text-3);
-}
-.lib-error {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-  margin: 6px 8px;
-  color: var(--danger);
-  font-size: 13px;
-  line-height: 1.4;
-}
-.lib-error svg {
-  flex: none;
-  margin-top: 2px;
-}
-.lib-error.banner {
-  margin: 0 16px 8px;
-}
-.lib-progress {
-  padding: 10px 16px;
-  border-top: 1px solid var(--border);
-  color: var(--text-2);
-  font-size: 12px;
+  gap: var(--lp-space-2);
+  padding: 0 var(--lp-space-3) 0 var(--lp-page-gutter);
 }
 
-.btn.small {
-  min-height: 26px;
-  padding: 0 10px;
-  font-size: 12px;
-  gap: 6px;
-}
-.btn.danger {
-  background: var(--danger);
-  color: var(--accent-text);
-  border-color: transparent;
-}
-
-/* Server */
-.lib-connect {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0 8px;
-}
-.lib-connect label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-2);
-}
-.lib-connect input,
-.lib-search input {
-  font: inherit;
-  color: var(--text);
-  background: var(--surface-2);
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  height: 32px;
-  padding: 0 10px;
-  outline: none;
-}
-.lib-connect input {
-  width: 100%;
-  min-width: 0;
-}
-.lib-connect input:focus {
-  border-color: var(--accent);
-}
-.lib-connect .btn {
-  margin-top: 4px;
-}
-.lib-server {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0 8px;
-}
-.lib-server-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.lib-server-who {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-}
-.lib-server-who > div {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.lib-backup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-}
-.lib-switch {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-.lib-switch input {
-  accent-color: var(--accent);
-  width: 16px;
-  height: 16px;
-}
-.lib-meter {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--hover-strong);
-  overflow: hidden;
-}
-.lib-meter > div {
-  height: 100%;
-  background: var(--accent);
-  transition: width 200ms ease;
-}
-.lib-meter.thin {
-  height: 2px;
-}
-.lib-stat {
-  color: var(--text-2);
-  font-size: 12px;
-}
-.lib-upload {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.lib-upload-name {
-  font-size: 12px;
-  color: var(--text-3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.lib-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* Main */
-.lib-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.lib-head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 16px;
-  min-height: 48px;
-}
+/* The header search: a wide filled pill (Google Photos, Immich). */
 .lib-search {
-  position: relative;
   display: flex;
   align-items: center;
-  flex: 0 1 460px;
-  min-width: 160px;
+  gap: var(--lp-space-3);
+  flex: 1;
+  min-width: 0;
+  max-width: 560px;
+  height: 40px;
+  padding: 0 var(--lp-space-2) 0 var(--lp-space-4);
+  border-radius: var(--lp-radius-round);
+  background: var(--lp-color-search);
+  color: var(--lp-color-dimmed);
+  transition: background-color var(--lp-duration-fast) ease;
+}
+.lib-search:hover {
+  background: var(--lp-color-search-hover);
+}
+.lib-search:focus-within {
+  background: var(--lp-color-search-hover);
+  box-shadow: inset 0 0 0 1px var(--lp-color-primary);
 }
 .lib-search > svg {
-  position: absolute;
-  left: 10px;
-  color: var(--text-3);
-  pointer-events: none;
+  flex: none;
 }
 .lib-search input {
-  width: 100%;
-  padding-left: 34px;
-  padding-right: 34px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--lp-color-text);
+  font: inherit;
+  font-size: var(--lp-font-size-sm);
 }
-.lib-search input:focus {
-  border-color: var(--accent);
+.lib-search input::placeholder {
+  color: var(--lp-color-dimmed);
 }
 .lib-search input::-webkit-search-cancel-button {
   display: none;
 }
-.lib-search .icon-btn {
-  position: absolute;
-  right: 2px;
+.lib-search-kbd {
+  display: inline-flex;
+  gap: 4px;
+  padding-right: var(--lp-space-2);
 }
-.lib-head-title {
-  flex: 1;
+.lib-search-kbd .kbd {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 18px;
+  border-bottom-width: 1px;
 }
-
-.lib-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 16px 24px;
-}
-.lib-canvas {
-  position: relative;
-}
-.lib-month {
-  position: absolute;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding-bottom: 8px;
-}
-.lib-month-label {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 600;
-}
-.lib-month-count {
-  color: var(--text-3);
-  font-size: 12px;
-}
-.lib-tile-slot {
-  position: absolute;
-  left: 0;
-  right: 0;
-}
-.lib-tile {
-  position: absolute;
-  top: 0;
+.lib-search-clear {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--surface-2);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--lp-color-dimmed);
   cursor: pointer;
 }
-.lib-tile img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  animation: lib-fade 160ms ease;
+.lib-search-clear:hover {
+  background: var(--lp-color-hover);
+  color: var(--lp-color-text);
 }
-.lib-tile:hover img {
-  filter: brightness(1.08);
-}
-.lib-tile:focus-visible {
-  outline-offset: -2px;
-}
-.lib-tile-fallback {
+.lib-header-actions {
   display: flex;
-  width: 100%;
-  height: 100%;
   align-items: center;
-  justify-content: center;
-  color: var(--text-3);
+  gap: var(--lp-space-1);
+  flex: none;
 }
-@keyframes lib-fade {
+.lib-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.lib-avatar.current .avatar {
+  outline: 2px solid var(--lp-color-primary);
+  outline-offset: 1px;
+}
+
+/* ------------------------------------------------------------ sidebar */
+.lib-navbar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.lib-nav-links {
+  padding: var(--lp-space-3) 0;
+}
+/* A labelled group under the sections (web .group_label: RECENT ALBUMS). */
+.lib-nav-group {
+  margin-top: var(--lp-space-3);
+  padding: 4px 24px 2px;
+  color: var(--lp-color-dimmed);
+  font-size: 11px;
+  font-weight: var(--lp-font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lib-nav-bottom {
+  padding-bottom: var(--lp-space-3);
+}
+/* The web sidebar's Storage card, here the backup: a raised card on the chrome, 16px corners. */
+.lib-storage {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: calc(100% - 2 * var(--lp-space-2));
+  margin: 0 var(--lp-space-2) var(--lp-space-2);
+  padding: var(--lp-space-3) var(--lp-space-4);
+  border: 0;
+  border-radius: var(--lp-radius-lg);
+  background: var(--lp-color-raised);
+  color: var(--lp-color-text);
+  text-align: left;
+  cursor: pointer;
+}
+.lib-storage:hover {
+  box-shadow: var(--lp-shadow-sm);
+}
+.lib-storage-title {
+  display: flex;
+  align-items: center;
+  gap: var(--lp-space-2);
+  font-size: var(--lp-font-size-sm);
+  font-weight: var(--lp-font-weight-semibold);
+}
+.lib-storage-text {
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+/* The last line of the sidebar, small and dimmed (web .footer_line). */
+.lib-footer-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 24px 0;
+  color: var(--lp-color-dimmed);
+  font-size: var(--lp-font-size-xs);
+}
+
+/* ------------------------------------------------------------ the page
+   White (body) with a rounded top-left corner set into the chrome (AppShellChrome .content). */
+.lib-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-top-left-radius: var(--lp-radius-lg);
+  background: var(--lp-color-body);
+}
+
+/* ------------------------------------------------------------ server-only photo, shown big */
+.lib-preview {
+  position: fixed;
+  inset: 0;
+  z-index: var(--lp-z-overlay);
+  display: grid;
+  place-items: center;
+  padding: 64px 24px 24px;
+  background: var(--lp-stage);
+  color: var(--lp-color-text);
+  animation: lp-fade-in var(--lp-duration-base) ease;
+}
+.lib-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.lib-preview-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--lp-space-2);
+  height: var(--lp-topbar-height);
+  padding: 0 var(--lp-space-2);
+  background: linear-gradient(var(--lp-scrim-black-60), transparent);
+}
+.lib-preview-title {
+  display: flex;
+  align-items: center;
+  gap: var(--lp-space-2);
+  font-size: var(--lp-font-size-sm);
+  font-weight: var(--lp-font-weight-semibold);
+}
+@keyframes lp-fade-in {
   from {
     opacity: 0;
   }
 }
-.lib-badge {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 4px;
-  border-radius: 11px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-.lib-badge.kind {
-  left: 6px;
-  bottom: 6px;
-}
-.lib-badge.remote {
-  right: 6px;
-  bottom: 6px;
-}
-.lib-badge.remote.local {
-  opacity: 0.75;
-}
-.lib-badge.remote.failed {
-  color: var(--danger);
-}
-.lib-badge.remote.busy {
-  color: var(--accent);
-}
 
-.lib-remote-strip {
-  padding: 0 16px 12px;
+/* ------------------------------------------------------------ LibrePhotos row of the info panel (RemoteSection) */
+.lp-remote-dim {
+  color: var(--lp-color-dimmed);
+  font-weight: 400;
 }
-.lib-strip-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  color: var(--text-2);
-  font-size: 12px;
-  font-weight: 600;
-}
-.lib-strip-items {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-.lib-strip-item {
-  flex: none;
-  width: 96px;
-  height: 96px;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--surface-2);
-  cursor: pointer;
-}
-.lib-strip-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.lib-empty {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-.lib-empty-card {
-  max-width: 420px;
-  text-align: center;
-  color: var(--text-2);
-}
-.lib-empty-card h1 {
-  margin: 12px 0 8px;
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-}
-.lib-empty-card p {
-  line-height: 1.5;
-}
-.lib-empty-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 16px;
-}
-
-.lib-preview {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.85);
-}
-.lib-preview img {
-  max-width: 92vw;
-  max-height: 86vh;
-  object-fit: contain;
-}
-.lib-preview-note {
-  position: absolute;
-  bottom: 18px;
-  color: #fff;
-  font-size: 13px;
-}
-.lib-preview-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  color: #fff;
-}
-
-/* LibrePhotos section of the info panel */
-.lp-remote {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-}
-.lp-remote .chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.lp-remote .chip {
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--hover-strong);
-  font-size: 12px;
+.lp-remote-heart {
+  margin-left: 6px;
+  vertical-align: -2px;
 }
 .lp-remote-caption {
   font-style: italic;
-  color: var(--text-2);
+}
+.lp-remote-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--lp-space-2);
+}
+.lp-remote-tags .badge {
+  height: 22px;
+  font-size: var(--lp-font-size-xs);
+  font-weight: var(--lp-font-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.lp-remote-actions {
+  margin-top: var(--lp-space-2);
 }
 
-@media (max-width: 720px) {
-  .lib-side {
-    width: 210px;
+/* A narrow window: the sidebar keeps its icons only, like the web's below its breakpoint. */
+@media (max-width: 760px) {
+  .library {
+    --lp-navbar-width: 64px;
+  }
+  .lib-wordmark,
+  .lib-nav-links .nav-link-label,
+  .lib-nav-links .nav-link-end,
+  .lib-nav-group,
+  .lib-storage,
+  .lib-footer-line,
+  .lib-search-kbd {
+    display: none;
+  }
+  .lib-brand {
+    padding: 0 0 0 19px;
+  }
+  .lib-nav-links .nav-link {
+    justify-content: center;
+    padding: 0;
   }
 }

@@ -1,8 +1,15 @@
-import { IconAlertTriangle, IconCloud, IconLogout, IconPlayerPause, IconPlayerPlay, IconRefresh } from "@tabler/icons-react";
+import { IconAlertTriangle, IconLogout, IconPlayerPause, IconPlayerPlay, IconRefresh } from "@tabler/icons-react";
 import { useState, type FormEvent } from "react";
 import { formatBytes } from "../lib/format";
 import { errorText } from "../lib/infoCache";
+import { Button } from "../ui/Button";
+import { Alert, Avatar, Card, Progress } from "../ui/Display";
+import { PasswordInput, TextInput } from "../ui/Inputs";
+import { Logo } from "../ui/Logo";
+import { PageHeader } from "../ui/PageHeader";
+import { Switch } from "../ui/Toggles";
 import { serverConnect, serverDisconnect, serverRetryFailed, serverSetBackup, serverSetPaused, type ServerStatus } from "./api";
+import "./Pages.css";
 
 export function hostOf(url: string | null): string {
   if (!url) return "your server";
@@ -13,6 +20,11 @@ export function hostOf(url: string | null): string {
   }
 }
 
+/**
+ * Sign-in to a LibrePhotos server, drawn as the web app's sign-in page (components/auth/AuthCard):
+ * the logo and name over one 400px borderless card with a soft shadow, labels above 40px fields, a
+ * full-width primary, a quiet line under the card.
+ */
 function ConnectForm({ status, onDone }: { status: ServerStatus; onDone(): void }) {
   const [url, setUrl] = useState(status.url ?? "");
   const [username, setUsername] = useState(status.username ?? "");
@@ -35,122 +47,156 @@ function ConnectForm({ status, onDone }: { status: ServerStatus; onDone(): void 
       },
     );
   };
+  const problem = error ?? status.error;
   return (
-    <form className="lib-connect" onSubmit={submit} aria-label="Connect to LibrePhotos">
-      <p className="lib-hint">Connect your LibrePhotos server to back up this library and search by people, things and captions.</p>
-      <label>
-        <span>Server address</span>
-        <input value={url} onChange={e => setUrl(e.target.value)} placeholder="photos.example.com" autoComplete="url" required name="url" />
-      </label>
-      <label>
-        <span>User name</span>
-        <input value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" required name="username" />
-      </label>
-      <label>
-        <span>Password</span>
-        <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required name="password" />
-      </label>
-      {(error ?? status.error) && (
-        <p className="lib-error" role="alert">
-          <IconAlertTriangle size={14} stroke={1.75} /> {error ?? status.error}
-        </p>
-      )}
-      <button type="submit" className="btn primary" disabled={busy}>
-        {busy ? "Connecting…" : "Connect"}
-      </button>
-    </form>
+    <div className="auth-page">
+      <div className="auth-brand">
+        <Logo size={36} className="auth-logo" />
+        <span>LibrePhotos</span>
+      </div>
+      <form className="auth-card lib-connect" onSubmit={submit} aria-label="Connect to LibrePhotos">
+        <div className="auth-head">
+          <h2 className="auth-title">Connect to your server</h2>
+          <p className="auth-description">Back up this library and search it by people, things and captions.</p>
+        </div>
+        {problem && (
+          <Alert tone="red" icon={IconAlertTriangle} title="Couldn't connect">
+            {problem}
+          </Alert>
+        )}
+        <TextInput
+          label="Server address"
+          value={url}
+          onChange={e => setUrl(e.target.value)}
+          placeholder="photos.example.com"
+          autoComplete="url"
+          required
+          name="url"
+          spellCheck={false}
+        />
+        <TextInput
+          label="Username"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          autoComplete="username"
+          required
+          name="username"
+          spellCheck={false}
+        />
+        <PasswordInput
+          label="Password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          autoComplete="current-password"
+          required
+          name="password"
+        />
+        <Button type="submit" variant="filled" size="lg" fullWidth loading={busy}>
+          Sign in
+        </Button>
+      </form>
+      <p className="auth-tagline">Your password is sent to your server only.</p>
+    </div>
+  );
+}
+
+/** One number of the backup (web StatTile): a small dimmed label over a large value. */
+function Stat({ label, value, detail }: { label: string; value: number; detail?: string }) {
+  return (
+    <div className="stat">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value.toLocaleString()}</div>
+      {detail && <div className="stat-detail">{detail}</div>}
+    </div>
   );
 }
 
 function Backup({ status }: { status: ServerStatus }) {
   const c = status.counts;
   const host = hostOf(status.url);
-  const checked = c.total - c.unknown;
-  const done = c.present;
-  const pct = c.total > 0 ? Math.round((done / c.total) * 100) : 0;
-  const busy = status.uploads.length > 0;
+  const pct = c.total > 0 ? (c.present / c.total) * 100 : 0;
+  const onlyHere = c.absent + c.uploading + c.failed;
   return (
-    <div className="lib-backup">
-      <label className="lib-switch">
-        <input type="checkbox" checked={status.backup} onChange={e => void serverSetBackup(e.target.checked)} />
-        <span>Back up library to {host}</span>
-      </label>
-      {c.total > 0 && (
-        <>
-          <div className="lib-meter" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Files on the server">
-            <div style={{ width: `${pct}%` }} />
-          </div>
-          <div className="lib-stat" data-testid="backup-counts">
-            {done.toLocaleString()} of {c.total.toLocaleString()} on {host}
-            {c.unknown > 0 && <span> · checking {c.unknown.toLocaleString()}</span>}
-          </div>
-          {checked > 0 && c.absent + c.failed + c.uploading > 0 && (
-            <div className="lib-stat">
-              {(c.absent + c.uploading).toLocaleString()} only here ({formatBytes(c.pendingBytes)})
-              {!status.backup && " · turn on backup to upload them"}
+    <Card
+      title="Backup"
+      description={`Uploads the pictures and videos of your library folders that ${host} doesn't have yet. Nothing on this computer is changed.`}
+      testId="backup-card"
+    >
+      <div className="stack">
+        <Switch
+          checked={status.backup}
+          onChange={on => void serverSetBackup(on)}
+          label={`Back up this library to ${host}`}
+          description={status.paused ? "Paused: checks go on, uploads wait." : undefined}
+          testId="backup-switch"
+        />
+        {c.total > 0 && (
+          <>
+            <div className="stats">
+              <Stat label={`On ${host}`} value={c.present} />
+              <Stat label="Only on this computer" value={onlyHere} detail={onlyHere > 0 ? formatBytes(c.pendingBytes) : undefined} />
+              <Stat label="Checking" value={c.unknown} />
             </div>
-          )}
-        </>
-      )}
-      {status.uploads.map(u => (
-        <div key={u.name} className="lib-upload">
-          <span className="lib-upload-name">{u.name}</span>
-          <div className="lib-meter thin">
-            <div style={{ width: `${u.total > 0 ? (u.sent / u.total) * 100 : 0}%` }} />
-          </div>
-        </div>
-      ))}
-      {(busy || status.uploadedFiles > 0) && (
-        <div className="lib-stat">
-          {status.uploadedFiles.toLocaleString()} uploaded ({formatBytes(status.uploadedBytes)})
-          {busy && status.rate > 0 && <> · {formatBytes(status.rate)}/s</>}
-        </div>
-      )}
-      <div className="lib-actions">
-        {(status.backup || c.wanted > 0) && (
-          <button type="button" className="btn small" onClick={() => void serverSetPaused(!status.paused)}>
-            {status.paused ? <IconPlayerPlay size={14} stroke={1.75} /> : <IconPlayerPause size={14} stroke={1.75} />}
-            {status.paused ? "Resume" : "Pause"}
-          </button>
+            <div className="backup-meter">
+              <Progress value={pct} size={6} label={`Files on ${host}`} gray={status.paused} />
+              <div className="backup-meter-text" data-testid="backup-counts">
+                {c.present.toLocaleString()} of {c.total.toLocaleString()} on {host}
+                {c.unknown > 0 && <span> · checking {c.unknown.toLocaleString()}</span>}
+                {!status.backup && onlyHere > 0 && <span> · turn on backup to upload the rest</span>}
+              </div>
+            </div>
+          </>
         )}
-        {c.failed > 0 && (
-          <button type="button" className="btn small" onClick={() => void serverRetryFailed()}>
-            <IconRefresh size={14} stroke={1.75} /> Retry {c.failed.toLocaleString()} failed
-          </button>
+        {(status.backup || c.wanted > 0 || c.failed > 0) && (
+          <div className="row-actions">
+            {(status.backup || c.wanted > 0) && (
+              <Button
+                size="xs"
+                leftIcon={status.paused ? IconPlayerPlay : IconPlayerPause}
+                onClick={() => void serverSetPaused(!status.paused)}
+              >
+                {status.paused ? "Resume uploads" : "Pause uploads"}
+              </Button>
+            )}
+            {c.failed > 0 && (
+              <Button size="xs" leftIcon={IconRefresh} onClick={() => void serverRetryFailed()}>
+                Retry {c.failed.toLocaleString()} failed
+              </Button>
+            )}
+          </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
-/** The sidebar's server section: sign-in form, or connection, backup switch and progress. */
+/** The LibrePhotos page: the sign-in card, or the account and the backup settings. */
 export function ServerPanel({ status, onChanged }: { status: ServerStatus; onChanged(): void }) {
   if (!status.connected) return <ConnectForm status={status} onDone={onChanged} />;
+  const host = hostOf(status.url);
   return (
-    <div className="lib-server">
-      <div className="lib-server-head">
-        <IconCloud size={16} stroke={1.75} />
-        <div className="lib-server-who">
-          <div className="lib-strong">{hostOf(status.url)}</div>
-          <div className="lib-sub">Signed in as {status.username}</div>
-        </div>
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Disconnect"
-          data-tip="Disconnect"
-          data-tip-end=""
-          onClick={() => void serverDisconnect().then(onChanged)}
-        >
-          <IconLogout size={16} stroke={1.6} />
-        </button>
+    <div className="page-scroll">
+      <PageHeader narrow title="LibrePhotos" subtitle={`Connected to ${host}`} />
+      <div className="page-body narrow stack-lg">
+        {status.error && (
+          <Alert tone="red" icon={IconAlertTriangle}>
+            {status.error}
+          </Alert>
+        )}
+        <Card title="Account">
+          <div className="account-row">
+            <Avatar name={status.username ?? "?"} size={40} />
+            <div className="account-who">
+              <div className="account-host">{host}</div>
+              <div className="account-sub">Signed in as {status.username}</div>
+            </div>
+            <Button leftIcon={IconLogout} onClick={() => void serverDisconnect().then(onChanged)}>
+              Sign out
+            </Button>
+          </div>
+        </Card>
+        <Backup status={status} />
       </div>
-      {status.error && (
-        <p className="lib-error" role="alert">
-          <IconAlertTriangle size={14} stroke={1.75} /> {status.error}
-        </p>
-      )}
-      <Backup status={status} />
     </div>
   );
 }
