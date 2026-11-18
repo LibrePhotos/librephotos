@@ -101,22 +101,28 @@
   white-space: nowrap;
 }
 
+/* Label column as wide as the longest label (at most half the row, wider only for a single long
+   word); labels wrap between words only, values wrap anywhere in the rest of the row. */
 .info-extra {
   margin: 0;
   display: grid;
-  gap: 4px;
+  grid-template-columns: fit-content(50%) minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 5px;
 }
-.info-extra div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+.info-extra-row {
+  display: contents;
 }
 .info-extra dt {
   color: var(--text-2);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 .info-extra dd {
   margin: 0;
-  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .info-error {

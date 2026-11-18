@@ -3,6 +3,7 @@ import {
   IconAperture,
   IconCalendar,
   IconCamera,
+  IconClockEdit,
   IconDimensions,
   IconFile,
   IconFolder,
@@ -35,9 +36,16 @@ function Details({ info }: { info: ImageInfo }) {
   );
   return (
     <>
-      <Row icon={IconCalendar} label={info.takenAt ? "Date taken" : "Modified"}>
-        {info.takenAt ? formatTaken(info.takenAt) : formatModified(info.modifiedMs)}
-      </Row>
+      {info.takenAt ? (
+        <Row icon={IconCalendar} label="Date taken">
+          {formatTaken(info.takenAt)}
+        </Row>
+      ) : (
+        <Row icon={IconClockEdit} label="Modified">
+          {formatModified(info.modifiedMs)}
+          <div className="info-sub">No date taken in this file</div>
+        </Row>
+      )}
       <Row icon={IconFile} label="File">
         <div className="info-strong">{info.name}</div>
         <div className="info-sub">
@@ -79,7 +87,7 @@ function Details({ info }: { info: ImageInfo }) {
         <Row icon={IconAperture} label="More">
           <dl className="info-extra">
             {info.extra.map(([k, v], i) => (
-              <div key={`${k}-${i}`}>
+              <div key={`${k}-${i}`} className="info-extra-row">
                 <dt>{k}</dt>
                 <dd>{v}</dd>
               </div>

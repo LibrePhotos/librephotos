@@ -57,6 +57,28 @@ pub fn fmt_focal(mm: f64) -> Option<String> {
     (mm.is_finite() && mm > 0.0).then(|| format!("{} mm", trim_num(mm, 1)))
 }
 
+/// EXIF `Flash` bits in a few words: "Off", "Fired (auto)", "Did not fire (auto)", ...
+pub fn fmt_flash(v: u32) -> String {
+    if v & 0x20 != 0 {
+        return "No flash".into();
+    }
+    let fired = v & 1 != 0;
+    let mode = (v >> 3) & 3;
+    let mut s = match (fired, mode) {
+        (true, 1) => "Fired (forced)",
+        (true, 3) => "Fired (auto)",
+        (true, _) => "Fired",
+        (false, 2) => "Off",
+        (false, 3) => "Did not fire (auto)",
+        (false, _) => "Did not fire",
+    }
+    .to_string();
+    if v & 0x40 != 0 {
+        s.push_str(", red-eye reduction");
+    }
+    s
+}
+
 fn trim_num(v: f64, decimals: usize) -> String {
     let s = format!("{v:.decimals$}");
     if s.contains('.') {
@@ -191,7 +213,12 @@ fn fill_from_exif(info: &mut ImageInfo, exif: &Exif) {
     );
     add("Exposure program", shown(exif, Tag::ExposureProgram));
     add("Metering", shown(exif, Tag::MeteringMode));
-    add("Flash", shown(exif, Tag::Flash));
+    add(
+        "Flash",
+        exif.get_field(Tag::Flash, In::PRIMARY)
+            .and_then(|f| f.value.get_uint(0))
+            .map(fmt_flash),
+    );
     add("White balance", shown(exif, Tag::WhiteBalance));
     add("Color space", shown(exif, Tag::ColorSpace));
     add(
@@ -351,6 +378,13 @@ mod tests {
         assert_eq!(fmt_f_number(1.7799999).as_deref(), Some("f/1.8"));
         assert_eq!(fmt_focal(35.0).as_deref(), Some("35 mm"));
         assert_eq!(fmt_focal(4.25).as_deref(), Some("4.2 mm"));
+        assert_eq!(fmt_flash(0x10), "Off");
+        assert_eq!(fmt_flash(0x18), "Did not fire (auto)");
+        assert_eq!(fmt_flash(0x19), "Fired (auto)");
+        assert_eq!(fmt_flash(0x09), "Fired (forced)");
+        assert_eq!(fmt_flash(0x59), "Fired (auto), red-eye reduction");
+        assert_eq!(fmt_flash(0x20), "No flash");
+        assert_eq!(fmt_flash(0), "Did not fire");
     }
 
     #[test]
