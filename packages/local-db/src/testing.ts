@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { createBetterSqliteExecutor } from "./better-sqlite3";
 import { trackChanges, type DbChangeSubscribe } from "./change-hub";
 import { createDatabase, type AppDatabase } from "./database";
-import type { SqlExecutor } from "./executor";
+import type { SqlExecutor, SqlMethod, SqlResult } from "./executor";
 import { MIGRATIONS, MIGRATIONS_TABLE } from "./migrate";
 
 export type TestDb = {
@@ -22,10 +22,22 @@ export function applyMigrationsSync(sqlite: Database.Database, now = Date.now())
   }
 }
 
+function emptyResult(method: SqlMethod): SqlResult {
+  return method === "get" ? { rows: undefined, columns: [] } : { rows: [], columns: [] };
+}
+
+export function answeringEmptyOnceClosed(inner: SqlExecutor, isOpen: () => boolean): SqlExecutor {
+  return {
+    exec: (sql, params, method) => (isOpen() ? inner.exec(sql, params, method) : Promise.resolve(emptyResult(method))),
+    batch: (statements) =>
+      isOpen() ? inner.batch(statements) : Promise.resolve(statements.map((statement) => emptyResult(statement.method))),
+  };
+}
+
 export function createTestDb(): TestDb {
   const sqlite = new Database(":memory:");
   applyMigrationsSync(sqlite);
-  const tracked = trackChanges(createBetterSqliteExecutor(sqlite));
+  const tracked = trackChanges(answeringEmptyOnceClosed(createBetterSqliteExecutor(sqlite), () => sqlite.open));
   return {
     db: createDatabase(tracked.executor),
     executor: tracked.executor,
