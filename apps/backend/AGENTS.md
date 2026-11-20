@@ -30,7 +30,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 ## Rules
 
 - Type everything. Every function is annotated; no `# type: ignore`, no bare `Any` in an annotation
-  (ruff ANN401), `cast` only with a comment saying why the stubs are wrong. Never run
+  (ruff ANN401), `cast` only where the stubs are wrong, with the reason in the commit message. Never run
   `scripts/typecheck.py --update` to accept new errors.
 - Ruff findings that predate a rule live in the generated `ruff-baseline.toml`, which only shrinks: run
   `python scripts/ruff_baseline.py --update` after a fix, never to absorb a new finding, and add no `# noqa`
@@ -177,7 +177,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 
 - Build test rows with the factories in `api/tests/utils.py` (`create_test_photo`, `create_test_stack`,
   `create_test_duplicate`, `create_test_tag`, ...), not `Model.objects.create` or a private `_make_*`
-  helper. A model without a factory gets one there, with a docstring. Keep the test-data rule in
+  helper. A model without a factory gets one there. Keep the test-data rule in
   `api/tests/infra/test_test_data_factories.py`: it fails on a new raw create, and
   `api/tests/infra/test_data_baseline.txt` only shrinks (`python scripts/factory_baseline.py --update`).
 - A raw create that must stay raw (a constraint test) carries `# raw-create: <reason>` on its line.
