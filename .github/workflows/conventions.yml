@@ -1,0 +1,40 @@
+name: conventions
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conventions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: install typescript (root lockfile, api-client workspace)
+        run: npm ci --workspace packages/api-client --ignore-scripts
+      - name: test the convention checks
+        run: node --test scripts/check-conventions.test.mjs
+      - name: no comments on added lines
+        run: node scripts/check-conventions.mjs --only comments --base "$BASE_SHA"
+      - name: docs change with every source change
+        if: ${{ !cancelled() }}
+        run: node scripts/check-conventions.mjs --only docs --base "$BASE_SHA"

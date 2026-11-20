@@ -57,7 +57,7 @@ Rules for new code:
 - Every function is annotated, including `-> None` (`disallow_untyped_defs`).
 - No explicit `Any` in an annotation; use `object`, a `Protocol` or a `TypedDict` instead. Ruff's `ANN401` enforces this outside tests. `*args: Any, **kwargs: Any` on a pass-through override is allowed.
 - No bare `# type: ignore`. An ignore needs an error code, and an ignore that no longer suppresses anything is itself an error. Fix the type instead of ignoring it.
-- `typing.cast` only where the value really is narrower than the stubs say, with a comment saying why.
+- `typing.cast` only where the value really is narrower than the stubs say; say why in the commit message, since new code carries no comments ([Conventions](../conventions.md)).
 - Never run `--update` to accept new errors.
 
 The second `[[tool.mypy.overrides]]` table lists the strict modules, which additionally forbid explicit `Any`, untyped calls and bare generics such as `dict`. The list only grows: when you add a new module or package, add it there in the same pull request, and when you move or rename a listed module, rename its entry.
