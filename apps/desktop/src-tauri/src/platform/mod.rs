@@ -120,6 +120,9 @@ pub struct FileMeta {
     pub lens: Option<String>,
     pub lat: Option<f64>,
     pub lon: Option<f64>,
+    pub rating: Option<u8>,
+    pub caption: Option<String>,
+    pub keywords: Vec<String>,
 }
 
 fn camera_label(make: Option<&str>, model: Option<&str>) -> Option<String> {
@@ -148,6 +151,9 @@ pub fn file_meta(path: &str) -> Option<FileMeta> {
         lens: info.lens,
         lat: info.gps.map(|g| g.lat),
         lon: info.gps.map(|g| g.lon),
+        rating: info.rating,
+        caption: info.caption,
+        keywords: info.keywords,
     })
 }
 

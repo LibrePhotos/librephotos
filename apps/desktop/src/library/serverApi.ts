@@ -4,7 +4,7 @@
  * parsed by the package's zod schema; a mismatch is a contract error (toast + console), not an
  * empty result.
  */
-import { endpoints, type Photo, type PigPhoto } from "@librephotos/api-client/core";
+import { endpoints, type Photo, type PigPhoto, type UserAlbumInfo } from "@librephotos/api-client/core";
 import { serverCall } from "../server/errors";
 import { client, onSessionChange, signedInUser } from "../server/session";
 
@@ -79,7 +79,7 @@ function tagsOf(captions: Record<string, unknown>): string[] {
   return [...out];
 }
 
-function photoOf(photo: Photo): ServerPhoto {
+export function serverPhotoOf(photo: Photo): ServerPhoto {
   const captions = photo.captions_json ?? {};
   return {
     caption: text(captions.user_caption) ?? text(captions.im2txt),
@@ -95,5 +95,25 @@ function photoOf(photo: Photo): ServerPhoto {
 
 /** Caption, people, tags and rating of a server photo (its id or image hash). */
 export async function fetchServerPhoto(photoId: string): Promise<ServerPhoto> {
-  return photoOf(await serverCall(() => endpoints.fetchPhotoDetails(client, photoId)));
+  return serverPhotoOf(await serverCall(() => endpoints.fetchPhotoDetails(client, photoId)));
+}
+
+export function fetchServerPhotoDetails(photoId: string): Promise<Photo> {
+  return serverCall(() => endpoints.fetchPhotoDetails(client, photoId));
+}
+
+export function fetchPhotoAlbums(imageHash: string): Promise<UserAlbumInfo[]> {
+  return serverCall(() => endpoints.fetchPhotoAlbums(client, imageHash));
+}
+
+export function fetchAlbumList(): Promise<UserAlbumInfo[]> {
+  return serverCall(() => endpoints.fetchUserAlbumsList(client));
+}
+
+export async function addToServerAlbum(album: Pick<UserAlbumInfo, "id" | "title">, photoId: string): Promise<void> {
+  await serverCall(() => endpoints.addPhotosToUserAlbum(client, album.id, album.title, [photoId]));
+}
+
+export async function createServerAlbum(title: string, photoId: string): Promise<void> {
+  await serverCall(() => endpoints.createUserAlbum(client, title, [photoId]));
 }

@@ -4,6 +4,7 @@ import { App } from "./App";
 import { watchStartup } from "./lib/startupMarks";
 import { onBackupWork, setLibraryAccount, setRootsBackup, startLibrary } from "./library/indexer";
 import { startBackup, wakeBackup } from "./server/backup";
+import { startEditSync } from "./edits/serverSync";
 import { loadSession, onSessionChange, serverUrl, signedInUser } from "./server/session";
 import { inTauri } from "./ipc";
 import { invoke } from "@tauri-apps/api/core";
@@ -13,6 +14,7 @@ import "./ui/ui.css";
 watchStartup();
 startBackup();
 startLibrary();
+startEditSync();
 
 /** The library hashes for the signed-in account (and rebuilds its hashes when the account changes). */
 function syncAccount(): void {

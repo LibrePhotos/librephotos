@@ -74,6 +74,7 @@
 /* ------------------------------------------------------------ scheme-independent tokens */
 :root {
   --lp-stage: #000;
+  --lp-color-favorite: #fcc419;
   --lp-scrim-black-35: rgba(0, 0, 0, 0.35);
   --lp-scrim-black-60: rgba(0, 0, 0, 0.6);
   --lp-scrim-black-75: rgba(0, 0, 0, 0.75);

@@ -87,6 +87,39 @@ pub fn reveal_in_folder(path: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn checked_web_url(url: &str) -> Result<&str, String> {
+    let ok = url.starts_with("https://")
+        && url.len() < 2048
+        && !url
+            .chars()
+            .any(|c| c.is_whitespace() || c.is_control() || matches!(c, '"' | '\'' | '<' | '>'));
+    ok.then_some(url)
+        .ok_or_else(|| "only https links can be opened".to_string())
+}
+
+pub fn open_external(url: &str) -> Result<(), String> {
+    let url = checked_web_url(url)?;
+    #[cfg(windows)]
+    let mut cmd = {
+        let mut c = std::process::Command::new("rundll32");
+        c.args(["url.dll,FileProtocolHandler", url]);
+        c
+    };
+    #[cfg(target_os = "macos")]
+    let mut cmd = {
+        let mut c = std::process::Command::new("open");
+        c.arg(url);
+        c
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut cmd = {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(url);
+        c
+    };
+    cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
 /// Long edge of the image put on the clipboard.
 pub const CLIPBOARD_EDGE: u32 = 5120;
 
@@ -201,6 +234,15 @@ pub fn open_default_apps_settings() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn opens_only_plain_https_links() {
+        assert!(checked_web_url("https://www.openstreetmap.org/?mlat=1&mlon=2#map=15/1/2").is_ok());
+        assert!(checked_web_url("http://example.com").is_err());
+        assert!(checked_web_url("https://a b").is_err());
+        assert!(checked_web_url("https://x\"&calc").is_err());
+        assert!(checked_web_url("file:///C:/x").is_err());
+    }
 
     #[test]
     fn default_apps_uris() {

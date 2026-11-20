@@ -26,6 +26,9 @@ import { contractErrorText, onContractError } from "./server/errors";
 import { focusWindow, onFileDrop, onFullscreenChange, pickFile, setFullscreen, setWindowTitle } from "./platform";
 import { Slideshow } from "./stage/Slideshow";
 import { Stage, useNeighbours, type StageHandle } from "./stage/Stage";
+import type { PhotoEdit, SaveResult } from "./edits/photoEdits";
+import { useEditable } from "./edits/useEditable";
+import "./chrome/edit/Edit.css";
 import "./App.css";
 
 type View = { folder: string; files: FileEntry[]; index: number };
@@ -221,6 +224,22 @@ export function App() {
 
   // ------------------------------------------------------------ library
 
+  const onSaved = useCallback(
+    (file: FileEntry, result: SaveResult, edit: PhotoEdit) => {
+      if (result.modifiedMs !== file.modifiedMs) {
+        setView(v =>
+          v ? { ...v, files: v.files.map(f => (f.path === file.path ? { ...f, modifiedMs: result.modifiedMs } : f)) } : v,
+        );
+      }
+      if (edit.takenAt !== undefined) push(`Saved the date of ${file.name}`);
+    },
+    [push],
+  );
+  const onEditError = useCallback(
+    (file: FileEntry, message: string) => push(`Couldn't save the change to ${file.name}: ${message}`, "error"),
+    [push],
+  );
+  const editable = useEditable(mode === "viewer" ? current : null, { onSaved, onError: onEditError });
   const libStatus = useLibraryStatus(mode === "viewer" ? (current?.path ?? null) : null);
   const [server] = useServerStatus();
   const openFromLibrary = useCallback((list: LibraryFile[], at: number) => {
@@ -386,6 +405,7 @@ export function App() {
     library: () => setMode("library"),
     addFolderToLibrary: libStatus && !libStatus.root && current ? addFolderToLibrary : undefined,
     uploadToServer: server.connected && current && libStatus?.file?.remote !== "present" ? uploadToServer : undefined,
+    toggleFavorite: editable.toggleFavorite,
   };
 
   // ------------------------------------------------------------ keyboard
@@ -404,6 +424,12 @@ export function App() {
     const ctrl = e.ctrlKey || e.metaKey;
     const key = e.key;
     const handled = (() => {
+      if (ctrl && /^[0-5]$/.test(key)) {
+        if (!editable.value || current?.kind === "video") return true;
+        const stars = Number(key);
+        void editable.save({ rating: stars === editable.value.rating ? 0 : stars });
+        return true;
+      }
       switch (key) {
         case "ArrowLeft":
         case "PageUp":
@@ -465,7 +491,7 @@ export function App() {
           return true;
         case "f":
           if (ctrl) return false;
-          toggleFullscreen();
+          if (current?.kind !== "video") editable.toggleFavorite();
           return true;
         case "i":
           if (ctrl) return false;
@@ -531,6 +557,7 @@ export function App() {
         count={files.length}
         infoOpen={infoOpen}
         fullscreen={fullscreen}
+        favorite={current && current.kind !== "video" && editable.value ? editable.value.favorite : null}
         actions={actions}
         onPointerEnter={chromeEnter}
         onPointerLeave={chromeLeave}
@@ -571,7 +598,9 @@ export function App() {
             />
           )}
         </main>
-        {infoOpen && current && !slideshow && <InfoPanel file={current} onClose={() => setInfoOpen(false)} />}
+        {infoOpen && current && !slideshow && (
+          <InfoPanel file={current} onClose={() => setInfoOpen(false)} editable={editable} notify={push} />
+        )}
       </div>
       <Toasts toasts={toasts} />
       {confirmFile && (

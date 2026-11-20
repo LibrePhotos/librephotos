@@ -12,6 +12,7 @@ import {
   IconPhoto,
   IconPhotoPlus,
   IconSearch,
+  IconSettings,
   IconX,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -32,6 +33,7 @@ import { useLibraryDays, useLibraryFiles, useLibraryProgress, useRoots, useServe
 import { isWithin } from "./indexer";
 import { searchServer, type ServerHit } from "./serverApi";
 import { ServerPanel, hostOf } from "./ServerPanel";
+import { SettingsPage } from "./SettingsPage";
 import "./Library.css";
 
 const LOCAL_DEBOUNCE_MS = 120;
@@ -139,7 +141,7 @@ function RemotePreview({ hit, onClose }: { hit: ServerHit; onClose(): void }) {
   );
 }
 
-type Page = "photos" | "folders" | "server";
+type Page = "photos" | "folders" | "server" | "settings";
 type Scope = "all" | "local" | "remote";
 
 const photos = (n: number) => `${n.toLocaleString()} ${n === 1 ? "photo" : "photos"}`;
@@ -320,6 +322,8 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
     );
   } else if (page === "server") {
     content = <ServerPanel status={status} onChanged={reloadStatus} />;
+  } else if (page === "settings") {
+    content = <SettingsPage notify={notify} />;
   } else {
     const list = files ?? [];
     content = (
@@ -452,6 +456,7 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
           <NavLink icon={IconPhoto} label="Photos" active={onPhotos && rootId === null} onClick={() => go("photos")} end={total > 0 ? total.toLocaleString() : undefined} />
           <NavLink icon={IconFolders} label="Folders" active={!searching && page === "folders"} onClick={() => go("folders")} />
           <NavLink icon={IconCloud} label="LibrePhotos" active={!searching && page === "server"} onClick={() => go("server")} />
+          <NavLink icon={IconSettings} label="Settings" active={!searching && page === "settings"} onClick={() => go("settings")} />
           {roots.length > 0 && <div className="lib-nav-group">Folders</div>}
           {roots.map(r => (
             <NavLink

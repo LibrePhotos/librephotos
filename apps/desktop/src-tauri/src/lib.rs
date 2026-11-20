@@ -31,6 +31,7 @@ pub mod protocol;
 pub mod request;
 pub mod server;
 pub mod tiles;
+pub mod xmp;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -98,6 +99,20 @@ async fn list_folder(path: String) -> Result<listing::FolderListing, String> {
 #[tauri::command]
 async fn image_info(path: String) -> Result<info::ImageInfo, String> {
     blocking(move || info::image_info(&path)).await
+}
+
+#[tauri::command]
+async fn write_metadata(
+    path: String,
+    edits: xmp::Edits,
+    target: xmp::files::Target,
+) -> Result<xmp::files::WriteOutcome, String> {
+    blocking(move || xmp::files::write(&path, &edits, target)).await
+}
+
+#[tauri::command]
+async fn open_external(url: String) -> Result<(), String> {
+    blocking(move || ops::open_external(&url)).await
 }
 
 #[tauri::command]
@@ -292,6 +307,8 @@ pub fn run() {
             initial_path,
             list_folder,
             image_info,
+            write_metadata,
+            open_external,
             trash_file,
             rotate_file,
             reveal_in_folder,

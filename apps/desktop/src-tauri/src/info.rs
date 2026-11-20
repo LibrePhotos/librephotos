@@ -9,6 +9,26 @@ use crate::formats::{FileKind, ext_of, format_name, is_jpeg, kind_of_ext};
 use crate::jpegmeta;
 use crate::listing::modified_ms;
 use crate::orient;
+use crate::xmp;
+
+const CAMERA_PLACEHOLDER_CAPTIONS: [&str; 7] = [
+    "olympus digital camera",
+    "sony dsc",
+    "digital camera",
+    "minolta digital camera",
+    "konica minolta digital camera",
+    "samsung camera pictures",
+    "exif_jpeg_picture",
+];
+
+fn real_caption(text: String) -> Option<String> {
+    let folded = text
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase();
+    (!folded.is_empty() && !CAMERA_PLACEHOLDER_CAPTIONS.contains(&folded.as_str())).then_some(text)
+}
 
 #[derive(Serialize, Debug, Clone, Copy, PartialEq)]
 pub struct Gps {
@@ -36,6 +56,11 @@ pub struct ImageInfo {
     pub focal_length: Option<String>,
     pub gps: Option<Gps>,
     pub extra: Vec<(String, String)>,
+    pub rating: Option<u8>,
+    pub caption: Option<String>,
+    pub keywords: Vec<String>,
+    pub sidecar: Option<String>,
+    pub writable_in_file: bool,
 }
 
 /// "1/250 s", "0.5 s", "2 s".
@@ -229,6 +254,43 @@ fn fill_from_exif(info: &mut ImageInfo, exif: &Exif) {
     add("Artist", ascii(exif, Tag::Artist));
     add("Copyright", ascii(exif, Tag::Copyright));
     add("Time zone", ascii(exif, Tag::OffsetTimeOriginal));
+    info.rating = info.rating.or_else(|| {
+        exif.get_field(Tag(exif::Context::Tiff, 0x4746), In::PRIMARY)
+            .and_then(|f| f.value.get_uint(0))
+            .map(|r| r.min(5) as u8)
+    });
+    info.caption = info
+        .caption
+        .take()
+        .or_else(|| ascii(exif, Tag::ImageDescription).and_then(real_caption));
+}
+
+fn apply_xmp(info: &mut ImageInfo, path: &Path, embedded: bool) {
+    let merged = xmp::files::merge(
+        xmp::files::read_sidecar(path),
+        if embedded {
+            xmp::files::read_embedded(path)
+        } else {
+            None
+        },
+    );
+    if let Some(r) = merged.rating {
+        info.rating = Some(r.clamp(0, 5) as u8);
+    }
+    if let Some(c) = merged.caption {
+        info.caption = Some(c);
+    }
+    if !merged.keywords.is_empty() {
+        info.keywords = merged.keywords;
+    }
+    if let Some(d) = merged.date_created.or(merged.date_time_original) {
+        info.taken_at = Some(d);
+    }
+    if let Some((lat, lon)) = merged.gps.filter(|&(lat, lon)| !(lat == 0.0 && lon == 0.0)) {
+        info.gps = Some(Gps { lat, lon });
+    }
+    info.sidecar = merged.sidecar.map(|p| p.to_string_lossy().into_owned());
+    info.writable_in_file = xmp::files::writes_into_file(path);
 }
 
 fn read_exif_file(path: &Path) -> Option<Exif> {
@@ -359,6 +421,8 @@ pub fn image_info(path: &str) -> Result<ImageInfo, String> {
         }
         Some(FileKind::Video) | None => {}
     }
+    let embedded = matches!(kind_of_ext(&ext), Some(FileKind::Raw | FileKind::Image));
+    apply_xmp(&mut info, p, embedded);
     Ok(info)
 }
 

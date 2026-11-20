@@ -30,6 +30,7 @@ import {
   pendingHashes,
   pendingMetadata,
   removeFolderRoot,
+  requestMetadataReread,
   removeLocalPaths,
   renameLocalPaths,
   setFileHashes,
@@ -50,6 +51,8 @@ const HASH_BATCH = 32;
 const HASH_CONCURRENCY = 4;
 /** app_meta key: the server account (`url|userId`) the files' hashes and upload queue belong to. */
 const ACCOUNT_KEY = "folder_account";
+const META_READER_KEY = "desktop_meta_reader";
+const META_READER_VERSION = "xmp-1";
 
 export type LibraryProgress = { walking: boolean; files: number; pending: number };
 
@@ -315,6 +318,10 @@ export function startLibrary(): void {
     applyChanges(c).catch((e: unknown) => console.warn("[library] change batch:", e));
   });
   void (async () => {
+    if ((await getMeta(db, META_READER_KEY)) !== META_READER_VERSION) {
+      await requestMetadataReread(db);
+      await setMeta(db, META_READER_KEY, META_READER_VERSION);
+    }
     const all = await roots();
     for (const r of all) await watchRoot(r.path).catch((e: unknown) => console.warn(`[library] can't watch ${r.path}:`, e));
     wakeMetadata();

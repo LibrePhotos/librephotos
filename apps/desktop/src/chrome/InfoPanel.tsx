@@ -5,19 +5,22 @@ import {
   IconCheck,
   IconClockEdit,
   IconCopy,
+  IconDeviceFloppy,
   IconFolder,
-  IconMapPin,
   IconMovie,
   IconPhoto,
 } from "@tabler/icons-react";
 import { Fragment, useEffect, useState } from "react";
 import type { FileEntry, FileKind, ImageInfo } from "../ipc";
+import type { Photo } from "@librephotos/api-client/core";
+import { useServerDetails } from "../edits/serverDetails";
+import { TARGET_LABEL, useAppSettings, type MetadataTarget } from "../edits/settings";
+import type { EditableState } from "../edits/useEditable";
 import {
   baseName,
   cameraName,
   folderOf,
   formatBytes,
-  formatCoordinate,
   formatDateParts,
   formatLatLon,
   formatMegapixels,
@@ -26,6 +29,8 @@ import {
 import { useImageInfo } from "../lib/infoCache";
 import { RemoteSection } from "../library/RemoteSection";
 import { DetailRow, Panel, Section } from "../ui/Panel";
+import { CaptionSection, DateEditor, InlineEdit, KeywordsSection, RatingStars } from "./edit/EditFields";
+import { AlbumsSection, LocationSection, PeopleSection } from "./edit/PlaceAndServer";
 import "./InfoPanel.css";
 
 const KIND_LABEL: Record<FileKind, string> = { image: "Photo", raw: "RAW photo", video: "Video" };
@@ -58,13 +63,34 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-function Details({ info, kind }: { info: ImageInfo; kind: FileKind }) {
+type DetailsProps = {
+  info: ImageInfo;
+  kind: FileKind;
+  takenAt: string | null;
+  onDate: ((takenAt: string) => void) | null;
+  onlineMaps: boolean;
+  place: string | null;
+  target: MetadataTarget;
+};
+
+function savedIn(info: ImageInfo, target: MetadataTarget): string {
+  if (target === "app") return "Kept in this app's database; the file is not changed";
+  if (target === "file") return info.writableInFile ? `Inside ${info.name}` : `Not possible for ${info.format} files`;
+  return info.sidecar ? baseName(info.sidecar) : `${info.name}.xmp (made on the first edit)`;
+}
+
+function localIso(ms: number): string {
+  return new Date(ms - new Date(ms).getTimezoneOffset() * 60_000).toISOString().slice(0, 19);
+}
+
+function Details({ info, kind, takenAt, onDate, onlineMaps, place, target }: DetailsProps) {
+  const [editingDate, setEditingDate] = useState(false);
   const camera = cameraName(info.cameraMake, info.cameraModel);
   // The web lightbox's order: ISO | mm | f | s.
   const chips = [info.iso !== null ? `ISO ${info.iso}` : null, info.focalLength, info.fNumber, info.exposure].filter(
     (c): c is string => c !== null && c !== "",
   );
-  const taken = info.takenAt ? formatDateParts(info.takenAt) : formatDateParts(info.modifiedMs);
+  const taken = takenAt ? formatDateParts(takenAt) : formatDateParts(info.modifiedMs);
   const size =
     info.width !== null && info.height !== null
       ? [`${info.width.toLocaleString()} × ${info.height.toLocaleString()}`, formatMegapixels(info.width, info.height)]
@@ -74,11 +100,30 @@ function Details({ info, kind }: { info: ImageInfo; kind: FileKind }) {
     <>
       <Section title="Details">
         <DetailRow
-          icon={info.takenAt ? IconCalendar : IconClockEdit}
-          label={info.takenAt ? "Date taken" : "Modified"}
-          title={taken.date}
-          sub={[taken.detail, !info.takenAt && "File modified date (no date taken in this file)"]}
-        />
+          icon={takenAt ? IconCalendar : IconClockEdit}
+          label={takenAt ? "Date taken" : "Modified"}
+          title={
+            onDate && !editingDate ? (
+              <InlineEdit label="Edit date taken" onEdit={() => setEditingDate(true)}>
+                <span data-testid="date-taken">{taken.date}</span>
+              </InlineEdit>
+            ) : (
+              <span data-testid="date-taken">{taken.date}</span>
+            )
+          }
+          sub={[taken.detail, !takenAt && "File modified date (no date taken in this file)"]}
+        >
+          {onDate && editingDate && (
+            <DateEditor
+              takenAt={takenAt ?? localIso(info.modifiedMs)}
+              onCancel={() => setEditingDate(false)}
+              onSave={value => {
+                setEditingDate(false);
+                onDate(value);
+              }}
+            />
+          )}
+        </DetailRow>
         <DetailRow
           icon={kind === "video" ? IconMovie : IconPhoto}
           label="File"
@@ -107,16 +152,12 @@ function Details({ info, kind }: { info: ImageInfo; kind: FileKind }) {
           </DetailRow>
         )}
         {info.gps && (
-          <DetailRow
-            icon={IconMapPin}
-            label="Location"
-            title={`${formatCoordinate(info.gps.lat, "N", "S")}, ${formatCoordinate(info.gps.lon, "E", "W")}`}
-            sub={[
-              <>
-                <span className="info-mono">{formatLatLon(info.gps.lat, info.gps.lon)}</span>
-                <CopyButton text={formatLatLon(info.gps.lat, info.gps.lon)} label="Copy coordinates" />
-              </>,
-            ]}
+          <LocationSection
+            lat={info.gps.lat}
+            lon={info.gps.lon}
+            place={place}
+            onlineMaps={onlineMaps}
+            copyButton={<CopyButton text={formatLatLon(info.gps.lat, info.gps.lon)} label="Copy coordinates" />}
           />
         )}
         <DetailRow
@@ -134,6 +175,14 @@ function Details({ info, kind }: { info: ImageInfo; kind: FileKind }) {
             </span>,
           ]}
         />
+        {kind !== "video" && (
+          <DetailRow
+            icon={IconDeviceFloppy}
+            label="Edits are saved"
+            title={TARGET_LABEL[target]}
+            sub={[<span data-testid="saved-in">{savedIn(info, target)}</span>]}
+          />
+        )}
       </Section>
       {info.extra.length > 0 && (
         <Section title="Metadata">
@@ -169,8 +218,24 @@ function Skeleton() {
   );
 }
 
-export function InfoPanel({ file, onClose }: { file: FileEntry; onClose(): void }) {
+export function InfoPanel({
+  file,
+  onClose,
+  editable,
+  notify,
+}: {
+  file: FileEntry;
+  onClose(): void;
+  editable: EditableState;
+  notify(text: string, tone?: "error"): void;
+}) {
   const state = useImageInfo(file, 120);
+  const [details, reloadDetails, setDetails] = useServerDetails(file);
+  const [settings] = useAppSettings();
+  const photo: Photo | null = details.status === "ready" ? details.photo : null;
+  const albums = details.status === "ready" ? details.albums : null;
+  const value = editable.value;
+  const editableValue = file.kind !== "video" ? value : null;
   return (
     <Panel title="Info" label="File info" onClose={onClose} closeLabel="Close info (I)" className="info-panel lp-dark">
       {state.status === "loading" && <Skeleton />}
@@ -183,8 +248,41 @@ export function InfoPanel({ file, onClose }: { file: FileEntry; onClose(): void 
           </div>
         </div>
       )}
-      {state.status === "ready" && <Details info={state.info} kind={file.kind} />}
-      <RemoteSection file={file} />
+      {state.status === "ready" && (
+        <>
+          {editableValue && (
+            <CaptionSection
+              key={file.path}
+              caption={editableValue.caption}
+              onSave={caption => void editable.save({ caption })}
+            />
+          )}
+          {photo && <PeopleSection photo={photo} />}
+          {editableValue && (
+            <Section title="Rating">
+              <RatingStars rating={editableValue.rating} onRate={editable.setRating} />
+            </Section>
+          )}
+          <Details
+            info={state.info}
+            kind={file.kind}
+            takenAt={value?.takenAt ?? state.info.takenAt}
+            onDate={editableValue ? takenAt => void editable.save({ takenAt }) : null}
+            onlineMaps={settings.onlineMaps}
+            place={photo?.search_location ?? null}
+            target={settings.metadataTarget}
+          />
+          {editableValue && (
+            <KeywordsSection
+              key={file.path}
+              keywords={editableValue.keywords}
+              onSave={keywords => void editable.save({ keywords })}
+            />
+          )}
+          {photo && <AlbumsSection photo={photo} albums={albums} onChanged={reloadDetails} notify={notify} />}
+        </>
+      )}
+      <RemoteSection file={file} details={details} setDetails={setDetails} />
     </Panel>
   );
 }

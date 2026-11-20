@@ -22,6 +22,9 @@ export type FileMeta = {
   lens: string | null;
   lat: number | null;
   lon: number | null;
+  rating: number | null;
+  caption: string | null;
+  keywords: string[];
 };
 export type FsRenamed = { from: string; to: string; dir: boolean };
 export type FsChanges = { root: string; created: FsEntry[]; modified: FsEntry[]; removed: string[]; renamed: FsRenamed[] };

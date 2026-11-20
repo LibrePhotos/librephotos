@@ -14,6 +14,8 @@ import {
   IconPlayerPlay,
   IconRotate,
   IconRotateClockwise,
+  IconStar,
+  IconStarFilled,
   IconTrash,
   IconUpload,
   IconZoomIn,
@@ -51,6 +53,7 @@ export type TopBarActions = {
   addFolderToLibrary?: () => void;
   /** Upload this one file to the connected LibrePhotos server. Undefined when not connected. */
   uploadToServer?: () => void;
+  toggleFavorite(): void;
 };
 
 type Props = {
@@ -59,6 +62,7 @@ type Props = {
   count: number;
   infoOpen: boolean;
   fullscreen: boolean;
+  favorite: boolean | null;
   actions: TopBarActions;
   onPointerEnter(): void;
   onPointerLeave(): void;
@@ -114,7 +118,7 @@ function Title({ file, index, count }: { file: FileEntry | null; index: number; 
  * Delete last, as on the web) and a ⋮ menu with the rest. Narrow windows move buttons into the menu
  * (.opt-1 below 900 px, .opt-2 below 680 px); every action keeps its keyboard shortcut.
  */
-export function TopBar({ file, index, count, infoOpen, fullscreen, actions, onPointerEnter, onPointerLeave }: Props) {
+export function TopBar({ file, index, count, infoOpen, fullscreen, favorite, actions, onPointerEnter, onPointerLeave }: Props) {
   const none = file === null;
   const video = file?.kind === "video";
   const noPicture = none || video;
@@ -131,6 +135,14 @@ export function TopBar({ file, index, count, infoOpen, fullscreen, actions, onPo
       </div>
       <Title file={file} index={index} count={count} />
       <div className="topbar-actions" role="toolbar" aria-label="Viewer actions">
+        <IconButton
+          icon={favorite ? IconStarFilled : IconStar}
+          label={favorite ? "Remove from favourites" : "Add to favourites"}
+          shortcut="F"
+          onClick={actions.toggleFavorite}
+          disabled={noPicture || favorite === null}
+          className={favorite ? "needs-file favorite-on" : "needs-file"}
+        />
         <IconButton
           icon={IconRotateClockwise}
           label="Rotate right"

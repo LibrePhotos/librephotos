@@ -28,7 +28,15 @@ export type ImageInfo = {
   focalLength: string | null;
   gps: { lat: number; lon: number } | null;
   extra: [string, string][];
+  rating: number | null;
+  caption: string | null;
+  keywords: string[];
+  sidecar: string | null;
+  writableInFile: boolean;
 };
+export type MetadataEdits = { rating?: number; caption?: string; keywords?: string[]; takenAt?: string };
+export type WriteTarget = "sidecar" | "file";
+export type WriteOutcome = { modifiedMs: number; sidecar: string | null; wroteFile: boolean };
 export type ImageKind = "thumb" | "screen" | "full";
 /** Scheduling hint for the Rust pipeline: the stage's pictures are `high` (the default), the filmstrip `low`. */
 export type ImagePriority = "high" | "low";
@@ -87,6 +95,18 @@ export async function imageInfo(path: string): Promise<ImageInfo> {
   return inTauri ? invoke<ImageInfo>("image_info", { path }) : mockInfo(path);
 }
 
+export async function writeMetadata(path: string, edits: MetadataEdits, target: WriteTarget): Promise<WriteOutcome> {
+  if (inTauri) return invoke<WriteOutcome>("write_metadata", { path, edits, target });
+  const known = mockEdits.get(path) ?? {};
+  mockEdits.set(path, { ...known, ...edits });
+  return { modifiedMs: mockFiles.find(f => f.path === path)?.modifiedMs ?? 0, sidecar: `${path}.xmp`, wroteFile: false };
+}
+
+export async function openExternal(url: string): Promise<void> {
+  if (inTauri) await invoke("open_external", { url });
+  else window.open(url, "_blank", "noopener");
+}
+
 export async function trashFile(path: string): Promise<void> {
   if (inTauri) await invoke("trash_file", { path });
 }
@@ -137,6 +157,7 @@ export async function onOpenRequest(handler: (path: string) => void): Promise<Un
 const mockParams = new URLSearchParams(inTauri ? "" : window.location.search);
 const MOCK_COUNT = mockParams.has("big") ? 2000 : 40;
 const mockRotation = new Map<string, number>();
+const mockEdits = new Map<string, MetadataEdits>();
 
 function mockName(i: number): string {
   const ext = i === 19 ? "mp4" : i === 12 ? "jxl" : i % 7 === 3 ? "heic" : i % 11 === 5 ? "cr3" : "jpg";
@@ -197,7 +218,7 @@ function mockInfo(path: string): ImageInfo {
     format: f.kind === "raw" ? "Canon CR3" : f.name.endsWith(".heic") ? "HEIC" : "JPEG",
     width,
     height,
-    takenAt: new Date(f.modifiedMs).toISOString().slice(0, 19),
+    takenAt: mockEdits.get(path)?.takenAt || new Date(f.modifiedMs).toISOString().slice(0, 19),
     cameraMake: "Canon",
     cameraModel: "EOS R6",
     lens: "RF 35mm F1.8 MACRO IS STM",
@@ -207,5 +228,10 @@ function mockInfo(path: string): ImageInfo {
     focalLength: "35 mm",
     gps: { lat: 52.52, lon: 13.405 },
     extra: [["Color space", "sRGB"]],
+    rating: mockEdits.get(path)?.rating ?? null,
+    caption: mockEdits.get(path)?.caption || null,
+    keywords: mockEdits.get(path)?.keywords ?? [],
+    sidecar: mockEdits.has(path) ? `${path}.xmp` : null,
+    writableInFile: f.name.endsWith(".jpg"),
   };
 }

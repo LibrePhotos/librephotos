@@ -13,6 +13,8 @@ All paths are absolute OS paths (`C:\Users\...` on Windows). Errors reject with 
 | `initial_path` | none | `string \| null`: the file or folder given on the command line (first non-flag argument), or null. Without one the UI starts in the library. |
 | `list_folder` | `{ path }` (a file or a folder) | `FolderListing` |
 | `image_info` | `{ path }` | `ImageInfo` |
+| `write_metadata` | `{ path, edits: MetadataEdits, target: "sidecar" \| "file" }` | `WriteOutcome`; saves rating, caption, keywords and date taken (see "Edits") |
+| `open_external` | `{ url }` | `null`; opens an `https://` link in the default browser (anything else rejects) |
 | `trash_file` | `{ path }` | `null`; moves the file to the Recycle Bin / Trash |
 | `rotate_file` | `{ path, clockwise }` | `number`: the file's new modified time (ms). Rotates the file on disk losslessly where possible (EXIF orientation for JPEG/HEIC/TIFF, otherwise decode, rotate, re-encode). The UI busts its cache with the new mtime. |
 | `reveal_in_folder` | `{ path }` | `null`; opens Explorer/Finder/file manager with the file selected |
@@ -40,8 +42,19 @@ type ImageInfo = {
   focalLength: string | null;     // "35 mm"
   gps: { lat: number; lon: number } | null;
   extra: [string, string][];      // any other interesting tags, label + value
+  rating: number | null;          // 0-5: sidecar xmp:Rating > embedded XMP > EXIF Rating
+  caption: string | null;         // sidecar dc:description > embedded XMP > EXIF ImageDescription (camera placeholders dropped)
+  keywords: string[];             // dc:subject + leaves of lr:hierarchicalSubject, each from the sidecar when it has them
+  sidecar: string | null;         // the XMP sidecar read (and written to), if any
+  writableInFile: boolean;        // write_metadata can target "file" (JPEG)
 };
+type MetadataEdits = { rating?: number; caption?: string; keywords?: string[]; takenAt?: string };  // "" clears a text
+type WriteOutcome = { modifiedMs: number; sidecar: string | null; wroteFile: boolean };
 ```
+
+`takenAt` follows the server's date rules: XMP `photoshop:DateCreated` (sidecar, else embedded) wins,
+then the sidecar's `exif:DateTimeOriginal`, then EXIF `DateTimeOriginal` / `DateTime` (RAW: its own
+capture time). A sidecar's `exif:GPSLatitude`/`GPSLongitude` win over the EXIF position.
 
 Supported extensions (case-insensitive), used by `list_folder` filtering and file associations:
 `jpg jpeg jpe jfif png gif webp bmp tif tiff heic heif hif avif jxl` (image),
@@ -139,6 +152,44 @@ when that answers a `TileInfo` it draws tiles instead (null: small, has alpha, G
 - The UI draws visible tiles of the level with at least one tile pixel per device pixel on one
   canvas over the stage (plus level+1 first as a fallback), corners snapped to device pixels, at most
   6 requests in flight and ~128 decoded tiles kept.
+
+## Edits
+
+A picture's own metadata (favourite = rating at or above `favorite_min_rating`, rating, caption,
+keywords, date taken) travels with the file, using the tags the LibrePhotos server reads and writes
+(`apps/backend/api/metadata/`). Rust: `src-tauri/src/xmp/` (a small XML scanner that splices the
+changed properties into the original text, so everything else in a packet stays byte for byte);
+UI: `src/edits/`.
+
+| Field | XMP |
+|---|---|
+| rating | `xmp:Rating` (0 is written, so it overrides an embedded rating) |
+| caption | `dc:description` `x-default` (other languages kept; empty removes it) |
+| keywords | `dc:subject` bag (the whole list); `lr:hierarchicalSubject` entries whose leaf was removed go too |
+| date taken | `photoshop:DateCreated` (`YYYY-MM-DDTHH:MM:SS`, local time) |
+
+- `target: "sidecar"`: the first existing of `IMG.xmp`, `IMG.XMP`, `IMG.jpg.xmp`, `IMG.jpg.XMP`
+  (the server's order), else a new `IMG.jpg.xmp`. A sidecar that does not parse, or has no
+  `rdf:RDF`, is refused, never overwritten. Written to a temp file and renamed.
+- `target: "file"`: JPEG only (others reject with a message naming the format): the APP1 XMP
+  segment is updated or inserted after APP0/EXIF, the rest of the file copied unchanged (at most
+  64 KB of XMP). An existing sidecar is updated as well, since readers prefer it.
+- The UI's setting (`app_meta` `desktop_metadata_target`: `sidecar` default, `file`, `app`) picks
+  the target; `app` writes the local database only (`local_asset.app_only_fields`). Every edit also
+  goes to `local_asset` (`setLocalAssetEdits`; a loose file gets a row first) so search and the
+  library follow it, and the info cache is dropped (`forgetInfo`).
+- Server: when signed in, each edited field is queued in `outbox` (kind `desktop_photo_edit`,
+  payload `{ md5, userId, field, value }`, keyed by md5 + field so the newest edit replaces a
+  waiting one). The replay (`src/edits/serverSync.ts`; at start, after a sign-in, every 30 s and
+  after each edit) asks `uploadExists` first (not on the server: done), then `setPhotoRating`,
+  `savePhotoCaption`, `setPhotoTimestamp`, or `fetchPhotoTags` + `createTag` / `addPhotosToTag` /
+  `removePhotosFromTag`. Network errors, 5xx, 408, 429 and 401 back off (15 s x 2^attempts, 8
+  attempts); other 4xx and contract errors are kept as `rejected` (Settings: "Try again").
+- Server-only sections (people, albums, Add to album) use `fetchPhotoDetails`, `fetchPhotoAlbums`,
+  `fetchUserAlbumsList`, `addPhotosToUserAlbum`, `createUserAlbum`; `favorite_min_rating` comes
+  from `fetchUserSelfDetails` at sign-in (`app_meta`, then `refreshFavorites`).
+- The metadata pass (`fs_read_metadata`) returns the same merged `rating`, `caption`, `keywords`;
+  at the first start with this reader every read file is read again once (`requestMetadataReread`).
 
 ## Library
 
@@ -272,6 +323,7 @@ type FileMeta = {
   cameraMake: string | null; cameraModel: string | null;
   camera: string | null;         // "Canon EOS R5": make + model without the make twice
   lens: string | null; lat: number | null; lon: number | null;
+  rating: number | null; caption: string | null; keywords: string[];  // as in ImageInfo (sidecar merged)
 };
 type FsChanges = { root: string; created: FsEntry[]; modified: FsEntry[]; removed: string[];
                    renamed: { from: string; to: string; dir: boolean }[] };
