@@ -33,13 +33,13 @@ pub fn default_dir() -> Option<PathBuf> {
             .map(PathBuf::from)
     };
     if cfg!(windows) {
-        env_dir("LOCALAPPDATA").map(|d| d.join("LibrePhotos Viewer").join("cache"))
+        env_dir("LOCALAPPDATA").map(|d| d.join(crate::appdirs::DIR_NAME).join("cache"))
     } else if cfg!(target_os = "macos") {
-        env_dir("HOME").map(|d| d.join("Library/Caches/LibrePhotos Viewer"))
+        env_dir("HOME").map(|d| d.join("Library/Caches").join(crate::appdirs::DIR_NAME))
     } else {
         env_dir("XDG_CACHE_HOME")
             .or_else(|| env_dir("HOME").map(|h| h.join(".cache")))
-            .map(|d| d.join("librephotos-viewer"))
+            .map(|d| d.join(crate::appdirs::DIR_NAME))
     }
 }
 
