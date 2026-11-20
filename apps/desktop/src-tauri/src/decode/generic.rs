@@ -1,6 +1,3 @@
-//! Pure-Rust decoders, compiled everywhere: `image` (zune-jpeg, png, gif, webp, tiff, bmp) and
-//! `jxl-oxide`. Used when WIC is unavailable or fails.
-
 use std::path::Path;
 
 use image::{DynamicImage, ImageDecoder};
@@ -29,13 +26,11 @@ fn to_pixels(img: DynamicImage) -> Pixels {
     }
 }
 
-/// Decode a file, returning stored-orientation pixels and the orientation to apply.
 fn decode(path: &Path) -> Result<(Pixels, u16), String> {
     if ext_of(path) == "jxl" {
         let f = std::fs::File::open(path).map_err(|e| e.to_string())?;
         let dec = jxl_oxide::integration::JxlDecoder::new(std::io::BufReader::new(f))
             .map_err(|e| e.to_string())?;
-        // jxl-oxide renders with the orientation applied.
         let img = DynamicImage::from_decoder(dec).map_err(|e| e.to_string())?;
         return Ok((to_pixels(img), 1));
     }

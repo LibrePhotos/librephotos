@@ -2,7 +2,6 @@ import type { Icon } from "@tabler/icons-react";
 import type { ReactNode } from "react";
 import "./controls.css";
 
-/** A sidebar row of the web app (SideMenuNarrow .link): a full pill, the current page tinted. */
 export function NavLink({
   icon: I,
   label,
@@ -15,10 +14,8 @@ export function NavLink({
 }: {
   icon: Icon;
   label: ReactNode;
-  /** At the row's end, dimmed (a count). */
   end?: ReactNode;
   active?: boolean;
-  /** A quiet secondary row ("Add a folder", like the web's "Customize sidebar"). */
   dimmed?: boolean;
   onClick(): void;
   title?: string;

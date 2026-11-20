@@ -6,17 +6,10 @@ export type ButtonVariant = "filled" | "default" | "light" | "subtle" | "neutral
 export type ButtonSize = "compact" | "xs" | "sm" | "lg";
 
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
-  /**
-   * filled: the page's one main action (primary). default: the quiet grey pill. light: tinted
-   * primary. subtle: primary text, no fill. neutral: the page toolbar's look (web toolbarLook()).
-   * danger: deep red with white text.
-   */
   variant?: ButtonVariant;
-  /** compact 26 px, xs 30 px, sm 36 px (Mantine's default), lg 40 px (sign-in forms). */
   size?: ButtonSize;
   leftIcon?: Icon;
   fullWidth?: boolean;
-  /** A spinner instead of the label; the button keeps its width and ignores clicks. */
   loading?: boolean;
   children: ReactNode;
 };
@@ -30,7 +23,6 @@ const VARIANT: Record<ButtonVariant, string> = {
   danger: "danger",
 };
 
-/** Mantine's Button in the LibrePhotos theme (web theme/variantColors.ts, controlsTheme.ts). */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
     variant = "default",
@@ -67,7 +59,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   );
 });
 
-/** Mantine's "oval" loader in the primary colour (or the current colour inside a button). */
 export function Loader({ size = 18, className, label }: { size?: number; className?: string; label?: string }) {
   return (
     <span

@@ -1,6 +1,3 @@
-/* The thumbnail strip under the stage (web: ThumbnailNavigation.module.css): 56px tiles with 6px
-   corners on the stage's black, the others dimmed until pointed at, the one shown outlined in white.
-   Its height is part of the stage box Rust predicts at start-up (--lp-filmstrip-height). */
 .filmstrip {
   flex-shrink: 0;
   height: var(--lp-filmstrip-height);

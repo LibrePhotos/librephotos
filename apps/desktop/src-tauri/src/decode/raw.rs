@@ -1,5 +1,3 @@
-//! Camera RAW through FlashRaw: embedded previews for `thumb`/`screen`, a develop for `full`.
-
 use std::path::Path;
 
 use flashraw::{
@@ -12,14 +10,12 @@ use crate::orient;
 use crate::pixels::{Encoded, PixFmt, Pixels, fit};
 use crate::request::{Kind, THUMB_EDGE};
 
-/// Previews up to this long edge are served as they are (orientation injected), no decode.
 const PASSTHROUGH_THUMB_EDGE: u32 = 480;
 
 fn open(path: &Path) -> Result<FlashRaw<'static>, String> {
     FlashRaw::open_path(path).map_err(|e| format!("FlashRaw: {e}"))
 }
 
-/// Stored dimensions of a JPEG preview (from its SOF when the container does not say).
 fn preview_dims(raw: &FlashRaw, p: &PreviewInfo) -> Option<(u32, u32)> {
     if p.width > 0 && p.height > 0 {
         return Some((p.width, p.height));
@@ -31,7 +27,6 @@ fn preview_dims(raw: &FlashRaw, p: &PreviewInfo) -> Option<(u32, u32)> {
 
 struct Preview<'a> {
     info: &'a PreviewInfo,
-    /// Stored (unoriented) size.
     w: u32,
     h: u32,
 }
@@ -48,7 +43,6 @@ impl Preview<'_> {
     }
 }
 
-/// JPEG previews, smallest first.
 fn jpeg_previews<'a>(raw: &'a FlashRaw) -> Vec<Preview<'a>> {
     let mut v: Vec<Preview> = raw
         .previews()
@@ -60,7 +54,6 @@ fn jpeg_previews<'a>(raw: &'a FlashRaw) -> Vec<Preview<'a>> {
     v
 }
 
-/// The preview's own bytes with the RAW's orientation injected, so the webview rotates it.
 fn passthrough(raw: &FlashRaw, p: &Preview) -> Result<Rendered, String> {
     let b = raw.preview_bytes(p.info).map_err(|e| e.to_string())?;
     let bytes = jpegmeta::with_orientation(b, p.orientation()).ok_or("broken JPEG preview")?;
@@ -73,7 +66,6 @@ fn passthrough(raw: &FlashRaw, p: &Preview) -> Result<Rendered, String> {
     }))
 }
 
-/// Decode a preview to fit the display box, orientation applied.
 fn decode_preview(raw: &FlashRaw, p: &Preview, bw: u32, bh: u32) -> Result<Pixels, String> {
     let b = raw.preview_bytes(p.info).map_err(|e| e.to_string())?;
     let o = p.orientation();
@@ -103,7 +95,6 @@ fn develop(raw: &FlashRaw, demosaic: Demosaic) -> Result<Pixels, String> {
     if data.len() != w as usize * h as usize * 4 {
         return Err("FlashRaw returned an unexpected buffer size".into());
     }
-    // Rgba8 output already has the orientation applied.
     Ok(Pixels {
         width: w,
         height: h,
@@ -137,7 +128,6 @@ pub fn render(path: &Path, kind: Kind, bw: u32, bh: u32) -> Result<Rendered, Str
         }
         Kind::Screen => {
             let target = fit(full.0, full.1, bw, bh);
-            // The largest preview is good enough when it is at least ~90% of the target size.
             if let Some(p) = previews.last().filter(|p| {
                 let (pw, ph) = p.oriented();
                 pw.max(ph) as f64 >= 0.9 * target.0.max(target.1) as f64
@@ -167,13 +157,10 @@ pub fn render(path: &Path, kind: Kind, bw: u32, bh: u32) -> Result<Rendered, Str
     }
 }
 
-/// Oriented RGBA-ish pixels fitting `bw`x`bh` for the clipboard: the preview when big enough,
-/// else a develop.
 pub fn pixels(path: &Path, bw: u32, bh: u32) -> Result<Pixels, String> {
     match render(path, Kind::Screen, bw, bh)? {
         Rendered::Pixels(p) => Ok(p),
         Rendered::Encoded(e) => {
-            // A passed-through preview: decode it (orientation is in its injected EXIF).
             let o = jpegmeta::parse_head(&e.bytes)
                 .map(|h| h.orientation)
                 .unwrap_or(1);
@@ -184,12 +171,10 @@ pub fn pixels(path: &Path, bw: u32, bh: u32) -> Result<Pixels, String> {
     }
 }
 
-/// Metadata for `image_info`.
 pub fn metadata(path: &Path) -> Result<flashraw::RawMetadata, String> {
     Ok(open(path)?.metadata().clone())
 }
 
-/// The RAW's EXIF block as a TIFF stream (for kamadak-exif).
 pub fn exif_tiff(path: &Path) -> Option<Vec<u8>> {
     open(path).ok()?.exif_bytes().map(|b| b.to_vec())
 }

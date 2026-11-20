@@ -1,7 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { imageInfo, type FileEntry, type ImageInfo } from "../ipc";
 
-/** `image_info` results per path + mtime, shared by the stage (for 100 % zoom) and the info panel. */
 const pending = new Map<string, Promise<ImageInfo>>();
 const settled = new Map<string, ImageInfo>();
 
@@ -63,7 +62,6 @@ export function errorText(err: unknown): string {
   return "Unknown error";
 }
 
-/** Info for `file`, fetched after `delayMs` so flipping fast through a folder doesn't flood Rust. */
 export function useImageInfo(file: FileEntry | null, delayMs = 80): InfoState {
   useInfoVersion();
   const key = file ? keyOf(file) : "";
@@ -82,7 +80,6 @@ export function useImageInfo(file: FileEntry | null, delayMs = 80): InfoState {
       live = false;
       window.clearTimeout(timer);
     };
-    // `key` identifies the file (path + mtime); the object itself may be re-created.
   }, [key, delayMs]);
 
   if (!file) return { status: "loading" };

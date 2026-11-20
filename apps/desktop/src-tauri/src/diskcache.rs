@@ -1,13 +1,3 @@
-//! Persistent cache of encoded `thumb`/`screen` responses (CONTRACT.md "Disk cache").
-//!
-//! One file per response under `<root>/v1/<hh>/<hash>.lpc`. The file starts with the full cache
-//! id (kind, box, mtime, size and path of the source), so a hash collision or a torn file is a
-//! miss, never a wrong picture. Writes go through one background thread (temp file + rename, so
-//! readers and a second app instance never see half a file). The size cap is enforced by sweeps
-//! that delete the least recently used files; "used" is the file's modified time, refreshed on a
-//! hit at most once an hour. Several processes can share the directory: every operation tolerates
-//! files appearing or vanishing underneath it.
-
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -20,22 +10,13 @@ use crate::pixels::Encoded;
 
 const MAGIC: &[u8; 4] = b"LPC1";
 const LAYOUT: &str = "v1";
-/// Default size cap of the cache directory.
 pub const DEFAULT_CAP: u64 = 1 << 30;
-/// A sweep trims the cache to this fraction of the cap, so it does not run on every write.
 const SWEEP_TARGET: f64 = 0.9;
-/// Hits refresh the file's modified time (the LRU clock) at most this often.
 const TOUCH_AFTER: Duration = Duration::from_secs(3600);
-/// Leftover temp files (a crash mid-write) older than this are deleted by a sweep.
 const TMP_MAX_AGE: Duration = Duration::from_secs(3600);
-/// First sweep after start-up: late enough not to compete with the first pictures.
 const FIRST_SWEEP_AFTER: Duration = Duration::from_secs(20);
-/// Writes waiting for the writer thread; more are dropped (the cache is best effort).
 const WRITE_QUEUE: usize = 512;
 
-/// Where the cache lives: `LPVIEW_CACHE_DIR`, else `%LOCALAPPDATA%\LibrePhotos Viewer\cache`
-/// (Windows), `~/Library/Caches/LibrePhotos Viewer` (macOS), `$XDG_CACHE_HOME/librephotos-viewer`
-/// (elsewhere). None when `LPVIEW_DISK_CACHE=0` or no base directory is known.
 pub fn default_dir() -> Option<PathBuf> {
     if std::env::var("LPVIEW_DISK_CACHE").is_ok_and(|v| v == "0") {
         return None;
@@ -62,7 +43,6 @@ pub fn default_dir() -> Option<PathBuf> {
     }
 }
 
-/// Counters for tests and the trace log.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct DiskStats {
     pub hits: u64,
@@ -74,7 +54,6 @@ pub struct DiskStats {
 struct Inner {
     root: PathBuf,
     cap: u64,
-    /// Bytes on disk as of the last sweep plus what this process wrote since.
     estimate: AtomicU64,
     hits: AtomicU64,
     misses: AtomicU64,
@@ -100,7 +79,6 @@ fn fnv1a(s: &str) -> u64 {
     })
 }
 
-/// The `&'static str` for a MIME type the pipeline produces; None for anything else.
 fn static_mime(m: &str) -> Option<&'static str> {
     [
         "image/jpeg",
@@ -128,7 +106,6 @@ fn serialize(id: &str, e: &Encoded) -> Vec<u8> {
     out
 }
 
-/// Parse a cache file. `Err(())` means corrupt (delete it); `Ok(None)` another id (collision).
 #[allow(clippy::result_unit_err)]
 pub fn deserialize(id: &str, mut b: &[u8]) -> Result<Option<Encoded>, ()> {
     fn take<'a>(b: &mut &'a [u8], n: usize) -> Result<&'a [u8], ()> {
@@ -165,7 +142,6 @@ pub fn deserialize(id: &str, mut b: &[u8]) -> Result<Option<Encoded>, ()> {
 }
 
 impl DiskCache {
-    /// Open (and create) the cache at `root` with a size cap of `cap` bytes.
     pub fn open(root: PathBuf, cap: u64) -> std::io::Result<DiskCache> {
         let root = root.join(LAYOUT);
         fs::create_dir_all(&root)?;
@@ -195,7 +171,6 @@ impl DiskCache {
             .join(format!("{h:016x}.lpc"))
     }
 
-    /// The cached response for `id`, if any. Blocking file I/O: call it off the UI thread.
     pub fn get(&self, id: &str) -> Option<Encoded> {
         let path = self.file_of(id);
         let found = read_entry(&path, id);
@@ -208,12 +183,10 @@ impl DiskCache {
         found
     }
 
-    /// Whether a response for `id` is (probably) cached; no read, no LRU refresh.
     pub fn contains(&self, id: &str) -> bool {
         self.file_of(id).is_file()
     }
 
-    /// Store a response in the background. Never blocks; drops the write when the queue is full.
     pub fn put(&self, id: String, e: Arc<Encoded>) {
         if static_mime(e.mime).is_none() {
             return;
@@ -233,7 +206,6 @@ impl DiskCache {
         }
     }
 
-    /// Wait until every queued write is on disk (tests, benchmarks).
     pub fn flush(&self) {
         let (tx, rx) = std::sync::mpsc::channel();
         if self.tx.send(Msg::Flush(tx)).is_ok() {
@@ -241,12 +213,10 @@ impl DiskCache {
         }
     }
 
-    /// Run a sweep now (tests): evict least recently used files over the cap.
     pub fn sweep(&self) {
         self.inner.sweep();
     }
 
-    /// Delete every cached file. Returns the bytes freed.
     pub fn clear(&self) -> u64 {
         let mut freed = 0;
         for (_, len, path) in self.inner.entries() {
@@ -258,7 +228,6 @@ impl DiskCache {
         freed
     }
 
-    /// Bytes currently on disk (walks the directory).
     pub fn disk_bytes(&self) -> u64 {
         self.inner.entries().iter().map(|e| e.1).sum()
     }
@@ -336,7 +305,6 @@ impl Inner {
         res.map(|_| data.len() as u64)
     }
 
-    /// Every cache file: (last used, bytes, path). Deletes stale temp files on the way.
     fn entries(&self) -> Vec<(SystemTime, u64, PathBuf)> {
         let mut out = Vec::new();
         let Ok(dirs) = fs::read_dir(&self.root) else {
@@ -372,7 +340,6 @@ impl Inner {
                 if total <= target {
                     break;
                 }
-                // Gone already (another instance swept) counts as freed too.
                 let _ = fs::remove_file(&path);
                 total = total.saturating_sub(len);
                 self.evictions.fetch_add(1, Ordering::Relaxed);
@@ -424,12 +391,10 @@ mod tests {
         c.flush();
         assert!(c.contains("x"));
         assert_eq!(c.get("x").unwrap().bytes.len(), 50);
-        // A second instance on the same directory sees it too.
         let c2 = DiskCache::open(root.clone(), 1 << 20).unwrap();
         assert_eq!(c2.get("x").unwrap().width, 3);
         assert_eq!(c.stats().hits, 1);
         assert_eq!(c.stats().writes, 1);
-        // A torn file is a miss and gets deleted.
         let f = c.file_of("x");
         let data = fs::read(&f).unwrap();
         fs::write(&f, &data[..data.len() - 3]).unwrap();
@@ -442,14 +407,12 @@ mod tests {
     #[test]
     fn sweeps_least_recently_used_over_the_cap() {
         let root = temp_root("sweep");
-        // Written by an instance with room, swept by one with a 10 kB cap (same directory).
         let writer = DiskCache::open(root.clone(), 1 << 20).unwrap();
         for i in 0..6 {
             writer.put(format!("k{i}"), enc(2900));
         }
         writer.flush();
         let c = DiskCache::open(root.clone(), 10_000).unwrap();
-        // Make k0 the oldest and k1 the most recently used.
         let past = SystemTime::now() - Duration::from_secs(7200);
         for i in 0..6 {
             let f = fs::File::options()

@@ -5,7 +5,6 @@ import "./controls.css";
 
 export type Tone = "primary" | "gray" | "orange" | "teal" | "red";
 
-/** Mantine's Badge, light variant: a small uppercase pill. */
 export function Badge({
   tone = "primary",
   size = "sm",
@@ -24,10 +23,6 @@ export function Badge({
   );
 }
 
-/**
- * Mantine's Progress: a rounded bar on a quiet track. `muted` adds a second, tinted section after
- * the first; `striped` animates the bar; `gray` draws a stopped (paused) one.
- */
 export function Progress({
   value,
   muted = 0,
@@ -63,7 +58,6 @@ export function Progress({
   );
 }
 
-/** Mantine's Card withBorder (radius lg): an optional title and dimmed description over its body. */
 export function Card({
   title,
   description,
@@ -74,7 +68,6 @@ export function Card({
 }: {
   title?: ReactNode;
   description?: ReactNode;
-  /** At the right of the title. */
   actions?: ReactNode;
   children?: ReactNode;
   className?: string;
@@ -96,7 +89,6 @@ export function Card({
   );
 }
 
-/** Mantine's Alert, light variant, with an icon and an optional bold title. */
 export function Alert({
   tone = "primary",
   icon: I = IconInfoCircle,
@@ -119,7 +111,6 @@ export function Alert({
   );
 }
 
-/** Two initials in a round light chip (the web header's account avatar). */
 export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
   const parts = name
     .trim()
@@ -133,7 +124,6 @@ export function Avatar({ name, size = 34 }: { name: string; size?: number }) {
   );
 }
 
-/** The web's EmptyState: an 80px light icon, a title, a dimmed description and up to two actions. */
 export function EmptyState({
   icon: I,
   title,
@@ -145,9 +135,7 @@ export function EmptyState({
   icon: Icon;
   title: ReactNode;
   description?: ReactNode;
-  /** The action buttons (a light primary, then a subtle secondary). */
   children?: ReactNode;
-  /** The icon in the primary tint (a process under way) instead of grey. */
   primary?: boolean;
   testId?: string;
 }) {

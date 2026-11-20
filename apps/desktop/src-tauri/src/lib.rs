@@ -1,16 +1,3 @@
-//! LibrePhotos Viewer: the Rust side of CONTRACT.md.
-//!
-//! - `lpview://` pixels: [`protocol`] -> [`pipeline`] (pool, dedupe, LRU, [`diskcache`]) ->
-//!   [`decode`] (WIC on Windows, FlashRaw for RAW, pure-Rust fallbacks).
-//! - Deep zoom: `lpview://.../tile` and `tile_info` -> [`tiles`] (pyramid, memory + disk caches).
-//! - Commands: [`listing`], [`info`], [`ops`].
-//! - The library (folders the user added) lives in the shared local database: its schema,
-//!   queries and writers are `packages/local-db`, run in the UI. [`localdb`] executes their SQL
-//!   and applies their migrations; [`platform`] hands over what the disk knows (walks, watch
-//!   batches, metadata, MD5) as data for those writers.
-//! - The LibrePhotos server connection (sign-in, API and media proxy, upload bytes): [`server`].
-//! - Their commands: [`commands`].
-
 pub mod appdirs;
 pub mod cache;
 pub mod commands;
@@ -44,7 +31,6 @@ use crate::pipeline::{Pipeline, Priority};
 use crate::request::{Kind, THUMB_EDGE};
 use crate::tiles::{TileInfo, TileService};
 
-/// Run blocking work off the IPC thread.
 pub(crate) async fn blocking<T: Send + 'static>(
     f: impl FnOnce() -> Result<T, String> + Send + 'static,
 ) -> Result<T, String> {
@@ -66,7 +52,6 @@ fn initial_path() -> Option<String> {
 
 type Listing = Result<listing::FolderListing, String>;
 
-/// The listing of the command-line path, made while the webview boots (50 ms for 2000 files).
 static STARTUP_LISTING: Mutex<Option<(String, JoinHandle<Listing>)>> = Mutex::new(None);
 
 fn start_listing(path: String) {
@@ -79,7 +64,6 @@ fn start_listing(path: String) {
     }
 }
 
-/// The startup listing if it is for `path` (once), waiting for it if it is still running.
 fn take_startup_listing(path: &str) -> Option<Listing> {
     let mut slot = STARTUP_LISTING.lock().unwrap();
     if slot.as_ref().is_some_and(|(p, _)| p == path) {
@@ -173,7 +157,6 @@ async fn open_default_apps_settings() -> Result<(), String> {
     blocking(ops::open_default_apps_settings).await
 }
 
-/// The picture file given on the command line, if any (not a folder, not a video).
 fn initial_picture() -> Option<PathBuf> {
     let path = PathBuf::from(arg_path()?);
     let picture = formats::kind_of_ext(&formats::ext_of(&path))
@@ -181,12 +164,10 @@ fn initial_picture() -> Option<PathBuf> {
     (picture && path.is_file()).then_some(path)
 }
 
-/// CSS height of the chrome above and below the stage (`.topbar` and `.filmstrip` heights).
-const CHROME_CSS_PX: f64 = 48.0 + 76.0;
+const TOPBAR_HEIGHT_CSS_PX: f64 = 48.0;
+const FILMSTRIP_HEIGHT_CSS_PX: f64 = 76.0;
+const CHROME_CSS_PX: f64 = TOPBAR_HEIGHT_CSS_PX + FILMSTRIP_HEIGHT_CSS_PX;
 
-/// Device-pixel box the stage will ask `screen` for in a window of this inner size (physical
-/// pixels) and scale: the whole width, the height minus the top bar and the filmstrip. Mirrors
-/// `useStageSize` in `src/stage/Stage.tsx`; a wrong guess costs one extra decode, nothing else.
 pub fn predicted_stage_box(inner_w: u32, inner_h: u32, scale: f64) -> Option<(u32, u32)> {
     let scale = if scale > 0.0 { scale } else { 1.0 };
     let w = (inner_w as f64 / scale * scale).round();
@@ -194,9 +175,6 @@ pub fn predicted_stage_box(inner_w: u32, inner_h: u32, scale: f64) -> Option<(u3
     (w >= 1.0 && h >= 1.0).then_some((w as u32, h as u32))
 }
 
-/// Start the pictures of the file given on the command line while the webview boots, so the
-/// page's first requests find them done or in flight: the thumb at once, the `screen` as soon
-/// as the window (and so the stage size) exists.
 fn preload_initial(pipeline: &Pipeline, screen_box: Option<(u32, u32)>) {
     let Some(path) = initial_picture() else {
         return;
@@ -254,7 +232,6 @@ pub fn run() {
     let for_protocol = pipeline.clone();
     let tiles = TileService::new(tiles::disk::default_root(), tiles::disk::DEFAULT_CAP_BYTES);
     let tile_handler = tiles.clone();
-    // Migrations run here, before the window (and so the UI's first query) exists.
     let local_db = commands::open_local_db();
     let watchers = commands::open_watchers();
     let server = commands::open_server();
@@ -264,7 +241,6 @@ pub fn run() {
         .manage(local_db)
         .manage(watchers)
         .manage(server);
-    // LPVIEW_MULTI_INSTANCE=1 lets test harnesses run several copies side by side.
     if std::env::var_os("LPVIEW_MULTI_INSTANCE").is_none() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(path) = argv.iter().skip(1).find(|a| !a.starts_with('-')) {

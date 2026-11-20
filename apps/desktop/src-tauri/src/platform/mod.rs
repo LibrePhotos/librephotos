@@ -1,13 +1,3 @@
-//! Platform seams as data (CONTRACT.md "File seams"): what the desktop knows about files on
-//! disk, handed to the TypeScript writers of `packages/local-db`, which store it, exactly like
-//! mobile's native modules hand over the camera roll. Nothing here writes a database.
-//!
-//! - [`walk`]: the supported files of a folder tree, in batches as they are found;
-//! - [`watch`]: a debounced change feed per root (`fs://changed`);
-//! - [`read_metadata`]: dimensions, date taken, camera, lens, GPS, format (headers only, parallel);
-//! - [`stat`]: the same facts a walk gives, for given paths;
-//! - MD5 and chunk reads for uploads live in `server::backup` (`md5_file`, `read_chunk_at`).
-
 pub mod files;
 pub mod watch;
 
@@ -19,19 +9,14 @@ use serde::Serialize;
 use crate::formats::FileKind;
 use files::{FileStat, file_stat, taken_ms, walk_each};
 
-/// Files per walk batch.
 pub const WALK_BATCH: usize = 500;
-/// Header readers of [`read_metadata`].
 pub const META_THREADS: usize = 4;
-/// Paths one `fs_read_metadata` / `fs_stat` call takes.
 pub const MAX_PATHS: usize = 4096;
 
-/// A supported file as a walk, a stat or the watcher sees it.
 #[derive(Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct FsEntry {
     pub path: String,
-    /// The folder holding the file.
     pub folder: String,
     pub name: String,
     pub size: i64,
@@ -52,7 +37,6 @@ impl From<FileStat> for FsEntry {
     }
 }
 
-/// One message of a walk's channel: a batch of files; the last one has `done` set.
 #[derive(Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct WalkBatch {
@@ -60,9 +44,6 @@ pub struct WalkBatch {
     pub done: bool,
 }
 
-/// Walks `root`, handing over batches of `batch` files as they are found and a last (possibly
-/// empty) one with `done`. `send` answers false to stop (the page went away). Returns the number
-/// of files; fails when `root` cannot be read.
 pub fn walk(
     root: &Path,
     batch: usize,
@@ -92,30 +73,23 @@ pub fn walk(
     Ok(total)
 }
 
-/// The entry of a supported file, or None (missing, a folder, another kind).
 pub fn stat(path: &str) -> Option<FsEntry> {
     let p = Path::new(path);
     let meta = std::fs::metadata(p).ok()?;
     file_stat(p, &meta).map(FsEntry::from)
 }
 
-/// What a file's headers say (no pixels decoded): the info panel's readers.
 #[derive(Serialize, Debug, Clone, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FileMeta {
     pub path: String,
-    /// "JPEG", "HEIC", "Canon CR3", ...
     pub format: String,
-    /// After orientation.
     pub width: Option<u32>,
     pub height: Option<u32>,
-    /// ISO 8601 local time from EXIF DateTimeOriginal (or the RAW's own date).
     pub taken_at: Option<String>,
-    /// `taken_at` as local wall-clock ms (read with UTC getters).
     pub taken_ms: Option<i64>,
     pub camera_make: Option<String>,
     pub camera_model: Option<String>,
-    /// Make and model as one label, without the make twice ("Canon EOS R5").
     pub camera: Option<String>,
     pub lens: Option<String>,
     pub lat: Option<f64>,
@@ -135,7 +109,6 @@ fn camera_label(make: Option<&str>, model: Option<&str>) -> Option<String> {
     }
 }
 
-/// The metadata of one file, None when it cannot be read.
 pub fn file_meta(path: &str) -> Option<FileMeta> {
     let info = crate::info::image_info(path).ok()?;
     Some(FileMeta {
@@ -157,7 +130,6 @@ pub fn file_meta(path: &str) -> Option<FileMeta> {
     })
 }
 
-/// [`file_meta`] of every path on [`META_THREADS`] threads, in the order given.
 pub fn read_metadata(paths: &[String]) -> Vec<Option<FileMeta>> {
     let next = AtomicUsize::new(0);
     let mut out: Vec<Option<FileMeta>> = vec![None; paths.len()];
@@ -229,7 +201,6 @@ mod tests {
         assert_eq!(keys, ["folder", "kind", "mtimeMs", "name", "path", "size"]);
         assert_eq!(json["kind"], "video");
 
-        // Stopping early; an unreadable root fails.
         let mut calls = 0;
         walk(&dir, 3, |_| {
             calls += 1;

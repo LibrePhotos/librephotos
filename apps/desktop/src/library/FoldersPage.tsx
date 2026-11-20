@@ -15,7 +15,6 @@ export function folderName(path: string): string {
   return parts[parts.length - 1] ?? path;
 }
 
-/** One library folder (web LibraryFolderRow): icon, path in monospace, its photos, and a ⋯ menu. */
 function FolderRow({
   root,
   indexing,
@@ -64,10 +63,6 @@ function FolderRow({
   );
 }
 
-/**
- * The folders of the library (web LibraryFoldersCard / LibraryFolderRow): what the library reads,
- * how far indexing is, and adding or removing a folder (with the web's confirmation dialog).
- */
 export function FoldersPage({
   roots,
   progress,

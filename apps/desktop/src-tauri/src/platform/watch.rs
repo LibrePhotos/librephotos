@@ -1,17 +1,3 @@
-//! Root watchers: one recursive `notify` watcher per root, its events debounced (350 ms quiet,
-//! 2 s at most, per root) and resolved against the disk into one `fs://changed` per batch:
-//!
-//! - `created` / `modified`: supported files that exist now ([`FsEntry`], stat-ed). A folder
-//!   that appears (moved in, copied in) is walked: its files are `created`.
-//! - `removed`: paths that are gone, files or folders (a folder takes everything under it).
-//!   Rust no longer knows what was there, so the writer deletes the path and every path below it.
-//! - `renamed`: `{ from, to, dir }` pairs the OS reported as one rename (a folder rename is one
-//!   pair, the files below it move with it). A rename out of the root is a removal, into it a
-//!   creation. The writer keeps the row (MD5, server state) and changes its path.
-//!
-//! Hidden folders (the walk's rules) are ignored. The final state on disk wins: a file created
-//! and deleted within one batch is only `removed`.
-
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
@@ -36,7 +22,6 @@ pub struct Renamed {
     pub dir: bool,
 }
 
-/// The payload of `fs://changed`.
 #[derive(Serialize, Debug, Clone, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FsChanges {
@@ -56,13 +41,10 @@ impl FsChanges {
     }
 }
 
-/// What one root's raw events said since the last batch.
 #[derive(Default, Debug)]
 pub struct Pending {
-    /// Paths touched, and whether they (re)appeared (created, renamed to) in this batch.
     touched: BTreeMap<PathBuf, bool>,
     renames: Vec<(PathBuf, PathBuf)>,
-    /// The first half of a rename reported in two events (Windows).
     rename_from: Option<PathBuf>,
 }
 
@@ -73,7 +55,6 @@ impl Pending {
     }
 
     fn rename(&mut self, from: PathBuf, to: PathBuf) {
-        // A chain (a -> b, b -> c) is one move (a -> c).
         if let Some(r) = self.renames.iter_mut().find(|(_, t)| *t == from) {
             r.1 = to;
         } else if !self.renames.iter().any(|r| r.0 == from && r.1 == to) {
@@ -105,12 +86,10 @@ impl Pending {
                     self.rename(from, to);
                 }
             }
-            // Name(Any) (macOS), data, metadata, removals: the disk says what happened.
             _ => paths.for_each(|p| self.touch(p, false)),
         }
     }
 
-    /// Resolves the batch against the disk.
     pub fn resolve(mut self, root: &str) -> FsChanges {
         if let Some(from) = self.rename_from.take() {
             self.touch(from, false);
@@ -138,12 +117,10 @@ impl Pending {
                             dir,
                         });
                     } else {
-                        // Renamed to a kind the library does not keep (a.jpg -> a.txt).
                         removed.insert(from_s);
                     }
                 }
                 Ok(_) if to_in => {
-                    // Moved in from outside (or the old name is back): new files.
                     if from_in && !from.exists() {
                         removed.insert(from_s);
                     }
@@ -190,7 +167,6 @@ impl Pending {
     }
 }
 
-/// Adds the file at `p`, or every file below the folder at `p`.
 fn add_created(created: &mut BTreeMap<String, FsEntry>, p: &Path) {
     match std::fs::metadata(p) {
         Ok(m) if m.is_dir() => {
@@ -208,7 +184,6 @@ fn add_created(created: &mut BTreeMap<String, FsEntry>, p: &Path) {
     }
 }
 
-/// Whether `p` is inside `root` and not below a folder the walk skips.
 fn watched(root: &str, p: &Path) -> bool {
     let ps = p.to_string_lossy();
     if !is_within(&ps, root) {
@@ -216,7 +191,6 @@ fn watched(root: &str, p: &Path) -> bool {
     }
     let rel = &ps[root.trim_end_matches(std::path::MAIN_SEPARATOR).len()..];
     let mut parts: Vec<&str> = rel.split(['/', '\\']).filter(|s| !s.is_empty()).collect();
-    // The last part is the file (or the folder itself, which may be hidden too).
     parts.pop();
     !parts.into_iter().any(skip_dir)
         && !p
@@ -226,7 +200,6 @@ fn watched(root: &str, p: &Path) -> bool {
 
 type Emit = Arc<dyn Fn(FsChanges) + Send + Sync>;
 
-/// The watchers of every root and the debouncing thread behind them.
 pub struct WatchService {
     watchers: Mutex<HashMap<String, RecommendedWatcher>>,
     tx: Sender<(String, notify::Event)>,
@@ -249,8 +222,6 @@ impl WatchService {
         }
     }
 
-    /// Starts watching `root` (again: the old watcher is replaced). Returns the normalised root
-    /// that `fs://changed` names.
     pub fn watch(&self, root: &str) -> Result<String, String> {
         let root = normalize_dir(root);
         if !Path::new(&root).is_dir() {
@@ -285,7 +256,6 @@ fn debounce_loop(
     max_wait: Duration,
     emit: Emit,
 ) {
-    // Per root: the batch, when it started, when its last event came.
     let mut pending: HashMap<String, (Pending, Instant, Instant)> = HashMap::new();
     loop {
         let now = Instant::now();
@@ -366,13 +336,13 @@ mod tests {
         std::fs::write(&renamed_to, b"r").unwrap();
 
         let mut p = Pending::default();
-        p.ingest(ev(EventKind::Create(CreateKind::File), &[&a])); // created, then deleted
+        p.ingest(ev(EventKind::Create(CreateKind::File), &[&a]));
         p.ingest(ev(
             EventKind::Modify(ModifyKind::Data(DataChange::Any)),
             &[&b],
         ));
         p.ingest(ev(EventKind::Create(CreateKind::File), &[&c]));
-        p.ingest(ev(EventKind::Modify(ModifyKind::Any), &[&c])); // still created
+        p.ingest(ev(EventKind::Modify(ModifyKind::Any), &[&c]));
         p.ingest(ev(EventKind::Remove(RemoveKind::File), &[&gone]));
         p.ingest(ev(EventKind::Create(CreateKind::File), &[&txt]));
         p.ingest(ev(EventKind::Create(CreateKind::Folder), &[&moved_in]));
@@ -380,7 +350,6 @@ mod tests {
             EventKind::Create(CreateKind::File),
             &[&dir.join(".cache").join("h.jpg")],
         ));
-        // Windows reports a rename in two events.
         let old = dir.join("old.jpg");
         p.ingest(ev(
             EventKind::Modify(ModifyKind::Name(RenameMode::From)),
@@ -390,7 +359,6 @@ mod tests {
             EventKind::Modify(ModifyKind::Name(RenameMode::To)),
             &[&renamed_to],
         ));
-        // Linux: one event (and the halves too, deduplicated).
         let sub_from = dir.join("Old folder");
         let sub_to = dir.join("New folder");
         std::fs::create_dir_all(&sub_to).unwrap();
@@ -402,7 +370,6 @@ mod tests {
             EventKind::Modify(ModifyKind::Name(RenameMode::Both)),
             &[&sub_from, &sub_to],
         ));
-        // Moved out of the root: removed.
         let outside = temp_dir("resolve-outside").join("x.jpg");
         std::fs::write(&outside, b"x").unwrap();
         let was_inside = dir.join("x.jpg");

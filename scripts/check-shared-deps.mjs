@@ -1,17 +1,4 @@
 #!/usr/bin/env node
-/**
- * packages/api-client is compiled into the apps from source: the web app
- * (apps/frontend, Yarn) aliases it and resolves its imports from its own
- * node_modules, the mobile app (apps/mobile, root npm workspace) imports it as a
- * workspace, and the desktop app (apps/desktop, its own npm install) aliases its
- * React-free `core` entry. No install checks the package's peer ranges, so this does.
- *
- * Fails when
- * - a consumer's installed zod, React or React Query does not satisfy the
- *   package's peer range (the package's own dev install included: its tests run
- *   on it), or
- * - the web app and the mobile app are on different zod majors.
- */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -156,7 +143,6 @@ export function collect(repoRoot) {
     installed.web[name] = webRange && versionFromYarnLock(yarnLock, name, webRange);
     installed.mobile[name] = versionFromPackageLock(packageLock, MOBILE, name);
     installed["api-client (dev)"][name] = versionFromPackageLock(packageLock, API_CLIENT, name);
-    // The desktop imports `core` (no React Query): only what it declares, zod always.
     if (name === "zod" || declared(desktop, name)) {
       installed.desktop[name] = versionFromPackageLock(desktopLock, "", name);
     }

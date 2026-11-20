@@ -1,19 +1,3 @@
-//! The LibrePhotos server connection (CONTRACT.md "Server").
-//!
-//! Every API request is made by the UI with `packages/api-client` (endpoint functions + zod
-//! schemas); Rust only carries the bytes. What stays native:
-//!
-//! - [`http`]: the api-client's transport (`createNativeFetch`): the UI hands over an encoded
-//!   request, Rust sends it with `reqwest` and hands back status, headers and body. CORS never
-//!   applies. Only URLs of the connected server (or the one being signed in to) go out.
-//! - Settings (server URL, user, backup switch) in `settings.json` in the data directory,
-//!   and the refresh token in the OS keychain. The UI's token supplier is fed from here at start
-//!   and tells Rust when it signs in, refreshes or signs out.
-//! - `media`: server thumbnails for the `lpview` scheme, with a disk cache, fetched with the access
-//!   token the UI last handed over.
-//! - [`backup`]: MD5 hashing and chunk reads for the UI's backup engine (its queue is the shared
-//!   local database's `upload_queue`, written by `packages/local-db`).
-
 pub mod auth;
 pub mod backup;
 pub mod http;
@@ -32,13 +16,10 @@ pub struct Settings {
     pub url: Option<String>,
     pub username: Option<String>,
     pub user_id: Option<i64>,
-    /// Upload every library file the server lacks.
     pub backup: bool,
-    /// Uploads paused (checks still run).
     pub paused: bool,
 }
 
-/// What Rust knows about the connection; the UI adds its upload progress and errors.
 #[derive(Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerState {
@@ -48,11 +29,9 @@ pub struct ServerState {
     pub user_id: Option<i64>,
     pub backup: bool,
     pub paused: bool,
-    /// Why the last sign-in ended ("Your sign-in expired. Sign in again."), until the next one.
     pub error: Option<String>,
 }
 
-/// The session the UI's token supplier starts from: settings plus the keychain's refresh token.
 #[derive(Serialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Session {
@@ -62,7 +41,6 @@ pub struct Session {
     pub refresh: Option<String>,
 }
 
-/// What the UI reports after a successful sign-in (`/api/auth/token/obtain/` via api-client).
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SignIn {
@@ -87,18 +65,14 @@ pub struct Server {
     pub(crate) http: reqwest::Client,
     settings: Mutex<Settings>,
     tokens: Mutex<Tokens>,
-    /// The server being signed in to, which `http` may reach before the sign-in is saved.
     signing_in: Mutex<Option<String>>,
     error: Mutex<Option<String>>,
     pub(crate) requests: http::InFlight,
     emit: Emit,
 }
 
-/// The server thumbnail folders the media proxy serves (`packages/api-client` `media.ts`).
 const MEDIA_DIRS: [&str; 2] = ["square_thumbnails", "thumbnails_big"];
 
-/// `<server>/media/<dir>/<file>` of the connected server -> (dir, file), for the server
-/// thumbnails only. `file` is an image hash (letters and digits), optionally `.webp`.
 pub fn media_path<'a>(base: &str, src: &'a str) -> Option<(&'a str, &'a str)> {
     let rest = src.strip_prefix(base)?.strip_prefix("/media/")?;
     let (dir, file) = rest.split_once('/')?;
@@ -173,7 +147,6 @@ impl Server {
         std::fs::rename(&tmp, self.data_dir.join("settings.json")).map_err(|e| e.to_string())
     }
 
-    /// Keychain account of the current sign-in: `<url>|<username>`.
     fn account(&self) -> Option<String> {
         let s = self.settings.lock().unwrap();
         Some(format!("{}|{}", s.url.as_ref()?, s.username.as_ref()?))
@@ -201,7 +174,6 @@ impl Server {
         }
     }
 
-    /// Where the UI's token supplier starts: the saved sign-in, if any.
     pub fn session(&self) -> Session {
         let s = self.settings();
         let connected = self.connected();
@@ -213,16 +185,12 @@ impl Server {
         }
     }
 
-    /// Normalises the address typed into the sign-in form and lets `http` reach it.
     pub fn prepare_sign_in(&self, url: &str) -> Result<String, String> {
         let url = auth::normalize_url(url)?;
         *self.signing_in.lock().unwrap() = Some(url.clone());
         Ok(url)
     }
 
-    /// The UI signed in: the refresh token goes to the keychain, the settings to disk. (Which
-    /// account the local database's hashes and upload queue belong to is the UI's business: it
-    /// keeps that in the database and rebuilds both on a change.)
     pub fn signed_in(&self, s: SignIn) -> Result<ServerState, String> {
         if self.signing_in.lock().unwrap().as_deref() != Some(s.url.as_str())
             && self.settings().url.as_deref() != Some(s.url.as_str())
@@ -249,14 +217,10 @@ impl Server {
         Ok(self.state())
     }
 
-    /// The access token the UI's client holds now, for the media proxy.
     pub fn set_access(&self, token: Option<String>) {
         self.tokens.lock().unwrap().access = token;
     }
 
-    /// Signs out: forgets the tokens (the keychain entry too). The address and user name stay
-    /// for the next sign-in form; the library keeps what it knew about the server. `reason` is
-    /// shown until the next sign-in (an expired session, not a click on "Sign out").
     pub fn signed_out(&self, reason: Option<String>) {
         if let Some(a) = self.account() {
             self.secrets.delete(&a);
@@ -279,7 +243,6 @@ impl Server {
         Ok(())
     }
 
-    /// The origin `http` may send to: the connected server, or the one being signed in to.
     pub(crate) fn allows(&self, url: &str) -> bool {
         let under = |base: &str| {
             url.strip_prefix(base)
@@ -295,8 +258,6 @@ impl Server {
                 .is_some_and(under)
     }
 
-    /// A server thumbnail at `src` (a `packages/api-client` media URL of the connected server),
-    /// from the disk cache or the server. Err carries the HTTP status to answer.
     pub async fn media(&self, src: &str) -> Result<(Vec<u8>, &'static str), (u16, String)> {
         let base = self
             .settings()
@@ -386,7 +347,6 @@ mod tests {
             refresh: "refresh-token".into(),
             access: "access-token".into(),
         };
-        // Only a prepared server may be signed in to (and reached by `http`).
         assert!(s.signed_in(sign_in.clone()).is_err());
         assert!(!s.allows("http://h/api/auth/token/obtain/"));
         assert_eq!(s.prepare_sign_in("h/api/").unwrap(), "https://h");

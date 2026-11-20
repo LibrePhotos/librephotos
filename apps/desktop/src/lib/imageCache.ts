@@ -1,10 +1,3 @@
-/**
- * Decoded-image cache shared by the stage, the slideshow and the neighbour prefetch.
- *
- * `load(url)` fetches and fully decodes a picture off-screen (`img.decode()`), so swapping it into the
- * DOM afterwards paints in the same frame. Several callers can wait for the same URL; when every one
- * of them aborts before the picture arrives, the request is cancelled (`img.src = ""`).
- */
 export type Dims = { w: number; h: number };
 
 type Entry = {
@@ -54,7 +47,6 @@ function start(url: string): Entry {
   return entry;
 }
 
-/** Size of an already decoded picture, or null. */
 export function peek(url: string): Dims | null {
   const entry = entries.get(url);
   if (!entry?.dims) return null;
@@ -66,7 +58,6 @@ export function isAbort(err: unknown): boolean {
   return err instanceof DOMException && err.name === "AbortError";
 }
 
-/** Loads and decodes `url`. Rejects with an AbortError when `signal` fires first. */
 export function load(url: string, signal?: AbortSignal): Promise<Dims> {
   const known = peek(url);
   if (known) return Promise.resolve(known);

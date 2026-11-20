@@ -19,14 +19,9 @@ import {
 } from "./api";
 import { onLibraryProgress } from "./indexer";
 
-/** Tables a library view reads: files, their roots, and their server state. */
 const FILE_TABLES = ["local_asset", "local_album_asset", "upload_queue", "remote_photo"] as const;
 const ROOT_TABLES = ["local_album", "local_album_asset"] as const;
 
-/**
- * Runs `load` now and again after events, at most once per `ms` (events come in storms while
- * files upload). The newest answer wins.
- */
 function useReloading<T>(
   load: () => Promise<T>,
   subscribe: (reload: () => void) => () => void,
@@ -69,7 +64,6 @@ function useReloading<T>(
   return [value, run];
 }
 
-/** Rust's side of the connection, the library's backup counts, and the backup engine's progress. */
 async function serverStatus(): Promise<ServerStatus> {
   const state = await serverState();
   const stats = backupStats();
@@ -94,13 +88,11 @@ export function useRoots(): [Root[], () => void] {
   return rootsStore.use("roots", ROOT_TABLES, libraryRoots);
 }
 
-/** Library files (of one root, or all), newest first; null until the first answer. */
 export function useLibraryFiles(rootId: string | null): [LibraryFile[] | null, () => void] {
   const load = useCallback(() => libraryFiles(rootId), [rootId]);
   return filesStore.use(`files:${rootId ?? "*"}`, FILE_TABLES, load);
 }
 
-/** How many days the library (or one root) has pictures on. */
 export function useLibraryDays(rootId: string | null): number {
   const load = useCallback(() => libraryDays(rootId), [rootId]);
   return daysStore.use(`days:${rootId ?? "*"}`, FILE_TABLES, load)[0];
@@ -112,7 +104,6 @@ export function useLibraryProgress(): LibraryProgress | null {
   return p;
 }
 
-/** Whether the file shown in the viewer is in the library (follows library changes). */
 export function useLibraryStatus(path: string | null): LibraryStatus | null {
   const load = useCallback(
     () => (path ? libraryStatus(path) : Promise.resolve<LibraryStatus>({ root: null, file: null })),

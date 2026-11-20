@@ -1,16 +1,3 @@
-//! The local database's SQL engine (CONTRACT.md "Local database"): the schema, queries and
-//! writers are TypeScript (`packages/local-db`, shared with mobile, on Drizzle's `sqlite-proxy`);
-//! Rust only opens the file, applies the package's migrations, executes statements and reports
-//! which tables changed.
-//!
-//! - One connection behind a mutex (WAL). A transaction never outlives one call: `exec` runs one
-//!   statement in autocommit mode (a statement that leaves a transaction open is rolled back and
-//!   rejected), `batch` runs its statements in one `BEGIN IMMEDIATE` transaction, all or nothing.
-//! - Rows come back in the shapes Drizzle's sqlite-proxy reads: `all`/`values` an array of row
-//!   arrays, `get` one row array or nothing, `run` an empty array. Values: [`value`].
-//! - `sqlite3_update_hook` collects the tables a call touched; once it committed they go to the
-//!   [`changes::ChangeHub`], which coalesces them into one `db://changed { tables }` per window.
-
 pub mod changes;
 pub mod migrate;
 pub mod value;
@@ -26,11 +13,8 @@ use serde::{Deserialize, Serialize};
 use changes::ChangeHub;
 use value::{CellRef, Param};
 
-/// The database file in the data directory. The Rust library used `library.db` with its own
-/// schema; the shared package's schema starts a new file.
 pub const FILE_NAME: &str = "local.db";
 
-/// Prepared statements kept per connection (Drizzle sends the same SQL text again and again).
 const STATEMENT_CACHE: usize = 256;
 
 #[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,7 +26,6 @@ pub enum Method {
     Get,
 }
 
-/// One statement of a call.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Statement {
     pub sql: String,
@@ -51,28 +34,19 @@ pub struct Statement {
     pub method: Method,
 }
 
-/// What a call answers, as JSON bytes handed to the webview unchanged: per statement
-/// `{"rows": ...}` with `rows` as sqlite-proxy reads it, plus `"tagged": true` when a cell is a tag
-/// object (`$bigint`, `$blob`, `$real`) the UI must decode. A batch answers a JSON array of them.
 pub type Answer = Vec<u8>;
 
-/// Facts about the database for the UI (`db_info`).
 #[derive(Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DbInfo {
     pub path: Option<String>,
-    /// Migration tags applied, in order.
     pub applied: Vec<String>,
-    /// A migration failed and the database was rebuilt from scratch (outbox and upload queue
-    /// kept): the mirror needs a full seed, the library a rescan.
     pub wiped: bool,
-    /// Why the last migration failed (the database stays at the migration before it).
     pub migration_error: Option<String>,
 }
 
 pub struct LocalDb {
     conn: Mutex<Connection>,
-    /// Tables the running call touched (filled by the update hook).
     touched: Arc<Mutex<BTreeSet<String>>>,
     hub: ChangeHub,
     path: Option<PathBuf>,
@@ -81,7 +55,6 @@ pub struct LocalDb {
     migration_error: Option<String>,
 }
 
-/// The names of the virtual tables (whose `<name>_*` tables are SQLite's shadow tables).
 fn virtual_tables(conn: &Connection) -> rusqlite::Result<Vec<String>> {
     let mut st = conn.prepare(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND sql LIKE 'CREATE VIRTUAL TABLE%'",
@@ -92,13 +65,11 @@ fn virtual_tables(conn: &Connection) -> rusqlite::Result<Vec<String>> {
 fn configure(conn: &Connection) -> rusqlite::Result<()> {
     conn.pragma_update(None, "journal_mode", "WAL")?;
     conn.pragma_update(None, "synchronous", "NORMAL")?;
-    // Like mobile's expo-sqlite connection: foreign keys stay off (SQLite's default).
     conn.busy_timeout(std::time::Duration::from_secs(5))?;
     conn.set_prepared_statement_cache_capacity(STATEMENT_CACHE);
     Ok(())
 }
 
-/// The first keyword of a statement, lower case (comments and whitespace skipped).
 fn first_keywords(sql: &str) -> (String, String) {
     let mut rest = sql;
     loop {
@@ -121,7 +92,6 @@ fn first_keywords(sql: &str) -> (String, String) {
     )
 }
 
-/// Statements that would end (or start) the batch's own transaction.
 fn ends_transaction(sql: &str) -> bool {
     let (a, b) = first_keywords(sql);
     match a.as_str() {
@@ -131,7 +101,6 @@ fn ends_transaction(sql: &str) -> bool {
     }
 }
 
-/// Writes one row as a JSON array; true when a cell is a tag object.
 fn write_row(out: &mut Vec<u8>, row: &rusqlite::Row<'_>, cols: usize) -> Result<bool, String> {
     let mut tagged = false;
     out.push(b'[');
@@ -151,7 +120,6 @@ fn step<'s>(rows: &'s mut rusqlite::Rows<'_>) -> Result<Option<&'s rusqlite::Row
     rows.next().map_err(|e| e.to_string())
 }
 
-/// Steps `rows` as `method` asks, writing the `rows` value; true when a cell is a tag object.
 fn write_rows(
     out: &mut Vec<u8>,
     rows: &mut rusqlite::Rows<'_>,
@@ -181,15 +149,12 @@ fn write_rows(
                 Some(row) => tagged = write_row(out, row, cols)?,
                 None => out.extend_from_slice(b"null"),
             }
-            // Finish the statement so a `get` of an INSERT ... RETURNING writes every row.
             while step(rows)?.is_some() {}
         }
     }
     Ok(tagged)
 }
 
-/// Runs one statement and appends its answer to `out` as JSON, written while SQLite steps
-/// (no row is copied out first): `{"rows":...}`, plus `"tagged":true` when a cell is a tag.
 fn run_statement(conn: &Connection, st: &Statement, out: &mut Vec<u8>) -> Result<(), String> {
     let mut stmt = conn.prepare_cached(&st.sql).map_err(|e| e.to_string())?;
     let expected = stmt.parameter_count();
@@ -204,7 +169,6 @@ fn run_statement(conn: &Connection, st: &Statement, out: &mut Vec<u8>) -> Result
             .map_err(|e| e.to_string())?;
     }
     let cols = stmt.column_count();
-    // The package reads raw SQL rows by column name: `all` and `get` carry the names.
     let columns = match st.method {
         Method::All | Method::Get => {
             Some(serde_json::to_vec(&stmt.column_names()).map_err(|e| e.to_string())?)
@@ -245,8 +209,6 @@ fn run_statement(conn: &Connection, st: &Statement, out: &mut Vec<u8>) -> Result
 }
 
 impl LocalDb {
-    /// Opens (creating) the database at `path` and applies `migrations`. A failed migration
-    /// leaves the database at the one before it and is reported by [`LocalDb::info`].
     pub fn open(
         path: &Path,
         migrations: &[migrate::Migration],
@@ -280,8 +242,6 @@ impl LocalDb {
         let applied = migrate::applied(&conn)?;
         let touched: Arc<Mutex<BTreeSet<String>>> = Arc::default();
         let sink = touched.clone();
-        // Trigger writes to a virtual table's shadow tables (the FTS index) are not reported: a
-        // watcher of the indexed table hears about the change already.
         let shadows: Vec<String> = virtual_tables(&conn)?
             .into_iter()
             .map(|v| format!("{v}_"))
@@ -294,11 +254,6 @@ impl LocalDb {
                 }
             }
         }))?;
-        // A `DELETE FROM t` without WHERE would empty the table without visiting rows (the
-        // truncate optimisation), which the update hook does not see. Answering SQLITE_IGNORE to
-        // the delete authorisation keeps the delete and turns the optimisation off. `DROP TABLE`
-        // and `DROP VIEW` ask for the same authorisation right after their own (where
-        // SQLITE_IGNORE would skip the drop), so that one, and the schema table's, are allowed.
         let mut dropping: Option<String> = None;
         conn.authorizer(Some(move |ctx: AuthContext<'_>| match ctx.action {
             AuthAction::DropTable { table_name }
@@ -350,7 +305,6 @@ impl LocalDb {
         }
     }
 
-    /// Hands the tables the call touched to the change hub (`committed`) or forgets them.
     fn settle(&self, committed: bool) {
         let tables = std::mem::take(&mut *self.touched.lock().unwrap_or_else(|e| e.into_inner()));
         if committed && !tables.is_empty() {
@@ -358,8 +312,6 @@ impl LocalDb {
         }
     }
 
-    /// One statement, autocommit. A statement that leaves a transaction open (`BEGIN`) is rolled
-    /// back and rejected: transactions go through [`LocalDb::batch`].
     pub fn exec(&self, st: &Statement) -> Result<Answer, String> {
         let conn = self.lock();
         let mut out = Vec::new();
@@ -376,8 +328,6 @@ impl LocalDb {
         result
     }
 
-    /// Several statements in one transaction: every result, or the first error and nothing
-    /// written.
     pub fn batch(&self, statements: &[Statement]) -> Result<Answer, String> {
         if let Some(i) = statements.iter().position(|s| ends_transaction(&s.sql)) {
             return Err(format!(
@@ -475,7 +425,6 @@ mod tests {
             .exec(&st("SELECT name FROM t WHERE id = ?", "[9]", Method::Get))
             .unwrap();
         assert_eq!(json(&none), r#"{"rows":null,"columns":["name"]}"#);
-        // `get` of a multi-row RETURNING still writes every row.
         let ret = db
             .exec(&st(
                 "INSERT INTO t (name) VALUES ('c'), ('d') RETURNING name",
@@ -494,7 +443,6 @@ mod tests {
                 .contains("1 parameters")
         );
         assert!(db.exec(&st("SELEC 1", "[]", Method::All)).is_err());
-        // Schema changes still work with the delete authoriser in place.
         for sql in [
             "CREATE TABLE tmp (x)",
             "CREATE VIEW v AS SELECT * FROM tmp",
@@ -595,7 +543,6 @@ mod tests {
             r#"{"rows":[2],"columns":["n"]}"#,
             "the first insert was rolled back"
         );
-        // A batch cannot end its own transaction; savepoints are fine.
         assert!(db.batch(&[st("COMMIT", "[]", Method::Run)]).is_err());
         assert!(
             db.batch(&[st("/* x */ begin immediate", "[]", Method::Run)])
@@ -622,7 +569,6 @@ mod tests {
         let db = db();
         let err = db.exec(&st("BEGIN", "[]", Method::Run)).unwrap_err();
         assert!(err.contains("db_batch"), "{err}");
-        // The connection is back in autocommit mode: this is committed at once.
         db.exec(&st("INSERT INTO t (id) VALUES (1)", "[]", Method::Run))
             .unwrap();
         assert!(db.lock().is_autocommit());
@@ -641,16 +587,13 @@ mod tests {
             .unwrap();
         db.exec(&st("UPDATE t SET name = 'x'", "[]", Method::Run))
             .unwrap();
-        // A burst is one event. (`u` is WITHOUT ROWID: the update hook never sees it.)
         assert_eq!(wait(), vec!["t".to_string()]);
-        // A rolled-back batch reports nothing; reads report nothing.
         let _ = db.batch(&[
             st("INSERT INTO t (id) VALUES (2)", "[]", Method::Run),
             st("INSERT INTO t (id) VALUES (1)", "[]", Method::Run),
         ]);
         db.exec(&st("SELECT * FROM t", "[]", Method::All)).unwrap();
         assert!(rx.recv_timeout(Duration::from_millis(300)).is_err());
-        // DELETE without WHERE (the truncate optimisation) is seen too.
         db.exec(&st("DELETE FROM t", "[]", Method::Run)).unwrap();
         assert_eq!(wait(), vec!["t".to_string()]);
         let n = db
@@ -673,7 +616,6 @@ mod tests {
             Method::Run,
         ))
         .unwrap();
-        // The FTS triggers wrote the index too; only the table itself is reported.
         assert_eq!(
             rx.recv_timeout(Duration::from_secs(2)).unwrap(),
             vec!["local_asset".to_string()]

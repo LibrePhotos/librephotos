@@ -1,14 +1,3 @@
-//! The migration runner: applies `packages/local-db`'s ordered `migrations/migrations.json`
-//! (`[{ "tag": "0000_baseline", "statements": ["CREATE TABLE ...", ...] }]`) at start-up, before
-//! the window loads, the way the package's `runMigrations` does (its README, "Migrations"):
-//!
-//! 1. Applied tags are kept in `__local_db_migrations(tag, applied_at)`; every migration whose tag
-//!    is missing runs, in array order, in its own transaction together with its bookkeeping row.
-//! 2. If one fails, the database is WIPED AND REBUILT: the rows of `outbox` and `upload_queue` are
-//!    read out, every view and table is dropped (FTS shadow tables go with their virtual table),
-//!    every migration is applied from scratch, and the saved rows go back with the columns that
-//!    still exist (`INSERT OR IGNORE`). The mirror is disposable; the library is walked again.
-
 use std::collections::HashSet;
 use std::fmt;
 
@@ -16,11 +5,9 @@ use rusqlite::types::Value;
 use rusqlite::{Connection, TransactionBehavior, params, params_from_iter};
 use serde::Deserialize;
 
-/// The migrations the app applies: the shared package's, compiled in.
 pub const MIGRATIONS_JSON: &str =
     include_str!("../../../../../packages/local-db/migrations/migrations.json");
 
-/// Tables whose rows survive a wipe-and-rebuild (the package's `PRESERVED_TABLES`).
 pub const PRESERVED_TABLES: [&str; 2] = ["outbox", "upload_queue"];
 
 const BOOKKEEPING: &str = "CREATE TABLE IF NOT EXISTS __local_db_migrations (\
@@ -34,9 +21,7 @@ pub struct Migration {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MigrateError {
-    /// The migration that failed (empty when the bookkeeping itself failed).
     pub tag: String,
-    /// Its statement that failed.
     pub statement: Option<usize>,
     pub message: String,
 }
@@ -51,7 +36,6 @@ impl fmt::Display for MigrateError {
     }
 }
 
-/// Parses a `migrations.json`; tags must be unique and non-empty.
 pub fn parse(json: &str) -> Result<Vec<Migration>, String> {
     let list: Vec<Migration> =
         serde_json::from_str(json).map_err(|e| format!("migrations.json: {e}"))?;
@@ -67,7 +51,6 @@ pub fn parse(json: &str) -> Result<Vec<Migration>, String> {
     Ok(list)
 }
 
-/// The app's migrations ([`MIGRATIONS_JSON`]).
 pub fn bundled() -> Vec<Migration> {
     parse(MIGRATIONS_JSON).unwrap_or_else(|e| {
         eprintln!("local database: {e}");
@@ -75,7 +58,6 @@ pub fn bundled() -> Vec<Migration> {
     })
 }
 
-/// Applied tags with their time (ms since the epoch), in the order they were applied.
 pub fn applied(conn: &Connection) -> rusqlite::Result<Vec<(String, i64)>> {
     conn.execute(BOOKKEEPING, [])?;
     let mut st =
@@ -87,8 +69,6 @@ fn now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
 }
 
-/// Applies every migration whose tag is not recorded yet, in order, each in one transaction.
-/// Returns the tags applied now; stops at the first failure.
 pub fn apply(conn: &mut Connection, migrations: &[Migration]) -> Result<Vec<String>, MigrateError> {
     let bookkeeping = |e: rusqlite::Error| MigrateError {
         tag: String::new(),
@@ -124,16 +104,12 @@ pub fn apply(conn: &mut Connection, migrations: &[Migration]) -> Result<Vec<Stri
     Ok(now)
 }
 
-/// What start-up migration did.
 #[derive(Debug, Default)]
 pub struct Outcome {
-    /// A migration failed and the database was rebuilt.
     pub wiped: bool,
-    /// The failure (and, if the rebuild failed too, why).
     pub error: Option<MigrateError>,
 }
 
-/// [`apply`], and when that fails, [`wipe_and_rebuild`].
 pub fn run(conn: &mut Connection, migrations: &[Migration]) -> Outcome {
     match apply(conn, migrations) {
         Ok(_) => Outcome::default(),
@@ -155,7 +131,6 @@ pub fn run(conn: &mut Connection, migrations: &[Migration]) -> Outcome {
 
 type SavedRows = Vec<(String, Vec<(String, Value)>)>;
 
-/// Every row of `table` as (column, value) pairs; empty when the table does not exist.
 fn read_rows(conn: &Connection, table: &str) -> SavedRows {
     let Ok(mut st) = conn.prepare(&format!("SELECT * FROM `{table}`")) else {
         return Vec::new();
@@ -177,8 +152,6 @@ fn read_rows(conn: &Connection, table: &str) -> SavedRows {
     }
 }
 
-/// Drops every view and table, applies every migration from scratch and puts the rows of
-/// [`PRESERVED_TABLES`] back, in one transaction.
 pub fn wipe_and_rebuild(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<()> {
     let saved: SavedRows = PRESERVED_TABLES
         .iter()
@@ -270,7 +243,6 @@ mod tests {
     fn the_bundled_file_parses() {
         let bundled = parse(MIGRATIONS_JSON).unwrap();
         assert_eq!(bundled[0].tag, "0000_baseline");
-        // The package's schema applies cleanly here (FTS5, views and triggers included).
         let mut conn = Connection::open_in_memory().unwrap();
         assert_eq!(apply(&mut conn, &bundled).unwrap().len(), bundled.len());
         assert!(tables(&conn).contains(&"local_asset_fts".to_string()));
@@ -328,7 +300,6 @@ mod tests {
                 .unwrap();
             assert_eq!(n, 0);
         }
-        // Next start, with the migration fixed: it and the ones after it apply.
         let fixed = m(
             "0001_bad",
             &["CREATE TABLE b (y TEXT)", "INSERT INTO a VALUES (1)"],
@@ -360,7 +331,6 @@ mod tests {
             ],
         )];
         assert!(run(&mut conn, &old).error.is_none());
-        // The new history starts over: a squashed baseline that cannot apply on top.
         let new = vec![
             m(
                 "0000_baseline",
@@ -394,7 +364,6 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM mirror", [], |r| r.get(0))
             .unwrap();
         assert_eq!(mirror, 0, "the mirror is rebuilt empty");
-        // Applying again is a no-op.
         let again = run(&mut conn, &new);
         assert!(!again.wiped && again.error.is_none());
     }

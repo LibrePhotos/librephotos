@@ -1,13 +1,3 @@
-//! Where tile pixels come from: full-width runs of stored rows, possibly at a native 1/2^s scale.
-//!
-//! - WIC (Windows): the frame's `CopyPixels` with a row rectangle. Decoders keep their position,
-//!   so consecutive row runs stream (a 512-row strip of a 23040 px wide JPEG costs ~47 ms however
-//!   deep it is); going back up restarts from the top. Rows above a rectangle are skipped cheaply
-//!   (entropy decoding only): the middle band of a 298 MP JPEG comes out in ~0.35 s cold. JPEG also decodes at 1/2, 1/4 and 1/8
-//!   through `IWICBitmapSourceTransform` with a rectangle, so coarse levels never touch full
-//!   resolution.
-//! - Memory: an already decoded image (a RAW develop, or a pure-Rust decode off Windows).
-
 use std::path::Path;
 use std::sync::Arc;
 
@@ -15,30 +5,21 @@ use crate::formats::{FileKind, ext_of, kind_of_ext};
 use crate::pixels::{PixFmt, Pixels};
 use crate::request::Kind;
 
-/// Pixel rows of one stored image. One instance is used by one thread at a time; each pyramid
-/// level opens its own so their stream positions don't fight.
 pub trait RowSource: Send {
-    /// Rows `[y0, y1)` of the image scaled by 1/2^`scale` (`scale <= max_scale`), full width.
     fn rows(&mut self, scale: u32, y0: u32, y1: u32) -> Result<Pixels, String>;
 }
 
-/// Opens a fresh row source (each pyramid level streams through its own).
 pub type Opener = Box<dyn Fn() -> Result<Box<dyn RowSource>, String> + Send + Sync>;
 
-/// What an opened image looks like, and how to get (more) row sources for it.
 pub struct Opened {
-    /// Stored full-resolution size.
     pub width: u32,
     pub height: u32,
     pub orientation: u16,
-    /// Largest native downscale: rows at 1/2^s for every s in 0..=max_scale.
     pub max_scale: u32,
     pub has_alpha: bool,
     pub open: Opener,
 }
 
-/// Cheap size probe (no decode) so small images are rejected before any heavy open.
-/// Displayed (oriented) size; `None` when unknown.
 pub fn probe_dims(path: &Path) -> Option<(u32, u32)> {
     let ext = ext_of(path);
     match kind_of_ext(&ext)? {
@@ -78,7 +59,6 @@ pub fn open(path: &Path) -> Result<Opened, String> {
     match kind_of_ext(&ext) {
         None | Some(FileKind::Video) => Err(format!("'.{ext}' has no tiles")),
         Some(FileKind::Raw) => {
-            // A develop is one big decode; keep it and slice tiles out of it.
             match crate::decode::raw::render(path, Kind::Full, u32::MAX, u32::MAX)? {
                 crate::decode::Rendered::Pixels(p) => Ok(memory(p)),
                 _ => Err("RAW develop returned no pixels".into()),
@@ -91,7 +71,6 @@ pub fn open(path: &Path) -> Result<Opened, String> {
             #[cfg(windows)]
             match wic::open(path) {
                 Ok(o) => return Ok(o),
-                // A pure-Rust decode of a huge JPEG would hold all of it in memory.
                 Err(e) if crate::formats::is_jpeg(&ext) => return Err(e),
                 Err(_) => {}
             }
@@ -101,11 +80,9 @@ pub fn open(path: &Path) -> Result<Opened, String> {
     }
 }
 
-/// An oriented, decoded image as a row source (alpha dropped when unused, RGBA -> RGB).
 pub fn memory(p: Pixels) -> Opened {
     let has_alpha = p.uses_alpha();
     let p = if p.format.bytes_per_pixel() == 4 && !has_alpha {
-        // RGBA -> RGB, BGRX -> BGR: the first three bytes keep their order.
         let format = if p.format == PixFmt::Bgrx8 {
             PixFmt::Bgr8
         } else {
@@ -196,7 +173,6 @@ mod wic {
         })
     }
 
-    /// How far the codec scales natively (JPEG DCT scaling), with exactly `ceil(w / 2^s)` sizes.
     fn native_scales(src: &Source) -> u32 {
         unsafe {
             if src.frame.GetPixelFormat().ok() != Some(GUID_WICPixelFormat24bppBGR) {
@@ -223,15 +199,12 @@ mod wic {
         }
     }
 
-    /// The frame (scale 0, converted to BGR24) and its scaling transform (JPEG).
     struct WicRows {
         src: Source,
         bgr: IWICBitmapSource,
         transform: Option<IWICBitmapSourceTransform>,
     }
 
-    // SAFETY: COM is initialised multithreaded (MTA) on every thread that touches WIC, so these
-    // objects may move between threads; one `WicRows` is only ever used by one thread at a time.
     unsafe impl Send for WicRows {}
 
     impl WicRows {

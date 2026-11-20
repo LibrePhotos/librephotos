@@ -1,77 +1,3 @@
-/*
- * LibrePhotos desktop design tokens. One source for every view (viewer, library, settings), taken
- * from the web app's Mantine 9 theme (apps/frontend/src/theme, App.tsx createTheme) so the desktop
- * app reads as the same product. Use these, never raw colours, in new CSS.
- *
- * Schemes
- *   :root              follows prefers-color-scheme (light or dark), like the web app.
- *   .lp-dark           forces the dark values on a subtree. The photo viewer (top bar, stage,
- *                      filmstrip, info panel) is dark in both schemes, as the web lightbox is
- *                      (ViewerDarkScope): a light panel next to a black stage reads as a second app.
- *   .lp-app-scheme     back to the app's scheme inside .lp-dark: menus and dialogs opened from the
- *                      viewer keep the app's scheme, as Mantine's portalled dropdowns do on the web.
- *
- * Colours (scheme-aware)                     Mantine equivalent
- *   --lp-color-body                          --mantine-color-body (page background)
- *   --lp-color-surface                       Paper / Menu / Modal background
- *   --lp-color-text, --lp-color-dimmed       --mantine-color-text, --mantine-color-dimmed
- *   --lp-color-border                        --mantine-color-default-border (hairlines, dividers)
- *   --lp-color-hover, --lp-color-active      subtle hover / pressed fill (transparent, any surface)
- *   --lp-color-default(-hover)               "default" button: quiet grey pill, no border
- *   --lp-color-primary(-hover|-contrast)     filled primary button and its text
- *   --lp-color-primary-light(-hover)         tinted primary (selected rows, pressed toggles)
- *   --lp-color-primary-text                  links, icons in the primary colour, focus ring
- *   --lp-color-danger(-hover|-text|-light)   destructive actions (red 8 / 9, white text)
- *   --lp-color-success-text                  success icons (teal)
- *   --lp-color-tooltip-bg, -tooltip-text     tooltips (inverted: dark on light, light on dark)
- *   --lp-color-overlay                       dialog backdrop
- *   --lp-color-chrome                        app shell header + navbar (gray 0 / dark 8, AppShellChrome)
- *   --lp-color-raised                        a card on the chrome (sidebar Storage card: white / dark 6)
- *   --lp-color-nav-text, -nav-icon, -nav-hover   sidebar rows (SideMenuNarrow.module.css .link)
- *   --lp-color-search(-hover)                header search pill (Spotlight.module.css .trigger)
- *   --lp-color-field, --lp-color-field-border    inputs: filled grey with a 1px border (controlsTheme)
- *   --lp-color-control-ring                  unchecked checkbox / radio ring
- *   --lp-color-switch-off                    off switch track
- *   --lp-color-track                         progress track (UploadProgressCard .overallTrack)
- *   --lp-color-segment(-active)              SegmentedControl capsule and its raised segment
- *   --lp-color-warning-text, -warning-light  orange badges and notes (light variant)
- *   --lp-color-success-light                 teal light fill
- * Photo-side colours (the same in both schemes: they sit on pictures)
- *   --lp-stage                               pure black behind a photo
- *   --lp-scrim-black-35|60|75, --lp-scrim-white-8|12|16|20|80|90
- *
- * Shape and space
- *   --lp-radius-xs|sm|md|lg|xl|round        2 / 4 / 8 / 16 / 32 px / pill (Mantine: md is the default)
- *   --lp-space-1 .. --lp-space-8            4 / 8 / 12 / 16 / 20 / 24 / 32 px (md = 16, lg = 20)
- *   --lp-shadow-xs|sm|md|lg|xl              segments / cards / menus / toasts and dialogs / floating cards
- * Type
- *   --lp-font-family, --lp-font-family-mono
- *   --lp-font-size-xs|sm|md|lg|xl           12 / 14 / 16 / 18 / 22 px
- *   --lp-font-weight-medium|semibold|bold   500 / 600 / 700
- *   --lp-line-height, --lp-line-height-tight 1.55 / 1.3
- * Layers (z-index)
- *   --lp-z-stage-controls < --lp-z-chrome < --lp-z-toast < --lp-z-popover < --lp-z-overlay
- * Motion
- *   --lp-ease (standard decelerate), --lp-duration-fast|base|slow  120 / 160 / 220 ms
- * Sizes
- *   --lp-control-height-sm|md               30 / 36 px buttons
- *   --lp-action-size, --lp-action-size-sm   40 / 28 px round icon buttons (toolbar / inline)
- *   --lp-topbar-height, --lp-filmstrip-height  48 / 76 px. src-tauri/src/lib.rs CHROME_CSS_PX
- *                                           predicts the stage box from these: change both together.
- *   --lp-panel-width                        360 px side panel
- *   --lp-header-height, --lp-navbar-width   55 / 200 px library shell (web uiConstants TOP_MENU_HEIGHT,
- *                                           LEFT_MENU_WIDTH)
- *   --lp-page-gutter                        20 px: a page's content inset (web PAGE_GUTTER)
- *
- * Shared primitives (src/ui/ui.css, loaded by main.tsx after this file; src/ui/*.tsx): .btn (.primary .danger .subtle), .icon-btn
- * (IconButton), [data-tip] tooltips, .menu (Menu), .panel / .section / .detail-row (Panel),
- * .chip-strip, .kbd, .lp-checkbox. Mantine-style form and layout components (src/ui/controls.css):
- * Button, TextInput, PasswordInput, Switch, Checkbox, SegmentedControl, Badge, Progress, Card,
- * NavLink, Alert, Loader, Modal, EmptyState, Avatar. The legacy names at the end (--bg, --surface, --text, ...) are
- * kept for code written before these tokens; do not use them in new code.
- */
-
-/* ------------------------------------------------------------ scheme-independent tokens */
 :root {
   --lp-stage: #000;
   --lp-color-favorite: #fcc419;
@@ -137,7 +63,6 @@
   --lp-page-gutter: 20px;
 }
 
-/* ------------------------------------------------------------ dark (default, and .lp-dark) */
 :root,
 .lp-app-scheme,
 .lp-dark,
@@ -189,7 +114,6 @@
   --lp-shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.5);
   --lp-checkbox-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b3670' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E");
 
-  /* Legacy names (before the --lp- tokens). Declared in every scope so they follow it. */
   --bg: var(--lp-color-body);
   --stage: var(--lp-stage);
   --surface: var(--lp-color-surface);
@@ -214,14 +138,12 @@
   --font-display: var(--lp-font-family);
 }
 
-/* Tooltips follow the app's scheme even inside the dark viewer (Mantine portals them to <body>). */
 :root,
 .lp-app-scheme {
   --lp-color-tooltip-bg: #e9ecef;
   --lp-color-tooltip-text: #000;
 }
 
-/* ------------------------------------------------------------ light */
 @media (prefers-color-scheme: light) {
   :root,
   .lp-app-scheme {
@@ -278,7 +200,6 @@
   }
 }
 
-/* ------------------------------------------------------------ base */
 * {
   box-sizing: border-box;
 }
@@ -314,7 +235,6 @@ h4 {
   line-height: var(--lp-line-height-tight);
 }
 
-/* Mantine's focus ring: 2px in the primary colour, 2px off the element, keyboard only. */
 :focus-visible {
   outline: 2px solid var(--lp-color-primary-text);
   outline-offset: 2px;

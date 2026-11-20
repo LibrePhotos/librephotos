@@ -41,10 +41,8 @@ const SERVER_DEBOUNCE_MS = 350;
 const PREWARM_DELAY_MS = 2500;
 
 export type LibraryViewProps = {
-  /** Open the viewer on `files[index]` with `files` as its navigation list. */
   onOpen(files: LibraryFile[], index: number): void;
   onOpenPicture(): void;
-  /** Back to the picture that was open before, if any. */
   onBack: (() => void) | null;
   notify(text: string, kind?: "error"): void;
 };
@@ -58,7 +56,6 @@ export async function pickFolder(): Promise<string | null> {
 type Search = {
   query: string;
   local: LibraryFile[] | null;
-  /** Local files the server's search found (mapped back by MD5). */
   fromServer: LibraryFile[];
   serverOnly: ServerHit[];
   serverBusy: boolean;
@@ -119,7 +116,6 @@ function useSearch(query: string, connected: boolean): Search {
   return s;
 }
 
-/** A server-only search hit, shown big over the page like the web lightbox (dark in both schemes). */
 function RemotePreview({ hit, onClose }: { hit: ServerHit; onClose(): void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -146,12 +142,6 @@ type Scope = "all" | "local" | "remote";
 
 const photos = (n: number) => `${n.toLocaleString()} ${n === 1 ? "photo" : "photos"}`;
 
-/**
- * The library window, drawn as the LibrePhotos web app: a header with the logo and the search
- * pill, the sidebar of pill rows on the chrome colour, and the page set into it with a rounded
- * corner (web components/menubars). Pages: the timeline (all photos or one folder), search results
- * (this computer and the server), folders, and the LibrePhotos connection.
- */
 export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryViewProps) {
   const [page, setPage] = useState<Page>("photos");
   const [rootId, setRootId] = useState<string | null>(null);
@@ -179,7 +169,6 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
     return [...merged.values()].sort((a, b) => b.takenMs - a.takenMs || b.name.localeCompare(a.name));
   }, [searching, files, search.local, search.fromServer, rootPath]);
 
-  // Let Rust make the thumbs of this list into the disk cache while the app is idle.
   useEffect(() => {
     if (searching || shown.length < 2) return;
     const t = window.setTimeout(() => {
@@ -244,8 +233,6 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
   const host = hostOf(status.url);
   const total = roots.reduce((n, r) => n + r.fileCount, 0);
   const days = useLibraryDays(rootId);
-
-  // ------------------------------------------------------------ the current page
 
   let content;
   if (searching) {
@@ -382,8 +369,6 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
       </>
     );
   }
-
-  // ------------------------------------------------------------ the shell
 
   const c = status.counts;
   const backupPct = c.total > 0 ? (c.present / c.total) * 100 : 0;

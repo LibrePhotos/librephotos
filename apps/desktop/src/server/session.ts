@@ -1,15 +1,3 @@
-/**
- * The signed-in session and the one api-client of the desktop app (CONTRACT.md "Server").
- *
- * - Requests: `createApiClient` from `@librephotos/api-client/core` with the native transport
- *   (`./transport`), so every call is an endpoint function of the shared package, parsed by its
- *   zod schema, and sent by Rust.
- * - Tokens: a `TokenSupplier` in memory, fed from Rust at start (the refresh token lives in the
- *   OS keychain, never in web storage). Rust also gets each new access token, for the media proxy,
- *   and the token is refreshed (`endpoints.refreshAccessToken`) a minute before it expires, so
- *   server thumbnails keep loading while no API request is due.
- * - Sign-in, refresh and sign-out are `endpoints.login`, `refreshAccessToken` and `logout`.
- */
 import {
   ApiError,
   createApiClient,
@@ -32,11 +20,9 @@ type Session = {
   refresh: string | null;
 };
 
-/** What `server_session` answers: the saved sign-in. */
 type Saved = { url: string | null; username: string | null; userId: number | null; refresh: string | null };
 
 const EXPIRED = "Your sign-in expired. Sign in again.";
-/** Refresh this long before the access token expires. */
 const REFRESH_AHEAD_MS = 60_000;
 
 let session: Session = { url: null, username: null, userId: null, access: null, refresh: null };
@@ -47,18 +33,15 @@ function changed(): void {
   for (const listener of listeners) listener();
 }
 
-/** Calls `listener` when the session signs in, out or gets a new token. */
 export function onSessionChange(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
 
-/** The server's address (no `/api`), for media URLs. */
 export function serverUrl(): string | null {
   return session.url;
 }
 
-/** The signed-in user (server image hashes end in their id), or null. */
 export function signedInUser(): number | null {
   return session.refresh ? session.userId : null;
 }
@@ -90,11 +73,9 @@ const tokens: TokenSupplier = {
   getAccessToken: () => session.access,
   getRefreshToken: () => session.refresh,
   setAccessToken: token => setAccess(token),
-  // The transport gives up: the refresh token was refused.
   clearTokens: () => forget(EXPIRED),
 };
 
-/** The client every server request of the app goes through. */
 export const client: ApiClient = createApiClient({
   baseUrl: () => {
     if (!session.url) throw new NotSignedIn();
@@ -104,7 +85,6 @@ export const client: ApiClient = createApiClient({
   fetch: nativeFetch,
 });
 
-/** A new access token now (a network failure leaves the old one; the next request tries again). */
 async function refreshNow(): Promise<void> {
   const refresh = session.refresh;
   if (!refresh) return;
@@ -112,11 +92,9 @@ async function refreshNow(): Promise<void> {
     const { access } = await serverCall(() => endpoints.refreshAccessToken(client, refresh));
     if (session.refresh === refresh) setAccess(access);
   } catch {
-    // A refused token signed the client out (clearTokens); anything else retries with the next request.
   }
 }
 
-/** A client without tokens: sign-in, and the sign-out after the tokens are gone. */
 function anonymousClient(base: string): ApiClient {
   return createApiClient({
     baseUrl: base,
@@ -127,7 +105,6 @@ function anonymousClient(base: string): ApiClient {
 
 let loaded: Promise<void> | null = null;
 
-/** Loads the saved sign-in from Rust once; later calls wait for the same load. */
 export function loadSession(): Promise<void> {
   loaded ??= (async () => {
     if (!inTauri) return;
@@ -139,10 +116,6 @@ export function loadSession(): Promise<void> {
   return loaded;
 }
 
-/**
- * Signs in with `endpoints.login`; the refresh token goes to the keychain (Rust). A wrong
- * password rejects with "Wrong username or password".
- */
 export async function signIn(url: string, username: string, password: string): Promise<void> {
   if (!inTauri) throw new Error("only in the desktop app");
   await loadSession();
@@ -162,7 +135,6 @@ export async function signIn(url: string, username: string, password: string): P
   setAccess(pair.access);
 }
 
-/** Signs out: forgets the tokens and blacklists the refresh token on the server (best effort). */
 export async function signOut(): Promise<void> {
   const { refresh, url } = session;
   forget(null);

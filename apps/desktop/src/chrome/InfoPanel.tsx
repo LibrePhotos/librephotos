@@ -35,7 +35,6 @@ import "./InfoPanel.css";
 
 const KIND_LABEL: Record<FileKind, string> = { image: "Photo", raw: "RAW photo", video: "Video" };
 
-/** A small copy button after a value: a check for a moment once it is on the clipboard. */
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [done, setDone] = useState(false);
   useEffect(() => {
@@ -86,7 +85,6 @@ function localIso(ms: number): string {
 function Details({ info, kind, takenAt, onDate, onlineMaps, place, target }: DetailsProps) {
   const [editingDate, setEditingDate] = useState(false);
   const camera = cameraName(info.cameraMake, info.cameraModel);
-  // The web lightbox's order: ISO | mm | f | s.
   const chips = [info.iso !== null ? `ISO ${info.iso}` : null, info.focalLength, info.fNumber, info.exposure].filter(
     (c): c is string => c !== null && c !== "",
   );

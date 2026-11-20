@@ -1,14 +1,9 @@
-/*
- * The timeline grid (Grid.tsx): web react-pig's tiles and day headers (react-pig/components/*,
- * photolist/TileBadge.module.css). Tokens only (src/styles.css).
- */
 .grid-scroll {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  /* The page gutter on both sides (Grid.tsx GUTTER), room under the last row. */
   padding: 0 var(--lp-page-gutter) var(--lp-space-8);
   scrollbar-width: thin;
   scrollbar-color: var(--lp-color-border) transparent;
@@ -16,12 +11,9 @@
 }
 .grid-canvas {
   position: relative;
-  /* Painting stays inside the canvas: scrolling never repaints the page around it. */
   contain: layout paint;
 }
 
-/* A day header: the date in 16px semibold, the count beside it dimmed (web GroupHeader "normal",
-   left-aligned). The date never gives way; on a narrow day sharing a line the count is cut. */
 .grid-day {
   position: absolute;
   display: flex;
@@ -46,8 +38,6 @@
   font-size: var(--lp-font-size-sm);
 }
 
-/* A section of the search results ("On this computer"): the albums page's section title, an 18px
-   bold heading over a dimmed count. */
 .grid-section {
   position: absolute;
   left: 0;
@@ -68,9 +58,6 @@
   font-size: var(--lp-font-size-sm);
 }
 
-/* ------------------------------------------------------------ tiles
-   Square-cornered photos edge to edge with a 4px gap, a placeholder fill until the thumbnail is
-   in, which then fades in (web pigImg / pigFull). */
 .tile {
   position: absolute;
   display: block;
@@ -94,8 +81,6 @@
 .tile > img.loaded {
   opacity: 1;
 }
-/* Pointed at: a soft scrim from the top, where the web shows its selection check, and a slight
-   lift of the photo. */
 .tile::before {
   content: "";
   position: absolute;
@@ -114,7 +99,6 @@
 .tile:active > img {
   filter: brightness(0.85);
 }
-/* Keyboard focus: an inset primary ring with a white inner line, over the photo (web .pigBtn). */
 .tile:focus-visible {
   outline: none;
 }
@@ -136,8 +120,6 @@
   color: var(--lp-color-dimmed);
 }
 
-/* A tile's marks: white 12px text and 14px glyphs on the photo itself, kept readable by a soft
-   shadow, no chip behind them (web TileBadge). */
 .tile-corner {
   position: absolute;
   z-index: 2;
@@ -168,8 +150,6 @@
   white-space: nowrap;
   filter: drop-shadow(0 1px 2px var(--lp-scrim-black-60));
 }
-/* "On LibrePhotos" is the normal case: shown only while the tile is pointed at, so the marks that
-   stay are the exceptions (only on this computer, uploading, failed), as Google Photos marks them. */
 .tile-badge[data-remote="present"] {
   opacity: 0;
   transition: opacity 150ms linear;
@@ -191,8 +171,6 @@
   .tile::before {
     transition: none;
   }
-  /* "On LibrePhotos" is the normal case: shown only while the tile is pointed at, so the marks that
-   stay are the exceptions (only on this computer, uploading, failed), as Google Photos marks them. */
 .tile-badge[data-remote="present"] {
   opacity: 0;
   transition: opacity 150ms linear;

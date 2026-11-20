@@ -1,6 +1,3 @@
-//! Tauri commands, events and the `remote` media route of the server connection, the local
-//! database and the file seams (CONTRACT.md "Server", "Local database", "File seams").
-
 use std::sync::{Arc, OnceLock};
 
 use serde::Serialize;
@@ -10,8 +7,6 @@ use crate::localdb::{self, LocalDb};
 use crate::platform::{self, watch::WatchService};
 use crate::server::{self, Server};
 use crate::{appdirs, blocking, request};
-
-// ------------------------------------------------------------------ server
 
 #[tauri::command]
 pub async fn server_status(server: State<'_, Arc<Server>>) -> Result<server::ServerState, String> {
@@ -61,8 +56,6 @@ pub fn server_set_paused(server: State<'_, Arc<Server>>, paused: bool) -> Result
     server.set_paused(paused)
 }
 
-/// The api-client's native transport: one framed request in, one framed response out
-/// (`server::http`).
 #[tauri::command]
 pub async fn http_fetch(
     server: State<'_, Arc<Server>>,
@@ -84,9 +77,6 @@ pub fn http_fetch_abort(server: State<'_, Arc<Server>>, id: String) {
     server.requests.abort(&id);
 }
 
-// ------------------------------------------------------------------ local database
-
-/// `LPVIEW_DB_TRACE=1`: every call's statement count, time (SQLite + JSON) and answer size.
 fn trace_db(what: &str, n: usize, t: std::time::Instant, out: &Result<localdb::Answer, String>) {
     static ON: OnceLock<bool> = OnceLock::new();
     if *ON.get_or_init(|| std::env::var_os("LPVIEW_DB_TRACE").is_some()) {
@@ -95,12 +85,10 @@ fn trace_db(what: &str, n: usize, t: std::time::Instant, out: &Result<localdb::A
     }
 }
 
-/// The answer goes to the webview as the JSON bytes Rust wrote (an `ArrayBuffer` there).
 fn answer(out: Result<localdb::Answer, String>) -> Result<tauri::ipc::Response, String> {
     out.map(tauri::ipc::Response::new)
 }
 
-/// One statement, autocommit (Drizzle sqlite-proxy's callback).
 #[tauri::command]
 pub async fn db_exec(
     db: State<'_, Arc<LocalDb>>,
@@ -122,7 +110,6 @@ pub async fn db_exec(
     .await
 }
 
-/// Statements in one transaction, all or nothing (Drizzle sqlite-proxy's batch callback).
 #[tauri::command]
 pub async fn db_batch(
     db: State<'_, Arc<LocalDb>>,
@@ -143,10 +130,6 @@ pub fn db_info(db: State<'_, Arc<LocalDb>>) -> localdb::DbInfo {
     db.info()
 }
 
-// ------------------------------------------------------------------ file seams
-
-/// Walks `root`, streaming `WalkBatch`es over `on_batch` (the last has `done`); resolves with
-/// the number of files.
 #[tauri::command]
 pub async fn fs_walk(
     root: String,
@@ -199,9 +182,6 @@ pub async fn fs_md5(path: String) -> Result<String, String> {
     .await
 }
 
-// ------------------------------------------------------------------ wiring
-
-/// The app handle, for events from threads started before the window exists.
 pub static APP: OnceLock<tauri::AppHandle> = OnceLock::new();
 
 fn emit_event<S: Serialize + Clone>(event: &str, payload: S) {
@@ -210,8 +190,6 @@ fn emit_event<S: Serialize + Clone>(event: &str, payload: S) {
     }
 }
 
-/// The local database (`<data dir>/local.db`, a temporary one when that fails) with the bundled
-/// migrations applied, its changes going out as `db://changed`.
 pub fn open_local_db() -> Arc<LocalDb> {
     let hub = localdb::changes::ChangeHub::spawn(localdb::changes::WINDOW, |tables| {
         emit_event("db://changed", localdb::changes::Changed { tables })
@@ -232,7 +210,6 @@ pub fn open_local_db() -> Arc<LocalDb> {
     )
 }
 
-/// The root watchers, their batches going out as `fs://changed`.
 pub fn open_watchers() -> WatchService {
     WatchService::new(
         platform::watch::QUIET,
@@ -253,8 +230,6 @@ pub fn open_server() -> Arc<Server> {
     )
 }
 
-/// `lpview://.../remote?src=<media URL>`: a server thumbnail through the signed-in session
-/// (CONTRACT.md "Server media"). `src` is the URL `packages/api-client`'s media helpers build.
 pub fn handle_remote(
     server: Arc<Server>,
     query: Option<&str>,

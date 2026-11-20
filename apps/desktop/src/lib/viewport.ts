@@ -1,17 +1,6 @@
-/**
- * Zoom and pan of one picture, applied straight to a DOM element as a CSS transform (no React state
- * per wheel event).
- *
- * Units: `scale` is CSS px per original image px, so 100 % (1 image px = 1 device px) is `1 / dpr`.
- * The layer element is sized to the original pixel size and transformed with origin 0 0; the images
- * inside it stretch to fill it, so whatever resolution is loaded, the geometry stays the same.
- */
 export type ViewState = {
-  /** Original pixels per device pixel, as a percentage. */
   percent: number;
-  /** The picture is bigger than the stage, so it can be dragged. */
   pannable: boolean;
-  /** At the default zoom (fit, or 100 % for pictures smaller than the stage). */
   atHome: boolean;
 };
 
@@ -25,7 +14,6 @@ export class Viewport {
   private sh = 0;
   private iw = 0;
   private ih = 0;
-  /** Quarter turns clockwise, unbounded so a CSS transition always takes the short way. */
   private turns = 0;
   private scale = 1;
   private tx = 0;
@@ -77,7 +65,6 @@ export class Viewport {
     else this.settle(false);
   }
 
-  /** New picture (`reset`), or a better estimate of the same picture's original size. */
   setContent(w: number, h: number, reset: boolean): void {
     if (reset) {
       this.iw = w;
@@ -94,7 +81,6 @@ export class Viewport {
       this.goHome(false);
       return;
     }
-    // Keep the on-screen size: only our idea of the original resolution changed.
     if (oldEw > 0 && this.ew > 0) this.scale *= oldEw / this.ew;
     this.settle(false);
   }
@@ -127,7 +113,6 @@ export class Viewport {
     this.zoomTo(this.scale * factor, px, py, animate);
   }
 
-  /** Double-click: fit <-> 100 % at the given point. */
   toggleActual(px = this.sw / 2, py = this.sh / 2): void {
     const actual = 1 / this.dpr;
     const near = (a: number, b: number) => Math.abs(a - b) / b < 0.01;
@@ -164,7 +149,6 @@ export class Viewport {
   private apply(animate: boolean): void {
     const el = this.layer;
     if (el && this.iw > 0) {
-      // Rotate about the picture's centre so a rotation animates in place.
       const cx = this.tx + (this.ew * this.scale) / 2;
       const cy = this.ty + (this.eh * this.scale) / 2;
       el.style.transition = animate ? EASE : "none";

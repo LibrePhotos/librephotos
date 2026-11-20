@@ -117,7 +117,6 @@ function isFormData(value: unknown): value is FormData {
   return typeof FormData !== "undefined" && value instanceof FormData;
 }
 
-/** Bytes that go out as they are: a Blob, an ArrayBuffer or a typed array / DataView over one. */
 function isBinary(value: unknown): value is Blob | ArrayBuffer | ArrayBufferView<ArrayBuffer> {
   return (
     (typeof Blob !== "undefined" && value instanceof Blob) ||
@@ -211,7 +210,6 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     if (rawBody === undefined || rawBody === null) {
       body = undefined;
     } else if (isFormData(rawBody) || isBinary(rawBody)) {
-      // The runtime adds the multipart boundary; bytes keep the caller's Content-Type, if any.
       body = rawBody;
     } else if (typeof rawBody === "string") {
       body = rawBody;

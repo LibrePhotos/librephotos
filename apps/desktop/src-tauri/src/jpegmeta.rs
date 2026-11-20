@@ -1,7 +1,3 @@
-//! Minimal JPEG / EXIF surgery without decoding pixels:
-//! segment walk, SOF dimensions, the EXIF orientation (read, patch in place, insert), the EXIF
-//! thumbnail, and injecting an orientation into a bare JPEG so the webview rotates it.
-
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::ops::Range;
 use std::path::Path;
@@ -13,9 +9,7 @@ const TAG_THUMB_LENGTH: u16 = 0x0202;
 #[derive(Debug, Clone)]
 pub struct Segment {
     pub marker: u8,
-    /// Offset of the 0xFF of the marker.
     pub start: usize,
-    /// Payload (after the two length bytes).
     pub payload: Range<usize>,
 }
 
@@ -25,7 +19,6 @@ impl Segment {
     }
 }
 
-/// Header segments up to and including SOS. Stops quietly at truncation (a partial head read).
 pub fn segments(buf: &[u8]) -> Option<Vec<Segment>> {
     if buf.len() < 4 || buf[0] != 0xFF || buf[1] != 0xD8 {
         return None;
@@ -34,11 +27,11 @@ pub fn segments(buf: &[u8]) -> Option<Vec<Segment>> {
     let mut i = 2;
     while i + 1 < buf.len() {
         if buf[i] != 0xFF {
-            break; // corrupt
+            break;
         }
         let mut j = i + 1;
         while j < buf.len() && buf[j] == 0xFF {
-            j += 1; // fill bytes
+            j += 1;
         }
         if j >= buf.len() {
             break;
@@ -78,7 +71,6 @@ fn exif_segment(buf: &[u8], segs: &[Segment]) -> Option<Segment> {
         .cloned()
 }
 
-/// Width and height from the SOF marker (stored orientation).
 pub fn sof_dims(buf: &[u8], segs: &[Segment]) -> Option<(u32, u32)> {
     let s = segs
         .iter()
@@ -92,14 +84,12 @@ pub fn sof_dims(buf: &[u8], segs: &[Segment]) -> Option<(u32, u32)> {
     (w > 0 && h > 0).then_some((w, h))
 }
 
-/// A TIFF structure (the EXIF payload after `Exif\0\0`).
 pub struct Tiff<'a> {
     pub d: &'a [u8],
     pub le: bool,
 }
 
 pub struct Entry {
-    /// Offset of the 12-byte entry inside the TIFF data.
     pub at: usize,
     pub typ: u16,
     pub count: u32,
@@ -172,7 +162,6 @@ impl<'a> Tiff<'a> {
         (next != 0).then_some(next)
     }
 
-    /// SHORT or LONG value of a one-count entry.
     pub fn scalar(&self, e: &Entry) -> Option<u32> {
         match e.typ {
             3 => self.u16(e.at + 8).map(u32::from),
@@ -181,7 +170,6 @@ impl<'a> Tiff<'a> {
         }
     }
 
-    /// IFD0 orientation and the offset of its value inside the TIFF data.
     pub fn orientation(&self) -> Option<(u16, usize)> {
         let e = self.find(self.ifd0()?, TAG_ORIENTATION)?;
         if e.typ != 3 {
@@ -191,7 +179,6 @@ impl<'a> Tiff<'a> {
         Some((v, e.at + 8))
     }
 
-    /// Byte range of the IFD1 JPEG thumbnail inside the TIFF data.
     pub fn thumbnail(&self) -> Option<Range<usize>> {
         let ifd1 = self.next_ifd(self.ifd0()?)?;
         let off = self.scalar(&self.find(ifd1, TAG_THUMB_OFFSET)?)? as usize;
@@ -200,13 +187,11 @@ impl<'a> Tiff<'a> {
     }
 }
 
-/// What the head of a JPEG says, without decoding pixels.
 #[derive(Debug, Clone, Default)]
 pub struct JpegHead {
     pub width: u32,
     pub height: u32,
     pub orientation: u16,
-    /// Absolute byte range of the EXIF thumbnail in the file (when complete in `buf`).
     pub thumbnail: Option<Range<usize>>,
 }
 
@@ -231,15 +216,12 @@ pub fn parse_head(buf: &[u8]) -> Option<JpegHead> {
     Some(head)
 }
 
-/// Read enough of a JPEG file to parse its header segments (EXIF lives in the first 64 KiB of
-/// conforming files, but some writers put big APPn segments first).
 pub fn read_head(path: &Path) -> std::io::Result<Vec<u8>> {
     let mut f = std::fs::File::open(path)?;
     let mut buf = vec![0u8; 256 * 1024];
     let n = read_full(&mut f, &mut buf)?;
     let mut eof = n < buf.len();
     buf.truncate(n);
-    // Grow while the header segments run past what we have (bounded at 4 MiB).
     while !eof && buf.len() < 4 * 1024 * 1024 {
         let Some(segs) = segments(&buf) else { break };
         if segs
@@ -268,7 +250,6 @@ fn read_full(f: &mut impl Read, buf: &mut [u8]) -> std::io::Result<usize> {
     Ok(n)
 }
 
-/// A minimal EXIF APP1 segment (big-endian TIFF, IFD0 with only the orientation).
 pub fn orientation_app1(o: u16) -> Vec<u8> {
     let mut tiff = vec![b'M', b'M', 0, 42, 0, 0, 0, 8];
     tiff.extend_from_slice(&1u16.to_be_bytes());
@@ -285,8 +266,6 @@ pub fn orientation_app1(o: u16) -> Vec<u8> {
     seg
 }
 
-/// `jpeg` with its EXIF segments replaced by one carrying only orientation `o` (embedded
-/// thumbnails and RAW previews, which the webview then rotates itself).
 pub fn with_orientation(jpeg: &[u8], o: u16) -> Option<Vec<u8>> {
     let segs = segments(jpeg)?;
     let mut out = Vec::with_capacity(jpeg.len() + 64);
@@ -317,9 +296,6 @@ pub fn with_orientation(jpeg: &[u8], o: u16) -> Option<Vec<u8>> {
     Some(out)
 }
 
-/// Rebuild an EXIF APP1 whose IFD0 lacks an orientation: IFD0 is copied to the end of the TIFF
-/// data with the new entry, and the header points at the copy. Every other offset stays valid
-/// because nothing moves.
 fn add_orientation_to_exif(tiff_data: &[u8], o: u16) -> Option<Vec<u8>> {
     let t = Tiff::new(tiff_data)?;
     let ifd0 = t.ifd0()?;
@@ -367,8 +343,6 @@ fn add_orientation_to_exif(tiff_data: &[u8], o: u16) -> Option<Vec<u8>> {
     Some(d)
 }
 
-/// Set the EXIF orientation of a JPEG file: patched in place (2 bytes) when the tag exists,
-/// otherwise the header is rebuilt (pixels untouched) and the file replaced atomically.
 pub fn set_file_orientation(path: &Path, o: u16) -> Result<(), String> {
     let head = read_head(path).map_err(|e| e.to_string())?;
     let segs = segments(&head).ok_or("not a JPEG file")?;
@@ -396,7 +370,6 @@ pub fn set_file_orientation(path: &Path, o: u16) -> Result<(), String> {
             return Ok(());
         }
     }
-    // Rewrite the header: new or extended APP1, rest of the file copied unchanged.
     let (cut, new_seg) = match &app1 {
         Some(app1) => {
             let base = app1.payload.start + EXIF_ID.len();
@@ -429,7 +402,6 @@ pub fn set_file_orientation(path: &Path, o: u16) -> Result<(), String> {
     replace_file(path, &out)
 }
 
-/// Keep an XMP `tiff:Orientation` (if any) in step, so viewers that prefer XMP agree.
 fn patch_xmp_orientation(path: &Path, head: &[u8], segs: &[Segment], o: u16) -> Result<(), String> {
     let Some(s) = segs.iter().find(|s| {
         s.marker == 0xE1 && head[s.payload.clone()].starts_with(b"http://ns.adobe.com/xap/1.0/\0")
@@ -456,7 +428,6 @@ fn patch_xmp_orientation(path: &Path, head: &[u8], segs: &[Segment], o: u16) -> 
     Ok(())
 }
 
-/// Write `data` next to `path` and move it over the original.
 pub fn replace_file(path: &Path, data: &[u8]) -> Result<(), String> {
     let mut tmp = path.as_os_str().to_owned();
     tmp.push(".lpview-tmp");
@@ -468,7 +439,6 @@ pub fn replace_file(path: &Path, data: &[u8]) -> Result<(), String> {
     })
 }
 
-/// Patch the IFD0 orientation of a TIFF file in place (the tag must exist).
 pub fn set_tiff_file_orientation(path: &Path, o: u16) -> Result<(), String> {
     let mut f = std::fs::File::open(path).map_err(|e| e.to_string())?;
     let mut head = vec![0u8; 1 << 20];
@@ -493,7 +463,6 @@ pub fn set_tiff_file_orientation(path: &Path, o: u16) -> Result<(), String> {
     f.write_all(&bytes).map_err(|e| e.to_string())
 }
 
-/// Orientation of a TIFF file's first IFD (1 when absent).
 pub fn tiff_orientation(head: &[u8]) -> u16 {
     Tiff::new(head)
         .and_then(|t| t.orientation())
@@ -506,7 +475,6 @@ pub fn tiff_orientation(head: &[u8]) -> u16 {
 mod tests {
     use super::*;
 
-    /// A tiny valid baseline JPEG (8x8 gray) produced by our own encoder.
     fn tiny_jpeg(w: u32, h: u32) -> Vec<u8> {
         let p = crate::pixels::Pixels {
             width: w,
@@ -517,7 +485,6 @@ mod tests {
         p.encode_jpeg(80).unwrap().bytes
     }
 
-    /// Insert an EXIF APP1 built from a TIFF blob after SOI.
     fn with_exif(jpeg: &[u8], tiff: &[u8]) -> Vec<u8> {
         let mut seg = vec![0xFF, 0xE1];
         seg.extend_from_slice(&((2 + 6 + tiff.len()) as u16).to_be_bytes());
@@ -529,7 +496,6 @@ mod tests {
         out
     }
 
-    /// Little-endian TIFF: IFD0 {Make(ASCII, offset), Orientation?}, IFD1 thumbnail.
     fn tiff_le(orientation: Option<u16>, thumb: &[u8]) -> Vec<u8> {
         let mut d = vec![b'I', b'I', 42, 0, 8, 0, 0, 0];
         let n: u16 = if orientation.is_some() { 2 } else { 1 };
@@ -538,7 +504,6 @@ mod tests {
         let make = b"Canon\0";
         let ifd1 = make_off + make.len() + 2;
         d.extend_from_slice(&n.to_le_bytes());
-        // Make (0x010F), ASCII, 6 bytes at make_off.
         d.extend_from_slice(&0x010Fu16.to_le_bytes());
         d.extend_from_slice(&2u16.to_le_bytes());
         d.extend_from_slice(&(make.len() as u32).to_le_bytes());
@@ -596,7 +561,6 @@ mod tests {
         let thumb = tiny_jpeg(16, 8);
         let out = with_orientation(&thumb, 8).unwrap();
         assert_eq!(parse_head(&out).unwrap().orientation, 8);
-        // Replaces an existing EXIF block instead of adding a second one.
         let jpeg = with_exif(&tiny_jpeg(16, 8), &tiff_le(Some(3), &thumb));
         let out = with_orientation(&jpeg, 6).unwrap();
         let segs = segments(&out).unwrap();
@@ -631,14 +595,12 @@ mod tests {
             &thumb[..],
             "other offsets stay valid"
         );
-        // Make is still readable through the relocated IFD0.
         let segs = segments(&after).unwrap();
         let app1 = exif_segment(&after, &segs).unwrap();
         let t = Tiff::new(&after[app1.payload.start + 6..app1.payload.end]).unwrap();
         let make = t.find(t.ifd0().unwrap(), 0x010F).unwrap();
         let off = t.u32(make.at + 8).unwrap() as usize;
         assert_eq!(&t.d[off..off + 5], b"Canon");
-        // Pixels untouched: everything from SOS on is identical.
         let sos = |b: &[u8]| segments(b).unwrap().last().unwrap().start;
         assert_eq!(&after[sos(&after)..], &jpeg[sos(&jpeg)..]);
     }

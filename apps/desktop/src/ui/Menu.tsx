@@ -5,32 +5,21 @@ import { IconButton } from "./IconButton";
 export type MenuItem = {
   icon: Icon;
   label: string;
-  /** Shown dimmed at the end of the row ("Ctrl+C"). */
   shortcut?: string;
   onSelect(): void;
   disabled?: boolean;
   danger?: boolean;
-  /** Extra class on the row's wrapper, e.g. to show an item only in narrow windows. */
   className?: string;
 };
 
 type Props = {
-  /** The trigger's label (tooltip and accessible name) and the menu's name. */
   label: string;
-  /** Groups of items, with a divider between groups. */
   groups: MenuItem[][];
   icon?: Icon;
-  /** Which edge of the trigger the menu lines up with. */
   align?: "start" | "end";
-  /** Extra class on the trigger. */
   triggerClassName?: string;
 };
 
-/**
- * A button that opens a menu below it: arrow keys, Home and End move, Enter picks, Escape and Tab
- * close; while open, keys belong to the menu (the viewer's shortcuts never see them). The menu
- * keeps the app's colour scheme inside the dark viewer (.lp-app-scheme), as the web app's do.
- */
 export function Menu({ label, groups, icon = IconDots, align = "end", triggerClassName }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -39,7 +28,6 @@ export function Menu({ label, groups, icon = IconDots, align = "end", triggerCla
 
   useEffect(() => {
     if (!open) return;
-    /** Enabled items that are shown (narrow-only items may be display: none). */
     const items = () =>
       [...(menuRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [])].filter(
         b => b.offsetParent !== null,
@@ -60,7 +48,6 @@ export function Menu({ label, groups, icon = IconDots, align = "end", triggerCla
         return;
       }
       if (e.key === "Enter" || e.key === " ") {
-        // Let the focused item's own click happen, but keep the viewer from seeing the key.
         e.stopPropagation();
         return;
       }

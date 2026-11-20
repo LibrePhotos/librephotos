@@ -8,11 +8,6 @@ const INTERVAL_MS = 3000;
 
 type Frame = { key: string; url: string };
 
-/**
- * Full-stage slideshow with a crossfade. The next picture is decoded before it is shown; videos and
- * pictures that fail to load are skipped. `onAdvance` moves the app's current index, so the filmstrip
- * and title follow, and leaving the slideshow lands on the last picture shown.
- */
 export function Slideshow({
   files,
   index,
@@ -30,7 +25,6 @@ export function Slideshow({
 
   const urlOf = (f: FileEntry) => (box ? imageUrl(f, "screen", box.w, box.h) : "");
 
-  // Show the current picture (crossfading over the previous frame) once it is decoded.
   const current = files[index];
   const currentUrl = current && box && current.kind !== "video" ? urlOf(current) : "";
   useEffect(() => {
@@ -48,7 +42,6 @@ export function Slideshow({
     };
   }, [currentUrl]);
 
-  // Every 3 s: find the next showable picture, decode it, then advance.
   const shownUrl = frames[frames.length - 1]?.url ?? "";
   useEffect(() => {
     if (!box || files.length === 0) return;
@@ -63,7 +56,6 @@ export function Slideshow({
           if (live) onAdvance(i);
           return;
         } catch {
-          // skip pictures that can't be shown
         }
       }
     }, shownUrl || current?.kind === "video" ? INTERVAL_MS : 0);

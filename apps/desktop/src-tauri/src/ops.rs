@@ -1,5 +1,3 @@
-//! File operations: trash, lossless rotate, reveal in the file manager, copy to clipboard.
-
 use std::path::Path;
 
 use crate::formats::{ext_of, is_jpeg};
@@ -14,9 +12,6 @@ pub fn trash_file(path: &str) -> Result<(), String> {
     trash::delete(path).map_err(|e| e.to_string())
 }
 
-/// Rotate a quarter turn on disk; returns the new modified time (ms).
-/// JPEG: EXIF orientation (in place when the tag exists). TIFF: EXIF orientation when the tag
-/// exists. PNG/BMP: lossless re-encode. Everything else: an error (the UI rotates in view only).
 pub fn rotate_file(path: &str, clockwise: bool) -> Result<i64, String> {
     let p = Path::new(path);
     let ext = ext_of(p);
@@ -62,7 +57,6 @@ pub fn reveal_in_folder(path: &str) -> Result<(), String> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        // explorer wants `/select,"C:\path with spaces\x.jpg"` verbatim.
         std::process::Command::new("explorer")
             .raw_arg(format!("/select,\"{path}\""))
             .spawn()
@@ -120,7 +114,6 @@ pub fn open_external(url: &str) -> Result<(), String> {
     cmd.spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
-/// Long edge of the image put on the clipboard.
 pub const CLIPBOARD_EDGE: u32 = 5120;
 
 pub fn copy_image(path: &str) -> Result<(), String> {
@@ -136,11 +129,8 @@ pub fn copy_image(path: &str) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
-/// The name the installer registers under `Software\RegisteredApplications` (the productName;
-/// see `windows/installer-hooks.nsh`).
 pub const REGISTERED_APP_NAME: &str = "LibrePhotos Viewer";
 
-/// Where this app is registered as a default-apps candidate on Windows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Registration {
     User,
@@ -148,9 +138,6 @@ pub enum Registration {
     None,
 }
 
-/// The `ms-settings:` URI of this app's page in Settings > Apps > Default apps. Without a
-/// registration (a dev build, an install without the hook) Settings has no page for the app, so
-/// the generic Default apps page opens instead.
 pub fn default_apps_uri(reg: Registration) -> String {
     let name = percent_encoding::utf8_percent_encode(
         REGISTERED_APP_NAME,
@@ -170,20 +157,17 @@ fn registration() -> Registration {
     };
     use windows::core::{HSTRING, w};
     let name = HSTRING::from(REGISTERED_APP_NAME);
-    let has = |root: HKEY| {
-        // SAFETY: only asks whether the value exists; no output buffers.
-        unsafe {
-            RegGetValueW(
-                root,
-                w!(r"Software\RegisteredApplications"),
-                &name,
-                RRF_RT_REG_SZ,
-                None,
-                None,
-                None,
-            )
-            .is_ok()
-        }
+    let has = |root: HKEY| unsafe {
+        RegGetValueW(
+            root,
+            w!(r"Software\RegisteredApplications"),
+            &name,
+            RRF_RT_REG_SZ,
+            None,
+            None,
+            None,
+        )
+        .is_ok()
     };
     if has(HKEY_CURRENT_USER) {
         Registration::User
@@ -194,15 +178,12 @@ fn registration() -> Registration {
     }
 }
 
-/// Windows 11 does not let apps make themselves the default: open the Settings page where the
-/// user can. Elsewhere: an error the UI shows as is.
 #[cfg(windows)]
 pub fn open_default_apps_settings() -> Result<(), String> {
     use windows::Win32::UI::Shell::ShellExecuteW;
     use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
     use windows::core::{HSTRING, w};
     let open = |uri: &str| {
-        // SAFETY: a plain ShellExecute of a URI with no parent window.
         let r = unsafe {
             ShellExecuteW(
                 None,
@@ -213,7 +194,6 @@ pub fn open_default_apps_settings() -> Result<(), String> {
                 SW_SHOWNORMAL,
             )
         };
-        // ShellExecute reports success with a value above 32.
         r.0 as usize > 32
     };
     let reg = registration();

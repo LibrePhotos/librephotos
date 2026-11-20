@@ -16,7 +16,6 @@ startBackup();
 startLibrary();
 startEditSync();
 
-/** The library hashes for the signed-in account (and rebuilds its hashes when the account changes). */
 function syncAccount(): void {
   const url = serverUrl();
   const userId = signedInUser();
@@ -30,15 +29,12 @@ if (inTauri) {
   void loadSession()
     .catch(() => undefined)
     .then(syncAccount);
-  // The backup switch lives in Rust's settings; the roots follow it.
   void invoke<{ backup: boolean }>("server_status").then(s => setRootsBackup(s.backup), () => undefined);
 }
 
 declare global {
   interface Window {
-    /** The local database's IPC micro-benchmark (`src/db/bench.ts`), for CDP runs; loaded on first use. */
     __lpDbBench?: (opts?: { walkRoot?: string }) => Promise<Record<string, unknown>>;
-    /** Library and server calls for CDP test runs (`src/library/dev.ts`); loaded on first use. */
     __lpDev?: () => Promise<typeof import("./library/dev").dev>;
   }
 }

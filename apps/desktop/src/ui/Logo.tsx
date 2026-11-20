@@ -1,4 +1,3 @@
-/** The LibrePhotos mark (three stacked diamonds), drawn in the current text colour. */
 export function Logo({ size = 24, className }: { size?: number; className?: string }) {
   const diamond = (top: number) => `M650 ${top} L1146 ${top + 496} L650 ${top + 992} L154 ${top + 496} Z`;
   return (

@@ -1,5 +1,3 @@
-//! The `lpview` URI scheme handler (CONTRACT.md "The lpview URI scheme").
-
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
@@ -10,7 +8,6 @@ use crate::formats::{FileKind, ext_of, kind_of_ext, mime_for_ext};
 use crate::pipeline::{Pipeline, Reply};
 use crate::request::{self, Kind};
 
-/// Longest chunk served for an open-ended video range request.
 const MAX_RANGE_CHUNK: u64 = 8 * 1024 * 1024;
 
 fn base(status: StatusCode, mime: &str) -> tauri::http::response::Builder {
@@ -48,7 +45,6 @@ pub fn reply_response(r: Reply) -> Response<Vec<u8>> {
     }
 }
 
-/// Handle one request; `respond` is called exactly once, possibly on another thread.
 pub fn handle(
     pipeline: &Pipeline,
     request: &Request<Vec<u8>>,
@@ -85,7 +81,6 @@ pub fn handle(
     );
 }
 
-/// Parse a single `bytes=` range against a file of `len` bytes into an inclusive range.
 pub fn parse_range(h: &str, len: u64) -> Option<(u64, u64)> {
     let spec = h.trim().strip_prefix("bytes=")?;
     let spec = spec.split(',').next()?.trim();
@@ -108,7 +103,6 @@ pub fn parse_range(h: &str, len: u64) -> Option<(u64, u64)> {
     (start <= end && start < len).then_some((start, end))
 }
 
-/// A video (or any file) with `Range` support so `<video>` can seek.
 pub fn serve_range(path: &Path, range: Option<&str>) -> Response<Vec<u8>> {
     let mime = mime_for_ext(&ext_of(path));
     let Ok(mut f) = std::fs::File::open(path) else {

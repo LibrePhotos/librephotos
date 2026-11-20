@@ -1,8 +1,3 @@
-/**
- * Native transports (transport/native.ts): the client's requests sent through a host HTTP stack
- * that is not `fetch` (the desktop app's Rust side). The fake native stack here only sees plain
- * data (URL, method, header pairs, body bytes), as a Rust command would, and answers the same way.
- */
 import { describe, expect, it, vi } from "vitest";
 import * as endpoints from "../endpoints";
 import { ApiError, createApiClient, createNativeFetch, nativeFilePart } from "../transport";
@@ -19,7 +14,6 @@ function json(body: unknown, status = 200): NativeResponse {
   return { status, headers: [["content-type", "application/json"]], body: encoder.encode(JSON.stringify(body)) };
 }
 
-/** A native stack that records every request and answers with `answer`. */
 function nativeStack(answer: (request: NativeRequest) => NativeResponse | Promise<NativeResponse>) {
   const sent: NativeRequest[] = [];
   const send = vi.fn<NativeSend>(async request => {
@@ -43,7 +37,6 @@ function header(request: NativeRequest, name: string): string | undefined {
   return request.headers.find(([key]) => key === name)?.[1];
 }
 
-/** The multipart body a native stack got, read back into a FormData. */
 async function formOf(request: NativeRequest): Promise<FormData> {
   return new Response(request.body, {
     headers: { "content-type": defined(header(request, "content-type")) },
@@ -188,7 +181,6 @@ describe("createNativeFetch", () => {
   it("lets the native side fill in a file part, so the chunk's bytes never pass through JavaScript", async () => {
     const chunk = new Uint8Array(1000).map((_, i) => (i * 7) % 256);
     const { client, sent } = nativeStack(async request => {
-      // What the desktop's Rust side does: put the bytes the ref names where the marker is.
       const body = defined(request.body);
       const part = defined(request.fileParts[0]);
       expect(part.ref).toEqual({ id: 3, offset: 0, len: 1000 });

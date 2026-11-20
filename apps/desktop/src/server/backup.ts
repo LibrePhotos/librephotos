@@ -1,23 +1,3 @@
-/**
- * The backup engine (CONTRACT.md "Backup"): asks the server which library files it has and uploads
- * the rest, with `packages/api-client` endpoints only (`uploadExists`, `uploadChunk`,
- * `completeUpload`, `sealUploadImports`). Its queue is the shared local database's `upload_queue`
- * (`packages/local-db`), so nothing is lost on a restart or a reloaded UI; Rust reads each chunk
- * straight into its request (`nativeFilePart({ path, offset, len })`, see ./transport).
- *
- * - Queue: the indexer hashes library files and `enqueueBackups` queues those of backed-up roots
- *   the server lacks; "Upload" on a single file is `requestUpload`.
- * - Checker: `claimExistenceChecks` (32 at a time), `uploadExists` 4 at a time -> `markSkipped`
- *   (on the server) or `markAbsent` (an uploader takes it; never checked again).
- * - Uploaders (2; never while paused): `claimNextUpload` (atomic; a copy whose twin is uploading
- *   waits), re-stat (a changed file is hashed again and starts over), re-check `exists` (dedupe),
- *   then 8 MB chunks, `setUploadProgress` after each (a restart resumes; a 400 naming another
- *   offset continues there, an expired upload starts over), then `completeUpload` -> `markDone`.
- *   Failures -> `markFailed` (the package's backoff and attempt cap); network errors, 5xx, 429
- *   and 401 do not count: the row just goes back to pending. When the queue runs dry the
- *   collected `job_id`s are sealed with `sealUploadImports`.
- * - `resetInFlightUploads` at start: checks in flight are asked again, uploads resume.
- */
 import {
   claimExistenceChecks,
   claimNextUpload,
@@ -43,11 +23,9 @@ import { client, isSignedIn, loadSession, onSessionChange, signedInUser } from "
 export type Upload = { name: string; sent: number; total: number };
 export type BackupStats = {
   uploads: Upload[];
-  /** Bytes per second over the last ~8 s. */
   rate: number;
   uploadedFiles: number;
   uploadedBytes: number;
-  /** The last network or server problem, until a request works again. */
   error: string | null;
 };
 
@@ -55,13 +33,10 @@ export const CHUNK_BYTES = 8 * 1024 * 1024;
 const CHECK_BATCH = 32;
 const CHECK_CONCURRENCY = 4;
 const UPLOAD_CONCURRENCY = 2;
-/** Idle loops look for work at least this often (a missed wake-up costs no more). */
 const IDLE_MS = 5_000;
-/** After a network error a loop waits this long. */
 const OFFLINE_MS = 15_000;
 const RATE_WINDOW_MS = 8_000;
 
-/** `ms` as ISO 8601 local time with its UTC offset, for `device_modified_at`. */
 export function localIso(ms: number): string {
   const d = new Date(ms);
   const off = -d.getTimezoneOffset();
@@ -69,8 +44,6 @@ export function localIso(ms: number): string {
   const local = new Date(ms + off * 60_000).toISOString().slice(0, 23);
   return `${local}${off >= 0 ? "+" : "-"}${pad(off / 60)}:${pad(off % 60)}`;
 }
-
-// ------------------------------------------------------------------ state
 
 const current = new Map<string, Upload>();
 const samples: { at: number; bytes: number }[] = [];
@@ -86,7 +59,6 @@ function changed(): void {
   for (const listener of listeners) listener();
 }
 
-/** Calls `listener` when the upload progress or the engine's error changes. */
 export function onBackupChange(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -112,20 +84,17 @@ function setError(error: string | null): void {
   changed();
 }
 
-/** Look for work now (files were queued, the backup switch flipped, someone signed in). */
 export function wakeBackup(): void {
   const all = wakers;
   wakers = [];
   for (const wake of all) wake();
 }
 
-/** Uploads wait while paused (checks go on); the switch lives in Rust's settings. */
 async function readPaused(): Promise<void> {
   const state = await invoke<{ paused: boolean }>("server_status").catch(() => null);
   if (state) paused = state.paused;
 }
 
-/** Waits `ms`, or less when woken. */
 function idle(ms: number): Promise<void> {
   return new Promise(resolve => {
     const done = () => {
@@ -142,7 +111,6 @@ function idle(ms: number): Promise<void> {
 
 const sleep = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
 
-/** Runs `work` over `items`, `limit` at a time. */
 async function pool<T>(items: T[], limit: number, work: (item: T) => Promise<void>): Promise<void> {
   let next = 0;
   const lane = async () => {
@@ -160,10 +128,7 @@ function userId(): number {
   return id;
 }
 
-/** The MD5 in a server image hash (MD5 hex + user id). */
 const md5Of = (hash: string) => hash.slice(0, 32);
-
-// ------------------------------------------------------------------ checker
 
 async function check(item: { asset_id: string; hash: string }): Promise<void> {
   try {
@@ -204,15 +169,11 @@ async function checkLoop(): Promise<void> {
   }
 }
 
-// ------------------------------------------------------------------ uploader
-
-/** The `offset` a refused chunk's answer names (the server holds a different amount). */
 function offsetOf(body: unknown): number | null {
   if (typeof body !== "object" || body === null || !("offset" in body)) return null;
   return typeof body.offset === "number" ? body.offset : null;
 }
 
-/** The file as it is now: a changed file is hashed again and its upload starts over. */
 async function prepare(job: ClaimedUpload, path: string, user: number) {
   const [now] = await statPaths([path]);
   if (!now) throw new Error(`${path} is gone`);
@@ -229,13 +190,11 @@ async function prepare(job: ClaimedUpload, path: string, user: number) {
 
 type Outcome = { kind: "skipped" } | { kind: "done"; photoId: string };
 
-/** Uploads one claimed file. */
 async function upload(job: ClaimedUpload): Promise<Outcome> {
   const path = job.uri;
   if (!path) throw new Error("the queued file has no path");
   const user = userId();
   const prep = await prepare(job, path, user);
-  // Deduplicate: whatever the server already has never goes up again.
   const known = await serverCall(() => endpoints.uploadExists(client, prep.md5, user));
   if (known.exists) return { kind: "skipped" };
 
@@ -249,7 +208,6 @@ async function upload(job: ClaimedUpload): Promise<Outcome> {
   while (offset < prep.size) {
     const len = Math.min(CHUNK_BYTES, prep.size - offset);
     const form = new FormData();
-    // Rust reads the chunk into the request itself (see ./transport): no bytes through JavaScript.
     form.append("file", nativeFilePart({ path, offset, len }, name));
     form.append("offset", String(offset));
     form.append("md5", prep.md5);
@@ -260,13 +218,11 @@ async function upload(job: ClaimedUpload): Promise<Outcome> {
     } catch (error) {
       const serverOffset = error instanceof ApiError && error.status === 400 ? offsetOf(error.body) : null;
       if (serverOffset !== null && uploadId && restarts < 3) {
-        // The server holds a different amount: continue from there.
         restarts++;
         offset = serverOffset;
         continue;
       }
       if (error instanceof ApiError && (error.status === 404 || error.status === 410) && uploadId && restarts < 3) {
-        // The upload expired, completed or was deleted on the server: start over.
         restarts++;
         uploadId = null;
         offset = 0;
@@ -298,7 +254,6 @@ async function upload(job: ClaimedUpload): Promise<Outcome> {
   return { kind: "done", photoId: done.photo_id };
 }
 
-/** Tells the server the run is over, so its import jobs finish now (else after a few idle minutes). */
 async function seal(): Promise<void> {
   if (jobIds.length === 0) return;
   const ids = jobIds;
@@ -331,7 +286,6 @@ async function uploadLoop(): Promise<void> {
     } catch (error) {
       offline = isTransient(error);
       if (offline) {
-        // Not the file's fault: it goes back in line, the attempt does not count.
         await setQueueState(db, job.asset_id, "pending").catch(() => undefined);
         setError(errorMessage(error));
       } else {
@@ -346,18 +300,14 @@ async function uploadLoop(): Promise<void> {
   }
 }
 
-// ------------------------------------------------------------------ start
-
 let started = false;
 
-/** Starts the checker and the uploaders once (the desktop app only). */
 export function startBackup(): void {
   if (started || !inTauri) return;
   started = true;
   void (async () => {
     await loadSession().catch(() => undefined);
     await readPaused();
-    // A reloaded UI left checks and uploads half done: they start over (uploads resume).
     await resetInFlightUploads(db).catch(() => undefined);
     onSessionChange(wakeBackup);
     hub.watch(["upload_queue"], wakeBackup);

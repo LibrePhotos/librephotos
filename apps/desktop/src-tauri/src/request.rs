@@ -1,5 +1,3 @@
-//! Parsing of `lpview` URLs: `<scheme>://<host>/<kind>?path=..&w=..&h=..&v=..`.
-
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -20,8 +18,6 @@ impl Kind {
     }
 }
 
-/// Scheduling class of a request (`p=` in the URL). The stage's own pictures and their neighbours
-/// are `High` (the default), the filmstrip asks with `p=low`, folder pre-warming is `Idle`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Priority {
     High,
@@ -29,7 +25,6 @@ pub enum Priority {
     Idle,
 }
 
-/// The `p=` parameter of an `lpview` query (`low` or `idle`; anything else is `High`).
 pub fn priority(query: Option<&str>) -> Priority {
     match query_param(query.unwrap_or(""), "p").as_deref() {
         Some("low") => Priority::Low,
@@ -38,9 +33,7 @@ pub fn priority(query: Option<&str>) -> Priority {
     }
 }
 
-/// Long edge of a `thumb`.
 pub const THUMB_EDGE: u32 = 320;
-/// `screen` box when the URL carries no (or a zero) size.
 pub const DEFAULT_SCREEN: (u32, u32) = (1920, 1080);
 const MAX_SCREEN_EDGE: u32 = 16384;
 
@@ -48,7 +41,6 @@ const MAX_SCREEN_EDGE: u32 = 16384;
 pub struct ImageRequest {
     pub kind: Kind,
     pub path: PathBuf,
-    /// Bounding box in device pixels (thumb: 320x320, full: unbounded).
     pub w: u32,
     pub h: u32,
 }
@@ -56,7 +48,6 @@ pub struct ImageRequest {
 pub fn query_param(query: &str, key: &str) -> Option<String> {
     query.split('&').find_map(|pair| {
         let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
-        // URLSearchParams encodes spaces as '+'.
         (k == key).then(|| {
             let v = v.replace('+', " ");
             percent_encoding::percent_decode_str(&v)
@@ -66,7 +57,6 @@ pub fn query_param(query: &str, key: &str) -> Option<String> {
     })
 }
 
-/// Parse the path and query of an `lpview` URL. Errors are plain-text reasons (answered 400).
 pub fn parse(uri_path: &str, query: Option<&str>) -> Result<ImageRequest, String> {
     let kind_str = uri_path.trim_matches('/');
     let kind = Kind::parse(kind_str).ok_or_else(|| format!("unknown kind '{kind_str}'"))?;

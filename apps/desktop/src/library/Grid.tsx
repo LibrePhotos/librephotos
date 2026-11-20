@@ -11,22 +11,16 @@ import "./Grid.css";
 
 const OVERSCAN_PX = 800;
 const NO_HITS: ServerHit[] = [];
-/** Below this a day sharing its line has room for its date only; the count moves into the tooltip
- * (web GroupHeader MIN_WIDTH_WITH_PLACE). */
 const MIN_WIDTH_WITH_COUNT = 250;
-/** The page's content inset on each side (web PAGE_GUTTER); keep in step with Grid.css. */
 const GUTTER = 20;
 
 const photos = (n: number) => `${n.toLocaleString()} ${n === 1 ? "photo" : "photos"}`;
 
-/** A file's width / height, from the library row (3:2 until its header has been read). */
 function aspectOf(f: LibraryFile | undefined): number {
   if (!f || !f.width || !f.height) return FALLBACK_ASPECT;
-  // Very long panoramas and slivers would make a row a few pixels high or a tile unclickable.
   return Math.min(4, Math.max(0.25, f.width / f.height));
 }
 
-/** Day groups of a newest-first list: runs of the same day, each one part. */
 function dayParts<T>(items: T[], source: Source, keyOf: (item: T) => number | null, out: Part[]) {
   let i = 0;
   while (i < items.length) {
@@ -97,7 +91,6 @@ const Tile = memo(function Tile({ file, index, left, top, width, height, center,
   const topRef = useRef(top);
   topRef.current = top;
   useEffect(() => {
-    // Visible tiles load nearest the middle of the view first (see lib/thumbQueue.ts).
     const t = enqueueThumb(
       () => Math.abs(topRef.current - center.current) + left / 1000,
       () => setSrc(url),
@@ -201,11 +194,6 @@ const RemoteTile = memo(function RemoteTile({
   );
 });
 
-/**
- * The timeline: day groups of justified rows (web react-pig), virtualised. Only the blocks within
- * the view (plus an overscan) are in the DOM; the layout is plain arithmetic over known aspect
- * ratios, recomputed only when the list or the width changes.
- */
 export function Grid({
   files,
   showRemote,
@@ -218,12 +206,9 @@ export function Grid({
   files: LibraryFile[];
   showRemote: boolean;
   onOpen(index: number): void;
-  /** Scroll back to the top when this changes (a new list, not a refresh of the same one). */
   scrollKey: string;
-  /** Server-only search hits, after the local files. */
   remote?: ServerHit[];
   onOpenRemote?(hit: ServerHit): void;
-  /** Section headings over the local files and the server-only hits (search results). */
   sections?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -245,7 +230,6 @@ export function Grid({
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(read);
     };
-    // Background writes (indexing, backup) hold their list re-reads while the user scrolls.
     const onScroll = () => {
       markInteraction();
       schedule();

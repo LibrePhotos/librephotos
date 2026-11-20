@@ -1,18 +1,10 @@
-//! The native half of the backup engine (CONTRACT.md "Backup"): file bytes, never state. The UI's
-//! engine (`src/server/backup.ts`) keeps the queue in the shared local database
-//! (`packages/local-db`'s `upload_queue`) and asks the server with `packages/api-client`; Rust
-//! hashes files (`fs_md5`) and reads each upload chunk straight into its request (`http`, the
-//! api-client's `nativeFilePart`).
-
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use md5::{Digest, Md5};
 
-/// The largest chunk a request may carry.
 pub const MAX_CHUNK: i64 = 64 * 1024 * 1024;
 
-/// MD5 of a file, lower-case hex, read in 1 MB blocks.
 pub fn md5_file(path: &Path) -> std::io::Result<String> {
     let mut f = std::fs::File::open(path)?;
     let mut h = Md5::new();
@@ -35,8 +27,6 @@ fn read_chunk(path: &str, offset: i64, len: i64) -> std::io::Result<Vec<u8>> {
     Ok(buf)
 }
 
-/// `len` bytes of the file at `path` from `offset`, for a path-based `nativeFilePart`: only
-/// pictures and videos the library keeps, at most [`MAX_CHUNK`].
 pub fn read_chunk_at(path: &str, offset: i64, len: i64) -> Result<Vec<u8>, String> {
     if offset < 0 || len <= 0 || len > MAX_CHUNK {
         return Err(format!("bad chunk {offset}+{len}"));

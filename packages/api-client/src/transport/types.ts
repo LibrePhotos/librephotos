@@ -30,9 +30,7 @@ export interface ApiClientConfig {
   tokens: TokenSupplier;
   /**
    * Injected fetch. Defaults to the global `fetch`. Injectable so tests and
-   * non-standard runtimes can substitute their own: `createNativeFetch(send)`
-   * (transport/native.ts) turns a host's own HTTP stack into one, which is how
-   * the desktop app sends every request from Rust.
+   * non-standard runtimes can substitute their own.
    */
   fetch?: typeof fetch;
   /**
@@ -64,13 +62,6 @@ export interface ApiClientConfig {
 export type ResponseType = "auto" | "blob" | "text";
 
 export type RequestOptions = Omit<RequestInit, "body"> & {
-  /**
-   * Object bodies are JSON-encoded automatically. FormData passes through with
-   * no Content-Type (the runtime adds the multipart boundary), and so do bytes
-   * (a Blob, an ArrayBuffer or a typed array: send their Content-Type in
-   * `headers`); a string passes through as JSON unless a Content-Type header
-   * says otherwise.
-   */
   body?: unknown;
   /** Not sent to fetch; see ResponseType. */
   responseType?: ResponseType;

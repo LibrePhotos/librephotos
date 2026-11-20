@@ -1,7 +1,3 @@
-//! Corpus tests against the real files in `desktop-test-corpus` (ignored by default):
-//!
-//!     cargo test --test corpus -- --ignored --nocapture --test-threads=1
-
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -151,9 +147,7 @@ fn image_info_of_corpus() {
         }
     }
     let o6 = info::image_info(corpus(r"mixed\orientation_6.jpg").to_str().unwrap()).unwrap();
-    // Stored 1080x1920 with orientation 6: displayed landscape.
     assert_eq!((o6.width, o6.height), (Some(1920), Some(1080)));
-    // A decoded (not passed-through) screen of it is oriented too.
     let p = corpus(r"mixed\orientation_6.jpg");
     let e = render_now(&key(&p, Kind::Screen, 800, 800)).unwrap();
     assert_eq!((e.width, e.height), (800, 450));
@@ -199,7 +193,6 @@ fn rotate_trash_on_copies() {
         .is_err()
     );
 
-    // A photo without an orientation tag gets one.
     let q = dir.join("p.jpg");
     std::fs::copy(corpus(r"mixed\photo_10.jpg"), &q).unwrap();
     let mtime = ops::rotate_file(q.to_str().unwrap(), true).unwrap();

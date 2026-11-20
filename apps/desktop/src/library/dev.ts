@@ -1,7 +1,3 @@
-/**
- * Hooks for test runs over CDP (`await (await window.__lpDev()).addLibraryRoot(path)`): the calls a
- * native dialog or a click would make, without them. Loaded on first use only.
- */
 import { dbInfo } from "../db/executor";
 import {
   addLibraryRoot,

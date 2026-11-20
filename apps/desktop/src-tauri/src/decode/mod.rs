@@ -1,6 +1,3 @@
-//! The decode pipeline behind `lpview://`: picks the cheapest way to produce `thumb`, `screen`
-//! or `full` for a file (pass-through, embedded thumbnail/preview, scaled decode, develop).
-
 pub mod generic;
 pub mod raw;
 #[cfg(windows)]
@@ -16,13 +13,9 @@ use crate::request::Kind;
 #[cfg(windows)]
 use crate::{pixels::full_box, request::THUMB_EDGE};
 
-/// What a render produced.
 pub enum Rendered {
-    /// Decoded pixels, still to be encoded.
     Pixels(Pixels),
-    /// Ready-made bytes (an embedded thumbnail or preview).
     Encoded(Encoded),
-    /// Serve the file's own bytes.
     Passthrough,
 }
 
@@ -43,12 +36,8 @@ impl std::fmt::Display for RenderError {
     }
 }
 
-/// An EXIF thumbnail is used for `thumb` only when its long edge is at least this.
 const MIN_EMBEDDED_THUMB: u32 = 120;
 
-/// `screen` of a JPEG passes the file through when its pixel count is at most this many times
-/// the box (default 1: only when it fits, as CONTRACT.md says). Set `LPVIEW_SCREEN_PASSTHROUGH=4`
-/// to let the webview decode moderately larger JPEGs itself (no decode/encode in Rust at all).
 pub(crate) fn screen_passthrough_ratio() -> f64 {
     static R: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *R.get_or_init(|| {
@@ -99,7 +88,6 @@ fn image_render(
             return Ok(r);
         }
     } else if kind == Kind::Screen && passthrough {
-        // GIFs keep their animation; the webview scales them.
         if ext == "gif" {
             return Ok(Rendered::Passthrough);
         }
@@ -120,7 +108,6 @@ fn image_render(
     platform_render(path, kind, bw, bh).map_err(RenderError::Failed)
 }
 
-/// JPEG without decoding: the EXIF thumbnail for `thumb`, the file itself for a `screen` it fits.
 fn jpeg_fast_path(path: &Path, kind: Kind, bw: u32, bh: u32) -> Option<Rendered> {
     if kind == Kind::Full {
         return None;
@@ -154,7 +141,6 @@ fn jpeg_fast_path(path: &Path, kind: Kind, bw: u32, bh: u32) -> Option<Rendered>
     }
 }
 
-/// Windows: WIC first (then the pure-Rust decoders); elsewhere the pure-Rust decoders.
 fn platform_render(path: &Path, kind: Kind, bw: u32, bh: u32) -> Result<Rendered, String> {
     #[cfg(windows)]
     let wic_err = match wic_render(path, kind, bw, bh) {
@@ -174,15 +160,10 @@ fn platform_render(path: &Path, kind: Kind, bw: u32, bh: u32) -> Result<Rendered
         })
 }
 
-/// Thumbs from Explorer's thumbnail cache (oriented, ~15 ms on a hit). Formats that are slow to
-/// decode (HEVC, AV1) let the shell generate and cache the thumbnail; the rest only take a hit
-/// (formats with alpha are left out: shell bitmaps lose it).
 #[cfg(windows)]
 fn shell_thumb(path: &Path) -> Option<Pixels> {
     match ext_of(path).as_str() {
         "heic" | "heif" | "hif" | "avif" | "jxl" => wic::shell_thumbnail(path, THUMB_EDGE).ok(),
-        // Big JPEGs: a 1/8 decode still entropy-decodes everything (~0.6 s at 300 MP), so let the
-        // shell generate it once and serve it from its cache afterwards.
         "jpg" | "jpeg" | "jpe" | "jfif"
             if std::fs::metadata(path).is_ok_and(|m| m.len() > 12 << 20) =>
         {
@@ -196,7 +177,6 @@ fn shell_thumb(path: &Path) -> Option<Pixels> {
     .and_then(|p| p.fit_into(THUMB_EDGE, THUMB_EDGE).ok())
 }
 
-/// The `thmb` item of a HEIC, decoded alone.
 #[cfg(windows)]
 fn heif_thumb(path: &Path) -> Option<Pixels> {
     if !matches!(ext_of(path).as_str(), "heic" | "heif" | "hif") {
@@ -254,7 +234,6 @@ fn video_frame(path: &Path, kind: Kind, bw: u32, bh: u32) -> Result<Rendered, Re
     }
 }
 
-/// Decode JPEG bytes (RAW previews) to fit `sbw`x`sbh`, stored orientation.
 pub fn decode_jpeg_bytes(bytes: &[u8], sbw: u32, sbh: u32) -> Result<Pixels, String> {
     #[cfg(windows)]
     {
@@ -265,7 +244,6 @@ pub fn decode_jpeg_bytes(bytes: &[u8], sbw: u32, sbh: u32) -> Result<Pixels, Str
     generic::decode_jpeg_bytes(bytes)?.fit_into(sbw, sbh)
 }
 
-/// Decoded, oriented pixels fitting `edge`x`edge` (clipboard).
 pub fn pixels(path: &Path, edge: u32) -> Result<Pixels, String> {
     let ext = ext_of(path);
     match kind_of_ext(&ext) {
@@ -283,7 +261,6 @@ pub fn pixels(path: &Path, edge: u32) -> Result<Pixels, String> {
     }
 }
 
-/// Encode a render result (or read the file for pass-through).
 pub fn finish(path: &Path, r: Rendered) -> Result<Encoded, String> {
     match r {
         Rendered::Pixels(p) => p.encode(),
@@ -302,7 +279,6 @@ pub fn finish(path: &Path, r: Rendered) -> Result<Encoded, String> {
     }
 }
 
-/// Display size of a passed-through file (0x0 when unknown, e.g. videos).
 fn passthrough_dims(path: &Path, ext: &str, bytes: &[u8]) -> (u32, u32) {
     if is_jpeg(ext)
         && let Some(h) = jpegmeta::parse_head(bytes)

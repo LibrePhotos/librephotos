@@ -29,7 +29,6 @@ jpeg-encoder = { version = "0.7", features = ["simd"] }
 png = "0.18"
 trash = "5"
 arboard = { version = "3", default-features = false, features = ["image-data"] }
-# Library + LibrePhotos server connection.
 rusqlite = { version = "0.40", features = ["bundled", "hooks"] }
 base64 = "0.23"
 itoa = "1"
@@ -56,11 +55,9 @@ windows = { version = "0.62", features = [
   "Win32_UI_WindowsAndMessaging",
 ] }
 
-# Our pixel loops (orientation, swizzles) need optimising too; it is a small crate.
 [profile.dev]
 opt-level = 2
 
-# Decoders are unusably slow unoptimised; keep our own crate fast to rebuild.
 [profile.dev.package."*"]
 opt-level = 3
 debug-assertions = false

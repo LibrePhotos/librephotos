@@ -1,8 +1,3 @@
-/**
- * Start-up timing: performance marks for the first stage pixel (any layer) and the first sharp
- * one (`screen`/`full`), logged once to the console. Times are ms since navigation start; add
- * `performance.timeOrigin` for wall-clock time (to compare with the process start).
- */
 const GIVE_UP_MS = 20_000;
 
 export function watchStartup(): void {
@@ -13,7 +8,6 @@ export function watchStartup(): void {
     observer = new PerformanceObserver(list => long.push(...list.getEntries()));
     observer.observe({ type: "longtask", buffered: true });
   } catch {
-    // No Long Tasks API: the summary just leaves them out.
   }
   let first = false;
   let frames = 0;

@@ -1,10 +1,5 @@
-//! HEIF thumbnail extraction: when a HEIC carries a `thmb` item (iPhones up to iOS 16, many
-//! cameras and phones), rebuild a minimal HEIF holding only that item so a decoder spends
-//! ~one 320x240 HEVC frame on it instead of the whole 12 MP grid.
-
 use std::ops::Range;
 
-/// One parsed box: type, payload range (after the header).
 struct BoxRef {
     typ: [u8; 4],
     body: Range<usize>,
@@ -82,7 +77,6 @@ fn reader<'a>(d: &'a [u8], r: &Range<usize>) -> Reader<'a> {
     }
 }
 
-/// Item id of the primary image's `thmb` thumbnail.
 fn thumbnail_item(d: &[u8], meta: &[BoxRef]) -> Option<u32> {
     let pitm = find(meta, b"pitm")?;
     let mut r = reader(d, &pitm.body);
@@ -137,7 +131,6 @@ fn item_type(d: &[u8], meta: &[BoxRef], item: u32) -> Option<[u8; 4]> {
     None
 }
 
-/// Raw bytes (whole boxes) of the properties associated with `item`, `hvcC` first.
 fn item_properties(d: &[u8], meta: &[BoxRef], item: u32) -> Option<Vec<Vec<u8>>> {
     let iprp = find(meta, b"iprp")?;
     let kids = boxes(d, iprp.body.clone());
@@ -165,7 +158,6 @@ fn item_properties(d: &[u8], meta: &[BoxRef], item: u32) -> Option<Vec<Vec<u8>>>
                 .filter(|&i| i >= 1 && i <= props.len())
                 .map(|i| {
                     let b = &props[i - 1];
-                    // Whole box: the 8-byte header precedes the body.
                     d[b.body.start - 8..b.body.end].to_vec()
                 })
                 .collect();
@@ -179,7 +171,6 @@ fn item_properties(d: &[u8], meta: &[BoxRef], item: u32) -> Option<Vec<Vec<u8>>>
     None
 }
 
-/// The item's coded bytes from `iloc` (file offsets or `idat`).
 fn item_data(d: &[u8], meta: &[BoxRef], item: u32) -> Option<Vec<u8>> {
     let iloc = find(meta, b"iloc")?;
     let mut r = reader(d, &iloc.body);
@@ -197,7 +188,7 @@ fn item_data(d: &[u8], meta: &[BoxRef], item: u32) -> Option<Vec<u8>> {
     for _ in 0..count {
         let id = if v < 2 { r.u16()? as u32 } else { r.u32()? };
         let method = if v == 1 || v == 2 { r.u16()? & 15 } else { 0 };
-        r.u16()?; // data_reference_index
+        r.u16()?;
         let base = r.take(base_sz)? as usize;
         let extents = r.u16()?;
         let mut data = Vec::new();
@@ -238,7 +229,6 @@ fn full_box(typ: &[u8; 4], version: u8, body: &[u8]) -> Vec<u8> {
     bx(typ, &b)
 }
 
-/// A minimal HEIF file holding only the `thmb` item of `heif`, or `None` when it has none.
 pub fn thumbnail_file(d: &[u8]) -> Option<Vec<u8>> {
     let top = boxes(d, 0..d.len());
     let meta_box = find(&top, b"meta")?;
@@ -271,19 +261,18 @@ pub fn thumbnail_file(d: &[u8]) -> Option<Vec<u8>> {
         ipma.push(essential | (i as u8 + 1));
     }
     let iprp = bx(b"iprp", &[ipco, full_box(b"ipma", 0, &ipma)].concat());
-    // iloc v0: 4-byte offsets and lengths, no base offset; offset patched below.
     let mut iloc = vec![0x44, 0x00];
-    iloc.extend_from_slice(&1u16.to_be_bytes()); // item_count
-    iloc.extend_from_slice(&1u16.to_be_bytes()); // item_ID
-    iloc.extend_from_slice(&0u16.to_be_bytes()); // data_reference_index
-    iloc.extend_from_slice(&1u16.to_be_bytes()); // extent_count
+    iloc.extend_from_slice(&1u16.to_be_bytes());
+    iloc.extend_from_slice(&1u16.to_be_bytes());
+    iloc.extend_from_slice(&0u16.to_be_bytes());
+    iloc.extend_from_slice(&1u16.to_be_bytes());
     let off_at = iloc.len();
     iloc.extend_from_slice(&0u32.to_be_bytes());
     iloc.extend_from_slice(&(data.len() as u32).to_be_bytes());
     let mut iloc = full_box(b"iloc", 0, &iloc);
     let meta_len = 12 + hdlr.len() + pitm.len() + iinf.len() + iprp.len() + iloc.len();
     let data_at = (ftyp.len() + meta_len + 8) as u32;
-    let p = 12 + off_at; // box header (8) + version/flags (4)
+    let p = 12 + off_at;
     iloc[p..p + 4].copy_from_slice(&data_at.to_be_bytes());
     let meta = full_box(b"meta", 0, &[hdlr, pitm, iinf, iprp, iloc].concat());
     debug_assert_eq!(meta.len(), meta_len);
@@ -304,7 +293,6 @@ mod tests {
 
     #[test]
     fn extracts_thumbnail_item() {
-        // Primary item 2, thumbnail item 1 (hvc1) with hvcC + ispe, data in mdat.
         let hvcc = bx(b"hvcC", &[1, 2, 3]);
         let ispe = full_box(b"ispe", 0, &[0, 0, 1, 64, 0, 0, 0, 240]);
         let mut infe1 = 1u16.to_be_bytes().to_vec();
@@ -331,7 +319,6 @@ mod tests {
             &[bx(b"ipco", &[hvcc.clone(), ispe.clone()].concat()), ipma].concat(),
         );
         let payload = b"HEVCDATA";
-        // iloc v0 4/4, item 1 at absolute offset patched after layout.
         let iloc_body = |off: u32| {
             let mut v = vec![0x44, 0, 0, 1, 0, 1, 0, 0, 0, 1];
             v.extend_from_slice(&off.to_be_bytes());

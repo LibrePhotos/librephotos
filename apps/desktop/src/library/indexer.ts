@@ -1,22 +1,3 @@
-/**
- * The library's indexer (CONTRACT.md "Library"): folders the user added, kept in the shared local
- * database by `packages/local-db`'s writers from what Rust's file seams report (src/db/seams.ts).
- *
- * - Adding a root walks it (`fs_walk` batches -> `upsertWalkedFiles`) and watches it.
- * - At start every root is walked again and diffed against its rows by size and modified time
- *   (`knownFolderFiles`): only new and changed files are written, vanished ones removed. A root
- *   that cannot be read (an unplugged drive) keeps its rows.
- * - `fs://changed` batches: created/modified -> `upsertWalkedFiles`, removed -> `removeLocalPaths`
- *   (a path and everything below it), renamed -> `renameLocalPaths` (the row, its hash and upload
- *   state survive).
- * - The metadata pass reads the headers of `pendingMetadata` files (`fs_read_metadata`, 4 Rust
- *   threads) in batches of 256 -> `applyFileMetadata`.
- * - The hash pass (only while signed in: a server hash is MD5 + user id) MD5s `pendingHashes`
- *   files 4 at a time (`fs_md5`) -> `setFileHashes`, then queues what the backup needs
- *   (`enqueueBackups`).
- *
- * Writes go out as `db://changed`, which the views' live queries follow (src/db/live.ts).
- */
 import {
   addFolderRoot,
   applyFileMetadata,
@@ -49,7 +30,6 @@ import { inTauri } from "../ipc";
 const META_BATCH = 256;
 const HASH_BATCH = 32;
 const HASH_CONCURRENCY = 4;
-/** app_meta key: the server account (`url|userId`) the files' hashes and upload queue belong to. */
 const ACCOUNT_KEY = "folder_account";
 const META_READER_KEY = "desktop_meta_reader";
 const META_READER_VERSION = "xmp-1";
@@ -59,7 +39,6 @@ export type LibraryProgress = { walking: boolean; files: number; pending: number
 const isWindows = navigator.userAgent.includes("Windows");
 const SEP = isWindows ? "\\" : "/";
 
-/** `C:\Pics\` -> `C:\Pics`; on Windows also `/` -> `\` (Rust's `normalize_dir`). */
 export function normalizeDir(path: string): string {
   const p = isWindows ? path.replaceAll("/", "\\") : path;
   const trimmed = p.replace(/[\\/]+$/, "");
@@ -68,7 +47,6 @@ export function normalizeDir(path: string): string {
 
 const samePath = (a: string, b: string) => (isWindows ? a.toLowerCase() === b.toLowerCase() : a === b);
 
-/** Whether `path` is `dir` or inside it. */
 export function isWithin(path: string, dir: string): boolean {
   if (samePath(path, dir)) return true;
   const d = dir.endsWith(SEP) ? dir.slice(0, -1) : dir;
@@ -79,13 +57,10 @@ const titleOf = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? p
 
 const walked = (f: FsEntry): WalkedFile => f;
 
-// ------------------------------------------------------------------ progress
-
 const walking = new Set<string>();
 const progressListeners = new Set<(p: LibraryProgress) => void>();
 let progressTimer = 0;
 
-/** Indexing progress, at most every ~250 ms. */
 export function onLibraryProgress(listener: (p: LibraryProgress) => void): () => void {
   progressListeners.add(listener);
   reportProgress();
@@ -106,9 +81,6 @@ function reportProgress(): void {
   }, 250);
 }
 
-// ------------------------------------------------------------------ passes
-
-/** A loop that runs `pass` until it reports no work, then sleeps until woken. */
 function worker(pass: () => Promise<boolean>): () => void {
   let running = false;
   let again = false;
@@ -184,10 +156,6 @@ async function hashPass(): Promise<boolean> {
 const wakeMetadata = worker(metadataPass);
 const wakeHashes = worker(hashPass);
 
-/**
- * Hash for this account (`null`: signed out, hashing waits). Signing in to another server or
- * account rebuilds the hashes for it and starts the upload queue over.
- */
 export async function setLibraryAccount(account: { url: string; userId: number } | null): Promise<void> {
   if (account) {
     const key = `${account.url}|${account.userId}`;
@@ -201,12 +169,9 @@ export async function setLibraryAccount(account: { url: string; userId: number }
   if (hashUser !== null) wakeHashes();
 }
 
-/** Called when the hash pass queued files for backup (wakes the backup engine). */
 export function onBackupWork(listener: () => void): void {
   afterHashes = listener;
 }
-
-// ------------------------------------------------------------------ roots
 
 let rootsCache: FolderRoot[] = [];
 
@@ -215,7 +180,6 @@ async function roots(): Promise<FolderRoot[]> {
   return rootsCache;
 }
 
-/** Walks a root and brings its rows up to date: new and changed files written, vanished removed. */
 async function scan(root: FolderRoot): Promise<void> {
   walking.add(root.id);
   reportProgress();
@@ -243,7 +207,6 @@ async function scan(root: FolderRoot): Promise<void> {
       console.info(`[library] walked ${root.path}: ${total} files, ${written} new/changed, ${gone.length} gone in ${Math.round(performance.now() - t0)} ms`);
     }
   } catch (e) {
-    // A root that is not there (unplugged drive) keeps its rows.
     console.warn(`[library] can't read ${root.path}:`, e);
   } finally {
     walking.delete(root.id);
@@ -267,23 +230,18 @@ async function applyChanges(c: FsChanges): Promise<void> {
 
 let backupDefault = false;
 
-/** Whether new roots are backed up; flips every root (`local_album.backup_selection`). */
 export async function setRootsBackup(on: boolean): Promise<void> {
   backupDefault = on;
   for (const r of await roots()) if ((r.backup_selection === 1) !== on) await setFolderBackup(db, r.id, on);
   if (on) wakeHashes();
 }
 
-/**
- * Adds a folder. A folder inside a root is already in the library (that root is returned); roots
- * inside the new folder are merged into it. Walks it in the background and watches it.
- */
 export async function addRoot(path: string): Promise<FolderRoot> {
   const wanted = normalizeDir(path);
   const existing = await roots();
   const holder = existing.find(r => isWithin(wanted, r.path));
   if (holder) return holder;
-  const watched = await watchRoot(wanted); // validates the folder
+  const watched = await watchRoot(wanted);
   const id = await addFolderRoot(db, { id: crypto.randomUUID(), path: watched, title: titleOf(watched), backup: backupDefault });
   for (const inner of existing.filter(r => isWithin(r.path, watched))) {
     await unwatchRoot(inner.path).catch(() => false);
@@ -303,14 +261,12 @@ export async function removeRoot(id: string): Promise<void> {
   reportProgress();
 }
 
-/** The root holding `path`, if any. */
 export async function rootOf(path: string): Promise<FolderRoot | null> {
   return (await roots()).find(r => isWithin(path, r.path)) ?? null;
 }
 
 let started = false;
 
-/** Watches and rescans every root, and starts the metadata pass (once, at app start). */
 export function startLibrary(): void {
   if (started || !inTauri) return;
   started = true;

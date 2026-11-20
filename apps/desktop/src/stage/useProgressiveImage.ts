@@ -4,10 +4,8 @@ import { isAbort, load, peek } from "../lib/imageCache";
 
 export type Layer = { url: string; w: number; h: number };
 export type ScreenLayer = Layer & { boxW: number; boxH: number };
-/** Device-pixel box the `screen` image is requested for. */
 export type Box = { w: number; h: number };
 
-/** What the stage paints: the decoded layers of one file version (`token` = path + mtime). */
 export type Shown = {
   token: string;
   path: string;
@@ -21,11 +19,8 @@ type Patch = Partial<Pick<Shown, "thumb" | "screen" | "full" | "failed">>;
 
 export const tokenOf = (file: FileEntry) => `${file.path}|${file.modifiedMs}`;
 
-/** How long the previous picture stays up while the next one has nothing decoded yet. */
 const HOLD_OTHER_FILE_MS = 160;
-/** Same file, new mtime (rotated on disk): keep the old pixels until the new ones are ready. */
 const HOLD_SAME_FILE_MS = 4000;
-/** While flipping fast, only thumbnails load; `screen` waits this long for the user to settle. */
 const RAPID_SCREEN_DELAY_MS = 140;
 const RAPID_MS = 200;
 
@@ -45,22 +40,15 @@ function fromCache(file: FileEntry, box: Box | null): Shown | null {
   };
 }
 
-/**
- * Progressive loading of one picture: `thumb` at once, `screen` (fitted to `box`) over it once
- * decoded, `full` when `wantFull`. Results of a file the user already left are dropped, so flipping
- * fast never paints the wrong picture.
- */
 export function useProgressiveImage(file: FileEntry, box: Box | null, wantFull: boolean): Shown | null {
   const token = tokenOf(file);
   const [shown, setShown] = useState<Shown | null>(() => fromCache(file, box));
   const tokenRef = useRef(token);
   tokenRef.current = token;
-  // -Infinity: the first picture after start-up is not "flipping fast" (that would delay `screen`).
   const lastChange = useRef(-Infinity);
   const rapid = useRef(false);
   const prevPath = useRef(file.path);
 
-  // A prefetched neighbour is already decoded: show it in this very render, no effect round trip.
   if (shown?.token !== token) {
     const cached = fromCache(file, box);
     if (cached) setShown(cached);
@@ -90,14 +78,13 @@ export function useProgressiveImage(file: FileEntry, box: Box | null, wantFull: 
     const url = imageUrl(file, "thumb");
     load(url, ac.signal).then(
       dims => put(token, path, { thumb: { url, ...dims } }),
-      () => undefined, // a missing thumbnail is fine as long as `screen` arrives
+      () => undefined,
     );
     const hold = window.setTimeout(() => put(token, path, {}), samePath ? HOLD_SAME_FILE_MS : HOLD_OTHER_FILE_MS);
     return () => {
       ac.abort();
       window.clearTimeout(hold);
     };
-    // `token` covers `file` (path + mtime).
   }, [token, path, put]);
 
   const boxW = box?.w ?? 0;
@@ -128,7 +115,7 @@ export function useProgressiveImage(file: FileEntry, box: Box | null, wantFull: 
     const url = imageUrl(file, "full");
     load(url, ac.signal).then(
       dims => put(token, path, { full: { url, ...dims } }),
-      () => undefined, // stay on `screen`
+      () => undefined,
     );
     return () => ac.abort();
   }, [token, path, wantFull, put]);

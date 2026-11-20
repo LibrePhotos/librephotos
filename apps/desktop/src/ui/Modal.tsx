@@ -1,10 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import "./controls.css";
 
-/**
- * Mantine's Modal with the web defaults (centred, 16px corners, 24px padding, a dimmed and softly
- * blurred backdrop), on a native <dialog>: the focus trap and Escape come with it.
- */
 export function Modal({
   title,
   children,
@@ -14,7 +10,6 @@ export function Modal({
 }: {
   title: ReactNode;
   children: ReactNode;
-  /** The buttons at the bottom right (Cancel, then the action). */
   actions: ReactNode;
   onClose(): void;
   width?: number;

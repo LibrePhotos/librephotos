@@ -8,7 +8,6 @@ import { serverRetryFailed, serverSetPaused, type ServerStatus } from "./api";
 import { hostOf } from "./ServerPanel";
 import "./Pages.css";
 
-/** What the card says: the web upload card's heading ("Uploading 2 of 4") for a backup. */
 function heading(status: ServerStatus): { title: string; detail: string | null; done: boolean } {
   const c = status.counts;
   const host = hostOf(status.url);
@@ -30,18 +29,11 @@ function heading(status: ServerStatus): { title: string; detail: string | null; 
   };
 }
 
-/**
- * The floating backup card, bottom right, drawn as the web app's upload progress card
- * (components/upload/UploadProgressCard): a heading and a dimmed line, a 4px bar under it, then one
- * 44px row per file in flight with a 2px progress line along its bottom. It shows while backup is
- * uploading (or paused with files left) and can be collapsed; once everything is up it can be closed.
- */
 export function BackupCard({ status }: { status: ServerStatus }) {
   const [collapsed, setCollapsed] = useState(false);
   const [closed, setClosed] = useState(false);
   const c = status.counts;
   const active = status.connected && (status.uploads.length > 0 || (status.backup && c.absent + c.uploading > 0));
-  // A new backup run opens the card again.
   useEffect(() => {
     if (active) setClosed(false);
   }, [active]);

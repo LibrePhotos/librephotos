@@ -5,7 +5,6 @@ import "./controls.css";
 type FieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   label: ReactNode;
   description?: ReactNode;
-  /** Shown under the field in red; the field's border turns red too. */
   error?: ReactNode;
 };
 
@@ -47,7 +46,6 @@ function describedBy(id: string, description: ReactNode, error: ReactNode): stri
   return ids.length > 0 ? ids.join(" ") : undefined;
 }
 
-/** Mantine's TextInput: label above, a filled grey field with a 1px border, error under it. */
 export function TextInput({ label, description, error, id: given, className, ...input }: FieldProps) {
   const auto = useId();
   const id = given ?? auto;
@@ -64,7 +62,6 @@ export function TextInput({ label, description, error, id: given, className, ...
   );
 }
 
-/** Mantine's PasswordInput: a TextInput with a show/hide toggle at its end. */
 export function PasswordInput({ label, description, error, id: given, className, ...input }: Omit<FieldProps, "type">) {
   const auto = useId();
   const id = given ?? auto;

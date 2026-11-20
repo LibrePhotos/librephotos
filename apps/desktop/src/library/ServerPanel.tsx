@@ -20,11 +20,6 @@ export function hostOf(url: string | null): string {
   }
 }
 
-/**
- * Sign-in to a LibrePhotos server, drawn as the web app's sign-in page (components/auth/AuthCard):
- * the logo and name over one 400px borderless card with a soft shadow, labels above 40px fields, a
- * full-width primary, a quiet line under the card.
- */
 function ConnectForm({ status, onDone }: { status: ServerStatus; onDone(): void }) {
   const [url, setUrl] = useState(status.url ?? "");
   const [username, setUsername] = useState(status.username ?? "");
@@ -100,7 +95,6 @@ function ConnectForm({ status, onDone }: { status: ServerStatus; onDone(): void 
   );
 }
 
-/** One number of the backup (web StatTile): a small dimmed label over a large value. */
 function Stat({ label, value, detail }: { label: string; value: number; detail?: string }) {
   return (
     <div className="stat">
@@ -170,7 +164,6 @@ function Backup({ status }: { status: ServerStatus }) {
   );
 }
 
-/** The LibrePhotos page: the sign-in card, or the account and the backup settings. */
 export function ServerPanel({ status, onChanged }: { status: ServerStatus; onChanged(): void }) {
   if (!status.connected) return <ConnectForm status={status} onDone={onChanged} />;
   const host = hostOf(status.url);

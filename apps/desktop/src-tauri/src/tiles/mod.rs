@@ -1,18 +1,3 @@
-//! Deep zoom: a lazily built tile pyramid for big images (CONTRACT.md "Tiles").
-//!
-//! - [`TileService::info`] says whether an image is tiled (more than [`MIN_TILED_PIXELS`] displayed
-//!   pixels, opaque) and gives the pyramid geometry.
-//! - [`TileService::request`] answers one tile: memory LRU, then the disk cache, else it asks the
-//!   tile's level to produce the band (row of tiles) that contains it.
-//! - Each level is produced by at most one job at a time, which owns a row source and streams
-//!   forward through the stored image: demanded bands first (nearest below the decoder's
-//!   position, so it rarely rewinds), then, while the image is the one being looked at, the rest
-//!   of the level ("fill"), so panning around soon hits the cache only.
-//! - Tile work runs on its own threads, never on the `screen` pipeline's workers, so it never
-//!   queues ahead of `thumb`/`screen` requests; background fill runs at below-normal priority.
-//!   Measured: an uncached `screen` decode of an 81 MP JPEG takes ~1.3x as long while a 298 MP
-//!   pyramid is being built from scratch (CPU sharing only).
-
 pub mod disk;
 pub mod geom;
 pub mod source;
@@ -35,22 +20,18 @@ use disk::DiskCache;
 use geom::{Level, TILE};
 use source::RowSource;
 
-/// Images with more displayed pixels than this are tiled; smaller ones use `full`.
 pub const MIN_TILED_PIXELS: u64 = 24_000_000;
 const MEM_CACHE_BYTES: usize = 96 << 20;
 const JOB_THREADS: usize = 4;
 const ENCODE_THREADS: usize = 6;
 const IO_THREADS: usize = 2;
-/// Opened images kept (their decoders, and for RAW the developed pixels).
 const KEEP_IMAGES: usize = 3;
 const TILE_QUALITY: u8 = 90;
-/// Source rows read per call when reducing to a coarser level (a multiple of every factor <= it).
 const READ_CHUNK_ROWS: u32 = 256;
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct TileInfo {
-    /// Displayed (oriented) full-resolution size.
     pub width: u32,
     pub height: u32,
     pub tile_size: u32,
@@ -71,9 +52,7 @@ struct LevelState {
     failed: HashSet<u32>,
     demand: BTreeSet<u32>,
     waiters: HashMap<(u32, u32), Vec<Waiter>>,
-    /// A job for this level is queued or running.
     scheduled: bool,
-    /// Stored row the level's decoder stands at.
     cursor: u32,
     source: Option<Box<dyn RowSource>>,
 }
@@ -82,7 +61,6 @@ struct TileImage {
     id: u64,
     name: String,
     info: Option<TileInfo>,
-    /// Stored full-resolution height (rows of the source).
     height: u32,
     orientation: u16,
     max_scale: u32,
@@ -97,7 +75,6 @@ struct Slot {
 }
 
 type Job = (Arc<TileImage>, u32);
-/// The encoded tiles of one band, by (x, y).
 type BandTiles = Vec<((u32, u32), Arc<Encoded>)>;
 
 #[derive(Default)]
@@ -105,7 +82,6 @@ struct Queues {
     demand: Vec<Job>,
     fill: VecDeque<Job>,
     io: Vec<(PathBuf, u32, u32, u32, Waiter)>,
-    /// Encodes of tiles someone waits for go before those of background fill.
     encode_now: VecDeque<EncodeJob>,
     encode_fill: VecDeque<EncodeJob>,
 }
@@ -133,7 +109,6 @@ enum DiskWrite {
     LevelDone(String, u32),
 }
 
-/// (index, stored-orientation pixels, EXIF orientation to apply, reply)
 type EncodeJob = (
     usize,
     Pixels,
@@ -141,10 +116,8 @@ type EncodeJob = (
     mpsc::Sender<(usize, Result<Encoded, String>)>,
 );
 
-/// Bumped when the tile format changes, so old disk tiles are never served.
 const TILE_FORMAT: u8 = 2;
 
-/// FNV-1a over path, mtime, size and the tile format: stable across runs, names the disk folder.
 fn image_id(path: &Path, mtime: i64, size: u64) -> u64 {
     let mut h: u64 = 0xcbf29ce484222325 ^ TILE_FORMAT as u64;
     let s = path.to_string_lossy();
@@ -159,14 +132,11 @@ fn image_id(path: &Path, mtime: i64, size: u64) -> u64 {
     h
 }
 
-/// `LPVIEW_TILE_TRACE=1`: log the cost of every band to stderr.
 fn trace() -> bool {
     static T: OnceLock<bool> = OnceLock::new();
     *T.get_or_init(|| std::env::var_os("LPVIEW_TILE_TRACE").is_some())
 }
 
-/// Work someone waits for runs at normal priority; background fill below normal, so it yields
-/// the CPU to the UI, the webview and `screen` decodes.
 fn set_priority(urgent: bool) {
     #[cfg(windows)]
     unsafe {
@@ -197,7 +167,6 @@ fn spawn(name: String, f: impl FnOnce() + Send + 'static) {
 }
 
 impl TileService {
-    /// `disk_root`: where tiles are kept between sessions (`None`: memory only).
     pub fn new(disk_root: Option<PathBuf>, disk_cap: u64) -> TileService {
         let disk = disk_root.map(|r| DiskCache::new(r, disk_cap));
         let (wtx, wrx) = mpsc::channel::<DiskWrite>();
@@ -242,10 +211,7 @@ impl TileService {
         TileService { inner }
     }
 
-    /// The pyramid of `path`, or `None` when it is not tiled (small, alpha, video, GIF).
-    /// May take a while for RAW files (it develops them).
     pub fn info(&self, path: &Path) -> Result<Option<TileInfo>, String> {
-        // `LPVIEW_TILES=off`: no pyramids, big pictures load `full` (for comparisons).
         if std::env::var_os("LPVIEW_TILES").is_some_and(|v| v == "off") {
             return Ok(None);
         }
@@ -256,8 +222,6 @@ impl TileService {
         Ok(img.info)
     }
 
-    /// The UI stopped showing tiles of `path` (it moved on, or zoomed out): stop filling its
-    /// levels in the background. Tiles already asked for are still made.
     pub fn release(&self, path: &Path) {
         if let Some(img) = self.inner.opened(path) {
             let mut a = self.inner.active.lock().unwrap();
@@ -267,7 +231,6 @@ impl TileService {
         }
     }
 
-    /// Queue a tile request; `waiter` is called exactly once (inline on a memory hit).
     pub fn request(&self, path: PathBuf, level: u32, x: u32, y: u32, waiter: Waiter) {
         if let Some(img) = self.inner.opened(&path)
             && let Some(hit) = self.inner.mem.lock().unwrap().get(&TileKey {
@@ -288,7 +251,6 @@ impl TileService {
         self.inner.io_cv.notify_one();
     }
 
-    /// Blocking variant (tests, bench).
     pub fn get(&self, path: &Path, level: u32, x: u32, y: u32) -> Reply {
         let (tx, rx) = mpsc::channel();
         self.request(
@@ -302,12 +264,10 @@ impl TileService {
             .unwrap_or_else(|_| Err(RenderError::Failed("tile service stopped".into())))
     }
 
-    /// Background fill of the viewed image's levels (on by default; benchmarks turn it off).
     pub fn set_fill(&self, on: bool) {
         self.inner.fill.store(on, Ordering::Relaxed);
     }
 
-    /// (tiles in memory, their bytes, bytes on disk)
     pub fn stats(&self) -> (usize, usize, u64) {
         let m = self.inner.mem.lock().unwrap();
         let d = self.inner.disk.as_ref().map_or(0, |d| d.total_bytes());
@@ -326,7 +286,6 @@ impl Inner {
         }
     }
 
-    /// An already opened image of the file's current version, without blocking.
     fn opened(&self, path: &Path) -> Option<Arc<TileImage>> {
         let (mtime, _) = Self::stat(path).ok()?;
         let slots = self.slots.lock().unwrap();
@@ -365,7 +324,6 @@ impl Inner {
     }
 
     fn open_image(&self, path: &Path, mtime: i64, size: u64) -> Result<TileImage, RenderError> {
-        // One disk folder per file however its path is spelled (slashes, case, `..`).
         let canonical = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
         let id = image_id(&canonical, mtime, size);
         let untiled = || TileImage {
@@ -419,7 +377,6 @@ impl Inner {
         })
     }
 
-    /// The image the user looks at: the only one whose levels are filled in the background.
     fn activate(&self, img: &TileImage) {
         let mut a = self.active.lock().unwrap();
         if *a != img.id {
@@ -485,7 +442,6 @@ impl Inner {
         let band = lv.band_of(x, y);
         let mut st = state.lock().unwrap();
         if st.done[band as usize] {
-            // Produced meanwhile (it is in memory now), or evicted since: then make it again.
             if let Some(hit) = self.mem.lock().unwrap().get(&key) {
                 return waiter(Ok(hit));
             }
@@ -508,7 +464,6 @@ impl Inner {
         }
     }
 
-    /// Orient and encode `tiles` on the encode threads (in parallel), results in order.
     fn encode_all(
         &self,
         tiles: Vec<Pixels>,
@@ -567,8 +522,6 @@ fn disk_worker(inner: &Inner, rx: mpsc::Receiver<DiskWrite>) {
     }
 }
 
-/// JPEG without chroma subsampling: with 4:2:0 every tile edge shows a faint seam, because a
-/// decoder reconstructs chroma at an image edge differently than between two blocks.
 pub fn encode_tile(px: &Pixels) -> Result<Encoded, String> {
     #[cfg(windows)]
     if let Ok(bytes) = crate::decode::wic::encode_jpeg_with(px, TILE_QUALITY as f32 / 100.0, true) {
@@ -607,7 +560,6 @@ fn io_worker(inner: &Inner) {
         let (path, level, x, y, waiter) = {
             let mut q = inner.q.lock().unwrap();
             loop {
-                // Newest first: the tiles asked for last are the ones on screen now.
                 if let Some(r) = q.io.pop() {
                     break r;
                 }
@@ -638,7 +590,6 @@ fn job_worker(inner: &Inner) {
     }
 }
 
-/// The pending band to do next: the first one at or below the decoder position, else the first.
 fn next_band(lv: &Level, cursor: u32, bands: impl Iterator<Item = u32>) -> Option<u32> {
     let mut best: Option<(bool, u32, u32)> = None;
     for b in bands {
@@ -671,7 +622,6 @@ fn run_level(inner: &Inner, img: &Arc<TileImage>, level: u32) {
                         return;
                     };
                     if !inner.q.lock().unwrap().demand.is_empty() {
-                        // Someone wants tiles now: let them have this thread.
                         drop(st);
                         inner.q.lock().unwrap().fill.push_back((img.clone(), level));
                         inner.jobs_cv.notify_one();
@@ -683,7 +633,6 @@ fn run_level(inner: &Inner, img: &Arc<TileImage>, level: u32) {
             (band, demanded.is_some(), st.source.take())
         };
         set_priority(urgent);
-        // Bands of an earlier session's partial fill may already be on disk.
         let on_disk = inner.disk.as_ref().is_some_and(|d| {
             lv.band_tiles(band)
                 .iter()
@@ -731,7 +680,6 @@ fn run_level(inner: &Inner, img: &Arc<TileImage>, level: u32) {
             let reply: Reply = match (&result, tiles.get(&(x, y))) {
                 (Err(e), _) => Err(RenderError::Failed(e.clone())),
                 (Ok(_), Some(t)) => Ok(t.clone()),
-                // From disk (skipped band): read it back.
                 (Ok(_), None) => {
                     for w in ws {
                         inner.serve_after_band(img, level, x, y, w);
@@ -770,9 +718,6 @@ impl Inner {
     }
 }
 
-/// Decode, reduce, cut, orient and encode one band; tiles go to the memory and disk caches.
-/// Tiles are cut in stored orientation and turned one by one on the encode threads: orienting a
-/// whole band first is a serial transpose of up to 35 MB (~0.2 s for a 23040 px wide band).
 fn make_band(
     inner: &Inner,
     img: &TileImage,
@@ -828,13 +773,10 @@ fn make_band(
             );
         }
     }
-    // Creating files is slow on Windows (~2 ms each with real-time scanning): off the hot path.
     inner.to_disk(DiskWrite::Tiles(img.name.clone(), level, mem));
     Ok(out)
 }
 
-/// Stored pixels of a band at `level`: rows at the closest native scale, box-reduced the rest
-/// of the way, a chunk at a time (never more than `READ_CHUNK_ROWS` source rows in memory).
 fn band_pixels(
     img: &TileImage,
     lv: &Level,
@@ -847,8 +789,6 @@ fn band_pixels(
     let f = 1u32 << (level - s);
     let src_h = img.height.div_ceil(1 << s);
     let (y0, y1) = (r0 * f, (r1 * f).min(src_h));
-    // One call per band at full scale (each call has a fixed cost in WIC); bounded chunks when
-    // reducing.
     let chunk = if f == 1 {
         y1 - y0
     } else {
@@ -879,7 +819,6 @@ fn band_pixels(
     Ok(px)
 }
 
-/// A parsed `/tile?path=..&v=..&level=L&x=X&y=Y` URL.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TileRequest {
     pub path: PathBuf,
@@ -910,7 +849,6 @@ pub fn parse(query: Option<&str>) -> Result<TileRequest, String> {
     })
 }
 
-/// The `lpview` handler for `tile` URLs; `respond` is called exactly once.
 pub fn handle(
     svc: &TileService,
     query: Option<&str>,
@@ -954,7 +892,6 @@ mod tests {
         d
     }
 
-    /// A 6000x4500 (27 MP) JPEG with a gradient, EXIF orientation `o`.
     fn big_jpeg(dir: &Path, o: u16) -> PathBuf {
         let (w, h) = (6000u32, 4500u32);
         let mut data = Vec::with_capacity((w * h * 3) as usize);
@@ -1020,7 +957,6 @@ mod tests {
         let root = dir.join("cache");
         let svc = TileService::new(Some(root.clone()), 1 << 30);
         let info = svc.info(&p).unwrap().unwrap();
-        // Orientation 6 swaps the axes.
         assert_eq!(
             info,
             TileInfo {
@@ -1030,25 +966,19 @@ mod tests {
                 levels: 5
             }
         );
-        // Bottom-right edge tile of level 0: 4500 - 8*512 = 404 wide, 6000 - 11*512 = 368 high,
-        // plus 1 px of overlap with the neighbours on the left and on top.
         let t0 = svc.get(&p, 0, 8, 11).unwrap();
         let t = t0.clone();
         assert_eq!((t.width, t.height), (405, 369));
         let img = decode(&t);
         assert_eq!(img.dimensions(), (405, 369));
-        // Displayed (dx, dy) comes from stored (x, y) = (dy, h - 1 - dx): red = x / 24, green = y / 18.
         let (dx, dy) = (8 * 512 - 1 + 200, 11 * 512 - 1 + 100);
         let (sx, sy) = (dy, 4500 - 1 - dx);
         let px = img.get_pixel(200, 100);
         assert!((px[0] as i32 - (sx / 24)).abs() <= 3, "{px:?}");
         assert!((px[1] as i32 - (sy / 18)).abs() <= 3, "{px:?}");
-        // The whole band (displayed column 8) was made at once.
         assert!(svc.stats().0 >= 12);
-        // Coarse level through the reducing path.
         let t = svc.get(&p, 4, 0, 0).unwrap();
         assert_eq!((t.width, t.height), (282, 375));
-        // Out of range.
         assert!(matches!(
             svc.get(&p, 0, 9, 0),
             Err(RenderError::NotFound(_))
@@ -1057,7 +987,6 @@ mod tests {
             svc.get(&p, 9, 0, 0),
             Err(RenderError::NotFound(_))
         ));
-        // A second service (next session) answers from disk.
         let svc2 = TileService::new(Some(root), 1 << 30);
         let t2 = svc2.get(&p, 0, 8, 11).unwrap();
         assert_eq!(t2.bytes, t0.bytes);

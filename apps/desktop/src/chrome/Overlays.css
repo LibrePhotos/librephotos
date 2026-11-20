@@ -1,6 +1,3 @@
-/* Dialog (web: the Modal defaults in App.tsx and dialogsTheme.module.css): centred, 16px corners,
-   24px padding, over a dimmed, softly blurred window; a hairline edge in the dark scheme. Rendered
-   outside the viewer's dark scope, so it follows the app's scheme. */
 .dialog {
   width: min(440px, calc(100vw - 32px));
   padding: 0;
@@ -77,8 +74,6 @@
   margin-top: var(--lp-space-6);
 }
 
-/* Toasts (web: notificationsTheme.module.css): top right, just below the top bar, a status icon in
-   a softly tinted circle, a shadow that lifts them off a photo, a hairline in the dark scheme. */
 .toasts {
   position: absolute;
   top: calc(var(--lp-topbar-height) + var(--lp-space-2));
@@ -136,7 +131,6 @@
   }
 }
 
-/* Empty state (web: components/common EmptyState): the mark, a title, one line, the main action. */
 .empty {
   flex: 1;
   display: grid;
@@ -168,7 +162,6 @@
   color: var(--lp-color-dimmed);
   font-size: var(--lp-font-size-sm);
 }
-/* Mantine Alert, light variant, red. */
 .empty-error {
   display: flex;
   gap: var(--lp-space-3);
@@ -195,7 +188,6 @@
   font-size: var(--lp-font-size-xs);
 }
 
-/* One-time "default photo viewer" suggestion under the empty state: a bordered card. */
 .default-hint {
   display: flex;
   align-items: flex-start;
@@ -233,7 +225,6 @@
   text-decoration: underline;
 }
 
-/* Drop target (web: the upload drop overlay) */
 .drop-overlay {
   position: absolute;
   inset: 0;

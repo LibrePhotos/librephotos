@@ -5,13 +5,11 @@ type ToggleProps = {
   checked: boolean;
   onChange(checked: boolean): void;
   label: ReactNode;
-  /** A dimmed line under the label. */
   description?: ReactNode;
   disabled?: boolean;
   testId?: string;
 };
 
-/** Mantine's Switch (md) in the web theme: a visible off track and a plain white thumb. */
 export function Switch({ checked, onChange, label, description, disabled, testId }: ToggleProps) {
   return (
     <label className="switch" data-disabled={disabled ? "" : undefined}>
@@ -35,7 +33,6 @@ export function Switch({ checked, onChange, label, description, disabled, testId
   );
 }
 
-/** Mantine's Checkbox: a 20px box with a 1.5px ring, filled with the primary colour when checked. */
 export function Checkbox({ checked, onChange, label, description, disabled, testId }: ToggleProps) {
   return (
     <label className="checkbox">
@@ -57,7 +54,6 @@ export function Checkbox({ checked, onChange, label, description, disabled, test
 
 export type Segment<T extends string> = { value: T; label: ReactNode; count?: number };
 
-/** The web's Segmented capsule (a SegmentedControl): a grey pill track, the current segment raised. */
 export function SegmentedControl<T extends string>({
   value,
   onChange,
@@ -67,7 +63,6 @@ export function SegmentedControl<T extends string>({
   value: T;
   onChange(value: T): void;
   data: Segment<T>[];
-  /** Accessible name of the group. */
   label: string;
 }) {
   return (

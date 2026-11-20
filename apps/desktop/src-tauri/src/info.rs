@@ -1,5 +1,3 @@
-//! `image_info`: file facts plus EXIF (kamadak-exif; FlashRaw metadata for RAW).
-
 use std::path::Path;
 
 use exif::{Exif, In, Tag, Value};
@@ -63,7 +61,6 @@ pub struct ImageInfo {
     pub writable_in_file: bool,
 }
 
-/// "1/250 s", "0.5 s", "2 s".
 pub fn fmt_exposure(t: f64) -> Option<String> {
     if !(t.is_finite() && t > 0.0) {
         return None;
@@ -82,7 +79,6 @@ pub fn fmt_focal(mm: f64) -> Option<String> {
     (mm.is_finite() && mm > 0.0).then(|| format!("{} mm", trim_num(mm, 1)))
 }
 
-/// EXIF `Flash` bits in a few words: "Off", "Fired (auto)", "Did not fire (auto)", ...
 pub fn fmt_flash(v: u32) -> String {
     if v & 0x20 != 0 {
         return "No flash".into();
@@ -113,7 +109,6 @@ fn trim_num(v: f64, decimals: usize) -> String {
     }
 }
 
-/// EXIF "YYYY:MM:DD HH:MM:SS" -> ISO 8601 local "YYYY-MM-DDTHH:MM:SS".
 pub fn exif_datetime_to_iso(s: &str) -> Option<String> {
     let s = s.trim().trim_end_matches('\0');
     let b = s.as_bytes();
@@ -300,7 +295,6 @@ fn read_exif_file(path: &Path) -> Option<Exif> {
         .ok()
 }
 
-/// Display (oriented) dimensions without decoding pixels.
 fn image_dims(path: &Path, ext: &str) -> Option<(u32, u32)> {
     if is_jpeg(ext) {
         let head = jpegmeta::read_head(path).ok()?;
@@ -381,7 +375,6 @@ fn raw_info(path: &Path, info: &mut ImageInfo) -> Result<(), String> {
     if let Some(fw) = md.firmware.as_deref().and_then(nz) {
         info.extra.push(("Firmware".into(), fw));
     }
-    // Anything FlashRaw does not normalise comes from the EXIF block.
     if let Some(tiff) = crate::decode::raw::exif_tiff(path)
         && let Ok(exif) = exif::Reader::new().read_raw(tiff)
     {

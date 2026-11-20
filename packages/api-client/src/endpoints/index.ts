@@ -30,12 +30,6 @@ export async function logout(client: ApiClient, refresh: string | undefined): Pr
   return parseResponse(S.LogoutResponse, res, "logout response");
 }
 
-/**
- * Trade the refresh token for a new access token, outside any request: for a platform whose media
- * loader (a native image proxy, an image component with headers) needs a fresh token when no API
- * request is due to refresh it. The transport refreshes on its own before and after requests; a
- * refused refresh token answers 401, which signs the client out like any other unrecoverable 401.
- */
 export async function refreshAccessToken(client: ApiClient, refresh: string): Promise<S.RefreshResponse> {
   const res = await client.post<unknown>("/auth/token/refresh/", { refresh });
   return parseResponse(S.RefreshResponse, res, "token refresh");

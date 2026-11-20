@@ -20,12 +20,10 @@
   flex-direction: column;
 }
 
-/* While a picture is open the window behind the chrome is the stage's black. */
 .app.viewing {
   background: var(--lp-stage);
 }
 
-/* Toasts stay clear of the open info panel's heading. */
 .app.info-open .toasts {
   right: calc(var(--lp-panel-width) + var(--lp-space-5));
 }
@@ -35,9 +33,6 @@
   }
 }
 
-/* Full screen and slideshow: the stage takes the whole window, chrome floats over it on the web
-   lightbox's scrims (black fading out), so the white title and icons read over a bright sky. The
-   scrims are the bars' own backgrounds, so they come and go with the bars. */
 .app.immersive .topbar,
 .app.immersive .filmstrip {
   position: absolute;

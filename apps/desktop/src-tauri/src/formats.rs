@@ -1,5 +1,3 @@
-//! File kinds, extensions and MIME types (CONTRACT.md "Supported extensions").
-
 use std::path::Path;
 
 use serde::Serialize;
@@ -14,7 +12,6 @@ pub const RAW_EXTS: &[&str] = &[
 ];
 pub const VIDEO_EXTS: &[&str] = &["mp4", "mov", "m4v", "webm", "mkv", "avi"];
 
-/// Formats the webview decodes itself; their bytes may be passed through unchanged.
 const PASSTHROUGH_EXTS: &[&str] = &["jpg", "jpeg", "jpe", "jfif", "png", "gif", "webp", "bmp"];
 const JPEG_EXTS: &[&str] = &["jpg", "jpeg", "jpe", "jfif"];
 
@@ -26,7 +23,6 @@ pub enum FileKind {
     Video,
 }
 
-/// Lower-case extension without the dot ("" when there is none).
 pub fn ext_of(path: &Path) -> String {
     path.extension()
         .and_then(|e| e.to_str())
@@ -78,8 +74,6 @@ pub fn mime_for_ext(ext: &str) -> &'static str {
     }
 }
 
-/// Human format name for `image_info` ("JPEG", "HEIC", ...). RAW names are built from the camera
-/// make by the RAW module ("Canon CR3").
 pub fn format_name(ext: &str) -> String {
     match ext {
         "jpg" | "jpeg" | "jpe" | "jfif" => "JPEG".into(),
@@ -113,7 +107,6 @@ mod tests {
         assert_eq!(kind_of(Path::new("x.nef")), Some(FileKind::Raw));
         assert_eq!(kind_of(Path::new("clip.mp4")), Some(FileKind::Video));
         assert_eq!(kind_of(Path::new("notes.txt")), None);
-        // Junk RAW-folder files named "off" / "signature" have no extension.
         assert_eq!(kind_of(Path::new("off")), None);
         assert_eq!(kind_of(Path::new("signature")), None);
         assert_eq!(kind_of(Path::new("archive.tar.gz")), None);

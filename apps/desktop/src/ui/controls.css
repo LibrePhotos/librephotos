@@ -1,11 +1,3 @@
-/*
- * Mantine 9 components with the LibrePhotos web theme (apps/frontend/src/theme: controlsTheme,
- * variantColors, Segmented, AuthCard, UploadProgressCard), as plain CSS for the desktop app's own
- * primitives in src/ui/*.tsx. Tokens only (src/styles.css).
- */
-
-/* ------------------------------------------------------------ Button variants and sizes
-   .btn (ui.css) is Mantine's sm "default" button; these add the web's other variants. */
 .btn.light {
   background: var(--lp-color-primary-light);
   color: var(--lp-color-primary-text);
@@ -13,7 +5,6 @@
 .btn.light:hover:not(:disabled) {
   background: var(--lp-color-primary-light-hover);
 }
-/* toolbarLook(): a neutral subtle button, the label in the readable secondary text colour. */
 .btn.subtle.neutral {
   color: var(--lp-color-nav-text);
   font-weight: var(--lp-font-weight-medium);
@@ -38,7 +29,6 @@
 .btn.full {
   width: 100%;
 }
-/* A disabled button keeps its shape: the outline of its variant and fainter text (controlsTheme). */
 .btn:disabled:not(.loading) {
   border-color: var(--lp-color-border);
   background: transparent;
@@ -65,7 +55,6 @@
   flex: none;
 }
 
-/* ------------------------------------------------------------ Loader (Mantine "oval") */
 .loader {
   display: inline-block;
   flex: none;
@@ -86,9 +75,6 @@
   }
 }
 
-/* ------------------------------------------------------------ Inputs (TextInput, PasswordInput)
-   One input look: a filled grey field with a 1px border, 36px (40px in an auth card), 8px corners;
-   the label 14px/500 above it, the description and error in 12px under the label / the field. */
 .field {
   display: flex;
   flex-direction: column;
@@ -166,8 +152,6 @@
   line-height: 1.3;
 }
 
-/* ------------------------------------------------------------ Switch (md: 38 x 22 track)
-   A visible off track and a plain white thumb with a soft shadow (controlsTheme.module.css). */
 .switch {
   display: inline-flex;
   align-items: flex-start;
@@ -233,7 +217,6 @@
   line-height: 1.5;
 }
 
-/* ------------------------------------------------------------ Checkbox (label row) */
 .checkbox {
   display: inline-flex;
   align-items: flex-start;
@@ -252,8 +235,6 @@
   line-height: 22px;
 }
 
-/* ------------------------------------------------------------ SegmentedControl
-   The capsule: a grey pill track, the current segment raised on it (Segmented.module.css). */
 .segmented {
   display: inline-flex;
   flex-wrap: nowrap;
@@ -294,7 +275,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ------------------------------------------------------------ Badge (Mantine Badge, light) */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -334,7 +314,6 @@
   color: var(--lp-color-danger-text);
 }
 
-/* ------------------------------------------------------------ Progress */
 .progress {
   position: relative;
   display: flex;
@@ -374,7 +353,6 @@
   }
 }
 
-/* ------------------------------------------------------------ Card (Mantine Card withBorder) */
 .card {
   min-width: 0;
   padding: var(--lp-space-5);
@@ -403,8 +381,6 @@
   margin-bottom: var(--lp-space-3);
 }
 
-/* ------------------------------------------------------------ NavLink (sidebar row)
-   Full pills like Google Photos' and Immich's navigation (SideMenuNarrow.module.css .link). */
 .nav-link {
   display: flex;
   align-items: center;
@@ -461,7 +437,6 @@
   color: inherit;
 }
 
-/* ------------------------------------------------------------ Alert (Mantine Alert, light) */
 .alert {
   display: flex;
   gap: var(--lp-space-3);
@@ -502,7 +477,6 @@
   color: var(--lp-color-warning-text);
 }
 
-/* ------------------------------------------------------------ Avatar (initials, light variant) */
 .avatar {
   display: inline-grid;
   place-items: center;
@@ -518,9 +492,6 @@
   text-transform: uppercase;
 }
 
-/* ------------------------------------------------------------ EmptyState
-   An 80px light ThemeIcon, an 18px/700 title, a dimmed description, then a light primary and a
-   subtle secondary button (components/common/EmptyState.tsx). */
 .empty {
   display: flex;
   flex-direction: column;
@@ -565,7 +536,6 @@
   margin-top: var(--lp-space-4);
 }
 
-/* ------------------------------------------------------------ Modal (Mantine Modal defaults) */
 .modal {
   width: min(var(--modal-width, 440px), calc(100vw - 32px));
   padding: var(--lp-space-6);
@@ -610,8 +580,6 @@
   margin-top: var(--lp-space-6);
 }
 
-/* ------------------------------------------------------------ PageHeader (web PageHeader.module.css)
-   16px above the title and 12px below the header, the content's 20px gutter on both sides. */
 .page-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

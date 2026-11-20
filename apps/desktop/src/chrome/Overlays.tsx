@@ -5,8 +5,6 @@ import { IconButton } from "../ui/IconButton";
 import { Logo } from "../ui/Logo";
 import "./Overlays.css";
 
-// ---------------------------------------------------------------- delete confirmation
-
 export function ConfirmDelete({
   file,
   onConfirm,
@@ -22,7 +20,6 @@ export function ConfirmDelete({
   useEffect(() => {
     const dialog = ref.current;
     if (dialog && !dialog.open) dialog.showModal();
-    // showModal() focuses the first control (the checkbox); Enter should confirm.
     confirmRef.current?.focus();
   }, []);
   return (
@@ -70,8 +67,6 @@ export function ConfirmDelete({
   );
 }
 
-// ---------------------------------------------------------------- toasts
-
 export type Toast = { id: number; text: string; tone: "info" | "error" };
 
 export function useToasts() {
@@ -100,8 +95,6 @@ export function Toasts({ toasts }: { toasts: Toast[] }) {
   );
 }
 
-// ---------------------------------------------------------------- empty state and drop target
-
 const DEFAULT_HINT_KEY = "lpview.defaultViewerHint.dismissed";
 const isWindows = navigator.userAgent.includes("Windows");
 
@@ -117,11 +110,9 @@ function writeDismissed(): void {
   try {
     localStorage.setItem(DEFAULT_HINT_KEY, "1");
   } catch {
-    // Storage blocked: the hint comes back next time, that's all.
   }
 }
 
-/** One-time suggestion to make this the default photo viewer (Windows only: Settings has the switch). */
 function DefaultViewerHint({ onSetDefault }: { onSetDefault(): void }) {
   const [visible, setVisible] = useState(() => isWindows && !readDismissed());
   if (!visible) return null;

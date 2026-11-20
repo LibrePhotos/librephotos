@@ -1,5 +1,3 @@
-//! `list_folder`: the supported files of a folder in Explorer-like natural order.
-
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
@@ -34,8 +32,6 @@ pub fn modified_ms(meta: &std::fs::Metadata) -> i64 {
         .unwrap_or(0)
 }
 
-/// Natural, case-insensitive comparison (`IMG_2` < `IMG_10`), ties broken case-sensitively so
-/// the order is total and stable.
 pub fn natural_cmp(a: &str, b: &str) -> Ordering {
     natord::compare_ignore_case(a, b).then_with(|| a.cmp(b))
 }
@@ -49,8 +45,6 @@ pub fn list_folder(path: &str) -> Result<FolderListing, String> {
         given.parent().ok_or("no parent folder")?.to_path_buf()
     };
     let mut files = Vec::with_capacity(256);
-    // On Windows `DirEntry::metadata` comes from the directory enumeration itself (no extra
-    // syscall per file), so 2000+ files list in a few milliseconds.
     for entry in std::fs::read_dir(&folder).map_err(|e| e.to_string())? {
         let Ok(entry) = entry else { continue };
         let name = entry.file_name();

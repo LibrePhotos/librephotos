@@ -1,10 +1,3 @@
-//! Tile pyramid benchmark: cold tile latency per level and whole-level cost.
-//!
-//!     cargo run --example tiles -- [image] [--all] [--fill]
-//!
-//! Uses a fresh disk cache in %TEMP% (deleted afterwards). Default image: the 298 MP JPEG of the
-//! test corpus. `--all` also times every tile of every level (cold), i.e. the whole pyramid.
-
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -23,7 +16,6 @@ fn main() {
         });
     let root = std::env::temp_dir().join(format!("lpview-tile-bench-{}", std::process::id()));
     let svc = TileService::new(Some(root.clone()), 8 << 30);
-    // Measure each request alone; `--fill` keeps the background fill on (as in the app).
     svc.set_fill(args.iter().any(|a| a == "--fill"));
     let t = Instant::now();
     let info = svc.info(&path).expect("info");
@@ -77,10 +69,6 @@ fn main() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
-/// Mean colour step across the shared edge of horizontally / vertically adjacent level-0 tiles,
-/// against the step across an interior 8 px block boundary of the same tiles (rows/columns
-/// 255|256): tile edges always fall on the source JPEG's block boundaries, so that is the fair
-/// baseline (1.0 = the tiling adds nothing).
 fn seams(
     svc: &TileService,
     path: &std::path::Path,
@@ -96,7 +84,6 @@ fn seams(
         (0..3).map(|c| (a[c] as f64 - b[c] as f64).abs()).sum()
     };
     let (cols, rows) = (info.width.div_ceil(TILE), info.height.div_ceil(TILE));
-    // [horizontal neighbours (same band), vertical neighbours (adjacent bands)]: (edge, near, n)
     let mut acc = [(0.0, 0.0, 0.0); 2];
     let (mut overlap, mut on) = (0.0, 0.0);
     let mut enc = (0.0, 0.0);
@@ -106,8 +93,7 @@ fn seams(
         (cols / 2 - 3, rows / 2 + 2),
     ] {
         let (a, b, c) = (get(x, y), get(x + 1, y), get(x, y + 1));
-        // Tiles carry a 1 px border from each neighbour: interior pixel i of a tile at x > 0 is at i + 1.
-        let (o, w) = (1u32, TILE); // all three tiles here are interior ones
+        let (o, w) = (1u32, TILE);
         for i in o..o + TILE {
             let h = &mut acc[0];
             h.0 += step(a.get_pixel(w, i), b.get_pixel(o, i));
@@ -121,10 +107,8 @@ fn seams(
                 + step(c.get_pixel(i, o + 255), c.get_pixel(i, o + 256)))
                 / 2.0;
             v.2 += 1.0;
-            // Block edges of the tile's own JPEG grid (local 255|256) vs. a plain step (local 259|260).
             enc.0 += step(a.get_pixel(255, i), a.get_pixel(256, i));
             enc.1 += step(a.get_pixel(259, i), a.get_pixel(260, i));
-            // The overlap must hold the neighbour's pixels.
             overlap += step(a.get_pixel(w + 1, i), b.get_pixel(o, i))
                 + step(a.get_pixel(w, i), b.get_pixel(0, i));
             on += 2.0;

@@ -1,5 +1,3 @@
-//! Byte-budgeted LRU cache.
-
 use std::collections::{BTreeMap, HashMap};
 use std::hash::Hash;
 
@@ -31,8 +29,6 @@ impl<K: Hash + Eq + Clone, V: Clone> LruCache<K, V> {
         Some(v.clone())
     }
 
-    /// Insert `v` costing `size` bytes; evicts least recently used entries over budget.
-    /// Values larger than a quarter of the budget are not cached.
     pub fn insert(&mut self, k: K, v: V, size: usize) {
         if size > self.budget / 4 {
             return;
@@ -82,9 +78,9 @@ mod tests {
         c.insert("a", 1, 20);
         c.insert("b", 2, 20);
         c.insert("c", 3, 20);
-        assert_eq!(c.get(&"a"), Some(1)); // a is now most recent
+        assert_eq!(c.get(&"a"), Some(1));
         c.insert("d", 4, 25);
-        c.insert("e", 5, 25); // 110 > 100: evict b (oldest)
+        c.insert("e", 5, 25);
         assert_eq!(c.get(&"b"), None);
         assert_eq!(c.get(&"a"), Some(1));
         assert_eq!(c.bytes(), 90);

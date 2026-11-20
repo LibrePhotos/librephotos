@@ -1,10 +1,3 @@
-/**
- * A micro-benchmark of the local database's IPC round trip, run in the real app (over CDP:
- * `await window.__lpDbBench()`). It works on its own table, `__bench_photo` (shaped like
- * mobile's `remote_photo`), and drops it afterwards.
- *
- * Targets: a 5,000-row timeline page < 30 ms, a 2,000-row batch insert < 100 ms.
- */
 import { batch, exec, onDbChanged, type SqlParam, type Statement } from "./executor";
 import { md5File, readMetadata, walkRoot, type FsEntry } from "./seams";
 
@@ -77,11 +70,9 @@ async function time(runs: number, f: (run: number) => Promise<unknown>): Promise
   return { median: round(median(ms)), min: round(Math.min(...ms)), max: round(Math.max(...ms)) };
 }
 
-/** Writes in a burst, then counts the `db://changed` events and the delay of the first. */
 async function changeEvents(): Promise<Record<string, unknown>> {
   const events: { at: number; tables: string[] }[] = [];
   const stop = onDbChanged(tables => events.push({ at: performance.now(), tables }));
-  // The listener is registered asynchronously; earlier writes' events may still arrive.
   await new Promise(r => setTimeout(r, 300));
   const t0 = performance.now();
   for (let i = 0; i < 20; i++) {
@@ -101,7 +92,6 @@ async function changeEvents(): Promise<Record<string, unknown>> {
   };
 }
 
-/** Walk, metadata and MD5 of a folder (test corpus copies only). */
 async function seams(root: string): Promise<Record<string, unknown>> {
   const files: FsEntry[] = [];
   let batches = 0;
@@ -136,22 +126,18 @@ export async function runDbBench(opts: { walkRoot?: string } = {}): Promise<Reco
     { sql: "CREATE INDEX __bench_photo_ts ON __bench_photo (timestamp)", params: [], method: "run" },
   ]);
   let next = 0;
-  // 2,000 single-row INSERTs in one transaction (one IPC call).
   const batchOf2000Statements = await time(5, async () => {
     const stmts: Statement[] = Array.from({ length: 2000 }, () => ({ sql: insertOne, params: row(next++), method: "run" }));
     await batch(stmts);
   });
-  // 2,000 rows as one multi-row INSERT (30,000 parameters).
   const multiRowInsertOf2000 = await time(5, async () => {
     await batch([insertMany(next, 2000)]);
     next += 2000;
   });
-  // Fill up to 50,000 rows for the reads.
   while (next < 50_000) {
     await batch([insertMany(next, 2000)]);
     next += 2000;
   }
-  // A timeline page is keyset-paged: the 5,000 rows before the last one shown.
   const page = `SELECT ${COLUMNS.join(", ")} FROM __bench_photo WHERE hidden = 0 AND timestamp < ? ORDER BY timestamp DESC LIMIT 5000`;
   const before = (r: number) => 1_600_000_000_000 + (next - r * 5000) * 60_000;
   const timelinePage5000All = await time(10, r => exec(page, [before(r)], "all"));

@@ -1,5 +1,3 @@
-/* The info panel (web: lightbox Sidebar.module.css): a 360px column beside the photo on the
-   stage's own black, set apart by a faint hairline, dark in either colour scheme (.lp-dark). */
 .info-panel {
   width: var(--lp-panel-width);
   flex-shrink: 0;
@@ -19,7 +17,6 @@
   }
 }
 
-/* The file name: broken anywhere, so a long camera name never widens the panel. */
 .info-file-name {
   word-break: break-all;
 }
@@ -50,8 +47,6 @@
   color: var(--lp-color-text);
 }
 
-/* Labels in one column (as wide as the longest, at most half the row), values in the next, so the
-   values line up (web: DetailsList.module.css). */
 .info-extra {
   margin: 0;
   display: grid;

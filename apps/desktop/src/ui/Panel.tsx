@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { IconX } from "@tabler/icons-react";
 import { IconButton } from "./IconButton";
 
-/** A side column with a title and a close button (the web lightbox's info panel). */
 export function Panel({
   title,
   onClose,
@@ -16,7 +15,6 @@ export function Panel({
   onClose?(): void;
   closeLabel?: string;
   className?: string;
-  /** Accessible name of the region; the title by default. */
   label?: string;
   children: ReactNode;
 }) {
@@ -31,7 +29,6 @@ export function Panel({
   );
 }
 
-/** A group of a panel under a small dimmed heading ("Details"). */
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="section">
@@ -41,7 +38,6 @@ export function Section({ title, children }: { title: string; children: ReactNod
   );
 }
 
-/** One detail: a dimmed icon, a title, and dimmed lines under it. */
 export function DetailRow({
   icon: I,
   title,
@@ -51,10 +47,8 @@ export function DetailRow({
 }: {
   icon: Icon;
   title: ReactNode;
-  /** Lines under the title, each a `.detail-sub`. */
   sub?: ReactNode[];
   children?: ReactNode;
-  /** What the row is, for screen readers ("Date taken"). */
   label?: string;
 }) {
   return (

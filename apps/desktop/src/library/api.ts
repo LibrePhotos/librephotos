@@ -1,10 +1,3 @@
-/**
- * The library and server side of CONTRACT.md ("Library", "Server"). Every call the library view
- * makes goes through here: the library reads and writes the shared local database
- * (`packages/local-db`, src/db/) and Rust's file seams (./indexer), server calls go through
- * `packages/api-client` (`src/server/`). Outside Tauri the functions answer as an empty library
- * with no server, so the UI still renders in a plain browser.
- */
 import {
   folderRoots,
   localAssetByUri,
@@ -35,17 +28,14 @@ import { addRoot, removeRoot, rootOf, setRootsBackup, type LibraryProgress } fro
 
 export type { LibraryProgress };
 
-/** What the server knows about a file: see CONTRACT.md "Server state". */
 export type RemoteState = "unknown" | "checking" | "present" | "absent" | "uploading" | "failed";
 
 export type LibraryFile = FileEntry & {
   id: string;
   width: number | null;
   height: number | null;
-  /** Date taken (or modified) as local wall-clock milliseconds: read it with the UTC getters. */
   takenMs: number;
   dated: boolean;
-  /** In a library folder (not a loose file). */
   inLibrary: boolean;
   remote: RemoteState;
   md5: string | null;
@@ -106,12 +96,9 @@ export const OFFLINE_STATUS: ServerStatus = {
 
 const notInBrowser = () => Promise.reject(new Error("only in the desktop app"));
 
-// ------------------------------------------------------------------ rows -> files
-
 const KINDS: readonly FileKind[] = ["image", "raw", "video"];
 const kindOf = (t: string | null): FileKind => KINDS.find(k => k === t) ?? "image";
 
-/** Real epoch ms as local wall-clock ms (what an undated file's date reads as with UTC getters). */
 const wallClock = (ms: number) => ms - new Date(ms).getTimezoneOffset() * 60_000;
 
 function remoteOf(row: LibraryAssetRow): RemoteState {
@@ -151,8 +138,6 @@ export function fileOf(row: LibraryAssetRow): LibraryFile {
   };
 }
 
-// ------------------------------------------------------------------ library
-
 export const libraryRoots = async (): Promise<Root[]> =>
   inTauri ? (await folderRoots(db)).map(r => ({ id: r.id, path: r.path, fileCount: r.file_count })) : [];
 
@@ -164,10 +149,8 @@ export const addLibraryRoot = async (path: string): Promise<Root> => {
 
 export const removeLibraryRoot = (id: string): Promise<void> => (inTauri ? removeRoot(id) : notInBrowser());
 
-/** Rows per keyset page of the timeline. */
 const PAGE_ROWS = 5000;
 
-/** Library files (of one root, or all), newest first: the timeline read page by page. */
 export async function libraryFiles(rootId: string | null): Promise<LibraryFile[]> {
   if (!inTauri) return [];
   const out: LibraryFile[] = [];
@@ -184,14 +167,12 @@ export async function libraryFiles(rootId: string | null): Promise<LibraryFile[]
   return out;
 }
 
-/** Day buckets (headers, the "N days" line) of the library or one root. */
 export const libraryDays = async (rootId: string | null): Promise<number> =>
   inTauri ? (await localTimelineDays(db, { rootId })).length : 0;
 
 export const librarySearch = async (query: string, rootId: string | null = null): Promise<LibraryFile[]> =>
   inTauri ? (await searchLocalAssets(db, query, { rootId, limit: 5000 })).map(fileOf) : [];
 
-/** The local files of server `image_hash`es (MD5 hex + user id), library files first. */
 export async function libraryByHashes(hashes: string[]): Promise<HashMatch[]> {
   if (!inTauri || hashes.length === 0) return [];
   const rows = await localAssetsByHash(db, hashes);
@@ -214,9 +195,6 @@ export async function libraryStatus(path: string): Promise<LibraryStatus> {
   };
 }
 
-// ------------------------------------------------------------------ server
-
-/** What Rust knows about the connection plus the library's backup counts; `useServerStatus` adds the engine's progress. */
 export type ServerState = Pick<ServerStatus, "connected" | "url" | "username" | "userId" | "backup" | "paused" | "error" | "counts">;
 
 async function backupCounts(): Promise<RemoteCounts> {
@@ -240,7 +218,6 @@ export async function serverState(): Promise<ServerState> {
   return { ...rust, counts };
 }
 
-/** Signs in with the shared api-client (`endpoints.login`); see `src/server/session.ts`. */
 export const serverConnect = (url: string, username: string, password: string): Promise<void> => signIn(url, username, password);
 export const serverDisconnect = (): Promise<void> => signOut();
 
@@ -263,7 +240,6 @@ export const serverRetryFailed = async (): Promise<number> => {
   return n;
 };
 
-/** The row of a local file (a loose row when it is outside the library) and its MD5, hashed now if needed. */
 async function localRow(path: string): Promise<{ row: LibraryAssetRow; md5: string | null }> {
   let row = await localAssetByUri(db, path);
   const [entry] = await statPaths([path]);
@@ -280,7 +256,6 @@ async function localRow(path: string): Promise<{ row: LibraryAssetRow; md5: stri
   return { row: (await localAssetByUri(db, path)) ?? row, md5 };
 }
 
-/** Queues one file (in the library or not) for upload, whatever the backup switch says. */
 export const serverUploadFile = async (path: string): Promise<RemoteOf> => {
   if (!inTauri) return notInBrowser();
   const { row, md5 } = await localRow(path);
@@ -289,10 +264,6 @@ export const serverUploadFile = async (path: string): Promise<RemoteOf> => {
   return { state: remoteOf(row), photoId: null, md5, imageHash: null, inLibrary: row.in_library === 1 };
 };
 
-/**
- * What the server knows about a local file: its MD5 (hashed now when unknown), then
- * `uploadExists` (api-client); a "yes" is stored for the badges and the backup.
- */
 export async function serverRemoteOf(path: string): Promise<RemoteOf> {
   if (!inTauri) return notInBrowser();
   const { row, md5 } = await localRow(path);
@@ -314,10 +285,6 @@ export async function serverRemoteOf(path: string): Promise<RemoteOf> {
   return { ...local, state: local.state === "failed" || local.state === "absent" ? local.state : "absent" };
 }
 
-/**
- * A server thumbnail through the signed-in session (`lpview` `/remote`, cached on disk). The URL
- * is the one `packages/api-client`'s media helpers build; Rust only fetches it.
- */
 export function remoteThumbUrl(imageHash: string, kind: "square" | "big" = "square"): string {
   const server = serverUrl() ?? "";
   const src = kind === "big" ? bigThumbnailUrl(server, imageHash) : squareThumbnailUrl(server, imageHash);
@@ -339,5 +306,4 @@ function on<T>(event: string, handler: (payload: T) => void): () => void {
   };
 }
 
-/** The connection or the backup switch changed: ask `serverState` again. */
 export const onServerStatus = (handler: () => void) => on<null>("server://status", () => handler());

@@ -38,8 +38,6 @@ export function RemoteSection({
     );
   };
 
-  // One detail row of the info panel (ui/Panel DetailRow): what the server knows, as the web
-  // lightbox's sidebar shows it (title, dimmed lines, tags as light badges).
   let title;
   const sub: ReactNode[] = [];
   let extra: ReactNode = null;

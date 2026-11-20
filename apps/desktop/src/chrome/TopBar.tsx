@@ -47,11 +47,8 @@ export type TopBarActions = {
   open(): void;
   setDefaultViewer(): void;
   clearCache(): void;
-  /** Show the library (src/library). */
   library(): void;
-  /** For a picture outside the library: add its folder. Undefined when it is in the library. */
   addFolderToLibrary?: () => void;
-  /** Upload this one file to the connected LibrePhotos server. Undefined when not connected. */
   uploadToServer?: () => void;
   toggleFavorite(): void;
 };
@@ -84,9 +81,7 @@ function ZoomReadout({ onClick, disabled }: { onClick(): void; disabled: boolean
   );
 }
 
-/** The centred title, as the web lightbox has it: the name, then the date taken and the position. */
 function Title({ file, index, count }: { file: FileEntry | null; index: number; count: number }) {
-  // The stage asks for the same info (zoom to 100 %); the cache shares the one request.
   const info = useImageInfo(file);
   if (!file) {
     return (
@@ -112,12 +107,6 @@ function Title({ file, index, count }: { file: FileEntry | null; index: number; 
   );
 }
 
-/**
- * The viewer's toolbar, laid out like the web lightbox's: Open and the zoom controls on the left,
- * the picture's name, date and position in the middle, the most used actions on the right (Info and
- * Delete last, as on the web) and a ⋮ menu with the rest. Narrow windows move buttons into the menu
- * (.opt-1 below 900 px, .opt-2 below 680 px); every action keeps its keyboard shortcut.
- */
 export function TopBar({ file, index, count, infoOpen, fullscreen, favorite, actions, onPointerEnter, onPointerLeave }: Props) {
   const none = file === null;
   const video = file?.kind === "video";

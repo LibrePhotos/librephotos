@@ -1,13 +1,8 @@
-/**
- * Window-level helpers: title, fullscreen, focus, the Open dialog and file drops. Each one works in
- * Tauri and degrades to the DOM (or does nothing) in a plain browser.
- */
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { inTauri } from "./ipc";
 
-/** CONTRACT.md "Supported extensions". */
 export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "jpe", "jfif", "png", "gif", "webp", "bmp", "tif", "tiff", "heic", "heif", "hif", "avif", "jxl"];
 export const RAW_EXTENSIONS = ["dng", "cr2", "cr3", "nef", "nrw", "arw", "srf", "sr2", "orf", "rw2", "raf", "pef", "srw", "raw", "rwl", "3fr", "erf", "kdc", "mrw", "x3f"];
 export const VIDEO_EXTENSIONS = ["mp4", "mov", "m4v", "webm", "mkv", "avi"];
@@ -26,7 +21,6 @@ export async function setFullscreen(on: boolean): Promise<void> {
   if (!on && document.fullscreenElement) await document.exitFullscreen();
 }
 
-/** Calls `handler` when fullscreen changes behind our back (browser Esc, OS shortcuts). */
 export function onFullscreenChange(handler: (on: boolean) => void): () => void {
   if (!inTauri) {
     const listener = () => handler(document.fullscreenElement !== null);
@@ -59,7 +53,6 @@ export function focusWindow(): void {
     .catch(() => undefined);
 }
 
-/** The native Open dialog; null when cancelled or outside Tauri. */
 export async function pickFile(): Promise<string | null> {
   if (!inTauri) return null;
   const { open } = await import("@tauri-apps/plugin-dialog");
@@ -79,7 +72,6 @@ export async function pickFile(): Promise<string | null> {
 
 export type DropHandlers = { onHover: (hovering: boolean) => void; onDrop: (path: string) => void };
 
-/** Files dragged from Explorer onto the window (Tauri only: browsers don't expose file paths). */
 export function onFileDrop({ onHover, onDrop }: DropHandlers): () => void {
   if (!inTauri) return () => undefined;
   let unlisten: UnlistenFn | null = null;

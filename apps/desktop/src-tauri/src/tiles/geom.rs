@@ -1,15 +1,3 @@
-//! Pyramid geometry (levels, tile grid, bands), orientation of rectangles, box reduction and
-//! cropping. Pure functions, no I/O.
-//!
-//! Level 0 is the full resolution; level `L` is `ceil(w / 2^L)` x `ceil(h / 2^L)`. Tiles are
-//! `TILE` x `TILE` in the oriented (displayed) image, edge tiles smaller. Each tile also carries
-//! `OVERLAP` pixels of its neighbours on every side that has one (like Deep Zoom's overlap), so a
-//! renderer that interpolates while scaling sees the same pixels at a tile's edge as inside it.
-//!
-//! Tiles are produced a *band* at a time: one row of tiles (or one column when the orientation
-//! swaps the axes), which is a run of full-width rows of the stored image. Decoders stream rows
-//! forward cheaply, so a band is the natural unit of work.
-
 use crate::orient;
 use crate::pixels::Pixels;
 
@@ -24,7 +12,6 @@ pub struct Rect {
     pub h: u32,
 }
 
-/// Number of pyramid levels: level `levels - 1` fits into one tile.
 pub fn level_count(w: u32, h: u32) -> u32 {
     let mut n = 1;
     let mut m = w.max(h);
@@ -40,8 +27,6 @@ pub fn level_dims(w: u32, h: u32, level: u32) -> (u32, u32) {
     (w.div_ceil(d).max(1), h.div_ceil(d).max(1))
 }
 
-/// The stored rectangle that orientation `o` turns into the displayed rectangle `r`.
-/// `sw`x`sh` is the stored size (at the same level as `r`).
 pub fn to_stored(o: u16, sw: u32, sh: u32, r: Rect) -> Rect {
     let t = |x, y| Rect {
         x,
@@ -67,20 +52,16 @@ pub fn to_stored(o: u16, sw: u32, sh: u32, r: Rect) -> Rect {
     }
 }
 
-/// The tile grid of one level of an image.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Level {
-    /// Stored size at this level.
     pub sw: u32,
     pub sh: u32,
-    /// Displayed (oriented) size at this level.
     pub ow: u32,
     pub oh: u32,
     pub orientation: u16,
 }
 
 impl Level {
-    /// `w`x`h` is the stored full-resolution size.
     pub fn new(w: u32, h: u32, orientation: u16, level: u32) -> Level {
         let (sw, sh) = level_dims(w, h, level);
         let (ow, oh) = orient::oriented_dims(sw, sh, orientation);
@@ -105,7 +86,6 @@ impl Level {
         x < self.cols() && y < self.rows()
     }
 
-    /// Bands run along displayed columns when the orientation swaps the axes.
     pub fn columns_are_bands(&self) -> bool {
         orient::swaps_axes(self.orientation)
     }
@@ -122,7 +102,6 @@ impl Level {
         if self.columns_are_bands() { x } else { y }
     }
 
-    /// Displayed rectangle of tile (`x`, `y`) including its overlap with the neighbours.
     pub fn tile_rect(&self, x: u32, y: u32) -> Rect {
         let (x0, y0) = (
             (x * TILE).saturating_sub(OVERLAP),
@@ -138,7 +117,6 @@ impl Level {
         }
     }
 
-    /// Displayed rectangle of band `b` (all its tiles, overlap included).
     pub fn band_rect(&self, b: u32) -> Rect {
         if self.columns_are_bands() {
             let r = self.tile_rect(b, 0);
@@ -157,14 +135,12 @@ impl Level {
         }
     }
 
-    /// Stored rows `[start, end)` of band `b` (it always spans the full stored width).
     pub fn band_rows(&self, b: u32) -> (u32, u32) {
         let r = to_stored(self.orientation, self.sw, self.sh, self.band_rect(b));
         debug_assert_eq!((r.x, r.w), (0, self.sw));
         (r.y, r.y + r.h)
     }
 
-    /// Tiles of band `b` with their rectangles inside the displayed band.
     pub fn band_tiles(&self, b: u32) -> Vec<(u32, u32, Rect)> {
         let band = self.band_rect(b);
         let at = |x: u32, y: u32| {
@@ -187,7 +163,6 @@ impl Level {
     }
 }
 
-/// Average `f`x`f` blocks (partial blocks at the right and bottom edges average what they have).
 pub fn box_reduce(p: &Pixels, f: u32) -> Pixels {
     if f <= 1 {
         return p.clone();
@@ -244,7 +219,6 @@ pub fn crop(p: &Pixels, r: Rect) -> Pixels {
     }
 }
 
-/// Stack row runs of the same width and format.
 pub fn stack(parts: Vec<Pixels>) -> Option<Pixels> {
     let mut it = parts.into_iter();
     let mut first = it.next()?;
@@ -337,10 +311,8 @@ mod tests {
         }
         let lv = Level::new(1500, 1100, 6, 0);
         assert_eq!((lv.ow, lv.oh, lv.cols(), lv.rows()), (1100, 1500, 3, 3));
-        // The first displayed column is the bottom of the stored image (plus 1 px of overlap).
         assert_eq!(lv.band_rows(0), (1100 - 513, 1100));
         assert_eq!(lv.band_rows(2), (0, 1100 - 1023));
-        // Overlap: interior tiles have a border on all sides, edge tiles only inside the image.
         let lv = Level::new(1500, 1100, 1, 0);
         assert_eq!(
             lv.tile_rect(0, 0),

@@ -1,18 +1,3 @@
-//! The api-client's native transport (`createNativeFetch` in `packages/api-client`): the UI
-//! encodes a request (JSON, multipart with its boundary, bytes) and Rust sends it, so CORS and the
-//! webview's limits never apply. Both directions are one binary IPC message (CONTRACT.md "Server",
-//! `http_fetch`):
-//!
-//! ```text
-//! request:  u32 LE n | n bytes of JSON {id, url, method, headers: [[name, value]]} | body
-//! response: u32 LE n | n bytes of JSON {status, statusText, headers: [[name, value]]} | body
-//! ```
-//!
-//! Any HTTP status is an answer; only a network failure or an abort rejects (with a string).
-//!
-//! `fileParts` (the api-client's `nativeFilePart`): each `marker` in the body is replaced by the
-//! bytes of a library file's range, read here, so an upload chunk never crosses IPC.
-
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -23,7 +8,6 @@ use super::Server;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct RequestMeta {
-    /// Names the request for `http_fetch_abort`.
     pub id: String,
     pub url: String,
     pub method: String,
@@ -32,8 +16,6 @@ pub struct RequestMeta {
     pub file_parts: Vec<FilePart>,
 }
 
-/// A `nativeFilePart` of the body: `marker` stands for `len` bytes from `offset` of the file at
-/// `path` (a supported picture or video).
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct FilePart {
     pub marker: String,
@@ -48,7 +30,6 @@ pub struct FileRange {
     pub len: i64,
 }
 
-/// `body` with its one `marker` replaced by `bytes`.
 pub fn splice(body: &[u8], marker: &[u8], bytes: &[u8]) -> Result<Vec<u8>, String> {
     let at = body
         .windows(marker.len().max(1))
@@ -69,7 +50,6 @@ pub struct ResponseMeta {
     pub headers: Vec<(String, String)>,
 }
 
-/// Requests in flight, by id, for aborting them.
 #[derive(Default)]
 pub struct InFlight(Mutex<HashMap<String, Arc<Notify>>>);
 
@@ -81,7 +61,6 @@ impl InFlight {
     }
 }
 
-/// Splits a framed message into its JSON head and its body.
 pub fn unframe(raw: &[u8]) -> Result<(&[u8], &[u8]), String> {
     let n = raw
         .get(..4)
@@ -99,7 +78,6 @@ pub fn frame(head: &[u8], body: &[u8]) -> Vec<u8> {
     out
 }
 
-/// Headers the HTTP stack sets itself.
 fn skip_header(name: &str) -> bool {
     matches!(
         name.to_ascii_lowercase().as_str(),
@@ -108,7 +86,6 @@ fn skip_header(name: &str) -> bool {
 }
 
 impl Server {
-    /// Sends one request of the UI's api-client and answers the framed response.
     pub async fn http(
         self: &Arc<Self>,
         meta: RequestMeta,

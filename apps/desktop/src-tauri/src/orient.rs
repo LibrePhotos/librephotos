@@ -1,11 +1,5 @@
-//! EXIF orientation: composition (for `rotate_file`) and applying it to pixels.
-//!
-//! An orientation is modelled as "rotate the stored pixels clockwise by `r` quarter turns, then
-//! mirror horizontally if `m`", which covers all eight EXIF values.
-
 use crate::pixels::Pixels;
 
-/// EXIF value (1..=8) -> (quarter turns clockwise, mirrored after the rotation).
 pub fn decompose(o: u16) -> (u8, bool) {
     match o {
         2 => (0, true),
@@ -32,15 +26,12 @@ pub fn compose(r: u8, m: bool) -> u16 {
     }
 }
 
-/// The orientation after turning the displayed image a further quarter turn.
 pub fn rotated(o: u16, clockwise: bool) -> u16 {
     let (r, m) = decompose(o);
-    // A rotation after a mirror equals the mirror after the opposite rotation.
     let step: i8 = if clockwise != m { 1 } else { -1 };
     compose((r as i8 + step).rem_euclid(4) as u8, m)
 }
 
-/// Orientations 5..=8 swap width and height.
 pub fn swaps_axes(o: u16) -> bool {
     (5..=8).contains(&o)
 }
@@ -49,7 +40,6 @@ pub fn oriented_dims(w: u32, h: u32, o: u16) -> (u32, u32) {
     if swaps_axes(o) { (h, w) } else { (w, h) }
 }
 
-/// Apply orientation `o` to `p` (tiled copy, cache friendly for the transposing cases).
 pub fn apply(p: Pixels, o: u16) -> Pixels {
     if !(2..=8).contains(&o) {
         return p;
@@ -58,7 +48,6 @@ pub fn apply(p: Pixels, o: u16) -> Pixels {
     let bpp = p.format.bytes_per_pixel();
     let (dw, dh) = if swaps_axes(o) { (h, w) } else { (w, h) };
     let mut out = vec![0u8; p.data.len()];
-    // Destination coordinates of source pixel (x, y).
     let map = |x: usize, y: usize| -> (usize, usize) {
         match o {
             2 => (w - 1 - x, y),
@@ -114,7 +103,6 @@ mod tests {
         assert_eq!(rotated(8, true), 1);
         assert_eq!(rotated(1, false), 8);
         assert_eq!(rotated(6, false), 1);
-        // Mirrored: a clockwise turn of a horizontally flipped image is the transverse.
         assert_eq!(rotated(2, true), 7);
         for o in 1..=8 {
             assert_eq!(rotated(rotated(o, true), false), o);
@@ -127,7 +115,6 @@ mod tests {
     }
 
     fn img() -> Pixels {
-        // 3x2 grayscale-ish RGB image, pixel value = index.
         let data = (0u8..6).flat_map(|v| [v, v, v]).collect();
         Pixels {
             width: 3,
@@ -143,13 +130,11 @@ mod tests {
 
     #[test]
     fn applies_orientation_to_pixels() {
-        // 0 1 2
-        // 3 4 5
         assert_eq!(values(&apply(img(), 1)), [0, 1, 2, 3, 4, 5]);
         assert_eq!(values(&apply(img(), 2)), [2, 1, 0, 5, 4, 3]);
         assert_eq!(values(&apply(img(), 3)), [5, 4, 3, 2, 1, 0]);
         assert_eq!(values(&apply(img(), 4)), [3, 4, 5, 0, 1, 2]);
-        let r = apply(img(), 6); // 90 cw
+        let r = apply(img(), 6);
         assert_eq!((r.width, r.height), (2, 3));
         assert_eq!(values(&r), [3, 0, 4, 1, 5, 2]);
         assert_eq!(values(&apply(img(), 8)), [2, 5, 1, 4, 0, 3]);
@@ -159,7 +144,6 @@ mod tests {
 
     #[test]
     fn apply_matches_decomposition() {
-        // Applying o equals rotating r quarter turns then mirroring.
         for o in 1..=8u16 {
             let (r, m) = decompose(o);
             let mut p = img();

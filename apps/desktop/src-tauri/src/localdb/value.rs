@@ -1,17 +1,3 @@
-//! SQLite values <-> JSON on the IPC wire (CONTRACT.md "Local database").
-//!
-//! Plain JSON carries what it can carry exactly: `null`, strings, integers up to 2^53 - 1 in
-//! magnitude and finite reals. Everything else is a one-key object, so nothing is rounded or lost:
-//!
-//! | SQLite value | JSON |
-//! |---|---|
-//! | INTEGER beyond +/-(2^53 - 1) | `{ "$bigint": "9007199254740993" }` (a `bigint` in TypeScript) |
-//! | BLOB | `{ "$blob": "<base64>" }` (a `Uint8Array`) |
-//! | REAL infinity | `{ "$real": "Infinity" }` / `"-Infinity"` |
-//!
-//! The same tags are accepted as parameters, plus `true`/`false` (bound as 1/0). A result marks
-//! whether it holds a tag at all (`tagged`), so the TypeScript side only walks rows that need it.
-
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as B64;
 use rusqlite::ToSql;
@@ -20,15 +6,12 @@ use serde::de::{self, Deserializer, MapAccess, Visitor};
 use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
 
-/// The largest integer a JavaScript number holds exactly.
 pub const MAX_SAFE_INT: i64 = (1 << 53) - 1;
 
-/// One column value of a result row, serialised straight from SQLite's memory.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CellRef<'a>(pub ValueRef<'a>);
 
 impl CellRef<'_> {
-    /// Whether the cell goes over the wire as a tag object.
     pub fn is_tagged(&self) -> bool {
         match self.0 {
             ValueRef::Integer(i) => !(-MAX_SAFE_INT..=MAX_SAFE_INT).contains(&i),
@@ -38,8 +21,6 @@ impl CellRef<'_> {
         }
     }
 
-    /// Appends the cell's JSON to `out`: the common cells (null, safe integers, UTF-8 text
-    /// without characters to escape) directly, the rest through [`Serialize`].
     pub fn write_json(&self, out: &mut Vec<u8>) -> serde_json::Result<()> {
         match self.0 {
             ValueRef::Null => out.extend_from_slice(b"null"),
@@ -76,7 +57,6 @@ impl Serialize for CellRef<'_> {
             }
             ValueRef::Integer(i) => tag(s, "$bigint", &i.to_string()),
             ValueRef::Real(f) if f.is_finite() => s.serialize_f64(f),
-            // SQLite stores NaN as NULL, so only the infinities are left.
             ValueRef::Real(f) => tag(s, "$real", if f > 0.0 { "Infinity" } else { "-Infinity" }),
             ValueRef::Text(t) => match std::str::from_utf8(t) {
                 Ok(t) => s.serialize_str(t),
@@ -87,10 +67,6 @@ impl Serialize for CellRef<'_> {
     }
 }
 
-/// A bound parameter as the UI sends it, tags resolved (`true`/`false` are 1/0).
-///
-/// Deserialised by hand: serde's `untagged` buffers every value first, which made a
-/// 2,000-statement batch spend ~60 ms in parsing alone.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Param {
     Null,

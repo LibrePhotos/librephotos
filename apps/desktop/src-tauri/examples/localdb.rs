@@ -1,9 +1,3 @@
-//! The Rust half of the local database's IPC cost, without the webview: a 5,000-row timeline
-//! page (query + JSON) and a 2,000-row batch insert (JSON parameters + insert), on a 50,000-row
-//! table shaped like mobile's `remote_photo`. Compare with `window.__lpDbBench()` in the app.
-//!
-//!     cargo run --example localdb
-
 use std::time::{Duration, Instant};
 
 use librephotos_viewer_lib::localdb::changes::ChangeHub;
@@ -90,7 +84,6 @@ fn main() {
         median(write)
     );
 
-    // A timeline page is keyset-paged: the rows before the last one shown.
     let page = format!(
         "SELECT {COLS} FROM p WHERE hidden = 0 AND timestamp < ? ORDER BY timestamp DESC LIMIT 5000"
     );
@@ -114,7 +107,6 @@ fn main() {
         median(query),
         bytes / 1024
     );
-    // The same rows only counted: SQLite's share of the page.
     let mut count = Vec::new();
     for r in 0..10 {
         let st = Statement {

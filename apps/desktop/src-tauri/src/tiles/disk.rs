@@ -1,8 +1,3 @@
-//! On-disk tile cache: `<root>/<image id>/<level>-<x>-<y>.jpg`, one folder per image version
-//! (the id hashes path, mtime and size). A `used` file's mtime records when the image was last
-//! viewed; when the cache grows past its cap, whole image folders go, least recently used first.
-//! `<level>.done` marks a level whose every tile is on disk.
-
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -10,8 +5,6 @@ use std::time::SystemTime;
 
 pub const DEFAULT_CAP_BYTES: u64 = 2 << 30;
 
-/// `%LOCALAPPDATA%\LibrePhotos Viewer\tiles` (or the XDG cache elsewhere); `LPVIEW_TILE_CACHE`
-/// overrides it, and `LPVIEW_TILE_CACHE=off` disables the disk cache.
 pub fn default_root() -> Option<PathBuf> {
     if let Some(v) = std::env::var_os("LPVIEW_TILE_CACHE") {
         return (v != "off").then(|| PathBuf::from(v));
@@ -63,7 +56,6 @@ impl DiskCache {
         }
     }
 
-    /// Count what earlier sessions left behind (run once, off the request path).
     pub fn scan(&self) {
         let Ok(rd) = std::fs::read_dir(&self.root) else {
             return;
@@ -104,7 +96,6 @@ impl DiskCache {
         self.tile_path(id, level, x, y).is_file()
     }
 
-    /// Write a tile (temp file + rename, so a crash never leaves a torn JPEG).
     pub fn write(&self, id: &str, level: u32, x: u32, y: u32, bytes: &[u8]) {
         let p = self.tile_path(id, level, x, y);
         let tmp = p.with_extension("tmp");
@@ -124,7 +115,6 @@ impl DiskCache {
         st.total += bytes.len() as u64;
     }
 
-    /// The image is being viewed: it is the most recently used now.
     pub fn touch(&self, id: &str) {
         let dir = self.root.join(id);
         if std::fs::create_dir_all(&dir).is_ok() {
@@ -152,8 +142,6 @@ impl DiskCache {
         self.st.lock().unwrap().total
     }
 
-    /// Over the cap: delete least recently used image folders (never those in `keep`) until the
-    /// cache is at 90 % of it.
     pub fn evict(&self, keep: &[String]) {
         let victims: Vec<String> = {
             let mut st = self.st.lock().unwrap();
@@ -211,7 +199,6 @@ mod tests {
         assert_eq!(c.total_bytes(), 800);
         c.mark_level_done("new", 1);
         assert!(c.level_done("new", 1) && !c.level_done("new", 0));
-        // A new session counts what is on disk.
         let c2 = DiskCache::new(root.clone(), 1000);
         c2.scan();
         assert_eq!(c2.total_bytes(), 800);

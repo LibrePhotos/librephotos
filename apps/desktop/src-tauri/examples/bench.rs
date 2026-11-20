@@ -1,10 +1,3 @@
-//! Decode benchmark over the test corpus: thumb / screen (2560x1440) / full per file, cold (no
-//! app cache; OS file cache warm after the first read) and cached (LRU hit through the pipeline).
-//!
-//!     cargo run --example bench -- [--full] [--quick] [paths or folders...]
-//!
-//! Prints a markdown table per file and a per-format summary (medians).
-
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -113,7 +106,6 @@ fn main() {
         };
         let (tm, tw) = time(&key(Kind::Thumb, THUMB_EDGE, THUMB_EDGE));
         let (sm, sw) = time(&key(Kind::Screen, 2560, 1440));
-        // Cached: first get fills the LRU, the second is the hit we time.
         let _ = pipe.get(f.clone(), Kind::Screen, 2560, 1440);
         let t = Instant::now();
         let _ = pipe.get(f.clone(), Kind::Screen, 2560, 1440);

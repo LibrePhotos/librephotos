@@ -1,5 +1,3 @@
-//! Paths, stats and the directory walk behind the file seams (and nothing else: no database).
-
 use std::path::{MAIN_SEPARATOR, Path};
 
 use chrono::NaiveDateTime;
@@ -7,7 +5,6 @@ use chrono::NaiveDateTime;
 use crate::formats::{FileKind, kind_of};
 use crate::listing::modified_ms;
 
-/// What a directory walk knows about a file.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FileStat {
     pub path: String,
@@ -18,7 +15,6 @@ pub struct FileStat {
     pub kind: FileKind,
 }
 
-/// `C:\Pics\` -> `C:\Pics`; on Windows also `/` -> `\`.
 pub fn normalize_dir(p: &str) -> String {
     let p = if cfg!(windows) {
         p.replace('/', "\\")
@@ -26,7 +22,6 @@ pub fn normalize_dir(p: &str) -> String {
         p.to_string()
     };
     let trimmed = p.trim_end_matches(['\\', '/']);
-    // Keep the separator of a drive root ("C:\") and of "/".
     if trimmed.is_empty() || trimmed.ends_with(':') {
         return p;
     }
@@ -41,7 +36,6 @@ fn same_path(a: &str, b: &str) -> bool {
     }
 }
 
-/// Whether `path` is `dir` or inside it.
 pub fn is_within(path: &str, dir: &str) -> bool {
     if same_path(path, dir) {
         return true;
@@ -53,7 +47,6 @@ pub fn is_within(path: &str, dir: &str) -> bool {
         && same_path(&path[..dir.len()], dir)
 }
 
-/// "2023-03-15T10:00:00" (local, from EXIF) as wall-clock milliseconds.
 pub fn taken_ms(iso: &str) -> Option<i64> {
     let s = iso.get(..19)?;
     NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S")
@@ -61,7 +54,6 @@ pub fn taken_ms(iso: &str) -> Option<i64> {
         .map(|d| d.and_utc().timestamp_millis())
 }
 
-/// The stat of a supported file (None for folders and other kinds).
 pub fn file_stat(path: &Path, meta: &std::fs::Metadata) -> Option<FileStat> {
     let kind = kind_of(path)?;
     meta.is_file().then(|| FileStat {
@@ -80,7 +72,6 @@ pub fn file_stat(path: &Path, meta: &std::fs::Metadata) -> Option<FileStat> {
     })
 }
 
-/// Folders a walk never enters (hidden, recycle bins, Synology thumbnails).
 pub fn skip_dir(name: &str) -> bool {
     name.starts_with('.')
         || name.eq_ignore_ascii_case("$RECYCLE.BIN")
@@ -88,15 +79,12 @@ pub fn skip_dir(name: &str) -> bool {
         || name == "@eaDir"
 }
 
-/// Calls `f` with every supported file under `dir` (recursive, hidden folders skipped) as it
-/// is found; `f` answers false to stop. Fails only when `dir` itself cannot be read.
 pub fn walk_each(dir: &Path, mut f: impl FnMut(FileStat) -> bool) -> std::io::Result<()> {
     let mut stack = vec![dir.to_path_buf()];
     let mut first = true;
     while let Some(d) = stack.pop() {
         let entries = match std::fs::read_dir(&d) {
             Ok(e) => e,
-            // The root itself must be readable; a subfolder we may not read is skipped.
             Err(e) if first => return Err(e),
             Err(_) => continue,
         };

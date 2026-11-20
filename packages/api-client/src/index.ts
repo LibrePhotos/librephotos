@@ -11,9 +11,6 @@
  * The `media` helper builds thumbnail/original URLs from an image hash; on
  * mobile these are fetched with an Authorization header (expo-image), on web
  * they ride same-origin cookies.
- *
- * `./core` is everything but the React Query hooks and polling helpers, for a
- * client without React Query (apps/desktop).
  */
 export * from "./core";
 export * from "./hooks";

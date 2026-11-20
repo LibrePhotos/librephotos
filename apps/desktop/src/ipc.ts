@@ -1,9 +1,3 @@
-/**
- * The UI side of CONTRACT.md. Every call into Rust goes through here.
- *
- * Outside Tauri (plain `npm run dev` in a browser) the functions answer from a small mock, so the UI
- * can be built and styled without the Rust core. Mock images come from picsum-like local SVGs.
- */
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
@@ -38,15 +32,12 @@ export type MetadataEdits = { rating?: number; caption?: string; keywords?: stri
 export type WriteTarget = "sidecar" | "file";
 export type WriteOutcome = { modifiedMs: number; sidecar: string | null; wroteFile: boolean };
 export type ImageKind = "thumb" | "screen" | "full";
-/** Scheduling hint for the Rust pipeline: the stage's pictures are `high` (the default), the filmstrip `low`. */
 export type ImagePriority = "high" | "low";
-/** Deep-zoom pyramid of a big picture (CONTRACT.md "Tiles"): displayed full size, tile edge, level count. */
 export type TileInfo = { width: number; height: number; tileSize: number; levels: number };
 
 export const inTauri = isTauri();
 const isWindows = navigator.userAgent.includes("Windows");
 
-/** URL of a picture of `file` from the Rust `lpview` scheme (see CONTRACT.md). */
 export function imageUrl(file: FileEntry, kind: ImageKind, w = 0, h = 0, priority: ImagePriority = "high"): string {
   if (!inTauri) return mockImageUrl(file, kind);
   const base = isWindows ? "http://lpview.localhost" : "lpview://localhost";
@@ -59,7 +50,6 @@ export function imageUrl(file: FileEntry, kind: ImageKind, w = 0, h = 0, priorit
   return `${base}/${kind}?${q.toString()}`;
 }
 
-/** URL of tile (`x`, `y`) of pyramid level `level` (0 = full resolution, each level halves). */
 export function tileUrl(file: FileEntry, level: number, x: number, y: number): string {
   const base = isWindows ? "http://lpview.localhost" : "lpview://localhost";
   const q = new URLSearchParams({
@@ -72,12 +62,10 @@ export function tileUrl(file: FileEntry, level: number, x: number, y: number): s
   return `${base}/tile?${q.toString()}`;
 }
 
-/** The pyramid of a picture, or null when it is small enough for `full` (or not tileable). */
 export async function tileInfo(path: string): Promise<TileInfo | null> {
   return inTauri ? invoke<TileInfo | null>("tile_info", { path }) : null;
 }
 
-/** The UI no longer shows tiles of `path`: Rust stops filling its pyramid in the background. */
 export async function tileRelease(path: string): Promise<void> {
   if (inTauri) await invoke("tile_release", { path });
 }
@@ -111,7 +99,6 @@ export async function trashFile(path: string): Promise<void> {
   if (inTauri) await invoke("trash_file", { path });
 }
 
-/** Rotates on disk; resolves to the file's new modified time (ms). */
 export async function rotateFile(path: string, clockwise: boolean): Promise<number> {
   if (inTauri) return invoke<number>("rotate_file", { path, clockwise });
   mockRotation.set(path, ((mockRotation.get(path) ?? 0) + (clockwise ? 1 : 3)) % 4);
@@ -126,33 +113,23 @@ export async function copyImage(path: string): Promise<void> {
   if (inTauri) await invoke("copy_image", { path });
 }
 
-/**
- * Make the thumbs of these files (nearest first) into the disk cache while the app is idle.
- * Replaces the previous list; resolves to how many were queued.
- */
 export async function prewarmThumbs(paths: string[]): Promise<number> {
   return inTauri ? invoke<number>("prewarm_thumbs", { paths }) : 0;
 }
 
-/** Opens Settings at this app's Default apps page (Windows); rejects with a reason elsewhere. */
 export async function openDefaultAppsSettings(): Promise<void> {
   if (inTauri) await invoke("open_default_apps_settings");
   else throw new Error("only in the desktop app");
 }
 
-/** Empties the thumbnail cache on disk; resolves to the bytes freed. */
 export async function clearThumbnailCache(): Promise<number> {
   return inTauri ? invoke<number>("clear_cache") : 0;
 }
 
-/** A second launch forwarded a file (double-click in Explorer while the viewer runs). */
 export async function onOpenRequest(handler: (path: string) => void): Promise<UnlistenFn> {
   if (!inTauri) return () => undefined;
   return listen<{ path: string }>("viewer://open", event => handler(event.payload.path));
 }
-
-// ---------------------------------------------------------------- browser mock
-// Query flags for checking the UI in a plain browser: `?empty` (nothing opened), `?big` (2000 files).
 
 const mockParams = new URLSearchParams(inTauri ? "" : window.location.search);
 const MOCK_COUNT = mockParams.has("big") ? 2000 : 40;
@@ -180,12 +157,10 @@ function mockListing(path: string): FolderListing {
   return { folder: "C:\\mock", files: mockFiles, index };
 }
 
-/** Unrotated pixel size of mock file `i`: every fifth one is portrait. */
 function mockSize(i: number): [number, number] {
   return i % 5 === 2 ? [3000, 4000] : [6000, 4000];
 }
 
-/** The mock's stand-in for a decode failure (`.jxl`) and for video bytes (none: the player shows its error state). */
 function mockImageUrl(file: FileEntry, kind: ImageKind): string {
   if (file.name.endsWith(".jxl") || file.kind === "video") return "data:image/png;base64,AAAA";
   const i = mockFiles.findIndex(f => f.path === file.path);

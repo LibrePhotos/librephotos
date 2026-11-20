@@ -1,18 +1,11 @@
-//! Coalesces table changes into one `db://changed { tables }` event per window: the first change
-//! opens a window (40 ms in the app), every change until it closes joins it, then one event names
-//! every table touched in it. A burst of writes (a walk inserting thousands of rows in batches)
-//! is a handful of events, and the first one is never more than one window late.
-
 use std::collections::BTreeSet;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
 
-/// The app's window.
 pub const WINDOW: Duration = Duration::from_millis(40);
 
-/// The payload of `db://changed`.
 #[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct Changed {
     pub tables: Vec<String>,
@@ -24,7 +17,6 @@ pub struct ChangeHub {
 }
 
 impl ChangeHub {
-    /// Starts the coalescing thread; `emit` gets the tables of each window, sorted.
     pub fn spawn(window: Duration, emit: impl Fn(Vec<String>) + Send + 'static) -> ChangeHub {
         let (tx, rx) = channel();
         let _ = std::thread::Builder::new()
@@ -33,7 +25,6 @@ impl ChangeHub {
         ChangeHub { tx }
     }
 
-    /// Tables written by a committed call (or by Rust itself).
     pub fn notify(&self, tables: BTreeSet<String>) {
         if !tables.is_empty() {
             let _ = self.tx.send(tables);
@@ -91,7 +82,6 @@ mod tests {
             rx.recv_timeout(Duration::from_millis(120)).is_err(),
             "one event"
         );
-        // A later change opens a new window.
         hub.notify(set(&["outbox"]));
         assert_eq!(rx.recv_timeout(Duration::from_secs(2)).unwrap(), ["outbox"]);
     }

@@ -1,8 +1,3 @@
-//! Windows Imaging Component decoding: JPEG, PNG, GIF, BMP, TIFF, WebP, HEIC/HEIF, AVIF, JXL and
-//! RAW (with the Store codecs installed). Scaled JPEG decode through `IWICBitmapSourceTransform`
-//! (DCT scaling: a 298 MP JPEG never materialises at full size for `screen`), embedded frame
-//! thumbnails, and Windows shell thumbnails for videos.
-
 use std::path::Path;
 
 use windows::Win32::Foundation::{GENERIC_READ, SIZE};
@@ -27,13 +22,11 @@ use crate::orient;
 use crate::pixels::{PixFmt, Pixels, fit};
 
 thread_local! {
-    // COM is initialised (MTA) once per thread that touches WIC, and the factory reused.
     static FACTORY: Option<IWICImagingFactory> = init_factory();
 }
 
 fn init_factory() -> Option<IWICImagingFactory> {
     unsafe {
-        // S_FALSE / RPC_E_CHANGED_MODE just mean COM is already up on this thread.
         let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         CoCreateInstance(&CLSID_WICImagingFactory, None, CLSCTX_INPROC_SERVER).ok()
     }
@@ -49,7 +42,6 @@ fn err(e: windows::core::Error) -> String {
     format!("WIC: {} ({:#010x})", e.message(), e.code().0)
 }
 
-/// An opened image: first frame, stored size and EXIF orientation.
 pub struct Source {
     pub frame: IWICBitmapFrameDecode,
     pub width: u32,
@@ -84,8 +76,6 @@ pub fn open_file(path: &Path) -> Result<Source, String> {
     }
 }
 
-/// Run `f` on an image decoded from memory (RAW previews). The stream borrows `bytes`, so every
-/// WIC object is dropped before this returns.
 pub fn with_memory<T>(
     bytes: &[u8],
     f: impl FnOnce(&Source) -> Result<T, String>,
@@ -161,7 +151,6 @@ unsafe fn has_alpha(fac: &IWICImagingFactory, fmt: &GUID) -> bool {
     }
 }
 
-/// Decode `src` to fit the display-oriented box `bw`x`bh`, orientation applied.
 pub fn render(src: &Source, bw: u32, bh: u32) -> Result<Pixels, String> {
     let o = src.orientation;
     let (sbw, sbh) = if orient::swaps_axes(o) {
@@ -172,14 +161,12 @@ pub fn render(src: &Source, bw: u32, bh: u32) -> Result<Pixels, String> {
     Ok(orient::apply(render_stored(src, sbw, sbh)?, o))
 }
 
-/// Decode `src` to fit `sbw`x`sbh` in its stored orientation (no orientation applied).
 pub fn render_stored(src: &Source, sbw: u32, sbh: u32) -> Result<Pixels, String> {
     let (tw, th) = fit(src.width, src.height, sbw, sbh);
     let fac = factory()?;
     Ok(unsafe {
         let source: IWICBitmapSource = src.frame.cast().map_err(err)?;
         match dct_scaled(&src.frame, src.width, src.height, tw, th)? {
-            // Slightly under the target (within DCT_TOLERANCE): serve as decoded, no resample.
             Some(p) if p.width <= tw => p,
             Some(p) => p.resize(tw, th)?,
             None => copy_scaled(&fac, &source, src.width, src.height, tw, th)?,
@@ -187,8 +174,6 @@ pub fn render_stored(src: &Source, sbw: u32, sbh: u32) -> Result<Pixels, String>
     })
 }
 
-/// The frame's embedded thumbnail (EXIF / HEIF thumbnail item), oriented and fitted to `edge`.
-/// `None` when there is none or it is tiny.
 pub fn embedded_thumbnail(src: &Source, edge: u32) -> Option<Pixels> {
     let fac = factory().ok()?;
     unsafe {
@@ -204,12 +189,8 @@ pub fn embedded_thumbnail(src: &Source, edge: u32) -> Option<Pixels> {
     }
 }
 
-/// A DCT-scaled decode may come out this much smaller than the target box and still be used:
-/// a 1/2 decode of a 3840x2560 JPEG (1920x1280) for a 2160x1440 target saves ~40% of the time.
 const DCT_TOLERANCE: f64 = 0.85;
 
-/// Native JPEG downscale by 1/2, 1/4 or 1/8 during decode (only for 24bpp BGR sources, i.e. JPEG).
-/// Returns pixels at least `DCT_TOLERANCE` x `tw`x`th`, or `None` when the codec cannot do it.
 unsafe fn dct_scaled(
     frame: &IWICBitmapFrameDecode,
     w: u32,
@@ -283,7 +264,6 @@ const SCALE_FIRST: [GUID; 6] = [
     GUID_WICPixelFormat24bppRGB,
 ];
 
-/// Scale (Fant) and convert `source` to BGR24 (opaque) or RGBA32 (alpha), then copy out.
 unsafe fn copy_scaled(
     fac: &IWICImagingFactory,
     source: &IWICBitmapSource,
@@ -350,13 +330,10 @@ unsafe fn copy_scaled(
     }
 }
 
-/// Windows shell thumbnail (thumbnail cache / Media Foundation for videos), fitted to `edge`.
-/// Shell thumbnails are already oriented.
 pub fn shell_thumbnail(path: &Path, edge: u32) -> Result<Pixels, String> {
     shell_image(path, edge, SIIGBF_THUMBNAILONLY | SIIGBF_BIGGERSIZEOK)
 }
 
-/// Only what Explorer's thumbnail cache already holds (a few ms, no decode); `None` on a miss.
 pub fn shell_cached_thumbnail(path: &Path, edge: u32) -> Option<Pixels> {
     shell_image(
         path,
@@ -367,9 +344,8 @@ pub fn shell_cached_thumbnail(path: &Path, edge: u32) -> Option<Pixels> {
 }
 
 fn shell_image(path: &Path, edge: u32, flags: SIIGBF) -> Result<Pixels, String> {
-    factory()?; // COM up on this thread
+    factory()?;
     unsafe {
-        // The shell parser wants backslashes.
         let p = HSTRING::from(path.to_string_lossy().replace('/', "\\"));
         let item: IShellItemImageFactory = SHCreateItemFromParsingName(&p, None).map_err(err)?;
         let size = SIZE {
@@ -402,7 +378,7 @@ unsafe fn hbitmap_pixels(h: HBITMAP) -> Result<Pixels, String> {
             bmiHeader: BITMAPINFOHEADER {
                 biSize: size_of::<BITMAPINFOHEADER>() as u32,
                 biWidth: w,
-                biHeight: -ht, // top-down
+                biHeight: -ht,
                 biPlanes: 1,
                 biBitCount: 32,
                 biCompression: BI_RGB.0,
@@ -434,13 +410,10 @@ unsafe fn hbitmap_pixels(h: HBITMAP) -> Result<Pixels, String> {
     }
 }
 
-/// JPEG through the WIC encoder (libjpeg-turbo class speed), for opaque pixels.
 pub fn encode_jpeg(p: &Pixels, quality: f32) -> Result<Vec<u8>, String> {
     encode_jpeg_with(p, quality, false)
 }
 
-/// [`encode_jpeg`], optionally without chroma subsampling (4:4:4): pictures cut into tiles need
-/// it, since 4:2:0 chroma is reconstructed differently at a tile's edge than inside it.
 pub fn encode_jpeg_with(p: &Pixels, quality: f32, chroma444: bool) -> Result<Vec<u8>, String> {
     use std::mem::ManuallyDrop;
     use windows::Win32::System::Com::STREAM_SEEK_CUR;
@@ -449,7 +422,6 @@ pub fn encode_jpeg_with(p: &Pixels, quality: f32, chroma444: bool) -> Result<Vec
         VARIANT, VARIANT_0, VARIANT_0_0, VARIANT_0_0_0, VT_R4, VT_UI1,
     };
 
-    // WIC's JPEG encoder takes BGR24.
     let bgr: std::borrow::Cow<[u8]> = match p.format {
         PixFmt::Bgr8 => p.data.as_slice().into(),
         PixFmt::Rgb8 => p
@@ -478,7 +450,6 @@ pub fn encode_jpeg_with(p: &Pixels, quality: f32, chroma444: bool) -> Result<Vec
             .into(),
     };
     let fac = factory()?;
-    // Worst case for q<=95 4:2:0 is well under the raw size; the encoder fails cleanly if not.
     let mut out = vec![0u8; bgr.len() + (1 << 20)];
     unsafe {
         let stream = fac.CreateStream().map_err(err)?;
@@ -552,8 +523,6 @@ pub fn encode_jpeg_with(p: &Pixels, quality: f32, chroma444: bool) -> Result<Vec
         drop(stream);
         out.truncate(pos as usize);
     }
-    // The buffer was sized for the worst case (raw size + 1 MB): give the rest back, or every
-    // cached JPEG keeps megabytes committed that the caches' byte budgets never see.
     out.shrink_to_fit();
     Ok(out)
 }

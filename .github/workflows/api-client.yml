@@ -57,9 +57,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      # npm ignores a lockfile inside a workspace, but Renovate still edits it
-      # and it drifts. The root package-lock.json is the only workspace lockfile;
-      # apps/desktop is not a workspace and keeps its own install.
       - name: no nested package-lock.json
         run: |
           nested=$(git ls-files '*package-lock.json' | grep -vx -e 'package-lock.json' -e 'apps/desktop/package-lock.json' || true)

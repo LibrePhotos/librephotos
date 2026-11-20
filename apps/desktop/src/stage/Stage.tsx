@@ -26,7 +26,6 @@ type Props = {
   hasNext: boolean;
   onPrev(): void;
   onNext(): void;
-  /** The pointer has been idle: hide the on-stage arrows. */
   idle: boolean;
 };
 
@@ -34,7 +33,6 @@ type Size = { w: number; h: number };
 
 const BOX_DEBOUNCE_MS = 220;
 
-/** CSS size of an element, live, plus the device-pixel box for `screen` requests (debounced). */
 export function useStageSize(ref: React.RefObject<HTMLElement | null>): { size: Size; box: Box | null } {
   const [size, setSize] = useState<Size>({ w: 0, h: 0 });
   const [box, setBox] = useState<Box | null>(null);
@@ -124,7 +122,6 @@ function VideoView({ file, handleRef }: { file: FileEntry; handleRef: Ref<StageH
 
 type Dims = { w: number; h: number };
 
-/** `tile_info` per file version: big pictures get a tile pyramid instead of `full`. */
 const tileInfos = new Map<string, Promise<TileInfo | null>>();
 function tileInfoOf(file: FileEntry): Promise<TileInfo | null> {
   const token = tokenOf(file);
@@ -140,7 +137,6 @@ function tileInfoOf(file: FileEntry): Promise<TileInfo | null> {
   return p;
 }
 
-/** Original pixel size: aspect from the best decoded layer, long edge from the best source we have. */
 function originalDims(shown: Shown | null, infoLongEdge: number | null, box: Box | null): Dims | null {
   if (!shown) return null;
   const best = shown.full ?? shown.screen ?? shown.thumb;
@@ -149,7 +145,7 @@ function originalDims(shown: Shown | null, infoLongEdge: number | null, box: Box
   if (shown.full) long = Math.max(shown.full.w, shown.full.h);
   else if (infoLongEdge) long = infoLongEdge;
   else if (shown.screen) long = Math.max(shown.screen.w, shown.screen.h);
-  else long = box ? Math.max(box.w, box.h) : 4000; // thumbnail only: assume it fills the stage
+  else long = box ? Math.max(box.w, box.h) : 4000;
   const landscape = best.w >= best.h;
   const w = landscape ? long : Math.round((long * best.w) / best.h);
   const h = landscape ? Math.round((long * best.h) / best.w) : long;
@@ -171,7 +167,6 @@ function PhotoView({
 }) {
   const token = tokenOf(file);
   const [fullFor, setFullFor] = useState<string | null>(null);
-  // Big pictures zoom through a tile pyramid instead of loading `full` (CONTRACT.md "Tiles").
   const [tiled, setTiled] = useState<{ token: string; info: TileInfo } | null>(null);
   const shown = useProgressiveImage(file, box, fullFor === token);
   const infoState = useImageInfo(file);
@@ -186,11 +181,9 @@ function PhotoView({
   const tileInfoNow = tiled?.token === token ? tiled.info : null;
   const dims = tileInfoNow ? { w: tileInfoNow.width, h: tileInfoNow.height } : originalDims(shown, infoLong, box);
 
-  // Latest values for the viewport callback, which fires outside React renders.
   const latest = useRef({ shown, dims, token, file });
   latest.current = { shown, dims, token, file };
 
-  /** Zoomed past the `screen` image: tiles when the picture has a pyramid, else `full`. */
   const wantDetail = (t: string, f: FileEntry) => {
     if (detailAsked.current === t) return;
     detailAsked.current = t;
@@ -210,7 +203,7 @@ function PhotoView({
     if (!s || s.token !== t || !screen || s.full || !d) return;
     const longScreen = Math.max(screen.w, screen.h);
     const longOrig = Math.max(d.w, d.h);
-    const showing = (state.percent / 100) * longOrig; // device px the long edge spans now
+    const showing = (state.percent / 100) * longOrig;
     if (longOrig > longScreen * 1.02 && showing > longScreen * 1.1) wantDetail(t, f);
   };
   const onViewRef = useRef(onView);
@@ -239,7 +232,6 @@ function PhotoView({
 
   useEffect(() => () => setZoomPercent(null), []);
 
-  // The tile layer lives as long as this file version shows tiles.
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     const layer = layerRef.current;
@@ -271,7 +263,6 @@ function PhotoView({
     [vp],
   );
 
-  // Wheel and trackpad pinch (ctrlKey) zoom at the cursor; must be non-passive to stop page zoom.
   useEffect(() => {
     const el = surfaceRef.current;
     if (!el) return;
@@ -291,7 +282,6 @@ function PhotoView({
     return () => el.removeEventListener("wheel", onWheel);
   }, [vp]);
 
-  // Drag to pan (only when the picture is bigger than the stage).
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = surfaceRef.current;
@@ -317,7 +307,6 @@ function PhotoView({
     vp.toggleActual(e.clientX - rect.left, e.clientY - rect.top);
   };
 
-  // Prefetch the neighbours' `screen` (and thumbs) once the current picture is on screen.
   const screenReady = shown?.token === token && shown.screen !== null;
   const neighbourKey = neighbours.map(tokenOf).join("\n");
   const boxW = box?.w ?? 0;
@@ -332,8 +321,6 @@ function PhotoView({
       load(imageUrl(n, "thumb"), ac.signal).catch(() => undefined);
       load(imageUrl(n, "screen", boxW, boxH), ac.signal).catch(() => undefined);
     }
-    // Abort on the next tick: when the user steps onto a neighbour, the stage picks up the same
-    // in-flight request first, so it isn't cancelled and restarted.
     return () => void window.setTimeout(() => ac.abort(), 0);
   }, [screenReady, neighbourKey, boxW, boxH]);
 
@@ -370,7 +357,6 @@ function PhotoView({
   );
 }
 
-/** Ordered prefetch list: +1, -1, +2, -2. */
 export function neighboursOf(files: FileEntry[], index: number): FileEntry[] {
   const out: FileEntry[] = [];
   for (const offset of [1, -1, 2, -2]) {

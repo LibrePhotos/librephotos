@@ -1,8 +1,3 @@
-/* The viewer's toolbar (web: LightboxControls.module.css). Its height is part of the stage box Rust
-   predicts at start-up (--lp-topbar-height, CHROME_CSS_PX in src-tauri/src/lib.rs). The side
-   columns share the free width so the title stays centred until one of them needs more. While a
-   picture is open (.app.viewing) it takes the dark scheme and the stage's black, so bar and photo
-   read as one surface; with nothing open it follows the app's scheme. */
 .topbar {
   position: relative;
   display: grid;
@@ -18,7 +13,6 @@
 }
 .app.viewing > .topbar {
   background: var(--lp-stage);
-  /* The web toolbar's white icons with a light tint on hover. */
   --lp-icon-btn-color: var(--lp-scrim-white-90);
   --lp-icon-btn-hover: var(--lp-scrim-white-12);
   --lp-icon-btn-active: var(--lp-scrim-white-16);
@@ -75,8 +69,6 @@
   cursor: default;
 }
 
-/* The centred title: the name in 14px semibold, the date and position dimmed under it, each cut
-   short with an ellipsis rather than pushing into the buttons. */
 .topbar-title {
   grid-column: 2;
   min-width: 0;
@@ -124,7 +116,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Narrow windows drop secondary actions into the ⋮ menu (they all keep their keyboard shortcuts). */
 @media (max-width: 900px) {
   .topbar .opt-1 {
     display: none;
@@ -141,7 +132,6 @@
   }
 }
 
-/* Menu items standing in for hidden toolbar buttons: only listed when their button is hidden. */
 .menu-narrow-1,
 .menu-narrow-2 {
   display: none;

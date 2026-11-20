@@ -34,13 +34,11 @@ import "./App.css";
 type View = { folder: string; files: FileEntry[]; index: number };
 
 const IDLE_MS = 2500;
-/** After opening a folder, wait this long (the first pictures come first) before pre-warming thumbs. */
 const PREWARM_DELAY_MS = 2000;
 const APP_NAME = "LibrePhotos Viewer";
 
 const clampIndex = (i: number, n: number) => Math.max(0, Math.min(n - 1, i));
 
-/** Paths ordered by distance from `index`: index, +1, -1, +2, -2, ... */
 export function nearestFirst(files: FileEntry[], index: number): string[] {
   const out: string[] = [];
   for (let d = 0; out.length < files.length && d <= files.length; d++) {
@@ -60,7 +58,6 @@ function withoutFile(view: View, path: string): View {
   return { ...view, files, index: Math.max(0, index) };
 }
 
-/** Mouse idle tracking: true after `ms` without pointer activity, unless `keepAwake()` says otherwise. */
 function useIdle(ms: number, keepAwake: () => boolean): { idle: boolean; hideNow(): void; wake(): void } {
   const [idle, setIdle] = useState(false);
   const timer = useRef(0);
@@ -77,7 +74,6 @@ function useIdle(ms: number, keepAwake: () => boolean): { idle: boolean; hideNow
     let lastX = -1;
     let lastY = -1;
     const wake = (e: Event) => {
-      // Some platforms send a synthetic mousemove after layout changes: ignore zero-distance moves.
       if (e instanceof MouseEvent && e.type === "mousemove") {
         if (e.clientX === lastX && e.clientY === lastY) return;
         lastX = e.clientX;
@@ -110,7 +106,6 @@ function useIdle(ms: number, keepAwake: () => boolean): { idle: boolean; hideNow
 
 export function App() {
   const [view, setView] = useState<View | null>(null);
-  /** The library (src/library) or the viewer; a picture opened from outside always shows the viewer. */
   const [mode, setMode] = useState<"viewer" | "library">("viewer");
   const [starting, setStarting] = useState(true);
   const [openError, setOpenError] = useState<string | null>(null);
@@ -125,7 +120,6 @@ export function App() {
   const slideshowEnteredFullscreen = useRef(false);
   const rotateChain = useRef<Promise<void>>(Promise.resolve());
   const { toasts, push } = useToasts();
-  // A server answer that breaks the shared api-client schemas is shown, not swallowed.
   useEffect(() => onContractError(error => push(contractErrorText(error), "error")), [push]);
   const { idle, hideNow: hideChromeNow, wake: showChrome } = useIdle(IDLE_MS, () => overChrome.current || confirmFile !== null);
 
@@ -135,8 +129,6 @@ export function App() {
   const neighbours = useNeighbours(files, index);
   const immersive = fullscreen || slideshow;
   const chromeHidden = immersive && idle && confirmFile === null;
-
-  // ------------------------------------------------------------ opening files
 
   const openSeq = useRef(0);
   const hasView = useRef(false);
@@ -205,8 +197,6 @@ export function App() {
 
   useEffect(() => onFullscreenChange(setFs), []);
 
-  // Once a folder is open and its first pictures are up, let Rust make the rest of its thumbs into
-  // the disk cache in the background (nearest first), so the filmstrip is instant from then on.
   const indexRef = useRef(index);
   indexRef.current = index;
   useEffect(() => {
@@ -221,8 +211,6 @@ export function App() {
     if (mode === "library") setWindowTitle(`Library - ${APP_NAME}`);
     else setWindowTitle(current ? `${current.name} - ${APP_NAME}` : APP_NAME);
   }, [current, mode]);
-
-  // ------------------------------------------------------------ library
 
   const onSaved = useCallback(
     (file: FileEntry, result: SaveResult, edit: PhotoEdit) => {
@@ -265,8 +253,6 @@ export function App() {
     );
   }, [current, push]);
 
-  // ------------------------------------------------------------ navigation
-
   const go = useCallback((target: number | ((i: number) => number)) => {
     setView(v => {
       if (!v || v.files.length === 0) return v;
@@ -277,13 +263,9 @@ export function App() {
   const prev = useCallback(() => go(i => i - 1), [go]);
   const next = useCallback(() => go(i => i + 1), [go]);
 
-  // ------------------------------------------------------------ actions
-
   const toggleFullscreen = useCallback(
     (on?: boolean) => {
       const target = on ?? !fullscreen;
-      // Go immersive at once; in a plain browser (no permission for the Fullscreen API) the
-      // immersive layout still works inside the window.
       setFs(target);
       showChrome();
       setFullscreen(target).catch((err: unknown) => {
@@ -340,7 +322,6 @@ export function App() {
       const file = current;
       if (!file || file.kind === "video") return;
       stageRef.current?.rotateView(clockwise ? 1 : -1);
-      // One rotation on disk at a time, in the order the user asked for them.
       rotateChain.current = rotateChain.current.then(async () => {
         try {
           const modifiedMs = await rotateFile(file.path, clockwise);
@@ -408,14 +389,11 @@ export function App() {
     toggleFavorite: editable.toggleFavorite,
   };
 
-  // ------------------------------------------------------------ keyboard
-
   const onKey = (e: KeyboardEvent) => {
     if (confirmFile || mode === "library") return;
     const target = e.target;
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
     if (slideshow) {
-      // Any key ends the slideshow.
       if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
       e.preventDefault();
       stopSlideshow();
@@ -514,8 +492,6 @@ export function App() {
     return () => window.removeEventListener("keydown", listener);
   }, []);
 
-  // ------------------------------------------------------------ render
-
   const chromeEnter = () => {
     overChrome.current = true;
   };
@@ -525,7 +501,6 @@ export function App() {
 
   const className = [
     "app",
-    // A picture is open (or about to be): the dark viewer chrome (styles.css, TopBar.css).
     (current !== null || starting) && "viewing",
     infoOpen && current !== null && !slideshow && "info-open",
     immersive && "immersive",

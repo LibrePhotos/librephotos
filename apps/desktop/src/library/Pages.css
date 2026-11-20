@@ -1,10 +1,3 @@
-/*
- * The library's pages other than the grid: settings-type pages (folders, LibrePhotos), the sign-in
- * card, and the floating backup card. Web sources: SettingsPageFrame, components/auth/AuthCard,
- * StatTile, libraryfolders/LibraryFolderRow, upload/UploadProgressCard. Tokens only.
- */
-
-/* ------------------------------------------------------------ page frame */
 .page-scroll {
   flex: 1;
   min-height: 0;
@@ -15,7 +8,6 @@
 .page-body {
   padding: 0 var(--lp-page-gutter) var(--lp-space-8);
 }
-/* A settings page's reading column (web SettingsPageFrame .narrow, 920px). */
 .page-body.narrow {
   max-width: calc(920px + 2 * var(--lp-page-gutter));
 }
@@ -47,9 +39,6 @@
   font-size: 0.95em;
 }
 
-/* ------------------------------------------------------------ sign-in (AuthCard)
-   The logo and name over one 400px borderless card with a soft shadow on the chrome-grey page,
-   32px padding, 13px/600 labels over 40px fields, a full-width primary. */
 .auth-page {
   flex: 1;
   min-height: 0;
@@ -80,7 +69,6 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --lp-field-height: 40px;
 }
-/* On the white page (the web draws it on its grey one) a hairline keeps the card's edge. */
 @media (prefers-color-scheme: light) {
   .auth-card {
     border: 1px solid var(--lp-color-border);
@@ -122,7 +110,6 @@
   text-align: center;
 }
 
-/* ------------------------------------------------------------ account and backup */
 .account-row {
   display: flex;
   align-items: center;
@@ -140,7 +127,6 @@
   color: var(--lp-color-dimmed);
   font-size: var(--lp-font-size-xs);
 }
-/* StatTile: a small dimmed label over a large number. */
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -184,7 +170,6 @@
   font-size: var(--lp-font-size-sm);
 }
 
-/* ------------------------------------------------------------ folders (LibraryFolderRow) */
 .folder-list {
   display: flex;
   flex-direction: column;
@@ -213,7 +198,6 @@
   align-items: center;
   gap: var(--lp-space-2);
 }
-/* A long path wraps anywhere rather than widening the card. */
 .folder-row-path {
   font-family: var(--lp-font-family-mono);
   font-size: 13px;
@@ -243,8 +227,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ------------------------------------------------------------ floating backup card (UploadProgressCard)
-   Bottom right, 360px, 16px corners, a hairline edge and an xl shadow; its rows clipped to them. */
 .upload-card {
   position: fixed;
   right: var(--lp-space-4);
@@ -300,7 +282,6 @@
   overflow-y: auto;
   border-top: 1px solid var(--lp-color-border);
 }
-/* A file: one flat 44px row, a hairline above the next one, its progress a 2px line along the bottom. */
 .upload-row {
   position: relative;
   display: flex;

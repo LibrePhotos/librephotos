@@ -1,11 +1,6 @@
-//! Sign-in pieces that need no network: the server URL, JWT claims and the refresh-token store.
-
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-/// "photos.example.com/" -> "https://photos.example.com"; "localhost:8000" -> "http://localhost:8000".
-/// A trailing `/api` is dropped (people paste the API root). Plain HTTP is assumed only for
-/// addresses that are on this machine or the local network.
 pub fn normalize_url(input: &str) -> Result<String, String> {
     let t = input.trim();
     let (scheme, rest) = match t.split_once("://") {
@@ -70,12 +65,9 @@ fn b64url_decode(s: &str) -> Option<Vec<u8>> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Claims {
     pub user_id: i64,
-    /// Expiry, seconds since the epoch.
     pub exp: i64,
 }
 
-/// The claims LibrePhotos puts in an access token (`user_id`, `exp`). Not verified: the server
-/// does that; the client only needs to know who it is and when to refresh.
 pub fn claims(token: &str) -> Option<Claims> {
     let payload = token.split('.').nth(1)?;
     let json: serde_json::Value = serde_json::from_slice(&b64url_decode(payload)?).ok()?;
@@ -90,14 +82,12 @@ pub fn claims(token: &str) -> Option<Claims> {
     })
 }
 
-/// Where the refresh token lives: the OS keychain in the app, memory in tests.
 pub trait SecretStore: Send + Sync {
     fn get(&self, account: &str) -> Option<String>;
     fn set(&self, account: &str, secret: &str) -> Result<(), String>;
     fn delete(&self, account: &str);
 }
 
-/// Windows Credential Manager / macOS Keychain / Linux kernel keyring, via `keyring`.
 pub struct Keychain {
     pub service: String,
 }
@@ -164,7 +154,6 @@ mod tests {
 
     #[test]
     fn reads_claims() {
-        // {"token_type":"access","exp":1700000000,"user_id":7}
         let payload = "eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzAwMDAwMDAwLCJ1c2VyX2lkIjo3fQ";
         let c = claims(&format!("x.{payload}.sig")).unwrap();
         assert_eq!(

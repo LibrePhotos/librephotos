@@ -1,36 +1,18 @@
-/**
- * Deep-zoom tile layer: draws the tiles of a big picture's pyramid (CONTRACT.md "Tiles") on one
- * canvas over the stage, once the zoom goes beyond what the `screen` image resolves.
- *
- * - Geometry comes from the stage layer's *computed* transform, so the tiles follow the image
- *   exactly, also during CSS zoom/rotate transitions (redrawn every frame while one runs).
- * - Every tile corner is rounded to a device pixel and adjacent tiles share corners, so there
- *   are never gaps at fractional zoom; tiles carry a 1 px border of their neighbours' pixels, which
- *   the canvas uses when it interpolates at a tile's edge, so magnified edges show no seam either.
- * - The level is the coarsest one with at least one tile pixel per device pixel. Missing tiles
- *   are drawn from the nearest loaded coarser tile meanwhile (and level+1 is fetched first), so
- *   panning never flashes back to the blurry `screen` image.
- * - Bounded: at most `MAX_INFLIGHT` fetches and `MAX_BITMAPS` decoded tiles (~1 MB each);
- *   everything is redrawn from refs in `requestAnimationFrame`, no React state per frame.
- */
 import { tileRelease, tileUrl, type FileEntry, type TileInfo } from "../ipc";
 
 const MAX_INFLIGHT = 6;
 const MAX_BITMAPS = 128;
 const RING_MAX_VISIBLE = 40;
-/** Tiles appear once the picture shows this much more detail than the `screen` image has. */
 const ACTIVE_ABOVE_SCREEN = 1.1;
 
 type Tile = { bmp: ImageBitmap; used: number };
 type Pt = { x: number; y: number };
 
 const key = (l: number, x: number, y: number) => `${l}/${x}/${y}`;
-/** Tiles overlap their neighbours by 1 px (CONTRACT.md "Tiles"): all but the first column/row start 1 px early. */
 const border = (i: number) => (i > 0 ? 1 : 0);
 
 declare global {
   interface Window {
-    /** The live tile layer, for inspection from DevTools (`__lpTiles.stats()`). */
     __lpTiles?: TileLayer;
   }
 }
@@ -45,7 +27,6 @@ export class TileLayer {
   private readonly inflight = new Map<string, AbortController>();
   private readonly failed = new Set<string>();
   private readonly ro: ResizeObserver;
-  /** Width of the best non-tile image (screen/thumb), in its own pixels. */
   private screenW = 0;
   private frame = 0;
   private raf = 0;
@@ -79,7 +60,6 @@ export class TileLayer {
       this.ro.observe(canvas);
     }
     window.__lpTiles = this;
-    // Created while a zoom animation runs (tile_info answered mid-way): it already fired transitionrun.
     this.animating = layer.getAnimations().some(a => a instanceof CSSTransition && a.transitionProperty === "transform");
     layer.addEventListener("transitionrun", this.onTransitionRun);
     layer.addEventListener("transitionend", this.onTransitionEnd);
@@ -92,7 +72,6 @@ export class TileLayer {
     this.invalidate();
   }
 
-  /** The view changed: redraw on the next frame. */
   invalidate(): void {
     if (this.destroyed || this.raf) return;
     this.raf = requestAnimationFrame(() => {
@@ -117,7 +96,6 @@ export class TileLayer {
     void tileRelease(this.file.path).catch(() => undefined);
   }
 
-  /** For tests and the debug overlay. */
   stats(): { bitmaps: number; inflight: number; level: number | null } {
     return { bitmaps: this.tiles.size, inflight: this.inflight.size, level: this.lastLevel };
   }
@@ -143,7 +121,6 @@ export class TileLayer {
     this.blank = true;
   }
 
-  /** Full-resolution image px -> canvas device px. */
   private matrix(): DOMMatrix | null {
     const cssW = this.canvas.clientWidth;
     const cssH = this.canvas.clientHeight;
@@ -152,7 +129,6 @@ export class TileLayer {
     if (cssW <= 0 || cssH <= 0 || lw <= 0 || lh <= 0 || this.canvas.width <= 0) return null;
     const t = getComputedStyle(this.layer).transform;
     const m = new DOMMatrix(t && t !== "none" ? t : undefined);
-    // The canvas and the layer share the stage surface's origin.
     return new DOMMatrix()
       .scale(this.canvas.width / cssW, this.canvas.height / cssH)
       .multiply(m)
@@ -164,20 +140,18 @@ export class TileLayer {
     const m = this.matrix();
     if (!ctx || !m) return this.clear();
     const { width: W, height: H, tileSize: T, levels } = this.info;
-    const z = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)); // device px per image px
+    const z = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
     if (!(z > 0) || z * W <= this.screenW * ACTIVE_ABOVE_SCREEN) {
       this.lastLevel = null;
       for (const ac of this.inflight.values()) ac.abort();
       this.inflight.clear();
       return this.clear();
     }
-    // Levels coarser than the screen image are no better than what is under the canvas.
     const usable = (l: number) => W / 2 ** l > this.screenW;
     const level = Math.max(0, Math.min(levels - 1, Math.floor(Math.log2(1 / z) + 1e-6)));
     this.lastLevel = level;
     const frame = ++this.frame;
 
-    // Visible image rectangle (full-res px).
     const inv = m.inverse();
     const cw = this.canvas.width;
     const ch = this.canvas.height;
@@ -207,7 +181,6 @@ export class TileLayer {
       };
     };
 
-    // Device position of an image point, rounded so neighbours share edges exactly.
     const dev = (x: number, y: number): Pt => {
       const p = m.transformPoint({ x, y });
       return { x: Math.round(p.x), y: Math.round(p.y) };
@@ -237,7 +210,6 @@ export class TileLayer {
         else missing.push([tx, ty]);
       }
     }
-    // Fallback first: the nearest loaded coarser tile, cropped to the missing tile's area.
     for (const [tx, ty] of missing) {
       const x0 = tx * vis.span;
       const y0 = ty * vis.span;
@@ -249,7 +221,6 @@ export class TileLayer {
         if (!parent) continue;
         parent.used = frame;
         const s = 2 ** p;
-        // The parent bitmap starts 1 px before its tile (overlap) unless it is in the first column/row.
         const ox = (tx >> k) * T - border(tx >> k);
         const oy = (ty >> k) * T - border(ty >> k);
         const sx = x0 / s - ox;
@@ -266,14 +237,11 @@ export class TileLayer {
       t.used = frame;
       const x0 = tx * vis.span;
       const y0 = ty * vis.span;
-      // Draw the tile's own pixels; its 1 px overlap border only feeds the interpolation at the edge.
       const iw = Math.min(T, lw - tx * T);
       const ih = Math.min(T, lh - ty * T);
       put(t.bmp, x0, y0, Math.min(W, x0 + vis.span), Math.min(H, y0 + vis.span), border(tx), border(ty), iw, ih);
     }
 
-    // What to fetch: the coarser level under the view first (few tiles, quick fallback), then
-    // this level nearest the centre, then a ring around the view for panning.
     const dist = (l: number, tx: number, ty: number) => {
       const span = T * 2 ** l;
       return Math.hypot((tx + 0.5) * span - centre.x, (ty + 0.5) * span - centre.y) / span;
@@ -284,7 +252,6 @@ export class TileLayer {
         for (let tx = c.x0; tx <= c.x1; tx++) want.push({ k: key(level + 1, tx, ty), l: level + 1, x: tx, y: ty, prio: dist(level + 1, tx, ty) });
     }
     for (const [tx, ty] of missing) want.push({ k: key(level, tx, ty), l: level, x: tx, y: ty, prio: 1000 + dist(level, tx, ty) });
-    // The ring only while the view holds few tiles (it would double a dense view's memory).
     const ringR = range(level, missing.length + ready.length <= RING_MAX_VISIBLE ? 1 : 0);
     for (let ty = ringR.y0; ty <= ringR.y1; ty++)
       for (let tx = ringR.x0; tx <= ringR.x1; tx++) {
@@ -296,7 +263,7 @@ export class TileLayer {
     for (const w of want) {
       wanted.add(w.k);
       const t = this.tiles.get(w.k);
-      if (t) t.used = frame; // keep the ring and the fallback level alive
+      if (t) t.used = frame;
     }
     for (const [k, ac] of this.inflight) {
       if (!wanted.has(k)) {
@@ -304,7 +271,6 @@ export class TileLayer {
         this.inflight.delete(k);
       }
     }
-    // Mid-animation levels are only passed through: fetch once the zoom has settled.
     if (this.animating) return this.evict(frame);
     for (const w of want) {
       if (this.inflight.size >= MAX_INFLIGHT) break;
@@ -336,7 +302,6 @@ export class TileLayer {
       );
   }
 
-  /** Over budget: close the least recently drawn bitmaps (never one drawn in this frame). */
   private evict(frame: number): void {
     if (this.tiles.size <= MAX_BITMAPS) return;
     const old = [...this.tiles].filter(([, t]) => t.used < frame).sort((a, b) => a[1].used - b[1].used);

@@ -1,5 +1,3 @@
-//! Decoded pixels, resizing and the fast re-encode (JPEG q90, or PNG when there is alpha).
-
 use fast_image_resize as fr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -7,7 +5,6 @@ pub enum PixFmt {
     Rgb8,
     Bgr8,
     Rgba8,
-    /// BGRA whose alpha is meaningless (Windows shell bitmaps); treated as opaque.
     Bgrx8,
 }
 
@@ -28,7 +25,6 @@ pub struct Pixels {
     pub data: Vec<u8>,
 }
 
-/// An encoded image ready to be served.
 #[derive(Debug, Clone)]
 pub struct Encoded {
     pub bytes: Vec<u8>,
@@ -37,7 +33,6 @@ pub struct Encoded {
     pub height: u32,
 }
 
-/// Largest size with the aspect ratio of `w`x`h` that fits in `bw`x`bh`; never upscales.
 pub fn fit(w: u32, h: u32, bw: u32, bh: u32) -> (u32, u32) {
     if w == 0 || h == 0 || (w <= bw && h <= bh) {
         return (w, h);
@@ -49,11 +44,8 @@ pub fn fit(w: u32, h: u32, bw: u32, bh: u32) -> (u32, u32) {
     )
 }
 
-/// Cap on decoded `full` images (pixels); larger sources are downscaled to it.
 pub const FULL_MAX_PIXELS: u64 = 120_000_000;
 
-/// The box to use for `full`: unbounded unless the image exceeds [`FULL_MAX_PIXELS`]; also keeps
-/// within the JPEG encoder's 65535 px limit.
 pub fn full_box(w: u32, h: u32) -> (u32, u32) {
     let px = w as u64 * h as u64;
     let s = if px > FULL_MAX_PIXELS {
@@ -70,12 +62,10 @@ impl Pixels {
         self.format == PixFmt::Rgba8
     }
 
-    /// True when an RGBA image actually uses its alpha channel.
     pub fn uses_alpha(&self) -> bool {
         self.has_alpha() && self.data.as_chunks::<4>().0.iter().any(|p| p[3] != 255)
     }
 
-    /// Resize to exactly `tw`x`th` (antialiased bilinear convolution, SIMD).
     pub fn resize(self, tw: u32, th: u32) -> Result<Pixels, String> {
         if (tw, th) == (self.width, self.height) || tw == 0 || th == 0 {
             return Ok(self);
@@ -102,13 +92,11 @@ impl Pixels {
         })
     }
 
-    /// Downscale to fit `bw`x`bh` (no-op when it already fits).
     pub fn fit_into(self, bw: u32, bh: u32) -> Result<Pixels, String> {
         let (tw, th) = fit(self.width, self.height, bw, bh);
         self.resize(tw, th)
     }
 
-    /// RGBA8 copy (clipboard).
     pub fn into_rgba(self) -> Vec<u8> {
         match self.format {
             PixFmt::Rgba8 => self.data,
@@ -136,7 +124,6 @@ impl Pixels {
         }
     }
 
-    /// JPEG q90 4:2:0 for opaque images, fast PNG when alpha is used.
     pub fn encode(&self) -> Result<Encoded, String> {
         if self.uses_alpha() {
             return self.encode_png();
@@ -145,7 +132,6 @@ impl Pixels {
     }
 
     pub fn encode_jpeg(&self, quality: u8) -> Result<Encoded, String> {
-        // The WIC encoder is 2-3x faster than jpeg-encoder (libjpeg-turbo class SIMD).
         #[cfg(windows)]
         if let Ok(bytes) = crate::decode::wic::encode_jpeg(self, quality as f32 / 100.0) {
             return Ok(Encoded {
@@ -158,7 +144,6 @@ impl Pixels {
         self.encode_jpeg_rust(quality)
     }
 
-    /// Pure-Rust JPEG encoder (every platform; fallback on Windows).
     pub fn encode_jpeg_rust(&self, quality: u8) -> Result<Encoded, String> {
         if self.width > 65535 || self.height > 65535 {
             return Err("image too large for JPEG".into());
