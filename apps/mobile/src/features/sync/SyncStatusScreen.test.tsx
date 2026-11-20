@@ -2,10 +2,14 @@ import { waitFor } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
 import { SyncStatusScreen } from "./SyncStatusScreen";
 import { renderWithDb } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { insertLocalAsset, remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
-import { upsertSyncState } from "@/db/queries/sync-state";
-import { appendSyncLog } from "@/db/queries/sync-log";
+import {
+  createTestDb,
+  insertLocalAsset,
+  remotePhoto,
+  seedRemotePhotos,
+  type TestDb,
+} from "@librephotos/local-db/testing";
+import { appendSyncLog, upsertSyncState } from "@librephotos/local-db";
 import { enqueueOutbox } from "@/mutations/outbox";
 import { claimNextJob, enqueueJob, enqueueJobs, failJob } from "@/sync/jobs/queue";
 import { MAX_JOB_ATTEMPTS } from "@/sync/jobs/types";
@@ -15,7 +19,7 @@ import { defined } from "@/test/defined";
 
 describe("SyncStatusScreen", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
     useAuthStore.setState({ userId: 1 });
     useSyncStore.setState({ running: false, progress: null, lastError: null });
@@ -23,20 +27,20 @@ describe("SyncStatusScreen", () => {
   afterEach(() => t.close());
 
   it("renders the per-entity table + counts + log from fixture state", async () => {
-    seedRemotePhotos(t.db, [
+    await seedRemotePhotos(t.db, [
       remotePhoto({ id: "a", imageHash: "hashA", timestamp: Date.UTC(2024, 0, 2) }),
       remotePhoto({ id: "b", imageHash: "hashB", timestamp: Date.UTC(2024, 0, 3) }),
     ]);
-    upsertSyncState(t.db, "photo", {
+    await upsertSyncState(t.db, "photo", {
       status: "done",
       last_full_sync: Date.UTC(2024, 0, 4),
       cursor_modified: Date.UTC(2024, 0, 3),
       progress_current: 2,
       progress_total: 2,
     });
-    appendSyncLog(t.db, { op: "seed", entity: "photo", applied: 2, message: "1 page(s)" });
+    await appendSyncLog(t.db, { op: "seed", entity: "photo", applied: 2, message: "1 page(s)" });
 
-    const { getByTestId, queryByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    const { getByTestId, queryByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
 
     await waitFor(() => {
       expect(getByTestId("sync-status-title")).toBeTruthy();
@@ -52,9 +56,9 @@ describe("SyncStatusScreen", () => {
   });
 
   it("shows the outbox pending badge when mutations are queued", async () => {
-    enqueueOutbox(t.db, "favorite", { imageHashes: ["hashA"], favorite: true });
-    enqueueOutbox(t.db, "hide", { imageHashes: ["hashB"], hidden: true });
-    const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    await enqueueOutbox(t.db, "favorite", { imageHashes: ["hashA"], favorite: true });
+    await enqueueOutbox(t.db, "hide", { imageHashes: ["hashB"], hidden: true });
+    const { getByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {
       expect(getByTestId("outbox-badge")).toBeTruthy();
       expect(getByTestId("outbox-badge").props.children).toHaveProperty("props.children", 2);
@@ -62,7 +66,7 @@ describe("SyncStatusScreen", () => {
   });
 
   it("reports all-synced when the outbox is empty", async () => {
-    const { getByTestId, queryByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    const { getByTestId, queryByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {
       expect(queryByTestId("outbox-badge")).toBeNull();
       expect(getByTestId("outbox-summary")).toBeTruthy();
@@ -74,7 +78,7 @@ describe("SyncStatusScreen", () => {
       running: true,
       progress: { entity: "photo", current: 5, total: 10, phase: "seed" },
     });
-    const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => expect(getByTestId("sync-progress-bar")).toBeTruthy());
   });
 });
@@ -85,7 +89,7 @@ describe("SyncStatusScreen", () => {
  */
 describe("SyncStatusScreen: work queue", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
     useAuthStore.setState({ userId: 1 });
     useSyncStore.setState({ running: false, progress: null, lastError: null });
@@ -93,21 +97,21 @@ describe("SyncStatusScreen: work queue", () => {
   afterEach(() => t.close());
 
   it("says the queue is idle when there is nothing to do", async () => {
-    const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {
       expect(getByTestId("sync-queue-depth").props.children).toContain("up to date");
     });
   });
 
   it("names the job in flight and the depth per kind", async () => {
-    enqueueJobs(t.db, [
+    await enqueueJobs(t.db, [
       { kind: "device_scan", payload: { chunk: 0 } },
       { kind: "upload_asset", payload: { assetId: "a1" } },
       { kind: "upload_asset", payload: { assetId: "a2" } },
     ]);
-    claimNextJob(t.db, 1_000); // device_scan is now running
+    await claimNextJob(t.db, 1_000); // device_scan is now running
 
-    const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {
       // "which stage is running"
       expect(getByTestId("sync-queue-inflight-device_scan")).toBeTruthy();
@@ -117,11 +121,11 @@ describe("SyncStatusScreen: work queue", () => {
   });
 
   it("shows each failure with its own reason, and offers a retry", async () => {
-    enqueueJob(t.db, { kind: "hash_batch" });
-    const job = defined(claimNextJob(t.db, 1_000));
-    failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "media library denied", 1_000);
+    await enqueueJob(t.db, { kind: "hash_batch" });
+    const job = defined(await claimNextJob(t.db, 1_000));
+    await failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "media library denied", 1_000);
 
-    const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {
       // "what is blocking it" — in the queue's own words, not a guess.
       const failure = getByTestId(`sync-queue-failure-${job.id}`);
@@ -135,13 +139,13 @@ describe("SyncStatusScreen: work queue", () => {
   it("renders every pipeline stage against a fixed total", async () => {
     // 2867 in the library, 161 enumerated — the exact numbers from the device
     // run. The old UI showed "0/161"; the denominator here must be 2867.
-    t.db.run(
+    await t.db.run(
       sql`INSERT INTO local_album (id, title, asset_count, modified_at, backup_selection)
           VALUES ('__library__', 'All Photos', 2867, 0, 1)`
     );
-    for (let i = 0; i < 161; i += 1) insertLocalAsset(t.db, { id: `a${i}` });
+    for (let i = 0; i < 161; i += 1) (await insertLocalAsset(t.db, { id: `a${i}` }));
 
-    const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {
       expect(getByTestId("sync-stage-progress-scan").props.children).toBe("161 of 2867");
       // Hashing is its own line with its own denominator, never folded into a

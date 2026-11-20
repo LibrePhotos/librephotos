@@ -3,8 +3,8 @@
  */
 import { sql } from "drizzle-orm";
 import type { SyncPhotosResponse, SyncUserAlbumsResponse } from "@librephotos/api-client";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { getSyncState } from "@/db/queries/sync-state";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
+import { getSyncState } from "@librephotos/local-db";
 import { pullAll, pullEntity, SyncAbortedError } from "../remote/delta";
 import {
   applyPhotosPage,
@@ -20,8 +20,8 @@ import {
   encodeCursor,
 } from "./fake-source";
 
-function photoCount(t: TestDb): number {
-  return (t.db.get(sql`SELECT COUNT(*) AS c FROM remote_photo`) as { c: number }).c;
+async function photoCount(t: TestDb): Promise<number> {
+  return (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM remote_photo`)).c;
 }
 
 function photos(n: number, lm = 1000) {
@@ -30,7 +30,7 @@ function photos(n: number, lm = 1000) {
 
 describe("delta pull loop", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
   });
   afterEach(() => t.close());
@@ -44,8 +44,8 @@ describe("delta pull loop", () => {
 
     expect(res.applied).toBe(25);
     expect(res.seeded).toBe(true);
-    expect(photoCount(t)).toBe(25);
-    const state = getSyncState(t.db, "photo");
+    expect(await photoCount(t)).toBe(25);
+    const state = await getSyncState(t.db, "photo");
     expect(state?.status).toBe("done");
     // Durable cursor is the last item's keyset token.
     expect(state?.cursor_id).toBe(encodeCursor(1024, "p25"));
@@ -69,17 +69,17 @@ describe("delta pull loop", () => {
     store.photo = photos(5); // last_modified 1000..1004
     const source = new FakeSource(store);
     await pullEntity(t.db, source, "photo");
-    expect(photoCount(t)).toBe(5);
+    expect(await photoCount(t)).toBe(5);
 
     // Add a newer row; the delta must pull only it.
     store.photo.push(photoItem("p6", { last_modified: 2000 }));
     const before = source.calls.photo;
     const res = await pullEntity(t.db, source, "photo");
     expect(res.applied).toBe(1);
-    expect(photoCount(t)).toBe(6);
+    expect(await photoCount(t)).toBe(6);
     // The resume request used the stored cursor (didn't re-scan from zero).
     expect(source.calls.photo).toBeGreaterThan(before);
-    expect(getSyncState(t.db, "photo")?.cursor_id).toBe(encodeCursor(2000, "p6"));
+    expect((await getSyncState(t.db, "photo"))?.cursor_id).toBe(encodeCursor(2000, "p6"));
   });
 
   it("resumes mid-entity from the persisted cursor after an interruption", async () => {
@@ -97,15 +97,15 @@ describe("delta pull loop", () => {
     };
 
     await expect(pullEntity(t.db, flaky, "photo", { pageSize: 3 })).rejects.toThrow("network drop");
-    const partial = photoCount(t);
+    const partial = await photoCount(t);
     expect(partial).toBeGreaterThan(0);
     expect(partial).toBeLessThan(10);
-    expect(getSyncState(t.db, "photo")?.status).toBe("error");
+    expect((await getSyncState(t.db, "photo"))?.status).toBe("error");
 
     // Resume with a healthy source: completes without re-fetching page 1's rows.
     await pullEntity(t.db, new FakeSource(store), "photo", { pageSize: 3 });
-    expect(photoCount(t)).toBe(10);
-    expect(getSyncState(t.db, "photo")?.status).toBe("done");
+    expect(await photoCount(t)).toBe(10);
+    expect((await getSyncState(t.db, "photo"))?.status).toBe("done");
   });
 
   it("applies tombstones on a cursored pull (deletes removed rows)", async () => {
@@ -113,12 +113,12 @@ describe("delta pull loop", () => {
     store.photo = photos(3);
     // Seed with a plain source (tombstones surface only on cursored pulls).
     await pullEntity(t.db, new FakeSource(store), "photo");
-    expect(photoCount(t)).toBe(3);
+    expect(await photoCount(t)).toBe(3);
 
     // A later delta pull (starts from the stored cursor) carries the tombstone.
     const withTomb = new FakeSource(store, { tombstones: { photo: ["p2"] } });
     await pullEntity(t.db, withTomb, "photo");
-    const ids = (t.db.all(sql`SELECT id FROM remote_photo ORDER BY id`) as { id: string }[]).map((r) => r.id);
+    const ids = (await t.db.all<{ id: string }>(sql`SELECT id FROM remote_photo ORDER BY id`)).map((r) => r.id);
     expect(ids).toEqual(["p1", "p3"]);
   });
 
@@ -127,14 +127,14 @@ describe("delta pull loop", () => {
     store.photo = photos(4);
     const source = new FakeSource(store);
     await pullEntity(t.db, source, "photo");
-    expect(photoCount(t)).toBe(4);
+    expect(await photoCount(t)).toBe(4);
 
     // Next run: the stored cursor is expired once, forcing a clean reseed.
     const expiring = new FakeSource(store, { expireOnce: { photo: true } });
     const res = await pullEntity(t.db, expiring, "photo");
     expect(res.seeded).toBe(true);
-    expect(photoCount(t)).toBe(4);
-    expect(getSyncState(t.db, "photo")?.status).toBe("done");
+    expect(await photoCount(t)).toBe(4);
+    expect((await getSyncState(t.db, "photo"))?.status).toBe("done");
   });
 
   it("is idempotent: re-applying the same page converges without duplicates", async () => {
@@ -146,9 +146,9 @@ describe("delta pull loop", () => {
       server_time: "0",
     };
     // Need a sync_state row for the cursor UPDATE (no-op here since next=null).
-    applyPhotosPage(t.db, env, Date.now());
-    applyPhotosPage(t.db, env, Date.now());
-    expect(photoCount(t)).toBe(2);
+    await applyPhotosPage(t.db, env, Date.now());
+    await applyPhotosPage(t.db, env, Date.now());
+    expect(await photoCount(t)).toBe(2);
   });
 
   it("user-album membership is replaced from embedded photo_ids", async () => {
@@ -159,10 +159,8 @@ describe("delta pull loop", () => {
       next_cursor: null,
       server_time: "0",
     };
-    applyUserAlbumsPage(t.db, env, Date.now());
-    const members = t.db.all(sql`SELECT photo_id FROM user_album_photo WHERE album_id = 7`) as {
-      photo_id: string;
-    }[];
+    await applyUserAlbumsPage(t.db, env, Date.now());
+    const members = await t.db.all<{ photo_id: string; }>(sql`SELECT photo_id FROM user_album_photo WHERE album_id = 7`);
     expect(members.map((m) => m.photo_id).sort()).toEqual(["a", "b", "c"]);
   });
 
@@ -179,7 +177,7 @@ describe("delta pull loop", () => {
 
 describe("pullAll ordering", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
   });
   afterEach(() => t.close());

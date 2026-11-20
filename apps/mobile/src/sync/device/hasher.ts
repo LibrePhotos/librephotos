@@ -26,8 +26,7 @@
  * (selection, batching, composition, invalidation) is Node-tested with a fake.
  */
 import { sql } from "drizzle-orm";
-import type { AppDatabase } from "@/db/types";
-import type { SyncLogEntry } from "@/db/queries/sync-log";
+import { HASH_STATE_ICLOUD, type AppDatabase, type SyncLogEntry } from "@librephotos/local-db";
 import { HASH_BATCH_SIZE } from "@/sync/jobs/types";
 import type { AssetHasher, AssetHashResult, LocalMediaType } from "./types";
 
@@ -111,10 +110,10 @@ const IDLE_DELAY_MS = 150;
  * upload queue); within that, most-recently-modified first. Excluded albums are
  * never returned. Videos only when `includeVideos`.
  */
-export function selectUnhashed(
+export async function selectUnhashed(
   db: AppDatabase,
   opts: { includeVideos?: boolean; selectedOnly?: boolean; limit: number }
-): Candidate[] {
+): Promise<Candidate[]> {
   const videoClause = opts.includeVideos ? sql`` : sql`AND la.type <> 'video'`;
   const selectedExpr = sql`EXISTS (SELECT 1 FROM local_album_asset laa JOIN local_album l ON l.id = laa.album_id
                                    WHERE laa.asset_id = la.id AND l.backup_selection = 1)`;
@@ -130,29 +129,29 @@ export function selectUnhashed(
   // they keep `hashed_at` NULL (they have not been *attempted*, they are
   // waiting), so without this clause every batch would re-select them, re-learn
   // they are remote, and report `more` forever.
-  return db.all(
+  return await db.all<Candidate>(
     sql`SELECT la.id AS id, la.uri AS uri, la.type AS type
         FROM local_asset la
         WHERE la.hash IS NULL AND la.hashed_at IS NULL AND la.hash_state IS NULL
           AND la.uri IS NOT NULL ${videoClause} ${selectedFilter}
         ORDER BY (CASE WHEN ${selectedExpr} THEN 0 ELSE 1 END) ASC, la.modified_at DESC
         LIMIT ${opts.limit}`
-  ) as Candidate[];
+  );
 }
 
 /**
  * Persist a computed hash (`md5 + userId`) onto the asset row. Clears
  * `hash_state` too: whatever was once deferred has now been read.
  */
-export function storeHash(db: AppDatabase, assetId: string, md5: string, userId: number, now: number): void {
-  db.run(
+export async function storeHash(db: AppDatabase, assetId: string, md5: string, userId: number, now: number): Promise<void> {
+  await db.run(
     sql`UPDATE local_asset SET hash = ${md5 + String(userId)}, hashed_at = ${now}, hash_state = NULL
         WHERE id = ${assetId}`
   );
 }
 
-/** The `hash_state` value meaning "the bytes are in iCloud, not on this device". */
-export const HASH_STATE_ICLOUD = "icloud";
+/** The `hash_state` value meaning "the bytes are in iCloud, not on this device" (the schema owns it). */
+export { HASH_STATE_ICLOUD };
 
 /**
  * Park an asset as "bytes not on this device". `hashed_at` stays NULL — nothing
@@ -160,8 +159,8 @@ export const HASH_STATE_ICLOUD = "icloud";
  * {@link clearDeferredHashes} runs (a user retry, or the asset coming back down
  * from iCloud), while `hash_state` keeps it out of the current pass.
  */
-export function deferHash(db: AppDatabase, assetId: string): void {
-  db.run(sql`UPDATE local_asset SET hash_state = ${HASH_STATE_ICLOUD} WHERE id = ${assetId}`);
+export async function deferHash(db: AppDatabase, assetId: string): Promise<void> {
+  await db.run(sql`UPDATE local_asset SET hash_state = ${HASH_STATE_ICLOUD} WHERE id = ${assetId}`);
 }
 
 /**
@@ -170,22 +169,18 @@ export function deferHash(db: AppDatabase, assetId: string): void {
  * the mirror notices that the user turned "Optimise iPhone Storage" off or that
  * iOS pulled the originals back down. Returns how many rows were revived.
  */
-export function clearDeferredHashes(db: AppDatabase): number {
+export async function clearDeferredHashes(db: AppDatabase): Promise<number> {
   const n = (
-    db.get(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash_state = ${HASH_STATE_ICLOUD}`) as {
-      c: number;
-    }
+    await db.get<{ c: number; }>(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash_state = ${HASH_STATE_ICLOUD}`)
   ).c;
-  db.run(sql`UPDATE local_asset SET hash_state = NULL WHERE hash_state = ${HASH_STATE_ICLOUD}`);
+  await db.run(sql`UPDATE local_asset SET hash_state = NULL WHERE hash_state = ${HASH_STATE_ICLOUD}`);
   return n;
 }
 
 /** How many assets are parked waiting for their bytes to come down from iCloud. */
-export function countDeferred(db: AppDatabase): number {
+export async function countDeferred(db: AppDatabase): Promise<number> {
   return (
-    db.get(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash_state = ${HASH_STATE_ICLOUD}`) as {
-      c: number;
-    }
+    await db.get<{ c: number; }>(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash_state = ${HASH_STATE_ICLOUD}`)
   ).c;
 }
 
@@ -215,14 +210,14 @@ export async function runHashPass(
       // Budget spent. Report whether anything is still outstanding so the caller
       // (a `hash_batch` job) knows to enqueue its continuation.
       more =
-        selectUnhashed(db, {
+        (await selectUnhashed(db, {
           includeVideos: opts.includeVideos,
           selectedOnly: opts.selectedOnly,
           limit: 1,
-        }).length > 0;
+        })).length > 0;
       break;
     }
-    const batch = selectUnhashed(db, {
+    const batch = await selectUnhashed(db, {
       includeVideos: opts.includeVideos,
       selectedOnly: opts.selectedOnly,
       limit: Math.min(batchSize, maxAssets - attempted()),
@@ -248,20 +243,20 @@ export async function runHashPass(
       }
       elapsedMs += Date.now() - startedAt;
       if (result.status === "hashed") {
-        storeHash(db, asset.id, result.md5, opts.userId, now);
+        await storeHash(db, asset.id, result.md5, opts.userId, now);
         hashed += 1;
       } else if (result.status === "remote") {
         // Not a failure and not progress — the bytes are simply somewhere else.
         // Park it so the pass moves on at full speed; the upload path will fetch
         // it once, if the user asked for this album to be backed up.
-        deferHash(db, asset.id);
+        await deferHash(db, asset.id);
         deferred += 1;
       } else {
         failed += 1;
         // Mark attempted (hashed_at set, hash left NULL) so a permanently
         // unreadable asset isn't re-selected forever. Cleared on the next
         // modified_at change (upsertLocalAssets).
-        db.run(sql`UPDATE local_asset SET hashed_at = ${now} WHERE id = ${asset.id}`);
+        await db.run(sql`UPDATE local_asset SET hashed_at = ${now} WHERE id = ${asset.id}`);
       }
     }
     opts.onBatch?.({ hashed, failed, deferred });

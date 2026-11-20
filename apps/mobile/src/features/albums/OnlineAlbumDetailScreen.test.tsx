@@ -1,7 +1,7 @@
 import { waitFor } from "@testing-library/react-native";
 import { OnlineAlbumDetailScreen } from "./OnlineAlbumDetailScreen";
 import { renderWithDb, makeMockClient, jsonResponse } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 
 const ALBUM = {
   results: {
@@ -36,7 +36,7 @@ describe("OnlineAlbumDetailScreen", () => {
       if (url.includes("/albums/thing/5/")) return jsonResponse(ALBUM);
       return jsonResponse({}, 404);
     });
-    const { getByTestId } = renderWithDb(<OnlineAlbumDetailScreen kind="thing" id="5" />, t.db, client);
+    const { getByTestId } = await renderWithDb(<OnlineAlbumDetailScreen kind="thing" id="5" />, t.db, client);
 
     await waitFor(() => {
       expect(getByTestId("album-detail-title").props.children).toBe("Dog");
@@ -47,7 +47,7 @@ describe("OnlineAlbumDetailScreen", () => {
   it("shows an offline state when disconnected with no data", async () => {
     globalThis.__mockNetworkConnected = false;
     const client = makeMockClient(async () => jsonResponse({}, 500));
-    const { getByTestId } = renderWithDb(<OnlineAlbumDetailScreen kind="thing" id="5" />, t.db, client);
+    const { getByTestId } = await renderWithDb(<OnlineAlbumDetailScreen kind="thing" id="5" />, t.db, client);
 
     await waitFor(() => expect(getByTestId("album-detail-grid-offline")).toBeTruthy());
   });

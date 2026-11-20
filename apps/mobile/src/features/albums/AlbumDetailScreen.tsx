@@ -8,9 +8,8 @@ import { MirrorGrid, type GridItem } from "@/components/MirrorGrid";
 import { Icon } from "@/components/Icon";
 import { OptionSheet, type SheetOption } from "@/components/OptionSheet";
 import { TextPromptModal } from "@/components/TextPromptModal";
-import { useReactiveQuery } from "@/db/provider";
-import type { AppDatabase } from "@/db/types";
-import type { PhotoTileRow } from "@/db/queries/filters";
+import { useReactiveQuery, type ReactiveQueryKey } from "@/db/provider";
+import type { AppDatabase, PhotoTileRow } from "@librephotos/local-db";
 import { tileRowToItem } from "@/features/photos/FilterScreen";
 import { useGridSelection } from "@/features/selection/useGridSelection";
 import { useMutations } from "@/mutations/useMutations";
@@ -29,10 +28,13 @@ import { photoRoute } from "@/features/viewer/route";
 export function AlbumDetailScreen({
   title,
   query,
+  queryKey,
   album,
 }: {
   title: string;
-  query: (db: AppDatabase) => PhotoTileRow[];
+  query: (db: AppDatabase) => Promise<PhotoTileRow[]>;
+  /** The live-query key: a name plus every input `query` reads. */
+  queryKey: ReactiveQueryKey;
   /** When present + kind==='user', unlocks rename, cover, delete + remove-from-album. */
   album?: { id: number; kind: "user" | "auto" };
 }) {
@@ -45,16 +47,22 @@ export function AlbumDetailScreen({
   // Only a user album has the ⋯ menu (rename, cover, delete) and remove-from-album.
   const userAlbumId = album?.kind === "user" ? album.id : undefined;
 
-  const items = useReactiveQuery((db) => query(db).map(tileRowToItem), []);
+  const { data: items, loading } = useReactiveQuery(
+    queryKey,
+    async (db) => (await query(db)).map(tileRowToItem),
+    [] as GridItem[]
+  );
   // Live album row (so a rename or a new cover reflects immediately).
-  const albumRow = useReactiveQuery(
-    (db) =>
+  const { data: albumRow } = useReactiveQuery(
+    ["user-album-row", userAlbumId ?? null],
+    async (db) =>
       userAlbumId !== undefined
-        ? (db.get(sql`SELECT title, owner_id, cover_hash FROM user_album WHERE id = ${userAlbumId}`) as
-            | { title: string; owner_id: number | null; cover_hash: string | null }
-            | undefined)
+        ? await db.get<{ title: string; owner_id: number | null; cover_hash: string | null } | undefined>(
+            sql`SELECT title, owner_id, cover_hash FROM user_album WHERE id = ${userAlbumId}`
+          )
         : undefined,
-    [userAlbumId]
+    undefined,
+    { tables: ["user_album"] }
   );
   const liveTitle = albumRow?.title ?? title;
   const userId = useAuthStore((s) => s.userId);
@@ -77,7 +85,7 @@ export function AlbumDetailScreen({
   const pickCover = (photo: CoverCandidate | null) => {
     setPickingCover(false);
     if (userAlbumId === undefined) return;
-    mutations.setAlbumCover(userAlbumId, photo?.photoId ?? null, photo?.imageHash ?? null);
+    void mutations.setAlbumCover(userAlbumId, photo?.photoId ?? null, photo?.imageHash ?? null);
     pushToast({ level: "info", message: t("albumDetail.coverSet") });
   };
 
@@ -165,9 +173,11 @@ export function AlbumDetailScreen({
           selectionActive={selection.active}
           isSelected={selection.isSelected}
           ListEmptyComponent={
+            // Still reading: no "empty" message that would flash before the rows.
+            loading ? null : (
             <View testID="album-empty" style={{ padding: 32, alignItems: "center" }}>
               <Text style={{ color: theme.muted }}>{t("albumDetail.empty")}</Text>
-            </View>
+            </View>)
           }
         />
       </View>
@@ -181,7 +191,7 @@ export function AlbumDetailScreen({
           testID="album-rename-prompt"
           onSubmit={(value) => {
             setRenaming(false);
-            if (value && value !== liveTitle) mutations.renameAlbum(userAlbumId, value);
+            if (value && value !== liveTitle) void mutations.renameAlbum(userAlbumId, value);
           }}
           onCancel={() => setRenaming(false)}
         />

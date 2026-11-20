@@ -21,11 +21,9 @@
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { userIdFromAccessToken } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
+import { appendSyncLog, runMigrations, type AppDatabase, type SyncLogEntry } from "@librephotos/local-db";
 import { openDb } from "@/db/client";
-import { runMigrations } from "@/db/migrate";
 import { tokenStorage } from "@/lib/tokenStorage";
-import { appendSyncLog, type SyncLogEntry } from "@/db/queries/sync-log";
 import { runSync } from "../run";
 
 /** BGTaskScheduler identifier (iOS) / WorkManager unique name (Android). */
@@ -89,10 +87,13 @@ export async function runBackgroundPass(): Promise<void> {
   const access = await tokenStorage.getAccessToken();
   const userId = userIdFromAccessToken(access);
 
-  const { db, sqlite } = openDb();
-  await runMigrations(db, sqlite);
+  const { db, executor } = await openDb();
+  await runMigrations(executor);
 
-  const log = (entry: SyncLogEntry) => appendSyncLog(db, entry, Date.now());
+  // Diagnostics only: written in order (one serial connection), never awaited, never fatal.
+  const log = (entry: SyncLogEntry): void => {
+    appendSyncLog(db, entry, Date.now()).catch(() => undefined);
+  };
   const started = Date.now();
   log({ op: "background", level: "info", message: "start" });
 

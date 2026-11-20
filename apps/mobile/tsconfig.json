@@ -11,6 +11,12 @@
       ],
       "@librephotos/api-client": [
         "../../packages/api-client/src/index.ts"
+      ],
+      "@librephotos/local-db": [
+        "../../packages/local-db/src/index.ts"
+      ],
+      "@librephotos/local-db/*": [
+        "../../packages/local-db/src/*"
       ]
     }
   },

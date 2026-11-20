@@ -13,7 +13,13 @@
  *   declare zod), or
  * - the consumers are on different zod majors.
  *
- * Reads the four package.json files, apps/frontend/yarn.lock, the root
+ * packages/local-db (the on-device database) is consumed the same way by the
+ * mobile and desktop apps, so the check also fails when
+ * - a consumer's drizzle-orm does not satisfy the package's peer range, or
+ * - the root lockfile nests a second drizzle-orm under apps/mobile or the
+ *   package (two copies would mean two sets of Drizzle classes in one bundle).
+ *
+ * Reads the package.json files, apps/frontend/yarn.lock, the root
  * package-lock.json and apps/desktop/package-lock.json; needs no install. Run from anywhere:
  *   node scripts/check-shared-deps.mjs
  * Tests: node --test scripts/check-shared-deps.test.mjs
@@ -26,6 +32,10 @@ import { fileURLToPath } from "node:url";
 export const SHARED = ["zod", "react", "@tanstack/react-query"];
 
 const API_CLIENT = "packages/api-client";
+const LOCAL_DB = "packages/local-db";
+
+/** The local-db package's runtime peers the mobile app must provide (one copy). */
+export const LOCAL_DB_SHARED = ["drizzle-orm"];
 const MOBILE = "apps/mobile";
 const DESKTOP = "apps/desktop";
 
@@ -164,7 +174,45 @@ export function collect(repoRoot) {
       installed.desktop[name] = versionFromPackageLock(desktopLock, "", name);
     }
   }
-  return { peers: { ...apiClient.peerDependencies }, installed };
+  return { peers: { ...apiClient.peerDependencies }, installed, localDb: collectLocalDb(repoRoot, packageLock, desktopLock) };
+}
+
+/** The local-db facts: { peers, installed: { consumer: { name: version } }, nested: [lockfile keys] }. */
+export function collectLocalDb(repoRoot, packageLock, desktopLock) {
+  const manifest = JSON.parse(readFileSync(join(repoRoot, `${LOCAL_DB}/package.json`), "utf8"));
+  const installed = { mobile: {}, "local-db (dev)": {} };
+  if (desktopLock) installed.desktop = {};
+  const nested = [];
+  for (const name of LOCAL_DB_SHARED) {
+    installed.mobile[name] = versionFromPackageLock(packageLock, MOBILE, name);
+    installed["local-db (dev)"][name] = versionFromPackageLock(packageLock, LOCAL_DB, name);
+    if (desktopLock) installed.desktop[name] = versionFromPackageLock(desktopLock, "", name);
+    for (const dir of [MOBILE, LOCAL_DB]) {
+      const key = `${dir}/node_modules/${name}`;
+      if (packageLock.packages?.[key]) nested.push(key);
+    }
+  }
+  return { peers: { ...manifest.peerDependencies }, installed, nested };
+}
+
+/** Every local-db mismatch, as a message. */
+export function findLocalDbProblems({ peers, installed, nested }) {
+  const problems = [];
+  for (const name of LOCAL_DB_SHARED) {
+    const range = peers[name];
+    if (!range) {
+      problems.push(`${LOCAL_DB} does not declare ${name} as a peer dependency`);
+      continue;
+    }
+    for (const [consumer, versions] of Object.entries(installed)) {
+      const version = versions[name];
+      if (!version) problems.push(`${consumer}: ${name} is not installed (no lockfile entry)`);
+      else if (!satisfies(version, range))
+        problems.push(`${consumer}: ${name} ${version} does not satisfy the ${LOCAL_DB} peer range ${range}`);
+    }
+  }
+  for (const key of nested) problems.push(`a second copy is installed at ${key}; the app and ${LOCAL_DB} must share one`);
+  return problems;
 }
 
 /** Every mismatch, as a message; empty when the versions agree. */
@@ -198,11 +246,14 @@ export function findProblems({ peers, installed }) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
   const facts = collect(repoRoot);
-  const problems = findProblems(facts);
+  const problems = [...findProblems(facts), ...findLocalDbProblems(facts.localDb)];
   for (const [consumer, versions] of Object.entries(facts.installed)) {
     console.log(`${consumer}: ${Object.entries(versions).map(([n, v]) => `${n} ${v ?? "?"}`).join(", ")}`);
   }
   console.log(`peers: ${SHARED.map(n => `${n} ${facts.peers[n] ?? "?"}`).join(", ")}`);
+  for (const [consumer, versions] of Object.entries(facts.localDb.installed)) {
+    console.log(`${consumer}: ${LOCAL_DB_SHARED.map(n => `${n} ${versions[n] ?? "?"}`).join(", ")}`);
+  }
   if (problems.length) {
     for (const p of problems) console.error(`::error::${p}`);
     process.exit(1);

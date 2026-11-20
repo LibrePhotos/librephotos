@@ -1,9 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
-import { squareThumbnailUrl } from "@librephotos/api-client";
-import { useDb } from "@/db/provider";
-import { getThumb } from "@/sync/thumbs";
+import { useThumbSource } from "./useThumbSource";
 import { Icon } from "./Icon";
 
 /** Normalized grid item — the shape every mirror query maps onto for display. */
@@ -57,9 +55,8 @@ export function PhotoTile({
   selectionActive?: boolean;
   selected?: boolean;
 }) {
-  const db = useDb();
   const { t } = useTranslation();
-  const uri = resolveUri(db, item, serverAddress);
+  const uri = useThumbSource(item, serverAddress);
   const badge = tileBadge(item);
   return (
     <Pressable
@@ -149,17 +146,4 @@ export function PhotoTile({
       ) : null}
     </Pressable>
   );
-}
-
-function resolveUri(
-  db: ReturnType<typeof useDb>,
-  item: GridItem,
-  serverAddress: string
-): string | null {
-  if (item.localUri) return item.localUri;
-  if (item.photoId) {
-    const cached = getThumb(db, item.photoId);
-    if (cached) return cached.file_path;
-  }
-  return item.imageHash ? squareThumbnailUrl(serverAddress, item.imageHash) : null;
 }

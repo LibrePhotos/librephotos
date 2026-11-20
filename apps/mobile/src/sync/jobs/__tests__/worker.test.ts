@@ -6,7 +6,7 @@
  * ./chaining.test.ts and ../../__tests__/pipeline.test.ts.
  */
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { claimNextJob, enqueueJob, enqueueJobs, getJob } from "../queue";
 import { runWorker, resetBootReclaimForTests, type JobHandlers } from "../worker";
 import { MAX_JOB_ATTEMPTS } from "../types";
@@ -15,8 +15,8 @@ import { defined } from "@/test/defined";
 /** Synchronous yield: keeps the tests fast and deterministic. */
 const fastYield = () => Promise.resolve();
 
-function stateOf(t: TestDb, id: number): string {
-  return (t.db.get(sql`SELECT state FROM job_queue WHERE id = ${id}`) as { state: string }).state;
+async function stateOf(t: TestDb, id: number): Promise<string> {
+  return (await t.db.get<{ state: string }>(sql`SELECT state FROM job_queue WHERE id = ${id}`)).state;
 }
 
 describe("job worker", () => {
@@ -29,7 +29,7 @@ describe("job worker", () => {
 
   it("drains the queue and records every job as done", async () => {
     const ran: string[] = [];
-    enqueueJobs(t.db, [
+    await enqueueJobs(t.db, [
       { kind: "outbox_replay" },
       { kind: "hash_batch" },
       { kind: "thumb_prefetch" },
@@ -47,13 +47,13 @@ describe("job worker", () => {
     expect(stats.succeeded).toBe(3);
     expect(stats.stoppedReason).toBe("drained");
     expect(
-      (t.db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'done'`) as { c: number }).c
+      (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'done'`)).c
     ).toBe(3);
   });
 
   it("reclaims a running row left by a killed process before it starts", async () => {
-    enqueueJob(t.db, { kind: "hash_batch" });
-    claimNextJob(t.db, 1_000); // process dies here, row stuck `running`
+    await enqueueJob(t.db, { kind: "hash_batch" });
+    await claimNextJob(t.db, 1_000); // process dies here, row stuck `running`
 
     let ran = 0;
     await runWorker(t.db, { handlers: { hash_batch: async () => void (ran += 1) }, yield: fastYield });
@@ -65,18 +65,18 @@ describe("job worker", () => {
 
   it("runs the boot reclaim only once per process", async () => {
     const noop: JobHandlers = { hash_batch: async () => {} };
-    enqueueJob(t.db, { kind: "hash_batch" });
+    await enqueueJob(t.db, { kind: "hash_batch" });
     await runWorker(t.db, { handlers: noop, yield: fastYield });
 
     // A second drain must NOT steal a job another drain legitimately owns.
-    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
-    claimNextJob(t.db, 2_000);
+    const id = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
+    await claimNextJob(t.db, 2_000);
     await runWorker(t.db, { handlers: noop, yield: fastYield });
-    expect(stateOf(t, id)).toBe("running");
+    expect(await stateOf(t, id)).toBe("running");
   });
 
   it("chains follow-up jobs enqueued by a handler", async () => {
-    enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 0 } });
+    await enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 0 } });
     const chunks: number[] = [];
     const handlers: JobHandlers = {
       device_scan: async ({ job }) => {
@@ -99,7 +99,7 @@ describe("job worker", () => {
   });
 
   it("aggregates applied/deleted counts across jobs", async () => {
-    enqueueJobs(t.db, [
+    await enqueueJobs(t.db, [
       { kind: "remote_delta", payload: { entity: "photo" } },
       { kind: "remote_delta", payload: { entity: "person" } },
     ]);
@@ -113,7 +113,7 @@ describe("job worker", () => {
   });
 
   it("retries a throwing job behind a backoff window, then parks it as failed", async () => {
-    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
+    const id = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
     let calls = 0;
     const handlers: JobHandlers = {
       hash_batch: async () => {
@@ -126,8 +126,8 @@ describe("job worker", () => {
     let now = 1_000;
     await runWorker(t.db, { handlers, yield: fastYield, now: () => now });
     expect(calls).toBe(1);
-    expect(defined(getJob(t.db, id)).state).toBe("pending");
-    expect(defined(getJob(t.db, id)).last_error).toBe("disk on fire");
+    expect(defined(await getJob(t.db, id)).state).toBe("pending");
+    expect(defined(await getJob(t.db, id)).last_error).toBe("disk on fire");
 
     // Walk the clock past each window until the attempt cap is spent.
     for (let i = 1; i < MAX_JOB_ATTEMPTS; i += 1) {
@@ -135,13 +135,13 @@ describe("job worker", () => {
       await runWorker(t.db, { handlers, yield: fastYield, now: () => now });
     }
     expect(calls).toBe(MAX_JOB_ATTEMPTS);
-    const row = defined(getJob(t.db, id));
+    const row = defined(await getJob(t.db, id));
     expect(row.state).toBe("failed");
     expect(row.last_error).toBe("disk on fire");
   });
 
   it("a failing job does not block the jobs behind it", async () => {
-    enqueueJobs(t.db, [{ kind: "hash_batch" }, { kind: "thumb_prefetch" }]);
+    await enqueueJobs(t.db, [{ kind: "hash_batch" }, { kind: "thumb_prefetch" }]);
     let thumbs = 0;
     const stats = await runWorker(t.db, {
       handlers: {
@@ -159,14 +159,14 @@ describe("job worker", () => {
   });
 
   it("parks a job with no registered handler instead of retrying it five times", async () => {
-    const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
+    const id = defined(await enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
     await runWorker(t.db, { handlers: {}, yield: fastYield });
-    expect(defined(getJob(t.db, id)).state).toBe("failed");
-    expect(defined(getJob(t.db, id)).last_error).toContain("no handler");
+    expect(defined(await getJob(t.db, id)).state).toBe("failed");
+    expect(defined(await getJob(t.db, id)).last_error).toContain("no handler");
   });
 
   it("stops on the job budget and leaves the rest claimable", async () => {
-    enqueueJobs(t.db, [
+    await enqueueJobs(t.db, [
       { kind: "upload_asset", payload: { assetId: "a1" } },
       { kind: "upload_asset", payload: { assetId: "a2" } },
       { kind: "upload_asset", payload: { assetId: "a3" } },
@@ -179,7 +179,7 @@ describe("job worker", () => {
     expect(stats.processed).toBe(2);
     expect(stats.stoppedReason).toBe("budget");
     expect(
-      (t.db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'pending'`) as { c: number }).c
+      (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'pending'`)).c
     ).toBe(1);
   });
 });
@@ -193,7 +193,7 @@ describe("job worker: cancellation", () => {
   afterEach(() => t.close());
 
   it("stops between jobs when the signal aborts", async () => {
-    enqueueJobs(t.db, [
+    await enqueueJobs(t.db, [
       { kind: "upload_asset", payload: { assetId: "a1" } },
       { kind: "upload_asset", payload: { assetId: "a2" } },
       { kind: "upload_asset", payload: { assetId: "a3" } },
@@ -216,12 +216,12 @@ describe("job worker: cancellation", () => {
     // The third is untouched and the second went back to pending — nothing is
     // lost when the app is backgrounded mid-drain.
     expect(
-      (t.db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'pending'`) as { c: number }).c
+      (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'pending'`)).c
     ).toBe(2);
   });
 
   it("releases the in-flight job with its attempt refunded rather than failing it", async () => {
-    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
+    const id = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
     const controller = new AbortController();
     await runWorker(t.db, {
       handlers: {
@@ -234,7 +234,7 @@ describe("job worker: cancellation", () => {
       yield: fastYield,
     });
 
-    const row = defined(getJob(t.db, id));
+    const row = defined(await getJob(t.db, id));
     expect(row.state).toBe("pending");
     expect(row.attempts).toBe(0); // refunded — cancellation is not the job's fault
     expect(row.last_error).toBeNull();
@@ -242,7 +242,7 @@ describe("job worker: cancellation", () => {
   });
 
   it("does nothing at all when the signal is already aborted", async () => {
-    enqueueJob(t.db, { kind: "hash_batch" });
+    await enqueueJob(t.db, { kind: "hash_batch" });
     const controller = new AbortController();
     controller.abort();
     let ran = 0;
@@ -256,7 +256,7 @@ describe("job worker: cancellation", () => {
   });
 
   it("hands the signal to the handler so long work can bail mid-flight", async () => {
-    enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 0 } });
+    await enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 0 } });
     const controller = new AbortController();
     let sawSignal = false;
     await runWorker(t.db, {

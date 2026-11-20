@@ -17,15 +17,15 @@
  * once (the mirror is disposable).
  */
 import { ApiError } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
-import { clearEntity } from "@/db/reset";
 import {
+  clearEntity,
   getSyncState,
-  upsertSyncState,
   SYNC_ENTITIES,
+  upsertSyncState,
+  type AppDatabase,
   type SyncEntity,
-} from "@/db/queries/sync-state";
-import type { SyncLogEntry } from "@/db/queries/sync-log";
+  type SyncLogEntry,
+} from "@librephotos/local-db";
 import type { RemoteSyncSource, SyncPullParams } from "./source";
 import {
   applyAutoAlbumsPage,
@@ -105,7 +105,7 @@ export type PullStepResult = {
 type FetchedPage = {
   next_cursor: string | null;
   total?: number;
-  apply: (db: AppDatabase, now: number) => ApplyResult;
+  apply: (db: AppDatabase, now: number) => Promise<ApplyResult>;
 };
 
 type EntityHandler = (params: SyncPullParams) => Promise<FetchedPage>;
@@ -117,7 +117,7 @@ type EntityHandler = (params: SyncPullParams) => Promise<FetchedPage>;
  */
 function bindHandler<E extends PageEnvelope<unknown>>(
   fetch: (params: SyncPullParams) => Promise<E>,
-  apply: (db: AppDatabase, env: E, now: number) => ApplyResult
+  apply: (db: AppDatabase, env: E, now: number) => Promise<ApplyResult>
 ): EntityHandler {
   return async (params) => {
     const env = await fetch(params);
@@ -182,7 +182,7 @@ export async function pullEntityStep(
   const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
   const fetchPage = handlerFor(source, entity);
 
-  const prev = getSyncState(db, entity);
+  const prev = await getSyncState(db, entity);
   const cursor: string | null = prev?.cursor_id ?? null;
   const seeded = cursor == null;
   const base = opts.resetProgress ? 0 : (prev?.progress_current ?? 0);
@@ -190,7 +190,7 @@ export async function pullEntityStep(
 
   // Initialise the row so the applier's in-transaction cursor UPDATE has a row
   // to hit. cursor_id is COALESCE-preserved by upsertSyncState.
-  upsertSyncState(db, entity, {
+  await upsertSyncState(db, entity, {
     status: "running",
     cursor_modified: prev?.cursor_modified ?? null,
     last_full_sync: prev?.last_full_sync ?? null,
@@ -207,12 +207,12 @@ export async function pullEntityStep(
     if (isCursorExpired(err) && opts.allowReseed !== false) {
       // The mirror is disposable: drop this entity and restart from zero. Not
       // "done" — the caller re-enters and the next step seeds.
-      clearEntity(db, entity);
-      upsertSyncState(db, entity, { status: "running", progress_current: 0, progress_total: 0 });
+      await clearEntity(db, entity);
+      await upsertSyncState(db, entity, { status: "running", progress_current: 0, progress_total: 0 });
       opts.log?.({ op: "reseed", entity, level: "warn", message: "cursor_expired" });
       return { entity, applied: 0, deleted: 0, done: false, seeded: true, reseeded: true, total: 0 };
     }
-    upsertSyncState(db, entity, {
+    await upsertSyncState(db, entity, {
       status: "error",
       progress_current: base,
       progress_total: total,
@@ -223,11 +223,11 @@ export async function pullEntityStep(
   // Seed (cursorless) first page carries the determinate total.
   if (cursor == null && page.total != null) total = page.total;
 
-  const res = page.apply(db, now);
+  const res = await page.apply(db, now);
   const applied = base + res.applied;
   const done = page.next_cursor == null;
 
-  upsertSyncState(db, entity, {
+  await upsertSyncState(db, entity, {
     status: done ? "done" : "running",
     last_full_sync: done ? now : (prev?.last_full_sync ?? null),
     progress_current: applied,
@@ -271,7 +271,7 @@ export async function pullEntity(
   let applied = 0;
   let deleted = 0;
   let pages = 0;
-  let seeded = (getSyncState(db, entity)?.cursor_id ?? null) == null;
+  let seeded = ((await getSyncState(db, entity))?.cursor_id ?? null) == null;
   let first = true;
 
   for (;;) {
@@ -297,7 +297,7 @@ export async function pullEntity(
     if (step.done) break;
   }
 
-  const durableCursor = getSyncState(db, entity)?.cursor_id ?? null;
+  const durableCursor = (await getSyncState(db, entity))?.cursor_id ?? null;
   opts.log?.({
     op: seeded ? "seed" : "pull",
     entity,

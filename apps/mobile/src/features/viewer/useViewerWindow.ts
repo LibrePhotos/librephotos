@@ -22,10 +22,16 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDb } from "@/db/provider";
-import { viewerSlideById, type ViewerSlide } from "@/db/queries/detail";
-import { timelineCursorFor, timelinePage, timelineRowKey, type TimelineCursor } from "@/db/queries/timeline";
+import {
+  timelineCursorFor,
+  timelinePage,
+  timelineRowKey,
+  viewerSlideById,
+  type MergedTimelineRow,
+  type TimelineCursor,
+  type ViewerSlide,
+} from "@librephotos/local-db";
 import { useTimelineFilterStore } from "@/features/timeline/timelineFilter";
-import type { MergedTimelineRow } from "@/db/types";
 
 /** Slides loaded either side of the tapped photo. */
 const HALF = 20;
@@ -92,19 +98,29 @@ export function useViewerWindow({
   // not land on a video when the timeline shows photos only.
   const filter = useTimelineFilterStore((s) => s.filter);
 
-  // First frame: the seed if the caller gave us one, otherwise one indexed
-  // row lookup. Either way this is O(1) and never touches the timeline.
-  const [state, setState] = useState<State>(() => {
-    const first = seed ?? (id ? viewerSlideById(db, id) : null);
-    return {
-      slides: first ? [first] : [],
-      head: null,
-      tail: null,
-      atStart: false,
-      atEnd: false,
-      restoreIndex: null,
+  // First frame: the seed if the caller gave us one. Without one (a deep
+  // link), one indexed row lookup fills it in as soon as it answers; either
+  // way this never touches the timeline.
+  const [state, setState] = useState<State>(() => ({
+    slides: seed ? [seed] : [],
+    head: null,
+    tail: null,
+    atStart: false,
+    atEnd: false,
+    restoreIndex: null,
+  }));
+
+  useEffect(() => {
+    if (seed || !id) return;
+    let active = true;
+    void viewerSlideById(db, id).then((first) => {
+      // Only into an empty window: the full window may already have arrived.
+      if (active && first) setState((s) => (s.slides.length === 0 ? { ...s, slides: [first] } : s));
+    });
+    return () => {
+      active = false;
     };
-  });
+  }, [db, id, seed]);
 
   // Guards the extension effect against re-entering with a cursor it has
   // already spent (React re-runs effects, and a page can arrive mid-swipe).
@@ -113,21 +129,26 @@ export function useViewerWindow({
   /* ---- the window itself, one frame after the photo ------------------- */
 
   useEffect(() => {
-    const anchor = id ? timelineCursorFor(db, id) : null;
+    let active = true;
+    void (async () => {
+    const anchor = id ? await timelineCursorFor(db, id) : null;
+    if (!active) return;
     if (!anchor) {
       // Not in the timeline at all: a hidden photo, a trashed one, a deep link
       // to something outside the visible set. One slide is the whole context.
       setState((s) => ({ ...s, atStart: true, atEnd: true }));
       return;
     }
-    const older = timelinePage(db, {
+    const older = await timelinePage(db, {
       limit: HALF + 1,
       cursor: anchor,
       direction: "older",
       inclusive: true,
       filter,
     });
-    const newer = timelinePage(db, { limit: HALF, cursor: anchor, direction: "newer", filter });
+    const newer = await timelinePage(db, { limit: HALF, cursor: anchor, direction: "newer", filter });
+    // A newer id or filter started its own read: this one is stale.
+    if (!active) return;
     const slides = [...newer.rows, ...older.rows].map(rowToSlide);
     if (slides.length === 0) {
       setState((s) => ({ ...s, atStart: true, atEnd: true }));
@@ -146,11 +167,16 @@ export function useViewerWindow({
       atEnd: older.nextCursor == null,
       restoreIndex: anchorIndex,
     });
+    })();
+    return () => {
+      active = false;
+    };
   }, [db, id, filter]);
 
   /* ---- extension ------------------------------------------------------ */
 
   useEffect(() => {
+    void (async () => {
     const { slides, tail, head, atEnd, atStart, restoreIndex } = state;
     if (slides.length === 0) return;
     // The pager has not acknowledged where it is yet (it still has to re-anchor
@@ -164,7 +190,7 @@ export function useViewerWindow({
 
     if (nearEnd && !atEnd && tail && !spent.current.has(key("older", tail))) {
       spent.current.add(key("older", tail));
-      const page = timelinePage(db, { limit: EXTEND, cursor: tail, direction: "older", filter });
+      const page = await timelinePage(db, { limit: EXTEND, cursor: tail, direction: "older", filter });
       setState((s) =>
         s.tail !== tail
           ? s
@@ -180,7 +206,7 @@ export function useViewerWindow({
 
     if (nearStart && !atStart && head && !spent.current.has(key("newer", head))) {
       spent.current.add(key("newer", head));
-      const page = timelinePage(db, { limit: EXTEND, cursor: head, direction: "newer", filter });
+      const page = await timelinePage(db, { limit: EXTEND, cursor: head, direction: "newer", filter });
       const added = page.rows.length;
       setState((s) =>
         s.head !== head
@@ -195,6 +221,7 @@ export function useViewerWindow({
             }
       );
     }
+    })();
   }, [db, state, currentIndex, filter]);
 
   const restored = useCallback(() => {

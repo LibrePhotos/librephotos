@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { AlbumsListScreen } from "@/features/albums/AlbumsListScreen";
 import { AlbumDetailScreen } from "@/features/albums/AlbumDetailScreen";
-import { autoAlbums, autoAlbumPhotos } from "@/db/queries/albums";
+import { autoAlbums, autoAlbumPhotos } from "@librephotos/local-db";
 
 /** Events (auto albums): `all` shows the list, a numeric id shows one event. */
 export default function EventsAlbumRoute() {
@@ -12,8 +12,9 @@ export default function EventsAlbumRoute() {
     return (
       <AlbumsListScreen
         title={t("explore.autoAlbums")}
-        query={(db) =>
-          autoAlbums(db).map((a) => ({ id: a.id, title: a.title, coverHash: a.cover_hash, photoCount: a.photo_count }))
+        queryKey={["auto-albums"]}
+        query={async (db) =>
+          (await autoAlbums(db)).map((a) => ({ id: a.id, title: a.title, coverHash: a.cover_hash, photoCount: a.photo_count }))
         }
         hrefFor={(albumId) => `/albums/events/${albumId}`}
         testID="events-list"
@@ -24,6 +25,7 @@ export default function EventsAlbumRoute() {
   return (
     <AlbumDetailScreen
       title={t("albumDetail.fallbackEvent")}
+      queryKey={["album-photos", "auto", albumId]}
       query={(db) => autoAlbumPhotos(db, albumId)}
       album={{ id: albumId, kind: "auto" }}
     />

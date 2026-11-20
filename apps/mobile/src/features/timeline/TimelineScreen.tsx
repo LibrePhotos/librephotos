@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { TimelineList } from "@/components/TimelineList";
 import { FloatingTopBar, TopBarButton, useTopBarInset } from "@/components/FloatingTopBar";
 import { useUserSelfDetailsQuery } from "@librephotos/api-client";
-import { isTimelineFilterActive, timelineBuckets } from "@/db/queries/timeline";
+import { isTimelineFilterActive } from "@librephotos/local-db";
 import { TimelineScrubber } from "@/components/TimelineScrubber";
 import { photosBefore, scrubberIndex } from "@/components/scrubberMath";
 import { TimelineFilterSheet } from "./TimelineFilterSheet";
@@ -14,11 +14,11 @@ import { DENSITIES, levelAfterPinch, useDensityStore } from "./density";
 import { fromServerDefault, useTimelineFilterStore } from "./timelineFilter";
 import type { GridItem } from "@/components/PhotoTile";
 import { MemoriesCard } from "@/features/memories/MemoriesCard";
-import { useMirrorTimeline } from "./useMirrorTimeline";
+import { useMirrorTimeline, useTimelineBuckets } from "./useMirrorTimeline";
 import { useGridSelection } from "@/features/selection/useGridSelection";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
-import { useDb, useReactiveQuery } from "@/db/provider";
+import { useDb } from "@/db/provider";
 import { useAuthStore } from "@/stores/auth";
 import { runSync } from "@/sync/run";
 import { useTheme } from "@/theme";
@@ -61,13 +61,8 @@ export function TimelineScreen() {
       if (next !== densityLevel) setDensityLevel(next);
     });
   const filtered = isTimelineFilterActive(filter);
-  const { items, loadMore, loadAtLeast } = useMirrorTimeline(filter);
-  const buckets = useReactiveQuery((d) => timelineBuckets(d, filter), [filter], [
-    "remote_photo",
-    "local_asset",
-    "local_album",
-    "local_album_asset",
-  ]);
+  const { items, loading, loadMore, loadAtLeast } = useMirrorTimeline(filter);
+  const { buckets } = useTimelineBuckets(filter);
 
   // Scrubber: the day at the top of the screen, a pending jump, and whether
   // the list moved recently (the handle fades out when the timeline is still).
@@ -124,7 +119,10 @@ export function TimelineScreen() {
 
   return (
     <View testID="timeline-screen" style={{ flex: 1, backgroundColor: theme.background }}>
-      {items.length === 0 ? (
+      {items.length === 0 && loading ? (
+        // The first read is still running: an empty frame, never "no photos" (it would flash).
+        <View testID="timeline-loading" style={{ flex: 1 }} />
+      ) : items.length === 0 ? (
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", padding: 32, paddingTop: topInset }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.brand} />}

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { mediaHeaders, squareThumbnailUrl } from "@librephotos/api-client";
 import { useReactiveQuery } from "@/db/provider";
-import { onThisDay } from "@/db/queries/memories";
+import { onThisDay, type MemoryPhoto } from "@librephotos/local-db";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
 import { useTheme } from "@/theme";
@@ -27,7 +27,9 @@ export function MemoriesCard() {
   // `onThisDay` reads remote_photo and nothing else, so a camera-roll scan
   // (local_asset / local_album_asset churn) must not re-run it — this card sits
   // in the timeline header, which is exactly what the user is scrolling.
-  const memories = useReactiveQuery((db) => onThisDay(db, { limit: 20 }), [], ["remote_photo"]);
+  const { data: memories } = useReactiveQuery(["on-this-day", 20], (db) => onThisDay(db, { limit: 20 }), [] as MemoryPhoto[], {
+    tables: ["remote_photo"],
+  });
   const years = useMemo(() => [...new Set(memories.map((m) => m.year))], [memories]);
 
   if (memories.length === 0) return null;

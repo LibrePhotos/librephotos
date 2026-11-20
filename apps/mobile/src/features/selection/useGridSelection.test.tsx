@@ -1,12 +1,11 @@
 import { Alert, Pressable, View, type AlertButton } from "react-native";
 import { act, fireEvent, waitFor } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
+import { createTestDb, remotePhoto, seedRemotePhotos, type TestDb } from "@librephotos/local-db/testing";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useToastStore } from "@/stores/toasts";
-import { jsonResponse, makeMockClient, renderWithDb } from "@/test/test-utils";
+import { jsonResponse, makeMockClient, renderWithDb, settleDb } from "@/test/test-utils";
 import type { ApiClient } from "@librephotos/api-client";
 import type { ReactElement } from "react";
 import type { SelectableItem } from "./reducer";
@@ -44,7 +43,7 @@ function Grid({ items, directions }: { items: SelectableItem[]; directions?: Sel
 
 /** Render, then let the connectivity check settle (it sets state once it answers). */
 async function renderGrid(ui: ReactElement, db: TestDb["db"], client?: ApiClient) {
-  const utils = renderWithDb(ui, db, client);
+  const utils = await renderWithDb(ui, db, client);
   await act(async () => {});
   return utils;
 }
@@ -80,10 +79,16 @@ describe("useGridSelection online actions", () => {
     const { getByTestId, queryByTestId } = await renderGrid(<Grid items={[serverOnly, onBoth, phoneOnly]} />, t.db);
 
     fireEvent.press(getByTestId("pick-a"));
+
+    await settleDb();
     fireEvent.press(getByTestId("pick-b"));
+    await settleDb();
     fireEvent.press(getByTestId("pick-c"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-download"));
+    await settleDb();
 
     await waitFor(() => expect(messages()).toContain("Saved 1 item to your phone"));
     expect(mockSaveToDevice).toHaveBeenCalledTimes(1);
@@ -98,9 +103,12 @@ describe("useGridSelection online actions", () => {
   it("offers no download when everything selected is on the phone already", async () => {
     const { getByTestId, queryByTestId } = await renderGrid(<Grid items={[onBoth, phoneOnly]} />, t.db);
     fireEvent.press(getByTestId("pick-b"));
+    await settleDb();
     fireEvent.press(getByTestId("pick-c"));
+    await settleDb();
     expect(getByTestId("selection-action-bar")).toBeTruthy();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     expect(queryByTestId("action-download")).toBeNull();
   });
 
@@ -108,8 +116,11 @@ describe("useGridSelection online actions", () => {
     mockSaveToDevice.mockResolvedValue({ kind: "permissionDenied" });
     const { getByTestId } = await renderGrid(<Grid items={[serverOnly]} />, t.db);
     fireEvent.press(getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-download"));
+    await settleDb();
     await waitFor(() =>
       expect(messages()).toContain("Allow LibrePhotos to add photos to your gallery to save them")
     );
@@ -118,18 +129,22 @@ describe("useGridSelection online actions", () => {
   it("offers Delete permanently only in the Trash", async () => {
     const timeline = await renderGrid(<Grid items={[serverOnly]} />, t.db);
     fireEvent.press(timeline.getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(timeline.getByTestId("action-more"));
+    await settleDb();
     expect(timeline.queryByTestId("action-delete-permanent")).toBeNull();
     timeline.unmount();
 
     const trash = await renderGrid(<Grid items={[serverOnly]} directions={TRASH} />, t.db);
     fireEvent.press(trash.getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(trash.getByTestId("action-more"));
+    await settleDb();
     expect(trash.getByTestId("action-delete-permanent")).toBeTruthy();
   });
 
   it("asks first, then deletes on the server, drops the rows from the mirror and syncs", async () => {
-    seedRemotePhotos(t.db, [
+    await seedRemotePhotos(t.db, [
       remotePhoto({ id: "id-a", imageHash: "hash-a", inTrashcan: true }),
       remotePhoto({ id: "id-b", imageHash: "hash-b", inTrashcan: true }),
       // Another user's photo with the same hash is not the server's to delete for us.
@@ -148,9 +163,13 @@ describe("useGridSelection online actions", () => {
       client
     );
     fireEvent.press(getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(getByTestId("pick-b"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-delete-permanent"));
+    await settleDb();
 
     expect(alert).toHaveBeenCalledTimes(1);
     const [title, message, buttons] = alert.mock.calls[0] ?? [];
@@ -169,7 +188,7 @@ describe("useGridSelection online actions", () => {
         body: { image_hashes: ["hash-a", "hash-b"] },
       },
     ]);
-    const left = t.db.all<{ id: string }>(sql`SELECT id FROM remote_photo ORDER BY id`).map((r) => r.id);
+    const left = (await t.db.all<{ id: string }>(sql`SELECT id FROM remote_photo ORDER BY id`)).map((r) => r.id);
     expect(left).toEqual(["id-b", "id-x"]);
     expect(messages()).toEqual(
       expect.arrayContaining(["Deleted 1 item permanently", "1 item could not be deleted"])
@@ -186,8 +205,11 @@ describe("useGridSelection online actions", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
     const { getByTestId } = await renderGrid(<Grid items={[serverOnly]} directions={TRASH} />, t.db, client);
     fireEvent.press(getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-delete-permanent"));
+    await settleDb();
 
     const cancel = (alert.mock.calls[0]?.[2] ?? []).find((b: AlertButton) => b.style === "cancel");
     act(() => cancel?.onPress?.());
@@ -197,20 +219,23 @@ describe("useGridSelection online actions", () => {
   });
 
   it("reports a failed delete and leaves the mirror alone", async () => {
-    seedRemotePhotos(t.db, [remotePhoto({ id: "id-a", imageHash: "hash-a", inTrashcan: true })]);
+    await seedRemotePhotos(t.db, [remotePhoto({ id: "id-a", imageHash: "hash-a", inTrashcan: true })]);
     const client = makeMockClient(async () => jsonResponse({ detail: "boom" }, 500));
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
     const { getByTestId } = await renderGrid(<Grid items={[serverOnly]} directions={TRASH} />, t.db, client);
     fireEvent.press(getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-delete-permanent"));
+    await settleDb();
     const confirm = (alert.mock.calls[0]?.[2] ?? []).find((b: AlertButton) => b.style === "destructive");
     await act(async () => confirm?.onPress?.());
 
     await waitFor(() =>
       expect(messages()).toContain("Could not delete. Check your connection and try again.")
     );
-    expect(t.db.all(sql`SELECT id FROM remote_photo`)).toHaveLength(1);
+    expect(await t.db.all(sql`SELECT id FROM remote_photo`)).toHaveLength(1);
     expect(mockRunSync).not.toHaveBeenCalled();
   });
 });
@@ -237,12 +262,12 @@ const parsePayload = (payload: string): unknown => JSON.parse(payload);
 
 describe("useGridSelection More actions", () => {
   let t: TestDb;
-  const outbox = () => t.db.all<{ kind: string; payload: string }>(sql`SELECT kind, payload FROM outbox ORDER BY id`);
-  beforeEach(() => {
+  const outbox = async () => await t.db.all<{ kind: string; payload: string }>(sql`SELECT kind, payload FROM outbox ORDER BY id`);
+  beforeEach(async () => {
     t = createTestDb();
     useAuthStore.setState({ userId: 1 });
     useToastStore.setState({ toasts: [] });
-    seedRemotePhotos(t.db, [
+    await seedRemotePhotos(t.db, [
       remotePhoto({ id: "id-a", imageHash: "hash-a" }),
       remotePhoto({ id: "id-b", imageHash: "hash-b", archived: true }),
     ]);
@@ -252,51 +277,68 @@ describe("useGridSelection More actions", () => {
   it("archives the selection through the outbox", async () => {
     const { getByTestId, queryByTestId } = await renderGrid(<Grid items={[serverOnly]} />, t.db);
     fireEvent.press(getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-archive"));
-    expect(t.db.get(sql`SELECT archived FROM remote_photo WHERE id = 'id-a'`)).toEqual({ archived: 1 });
-    expect(outbox().map((r) => r.kind)).toEqual(["archive"]);
+    await settleDb();
+    expect(await t.db.get(sql`SELECT archived FROM remote_photo WHERE id = 'id-a'`)).toEqual({ archived: 1 });
+    expect((await outbox()).map((r) => r.kind)).toEqual(["archive"]);
     expect(queryByTestId("selection-action-bar")).toBeNull();
   });
 
   it("unarchives on the Archive grid", async () => {
     const { getByTestId } = await renderGrid(<Grid items={[onBoth]} directions={{ archived: false }} />, t.db);
     fireEvent.press(getByTestId("pick-b"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     expect(getByTestId("action-archive")).toHaveTextContent("Unarchive");
     fireEvent.press(getByTestId("action-archive"));
-    expect(t.db.get(sql`SELECT archived FROM remote_photo WHERE id = 'id-b'`)).toEqual({ archived: 0 });
+    await settleDb();
+    expect(await t.db.get(sql`SELECT archived FROM remote_photo WHERE id = 'id-b'`)).toEqual({ archived: 0 });
   });
 
   it("rates every selected photo, one rating row each", async () => {
     const { getByTestId } = await renderGrid(<Grid items={[serverOnly, onBoth]} />, t.db);
     fireEvent.press(getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(getByTestId("pick-b"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-rate-3"));
-    const ratings = t.db.all<{ rating: number }>(sql`SELECT rating FROM remote_photo ORDER BY id`);
+    await settleDb();
+    const ratings = await t.db.all<{ rating: number }>(sql`SELECT rating FROM remote_photo ORDER BY id`);
     expect(ratings).toEqual([{ rating: 3 }, { rating: 3 }]);
-    expect(outbox().map((r) => [r.kind, parsePayload(r.payload)])).toEqual([
+    expect((await outbox()).map((r) => [r.kind, parsePayload(r.payload)])).toEqual([
       ["rating", { imageHash: "hash-a", rating: 3 }],
       ["rating", { imageHash: "hash-b", rating: 3 }],
     ]);
   });
 
   it("sets the one selected photo as the album cover", async () => {
-    t.db.run(
+    await t.db.run(
       sql`INSERT INTO user_album (id, title, owner_id, shared, favorited, cover_hash, photo_count) VALUES (7, 'Trip', 1, 0, 0, NULL, 2)`
     );
     const { getByTestId, queryByTestId } = await renderGrid(<AlbumGrid items={[serverOnly, onBoth]} albumId={7} />, t.db);
     fireEvent.press(getByTestId("pick-a"));
+    await settleDb();
     fireEvent.press(getByTestId("pick-b"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     expect(queryByTestId("action-set-cover")).toBeNull();
     fireEvent.press(getByTestId("selection-more-sheet-cancel"));
+    await settleDb();
     fireEvent.press(getByTestId("pick-b"));
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-set-cover"));
-    expect(t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 7`)).toEqual({ cover_hash: "hash-a" });
-    expect(outbox().map((r) => [r.kind, parsePayload(r.payload)])).toEqual([
+    await settleDb();
+    expect(await t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 7`)).toEqual({ cover_hash: "hash-a" });
+    expect((await outbox()).map((r) => [r.kind, parsePayload(r.payload)])).toEqual([
       ["album_cover", { albumId: 7, photoId: "id-a", imageHash: "hash-a" }],
     ]);
     expect(messages()).toContain("Cover updated");

@@ -21,6 +21,7 @@ on:
       # web changes).
       - 'apps/mobile/package.json'
       - 'apps/desktop/package.json'
+      - 'packages/local-db/package.json'
       - 'scripts/check-shared-deps*.mjs'
       # The root lockfile, and any nested one the guard below rejects.
       - '**/package-lock.json'
@@ -35,6 +36,7 @@ on:
       # web changes).
       - 'apps/mobile/package.json'
       - 'apps/desktop/package.json'
+      - 'packages/local-db/package.json'
       - 'scripts/check-shared-deps*.mjs'
       # The root lockfile, and any nested one the guard below rejects.
       - '**/package-lock.json'

@@ -11,7 +11,7 @@ import {
   type GeocodeResult,
 } from "@librephotos/api-client";
 import { useDb } from "@/db/provider";
-import { remotePhotoIdByHash, type ViewerSlide } from "@/db/queries/detail";
+import { remotePhotoIdByHash, type ViewerSlide } from "@librephotos/local-db";
 import { useOnlineSelectionActions } from "@/features/selection/useOnlineSelectionActions";
 import { serverAddress } from "@/lib/apiClient";
 import { tokenStorage } from "@/lib/tokenStorage";
@@ -99,10 +99,10 @@ export function useViewerEdits() {
       setThumbnailVersions((v) => ({ ...v, [hash]: Date.now() }));
       // The grid's prefetched copy shows the old turn: drop it, so the grid
       // falls back to the server until the next sync prefetches it again.
-      const photoId = remotePhotoIdByHash(db, hash);
-      const cached = photoId ? getThumb(db, photoId) : null;
+      const photoId = await remotePhotoIdByHash(db, hash);
+      const cached = photoId ? await getThumb(db, photoId) : null;
       if (photoId && cached) {
-        removeThumb(db, photoId);
+        await removeThumb(db, photoId);
         await FileSystem.deleteAsync(cached.file_path, { idempotent: true }).catch(() => undefined);
       }
       pushToast({ level: "info", message: t("viewer.rotated") });

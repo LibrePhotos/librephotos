@@ -28,8 +28,7 @@
  * Pure: handlers are injected, so the whole thing runs under Node against
  * better-sqlite3 with fakes.
  */
-import type { AppDatabase } from "@/db/types";
-import type { SyncLogEntry } from "@/db/queries/sync-log";
+import type { AppDatabase, SyncLogEntry } from "@librephotos/local-db";
 import {
   claimNextJob,
   completeJob,
@@ -129,10 +128,10 @@ const defaultYield = () => new Promise<void>((r) => setTimeout(r, 0));
  */
 let bootReclaimed = false;
 
-export function runBootReclaim(db: AppDatabase, now = Date.now()): number {
+export async function runBootReclaim(db: AppDatabase, now = Date.now()): Promise<number> {
   if (bootReclaimed) return 0;
   bootReclaimed = true;
-  return reclaimStaleJobs(db, now, 0);
+  return await reclaimStaleJobs(db, now, 0);
 }
 
 /** Test seam: forget that boot reclaim already ran. */
@@ -151,7 +150,7 @@ export async function runWorker(db: AppDatabase, opts: WorkerOptions): Promise<W
   const yieldFn = opts.yield ?? defaultYield;
   const concurrency = Math.max(1, opts.concurrency ?? JOB_CONCURRENCY);
 
-  runBootReclaim(db, now());
+  await runBootReclaim(db, now());
 
   const stats: WorkerStats = {
     processed: 0,
@@ -175,7 +174,7 @@ export async function runWorker(db: AppDatabase, opts: WorkerOptions): Promise<W
         stats.stoppedReason = "budget";
         return;
       }
-      const job = claimNextJob(db, now());
+      const job = await claimNextJob(db, now());
       if (!job) {
         // Nothing claimable. Another lane may still be producing work, but a
         // lane that finds the queue empty simply exits; the outer drain re-checks
@@ -200,10 +199,10 @@ export async function runWorker(db: AppDatabase, opts: WorkerOptions): Promise<W
       stats.stoppedReason = "budget";
       break;
     }
-    if (!hasEligibleJob(db, now())) break;
+    if (!(await hasEligibleJob(db, now()))) break;
   }
 
-  pruneJobs(db);
+  await pruneJobs(db);
   return stats;
 }
 
@@ -243,7 +242,7 @@ async function runOne(
   if (!handler) {
     // An unknown kind is a bug or a downgrade, not a transient fault: park it
     // terminally instead of retrying five times to reach the same conclusion.
-    failJob(db, { id: job.id, attempts: Number.MAX_SAFE_INTEGER }, `no handler for ${job.kind}`, now());
+    await failJob(db, { id: job.id, attempts: Number.MAX_SAFE_INTEGER }, `no handler for ${job.kind}`, now());
     stats.failed += 1;
     log({ op: "job", entity: job.kind, level: "error", message: "no handler" });
     opts.onProgress?.(stats);
@@ -257,12 +256,12 @@ async function runOne(
     // A handler that returns after cancellation has not necessarily finished its
     // work, so treat the job as un-run rather than done.
     if (opts.signal?.aborted) {
-      releaseJob(db, job.id);
+      await releaseJob(db, job.id);
       stats.stoppedReason = "cancelled";
       return;
     }
 
-    completeJob(db, job.id, now());
+    await completeJob(db, job.id, now());
     stats.succeeded += 1;
     stats.byKind[job.kind] = (stats.byKind[job.kind] ?? 0) + 1;
 
@@ -273,7 +272,7 @@ async function runOne(
       stats.deleted += outcome.deleted ?? 0;
       // Chained work is enqueued only after the outcome is recorded, so a job
       // that re-enqueues *itself* is not blocked by its own dedupe key.
-      if (outcome.enqueue?.length) enqueueJobs(db, outcome.enqueue, now());
+      if (outcome.enqueue?.length) (await enqueueJobs(db, outcome.enqueue, now()));
     }
 
     // Every settled job is timed. A job over the budget is logged as a warning
@@ -298,12 +297,12 @@ async function runOne(
     if (opts.signal?.aborted) {
       // Cancellation is not the job's fault — hand it back with its attempt
       // refunded so backgrounding the app repeatedly cannot exhaust the budget.
-      releaseJob(db, job.id);
+      await releaseJob(db, job.id);
       stats.stoppedReason = "cancelled";
       return;
     }
     const message = err instanceof Error ? err.message : String(err);
-    const outcome = failJob(db, job, message, now());
+    const outcome = await failJob(db, job, message, now());
     stats.failed += 1;
     recordDuration(stats, job.kind, Date.now() - started);
     log({

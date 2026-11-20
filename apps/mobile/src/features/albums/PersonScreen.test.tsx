@@ -1,13 +1,13 @@
 import { Alert, type AlertButton } from "react-native";
 import { act, fireEvent, waitFor } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { upsertPersons } from "@/db/writers";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
+import { upsertPersons } from "@librephotos/local-db";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useToastStore } from "@/stores/toasts";
 import { defined } from "@/test/defined";
-import { jsonResponse, makeMockClient, mockRouter, renderWithDb } from "@/test/test-utils";
+import { jsonResponse, makeMockClient, mockRouter, renderWithDb, settleDb } from "@/test/test-utils";
 import { PersonScreen } from "./PersonScreen";
 
 const mockRunSync = jest.fn<Promise<null>, [unknown, { userId: number | null; reason: string }]>();
@@ -52,8 +52,8 @@ function server(sent: Sent[] = []) {
   });
 }
 
-function seedPeople(db: TestDb["db"]) {
-  upsertPersons(db, [
+async function seedPeople(db: TestDb["db"]) {
+  await upsertPersons(db, [
     { id: 7, name: "Ada", kind: "USER", faceCount: 3, coverPhotoHash: "hash-a", lastModified: 1 },
     { id: 8, name: "Grace", kind: "USER", faceCount: 5, coverPhotoHash: "hash-c", lastModified: 1 },
   ]);
@@ -74,7 +74,7 @@ function confirmButton(alert: ReturnType<typeof spyAlert>): AlertButton {
 
 describe("PersonScreen", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
     globalThis.__mockNetworkConnected = true;
     useSettingsStore.setState({ serverUrl: "https://test.local" });
@@ -84,33 +84,35 @@ describe("PersonScreen", () => {
     mockRunSync.mockResolvedValue(null);
     jest.clearAllMocks();
   });
-  afterEach(() => {
+  afterEach(async () => {
     t.close();
     globalThis.__mockNetworkConnected = true;
     jest.restoreAllMocks();
   });
 
   it("shows the mirrored name, the photo count and the person's photos", async () => {
-    seedPeople(t.db);
-    const { getByTestId } = renderWithDb(<PersonScreen id={7} />, t.db, server());
+    await seedPeople(t.db);
+    const { getByTestId } = await renderWithDb(<PersonScreen id={7} />, t.db, server());
     expect(getByTestId("person-title").props.children).toBe("Ada");
     await waitFor(() => expect(getByTestId("tile-" + PHOTO_B)).toBeTruthy());
     expect(getByTestId("person-count").props.children).toBe("2 photos");
   });
 
   it("falls back to the server's person when it is not mirrored", async () => {
-    const { getByTestId } = renderWithDb(<PersonScreen id={7} />, t.db, server());
+    const { getByTestId } = await renderWithDb(<PersonScreen id={7} />, t.db, server());
     await waitFor(() => expect(getByTestId("person-title").props.children).toBe("Ada"));
   });
 
   it("shows the offline state with nothing loaded, and keeps rename while offline", async () => {
     globalThis.__mockNetworkConnected = false;
-    seedPeople(t.db);
-    const { getByTestId } = renderWithDb(<PersonScreen id={7} />, t.db, makeMockClient(async () => jsonResponse({}, 500)));
+    await seedPeople(t.db);
+    const { getByTestId } = await renderWithDb(<PersonScreen id={7} />, t.db, makeMockClient(async () => jsonResponse({}, 500)));
     await waitFor(() => expect(getByTestId("person-grid-offline")).toBeTruthy());
     expect(getByTestId("person-title").props.children).toBe("Ada");
 
     fireEvent.press(getByTestId("person-menu-button"));
+
+    await settleDb();
     await waitFor(() =>
       expect(getByTestId("person-action-merge").props.accessibilityState).toHaveProperty("disabled", true)
     );
@@ -119,28 +121,35 @@ describe("PersonScreen", () => {
   });
 
   it("renames through the outbox", async () => {
-    seedPeople(t.db);
-    const { getByTestId } = renderWithDb(<PersonScreen id={7} />, t.db, server());
+    await seedPeople(t.db);
+    const { getByTestId } = await renderWithDb(<PersonScreen id={7} />, t.db, server());
     fireEvent.press(getByTestId("person-menu-button"));
+    await settleDb();
     fireEvent.press(getByTestId("person-action-rename"));
+    await settleDb();
     await waitFor(() => expect(getByTestId("person-rename-prompt-input")).toBeTruthy());
     fireEvent.changeText(getByTestId("person-rename-prompt-input"), "Ada Lovelace");
+    await settleDb();
     fireEvent.press(getByTestId("person-rename-prompt-submit"));
+    await settleDb();
 
-    const row = t.db.get<{ name: string }>(sql`SELECT name FROM person WHERE id = 7`);
+    const row = await t.db.get<{ name: string }>(sql`SELECT name FROM person WHERE id = 7`);
     expect(row?.name).toBe("Ada Lovelace");
-    const kinds = t.db.all<{ kind: string }>(sql`SELECT kind FROM outbox`).map((r) => r.kind);
+    const kinds = (await t.db.all<{ kind: string }>(sql`SELECT kind FROM outbox`)).map((r) => r.kind);
     expect(kinds).toEqual(["person_rename"]);
   });
 
   it("sets the cover from the person's photos", async () => {
-    seedPeople(t.db);
+    await seedPeople(t.db);
     const sent: Sent[] = [];
-    const { getByTestId } = renderWithDb(<PersonScreen id={7} />, t.db, server(sent));
+    const { getByTestId } = await renderWithDb(<PersonScreen id={7} />, t.db, server(sent));
     await waitFor(() => expect(getByTestId("tile-" + PHOTO_B)).toBeTruthy());
 
     fireEvent.press(getByTestId("person-menu-button"));
+
+    await settleDb();
     fireEvent.press(getByTestId("person-action-cover"));
+    await settleDb();
     await waitFor(() => expect(getByTestId("person-cover-picker")).toBeTruthy());
     const picker = getByTestId("person-cover-grid");
     // The picker's grid holds the same photos: pick the second.
@@ -151,23 +160,27 @@ describe("PersonScreen", () => {
     expect(sent).toEqual([
       { url: "https://test.local/api/persons/7/", method: "PATCH", body: { cover_photo: "hash-b" } },
     ]);
-    const row = t.db.get<{ cover_photo_hash: string }>(sql`SELECT cover_photo_hash FROM person WHERE id = 7`);
+    const row = await t.db.get<{ cover_photo_hash: string }>(sql`SELECT cover_photo_hash FROM person WHERE id = 7`);
     expect(row?.cover_photo_hash).toBe("hash-b");
     expect(mockRunSync).toHaveBeenCalledWith(t.db, { userId: 1, reason: "manual" });
   });
 
   it("merges into another person after confirming, then opens that person", async () => {
-    seedPeople(t.db);
+    await seedPeople(t.db);
     const sent: Sent[] = [];
     const alert = spyAlert();
-    const { getByTestId, queryByTestId } = renderWithDb(<PersonScreen id={7} />, t.db, server(sent));
+    const { getByTestId, queryByTestId } = await renderWithDb(<PersonScreen id={7} />, t.db, server(sent));
 
     fireEvent.press(getByTestId("person-menu-button"));
+
+    await settleDb();
     fireEvent.press(getByTestId("person-action-merge"));
+    await settleDb();
     await waitFor(() => expect(getByTestId("person-merge-8")).toBeTruthy());
     // Not offered to merge into itself.
     expect(queryByTestId("person-merge-7")).toBeNull();
     fireEvent.press(getByTestId("person-merge-8"));
+    await settleDb();
 
     const [title, message] = alert.mock.calls.at(-1) ?? [];
     expect(title).toBe("Merge Ada into Grace?");
@@ -177,37 +190,44 @@ describe("PersonScreen", () => {
 
     await waitFor(() => expect(mockRouter().replace).toHaveBeenCalledWith("/albums/people/8"));
     expect(sent).toEqual([{ url: "https://test.local/api/persons/8/merge/", method: "POST", body: { person: 7 } }]);
-    expect(t.db.get(sql`SELECT id FROM person WHERE id = 7`)).toBeUndefined();
+    expect(await t.db.get(sql`SELECT id FROM person WHERE id = 7`)).toBeUndefined();
     expect(messages()).toContain("Merged into Grace");
   });
 
   it("deletes the person after confirming, then goes back", async () => {
-    seedPeople(t.db);
+    await seedPeople(t.db);
     const sent: Sent[] = [];
     const alert = spyAlert();
-    const { getByTestId } = renderWithDb(<PersonScreen id={7} />, t.db, server(sent));
+    const { getByTestId } = await renderWithDb(<PersonScreen id={7} />, t.db, server(sent));
 
     fireEvent.press(getByTestId("person-menu-button"));
+
+    await settleDb();
     fireEvent.press(getByTestId("person-action-delete"));
+    await settleDb();
     await waitFor(() => expect(alert).toHaveBeenCalledTimes(1));
     expect(alert.mock.calls[0]?.[0]).toBe("Delete Ada?");
     await act(async () => confirmButton(alert).onPress?.());
 
     await waitFor(() => expect(mockRouter().back).toHaveBeenCalled());
     expect(sent).toEqual([{ url: "https://test.local/api/persons/7/", method: "DELETE", body: null }]);
-    expect(t.db.get(sql`SELECT id FROM person WHERE id = 7`)).toBeUndefined();
+    expect(await t.db.get(sql`SELECT id FROM person WHERE id = 7`)).toBeUndefined();
   });
 
   it("removes selected photos from the person", async () => {
-    seedPeople(t.db);
+    await seedPeople(t.db);
     const sent: Sent[] = [];
     const alert = spyAlert();
-    const { getByTestId, queryByTestId } = renderWithDb(<PersonScreen id={7} />, t.db, server(sent));
+    const { getByTestId, queryByTestId } = await renderWithDb(<PersonScreen id={7} />, t.db, server(sent));
     await waitFor(() => expect(getByTestId("tile-" + PHOTO_A)).toBeTruthy());
 
     fireEvent(getByTestId("tile-" + PHOTO_A), "longPress");
+
+    await settleDb();
     fireEvent.press(getByTestId("action-more"));
+    await settleDb();
     fireEvent.press(getByTestId("action-remove-person"));
+    await settleDb();
     expect(alert.mock.calls.at(-1)?.[0]).toBe("Remove 1 photo from Ada?");
     await act(async () => confirmButton(alert).onPress?.());
 
