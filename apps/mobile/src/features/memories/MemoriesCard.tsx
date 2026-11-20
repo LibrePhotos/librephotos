@@ -11,11 +11,6 @@ import { serverAddress } from "@/lib/apiClient";
 import { useTheme } from "@/theme";
 import { photoRoute } from "@/features/viewer/route";
 
-/**
- * "On this day" card for the top of the timeline (doc 05 §Memories). Pure mirror
- * query, horizontally scrollable; renders nothing when there are no memories.
- * Tapping a thumbnail opens the viewer; "See all" opens the memories screen.
- */
 export function MemoriesCard() {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -24,9 +19,6 @@ export function MemoriesCard() {
   const base = serverAddress();
   const headers = useMemo(() => mediaHeaders(token), [token]);
 
-  // `onThisDay` reads remote_photo and nothing else, so a camera-roll scan
-  // (local_asset / local_album_asset churn) must not re-run it — this card sits
-  // in the timeline header, which is exactly what the user is scrolling.
   const { data: memories } = useReactiveQuery(["on-this-day", 20], (db) => onThisDay(db, { limit: 20 }), [] as MemoryPhoto[], {
     tables: ["remote_photo"],
   });

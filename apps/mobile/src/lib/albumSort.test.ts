@@ -1,7 +1,6 @@
 import type { UserAlbumSort as LocalDbUserAlbumSort } from "@librephotos/local-db";
 import { USER_ALBUM_SORTS, isUserAlbumSort, type UserAlbumSort } from "./albumSort";
 
-// The mirror query orders by the same sorts this list offers: either side growing alone fails here.
 const sameSorts: [UserAlbumSort, LocalDbUserAlbumSort] extends [LocalDbUserAlbumSort, UserAlbumSort] ? true : false = true;
 
 describe("user album sorts", () => {

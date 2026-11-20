@@ -216,7 +216,6 @@ describe("EXPLAIN QUERY PLAN budget — merged timeline (20k remote + 20k camera
     const anchor = await timelineCursorFor(t.db, "p0010000");
     expect(anchor).not.toBeNull();
 
-    const start = Date.now();
     const older = await mergedTimelinePage(t.db, {
       limit: 21,
       cursor: anchor,
@@ -224,7 +223,6 @@ describe("EXPLAIN QUERY PLAN budget — merged timeline (20k remote + 20k camera
       inclusive: true,
     });
     const newer = await mergedTimelinePage(t.db, { limit: 20, cursor: anchor, direction: "newer" });
-    const elapsed = Date.now() - start;
 
     expect(older.rows).toHaveLength(21);
     expect(newer.rows).toHaveLength(20);
@@ -233,9 +231,14 @@ describe("EXPLAIN QUERY PLAN budget — merged timeline (20k remote + 20k camera
     // …and the "newer" page is handed back newest-first and stops just above it.
     expect(defined(newer.rows[19].timestamp)).toBeGreaterThan(defined(older.rows[0].timestamp));
     expect(defined(newer.rows[0].timestamp)).toBeGreaterThan(defined(newer.rows[19].timestamp));
-    // 41 slides out of 30k timeline rows, index-driven: nowhere near the ~40ms
-    // the unbounded shape cost at this size.
-    expect(elapsed).toBeLessThan(50);
+
+    const newerPlan = plansText(
+      await explainMergedTimelinePage(t.db, { limit: 20, cursor: anchor, direction: "newer" })
+    );
+    expect(newerPlan).toMatch(/SEARCH rp USING INDEX idx_remote_photo_visible/);
+    expect(newerPlan).toMatch(/USING INDEX idx_local_asset_timeline/);
+    expect(newerPlan).not.toMatch(/\bSCAN rp\b/);
+    expect(newerPlan).not.toMatch(/\bSCAN la\b(?! USING INDEX)/);
   });
 
   it("resolves a cursor from a remote id, a hash and a camera-roll id", async () => {

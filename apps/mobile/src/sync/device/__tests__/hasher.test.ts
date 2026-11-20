@@ -28,7 +28,7 @@ describe("runHashPass", () => {
 
     const res = await runHashPass(t.db, new FakeHasher(), { userId: 7, now: 1_000 });
     expect(res.hashed).toBe(1);
-    expect(await hashOf(t, "a1")).toBe("md5:a17"); // "md5:a1" + "7"
+    expect(await hashOf(t, "a1")).toBe("md5:a17");
   });
 
   it("orders backup-selected albums first", async () => {

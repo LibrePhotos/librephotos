@@ -1,6 +1,4 @@
 // Metro config: NativeWind + build-free consumption of the shared
-// @librephotos/api-client and @librephotos/local-db packages (source-imported,
-// no compile step).
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
@@ -10,7 +8,6 @@ const workspaceRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
-// Let Metro watch (and bundle from source) the shared packages.
 config.watchFolders = [
   path.resolve(workspaceRoot, "packages/api-client"),
   path.resolve(workspaceRoot, "packages/local-db"),

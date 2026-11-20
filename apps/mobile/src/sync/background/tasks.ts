@@ -90,7 +90,6 @@ export async function runBackgroundPass(): Promise<void> {
   const { db, executor } = await openDb();
   await runMigrations(executor);
 
-  // Diagnostics only: written in order (one serial connection), never awaited, never fatal.
   const log = (entry: SyncLogEntry): void => {
     appendSyncLog(db, entry, Date.now()).catch(() => undefined);
   };

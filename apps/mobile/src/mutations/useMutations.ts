@@ -20,7 +20,6 @@ export function useMutations() {
 
 /** Testable binder: wraps each action with the outbox-write trigger. */
 export function bindMutations(db: AppDatabase, notify: (db: AppDatabase) => void = defaultNotify) {
-  // The trigger runs once the write has committed, so replay sees the outbox row.
   const after = async <T>(write: Promise<T>): Promise<T> => {
     const result = await write;
     notify(db);

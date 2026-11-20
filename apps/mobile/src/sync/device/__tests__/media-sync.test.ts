@@ -1,6 +1,3 @@
-/**
- * @jest-environment node
- */
 import { sql } from "drizzle-orm";
 import { createTestDb, type TestDb, rawCount } from "@librephotos/local-db/testing";
 import { syncDeviceMedia, LIBRARY_ALBUM_ID, LIMITED_ALBUM_ID } from "../media-sync";
@@ -48,7 +45,6 @@ describe("syncDeviceMedia", () => {
     media.setAlbum("cam", "Camera", [asset("a1", { creationTime: 100 })]);
     await syncDeviceMedia(t.db, media, { now: 1_000 });
 
-    // Add a newer asset; second sync should pick it up via createdAfter.
     media.setAlbum("cam", "Camera", [
       asset("a1", { creationTime: 100 }),
       asset("a2", { creationTime: 300 }),
@@ -58,7 +54,6 @@ describe("syncDeviceMedia", () => {
 
     expect(res.added).toBe(1);
     expect(await membership(t, "cam")).toEqual(["a1", "a2"]);
-    // The fast-path query used the stored watermark (100), not a full scan.
     expect(media.queries.some((q) => q.createdAfter === 100)).toBe(true);
     expect(await getAlbumWatermark(t.db, "cam")).toBe(300);
   });
@@ -73,7 +68,6 @@ describe("syncDeviceMedia", () => {
     await syncDeviceMedia(t.db, media, { now: 1_000 });
     expect(await membership(t, "cam")).toEqual(["a1", "a2", "a3"]);
 
-    // a2 deleted from the album → count drops → full diff unlinks + orphan sweep.
     media.setAlbum("cam", "Camera", [
       asset("a1", { creationTime: 100 }),
       asset("a3", { creationTime: 300 }),
@@ -81,7 +75,7 @@ describe("syncDeviceMedia", () => {
     const res = await syncDeviceMedia(t.db, media, { now: 2_000 });
 
     expect(res.removed).toBe(1);
-    expect(res.deleted).toBe(1); // a2 orphaned (no other album) → deleted
+    expect(res.deleted).toBe(1);
     expect(await membership(t, "cam")).toEqual(["a1", "a3"]);
     expect(await assetIds(t)).toEqual(["a1", "a3"]);
   });
@@ -94,26 +88,22 @@ describe("syncDeviceMedia", () => {
       asset("a3", { creationTime: 300, modificationTime: 300 }),
     ]);
     await syncDeviceMedia(t.db, media, { now: 1_000 });
-    // Give a1 a hash as if the hasher ran.
     await t.db.run(sql`UPDATE local_asset SET hash = 'md5:a1-1' WHERE id = 'a1'`);
 
-    // a3 removed (count 3→2, trips the full diff) AND a1 edited in place.
     media.setAlbum("cam", "Camera", [
       asset("a1", { creationTime: 100, modificationTime: 999 }),
       asset("a2", { creationTime: 200, modificationTime: 200 }),
     ]);
     const res = await syncDeviceMedia(t.db, media, { now: 2_000 });
 
-    expect(res.updated).toBe(1); // a1's modificationTime moved
-    expect(res.removed).toBe(1); // a3 gone from the album
-    // hash invalidated by the modified_at change (re-queued for hashing).
+    expect(res.updated).toBe(1);
+    expect(res.removed).toBe(1);
     expect(await hashOf(t, "a1")).toBeNull();
   });
 
   it("iOS limited access syncs the shown selection as one synthetic album", async () => {
     const media = new FakeMedia();
     media.permission = { granted: true, canAskAgain: false, accessPrivileges: "limited" };
-    // In limited mode the provider still answers whole-library queries.
     media.setAlbum("hidden-structure", "Recents", [
       asset("l1", { creationTime: 10 }),
       asset("l2", { creationTime: 20 }),
@@ -143,18 +133,11 @@ describe("syncDeviceMedia", () => {
   });
 });
 
-/**
- * Regression cover for the device-run freeze: granting photo-library access
- * locked the UI for the whole enumeration. Each test below pins one of the
- * three causes (smart-album fan-out, no yielding, unbounded buffering) plus the
- * budget/resume path that keeps a huge library from monopolising one run.
- */
 describe("syncDeviceMedia — large libraries stay responsive", () => {
   let t: TestDb;
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  /** `count` assets with strictly increasing creation times. */
   function library(count: number, prefix = "p"): ReturnType<typeof asset>[] {
     return Array.from({ length: count }, (_, i) =>
       asset(`${prefix}${String(i).padStart(5, "0")}`, { creationTime: 1_000 + i })
@@ -168,11 +151,10 @@ describe("syncDeviceMedia — large libraries stay responsive", () => {
   it("enumerates the library once and never walks iOS smart albums", async () => {
     const media = new FakeMedia();
     const all = library(40);
-    // What iOS actually reports: a pile of smart albums over the same photos.
     media.setAlbum("recents", "Recents", all, { isSmart: true });
     media.setAlbum("favorites", "Favorites", all.slice(0, 20), { isSmart: true });
     media.setAlbum("screenshots", "Screenshots", all.slice(20), { isSmart: true });
-    media.setAlbum("trip", "Trip", all.slice(0, 5)); // a real user album
+    media.setAlbum("trip", "Trip", all.slice(0, 5));
 
     const res = await syncDeviceMedia(t.db, media, { now: 1_000, pageSize: 10 });
 
@@ -181,27 +163,24 @@ describe("syncDeviceMedia — large libraries stay responsive", () => {
     expect(scoped).not.toContain("favorites");
     expect(scoped).not.toContain("screenshots");
     expect(new Set(scoped)).toEqual(new Set(["trip"]));
-    // The synthetic library album covers every asset the smart albums held.
     expect(await membership(t, LIBRARY_ALBUM_ID)).toHaveLength(40);
     expect(res.added).toBe(40);
-    expect(res.albums).toBe(2); // library + the one user album
+    expect(res.albums).toBe(2);
   });
 
   it("writes each asset once even when several albums contain it", async () => {
     const media = new FakeMedia();
     const all = library(60);
     media.setAlbum("cam", "Camera", all);
-    media.setAlbum("trip", "Trip", all); // fully overlapping user album
+    media.setAlbum("trip", "Trip", all);
     media.setAlbum("faves", "Faves", all);
 
     const res = await syncDeviceMedia(t.db, media, { now: 1_000, pageSize: 20 });
 
     expect(await rowCount(t.db)).toBe(60);
     expect(res.added).toBe(60);
-    // Four passes read the same 60 assets, but only the first pass writes them.
     expect(res.scanned).toBe(240);
     expect(res.upserted).toBe(60);
-    // Album membership is still complete for every album.
     expect(await membership(t, "trip")).toHaveLength(60);
     expect(await membership(t, "faves")).toHaveLength(60);
   });
@@ -219,10 +198,7 @@ describe("syncDeviceMedia — large libraries stay responsive", () => {
       },
     });
 
-    // No page may be larger than the page size — that is what keeps a single
-    // native call and a single transaction inside a frame budget.
     expect(media.queries.every((q) => q.first <= 50)).toBe(true);
-    // 500 assets over two albums (library + cam) at 50/page = 20 pages minimum.
     expect(yields).toBeGreaterThanOrEqual(20);
   });
 
@@ -230,9 +206,6 @@ describe("syncDeviceMedia — large libraries stay responsive", () => {
     const media = new FakeMedia();
     media.setAlbum("cam", "Camera", library(400));
 
-    // A self-rescheduling macrotask: it can only advance if syncDeviceMedia
-    // gives the event loop a turn. Awaiting promises alone would never let it
-    // tick, which is exactly how the app froze.
     let ticks = 0;
     let stop = false;
     const tick = () => {
@@ -257,13 +230,11 @@ describe("syncDeviceMedia — large libraries stay responsive", () => {
       now: 1_000,
       pageSize: 50,
       onProgress: (p) => {
-        // The callback is synchronous: read the raw connection, not the async db.
         if (rowsAtFirstProgress == null) rowsAtFirstProgress = rawCount(t, "SELECT COUNT(*) AS c FROM local_asset");
         expect(p.total).toBeGreaterThan(0);
       },
     });
 
-    // Photos were queryable after the very first page, not only at the end.
     expect(rowsAtFirstProgress).toBe(50);
     expect(await rowCount(t.db)).toBe(300);
   });
@@ -279,7 +250,6 @@ describe("syncDeviceMedia — large libraries stay responsive", () => {
     });
     expect(first.complete).toBe(false);
     expect(await rowCount(t.db)).toBe(100);
-    // A truncated run must not mistake unread assets for deletions.
     expect(first.deleted).toBe(0);
     expect(first.removed).toBe(0);
 
@@ -290,30 +260,11 @@ describe("syncDeviceMedia — large libraries stay responsive", () => {
   });
 });
 
-/**
- * Device report: "backed up images disappear from the timeline."
- *
- * One hypothesis was backup selection: the scan stopped enumerating iOS smart
- * albums (the library is walked once as a synthetic `__library__` album), so an
- * asset the user had made backup-eligible only through a smart album could have
- * ended up in no backup-selected album and dropped out of the merged timeline —
- * with no upload involved at all.
- *
- * It does not happen, and these tests hold that line: nothing prunes album rows
- * or their memberships, so a selection made before the change keeps working,
- * and every asset is (re)linked to the whole-library album on every run anyway.
- *
- * They also pin the one genuine consequence of the change, which is *not* a
- * disappearance: an album the provider no longer reports stops accumulating new
- * assets, so a user whose only selected album is a stale smart album will not
- * see photos taken after the upgrade until they select something current.
- */
 describe("syncDeviceMedia — dropping smart albums must not hide anything", () => {
   let t: TestDb;
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  /** The DB an install that still enumerated smart albums would have left. */
   async function seedPreUpgradeSmartAlbum(ids: string[]): Promise<void> {
     await t.db.run(
       sql`INSERT INTO local_album (id, title, asset_count, modified_at, backup_selection)
@@ -335,15 +286,12 @@ describe("syncDeviceMedia — dropping smart albums must not hide anything", () 
 
     await syncDeviceMedia(t.db, media, { now: 2_000 });
 
-    // The scan never walks the smart album…
     expect(media.queries.map((q) => q.albumId)).not.toContain("recents");
-    // …and never takes its rows away either, so the user's selection survives.
     expect(await membership(t, "recents")).toEqual(["a1", "a2"]);
     const row = await t.db.get<{ backup_selection: number }>(
       sql`SELECT backup_selection FROM local_album WHERE id = 'recents'`
     );
     expect(row.backup_selection).toBe(1);
-    // Both assets are also covered by the whole-library pass.
     expect(await membership(t, LIBRARY_ALBUM_ID)).toEqual(["a1", "a2"]);
   });
 

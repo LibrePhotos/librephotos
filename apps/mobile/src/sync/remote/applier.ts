@@ -1,10 +1,3 @@
-/**
- * Page applier: writes one delta page to the mirror in ONE batch (one
- * transaction) — upsert items, delete tombstoned ids, advance the resume cursor
- * (doc 03 §3). Because the cursor is advanced inside the same batch as the
- * writes, a crash mid-page leaves the cursor un-advanced and the page is simply
- * re-fetched and re-applied on the next run (idempotent by construction).
- */
 import { sql, type SQL } from "drizzle-orm";
 import type {
   SyncAutoAlbumsResponse,
@@ -69,7 +62,6 @@ function lastModifiedOf(items: { last_modified?: number | null }[]): number | nu
   return items[items.length - 1]?.last_modified ?? null;
 }
 
-/** Write one page: its rows, its tombstones and the cursor, as one batch. */
 async function applyPage(
   db: AppDatabase,
   entity: SyncEntity,
@@ -155,8 +147,6 @@ export function applyPlaceAlbumsPage(db: AppDatabase, env: SyncPlaceAlbumsRespon
 }
 
 export function applySharingPage(db: AppDatabase, env: SyncSharingResponse, _now: number): Promise<ApplyResult> {
-  // Sharing has no DeletionLog tombstones (entity=None server-side); the set
-  // is reconciled by a periodic reseed of this cheap feed.
   return applyPage(
     db,
     "sharing",

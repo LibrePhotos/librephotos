@@ -1,17 +1,3 @@
-/**
- * Offline mutation actions (doc 03 §6). Each function performs, in ONE batch
- * (one transaction): (a) the optimistic write to the mirror tables and (b) a
- * zod-validated `outbox` row insert. If either fails, the batch rolls back
- * both — the UI never shows a write that wasn't queued, and vice versa. Live
- * queries re-fire on commit, so the UI updates instantly.
- *
- * A batch cannot read between its statements, so every statement computes what
- * it needs in SQL (a recount is a subquery, a temp album id is MIN(id) - 1).
- *
- * Pure SQL + drizzle only (no expo / no network) so the whole module is
- * Node-tested. The app-facing hook (./useMutations) wraps these with a
- * `notifyOutboxWrite()` trigger so replay runs before the next delta pull.
- */
 import { sql, type SQL } from "drizzle-orm";
 import { getMetaNumber, META_FAVORITE_MIN_RATING, type AppDatabase } from "@librephotos/local-db";
 import { isRecord, parseJson } from "@/lib/guards";
@@ -34,9 +20,7 @@ function inList(values: string[]): SQL {
   );
 }
 
-/** Run the mirror writes and the outbox insert as one batch; the outbox row's id. */
 async function mutate(db: AppDatabase, writes: SQL[], outbox: SQL): Promise<number> {
-  // Order inside the batch does not matter: it commits whole or not at all.
   const [row] = await db.batch([db.get<{ id: number } | undefined>(outbox), ...writes.map((w) => db.run(w))]);
   if (!row) throw new Error("outbox insert returned no id");
   return row.id;
@@ -126,7 +110,6 @@ export async function ratePhoto(
   return { outboxId };
 }
 
-/** The cached detail payload with the user caption patched in, or null when there is none to patch. */
 async function patchedDetail(
   db: AppDatabase,
   imageHash: string,
@@ -145,7 +128,6 @@ async function patchedDetail(
     const patched = { ...parsed, captions_json: { ...captions, user_caption: caption } };
     return { photoId: row.photo_id, payload: JSON.stringify(patched) };
   } catch {
-    // Malformed cache — leave it; the outbox row is what matters.
     return null;
   }
 }
@@ -155,8 +137,6 @@ export async function captionPhoto(
   args: { imageHash: string; caption: string },
   now = Date.now()
 ): Promise<MutationResult> {
-  // Best-effort optimistic patch of the cached detail payload (may be absent
-  // offline; the next detail fetch refreshes truth regardless).
   const patch = await patchedDetail(db, args.imageHash, args.caption);
   const outboxId = await mutate(
     db,
@@ -229,8 +209,6 @@ export async function createAlbum(
   args: { title: string; photoIds: string[]; ownerId?: number | null },
   now = Date.now()
 ): Promise<CreateAlbumResult> {
-  // The id is chosen before the batch; a concurrent create could pick the same
-  // one, so the INSERT (primary key) fails and nothing is written — retry once.
   for (let attempt = 0; ; attempt += 1) {
     const tempId = await nextTempAlbumId(db);
     try {

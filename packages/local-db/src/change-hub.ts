@@ -1,9 +1,4 @@
 /**
- * The change hub: table-level change fan-out for live queries, shared by every
- * runtime. A runtime feeds it raw change events (expo-sqlite's update hook on
- * the phone, the desktop's, or {@link trackChanges} over any executor) and
- * live queries watch it per table.
- *
  * Live-query change coalescing — the fix for "scanning the camera roll makes the
  * app very unresponsive".
  *
@@ -57,9 +52,6 @@
  * only ever cancelled by another change that arms it again, or by `close()`. So
  * after the final change at time T a flush runs no later than T + `quietMs`
  * (T + `deferCapMs` if the user is still mid-gesture) and observes final state.
- *
- * Pure TypeScript (no React, no platform) so the whole thing is Node-tested with
- * fake timers against a real better-sqlite3 database.
  */
 import type { SqlExecutor, SqlStatement } from "./executor";
 
@@ -103,10 +95,6 @@ export type ChangeHub = {
   close(): void;
 };
 
-/**
- * Called once per flush that touches a watched table. `changed` is the set of
- * tables the flush covers, or null when some change did not name its table.
- */
 export type ChangeListener = (changed: ReadonlySet<string> | null) => void;
 
 type Watcher = { tables: ReadonlySet<string> | null; listener: ChangeListener };
@@ -237,16 +225,9 @@ export function createChangeHub(opts: ChangeHubOptions): ChangeHub {
   };
 }
 
-/* ---- change events from the executor --------------------------------- */
-
 const WRITE = /\b(?:INSERT(?:\s+OR\s+\w+)?\s+INTO|REPLACE\s+INTO|UPDATE(?:\s+OR\s+\w+)?|DELETE\s+FROM)\s+[`"[]?([A-Za-z_][A-Za-z0-9_]*)/gi;
 const DDL = /^\s*(?:CREATE|DROP|ALTER)\b/i;
 
-/**
- * The tables a statement writes: `[]` for a read, `null` when it changes the
- * database in a way that names no table (DDL, PRAGMA ...), which wakes every
- * watcher. A CTE or trigger body may name several; all of them count.
- */
 export function writtenTables(sql: string): string[] | null {
   if (DDL.test(sql)) return null;
   const tables = new Set<string>();
@@ -257,13 +238,6 @@ export function writtenTables(sql: string): string[] | null {
   return [...tables];
 }
 
-/**
- * Wrap an executor so every successful write is reported per table, once per
- * statement (not per row). The change source for runtimes without an update
- * hook of their own: Node tests, or the desktop if it prefers JS-side events.
- * Writes that happen inside triggers are not reported; watch the table the
- * statement names (local_asset rather than local_asset_fts).
- */
 export function trackChanges(executor: SqlExecutor): { executor: SqlExecutor; subscribe: DbChangeSubscribe } {
   const listeners = new Set<(tableName?: string) => void>();
   const emit = (statements: readonly Pick<SqlStatement, "sql">[]) => {

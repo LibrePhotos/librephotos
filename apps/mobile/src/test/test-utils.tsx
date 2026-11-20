@@ -70,24 +70,12 @@ export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
-/**
- * Let every pending database read and the renders it causes finish. Reads are
- * async (the executor resolves on a microtask, React Query notifies on a
- * macrotask), so a test settles after a render or a press before it asserts.
- */
 export async function settleDb(rounds = 8): Promise<void> {
   await act(async () => {
     for (let i = 0; i < rounds; i += 1) await new Promise<void>((resolve) => setTimeout(resolve, 0));
   });
 }
 
-/**
- * Render UI over a real (better-sqlite3) test database inside the DbProvider,
- * plus the app providers with a mocked ApiClient, and wait for the first reads.
- * Lets screens that read synced entities render against the actual SQL.
- * `subscribe` defaults to a no-op (static test data); pass a TestDb's
- * `subscribe` to have writes re-run live queries like the app does.
- */
 export async function renderWithDb(
   ui: ReactElement,
   db: AppDatabase,

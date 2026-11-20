@@ -33,7 +33,6 @@ export function AlbumDetailScreen({
 }: {
   title: string;
   query: (db: AppDatabase) => Promise<PhotoTileRow[]>;
-  /** The live-query key: a name plus every input `query` reads. */
   queryKey: ReactiveQueryKey;
   /** When present + kind==='user', unlocks rename, cover, delete + remove-from-album. */
   album?: { id: number; kind: "user" | "auto" };
@@ -173,7 +172,6 @@ export function AlbumDetailScreen({
           selectionActive={selection.active}
           isSelected={selection.isSelected}
           ListEmptyComponent={
-            // Still reading: no "empty" message that would flash before the rows.
             loading ? null : (
             <View testID="album-empty" style={{ padding: 32, alignItems: "center" }}>
               <Text style={{ color: theme.muted }}>{t("albumDetail.empty")}</Text>

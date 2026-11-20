@@ -87,7 +87,6 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
           selectionActive={selection.active}
           isSelected={selection.isSelected}
           ListEmptyComponent={
-            // Still reading: no "empty" message that would flash before the rows.
             loading ? null : (
             <View testID="filter-empty" style={{ padding: 32, alignItems: "center" }}>
               <Text style={{ color: theme.muted }}>{t("library.empty")}</Text>

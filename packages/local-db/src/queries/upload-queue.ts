@@ -1,18 +1,3 @@
-/**
- * Upload queue table ops (doc 03 §5). Pure SQL over `upload_queue` +
- * `local_asset` — no expo, no network. The worker (./worker) drives the state
- * machine; this module owns enqueue selection, eligibility, and transitions.
- *
- * Enqueue rule: a local asset that is hashed, lives in a backup-SELECTED album,
- * is NOT in an excluded album, and whose hash has no `remote_photo` counterpart
- * (i.e. "will be backed up but isn't on the server yet").
- *
- * …plus one exception. An asset the hash pass parked as `hash_state = 'icloud'`
- * has no hash *because it has no bytes on this device*, and refusing to queue it
- * would silently drop most of the library on any iPhone using "Optimise iPhone
- * Storage". Those are queued unhashed and sorted last; the worker downloads each
- * one once and hashes the bytes on their way out (see ./worker).
- */
 import { sql, type SQL } from "drizzle-orm";
 import { runWrite } from "../database";
 import type { AppDatabase } from "../types";
@@ -27,19 +12,13 @@ export type UploadState =
   | "failed"
   | "skipped_exists";
 
-/** Cap on retry attempts before an item is parked as permanently failed. */
 export const MAX_ATTEMPTS = 5;
-/** Backoff base (ms): delay = base * 2^attempts. */
 export const BACKOFF_BASE_MS = 30_000;
 
 export function backoffDelay(attempts: number, base = BACKOFF_BASE_MS): number {
   return base * 2 ** Math.max(0, attempts);
 }
 
-/**
- * Insert queue rows for every eligible-but-unqueued asset. Idempotent: existing
- * rows (any state) are left untouched. Returns the number newly enqueued.
- */
 export async function enqueueBackups(db: AppDatabase, now = Date.now()): Promise<number> {
   const { changes } = await runWrite(
     db,
@@ -66,7 +45,6 @@ export type QueueItem = {
   name: string | null;
   type: string | null;
   hash: string | null;
-  /** `'icloud'` when the bytes still have to be fetched (hash is NULL). */
   hash_state: string | null;
   created_at: number | null;
   modified_at: number | null;
@@ -76,19 +54,8 @@ export const QUEUE_ITEM_COLUMNS = sql`uq.asset_id AS asset_id, uq.state AS state
        uq.progress AS progress, la.uri AS uri, la.name AS name, la.type AS type, la.hash AS hash,
        la.hash_state AS hash_state, la.created_at AS created_at, la.modified_at AS modified_at`;
 
-/**
- * Assets that already have a hash go first. An unhashed row is an iCloud-only
- * asset whose bytes must be downloaded before anything can happen, so letting
- * one of those to the front would park the whole serial queue on a network
- * fetch while photos that are sitting right there on the disk wait behind it.
- */
 export const LOCAL_FIRST = sql`(CASE WHEN la.hash IS NULL THEN 1 ELSE 0 END) ASC`;
 
-/**
- * The next item eligible to run: a `pending` row, or a `failed` row that is
- * under the attempt cap and past its backoff window. Locally-hashed assets
- * first, then FIFO. Returns null when the queue is drained/blocked.
- */
 export async function nextEligible(db: AppDatabase, now = Date.now()): Promise<QueueItem | null> {
   const row = await db.get<QueueItem | undefined>(
     sql`SELECT ${QUEUE_ITEM_COLUMNS}
@@ -110,11 +77,6 @@ export async function setQueueState(db: AppDatabase, assetId: string, state: Upl
   }
 }
 
-/**
- * The bytes are on the server. `serverPhotoId` is the photo the completion
- * answered with; the row counts as "processing on the server" until the mirror
- * has that photo with a thumbnail (see db/queries/upload-processing).
- */
 export async function markDone(db: AppDatabase, assetId: string, serverPhotoId: string | null): Promise<void> {
   await db.run(
     sql`UPDATE upload_queue SET state = 'done', progress = 1, last_error = NULL, next_attempt_at = NULL,
@@ -130,7 +92,6 @@ export async function markSkipped(db: AppDatabase, assetId: string): Promise<voi
   );
 }
 
-/** Record a failure: bump attempts, set backoff window + error message. */
 export async function markFailed(
   db: AppDatabase,
   assetId: string,
@@ -148,7 +109,6 @@ export async function markFailed(
   );
 }
 
-/** Reset failed/parked items back to pending (user "retry" / resume). Returns how many. */
 export async function retryFailed(db: AppDatabase): Promise<number> {
   const { changes } = await runWrite(
     db,
@@ -207,11 +167,9 @@ export type QueueListRow = {
   name: string | null;
   uri: string | null;
   type: string | null;
-  /** 1 while the server is still processing this upload (#2740), else 0. */
   processing: number;
 };
 
-/** Queue rows for the Backup screen (active/failed first, newest last). */
 export async function queueList(db: AppDatabase, limit = 200): Promise<QueueListRow[]> {
   return await db.all<QueueListRow>(
     sql`SELECT uq.asset_id AS asset_id, uq.state AS state, uq.progress AS progress, uq.attempts AS attempts,
@@ -226,27 +184,17 @@ export async function queueList(db: AppDatabase, limit = 200): Promise<QueueList
   );
 }
 
-/* ---- concurrent workers (the desktop) ----------------------------------- */
-
-/** A claimed upload, with where a resumable upload left off. */
 export type ClaimedUpload = QueueItem & { upload_id: string | null; upload_offset: number; size_bytes: number | null };
 
 const CLAIMED_COLUMNS = sql`${QUEUE_ITEM_COLUMNS}, uq.upload_id AS upload_id, uq.upload_offset AS upload_offset,
        la.size_bytes AS size_bytes`;
 
-/** Eligible to upload: pending, or failed under the cap and past its backoff. */
 function eligible(now: number): SQL {
   return sql`(uq.state = 'pending'
               OR (uq.state = 'failed' AND uq.attempts < ${MAX_ATTEMPTS}
                   AND (uq.next_attempt_at IS NULL OR uq.next_attempt_at <= ${now})))`;
 }
 
-/**
- * Atomically claim the next upload for one of several concurrent workers: the
- * row moves to `uploading` in the same statement that picks it, so two workers
- * can never get the same row. A file whose hash is already being uploaded by
- * another row (two copies of one picture) waits. Null when nothing is ready.
- */
 export async function claimNextUpload(db: AppDatabase, now = Date.now()): Promise<ClaimedUpload | null> {
   const [claimed] = await db.all<{ asset_id: string }>(
     sql`UPDATE upload_queue SET state = 'uploading'
@@ -268,13 +216,6 @@ export async function claimNextUpload(db: AppDatabase, now = Date.now()): Promis
   return row ?? null;
 }
 
-/**
- * Atomically claim up to `limit` hashed pending rows for a server existence
- * check (`checking`). The checker answers each with markSkipped (the server has
- * it) or {@link markAbsent} (it does not; upload it). A row answered absent is
- * not handed out for a check again (only to the uploaders), so the checker
- * moves on to the next rows instead of asking about the same ones forever.
- */
 export async function claimExistenceChecks(
   db: AppDatabase,
   limit: number
@@ -297,22 +238,12 @@ export async function claimExistenceChecks(
   );
 }
 
-/**
- * The existence check found the server lacks the file: back to `pending` for an
- * uploader, marked checked (`next_attempt_at = 0`, "may run now") so
- * {@link claimExistenceChecks} does not claim it again.
- */
 export async function markAbsent(db: AppDatabase, assetId: string): Promise<void> {
   await db.run(
     sql`UPDATE upload_queue SET state = 'pending', next_attempt_at = 0 WHERE asset_id = ${assetId} AND state = 'checking'`
   );
 }
 
-/**
- * The backup of folder roots was turned off: the queued (not running, not
- * finished) uploads of files in no backed-up root are dropped. Loose files and
- * running uploads stay.
- */
 export async function cancelFolderBackups(db: AppDatabase): Promise<number> {
   const { changes } = await runWrite(
     db,
@@ -326,11 +257,6 @@ export async function cancelFolderBackups(db: AppDatabase): Promise<number> {
   return changes;
 }
 
-/**
- * The server answered that it has a file (a single check, outside the queue's
- * own checker): it counts as on the server, with the server's photo id. A
- * running upload is left alone.
- */
 export async function recordServerHas(
   db: AppDatabase,
   assetId: string,
@@ -346,11 +272,6 @@ export async function recordServerHas(
   );
 }
 
-/**
- * The library now belongs to another server account: every file's server hash
- * is rebuilt for `userId` (the MD5 stays: `hash` is md5 + user id) and the
- * upload queue, which described the old account, starts over.
- */
 export async function switchFolderAccount(db: AppDatabase, userId: number): Promise<void> {
   await db.batch([
     db.run(
@@ -361,7 +282,6 @@ export async function switchFolderAccount(db: AppDatabase, userId: number): Prom
   ]);
 }
 
-/** Record how far a resumable upload got, so a restart continues from there. */
 export async function setUploadProgress(
   db: AppDatabase,
   assetId: string,
@@ -374,11 +294,6 @@ export async function setUploadProgress(
   );
 }
 
-/**
- * Work a previous run was doing when it stopped starts over: checks are asked
- * again, uploads go back to pending and resume from their saved offset. Run at
- * startup, before any worker claims. Returns how many rows it reset.
- */
 export async function resetInFlightUploads(db: AppDatabase): Promise<number> {
   const { changes } = await runWrite(
     db,
@@ -387,26 +302,17 @@ export async function resetInFlightUploads(db: AppDatabase): Promise<number> {
   return changes;
 }
 
-/** What the backup status shows for a set of local assets. */
 export type LocalBackupCounts = {
-  /** Local assets in scope. */
   total: number;
-  /** ...of which hashed. */
   hashed: number;
-  /** ...on the server: the mirror has the hash, or the upload finished / the server had it. */
   onServer: number;
   pending: number;
   checking: number;
   uploading: number;
   failed: number;
-  /** Bytes not on the server yet (pending, checking, uploading or failed rows). */
   pendingBytes: number;
 };
 
-/**
- * Backup counts over the local assets of one source: `'folder'` (the desktop
- * library), `'device'` (the camera roll), or every local asset.
- */
 export async function localBackupCounts(db: AppDatabase, source?: "device" | "folder"): Promise<LocalBackupCounts> {
   const scope = source
     ? sql`EXISTS (SELECT 1 FROM local_album_asset laa JOIN local_album l ON l.id = laa.album_id
@@ -450,10 +356,6 @@ export async function localBackupCounts(db: AppDatabase, source?: "device" | "fo
   };
 }
 
-/**
- * Queue one file for upload whatever its album says (the desktop's "upload
- * this" on a loose or unselected file). A finished or parked row is re-armed.
- */
 export async function requestUpload(db: AppDatabase, assetId: string, now = Date.now()): Promise<void> {
   await db.run(
     sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)

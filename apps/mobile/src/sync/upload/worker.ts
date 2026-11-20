@@ -246,7 +246,6 @@ async function processItem(
     const { uploadId, md5: uploadedMd5 } = await opts.transport.uploadFile(
       { assetId, uri: readableUri, filename, type: item.type, hash, userId: opts.userId, md5: fetchedMd5 },
       (p) => {
-        // Progress is display only: written in order on the serial connection, not awaited.
         if (p.total > 0) setQueueState(db, assetId, "uploading", p.sent / p.total).catch(() => undefined);
         opts.onProgress?.(assetId, p.sent, p.total);
       }

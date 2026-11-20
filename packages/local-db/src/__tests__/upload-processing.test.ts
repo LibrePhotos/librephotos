@@ -1,10 +1,3 @@
-/**
- * @jest-environment node
- *
- * The timeline's half of #2740: a camera-roll row whose upload is done but whose
- * server photo is not in the mirror with a thumbnail is flagged, so its tile
- * shows an hourglass instead of the "only on this phone" badge.
- */
 import { sql } from "drizzle-orm";
 import { createTestDb, type TestDb } from "../testing";
 import { timelinePage } from "../queries/timeline";
@@ -46,7 +39,6 @@ describe("processing on the server, in the timeline", () => {
   });
 
   it("drops the flag once the photo is in the mirror with a thumbnail", async () => {
-    // Still undated, so the camera-roll row is what the timeline shows.
     await seedRemotePhotos(t.db, [remotePhoto({ id: "p-up", imageHash: "h-up", timestamp: null })]);
     expect((await processingByLocalId(t)).up).toBe(0);
   });

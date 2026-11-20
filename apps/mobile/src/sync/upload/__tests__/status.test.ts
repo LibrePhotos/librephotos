@@ -206,7 +206,7 @@ describe("backupState", () => {
 
     it("drops to zero once a delta sync brings the photos in with thumbnails", async () => {
       await seedSelected(t, 3, 3);
-      await seedRemotePhotos(t.db, [remotePhoto({ id: "r2", imageHash: "h2" })]); // backed up long ago
+      await seedRemotePhotos(t.db, [remotePhoto({ id: "r2", imageHash: "h2" })]);
       await uploaded(["a0", "a1"]);
       expect((await stateOf(t)).stage).toEqual({ kind: "processing", uploaded: 3, processing: 2 });
 
@@ -277,7 +277,7 @@ describe("backupState", () => {
   /* -- iCloud: photos that are not on the phone at all ------------------- */
 
   it("counts iCloud-parked assets separately from ones awaiting the hasher", async () => {
-    await seedSelected(t, 1, 0); // a0: selected, un-hashed, readable
+    await seedSelected(t, 1, 0);
     await insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
     await t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('cam', 'cloud')`);
 
@@ -308,7 +308,7 @@ describe("backupState", () => {
   });
 
   it("still reports locally-ready uploads while iCloud assets queue behind them", async () => {
-    await seedSelected(t, 1, 1); // a0 is hashed and ready
+    await seedSelected(t, 1, 1);
     await insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
     await t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('cam', 'cloud')`);
     await t.db.run(

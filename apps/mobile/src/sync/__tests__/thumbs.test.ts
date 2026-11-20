@@ -30,7 +30,7 @@ describe("thumb cache LRU", () => {
     await recordThumb(t.db, { photoId: "a", filePath: "/a", sizeBytes: 100, now: 1 });
     await recordThumb(t.db, { photoId: "b", filePath: "/b", sizeBytes: 100, now: 2 });
     await recordThumb(t.db, { photoId: "c", filePath: "/c", sizeBytes: 100, now: 3 });
-    await touchThumb(t.db, "a", 10); // a is now newest
+    await touchThumb(t.db, "a", 10);
     expect((await lruCandidates(t.db)).map((r) => r.photo_id)).toEqual(["b", "c", "a"]);
   });
 

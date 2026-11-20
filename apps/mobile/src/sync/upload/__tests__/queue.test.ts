@@ -67,8 +67,8 @@ describe("upload queue enqueue rule", () => {
 
     // Fail once → parked with a future backoff window.
     await markFailed(t.db, "a1", "boom", 1_000, 100);
-    expect(await nextEligible(t.db, 1_050)).toBeNull(); // still inside backoff
-    expect((await nextEligible(t.db, 10_000))?.asset_id).toBe("a1"); // past backoff
+    expect(await nextEligible(t.db, 1_050)).toBeNull();
+    expect((await nextEligible(t.db, 10_000))?.asset_id).toBe("a1");
 
     // Exhaust attempts → permanently parked.
     for (let i = 0; i < MAX_ATTEMPTS; i++) (await markFailed(t.db, "a1", "boom", 1_000, 1));

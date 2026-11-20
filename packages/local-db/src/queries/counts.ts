@@ -1,12 +1,6 @@
-/**
- * Local mirror row counts, keyed to match the server `/api/sync/counts/`
- * response (doc 03 §8). Used by the post-sync integrity check: a mismatch
- * beyond tolerance schedules a reseed.
- */
 import { sql } from "drizzle-orm";
 import type { AppDatabase } from "../types";
 
-/** Shape mirrors the server counts payload (minus server_time). */
 export type LocalCounts = {
   photos: number;
   persons: number;
@@ -34,7 +28,6 @@ export async function localCounts(db: AppDatabase): Promise<LocalCounts> {
   };
 }
 
-/** Human-facing library statistics for the profile stats card (doc 05 §Statistics). */
 export const EMPTY_LOCAL_COUNTS: LocalCounts = Object.freeze({
   photos: 0,
   persons: 0,
@@ -60,7 +53,6 @@ async function scalar(db: AppDatabase, query: string): Promise<number> {
   return row?.c ?? 0;
 }
 
-/** Counts drawn from the mirror (offline-safe); the visible library only. */
 export async function libraryStats(db: AppDatabase): Promise<LibraryStats> {
   const visible = "removed = 0 AND in_trashcan = 0";
   return {

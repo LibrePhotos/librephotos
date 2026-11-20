@@ -40,7 +40,6 @@ type ExploreData = {
   seeding: Set<SyncEntity>;
 };
 
-/** Before the first read: every section shows its skeleton, as during a first sync. */
 const LOADING_EXPLORE: ExploreData = {
   user: [],
   people: [],

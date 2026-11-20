@@ -77,7 +77,7 @@ describe("upload worker", () => {
   });
 
   it("strips the userId suffix from the hash for the md5 checksum", async () => {
-    await seedQueued(t, "a1", "abc123def5"); // md5 "abc123def" + userId "5"
+    await seedQueued(t, "a1", "abc123def5");
     await enqueueBackups(t.db);
     const transport = new FakeTransport();
     await runUploadQueue(t.db, { userId: 5, transport, now: () => 1_000 });
@@ -187,7 +187,7 @@ describe("upload worker — iCloud-deferred assets", () => {
 
   it("fetches the original ONCE and uses those bytes for hash, dedupe and upload", async () => {
     await seedDeferred(t, "cloud");
-    expect(await enqueueBackups(t.db)).toBe(1); // unhashed, but queued: it is selected
+    expect(await enqueueBackups(t.db)).toBe(1);
     const transport = new FakeTransport();
     const mat = fakeMaterializer();
 

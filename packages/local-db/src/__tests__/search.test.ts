@@ -80,7 +80,7 @@ describe("recent searches", () => {
   it("pushes MRU-first, dedups case-insensitively, and caps at 8", async () => {
     await pushRecentSearch(t.db, "beach", 1);
     await pushRecentSearch(t.db, "sunset", 2);
-    await pushRecentSearch(t.db, "Beach", 3); // dedup
+    await pushRecentSearch(t.db, "Beach", 3);
     expect(await getRecentSearches(t.db)).toEqual(["Beach", "sunset"]);
 
     for (let i = 0; i < 10; i++) (await pushRecentSearch(t.db, `term${i}`, 10 + i));

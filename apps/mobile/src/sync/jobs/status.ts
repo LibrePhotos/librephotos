@@ -57,7 +57,6 @@ export type JobQueueSnapshot = {
   nextDueAt: number | null;
 };
 
-/** The snapshot of an empty queue (before the first read). */
 export const EMPTY_JOB_QUEUE_SNAPSHOT: JobQueueSnapshot = Object.freeze({
   depth: [],
   inFlight: [],

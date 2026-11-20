@@ -1,27 +1,3 @@
-/**
- * Drizzle schema for the on-device SQLite database (plans/mobile-v2 doc 02),
- * shared by the mobile and the desktop app.
- *
- * Three groups of tables:
- *   - remote mirror : flat summaries of server state (own + shared photos,
- *                     albums, people). Disposable — re-seedable from the API.
- *   - local media   : what is on THIS device. On the phone the camera roll
- *                     (`local_album.source = 'device'`); on the desktop the
- *                     folders the user added (`source = 'folder'`), whose files
- *                     are referenced in place. One set of tables for both, so
- *                     the timeline, hashing and backup code is the same.
- *   - app state     : sync cursors, offline outbox, upload/thumb queues, logs.
- *
- * Timestamps are stored as integer ms-epoch (mode: "number"), NOT Date, so the
- * same numbers round-trip identically under both the expo-sqlite driver (app)
- * and the better-sqlite3 driver (Node tests). Flags are integers with mode
- * "boolean" for ergonomic query-builder filters; raw SQL sees plain 0/1.
- *
- * This module is the single source of truth drizzle-kit reads to generate the
- * committed SQL migrations in ./migrations. The local full-text index
- * (`local_asset_fts`, its terms view and triggers) is hand-written SQL in
- * migrations/0001_local_search.sql: drizzle-kit does not model FTS5.
- */
 import { sql } from "drizzle-orm";
 import {
   index,
@@ -208,37 +184,25 @@ export const sharedUser = sqliteTable("shared_user", {
   avatarUrl: text("avatar_url"),
 });
 
-/* ---------------------------------------------------------------------- *
- * Local media: the camera roll (phone) or the added folders (desktop).
- * ---------------------------------------------------------------------- */
-
-/** `local_asset.hash_state`: the bytes are in iCloud, not on the phone (see below). */
 export const HASH_STATE_ICLOUD = "icloud";
-/** `local_asset.hash_state`: the desktop could not read the file to hash it (until it changes). */
 export const HASH_STATE_UNREADABLE = "unreadable";
 
-/** `local_asset.meta_state`: where the desktop's metadata pass is for a file. */
 export const META_STATES = ["pending", "done", "failed"] as const;
 export type MetaState = (typeof META_STATES)[number];
 
 export const localAsset = sqliteTable(
   "local_asset",
   {
-    /** Phone: the MediaLibrary asset id. Desktop: any stable id (the file path works). */
     id: text("id").primaryKey(),
     name: text("name"),
-    type: text("type"), // 'image' | 'video' | 'raw'
-    /**
-     * ms epoch the picture was taken (or, failing that, the file's time): the
-     * timeline's sort key. `bucket_day` is the day that is for the user.
-     */
+    type: text("type"),
     createdAt: integer("created_at"),
     modifiedAt: integer("modified_at"),
     width: integer("width"),
     height: integer("height"),
     durationMs: integer("duration_ms"),
-    uri: text("uri"), // phone: ph:// | content://   desktop: the file's absolute path
-    hash: text("hash"), // the server's image hash (md5 of the bytes + user id); null until hashed
+    uri: text("uri"),
+    hash: text("hash"),
     hashedAt: integer("hashed_at"),
     /**
      * Why this asset has no hash yet, when the reason is not "nobody has tried".
@@ -248,30 +212,15 @@ export const localAsset = sqliteTable(
      * fetches them once, if and when the user actually asks for a backup.
      */
     hashState: text("hash_state"),
-    /**
-     * 'YYYY-MM-DD' of `created_at` in the user's calendar, written by the app
-     * (the phone: the device time zone; the desktop: the picture's wall-clock
-     * date). NULL falls back to SQLite's localtime of `created_at`. Groups the
-     * timeline by day and gives the search index its date words.
-     */
     bucketDay: text("bucket_day"),
-    /* ---- desktop folder library (NULL on the phone) ---- */
-    /**
-     * The folder the file is in as the user sees it: the added folder's own
-     * name, then the subfolders down to the file ("Pictures/Holiday 2019/Day 1").
-     * Searchable word by word.
-     */
     folder: text("folder"),
     sizeBytes: integer("size_bytes"),
-    /** The date-taken text from the file's metadata; NULL when `created_at` is the file time. */
     takenAt: text("taken_at"),
     latitude: real("latitude"),
     longitude: real("longitude"),
     camera: text("camera"),
     lens: text("lens"),
-    /** Format name ("JPEG", "HEIC", "CR3", ...). */
     format: text("format"),
-    /** NULL (not tracked: the phone) | 'pending' | 'done' | 'failed'. */
     metaState: text("meta_state"),
     rating: integer("rating"),
     isFavorite: integer("is_favorite"),
@@ -289,23 +238,14 @@ export const localAsset = sqliteTable(
     // thread, before the viewer can paint.
     index("idx_local_asset_timeline").on(t.createdAt, t.id),
     index("idx_local_asset_bucket_day").on(t.bucketDay),
-    // The desktop's metadata pass picks its next files from here.
     index("idx_local_asset_meta_pending").on(t.modifiedAt).where(sql`meta_state = 'pending'`),
-    // The desktop watcher resolves changed paths to rows.
     index("idx_local_asset_uri").on(t.uri),
   ]
 );
 
-/** `local_album.source`. */
 export const LOCAL_ALBUM_SOURCES = ["device", "folder"] as const;
 export type LocalAlbumSource = (typeof LOCAL_ALBUM_SOURCES)[number];
 
-/**
- * A group of local assets. Phone: a device album. Desktop: a folder the user
- * added to the library (`source = 'folder'`, `path` its absolute path); its
- * files are linked through local_album_asset like any album's, and its
- * `backup_selection` says whether it is backed up.
- */
 export const localAlbum = sqliteTable(
   "local_album",
   {
@@ -313,11 +253,9 @@ export const localAlbum = sqliteTable(
     title: text("title"),
     assetCount: integer("asset_count"),
     modifiedAt: integer("modified_at"),
-    backupSelection: integer("backup_selection").notNull().default(0), // 0 none | 1 selected | 2 excluded
+    backupSelection: integer("backup_selection").notNull().default(0),
     source: text("source").notNull().default("device"),
-    /** Absolute folder path of a folder root; NULL for a device album. */
     path: text("path"),
-    /** ms epoch the user added the folder. */
     addedAt: integer("added_at"),
   },
   (t) => [uniqueIndex("idx_local_album_path").on(t.path).where(sql`path IS NOT NULL`)]
@@ -395,10 +333,6 @@ export const uploadQueue = sqliteTable(
      * not count as processing again.
      */
     serverReadyAt: integer("server_ready_at"),
-    /**
-     * Resumable chunked upload: the server's upload id and how many bytes it has
-     * acknowledged. A restart continues from `upload_offset` instead of byte 0.
-     */
     uploadId: text("upload_id"),
     uploadOffset: integer("upload_offset").notNull().default(0),
   },
@@ -529,8 +463,6 @@ export const schema = {
 };
 
 export type Schema = typeof schema;
-
-/* ---- row types ---------------------------------------------------------- */
 
 export type RemotePhotoTableRow = typeof remotePhoto.$inferSelect;
 export type LocalAssetRow = typeof localAsset.$inferSelect;

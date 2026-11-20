@@ -185,7 +185,6 @@ describe("job chaining: uploads start while hashing is still running", () => {
       seams(media, new FakeHasher(), transport, {
         onUpload: () => {
           if (hashedAtFirstUpload !== -1) return;
-          // A synchronous seam: read the raw connection, not the async db.
           hashedAtFirstUpload = rawCount(t, "SELECT COUNT(*) AS c FROM local_asset WHERE hash IS NOT NULL");
           unhashedAtFirstUpload = rawCount(
             t,

@@ -14,7 +14,6 @@
 // they live in the app's — require.resolve finds either. Still one copy each,
 // which is the Phase 0 invariant (source-imported api-client must share them).
 const dir = (id) => require("path").dirname(require.resolve(`${id}/package.json`));
-/** The shared packages are TS source, consumed directly (like Metro does). */
 const PACKAGE_MAPPER = {
   "^@librephotos/api-client$": "<rootDir>/../../packages/api-client/src/index.ts",
   "^@librephotos/local-db$": "<rootDir>/../../packages/local-db/src/index.ts",
@@ -53,8 +52,6 @@ module.exports = {
       resolver: "react-native-worklets/jest/resolver",
       moduleNameMapper: RN_MODULE_NAME_MAPPER,
       modulePaths: ["<rootDir>/node_modules"],
-      // Sync + mutation-core tests belong to the node project (the database's own
-      // tests live in packages/local-db; src/db keeps only the app glue).
       testPathIgnorePatterns: [
         "<rootDir>/node_modules/",
         "<rootDir>/src/sync/",

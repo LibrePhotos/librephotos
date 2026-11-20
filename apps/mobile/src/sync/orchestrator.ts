@@ -164,7 +164,6 @@ async function drain(
   const now = opts.now ?? Date.now();
   const reason = opts.reason ?? "foreground";
   const wallStart = Date.now();
-  // Diagnostics only: written in order (one serial connection), never awaited, never fatal.
   const log = (entry: SyncLogEntry): void => {
     appendSyncLog(db, entry, Date.now()).catch(() => undefined);
   };

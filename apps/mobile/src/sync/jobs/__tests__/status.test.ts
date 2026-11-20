@@ -153,7 +153,7 @@ describe("stage progress: real totals only", () => {
       { kind: "device_scan", payload: { chunk: 1 } },
       { kind: "hash_batch" },
     ]);
-    await claimNextJob(t.db, 1_000); // device_scan is running
+    await claimNextJob(t.db, 1_000);
 
     const stages = await syncStages(t.db);
     const byStage = Object.fromEntries(stages.map((s) => [s.stage, s]));

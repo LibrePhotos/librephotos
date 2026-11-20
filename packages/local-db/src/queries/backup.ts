@@ -25,7 +25,6 @@ async function flag(db: AppDatabase, key: string, dflt: boolean): Promise<boolea
   return raw === "1" || raw === "true";
 }
 
-/** What getBackupConfig answers for a database that has no settings yet. */
 export const DEFAULT_BACKUP_CONFIG: BackupConfig = Object.freeze({ enabled: false, wifiOnly: true, chargingOnly: false });
 
 export async function getBackupConfig(db: AppDatabase): Promise<BackupConfig> {

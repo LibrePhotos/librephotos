@@ -17,6 +17,11 @@ Platform code stays in the apps. An app provides one thing: an **executor**.
 TS source, consumed directly (Metro, jest, vitest and Vite compile it), like
 `packages/api-client`. Everything is async.
 
+The developer docs page [On-device database](https://docs.librephotos.com/docs/development/local-database)
+(`apps/docs/docs/development/local-database.md`) explains the design: the executor
+contract, batches instead of transactions, migrations, the change hub, live queries,
+and how to add a query or a column.
+
 ## The executor
 
 ```ts

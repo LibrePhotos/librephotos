@@ -53,7 +53,7 @@ describe("job worker", () => {
 
   it("reclaims a running row left by a killed process before it starts", async () => {
     await enqueueJob(t.db, { kind: "hash_batch" });
-    await claimNextJob(t.db, 1_000); // process dies here, row stuck `running`
+    await claimNextJob(t.db, 1_000);
 
     let ran = 0;
     await runWorker(t.db, { handlers: { hash_batch: async () => void (ran += 1) }, yield: fastYield });

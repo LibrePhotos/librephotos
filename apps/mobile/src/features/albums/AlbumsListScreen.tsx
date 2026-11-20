@@ -37,7 +37,6 @@ export function AlbumsListScreen({
 }: {
   title: string;
   query: (db: AppDatabase) => Promise<AlbumCard[]>;
-  /** The live-query key: a name plus every input `query` reads (e.g. the chosen sort). */
   queryKey: ReactiveQueryKey;
   hrefFor: (id: number) => Href;
   /** My Albums: show a "New album" affordance (empty album, offline-capable). */
@@ -85,7 +84,6 @@ export function AlbumsListScreen({
         keyExtractor={(a) => String(a.id)}
         contentContainerStyle={{ padding: 12 }}
         ListEmptyComponent={
-            // Still reading: no "empty" message that would flash before the rows.
             loading ? null : (
           <View testID="albums-empty" style={{ padding: 32, alignItems: "center" }}>
             <Text style={{ color: theme.muted }}>{t("explore.noAlbums")}</Text>

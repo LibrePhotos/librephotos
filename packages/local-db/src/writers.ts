@@ -1,21 +1,3 @@
-/**
- * Mirror writers: upsert server rows into the remote mirror. Upserts are
- * idempotent (ON CONFLICT DO UPDATE keyed on the server id) so a re-seed or a
- * pull-to-refresh converges without duplicates.
- *
- * Two layers:
- *
- * - `*Sql(rows)` builds the statements and runs nothing. A caller that must
- *   write several things atomically (the delta applier: one sync page = rows +
- *   tombstones + cursor) concatenates them and runs them as ONE batch with
- *   {@link runBatch}.
- * - `upsert*(db, rows)` / `delete*(db, ids)` run them, each chunk of
- *   ≤{@link BATCH_SIZE} rows as its own batch, so a seed of 100k photos never
- *   holds one giant transaction and live queries see progress (doc 02 §5).
- *
- * Mapping API responses onto these inputs is the app's job (the package does
- * not depend on the API client).
- */
 import { sql, type SQL } from "drizzle-orm";
 import { runBatch } from "./batch";
 import type { AppDatabase } from "./types";
@@ -34,7 +16,6 @@ export type RemotePhotoInput = {
   rating: number;
   isFavorite: boolean;
   hidden: boolean;
-  /** Off the timeline and Memories (#545). */
   archived: boolean;
   isScreenshot: boolean;
   isDocument: boolean;
@@ -58,7 +39,6 @@ export function chunk<T>(arr: readonly T[], size: number): T[][] {
 
 const b = (v: boolean) => (v ? 1 : 0);
 
-/** A parameterised `?, ?, ...` list. */
 export function inList(values: readonly (string | number)[]): SQL {
   return sql.join(
     values.map((v) => sql`${v}`),
@@ -66,13 +46,10 @@ export function inList(values: readonly (string | number)[]): SQL {
   );
 }
 
-/** Run `build(chunk)` per chunk of rows, each chunk as one batch. Returns rows written. */
 async function chunked<T>(db: AppDatabase, rows: readonly T[], build: (batch: T[]) => SQL[]): Promise<number> {
   for (const batch of chunk(rows, BATCH_SIZE)) await runBatch(db, build(batch));
   return rows.length;
 }
-
-/* ---- remote photos ------------------------------------------------------ */
 
 export function upsertRemotePhotosSql(rows: readonly RemotePhotoInput[]): SQL[] {
   return rows.map(
@@ -101,7 +78,6 @@ export function upsertRemotePhotosSql(rows: readonly RemotePhotoInput[]): SQL[] 
   );
 }
 
-/** Delete remote photos (and their detail cache) by id — tombstone application. */
 export function deleteRemotePhotosSql(ids: readonly string[]): SQL[] {
   if (ids.length === 0) return [];
   return chunk(ids, BATCH_SIZE).flatMap((batch) => [
@@ -110,7 +86,6 @@ export function deleteRemotePhotosSql(ids: readonly string[]): SQL[] {
   ]);
 }
 
-/** Idempotent batched upsert of remote photos. Returns rows written. */
 export function upsertRemotePhotos(db: AppDatabase, rows: readonly RemotePhotoInput[]): Promise<number> {
   return chunked(db, rows, upsertRemotePhotosSql);
 }
@@ -119,17 +94,6 @@ export async function deleteRemotePhotos(db: AppDatabase, ids: readonly string[]
   await runBatch(db, deleteRemotePhotosSql(ids));
 }
 
-/**
- * Drop the owner's photos with these image hashes from the mirror (and their
- * detail cache), after the server deleted them for good. The server deletes
- * every row of the requester's that carries the hash (image_hash is not unique),
- * and only theirs, so this matches it: another user's shared photo with the same
- * hash stays. The next delta pull brings the same tombstones; removing the rows
- * now just spares the grid a stale moment. Returns how many rows went.
- *
- * Each statement selects by owner + hash itself, so the batch is atomic without
- * reading the ids first.
- */
 export async function deleteOwnedRemotePhotosByHash(
   db: AppDatabase,
   ownerId: number,
@@ -149,8 +113,6 @@ export async function deleteOwnedRemotePhotosByHash(
   }
   return deleted;
 }
-
-/* ---- persons ------------------------------------------------------------ */
 
 export type PersonInput = {
   id: number;
@@ -184,8 +146,6 @@ export async function deletePersons(db: AppDatabase, ids: readonly number[]): Pr
   await runBatch(db, deletePersonsSql(ids));
 }
 
-/* ---- user albums -------------------------------------------------------- */
-
 export type UserAlbumInput = {
   id: number;
   title: string;
@@ -196,11 +156,9 @@ export type UserAlbumInput = {
   photoCount: number;
   createdOn: number | null;
   lastModified: number | null;
-  /** Ordered photo ids for membership (replaces existing membership). */
   photoIds?: string[];
 };
 
-/** Replace an album's ordered membership. */
 function membershipSql(table: "user_album_photo" | "auto_album_photo", albumId: number, photoIds: readonly string[]): SQL[] {
   const tbl = sql.raw(table);
   return [
@@ -240,8 +198,6 @@ export function upsertUserAlbums(db: AppDatabase, rows: readonly UserAlbumInput[
   return chunked(db, rows, upsertUserAlbumsSql);
 }
 
-/* ---- auto albums (events) ---------------------------------------------- */
-
 export type AutoAlbumInput = {
   id: number;
   title: string;
@@ -276,8 +232,6 @@ export function deleteAutoAlbumsSql(ids: readonly number[]): SQL[] {
 export function upsertAutoAlbums(db: AppDatabase, rows: readonly AutoAlbumInput[]): Promise<number> {
   return chunked(db, rows, upsertAutoAlbumsSql);
 }
-
-/* ---- thing / tag / place albums (lists only) --------------------------- */
 
 export type NamedAlbumInput = {
   id: number;
@@ -331,8 +285,6 @@ export function upsertPlaceAlbumsSql(rows: readonly NamedAlbumInput[]): SQL[] {
 export function upsertPlaceAlbums(db: AppDatabase, rows: readonly NamedAlbumInput[]): Promise<number> {
   return chunked(db, rows, upsertPlaceAlbumsSql);
 }
-
-/* ---- shared users (sharing surface) ------------------------------------ */
 
 export type SharedUserInput = {
   id: number;

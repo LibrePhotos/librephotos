@@ -39,7 +39,6 @@ export function PeopleScreen() {
         keyExtractor={(p) => String(p.id)}
         contentContainerStyle={{ padding: 12 }}
         ListEmptyComponent={
-            // Still reading: no "empty" message that would flash before the rows.
             loading ? null : (
           <View testID="people-empty" style={{ padding: 32, alignItems: "center" }}>
             <Text style={{ color: theme.muted }}>{t("explore.noPeople")}</Text>

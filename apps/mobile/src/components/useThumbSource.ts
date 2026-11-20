@@ -1,21 +1,9 @@
-/**
- * Where a grid tile loads its thumbnail from: the camera-roll file, the offline
- * thumbnail cache (`thumb_cache`), or the server.
- *
- * The cache lookup is a database read, and reads are async: one query per tile
- * would be a few hundred bridge round trips for one screen of grid. So tiles
- * ask through a loader that collects every photo id requested in the same tick
- * and answers them with ONE `IN (...)` query. Answers are live queries (cached
- * per photo, re-read when `thumb_cache` changes), so a tile that scrolls back
- * into view has its answer in its first frame.
- */
 import { sql } from "drizzle-orm";
 import { useQuery } from "@tanstack/react-query";
 import { squareThumbnailUrl } from "@librephotos/api-client";
 import type { AppDatabase } from "@librephotos/local-db";
 import { liveQueryKey, useDb, useLiveQueryClient } from "@/db/provider";
 
-/** SQLite's default bound-parameter limit is far above this; keep each query small anyway. */
 const MAX_BATCH = 200;
 
 type Pending = Map<string, ((path: string | null) => void)[]>;
@@ -41,7 +29,6 @@ async function flush(db: AppDatabase, pending: Pending): Promise<void> {
   }
 }
 
-/** The cached thumbnail file of a photo, or null; batched with every other lookup of this tick. */
 export function cachedThumbPath(db: AppDatabase, photoId: string): Promise<string | null> {
   return new Promise((resolve) => {
     let pending = batches.get(db);
@@ -62,11 +49,6 @@ export function cachedThumbPath(db: AppDatabase, photoId: string): Promise<strin
 
 export type ThumbItem = { photoId: string | null; imageHash: string | null; localUri?: string | null };
 
-/**
- * The tile's image uri. `undefined` while the cache lookup of a server photo is
- * still running (the tile shows its dominant colour meanwhile), so it never
- * loads the server thumbnail first and then the cached file.
- */
 export function useThumbSource(item: ThumbItem, serverAddress: string): string | null | undefined {
   const db = useDb();
   const queries = useLiveQueryClient();
