@@ -192,3 +192,22 @@ Everything below is relative to
   links and search keep the English word.
 - In [util](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/util) you can find
   miscellaneous functions.
+
+### The API client outside the browser {#native-transports}
+
+<Since version="1.7.0" /> `packages/api-client` has three entry points: `@librephotos/api-client` (everything, for the web and mobile apps), `@librephotos/api-client/core` (`src/core.ts`: the schemas, the transport, `endpoints`, the media URL helpers and `ResponseParseError`, without the TanStack Query hooks and the polling helpers, so it needs only zod), and the narrower `schemas`, `transport` and `hooks`. The [desktop app](../../desktop.md) imports `core`, through a Vite alias like the web app, and `node scripts/check-shared-deps.mjs` checks its zod (and React or React Query, if it ever declares them) against the package's peer ranges along with the web and mobile apps'.
+
+`ApiClientConfig.fetch` takes any `fetch`. `createNativeFetch(send)` (`src/transport/native.ts`) builds one that sends every request through a host's own HTTP stack instead of the runtime's `fetch`, so CORS, the webview's cookie jar and its request limits never apply; the desktop sends everything from Rust this way:
+
+```ts
+import { createApiClient, createNativeFetch } from "@librephotos/api-client/core";
+
+const client = createApiClient({ baseUrl, tokens, fetch: createNativeFetch(sendThroughRust) });
+```
+
+- The adapter encodes the request the way `fetch` would (a `FormData` body becomes multipart with its boundary in `content-type`; an object body was already JSON-encoded by the client) and hands `send` plain data: a `NativeRequest` with the URL, the upper-case method, lower-case header pairs, the body's bytes (or null), the caller's `AbortSignal` and the body's file parts. `send` answers a `NativeResponse` (status, headers, bytes) for any HTTP status, and rejects only when there is no answer, preferably with a `TypeError` like `fetch`. The adapter turns the answer into a `Response` (no body for 204, 205 and 304), so the refresh interceptor, `ApiError` and the endpoint schemas run exactly as on the web and on mobile. Aborting the caller's signal rejects at once with an `AbortError`, whatever `send` does with its copy of the signal.
+- `nativeFilePart(ref, name)` is a `FormData` file part whose bytes the native side already has, such as a byte range of a file on disk: append it without a file name (`form.append("file", part)`, so `FormData` keeps that very object). The adapter sends a random marker in its place and lists it in `NativeRequest.fileParts` with its `ref`; the native side replaces the marker with the bytes before sending. It only works with a `fetch` made by `createNativeFetch`; any other `fetch` would send the marker itself. The desktop's backup engine uploads every chunk this way, so no file bytes pass through JavaScript.
+- Request bodies may also be bytes: a `Blob`, an `ArrayBuffer` or a typed array goes out unchanged with the `Content-Type` given in `headers`, like a `FormData` body.
+- `endpoints.refreshAccessToken(client, refresh)` trades the refresh token for a new access token outside any request, for a platform whose media loader (a native image proxy, an image component with headers) needs a fresh token while no API request is due. The transport still refreshes on its own around requests; a refused refresh token answers 401, which signs the client out like any other unrecoverable 401.
+
+`src/__tests__/nativeFetch.test.ts` drives the client through a fake native stack that only sees plain data, as a Rust command would.

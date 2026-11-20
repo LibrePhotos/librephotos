@@ -1,0 +1,255 @@
+:root {
+  --lp-stage: #000;
+  --lp-color-favorite: #fcc419;
+  --lp-scrim-black-35: rgba(0, 0, 0, 0.35);
+  --lp-scrim-black-60: rgba(0, 0, 0, 0.6);
+  --lp-scrim-black-75: rgba(0, 0, 0, 0.75);
+  --lp-scrim-white-8: rgba(255, 255, 255, 0.08);
+  --lp-scrim-white-12: rgba(255, 255, 255, 0.12);
+  --lp-scrim-white-16: rgba(255, 255, 255, 0.16);
+  --lp-scrim-white-20: rgba(255, 255, 255, 0.2);
+  --lp-scrim-white-80: rgba(255, 255, 255, 0.8);
+  --lp-scrim-white-90: rgba(255, 255, 255, 0.9);
+
+  --lp-radius-xs: 2px;
+  --lp-radius-sm: 4px;
+  --lp-radius-md: 8px;
+  --lp-radius-lg: 16px;
+  --lp-radius-xl: 32px;
+  --lp-radius-round: 999px;
+
+  --lp-space-1: 4px;
+  --lp-space-2: 8px;
+  --lp-space-3: 12px;
+  --lp-space-4: 16px;
+  --lp-space-5: 20px;
+  --lp-space-6: 24px;
+  --lp-space-8: 32px;
+
+  --lp-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  --lp-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --lp-font-size-xs: 12px;
+  --lp-font-size-sm: 14px;
+  --lp-font-size-md: 16px;
+  --lp-font-size-lg: 18px;
+  --lp-font-size-xl: 22px;
+  --lp-font-weight-medium: 500;
+  --lp-font-weight-semibold: 600;
+  --lp-font-weight-bold: 700;
+  --lp-line-height: 1.55;
+  --lp-line-height-tight: 1.3;
+
+  --lp-z-stage-controls: 2;
+  --lp-z-chrome: 10;
+  --lp-z-toast: 40;
+  --lp-z-popover: 60;
+  --lp-z-overlay: 80;
+
+  --lp-ease: cubic-bezier(0.2, 0, 0, 1);
+  --lp-duration-fast: 120ms;
+  --lp-duration-base: 160ms;
+  --lp-duration-slow: 220ms;
+
+  --lp-control-height-sm: 30px;
+  --lp-control-height-md: 36px;
+  --lp-action-size: 40px;
+  --lp-action-size-sm: 28px;
+  --lp-topbar-height: 48px;
+  --lp-filmstrip-height: 76px;
+  --lp-panel-width: 360px;
+  --lp-header-height: 55px;
+  --lp-navbar-width: 200px;
+  --lp-page-gutter: 20px;
+}
+
+:root,
+.lp-app-scheme,
+.lp-dark,
+.app.viewing > .topbar {
+  color-scheme: dark;
+  --lp-color-body: #121214;
+  --lp-color-surface: #1f1f23;
+  --lp-color-text: #ececee;
+  --lp-color-dimmed: #9a9aa2;
+  --lp-color-border: #37373d;
+  --lp-color-hover: rgba(255, 255, 255, 0.08);
+  --lp-color-active: rgba(255, 255, 255, 0.12);
+  --lp-color-default: #2a2a2f;
+  --lp-color-default-hover: #37373d;
+  --lp-color-primary: #a8c7fa;
+  --lp-color-primary-hover: #7cacf8;
+  --lp-color-primary-contrast: #0b3670;
+  --lp-color-primary-light: color-mix(in srgb, #a8c7fa 18%, transparent);
+  --lp-color-primary-light-hover: color-mix(in srgb, #a8c7fa 24%, transparent);
+  --lp-color-primary-text: #a8c7fa;
+  --lp-color-danger: #e03131;
+  --lp-color-danger-hover: #c92a2a;
+  --lp-color-danger-text: #ff8787;
+  --lp-color-danger-light: color-mix(in srgb, #fa5252 18%, transparent);
+  --lp-color-success-text: #38d9a9;
+  --lp-color-overlay: rgba(0, 0, 0, 0.55);
+  --lp-color-skeleton: #2a2a2f;
+  --lp-color-chrome: #0d0d0f;
+  --lp-color-raised: #1f1f23;
+  --lp-color-nav-text: #ececee;
+  --lp-color-nav-icon: #c4c4ca;
+  --lp-color-nav-hover: #1f1f23;
+  --lp-color-search: #1f1f23;
+  --lp-color-search-hover: #2a2a2f;
+  --lp-color-field: #1f1f23;
+  --lp-color-field-border: #37373d;
+  --lp-color-control-ring: #7c7c85;
+  --lp-color-switch-off: #37373d;
+  --lp-color-track: #2a2a2f;
+  --lp-color-segment: #1f1f23;
+  --lp-color-segment-active: #37373d;
+  --lp-color-warning-text: #ffd8a8;
+  --lp-color-warning-light: color-mix(in srgb, #fd7e14 18%, transparent);
+  --lp-color-success-light: color-mix(in srgb, #12b886 18%, transparent);
+  --lp-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --lp-shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --lp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --lp-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --lp-shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.5);
+  --lp-checkbox-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b3670' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E");
+
+  --bg: var(--lp-color-body);
+  --stage: var(--lp-stage);
+  --surface: var(--lp-color-surface);
+  --surface-2: var(--lp-color-surface);
+  --surface-3: var(--lp-color-default);
+  --border: var(--lp-color-border);
+  --border-strong: var(--lp-color-border);
+  --text: var(--lp-color-text);
+  --text-2: var(--lp-color-dimmed);
+  --text-3: var(--lp-color-dimmed);
+  --accent: var(--lp-color-primary);
+  --accent-text: var(--lp-color-primary-contrast);
+  --accent-soft: var(--lp-color-primary-light);
+  --hover: var(--lp-color-hover);
+  --hover-strong: var(--lp-color-active);
+  --pressed: var(--lp-color-hover);
+  --acrylic: var(--lp-color-surface);
+  --danger: var(--lp-color-danger-text);
+  --shadow: var(--lp-shadow-md);
+  --focus: var(--lp-color-primary-text);
+  --font: var(--lp-font-family);
+  --font-display: var(--lp-font-family);
+}
+
+:root,
+.lp-app-scheme {
+  --lp-color-tooltip-bg: #e9ecef;
+  --lp-color-tooltip-text: #000;
+}
+
+@media (prefers-color-scheme: light) {
+  :root,
+  .lp-app-scheme {
+    color-scheme: light;
+    --lp-color-body: #fff;
+    --lp-color-surface: #fff;
+    --lp-color-text: #1b1b1f;
+    --lp-color-dimmed: #5f6670;
+    --lp-color-border: #dee2e6;
+    --lp-color-hover: rgba(0, 0, 0, 0.05);
+    --lp-color-active: rgba(0, 0, 0, 0.08);
+    --lp-color-default: #f1f3f5;
+    --lp-color-default-hover: #e9ecef;
+    --lp-color-primary: #1a66d2;
+    --lp-color-primary-hover: #1557b5;
+    --lp-color-primary-contrast: #fff;
+    --lp-color-primary-light: rgba(26, 102, 210, 0.1);
+    --lp-color-primary-light-hover: rgba(26, 102, 210, 0.12);
+    --lp-color-primary-text: #1a66d2;
+    --lp-color-danger: #e03131;
+    --lp-color-danger-hover: #c92a2a;
+    --lp-color-danger-text: #e03131;
+    --lp-color-danger-light: rgba(250, 82, 82, 0.1);
+    --lp-color-success-text: #0ca678;
+    --lp-color-overlay: rgba(0, 0, 0, 0.55);
+    --lp-color-skeleton: #f1f3f5;
+    --lp-color-chrome: #f8f9fa;
+    --lp-color-raised: #fff;
+    --lp-color-nav-text: #343a40;
+    --lp-color-nav-icon: #495057;
+    --lp-color-nav-hover: #f1f3f5;
+    --lp-color-search: #e9ecef;
+    --lp-color-search-hover: #dee2e6;
+    --lp-color-field: #f8f9fa;
+    --lp-color-field-border: #dee2e6;
+    --lp-color-control-ring: #adb5bd;
+    --lp-color-switch-off: #dee2e6;
+    --lp-color-track: #e9ecef;
+    --lp-color-segment: #f1f3f5;
+    --lp-color-segment-active: #fff;
+    --lp-color-warning-text: #e8590c;
+    --lp-color-warning-light: rgba(253, 126, 20, 0.1);
+    --lp-color-success-light: rgba(18, 184, 134, 0.1);
+    --lp-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+    --lp-shadow-xl: 0 1px 3px rgba(0, 0, 0, 0.05), 0 36px 28px -7px rgba(0, 0, 0, 0.05),
+      0 17px 17px -7px rgba(0, 0, 0, 0.04);
+    --lp-color-tooltip-bg: #212529;
+    --lp-color-tooltip-text: #fff;
+    --lp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+    --lp-shadow-md: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 15px -5px rgba(0, 0, 0, 0.08),
+      0 7px 7px -5px rgba(0, 0, 0, 0.04);
+    --lp-shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.15);
+    --lp-checkbox-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E");
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--lp-color-body);
+  color: var(--lp-color-text);
+  font-family: var(--lp-font-family);
+  font-size: var(--lp-font-size-sm);
+  line-height: var(--lp-line-height);
+  -webkit-font-smoothing: antialiased;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: var(--lp-font-weight-bold);
+  line-height: var(--lp-line-height-tight);
+}
+
+:focus-visible {
+  outline: 2px solid var(--lp-color-primary-text);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+::selection {
+  background: var(--lp-color-primary-light-hover);
+}

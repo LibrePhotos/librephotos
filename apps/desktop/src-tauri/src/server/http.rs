@@ -1,0 +1,175 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+use serde::{Deserialize, Serialize};
+use tokio::sync::Notify;
+
+use super::Server;
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct RequestMeta {
+    pub id: String,
+    pub url: String,
+    pub method: String,
+    pub headers: Vec<(String, String)>,
+    #[serde(default, rename = "fileParts")]
+    pub file_parts: Vec<FilePart>,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct FilePart {
+    pub marker: String,
+    #[serde(rename = "ref")]
+    pub file: FileRange,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct FileRange {
+    pub path: String,
+    pub offset: i64,
+    pub len: i64,
+}
+
+pub fn splice(body: &[u8], marker: &[u8], bytes: &[u8]) -> Result<Vec<u8>, String> {
+    let at = body
+        .windows(marker.len().max(1))
+        .position(|w| w == marker)
+        .ok_or("a file part's marker is not in the body")?;
+    let mut out = Vec::with_capacity(body.len() - marker.len() + bytes.len());
+    out.extend_from_slice(&body[..at]);
+    out.extend_from_slice(bytes);
+    out.extend_from_slice(&body[at + marker.len()..]);
+    Ok(out)
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ResponseMeta {
+    pub status: u16,
+    pub status_text: String,
+    pub headers: Vec<(String, String)>,
+}
+
+#[derive(Default)]
+pub struct InFlight(Mutex<HashMap<String, Arc<Notify>>>);
+
+impl InFlight {
+    pub fn abort(&self, id: &str) {
+        if let Some(n) = self.0.lock().unwrap().remove(id) {
+            n.notify_one();
+        }
+    }
+}
+
+pub fn unframe(raw: &[u8]) -> Result<(&[u8], &[u8]), String> {
+    let n = raw
+        .get(..4)
+        .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]) as usize)
+        .ok_or("truncated request")?;
+    let head = raw.get(4..4 + n).ok_or("truncated request")?;
+    Ok((head, &raw[4 + n..]))
+}
+
+pub fn frame(head: &[u8], body: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(4 + head.len() + body.len());
+    out.extend_from_slice(&(head.len() as u32).to_le_bytes());
+    out.extend_from_slice(head);
+    out.extend_from_slice(body);
+    out
+}
+
+fn skip_header(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "host" | "content-length" | "connection" | "transfer-encoding"
+    )
+}
+
+impl Server {
+    pub async fn http(
+        self: &Arc<Self>,
+        meta: RequestMeta,
+        mut body: Vec<u8>,
+    ) -> Result<Vec<u8>, String> {
+        if !self.allows(&meta.url) {
+            return Err(format!("not a URL of the connected server: {}", meta.url));
+        }
+        for part in &meta.file_parts {
+            let FileRange { path, offset, len } = &part.file;
+            let (path, offset, len) = (path.clone(), *offset, *len);
+            let bytes =
+                crate::blocking(move || super::backup::read_chunk_at(&path, offset, len)).await?;
+            body = splice(&body, part.marker.as_bytes(), &bytes)?;
+        }
+        let method = reqwest::Method::from_bytes(meta.method.as_bytes())
+            .map_err(|_| format!("bad method {}", meta.method))?;
+        let mut req = self.http.request(method, &meta.url);
+        for (k, v) in &meta.headers {
+            if !skip_header(k) {
+                req = req.header(k, v);
+            }
+        }
+        if !body.is_empty() {
+            req = req.body(body);
+        }
+        let cancel = Arc::new(Notify::new());
+        self.requests
+            .0
+            .lock()
+            .unwrap()
+            .insert(meta.id.clone(), cancel.clone());
+        let host = meta.url.split('/').take(3).collect::<Vec<_>>().join("/");
+        let send = async {
+            let res = req
+                .send()
+                .await
+                .map_err(|e| format!("couldn't reach {host}: {e}"))?;
+            let head = ResponseMeta {
+                status: res.status().as_u16(),
+                status_text: res.status().canonical_reason().unwrap_or("").to_string(),
+                headers: res
+                    .headers()
+                    .iter()
+                    .filter_map(|(k, v)| Some((k.to_string(), v.to_str().ok()?.to_string())))
+                    .collect(),
+            };
+            let bytes = res
+                .bytes()
+                .await
+                .map_err(|e| format!("couldn't reach {host}: {e}"))?;
+            let head = serde_json::to_vec(&head).map_err(|e| e.to_string())?;
+            Ok(frame(&head, &bytes))
+        };
+        let out = tokio::select! {
+            r = send => r,
+            () = cancel.notified() => Err("aborted".to_string()),
+        };
+        self.requests.0.lock().unwrap().remove(&meta.id);
+        out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frames_round_trip() {
+        let head = br#"{"id":"1","url":"http://h/api/x","method":"POST","headers":[["content-type","application/json"]]}"#;
+        let raw = frame(head, b"{}");
+        let (h, b) = unframe(&raw).unwrap();
+        let meta: RequestMeta = serde_json::from_slice(h).unwrap();
+        assert_eq!(meta.method, "POST");
+        assert_eq!(meta.headers[0].0, "content-type");
+        assert_eq!(b, b"{}");
+        assert!(unframe(&[1, 0]).is_err());
+        assert!(unframe(&[9, 0, 0, 0, b'{']).is_err());
+        assert!(skip_header("Content-Length"));
+        assert_eq!(splice(b"a--M--b", b"M", b"xyz").unwrap(), b"a--xyz--b");
+        assert!(splice(b"a--b", b"M", b"xyz").is_err());
+        let by_path = br#"{"id":"3","url":"u","method":"POST","headers":[],"fileParts":[{"marker":"M","ref":{"path":"C:/p/a.jpg","offset":0,"len":4}}]}"#;
+        let meta: RequestMeta = serde_json::from_slice(by_path).unwrap();
+        assert_eq!(meta.file_parts[0].file.path, "C:/p/a.jpg");
+        assert!(serde_json::from_slice::<RequestMeta>(br#"{"id":"2","url":"u","method":"POST","headers":[],"fileParts":[{"marker":"M","ref":{"id":4,"offset":8,"len":16}}]}"#).is_err(), "rows are not Rust's any more");
+    }
+}

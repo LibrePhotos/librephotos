@@ -30,6 +30,11 @@ export async function logout(client: ApiClient, refresh: string | undefined): Pr
   return parseResponse(S.LogoutResponse, res, "logout response");
 }
 
+export async function refreshAccessToken(client: ApiClient, refresh: string): Promise<S.RefreshResponse> {
+  const res = await client.post<unknown>("/auth/token/refresh/", { refresh });
+  return parseResponse(S.RefreshResponse, res, "token refresh");
+}
+
 /** Create a user. On a fresh instance (see fetchIsFirstTimeSetup) the first one becomes the admin. */
 export async function signUp(client: ApiClient, data: S.SignupRequest): Promise<S.SignupUser> {
   const res = await client.post<unknown>("/user/", data);

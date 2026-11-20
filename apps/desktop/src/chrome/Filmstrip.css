@@ -1,0 +1,77 @@
+.filmstrip {
+  flex-shrink: 0;
+  height: var(--lp-filmstrip-height);
+  background: var(--lp-stage);
+  z-index: var(--lp-z-chrome);
+}
+
+.film-scroll {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.film-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.film-track {
+  position: relative;
+  height: 100%;
+}
+.film-items {
+  position: absolute;
+  top: 8px;
+  bottom: 12px;
+  right: 0;
+}
+
+.film-item {
+  position: absolute;
+  top: 0;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--lp-scrim-white-8);
+  display: grid;
+  place-items: center;
+  color: var(--lp-color-dimmed);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 150ms ease;
+}
+.film-item:hover {
+  opacity: 1;
+}
+.film-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.film-item.active {
+  opacity: 1;
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+.film-item:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--lp-color-primary-text);
+  outline-offset: 2px;
+}
+
+.film-badge {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--lp-radius-sm);
+  background: var(--lp-scrim-black-60);
+  color: #fff;
+}

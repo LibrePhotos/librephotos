@@ -1,0 +1,153 @@
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--lp-stage);
+}
+
+.stage-surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+.stage-surface.pannable {
+  cursor: grab;
+}
+.stage-surface.pannable.dragging {
+  cursor: grabbing;
+}
+
+.stage-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  contain: strict;
+}
+
+.stage-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-orientation: from-image;
+  -webkit-user-drag: none;
+}
+
+.stage-tiles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.stage-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  outline: none;
+}
+
+.stage-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lp-space-1);
+  color: var(--lp-color-dimmed);
+  text-align: center;
+  padding: var(--lp-space-6);
+}
+.stage-message svg {
+  color: var(--lp-color-dimmed);
+  margin-bottom: var(--lp-space-2);
+}
+.stage-message-name {
+  font-size: var(--lp-font-size-md);
+  font-weight: var(--lp-font-weight-semibold);
+  color: var(--lp-color-text);
+  word-break: break-all;
+}
+.stage-message-text {
+  font-size: var(--lp-font-size-sm);
+}
+
+.stage-spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border-radius: 50%;
+  border: 3px solid var(--lp-scrim-white-16);
+  border-top-color: var(--lp-color-primary);
+  opacity: 0;
+  animation:
+    spin 800ms linear infinite,
+    appear 150ms ease 350ms forwards;
+  pointer-events: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes appear {
+  to {
+    opacity: 1;
+  }
+}
+
+.stage-nav {
+  position: absolute;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--lp-radius-round);
+  background: var(--lp-scrim-black-35);
+  color: #fff;
+  opacity: 0;
+  transition:
+    opacity 150ms ease,
+    background-color 150ms ease;
+  cursor: pointer;
+  z-index: var(--lp-z-stage-controls);
+}
+.stage-nav.prev {
+  left: var(--lp-space-4);
+}
+.stage-nav.next {
+  right: var(--lp-space-4);
+}
+.stage:hover .stage-nav,
+.stage-nav:focus-visible {
+  opacity: 1;
+}
+.stage.idle .stage-nav:not(:focus-visible) {
+  opacity: 0;
+  pointer-events: none;
+}
+.stage-nav:hover {
+  background: var(--lp-scrim-black-60);
+}
+.stage-nav:active {
+  background: var(--lp-scrim-black-75);
+}

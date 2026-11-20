@@ -22,6 +22,7 @@ function agreeing() {
       web: { zod: "4.6.6", react: "19.3.0", "@tanstack/react-query": "5.104.2" },
       mobile: { zod: "4.6.6", react: "19.2.3", "@tanstack/react-query": "5.103.2" },
       "api-client (dev)": { zod: "4.6.6", react: "19.2.3", "@tanstack/react-query": "5.103.2" },
+      desktop: { zod: "4.6.7", react: "19.3.1" },
     },
   };
 }
@@ -105,7 +106,7 @@ describe("findProblems", () => {
     const facts = agreeing();
     facts.peers.zod = "^3.23.0";
     const problems = findProblems(facts);
-    assert.equal(problems.length, 3);
+    assert.equal(problems.length, 4);
     assert.match(problems[0], /web: zod 4\.6\.6 does not satisfy the packages\/api-client peer range \^3\.23\.0/);
   });
 
@@ -114,8 +115,23 @@ describe("findProblems", () => {
     facts.peers.zod = "^3.23.0 || ^4.0.0";
     facts.installed.mobile.zod = "3.25.76";
     assert.deepEqual(findProblems(facts), [
-      "zod majors differ: web 4.6.6, mobile 3.25.76. The shared schemas run under both; bump zod in all three manifests together",
+      "zod majors differ: web 4.6.6, mobile 3.25.76, desktop 4.6.7. The shared schemas run under all of them; bump zod in every manifest together",
     ]);
+  });
+
+  it("fails when the desktop app is on another zod major, and checks only the peers it declares", () => {
+    const facts = agreeing();
+    facts.peers.zod = "^4.0.0 || ^5.0.0";
+    facts.installed.desktop.zod = "5.0.0";
+    assert.deepEqual(findProblems(facts), [
+      "zod majors differ: web 4.6.6, mobile 4.6.6, desktop 5.0.0. The shared schemas run under all of them; bump zod in every manifest together",
+    ]);
+  });
+
+  it("reads the desktop app's own lockfile, zod always and React Query only when declared", () => {
+    const { desktop } = collect(repoRoot).installed;
+    assert.ok(desktop.zod, "apps/desktop must declare zod: the shared schemas run on it");
+    assert.equal("@tanstack/react-query" in desktop, false);
   });
 
   it("fails when a consumer's React Query is below the peer floor", () => {

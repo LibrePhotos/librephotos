@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * packages/api-client is compiled into both apps from source: the web app
- * (apps/frontend, Yarn) aliases it and resolves its imports from its own
- * node_modules, the mobile app (apps/mobile, root npm workspace) imports it as a
- * workspace. Neither install checks the package's peer ranges, so this does.
- *
- * Fails when
- * - a consumer's installed zod, React or React Query does not satisfy the
- *   package's peer range (the package's own dev install included: its tests run
- *   on it), or
- * - the web app and the mobile app are on different zod majors.
- */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,6 +11,7 @@ const LOCAL_DB = "packages/local-db";
 
 export const LOCAL_DB_SHARED = ["drizzle-orm"];
 const MOBILE = "apps/mobile";
+const DESKTOP = "apps/desktop";
 
 /* ---- a small semver subset ---------------------------------------------- */
 
@@ -145,24 +134,31 @@ export function collect(repoRoot) {
   const web = json("apps/frontend/package.json");
   const yarnLock = readFileSync(join(repoRoot, "apps/frontend/yarn.lock"), "utf8");
   const packageLock = json("package-lock.json");
+  const desktop = json(`${DESKTOP}/package.json`);
+  const desktopLock = json(`${DESKTOP}/package-lock.json`);
 
-  const installed = { web: {}, mobile: {}, "api-client (dev)": {} };
+  const installed = { web: {}, mobile: {}, "api-client (dev)": {}, desktop: {} };
   for (const name of SHARED) {
     const webRange = declared(web, name);
     installed.web[name] = webRange && versionFromYarnLock(yarnLock, name, webRange);
     installed.mobile[name] = versionFromPackageLock(packageLock, MOBILE, name);
     installed["api-client (dev)"][name] = versionFromPackageLock(packageLock, API_CLIENT, name);
+    if (name === "zod" || declared(desktop, name)) {
+      installed.desktop[name] = versionFromPackageLock(desktopLock, "", name);
+    }
   }
-  return { peers: { ...apiClient.peerDependencies }, installed, localDb: collectLocalDb(repoRoot, packageLock) };
+  return { peers: { ...apiClient.peerDependencies }, installed, localDb: collectLocalDb(repoRoot, packageLock, desktopLock) };
 }
 
-export function collectLocalDb(repoRoot, packageLock) {
+export function collectLocalDb(repoRoot, packageLock, desktopLock) {
   const manifest = JSON.parse(readFileSync(join(repoRoot, `${LOCAL_DB}/package.json`), "utf8"));
   const installed = { mobile: {}, "local-db (dev)": {} };
+  if (desktopLock) installed.desktop = {};
   const nested = [];
   for (const name of LOCAL_DB_SHARED) {
     installed.mobile[name] = versionFromPackageLock(packageLock, MOBILE, name);
     installed["local-db (dev)"][name] = versionFromPackageLock(packageLock, LOCAL_DB, name);
+    if (desktopLock) installed.desktop[name] = versionFromPackageLock(desktopLock, "", name);
     for (const dir of [MOBILE, LOCAL_DB]) {
       const key = `${dir}/node_modules/${name}`;
       if (packageLock.packages?.[key]) nested.push(key);
@@ -200,17 +196,19 @@ export function findProblems({ peers, installed }) {
       continue;
     }
     for (const [consumer, versions] of Object.entries(installed)) {
+      if (!(name in versions)) continue;
       const version = versions[name];
       if (!version) problems.push(`${consumer}: ${name} is not installed (no lockfile entry)`);
       else if (!satisfies(version, range))
         problems.push(`${consumer}: ${name} ${version} does not satisfy the ${API_CLIENT} peer range ${range}`);
     }
   }
-  const webZod = installed.web?.zod;
-  const mobileZod = installed.mobile?.zod;
-  if (webZod && mobileZod && major(webZod) !== major(mobileZod)) {
+  const zods = Object.entries(installed)
+    .filter(([consumer, versions]) => consumer !== "api-client (dev)" && versions.zod)
+    .map(([consumer, versions]) => [consumer, versions.zod]);
+  if (new Set(zods.map(([, version]) => major(version))).size > 1) {
     problems.push(
-      `zod majors differ: web ${webZod}, mobile ${mobileZod}. The shared schemas run under both; bump zod in all three manifests together`
+      `zod majors differ: ${zods.map(([consumer, version]) => `${consumer} ${version}`).join(", ")}. The shared schemas run under all of them; bump zod in every manifest together`
     );
   }
   return problems;
@@ -221,7 +219,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const facts = collect(repoRoot);
   const problems = [...findProblems(facts), ...findLocalDbProblems(facts.localDb)];
   for (const [consumer, versions] of Object.entries(facts.installed)) {
-    console.log(`${consumer}: ${SHARED.map(n => `${n} ${versions[n] ?? "?"}`).join(", ")}`);
+    console.log(`${consumer}: ${Object.entries(versions).map(([n, v]) => `${n} ${v ?? "?"}`).join(", ")}`);
   }
   console.log(`peers: ${SHARED.map(n => `${n} ${facts.peers[n] ?? "?"}`).join(", ")}`);
   for (const [consumer, versions] of Object.entries(facts.localDb.installed)) {

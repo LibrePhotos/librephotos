@@ -8,7 +8,7 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 | `apps/backend` | Django 6.1 + DRF on Python 3.14, django-q2 jobs, ONNX sidecars | `apps/backend/AGENTS.md` |
 | `apps/frontend` | React 19, Vite, TanStack Router/Query, Mantine 9, i18next | `apps/frontend/AGENTS.md` |
 | `apps/mobile` | Expo SDK 57, offline-first sync | `apps/mobile/AGENTS.md` |
-| `packages/api-client` | Shared zod schemas and endpoints for every request, web and mobile (#2347) | `apps/frontend/AGENTS.md` (API layer) |
+| `packages/api-client` | Shared zod schemas and endpoints for every request, web, mobile and desktop (#2347) | `apps/frontend/AGENTS.md` (API layer) |
 | `packages/local-db` | The on-device SQLite database of mobile and desktop: schema, migrations, queries, writers, change hub | its `README.md` |
 | `apps/docs` | Docusaurus 3, deployed to docs.librephotos.com from `dev` | |
 | `deploy/` | Dockerfiles, compose, k8s, e2e setup | |

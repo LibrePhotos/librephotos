@@ -32,6 +32,10 @@ Pretty simple container. In production this is just a static webserver with the 
 
 We use a reverse proxy to handle traffic from outside to the frontend and backend. We use NGINX for it. Serving actual images and videos is also done with NGINX, because it is better at it then Django. (The single-container image has no proxy; Django serves everything itself.)
 
+### Desktop app
+
+The desktop app (`apps/desktop`, not released yet) is a Tauri 2 app with its own Rust core for pictures and files that runs the shared `packages/api-client` and `packages/local-db` in its UI. [Desktop app](./desktop.md) explains how it is built.
+
 ### Database
 
 The split-container setup uses PostgreSQL, which is hardcoded in `apps/backend/librephotos/settings/production.py`. The single-container image supports both backends, selected with the `DB_BACKEND` environment variable - `sqlite` (the default) or `postgresql` - configured in `apps/backend/librephotos/settings/production_noproxy.py`. That module imports `production.py` and overrides only what running without a proxy changes, so settings added to `production.py` reach both deployments. Backend code should therefore stay portable across both engines.
