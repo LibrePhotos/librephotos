@@ -51,12 +51,13 @@ export function Slideshow({
         const i = (index + step) % files.length;
         const f = files[i];
         if (!f || f.kind === "video") continue;
-        try {
-          await load(imageUrl(f, "screen", box.w, box.h));
-          if (live) onAdvance(i);
-          return;
-        } catch {
-        }
+        const loaded = await load(imageUrl(f, "screen", box.w, box.h)).then(
+          () => true,
+          () => false
+        );
+        if (!loaded) continue;
+        if (live) onAdvance(i);
+        return;
       }
     }, shownUrl || current?.kind === "video" ? INTERVAL_MS : 0);
     return () => {

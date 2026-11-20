@@ -1,14 +1,19 @@
 const GIVE_UP_MS = 20_000;
 
+function observeLongTasks(into: PerformanceEntry[]): PerformanceObserver | null {
+  try {
+    const observer = new PerformanceObserver(list => into.push(...list.getEntries()));
+    observer.observe({ type: "longtask", buffered: true });
+    return observer;
+  } catch {
+    return null;
+  }
+}
+
 export function watchStartup(): void {
   performance.mark("lpview:script");
   const long: PerformanceEntry[] = [];
-  let observer: PerformanceObserver | null = null;
-  try {
-    observer = new PerformanceObserver(list => long.push(...list.getEntries()));
-    observer.observe({ type: "longtask", buffered: true });
-  } catch {
-  }
+  const observer = observeLongTasks(long);
   let first = false;
   let frames = 0;
   const tick = () => {

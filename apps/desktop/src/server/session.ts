@@ -88,11 +88,8 @@ export const client: ApiClient = createApiClient({
 async function refreshNow(): Promise<void> {
   const refresh = session.refresh;
   if (!refresh) return;
-  try {
-    const { access } = await serverCall(() => endpoints.refreshAccessToken(client, refresh));
-    if (session.refresh === refresh) setAccess(access);
-  } catch {
-  }
+  const refreshed = await serverCall(() => endpoints.refreshAccessToken(client, refresh)).catch(() => null);
+  if (refreshed && session.refresh === refresh) setAccess(refreshed.access);
 }
 
 function anonymousClient(base: string): ApiClient {

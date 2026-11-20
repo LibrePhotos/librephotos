@@ -106,10 +106,12 @@ function readDismissed(): boolean {
   }
 }
 
-function writeDismissed(): void {
+function writeDismissed(): boolean {
   try {
     localStorage.setItem(DEFAULT_HINT_KEY, "1");
+    return true;
   } catch {
+    return false;
   }
 }
 
