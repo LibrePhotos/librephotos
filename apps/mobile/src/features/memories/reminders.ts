@@ -9,8 +9,7 @@ import { AppState, type AppStateStatus } from "react-native";
 import { t } from "i18next";
 // Initialises i18next with the app's resources, also in a headless background run.
 import "@/i18n";
-import type { AppDatabase } from "@/db/types";
-import { getMemoriesNotifPrefs, memoryDaysAhead } from "@/db/queries/memories";
+import { getMemoriesNotifPrefs, memoryDaysAhead, type AppDatabase } from "@librephotos/local-db";
 import {
   cancelMemoriesReminder,
   hasNotificationPermission,
@@ -33,7 +32,7 @@ export type RescheduleOptions = {
 };
 
 async function reschedule(db: AppDatabase, opts: RescheduleOptions): Promise<boolean> {
-  const prefs = getMemoriesNotifPrefs(db);
+  const prefs = await getMemoriesNotifPrefs(db);
   if (!prefs.enabled) {
     await cancelMemoriesReminder();
     return true;
@@ -41,7 +40,7 @@ async function reschedule(db: AppDatabase, opts: RescheduleOptions): Promise<boo
   const granted = opts.requestPermission ? await requestNotificationPermission() : await hasNotificationPermission();
   if (!granted) return false;
   const now = opts.now ?? new Date();
-  const reminders = planMemoriesReminders(memoryDaysAhead(db, { today: now }), prefs, now);
+  const reminders = planMemoriesReminders(await memoryDaysAhead(db, { today: now }), prefs, now);
   await scheduleMemoriesReminders(reminders, reminderContent);
   return true;
 }

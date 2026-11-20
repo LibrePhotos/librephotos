@@ -61,10 +61,10 @@ export function ShareIntentScreen() {
   const items = useMemo(() => parseSharedItems(params.items), [params.items]);
   const [uploading, setUploading] = useState(false);
 
-  const onUpload = () => {
+  const onUpload = async () => {
     if (items.length === 0) return;
     setUploading(true);
-    const queued = enqueueSharedUploads(db, items);
+    const queued = await enqueueSharedUploads(db, items);
     pushToast({ level: "info", message: t("shareIntent.queued") });
     if (userId != null) void runSync(db, { userId, reason: "manual" });
     void queued;

@@ -1,4 +1,4 @@
-import { NO_TIMELINE_FILTER } from "@/db/queries/timeline";
+import { NO_TIMELINE_FILTER } from "@librephotos/local-db";
 import { fromServerDefault, sameFilter, toServerDefault, useTimelineFilterStore } from "./timelineFilter";
 
 describe("timeline filter default", () => {

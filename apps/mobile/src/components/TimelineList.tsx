@@ -119,7 +119,7 @@ export function TimelineList({
     // Land the day's header just below the floating top bar, not under it.
     // FlashList 2 adds viewOffset to the scroll position (FlatList subtracts
     // it), so moving the header down the screen takes a negative offset.
-    listRef.current?.scrollToIndex({ index, animated: false, viewOffset: -topInset });
+    void listRef.current?.scrollToIndex({ index, animated: false, viewOffset: -topInset });
     onScrolledToTarget?.();
   }, [scrollTarget, rows, onScrolledToTarget, topInset, groupBy]);
 

@@ -1,6 +1,5 @@
 import { endpoints, type ApiClient } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
-import { deleteOwnedRemotePhotosByHash } from "@/db/writers";
+import { deleteOwnedRemotePhotosByHash, type AppDatabase } from "@librephotos/local-db";
 
 export type DeletePermanentlyResult = {
   /** Photos the server deleted, files included. */
@@ -29,6 +28,6 @@ export async function deletePhotosPermanently(
   const response = await endpoints.deletePhotos(client, imageHashes);
   const deleted = response.deleted ?? response.results ?? [];
   const notDeleted = response.not_deleted ?? imageHashes.filter((h) => !deleted.includes(h));
-  if (ownerId != null) deleteOwnedRemotePhotosByHash(db, ownerId, deleted);
+  if (ownerId != null) (await deleteOwnedRemotePhotosByHash(db, ownerId, deleted));
   return { deleted: deleted.length, notDeleted: notDeleted.length };
 }

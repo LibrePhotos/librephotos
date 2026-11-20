@@ -1,8 +1,7 @@
 import { waitFor } from "@testing-library/react-native";
 import { ProfileScreen } from "./ProfileScreen";
 import { renderWithDb, makeMockClient, jsonResponse } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { seedRemotePhotos, remotePhoto } from "@/db/__tests__/fixtures";
+import { createTestDb, remotePhoto, seedRemotePhotos, type TestDb } from "@librephotos/local-db/testing";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import SELF_USER from "../../../../../packages/api-client/src/__tests__/fixtures/user.json";
@@ -24,8 +23,8 @@ describe("ProfileScreen", () => {
   afterEach(() => t.close());
 
   it("renders identity, stats, and navigation rows", async () => {
-    seedRemotePhotos(t.db, [remotePhoto({ id: "p1", imageHash: "h1" })]);
-    const { getByTestId } = renderWithDb(<ProfileScreen />, t.db, client(false));
+    await seedRemotePhotos(t.db, [remotePhoto({ id: "p1", imageHash: "h1" })]);
+    const { getByTestId } = await renderWithDb(<ProfileScreen />, t.db, client(false));
 
     await waitFor(() => {
       expect(getByTestId("profile-username")).toBeTruthy();
@@ -36,10 +35,10 @@ describe("ProfileScreen", () => {
   });
 
   it("shows the server (admin) row only for superusers", async () => {
-    const { getByTestId, queryByTestId } = renderWithDb(<ProfileScreen />, t.db, client(true));
+    const { getByTestId, queryByTestId } = await renderWithDb(<ProfileScreen />, t.db, client(true));
     await waitFor(() => expect(getByTestId("profile-server-link")).toBeTruthy());
 
-    const nonAdmin = renderWithDb(<ProfileScreen />, t.db, client(false));
+    const nonAdmin = await renderWithDb(<ProfileScreen />, t.db, client(false));
     await waitFor(() => expect(nonAdmin.getByTestId("profile-username")).toBeTruthy());
     expect(nonAdmin.queryByTestId("profile-server-link")).toBeNull();
     void queryByTestId;

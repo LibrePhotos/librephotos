@@ -13,9 +13,8 @@
  * *job* fail. Failure is what buys a retry, a backoff, and a visible blocker.
  */
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { insertLocalAlbum, insertLocalAsset } from "@/db/__tests__/fixtures";
-import { enqueueBackups } from "@/sync/upload/queue";
+import { createTestDb, insertLocalAlbum, insertLocalAsset, type TestDb } from "@librephotos/local-db/testing";
+import { enqueueBackups, type SyncLogEntry } from "@librephotos/local-db";
 import { runUploadItem } from "@/sync/upload/worker";
 import type {
   UploadCompleteInput,
@@ -28,11 +27,10 @@ import { FakeSource, emptyStore } from "@/sync/__tests__/fake-source";
 import { createJobHandlers } from "../handlers";
 import { enqueueJob } from "../queue";
 import { runWorker, resetBootReclaimForTests } from "../worker";
-import type { SyncLogEntry } from "@/db/queries/sync-log";
 import { defined } from "@/test/defined";
 
 const USER_ID = 7;
-const fastYield = () => Promise.resolve();
+const fastYield = async () => Promise.resolve();
 
 /** A transport whose bytes land but whose completion is rejected by the server. */
 class RejectingCompleteTransport implements UploadTransport {
@@ -57,28 +55,28 @@ class RejectingCompleteTransport implements UploadTransport {
   }
 }
 
-function seedQueued(t: TestDb, id: string, hash: string): void {
-  insertLocalAsset(t.db, { id, hash, uri: `file:///${id}.jpg` });
-  insertLocalAlbum(t.db, { id: `alb-${id}`, backupSelection: 1, assetIds: [id] });
-  enqueueBackups(t.db);
+async function seedQueued(t: TestDb, id: string, hash: string): Promise<void> {
+  await insertLocalAsset(t.db, { id, hash, uri: `file:///${id}.jpg` });
+  await insertLocalAlbum(t.db, { id: `alb-${id}`, backupSelection: 1, assetIds: [id] });
+  await enqueueBackups(t.db);
 }
 
-function jobRow(t: TestDb, id: number): { state: string; last_error: string | null } {
-  return t.db.get(
+async function jobRow(t: TestDb, id: number): Promise<{ state: string; last_error: string | null }> {
+  return await t.db.get<{ state: string; last_error: string | null }>(
     sql`SELECT state, last_error FROM job_queue WHERE id = ${id}`
-  ) as { state: string; last_error: string | null };
+  );
 }
 
 describe("upload_asset job failure propagation", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
     resetBootReclaimForTests();
   });
   afterEach(() => t.close());
 
   it("marks the job failed — not done — when the completion is rejected", async () => {
-    seedQueued(t, "a1", "h1");
+    await seedQueued(t, "a1", "h1");
     const transport = new RejectingCompleteTransport(403);
     const logs: SyncLogEntry[] = [];
 
@@ -87,7 +85,7 @@ describe("upload_asset job failure propagation", () => {
       uploadAsset: (ctx, assetId) =>
         runUploadItem(ctx.db, assetId, { userId: USER_ID, transport }),
     });
-    const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
+    const id = defined(await enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
 
     const stats = await runWorker(t.db, {
       handlers,
@@ -102,7 +100,7 @@ describe("upload_asset job failure propagation", () => {
     expect(stats.failed).toBe(1);
     expect(stats.applied).toBe(0);
 
-    const row = jobRow(t, id);
+    const row = await jobRow(t, id);
     expect(row.state).not.toBe("done");
     expect(row.state).toBe("pending"); // scheduled for a backed-off retry
     // The server's own words survive into the log, which is what makes the next
@@ -112,7 +110,7 @@ describe("upload_asset job failure propagation", () => {
   });
 
   it("leaves the upload queue item failed rather than done", async () => {
-    seedQueued(t, "a1", "h1");
+    await seedQueued(t, "a1", "h1");
     const transport = new RejectingCompleteTransport(400, "md5 checksum does not match");
 
     const handlers = createJobHandlers({
@@ -120,19 +118,19 @@ describe("upload_asset job failure propagation", () => {
       uploadAsset: (ctx, assetId) =>
         runUploadItem(ctx.db, assetId, { userId: USER_ID, transport }),
     });
-    enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } });
+    await enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } });
 
     await runWorker(t.db, { handlers, yield: fastYield });
 
-    const item = t.db.get(
+    const item = await t.db.get<{ state: string; last_error: string | null }>(
       sql`SELECT state, last_error FROM upload_queue WHERE asset_id = 'a1'`
-    ) as { state: string; last_error: string | null };
+    );
     expect(item.state).toBe("failed");
     expect(item.last_error).toContain("md5 checksum does not match");
   });
 
   it("still settles as done when the completion succeeds", async () => {
-    seedQueued(t, "a1", "h1");
+    await seedQueued(t, "a1", "h1");
     const completes: UploadCompleteInput[] = [];
     const transport: UploadTransport = {
       async exists() {
@@ -152,13 +150,13 @@ describe("upload_asset job failure propagation", () => {
       uploadAsset: (ctx, assetId) =>
         runUploadItem(ctx.db, assetId, { userId: USER_ID, transport }),
     });
-    const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
+    const id = defined(await enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
 
     const stats = await runWorker(t.db, { handlers, yield: fastYield });
 
     expect(stats.failed).toBe(0);
     expect(stats.applied).toBe(1);
-    expect(jobRow(t, id).state).toBe("done");
+    expect((await jobRow(t, id)).state).toBe("done");
     // And the checksum is the one measured on the bytes that were sent, not the
     // (possibly stale) hash recorded during the hash pass.
     expect(completes[0].md5).toBe("fresh-md5");

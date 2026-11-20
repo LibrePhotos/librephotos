@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Text, View, type LayoutChangeEvent } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
-import type { TimelineBucket } from "@/db/types";
+import type { TimelineBucket } from "@librephotos/local-db";
 import { useTheme } from "@/theme";
 import {
   dayAtFraction,

@@ -1,9 +1,16 @@
 import type { ReactNode } from "react";
 import { act, renderHook } from "@testing-library/react-native";
 import { DbProvider } from "@/db/provider";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { insertLocalAlbum, insertLocalAsset, remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
-import type { ViewerSlide } from "@/db/queries/detail";
+import { settleDb } from "@/test/test-utils";
+import {
+  createTestDb,
+  insertLocalAlbum,
+  insertLocalAsset,
+  remotePhoto,
+  seedRemotePhotos,
+  type TestDb,
+} from "@librephotos/local-db/testing";
+import type { ViewerSlide } from "@librephotos/local-db";
 import { useViewerWindow } from "./useViewerWindow";
 
 /**
@@ -17,7 +24,7 @@ import { useViewerWindow } from "./useViewerWindow";
 const DAY = 86_400_000;
 const N = 200;
 
-function renderWindow(db: TestDb["db"], args: { id: string; seed?: ViewerSlide | null }) {
+async function renderWindow(db: TestDb["db"], args: { id: string; seed?: ViewerSlide | null }) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <DbProvider db={db} subscribe={() => () => {}}>
       {children}
@@ -28,18 +35,21 @@ function renderWindow(db: TestDb["db"], args: { id: string; seed?: ViewerSlide |
       useViewerWindow({ id: args.id, seed: args.seed ?? null, currentIndex }),
     { wrapper, initialProps: { currentIndex: 0 } }
   );
+  // The window is read asynchronously: let the first reads land.
+  await settleDb();
   /**
    * What `PhotoViewerScreen` does whenever the window re-anchors: scroll the
    * pager to the new index, report it back, and acknowledge the restore. The
    * window will not grow until it has heard this, because until then the index
    * it is given describes the previous window.
    */
-  const settle = (index?: number) => {
+  const settle = async (index?: number) => {
     const target = index ?? view.result.current.restoreIndex ?? 0;
     // Order matters, and matches the screen's layout effect: the pager reports
     // its new index first, and only then acknowledges the restore.
     view.rerender({ currentIndex: target });
     act(() => view.result.current.restored());
+    await settleDb();
   };
   return { ...view, settle };
 }
@@ -49,9 +59,9 @@ describe("useViewerWindow", () => {
   /** p000 is the oldest, p199 the newest. */
   const id = (i: number) => `p${String(i).padStart(3, "0")}`;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
-    seedRemotePhotos(
+    await seedRemotePhotos(
       t.db,
       Array.from({ length: N }, (_, i) =>
         remotePhoto({ id: id(i), imageHash: `h${i}`, timestamp: Date.UTC(2024, 0, 1) + i * DAY })
@@ -60,8 +70,8 @@ describe("useViewerWindow", () => {
   });
   afterEach(() => t.close());
 
-  it("windows around the tapped photo instead of loading the timeline", () => {
-    const { result } = renderWindow(t.db, { id: id(100) });
+  it("windows around the tapped photo instead of loading the timeline", async () => {
+    const { result } = await renderWindow(t.db, { id: id(100) });
     const keys = result.current.slides.map((s) => s.key);
 
     expect(keys).toHaveLength(41); // 20 either side + the photo itself
@@ -73,23 +83,27 @@ describe("useViewerWindow", () => {
     expect(result.current.atEnd).toBe(false);
   });
 
-  it("extends into the past as a swipe approaches the end of the window", () => {
-    const { result, rerender, settle } = renderWindow(t.db, { id: id(100) });
+  it("extends into the past as a swipe approaches the end of the window", async () => {
+    const { result, rerender, settle } = await renderWindow(t.db, { id: id(100) });
     const before = result.current.slides.length;
-    settle();
+    await settle();
 
     rerender({ currentIndex: before - 1 });
+
+    await settleDb();
 
     expect(result.current.slides.length).toBeGreaterThan(before);
     expect(result.current.slides[0].key).toBe(id(120)); // nothing moved
     expect(result.current.slides.at(-1)?.key).toBe(id(60));
   });
 
-  it("extends towards the newest photo and tells the pager how far it shifted", () => {
-    const { result, rerender, settle } = renderWindow(t.db, { id: id(100) });
-    settle();
+  it("extends towards the newest photo and tells the pager how far it shifted", async () => {
+    const { result, rerender, settle } = await renderWindow(t.db, { id: id(100) });
+    await settle();
 
     rerender({ currentIndex: 1 });
+
+    await settleDb();
 
     expect(result.current.slides[0].key).toBe(id(140));
     expect(result.current.slides).toHaveLength(61);
@@ -97,11 +111,12 @@ describe("useViewerWindow", () => {
     expect(result.current.restoreIndex).toBe(21);
   });
 
-  it("reaches the oldest photo and stops", () => {
-    const { result, rerender, settle } = renderWindow(t.db, { id: id(100) });
-    settle();
+  it("reaches the oldest photo and stops", async () => {
+    const { result, rerender, settle } = await renderWindow(t.db, { id: id(100) });
+    await settle();
     for (let guard = 0; guard < 30 && !result.current.atEnd; guard++) {
       rerender({ currentIndex: result.current.slides.length - 1 });
+      await settleDb();
     }
     expect(result.current.atEnd).toBe(true);
     expect(result.current.slides.at(-1)?.key).toBe(id(0));
@@ -110,11 +125,11 @@ describe("useViewerWindow", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("reaches the newest photo and stops", () => {
-    const { result, settle } = renderWindow(t.db, { id: id(100) });
-    settle();
+  it("reaches the newest photo and stops", async () => {
+    const { result, settle } = await renderWindow(t.db, { id: id(100) });
+    await settle();
     for (let guard = 0; guard < 30 && !result.current.atStart; guard++) {
-      settle(0);
+      await settle(0);
     }
     expect(result.current.atStart).toBe(true);
     expect(result.current.slides[0].key).toBe(id(199));
@@ -122,9 +137,9 @@ describe("useViewerWindow", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("opens a photo that is not in the timeline at all as a window of one", () => {
-    seedRemotePhotos(t.db, [remotePhoto({ id: "hid", imageHash: "hidden-hash", hidden: true })]);
-    const { result } = renderWindow(t.db, { id: "hidden-hash" });
+  it("opens a photo that is not in the timeline at all as a window of one", async () => {
+    await seedRemotePhotos(t.db, [remotePhoto({ id: "hid", imageHash: "hidden-hash", hidden: true })]);
+    const { result } = await renderWindow(t.db, { id: "hidden-hash" });
     expect(result.current.slides.map((s) => s.image_hash)).toEqual(["hidden-hash"]);
     expect(result.current.atStart).toBe(true);
     expect(result.current.atEnd).toBe(true);
@@ -135,18 +150,18 @@ describe("useViewerWindow", () => {
    * it is hashed, so the viewer is opened on its asset id — the bug that made
    * the lightbox look unimplemented on a real device.
    */
-  it("anchors on an unhashed camera-roll asset", () => {
-    insertLocalAsset(t.db, { id: "L7", hash: null, createdAt: Date.UTC(2024, 0, 101) });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["L7"] });
+  it("anchors on an unhashed camera-roll asset", async () => {
+    await insertLocalAsset(t.db, { id: "L7", hash: null, createdAt: Date.UTC(2024, 0, 101) });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["L7"] });
 
-    const { result } = renderWindow(t.db, { id: "L7" });
+    const { result } = await renderWindow(t.db, { id: "L7" });
     const centre = result.current.slides[result.current.restoreIndex ?? 0];
     expect(centre.local_id).toBe("L7");
     expect(centre.local_uri).toBe("ph://L7");
     expect(result.current.slides.length).toBeGreaterThan(1); // still a pager
   });
 
-  it("paints the seeded slide with no timeline row to stand on", () => {
+  it("paints the seeded slide with no timeline row to stand on", async () => {
     const empty = createTestDb();
     try {
       const seed: ViewerSlide = {
@@ -157,7 +172,7 @@ describe("useViewerWindow", () => {
         local_uri: "ph://1",
         type: "image",
       };
-      const { result } = renderWindow(empty.db, { id: "ph-1", seed });
+      const { result } = await renderWindow(empty.db, { id: "ph-1", seed });
       expect(result.current.slides).toEqual([seed]);
       expect(result.current.atStart).toBe(true);
       expect(result.current.atEnd).toBe(true);

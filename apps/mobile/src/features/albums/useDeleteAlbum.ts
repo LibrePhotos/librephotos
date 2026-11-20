@@ -22,7 +22,7 @@ export function useConfirmDeleteAlbum() {
           text: t("albumDetail.deleteConfirm"),
           style: "destructive",
           onPress: () => {
-            mutations.deleteAlbum(album.id);
+            void mutations.deleteAlbum(album.id);
             pushToast({ level: "info", message: t("albumDetail.deleted") });
             onDeleted?.();
           },

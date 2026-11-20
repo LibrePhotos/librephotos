@@ -14,7 +14,7 @@
  *      └───reclaim────────┘  (process died while running)
  */
 import { sql } from "drizzle-orm";
-import type { AppDatabase } from "@/db/types";
+import type { AppDatabase } from "@librephotos/local-db";
 import {
   JOB_PRIORITY,
   MAX_JOB_ATTEMPTS,
@@ -34,31 +34,30 @@ import {
  * thing; the guard here makes the drop silent and reportable rather than an
  * exception, and the index makes it impossible to get wrong from elsewhere.
  */
-export function enqueueJob(db: AppDatabase, spec: JobSpec, now = Date.now()): number | null {
+export async function enqueueJob(db: AppDatabase, spec: JobSpec, now = Date.now()): Promise<number | null> {
   const key = spec.dedupeKey ?? dedupeKeyFor(spec);
   const priority = spec.priority ?? JOB_PRIORITY[spec.kind];
   const payload = spec.payload ? JSON.stringify(spec.payload) : null;
   const notBefore = spec.notBefore ?? 0;
 
-  db.run(
+  // RETURNING in the same statement: a follow-up `SELECT changes()` could read
+  // another caller's count on the shared async connection.
+  const row = await db.get<{ id: number } | undefined>(
     sql`INSERT INTO job_queue (kind, dedupe_key, payload, state, priority, attempts, next_attempt_at, created_at)
         SELECT ${spec.kind}, ${key}, ${payload}, 'pending', ${priority}, 0, ${notBefore}, ${now}
         WHERE NOT EXISTS (
           SELECT 1 FROM job_queue WHERE dedupe_key = ${key} AND state IN ('pending', 'running')
-        )`
+        )
+        RETURNING id`
   );
-  const row = db.get(sql`SELECT changes() AS n, last_insert_rowid() AS id`) as {
-    n: number;
-    id: number;
-  };
-  return row.n > 0 ? row.id : null;
+  return row?.id ?? null;
 }
 
 /** Enqueue many; returns how many were actually inserted (the rest deduped). */
-export function enqueueJobs(db: AppDatabase, specs: JobSpec[], now = Date.now()): number {
+export async function enqueueJobs(db: AppDatabase, specs: JobSpec[], now = Date.now()): Promise<number> {
   let inserted = 0;
   for (const spec of specs) {
-    if (enqueueJob(db, spec, now) != null) inserted += 1;
+    if ((await enqueueJob(db, spec, now)) != null) inserted += 1;
   }
   return inserted;
 }
@@ -66,44 +65,33 @@ export function enqueueJobs(db: AppDatabase, specs: JobSpec[], now = Date.now())
 /**
  * Atomically claim the next eligible job, or null when none is ready.
  *
- * The SELECT and the UPDATE run inside one transaction and the UPDATE re-asserts
- * `state = 'pending'`, so a claim either wins outright or yields nothing — two
- * workers can never both be handed the same row. (JS is single-threaded, but the
- * worker awaits inside its loop, so two loops *do* interleave between statements;
- * the transaction is what makes that safe.)
+ * One statement picks the row and moves it to `running` (`UPDATE ... WHERE id =
+ * (SELECT ...) RETURNING`), so a claim either wins outright or yields nothing —
+ * two workers can never both be handed the same row, even though they share
+ * one async connection and interleave between statements.
  *
  * Order: priority, then the backoff window, then insertion order. That is
  * exactly the index `idx_job_queue_ready` covers.
  */
-export function claimNextJob(db: AppDatabase, now = Date.now()): JobRow | null {
-  return db.transaction((tx) => {
-    const candidate = tx.get(
-      sql`SELECT id FROM job_queue
+export async function claimNextJob(db: AppDatabase, now = Date.now()): Promise<JobRow | null> {
+  const row = await db.get<JobRow | undefined>(
+    sql`UPDATE job_queue
+        SET state = 'running', started_at = ${now}, attempts = attempts + 1
+        WHERE id = (
+          SELECT id FROM job_queue
           WHERE state = 'pending' AND next_attempt_at <= ${now}
           ORDER BY priority ASC, next_attempt_at ASC, id ASC
-          LIMIT 1`
-    ) as { id: number } | undefined;
-    if (!candidate) return null;
-
-    tx.run(
-      sql`UPDATE job_queue
-          SET state = 'running', started_at = ${now}, attempts = attempts + 1
-          WHERE id = ${candidate.id} AND state = 'pending'`
-    );
-    const changed = (tx.get(sql`SELECT changes() AS n`) as { n: number }).n;
-    if (changed === 0) return null; // lost the race — the caller loops.
-
-    return (tx.get(
-      sql`SELECT id, kind, dedupe_key, payload, state, priority, attempts, next_attempt_at,
-                 created_at, started_at, finished_at, last_error
-          FROM job_queue WHERE id = ${candidate.id}`
-    ) as JobRow | undefined) ?? null;
-  }) as JobRow | null;
+          LIMIT 1)
+          AND state = 'pending'
+        RETURNING id, kind, dedupe_key, payload, state, priority, attempts, next_attempt_at,
+                  created_at, started_at, finished_at, last_error`
+  );
+  return row ?? null;
 }
 
 /** Success: park the row as `done` and clear any stale error. */
-export function completeJob(db: AppDatabase, id: number, now = Date.now()): void {
-  db.run(
+export async function completeJob(db: AppDatabase, id: number, now = Date.now()): Promise<void> {
+  await db.run(
     sql`UPDATE job_queue SET state = 'done', finished_at = ${now}, last_error = NULL
         WHERE id = ${id}`
   );
@@ -117,22 +105,22 @@ export type FailOutcome = { state: "pending" | "failed"; retryAt: number | null 
  * `last_error` preserved, which is what the status screens surface as the
  * blocker. `attempts` was already incremented by the claim.
  */
-export function failJob(
+export async function failJob(
   db: AppDatabase,
   row: Pick<JobRow, "id" | "attempts">,
   error: string,
   now = Date.now(),
   maxAttempts = MAX_JOB_ATTEMPTS
-): FailOutcome {
+): Promise<FailOutcome> {
   if (row.attempts >= maxAttempts) {
-    db.run(
+    await db.run(
       sql`UPDATE job_queue SET state = 'failed', finished_at = ${now}, last_error = ${error}
           WHERE id = ${row.id}`
     );
     return { state: "failed", retryAt: null };
   }
   const retryAt = now + jobBackoffDelay(row.attempts);
-  db.run(
+  await db.run(
     sql`UPDATE job_queue
         SET state = 'pending', started_at = NULL, next_attempt_at = ${retryAt}, last_error = ${error}
         WHERE id = ${row.id}`
@@ -145,8 +133,8 @@ export function failJob(
  * mid-flight. Cancellation is not the job's fault, so the attempt is refunded;
  * otherwise backgrounding the app a few times would exhaust every job's budget.
  */
-export function releaseJob(db: AppDatabase, id: number): void {
-  db.run(
+export async function releaseJob(db: AppDatabase, id: number): Promise<void> {
+  await db.run(
     sql`UPDATE job_queue
         SET state = 'pending', started_at = NULL, attempts = MAX(attempts - 1, 0)
         WHERE id = ${id} AND state = 'running'`
@@ -165,16 +153,16 @@ export function releaseJob(db: AppDatabase, id: number): void {
  * The attempt is refunded, exactly as for cancellation: a crash is not evidence
  * that the job is bad.
  */
-export function reclaimStaleJobs(db: AppDatabase, now = Date.now(), staleMs = 0): number {
+export async function reclaimStaleJobs(db: AppDatabase, now = Date.now(), staleMs = 0): Promise<number> {
   const cutoff = now - staleMs;
   const n = (
-    db.get(
+    await db.get<{ c: number }>(
       sql`SELECT COUNT(*) AS c FROM job_queue
           WHERE state = 'running' AND (started_at IS NULL OR started_at <= ${cutoff})`
-    ) as { c: number }
+    )
   ).c;
   if (n === 0) return 0;
-  db.run(
+  await db.run(
     sql`UPDATE job_queue
         SET state = 'pending', started_at = NULL, attempts = MAX(attempts - 1, 0)
         WHERE state = 'running' AND (started_at IS NULL OR started_at <= ${cutoff})`
@@ -183,12 +171,10 @@ export function reclaimStaleJobs(db: AppDatabase, now = Date.now(), staleMs = 0)
 }
 
 /** Reset terminal failures back to pending (the user's "retry" affordance). */
-export function retryFailedJobs(db: AppDatabase, kind?: JobKind): number {
+export async function retryFailedJobs(db: AppDatabase, kind?: JobKind): Promise<number> {
   const kindFilter = kind ? sql` AND kind = ${kind}` : sql``;
   const n = (
-    db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'failed'${kindFilter}`) as {
-      c: number;
-    }
+    await db.get<{ c: number; }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'failed'${kindFilter}`)
   ).c;
   if (n === 0) return 0;
   // Reviving must not violate the one-live-row-per-key guarantee, and there are
@@ -198,16 +184,16 @@ export function retryFailedJobs(db: AppDatabase, kind?: JobKind): number {
   //      that row is the newer, better copy, so drop the failure;
   //   2. two failures share the key (the same work died terminally in two
   //      different sessions) — keep only the most recent.
-  db.run(
+  await db.run(
     sql`DELETE FROM job_queue WHERE state = 'failed'${kindFilter}
         AND EXISTS (SELECT 1 FROM job_queue live
                     WHERE live.dedupe_key = job_queue.dedupe_key AND live.state IN ('pending', 'running'))`
   );
-  db.run(
+  await db.run(
     sql`DELETE FROM job_queue WHERE state = 'failed'${kindFilter}
         AND id NOT IN (SELECT MAX(id) FROM job_queue WHERE state = 'failed' GROUP BY dedupe_key)`
   );
-  db.run(
+  await db.run(
     sql`UPDATE job_queue
         SET state = 'pending', attempts = 0, next_attempt_at = 0, last_error = NULL,
             started_at = NULL, finished_at = NULL
@@ -217,27 +203,25 @@ export function retryFailedJobs(db: AppDatabase, kind?: JobKind): number {
 }
 
 /** How many jobs could still run (pending, whether or not their window is open). */
-export function pendingJobCount(db: AppDatabase): number {
+export async function pendingJobCount(db: AppDatabase): Promise<number> {
   return (
-    db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state IN ('pending', 'running')`) as {
-      c: number;
-    }
+    await db.get<{ c: number; }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state IN ('pending', 'running')`)
   ).c;
 }
 
 /** Whether anything is claimable right now (drives the worker's exit condition). */
-export function hasEligibleJob(db: AppDatabase, now = Date.now()): boolean {
-  const row = db.get(
+export async function hasEligibleJob(db: AppDatabase, now = Date.now()): Promise<boolean> {
+  const row = await db.get<{ x: number } | undefined>(
     sql`SELECT 1 AS x FROM job_queue WHERE state = 'pending' AND next_attempt_at <= ${now} LIMIT 1`
-  ) as { x: number } | undefined;
+  );
   return row != null;
 }
 
 /** Earliest ms-epoch at which a pending job becomes claimable, or null if none. */
-export function nextJobDueAt(db: AppDatabase): number | null {
-  const row = db.get(
+export async function nextJobDueAt(db: AppDatabase): Promise<number | null> {
+  const row = await db.get<{ at: number | null } | undefined>(
     sql`SELECT MIN(next_attempt_at) AS at FROM job_queue WHERE state = 'pending'`
-  ) as { at: number | null } | undefined;
+  );
   return row?.at ?? null;
 }
 
@@ -246,11 +230,11 @@ export function nextJobDueAt(db: AppDatabase): number | null {
  * sync_log carries the durable narrative), so they age out; `failed` rows stay
  * until the user retries them, because they are the only record of a blocker.
  */
-export function pruneJobs(db: AppDatabase, keep = 200): number {
-  const n = (db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'done'`) as { c: number })
+export async function pruneJobs(db: AppDatabase, keep = 200): Promise<number> {
+  const n = (await db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'done'`))
     .c;
   if (n <= keep) return 0;
-  db.run(
+  await db.run(
     sql`DELETE FROM job_queue WHERE state = 'done' AND id NOT IN (
           SELECT id FROM job_queue WHERE state = 'done' ORDER BY id DESC LIMIT ${keep}
         )`
@@ -259,17 +243,17 @@ export function pruneJobs(db: AppDatabase, keep = 200): number {
 }
 
 /** Remove every live job (used by repair, which re-enqueues from a clean slate). */
-export function clearJobs(db: AppDatabase): void {
-  db.run(sql`DELETE FROM job_queue`);
+export async function clearJobs(db: AppDatabase): Promise<void> {
+  await db.run(sql`DELETE FROM job_queue`);
 }
 
 /** One job row by id (tests + the status screen's in-flight detail). */
-export function getJob(db: AppDatabase, id: number): JobRow | null {
+export async function getJob(db: AppDatabase, id: number): Promise<JobRow | null> {
   return (
-    (db.get(
+    await db.get<JobRow | undefined>(
       sql`SELECT id, kind, dedupe_key, payload, state, priority, attempts, next_attempt_at,
                  created_at, started_at, finished_at, last_error
           FROM job_queue WHERE id = ${id}`
-    ) as JobRow | undefined) ?? null
+    ) ?? null
   );
 }

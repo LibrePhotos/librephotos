@@ -15,7 +15,7 @@
  */
 import { AppState, type AppStateStatus } from "react-native";
 import { addNetworkStateListener } from "expo-network";
-import type { AppDatabase } from "@/db/types";
+import type { AppDatabase } from "@librephotos/local-db";
 import { runSync } from "./run";
 import type { SyncReason } from "./orchestrator";
 import { createThrottle, FOREGROUND_THROTTLE_MS } from "./throttle";

@@ -1,8 +1,8 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
 import { ShareIntentScreen, parseSharedItems } from "./ShareIntentScreen";
-import { renderWithDb } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { renderWithDb, settleDb } from "@/test/test-utils";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toasts";
 import { defined } from "@/test/defined";
@@ -39,19 +39,20 @@ describe("ShareIntentScreen", () => {
 
   it("renders shared thumbnails and enqueues them as one-off uploads", async () => {
     setParams([{ uri: "content://a", name: "a.jpg" }, { uri: "content://b" }]);
-    const { getByTestId } = renderWithDb(<ShareIntentScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<ShareIntentScreen />, t.db);
 
     await waitFor(() => expect(getByTestId("share-upload")).toBeTruthy());
     fireEvent.press(getByTestId("share-upload"));
+    await settleDb();
 
-    const count = t.db.get(sql`SELECT COUNT(*) AS c FROM upload_queue WHERE state = 'pending'`) as { c: number };
+    const count = await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM upload_queue WHERE state = 'pending'`);
     expect(count.c).toBe(2);
     expect(useToastStore.getState().toasts.at(-1)?.level).toBe("info");
   });
 
   it("shows an empty state when nothing was shared", async () => {
     setParams([]);
-    const { getByTestId } = renderWithDb(<ShareIntentScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<ShareIntentScreen />, t.db);
     await waitFor(() => expect(getByTestId("share-empty")).toBeTruthy());
   });
 });

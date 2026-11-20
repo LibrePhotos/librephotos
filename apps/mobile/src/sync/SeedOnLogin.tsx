@@ -23,7 +23,7 @@ export function SeedOnLogin() {
     if (userId == null) return;
     // Initial full seed on first login; a normal catch-up delta otherwise.
     // Single-flight in the orchestrator dedupes against trigger-driven runs.
-    void runSync(db, { userId, reason: needsInitialSeed(db) ? "login" : "foreground" });
+    void needsInitialSeed(db).then((initial) => runSync(db, { userId, reason: initial ? "login" : "foreground" }));
 
     const unsubscribe = registerSyncTriggers({
       db,

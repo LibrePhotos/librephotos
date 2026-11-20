@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import {
   recordThumb,
   touchThumb,
@@ -19,19 +19,19 @@ describe("thumb cache LRU", () => {
   });
   afterEach(() => t.close());
 
-  it("records size and reports total bytes", () => {
-    recordThumb(t.db, { photoId: "a", filePath: "/a", sizeBytes: 100, now: 1 });
-    recordThumb(t.db, { photoId: "b", filePath: "/b", sizeBytes: 250, now: 2 });
-    expect(thumbCacheTotalBytes(t.db)).toBe(350);
-    expect(getThumb(t.db, "a")?.size_bytes).toBe(100);
+  it("records size and reports total bytes", async () => {
+    await recordThumb(t.db, { photoId: "a", filePath: "/a", sizeBytes: 100, now: 1 });
+    await recordThumb(t.db, { photoId: "b", filePath: "/b", sizeBytes: 250, now: 2 });
+    expect(await thumbCacheTotalBytes(t.db)).toBe(350);
+    expect((await getThumb(t.db, "a"))?.size_bytes).toBe(100);
   });
 
-  it("orders LRU candidates oldest-first and touch bumps recency", () => {
-    recordThumb(t.db, { photoId: "a", filePath: "/a", sizeBytes: 100, now: 1 });
-    recordThumb(t.db, { photoId: "b", filePath: "/b", sizeBytes: 100, now: 2 });
-    recordThumb(t.db, { photoId: "c", filePath: "/c", sizeBytes: 100, now: 3 });
-    touchThumb(t.db, "a", 10); // a is now newest
-    expect(lruCandidates(t.db).map((r) => r.photo_id)).toEqual(["b", "c", "a"]);
+  it("orders LRU candidates oldest-first and touch bumps recency", async () => {
+    await recordThumb(t.db, { photoId: "a", filePath: "/a", sizeBytes: 100, now: 1 });
+    await recordThumb(t.db, { photoId: "b", filePath: "/b", sizeBytes: 100, now: 2 });
+    await recordThumb(t.db, { photoId: "c", filePath: "/c", sizeBytes: 100, now: 3 });
+    await touchThumb(t.db, "a", 10); // a is now newest
+    expect((await lruCandidates(t.db)).map((r) => r.photo_id)).toEqual(["b", "c", "a"]);
   });
 
   describe("selectEvictions policy", () => {

@@ -9,6 +9,7 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 | `apps/frontend` | React 19, Vite, TanStack Router/Query, Mantine 9, i18next | `apps/frontend/AGENTS.md` |
 | `apps/mobile` | Expo SDK 57, offline-first sync | `apps/mobile/AGENTS.md` |
 | `packages/api-client` | Shared zod schemas and endpoints for every request, web and mobile (#2347) | `apps/frontend/AGENTS.md` (API layer) |
+| `packages/local-db` | The on-device SQLite database of mobile and desktop: schema, migrations, queries, writers, change hub | its `README.md` |
 | `apps/docs` | Docusaurus 3, deployed to docs.librephotos.com from `dev` | |
 | `deploy/` | Dockerfiles, compose, k8s, e2e setup | |
 | `tools/report-mail-bridge` | Bun SMTP server that forwards mailed error reports to the maintainers' GlitchTip | its `README.md` |
@@ -64,6 +65,11 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
   Both apps run its schemas on their own zod 4, so use zod 4 APIs only (lint: `no-deprecated`), and
   bump zod or React Query in the web, mobile, package and root manifests together:
   `node scripts/check-shared-deps.mjs` (CI) fails on a peer-range or zod-major mismatch.
+- Local database (`packages/local-db`): `npm run typecheck|lint|test|db:check --workspace packages/local-db`
+  (CI: `local-db.yml`). On-device SQLite lives there and only there: schema, migrations, every query and writer.
+  An app only provides an executor (`apps/mobile/src/db/client.ts`); everything is async, and atomic writes are
+  `db.batch([...])`, never `db.transaction()` (lint in both). Change the schema, then `npm run db:generate --workspace
+  packages/local-db`; CI fails when `migrations/migrations.json` is stale.
 - Docs (`apps/docs`): `yarn install --frozen-lockfile`, `yarn build`.
 
 ## History

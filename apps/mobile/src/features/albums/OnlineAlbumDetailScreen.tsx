@@ -38,14 +38,15 @@ export function OnlineAlbumDetailScreen({ kind, id }: { kind: AlbumKind; id: str
   const query = kind === "thing" ? thing : kind === "place" ? place : tag;
 
   // Mirror title (offline-safe); fall back to the fetched album's title.
-  const mirrorTitle = useReactiveQuery(
-    (db) =>
+  const { data: mirrorTitle } = useReactiveQuery(
+    ["named-album-title", kind, id],
+    async (db) =>
       (
-        db.get(
+        await db.get<{ title: string } | undefined>(
           sql.raw(`SELECT title FROM ${MIRROR_TABLE[kind]} WHERE id = ${Number(id) || 0}`)
-        ) as { title: string } | undefined
+        )
       )?.title ?? null,
-    [kind, id]
+    null
   );
 
   const items = useMemo(() => flattenGroupedPhotos(query.data?.grouped_photos), [query.data]);

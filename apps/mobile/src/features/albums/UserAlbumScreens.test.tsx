@@ -1,14 +1,13 @@
 import { Alert, type AlertButton } from "react-native";
 import { act, fireEvent } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
-import { userAlbumPhotos } from "@/db/queries/albums";
+import { createTestDb, remotePhoto, seedRemotePhotos, type TestDb } from "@librephotos/local-db/testing";
+import { userAlbumPhotos } from "@librephotos/local-db";
 import { DEFAULT_USER_ALBUM_SORT } from "@/lib/albumSort";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useToastStore } from "@/stores/toasts";
-import { mockRouter, renderWithDb } from "@/test/test-utils";
+import { mockRouter, renderWithDb, settleDb } from "@/test/test-utils";
 import { AlbumDetailScreen } from "./AlbumDetailScreen";
 import { MyAlbumsScreen } from "./MyAlbumsScreen";
 
@@ -20,18 +19,18 @@ jest.mock("@/sync/triggers", () => ({ notifyOutboxWrite: () => undefined }));
 const router = mockRouter();
 const D = (y: number, m: number, d: number) => Date.UTC(y, m - 1, d);
 
-function seed(t: TestDb) {
-  seedRemotePhotos(t.db, [
+async function seed(t: TestDb) {
+  await seedRemotePhotos(t.db, [
     remotePhoto({ id: "p-old", imageHash: "h-old", timestamp: D(2020, 1, 1) }),
     remotePhoto({ id: "p-new", imageHash: "h-new", timestamp: D(2024, 1, 1) }),
   ]);
-  t.db.run(
+  await t.db.run(
     sql`INSERT INTO user_album (id, title, owner_id, cover_hash, photo_count, created_on) VALUES
         (1, 'Zoo', 1, NULL, 2, ${D(2024, 5, 1)}),
         (2, 'Alps', 1, 'h-old', 9, ${D(2023, 1, 1)}),
         (3, 'Theirs', 2, NULL, 0, ${D(2022, 1, 1)})`
   );
-  t.db.run(
+  await t.db.run(
     sql`INSERT INTO user_album_photo (album_id, photo_id, ordering) VALUES (1, 'p-old', 0), (1, 'p-new', 1)`
   );
 }
@@ -59,21 +58,21 @@ function confirmLastAlert(alert: AlertSpy) {
 
 describe("My Albums list", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
-    seed(t);
+    await seed(t);
     useAuthStore.setState({ userId: 1 });
     useToastStore.setState({ toasts: [] });
     useSettingsStore.setState({ albumSort: DEFAULT_USER_ALBUM_SORT });
   });
-  afterEach(() => {
+  afterEach(async () => {
     t.close();
     jest.restoreAllMocks();
   });
 
   /** Render, then let the token check settle (it sets state once it answers). */
   const renderList = async () => {
-    const utils = renderWithDb(<MyAlbumsScreen />, t.db);
+    const utils = await renderWithDb(<MyAlbumsScreen />, t.db);
     await act(async () => {});
     return utils;
   };
@@ -92,14 +91,20 @@ describe("My Albums list", () => {
     expect(order(getAllByTestId)).toEqual(["album-1", "album-2", "album-3"]);
 
     fireEvent.press(getByTestId("albums-sort-button"));
+
+    await settleDb();
     expect(getByTestId("albums-sort-sheet-created_desc").props.accessibilityState).toMatchObject({ selected: true });
     fireEvent.press(getByTestId("albums-sort-sheet-name"));
+    await settleDb();
 
     expect(useSettingsStore.getState().albumSort).toBe("name");
     expect(order(getAllByTestId)).toEqual(["album-2", "album-3", "album-1"]);
 
     fireEvent.press(getByTestId("albums-sort-button"));
+
+    await settleDb();
     fireEvent.press(getByTestId("albums-sort-sheet-count_desc"));
+    await settleDb();
     expect(order(getAllByTestId)).toEqual(["album-2", "album-1", "album-3"]);
   });
 
@@ -107,14 +112,15 @@ describe("My Albums list", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
     const { getByTestId } = await renderList();
     fireEvent(getByTestId("album-1"), "longPress");
+    await settleDb();
     expect(alert).toHaveBeenCalledWith("Delete “Zoo”?", expect.any(String), expect.any(Array));
     // Nothing happens before the confirmation.
-    expect(t.db.get(sql`SELECT id FROM user_album WHERE id = 1`)).toEqual({ id: 1 });
+    expect(await t.db.get(sql`SELECT id FROM user_album WHERE id = 1`)).toEqual({ id: 1 });
 
     confirmLastAlert(alert);
-    expect(t.db.get(sql`SELECT id FROM user_album WHERE id = 1`)).toBeUndefined();
-    expect(userAlbumPhotos(t.db, 1)).toEqual([]);
-    expect(t.db.all(sql`SELECT kind FROM outbox`)).toEqual([{ kind: "album_delete" }]);
+    expect(await t.db.get(sql`SELECT id FROM user_album WHERE id = 1`)).toBeUndefined();
+    expect(await userAlbumPhotos(t.db, 1)).toEqual([]);
+    expect(await t.db.all(sql`SELECT kind FROM outbox`)).toEqual([{ kind: "album_delete" }]);
     expect(useToastStore.getState().toasts.map((x) => x.message)).toContain("Album deleted");
   });
 
@@ -122,29 +128,30 @@ describe("My Albums list", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
     const { getByTestId } = await renderList();
     fireEvent(getByTestId("album-3"), "longPress");
+    await settleDb();
     expect(alert).not.toHaveBeenCalled();
   });
 });
 
 describe("Album detail menu", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
-    seed(t);
+    await seed(t);
     useAuthStore.setState({ userId: 1 });
     useToastStore.setState({ toasts: [] });
     router.replace.mockClear();
     router.back.mockClear();
   });
-  afterEach(() => {
+  afterEach(async () => {
     t.close();
     jest.restoreAllMocks();
   });
 
   /** Render, then let the token and connectivity checks settle (they set state once they answer). */
   const renderAlbum = async (id: number) => {
-    const utils = renderWithDb(
-      <AlbumDetailScreen title="Album" query={(db) => userAlbumPhotos(db, id)} album={{ id, kind: "user" }} />,
+    const utils = await renderWithDb(
+      <AlbumDetailScreen title="Album" queryKey={["album-photos", "user", id]} query={(db) => userAlbumPhotos(db, id)} album={{ id, kind: "user" }} />,
       t.db
     );
     await act(async () => {});
@@ -154,17 +161,23 @@ describe("Album detail menu", () => {
   it("sets the cover from the picker, and goes back to automatic", async () => {
     const { getByTestId } = await renderAlbum(1);
     fireEvent.press(getByTestId("album-menu-button"));
+    await settleDb();
     fireEvent.press(getByTestId("album-menu-cover"));
+    await settleDb();
     expect(getByTestId("album-cover-automatic").props.accessibilityState).toMatchObject({ selected: true });
     fireEvent.press(getByTestId("album-cover-option-p-old"));
+    await settleDb();
 
-    expect(t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 1`)).toEqual({ cover_hash: "h-old" });
+    expect(await t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 1`)).toEqual({ cover_hash: "h-old" });
     fireEvent.press(getByTestId("album-menu-button"));
+    await settleDb();
     fireEvent.press(getByTestId("album-menu-cover"));
+    await settleDb();
     fireEvent.press(getByTestId("album-cover-automatic"));
-    expect(t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 1`)).toEqual({ cover_hash: null });
+    await settleDb();
+    expect(await t.db.get(sql`SELECT cover_hash FROM user_album WHERE id = 1`)).toEqual({ cover_hash: null });
 
-    const rows = t.db.all<{ kind: string; payload: string }>(sql`SELECT kind, payload FROM outbox ORDER BY id`);
+    const rows = await t.db.all<{ kind: string; payload: string }>(sql`SELECT kind, payload FROM outbox ORDER BY id`);
     expect(rows.map((r) => parsePayload(r.payload))).toEqual([
       { albumId: 1, photoId: "p-old", imageHash: "h-old" },
       { albumId: 1, photoId: null, imageHash: null },
@@ -175,15 +188,18 @@ describe("Album detail menu", () => {
     const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
     const { getByTestId } = await renderAlbum(1);
     fireEvent.press(getByTestId("album-menu-button"));
+    await settleDb();
     fireEvent.press(getByTestId("album-menu-delete"));
+    await settleDb();
     confirmLastAlert(alert);
-    expect(t.db.get(sql`SELECT id FROM user_album WHERE id = 1`)).toBeUndefined();
+    expect(await t.db.get(sql`SELECT id FROM user_album WHERE id = 1`)).toBeUndefined();
     expect(router.back).toHaveBeenCalled();
   });
 
   it("disables rename, cover and delete on someone else's album", async () => {
     const { getByTestId } = await renderAlbum(3);
     fireEvent.press(getByTestId("album-menu-button"));
+    await settleDb();
     for (const key of ["rename", "cover", "delete"]) {
       expect(getByTestId(`album-menu-${key}`).props.accessibilityState).toMatchObject({ disabled: true });
     }

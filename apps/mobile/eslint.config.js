@@ -43,6 +43,52 @@ module.exports = defineConfig([
       "@typescript-eslint/no-unsafe-return": "error",
       "@typescript-eslint/no-unsafe-type-assertion": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
+      // Every database call is async (@librephotos/local-db): a forgotten await is a
+      // write that may not have happened yet, or a Promise tested for truthiness.
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": ["error", { checksVoidReturn: { attributes: false } }],
+      "@typescript-eslint/await-thenable": "error",
+      // Atomic writes are one db.batch([...]): an interactive transaction cannot be held
+      // over the shared async executor (packages/local-db/README.md).
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "CallExpression[callee.property.name='transaction']:not([callee.object.name='sqlite']):not([callee.object.property.name='sqlite'])",
+          message: "Use db.batch([...]) (or runBatch) for atomic writes; interactive transactions are not supported.",
+        },
+      ],
+      // On-device SQLite lives in packages/local-db; the app only provides the
+      // executor (src/db/client.ts). No second driver, no sync API.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "drizzle-orm/expo-sqlite", message: "Use @librephotos/local-db over the executor in src/db/client.ts." },
+            { name: "drizzle-orm/better-sqlite3", message: "Tests use @librephotos/local-db/testing." },
+            { name: "better-sqlite3", message: "Tests use @librephotos/local-db/testing." },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The phone's executor (and the key-value preferences store, its own file) are
+    // the only places that talk to expo-sqlite directly.
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    ignores: ["src/db/client.ts", "src/db/DatabaseGate.tsx", "src/lib/preferencesStorage.ts", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "drizzle-orm/expo-sqlite", message: "Use @librephotos/local-db over the executor in src/db/client.ts." },
+            { name: "drizzle-orm/better-sqlite3", message: "Tests use @librephotos/local-db/testing." },
+            { name: "better-sqlite3", message: "Tests use @librephotos/local-db/testing." },
+            { name: "expo-sqlite", message: "The database is @librephotos/local-db; only src/db/client.ts opens it." },
+          ],
+        },
+      ],
     },
   },
   {

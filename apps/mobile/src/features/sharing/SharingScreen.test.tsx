@@ -1,7 +1,7 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
 import { SharingScreen } from "./SharingScreen";
-import { renderWithDb, makeMockClient, jsonResponse } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { renderWithDb, makeMockClient, jsonResponse, settleDb } from "@/test/test-utils";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 
 const OWNER = { id: 2, username: "bob", first_name: "Bob", last_name: "R" };
 const SELF = { id: 1, username: "me", first_name: "Me", last_name: "" };
@@ -43,7 +43,7 @@ describe("SharingScreen", () => {
   afterEach(() => t.close());
 
   it("renders shared-by-me photos and albums, and toggles to with-me", async () => {
-    const { getByTestId } = renderWithDb(<SharingScreen />, t.db, client());
+    const { getByTestId } = await renderWithDb(<SharingScreen />, t.db, client());
 
     await waitFor(() => {
       expect(getByTestId("shared-album-7")).toBeTruthy();
@@ -51,6 +51,8 @@ describe("SharingScreen", () => {
     });
 
     fireEvent.press(getByTestId("sharing-tab-withMe"));
+
+    await settleDb();
     await waitFor(() => expect(getByTestId("shared-album-7")).toBeTruthy());
   });
 });

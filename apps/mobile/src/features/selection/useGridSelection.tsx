@@ -81,32 +81,32 @@ export function useGridSelection(
 
   const runFavorite = useCallback(() => {
     const hashes = selectedImageHashes(state);
-    if (hashes.length) mutations.favorite(hashes, dir.favorite);
+    if (hashes.length) void mutations.favorite(hashes, dir.favorite);
     clear();
   }, [state, mutations, dir.favorite, clear]);
 
   const runHide = useCallback(() => {
     const hashes = selectedImageHashes(state);
-    if (hashes.length) mutations.hide(hashes, dir.hidden);
+    if (hashes.length) void mutations.hide(hashes, dir.hidden);
     clear();
   }, [state, mutations, dir.hidden, clear]);
 
   const runTrash = useCallback(() => {
     const hashes = selectedImageHashes(state);
-    if (hashes.length) mutations.trash(hashes, dir.deleted);
+    if (hashes.length) void mutations.trash(hashes, dir.deleted);
     clear();
   }, [state, mutations, dir.deleted, clear]);
 
   const runArchive = useCallback(() => {
     const hashes = selectedImageHashes(state);
-    if (hashes.length) mutations.archive(hashes, dir.archived);
+    if (hashes.length) void mutations.archive(hashes, dir.archived);
     clear();
   }, [state, mutations, dir.archived, clear]);
 
   /** One `rating` outbox row per photo: the endpoint rates a single photo. */
   const runRate = useCallback(
     (rating: number) => {
-      for (const hash of selectedImageHashes(state)) mutations.rate(hash, rating);
+      for (const hash of selectedImageHashes(state)) void mutations.rate(hash, rating);
       clear();
     },
     [state, mutations, clear]
@@ -120,7 +120,7 @@ export function useGridSelection(
   }, [album, state]);
   const runSetCover = useCallback(() => {
     if (!album || !coverPick) return;
-    mutations.setAlbumCover(album.albumId, coverPick.photoId, coverPick.imageHash);
+    void mutations.setAlbumCover(album.albumId, coverPick.photoId, coverPick.imageHash);
     pushToast({ level: "info", message: t("albumDetail.coverSet") });
     clear();
   }, [album, coverPick, mutations, pushToast, t, clear]);
@@ -130,7 +130,7 @@ export function useGridSelection(
       const items = selectedItems(state);
       const photoIds = selectedPhotoIds(state);
       const imageHashes = selectedImageHashes(state);
-      if (photoIds.length) mutations.addToAlbum(album.id, album.title, photoIds, imageHashes);
+      if (photoIds.length) void mutations.addToAlbum(album.id, album.title, photoIds, imageHashes);
       void items;
       setPickerOpen(false);
       clear();
@@ -141,7 +141,7 @@ export function useGridSelection(
   const onCreateAlbum = useCallback(
     (title: string) => {
       const photoIds = selectedPhotoIds(state);
-      mutations.createAlbum(title, photoIds);
+      void mutations.createAlbum(title, photoIds);
       setPickerOpen(false);
       clear();
     },
@@ -152,7 +152,7 @@ export function useGridSelection(
     if (!album) return;
     const photoIds = selectedPhotoIds(state);
     const imageHashes = selectedImageHashes(state);
-    if (photoIds.length) mutations.removeFromAlbum(album.albumId, album.title, photoIds, imageHashes);
+    if (photoIds.length) void mutations.removeFromAlbum(album.albumId, album.title, photoIds, imageHashes);
     clear();
   }, [album, state, mutations, clear]);
 

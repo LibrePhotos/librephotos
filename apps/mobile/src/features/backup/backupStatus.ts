@@ -3,10 +3,10 @@
  * screen, the account screen and the avatar's progress ring.
  */
 import { useReactiveQuery } from "@/db/provider";
-import { getBackupConfig } from "@/db/queries/backup";
+import { getBackupConfig } from "@librephotos/local-db";
 import { getMediaAccess } from "@/sync/device/media-store";
 import { jobQueueSnapshot } from "@/sync/jobs/status";
-import { backupState, type BackupStage, type BackupState } from "@/sync/upload/status";
+import { backupState, INITIAL_BACKUP_STATE, type BackupStage, type BackupState } from "@/sync/upload/status";
 import { useSyncStore } from "@/stores/sync";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -18,16 +18,17 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
  */
 export function useBackupState(): BackupState {
   const gate = useSyncStore((s) => s.gate);
-  return useReactiveQuery<BackupState>(
-    (d) =>
+  return useReactiveQuery(
+    ["backup-state", gate],
+    async (d) =>
       backupState(d, {
-        config: getBackupConfig(d),
-        access: getMediaAccess(d),
+        config: await getBackupConfig(d),
+        access: await getMediaAccess(d),
         gate,
-        jobs: jobQueueSnapshot(d),
+        jobs: await jobQueueSnapshot(d),
       }),
-    [gate]
-  );
+    INITIAL_BACKUP_STATE
+  ).data;
 }
 
 /** The headline: which stage is running, and how far along it is. */

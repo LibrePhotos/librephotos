@@ -8,28 +8,28 @@
  * This is a helper, not a test file (no `.test.ts` suffix), so jest does not run
  * it directly.
  */
-import { ApiError } from "@librephotos/api-client";
-import type {
-  SyncAutoAlbumItem,
-  SyncAutoAlbumsResponse,
-  SyncCounts,
-  SyncEnvelope,
-  SyncNamedAlbumItem,
-  SyncPersonItem,
-  SyncPersonsResponse,
-  SyncPhotoItem,
-  SyncPhotosResponse,
-  SyncPlaceAlbumItem,
-  SyncPlaceAlbumsResponse,
-  SyncSharedUserItem,
-  SyncSharingResponse,
-  SyncTagAlbumsResponse,
-  SyncThingAlbumsResponse,
-  SyncUserAlbumItem,
-  SyncUserAlbumsResponse,
+import {
+  ApiError,
+  type SyncAutoAlbumItem,
+  type SyncAutoAlbumsResponse,
+  type SyncCounts,
+  type SyncEnvelope,
+  type SyncNamedAlbumItem,
+  type SyncPersonItem,
+  type SyncPersonsResponse,
+  type SyncPhotoItem,
+  type SyncPhotosResponse,
+  type SyncPlaceAlbumItem,
+  type SyncPlaceAlbumsResponse,
+  type SyncSharedUserItem,
+  type SyncSharingResponse,
+  type SyncTagAlbumsResponse,
+  type SyncThingAlbumsResponse,
+  type SyncUserAlbumItem,
+  type SyncUserAlbumsResponse,
 } from "@librephotos/api-client";
 import type { RemoteSyncSource, SyncPullParams } from "../remote/source";
-import type { SyncEntity } from "@/db/queries/sync-state";
+import type { SyncEntity } from "@librephotos/local-db";
 
 /* ---- cursor codec (opaque token; client never inspects it) ------------- */
 

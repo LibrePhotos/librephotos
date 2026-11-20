@@ -10,7 +10,7 @@ import { useMemo } from "react";
 import { useDb } from "@/db/provider";
 import { useAuthStore } from "@/stores/auth";
 import { notifyOutboxWrite } from "@/sync/triggers";
-import type { AppDatabase } from "@/db/types";
+import type { AppDatabase } from "@librephotos/local-db";
 import * as actions from "./actions";
 
 export function useMutations() {
@@ -20,7 +20,9 @@ export function useMutations() {
 
 /** Testable binder: wraps each action with the outbox-write trigger. */
 export function bindMutations(db: AppDatabase, notify: (db: AppDatabase) => void = defaultNotify) {
-  const after = <T>(result: T): T => {
+  // The trigger runs once the write has committed, so replay sees the outbox row.
+  const after = async <T>(write: Promise<T>): Promise<T> => {
+    const result = await write;
     notify(db);
     return result;
   };

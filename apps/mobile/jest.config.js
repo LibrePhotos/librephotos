@@ -14,8 +14,14 @@
 // they live in the app's — require.resolve finds either. Still one copy each,
 // which is the Phase 0 invariant (source-imported api-client must share them).
 const dir = (id) => require("path").dirname(require.resolve(`${id}/package.json`));
-const RN_MODULE_NAME_MAPPER = {
+/** The shared packages are TS source, consumed directly (like Metro does). */
+const PACKAGE_MAPPER = {
   "^@librephotos/api-client$": "<rootDir>/../../packages/api-client/src/index.ts",
+  "^@librephotos/local-db$": "<rootDir>/../../packages/local-db/src/index.ts",
+  "^@librephotos/local-db/(better-sqlite3|testing)$": "<rootDir>/../../packages/local-db/src/$1.ts",
+};
+const RN_MODULE_NAME_MAPPER = {
+  ...PACKAGE_MAPPER,
   "^react$": dir("react"),
   "^react/(.*)$": `${dir("react")}/$1`,
   "^react-dom$": dir("react-dom"),
@@ -27,7 +33,7 @@ const RN_MODULE_NAME_MAPPER = {
 
 /** Pure-TS Node tests never touch RN — only the api-client + app source aliases. */
 const NODE_MODULE_NAME_MAPPER = {
-  "^@librephotos/api-client$": "<rootDir>/../../packages/api-client/src/index.ts",
+  ...PACKAGE_MAPPER,
   // Resolve the single zod copy by module resolution (it hoists to the repo
   // root under npm workspaces, or the app's node_modules standalone) — same
   // forced-singleton invariant as the RN mapper.
@@ -47,10 +53,10 @@ module.exports = {
       resolver: "react-native-worklets/jest/resolver",
       moduleNameMapper: RN_MODULE_NAME_MAPPER,
       modulePaths: ["<rootDir>/node_modules"],
-      // DB + sync + mutation-core tests belong to the node project.
+      // Sync + mutation-core tests belong to the node project (the database's own
+      // tests live in packages/local-db; src/db keeps only the app glue).
       testPathIgnorePatterns: [
         "<rootDir>/node_modules/",
-        "<rootDir>/src/db/",
         "<rootDir>/src/sync/",
         "<rootDir>/src/mutations/",
       ],

@@ -2,9 +2,8 @@ import { act, fireEvent, waitFor } from "@testing-library/react-native";
 import type { ImageLoadEventData, ImageProgressEventData } from "expo-image";
 import { PhotoViewerScreen } from "./PhotoViewerScreen";
 import { useSettingsStore } from "@/stores/settings";
-import { jsonResponse, makeMockClient, renderWithDb } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
+import { jsonResponse, makeMockClient, renderWithDb, settleDb } from "@/test/test-utils";
+import { createTestDb, remotePhoto, seedRemotePhotos, type TestDb } from "@librephotos/local-db/testing";
 
 /**
  * Pinching or double-tapping a photo loads its original (#2743). The gestures
@@ -88,14 +87,14 @@ function loadEvent(width: number, height: number): ImageLoadEventData {
 
 describe("PhotoViewerScreen zooming into the original", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     mockImages.clear();
     useSettingsStore.setState({ serverUrl: "https://test.local" });
     globalThis.__mockSearchParams = { id: "hashA" };
     t = createTestDb();
-    seedRemotePhotos(t.db, [remotePhoto({ id: PHOTO_ID, imageHash: "hashA", timestamp: Date.UTC(2024, 0, 3) })]);
+    await seedRemotePhotos(t.db, [remotePhoto({ id: PHOTO_ID, imageHash: "hashA", timestamp: Date.UTC(2024, 0, 3) })]);
   });
-  afterEach(() => {
+  afterEach(async () => {
     t.close();
     globalThis.__mockSearchParams = undefined;
   });
@@ -104,7 +103,7 @@ describe("PhotoViewerScreen zooming into the original", () => {
     const client = makeMockClient(async (url) =>
       url.includes("/photos/hashA/") ? jsonResponse(detail) : jsonResponse({}, 404)
     );
-    const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
+    const utils = await renderWithDb(<PhotoViewerScreen />, t.db, client);
     // The details arrive after the first paint; the zoom decision reads them.
     await waitFor(() => expect(utils.queryByText("Loading details…")).toBeNull());
     await waitFor(() => expect(image().onZoomChange).toBeDefined());
@@ -142,6 +141,8 @@ describe("PhotoViewerScreen zooming into the original", () => {
     expect(utils.getByText("The original did not load")).toBeTruthy();
 
     fireEvent.press(utils.getByTestId("viewer-original-retry"));
+
+    await settleDb();
     expect(image().source.uri).toContain("/media/photos/hashA?retry=1");
     expect(utils.getByText("Loading original")).toBeTruthy();
   });
