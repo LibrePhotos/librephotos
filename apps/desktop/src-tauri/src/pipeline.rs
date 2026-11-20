@@ -54,6 +54,7 @@ struct Inner {
     probe_cv: Condvar,
     cache: Mutex<LruCache<Key, Arc<Encoded>>>,
     disk: Option<DiskCache>,
+    disk_min_render: Duration,
     workers: usize,
 }
 
@@ -106,6 +107,15 @@ impl Pipeline {
     }
 
     pub fn with_disk(workers: usize, cache_bytes: usize, disk: Option<DiskCache>) -> Pipeline {
+        Pipeline::with_disk_after(workers, cache_bytes, disk, DISK_MIN_RENDER)
+    }
+
+    pub fn with_disk_after(
+        workers: usize,
+        cache_bytes: usize,
+        disk: Option<DiskCache>,
+        disk_min_render: Duration,
+    ) -> Pipeline {
         let workers = workers.max(2);
         let probes = if disk.is_some() { PROBE_THREADS } else { 0 };
         let inner = Arc::new(Inner {
@@ -114,6 +124,7 @@ impl Pipeline {
             probe_cv: Condvar::new(),
             cache: Mutex::new(LruCache::new(cache_bytes)),
             disk,
+            disk_min_render,
             workers,
         });
         for i in 0..workers {
@@ -432,7 +443,7 @@ fn worker(inner: Arc<Inner>) {
         if let (Ok(e), Some(disk)) = (&reply, &inner.disk)
             && cacheable(key.kind)
             && !passthrough
-            && took >= DISK_MIN_RENDER
+            && took >= inner.disk_min_render
         {
             disk.put(disk_id(&key, job.size), e.clone());
         }
@@ -619,14 +630,15 @@ mod tests {
         let (dir, files) = slow_pngs("disk", 4);
         let root = dir.join("cache");
         let disk = DiskCache::open(root.clone(), 1 << 30).unwrap();
-        let pipe = Pipeline::with_disk(3, 1 << 20, Some(disk.clone()));
+        let pipe = Pipeline::with_disk_after(3, 1 << 20, Some(disk.clone()), Duration::ZERO);
         let first = pipe.get(files[0].clone(), Kind::Thumb, 320, 320).unwrap();
         disk.flush();
-        assert_eq!(disk.stats().writes, 1, "a slow thumb is written to disk");
-        let pipe2 = Pipeline::with_disk(
+        assert_eq!(disk.stats().writes, 1, "a decoded thumb is written to disk");
+        let pipe2 = Pipeline::with_disk_after(
             3,
             1 << 20,
             Some(DiskCache::open(root.clone(), 1 << 30).unwrap()),
+            Duration::ZERO,
         );
         let again = pipe2.get(files[0].clone(), Kind::Thumb, 320, 320).unwrap();
         assert_eq!(again.bytes, first.bytes);
@@ -650,6 +662,18 @@ mod tests {
             .unwrap();
         let changed = pipe2.get(files[0].clone(), Kind::Thumb, 320, 320).unwrap();
         assert_eq!((changed.width, changed.height), (10, 10));
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn renders_faster_than_the_threshold_stay_off_disk() {
+        let (dir, files) = slow_pngs("fast", 1);
+        let disk = DiskCache::open(dir.join("cache"), 1 << 30).unwrap();
+        let pipe =
+            Pipeline::with_disk_after(2, 1 << 20, Some(disk.clone()), Duration::from_secs(3600));
+        pipe.get(files[0].clone(), Kind::Thumb, 320, 320).unwrap();
+        disk.flush();
+        assert_eq!(disk.stats().writes, 0);
         std::fs::remove_dir_all(&dir).ok();
     }
 

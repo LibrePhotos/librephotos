@@ -287,6 +287,25 @@ fn writer(inner: Arc<Inner>, rx: Receiver<Msg>) {
     }
 }
 
+const RENAME_ATTEMPTS: u32 = 5;
+const RENAME_BACKOFF: Duration = Duration::from_millis(5);
+
+fn rename_over_readers(from: &Path, to: &Path) -> std::io::Result<()> {
+    let mut attempt = 1;
+    loop {
+        match fs::rename(from, to) {
+            Err(e)
+                if e.kind() == std::io::ErrorKind::PermissionDenied
+                    && attempt < RENAME_ATTEMPTS =>
+            {
+                std::thread::sleep(RENAME_BACKOFF * attempt);
+                attempt += 1;
+            }
+            other => return other,
+        }
+    }
+}
+
 impl Inner {
     fn write(&self, id: &str, e: &Encoded) -> std::io::Result<u64> {
         let h = fnv1a(id);
@@ -298,7 +317,7 @@ impl Inner {
         let data = serialize(id, e);
         let res = fs::File::create(&tmp)
             .and_then(|mut f| f.write_all(&data))
-            .and_then(|_| fs::rename(&tmp, &dest));
+            .and_then(|_| rename_over_readers(&tmp, &dest));
         if res.is_err() {
             let _ = fs::remove_file(&tmp);
         }
