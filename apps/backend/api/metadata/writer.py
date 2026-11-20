@@ -142,7 +142,11 @@ class _Session:
         self._process: ExifToolProcess | None = None
 
     def write(
-        self, target: str, arguments: list[bytes], options: Sequence[bytes] = ()
+        self,
+        target: str,
+        arguments: list[bytes],
+        options: Sequence[bytes] = (),
+        in_place: bool = False,
     ) -> WriteResult:
         if self._process is None or not self._process.alive:
             if self._process is not None:
@@ -156,7 +160,10 @@ class _Session:
         except OSError:
             size = 0  # a sidecar ExifTool is about to create
         timeout = WRITE_TIMEOUT_SECONDS + size / WRITE_BYTES_PER_SECOND
-        command = [*options, *arguments, b"-overwrite_original", os.fsencode(target)]
+        overwrite = (
+            b"-overwrite_original_in_place" if in_place else b"-overwrite_original"
+        )
+        command = [*options, *arguments, overwrite, os.fsencode(target)]
         try:
             answer = self._process.run(command, timeout)
         except ExifToolError as error:
@@ -284,7 +291,14 @@ def write_metadata(
     with one_exiftool_process():
         session = _session.get()
         assert session is not None
-        return session.write(target, arguments, option_arguments)
+        # A sidecar is rewritten in place (#2960). ``-overwrite_original`` writes a
+        # new file, renames it over the old one and then chmods it with the old
+        # mode bits, which on an ACL share (Synology reports 000) drops the ACL
+        # and leaves a file nobody but root can open. In place keeps the file, so
+        # its ACL, extended attributes and owner stay as other apps set them; a
+        # small XMP file is cheap to lose to a crash mid-write, unlike a photo,
+        # which keeps the atomic rename.
+        return session.write(target, arguments, option_arguments, in_place=use_sidecar)
 
 
 def _orientation_reader() -> ExifTool:
