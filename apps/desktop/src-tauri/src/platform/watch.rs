@@ -23,7 +23,7 @@ use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 
 use super::FsEntry;
-use crate::library::{file_stat, is_within, normalize_dir, skip_dir, walk_each};
+use super::files::{file_stat, is_within, normalize_dir, skip_dir, walk_each};
 
 pub const QUIET: Duration = Duration::from_millis(350);
 pub const MAX_WAIT: Duration = Duration::from_secs(2);

@@ -271,7 +271,9 @@ export async function claimNextUpload(db: AppDatabase, now = Date.now()): Promis
 /**
  * Atomically claim up to `limit` hashed pending rows for a server existence
  * check (`checking`). The checker answers each with markSkipped (the server has
- * it) or setQueueState(id, 'pending') (it does not; upload it).
+ * it) or {@link markAbsent} (it does not; upload it). A row answered absent is
+ * not handed out for a check again (only to the uploaders), so the checker
+ * moves on to the next rows instead of asking about the same ones forever.
  */
 export async function claimExistenceChecks(
   db: AppDatabase,
@@ -281,7 +283,7 @@ export async function claimExistenceChecks(
     sql`UPDATE upload_queue SET state = 'checking'
         WHERE asset_id IN (
           SELECT uq.asset_id FROM upload_queue uq JOIN local_asset la ON la.id = uq.asset_id
-          WHERE uq.state = 'pending' AND uq.attempts = 0 AND la.hash IS NOT NULL
+          WHERE uq.state = 'pending' AND uq.attempts = 0 AND uq.next_attempt_at IS NULL AND la.hash IS NOT NULL
           ORDER BY uq.enqueued_at ASC, uq.asset_id ASC LIMIT ${limit})
         RETURNING asset_id`
   );
@@ -293,6 +295,70 @@ export async function claimExistenceChecks(
           sql`, `
         )})`
   );
+}
+
+/**
+ * The existence check found the server lacks the file: back to `pending` for an
+ * uploader, marked checked (`next_attempt_at = 0`, "may run now") so
+ * {@link claimExistenceChecks} does not claim it again.
+ */
+export async function markAbsent(db: AppDatabase, assetId: string): Promise<void> {
+  await db.run(
+    sql`UPDATE upload_queue SET state = 'pending', next_attempt_at = 0 WHERE asset_id = ${assetId} AND state = 'checking'`
+  );
+}
+
+/**
+ * The backup of folder roots was turned off: the queued (not running, not
+ * finished) uploads of files in no backed-up root are dropped. Loose files and
+ * running uploads stay.
+ */
+export async function cancelFolderBackups(db: AppDatabase): Promise<number> {
+  const { changes } = await runWrite(
+    db,
+    sql`DELETE FROM upload_queue
+        WHERE state IN ('pending', 'checking', 'failed')
+          AND asset_id IN (SELECT laa.asset_id FROM local_album_asset laa JOIN local_album l ON l.id = laa.album_id
+                           WHERE l.source = 'folder')
+          AND asset_id NOT IN (SELECT laa.asset_id FROM local_album_asset laa JOIN local_album l ON l.id = laa.album_id
+                               WHERE l.source = 'folder' AND l.backup_selection = 1)`
+  );
+  return changes;
+}
+
+/**
+ * The server answered that it has a file (a single check, outside the queue's
+ * own checker): it counts as on the server, with the server's photo id. A
+ * running upload is left alone.
+ */
+export async function recordServerHas(
+  db: AppDatabase,
+  assetId: string,
+  serverPhotoId: string | null,
+  now = Date.now()
+): Promise<void> {
+  await db.run(
+    sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at, server_photo_id)
+        VALUES (${assetId}, 'skipped_exists', 1, 0, ${now}, ${serverPhotoId})
+        ON CONFLICT(asset_id) DO UPDATE SET state = 'skipped_exists', progress = 1, last_error = NULL,
+          next_attempt_at = NULL, server_photo_id = excluded.server_photo_id
+        WHERE upload_queue.state <> 'uploading'`
+  );
+}
+
+/**
+ * The library now belongs to another server account: every file's server hash
+ * is rebuilt for `userId` (the MD5 stays: `hash` is md5 + user id) and the
+ * upload queue, which described the old account, starts over.
+ */
+export async function switchFolderAccount(db: AppDatabase, userId: number): Promise<void> {
+  await db.batch([
+    db.run(
+      sql`UPDATE local_asset SET hash = substr(hash, 1, 32) || ${String(userId)}
+          WHERE hash IS NOT NULL AND length(hash) > 32 AND uri IS NOT NULL`
+    ),
+    db.run(sql`DELETE FROM upload_queue`),
+  ]);
 }
 
 /** Record how far a resumable upload got, so a restart continues from there. */

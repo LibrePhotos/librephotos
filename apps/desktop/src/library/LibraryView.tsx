@@ -26,10 +26,10 @@ import { PageHeader } from "../ui/PageHeader";
 import { SegmentedControl } from "../ui/Toggles";
 import { addLibraryRoot, libraryByHashes, librarySearch, remoteThumbUrl, removeLibraryRoot, type LibraryFile, type Root } from "./api";
 import { BackupCard } from "./BackupCard";
-import { dayKey } from "./dates";
 import { FoldersPage, folderName } from "./FoldersPage";
 import { Grid } from "./Grid";
-import { useLibraryFiles, useLibraryProgress, useRoots, useServerStatus } from "./hooks";
+import { useLibraryDays, useLibraryFiles, useLibraryProgress, useRoots, useServerStatus } from "./hooks";
+import { isWithin } from "./indexer";
 import { searchServer, type ServerHit } from "./serverApi";
 import { ServerPanel, hostOf } from "./ServerPanel";
 import "./Library.css";
@@ -97,7 +97,7 @@ function useSearch(query: string, connected: boolean): Search {
             setS(prev => ({
               ...prev,
               query: q,
-              fromServer: matches.map(m => m.file).filter(f => f.rootId !== null),
+              fromServer: matches.map(m => m.file).filter(f => f.inLibrary),
               serverOnly: hits.filter(h => !mapped.has(h.imageHash)),
               serverBusy: false,
             }));
@@ -144,20 +144,6 @@ type Scope = "all" | "local" | "remote";
 
 const photos = (n: number) => `${n.toLocaleString()} ${n === 1 ? "photo" : "photos"}`;
 
-/** Distinct days of a newest-first list (for the "198 photos · 48 days" line). */
-function countDays(files: LibraryFile[]): number {
-  let n = 0;
-  let last = NaN;
-  for (const f of files) {
-    const d = dayKey(f.takenMs);
-    if (d !== last) {
-      n++;
-      last = d;
-    }
-  }
-  return n;
-}
-
 /**
  * The library window, drawn as the LibrePhotos web app: a header with the logo and the search
  * pill, the sidebar of pill rows on the chrome colour, and the page set into it with a rounded
@@ -166,7 +152,7 @@ function countDays(files: LibraryFile[]): number {
  */
 export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryViewProps) {
   const [page, setPage] = useState<Page>("photos");
-  const [rootId, setRootId] = useState<number | null>(null);
+  const [rootId, setRootId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<Scope>("all");
   const [preview, setPreview] = useState<ServerHit | null>(null);
@@ -182,13 +168,14 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
   }, [roots, rootId]);
 
   const searching = query.trim() !== "";
+  const rootPath = rootId === null ? null : (roots.find(r => r.id === rootId)?.path ?? null);
   const shown = useMemo(() => {
     if (!searching) return files ?? [];
-    const local = (search.local ?? []).filter(f => rootId === null || f.rootId === rootId);
-    const merged = new Map(local.map(f => [f.path, f]));
-    for (const f of search.fromServer) if (rootId === null || f.rootId === rootId) merged.set(f.path, f);
+    const inRoot = (f: LibraryFile) => rootPath === null || isWithin(f.path, rootPath);
+    const merged = new Map((search.local ?? []).filter(inRoot).map(f => [f.path, f]));
+    for (const f of search.fromServer) if (inRoot(f)) merged.set(f.path, f);
     return [...merged.values()].sort((a, b) => b.takenMs - a.takenMs || b.name.localeCompare(a.name));
-  }, [searching, files, search.local, search.fromServer, rootId]);
+  }, [searching, files, search.local, search.fromServer, rootPath]);
 
   // Let Rust make the thumbs of this list into the disk cache while the app is idle.
   useEffect(() => {
@@ -243,7 +230,7 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
 
   const open = useCallback((index: number) => onOpen(shown, index), [onOpen, shown]);
 
-  const go = (next: Page, root: number | null = null) => {
+  const go = (next: Page, root: string | null = null) => {
     setPage(next);
     setRootId(root);
     setQuery("");
@@ -254,7 +241,7 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
   const indexing = progress !== null && (progress.walking || progress.pending > 0);
   const host = hostOf(status.url);
   const total = roots.reduce((n, r) => n + r.fileCount, 0);
-  const days = useMemo(() => countDays(files ?? []), [files]);
+  const days = useLibraryDays(rootId);
 
   // ------------------------------------------------------------ the current page
 

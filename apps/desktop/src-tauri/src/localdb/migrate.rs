@@ -1,18 +1,27 @@
-//! The migration runner: applies `packages/local-db`'s ordered `migrations.json`
-//! (`[{ "tag": "0000_init", "statements": ["CREATE TABLE ...", ...] }]`) at start-up, before the
-//! window loads. Applied tags are kept in `__local_db_migrations(tag, applied_at)`; each
-//! migration runs in its own transaction, so a failing one leaves the database exactly at the
-//! migration before it, and the next start tries it again.
+//! The migration runner: applies `packages/local-db`'s ordered `migrations/migrations.json`
+//! (`[{ "tag": "0000_baseline", "statements": ["CREATE TABLE ...", ...] }]`) at start-up, before
+//! the window loads, the way the package's `runMigrations` does (its README, "Migrations"):
+//!
+//! 1. Applied tags are kept in `__local_db_migrations(tag, applied_at)`; every migration whose tag
+//!    is missing runs, in array order, in its own transaction together with its bookkeeping row.
+//! 2. If one fails, the database is WIPED AND REBUILT: the rows of `outbox` and `upload_queue` are
+//!    read out, every view and table is dropped (FTS shadow tables go with their virtual table),
+//!    every migration is applied from scratch, and the saved rows go back with the columns that
+//!    still exist (`INSERT OR IGNORE`). The mirror is disposable; the library is walked again.
 
 use std::collections::HashSet;
 use std::fmt;
 
-use rusqlite::{Connection, TransactionBehavior, params};
+use rusqlite::types::Value;
+use rusqlite::{Connection, TransactionBehavior, params, params_from_iter};
 use serde::Deserialize;
 
-/// The migrations the app applies. Phase 1 ships a fixture; with `packages/local-db` this is
-/// `include_str!("../../../../../packages/local-db/migrations/migrations.json")`.
-pub const MIGRATIONS_JSON: &str = include_str!("fixtures/migrations.json");
+/// The migrations the app applies: the shared package's, compiled in.
+pub const MIGRATIONS_JSON: &str =
+    include_str!("../../../../../packages/local-db/migrations/migrations.json");
+
+/// Tables whose rows survive a wipe-and-rebuild (the package's `PRESERVED_TABLES`).
+pub const PRESERVED_TABLES: [&str; 2] = ["outbox", "upload_queue"];
 
 const BOOKKEEPING: &str = "CREATE TABLE IF NOT EXISTS __local_db_migrations (\
     tag TEXT PRIMARY KEY, applied_at INTEGER NOT NULL)";
@@ -115,6 +124,124 @@ pub fn apply(conn: &mut Connection, migrations: &[Migration]) -> Result<Vec<Stri
     Ok(now)
 }
 
+/// What start-up migration did.
+#[derive(Debug, Default)]
+pub struct Outcome {
+    /// A migration failed and the database was rebuilt.
+    pub wiped: bool,
+    /// The failure (and, if the rebuild failed too, why).
+    pub error: Option<MigrateError>,
+}
+
+/// [`apply`], and when that fails, [`wipe_and_rebuild`].
+pub fn run(conn: &mut Connection, migrations: &[Migration]) -> Outcome {
+    match apply(conn, migrations) {
+        Ok(_) => Outcome::default(),
+        Err(first) => match wipe_and_rebuild(conn, migrations) {
+            Ok(()) => Outcome {
+                wiped: true,
+                error: Some(first),
+            },
+            Err(e) => Outcome {
+                wiped: false,
+                error: Some(MigrateError {
+                    message: format!("{}; the rebuild failed too: {e}", first.message),
+                    ..first
+                }),
+            },
+        },
+    }
+}
+
+type SavedRows = Vec<(String, Vec<(String, Value)>)>;
+
+/// Every row of `table` as (column, value) pairs; empty when the table does not exist.
+fn read_rows(conn: &Connection, table: &str) -> SavedRows {
+    let Ok(mut st) = conn.prepare(&format!("SELECT * FROM `{table}`")) else {
+        return Vec::new();
+    };
+    let names: Vec<String> = st.column_names().iter().map(|n| n.to_string()).collect();
+    let rows = st.query_map([], |r| {
+        names
+            .iter()
+            .enumerate()
+            .map(|(i, n)| Ok((n.clone(), r.get::<_, Value>(i)?)))
+            .collect::<rusqlite::Result<Vec<_>>>()
+    });
+    match rows {
+        Ok(rows) => rows
+            .flatten()
+            .map(|cells| (table.to_string(), cells))
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Drops every view and table, applies every migration from scratch and puts the rows of
+/// [`PRESERVED_TABLES`] back, in one transaction.
+pub fn wipe_and_rebuild(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<()> {
+    let saved: SavedRows = PRESERVED_TABLES
+        .iter()
+        .flat_map(|t| read_rows(conn, t))
+        .collect();
+    let objects: Vec<(String, String, String)> = {
+        let mut st = conn.prepare(
+            "SELECT type, name, COALESCE(sql, '') FROM sqlite_master \
+             WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%'",
+        )?;
+        st.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+            .collect::<rusqlite::Result<_>>()?
+    };
+    let virtual_tables: Vec<&str> = objects
+        .iter()
+        .filter(|(_, _, sql)| sql.to_ascii_uppercase().starts_with("CREATE VIRTUAL TABLE"))
+        .map(|(_, n, _)| n.as_str())
+        .collect();
+    let shadow = |name: &str| {
+        virtual_tables
+            .iter()
+            .any(|v| name != *v && name.starts_with(&format!("{v}_")))
+    };
+    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    for kind in ["view", "table"] {
+        for (_, name, _) in objects.iter().filter(|(t, n, _)| t == kind && !shadow(n)) {
+            tx.execute_batch(&format!("DROP {} IF EXISTS `{name}`", kind.to_uppercase()))?;
+        }
+    }
+    tx.execute(BOOKKEEPING, [])?;
+    let now = now_ms();
+    for m in migrations {
+        for sql in &m.statements {
+            tx.execute_batch(sql)?;
+        }
+        tx.execute(
+            "INSERT INTO __local_db_migrations (tag, applied_at) VALUES (?1, ?2)",
+            params![m.tag, now],
+        )?;
+    }
+    for (table, cells) in &saved {
+        let keep: HashSet<String> = {
+            let mut st = tx.prepare("SELECT name FROM pragma_table_info(?1)")?;
+            st.query_map([table], |r| r.get(0))?
+                .collect::<rusqlite::Result<_>>()?
+        };
+        let cells: Vec<&(String, Value)> = cells.iter().filter(|(c, _)| keep.contains(c)).collect();
+        if cells.is_empty() {
+            continue;
+        }
+        let cols: Vec<String> = cells.iter().map(|(c, _)| format!("`{c}`")).collect();
+        let marks = vec!["?"; cells.len()].join(", ");
+        tx.execute(
+            &format!(
+                "INSERT OR IGNORE INTO `{table}` ({}) VALUES ({marks})",
+                cols.join(", ")
+            ),
+            params_from_iter(cells.iter().map(|(_, v)| v)),
+        )?;
+    }
+    tx.commit()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,7 +268,12 @@ mod tests {
 
     #[test]
     fn the_bundled_file_parses() {
-        assert!(!parse(MIGRATIONS_JSON).unwrap().is_empty());
+        let bundled = parse(MIGRATIONS_JSON).unwrap();
+        assert_eq!(bundled[0].tag, "0000_baseline");
+        // The package's schema applies cleanly here (FTS5, views and triggers included).
+        let mut conn = Connection::open_in_memory().unwrap();
+        assert_eq!(apply(&mut conn, &bundled).unwrap().len(), bundled.len());
+        assert!(tables(&conn).contains(&"local_asset_fts".to_string()));
         assert!(parse(r#"[{"tag":"a","statements":[]},{"tag":"a","statements":[]}]"#).is_err());
         assert!(parse(r#"[{"tag":"","statements":[]}]"#).is_err());
         assert!(parse("{}").is_err());
@@ -209,5 +341,61 @@ mod tests {
         assert_eq!(tables(&conn), ["__local_db_migrations", "a", "b", "c"]);
         drop(conn);
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn an_impossible_migration_wipes_and_keeps_the_queues() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        let old = vec![m(
+            "0000_old",
+            &[
+                "CREATE TABLE upload_queue (asset_id TEXT PRIMARY KEY, state TEXT, gone TEXT)",
+                "CREATE TABLE outbox (id INTEGER PRIMARY KEY, kind TEXT)",
+                "CREATE TABLE mirror (x)",
+                "CREATE VIEW v AS SELECT * FROM mirror",
+                "CREATE VIRTUAL TABLE f USING fts5(t)",
+                "INSERT INTO upload_queue VALUES ('a', 'done', 'x')",
+                "INSERT INTO outbox VALUES (1, 'favorite')",
+                "INSERT INTO mirror VALUES (1)",
+            ],
+        )];
+        assert!(run(&mut conn, &old).error.is_none());
+        // The new history starts over: a squashed baseline that cannot apply on top.
+        let new = vec![
+            m(
+                "0000_baseline",
+                &[
+                    "CREATE TABLE upload_queue (asset_id TEXT PRIMARY KEY, state TEXT, extra INTEGER DEFAULT 7)",
+                    "CREATE TABLE outbox (id INTEGER PRIMARY KEY, kind TEXT)",
+                    "CREATE TABLE mirror (x)",
+                ],
+            ),
+            m("0001_fts", &["CREATE VIRTUAL TABLE f USING fts5(t)"]),
+        ];
+        let out = run(&mut conn, &new);
+        assert!(out.wiped, "{:?}", out.error);
+        assert_eq!(
+            out.error.as_ref().map(|e| e.tag.as_str()),
+            Some("0000_baseline")
+        );
+        let tags: Vec<_> = applied(&conn).unwrap().into_iter().map(|t| t.0).collect();
+        assert_eq!(tags, ["0000_baseline", "0001_fts"]);
+        let q: (String, String, i64) = conn
+            .query_row("SELECT asset_id, state, extra FROM upload_queue", [], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+            })
+            .unwrap();
+        assert_eq!(q, ("a".into(), "done".into(), 7));
+        let kinds: String = conn
+            .query_row("SELECT kind FROM outbox", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(kinds, "favorite");
+        let mirror: i64 = conn
+            .query_row("SELECT COUNT(*) FROM mirror", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(mirror, 0, "the mirror is rebuilt empty");
+        // Applying again is a no-op.
+        let again = run(&mut conn, &new);
+        assert!(!again.wiped && again.error.is_none());
     }
 }

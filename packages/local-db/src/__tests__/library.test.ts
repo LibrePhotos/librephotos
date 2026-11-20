@@ -9,7 +9,9 @@ import {
   applyFileMetadata,
   folderRoots,
   folderWords,
+  libraryProgress,
   localAssetByUri,
+  markHashUnreadable,
   localTimelineDays,
   localTimelinePage,
   pendingHashes,
@@ -17,7 +19,9 @@ import {
   removeFolderRoot,
   removeLocalPaths,
   renameLocalPaths,
+  setFolderBackup,
   setFileHashes,
+  upsertLooseFile,
   upsertWalkedFiles,
   type FileMetadata,
   type WalkedFile,
@@ -28,8 +32,12 @@ import {
   claimNextUpload,
   enqueueBackups,
   localBackupCounts,
+  cancelFolderBackups,
+  markAbsent,
   markDone,
+  recordServerHas,
   markSkipped,
+  switchFolderAccount,
   requestUpload,
   resetInFlightUploads,
   setQueueState,
@@ -76,10 +84,34 @@ describe("folder library", () => {
   });
   afterEach(() => t.close());
 
+  it("keeps loose files out of the library but in the hash cache", async () => {
+    const loose: WalkedFile = {
+      path: "D:\\Downloads\\x.jpg",
+      folder: "D:\\Downloads",
+      name: "x.jpg",
+      size: 5,
+      mtimeMs: MTIME,
+      kind: "image",
+    };
+    expect(await upsertLooseFile(t.db, loose)).toBe(loose.path);
+    await upsertWalkedFiles(t.db, root, [file("a.jpg")]);
+    expect(await libraryProgress(t.db)).toEqual({ files: 1, pendingMetadata: 1, pendingHashes: 1 });
+    expect(await localAssetByUri(t.db, loose.path)).toMatchObject({ name: "x.jpg", hash: null });
+    expect((await localTimelinePage(t.db, { limit: 10 })).rows.map((r) => r.name)).toEqual(["a.jpg"]);
+    await upsertLooseFile(t.db, loose);
+    expect(await t.db.get(sql`SELECT COUNT(*) AS n FROM local_asset`)).toEqual({ n: 2 });
+  });
+
   it("names folders from the added folder down, whatever the separator", () => {
     expect(folderWords(ROOT, HOLIDAY)).toBe("Pictures/Holiday 2019");
     expect(folderWords("/home/me/Pictures/", "/home/me/Pictures/a/b")).toBe("Pictures/a/b");
     expect(folderWords(ROOT, ROOT)).toBe("Pictures");
+  });
+
+  it("writes a path reported twice in one batch once", async () => {
+    await upsertWalkedFiles(t.db, root, [file("a.jpg"), file("a.jpg", { size: 5 })]);
+    expect(await uris(t)).toEqual([file("a.jpg").path]);
+    expect((await localAssetByUri(t.db, file("a.jpg").path))?.size_bytes).toBe(5);
   });
 
   it("adds a root once and counts its files", async () => {
@@ -275,5 +307,46 @@ describe("backup queue for concurrent workers", () => {
     for (const c of one) await markSkipped(t.db, c.asset_id);
     for (const c of two) await setQueueState(t.db, c.asset_id, "pending");
     expect((await localBackupCounts(t.db, "folder")).checking).toBe(0);
+  });
+
+  it("asks about a file once: an absent answer goes to the uploaders, not back to the checker", async () => {
+    await enqueueBackups(t.db, 1);
+    const first = await claimExistenceChecks(t.db, 10);
+    expect(first).toHaveLength(3);
+    for (const c of first) await markAbsent(t.db, c.asset_id);
+    expect(await claimExistenceChecks(t.db, 10)).toEqual([]);
+    expect(await localBackupCounts(t.db, "folder")).toMatchObject({ pending: 3, checking: 0 });
+    expect(await claimNextUpload(t.db)).not.toBeNull();
+  });
+
+  it("records a single answer that the server has a file, and drops queued uploads when backup goes off", async () => {
+    await enqueueBackups(t.db, 1);
+    const [first] = await claimExistenceChecks(t.db, 1);
+    const id = first?.asset_id ?? "";
+    await recordServerHas(t.db, id, "photo-9");
+    expect((await localAssetByUri(t.db, id))?.on_server).toBe(1);
+    await setFolderBackup(t.db, "root-1", false);
+    expect(await cancelFolderBackups(t.db)).toBe(2);
+    expect(await localBackupCounts(t.db, "folder")).toMatchObject({ pending: 0, onServer: 2 });
+  });
+
+  it("skips unreadable files until they change", async () => {
+    await upsertWalkedFiles(t.db, root, [file("locked.jpg")]);
+    const path = file("locked.jpg").path;
+    expect((await pendingHashes(t.db, 10)).map((r) => r.uri)).toEqual([path]);
+    await markHashUnreadable(t.db, [path]);
+    expect(await pendingHashes(t.db, 10)).toEqual([]);
+    await upsertWalkedFiles(t.db, root, [file("locked.jpg", { size: 1001 })]);
+    expect((await pendingHashes(t.db, 10)).map((r) => r.uri)).toEqual([path]);
+  });
+
+  it("rebuilds hashes and forgets the queue when the account changes", async () => {
+    const md5 = "5d41402abc4b2a76b9719d911017c592";
+    const path = (await pendingHashes(t.db, 10))[0]?.uri ?? (await uris(t))[0] ?? "";
+    await setFileHashes(t.db, [{ path, md5 }], USER);
+    await enqueueBackups(t.db, 1);
+    await switchFolderAccount(t.db, 42);
+    expect(await localBackupCounts(t.db, "folder")).toMatchObject({ pending: 0, checking: 0, uploading: 0 });
+    expect((await localAssetByUri(t.db, path))?.hash).toBe(`${md5}42`);
   });
 });

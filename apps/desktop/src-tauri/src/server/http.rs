@@ -32,9 +32,8 @@ pub struct RequestMeta {
     pub file_parts: Vec<FilePart>,
 }
 
-/// A `nativeFilePart` of the body: `marker` stands for `len` bytes from `offset` of library file
-/// `id` (the Rust library's row) or of the file at `path` (a supported picture or video; what the
-/// TypeScript library hands over, since its rows are not Rust's).
+/// A `nativeFilePart` of the body: `marker` stands for `len` bytes from `offset` of the file at
+/// `path` (a supported picture or video).
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct FilePart {
     pub marker: String,
@@ -44,10 +43,7 @@ pub struct FilePart {
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct FileRange {
-    #[serde(default)]
-    pub id: Option<i64>,
-    #[serde(default)]
-    pub path: Option<String>,
+    pub path: String,
     pub offset: i64,
     pub len: i64,
 }
@@ -122,20 +118,10 @@ impl Server {
             return Err(format!("not a URL of the connected server: {}", meta.url));
         }
         for part in &meta.file_parts {
-            let me = self.clone();
-            let FileRange {
-                id,
-                ref path,
-                offset,
-                len,
-            } = part.file;
-            let path = path.clone();
-            let bytes = crate::blocking(move || match (path, id) {
-                (Some(p), _) => super::backup::read_chunk_at(&p, offset, len),
-                (None, Some(id)) => me.read_chunk(id, offset, len),
-                (None, None) => Err("a file part names neither a path nor an id".into()),
-            })
-            .await?;
+            let FileRange { path, offset, len } = &part.file;
+            let (path, offset, len) = (path.clone(), *offset, *len);
+            let bytes =
+                crate::blocking(move || super::backup::read_chunk_at(&path, offset, len)).await?;
             body = splice(&body, part.marker.as_bytes(), &bytes)?;
         }
         let method = reqwest::Method::from_bytes(meta.method.as_bytes())
@@ -206,19 +192,7 @@ mod tests {
         assert!(splice(b"a--b", b"M", b"xyz").is_err());
         let by_path = br#"{"id":"3","url":"u","method":"POST","headers":[],"fileParts":[{"marker":"M","ref":{"path":"C:/p/a.jpg","offset":0,"len":4}}]}"#;
         let meta: RequestMeta = serde_json::from_slice(by_path).unwrap();
-        assert_eq!(meta.file_parts[0].file.path.as_deref(), Some("C:/p/a.jpg"));
-        assert_eq!(meta.file_parts[0].file.id, None);
-        let with_part = br#"{"id":"2","url":"u","method":"POST","headers":[],"fileParts":[{"marker":"M","ref":{"id":4,"offset":8,"len":16}}]}"#;
-        let meta: RequestMeta = serde_json::from_slice(with_part).unwrap();
-        assert_eq!(
-            meta.file_parts[0].file,
-            FileRange {
-                id: Some(4),
-                path: None,
-                offset: 8,
-                len: 16
-            }
-        );
-        assert!(!skip_header("content-range"));
+        assert_eq!(meta.file_parts[0].file.path, "C:/p/a.jpg");
+        assert!(serde_json::from_slice::<RequestMeta>(br#"{"id":"2","url":"u","method":"POST","headers":[],"fileParts":[{"marker":"M","ref":{"id":4,"offset":8,"len":16}}]}"#).is_err(), "rows are not Rust's any more");
     }
 }

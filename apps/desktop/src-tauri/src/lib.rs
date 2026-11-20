@@ -4,12 +4,12 @@
 //!   [`decode`] (WIC on Windows, FlashRaw for RAW, pure-Rust fallbacks).
 //! - Deep zoom: `lpview://.../tile` and `tile_info` -> [`tiles`] (pyramid, memory + disk caches).
 //! - Commands: [`listing`], [`info`], [`ops`].
-//! - The library (folders the user added, indexed and watched): [`library`]; the LibrePhotos
-//!   server connection (sign-in, API and media proxy, backup): [`server`]; their commands:
-//!   [`commands`].
-//! - The shared local database (`packages/local-db`'s schema, queries and writers run in the UI):
-//!   [`localdb`] executes their SQL and applies their migrations; [`platform`] hands over what
-//!   the disk knows (walks, watch batches, metadata, MD5) as data for those writers.
+//! - The library (folders the user added) lives in the shared local database: its schema,
+//!   queries and writers are `packages/local-db`, run in the UI. [`localdb`] executes their SQL
+//!   and applies their migrations; [`platform`] hands over what the disk knows (walks, watch
+//!   batches, metadata, MD5) as data for those writers.
+//! - The LibrePhotos server connection (sign-in, API and media proxy, upload bytes): [`server`].
+//! - Their commands: [`commands`].
 
 pub mod appdirs;
 pub mod cache;
@@ -20,7 +20,6 @@ pub mod formats;
 pub mod heif;
 pub mod info;
 pub mod jpegmeta;
-pub mod library;
 pub mod listing;
 pub mod localdb;
 pub mod ops;
@@ -40,7 +39,6 @@ use std::thread::JoinHandle;
 use serde::Serialize;
 use tauri::{Emitter, Manager, State};
 
-use crate::library::Library;
 use crate::pipeline::{Pipeline, Priority};
 use crate::request::{Kind, THUMB_EDGE};
 use crate::tiles::{TileInfo, TileService};
@@ -244,14 +242,12 @@ pub fn run() {
     // Migrations run here, before the window (and so the UI's first query) exists.
     let local_db = commands::open_local_db();
     let watchers = commands::open_watchers();
-    let library = commands::open_library();
-    let server = commands::open_server(library.clone());
+    let server = commands::open_server();
     let for_remote = server.clone();
     let mut builder = tauri::Builder::default()
         .manage(tiles)
         .manage(local_db)
         .manage(watchers)
-        .manage(library)
         .manage(server);
     // LPVIEW_MULTI_INSTANCE=1 lets test harnesses run several copies side by side.
     if std::env::var_os("LPVIEW_MULTI_INSTANCE").is_none() {
@@ -270,7 +266,6 @@ pub fn run() {
         .manage(pipeline)
         .setup(|app| {
             let _ = commands::APP.set(app.handle().clone());
-            app.state::<Arc<Library>>().start();
             if let Some(win) = app.get_webview_window("main")
                 && let (Ok(size), Ok(scale)) = (win.inner_size(), win.scale_factor())
             {
@@ -306,13 +301,6 @@ pub fn run() {
             open_default_apps_settings,
             tile_info,
             tile_release,
-            commands::library_roots,
-            commands::library_add_root,
-            commands::library_remove_root,
-            commands::library_files,
-            commands::library_search,
-            commands::library_by_hashes,
-            commands::library_status,
             commands::server_status,
             commands::server_session,
             commands::server_prepare_sign_in,
@@ -321,20 +309,8 @@ pub fn run() {
             commands::server_signed_out,
             commands::server_set_backup,
             commands::server_set_paused,
-            commands::server_retry_failed,
-            commands::server_upload_file,
             commands::http_fetch,
             commands::http_fetch_abort,
-            commands::backup_reset,
-            commands::backup_claim_checks,
-            commands::backup_claim_upload,
-            commands::backup_next_retry,
-            commands::backup_hash,
-            commands::backup_prepare,
-            commands::backup_set_remote,
-            commands::backup_set_failed,
-            commands::backup_set_progress,
-            commands::backup_local_of,
             commands::db_exec,
             commands::db_batch,
             commands::db_info,

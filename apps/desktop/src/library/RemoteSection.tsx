@@ -5,7 +5,8 @@ import { errorText } from "../lib/infoCache";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Display";
 import { DetailRow } from "../ui/Panel";
-import { onLibraryChanged, serverRemoteOf, serverUploadFile, type RemoteOf } from "./api";
+import { hub } from "../db/database";
+import { serverRemoteOf, serverUploadFile, type RemoteOf } from "./api";
 import { useServerStatus } from "./hooks";
 import { hostOf } from "./ServerPanel";
 import { fetchServerPhoto, type ServerPhoto } from "./serverApi";
@@ -31,7 +32,7 @@ export function RemoteSection({ file }: { file: FileEntry }) {
 
   useEffect(() => {
     let timer = 0;
-    const stop = onLibraryChanged(() => {
+    const stop = hub.watch(["upload_queue", "local_asset"], () => {
       if (timer) return;
       timer = window.setTimeout(() => {
         timer = 0;

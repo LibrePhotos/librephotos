@@ -8,6 +8,7 @@
 //! - [`stat`]: the same facts a walk gives, for given paths;
 //! - MD5 and chunk reads for uploads live in `server::backup` (`md5_file`, `read_chunk_at`).
 
+pub mod files;
 pub mod watch;
 
 use std::path::Path;
@@ -16,8 +17,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use serde::Serialize;
 
 use crate::formats::FileKind;
-use crate::library::db::FileStat;
-use crate::library::{file_stat, taken_ms, walk_each};
+use files::{FileStat, file_stat, taken_ms, walk_each};
 
 /// Files per walk batch.
 pub const WALK_BATCH: usize = 500;

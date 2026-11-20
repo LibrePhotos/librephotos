@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { hub } from "../db/database";
+import { createLiveStore } from "../db/live";
+import { backupStats, onBackupChange } from "../server/backup";
+import { onSessionChange } from "../server/session";
 import {
   OFFLINE_STATUS,
+  libraryDays,
   libraryFiles,
   libraryRoots,
   libraryStatus,
-  onLibraryChanged,
-  onLibraryProgress,
   onServerStatus,
   serverState,
   type LibraryFile,
@@ -14,12 +17,15 @@ import {
   type Root,
   type ServerStatus,
 } from "./api";
-import { backupStats, onBackupChange } from "../server/backup";
-import { onSessionChange } from "../server/session";
+import { onLibraryProgress } from "./indexer";
+
+/** Tables a library view reads: files, their roots, and their server state. */
+const FILE_TABLES = ["local_asset", "local_album_asset", "upload_queue", "remote_photo"] as const;
+const ROOT_TABLES = ["local_album", "local_album_asset"] as const;
 
 /**
- * Runs `load` now and again after events, at most once per `ms` (events come in storms while a
- * folder is indexed or uploaded). The newest answer wins.
+ * Runs `load` now and again after events, at most once per `ms` (events come in storms while
+ * files upload). The newest answer wins.
  */
 function useReloading<T>(
   load: () => Promise<T>,
@@ -63,7 +69,7 @@ function useReloading<T>(
   return [value, run];
 }
 
-/** Rust's side of the connection (settings, library counts) plus the backup engine's progress. */
+/** Rust's side of the connection, the library's backup counts, and the backup engine's progress. */
 async function serverStatus(): Promise<ServerStatus> {
   const state = await serverState();
   const stats = backupStats();
@@ -71,7 +77,7 @@ async function serverStatus(): Promise<ServerStatus> {
 }
 
 function onAnyServerChange(handler: () => void): () => void {
-  const stops = [onServerStatus(handler), onBackupChange(handler), onSessionChange(handler)];
+  const stops = [onServerStatus(handler), onBackupChange(handler), onSessionChange(handler), hub.watch(FILE_TABLES, handler)];
   return () => stops.forEach(stop => stop());
 }
 
@@ -79,14 +85,25 @@ export function useServerStatus(): [ServerStatus, () => void] {
   return useReloading(serverStatus, onAnyServerChange, OFFLINE_STATUS, 250);
 }
 
+const rootsStore = createLiveStore<Root[]>([]);
+const filesStore = createLiveStore<LibraryFile[] | null>(null);
+const daysStore = createLiveStore<number>(0);
+const statusStore = createLiveStore<LibraryStatus | null>(null);
+
 export function useRoots(): [Root[], () => void] {
-  return useReloading(libraryRoots, onLibraryChanged, [], 800);
+  return rootsStore.use("roots", ROOT_TABLES, libraryRoots);
 }
 
 /** Library files (of one root, or all), newest first; null until the first answer. */
-export function useLibraryFiles(rootId: number | null): [LibraryFile[] | null, () => void] {
+export function useLibraryFiles(rootId: string | null): [LibraryFile[] | null, () => void] {
   const load = useCallback(() => libraryFiles(rootId), [rootId]);
-  return useReloading<LibraryFile[] | null>(load, onLibraryChanged, null, 700);
+  return filesStore.use(`files:${rootId ?? "*"}`, FILE_TABLES, load);
+}
+
+/** How many days the library (or one root) has pictures on. */
+export function useLibraryDays(rootId: string | null): number {
+  const load = useCallback(() => libraryDays(rootId), [rootId]);
+  return daysStore.use(`days:${rootId ?? "*"}`, FILE_TABLES, load)[0];
 }
 
 export function useLibraryProgress(): LibraryProgress | null {
@@ -101,6 +118,5 @@ export function useLibraryStatus(path: string | null): LibraryStatus | null {
     () => (path ? libraryStatus(path) : Promise.resolve<LibraryStatus>({ root: null, file: null })),
     [path],
   );
-  const [s] = useReloading<LibraryStatus | null>(load, onLibraryChanged, null, 1000);
-  return s;
+  return statusStore.use(`status:${path ?? ""}`, [...FILE_TABLES, ...ROOT_TABLES], load)[0];
 }

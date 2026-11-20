@@ -58,7 +58,7 @@ Implementations:
 | --- | --- | --- |
 | Node (tests, tools) | `createBetterSqliteExecutor(db)` | `@librephotos/local-db/better-sqlite3` |
 | Phone | `createExpoExecutor(sqlite)` (expo-sqlite async API, serial queue, WAL, statement LRU) | `apps/mobile/src/db/client.ts` |
-| Desktop | Tauri command → rusqlite | `apps/desktop` (to do) |
+| Desktop | `executor` over the Tauri commands `db_exec` / `db_batch` (rusqlite; JSON answers written while SQLite steps) | `apps/desktop/src/db/executor.ts` |
 
 Then:
 
@@ -169,7 +169,12 @@ its hash and upload state survive), `pendingMetadata` + `applyFileMetadata`
 `localTimelineDays`, `localTimelinePage`, `localAssetsByHash`, `localAssetByUri`,
 `searchLocalAssets`, `rebuildLocalSearch`, `enqueueBackups`, `requestUpload`,
 `claimExistenceChecks`, `claimNextUpload`, `setUploadProgress`, `markDone`,
-`markSkipped`, `markFailed`, `resetInFlightUploads`, `localBackupCounts`.
+`markSkipped`, `markAbsent` (a checked file goes to the uploaders and is not
+checked again), `markFailed`, `resetInFlightUploads`, `localBackupCounts`, and
+`upsertLooseFile` (a file outside the roots the user asked about),
+`markHashUnreadable`, `libraryProgress`, `cancelFolderBackups` (backup turned
+off), `recordServerHas` (a single "the server has it" answer) and
+`switchFolderAccount` (hashes rebuilt for another server account).
 
 ## Checks
 

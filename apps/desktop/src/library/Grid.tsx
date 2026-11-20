@@ -1,5 +1,6 @@
 import { IconAlertTriangle, IconCamera, IconCloud, IconCloudCheck, IconCloudOff, IconCloudUpload, IconMovie, IconPhoto, IconPlayerPlayFilled } from "@tabler/icons-react";
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { markInteraction } from "../db/database";
 import { imageUrl } from "../ipc";
 import { enqueueThumb, type Ticket } from "../lib/thumbQueue";
 import { remoteThumbUrl, type LibraryFile } from "./api";
@@ -244,13 +245,18 @@ export function Grid({
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(read);
     };
+    // Background writes (indexing, backup) hold their list re-reads while the user scrolls.
+    const onScroll = () => {
+      markInteraction();
+      schedule();
+    };
     read();
     const ro = new ResizeObserver(schedule);
     ro.observe(el);
-    el.addEventListener("scroll", schedule, { passive: true });
+    el.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       ro.disconnect();
-      el.removeEventListener("scroll", schedule);
+      el.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
     };
   }, []);

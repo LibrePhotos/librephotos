@@ -63,6 +63,9 @@ pub struct DbInfo {
     pub path: Option<String>,
     /// Migration tags applied, in order.
     pub applied: Vec<String>,
+    /// A migration failed and the database was rebuilt from scratch (outbox and upload queue
+    /// kept): the mirror needs a full seed, the library a rescan.
+    pub wiped: bool,
     /// Why the last migration failed (the database stays at the migration before it).
     pub migration_error: Option<String>,
 }
@@ -74,7 +77,16 @@ pub struct LocalDb {
     hub: ChangeHub,
     path: Option<PathBuf>,
     applied: Vec<String>,
+    wiped: bool,
     migration_error: Option<String>,
+}
+
+/// The names of the virtual tables (whose `<name>_*` tables are SQLite's shadow tables).
+fn virtual_tables(conn: &Connection) -> rusqlite::Result<Vec<String>> {
+    let mut st = conn.prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND sql LIKE 'CREATE VIRTUAL TABLE%'",
+    )?;
+    st.query_map([], |r| r.get(0))?.collect()
 }
 
 fn configure(conn: &Connection) -> rusqlite::Result<()> {
@@ -192,11 +204,33 @@ fn run_statement(conn: &Connection, st: &Statement, out: &mut Vec<u8>) -> Result
             .map_err(|e| e.to_string())?;
     }
     let cols = stmt.column_count();
+    // The package reads raw SQL rows by column name: `all` and `get` carry the names.
+    let columns = match st.method {
+        Method::All | Method::Get => {
+            Some(serde_json::to_vec(&stmt.column_names()).map_err(|e| e.to_string())?)
+        }
+        Method::Run | Method::Values => None,
+    };
     let mut rows = stmt.raw_query();
     let start = out.len();
     out.extend_from_slice(b"{\"rows\":");
     match write_rows(out, &mut rows, cols, st.method) {
         Ok(tagged) => {
+            drop(rows);
+            if let Some(c) = columns {
+                out.extend_from_slice(b",\"columns\":");
+                out.extend_from_slice(&c);
+            }
+            if st.method == Method::Run {
+                out.extend_from_slice(
+                    format!(
+                        ",\"changes\":{},\"lastInsertRowId\":{}",
+                        conn.changes(),
+                        conn.last_insert_rowid()
+                    )
+                    .as_bytes(),
+                );
+            }
             if tagged {
                 out.extend_from_slice(b",\"tagged\":true");
             }
@@ -239,15 +273,21 @@ impl LocalDb {
         hub: ChangeHub,
     ) -> rusqlite::Result<LocalDb> {
         configure(&conn)?;
-        let migration_error = migrate::apply(&mut conn, migrations).err();
-        if let Some(e) = &migration_error {
+        let outcome = migrate::run(&mut conn, migrations);
+        if let Some(e) = &outcome.error {
             eprintln!("local database: {e}");
         }
         let applied = migrate::applied(&conn)?;
         let touched: Arc<Mutex<BTreeSet<String>>> = Arc::default();
         let sink = touched.clone();
+        // Trigger writes to a virtual table's shadow tables (the FTS index) are not reported: a
+        // watcher of the indexed table hears about the change already.
+        let shadows: Vec<String> = virtual_tables(&conn)?
+            .into_iter()
+            .map(|v| format!("{v}_"))
+            .collect();
         conn.update_hook(Some(move |_action, _db: &str, table: &str, _rowid| {
-            if !table.starts_with("sqlite_") {
+            if !table.starts_with("sqlite_") && !shadows.iter().any(|s| table.starts_with(s)) {
                 let mut t = sink.lock().unwrap_or_else(|e| e.into_inner());
                 if !t.contains(table) {
                     t.insert(table.to_string());
@@ -292,7 +332,8 @@ impl LocalDb {
             hub,
             path,
             applied: applied.into_iter().map(|(tag, _)| tag).collect(),
-            migration_error: migration_error.map(|e| e.to_string()),
+            wiped: outcome.wiped,
+            migration_error: outcome.error.map(|e| e.to_string()),
         })
     }
 
@@ -304,6 +345,7 @@ impl LocalDb {
         DbInfo {
             path: self.path.as_ref().map(|p| p.to_string_lossy().into_owned()),
             applied: self.applied.clone(),
+            wiped: self.wiped,
             migration_error: self.migration_error.clone(),
         }
     }
@@ -409,7 +451,7 @@ mod tests {
                 Method::Run,
             ))
             .unwrap();
-        assert_eq!(json(&ins), r#"{"rows":[]}"#);
+        assert_eq!(json(&ins), r#"{"rows":[],"changes":2,"lastInsertRowId":2}"#);
         let all = db
             .exec(&st(
                 "SELECT id, name, n FROM t ORDER BY id",
@@ -417,7 +459,10 @@ mod tests {
                 Method::All,
             ))
             .unwrap();
-        assert_eq!(json(&all), r#"{"rows":[[1,"a",1],[2,"b",2]]}"#);
+        assert_eq!(
+            json(&all),
+            r#"{"rows":[[1,"a",1],[2,"b",2]],"columns":["id","name","n"]}"#
+        );
         let values = db
             .exec(&st("SELECT name FROM t ORDER BY id", "[]", Method::Values))
             .unwrap();
@@ -425,11 +470,11 @@ mod tests {
         let get = db
             .exec(&st("SELECT name FROM t WHERE id = ?", "[2]", Method::Get))
             .unwrap();
-        assert_eq!(json(&get), r#"{"rows":["b"]}"#);
+        assert_eq!(json(&get), r#"{"rows":["b"],"columns":["name"]}"#);
         let none = db
             .exec(&st("SELECT name FROM t WHERE id = ?", "[9]", Method::Get))
             .unwrap();
-        assert_eq!(json(&none), r#"{"rows":null}"#);
+        assert_eq!(json(&none), r#"{"rows":null,"columns":["name"]}"#);
         // `get` of a multi-row RETURNING still writes every row.
         let ret = db
             .exec(&st(
@@ -438,11 +483,11 @@ mod tests {
                 Method::Get,
             ))
             .unwrap();
-        assert_eq!(json(&ret), r#"{"rows":["c"]}"#);
+        assert_eq!(json(&ret), r#"{"rows":["c"],"columns":["name"]}"#);
         let n = db
-            .exec(&st("SELECT COUNT(*) FROM t", "[]", Method::Get))
+            .exec(&st("SELECT COUNT(*) AS n FROM t", "[]", Method::Get))
             .unwrap();
-        assert_eq!(json(&n), r#"{"rows":[4]}"#);
+        assert_eq!(json(&n), r#"{"rows":[4],"columns":["n"]}"#);
         assert!(
             db.exec(&st("SELECT ?", "[]", Method::All))
                 .unwrap_err()
@@ -460,12 +505,16 @@ mod tests {
         }
         let left = db
             .exec(&st(
-                "SELECT COUNT(*) FROM sqlite_master WHERE name IN ('tmp', 'v')",
+                "SELECT COUNT(*) AS n FROM sqlite_master WHERE name IN ('tmp', 'v')",
                 "[]",
                 Method::Get,
             ))
             .unwrap();
-        assert_eq!(json(&left), r#"{"rows":[0]}"#, "DROP really dropped");
+        assert_eq!(
+            json(&left),
+            r#"{"rows":[0],"columns":["n"]}"#,
+            "DROP really dropped"
+        );
     }
 
     #[test]
@@ -492,12 +541,12 @@ mod tests {
             .unwrap();
         assert_eq!(
             json(&r),
-            r#"{"rows":[["ünï",{"$bigint":"9007199254740993"},0.1,{"$blob":"AP8="},"integer","blob"],[null,-9007199254740991,{"$real":"-Infinity"},null,"integer","null"]],"tagged":true}"#
+            r#"{"rows":[["ünï",{"$bigint":"9007199254740993"},0.1,{"$blob":"AP8="},"integer","blob"],[null,-9007199254740991,{"$real":"-Infinity"},null,"integer","null"]],"columns":["name","n","r","b","typeof(n)","typeof(b)"],"tagged":true}"#
         );
         let b = db
-            .exec(&st("SELECT ?, ?", "[true, false]", Method::Get))
+            .exec(&st("SELECT ? AS a, ? AS b", "[true, false]", Method::Get))
             .unwrap();
-        assert_eq!(json(&b), r#"{"rows":[1,0]}"#);
+        assert_eq!(json(&b), r#"{"rows":[1,0],"columns":["a","b"]}"#);
     }
 
     #[test]
@@ -515,13 +564,13 @@ mod tests {
                     "[]",
                     Method::Run,
                 ),
-                st("SELECT COUNT(*) FROM t", "[]", Method::Get),
+                st("SELECT COUNT(*) AS n FROM t", "[]", Method::Get),
                 st("SELECT id FROM t ORDER BY id", "[]", Method::Values),
             ])
             .unwrap();
         assert_eq!(
             json(&ok),
-            r#"[{"rows":[]},{"rows":[]},{"rows":[2]},{"rows":[[1],[2]]}]"#
+            r#"[{"rows":[],"changes":1,"lastInsertRowId":1},{"rows":[],"changes":1,"lastInsertRowId":2},{"rows":[2],"columns":["n"]},{"rows":[[1],[2]]}]"#
         );
         let err = db
             .batch(&[
@@ -539,11 +588,11 @@ mod tests {
             .unwrap_err();
         assert!(err.starts_with("statement 1:"), "{err}");
         let n = db
-            .exec(&st("SELECT COUNT(*) FROM t", "[]", Method::Get))
+            .exec(&st("SELECT COUNT(*) AS n FROM t", "[]", Method::Get))
             .unwrap();
         assert_eq!(
             json(&n),
-            r#"{"rows":[2]}"#,
+            r#"{"rows":[2],"columns":["n"]}"#,
             "the first insert was rolled back"
         );
         // A batch cannot end its own transaction; savepoints are fine.
@@ -561,10 +610,10 @@ mod tests {
         .unwrap();
         assert_eq!(
             json(
-                &db.exec(&st("SELECT COUNT(*) FROM t", "[]", Method::Get))
+                &db.exec(&st("SELECT COUNT(*) AS n FROM t", "[]", Method::Get))
                     .unwrap()
             ),
-            r#"{"rows":[2]}"#
+            r#"{"rows":[2],"columns":["n"]}"#
         );
     }
 
@@ -605,9 +654,38 @@ mod tests {
         db.exec(&st("DELETE FROM t", "[]", Method::Run)).unwrap();
         assert_eq!(wait(), vec!["t".to_string()]);
         let n = db
-            .exec(&st("SELECT COUNT(*) FROM t", "[]", Method::Get))
+            .exec(&st("SELECT COUNT(*) AS n FROM t", "[]", Method::Get))
             .unwrap();
-        assert_eq!(json(&n), r#"{"rows":[0]}"#);
+        assert_eq!(json(&n), r#"{"rows":[0],"columns":["n"]}"#);
+    }
+
+    #[test]
+    fn the_package_schema_reports_tables_not_its_search_index() {
+        let (tx, rx) = mpsc::channel();
+        let hub = ChangeHub::spawn(Duration::from_millis(20), move |t| {
+            tx.send(t).unwrap();
+        });
+        let db = LocalDb::open_memory(&migrate::bundled(), hub).unwrap();
+        assert!(db.info().migration_error.is_none());
+        db.exec(&st(
+            "INSERT INTO local_asset (id, uri, name, type, created_at, bucket_day) VALUES (?, ?, ?, 'image', 1, '2023-03-15')",
+            r#"["C:/a.jpg", "C:/a.jpg", "a.jpg"]"#,
+            Method::Run,
+        ))
+        .unwrap();
+        // The FTS triggers wrote the index too; only the table itself is reported.
+        assert_eq!(
+            rx.recv_timeout(Duration::from_secs(2)).unwrap(),
+            vec!["local_asset".to_string()]
+        );
+        let hit = db
+            .exec(&st(
+                "SELECT la.name AS name FROM local_asset_fts JOIN local_asset la ON la.rowid = local_asset_fts.rowid WHERE local_asset_fts MATCH ?",
+                r#"["\"march\"*"]"#,
+                Method::All,
+            ))
+            .unwrap();
+        assert_eq!(json(&hit), r#"{"rows":[["a.jpg"]],"columns":["name"]}"#);
     }
 
     #[test]

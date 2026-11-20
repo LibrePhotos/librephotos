@@ -1,30 +1,27 @@
 /**
- * The local database's executor (CONTRACT.md "Local database"): the tiny interface the shared
- * `packages/local-db` runs its Drizzle `sqlite-proxy` database on, implemented over the Rust SQL
- * engine (`db_exec`, `db_batch`). Async everywhere; a transaction never spans two calls, so a
- * write of several statements is one `batch` (atomic), never Drizzle's `db.transaction()`.
+ * The desktop's executor for `packages/local-db` (its README, "The executor"; CONTRACT.md "Local
+ * database"): the package's `SqlExecutor` over the Rust SQL engine (`db_exec`, `db_batch`). Async
+ * everywhere; a transaction never spans two calls, so a write of several statements is one
+ * `batch` (atomic), never Drizzle's `db.transaction()`.
  *
  * Rows come back as sqlite-proxy reads them: `all`/`values` an array of row arrays, `get` one row
- * array or undefined, `run` an empty array. Values are exact: an integer beyond 2^53 is a
- * `bigint`, a blob a `Uint8Array`; parameters take the same (plus booleans, bound as 1/0).
+ * array or undefined, `run` an empty array, with the column names (`all`, `get`) and
+ * `changes`/`lastInsertRowId` (`run`). Values are exact: an integer beyond 2^53 is a `bigint`, a
+ * blob a `Uint8Array`; parameters take the same (plus booleans, bound as 1/0).
  */
+import type { SqlExecutor, SqlMethod, SqlValue } from "@librephotos/local-db";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-export type Method = "run" | "all" | "values" | "get";
-export type SqlValue = null | number | bigint | string | Uint8Array;
+export type { SqlValue };
+export type Method = SqlMethod;
 export type SqlParam = SqlValue | boolean | undefined;
 export type Row = SqlValue[];
 export type Statement = { sql: string; params: readonly SqlParam[]; method: Method };
-export type ManyResult = { rows: Row[] };
-export type GetResult = { rows: Row | undefined };
+type Meta = { columns?: string[]; changes?: number; lastInsertRowId?: number };
+export type ManyResult = Meta & { rows: Row[] };
+export type GetResult = Meta & { rows: Row | undefined };
 export type ExecResult = ManyResult | GetResult;
-
-/** What the shared package needs from a platform (mobile implements it over expo-sqlite). */
-export type Executor = {
-  exec: typeof exec;
-  batch: typeof batch;
-};
 
 // The wire format of `src-tauri/src/localdb/value.rs`: plain JSON, or a one-key tag object.
 type Tagged = { $bigint: string } | { $blob: string } | { $real: string };
@@ -32,8 +29,8 @@ type Plain = null | number | string;
 type WireCell = Plain | Tagged;
 type WireParam = Plain | boolean | Tagged;
 /** `tagged` is set when some cell is a tag object; without it every cell is plain. */
-type WireMany = { rows: WireCell[][]; tagged?: boolean };
-type WireOne = { rows: WireCell[] | null; tagged?: boolean };
+type WireMany = Meta & { rows: WireCell[][]; tagged?: boolean };
+type WireOne = Meta & { rows: WireCell[] | null; tagged?: boolean };
 type WireResult = WireMany | WireOne;
 
 const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
@@ -83,12 +80,20 @@ function allPlain(_rows: WireCell[][], tagged: boolean | undefined): _rows is Pl
   return !tagged;
 }
 
+function meta(w: Meta): Meta {
+  const m: Meta = {};
+  if (w.columns) m.columns = w.columns;
+  if (w.changes !== undefined) m.changes = w.changes;
+  if (w.lastInsertRowId !== undefined) m.lastInsertRowId = w.lastInsertRowId;
+  return m;
+}
+
 function many(w: WireMany): ManyResult {
-  return { rows: allPlain(w.rows, w.tagged) ? w.rows : w.rows.map(decodeRow) };
+  return { ...meta(w), rows: allPlain(w.rows, w.tagged) ? w.rows : w.rows.map(decodeRow) };
 }
 
 function one(w: WireOne): GetResult {
-  return { rows: w.rows === null ? undefined : decodeRow(w.rows) };
+  return { ...meta(w), rows: w.rows === null ? undefined : decodeRow(w.rows) };
 }
 
 /** A batch result answers its statement's method: `get` is one row. */
@@ -135,9 +140,9 @@ export async function batch(statements: readonly Statement[]): Promise<ExecResul
   return results.map((w, i) => shape(w, statements[i]?.method ?? "all"));
 }
 
-export const executor: Executor = { exec, batch };
+export const executor: SqlExecutor = { exec, batch };
 
-export type DbInfo = { path: string | null; applied: string[]; migrationError: string | null };
+export type DbInfo = { path: string | null; applied: string[]; wiped: boolean; migrationError: string | null };
 
 /** Where the database is, which migrations it has, and why the last one failed (if it did). */
 export const dbInfo = (): Promise<DbInfo> => (isTauri() ? invoke<DbInfo>("db_info") : notInTauri());

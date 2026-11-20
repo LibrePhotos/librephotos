@@ -6,13 +6,13 @@
 //! - [`http`]: the api-client's transport (`createNativeFetch`): the UI hands over an encoded
 //!   request, Rust sends it with `reqwest` and hands back status, headers and body. CORS never
 //!   applies. Only URLs of the connected server (or the one being signed in to) go out.
-//! - Settings (server URL, user, backup switch) in `settings.json` next to the library database,
+//! - Settings (server URL, user, backup switch) in `settings.json` in the data directory,
 //!   and the refresh token in the OS keychain. The UI's token supplier is fed from here at start
 //!   and tells Rust when it signs in, refreshes or signs out.
 //! - `media`: server thumbnails for the `lpview` scheme, with a disk cache, fetched with the access
 //!   token the UI last handed over.
-//! - [`backup`]: the durable backup queue in the library database, MD5 hashing and chunk reads for
-//!   the UI's backup engine.
+//! - [`backup`]: MD5 hashing and chunk reads for the UI's backup engine (its queue is the shared
+//!   local database's `upload_queue`, written by `packages/local-db`).
 
 pub mod auth;
 pub mod backup;
@@ -24,8 +24,6 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::library::Library;
-use crate::library::db::{self, RemoteCounts};
 use auth::SecretStore;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
@@ -38,8 +36,6 @@ pub struct Settings {
     pub backup: bool,
     /// Uploads paused (checks still run).
     pub paused: bool,
-    /// `url|user_id` the library's server state belongs to.
-    pub remote_key: Option<String>,
 }
 
 /// What Rust knows about the connection; the UI adds its upload progress and errors.
@@ -54,7 +50,6 @@ pub struct ServerState {
     pub paused: bool,
     /// Why the last sign-in ended ("Your sign-in expired. Sign in again."), until the next one.
     pub error: Option<String>,
-    pub counts: RemoteCounts,
 }
 
 /// The session the UI's token supplier starts from: settings plus the keychain's refresh token.
@@ -78,17 +73,6 @@ pub struct SignIn {
     pub access: String,
 }
 
-/// What the server knows about one local file.
-#[derive(Serialize, Debug, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct RemoteOf {
-    pub state: String,
-    pub photo_id: Option<String>,
-    pub md5: Option<String>,
-    pub image_hash: Option<String>,
-    pub in_library: bool,
-}
-
 pub type Emit = Box<dyn Fn() + Send + Sync>;
 
 #[derive(Default)]
@@ -98,7 +82,6 @@ struct Tokens {
 }
 
 pub struct Server {
-    pub(crate) lib: Arc<Library>,
     data_dir: PathBuf,
     secrets: Box<dyn SecretStore>,
     pub(crate) http: reqwest::Client,
@@ -141,12 +124,7 @@ fn sniff_mime(b: &[u8]) -> &'static str {
 }
 
 impl Server {
-    pub fn new(
-        lib: Arc<Library>,
-        data_dir: PathBuf,
-        secrets: Box<dyn SecretStore>,
-        emit: Emit,
-    ) -> Arc<Server> {
+    pub fn new(data_dir: PathBuf, secrets: Box<dyn SecretStore>, emit: Emit) -> Arc<Server> {
         let settings = std::fs::read(data_dir.join("settings.json"))
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())
@@ -158,7 +136,6 @@ impl Server {
             .build()
             .expect("HTTP client");
         let s = Arc::new(Server {
-            lib,
             data_dir,
             secrets,
             http,
@@ -221,7 +198,6 @@ impl Server {
             backup: s.backup,
             paused: s.paused,
             error: self.error.lock().unwrap().clone(),
-            counts: db::remote_counts(&self.lib.conn()).unwrap_or_default(),
         }
     }
 
@@ -244,8 +220,9 @@ impl Server {
         Ok(url)
     }
 
-    /// The UI signed in: the refresh token goes to the keychain, the settings to disk. Signing in
-    /// to another server or account resets every file's server state.
+    /// The UI signed in: the refresh token goes to the keychain, the settings to disk. (Which
+    /// account the local database's hashes and upload queue belong to is the UI's business: it
+    /// keeps that in the database and rebuilds both on a change.)
     pub fn signed_in(&self, s: SignIn) -> Result<ServerState, String> {
         if self.signing_in.lock().unwrap().as_deref() != Some(s.url.as_str())
             && self.settings().url.as_deref() != Some(s.url.as_str())
@@ -255,13 +232,10 @@ impl Server {
         if let Some(old) = self.account() {
             self.secrets.delete(&old);
         }
-        let key = format!("{}|{}", s.url, s.user_id);
-        let same_server = self.settings().remote_key.as_deref() == Some(key.as_str());
         self.save_settings(|st| {
             st.url = Some(s.url.clone());
             st.username = Some(s.username.clone());
             st.user_id = Some(s.user_id);
-            st.remote_key = Some(key.clone());
         })?;
         self.secrets
             .set(&format!("{}|{}", s.url, s.username), &s.refresh)?;
@@ -270,10 +244,6 @@ impl Server {
             refresh: Some(s.refresh),
         };
         *self.signing_in.lock().unwrap() = None;
-        if !same_server {
-            db::forget_remote(&self.lib.conn()).map_err(|e| e.to_string())?;
-            self.lib.notify_changed();
-        }
         *self.error.lock().unwrap() = None;
         self.changed();
         Ok(self.state())
@@ -379,8 +349,7 @@ mod tests {
     use super::*;
 
     fn server(dir: &std::path::Path, store: auth::MemoryStore) -> Arc<Server> {
-        let lib = Library::open(db::open_memory().unwrap(), |_| ());
-        Server::new(lib, dir.to_path_buf(), Box::new(store), Box::new(|| ()))
+        Server::new(dir.to_path_buf(), Box::new(store), Box::new(|| ()))
     }
 
     #[test]

@@ -142,81 +142,86 @@ when that answers a `TileInfo` it draws tiles instead (null: small, has alpha, G
 
 ## Library
 
-Folders the user added ("roots"), indexed in SQLite and kept up to date by file-system watchers.
-Files are referenced where they are (nothing is copied or moved). Rust: `src-tauri/src/library/`,
-UI: `src/library/`.
+Folders the user added ("roots"), kept in the shared local database (below) and up to date through
+file-system watchers. Files are referenced where they are (nothing is copied or moved). The schema,
+queries and writers are `packages/local-db` (`src/queries/library.ts`, `local-search.ts`; its
+README, "The desktop folder library"); the UI drives them from Rust's file seams (below) in
+`src/library/indexer.ts`, and reads through them in `src/library/api.ts` and `hooks.ts`. Rust has
+no library SQL.
 
-| Command | Args | Returns |
-|---|---|---|
-| `library_roots` | none | `Root[]`, by path |
-| `library_add_root` | `{ path }` (a folder) | `Root`. A folder inside a root is already in the library (that root is returned); roots inside the new folder are merged into it. Walks it in the background (`library://progress`, `library://changed`) and starts watching it. |
-| `library_remove_root` | `{ id }` | `null`; forgets the root's files (the files on disk stay). Files queued for upload by hand stay queued as loose files. |
-| `library_files` | `{ rootId: number \| null }` | `LibraryFile[]` of one root or all, newest first (`takenMs` desc) |
-| `library_search` | `{ query, limit? }` | `LibraryFile[]` matching every word of `query` (prefix match), newest first, at most `limit` (5000) |
-| `library_by_hashes` | `{ hashes: string[] }` | `{ hash, file: LibraryFile }[]`: the local files of server `image_hash`es (MD5 hex + user id), library files first; hashes without a local file are left out |
-| `library_status` | `{ path }` | `{ root: Root \| null, file: LibraryFile \| null }`: whether a file is inside a root, and its row once indexed |
+| Table | Holds |
+|---|---|
+| `local_album` (`source = 'folder'`) | a root: `path`, `added_at`, `backup_selection` (1: backed up) |
+| `local_asset` | a file: `uri` = absolute path (also its id), `folder` words, size, mtime, metadata, `meta_state`, `hash` (MD5 + user id), `bucket_day` |
+| `local_album_asset` | which root a file is in (a "loose" file, opened from elsewhere, has none) |
+| `upload_queue` | backup state, the resumable upload's id and offset |
+| `local_asset_fts` | the search index (FTS5, kept by triggers) |
 
 ```ts
-type Root = { id: number; path: string; fileCount: number };
+type Root = { id: string; path: string; fileCount: number };
 type RemoteState = "unknown" | "checking" | "present" | "absent" | "uploading" | "failed";
 type LibraryFile = FileEntry & {
-  id: number;
+  id: string;           // the local_asset id (the path)
   width: number | null; height: number | null;  // oriented, from the header (no decode)
   takenMs: number;      // date taken (EXIF/RAW), else modified, as LOCAL wall-clock ms: read with UTC getters
   dated: boolean;       // takenMs comes from the picture's metadata
-  rootId: number | null;
-  remote: RemoteState;  // what the connected server knows (see "Server")
-  remoteId: string | null;   // the server's photo id when present
-  md5: string | null;   // hex, once hashed (only while a server is connected)
+  inLibrary: boolean;   // in a root (not a loose file)
+  remote: RemoteState;  // on the server (mirror or upload_queue done/skipped) > uploading/checking/failed > queued ("absent") > unknown
+  md5: string | null;   // hex, once hashed (only while signed in)
 };
 ```
 
-- Storage: `<data dir>/library.db` (SQLite, WAL). `<data dir>` is `%LOCALAPPDATA%\LibrePhotos Viewer`
-  (macOS `~/Library/Application Support/LibrePhotos Viewer`, else `$XDG_DATA_HOME/librephotos-viewer`).
-  `LPVIEW_DATA_DIR` moves it, and with it the thumbnail cache (`cache/`), the tile cache (`tiles/`)
-  and the server media cache, so test runs never touch the user's state. `LPVIEW_LIBRARY_TRACE=1`
-  logs walk and metadata timings.
-- Indexing: a walk lists supported files (stat only; folders starting with `.`, `$RECYCLE.BIN`,
-  `@eaDir` are skipped), inserts them at once (searchable by name, folder, type and modified date),
-  then reads metadata with `image_info`'s readers (headers only, 4 threads, newest first) in batches
-  of 256, each batch one `library://changed`.
-- Watching: one recursive watcher per root. Events are debounced (350 ms quiet, 2 s at most) and
-  reconciled by path: existing files and folders are (re)stat-ed, vanished ones deleted. A file that
-  vanishes and one with the same size and modified time that appears in the same batch is a rename
-  or move: the new row keeps the MD5 and server state. On start every root is walked again and
-  compared by size and modified time, so changes made while the app was closed are found; only
-  changed files are read again. A root that cannot be read (unplugged drive) keeps its rows.
-- Search words per file: file name and extension, "photo"/"raw"/"video", the root folder's name and
-  every folder below it, the date as `2023 march mar 2023-03 2023-03-15` (+ `undated` without a
-  date taken), format, camera and lens. The query is split like FTS5's `unicode61` tokenizer and
-  every word must prefix-match (`"march 2023"`, `"canon raw"`, `"italy heic"`).
+- Adding a root: `addFolderRoot` (a folder inside a root is already in the library: that root is
+  used; roots inside the new folder are merged into it with `mergeFolderRoot`), `fs_watch`, then a
+  walk: `fs_walk` batches go to `upsertWalkedFiles` as they arrive, so the grid fills while the
+  walk runs. Removing one: `fs_unwatch`, `removeFolderRoot` (files with a live upload stay as loose
+  files).
+- At start every root is watched and walked again; each batch is diffed against `knownFolderFiles`
+  by size and mtime, so only new and changed files are written and vanished ones removed
+  (`removeLocalPaths`). A root that cannot be read (unplugged drive) keeps its rows.
+- `fs://changed`: `removed` -> `removeLocalPaths` (a path and everything below it), `renamed` ->
+  `renameLocalPaths` (the row, its MD5 and upload state survive; a folder moves its files),
+  `created`/`modified` -> `upsertWalkedFiles` (a changed file loses its hash and metadata).
+- Metadata pass: `pendingMetadata` (256, newest mtime first) -> `fs_read_metadata` (4 Rust
+  threads) -> `applyFileMetadata` (unreadable files are `failed` until they change).
+- Hash pass (only while signed in: a server hash is MD5 + user id): `pendingHashes` (32) ->
+  `fs_md5`, 4 at a time -> `setFileHashes`; unreadable files are skipped until they change
+  (`markHashUnreadable`); then `enqueueBackups`. The account the hashes belong to is kept in
+  `app_meta` (`folder_account` = `url|userId`); signing in to another one runs
+  `switchFolderAccount` (hashes rebuilt for the new user id, upload queue starts over).
+- Views: the timeline is `localTimelinePage` (keyset pages of 5,000, newest first) and
+  `localTimelineDays`; search is `searchLocalAssets` (every word prefix-matches the file's name and
+  extension, kind, folder words, date words, format, camera and lens; see the package's
+  "Local search"); the viewer's badge is `localAssetByUri`. They are live queries
+  (`src/db/live.ts`): cached per key, re-read when the change hub flushes a write to their tables,
+  held while the grid scrolls.
 - Pre-warming: the UI hands the visible list to `prewarm_thumbs` when idle, so library thumbs come
   from the disk cache.
-
-| Event | Payload | When |
-|---|---|---|
-| `library://changed` | `null` | Files were added, changed, removed, got metadata, or changed server state. Lists should be fetched again (the UI coalesces to one fetch per ~0.7 s). |
-| `library://progress` | `{ walking: boolean; files: number; pending: number }` | Indexing progress: a walk is running, files in the library, files whose metadata is still to be read. |
 
 ## Local database
 
 The on-device SQLite database that mobile and desktop share (`packages/local-db`): its schema,
 migrations, queries and writers are TypeScript on Drizzle's `sqlite-proxy`; Rust only executes SQL,
-applies the migrations and reports changes. UI: `src/db/executor.ts`; Rust: `src-tauri/src/localdb/`.
-The library above still runs on its own Rust SQL (`library.db`) until it moves onto the package.
+applies the migrations and reports changes. UI: `src/db/` (`executor.ts`, `database.ts`: the
+package's `createDatabase(executor)` and its change hub fed by `db://changed`, `live.ts`); Rust:
+`src-tauri/src/localdb/`. The UI imports the package like the api-client (Vite alias and tsconfig
+`paths` to `../../packages/local-db/src/index.ts`, `drizzle-orm` and `zod` deduped to this app's
+install).
 
 | Command | Args | Returns |
 |---|---|---|
-| `db_exec` | `{ sql, params, method: "run" \| "all" \| "values" \| "get" }` | `{ rows, tagged? }`: one statement, autocommit |
-| `db_batch` | `{ statements: { sql, params, method }[] }` | `{ rows, tagged? }[]`: one `BEGIN IMMEDIATE` transaction, all or nothing; rejects with `statement <i>: <error>` and writes nothing |
-| `db_info` | none | `{ path, applied: string[], migrationError }` |
+| `db_exec` | `{ sql, params, method: "run" \| "all" \| "values" \| "get" }` | `{ rows, columns?, changes?, lastInsertRowId?, tagged? }`: one statement, autocommit |
+| `db_batch` | `{ statements: { sql, params, method }[] }` | the same per statement: one `BEGIN IMMEDIATE` transaction, all or nothing; rejects with `statement <i>: <error>` and writes nothing |
+| `db_info` | none | `{ path, applied: string[], wiped, migrationError }` |
 
 - Answers are JSON that Rust writes while SQLite steps, sent as raw bytes (an `ArrayBuffer` that
   the executor parses), so no row is copied out of SQLite first. `LPVIEW_DB_TRACE=1` logs each
   call's time and answer size.
 - Rows (sqlite-proxy's shapes): `all` and `values` an array of row arrays (columns in SELECT order),
   `get` one row array or `null` (the executor makes it `undefined`), `run` `[]`. A `get` still
-  steps the statement to the end, so `INSERT ... RETURNING` writes every row.
+  steps the statement to the end, so `INSERT ... RETURNING` writes every row. `all` and `get`
+  carry `columns` (the statement's column names in order: the package reads raw SQL rows by
+  name), `run` carries `changes` and `lastInsertRowId`.
 - Values: `null`, strings, finite reals and integers within +/-(2^53 - 1) are plain JSON. Anything
   else is a one-key object, and `tagged: true` says the result holds one: `{ "$bigint": "<decimal>" }`
   (integers beyond 2^53), `{ "$blob": "<base64>" }`, `{ "$real": "Infinity" | "-Infinity" }`. The
@@ -227,17 +232,21 @@ The library above still runs on its own Rust SQL (`library.db`) until it moves o
   back and rejected; a batch statement that begins or ends a transaction is rejected (savepoints are
   fine). So the package writes several statements with `db.batch([...])`, never
   `db.transaction(...)`, whose `begin`/`commit` would be separate calls.
-- Storage: `<data dir>/local.db`. Migrations: `packages/local-db/migrations/migrations.json`
-  (`[{ tag, statements: string[] }]`, ordered; for now a fixture,
-  `src-tauri/src/localdb/fixtures/migrations.json`) is compiled in and applied at start-up before the
-  window exists, each migration in its own transaction, applied tags recorded in
-  `__local_db_migrations(tag TEXT PRIMARY KEY, applied_at INTEGER NOT NULL)`. A failing migration
-  rolls back, stops the run (later ones are not tried) and shows in `db_info().migrationError`; the
-  next start tries it again.
+- Storage: `<data dir>/local.db` (WAL). `<data dir>` is `%LOCALAPPDATA%\LibrePhotos Viewer` (macOS
+  `~/Library/Application Support/LibrePhotos Viewer`, else `$XDG_DATA_HOME/librephotos-viewer`);
+  `LPVIEW_DATA_DIR` moves it, and with it the thumbnail cache (`cache/`), the tile cache (`tiles/`)
+  and the server media cache, so test runs never touch the user's state. The old Rust library's
+  `library.db` is no longer read (its folders are added again). Migrations: `packages/local-db/migrations/migrations.json`
+  (`[{ tag, statements: string[] }]`, ordered) is compiled in (`include_str!`) and applied at
+  start-up before the window exists, the package's algorithm: each missing migration in its own
+  transaction with its row in `__local_db_migrations(tag TEXT PRIMARY KEY, applied_at INTEGER NOT
+  NULL)`; if one fails, wipe and rebuild (the rows of `outbox` and `upload_queue` are kept, every
+  view and table is dropped, every migration applied from scratch). `db_info()` reports `wiped` and
+  the `migrationError`.
 
 | Event | Payload | When |
 |---|---|---|
-| `db://changed` | `{ tables: string[] }` | Tables written by committed calls (`sqlite3_update_hook`), sorted, coalesced: the first change opens a 40 ms window and every table touched in it goes out in one event. A rolled-back batch or a read sends nothing. `DELETE` without `WHERE` is seen (the truncate optimisation is turned off); tables `WITHOUT ROWID` and `DROP TABLE` are not (the update hook does not see them). |
+| `db://changed` | `{ tables: string[] }` | Tables written by committed calls (`sqlite3_update_hook`), sorted, coalesced: the first change opens a 40 ms window and every table touched in it goes out in one event. A rolled-back batch or a read sends nothing. `DELETE` without `WHERE` is seen (the truncate optimisation is turned off); tables `WITHOUT ROWID` and `DROP TABLE` are not (the update hook does not see them). Writes to a virtual table's shadow tables (the FTS index, written by triggers) are left out. The package's change hub (`createChangeHub`) coalesces further for the views (90 ms quiet, 450 ms at most). |
 
 ## File seams
 
@@ -272,16 +281,16 @@ type FsChanges = { root: string; created: FsEntry[]; modified: FsEntry[]; remove
 |---|---|---|
 | `fs://changed` | `FsChanges` | A watched root's events, debounced per root (350 ms quiet, 2 s at most) and checked against the disk: `created`/`modified` are supported files that exist now (a folder that appears is walked, its files `created`); `removed` are paths that are gone, files or folders (delete the path and everything below it); `renamed` are the OS's renames inside the root (a folder rename is one pair; the files below it move along), so the writer keeps the row (MD5, server state). Renames out of the root are removals, into it creations. Hidden folders are ignored. |
 
-Uploads keep `http_fetch`'s `nativeFilePart`: its `ref` may be `{ path, offset, len }` (a supported
-picture or video, at most 64 MB) as well as `{ id, offset, len }` (a row of the Rust library).
+Uploads keep `http_fetch`'s `nativeFilePart`: its `ref` is `{ path, offset, len }` (a supported
+picture or video, at most 64 MB).
 
 ## Server
 
 A LibrePhotos server connection. **Every request goes through `packages/api-client`**: the UI calls
 its endpoint functions (`endpoints.login`, `uploadExists`, `uploadChunk`, ...), which parse each
 answer with the shared zod schemas that the web and mobile apps use, so the desktop tests the same
-contracts. Rust only carries the bytes (`http_fetch`, the api-client's native transport), keeps the
-refresh token in the OS keychain and the backup queue in the library database.
+contracts. Rust only carries the bytes (`http_fetch`, the api-client's native transport) and keeps the
+refresh token in the OS keychain; the backup queue is the local database's `upload_queue`.
 UI: `src/server/` (session, transport, backup engine, errors) and `src/library/{api,serverApi,hooks}.ts`.
 Rust: `src-tauri/src/server/`.
 
@@ -312,13 +321,11 @@ empty answer.
 | `server_status` | none | `ServerState` |
 | `server_session` | none | `{ url, username, userId, refresh }`: the saved sign-in the UI's token supplier starts from (`refresh` from the keychain, null when signed out) |
 | `server_prepare_sign_in` | `{ url }` | `string`: the normalised address (`https://` assumed, `http://` for localhost and private addresses, a trailing `/api` dropped; rejects for a bad one). `http_fetch` may reach it from now on. |
-| `server_signed_in` | `{ signIn: { url, username, userId, refresh, access } }` | `ServerState`; after `endpoints.login` succeeded: the refresh token goes to the keychain (service `LibrePhotos Viewer`, `LPVIEW_KEYRING_SERVICE` for tests; account `<url>\|<username>`), url/username/userId to `<data dir>/settings.json`. Another server or account resets every file's server state to `unknown` (hashes stay). Rejects for a URL that was not prepared. |
+| `server_signed_in` | `{ signIn: { url, username, userId, refresh, access } }` | `ServerState`; after `endpoints.login` succeeded: the refresh token goes to the keychain (service `LibrePhotos Viewer`, `LPVIEW_KEYRING_SERVICE` for tests; account `<url>\|<username>`), url/username/userId to `<data dir>/settings.json`. (The library follows the account itself: see "Library", hash pass.) Rejects for a URL that was not prepared. |
 | `server_set_access` | `{ token }` | `null`; the access token the client holds now (for the media proxy only) |
 | `server_signed_out` | `{ reason }` | `null`; forgets the tokens (keychain too); url and username stay. `reason` (an expired session) shows as `error` until the next sign-in. |
-| `server_set_backup` | `{ on }` | `null`; upload every library file the server lacks |
+| `server_set_backup` | `{ on }` | `null`; the switch is saved here; the UI sets every root's `backup_selection` to it (new roots follow it) and, when off, drops the queued uploads of library files (`cancelFolderBackups`) |
 | `server_set_paused` | `{ paused }` | `null`; pause uploads (checks go on) |
-| `server_retry_failed` | none | `number` of failed uploads that may try again now |
-| `server_upload_file` | `{ path }` | `RemoteOf`; queues one file (in the library or not) for upload, whatever the backup switch says |
 | `http_fetch` | raw bytes (below) | raw bytes (below); rejects with a string when there is no answer |
 | `http_fetch_abort` | `{ id }` | `null`; cancels that request |
 
@@ -327,20 +334,21 @@ one binary IPC message each way, `u32 LE n | n bytes of JSON head | body`. Reque
 `{ id, url, method, headers: [name, value][] }`, with the body as the webview encoded it (JSON, or
 multipart with its boundary in `content-type`); response head `{ status, statusText, headers }`.
 Any HTTP status is an answer. Only URLs under the connected server, or the one being signed in to,
-are sent; anything else rejects. The head may carry `fileParts: { marker, ref: { id, offset, len } }[]`
+are sent; anything else rejects. The head may carry `fileParts: { marker, ref: { path, offset, len } }[]`
 (the api-client's `nativeFilePart`): Rust replaces each marker in the body with `len` bytes (at most
-64 MB) of library file `id` from `offset` before sending.
+64 MB) of the file at `path` (a supported picture or video) from `offset` before sending.
 
 ```ts
 type ServerState = {
   connected: boolean; url: string | null; username: string | null; userId: number | null;
   backup: boolean; paused: boolean;
   error: string | null;   // why the last sign-in ended ("Your sign-in expired. Sign in again.")
+};
+// What the library's `useServerStatus` shows: ServerState, the library's backup counts
+// (`localBackupCounts(db, "folder")`), and the backup engine's progress.
+type ServerStatus = ServerState & {
   counts: { total: number; unknown: number; present: number; absent: number; uploading: number;
             failed: number; wanted: number; pendingBytes: number };  // library files by state
-};
-// What the library's `useServerStatus` shows: ServerState plus the backup engine's progress.
-type ServerStatus = ServerState & {
   uploads: { name: string; sent: number; total: number }[];  // in flight
   rate: number;           // bytes/s over the last ~8 s
   uploadedFiles: number; uploadedBytes: number;  // since the app started
@@ -355,50 +363,37 @@ type RemoteOf = { state: RemoteState; photoId: string | null; md5: string | null
   loading while no API request is due. A refused refresh signs out (`server_signed_out` with the
   "expired" reason).
 - Identity: a server photo's `image_hash` is the file's MD5 (hex) followed by the user id, so a
-  local MD5 maps to the server without a lookup and back (`library_by_hashes`).
+  local MD5 maps to the server without a lookup and back (`localAssetsByHash`).
 
 | Event | Payload | When |
 |---|---|---|
-| `server://status` | `null` | The connection or the backup switch changed, or new library files appeared: call `server_status` (the backup engine also looks for work). |
+| `server://status` | `null` | The connection, the backup switch or the pause changed: call `server_status` (the backup engine also looks for work). |
 
 ### Backup
 
-The engine is TypeScript (`src/server/backup.ts`) and starts with the app; its state lives in the
-library database, so nothing is lost on a restart or a reloaded UI.
+The engine is TypeScript (`src/server/backup.ts`) and starts with the app; its queue is the local
+database's `upload_queue`, written through `packages/local-db` (`queries/upload-queue.ts`), so
+nothing is lost on a restart or a reloaded UI. Rust only hashes (`fs_md5`) and reads chunks.
 
-- Checker: library files in state `unknown` (`backup_claim_checks`, newest first, files queued by
-  hand first) are hashed (`backup_hash`, streamed MD5 in Rust) and asked about with `uploadExists`,
-  4 at a time -> `present` (with the photo id) or `absent` (`backup_set_remote`). When a file becomes
-  `present`, every other file with the same MD5 does too.
-- Uploaders (2 at a time; library files only with backup on, hand-queued files always; never while
-  paused): `backup_claim_upload`, `backup_prepare` (re-stat; a changed file is hashed again and starts
-  over), re-check `uploadExists` (dedupe), then `uploadChunk` per 8 MB chunk, whose file part is a
-  `nativeFilePart({ id, offset, len })` that `http_fetch` fills from the file (no chunk crosses IPC), saving `upload_id` and offset after every chunk
-  (`backup_set_progress`; an upload resumes after a restart; a 400 naming another offset continues
-  there, an expired upload, 404/410, starts over), then `completeUpload`. A file whose MD5 is being
-  uploaded is not handed out twice. When the queue is empty the collected `job_id`s are sealed with
-  `sealUploadImports`. Failures (`backup_set_failed`) retry after 10 s, 20 s, 40 s, ... (at most 6
-  attempts; network errors, 5xx, 429 and 401 do not count).
-- `backup_reset` (at engine start): checks in flight are asked again, uploads in flight resume.
+- Queue: the hash pass queues hashed files of backed-up roots that are not on the server yet
+  (`enqueueBackups`); "Upload to LibrePhotos" on one file is `requestUpload` (a loose file gets a
+  row first: `upsertLooseFile`).
+- Checker: `claimExistenceChecks` (32 at a time, atomic), `uploadExists` 4 at a time ->
+  `markSkipped` (on the server) or `markAbsent` (an uploader takes it; it is not checked again).
+- Uploaders (2 at a time; never while paused): `claimNextUpload` (atomic; a file whose hash is
+  being uploaded by a copy waits), re-stat (`fs_stat`; a changed file is hashed again and starts
+  over), re-check `uploadExists` (dedupe -> `markSkipped`), then `uploadChunk` per 8 MB chunk,
+  whose file part is a `nativeFilePart({ path, offset, len })` that `http_fetch` fills from the file
+  (no chunk crosses IPC), with `setUploadProgress` after every chunk (an upload resumes after a
+  restart; a 400 naming another offset continues there, an expired upload, 404/410, starts over),
+  then `completeUpload` -> `markDone` (with the photo id). When the queue is empty the collected
+  `job_id`s are sealed with `sealUploadImports`. Failures: `markFailed` (the package's backoff,
+  30 s x 2^attempts, at most 5 attempts; "Retry" is `retryFailed`); network errors, 5xx, 429 and
+  401 do not count (the row goes back to pending).
+- `resetInFlightUploads` (at engine start): checks in flight are asked again, uploads resume.
+- The info panel asks about one file directly (`uploadExists`); a "yes" is kept with
+  `recordServerHas`.
 - Runs only while the window is open (the app has no tray yet).
-
-| Command | Args | Returns |
-|---|---|---|
-| `backup_reset` | none | `null` |
-| `backup_claim_checks` | `{ limit }` (1-256) | `Job[]`, now `checking` |
-| `backup_claim_upload` | none | `Job \| null`, now `uploading`; null while paused |
-| `backup_next_retry` | none | `number \| null`: ms since the epoch of the soonest due retry |
-| `backup_hash` | `{ id }` | `string`: the file's MD5, hashed now when unknown |
-| `backup_prepare` | `{ id }` | `{ md5, size, mtime, uploadId, offset }` |
-| `backup_set_remote` | `{ id, state: "present" \| "absent" \| "unknown", photoId }` | `null` |
-| `backup_set_failed` | `{ id, error, attempts, nextTryMs }` | `null` |
-| `backup_set_progress` | `{ id, uploadId, offset }` | `null` |
-| `backup_local_of` | `{ path }` | `RemoteOf & { id }`: the file's row (made when it is outside the library) and MD5; the UI then asks `uploadExists` and reports it |
-
-```ts
-type Job = { id: number; path: string; name: string; size: number; mtime: number; md5: string | null;
-             attempts: number; uploadId: string | null; uploadOffset: number };
-```
 
 ### Server media
 
