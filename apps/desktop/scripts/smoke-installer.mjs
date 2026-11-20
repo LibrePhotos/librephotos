@@ -1,12 +1,12 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync } from "node:fs";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const PRODUCT = "LibrePhotos Viewer";
 const IMAGE_PROG_ID = "LibrePhotosViewer.Image";
-const DEBUG_PORT = 9333;
 const STARTUP_TIMEOUT_MS = 90_000;
 const UNINSTALL_TIMEOUT_MS = 90_000;
 
@@ -23,9 +23,28 @@ const installDir = join(localAppData, PRODUCT);
 const exe = join(installDir, "librephotos-viewer.exe");
 const uninstaller = join(installDir, "uninstall.exe");
 
+const diagnostics = [];
+
 function fail(message) {
   console.error(`smoke test failed: ${message}`);
+  for (const report of diagnostics) console.error(report());
   process.exit(1);
+}
+
+function freePort() {
+  return new Promise((done, failed) => {
+    const server = createServer();
+    server.once("error", failed);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      server.close(() => done(typeof address === "object" && address ? address.port : 0));
+    });
+  });
+}
+
+function processList(image) {
+  const listed = spawnSync("tasklist", ["/FI", `IMAGENAME eq ${image}`, "/FO", "CSV", "/NH"], { encoding: "utf8" });
+  return listed.stdout.trim() || `no ${image} process`;
 }
 
 function step(message) {
@@ -78,21 +97,35 @@ step("installed and registered for pictures");
 
 const dataDir = mkdtempSync(join(tmpdir(), "lpview-smoke-data-"));
 const profileDir = mkdtempSync(join(tmpdir(), "lpview-smoke-profile-"));
+const debugPort = await freePort();
+let appOutput = "";
+let appExit = "still running";
 const app = spawn(exe, [picture], {
-  stdio: "ignore",
+  stdio: ["ignore", "pipe", "pipe"],
   env: {
     ...process.env,
     LPVIEW_DATA_DIR: dataDir,
     LPVIEW_KEYRING_SERVICE: "lpview-smoke",
     LPVIEW_MULTI_INSTANCE: "1",
     WEBVIEW2_USER_DATA_FOLDER: profileDir,
-    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${DEBUG_PORT}`,
+    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${debugPort}`,
   },
 });
-step(`started the installed app on ${basename(picture)} (pid ${app.pid})`);
+app.stdout.on("data", (chunk) => (appOutput += chunk));
+app.stderr.on("data", (chunk) => (appOutput += chunk));
+app.on("exit", (code, signal) => (appExit = `exited with ${code ?? signal}`));
+diagnostics.push(
+  () => `app: ${appExit}`,
+  () => `app output:
+${appOutput.slice(-4000) || "(none)"}`,
+  () => `processes:
+${processList("librephotos-viewer.exe")}
+${processList("msedgewebview2.exe")}`
+);
+step(`started the installed app on ${basename(picture)} (pid ${app.pid}, DevTools port ${debugPort})`);
 try {
   const page = await waitFor("the app's page", STARTUP_TIMEOUT_MS, async () => {
-    const targets = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json`)).json();
+    const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json`)).json();
     return targets.find((target) => target.type === "page");
   });
   await waitFor(`the viewer to show ${basename(picture)}`, STARTUP_TIMEOUT_MS, () =>
