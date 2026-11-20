@@ -150,7 +150,6 @@ export async function storeHash(db: AppDatabase, assetId: string, md5: string, u
   );
 }
 
-/** The `hash_state` value meaning "the bytes are in iCloud, not on this device" (the schema owns it). */
 export { HASH_STATE_ICLOUD };
 
 /**

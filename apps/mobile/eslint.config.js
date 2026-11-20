@@ -43,13 +43,9 @@ module.exports = defineConfig([
       "@typescript-eslint/no-unsafe-return": "error",
       "@typescript-eslint/no-unsafe-type-assertion": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
-      // Every database call is async (@librephotos/local-db): a forgotten await is a
-      // write that may not have happened yet, or a Promise tested for truthiness.
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-misused-promises": ["error", { checksVoidReturn: { attributes: false } }],
       "@typescript-eslint/await-thenable": "error",
-      // Atomic writes are one db.batch([...]): an interactive transaction cannot be held
-      // over the shared async executor (packages/local-db/README.md).
       "no-restricted-syntax": [
         "error",
         {
@@ -58,8 +54,6 @@ module.exports = defineConfig([
           message: "Use db.batch([...]) (or runBatch) for atomic writes; interactive transactions are not supported.",
         },
       ],
-      // On-device SQLite lives in packages/local-db; the app only provides the
-      // executor (src/db/client.ts). No second driver, no sync API.
       "no-restricted-imports": [
         "error",
         {
@@ -73,8 +67,6 @@ module.exports = defineConfig([
     },
   },
   {
-    // The phone's executor (and the key-value preferences store, its own file) are
-    // the only places that talk to expo-sqlite directly.
     files: ["src/**/*.ts", "src/**/*.tsx"],
     ignores: ["src/db/client.ts", "src/db/DatabaseGate.tsx", "src/lib/preferencesStorage.ts", "src/**/*.test.ts", "src/**/*.test.tsx"],
     rules: {

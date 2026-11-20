@@ -53,11 +53,6 @@ export async function clearEntity(db: AppDatabase, entity: SyncEntity): Promise<
   ]);
 }
 
-/**
- * Every row of every table, in one batch: what a logout (or "forget this
- * server") leaves behind is an empty, migrated database. The local media tables
- * go too; the next scan of the camera roll or the added folders refills them.
- */
 export async function wipeLocalData(db: AppDatabase): Promise<void> {
   const tables = await db.all<{ name: string }>(
     sql`SELECT name FROM sqlite_master

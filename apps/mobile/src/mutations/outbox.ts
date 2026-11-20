@@ -33,21 +33,13 @@ export function backoffDelay(attempts: number, base = BACKOFF_BASE_MS): number {
  * optimistic mirror write) so the row and the write commit atomically — a
  * failed validation throws and rolls both back. Returns the new row id.
  */
-/**
- * The validated outbox insert, as one statement (`RETURNING id`), for a caller
- * to put in the same batch as its optimistic mirror write (./actions) so both
- * commit atomically. Validation happens here, before anything runs: a bad
- * payload throws and nothing is written.
- */
 export function enqueueOutboxSql<K extends OutboxKind>(kind: K, payload: OutboxPayload<K>, now = Date.now()): SQL {
-  // Validate against the kind's schema — a bad payload must never reach replay.
   const parsed = OUTBOX_SCHEMAS[kind].parse(payload);
   return sql`INSERT INTO outbox (created_at, kind, payload, state, attempts)
              VALUES (${now}, ${kind}, ${JSON.stringify(parsed)}, 'pending', 0)
              RETURNING id`;
 }
 
-/** Validate + insert one outbox row on its own. Returns the new row id. */
 export async function enqueueOutbox<K extends OutboxKind>(
   db: AppDatabase,
   kind: K,

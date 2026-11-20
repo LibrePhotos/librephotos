@@ -120,7 +120,6 @@ export function TimelineScreen() {
   return (
     <View testID="timeline-screen" style={{ flex: 1, backgroundColor: theme.background }}>
       {items.length === 0 && loading ? (
-        // The first read is still running: an empty frame, never "no photos" (it would flash).
         <View testID="timeline-loading" style={{ flex: 1 }} />
       ) : items.length === 0 ? (
         <ScrollView

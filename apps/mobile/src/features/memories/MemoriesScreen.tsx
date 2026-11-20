@@ -51,7 +51,6 @@ export function MemoriesScreen() {
           accessToken={token}
           onPressItem={openPhoto}
           ListEmptyComponent={
-            // Still reading: no "empty" message that would flash before the rows.
             loading ? null : (
             <View testID="memories-empty" style={{ padding: 32, alignItems: "center" }}>
               <Text style={{ color: theme.muted }}>{t("memories.empty")}</Text>

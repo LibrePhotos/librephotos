@@ -98,9 +98,6 @@ export function useViewerWindow({
   // not land on a video when the timeline shows photos only.
   const filter = useTimelineFilterStore((s) => s.filter);
 
-  // First frame: the seed if the caller gave us one. Without one (a deep
-  // link), one indexed row lookup fills it in as soon as it answers; either
-  // way this never touches the timeline.
   const [state, setState] = useState<State>(() => ({
     slides: seed ? [seed] : [],
     head: null,
@@ -114,7 +111,6 @@ export function useViewerWindow({
     if (seed || !id) return;
     let active = true;
     void viewerSlideById(db, id).then((first) => {
-      // Only into an empty window: the full window may already have arrived.
       if (active && first) setState((s) => (s.slides.length === 0 ? { ...s, slides: [first] } : s));
     });
     return () => {
@@ -147,7 +143,6 @@ export function useViewerWindow({
       filter,
     });
     const newer = await timelinePage(db, { limit: HALF, cursor: anchor, direction: "newer", filter });
-    // A newer id or filter started its own read: this one is stale.
     if (!active) return;
     const slides = [...newer.rows, ...older.rows].map(rowToSlide);
     if (slides.length === 0) {

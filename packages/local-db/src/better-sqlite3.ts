@@ -1,15 +1,6 @@
-/**
- * {@link SqlExecutor} over better-sqlite3, for Node: tests, tooling, scripts.
- * The connection is synchronous, so every call is naturally atomic and isolated;
- * a batch is one better-sqlite3 transaction.
- *
- * Takes an open `Database` rather than opening one, so this module never loads
- * the native addon itself (better-sqlite3 is an optional peer dependency).
- */
 import type { Database, Statement } from "better-sqlite3";
 import type { SqlExecutor, SqlResult, SqlStatement, SqlValue } from "./executor";
 
-/** Prepared statements by SQL text: a seed batch repeats one INSERT a thousand times. */
 const CACHE_SIZE = 256;
 
 function statementCache(db: Database): (sql: string) => Statement<SqlValue[], unknown[]> {
@@ -17,7 +8,6 @@ function statementCache(db: Database): (sql: string) => Statement<SqlValue[], un
   return (sql) => {
     let stmt = cache.get(sql);
     if (stmt) {
-      // Refresh its place in the LRU order.
       cache.delete(sql);
     } else {
       stmt = db.prepare<SqlValue[], unknown[]>(sql);
@@ -40,10 +30,8 @@ function execute(
     const info = stmt.run(...params);
     return { rows: method === "get" ? undefined : [], changes: info.changes, lastInsertRowId: Number(info.lastInsertRowid) };
   }
-  // A reader with RETURNING writes too; `raw()` keeps rows positional.
   const raw = stmt.raw(true);
   const columns = stmt.columns().map((c) => c.name);
-  // Step to the end even for "get": an INSERT ... RETURNING writes every row.
   const rows = raw.all(...params).map((row) => (Array.isArray(row) ? row.map(asSqlValue) : []));
   if (method === "get") return { columns, rows: rows[0] };
   return method === "run" ? { rows: [] } : { columns, rows };

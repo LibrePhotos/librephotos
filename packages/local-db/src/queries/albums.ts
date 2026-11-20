@@ -9,7 +9,6 @@ import { isArray, parseJson } from "../guards";
 import type { AppDatabase } from "../types";
 import type { PhotoTileRow } from "./filters";
 
-/** How the user-album list can be ordered (the mobile app's albumSort offers the same; a test checks). */
 export type UserAlbumSort = "name" | "created_desc" | "created_asc" | "count_desc" | "updated_desc";
 
 export type UserAlbumRow = {

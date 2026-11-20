@@ -113,7 +113,6 @@ export function SearchScreen() {
 
   // Remember a term once it yields something (either surface).
   useEffect(() => {
-    // Wait for this term's own offline answer (the previous term's stays on screen meanwhile).
     if (!query || offlineLoading) return;
     const hasServer = isOnline && (server.data?.photosFlat.length ?? 0) > 0;
     const hasOffline = offline.photos.length + offline.people.length + offline.albums.length > 0;

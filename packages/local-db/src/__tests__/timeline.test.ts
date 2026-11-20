@@ -88,7 +88,7 @@ describe("merged timeline", () => {
     });
 
     it("excludes assets not in a backup-selected album, or in an excluded album", async () => {
-      await insertLocalAsset(t.db, { id: "L3", hash: "h3", createdAt: D(2024, 2, 3) }); // no album
+      await insertLocalAsset(t.db, { id: "L3", hash: "h3", createdAt: D(2024, 2, 3) });
       await insertLocalAsset(t.db, { id: "L4", hash: "h4", createdAt: D(2024, 2, 4) });
       await insertLocalAlbum(t.db, { id: "excluded", backupSelection: 2, assetIds: ["L4"] });
       await insertLocalAsset(t.db, { id: "L5", hash: "h5", createdAt: D(2024, 2, 5) });

@@ -18,7 +18,6 @@ export type PhotoDetailState = {
  */
 export function usePhotoDetail(imageHash: string | undefined): PhotoDetailState {
   const db = useDb();
-  // The cached payload, from the live-query cache when this photo was open before.
   const { data: cachedRow } = useReactiveQuery(
     ["photo-detail-cache", imageHash ?? null],
     async (d) => {

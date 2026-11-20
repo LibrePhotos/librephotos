@@ -1,8 +1,3 @@
-/**
- * The async live-query contract (useReactiveQuery over the change hub):
- * first-load state, per-key cache across remounts (no empty flash), previous
- * value kept while re-reading, table-scoped re-runs, and no stale overwrite.
- */
 import { useState } from "react";
 import { Pressable, Text } from "react-native";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
@@ -57,9 +52,8 @@ describe("useReactiveQuery", () => {
       </DbProvider>
     );
     await settleDb();
-    fireEvent.press(view.getByTestId("toggle")); // unmount
-    fireEvent.press(view.getByTestId("toggle")); // remount
-    // No "loading" frame: the last result is there synchronously.
+    fireEvent.press(view.getByTestId("toggle"));
+    fireEvent.press(view.getByTestId("toggle"));
     expect(view.getByTestId("count").props.children).toBe("2");
   });
 
@@ -88,7 +82,7 @@ describe("useReactiveQuery", () => {
 
     await act(async () => {
       await t.db.run(sql`INSERT INTO app_meta (key, value) VALUES ('k', 'v')`);
-      await new Promise((r) => setTimeout(r, 200)); // past the hub's quiet period
+      await new Promise((r) => setTimeout(r, 200));
     });
     expect(reads).toBe(1);
 
@@ -100,7 +94,6 @@ describe("useReactiveQuery", () => {
   });
 
   it("never lets a slow, older read overwrite a newer one", async () => {
-    // A change source the test drives by hand.
     const listeners = new Set<(table?: string) => void>();
     const subscribe: DbChangeSubscribe = (l) => {
       listeners.add(l);
@@ -137,16 +130,13 @@ describe("useReactiveQuery", () => {
       act(() => {
         for (const l of listeners) l("remote_photo");
       });
-      // Past the hub's quiet period, so the change flushes.
       await act(async () => {
         await new Promise((r) => setTimeout(r, 150));
       });
     };
-    // Two changes: the first re-read is still out when the second starts.
     await change();
     await change();
     expect(call).toBe(3);
-    // The newer read answers first, the stale one after it.
     await act(async () => {
       answers[2]?.(7);
       await Promise.resolve();

@@ -1,21 +1,3 @@
-/**
- * `AppDatabase`: Drizzle's async SQLite database (drizzle-orm/sqlite-proxy)
- * over a {@link SqlExecutor}. Every query module and writer takes one.
- *
- * Two kinds of reads go through it and they want rows in different shapes:
- *
- * - raw SQL (`db.all<Row>(sql`...`)`, `db.get<Row>(...)`), which is how every
- *   query in this package is written, wants rows as OBJECTS keyed by column name;
- * - Drizzle's query builder (`db.select().from(t)`) maps POSITIONAL rows onto its
- *   fields itself.
- *
- * sqlite-proxy hands both to the same callback and cannot tell them apart, so
- * the callback passes the executor's whole {@link SqlResult} through and the
- * prepared query below, which knows whether it has builder fields, decodes it.
- * The executor always answers positionally; objects are built here, once.
- *
- * `db.transaction()` rejects: use `db.batch([...])` (see executor.ts for why).
- */
 import { NoopLogger } from "drizzle-orm";
 import { NoopCache } from "drizzle-orm/cache/core";
 import { createTableRelationsHelpers, extractTablesRelationalConfig, type ExtractTablesWithRelations } from "drizzle-orm";
@@ -41,17 +23,10 @@ import { schema, type Schema } from "./schema";
 
 type Tables = ExtractTablesWithRelations<Schema>;
 
-/** The database every query and writer in this package takes. */
 export type AppDatabase = SqliteRemoteDatabase<Schema>;
 
-/** What a write reports back, when the executor knows it. */
 export type WriteResult = { changes: number; lastInsertRowId: number | null };
 
-/**
- * What the callbacks hand Drizzle. For "all" / "get" the executor's result rides
- * along as the only element of `rows`, for the prepared query to decode; "values"
- * are the positional rows themselves (Drizzle returns them unmapped).
- */
 type Reply = { rows: unknown[]; result: SqlResult; changes?: number; lastInsertRowId?: number | null };
 
 function isReply(value: unknown): value is Reply {
@@ -62,7 +37,6 @@ function isSqlResult(value: unknown): value is SqlResult {
   return typeof value === "object" && value !== null && "rows" in value;
 }
 
-/** The executor result inside what Drizzle passes to a mapper (a batch reply, or `rows` of a single call). */
 function resultOf(rows: unknown, isFromBatch: boolean | undefined): SqlResult | undefined {
   if (isFromBatch) return isReply(rows) ? rows.result : undefined;
   if (Array.isArray(rows)) {
@@ -88,7 +62,6 @@ function reply(result: SqlResult, method: SqlMethod): Reply {
   }
 }
 
-/** A prepared query that decodes the executor's result: objects for raw SQL, positional rows for the builder. */
 class LocalPreparedQuery<T extends PreparedQueryConfig> extends RemotePreparedQuery<T> {
   private readonly raw: boolean;
 
@@ -157,7 +130,6 @@ class LocalDbSession extends SQLiteRemoteSession<Schema, Tables> {
     );
   }
 
-  // Raw `db.all/get/values(sql)` items inside `db.batch([...])` are decoded here.
   override extractRawAllValueFromBatchResult(batchReply: unknown): unknown {
     return isReply(batchReply) ? rowsToObjects(batchReply.result) : [];
   }
@@ -179,7 +151,6 @@ class LocalDbSession extends SQLiteRemoteSession<Schema, Tables> {
   }
 }
 
-/** Build the app database over an executor. Cheap: no I/O happens here. */
 export function createDatabase(executor: SqlExecutor): AppDatabase {
   const dialect = new SQLiteAsyncDialect();
   const session = new LocalDbSession(executor, dialect);
@@ -191,11 +162,6 @@ export function createDatabase(executor: SqlExecutor): AppDatabase {
   });
 }
 
-/**
- * Run one write and report what it changed. Prefer this over a follow-up
- * `SELECT changes()`: on a shared async executor another caller's statement can
- * run in between and the second query would read *its* count.
- */
 export async function runWrite(db: AppDatabase, query: Parameters<AppDatabase["run"]>[0]): Promise<WriteResult> {
   const result: SqliteRemoteResult = await db.run(query);
   return {

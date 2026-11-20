@@ -58,7 +58,6 @@ async function photoCount(t: TestDb): Promise<number> {
   return (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM remote_photo`)).c;
 }
 
-/** Let the async reads a flush started finish (they only await microtasks here). */
 async function settle(): Promise<void> {
   for (let i = 0; i < 50; i += 1) await Promise.resolve();
 }
@@ -109,7 +108,6 @@ describe("change hub: a per-row event storm becomes a handful of flushes", () =>
       // the max-wait ceiling still fires periodically, like a real scan.
       vi.advanceTimersByTime(2);
     }
-    // The burst ends; the trailing flush must arrive (and its async read land).
     vi.advanceTimersByTime(DEFAULT_QUIET_MS + 1);
     await settle();
 

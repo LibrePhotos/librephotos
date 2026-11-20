@@ -34,7 +34,6 @@ function ensureSharedAlbumSql(now: number): SQL {
 /**
  * Enqueue shared items for upload. Idempotent per id (existing local_asset /
  * queue rows are left untouched). Returns the number of newly-queued items.
- * One batch, so a share lands whole or not at all.
  */
 export async function enqueueSharedUploads(db: AppDatabase, items: SharedUploadItem[], now = Date.now()): Promise<number> {
   if (items.length === 0) return 0;
@@ -53,7 +52,6 @@ export async function enqueueSharedUploads(db: AppDatabase, items: SharedUploadI
             ON CONFLICT(album_id, asset_id) DO NOTHING
             RETURNING asset_id`
       ),
-      // Only this statement's RETURNING rows are counted: a newly queued item.
       db.all<{ asset_id: string; queued: number }>(
         sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
             VALUES (${item.id}, 'pending', 0, 0, ${now})

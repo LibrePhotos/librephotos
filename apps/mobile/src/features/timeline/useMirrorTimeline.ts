@@ -56,13 +56,11 @@ const TIMELINE_TABLES = [
  * identity, are the query's dependencies, so a filter rebuilt on every render
  * does not re-run the query.
  */
-/** The tables the day buckets read (the page's, minus the upload badge). */
 export const TIMELINE_BUCKET_TABLES = ["remote_photo", "local_asset", "local_album", "local_album_asset"] as const;
 
 const NO_ITEMS: TimelineItem[] = [];
 const NO_BUCKETS: TimelineBucket[] = [];
 
-/** A filter by its fields, so one rebuilt on every render keeps its key. */
 function filterKey(f: TimelineFilter): readonly unknown[] {
   return [f.media, f.favorites, f.hideScreenshots, f.hideDocuments];
 }
@@ -80,7 +78,6 @@ async function readTimelinePage(db: AppDatabase, limit: number, filter: Timeline
   return page.rows.map(rowToItem);
 }
 
-/** Section headers / scrubber buckets of the (filtered) timeline. */
 export function useTimelineBuckets(filter: TimelineFilter): { buckets: TimelineBucket[]; loading: boolean } {
   const { media, favorites, hideScreenshots, hideDocuments } = filter;
   const { data, loading } = useReactiveQuery(
@@ -92,11 +89,6 @@ export function useTimelineBuckets(filter: TimelineFilter): { buckets: TimelineB
   return { buckets: data, loading };
 }
 
-/**
- * Read the timeline's first page and buckets into the live-query cache, so the
- * timeline's first frame after a cold start already has them (DatabaseGate
- * runs this while its spinner is up).
- */
 export async function prefetchTimeline(queries: QueryClient, db: AppDatabase, filter: TimelineFilter): Promise<void> {
   await Promise.all([
     queries.prefetchQuery({
@@ -115,7 +107,6 @@ export async function prefetchTimeline(queries: QueryClient, db: AppDatabase, fi
 export function useMirrorTimeline(filter: TimelineFilter = NO_TIMELINE_FILTER) {
   const [limit, setLimit] = useState(PAGE);
   const { media, favorites, hideScreenshots, hideDocuments } = filter;
-  // A growing window keeps the rows it has while the bigger page is read.
   const { data: items, loading } = useReactiveQuery(
     timelinePageKey(limit, filter),
     (db) => readTimelinePage(db, limit, { media, favorites, hideScreenshots, hideDocuments }),

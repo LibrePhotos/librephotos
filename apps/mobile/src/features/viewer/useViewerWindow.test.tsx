@@ -13,14 +13,6 @@ import {
 import type { ViewerSlide } from "@librephotos/local-db";
 import { useViewerWindow } from "./useViewerWindow";
 
-/**
- * The pager context used to be `timelinePage(db, { limit: 500 })` on mount: the
- * whole merged timeline query, synchronously, before the tapped photo could be
- * painted, and re-run on every database commit. These tests pin the shape that
- * replaced it — a bounded window anchored on the tapped photo that still reaches
- * both ends of the timeline.
- */
-
 const DAY = 86_400_000;
 const N = 200;
 
@@ -35,18 +27,9 @@ async function renderWindow(db: TestDb["db"], args: { id: string; seed?: ViewerS
       useViewerWindow({ id: args.id, seed: args.seed ?? null, currentIndex }),
     { wrapper, initialProps: { currentIndex: 0 } }
   );
-  // The window is read asynchronously: let the first reads land.
   await settleDb();
-  /**
-   * What `PhotoViewerScreen` does whenever the window re-anchors: scroll the
-   * pager to the new index, report it back, and acknowledge the restore. The
-   * window will not grow until it has heard this, because until then the index
-   * it is given describes the previous window.
-   */
   const settle = async (index?: number) => {
     const target = index ?? view.result.current.restoreIndex ?? 0;
-    // Order matters, and matches the screen's layout effect: the pager reports
-    // its new index first, and only then acknowledges the restore.
     view.rerender({ currentIndex: target });
     act(() => view.result.current.restored());
     await settleDb();
@@ -56,7 +39,6 @@ async function renderWindow(db: TestDb["db"], args: { id: string; seed?: ViewerS
 
 describe("useViewerWindow", () => {
   let t: TestDb;
-  /** p000 is the oldest, p199 the newest. */
   const id = (i: number) => `p${String(i).padStart(3, "0")}`;
 
   beforeEach(async () => {
@@ -74,10 +56,10 @@ describe("useViewerWindow", () => {
     const { result } = await renderWindow(t.db, { id: id(100) });
     const keys = result.current.slides.map((s) => s.key);
 
-    expect(keys).toHaveLength(41); // 20 either side + the photo itself
-    expect(keys[0]).toBe(id(120)); // newest in the window
-    expect(keys[20]).toBe(id(100)); // the tapped photo, centred
-    expect(keys[40]).toBe(id(80)); // oldest in the window
+    expect(keys).toHaveLength(41);
+    expect(keys[0]).toBe(id(120));
+    expect(keys[20]).toBe(id(100));
+    expect(keys[40]).toBe(id(80));
     expect(result.current.restoreIndex).toBe(20);
     expect(result.current.atStart).toBe(false);
     expect(result.current.atEnd).toBe(false);
@@ -93,7 +75,7 @@ describe("useViewerWindow", () => {
     await settleDb();
 
     expect(result.current.slides.length).toBeGreaterThan(before);
-    expect(result.current.slides[0].key).toBe(id(120)); // nothing moved
+    expect(result.current.slides[0].key).toBe(id(120));
     expect(result.current.slides.at(-1)?.key).toBe(id(60));
   });
 
@@ -107,7 +89,6 @@ describe("useViewerWindow", () => {
 
     expect(result.current.slides[0].key).toBe(id(140));
     expect(result.current.slides).toHaveLength(61);
-    // 20 slides were inserted before the current one, so index 1 is now 21.
     expect(result.current.restoreIndex).toBe(21);
   });
 
@@ -120,7 +101,6 @@ describe("useViewerWindow", () => {
     }
     expect(result.current.atEnd).toBe(true);
     expect(result.current.slides.at(-1)?.key).toBe(id(0));
-    // No duplicates and no gaps on the way down.
     const keys = result.current.slides.map((s) => s.key);
     expect(new Set(keys).size).toBe(keys.length);
   });
@@ -145,11 +125,6 @@ describe("useViewerWindow", () => {
     expect(result.current.atEnd).toBe(true);
   });
 
-  /**
-   * A tap must never be swallowed. A camera-roll asset has no image hash until
-   * it is hashed, so the viewer is opened on its asset id — the bug that made
-   * the lightbox look unimplemented on a real device.
-   */
   it("anchors on an unhashed camera-roll asset", async () => {
     await insertLocalAsset(t.db, { id: "L7", hash: null, createdAt: Date.UTC(2024, 0, 101) });
     await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["L7"] });
@@ -158,7 +133,7 @@ describe("useViewerWindow", () => {
     const centre = result.current.slides[result.current.restoreIndex ?? 0];
     expect(centre.local_id).toBe("L7");
     expect(centre.local_uri).toBe("ph://L7");
-    expect(result.current.slides.length).toBeGreaterThan(1); // still a pager
+    expect(result.current.slides.length).toBeGreaterThan(1);
   });
 
   it("paints the seeded slide with no timeline row to stand on", async () => {

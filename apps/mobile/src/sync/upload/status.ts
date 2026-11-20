@@ -171,7 +171,6 @@ const GATE_BLOCKER: Record<string, BackupBlocker> = {
   charging_required: { kind: "charging_required" },
 };
 
-/** The state shown before the first read: nothing selected, nothing running. */
 export const INITIAL_BACKUP_STATE: BackupState = Object.freeze({
   stage: { kind: "idle" },
   blocker: null,

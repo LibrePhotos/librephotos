@@ -211,7 +211,7 @@ describe("job_queue: retry + backoff", () => {
     expect(row.state).toBe("pending");
     expect(row.last_error).toBe("boom");
     expect(row.started_at).toBeNull();
-    expect(await claimNextJob(t.db, 1_000)).toBeNull(); // still inside the window
+    expect(await claimNextJob(t.db, 1_000)).toBeNull();
   });
 
   it("widens the window with each attempt and caps it", async () => {
@@ -349,7 +349,7 @@ describe("job_queue: housekeeping", () => {
   it("counts live work and clears the queue", async () => {
     await enqueueJobs(t.db, [{ kind: "hash_batch" }, { kind: "thumb_prefetch" }]);
     await claimNextJob(t.db, 1_000);
-    expect(await pendingJobCount(t.db)).toBe(2); // pending + running are both "live"
+    expect(await pendingJobCount(t.db)).toBe(2);
     await clearJobs(t.db);
     expect(await countAll(t)).toBe(0);
   });

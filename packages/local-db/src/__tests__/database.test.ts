@@ -30,7 +30,6 @@ describe("AppDatabase over an executor", () => {
         ["a", 10],
         ["b", 20],
       ]);
-      // The query builder still works (positional rows, its own mapping).
       const built = await t.db.select({ id: localAsset.id, name: localAsset.name }).from(localAsset).orderBy(localAsset.id);
       expect(built).toEqual([
         { id: "a", name: "one.jpg" },
@@ -68,7 +67,6 @@ describe("AppDatabase over an executor", () => {
           t.db.run(sql`INSERT INTO no_such_table (x) VALUES (1)`),
         ])
       ).rejects.toThrow();
-      // Nothing of the failed batch is left.
       expect(await t.db.get(sql`SELECT key FROM app_meta WHERE key = 'k2'`)).toBeUndefined();
     } finally {
       t.close();
@@ -138,7 +136,6 @@ describe("migrations", () => {
   it("wipes and rebuilds a database it cannot migrate, keeping outbox and upload_queue", async () => {
     const sqlite = new Database(":memory:");
     try {
-      // A database from the old, squashed migrations: tables exist, no bookkeeping.
       sqlite.exec(`CREATE TABLE remote_photo (id TEXT PRIMARY KEY, stale INTEGER)`);
       sqlite.exec(`INSERT INTO remote_photo VALUES ('old', 1)`);
       sqlite.exec(`CREATE TABLE outbox (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at INTEGER NOT NULL,
@@ -155,7 +152,6 @@ describe("migrations", () => {
         { kind: "favorite", payload: "{}", attempts: 0 },
       ]);
       expect(sqlite.prepare("SELECT name FROM sqlite_master WHERE name = '__drizzle_migrations'").get()).toBeUndefined();
-      // The rebuilt schema is complete, the search index included, and migrates as current.
       expect(sqlite.prepare("SELECT COUNT(*) AS c FROM local_asset_fts").get()).toEqual({ c: 0 });
       expect(await runMigrations(executor)).toEqual({ applied: [], wiped: false });
     } finally {

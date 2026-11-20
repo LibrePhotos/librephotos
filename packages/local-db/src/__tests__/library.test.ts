@@ -1,8 +1,3 @@
-/**
- * The desktop folder library on the shared tables: roots, the file-seam
- * writers (walk, remove, rename, metadata, hashes), local search, timeline and
- * the backup queue claims.
- */
 import { sql } from "drizzle-orm";
 import {
   addFolderRoot,
@@ -129,11 +124,11 @@ describe("folder library", () => {
     await applyFileMetadata(t.db, [meta(path)]);
     expect(await pendingMetadata(t.db, 10)).toEqual([]);
 
-    await upsertWalkedFiles(t.db, root, [file("a.jpg")]); // a rescan
+    await upsertWalkedFiles(t.db, root, [file("a.jpg")]);
     let row = await localAssetByUri(t.db, path);
     expect(row).toMatchObject({ hash: `m1${USER}`, meta_state: "done", bucket_day: "2019-08-01", dated: 1 });
 
-    await upsertWalkedFiles(t.db, root, [file("a.jpg", { size: 2000 })]); // edited
+    await upsertWalkedFiles(t.db, root, [file("a.jpg", { size: 2000 })]);
     row = await localAssetByUri(t.db, path);
     expect(row).toMatchObject({ hash: null, meta_state: "pending", dated: 0 });
     expect(await pendingHashes(t.db, 10)).toEqual([{ id: path, uri: path }]);
@@ -156,11 +151,10 @@ describe("folder library", () => {
     expect(await names("movie")).toEqual(["beach.mp4"]);
     expect(await names("2023-03")).toEqual(["beach.mp4"]);
     expect(await names("pictures")).toEqual(["beach.mp4", "IMG_1234.CR3"]);
-    expect(await names("users")).toEqual([]); // above the added folder
+    expect(await names("users")).toEqual([]);
     expect(await names("nikon")).toEqual([]);
     expect(await names("   ")).toEqual([]);
 
-    // Removing a file takes it out of the index; a rebuild gives the same answers.
     await removeLocalPaths(t.db, [file("beach.mp4").path]);
     expect(await names("holiday")).toEqual(["IMG_1234.CR3"]);
     await rebuildLocalSearch(t.db);
@@ -204,7 +198,6 @@ describe("folder library", () => {
       { folder: "Pictures/Summer 2019" },
     ]);
     expect((await searchLocalAssets(t.db, "summer day")).map((r) => r.name)).toEqual(["x.jpg"]);
-    // A walk after the rename finds the file at its new path: the same row, not a second one.
     await upsertWalkedFiles(t.db, root, [{ ...file("renamed.jpg"), path: `${summer}\\renamed.jpg`, folder: summer }]);
     expect(await uris(t)).toHaveLength(2);
   });
@@ -222,7 +215,6 @@ describe("folder library", () => {
       file("b.jpg", { mtimeMs: Date.UTC(2023, 0, 5, 12) }),
       file("c.jpg", { mtimeMs: Date.UTC(2023, 0, 5, 13) }),
     ]);
-    // A camera-roll asset is not in the folder library.
     await t.db.run(sql`INSERT INTO local_asset (id, created_at) VALUES ('phone', 1)`);
     const days = await localTimelineDays(t.db);
     expect(days.map((d) => d.count)).toEqual([2, 1]);
@@ -253,7 +245,7 @@ describe("backup queue for concurrent workers", () => {
       [
         { path: file("a.jpg").path, md5: "a" },
         { path: file("b.jpg").path, md5: "b" },
-        { path: file("dup.jpg").path, md5: "b" }, // a second copy of b
+        { path: file("dup.jpg").path, md5: "b" },
         { path: file("c.jpg").path, md5: "c" },
       ],
       USER
@@ -279,7 +271,6 @@ describe("backup queue for concurrent workers", () => {
     const ids = claims.map((c) => c?.asset_id ?? null);
     const claimed = ids.filter((x) => x != null);
     expect(new Set(claimed).size).toBe(claimed.length);
-    // b and dup share a hash: only one of them may be uploading.
     expect(ids.filter((x) => x === file("b.jpg").path || x === file("dup.jpg").path)).toHaveLength(1);
     expect(ids.filter((x) => x == null)).toHaveLength(1);
   });

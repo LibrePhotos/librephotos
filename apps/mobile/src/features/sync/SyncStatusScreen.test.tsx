@@ -109,7 +109,7 @@ describe("SyncStatusScreen: work queue", () => {
       { kind: "upload_asset", payload: { assetId: "a1" } },
       { kind: "upload_asset", payload: { assetId: "a2" } },
     ]);
-    await claimNextJob(t.db, 1_000); // device_scan is now running
+    await claimNextJob(t.db, 1_000);
 
     const { getByTestId } = await renderWithDb(<SyncStatusScreen />, t.db);
     await waitFor(() => {

@@ -10,17 +10,6 @@
  *   package's peer range (the package's own dev install included: its tests run
  *   on it), or
  * - the web app and the mobile app are on different zod majors.
- *
- * packages/local-db (the on-device database) is consumed the same way by the
- * mobile app, so the check also fails when
- * - the mobile app's drizzle-orm does not satisfy the package's peer range, or
- * - the root lockfile nests a second drizzle-orm under apps/mobile or the
- *   package (two copies would mean two sets of Drizzle classes in one bundle).
- *
- * Reads the package.json files, apps/frontend/yarn.lock and the root
- * package-lock.json; needs no install. Run from anywhere:
- *   node scripts/check-shared-deps.mjs
- * Tests: node --test scripts/check-shared-deps.test.mjs
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -32,7 +21,6 @@ export const SHARED = ["zod", "react", "@tanstack/react-query"];
 const API_CLIENT = "packages/api-client";
 const LOCAL_DB = "packages/local-db";
 
-/** The local-db package's runtime peers the mobile app must provide (one copy). */
 export const LOCAL_DB_SHARED = ["drizzle-orm"];
 const MOBILE = "apps/mobile";
 
@@ -168,7 +156,6 @@ export function collect(repoRoot) {
   return { peers: { ...apiClient.peerDependencies }, installed, localDb: collectLocalDb(repoRoot, packageLock) };
 }
 
-/** The local-db facts: { peers, installed: { consumer: { name: version } }, nested: [lockfile keys] }. */
 export function collectLocalDb(repoRoot, packageLock) {
   const manifest = JSON.parse(readFileSync(join(repoRoot, `${LOCAL_DB}/package.json`), "utf8"));
   const installed = { mobile: {}, "local-db (dev)": {} };
@@ -184,7 +171,6 @@ export function collectLocalDb(repoRoot, packageLock) {
   return { peers: { ...manifest.peerDependencies }, installed, nested };
 }
 
-/** Every local-db mismatch, as a message. */
 export function findLocalDbProblems({ peers, installed, nested }) {
   const problems = [];
   for (const name of LOCAL_DB_SHARED) {

@@ -117,7 +117,7 @@ describe("ExploreScreen", () => {
   });
 
   it("prefers real rows over skeletons for entities that already have data", async () => {
-    await seedLibrary(t.db); // rows present, sync_state still empty
+    await seedLibrary(t.db);
     const { getByTestId, queryByTestId } = await renderWithDb(<ExploreScreen />, t.db);
 
     expect(getByTestId("explore-item-user-1")).toBeTruthy();

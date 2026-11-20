@@ -40,8 +40,6 @@ export async function enqueueJob(db: AppDatabase, spec: JobSpec, now = Date.now(
   const payload = spec.payload ? JSON.stringify(spec.payload) : null;
   const notBefore = spec.notBefore ?? 0;
 
-  // RETURNING in the same statement: a follow-up `SELECT changes()` could read
-  // another caller's count on the shared async connection.
   const row = await db.get<{ id: number } | undefined>(
     sql`INSERT INTO job_queue (kind, dedupe_key, payload, state, priority, attempts, next_attempt_at, created_at)
         SELECT ${spec.kind}, ${key}, ${payload}, 'pending', ${priority}, 0, ${notBefore}, ${now}
@@ -64,11 +62,6 @@ export async function enqueueJobs(db: AppDatabase, specs: JobSpec[], now = Date.
 
 /**
  * Atomically claim the next eligible job, or null when none is ready.
- *
- * One statement picks the row and moves it to `running` (`UPDATE ... WHERE id =
- * (SELECT ...) RETURNING`), so a claim either wins outright or yields nothing —
- * two workers can never both be handed the same row, even though they share
- * one async connection and interleave between statements.
  *
  * Order: priority, then the backoff window, then insertion order. That is
  * exactly the index `idx_job_queue_ready` covers.

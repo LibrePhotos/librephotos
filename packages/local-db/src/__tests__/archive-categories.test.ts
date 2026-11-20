@@ -1,12 +1,3 @@
-/**
- * @jest-environment node
- *
- * The archive (#545) and media-category flags outside the timeline: the
- * Archive / Screenshots / Documents flag screens and their Collections counts,
- * the screens that keep archived photos (as the web does), Memories (which,
- * like the web's, leaves archived photos, screenshots and documents out), and
- * the migration that re-pulls photos so an old mirror learns the flags.
- */
 import { createTestDb, type TestDb } from "../testing";
 import { filterCounts, filterPhotos, type PhotoFilter } from "../queries/filters";
 import { onThisDay } from "../queries/memories";
