@@ -192,7 +192,9 @@ to keep only in this database). `setLocalAssetEdits` writes an edit,
 `localAssetEdits` reads it back, `applyFileMetadata` takes `rating`, `caption`
 and `keywords` from the metadata pass but never overwrites an app-only field,
 and a changed file keeps an app-only date. `refreshFavorites` recomputes
-`is_favorite` after `favorite_min_rating` changed.
+`is_favorite` after `favorite_min_rating` changed. `requestMetadataReread` marks every
+file whose metadata was read as pending again (the desktop runs it once, when
+its reader learned the sidecar fields).
 
 ### Outbox
 
