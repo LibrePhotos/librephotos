@@ -15,6 +15,20 @@
       "when": 1795160193821,
       "tag": "0001_local_search",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795174155737,
+      "tag": "0002_local_asset_edits",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795174159548,
+      "tag": "0003_local_edits_search",
+      "breakpoints": true
     }
   ]
 }

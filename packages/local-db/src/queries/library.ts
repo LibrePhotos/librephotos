@@ -3,6 +3,7 @@ import { runBatch } from "../batch";
 import { HASH_STATE_UNREADABLE } from "../schema";
 import type { AppDatabase } from "../types";
 import { chunk, inList, BATCH_SIZE } from "../writers";
+import { appOnlyHas, clampRating, isFavoriteSql, keywordsJson } from "./local-edits";
 
 export type FolderRoot = {
   id: string;
@@ -144,6 +145,7 @@ export async function upsertWalkedFiles(
     );
     const w = sql`WITH w(path, name, folder, size, mtime, kind, day) AS (VALUES ${values})`;
     const changed = sql`(local_asset.size_bytes IS NOT w.size OR local_asset.modified_at IS NOT w.mtime)`;
+    const keptDate = appOnlyHas("takenAt", sql`local_asset.app_only_fields`);
     await runBatch(db, [
       sql`${w}
           UPDATE local_asset SET
@@ -152,9 +154,9 @@ export async function upsertWalkedFiles(
             hashed_at = CASE WHEN ${changed} THEN NULL ELSE local_asset.hashed_at END,
             hash_state = CASE WHEN ${changed} THEN NULL ELSE local_asset.hash_state END,
             meta_state = CASE WHEN ${changed} THEN 'pending' ELSE local_asset.meta_state END,
-            taken_at = CASE WHEN ${changed} THEN NULL ELSE local_asset.taken_at END,
-            created_at = CASE WHEN ${changed} THEN w.mtime ELSE local_asset.created_at END,
-            bucket_day = CASE WHEN ${changed} THEN w.day ELSE local_asset.bucket_day END,
+            taken_at = CASE WHEN ${changed} AND NOT ${keptDate} THEN NULL ELSE local_asset.taken_at END,
+            created_at = CASE WHEN ${changed} AND NOT ${keptDate} THEN w.mtime ELSE local_asset.created_at END,
+            bucket_day = CASE WHEN ${changed} AND NOT ${keptDate} THEN w.day ELSE local_asset.bucket_day END,
             size_bytes = w.size, modified_at = w.mtime
           FROM w WHERE local_asset.uri = w.path`,
       sql`${w}
@@ -271,7 +273,30 @@ export type FileMetadata = {
   lens: string | null;
   lat: number | null;
   lon: number | null;
+  rating?: number | null;
+  caption?: string | null;
+  keywords?: readonly string[] | null;
 };
+
+function fileValue(field: "rating" | "caption" | "keywords", column: string, value: SQL): SQL {
+  return sql`CASE WHEN ${appOnlyHas(field)} THEN ${sql.raw(column)} ELSE ${value} END`;
+}
+
+function editedMetadata(m: FileMetadata): SQL[] {
+  const out: SQL[] = [];
+  if (m.rating !== undefined) {
+    const rating = fileValue("rating", "rating", sql`${m.rating === null ? null : clampRating(m.rating)}`);
+    out.push(sql`rating = ${rating}`, sql`is_favorite = ${isFavoriteSql(rating)}`);
+  }
+  if (m.caption !== undefined) {
+    const caption = m.caption?.trim() ? m.caption.trim() : null;
+    out.push(sql`caption = ${fileValue("caption", "caption", sql`${caption}`)}`);
+  }
+  if (m.keywords !== undefined) {
+    out.push(sql`keywords = ${fileValue("keywords", "keywords", sql`${keywordsJson(m.keywords)}`)}`);
+  }
+  return out;
+}
 
 export async function applyFileMetadata(
   db: AppDatabase,
@@ -283,12 +308,16 @@ export async function applyFileMetadata(
       db,
       batch.map((m) => {
         const dated = m.takenAt != null && m.takenMs != null;
+        const kept = appOnlyHas("takenAt");
         const created = dated ? sql`${m.takenMs}` : sql`created_at`;
         const day = dated && m.takenMs != null ? sql`${wallClockDay(m.takenMs)}` : sql`bucket_day`;
+        const edited = editedMetadata(m);
+        const extra = edited.length > 0 ? sql`, ${sql.join(edited, sql`, `)}` : sql``;
         return sql`UPDATE local_asset SET meta_state = 'done', width = ${m.width}, height = ${m.height},
-                     taken_at = ${m.takenAt}, camera = ${m.camera}, lens = ${m.lens},
+                     taken_at = CASE WHEN ${kept} THEN taken_at ELSE ${m.takenAt} END, camera = ${m.camera}, lens = ${m.lens},
                      latitude = ${m.lat}, longitude = ${m.lon}, format = ${m.format},
-                     created_at = ${created}, bucket_day = ${day}
+                     created_at = CASE WHEN ${kept} THEN created_at ELSE ${created} END,
+                     bucket_day = CASE WHEN ${kept} THEN bucket_day ELSE ${day} END${extra}
                    WHERE uri = ${m.path}`;
       })
     );

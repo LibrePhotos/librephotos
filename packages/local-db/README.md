@@ -143,7 +143,7 @@ a TanStack Query observer per key, invalidated by hub flushes).
 included), kind ("raw photo", "video movie", "photo picture image"), `folder`
 words, date words from `bucket_day` (year, month name long and short,
 `yyyy-mm`, `yyyy-mm-dd`), "undated" when the metadata pass found no date, and
-format, camera and lens. The terms are defined once, in the view
+format, camera, lens, caption and keywords. The terms are defined once, in the view
 `local_asset_search_terms`; triggers on `local_asset` (insert, update of those
 columns, delete) keep the index in sync, so any runtime that applies the
 migrations gets it. The FTS rowid is `local_asset.rowid`: after a `VACUUM` run
@@ -180,6 +180,28 @@ checked again), `markFailed`, `resetInFlightUploads`, `localBackupCounts`, and
 `markHashUnreadable`, `libraryProgress`, `cancelFolderBackups` (backup turned
 off), `recordServerHas` (a single "the server has it" answer) and
 `switchFolderAccount` (hashes rebuilt for another server account).
+
+### Edits of a file's own metadata
+
+`local_asset` also holds what the desktop viewer edits and reads from a file and
+its XMP sidecar: `rating` (0-5), `is_favorite` (`rating` reaches
+`app_meta.favorite_min_rating`, 4 when unknown), `caption`, `keywords` (a JSON
+array) and the date taken (`taken_at`, `created_at`, `bucket_day`), plus
+`edited_at` and `app_only_fields` (`,rating,caption,`: the fields the user chose
+to keep only in this database). `setLocalAssetEdits` writes an edit,
+`localAssetEdits` reads it back, `applyFileMetadata` takes `rating`, `caption`
+and `keywords` from the metadata pass but never overwrites an app-only field,
+and a changed file keeps an app-only date. `refreshFavorites` recomputes
+`is_favorite` after `favorite_min_rating` changed.
+
+### Outbox
+
+`queries/outbox.ts` drives the `outbox` table for any client:
+`enqueueOutboxEntry` (with a `key`, a newer write replaces a waiting one: last
+write wins), `claimOutboxEntry` (atomic, oldest first), `completeOutboxEntry`,
+`retryOutboxEntry` (15 s x 2^attempts, at most 8 attempts), `rejectOutboxEntry`
+(the server refused it; kept, not dropped), `requeueOutboxEntry`,
+`resetInflightOutbox`, `retryStuckOutbox` and `outboxCounts`.
 
 ## Checks
 
