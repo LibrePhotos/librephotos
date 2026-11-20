@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { runBatch } from "../batch";
 import type { AppDatabase } from "../types";
 
 export const OUTBOX_MAX_ATTEMPTS = 8;
@@ -71,6 +72,11 @@ export async function completeOutboxEntry(db: AppDatabase, id: number): Promise<
   await db.run(sql`DELETE FROM outbox WHERE id = ${id}`);
 }
 
+const dropSuperseded = (id: number) =>
+  sql`DELETE FROM outbox WHERE id = ${id} AND json_extract(payload, '$.key') IS NOT NULL
+      AND EXISTS (SELECT 1 FROM outbox newer WHERE newer.kind = outbox.kind AND newer.id > outbox.id
+                  AND json_extract(newer.payload, '$.key') = json_extract(outbox.payload, '$.key'))`;
+
 export async function retryOutboxEntry(
   db: AppDatabase,
   id: number,
@@ -78,11 +84,12 @@ export async function retryOutboxEntry(
   now = Date.now(),
   backoffMs = OUTBOX_BACKOFF_MS
 ): Promise<void> {
-  await db.run(
+  await runBatch(db, [
+    dropSuperseded(id),
     sql`UPDATE outbox SET state = 'failed', attempts = attempts + 1, last_error = ${error}, inflight_at = NULL,
           next_attempt_at = ${now} + ${backoffMs} * (1 << MIN(attempts, 10))
-        WHERE id = ${id}`
-  );
+        WHERE id = ${id}`,
+  ]);
 }
 
 export async function requeueOutboxEntry(db: AppDatabase, id: number): Promise<void> {
@@ -90,10 +97,11 @@ export async function requeueOutboxEntry(db: AppDatabase, id: number): Promise<v
 }
 
 export async function rejectOutboxEntry(db: AppDatabase, id: number, error: string): Promise<void> {
-  await db.run(
+  await runBatch(db, [
+    dropSuperseded(id),
     sql`UPDATE outbox SET state = 'rejected', attempts = attempts + 1, last_error = ${error}, inflight_at = NULL
-        WHERE id = ${id}`
-  );
+        WHERE id = ${id}`,
+  ]);
 }
 
 export async function resetInflightOutbox(db: AppDatabase): Promise<number> {
