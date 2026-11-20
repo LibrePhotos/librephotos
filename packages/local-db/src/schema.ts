@@ -214,6 +214,8 @@ export const sharedUser = sqliteTable("shared_user", {
 
 /** `local_asset.hash_state`: the bytes are in iCloud, not on the phone (see below). */
 export const HASH_STATE_ICLOUD = "icloud";
+/** `local_asset.hash_state`: the desktop could not read the file to hash it (until it changes). */
+export const HASH_STATE_UNREADABLE = "unreadable";
 
 /** `local_asset.meta_state`: where the desktop's metadata pass is for a file. */
 export const META_STATES = ["pending", "done", "failed"] as const;

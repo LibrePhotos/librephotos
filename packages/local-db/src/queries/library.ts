@@ -23,6 +23,7 @@
  */
 import { sql, type SQL } from "drizzle-orm";
 import { runBatch } from "../batch";
+import { HASH_STATE_UNREADABLE } from "../schema";
 import type { AppDatabase } from "../types";
 import { chunk, inList, BATCH_SIZE } from "../writers";
 
@@ -176,47 +177,88 @@ function atOrBelow(path: string, column = sql`uri`): SQL {
   return sql`(${column} = ${p} OR substr(${column}, 1, ${p.length + 1}) IN (${`${p}/`}, ${`${p}\\`}))`;
 }
 
+/** Files per {@link upsertWalkedFiles} statement (7 parameters each, well under SQLite's 32,766). */
+const WALK_CHUNK = 500;
+
 /**
  * Record what a walk (or the watcher's `created` / `modified`) found under a
  * folder root. Rows are matched by path. A new file gets its path as id and
  * `meta_state = 'pending'`; a known file whose size or mtime changed is new
  * content, so its hash and metadata are dropped and asked for again, while an
  * unchanged one keeps both (a rescan costs nothing). Each file is linked to the
- * root. One batch per chunk. Returns the number of files written.
+ * root. One batch (three statements) per chunk of 500. Returns the number of files written.
  */
 export async function upsertWalkedFiles(
   db: AppDatabase,
   root: { id: string; path: string },
   files: readonly WalkedFile[]
 ): Promise<number> {
-  for (const batch of chunk(files, BATCH_SIZE)) {
-    await runBatch(
-      db,
-      batch.flatMap((f) => {
-        const folder = folderWords(root.path, f.folder);
-        const day = localDay(f.mtimeMs);
-        const changed = sql`(size_bytes IS NOT ${f.size} OR modified_at IS NOT ${f.mtimeMs})`;
-        return [
-          sql`UPDATE local_asset SET
-                name = ${f.name}, folder = ${folder}, type = ${f.kind},
-                hash = CASE WHEN ${changed} THEN NULL ELSE hash END,
-                hashed_at = CASE WHEN ${changed} THEN NULL ELSE hashed_at END,
-                meta_state = CASE WHEN ${changed} THEN 'pending' ELSE meta_state END,
-                taken_at = CASE WHEN ${changed} THEN NULL ELSE taken_at END,
-                created_at = CASE WHEN ${changed} THEN ${f.mtimeMs} ELSE created_at END,
-                bucket_day = CASE WHEN ${changed} THEN ${day} ELSE bucket_day END,
-                size_bytes = ${f.size}, modified_at = ${f.mtimeMs}
-              WHERE uri = ${f.path}`,
-          sql`INSERT INTO local_asset (id, uri, name, folder, size_bytes, modified_at, type, created_at, bucket_day, meta_state)
-              SELECT ${f.path}, ${f.path}, ${f.name}, ${folder}, ${f.size}, ${f.mtimeMs}, ${f.kind}, ${f.mtimeMs}, ${day}, 'pending'
-              WHERE NOT EXISTS (SELECT 1 FROM local_asset WHERE uri = ${f.path})`,
-          sql`INSERT OR IGNORE INTO local_album_asset (album_id, asset_id)
-              SELECT ${root.id}, id FROM local_asset WHERE uri = ${f.path}`,
-        ];
-      })
+  // One row per path (the last report wins): a path twice in one INSERT would collide with itself.
+  const unique = [...new Map(files.map((f) => [f.path, f])).values()];
+  for (const batch of chunk(unique, WALK_CHUNK)) {
+    // The chunk as a table (path, name, folder, size, mtime, kind, day): three statements per
+    // chunk instead of three per file, which makes a 2,000-file walk several times faster.
+    const values = sql.join(
+      batch.map(
+        (f) =>
+          sql`(${f.path}, ${f.name}, ${folderWords(root.path, f.folder)}, ${f.size}, ${f.mtimeMs}, ${f.kind}, ${localDay(f.mtimeMs)})`
+      ),
+      sql`, `
     );
+    const w = sql`WITH w(path, name, folder, size, mtime, kind, day) AS (VALUES ${values})`;
+    const changed = sql`(local_asset.size_bytes IS NOT w.size OR local_asset.modified_at IS NOT w.mtime)`;
+    await runBatch(db, [
+      sql`${w}
+          UPDATE local_asset SET
+            name = w.name, folder = w.folder, type = w.kind,
+            hash = CASE WHEN ${changed} THEN NULL ELSE local_asset.hash END,
+            hashed_at = CASE WHEN ${changed} THEN NULL ELSE local_asset.hashed_at END,
+            hash_state = CASE WHEN ${changed} THEN NULL ELSE local_asset.hash_state END,
+            meta_state = CASE WHEN ${changed} THEN 'pending' ELSE local_asset.meta_state END,
+            taken_at = CASE WHEN ${changed} THEN NULL ELSE local_asset.taken_at END,
+            created_at = CASE WHEN ${changed} THEN w.mtime ELSE local_asset.created_at END,
+            bucket_day = CASE WHEN ${changed} THEN w.day ELSE local_asset.bucket_day END,
+            size_bytes = w.size, modified_at = w.mtime
+          FROM w WHERE local_asset.uri = w.path`,
+      sql`${w}
+          INSERT INTO local_asset (id, uri, name, folder, size_bytes, modified_at, type, created_at, bucket_day, meta_state)
+          SELECT w.path, w.path, w.name, w.folder, w.size, w.mtime, w.kind, w.mtime, w.day, 'pending' FROM w
+          WHERE NOT EXISTS (SELECT 1 FROM local_asset la WHERE la.uri = w.path)`,
+      sql`${w}
+          INSERT OR IGNORE INTO local_album_asset (album_id, asset_id)
+          SELECT ${root.id}, la.id FROM w JOIN local_asset la ON la.uri = w.path`,
+    ]);
   }
   return files.length;
+}
+
+/**
+ * A "loose" file: one the user opened from outside the library and asked about
+ * or to upload. It gets a local_asset row (matched by path, its id the path)
+ * without a root link, so it shares the hash cache and the upload queue but
+ * never shows in the library views. A changed file loses its hash. Returns the
+ * row's id.
+ */
+export async function upsertLooseFile(db: AppDatabase, f: WalkedFile): Promise<string> {
+  const day = localDay(f.mtimeMs);
+  const changed = sql`(size_bytes IS NOT ${f.size} OR modified_at IS NOT ${f.mtimeMs})`;
+  const [, , row] = await db.batch([
+    db.run(
+      sql`UPDATE local_asset SET
+            hash = CASE WHEN ${changed} THEN NULL ELSE hash END,
+            hashed_at = CASE WHEN ${changed} THEN NULL ELSE hashed_at END,
+            hash_state = CASE WHEN ${changed} THEN NULL ELSE hash_state END,
+            size_bytes = ${f.size}, modified_at = ${f.mtimeMs}
+          WHERE uri = ${f.path}`
+    ),
+    db.run(
+      sql`INSERT INTO local_asset (id, uri, name, folder, size_bytes, modified_at, type, created_at, bucket_day, meta_state)
+          SELECT ${f.path}, ${f.path}, ${f.name}, NULL, ${f.size}, ${f.mtimeMs}, ${f.kind}, ${f.mtimeMs}, ${day}, 'done'
+          WHERE NOT EXISTS (SELECT 1 FROM local_asset WHERE uri = ${f.path})`
+    ),
+    db.get<{ id: string } | undefined>(sql`SELECT id FROM local_asset WHERE uri = ${f.path}`),
+  ]);
+  return row?.id ?? f.path;
 }
 
 /** Live uploads keep their file even when it leaves the library (it becomes a loose file). */
@@ -372,6 +414,18 @@ export async function setFileHashes(
   }
 }
 
+/**
+ * Files the desktop could not read to hash (gone, locked): {@link pendingHashes}
+ * skips them until a walk or the watcher sees them change.
+ */
+export async function markHashUnreadable(db: AppDatabase, paths: readonly string[]): Promise<void> {
+  for (const batch of chunk(paths, BATCH_SIZE)) {
+    await db.run(
+      sql`UPDATE local_asset SET hash_state = ${HASH_STATE_UNREADABLE} WHERE uri IN (${inList(batch)}) AND hash IS NULL`
+    );
+  }
+}
+
 /* ---- library views ------------------------------------------------------ */
 
 /** Which part of the folder library a view covers: one root, or every root. */
@@ -406,6 +460,10 @@ export type LibraryAssetRow = {
   upload_state: string | null;
   /** 1 when the server has a photo with the file's hash (per the mirror) or the upload finished. */
   on_server: number;
+  /** File mtime, ms epoch. */
+  modified_at: number | null;
+  /** 1 when the file is in a folder root (not a loose file). */
+  in_library: number;
 };
 
 export const LIBRARY_ASSET_COLUMNS = sql`la.id AS id, la.uri AS uri, la.name AS name, la.type AS type,
@@ -414,7 +472,10 @@ export const LIBRARY_ASSET_COLUMNS = sql`la.id AS id, la.uri AS uri, la.name AS 
   (la.taken_at IS NOT NULL) AS dated,
   (SELECT uq.state FROM upload_queue uq WHERE uq.asset_id = la.id) AS upload_state,
   (EXISTS (SELECT 1 FROM remote_photo rp WHERE la.hash IS NOT NULL AND rp.image_hash = la.hash)
-   OR EXISTS (SELECT 1 FROM upload_queue uq WHERE uq.asset_id = la.id AND uq.state IN ('done', 'skipped_exists'))) AS on_server`;
+   OR EXISTS (SELECT 1 FROM upload_queue uq WHERE uq.asset_id = la.id AND uq.state IN ('done', 'skipped_exists'))) AS on_server,
+  la.modified_at AS modified_at,
+  EXISTS (SELECT 1 FROM local_album_asset laa JOIN local_album l ON l.id = laa.album_id
+          WHERE laa.asset_id = la.id AND l.source = 'folder') AS in_library`;
 
 /** Day headers / scrubber buckets of the folder library, newest day first. */
 export function localTimelineDays(db: AppDatabase, scope: LibraryScope = {}): Promise<{ bucket_day: string; count: number }[]> {
@@ -460,6 +521,18 @@ export async function localAssetByUri(db: AppDatabase, uri: string): Promise<Lib
     sql`SELECT ${LIBRARY_ASSET_COLUMNS} FROM local_asset la WHERE la.uri = ${uri} LIMIT 1`
   );
   return row ?? null;
+}
+
+/** How far indexing is: library files, and those still waiting for their metadata or hash. */
+export async function libraryProgress(
+  db: AppDatabase
+): Promise<{ files: number; pendingMetadata: number; pendingHashes: number }> {
+  const row = await db.get<{ files: number; pending_meta: number | null; pending_hash: number | null } | undefined>(
+    sql`SELECT COUNT(*) AS files, SUM(la.meta_state = 'pending') AS pending_meta,
+               SUM(la.hash IS NULL AND la.hash_state IS NULL) AS pending_hash
+        FROM local_asset la WHERE ${libraryScope({})}`
+  );
+  return { files: row?.files ?? 0, pendingMetadata: row?.pending_meta ?? 0, pendingHashes: row?.pending_hash ?? 0 };
 }
 
 /** Library files still waiting for a hash, most recent first. */
