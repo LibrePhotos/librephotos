@@ -1,1 +1,0 @@
-ALTER TABLE `local_asset` ADD `hash_state` text;

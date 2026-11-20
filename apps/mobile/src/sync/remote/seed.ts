@@ -38,22 +38,23 @@ import type {
   UserAlbum,
   UserAlbumInfo,
 } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
-import { parseServerTimestamp } from "@/db/time";
-import { isArray, parseJson } from "@/lib/guards";
 import {
-  pigPhotoToRemoteRow,
+  getSyncState,
+  parseServerTimestamp,
   upsertAutoAlbums,
   upsertPersons,
   upsertPlaceAlbums,
   upsertRemotePhotos,
+  upsertSyncState,
   upsertTagAlbums,
   upsertThingAlbums,
   upsertUserAlbums,
-  type MapOptions,
+  type AppDatabase,
   type RemotePhotoInput,
-} from "@/db/writers";
-import { getSyncState, upsertSyncState, type SyncEntity } from "@/db/queries/sync-state";
+  type SyncEntity,
+} from "@librephotos/local-db";
+import { isArray, parseJson } from "@/lib/guards";
+import { pigPhotoToRemoteRow, type MapOptions } from "./pig-photo";
 
 /** The data the seeder pulls, abstracted for injection/testing. */
 export interface SeedSource {
@@ -145,9 +146,9 @@ export async function seedPhotos(
   // Resume only an INTERRUPTED seed (status still "running"). A fresh re-seed
   // (pull-to-refresh, status "done"/"idle"/absent) starts clean so it re-fetches
   // every bucket and picks up server-side changes.
-  const prev = getSyncState(db, "photo");
+  const prev = await getSyncState(db, "photo");
   const resuming = prev?.status === "running";
-  const done = new Set(resuming ? loadDoneBuckets(db) : []);
+  const done = new Set(resuming ? await loadDoneBuckets(db) : []);
 
   // Compute the total up front for a determinate progress bar.
   const buckets: { pass: PhotoPass; bucket: IncompleteDatePhotosGroup }[] = [];
@@ -156,7 +157,7 @@ export async function seedPhotos(
     for (const bucket of list) buckets.push({ pass, bucket });
   }
   const total = buckets.reduce((acc, b) => acc + b.bucket.numberOfItems, 0);
-  upsertSyncState(db, "photo", {
+  await upsertSyncState(db, "photo", {
     status: "running",
     cursor_id: JSON.stringify([...done]),
     progress_current: written,
@@ -168,16 +169,16 @@ export async function seedPhotos(
     if (done.has(key)) continue;
     const items = await collectBucket(source, bucket, pass.filter, maxPages);
     const rows = items.map((p) => pigPhotoToRemoteRow(p, mapOpts(opts, pass.flags, now)));
-    written += upsertRemotePhotos(db, rows);
+    written += await upsertRemotePhotos(db, rows);
     done.add(key);
-    saveProgress(db, done, written, total);
+    await saveProgress(db, done, written, total);
     opts.onProgress?.({ entity: "photo", current: written, total });
   }
 
   // No-timestamp photos (separate, paginated endpoint).
   written += await seedPhotosWithoutTimestamp(db, source, opts, now, maxPages);
 
-  upsertSyncState(db, "photo", {
+  await upsertSyncState(db, "photo", {
     status: "done",
     last_full_sync: now,
     progress_current: written,
@@ -199,7 +200,7 @@ async function seedPhotosWithoutTimestamp(
     const rows = (res.results ?? []).map((p) =>
       pigPhotoToRemoteRow({ ...p, date: null }, mapOpts(opts, {}, now))
     );
-    written += upsertRemotePhotos(db, rows);
+    written += await upsertRemotePhotos(db, rows);
     if (!res.next || (res.results ?? []).length === 0) break;
   }
   return written;
@@ -209,10 +210,8 @@ async function seedPhotosWithoutTimestamp(
  * The photo pass persists completed date-bucket keys as a JSON array in
  * sync_state.cursor_id, so a resumed seed skips buckets it already ingested.
  */
-function loadDoneBuckets(db: AppDatabase): string[] {
-  const row = db.get(sql`SELECT cursor_id FROM sync_state WHERE entity = 'photo'`) as
-    | { cursor_id: string | null }
-    | undefined;
+async function loadDoneBuckets(db: AppDatabase): Promise<string[]> {
+  const row = await db.get<{ cursor_id: string | null } | undefined>(sql`SELECT cursor_id FROM sync_state WHERE entity = 'photo'`);
   if (!row?.cursor_id) return [];
   try {
     const parsed = parseJson(row.cursor_id);
@@ -222,8 +221,8 @@ function loadDoneBuckets(db: AppDatabase): string[] {
   }
 }
 
-function saveProgress(db: AppDatabase, done: Set<string>, current: number, total: number): void {
-  upsertSyncState(db, "photo", {
+async function saveProgress(db: AppDatabase, done: Set<string>, current: number, total: number): Promise<void> {
+  await upsertSyncState(db, "photo", {
     status: "running",
     cursor_id: JSON.stringify([...done]),
     progress_current: current,
@@ -235,7 +234,7 @@ function saveProgress(db: AppDatabase, done: Set<string>, current: number, total
 
 export async function seedPeople(db: AppDatabase, source: SeedSource, now: number): Promise<number> {
   const list = await source.people();
-  upsertSyncState(db, "person", { status: "running", progress_total: list.length });
+  await upsertSyncState(db, "person", { status: "running", progress_total: list.length });
   const rows = list.map((p) => ({
     id: p.id,
     name: p.name,
@@ -248,8 +247,8 @@ export async function seedPeople(db: AppDatabase, source: SeedSource, now: numbe
     coverPhotoHash: p.face_photo_url || null,
     lastModified: now,
   }));
-  upsertPersons(db, rows);
-  upsertSyncState(db, "person", {
+  await upsertPersons(db, rows);
+  await upsertSyncState(db, "person", {
     status: "done",
     last_full_sync: now,
     progress_current: rows.length,
@@ -265,7 +264,7 @@ export async function seedUserAlbums(
   now: number
 ): Promise<number> {
   const list = await source.userAlbumsList();
-  upsertSyncState(db, "user_album", { status: "running", progress_total: list.length });
+  await upsertSyncState(db, "user_album", { status: "running", progress_total: list.length });
   let done = 0;
   for (const info of list) {
     let photoIds: string[] | undefined;
@@ -275,7 +274,7 @@ export async function seedUserAlbums(
     } catch {
       photoIds = undefined; // metadata-only if detail fetch fails
     }
-    upsertUserAlbums(db, [
+    await upsertUserAlbums(db, [
       {
         id: info.id,
         title: info.title,
@@ -290,14 +289,14 @@ export async function seedUserAlbums(
       },
     ]);
     done++;
-    upsertSyncState(db, "user_album", {
+    await upsertSyncState(db, "user_album", {
       status: "running",
       progress_current: done,
       progress_total: list.length,
     });
     opts.onProgress?.({ entity: "user_album", current: done, total: list.length });
   }
-  upsertSyncState(db, "user_album", {
+  await upsertSyncState(db, "user_album", {
     status: "done",
     last_full_sync: now,
     progress_current: done,
@@ -313,7 +312,7 @@ export async function seedAutoAlbums(
   now: number
 ): Promise<number> {
   const list = await source.autoAlbumsList();
-  upsertSyncState(db, "auto_album", { status: "running", progress_total: list.length });
+  await upsertSyncState(db, "auto_album", { status: "running", progress_total: list.length });
   let done = 0;
   for (const info of list) {
     let photoIds: string[] | undefined;
@@ -325,7 +324,7 @@ export async function seedAutoAlbums(
     } catch {
       photoIds = undefined;
     }
-    upsertAutoAlbums(db, [
+    await upsertAutoAlbums(db, [
       {
         id: info.id,
         title: info.title,
@@ -338,14 +337,14 @@ export async function seedAutoAlbums(
       },
     ]);
     done++;
-    upsertSyncState(db, "auto_album", {
+    await upsertSyncState(db, "auto_album", {
       status: "running",
       progress_current: done,
       progress_total: list.length,
     });
     opts.onProgress?.({ entity: "auto_album", current: done, total: list.length });
   }
-  upsertSyncState(db, "auto_album", {
+  await upsertSyncState(db, "auto_album", {
     status: "done",
     last_full_sync: now,
     progress_current: done,
@@ -364,7 +363,7 @@ export async function seedGroupingAlbums(
     source.placeAlbumsList(),
     source.tagAlbumsList(),
   ]);
-  upsertThingAlbums(
+  await upsertThingAlbums(
     db,
     things.map((a) => ({
       id: a.id,
@@ -374,7 +373,7 @@ export async function seedGroupingAlbums(
       lastModified: now,
     }))
   );
-  upsertPlaceAlbums(
+  await upsertPlaceAlbums(
     db,
     places.map((a) => ({
       id: a.id,
@@ -385,7 +384,7 @@ export async function seedGroupingAlbums(
       lastModified: now,
     }))
   );
-  upsertTagAlbums(
+  await upsertTagAlbums(
     db,
     tags.map((a) => ({
       id: a.id,
@@ -396,7 +395,7 @@ export async function seedGroupingAlbums(
     }))
   );
   for (const entity of ["thing_album", "place_album", "tag_album"] as const) {
-    upsertSyncState(db, entity, { status: "done", last_full_sync: now });
+    await upsertSyncState(db, entity, { status: "done", last_full_sync: now });
   }
 }
 

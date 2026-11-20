@@ -20,19 +20,20 @@
  * through {@link JobSeams}, so the whole handler set is Node-tested with fakes.
  */
 import { sql } from "drizzle-orm";
-import type { AppDatabase } from "@/db/types";
-import { clearMirror } from "@/db/reset";
 import {
+  clearMirror,
   getMetaNumber,
-  setMeta,
-  setMetaNumber,
+  LOCAL_FIRST,
   META_FAVORITE_MIN_RATING,
   META_LAST_INTEGRITY,
-} from "@/db/queries/app-meta";
-import { SYNC_ENTITIES, type SyncEntity } from "@/db/queries/sync-state";
+  setMeta,
+  setMetaNumber,
+  SYNC_ENTITIES,
+  type AppDatabase,
+  type SyncEntity,
+} from "@librephotos/local-db";
 import { checkIntegrity, type IntegrityReport } from "@/sync/integrity";
 import { HASH_STATE_ICLOUD } from "@/sync/device/hasher";
-import { LOCAL_FIRST } from "@/sync/upload/queue";
 import { pullEntityStep, type PullOptions } from "@/sync/remote/delta";
 import type { RemoteSyncSource } from "@/sync/remote/source";
 import { jobSizer, type JobSizer } from "./sizing";
@@ -95,7 +96,7 @@ export type JobSeams = {
   uploadAsset?: (ctx: JobContext, assetId: string) => Promise<UploadAssetResult>;
   prefetchThumbs?: (ctx: JobContext, limit: number) => Promise<ThumbBatchResult>;
   /** True when the user has backup switched on (gates the hash→upload chain). */
-  backupEnabled?: (db: AppDatabase) => boolean;
+  backupEnabled?: (db: AppDatabase) => Promise<boolean>;
   /** Page size / progress reporting for the delta steps. */
   pull?: PullOptions;
   /** Skip the counts-vs-mirror integrity snapshot (repair does). */
@@ -136,12 +137,12 @@ export type JobSeams = {
  * behind everything already on disk, so a network fetch never holds up photos
  * that are ready to go.
  */
-export function enqueueUploadWindow(
+export async function enqueueUploadWindow(
   db: AppDatabase,
   now: number,
   limit = UPLOAD_WINDOW
-): JobSpec<"upload_asset">[] {
-  const rows = db.all(
+): Promise<JobSpec<"upload_asset">[]> {
+  const rows = await db.all<{ asset_id: string }>(
     sql`SELECT uq.asset_id AS asset_id
         FROM upload_queue uq JOIN local_asset la ON la.id = uq.asset_id
         WHERE uq.state IN ('pending', 'failed')
@@ -153,24 +154,24 @@ export function enqueueUploadWindow(
           )
         ORDER BY ${LOCAL_FIRST}, uq.enqueued_at ASC, uq.asset_id ASC
         LIMIT ${limit}`
-  ) as { asset_id: string }[];
+  );
   return rows.map((r) => ({ kind: "upload_asset", payload: { assetId: r.asset_id } }));
 }
 
 /** How many `upload_asset` jobs are already live (keeps the window a window). */
-function liveUploadJobs(db: AppDatabase): number {
+async function liveUploadJobs(db: AppDatabase): Promise<number> {
   return (
-    db.get(
+    await db.get<{ c: number }>(
       sql`SELECT COUNT(*) AS c FROM job_queue WHERE kind = 'upload_asset' AND state IN ('pending', 'running')`
-    ) as { c: number }
+    )
   ).c;
 }
 
 /** Top up the upload window to `limit`, returning only the shortfall. */
-function topUpUploadWindow(db: AppDatabase, now: number, limit: number): JobSpec[] {
-  const shortfall = limit - liveUploadJobs(db);
+async function topUpUploadWindow(db: AppDatabase, now: number, limit: number): Promise<JobSpec[]> {
+  const shortfall = limit - (await liveUploadJobs(db));
   if (shortfall <= 0) return [];
-  return enqueueUploadWindow(db, now, shortfall);
+  return await enqueueUploadWindow(db, now, shortfall);
 }
 
 /* ---------------------------------------------------------------------- *
@@ -227,11 +228,11 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
       if (!seams.getFavoriteMinRating) return;
       const current = await seams.getFavoriteMinRating();
       if (current == null) return; // network hiccup — skip the check this run
-      const prev = getMetaNumber(ctx.db, META_FAVORITE_MIN_RATING);
+      const prev = await getMetaNumber(ctx.db, META_FAVORITE_MIN_RATING);
       if (prev != null && prev !== current) {
-        clearMirror(ctx.db);
+        await clearMirror(ctx.db);
         seams.onReseed?.();
-        setMetaNumber(ctx.db, META_FAVORITE_MIN_RATING, current, ctx.now);
+        await setMetaNumber(ctx.db, META_FAVORITE_MIN_RATING, current, ctx.now);
         ctx.log({ op: "reseed", level: "warn", message: `favorite_min_rating ${prev}→${current}` });
         // The cursors are gone, so every entity now needs a fresh seed.
         return {
@@ -242,7 +243,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
           })),
         };
       }
-      setMetaNumber(ctx.db, META_FAVORITE_MIN_RATING, current, ctx.now);
+      await setMetaNumber(ctx.db, META_FAVORITE_MIN_RATING, current, ctx.now);
     },
 
     /* -- 3. one delta page per job (see delta.pullEntityStep) ------------- */
@@ -314,8 +315,8 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
       // Uploads must start *during* hashing, not after it. Every batch tops the
       // upload window up, so the first handful of hashed photos are already
       // uploading while the other 2800-odd are still being read.
-      if (seams.backupEnabled?.(ctx.db) !== false) {
-        next.push(...topUpUploadWindow(ctx.db, ctx.now, budgets.uploadWindow ?? UPLOAD_WINDOW));
+      if ((await seams.backupEnabled?.(ctx.db)) !== false) {
+        next.push(...(await topUpUploadWindow(ctx.db, ctx.now, budgets.uploadWindow ?? UPLOAD_WINDOW)));
       }
       if (result.more) next.push({ kind: "hash_batch" });
 
@@ -363,7 +364,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
         throw new Error(result.error ?? `upload failed for ${assetId}`);
       }
 
-      const next: JobSpec[] = topUpUploadWindow(ctx.db, ctx.now, window);
+      const next: JobSpec[] = await topUpUploadWindow(ctx.db, ctx.now, window);
       // A landed upload means new server rows: pull a photos delta so the
       // merged-timeline badge flips from pending to synced (doc 03 §5).
       if (result.uploaded) next.push({ kind: "remote_delta", payload: { entity: "photo", page: 0 } });
@@ -394,7 +395,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
       let report: IntegrityReport | null = null;
       try {
         const server = await seams.source.counts();
-        report = checkIntegrity(ctx.db, server);
+        report = await checkIntegrity(ctx.db, server);
       } catch {
         // A failed counts fetch is non-fatal — the next run retries. Swallowed
         // rather than thrown so it does not consume the job's attempt budget.
@@ -402,14 +403,14 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
         return;
       }
       seams.onIntegrity?.(report);
-      setMeta(ctx.db, META_LAST_INTEGRITY, JSON.stringify({ at: ctx.now, ok: report.ok }), ctx.now);
+      await setMeta(ctx.db, META_LAST_INTEGRITY, JSON.stringify({ at: ctx.now, ok: report.ok }), ctx.now);
       if (report.ok) {
         ctx.log({ op: "integrity", level: "info", message: "ok" });
         return;
       }
       const drifted: JobSpec[] = [];
       for (const drift of report.drifts) {
-        scheduleReseed(ctx.db, drift.entity);
+        await scheduleReseed(ctx.db, drift.entity);
         drifted.push({ kind: "remote_delta", payload: { entity: drift.entity, page: 0 } });
         ctx.log({
           op: "integrity",
@@ -429,8 +430,8 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
  * stay put (so the UI keeps showing stale-but-present data) until the reseed
  * replaces them from zero.
  */
-export function scheduleReseed(db: AppDatabase, entity: SyncEntity): void {
-  db.run(
+export async function scheduleReseed(db: AppDatabase, entity: SyncEntity): Promise<void> {
+  await db.run(
     sql`UPDATE sync_state SET cursor_id = NULL, cursor_modified = NULL, status = 'idle' WHERE entity = ${entity}`
   );
 }

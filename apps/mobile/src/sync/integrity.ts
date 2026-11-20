@@ -6,9 +6,7 @@
  * event is logged loudly.
  */
 import type { SyncCounts } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
-import { localCounts, type LocalCounts } from "@/db/queries/counts";
-import type { SyncEntity } from "@/db/queries/sync-state";
+import { localCounts, type AppDatabase, type LocalCounts, type SyncEntity } from "@librephotos/local-db";
 
 /** Absolute per-entity count difference tolerated before a reseed is scheduled. */
 export const INTEGRITY_TOLERANCE = 0;
@@ -42,12 +40,12 @@ export type IntegrityReport = {
 };
 
 /** Compare local counts to a server counts payload. Pure — no side effects. */
-export function checkIntegrity(
+export async function checkIntegrity(
   db: AppDatabase,
   server: SyncCounts,
   tolerance = INTEGRITY_TOLERANCE
-): IntegrityReport {
-  const local = localCounts(db);
+): Promise<IntegrityReport> {
+  const local = await localCounts(db);
   const drifts: IntegrityDrift[] = [];
   for (const key of Object.keys(COUNT_KEY_TO_ENTITY).filter(isCountKey)) {
     const l = local[key];

@@ -1,1 +1,0 @@
-CREATE INDEX `idx_local_asset_timeline` ON `local_asset` (`created_at`,`id`);

@@ -1,4 +1,4 @@
-import type { TimelineBucket } from "@/db/types";
+import type { TimelineBucket } from "@librephotos/local-db";
 
 /**
  * Where each day starts on the scrubber track, as a fraction of the whole

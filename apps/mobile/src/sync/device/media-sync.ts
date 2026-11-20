@@ -36,8 +36,7 @@
  * `ascending` and stores a watermark, so a truncated run simply resumes where
  * it stopped on the next sync.
  */
-import type { AppDatabase } from "@/db/types";
-import type { SyncLogEntry } from "@/db/queries/sync-log";
+import type { AppDatabase, SyncLogEntry } from "@librephotos/local-db";
 import type { MediaAlbum, MediaAsset, MediaProvider } from "./types";
 import {
   albumAssetIndex,
@@ -177,7 +176,7 @@ function throwIfAborted(signal?: AbortSignal): void {
 async function streamAssets(
   ctx: RunContext,
   base: { albumId?: string; createdAfter?: number; ascending?: boolean },
-  onPage: (assets: MediaAsset[]) => void
+  onPage: (assets: MediaAsset[]) => Promise<void>
 ): Promise<void> {
   let after: string | undefined;
   for (;;) {
@@ -197,7 +196,7 @@ async function streamAssets(
       after,
     });
     if (page.assets.length > 0) {
-      onPage(page.assets);
+      await onPage(page.assets);
       ctx.scanned += page.assets.length;
       ctx.onProgress?.({
         album: ctx.album,
@@ -224,12 +223,12 @@ async function streamAssets(
  * Write one page: upsert the assets we have not already written this run, then
  * link the requested ids to the album. Returns nothing — counters live on `ctx`.
  */
-function writeAssets(ctx: RunContext, albumId: string, assets: MediaAsset[], linkIds: string[]): void {
+async function writeAssets(ctx: RunContext, albumId: string, assets: MediaAsset[], linkIds: string[]): Promise<void> {
   const fresh = assets.filter((a) => !ctx.seen.has(a.id));
   if (fresh.length > 0) {
     // "New to the mirror" has to be decided before the upsert, so the reported
     // `added` count means inserts rather than inserts-plus-updates.
-    const known = existingAssetIds(
+    const known = await existingAssetIds(
       ctx.db,
       fresh.map((a) => a.id),
       ID_CHUNK
@@ -238,10 +237,10 @@ function writeAssets(ctx: RunContext, albumId: string, assets: MediaAsset[], lin
       ctx.seen.add(a.id);
       if (!known.has(a.id)) ctx.addedIds.add(a.id);
     }
-    upsertLocalAssets(ctx.db, fresh);
+    await upsertLocalAssets(ctx.db, fresh);
     ctx.upserted += fresh.length;
   }
-  if (linkIds.length > 0) linkAlbumAssets(ctx.db, albumId, linkIds);
+  if (linkIds.length > 0) (await linkAlbumAssets(ctx.db, albumId, linkIds));
 }
 
 /**
@@ -250,15 +249,15 @@ function writeAssets(ctx: RunContext, albumId: string, assets: MediaAsset[], lin
  * our membership afterward, run the full id-diff (adds, removals, edits).
  */
 async function syncAlbum(ctx: RunContext, album: MediaAlbum): Promise<void> {
-  const stored = getLocalAlbum(ctx.db, album.id);
-  upsertLocalAlbum(ctx.db, {
+  const stored = await getLocalAlbum(ctx.db, album.id);
+  await upsertLocalAlbum(ctx.db, {
     id: album.id,
     title: album.title,
     assetCount: album.assetCount,
     modifiedAt: ctx.now,
   });
 
-  const watermark = getAlbumWatermark(ctx.db, album.id);
+  const watermark = await getAlbumWatermark(ctx.db, album.id);
   const isFirstSync = stored == null || watermark == null;
   const albumId = isSyntheticAlbum(album.id) ? undefined : album.id;
 
@@ -270,9 +269,9 @@ async function syncAlbum(ctx: RunContext, album: MediaAlbum): Promise<void> {
   await streamAssets(
     ctx,
     { albumId, createdAfter: isFirstSync ? undefined : (watermark ?? undefined), ascending: true },
-    (assets) => {
+    async (assets) => {
       sawAny = true;
-      writeAssets(
+      await writeAssets(
         ctx,
         album.id,
         assets,
@@ -281,8 +280,8 @@ async function syncAlbum(ctx: RunContext, album: MediaAlbum): Promise<void> {
       for (const a of assets) maxCreated = Math.max(maxCreated, a.creationTime);
     }
   );
-  if (sawAny) setAlbumWatermark(ctx.db, album.id, maxCreated, ctx.now);
-  else if (isFirstSync) setAlbumWatermark(ctx.db, album.id, 0, ctx.now);
+  if (sawAny) (await setAlbumWatermark(ctx.db, album.id, maxCreated, ctx.now));
+  else if (isFirstSync) (await setAlbumWatermark(ctx.db, album.id, 0, ctx.now));
 
   // A truncated album is *expected* to disagree with the provider count — the
   // rest of it simply has not been read yet. Running the full diff here would
@@ -290,7 +289,7 @@ async function syncAlbum(ctx: RunContext, album: MediaAlbum): Promise<void> {
   if (ctx.truncated) return;
 
   // ---- full diff fallback: only when counts still disagree ----------------
-  const ourCount = albumMembershipCount(ctx.db, album.id);
+  const ourCount = await albumMembershipCount(ctx.db, album.id);
   if (ourCount !== album.assetCount) await fullDiff(ctx, album, albumId);
 }
 
@@ -301,12 +300,12 @@ async function syncAlbum(ctx: RunContext, album: MediaAlbum): Promise<void> {
  * Streams page by page like the fast path; only the id set is held in memory.
  */
 async function fullDiff(ctx: RunContext, album: MediaAlbum, albumId: string | undefined): Promise<void> {
-  const stored = albumAssetIndex(ctx.db, album.id);
+  const stored = await albumAssetIndex(ctx.db, album.id);
   const present = new Set<string>();
   let addedLinks = 0;
   let changed = 0;
 
-  await streamAssets(ctx, { albumId, ascending: false }, (assets) => {
+  await streamAssets(ctx, { albumId, ascending: false }, async (assets) => {
     const toWrite: MediaAsset[] = [];
     const toLink: string[] = [];
     for (const a of assets) {
@@ -322,7 +321,7 @@ async function fullDiff(ctx: RunContext, album: MediaAlbum, albumId: string | un
         changed += 1;
       }
     }
-    writeAssets(ctx, album.id, toWrite, toLink);
+    await writeAssets(ctx, album.id, toWrite, toLink);
   });
 
   // A truncated full diff has not seen the whole album, so "missing" ids are
@@ -331,7 +330,7 @@ async function fullDiff(ctx: RunContext, album: MediaAlbum, albumId: string | un
 
   const removed = [...stored.keys()].filter((id) => !present.has(id));
   if (removed.length > 0) {
-    unlinkAlbumAssets(ctx.db, album.id, removed);
+    await unlinkAlbumAssets(ctx.db, album.id, removed);
     for (const id of removed) ctx.removedIds.add(id);
   }
   ctx.log?.({
@@ -393,7 +392,7 @@ export async function syncDeviceMedia(
   let perm = await provider.getPermissions();
   if (!perm.granted && perm.canAskAgain) perm = await provider.requestPermissions();
   acc.access = perm.accessPrivileges;
-  setMediaAccess(db, perm.accessPrivileges, now);
+  await setMediaAccess(db, perm.accessPrivileges, now);
   if (!perm.granted || perm.accessPrivileges === "none") {
     opts.log?.({ op: "device", level: "warn", message: "media permission not granted" });
     return acc;
@@ -444,7 +443,7 @@ export async function syncDeviceMedia(
   // whole library has actually been walked — after a truncated run the unread
   // assets are not orphans, they are simply unread.
   if (!ctx.truncated) {
-    acc.deleted = sweepOrphanAssets(db).length;
+    acc.deleted = (await sweepOrphanAssets(db)).length;
   }
 
   opts.log?.({

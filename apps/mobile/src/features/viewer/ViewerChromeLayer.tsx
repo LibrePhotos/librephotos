@@ -1,4 +1,4 @@
-import type { ViewerSlide } from "@/db/queries/detail";
+import type { ViewerSlide } from "@librephotos/local-db";
 import type { SlideSource } from "./originalSource";
 import { ResolutionChip } from "./ResolutionChip";
 import type { OriginalLoad } from "./useOriginalOnZoom";

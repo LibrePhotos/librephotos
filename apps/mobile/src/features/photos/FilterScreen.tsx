@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { MirrorGrid, type GridItem } from "@/components/MirrorGrid";
 import { useReactiveQuery } from "@/db/provider";
-import { filterPhotos, type PhotoFilter, type PhotoTileRow } from "@/db/queries/filters";
+import { filterPhotos, type PhotoFilter, type PhotoTileRow } from "@librephotos/local-db";
 import { useGridSelection, type SelectionDirections } from "@/features/selection/useGridSelection";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
@@ -50,7 +50,12 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
   const router = useRouter();
   const token = useAccessToken();
   const base = serverAddress();
-  const items = useReactiveQuery((db) => filterPhotos(db, filter).map(tileRowToItem), [filter]);
+  const { data: items, loading } = useReactiveQuery(
+    ["filter-photos", filter],
+    async (db) => (await filterPhotos(db, filter)).map(tileRowToItem),
+    [] as GridItem[],
+    { tables: ["remote_photo"] }
+  );
   const selection = useGridSelection(directionsFor(filter));
 
   const openPhoto = useCallback(
@@ -82,9 +87,10 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
           selectionActive={selection.active}
           isSelected={selection.isSelected}
           ListEmptyComponent={
+            loading ? null : (
             <View testID="filter-empty" style={{ padding: 32, alignItems: "center" }}>
               <Text style={{ color: theme.muted }}>{t("library.empty")}</Text>
-            </View>
+            </View>)
           }
         />
       </View>

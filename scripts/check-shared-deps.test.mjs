@@ -3,7 +3,14 @@ import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
-import { collect, findProblems, satisfies, versionFromPackageLock, versionFromYarnLock } from "./check-shared-deps.mjs";
+import {
+  collect,
+  findLocalDbProblems,
+  findProblems,
+  satisfies,
+  versionFromPackageLock,
+  versionFromYarnLock,
+} from "./check-shared-deps.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -143,5 +150,29 @@ describe("findProblems", () => {
       "web: zod is not installed (no lockfile entry)",
       "packages/api-client does not declare react as a peer dependency",
     ]);
+  });
+});
+
+describe("findLocalDbProblems", () => {
+  const agreeingLocalDb = () => ({
+    peers: { "drizzle-orm": "^0.45.2" },
+    installed: { mobile: { "drizzle-orm": "0.45.3" }, "local-db (dev)": { "drizzle-orm": "0.45.3" } },
+    nested: [],
+  });
+
+  it("passes on the repository as it is", () => {
+    assert.deepEqual(findLocalDbProblems(collect(repoRoot).localDb), []);
+  });
+
+  it("fails when the mobile app's drizzle-orm is outside the package's peer range", () => {
+    const facts = agreeingLocalDb();
+    facts.installed.mobile["drizzle-orm"] = "0.44.0";
+    assert.match(findLocalDbProblems(facts).join("\n"), /mobile: drizzle-orm 0\.44\.0 does not satisfy/);
+  });
+
+  it("fails on a second, nested drizzle-orm", () => {
+    const facts = agreeingLocalDb();
+    facts.nested = ["apps/mobile/node_modules/drizzle-orm"];
+    assert.match(findLocalDbProblems(facts).join("\n"), /second copy/);
   });
 });

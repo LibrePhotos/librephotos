@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { albumKeys, endpoints, faceKeys, photoGridKeys, Photoset, useApiClient } from "@librephotos/api-client";
 import { useDb } from "@/db/provider";
-import { deletePersons } from "@/db/writers";
+import { deletePersons } from "@librephotos/local-db";
 import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toasts";
 import { runSync } from "@/sync/run";
@@ -45,7 +45,7 @@ export function usePersonActions(personId: number) {
       try {
         // The server takes an image hash or a photo UUID; the hash works on every version.
         await endpoints.setPersonCover(client, personId, imageHash);
-        db.run(sql`UPDATE person SET cover_photo_hash = ${imageHash} WHERE id = ${personId}`);
+        await db.run(sql`UPDATE person SET cover_photo_hash = ${imageHash} WHERE id = ${personId}`);
         pushToast({ level: "info", message: t("person.coverSet") });
         refresh();
         return true;
@@ -62,7 +62,7 @@ export function usePersonActions(personId: number) {
     async (target: { id: number; name: string }): Promise<boolean> => {
       try {
         await endpoints.mergePerson(client, target.id, personId);
-        deletePersons(db, [personId]);
+        await deletePersons(db, [personId]);
         pushToast({ level: "info", message: t("person.merged", { name: target.name }) });
         refresh();
         return true;
@@ -78,7 +78,7 @@ export function usePersonActions(personId: number) {
     async (name: string): Promise<boolean> => {
       try {
         await endpoints.deletePerson(client, personId);
-        deletePersons(db, [personId]);
+        await deletePersons(db, [personId]);
         pushToast({ level: "info", message: t("person.deleted", { name }) });
         refresh();
         return true;

@@ -6,8 +6,15 @@ import { endpoints, useApiClient, useUserSelfDetailsQuery } from "@librephotos/a
 import { changeAppLanguage, AVAILABLE_LOCALES } from "@/i18n";
 import { TextPromptModal } from "@/components/TextPromptModal";
 import { useDb, useReactiveQuery } from "@/db/provider";
-import { getBackupConfig, setBackupConfig } from "@/db/queries/backup";
-import { formatTime, getMemoriesNotifPrefs, setMemoriesNotifPrefs } from "@/db/queries/memories";
+import {
+  DEFAULT_BACKUP_CONFIG,
+  DEFAULT_MEMORIES_NOTIF_PREFS,
+  formatTime,
+  getBackupConfig,
+  getMemoriesNotifPrefs,
+  setBackupConfig,
+  setMemoriesNotifPrefs,
+} from "@librephotos/local-db";
 import { rescheduleMemoriesReminders } from "@/features/memories/reminders";
 import { clearThumbCache, thumbCacheTotalBytes } from "@/sync/thumbs";
 import { runSync } from "@/sync/run";
@@ -45,9 +52,11 @@ export function SettingsScreen() {
   const capBytes = useSettingsStore((s) => s.thumbCapBytes);
   const setCap = useSettingsStore((s) => s.setThumbCapBytes);
 
-  const cacheBytes = useReactiveQuery((d) => thumbCacheTotalBytes(d), []);
-  const backup = useReactiveQuery((d) => getBackupConfig(d), []);
-  const memoriesNotif = useReactiveQuery((d) => getMemoriesNotifPrefs(d), []);
+  const { data: cacheBytes } = useReactiveQuery(["thumb-cache-bytes"], (d) => thumbCacheTotalBytes(d), 0, { tables: ["thumb_cache"] });
+  const { data: backup } = useReactiveQuery(["backup-config"], (d) => getBackupConfig(d), DEFAULT_BACKUP_CONFIG, { tables: ["app_meta"] });
+  const { data: memoriesNotif } = useReactiveQuery(["memories-notif-prefs"], (d) => getMemoriesNotifPrefs(d), DEFAULT_MEMORIES_NOTIF_PREFS, {
+    tables: ["app_meta"],
+  });
 
   const [langOpen, setLangOpen] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -55,11 +64,11 @@ export function SettingsScreen() {
   const [ratingBusy, setRatingBusy] = useState(false);
 
   const toggleMemoriesNotif = async (enabled: boolean) => {
-    setMemoriesNotifPrefs(db, { enabled });
+    await setMemoriesNotifPrefs(db, { enabled });
     // Turning it on asks for the permission; without it nothing is scheduled.
     const ok = await rescheduleMemoriesReminders(db, { requestPermission: enabled });
     if (!ok) {
-      setMemoriesNotifPrefs(db, { enabled: false });
+      await setMemoriesNotifPrefs(db, { enabled: false });
       pushToast({ level: "error", message: t("common.error") });
     }
   };
@@ -70,7 +79,7 @@ export function SettingsScreen() {
     if (!m) return;
     const hour = Math.min(23, Number(m[1]));
     const minute = Math.min(59, Number(m[2]));
-    setMemoriesNotifPrefs(db, { hour, minute });
+    await setMemoriesNotifPrefs(db, { hour, minute });
     await rescheduleMemoriesReminders(db);
   };
 
@@ -113,8 +122,8 @@ export function SettingsScreen() {
     }
   };
 
-  const clearCache = () => {
-    clearThumbCache(db);
+  const clearCache = async () => {
+    await clearThumbCache(db);
     pushToast({ level: "info", message: t("settings.cacheCleared") });
   };
 
@@ -212,14 +221,14 @@ export function SettingsScreen() {
             testID="toggle-wifi"
             label={t("settings.wifiOnly")}
             value={backup.wifiOnly}
-            onChange={(v) => setBackupConfig(db, { wifiOnly: v })}
+            onChange={async (v) => await setBackupConfig(db, { wifiOnly: v })}
             theme={theme}
           />
           <ToggleRow
             testID="toggle-charging"
             label={t("settings.chargingOnly")}
             value={backup.chargingOnly}
-            onChange={(v) => setBackupConfig(db, { chargingOnly: v })}
+            onChange={async (v) => await setBackupConfig(db, { chargingOnly: v })}
             theme={theme}
           />
         </Section>

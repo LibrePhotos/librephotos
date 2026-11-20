@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { endpoints, useApiClient, userKeys } from "@librephotos/api-client";
-import { NO_TIMELINE_FILTER, type TimelineFilter } from "@/db/queries/timeline";
+import { NO_TIMELINE_FILTER, type TimelineFilter } from "@librephotos/local-db";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toasts";

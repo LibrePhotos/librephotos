@@ -3,10 +3,9 @@
  */
 import { sql } from "drizzle-orm";
 import { Media, type DayPhotosPage, type IncompleteDatePhotosGroup, type PigPhoto } from "@librephotos/api-client";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { seedAll, seedPeople, seedPhotos, type SeedSource } from "../remote/seed";
-import { getSyncState } from "@/db/queries/sync-state";
-import { filterPhotos } from "@/db/queries/filters";
+import { filterPhotos, getSyncState } from "@librephotos/local-db";
 import { pullEntity } from "../remote/delta";
 import { syncPersonToRow } from "../remote/mappers";
 import { FakeSource, emptyStore, personItem } from "./fake-source";
@@ -82,7 +81,7 @@ const OPTS = { ownerId: 1, favoriteMinRating: 4, now: Date.UTC(2024, 5, 1) };
 
 describe("seeder", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
   });
   afterEach(() => t.close());
@@ -90,25 +89,25 @@ describe("seeder", () => {
   it("seeds all photos across passes and materializes is_favorite", async () => {
     const written = await seedPhotos(t.db, makeSource(), OPTS);
     expect(written).toBe(4); // p1,p2,p3 (timeline) + p4 (hidden)
-    const count = t.db.get(sql`SELECT COUNT(*) AS c FROM remote_photo`) as { c: number };
+    const count = await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM remote_photo`);
     expect(count.c).toBe(4);
     // rating 5 >= favoriteMinRating 4 => favorite; rating 0 => not.
-    expect(filterPhotos(t.db, "favorites").map((r) => r.id)).toEqual(["p1"]);
+    expect((await filterPhotos(t.db, "favorites")).map((r) => r.id)).toEqual(["p1"]);
     // hidden pass set the flag.
-    expect(filterPhotos(t.db, "hidden").map((r) => r.id)).toEqual(["p4"]);
+    expect((await filterPhotos(t.db, "hidden")).map((r) => r.id)).toEqual(["p4"]);
   });
 
   it("is idempotent: re-seeding converges without duplicates", async () => {
     await seedPhotos(t.db, makeSource(), OPTS);
     await seedPhotos(t.db, makeSource(), OPTS);
-    const count = t.db.get(sql`SELECT COUNT(*) AS c FROM remote_photo`) as { c: number };
+    const count = await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM remote_photo`);
     expect(count.c).toBe(4);
   });
 
   it("records determinate progress + done status in sync_state", async () => {
     const events: number[] = [];
     await seedPhotos(t.db, makeSource(), { ...OPTS, onProgress: (p) => events.push(p.current) });
-    const state = getSyncState(t.db, "photo");
+    const state = await getSyncState(t.db, "photo");
     expect(state?.status).toBe("done");
     expect(state?.progress_total).toBeGreaterThanOrEqual(3);
     expect(events[events.length - 1]).toBeGreaterThan(0);
@@ -129,7 +128,7 @@ describe("seeder", () => {
       },
     });
     await expect(seedPhotos(t.db, failing, OPTS)).rejects.toThrow("network drop");
-    expect(getSyncState(t.db, "photo")?.status).toBe("running");
+    expect((await getSyncState(t.db, "photo"))?.status).toBe("running");
     expect(fetched).toContain(B1);
 
     // Resume: b1 is recorded done and must NOT be re-fetched; b2 onward is.
@@ -143,7 +142,7 @@ describe("seeder", () => {
     await seedPhotos(t.db, ok, OPTS);
     expect(fetched).not.toContain(B1);
     expect(fetched).toContain(B2);
-    const count = t.db.get(sql`SELECT COUNT(*) AS c FROM remote_photo`) as { c: number };
+    const count = await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM remote_photo`);
     expect(count.c).toBe(4);
   });
 
@@ -188,8 +187,8 @@ describe("seeder", () => {
     const res = await seedAll(t.db, makeSource(), OPTS);
     expect(res.photos).toBe(4);
     expect(res.people).toBe(1);
-    expect(getSyncState(t.db, "person")?.status).toBe("done");
-    expect(getSyncState(t.db, "thing_album")?.status).toBe("done");
+    expect((await getSyncState(t.db, "person"))?.status).toBe("done");
+    expect((await getSyncState(t.db, "thing_album"))?.status).toBe("done");
   });
 
   it("seeds a person's cover from face_photo_url, the field the server sends", async () => {
@@ -200,7 +199,7 @@ describe("seeder", () => {
       ],
     });
     expect(await seedPeople(t.db, source, OPTS.now)).toBe(2);
-    const rows = t.db.all(sql`SELECT id, cover_photo_hash FROM person ORDER BY id`);
+    const rows = await t.db.all(sql`SELECT id, cover_photo_hash FROM person ORDER BY id`);
     expect(rows).toEqual([
       { id: 1, cover_photo_hash: "h1" },
       // No faces, no cover: "" is stored as null, like the delta sync's null.
@@ -224,13 +223,13 @@ describe("seeder", () => {
       }),
     ];
     await pullEntity(t.db, new FakeSource(store), "person");
-    expect(t.db.get(sql`SELECT face_count, cover_photo_hash FROM person WHERE id = 1`)).toEqual({
+    expect(await t.db.get(sql`SELECT face_count, cover_photo_hash FROM person WHERE id = 1`)).toEqual({
       face_count: 4,
       cover_photo_hash: "h1",
     });
   });
 
-  it("reads the chosen cover from a server that sends no effective cover", () => {
+  it("reads the chosen cover from a server that sends no effective cover", async () => {
     // Servers up to 1.3.0 send only cover_photo_hash.
     expect(syncPersonToRow(personItem(1, { cover_photo_hash: "chosen" })).coverPhotoHash).toBe("chosen");
     expect(

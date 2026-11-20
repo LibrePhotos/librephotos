@@ -1,0 +1,47 @@
+name: local-db
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'packages/local-db/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/local-db.yml'
+  pull_request:
+    paths:
+      - 'packages/local-db/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/local-db.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: install (root lockfile, local-db workspace)
+        run: npm ci --workspace packages/local-db --ignore-scripts
+      - name: migrations.json is up to date
+        run: npm run db:check --workspace packages/local-db
+      - name: typecheck
+        run: npm run typecheck --workspace packages/local-db
+      - name: lint
+        run: npm run lint --workspace packages/local-db
+      - name: test (vitest)
+        run: npm run test --workspace packages/local-db

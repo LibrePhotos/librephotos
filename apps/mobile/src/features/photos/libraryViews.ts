@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
 import type { IconName } from "@/components/Icon";
-import type { PhotoFilter } from "@/db/queries/filters";
+import type { PhotoFilter } from "@librephotos/local-db";
 
 /**
  * The photo views that used to sit behind the web's Photos dropdown and the

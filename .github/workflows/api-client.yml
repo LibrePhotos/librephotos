@@ -20,6 +20,7 @@ on:
       # Read by the shared dependency check below (lint-frontend.yml runs it on
       # web changes).
       - 'apps/mobile/package.json'
+      - 'packages/local-db/package.json'
       - 'scripts/check-shared-deps*.mjs'
       # The root lockfile, and any nested one the guard below rejects.
       - '**/package-lock.json'
@@ -33,6 +34,7 @@ on:
       # Read by the shared dependency check below (lint-frontend.yml runs it on
       # web changes).
       - 'apps/mobile/package.json'
+      - 'packages/local-db/package.json'
       - 'scripts/check-shared-deps*.mjs'
       # The root lockfile, and any nested one the guard below rejects.
       - '**/package-lock.json'

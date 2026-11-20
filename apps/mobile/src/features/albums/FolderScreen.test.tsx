@@ -1,7 +1,7 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { useSettingsStore } from "@/stores/settings";
-import { jsonResponse, makeMockClient, mockRouter, renderWithDb } from "@/test/test-utils";
+import { jsonResponse, makeMockClient, mockRouter, renderWithDb, settleDb } from "@/test/test-utils";
 import { FolderScreen, folderName } from "./FolderScreen";
 
 jest.mock("@/sync/run", () => ({ runSync: () => Promise.resolve(null) }));
@@ -70,19 +70,21 @@ describe("FolderScreen", () => {
 
   it("lists the scan directory's folders at the top, without asking for photos", async () => {
     const seen: string[] = [];
-    const { getByTestId } = renderWithDb(<FolderScreen id="root" />, t.db, server(seen));
+    const { getByTestId } = await renderWithDb(<FolderScreen id="root" />, t.db, server(seen));
     await waitFor(() => expect(getByTestId("folder-row-trips")).toBeTruthy());
     expect(getByTestId("folder-title").props.children).toBe("Folders");
     expect(getByTestId("folder-path").props.children).toBe(ROOT);
     expect(seen.some((url) => url.includes("/days/"))).toBe(false);
 
     fireEvent.press(getByTestId("folder-row-trips"));
+
+    await settleDb();
     expect(mockRouter().push).toHaveBeenCalledWith({ pathname: "/albums/folders/[id]", params: { id: TRIPS } });
   });
 
   it("shows a folder's subfolders and its photos", async () => {
     const seen: string[] = [];
-    const { getByTestId } = renderWithDb(<FolderScreen id={TRIPS} />, t.db, server(seen));
+    const { getByTestId } = await renderWithDb(<FolderScreen id={TRIPS} />, t.db, server(seen));
     await waitFor(() => expect(getByTestId(`tile-${PHOTO}`)).toBeTruthy());
     expect(getByTestId("folder-row-rome")).toBeTruthy();
     expect(getByTestId("folder-title").props.children).toBe("trips");
@@ -92,12 +94,13 @@ describe("FolderScreen", () => {
 
     // A long press starts multi-select.
     fireEvent(getByTestId(`tile-${PHOTO}`), "longPress");
+    await settleDb();
     expect(getByTestId("selection-action-bar")).toBeTruthy();
   });
 
   it("shows the offline state when nothing was loaded", async () => {
     globalThis.__mockNetworkConnected = false;
-    const { getByTestId } = renderWithDb(
+    const { getByTestId } = await renderWithDb(
       <FolderScreen id={TRIPS} />,
       t.db,
       makeMockClient(async () => jsonResponse({}, 500))
@@ -111,7 +114,7 @@ describe("FolderScreen", () => {
       if (url.includes("/api/days/?")) return jsonResponse({ results: [] });
       return jsonResponse({}, 404);
     });
-    const { getByTestId } = renderWithDb(<FolderScreen id={TRIPS} />, t.db, client);
+    const { getByTestId } = await renderWithDb(<FolderScreen id={TRIPS} />, t.db, client);
     await waitFor(() => expect(getByTestId("folder-empty")).toBeTruthy());
   });
 });

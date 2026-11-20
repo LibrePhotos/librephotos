@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { AlbumsListScreen } from "@/features/albums/AlbumsListScreen";
 import { OnlineAlbumDetailScreen } from "@/features/albums/OnlineAlbumDetailScreen";
-import { firstCoverHash, thingAlbumsList } from "@/db/queries/albums";
+import { firstCoverHash, thingAlbumsList } from "@librephotos/local-db";
 
 /** Things: `all` shows the mirrored list, a numeric id shows the online grid. */
 export default function ThingsAlbumRoute() {
@@ -12,8 +12,9 @@ export default function ThingsAlbumRoute() {
     return (
       <AlbumsListScreen
         title={t("explore.things")}
-        query={(db) =>
-          thingAlbumsList(db).map((a) => ({
+        queryKey={["thing-albums"]}
+        query={async (db) =>
+          (await thingAlbumsList(db)).map((a) => ({
             id: a.id,
             title: a.title,
             coverHash: firstCoverHash(a.cover_hashes),

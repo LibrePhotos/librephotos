@@ -18,8 +18,7 @@
  * Pure SQL, so every state is Node-testable.
  */
 import { sql } from "drizzle-orm";
-import type { AppDatabase } from "@/db/types";
-import { queueSummary } from "@/sync/upload/queue";
+import { queueSummary, type AppDatabase } from "@librephotos/local-db";
 import { JOB_KINDS, MAX_JOB_ATTEMPTS, type JobKind } from "./types";
 
 export type QueueDepth = {
@@ -58,15 +57,19 @@ export type JobQueueSnapshot = {
   nextDueAt: number | null;
 };
 
+export const EMPTY_JOB_QUEUE_SNAPSHOT: JobQueueSnapshot = Object.freeze({
+  depth: [],
+  inFlight: [],
+  failures: [],
+  totals: { pending: 0, running: 0, done: 0, failed: 0 },
+  nextDueAt: null,
+});
+
 const KIND_ORDER = new Map<string, number>(JOB_KINDS.map((k, i) => [k, i]));
 
 /** Everything the status screens need about the queue, in one pass. */
-export function jobQueueSnapshot(db: AppDatabase, limit = 20): JobQueueSnapshot {
-  const rows = db.all(sql`SELECT kind, state, COUNT(*) AS c FROM job_queue GROUP BY kind, state`) as {
-    kind: JobKind;
-    state: string;
-    c: number;
-  }[];
+export async function jobQueueSnapshot(db: AppDatabase, limit = 20): Promise<JobQueueSnapshot> {
+  const rows = await db.all<{ kind: JobKind; state: string; c: number; }>(sql`SELECT kind, state, COUNT(*) AS c FROM job_queue GROUP BY kind, state`);
 
   const byKind = new Map<JobKind, QueueDepth>();
   const totals = { pending: 0, running: 0, done: 0, failed: 0 };
@@ -84,32 +87,25 @@ export function jobQueueSnapshot(db: AppDatabase, limit = 20): JobQueueSnapshot 
     (a, b) => (KIND_ORDER.get(a.kind) ?? 99) - (KIND_ORDER.get(b.kind) ?? 99)
   );
 
-  const inFlight = db.all(
+  const inFlight = await db.all<{ id: number; kind: JobKind; payload: string | null; started_at: number | null; attempts: number }>(
     sql`SELECT id, kind, payload, started_at, attempts FROM job_queue
         WHERE state = 'running' ORDER BY started_at ASC`
-  ) as { id: number; kind: JobKind; payload: string | null; started_at: number | null; attempts: number }[];
+  );
 
   // Both terminal failures and jobs sitting out a backoff window: a job that has
   // errored is worth naming even while it still intends to retry, because
   // "nothing is happening and nothing says why" is the bug this screen exists to
   // prevent.
-  const failures = db.all(
+  const failures = await db.all<{ id: number; kind: JobKind; attempts: number; last_error: string | null; next_attempt_at: number; state: string; }>(
     sql`SELECT id, kind, attempts, last_error, next_attempt_at, state FROM job_queue
         WHERE last_error IS NOT NULL AND state IN ('pending', 'failed')
         ORDER BY (state = 'failed') DESC, next_attempt_at ASC
         LIMIT ${limit}`
-  ) as {
-    id: number;
-    kind: JobKind;
-    attempts: number;
-    last_error: string | null;
-    next_attempt_at: number;
-    state: string;
-  }[];
+  );
 
-  const nextDue = db.get(
+  const nextDue = await db.get<{ at: number | null } | undefined>(
     sql`SELECT MIN(next_attempt_at) AS at FROM job_queue WHERE state = 'pending'`
-  ) as { at: number | null } | undefined;
+  );
 
   return {
     depth,
@@ -158,10 +154,10 @@ export type StageProgress = {
  * synthetic whole-library album is by construction the largest, so `MAX` picks
  * it without needing to hard-code its id here.
  */
-export function scanCounts(db: AppDatabase): { scanned: number; total: number } {
-  const scanned = (db.get(sql`SELECT COUNT(*) AS c FROM local_asset`) as { c: number }).c;
+export async function scanCounts(db: AppDatabase): Promise<{ scanned: number; total: number }> {
+  const scanned = (await db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM local_asset`)).c;
   const reported = (
-    db.get(sql`SELECT COALESCE(MAX(asset_count), 0) AS c FROM local_album`) as { c: number }
+    await db.get<{ c: number }>(sql`SELECT COALESCE(MAX(asset_count), 0) AS c FROM local_album`)
   ).c;
   // Membership can legitimately exceed the library album (assets in user albums
   // the library pass has not reached yet), so the total is the larger of the two
@@ -174,13 +170,13 @@ export function scanCounts(db: AppDatabase): { scanned: number; total: number } 
  * lazily at upload time, so counting them would put a denominator on screen that
  * the pass never intends to reach.
  */
-export function hashCounts(db: AppDatabase): { hashed: number; total: number; unreadable: number } {
-  const row = db.get(
+export async function hashCounts(db: AppDatabase): Promise<{ hashed: number; total: number; unreadable: number }> {
+  const row = await db.get<{ total: number; hashed: number | null; unreadable: number | null }>(
     sql`SELECT COUNT(*) AS total,
                SUM(CASE WHEN hash IS NOT NULL THEN 1 ELSE 0 END) AS hashed,
                SUM(CASE WHEN hash IS NULL AND hashed_at IS NOT NULL THEN 1 ELSE 0 END) AS unreadable
         FROM local_asset WHERE type <> 'video'`
-  ) as { total: number; hashed: number | null; unreadable: number | null };
+  );
   return {
     hashed: row?.hashed ?? 0,
     total: row?.total ?? 0,
@@ -189,24 +185,24 @@ export function hashCounts(db: AppDatabase): { hashed: number; total: number; un
 }
 
 /** Remote mirror progress, summed over every entity's determinate seed total. */
-export function remoteCounts(db: AppDatabase): { applied: number; total: number } {
-  const row = db.get(
+export async function remoteCounts(db: AppDatabase): Promise<{ applied: number; total: number }> {
+  const row = await db.get<{ applied: number; total: number }>(
     sql`SELECT COALESCE(SUM(progress_current), 0) AS applied,
                COALESCE(SUM(MAX(progress_total, progress_current)), 0) AS total
         FROM sync_state`
-  ) as { applied: number; total: number };
+  );
   return { applied: row?.applied ?? 0, total: row?.total ?? 0 };
 }
 
 /** Thumb cache coverage of the visible timeline. */
-export function thumbCounts(db: AppDatabase): { cached: number; total: number } {
-  const row = db.get(
+export async function thumbCounts(db: AppDatabase): Promise<{ cached: number; total: number }> {
+  const row = await db.get<{ total: number; cached: number | null }>(
     sql`SELECT COUNT(*) AS total,
                SUM(CASE WHEN EXISTS (SELECT 1 FROM thumb_cache tc WHERE tc.photo_id = rp.id) THEN 1 ELSE 0 END) AS cached
         FROM remote_photo rp
         WHERE rp.hidden = 0 AND rp.in_trashcan = 0 AND rp.removed = 0 AND rp.archived = 0
           AND rp.timestamp IS NOT NULL`
-  ) as { total: number; cached: number | null };
+  );
   return { cached: row?.cached ?? 0, total: row?.total ?? 0 };
 }
 
@@ -216,17 +212,18 @@ export function thumbCounts(db: AppDatabase): { cached: number; total: number } 
  * is moving. This is the answer to "which stage is running, how far along, and
  * what is blocking it" — the three questions the device run could not answer.
  */
-export function syncStages(db: AppDatabase, snapshot = jobQueueSnapshot(db)): StageProgress[] {
+export async function syncStages(db: AppDatabase, given?: JobQueueSnapshot): Promise<StageProgress[]> {
+  const snapshot = given ?? await jobQueueSnapshot(db);
   const depthOf = (kind: JobKind) => {
     const d = snapshot.depth.find((x) => x.kind === kind);
     return { queued: (d?.pending ?? 0) + (d?.running ?? 0), active: (d?.running ?? 0) > 0 };
   };
 
-  const remote = remoteCounts(db);
-  const scan = scanCounts(db);
-  const hash = hashCounts(db);
-  const upload = queueSummary(db);
-  const thumbs = thumbCounts(db);
+  const remote = await remoteCounts(db);
+  const scan = await scanCounts(db);
+  const hash = await hashCounts(db);
+  const upload = await queueSummary(db);
+  const thumbs = await thumbCounts(db);
 
   const remoteDepth = depthOf("remote_delta");
   const scanDepth = depthOf("device_scan");

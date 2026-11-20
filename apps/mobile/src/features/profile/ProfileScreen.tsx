@@ -29,16 +29,15 @@ export function ProfileScreen() {
   const onLoggedOut = useAuthStore((s) => s.onLoggedOut);
   const serverUrl = useSettingsStore((s) => s.serverUrl);
   const user = useUserSelfDetailsQuery(userId ?? undefined);
-  const pending = useReactiveQuery((db) => pendingOutboxCount(db), []);
+  const { data: pending } = useReactiveQuery(["outbox-pending"], (db) => pendingOutboxCount(db), 0, { tables: ["outbox"] });
   const backup = useBackupState();
   const ring = backupRing(backup);
   const isAdmin = user.data?.is_superuser === true;
 
   const logout = useLogoutMutation({
     getRefreshToken: () => tokenStorage.getRefreshToken(),
-    onSuccess: async () => {
-      await tokenStorage.clearTokens();
-      onLoggedOut();
+    onSuccess: () => {
+      void Promise.resolve(tokenStorage.clearTokens()).then(onLoggedOut);
     },
   });
 

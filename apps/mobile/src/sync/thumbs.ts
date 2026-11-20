@@ -6,7 +6,7 @@
  * expo-file-system lives in ./thumb-prefetch (app-only), which drives these.
  */
 import { sql } from "drizzle-orm";
-import type { AppDatabase } from "@/db/types";
+import type { AppDatabase } from "@librephotos/local-db";
 
 /** Default LRU cap: 2 GB (configurable in the settings store). */
 export const DEFAULT_THUMB_CAP_BYTES = 2 * 1024 * 1024 * 1024;
@@ -18,10 +18,8 @@ export type ThumbRow = {
   last_used: number;
 };
 
-export function thumbCacheTotalBytes(db: AppDatabase): number {
-  const row = db.get(sql`SELECT COALESCE(SUM(size_bytes), 0) AS total FROM thumb_cache`) as {
-    total: number;
-  };
+export async function thumbCacheTotalBytes(db: AppDatabase): Promise<number> {
+  const row = await db.get<{ total: number; }>(sql`SELECT COALESCE(SUM(size_bytes), 0) AS total FROM thumb_cache`);
   return row.total;
 }
 
@@ -30,27 +28,27 @@ export function thumbCacheTotalBytes(db: AppDatabase): number {
  * file paths that were tracked so the caller (app-only) can delete the files
  * from expo-file-system; the DB rows are removed here in one statement.
  */
-export function clearThumbCache(db: AppDatabase): string[] {
-  const paths = (db.all(sql`SELECT file_path FROM thumb_cache`) as { file_path: string }[]).map(
+export async function clearThumbCache(db: AppDatabase): Promise<string[]> {
+  const paths = (await db.all<{ file_path: string }>(sql`SELECT file_path FROM thumb_cache`)).map(
     (r) => r.file_path
   );
-  db.run(sql`DELETE FROM thumb_cache`);
+  await db.run(sql`DELETE FROM thumb_cache`);
   return paths;
 }
 
-export function getThumb(db: AppDatabase, photoId: string): ThumbRow | null {
-  const row = db.get(
+export async function getThumb(db: AppDatabase, photoId: string): Promise<ThumbRow | null> {
+  const row = await db.get<ThumbRow | undefined>(
     sql`SELECT photo_id, file_path, size_bytes, last_used FROM thumb_cache WHERE photo_id = ${photoId}`
-  ) as ThumbRow | undefined;
+  );
   return row ?? null;
 }
 
 /** Record (or update) a cached thumbnail and mark it freshly used. */
-export function recordThumb(
+export async function recordThumb(
   db: AppDatabase,
   args: { photoId: string; filePath: string; sizeBytes: number; now: number }
-): void {
-  db.run(
+): Promise<void> {
+  await db.run(
     sql`INSERT INTO thumb_cache (photo_id, file_path, size_bytes, last_used)
         VALUES (${args.photoId}, ${args.filePath}, ${args.sizeBytes}, ${args.now})
         ON CONFLICT(photo_id) DO UPDATE SET
@@ -59,19 +57,19 @@ export function recordThumb(
 }
 
 /** Bump last_used on cache hit (keeps the LRU ordering meaningful). */
-export function touchThumb(db: AppDatabase, photoId: string, now: number): void {
-  db.run(sql`UPDATE thumb_cache SET last_used = ${now} WHERE photo_id = ${photoId}`);
+export async function touchThumb(db: AppDatabase, photoId: string, now: number): Promise<void> {
+  await db.run(sql`UPDATE thumb_cache SET last_used = ${now} WHERE photo_id = ${photoId}`);
 }
 
-export function removeThumb(db: AppDatabase, photoId: string): void {
-  db.run(sql`DELETE FROM thumb_cache WHERE photo_id = ${photoId}`);
+export async function removeThumb(db: AppDatabase, photoId: string): Promise<void> {
+  await db.run(sql`DELETE FROM thumb_cache WHERE photo_id = ${photoId}`);
 }
 
 /** Least-recently-used cache rows first (eviction order). */
-export function lruCandidates(db: AppDatabase): ThumbRow[] {
-  return db.all(
+export async function lruCandidates(db: AppDatabase): Promise<ThumbRow[]> {
+  return await db.all<ThumbRow>(
     sql`SELECT photo_id, file_path, size_bytes, last_used FROM thumb_cache ORDER BY last_used ASC, photo_id ASC`
-  ) as ThumbRow[];
+  );
 }
 
 /**

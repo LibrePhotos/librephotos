@@ -20,7 +20,7 @@
  *   5. an interrupted run leaves durable work behind, not a discarded call stack.
  */
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { syncAll, type SyncAllOptions } from "../orchestrator";
 import { syncDeviceMedia } from "../device/media-sync";
 import { runHashPass } from "../device/hasher";
@@ -31,12 +31,12 @@ import type { MediaQuery } from "../device/types";
 
 const USER_ID = 7;
 
-function hashedCount(t: TestDb): number {
-  return (t.db.get(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash IS NOT NULL`) as { c: number })
+async function hashedCount(t: TestDb): Promise<number> {
+  return (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash IS NOT NULL`))
     .c;
 }
-function assetCount(t: TestDb): number {
-  return (t.db.get(sql`SELECT COUNT(*) AS c FROM local_asset`) as { c: number }).c;
+async function assetCount(t: TestDb): Promise<number> {
+  return (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM local_asset`)).c;
 }
 
 /** A library of `count` assets with strictly increasing creation times. */
@@ -103,8 +103,8 @@ describe("sync pipeline: no step may starve the one behind it", () => {
 
     await syncAll(t.db, new FakeSource(emptyStore()), steps(media, hasher));
 
-    expect(assetCount(t)).toBe(200);
-    expect(hashedCount(t)).toBe(200);
+    expect(await assetCount(t)).toBe(200);
+    expect(await hashedCount(t)).toBe(200);
     // The whole point: hashing was already underway before enumeration ended.
     expect(hashedBeforeScanFinished).toBeGreaterThan(0);
   });
@@ -130,7 +130,7 @@ describe("sync pipeline: no step may starve the one behind it", () => {
       })
     ).rejects.toThrow();
 
-    const afterCrash = hashedCount(t);
+    const afterCrash = await hashedCount(t);
     expect(afterCrash).toBeGreaterThan(0);
     expect(afterCrash).toBeLessThan(120);
 
@@ -139,7 +139,7 @@ describe("sync pipeline: no step may starve the one behind it", () => {
     const hasher2 = new FakeHasher();
     await syncAll(t.db, new FakeSource(emptyStore()), steps(media, hasher2));
 
-    expect(hashedCount(t)).toBe(120);
+    expect(await hashedCount(t)).toBe(120);
     // Only the not-yet-hashed remainder was hashed again — no restart at zero.
     expect(hasher2.order.length).toBe(120 - afterCrash);
     expect(new Set(hasher2.order).size).toBe(hasher2.order.length);
@@ -161,20 +161,20 @@ describe("sync pipeline: no step may starve the one behind it", () => {
     // The single-flight mutex and the abort controller must both be released,
     // and the durable queue must still hold the work the aborted run enqueued.
     const pending = (
-      t.db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'pending'`) as { c: number }
+      await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'pending'`)
     ).c;
     expect(pending).toBeGreaterThan(0);
 
     const result = await syncAll(t.db, new FakeSource(emptyStore()), steps(media, new FakeHasher()));
     expect(result).toBeTruthy();
-    expect(hashedCount(t)).toBe(40);
+    expect(await hashedCount(t)).toBe(40);
   });
 
   it("takes the incremental fast path on the second run", async () => {
     const media = new FakeMedia();
     media.setAlbum("cam", "Camera", library(150));
     await syncAll(t.db, new FakeSource(emptyStore()), steps(media, new FakeHasher()));
-    expect(assetCount(t)).toBe(150);
+    expect(await assetCount(t)).toBe(150);
 
     // Second run over an unchanged library: every asset query must be a
     // watermark-scoped probe, never a full re-read of the album. (With iOS
@@ -186,6 +186,6 @@ describe("sync pipeline: no step may starve the one behind it", () => {
     const assetQueries = media.queries.filter((q) => q.first > 1);
     expect(assetQueries.length).toBeGreaterThan(0);
     expect(assetQueries.every((q) => q.createdAfter != null)).toBe(true);
-    expect(assetCount(t)).toBe(150);
+    expect(await assetCount(t)).toBe(150);
   });
 });

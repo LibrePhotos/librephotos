@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { mediaHeaders, squareThumbnailUrl } from "@librephotos/api-client";
 import { useReactiveQuery } from "@/db/provider";
-import { people, type PersonRow } from "@/db/queries/people";
+import { people, type PersonRow } from "@librephotos/local-db";
 import { TextPromptModal } from "@/components/TextPromptModal";
 import { useMutations } from "@/mutations/useMutations";
 import { useAccessToken } from "@/hooks/use-access-token";
@@ -26,7 +26,7 @@ export function PeopleScreen() {
   const { width } = useWindowDimensions();
   const size = useMemo(() => Math.floor((width - 64) / 3), [width]);
   const headers = useMemo(() => mediaHeaders(token), [token]);
-  const persons = useReactiveQuery((db) => people(db), []);
+  const { data: persons, loading } = useReactiveQuery(["people"], (db) => people(db), [] as PersonRow[], { tables: ["person"] });
   const [renaming, setRenaming] = useState<PersonRow | null>(null);
 
   return (
@@ -39,10 +39,11 @@ export function PeopleScreen() {
         keyExtractor={(p) => String(p.id)}
         contentContainerStyle={{ padding: 12 }}
         ListEmptyComponent={
+            loading ? null : (
           <View testID="people-empty" style={{ padding: 32, alignItems: "center" }}>
             <Text style={{ color: theme.muted }}>{t("explore.noPeople")}</Text>
-          </View>
-        }
+          </View>)
+          }
         renderItem={({ item }) => (
           <Pressable
             testID={`person-${item.id}`}
@@ -74,7 +75,7 @@ export function PeopleScreen() {
         onSubmit={(value) => {
           const target = renaming;
           setRenaming(null);
-          if (target && value && value !== target.name) mutations.renamePerson(target.id, value);
+          if (target && value && value !== target.name) void mutations.renamePerson(target.id, value);
         }}
         onCancel={() => setRenaming(null)}
       />

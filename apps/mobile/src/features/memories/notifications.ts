@@ -5,7 +5,7 @@
  * local scheduling — F-Droid-compatible, no FCM. The enable/time preference
  * lives in app_meta (db/queries/memories); `reminders.ts` decides when to plan.
  */
-import type { MemoryDay } from "@/db/queries/memories";
+import type { MemoryDay } from "@librephotos/local-db";
 import { loadNotifications } from "@/lib/notificationsModule";
 
 /**

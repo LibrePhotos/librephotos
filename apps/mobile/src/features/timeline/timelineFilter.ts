@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { TimelineFilterDefault } from "@librephotos/api-client";
-import { NO_TIMELINE_FILTER, type TimelineFilter } from "@/db/queries/timeline";
+import { NO_TIMELINE_FILTER, type TimelineFilter } from "@librephotos/local-db";
 
 /** The saved default, as the web stores it on the user (`default_timeline_filter`). */
 export function fromServerDefault(saved: TimelineFilterDefault | undefined): TimelineFilter {

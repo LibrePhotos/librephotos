@@ -3,7 +3,7 @@ import { Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@/components/Icon";
 import { OptionSheet } from "@/components/OptionSheet";
-import { userAlbums } from "@/db/queries/albums";
+import { userAlbums } from "@librephotos/local-db";
 import { DEFAULT_USER_ALBUM_SORT, USER_ALBUM_SORTS, type UserAlbumSort } from "@/lib/albumSort";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
@@ -50,8 +50,8 @@ export function MyAlbumsScreen() {
     <>
       <AlbumsListScreen
         title={t("explore.myAlbums")}
-        query={(db) =>
-          userAlbums(db, sort).map((a) => ({
+        query={async (db) =>
+          (await userAlbums(db, sort)).map((a) => ({
             id: a.id,
             title: a.title,
             coverHash: a.cover_hash,
@@ -59,7 +59,7 @@ export function MyAlbumsScreen() {
             ownerId: a.owner_id,
           }))
         }
-        queryDeps={[sort]}
+        queryKey={["user-albums", sort]}
         hrefFor={(albumId) => `/albums/user/${albumId}`}
         creatable
         headerActions={sortButton}

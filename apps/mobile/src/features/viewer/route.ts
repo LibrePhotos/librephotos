@@ -13,7 +13,7 @@
  * notification carries only `id`, and the viewer falls back to a single indexed
  * lookup.
  */
-import type { ViewerSlide } from "@/db/queries/detail";
+import type { ViewerSlide } from "@librephotos/local-db";
 
 /** The subset of a grid tile the viewer can render a slide from. */
 export type ViewerSeedSource = {
