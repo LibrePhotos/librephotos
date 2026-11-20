@@ -31,6 +31,7 @@ Each app can also be worked on standalone:
 - **One PR, one concern.** Cross-app PRs (e.g. backend API change + frontend client update) are welcome and encouraged — that's a core reason for the monorepo — but unrelated changes should be separate PRs.
 - **Target `dev`**, not `main`. `dev` is the default branch.
 - **Conventional commit messages** are appreciated but not required.
+- **Docs and no comments.** Every change to an app, a package or `deploy/` changes the docs in `apps/docs` in the same PR, and new or changed code carries no comments. The `conventions` workflow checks both on every PR; run `node scripts/check-conventions.mjs` before pushing. See [Conventions](https://docs.librephotos.com/docs/development/contribution/conventions).
 - **CI runs path-filtered workflows.** A PR touching only `apps/frontend/` will only trigger the frontend lint/build; a PR touching backend + frontend triggers both.
 
 ## Code of conduct

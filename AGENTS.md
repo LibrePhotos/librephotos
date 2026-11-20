@@ -16,12 +16,20 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 
 ## Rules
 
-- A user-facing feature, setting or env var ships with its docs in `apps/docs` in the same PR.
+- Every change to what an app or package does (`apps/backend`, `apps/frontend/src`, `apps/mobile/src`,
+  `apps/desktop`, `packages/*/src`, `deploy/`) is reflected in `apps/docs/docs` or `apps/docs/blog` in the
+  same PR: the user guide for what users see, installation for deploy, settings and env vars, `development/`
+  for internal changes. Tests, workflows, lockfiles, translations and version-only dependency bumps are
+  exempt; `scripts/check-conventions.mjs` (CI: `conventions.yml`) fails otherwise.
   Docs deploy from `dev` before a release, so say when something is not released yet: write
   `<Since version="<next release>" />` on the line under a heading or at the start of a note
   (`<Since version="1.4.0" /> Up to 1.3.0, ...`). It turns into "New in 1.4.0" when that release post
   is merged (`apps/docs/src/data/releases.json`), and the docs build fails on a version that is neither
   released nor newer than the latest.
+- New or changed code carries no comments, docstrings included: names, types and tests explain it, and the
+  why goes in the commit message, the PR or the docs. A line you touch loses its comment.
+  `scripts/check-conventions.mjs` (CI: `conventions.yml`) fails on a comment on an added line; only shebangs,
+  `/// <reference>`, `@ts-check`, coding lines, `# raw-create:` and generated or vendored files pass.
 - Release notes follow `.github/release-notes-template.md`: plain "What's new for you" and "After you update"
   blocks above the technical part, UI labels from `locales/en`, no em dashes. They are written as a post in
   `apps/docs/blog/` and the GitHub release body is generated from it (`scripts/check-release-posts.mjs` in CI).
@@ -71,6 +79,9 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
   `db.batch([...])`, never `db.transaction()` (lint in both). Change the schema, then `npm run db:generate --workspace
   packages/local-db`; CI fails when `migrations/migrations.json` is stale.
 - Docs (`apps/docs`): `yarn install --frozen-lockfile`, `yarn build`.
+- Conventions (repo root): `node scripts/check-conventions.mjs` (diffs against `origin/dev`; `--base <rev>`,
+  `--only comments|docs`) and `node --test scripts/check-conventions.test.mjs`. It needs `typescript` in a
+  `node_modules` (`npm ci --workspace packages/api-client --ignore-scripts`) and Python 3.12+ (`PYTHON=`).
 
 ## History
 
