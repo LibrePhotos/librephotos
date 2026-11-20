@@ -111,7 +111,9 @@ step("uninstalling");
 const uninstall = spawnSync(uninstaller, ["/S"], { stdio: "inherit" });
 if (uninstall.status !== 0) fail(`the uninstaller exited with ${uninstall.status}`);
 await waitFor("the uninstaller to remove the app", UNINSTALL_TIMEOUT_MS, async () => !existsSync(exe));
-if (registryHas("HKCU\\Software\\RegisteredApplications", PRODUCT)) {
-  fail("RegisteredApplications still lists the app after the uninstall");
-}
+await waitFor(
+  "the uninstaller to remove the app from RegisteredApplications",
+  UNINSTALL_TIMEOUT_MS,
+  async () => !registryHas("HKCU\\Software\\RegisteredApplications", PRODUCT)
+);
 step("uninstalled cleanly");
