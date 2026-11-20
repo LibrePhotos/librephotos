@@ -16,6 +16,8 @@ import os
 import tempfile
 from unittest.mock import patch
 
+import PIL.Image
+import requests
 from django.test import TestCase, override_settings
 
 from api.faces import extractor
@@ -50,13 +52,21 @@ class ExpectedConditionsAreWarningsTest(TestCase):
 class ReRaisedErrorsAreLoggedOnceTest(TestCase):
     def test_a_failed_face_scan_is_left_to_its_caller(self) -> None:
         photo = create_test_photo(owner=create_test_user())
+        path = photo.thumbnail.thumbnail_big.path
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        PIL.Image.new("RGB", (64, 64)).save(path, "JPEG")
+        self.addCleanup(os.remove, path)
 
         with (
             patch.object(extractor, "extract_from_exif", return_value=None),
+            patch.object(
+                extractor,
+                "extract_from_face_service",
+                side_effect=requests.ConnectionError("face service down"),
+            ),
             self.assertNoLogs("api.faces.photo_faces", "ERROR"),
-            self.assertRaises(FileNotFoundError),
+            self.assertRaises(requests.ConnectionError),
         ):
-            # No thumbnail on disk: the face service is never asked.
             extract_faces(photo)
 
     def test_a_failed_static_thumbnail_is_left_to_its_caller(self) -> None:
