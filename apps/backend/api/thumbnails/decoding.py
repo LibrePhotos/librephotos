@@ -162,6 +162,19 @@ def raw_preview(path: str, height: int) -> pyvips.Image | None:
     return image
 
 
+def libraw_opens(path: str) -> bool:
+    """Whether LibRaw recognises the file as a camera RAW, from its header (no unpack).
+
+    libvips and Pillow read the TIFF-based RAWs (NEF, CR2, DNG) but not the
+    others (CR3, RAF, ORF, RW2), so ``can_decode`` alone cannot vouch for those.
+    """
+    try:
+        with rawpy.imread(path):
+            return True
+    except rawpy.LibRawError, rawpy.NotSupportedError, OSError:
+        return False
+
+
 def can_decode(path: str) -> bool:
     """Whether some loader recognises the file, from its header alone (no pixel decode)."""
     try:

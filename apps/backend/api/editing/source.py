@@ -216,8 +216,11 @@ def _develop_flashraw(
     """Linear 16-bit RGB and full upright size, developed by FlashRaw.
 
     Its levels are LibRaw's below: the sensor's clip is 65535, camera white
-    balance, sRGB primaries, highlights clipped. The picture is the camera's
-    recommended crop (the size of its own JPEG), a few pixels inside LibRaw's.
+    balance, sRGB primaries, highlights clipped. Its white level is the one
+    measured from sample files, a few percent under LibRaw's for some older
+    bodies (EOS 5D Mark III, 6D, 7D, D5100), whose files come out that much
+    brighter. The picture is the camera's recommended crop (the size of its own
+    JPEG), a few pixels inside LibRaw's.
     """
     with flashraw.open(path) as raw:
         info = raw.frame_info
