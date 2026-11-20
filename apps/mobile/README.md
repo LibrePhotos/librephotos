@@ -22,8 +22,8 @@ subsystem to its plan chapter.
 ### Mirror-first reads
 
 Synced content (photos, albums, people, sharing) renders from a **local SQLite
-mirror** of the server database, via `expo-sqlite` + Drizzle ORM with
-`useLiveQuery` for reactive screens. The network is used only to *converge* the
+mirror** of the server database, via the shared `packages/local-db` (Drizzle over
+expo-sqlite's async API) with `useReactiveQuery` for reactive screens. The network is used only to *converge* the
 mirror and to fetch image bytes — never on the read path. The rule (enforced
 per screen): **synced entities render from SQLite; everything else renders
 through TanStack Query. A screen never mixes both for the same entity.** See
@@ -168,6 +168,8 @@ The key names the query and every input it reads; results are cached per key,
 so a screen that comes back paints its last rows at once, and `loading` is true
 only until the current key has an answer (show the empty state only when it is
 false). Atomic writes are one `db.batch([...])` / `runBatch(db, statements)`.
+The design is in the developer docs:
+[On-device database](../docs/docs/development/local-database.md).
 
 ## Dev setup
 

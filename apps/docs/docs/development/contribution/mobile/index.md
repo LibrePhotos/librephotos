@@ -2,10 +2,12 @@
 title: "Mobile"
 description: "Development Information regarding the LibrePhotos Mobile App."
 sidebar_position: 3
-last_modified_at: 2026-10-13
+last_modified_at: 2026-11-20
 ---
 
 The LibrePhotos mobile app lives in [`apps/mobile/`](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile). It is an [Expo](https://expo.dev/) (React Native, New Architecture) app for Android and iOS with an offline-first data model: a local SQLite mirror of the library, kept current by delta sync against the backend, plus camera-roll backup. The [app README](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile#readme) is the full developer guide, and the design documents are in [`plans/mobile-v2/`](https://github.com/LibrePhotos/librephotos/tree/dev/plans/mobile-v2).
+
+The database on the phone is the shared package `packages/local-db`, which the desktop app uses too; `apps/mobile/src/db/` only opens it (the expo-sqlite executor), migrates it and provides `useReactiveQuery`. [On-device database](../../local-database.md) describes the package, the executor contract, migrations and live queries.
 
 ## 🔨 Setup
 
@@ -27,10 +29,14 @@ Every pull request that touches `apps/mobile/`, `packages/` or the root `package
 npm run check --workspace apps/mobile
 ```
 
-The shared API client has its own checks:
+The shared API client and the on-device database have their own checks:
 
 ```bash
 npm run test --workspace packages/api-client
+npm run typecheck --workspace packages/local-db
+npm run lint --workspace packages/local-db
+npm run test --workspace packages/local-db
+npm run db:check --workspace packages/local-db
 ```
 
 ## 🌐 Translations
