@@ -20,6 +20,8 @@ While the app reads a new folder, the pictures appear as they are found, then th
 
 From a picture in the viewer, **Add this folder to library** in the **⋮** menu adds the folder it is in.
 
+How the app reads and watches folders is described for developers in [Development: Desktop app](../../development/desktop.md#file-seams).
+
 ## The timeline
 
 **Photos** shows every library picture; a folder in the sidebar shows only that folder. Click a picture to open it in the [viewer](./viewer.md), where `←` and `→` move through the same list.

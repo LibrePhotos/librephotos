@@ -107,7 +107,7 @@ decodes off the main thread. The UI prefetches the neighbours (+/-2) through the
 ## Disk cache
 
 Encoded `thumb` and `screen` responses that took at least 12 ms to make (so not pass-through files
-or embedded EXIF thumbnails) are also written to `%LOCALAPPDATA%\LibrePhotos Viewer\cache1\`
+or embedded EXIF thumbnails) are also written to `%LOCALAPPDATA%\LibrePhotos Viewer\cache\v1\`
 (macOS `~/Library/Caches/LibrePhotos Viewer`, elsewhere `$XDG_CACHE_HOME/librephotos-viewer`), one
 file per response, keyed by kind, box, path, mtime and size. The size cap is 1 GB, least recently
 used first. Writes happen on a background thread (temp file + rename), lookups on two I/O threads,

@@ -25,7 +25,7 @@ It works without a server. Everything you do to your own pictures stays on your 
 
 ## Trying it
 
-The app is built with [Tauri](https://tauri.app/) from `apps/desktop` in the LibrePhotos repository. Building it needs Node.js and Rust (`npm ci` and `npx tauri build` in `apps/desktop`); how the app is put together is in `apps/desktop/CONTRACT.md`. Started without a picture, it opens the library. Started with a file (or with a picture double-clicked once the app is your default viewer), it opens that picture.
+The app is built with [Tauri](https://tauri.app/) from `apps/desktop` in the LibrePhotos repository. Building it needs Node.js and Rust (`npm ci` and `npx tauri build` in `apps/desktop`); how the app is put together is in [Development: Desktop app](../../development/desktop.md) and `apps/desktop/CONTRACT.md`. Started without a picture, it opens the library. Started with a file (or with a picture double-clicked once the app is your default viewer), it opens that picture.
 
 To make it the viewer Windows opens pictures with, choose **Set as default photo viewer** in the **⋮** menu of the viewer: it opens Windows' **Default apps** settings at the app's page.
 
@@ -34,7 +34,7 @@ To make it the viewer Windows opens pictures with, choose **Set as default photo
 | What | Where |
 | --- | --- |
 | The library, search index and settings | `%LOCALAPPDATA%\LibrePhotos Viewer\local.db` |
-| Thumbnails and zoom tiles | `%LOCALAPPDATA%\LibrePhotos Viewer\cache1` and `tiles` |
+| Thumbnails and zoom tiles | `%LOCALAPPDATA%\LibrePhotos Viewer\cache` and `tiles` |
 | Your server sign-in | the server address and user in `settings.json` next to the database; the sign-in token in the Windows Credential Manager |
 | Ratings, captions, keywords and dates you edit | next to each picture in an XMP sidecar by default, see [Where edits are saved](./editing.md#where-edits-are-saved) |
 

@@ -52,6 +52,8 @@ Favourites, ratings, captions, keywords and dates are explained in [Editing a pi
 
 `I` (or **Info** in the top bar) opens the panel on the right. From top to bottom, in the web app's order:
 
+![The desktop viewer with a picture of a red gift box, the filmstrip under it and the Info panel open on the right: caption, rating, date taken, file, folder, where edits are saved, and keywords](../../../static/img/shots/desktop/viewer-info-panel.webp)
+
 - **Caption**: what you wrote about the picture, with the pencil to change it.
 - **People**: who is in the picture, when it is on your LibrePhotos server and you are connected.
 - **Rating**: five stars.

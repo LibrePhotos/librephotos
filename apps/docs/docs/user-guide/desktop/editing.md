@@ -12,6 +12,8 @@ The viewer can change five details of a picture: whether it is a favourite, its 
 
 Videos cannot be edited yet.
 
+![The desktop viewer after editing a picture: a toast says the date was saved, and the Info panel shows the new caption, five stars, the date taken, and keywords saved next to the photo in an XMP sidecar](../../../static/img/shots/desktop/editing-details.webp)
+
 ## Favourite and rating
 
 - **Favourite**: the star in the top bar, or `F`. A favourite is a picture rated 4 stars or more, as in LibrePhotos: adding a favourite rates the picture 4 stars (unless it already has more), removing it sets the rating to 0. When you are connected to a server, the app uses your **Minimum image rating to interpret as favorite** from the server's settings instead of 4.

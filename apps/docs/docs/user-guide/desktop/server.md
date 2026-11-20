@@ -28,6 +28,8 @@ Uploading must be allowed on the server (**Allow uploads** in the admin settings
 
 For a picture that is on the server, the [info panel](./viewer.md#the-info-panel) also shows:
 
+![The desktop viewer's Info panel for a picture that is on the server: under the keywords, the Albums section lists the server album the picture is in, with an Add to album button](../../../static/img/shots/desktop/server-sections.webp)
+
 - **People**: the names of the people the server recognised in it.
 - **Albums**: the albums it is in, and **Add to album**, which adds it to one of your albums or makes a new one.
 - **LibrePhotos**: the place name and the things the server found in it.
