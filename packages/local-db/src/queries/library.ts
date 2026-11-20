@@ -421,6 +421,13 @@ export async function applyFileMetadata(
   }
 }
 
+export async function requestMetadataReread(db: AppDatabase): Promise<number> {
+  const rows = await db.all<{ id: string }>(
+    sql`UPDATE local_asset SET meta_state = 'pending' WHERE meta_state = 'done' AND uri IS NOT NULL RETURNING id`
+  );
+  return rows.length;
+}
+
 /**
  * Store MD5s the desktop computed, matched by path, in the form the server
  * matches photos by (`image_hash` = md5 + user id).

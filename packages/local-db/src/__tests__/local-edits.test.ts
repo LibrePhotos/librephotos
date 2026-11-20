@@ -4,6 +4,8 @@ import {
   addFolderRoot,
   applyFileMetadata,
   localAssetByUri,
+  pendingMetadata,
+  requestMetadataReread,
   upsertLooseFile,
   upsertWalkedFiles,
   type FileMetadata,
@@ -157,6 +159,14 @@ describe("local edits", () => {
     await setLocalAssetEdits(t.db, loose.path, { rating: 1 }, { appOnly: true });
     expect(await localAssetEdits(t.db, loose.path)).toMatchObject({ rating: 1, appOnly: ["rating"] });
     expect(await t.db.get(sql`SELECT COUNT(*) AS n FROM local_asset WHERE rating IS NOT NULL`)).toEqual({ n: 1 });
+  });
+
+  it("asks for every read file again once", async () => {
+    await applyFileMetadata(t.db, [meta()]);
+    expect(await pendingMetadata(t.db, 10)).toEqual([]);
+    expect(await requestMetadataReread(t.db)).toBe(1);
+    expect(await pendingMetadata(t.db, 10)).toEqual([{ id: PATH, uri: PATH }]);
+    expect(await requestMetadataReread(t.db)).toBe(0);
   });
 
   it("normalizes and parses keywords", () => {
