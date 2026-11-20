@@ -63,5 +63,27 @@
       "CREATE TRIGGER `local_asset_fts_update`\nAFTER UPDATE OF name, type, folder, bucket_day, created_at, meta_state, taken_at, format, camera, lens ON `local_asset` BEGIN\n  DELETE FROM local_asset_fts WHERE rowid = OLD.rowid;\n  INSERT INTO local_asset_fts(rowid, terms)\n  SELECT asset_rowid, terms FROM local_asset_search_terms WHERE asset_rowid = NEW.rowid;\nEND;",
       "CREATE TRIGGER `local_asset_fts_delete` AFTER DELETE ON `local_asset` BEGIN\n  DELETE FROM local_asset_fts WHERE rowid = OLD.rowid;\nEND;"
     ]
+  },
+  {
+    "tag": "0002_local_asset_edits",
+    "statements": [
+      "ALTER TABLE `local_asset` ADD `rating` integer;",
+      "ALTER TABLE `local_asset` ADD `is_favorite` integer;",
+      "ALTER TABLE `local_asset` ADD `caption` text;",
+      "ALTER TABLE `local_asset` ADD `keywords` text;",
+      "ALTER TABLE `local_asset` ADD `edited_at` integer;",
+      "ALTER TABLE `local_asset` ADD `app_only_fields` text;"
+    ]
+  },
+  {
+    "tag": "0003_local_edits_search",
+    "statements": [
+      "DROP TRIGGER IF EXISTS `local_asset_fts_update`;",
+      "DROP VIEW IF EXISTS `local_asset_search_terms`;",
+      "CREATE VIEW `local_asset_search_terms` AS\nSELECT la.rowid AS asset_rowid,\n       COALESCE(la.name, '')\n       || ' ' || CASE la.type WHEN 'raw' THEN 'raw photo' WHEN 'video' THEN 'video movie' ELSE 'photo picture image' END\n       || ' ' || COALESCE(la.folder, '')\n       || ' ' || COALESCE(\n            (SELECT substr(d.day, 1, 4)\n                    || ' ' || CASE substr(d.day, 6, 2)\n                         WHEN '01' THEN 'january jan' WHEN '02' THEN 'february feb' WHEN '03' THEN 'march mar'\n                         WHEN '04' THEN 'april apr' WHEN '05' THEN 'may may' WHEN '06' THEN 'june jun'\n                         WHEN '07' THEN 'july jul' WHEN '08' THEN 'august aug' WHEN '09' THEN 'september sep'\n                         WHEN '10' THEN 'october oct' WHEN '11' THEN 'november nov' WHEN '12' THEN 'december dec'\n                         ELSE '' END\n                    || ' ' || substr(d.day, 1, 7) || ' ' || d.day\n             FROM (SELECT COALESCE(la.bucket_day,\n                                   strftime('%Y-%m-%d', la.created_at / 1000, 'unixepoch', 'localtime')) AS day) d\n             WHERE d.day IS NOT NULL),\n            '')\n       || CASE WHEN la.meta_state = 'done' AND la.taken_at IS NULL THEN ' undated' ELSE '' END\n       || ' ' || COALESCE(la.format, '')\n       || ' ' || COALESCE(la.camera, '')\n       || ' ' || COALESCE(la.lens, '')\n       || ' ' || COALESCE(la.caption, '')\n       || ' ' || COALESCE(la.keywords, '') AS terms\nFROM local_asset la;",
+      "CREATE TRIGGER `local_asset_fts_update`\nAFTER UPDATE OF name, type, folder, bucket_day, created_at, meta_state, taken_at, format, camera, lens, caption, keywords ON `local_asset` BEGIN\n  DELETE FROM local_asset_fts WHERE rowid = OLD.rowid;\n  INSERT INTO local_asset_fts(rowid, terms)\n  SELECT asset_rowid, terms FROM local_asset_search_terms WHERE asset_rowid = NEW.rowid;\nEND;",
+      "DELETE FROM local_asset_fts;",
+      "INSERT INTO local_asset_fts(rowid, terms) SELECT asset_rowid, terms FROM local_asset_search_terms;"
+    ]
   }
 ]

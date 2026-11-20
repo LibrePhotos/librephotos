@@ -273,6 +273,12 @@ export const localAsset = sqliteTable(
     format: text("format"),
     /** NULL (not tracked: the phone) | 'pending' | 'done' | 'failed'. */
     metaState: text("meta_state"),
+    rating: integer("rating"),
+    isFavorite: integer("is_favorite"),
+    caption: text("caption"),
+    keywords: text("keywords"),
+    editedAt: integer("edited_at"),
+    appOnlyFields: text("app_only_fields"),
   },
   (t) => [
     index("idx_local_asset_hash").on(t.hash),
