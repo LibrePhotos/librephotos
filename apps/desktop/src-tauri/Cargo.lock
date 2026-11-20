@@ -2620,10 +2620,12 @@ name = "librephotos-viewer"
 version = "0.1.0"
 dependencies = [
  "arboard",
+ "base64 0.23.1",
  "chrono",
  "fast_image_resize",
  "flashraw",
  "image",
+ "itoa",
  "jpeg-encoder",
  "jxl-oxide",
  "kamadak-exif",

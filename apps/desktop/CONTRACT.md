@@ -198,6 +198,83 @@ type LibraryFile = FileEntry & {
 | `library://changed` | `null` | Files were added, changed, removed, got metadata, or changed server state. Lists should be fetched again (the UI coalesces to one fetch per ~0.7 s). |
 | `library://progress` | `{ walking: boolean; files: number; pending: number }` | Indexing progress: a walk is running, files in the library, files whose metadata is still to be read. |
 
+## Local database
+
+The on-device SQLite database that mobile and desktop share (`packages/local-db`): its schema,
+migrations, queries and writers are TypeScript on Drizzle's `sqlite-proxy`; Rust only executes SQL,
+applies the migrations and reports changes. UI: `src/db/executor.ts`; Rust: `src-tauri/src/localdb/`.
+The library above still runs on its own Rust SQL (`library.db`) until it moves onto the package.
+
+| Command | Args | Returns |
+|---|---|---|
+| `db_exec` | `{ sql, params, method: "run" \| "all" \| "values" \| "get" }` | `{ rows, tagged? }`: one statement, autocommit |
+| `db_batch` | `{ statements: { sql, params, method }[] }` | `{ rows, tagged? }[]`: one `BEGIN IMMEDIATE` transaction, all or nothing; rejects with `statement <i>: <error>` and writes nothing |
+| `db_info` | none | `{ path, applied: string[], migrationError }` |
+
+- Answers are JSON that Rust writes while SQLite steps, sent as raw bytes (an `ArrayBuffer` that
+  the executor parses), so no row is copied out of SQLite first. `LPVIEW_DB_TRACE=1` logs each
+  call's time and answer size.
+- Rows (sqlite-proxy's shapes): `all` and `values` an array of row arrays (columns in SELECT order),
+  `get` one row array or `null` (the executor makes it `undefined`), `run` `[]`. A `get` still
+  steps the statement to the end, so `INSERT ... RETURNING` writes every row.
+- Values: `null`, strings, finite reals and integers within +/-(2^53 - 1) are plain JSON. Anything
+  else is a one-key object, and `tagged: true` says the result holds one: `{ "$bigint": "<decimal>" }`
+  (integers beyond 2^53), `{ "$blob": "<base64>" }`, `{ "$real": "Infinity" | "-Infinity" }`. The
+  executor turns them into `bigint`, `Uint8Array` and numbers. Parameters take the same tags, plus
+  `true`/`false` (bound as 1/0); the executor encodes `bigint`, `Uint8Array` and the infinities.
+- Transactions: one connection behind a mutex (WAL, `synchronous=NORMAL`, foreign keys off like
+  mobile), and no transaction outlives a call. A `db_exec` that leaves one open (`BEGIN`) is rolled
+  back and rejected; a batch statement that begins or ends a transaction is rejected (savepoints are
+  fine). So the package writes several statements with `db.batch([...])`, never
+  `db.transaction(...)`, whose `begin`/`commit` would be separate calls.
+- Storage: `<data dir>/local.db`. Migrations: `packages/local-db/migrations/migrations.json`
+  (`[{ tag, statements: string[] }]`, ordered; for now a fixture,
+  `src-tauri/src/localdb/fixtures/migrations.json`) is compiled in and applied at start-up before the
+  window exists, each migration in its own transaction, applied tags recorded in
+  `__local_db_migrations(tag TEXT PRIMARY KEY, applied_at INTEGER NOT NULL)`. A failing migration
+  rolls back, stops the run (later ones are not tried) and shows in `db_info().migrationError`; the
+  next start tries it again.
+
+| Event | Payload | When |
+|---|---|---|
+| `db://changed` | `{ tables: string[] }` | Tables written by committed calls (`sqlite3_update_hook`), sorted, coalesced: the first change opens a 40 ms window and every table touched in it goes out in one event. A rolled-back batch or a read sends nothing. `DELETE` without `WHERE` is seen (the truncate optimisation is turned off); tables `WITHOUT ROWID` and `DROP TABLE` are not (the update hook does not see them). |
+
+## File seams
+
+What the desktop knows about files, handed to the package's writers as data (like mobile's native
+modules hand over the camera roll). None of these write a database. UI: `src/db/seams.ts`; Rust:
+`src-tauri/src/platform/`.
+
+| Command | Args | Returns |
+|---|---|---|
+| `fs_walk` | `{ root, onBatch: Channel<WalkBatch> }` | `number` of files. Streams `{ files: FsEntry[], done }` batches of up to 500 as they are found (hidden folders, `$RECYCLE.BIN`, `@eaDir` skipped); the last batch has `done: true`. Rejects when `root` cannot be read. |
+| `fs_watch` | `{ root }` | `string`: the normalised root that `fs://changed` names. Starts a recursive watcher (replacing one for the same root). |
+| `fs_unwatch` | `{ root }` | `boolean`: whether a watcher was stopped |
+| `fs_read_metadata` | `{ paths }` (at most 4096) | `(FileMeta \| null)[]` in the order given: headers only, 4 threads; null when unreadable |
+| `fs_stat` | `{ paths }` (at most 4096) | `(FsEntry \| null)[]`: null for missing files, folders and unsupported kinds |
+| `fs_md5` | `{ path }` | `string`: MD5, lower-case hex (streamed) |
+
+```ts
+type FsEntry = { path: string; folder: string; name: string; size: number; mtimeMs: number; kind: FileKind };
+type FileMeta = {
+  path: string; format: string; width: number | null; height: number | null;  // oriented
+  takenAt: string | null;        // ISO 8601 local time, as in ImageInfo
+  takenMs: number | null;        // takenAt as local wall-clock ms (read with UTC getters)
+  cameraMake: string | null; cameraModel: string | null;
+  camera: string | null;         // "Canon EOS R5": make + model without the make twice
+  lens: string | null; lat: number | null; lon: number | null;
+};
+type FsChanges = { root: string; created: FsEntry[]; modified: FsEntry[]; removed: string[];
+                   renamed: { from: string; to: string; dir: boolean }[] };
+```
+
+| Event | Payload | When |
+|---|---|---|
+| `fs://changed` | `FsChanges` | A watched root's events, debounced per root (350 ms quiet, 2 s at most) and checked against the disk: `created`/`modified` are supported files that exist now (a folder that appears is walked, its files `created`); `removed` are paths that are gone, files or folders (delete the path and everything below it); `renamed` are the OS's renames inside the root (a folder rename is one pair; the files below it move along), so the writer keeps the row (MD5, server state). Renames out of the root are removals, into it creations. Hidden folders are ignored. |
+
+Uploads keep `http_fetch`'s `nativeFilePart`: its `ref` may be `{ path, offset, len }` (a supported
+picture or video, at most 64 MB) as well as `{ id, offset, len }` (a row of the Rust library).
+
 ## Server
 
 A LibrePhotos server connection. **Every request goes through `packages/api-client`**: the UI calls

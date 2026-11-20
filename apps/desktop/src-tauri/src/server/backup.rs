@@ -47,6 +47,18 @@ fn read_chunk(path: &str, offset: i64, len: i64) -> std::io::Result<Vec<u8>> {
     Ok(buf)
 }
 
+/// `len` bytes of the file at `path` from `offset`, for a path-based `nativeFilePart`: only
+/// pictures and videos the library keeps, at most [`MAX_CHUNK`].
+pub fn read_chunk_at(path: &str, offset: i64, len: i64) -> Result<Vec<u8>, String> {
+    if offset < 0 || len <= 0 || len > MAX_CHUNK {
+        return Err(format!("bad chunk {offset}+{len}"));
+    }
+    if crate::formats::kind_of(Path::new(path)).is_none() {
+        return Err(format!("{path}: not a picture or video"));
+    }
+    read_chunk(path, offset, len).map_err(|e| format!("{path}: {e}"))
+}
+
 /// What an upload starts from: the file as it is now, and where a previous run stopped.
 #[derive(Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -255,6 +267,19 @@ mod tests {
         std::fs::write(&p, b"hello").unwrap();
         assert_eq!(md5_file(&p).unwrap(), "5d41402abc4b2a76b9719d911017c592");
         assert_eq!(read_chunk(p.to_str().unwrap(), 1, 3).unwrap(), b"ell");
+        assert!(
+            read_chunk_at(p.to_str().unwrap(), 0, 2).is_err(),
+            "not a picture"
+        );
+        let jpg = p.with_extension("jpg");
+        std::fs::copy(&p, &jpg).unwrap();
+        assert_eq!(read_chunk_at(jpg.to_str().unwrap(), 1, 3).unwrap(), b"ell");
+        assert!(read_chunk_at(jpg.to_str().unwrap(), 0, MAX_CHUNK + 1).is_err());
+        assert!(
+            read_chunk_at(jpg.to_str().unwrap(), 3, 9).is_err(),
+            "past the end"
+        );
+        std::fs::remove_file(&jpg).unwrap();
         std::fs::remove_file(&p).unwrap();
     }
 

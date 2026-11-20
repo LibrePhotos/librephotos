@@ -30,7 +30,9 @@ png = "0.18"
 trash = "5"
 arboard = { version = "3", default-features = false, features = ["image-data"] }
 # Library + LibrePhotos server connection.
-rusqlite = { version = "0.40", features = ["bundled"] }
+rusqlite = { version = "0.40", features = ["bundled", "hooks"] }
+base64 = "0.23"
+itoa = "1"
 notify = "8"
 md-5 = "0.10"
 reqwest = { version = "0.13", default-features = false, features = ["native-tls"] }

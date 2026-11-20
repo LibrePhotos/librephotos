@@ -1,0 +1,9 @@
+[
+  {
+    "tag": "0000_fixture",
+    "statements": [
+      "CREATE TABLE `fixture_note` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`text` text NOT NULL,\n\t`created_at` integer NOT NULL\n);",
+      "CREATE INDEX `idx_fixture_note_created` ON `fixture_note` (`created_at`);"
+    ]
+  }
+]

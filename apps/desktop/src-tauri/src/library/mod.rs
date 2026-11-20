@@ -134,16 +134,17 @@ pub fn file_stat(path: &Path, meta: &std::fs::Metadata) -> Option<FileStat> {
     })
 }
 
-fn skip_dir(name: &str) -> bool {
+/// Folders a walk never enters (hidden, recycle bins, Synology thumbnails).
+pub fn skip_dir(name: &str) -> bool {
     name.starts_with('.')
         || name.eq_ignore_ascii_case("$RECYCLE.BIN")
         || name.eq_ignore_ascii_case("System Volume Information")
         || name == "@eaDir"
 }
 
-/// Every supported file under `dir` (recursive, hidden folders skipped).
-pub fn walk(dir: &Path) -> std::io::Result<Vec<FileStat>> {
-    let mut out = Vec::new();
+/// Calls `f` with every supported file under `dir` (recursive, hidden folders skipped) as it
+/// is found; `f` answers false to stop. Fails only when `dir` itself cannot be read.
+pub fn walk_each(dir: &Path, mut f: impl FnMut(FileStat) -> bool) -> std::io::Result<()> {
     let mut stack = vec![dir.to_path_buf()];
     let mut first = true;
     while let Some(d) = stack.pop() {
@@ -165,11 +166,22 @@ pub fn walk(dir: &Path) -> std::io::Result<Vec<FileStat>> {
                 && kind_of(&path).is_some()
                 && let Ok(meta) = entry.metadata()
                 && let Some(s) = file_stat(&path, &meta)
+                && !f(s)
             {
-                out.push(s);
+                return Ok(());
             }
         }
     }
+    Ok(())
+}
+
+/// Every supported file under `dir` (recursive, hidden folders skipped).
+pub fn walk(dir: &Path) -> std::io::Result<Vec<FileStat>> {
+    let mut out = Vec::new();
+    walk_each(dir, |s| {
+        out.push(s);
+        true
+    })?;
     Ok(out)
 }
 

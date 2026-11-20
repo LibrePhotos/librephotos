@@ -7,6 +7,9 @@
 //! - The library (folders the user added, indexed and watched): [`library`]; the LibrePhotos
 //!   server connection (sign-in, API and media proxy, backup): [`server`]; their commands:
 //!   [`commands`].
+//! - The shared local database (`packages/local-db`'s schema, queries and writers run in the UI):
+//!   [`localdb`] executes their SQL and applies their migrations; [`platform`] hands over what
+//!   the disk knows (walks, watch batches, metadata, MD5) as data for those writers.
 
 pub mod appdirs;
 pub mod cache;
@@ -19,10 +22,12 @@ pub mod info;
 pub mod jpegmeta;
 pub mod library;
 pub mod listing;
+pub mod localdb;
 pub mod ops;
 pub mod orient;
 pub mod pipeline;
 pub mod pixels;
+pub mod platform;
 pub mod protocol;
 pub mod request;
 pub mod server;
@@ -236,11 +241,16 @@ pub fn run() {
     let for_protocol = pipeline.clone();
     let tiles = TileService::new(tiles::disk::default_root(), tiles::disk::DEFAULT_CAP_BYTES);
     let tile_handler = tiles.clone();
+    // Migrations run here, before the window (and so the UI's first query) exists.
+    let local_db = commands::open_local_db();
+    let watchers = commands::open_watchers();
     let library = commands::open_library();
     let server = commands::open_server(library.clone());
     let for_remote = server.clone();
     let mut builder = tauri::Builder::default()
         .manage(tiles)
+        .manage(local_db)
+        .manage(watchers)
         .manage(library)
         .manage(server);
     // LPVIEW_MULTI_INSTANCE=1 lets test harnesses run several copies side by side.
@@ -324,7 +334,16 @@ pub fn run() {
             commands::backup_set_remote,
             commands::backup_set_failed,
             commands::backup_set_progress,
-            commands::backup_local_of
+            commands::backup_local_of,
+            commands::db_exec,
+            commands::db_batch,
+            commands::db_info,
+            commands::fs_walk,
+            commands::fs_watch,
+            commands::fs_unwatch,
+            commands::fs_read_metadata,
+            commands::fs_stat,
+            commands::fs_md5
         ])
         .run(tauri::generate_context!())
         .expect("error while running the viewer");
