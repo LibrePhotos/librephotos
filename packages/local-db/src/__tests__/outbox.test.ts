@@ -43,6 +43,21 @@ describe("outbox", () => {
     expect(entries.map((e) => outboxPayload(e))).toEqual([{ rating: 2 }, { rating: 5 }, { caption: "c" }]);
   });
 
+  it("drops a failed write that a newer one of the same key replaced while it was in flight", async () => {
+    const old = await enqueueOutboxEntry(t.db, "desktop_rating", { rating: 2 }, { key: "h1" });
+    expect((await claimOutboxEntry(t.db, 0))?.id).toBe(old);
+    const newer = await enqueueOutboxEntry(t.db, "desktop_rating", { rating: 4 }, { key: "h1" });
+    await retryOutboxEntry(t.db, old, "offline", 0);
+    const other = await enqueueOutboxEntry(t.db, "desktop_rating", { rating: 1 }, { key: "h2" });
+    await claimOutboxEntry(t.db, 0);
+    await claimOutboxEntry(t.db, 0);
+    await rejectOutboxEntry(t.db, other, "400");
+    expect((await outboxEntries(t.db, ["desktop_rating"])).map((e) => [e.id, e.state])).toEqual([
+      [newer, "inflight"],
+      [other, "rejected"],
+    ]);
+  });
+
   it("backs off after a failure and gives up after the last attempt", async () => {
     const id = await enqueueOutboxEntry(t.db, "k", { a: 1 });
     await claimOutboxEntry(t.db, 0);
