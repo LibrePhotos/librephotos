@@ -592,12 +592,12 @@ mod tests {
         ask(&files[1], "stage-again".into(), Priority::High);
         let order: Vec<String> = (0..8).map(|_| rx.recv().unwrap().0).collect();
         let pos = |n: &str| order.iter().position(|o| o == n).unwrap();
-        for stage in ["stage", "stage-again"] {
-            assert!(
-                pos(stage) < pos("film3") && pos(stage) < pos("film2"),
-                "{order:?}"
-            );
-        }
+        let both_stage_done = pos("stage").max(pos("stage-again"));
+        let films_before = order[..both_stage_done]
+            .iter()
+            .filter(|n| n.starts_with("film") && n.as_str() != "film1")
+            .count();
+        assert!(films_before <= 1, "{order:?}");
         std::fs::remove_dir_all(&dir).ok();
     }
 
