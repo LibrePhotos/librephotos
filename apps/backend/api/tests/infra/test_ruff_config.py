@@ -159,17 +159,16 @@ class NewCodeRulesTests(unittest.TestCase):
 
     def test_the_task_store_is_banned_outside_the_queue(self):
         for source in (
-            "from api.jobs.store import add
-
-add(print)
-",
-            "from api.jobs import store
-
-store.add(print)
-",
+            "from api.jobs.store import add\n\nadd(print)\n",
+            "from api.jobs import store\n\nstore.add(print)\n",
         ):
             self.assertIn("TID251", lint(source, "api/views/_ruff_probe.py"))
-            for exempt in ("api/jobs/queue.py", "api/jobs/pool.py", "api/tests/_ruff_probe.py"):
+            exempt_files = (
+                "api/jobs/queue.py",
+                "api/jobs/pool.py",
+                "api/tests/_ruff_probe.py",
+            )
+            for exempt in exempt_files:
                 self.assertNotIn("TID251", lint(source, exempt), exempt)
 
     def test_console_tools_may_print(self):
