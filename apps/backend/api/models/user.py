@@ -6,9 +6,9 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django_cryptography.fields import encrypt
 
 from api.metadata.datetime_rules import DEFAULT_RULES_JSON
+from api.models.encrypted_fields import EncryptedCharField
 from api.models.photo_license import LICENSE_MAX_LENGTH, PhotoLicense
 from api.models.time_zones import ALL_TIME_ZONES_SET
 from api.stacks.burst_rules import get_default_burst_detection_rules
@@ -100,9 +100,7 @@ class User(AbstractUser):
     transcode_videos = models.BooleanField(default=False)
     nextcloud_server_address = models.CharField(max_length=200, default="", blank=True)
     nextcloud_username = models.CharField(max_length=64, default="", blank=True)
-    nextcloud_app_password = encrypt(
-        models.CharField(max_length=64, default="", blank=True)
-    )
+    nextcloud_app_password = EncryptedCharField(max_length=64, default="", blank=True)
     nextcloud_scan_directory = models.CharField(
         max_length=512, db_index=True, default="", blank=True
     )
