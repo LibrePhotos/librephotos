@@ -53,12 +53,29 @@ OPTIONS = {
     "BUILD_ZLIB": "ON",
 }
 
-PATCHES = {
-    "setup.py": (
+REFINEMENT = "opencv/modules/python/src2/typing_stubs_generation/api_refinement.py"
+
+PATCHES = [
+    (
+        "setup.py",
         '[r"bin/opencv_videoio_ffmpeg\\d{3}%s\\.dll" % ("_64" if is64 else "")]',
         "[]",
     ),
-}
+    (
+        REFINEMENT,
+        "from .ast_utils import (find_function_node, SymbolName,",
+        "from .ast_utils import (ScopeNotFoundError, SymbolNotFoundError,\n"
+        "                        find_function_node, SymbolName,",
+    ),
+    (
+        REFINEMENT,
+        "        refine_symbol(root, symbol_name)\n",
+        "        try:\n"
+        "            refine_symbol(root, symbol_name)\n"
+        "        except (ScopeNotFoundError, SymbolNotFoundError):\n"
+        "            pass\n",
+    ),
+]
 
 
 def run(command: list[str], cwd: Path | None = None) -> None:
@@ -83,11 +100,11 @@ def checkout(work: Path) -> Path:
         ]
     )
     run(["git", "submodule", "update", "--init", "--depth", "1", "opencv"], source)
-    for name, (old, new) in PATCHES.items():
+    for name, old, new in PATCHES:
         path = source / name
         text = path.read_text(encoding="utf-8")
-        if old not in text:
-            sys.exit(f"{name}: patch target not found: {old}")
+        if text.count(old) != 1:
+            sys.exit(f"{name}: patch target not found once: {old}")
         path.write_text(text.replace(old, new), encoding="utf-8")
     return source
 
