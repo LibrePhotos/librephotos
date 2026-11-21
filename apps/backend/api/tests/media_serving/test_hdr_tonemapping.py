@@ -12,7 +12,7 @@ that cannot be probed is converted the way it always was, and that all four
 conversion sites ask.
 """
 
-import re
+import json
 import shutil
 import subprocess
 import unittest
@@ -299,28 +299,29 @@ class RealTonemapTest(SimpleTestCase):
     def _stats(self, vf):
         run = subprocess.run(
             [
-                shutil.which("ffmpeg"),
-                "-nostdin",
+                shutil.which("ffprobe"),
+                "-v",
+                "error",
                 "-f",
                 "lavfi",
                 "-i",
-                self.PATTERN,
-                "-frames:v",
-                "1",
-                "-vf",
-                f"{vf},signalstats,metadata=print",
-                "-f",
-                "null",
-                "-",
+                f"{self.PATTERN},{vf},signalstats",
+                "-read_intervals",
+                "%+#1",
+                "-show_entries",
+                "frame_tags=lavfi.signalstats.YAVG,lavfi.signalstats.SATAVG",
+                "-of",
+                "json",
             ],
             capture_output=True,
             text=True,
             check=True,
         )
-        values = dict(
-            re.findall(r"lavfi\.signalstats\.(YAVG|SATAVG)=([0-9.]+)", run.stderr)
+        tags = json.loads(run.stdout)["frames"][0]["tags"]
+        return (
+            float(tags["lavfi.signalstats.YAVG"]),
+            float(tags["lavfi.signalstats.SATAVG"]),
         )
-        return float(values["YAVG"]), float(values["SATAVG"])
 
     def _graded(self, white_nits):
         return (
