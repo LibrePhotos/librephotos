@@ -123,7 +123,7 @@ Create a user with `python manage.py createadmin <user> <email>` in the backend 
 Both frontend and backend support hot reload:
 
 - **Frontend**: Changes to React/TypeScript files automatically refresh the browser
-- **Backend**: Django auto-reloads when Python files change (you may need to refresh the page)
+- **Backend**: uvicorn restarts the API when Python files change (you may need to refresh the page). <Since version="1.7.0" /> It watches the files with watchfiles from `requirements.dev.txt`, which the development compose build installs; without it, as in a released image started with `DEBUG=1`, uvicorn polls them instead.
 
 ### Viewing Logs
 

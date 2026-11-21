@@ -16,6 +16,7 @@ among them, see it within ``CACHE_SECONDS``.
 """
 
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, get_args
 
@@ -116,18 +117,20 @@ def _site_switches() -> dict[str, bool]:
     return values
 
 
-def _read_site_switches() -> dict[str, bool]:
-    """All the site switches in one query; an unsaved one is its default (on)."""
-    from constance import config as site_config
+def site_config_values(keys: Sequence[str]) -> dict[str, object]:
     from constance import settings as constance_settings
+    from constance.utils import get_values_for_keys
 
-    keys = [site_setting_key(feature) for feature in FEATURES]
-    stored = site_config._backend.mget(keys)
+    values = get_values_for_keys(list(keys))
     return {
-        feature: bool(
-            stored[key]
-            if stored.get(key) is not None
-            else constance_settings.CONFIG[key][0]
-        )
-        for feature, key in zip(FEATURES, keys, strict=True)
+        key: constance_settings.CONFIG[key][0] if values[key] is None else values[key]
+        for key in keys
+    }
+
+
+def _read_site_switches() -> dict[str, bool]:
+    keys = [site_setting_key(feature) for feature in FEATURES]
+    values = site_config_values(keys)
+    return {
+        feature: bool(values[key]) for feature, key in zip(FEATURES, keys, strict=True)
     }
