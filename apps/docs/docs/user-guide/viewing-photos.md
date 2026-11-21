@@ -282,7 +282,7 @@ The sidebar displays detailed information about the current photo and provides q
 
 ### Timestamp
 
-Shows when the photo was taken. You can click the edit button to modify the date and time if needed. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.
+Shows when the photo was taken. You can click the edit button to modify the date and time if needed. <Since version="1.7.0" /> The editor has a **Day** and a **Time** field (with seconds), which use your browser's own date and time controls, so they follow your browser's language and date format; Firefox on a computer offers no clock for the time, so type it there. Up to 1.6.0 the editor showed its own calendar. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.
 
 <Since version="1.4.0" /> A date you set this way wins over the [date rules](./settings/date-rules.md) and is marked **Set by you**. To drop it, edit the date and click **Remove timestamp**: the date rules decide the photo's date again, so it keeps a date read from its file if it has one.
 
@@ -291,7 +291,7 @@ Shows when the photo was taken. You can click the edit button to modify the date
 <Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Edit info → Change date and time…**. The dialog has two tabs:
 
 - **Shift** moves every selected photo by the same amount, so their order and the time between them stay the same. Pick **Earlier** or **Later** and enter the days, hours, minutes and seconds, or click **1 h earlier** or **1 h later**. A line spells out the shift ("1 hour, 30 minutes earlier"), and a table shows the oldest and newest selected photo now and after the shift. **Shift** stays greyed out until the amount is more than zero. Photos without a date are left alone; the dialog says how many.
-- **Set** gives every selected photo the same date and time, picked with the same calendar and time field as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
+- **Set** gives every selected photo the same date and time, picked with the same day and time fields as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
 
 When you save, a message says how many photos got their new date and how many a shift skipped. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`.
 

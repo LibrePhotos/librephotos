@@ -187,12 +187,21 @@ Everything below is relative to
   runs, from the `lng` query parameter, the saved `i18nextLng` or the browser's first language, so
   neither waits for the main bundle. Under vitest (`MODE` "test") `i18n.ts` still passes English as a
   bundled resource, so component tests read it synchronously; the build drops that branch. To offer it in the Profile language picker, give it an entry in
-  `components/settings/languageOptions.ts` and a dayjs locale in `dayjsLocaleLoaders` (`i18n.ts`);
-  `src/i18n.test.ts` fails until both are there. <Since version="1.7.0" /> The UI language is detected
+  `components/settings/languageOptions.ts`; `src/i18n.test.ts` fails
+  until it is there. <Since version="1.7.0" /> The UI language is detected
   by `util/languageDetector.ts`, in the order the i18next-browser-languagedetector package used before
   it: the `lng` query parameter, the `i18next` cookie, `i18nextLng` in localStorage, then in
   sessionStorage, the browser's languages and `<html lang>`. The language a user picks is saved under
   `i18nextLng`, so a saved choice survives the change.
+- <Since version="1.7.0" /> Date and time fields are the browser's own inputs, `NativeDateInput`,
+  `NativeTimeInput` (`withSeconds` for `step=1`) and `NativeDateTimeInput` in
+  `components/common/NativeDateInput.tsx`, styled as Mantine inputs with an optional clear button. They
+  read and write the input's wall-clock strings (`yyyy-MM-dd`, `HH:mm:ss`, `yyyy-MM-ddTHH:mm:ss`), which
+  `util/dateUtils.ts` converts with luxon: `photoTimestampWallClock` and `wallClockToPhotoTimestamp` for
+  an `exif_timestamp`, `toDateTimeInputValue` and `fromDateTimeInputValue` for an instant. No JS `Date`
+  sits in between, so a picked day cannot turn into the day before (#630). The pickers follow the
+  browser's language and calendar, not the UI language, and Firefox on desktop has no time picker.
+  There is no Mantine dates package and no dayjs.
 - The names of things (the words the tagger finds, `apps/backend/service/tags/tags.txt`) are their own
   namespace, `locales/<lang>/tags.json`, loaded only by the pages that show things
   (`hooks/useThingLabel.ts`). `locales/en/tags.json` names every word as itself and is the source a
