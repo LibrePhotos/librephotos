@@ -4,8 +4,9 @@ description: "Design of the task queue that replaces django-q2, and of the memor
 sidebar_position: 7
 ---
 
-<Since version="1.7.0" /> Status: phases 0 to 2 are in (the queue runs every job; `manage.py run_workers` replaced
-`qcluster`). The later phases land one pull request at a time.
+<Since version="1.7.0" /> Status: phases 0 to 3 are in: the queue runs every job, `manage.py run_workers` replaced
+`qcluster`, and django-q2 is gone (its tables stay one release for the upgrade). The later phases land one pull
+request at a time.
 
 This page is the plan for [#3073](https://github.com/LibrePhotos/librephotos/issues/3073): a queue that
 LibrePhotos owns, so that the number of parallel workers can follow what the machine (or the container)
@@ -183,6 +184,9 @@ the task gets the run's due time in ISO format, as django-q2 passed it. The `sta
 commands still create the schedules at boot, through the same `ensure_schedule`/`replace_schedule`.
 
 ## Throttle
+
+<Since version="1.7.0" /> Up to 1.6.0 the geocoding rate limit was a file-locked SQLite database under
+`BASE_DATA` (`geocode_rate_limit.sqlite3`), which only held on one host. That file is no longer used.
 
 `api/jobs/throttle.py` `wait(key, seconds)`: `UPDATE api_throttle SET next_at = now + seconds WHERE key =
 %s AND next_at <= now`; one row updated means go, otherwise sleep until `next_at` and try again. It is in
