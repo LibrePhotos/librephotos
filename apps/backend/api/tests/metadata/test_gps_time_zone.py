@@ -23,6 +23,7 @@ from api.metadata.reader import MetadataReadError
 from api.models.time_zones import time_zone
 from api.runtime import sidecars
 from api.tests.metadata.exiftool_harness import _exif_service_post
+from api.tests.sidecar_client import test_client
 
 EXIFTOOL = shutil.which("exiftool")
 FIXTURE = (
@@ -137,7 +138,7 @@ class TimeZonesRouteTest(SimpleTestCase):
     def setUp(self):
         from service.exif.main import app
 
-        self.client = app.test_client()
+        self.client = test_client(app)
 
     def test_rejects_points_it_cannot_look_up(self):
         for body in (
