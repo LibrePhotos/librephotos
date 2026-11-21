@@ -108,13 +108,6 @@ NOFOLLOW = [
     # optional import never compiles it back in.
     "matplotlib",
     "mpl_toolkits",
-    # Optional imports nothing in LibrePhotos needs (counted with
-    # --generate-c-only): DRF guards pygments with try/except ImportError, and
-    # prompt_toolkit and ipdb are development tools (requirements.dev.txt) that
-    # a build venv may still have installed. pip and
-    # huggingface_hub (with httpx2, httpcore2, anyio) came in through
-    # insightface and albumentations, which are gone; they stay listed so a
-    # new optional importer does not compile them back in.
     "pip",
     "huggingface_hub",
     "pygments",

@@ -65,9 +65,7 @@ concurrent-log-handler==0.9.31
 # Error reporting (#2938): captures errors into the saved error reports (api/error_reports).
 sentry-sdk==2.74.0
 
-# Tokenizers for the ONNX models: CLIP BPE (OpenCLIP tags and search) and the
-# LFM2 tokenizer (captions). The Rust package alone, no transformers.
-tokenizers==0.23.3
+# tokenizers is in requirements.nodeps.txt, installed after this file with --no-deps.
 argon2-cffi==25.1.0
 # ONNX Runtime runs every model, on the CPU or, through the WebGPU plugin, on any
 # GPU with a Vulkan (Linux), Direct3D 12 (Windows) or Metal (macOS) driver

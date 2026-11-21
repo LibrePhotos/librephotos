@@ -498,6 +498,7 @@ Your photos in your own folders are not touched by any of this.
 cd apps\backend
 py -3.14 -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt -r requirements.standalone.txt
+.\.venv\Scripts\pip install --no-deps -r requirements.nodeps.txt
 .\.venv\Scripts\python scripts\build_standalone.py --zip
 ```
 

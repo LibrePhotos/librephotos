@@ -30,6 +30,7 @@ on:
   pull_request:
     paths:
       - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements.nodeps.txt'
       - 'apps/backend/requirements.standalone.txt'
       - 'apps/backend/requirements.unified.txt'
       - 'apps/backend/scripts/build_standalone.py'
@@ -44,6 +45,7 @@ on:
     branches: [dev]
     paths:
       - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements.nodeps.txt'
       - 'apps/backend/requirements.standalone.txt'
       - 'apps/backend/requirements.unified.txt'
       - 'apps/backend/scripts/build_standalone.py'
@@ -168,6 +170,7 @@ jobs:
           cache: pip
           cache-dependency-path: |
             apps/backend/requirements.txt
+            apps/backend/requirements.nodeps.txt
             apps/backend/requirements.standalone.txt
             apps/backend/requirements.unified.txt
       - name: Install the backend and the build tools
@@ -175,6 +178,7 @@ jobs:
         run: |
           python -m pip install -U pip wheel
           pip install -r requirements.txt -r requirements.standalone.txt
+          pip install --no-deps -r requirements.nodeps.txt
       # No Nuitka caches here: clcache keys an object on cl.exe and the Python
       # headers, which change with the runner image (weekly) and the Python
       # patch release, and a pull request compiles its merge with a moving dev.
