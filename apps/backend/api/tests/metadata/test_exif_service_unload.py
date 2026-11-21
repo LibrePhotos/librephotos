@@ -8,6 +8,7 @@ import unittest
 import PIL.Image
 from django.test import SimpleTestCase
 
+from api.tests.sidecar_client import test_client
 from service.exif import main
 
 EXIFTOOL = shutil.which("exiftool")
@@ -16,7 +17,7 @@ EXIFTOOL = shutil.which("exiftool")
 @unittest.skipUnless(EXIFTOOL, "exiftool binary not available")
 class ExifServiceUnloadTest(SimpleTestCase):
     def setUp(self):
-        self.client = main.app.test_client()
+        self.client = test_client(main.app)
         directory = tempfile.mkdtemp(prefix="librephotos-exif-unload")
         self.addCleanup(shutil.rmtree, directory, True)
         self.photo = os.path.join(directory, "photo.jpg")

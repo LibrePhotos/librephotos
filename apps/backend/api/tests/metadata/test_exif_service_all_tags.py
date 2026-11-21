@@ -15,6 +15,7 @@ import PIL.Image
 from django.test import SimpleTestCase
 
 from api.metadata.exiftool_client import Answer, ExifTool
+from api.tests.sidecar_client import test_client
 from service.exif import main as exif_main
 from service.exif.all_tags import FileNotReadableError, group_tags, read_all_tags
 
@@ -130,7 +131,7 @@ class ReadAllTagsTest(SimpleTestCase):
 class AllTagsRouteTest(SimpleTestCase):
     def setUp(self):
         exif_main.app.config["TESTING"] = True
-        self.client = exif_main.app.test_client()
+        self.client = test_client(exif_main.app)
         self.directory = tempfile.mkdtemp(prefix="librephotos-all-tags-")
         self.addCleanup(shutil.rmtree, self.directory, True)
         self.path = os.path.join(self.directory, "a.jpg")
@@ -222,7 +223,7 @@ class AllTagsRealExifToolTest(SimpleTestCase):
 
     def setUp(self):
         exif_main.app.config["TESTING"] = True
-        self.client = exif_main.app.test_client()
+        self.client = test_client(exif_main.app)
         patcher = patch.object(exif_main, "static_struct_et", self.struct)
         patcher.start()
         self.addCleanup(patcher.stop)

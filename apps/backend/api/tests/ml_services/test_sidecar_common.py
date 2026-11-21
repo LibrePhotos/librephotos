@@ -13,6 +13,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 
 from api.runtime.sidecars import SERVICES
+from api.tests.sidecar_client import test_client
 from service import _common
 
 
@@ -34,7 +35,7 @@ def _app(**kwargs):
 
 class HealthTest(SimpleTestCase):
     def test_every_sidecar_answers_the_same_shape(self):
-        response = _app().test_client().get("/health")
+        response = test_client(_app()).get("/health")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -49,39 +50,37 @@ class HealthTest(SimpleTestCase):
         )
 
     def test_the_trailing_slash_image_similarity_used_still_answers(self):
-        self.assertEqual(_app().test_client().get("/health/").status_code, 200)
+        self.assertEqual(test_client(_app()).get("/health/").status_code, 200)
 
     def test_model_loaded_comes_from_the_sidecar(self):
         loaded = {"yes": True}
         app = _app(unload=lambda: None, is_loaded=lambda: loaded["yes"])
 
-        self.assertIs(app.test_client().get("/health").get_json()["model_loaded"], True)
+        self.assertIs(test_client(app).get("/health").get_json()["model_loaded"], True)
         loaded["yes"] = False
-        self.assertIs(
-            app.test_client().get("/health").get_json()["model_loaded"], False
-        )
+        self.assertIs(test_client(app).get("/health").get_json()["model_loaded"], False)
 
 
 class IdleClockTest(SimpleTestCase):
     def test_a_request_is_stamped_when_it_starts(self):
         app = _app()
         with patch("service._common.time.time", return_value=1234.5):
-            app.test_client().post("/work", json={"value": 1})
+            test_client(app).post("/work", json={"value": 1})
 
         self.assertEqual(_common.last_request_time(app), 1234.5)
         self.assertEqual(
-            app.test_client().get("/health").get_json()["last_request_time"], 1234.5
+            test_client(app).get("/health").get_json()["last_request_time"], 1234.5
         )
 
     def test_a_rejected_request_still_counts(self):
         app = _app()
-        app.test_client().post("/work", json={})
+        test_client(app).post("/work", json={})
 
         self.assertIsNotNone(_common.last_request_time(app))
 
     def test_the_watchdog_itself_does_not_count(self):
         app = _app(unload=lambda: None)
-        client = app.test_client()
+        client = test_client(app)
         client.get("/health")
         client.get("/unload-model")
 
@@ -97,12 +96,12 @@ class BusyTest(SimpleTestCase):
         @app.route("/slow", methods=["POST"])
         def slow():
             # What the watchdog would see mid-inference.
-            client = app.test_client()
+            client = test_client(app)
             seen["health"] = client.get("/health").get_json()
             seen["unload"] = client.get("/unload-model").status_code
             return {}, 200
 
-        client = app.test_client()
+        client = test_client(app)
         client.post("/slow")
 
         self.assertIs(seen["health"]["busy"], True)
@@ -112,15 +111,15 @@ class BusyTest(SimpleTestCase):
 
     def test_a_failed_request_is_not_left_running(self):
         app = _app()
-        app.test_client().post("/boom")
-        app.test_client().post("/work", json={})
+        test_client(app).post("/boom")
+        test_client(app).post("/work", json={})
 
-        self.assertIs(app.test_client().get("/health").get_json()["busy"], False)
+        self.assertIs(test_client(app).get("/health").get_json()["busy"], False)
 
 
 class UnloadModelTest(SimpleTestCase):
     def test_only_a_sidecar_with_a_model_offers_it(self):
-        self.assertEqual(_app().test_client().get("/unload-model").status_code, 404)
+        self.assertEqual(test_client(_app()).get("/unload-model").status_code, 404)
 
     def test_unload_releases_the_model(self):
         calls = []
@@ -128,7 +127,7 @@ class UnloadModelTest(SimpleTestCase):
 
         with patch.object(_common, "release_memory") as release:
             for method in ("get", "post"):
-                response = getattr(app.test_client(), method)("/unload-model")
+                response = getattr(test_client(app), method)("/unload-model")
                 self.assertEqual(response.status_code, 200)
 
         self.assertEqual(calls, ["unload", "unload"])
@@ -137,18 +136,18 @@ class UnloadModelTest(SimpleTestCase):
 
 class RequestParsingTest(SimpleTestCase):
     def test_fields_and_defaults(self):
-        response = _app().test_client().post("/work", json={"value": 3})
+        response = test_client(_app()).post("/work", json={"value": 3})
 
         self.assertEqual(response.get_json(), {"value": 3, "flag": "default"})
 
     def test_a_missing_field_is_an_empty_400(self):
-        response = _app().test_client().post("/work", json={"flag": 1})
+        response = test_client(_app()).post("/work", json={"flag": 1})
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, b"")
 
     def test_a_body_that_is_not_a_json_object_is_an_empty_400(self):
-        client = _app().test_client()
+        client = test_client(_app())
         for kwargs in ({"json": [1, 2]}, {"data": "value=1"}, {}):
             with self.subTest(kwargs=kwargs):
                 response = client.post("/work", **kwargs)
@@ -158,7 +157,7 @@ class RequestParsingTest(SimpleTestCase):
 
 class ErrorTest(SimpleTestCase):
     def test_an_unexpected_error_is_a_json_500_with_the_reason(self):
-        response = _app().test_client().post("/boom")
+        response = test_client(_app()).post("/boom")
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(
@@ -166,7 +165,7 @@ class ErrorTest(SimpleTestCase):
         )
 
     def test_http_errors_keep_their_status(self):
-        client = _app().test_client()
+        client = test_client(_app())
         self.assertEqual(client.get("/nowhere").status_code, 404)
         self.assertEqual(client.get("/work").status_code, 405)
 
