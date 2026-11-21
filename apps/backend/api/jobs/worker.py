@@ -7,8 +7,9 @@ import socket
 import threading
 import time
 import traceback
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from multiprocessing.sharedctypes import SynchronizedArray
 from typing import Protocol
 
 import psutil
@@ -29,10 +30,6 @@ MB = 1024 * 1024
 
 class Flag(Protocol):
     def is_set(self) -> bool: ...
-
-
-class Limits(Protocol):
-    def __getitem__(self, index: int, /) -> int: ...
 
 
 class WorkerStoppingError(BaseException):
@@ -116,7 +113,7 @@ class Worker:
         self,
         slot: int,
         stop: Flag,
-        limits: Limits,
+        limits: Sequence[int] | SynchronizedArray[int],
         settings: WorkerSettings,
         exit_process: Callable[[int], None] = os._exit,
     ) -> None:

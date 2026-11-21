@@ -39,7 +39,7 @@ class RunningWorkerSerializer(serializers.Serializer[None]):
     last_recycle = serializers.CharField()
 
 
-class ParallelWorkersSerializer(serializers.Serializer[None]):
+class ParallelWorkersSerializer(serializers.Serializer[dict[str, object]]):
     capacity = CapacitySerializer()
     intention = serializers.CharField(help_text="gentle, balanced or fast")
     override = serializers.IntegerField(
