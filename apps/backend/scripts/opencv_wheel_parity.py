@@ -130,7 +130,7 @@ def fetch_models(out: Path) -> None:
         if hashlib.sha256(data).hexdigest() != entry["sha256"]:
             sys.exit(f"{entry['name']}: checksum mismatch")
         target.mkdir(parents=True)
-        if url.split("?")[0].endswith(".zip"):
+        if url.partition("?")[0].endswith(".zip"):
             zipfile.ZipFile(io.BytesIO(data)).extractall(target)
         else:
             tarfile.open(fileobj=io.BytesIO(data)).extractall(target, filter="data")
@@ -149,7 +149,9 @@ def timed(task: Callable[[], object], runs: int = 5) -> float:
     return statistics.median(durations)
 
 
-def landmarks_for(image: npt.NDArray[np.uint8], seed: int) -> list[npt.NDArray[np.float32]]:
+def landmarks_for(
+    image: npt.NDArray[np.uint8], seed: int
+) -> list[npt.NDArray[np.float32]]:
     from service.face_recognition.face_analysis import ARCFACE_DST
 
     rng = np.random.default_rng(seed)
@@ -310,7 +312,9 @@ def dump_timing(inputs: Path, arrays: Arrays) -> None:
             plane, (0, 0), 4.1, borderType=cv2.BORDER_REPLICATE
         ),
         "exp_4mp": lambda: cv2.exp(values),
-        "cart_to_polar_4mp": lambda: cv2.cartToPolar(values, values, angleInDegrees=True),
+        "cart_to_polar_4mp": lambda: cv2.cartToPolar(
+            values, values, angleInDegrees=True
+        ),
     }
     for name, task in tasks.items():
         arrays[f"time/{name}"] = np.array(timed(task))
@@ -349,12 +353,18 @@ def compare(first: Path, second: Path) -> int:
         x, y = a[key], b[key]
         group = "/".join(key.split("/")[:2])
         if key.startswith("time/"):
-            print(f"{key:40} {float(x):10.1f} ms {float(y):10.1f} ms  x{float(y) / float(x):.2f}")
+            print(
+                f"{key:40} {float(x):10.1f} ms {float(y):10.1f} ms  x{float(y) / float(x):.2f}"
+            )
             continue
         if x.shape != y.shape or x.dtype != y.dtype:
             failures.append(f"{key}: {x.dtype}{x.shape} != {y.dtype}{y.shape}")
             continue
-        diff = float(np.abs(x.astype(np.float64) - y.astype(np.float64)).max()) if x.size else 0.0
+        diff = (
+            float(np.abs(x.astype(np.float64) - y.astype(np.float64)).max())
+            if x.size
+            else 0.0
+        )
         groups.setdefault(group, []).append(diff)
         if key.startswith("embedding/"):
             print(f"{key:40} cosine {cosine(x, y):.9f} max diff {diff:g}")

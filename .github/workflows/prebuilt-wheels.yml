@@ -40,6 +40,8 @@ jobs:
           print("Building", specs)
           subprocess.run([sys.executable, "-m", "pip", "install", "-U", "pip", "wheel"], check=True)
           for name, version in dict.fromkeys(specs):
+              if name == "opencv-lp-headless":
+                  continue
               if name == "exiftool-bin":
                   subprocess.run([sys.executable, "scripts/build_exiftool_wheel.py", version, "wheels"], check=True)
                   continue
@@ -52,3 +54,43 @@ jobs:
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \
             --notes "Prebuilt wheels referenced by apps/backend/requirements.txt."
           gh release upload "$TAG" apps/backend/wheels/*.whl --clobber
+
+  opencv-wanted:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.wanted.outputs.build }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: wanted
+        run: |
+          if grep -qE "^opencv-lp-headless @ [^ ]*/download/${TAG}/" apps/backend/requirements.txt; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  opencv:
+    needs: opencv-wanted
+    if: needs.opencv-wanted.outputs.build == 'true'
+    uses: ./.github/workflows/opencv-wheel.yml
+
+  opencv-upload:
+    needs: opencv
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: opencv-wheel-*
+          merge-multiple: true
+          path: wheels
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -l wheels
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \
+            --notes "Prebuilt wheels referenced by apps/backend/requirements.txt."
+          gh release upload "$TAG" wheels/*.whl --clobber

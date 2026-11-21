@@ -53,7 +53,9 @@ OPTIONS = {
     "BUILD_ZLIB": "ON",
 }
 
-REFINEMENT = "opencv/modules/python/src2/typing_stubs_generation/api_refinement.py"
+STUBS = "opencv/modules/python/src2/typing_stubs_generation"
+REFINEMENT = f"{STUBS}/api_refinement.py"
+PREDEFINED_TYPES = f"{STUBS}/predefined_types.py"
 
 PATCHES = [
     (
@@ -74,6 +76,16 @@ PATCHES = [
         "            refine_symbol(root, symbol_name)\n"
         "        except (ScopeNotFoundError, SymbolNotFoundError):\n"
         "            pass\n",
+    ),
+    (
+        PREDEFINED_TYPES,
+        '    AliasTypeNode.class_("FeatureDetector", "Feature2D",\n'
+        '                         export_name="FeatureDetector"),\n'
+        '    AliasTypeNode.class_("DescriptorExtractor", "Feature2D",\n'
+        '                         export_name="DescriptorExtractor"),\n'
+        '    AliasTypeNode.class_("FeatureExtractor", "Feature2D",\n'
+        '                         export_name="FeatureExtractor"),\n',
+        "",
     ),
 ]
 
@@ -151,7 +163,9 @@ def repair(raw: Path, out: Path, platform: str | None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     for wheel in raw.glob("*.whl"):
         if platform:
-            run(["auditwheel", "repair", "--plat", platform, "-w", str(out), str(wheel)])
+            run(
+                ["auditwheel", "repair", "--plat", platform, "-w", str(out), str(wheel)]
+            )
         else:
             shutil.copy2(wheel, out / wheel.name)
 
