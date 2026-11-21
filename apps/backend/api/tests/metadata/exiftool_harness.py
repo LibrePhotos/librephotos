@@ -350,13 +350,12 @@ class RealExifToolTestCase(TestCase):
         def shared_exiftool(*args: object, **kwargs: object) -> RecordingExifTool:
             return shared
 
+        in_process = SimpleNamespace(
+            post=_exif_service_post, error_detail=sidecars.error_detail
+        )
         patchers = [
-            patch(
-                "api.metadata.reader.sidecars",
-                SimpleNamespace(
-                    post=_exif_service_post, error_detail=sidecars.error_detail
-                ),
-            ),
+            patch("api.metadata.reader.sidecars", in_process),
+            patch("api.metadata.gps_time_zone.sidecars", in_process),
             patch("api.metadata.writer._orientation_reader", shared_exiftool),
             patch("api.metadata.writer._start_process", shared_writer_process),
             patch.object(exif_service, "static_et", cls.exiftool),

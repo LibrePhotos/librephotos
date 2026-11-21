@@ -82,7 +82,6 @@ INCLUDE_PACKAGE_DATA = [
     "rest_framework",
     "allauth",
     "constance",
-    "timezonefinder",
     "tzdata",
     "certifi",
 ]

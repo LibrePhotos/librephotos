@@ -19,6 +19,7 @@ from service.exif.geolocate import (
     geolocate,
     parse_max_distance,
     parse_points,
+    time_zone_at,
 )
 from service.exif.tag_validation import is_safe_media_path, is_safe_tag_name
 
@@ -344,6 +345,23 @@ def geolocate_points() -> ResponseReturnValue:
         log.error("error looking up places: %s", exc)
         return {"error": str(exc)}, 500
     return {"places": places}, 200
+
+
+@app.route("/time-zones", methods=["POST"])
+def time_zones_at_points() -> ResponseReturnValue:
+    points, max_distance = json_fields("points", max_distance_km=None)
+    try:
+        parsed = parse_points(points)
+        cap = parse_max_distance(max_distance)
+    except InvalidPointsError as exc:
+        return {"error": str(exc)}, 400
+    et = running_exiftool(struct=False)
+    try:
+        zones = [time_zone_at(et, point, cap) for point in parsed]
+    except Exception as exc:
+        log.error("error looking up time zones: %s", exc)
+        return {"error": str(exc)}, 500
+    return {"time_zones": zones}, 200
 
 
 def serve() -> None:
