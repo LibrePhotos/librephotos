@@ -45,6 +45,7 @@ from api.photos.paths import folder_path_q
 from api.runtime import sidecars
 from api.runtime.features import feature_enabled
 from api.runtime.ml_models import captioning_model_exists
+from api.runtime.planner_stats import refresh_planner_stats
 from api.search import semantic
 from api.search.semantic import OPENCLIP, TAG_THING_TYPE
 from api.thumbnails import render
@@ -1076,6 +1077,7 @@ def geolocation_job(photo_id: UUID | Photo, job_id: UUID, force: bool = False) -
 # Faces gives up: each one already waited through the sidecar client's
 # retries, and the photos left over are scanned by the next run (#2199).
 FACE_SERVICE_UNREACHABLE_LIMIT = 20
+PLANNER_STATS_CHECK_INTERVAL = 5000
 
 
 def _extract_faces_for_photo(photo: Photo, job_id: UUID) -> Exception | None:
@@ -1159,6 +1161,7 @@ def scan_faces(
             return
         # Needs no face service, and photos already scanned have such faces too (#2642)
         photo_faces.restore_missing_crops(user)
+        refresh_planner_stats(reload=True)
         existing_photos = _faces_to_scan(user, full_scan, path, photo_ids)
         listed = _begin_photo_scan(lrj, existing_photos)
         if not listed:
@@ -1169,6 +1172,8 @@ def scan_faces(
             cancelled = _scan_cancelled(idx, job_id, "Scan faces job cancelled")
             if cancelled or _face_detection_turned_off(idx, lrj):
                 return
+            if idx and idx % PLANNER_STATS_CHECK_INTERVAL == 0:
+                refresh_planner_stats(reload=True)
             failure = _extract_faces_for_photo(photo, job_id)
             if isinstance(failure, requests.ConnectionError | requests.Timeout):
                 unreachable += 1
@@ -1187,6 +1192,7 @@ def scan_faces(
         return
 
     _encode_and_cluster(user)
+    refresh_planner_stats()
 
 
 def _face_detection_turned_off(idx: int, lrj: LongRunningJob) -> bool:

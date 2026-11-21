@@ -105,6 +105,10 @@ class ApiConfig(AppConfig):
 
         features.register()
 
+        from api.runtime import planner_stats
+
+        planner_stats.register()
+
         from django.conf import settings
 
         if settings.ERROR_REPORTING_CAPTURE:
