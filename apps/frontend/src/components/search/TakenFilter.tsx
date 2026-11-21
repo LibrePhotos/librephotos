@@ -1,9 +1,8 @@
 import { Chip, Group, Stack } from "@mantine/core";
-import { DatePickerInput } from "@mantine/dates";
-import "@mantine/dates/styles.css";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { calendarDaysAgo, calendarYear } from "../../util/dateUtils";
+import { NativeDateInput } from "../common/NativeDateInput";
 
 type Props = Readonly<{
   after: string | undefined;
@@ -45,27 +44,23 @@ export function TakenFilter({ after, before, onChange, labelId }: Props) {
   return (
     <Stack gap="xs">
       <Group gap="xs" wrap="nowrap" align="flex-start">
-        <DatePickerInput
+        <NativeDateInput
           label={t("searchfilter.taken.after")}
-          placeholder={t("searchfilter.taken.any")}
-          value={after ?? null}
-          onChange={value => onChange(value ?? undefined, before)}
-          maxDate={before}
+          value={after ?? ""}
+          onChange={value => onChange(value || undefined, before)}
+          max={before}
           clearable
           size="xs"
           flex={1}
-          popoverProps={{ withinPortal: false }}
         />
-        <DatePickerInput
+        <NativeDateInput
           label={t("searchfilter.taken.before")}
-          placeholder={t("searchfilter.taken.any")}
-          value={before ?? null}
-          onChange={value => onChange(after, value ?? undefined)}
-          minDate={after}
+          value={before ?? ""}
+          onChange={value => onChange(after, value || undefined)}
+          min={after}
           clearable
           size="xs"
           flex={1}
-          popoverProps={{ withinPortal: false }}
         />
       </Group>
       <Group gap={6} role="group" aria-labelledby={labelId}>
