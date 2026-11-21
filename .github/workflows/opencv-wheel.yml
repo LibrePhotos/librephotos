@@ -23,10 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { runner: ubuntu-latest, arch: x86_64, variant: "", modules: "", defines: "" }
-          - { runner: ubuntu-24.04-arm, arch: aarch64, variant: "", modules: "", defines: "" }
-          - { runner: ubuntu-latest, arch: x86_64, variant: "-noipp", modules: "", defines: "--define WITH_IPP=OFF" }
-          - { runner: ubuntu-latest, arch: x86_64, variant: "-nocodecs", modules: "--modules core,flann,geometry,imgproc", defines: "" }
+          - { runner: ubuntu-latest, arch: x86_64 }
+          - { runner: ubuntu-24.04-arm, arch: aarch64 }
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
@@ -38,11 +36,11 @@ jobs:
             set -e
             /opt/python/cp314-cp314/bin/python -m venv /tmp/build
             /tmp/build/bin/python apps/backend/scripts/build_opencv_wheel.py /repo/opencv-wheels \
-              --work-dir /tmp/opencv --plat manylinux_2_28_${{ matrix.arch }} ${{ matrix.modules }} ${{ matrix.defines }}"
+              --work-dir /tmp/opencv --plat manylinux_2_28_${{ matrix.arch }}"
           ls -l opencv-wheels
       - uses: actions/upload-artifact@v7
         with:
-          name: opencv-wheel-linux-${{ matrix.arch }}${{ matrix.variant }}
+          name: opencv-wheel-linux-${{ matrix.arch }}
           path: opencv-wheels/*.whl
 
   windows:
@@ -75,7 +73,6 @@ jobs:
           - { runner: ubuntu-latest, artifact: opencv-wheel-linux-x86_64 }
           - { runner: ubuntu-24.04-arm, artifact: opencv-wheel-linux-aarch64 }
           - { runner: windows-latest, artifact: opencv-wheel-windows-amd64 }
-          - { runner: ubuntu-latest, artifact: opencv-wheel-linux-x86_64-noipp }
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -99,30 +96,39 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: opencv-wheels
-      - name: Install the official wheel and the minimal one in two venvs
+      - name: Install the PyPI wheel and ours in two venvs
         run: |
           mkdir -p "$BASE_LOGS" "$BASE_DATA"
           python -m venv ../../scratch/official
           python -m venv ../../scratch/minimal
           python - <<'PY'
-          import pathlib, re
+          import os, pathlib, re
           wheel = next(pathlib.Path("../../opencv-wheels").glob("*.whl")).resolve()
-          out = pathlib.Path("../../scratch/requirements")
-          out.mkdir()
-          for path in pathlib.Path(".").glob("requirements*.txt"):
-              text = re.sub(r"^opencv-python-headless==\S+", f"opencv-lp-headless @ {wheel.as_uri()}", path.read_text(), flags=re.M)
-              (out / path.name).write_text(text)
+          requirements = pathlib.Path("requirements.txt").read_text()
+          version = re.search(r"^opencv-python-headless==([^\s;]+)", requirements, re.M)[1]
+          pins = {"official": f"opencv-python-headless=={version}", "minimal": f"opencv-lp-headless @ {wheel.as_uri()}"}
+          for venv, pin in pins.items():
+              out = pathlib.Path(f"../../scratch/{venv}-requirements")
+              out.mkdir()
+              for path in pathlib.Path(".").glob("requirements*.txt"):
+                  text = path.read_text()
+                  if path.name == "requirements.txt":
+                      text = re.sub(r"^opencv-.*\n", "", text, flags=re.M) + pin + "\n"
+                  (out / path.name).write_text(text)
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              env.write(f"OFFICIAL_PIN={pins['official']}\n")
           PY
           bin=bin; [ "$RUNNER_OS" = Windows ] && bin=Scripts
           scratch=$(cd ../../scratch && pwd)
           echo "OFFICIAL=$scratch/official/$bin/python" >> "$GITHUB_ENV"
           echo "MINIMAL=$scratch/minimal/$bin/python" >> "$GITHUB_ENV"
-          "$scratch/official/$bin/python" -m pip install -q -r requirements.txt
-          "$scratch/minimal/$bin/python" -m pip install -q -r ../../scratch/requirements/requirements.txt
-      - name: Nothing pulls the official OpenCV back in
+          "$scratch/official/$bin/python" -m pip install -q -r ../../scratch/official-requirements/requirements.txt
+          "$scratch/minimal/$bin/python" -m pip install -q -r ../../scratch/minimal-requirements/requirements.txt \
+            -r requirements.dev.txt
+      - name: Nothing pulls the PyPI OpenCV back in
         run: |
           "$MINIMAL" -m pip install --dry-run --quiet --report ../../scratch/report.json \
-            -r ../../scratch/requirements/requirements.txt -r requirements.dev.txt \
+            -r ../../scratch/minimal-requirements/requirements.txt -r requirements.dev.txt \
             -r requirements.mlval.txt -r requirements.standalone.txt
           "$MINIMAL" - <<'PY'
           import importlib.metadata, json, re, sys
@@ -137,18 +143,17 @@ jobs:
           "$MINIMAL" -m pip check
       - name: Sizes
         run: |
-          "$OFFICIAL" -m pip download -q --no-deps opencv-python-headless==5.0.0.93 -d ../../scratch/official-wheel
+          "$OFFICIAL" -m pip download -q --no-deps "$OFFICIAL_PIN" -d ../../scratch/official-wheel
           for python in "$OFFICIAL" "$MINIMAL"; do
             "$python" - <<'PY'
-          import importlib.metadata, sys
+          import importlib.metadata
           for dist in importlib.metadata.distributions():
               if "opencv" in dist.metadata["Name"].lower():
-                  files = [f for f in dist.files if not str(f).endswith(".pyc")]
-                  size = sum(f.locate().stat().st_size for f in files if f.locate().exists())
-                  big = sorted(((f.locate().stat().st_size, str(f)) for f in files if f.locate().exists()), reverse=True)[:6]
-                  print(f"{dist.metadata['Name']} {dist.version}: installed {size / 1e6:.1f} MB")
-                  for s, f in big:
-                      print(f"  {s / 1e6:8.2f} MB  {f}")
+                  files = [f.locate() for f in dist.files if not str(f).endswith(".pyc")]
+                  sizes = sorted(((f.stat().st_size, f.name) for f in files if f.exists()), reverse=True)
+                  print(f"{dist.metadata['Name']} {dist.version}: installed {sum(s for s, _ in sizes) / 1e6:.1f} MB")
+                  for size, name in sizes[:6]:
+                      print(f"  {size / 1e6:8.2f} MB  {name}")
           PY
           done
           ls -l ../../scratch/official-wheel ../../opencv-wheels
@@ -159,11 +164,11 @@ jobs:
           "$OFFICIAL" scripts/opencv_wheel_parity.py dump ../../scratch/inputs ../../scratch/official.npz --models ../../scratch/models --timing
           "$MINIMAL" scripts/opencv_wheel_parity.py dump ../../scratch/inputs ../../scratch/minimal.npz --models ../../scratch/models --timing
           "$MINIMAL" scripts/opencv_wheel_parity.py compare ../../scratch/official.npz ../../scratch/minimal.npz
-      - name: The cv2 tests pass on the minimal wheel
+      - name: The cv2 tests pass on our wheel
         run: |
           "$MINIMAL" manage.py test api.tests.editing api.tests.ml_services.test_face_analysis \
             api.tests.ml_services.test_face_recognition_sidecar api.tests.ocr --parallel 2
-      - name: Nuitka compiles and runs cv2 from the minimal wheel
+      - name: Nuitka compiles and runs cv2 from our wheel
         if: runner.os == 'Windows'
         run: |
           "$MINIMAL" -m pip install -q -r requirements.standalone.txt

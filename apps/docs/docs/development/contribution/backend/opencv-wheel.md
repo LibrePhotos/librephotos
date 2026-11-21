@@ -38,11 +38,16 @@ them), so the wheel needs no `dnn` module.
 The typing stubs generator of OpenCV 5.0.0 fails when a module it refines (such as `features`) is not built; the
 script patches it to skip those, and drops the FFmpeg DLL that opencv-python's `setup.py` expects on Windows.
 
+Installed size (download size in brackets), measured by the workflow below:
+
 | Platform | `opencv-python-headless` 5.0.0.93 | `opencv-lp-headless` 5.0.0.93 |
 | --- | --: | --: |
-| Linux x86_64, installed | 159.5 MB | SIZE_X86 |
-| Linux aarch64, installed | 90.3 MB | SIZE_ARM |
-| Windows x64, installed | 117.6 MB | SIZE_WIN |
+| Linux x86_64 | 159.5 MB (61.2 MB) | 48.4 MB (22.2 MB) |
+| Linux aarch64 | 90.3 MB (39.6 MB) | 16.9 MB (8.5 MB) |
+| Windows x64 | 117.6 MB (43.8 MB) | 55.5 MB (21.7 MB) |
+
+Intel IPP is most of what is left on x86_64: a build without it is 23.4 MB, but it moves editor renders by one
+level in some pixels, so it stays. `imgcodecs` with its four codecs adds 2.7 MB.
 
 `opencv-python-headless` stays the requirement on macOS, which has no prebuilt wheel of ours. Both install the same
 `cv2` package, so never install both into one environment.
