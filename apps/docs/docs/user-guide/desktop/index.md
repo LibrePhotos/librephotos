@@ -29,11 +29,14 @@ It works without a server. Everything you do to your own pictures stays on your 
 
 1. Download [**librephotos-desktop-windows-x64-setup.exe**](https://github.com/LibrePhotos/librephotos/releases/latest/download/librephotos-desktop-windows-x64-setup.exe) from the latest release (64-bit Windows 10 or 11). The same file is there as `librephotos-desktop-<version>-windows-x64-setup.exe`, next to `SHA256SUMS-desktop` to check the download: in PowerShell, `Get-FileHash .\librephotos-desktop-windows-x64-setup.exe` must print the SHA-256 listed for it.
 2. Run it. Windows may show **Windows protected your PC**, because the installer is not signed yet: click **More info**, then **Run anyway**.
-3. The installer needs no administrator rights: it installs for your Windows user into `%LOCALAPPDATA%\LibrePhotos Viewer` and adds **LibrePhotos Viewer** to the Start menu.
+3. Choose who the app is for. **Install just for me** needs no administrator rights and installs into `%LOCALAPPDATA%\LibrePhotos Viewer`. **Install for anyone using this computer** asks an administrator and installs into `C:\Program Files\LibrePhotos Viewer`. Either way **LibrePhotos Viewer** is added to the Start menu.
 
 Started without a picture, the app opens the library. Started with a file (or with a picture double-clicked once the app is your default viewer), it opens that picture.
 
-To make it the viewer Windows opens pictures with, choose **Set as default photo viewer** in the **⋮** menu of the viewer: it opens Windows' **Default apps** settings at the app's page.
+The installer never changes which app opens your pictures; you choose. To make LibrePhotos Viewer the viewer Windows opens pictures with:
+
+- **Installed for anyone using this computer:** click **Choose LibrePhotos Viewer as your photo viewer** on the installer's last page, or later choose **Set as default photo viewer** in the **⋮** menu of the viewer. Both open Windows' **Default apps** settings at the app's page, which lists every picture and RAW format it reads with the app that opens it now. Click a format and pick **LibrePhotos Viewer**; Windows asks once per format.
+- **Installed just for you:** Windows may not show the app's page in **Default apps** until you sign out and back in. Until then, right-click a picture, choose **Open with** → **Choose another app** → **Choose an app on your PC**, select `%LOCALAPPDATA%\LibrePhotos Viewer\librephotos-viewer.exe` and click **Always**, once per format.
 
 To update, run the installer of the newer release; your library, settings and edits stay. To remove the app, use **Settings** → **Apps** → **Installed apps** → **LibrePhotos Viewer** → **Uninstall**; tick **Delete the application data** to remove the library, caches and settings too (see below). Your pictures and their sidecars are never removed.
 

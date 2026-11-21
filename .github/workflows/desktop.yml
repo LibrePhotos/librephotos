@@ -158,8 +158,10 @@ jobs:
           cd dist-desktop
           sha256sum "$VERSIONED_SETUP" "$STABLE_SETUP" > "$CHECKSUMS"
           cat "$CHECKSUMS"
-      - name: Smoke test the installer
-        run: node apps/desktop/scripts/smoke-installer.mjs "dist-desktop/$STABLE_SETUP" apps/desktop/src-tauri/icons/128x128.png
+      - name: Smoke test the installer for the current user
+        run: node apps/desktop/scripts/smoke-installer.mjs --scope user "dist-desktop/$STABLE_SETUP" apps/desktop/src-tauri/icons/128x128.png
+      - name: Smoke test the installer for everyone
+        run: node apps/desktop/scripts/smoke-installer.mjs --scope machine "dist-desktop/$STABLE_SETUP" apps/desktop/src-tauri/icons/128x128.png
       - uses: actions/upload-artifact@v7
         with:
           name: librephotos-desktop-windows-x64
