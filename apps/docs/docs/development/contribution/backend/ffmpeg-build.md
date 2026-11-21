@@ -5,7 +5,7 @@ sidebar_position: 7
 ---
 
 <Since version="1.7.0" /> Up to 1.6.0 the `ffmpeg-bin` wheel repackaged BtbN's GPL "everything" build, about 200 MB
-installed. LibrePhotos now builds its own: the same input coverage for the files a library holds, in about a tenth of the space.
+installed. LibrePhotos now builds its own: the same input coverage for the files a library holds, in about a seventh of the space (28 MB instead of 200 MB on x86_64).
 
 The backend, the Docker images and the Windows standalone build all run ffmpeg and ffprobe from the `ffmpeg-bin` wheel
 that `apps/backend/requirements.txt` installs. The wheel puts its `bin/` folder on `PATH` at interpreter start (a `.pth`
