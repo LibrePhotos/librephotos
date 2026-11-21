@@ -5,7 +5,7 @@
 <meta name="generator" content="Docusaurus v3.10.2">
 <title data-rh="true">Frontend | LibrePhotos</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://docs.librephotos.com/img/logo-round.png"><meta data-rh="true" name="twitter:image" content="https://docs.librephotos.com/img/logo-round.png"><meta data-rh="true" property="og:url" content="https://docs.librephotos.com/docs/development/contribution/frontend/"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Frontend | LibrePhotos"><meta data-rh="true" name="description" content="Development Information regarding LibrePhotos Frontend."><meta data-rh="true" property="og:description" content="Development Information regarding LibrePhotos Frontend."><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.librephotos.com/docs/development/contribution/frontend/"><link data-rh="true" rel="alternate" href="https://docs.librephotos.com/docs/development/contribution/frontend/" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.librephotos.com/docs/development/contribution/frontend/" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Development","item":"https://docs.librephotos.com/docs/development/"},{"@type":"ListItem","position":2,"name":"Contribution","item":"https://docs.librephotos.com/docs/development/contribution/"},{"@type":"ListItem","position":3,"name":"Frontend","item":"https://docs.librephotos.com/docs/development/contribution/frontend/"}]}</script><link rel="alternate" type="application/rss+xml" href="/blog/rss.xml" title="LibrePhotos RSS Feed">
 <link rel="alternate" type="application/atom+xml" href="/blog/atom.xml" title="LibrePhotos Atom Feed"><link rel="stylesheet" href="/assets/css/styles.4a849751.css">
-<script src="/assets/js/runtime~main.39d5254e.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.823f15e1.js" defer="defer"></script>
 <script src="/assets/js/main.ac13580a.js" defer="defer"></script>
 </head>
 <body>
@@ -178,11 +178,21 @@ links and search keep the English word.</li>
 miscellaneous functions.</li>
 <li class=""><span class="since_Hom5" data-since="1.7.0" data-released="false">Not released yet (comes after 1.6.0)</span> A package stylesheet that only a lazy feature uses is imported by the
 component that renders it, not by <code>index.tsx</code>: <code>maplibre-gl/dist/maplibre-gl.css</code> in
-<code>components/map/ThemedMap.tsx</code> (every map renders through it), <code>@mantine/dates/styles.css</code> in each
-component with a date picker, <code>@mantine/tiptap/styles.css</code> in the caption editor and
-<code>@mantine/carousel/styles.css</code> in the lightbox&#x27;s <code>ContentViewer</code>. Vite loads a lazy chunk&#x27;s CSS before
+<code>components/map/ThemedMap.tsx</code> (every map renders through it). Vite loads a lazy chunk&#x27;s CSS before
 the chunk runs, and after <code>@mantine/core/styles.css</code>, so the order Mantine asks for holds and nothing
 renders unstyled. <code>index.tsx</code> keeps only the core styles and the app&#x27;s colour variables.</li>
+<li class=""><span class="since_Hom5" data-since="1.7.0" data-released="false">Not released yet (comes after 1.6.0)</span> Touch, pen and mouse gestures go through <code>hooks/useViewerGestures.ts</code>
+(<code>trackViewerGestures</code> in <code>hooks/viewerGestures.ts</code>). It reads pointer events on one element and
+reports a drag (locked to the axis it started on, with the velocity of its last 100 ms), a pinch
+(scale and the fingers&#x27; midpoint), the wheel (in pixels; return true to keep the page from scrolling)
+and a double tap. A pointer that starts inside <code>[data-own-gesture]</code> is left to that element (the
+live text, the face drawing layer, the editor&#x27;s crop overlay and split divider). The element needs
+<code>touch-action: none</code>. The lightbox (<code>lightbox/LightboxStage.tsx</code>, <code>useLightboxGestures.ts</code>,
+<code>lightboxView.ts</code>) lays the previous, current and next photo side by side and moves them with
+<code>--lb-swipe-x</code>. It zooms and pans the current one with <code>--lb-x</code>, <code>--lb-y</code> and <code>--lb-scale</code>, written
+to the element while a gesture runs and kept in React state (<code>useLightboxZoom</code>) only when it ends, so
+a gesture never re-renders per frame. The photo editor&#x27;s canvas (<code>editor/canvas/useStageGestures.ts</code>)
+uses the same hook.</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="native-transports">The API client outside the browser<a href="#native-transports" class="hash-link" aria-label="Direct link to The API client outside the browser" title="Direct link to The API client outside the browser" translate="no">​</a></h3>
 <p><span class="since_Hom5" data-since="1.7.0" data-released="false">Not released yet (comes after 1.6.0)</span> <code>packages/api-client</code> has three entry points: <code>@librephotos/api-client</code> (everything, for the web and mobile apps), <code>@librephotos/api-client/core</code> (<code>src/core.ts</code>: the schemas, the transport, <code>endpoints</code>, the media URL helpers and <code>ResponseParseError</code>, without the TanStack Query hooks and the polling helpers, so it needs only zod), and the narrower <code>schemas</code>, <code>transport</code> and <code>hooks</code>. The <a class="" href="/docs/development/desktop">desktop app</a> imports <code>core</code>, through a Vite alias like the web app, and <code>node scripts/check-shared-deps.mjs</code> checks its zod (and React or React Query, if it ever declares them) against the package&#x27;s peer ranges along with the web and mobile apps&#x27;.</p>
