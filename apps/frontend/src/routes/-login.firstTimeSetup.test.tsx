@@ -18,6 +18,9 @@ const stubs = vi.hoisted(() => ({
   updateSettings: vi.fn<(variables: unknown) => Promise<unknown>>(),
   siteSettings: { allow_registration: false, allow_upload: false, email_configured: false },
   noopMutation: { mutate: () => {}, isPending: false },
+  currentUser: undefined as { id: number } | undefined,
+  saveDirectory: vi.fn<(variables: unknown, options: { onSuccess?: () => void }) => void>(),
+  workersDone: vi.fn<() => void>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -47,8 +50,8 @@ vi.mock("../api_client/settings/hooks/useUpdateSettingsMutation", () => ({
   useUpdateSettingsMutation: () => ({ mutateAsync: stubs.updateSettings, isPending: false }),
 }));
 vi.mock("../api_client/user/hooks", () => ({
-  useCurrentUserSelfDetailsQuery: () => ({ data: undefined }),
-  useUpdateUserScanDirectoryMutation: () => stubs.noopMutation,
+  useCurrentUserSelfDetailsQuery: () => ({ data: stubs.currentUser }),
+  useUpdateUserScanDirectoryMutation: () => ({ mutate: stubs.saveDirectory, isPending: false }),
 }));
 vi.mock("../components/setup/DirectoryPicker", () => ({ DirectoryPicker: () => null }));
 // Its own test covers the step; here it is one button that moves on, as Off does.
@@ -56,6 +59,19 @@ vi.mock("../components/setup/SetupErrorReportingStep", () => ({
   SetupErrorReportingStep: ({ onDone }: { onDone: () => void }) => (
     <button type="button" onClick={onDone}>
       error-reporting-off
+    </button>
+  ),
+}));
+vi.mock("../components/setup/SetupWorkersStep", () => ({
+  SetupWorkersStep: ({ onDone }: { onDone: () => void }) => (
+    <button
+      type="button"
+      onClick={() => {
+        stubs.workersDone();
+        onDone();
+      }}
+    >
+      workers-continue
     </button>
   ),
 }));
@@ -85,6 +101,9 @@ beforeEach(() => {
   stubs.signup.mockReset();
   stubs.login.mockReset();
   stubs.updateSettings.mockReset();
+  stubs.saveDirectory.mockReset();
+  stubs.workersDone.mockReset();
+  stubs.currentUser = undefined;
   stubs.siteSettings = { allow_registration: false, allow_upload: false, email_configured: false };
 });
 
@@ -254,5 +273,21 @@ describe("the site settings step of the first-run setup", () => {
     expect(container.textContent).not.toContain(i18n.t("skip"));
     await act(async () => button("error-reporting-off").click());
     expect(container.textContent).toContain(i18n.t("skip"));
+  });
+
+  it("asks how hard to work after the library, then ends the setup", async () => {
+    stubs.updateSettings.mockResolvedValue({});
+    stubs.currentUser = { id: 1 };
+    stubs.saveDirectory.mockImplementation((_variables, options) => options.onSuccess?.());
+    await reachSiteSettingsStep();
+    await act(async () => button(i18n.t("continue")).click());
+    await act(async () => button("error-reporting-off").click());
+
+    await act(async () => button(i18n.t("continue")).click());
+
+    expect(stubs.saveDirectory).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain(i18n.t("login.setupworkers"));
+    await act(async () => button("workers-continue").click());
+    expect(stubs.workersDone).toHaveBeenCalledTimes(1);
   });
 });
