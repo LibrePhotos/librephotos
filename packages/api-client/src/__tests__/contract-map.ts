@@ -809,20 +809,14 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
   PhotoStackSummary:
     "nested in PhotoSummary.stacks, which the schema leaves untyped (PhotoSummarySerializer.get_stacks returns a bare list or dict)",
   LoginPost: "a request body",
-  StartupStatus:
-    "the 503 the startup placeholder answers while the database updates (#2310), not a Django view",
-  LoginResponse:
-    "simplejwt's TokenObtainPairView declares no response serializer",
+  StartupStatus: "the 503 the startup placeholder answers while the database updates (#2310), not a Django view",
+  LoginResponse: "simplejwt's TokenObtainPairView declares no response serializer",
   RefreshPost: "a request body",
   TokenClaims: "the JWT payload, not a response body",
-  AuthError:
-    "the error envelope from api/views/exception_handler.py, not a component",
-  LogoutResponse:
-    "simplejwt's TokenBlacklistView declares no response serializer (it answers {})",
-  PublicSharingDefaults:
-    "nested in User.public_sharing_defaults, which the schema leaves untyped (a JSONField)",
-  People:
-    "deprecated alias of PhotoPerson, kept for one release while apps/mobile moves",
+  AuthError: "the error envelope from api/views/exception_handler.py, not a component",
+  LogoutResponse: "simplejwt's TokenBlacklistView declares no response serializer (it answers {})",
+  PublicSharingDefaults: "nested in User.public_sharing_defaults, which the schema leaves untyped (a JSONField)",
+  People: "deprecated alias of PhotoPerson, kept for one release while apps/mobile moves",
   PhotoPerson:
     "nested in Photo.people, which the schema leaves untyped (PhotoSerializer.get_people returns a bare list or dict)",
   PhotoOcrBlock:
@@ -842,8 +836,7 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "the day group the photo grids hold, built on the client from a Day (dayGroup) or a GalleryDay; no view answers it",
   FetchUserAlbumsListResponse:
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
-  PublicAlbum:
-    "compared where it is read, as the results of FetchPublicAlbumResponse (PublicAlbumResponse)",
+  PublicAlbum: "compared where it is read, as the results of FetchPublicAlbumResponse (PublicAlbumResponse)",
   AlbumCollectionListResponse:
     "a {results} envelope around rows compared on their own (AlbumCollection); the view's wrapper is not a component",
   PublicSharingOptions:
@@ -852,8 +845,7 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (UserAlbumInfo); the view's wrapper is not a component",
   FetchAutoAlbumsListResponse:
     "a {results} envelope around rows compared on their own (AutoAlbumInfo); the view's wrapper is not a component",
-  AlbumInfo:
-    "the base of ThingAlbumInfo and PlaceAlbumInfo, which are compared",
+  AlbumInfo: "the base of ThingAlbumInfo and PlaceAlbumInfo, which are compared",
   FetchThingAlbumsListResponse:
     "a {results} envelope around rows compared on their own (ThingAlbumInfo); the view's wrapper is not a component",
   ThingAlbum:
@@ -870,16 +862,14 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope around rows compared on their own (UserPlace), read whole with fetchAllPages; the page envelope is not compared",
   PersonGroupList:
     "a {results} envelope around rows compared on their own (PersonGroup), read whole with fetchAllPages; the page envelope is not compared",
-  PersonAlbum:
-    "no endpoint in this package returns it, and no component describes a person album",
+  PersonAlbum: "no endpoint in this package returns it, and no component describes a person album",
   PublicAlbumSlugOwner:
     "the answer FetchPublicAlbumResponse compares (PublicAlbumResponse), read only for its id: comparing it would report every other field as dropped",
   SearchPhotos:
     "a {results} envelope (component SearchResults) around rows compared on their own (DatePhotosGroup); comparing it would repeat DatePhotosGroup's baselined differences",
   SemanticSearchPhotos:
     "a {results} envelope around rows compared on their own (PigPhoto); the view's wrapper is not a component",
-  SearchPhotosResult:
-    "built by endpoints.searchPhotos from a response, not a response itself",
+  SearchPhotosResult: "built by endpoints.searchPhotos from a response, not a response itself",
   SharedToMePhotosResponse:
     "a {results} envelope around rows compared on their own (PigPhoto); the view's wrapper is not a component",
   SharedPhotosResponse:
@@ -905,8 +895,6 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "nested in PhotoMetadata.sidecar_files, typed as bare dicts in the schema; the model is gone and the server always sends [] (PhotoMetadataSerializer.get_sidecar_files)",
   UploadCompleteResponse:
     "the chunked upload views (chunked_upload/views.py) are plain Django views the schema does not describe",
-  ImportJobResult:
-    "the result of an Import Uploads job; the schema types a job's result as a free-form object",
-  UploadFailedFile:
-    "an entry of an Import Uploads job's result, which the schema types as a free-form object",
+  ImportJobResult: "the result of an Import Uploads job; the schema types a job's result as a free-form object",
+  UploadFailedFile: "an entry of an Import Uploads job's result, which the schema types as a free-form object",
 };

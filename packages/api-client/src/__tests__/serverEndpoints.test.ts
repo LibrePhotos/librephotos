@@ -38,12 +38,7 @@ describe("statistics", () => {
       { name: "Places I've visited", children: [] },
       endpoints.fetchLocationSunburst,
     ],
-    [
-      "fetchPhotoMonthCounts",
-      "/photomonthcounts/",
-      [{ month: "2023-1", count: 3 }],
-      endpoints.fetchPhotoMonthCounts,
-    ],
+    ["fetchPhotoMonthCounts", "/photomonthcounts/", [{ month: "2023-1", count: 3 }], endpoints.fetchPhotoMonthCounts],
     [
       "fetchSocialGraph",
       "/socialgraph/",
@@ -91,11 +86,9 @@ describe("statistics", () => {
     const tree = await endpoints.fetchLocationSunburst(client);
     const leaves = (node: LocationSunburst): LocationSunburst[] =>
       node.children?.length ? node.children.flatMap(leaves) : [node];
-    const counts = leaves(tree).map((leaf) => leaf.value);
+    const counts = leaves(tree).map(leaf => leaf.value);
     expect(counts.length).toBeGreaterThan(0);
-    expect(
-      counts.every((count) => typeof count === "number" && count > 0),
-    ).toBe(true);
+    expect(counts.every(count => typeof count === "number" && count > 0)).toBe(true);
   });
 
   it("reads the counts and drops the ones it does not show", async () => {
@@ -188,9 +181,7 @@ describe("update check", () => {
       install,
     });
     const older = fakeServer(updateStatus);
-    expect(
-      (await endpoints.fetchUpdateStatus(older.client)).install,
-    ).toBeUndefined();
+    expect((await endpoints.fetchUpdateStatus(older.client)).install).toBeUndefined();
   });
 
   it("downloads the newest release, then restarts into it (#2788)", async () => {
@@ -255,9 +246,7 @@ describe("server", () => {
       arch_string_raw: "AMD64",
       brand_raw: "AMD Ryzen 5 2600X Six-Core Processor",
     };
-    expect(
-      ServerStats.safeParse({ ...serverStats, cpu_info: cpuInfo }).success,
-    ).toBe(true);
+    expect(ServerStats.safeParse({ ...serverStats, cpu_info: cpuInfo }).success).toBe(true);
   });
 
   it("reads CPU info with only the keys that are always there", () => {
@@ -270,9 +259,7 @@ describe("server", () => {
       count: 4,
       arch_string_raw: "aarch64",
     };
-    expect(
-      ServerStats.safeParse({ ...serverStats, cpu_info: cpuInfo }).success,
-    ).toBe(true);
+    expect(ServerStats.safeParse({ ...serverStats, cpu_info: cpuInfo }).success).toBe(true);
   });
 
   it("takes a GPU's memory as a number", () => {
@@ -295,9 +282,7 @@ describe("server", () => {
   });
 
   it("downloads the whole log file as a blob", async () => {
-    const { client, requests } = fakeServer(
-      "2026-10-12 10:00:00,000 INFO line 0",
-    );
+    const { client, requests } = fakeServer("2026-10-12 10:00:00,000 INFO line 0");
     const file = await endpoints.fetchServerLogFile(client);
     expect(defined(requests[0]).url).toBe(`${API}/serverlogs`);
     expect(file).toBeInstanceOf(Blob);
@@ -322,10 +307,7 @@ describe("services", () => {
       feature_flag: "FEATURE_CAPTIONS",
     };
     const { client, requests } = fakeServer(answer);
-    const health = await endpoints.fetchServiceHealth(
-      client,
-      "image_captioning",
-    );
+    const health = await endpoints.fetchServiceHealth(client, "image_captioning");
     expect(defined(requests[0]).url).toBe(`${API}/services/image_captioning/`);
     expect(health).toEqual(answer);
   });
@@ -349,7 +331,7 @@ describe("services", () => {
     expect(health.port_conflict).toBe(answer.port_conflict);
   });
 
-  it.each(["start", "stop"] as const)("POSTs a %s", async (action) => {
+  it.each(["start", "stop"] as const)("POSTs a %s", async action => {
     const { client, requests } = fakeServer({
       message: `Service ocr ${action}ed successfully`,
     });
@@ -379,23 +361,17 @@ describe("fetchBackendReadiness", () => {
     expect(defined(requests[0]).url).toBe(`${API}/healthz/ready/`);
   });
 
-  it.each(["starting", "updating"] as const)(
-    "names the placeholder's %s phase",
-    async (status) => {
-      const { client } = fakeServer({ status, version: "1.4.0" }, 503);
-      expect(await endpoints.fetchBackendReadiness(client)).toEqual({
-        state: status,
-        reasonCode: null,
-        version: "1.4.0",
-      });
-    },
-  );
+  it.each(["starting", "updating"] as const)("names the placeholder's %s phase", async status => {
+    const { client } = fakeServer({ status, version: "1.4.0" }, 503);
+    expect(await endpoints.fetchBackendReadiness(client)).toEqual({
+      state: status,
+      reasonCode: null,
+      version: "1.4.0",
+    });
+  });
 
   it("passes a failed update's reason code on", async () => {
-    const { client } = fakeServer(
-      { status: "failed", reason_code: "E001" },
-      503,
-    );
+    const { client } = fakeServer({ status: "failed", reason_code: "E001" }, 503);
     expect(await endpoints.fetchBackendReadiness(client)).toEqual({
       state: "failed",
       reasonCode: "E001",
@@ -412,11 +388,7 @@ describe("fetchBackendReadiness", () => {
   });
 
   it.each([
-    [
-      "the running server's own 503 (database down)",
-      { status: "error", checks: {} },
-      503,
-    ],
+    ["the running server's own 503 (database down)", { status: "error", checks: {} }, 503],
     ["a proxy's 502", { detail: "Bad Gateway" }, 502],
     ["a proxy's 504", { detail: "Gateway Timeout" }, 504],
   ])("is unreachable on %s", async (_name, body, status) => {
@@ -445,7 +417,7 @@ describe("fetchBackendReadiness", () => {
   });
 
   // Something answers for the server, so the app's own error handling takes over.
-  it.each([404, 500])("is ready on a %i", async (status) => {
+  it.each([404, 500])("is ready on a %i", async status => {
     const { client } = fakeServer({ errors: [] }, status);
     expect(await endpoints.fetchBackendReadiness(client)).toEqual({
       state: "ready",

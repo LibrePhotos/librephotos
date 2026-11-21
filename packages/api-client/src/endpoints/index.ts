@@ -4,12 +4,7 @@ import { Photoset } from "../schemas";
 import { ApiError, runningJobId } from "../transport/client";
 import { fetchAllPages, fetchAllPagesWithFirst } from "../transport/pages";
 import type { ApiClient } from "../transport/types";
-import {
-  buildQuery,
-  parseEachResponse,
-  parseResponse,
-  type ParsedEntries,
-} from "../util/parse";
+import { buildQuery, parseEachResponse, parseResponse, type ParsedEntries } from "../util/parse";
 
 /* ---------------------------------------------------------------------- *
  * Thin, platform-agnostic endpoint wrappers. Each takes an ApiClient and
@@ -21,10 +16,7 @@ import {
 
 /* ---- auth -------------------------------------------------------------- */
 
-export async function login(
-  client: ApiClient,
-  credentials: S.LoginPost,
-): Promise<S.LoginResponse> {
+export async function login(client: ApiClient, credentials: S.LoginPost): Promise<S.LoginResponse> {
   const res = await client.post<unknown>("/auth/token/obtain/", credentials);
   return parseResponse(S.LoginResponse, res, "login response");
 }
@@ -33,35 +25,24 @@ export async function login(
  * Blacklist the refresh token. Without one (`undefined`, left out of the body) the server answers
  * 401; it clears the auth cookies either way.
  */
-export async function logout(
-  client: ApiClient,
-  refresh: string | undefined,
-): Promise<S.LogoutResponse> {
+export async function logout(client: ApiClient, refresh: string | undefined): Promise<S.LogoutResponse> {
   const res = await client.post<unknown>("/auth/token/blacklist/", { refresh });
   return parseResponse(S.LogoutResponse, res, "logout response");
 }
 
-export async function refreshAccessToken(
-  client: ApiClient,
-  refresh: string,
-): Promise<S.RefreshResponse> {
+export async function refreshAccessToken(client: ApiClient, refresh: string): Promise<S.RefreshResponse> {
   const res = await client.post<unknown>("/auth/token/refresh/", { refresh });
   return parseResponse(S.RefreshResponse, res, "token refresh");
 }
 
 /** Create a user. On a fresh instance (see fetchIsFirstTimeSetup) the first one becomes the admin. */
-export async function signUp(
-  client: ApiClient,
-  data: S.SignupRequest,
-): Promise<S.SignupUser> {
+export async function signUp(client: ApiClient, data: S.SignupRequest): Promise<S.SignupUser> {
   const res = await client.post<unknown>("/user/", data);
   return parseResponse(S.SignupUser, res, "signup response");
 }
 
 /** Whether the instance has no admin yet, so the login page offers sign-up instead. Anonymous. */
-export async function fetchIsFirstTimeSetup(
-  client: ApiClient,
-): Promise<S.IsFirstTimeSetupResponse> {
+export async function fetchIsFirstTimeSetup(client: ApiClient): Promise<S.IsFirstTimeSetupResponse> {
   const res = await client.get<unknown>("/firsttimesetup/");
   return parseResponse(S.IsFirstTimeSetupResponse, res, "first-time setup");
 }
@@ -73,10 +54,7 @@ export async function fetchSsoConfig(client: ApiClient): Promise<S.SsoConfig> {
 }
 
 /** Email a password-reset link. The answer is the same whether or not the address has an account. */
-export async function requestPasswordReset(
-  client: ApiClient,
-  email: string,
-): Promise<S.PasswordResetResponse> {
+export async function requestPasswordReset(client: ApiClient, email: string): Promise<S.PasswordResetResponse> {
   const res = await client.post<unknown>("/auth/password/reset/", { email });
   return parseResponse(S.PasswordResetResponse, res, "password reset response");
 }
@@ -84,29 +62,20 @@ export async function requestPasswordReset(
 /** Set a new password from an emailed reset link (ApiError code weak_password, invalid_reset_link, ...). */
 export async function confirmPasswordReset(
   client: ApiClient,
-  data: S.PasswordResetConfirmRequest,
+  data: S.PasswordResetConfirmRequest
 ): Promise<S.PasswordResetResponse> {
   const res = await client.post<unknown>("/auth/password/reset/confirm/", data);
-  return parseResponse(
-    S.PasswordResetResponse,
-    res,
-    "password reset confirm response",
-  );
+  return parseResponse(S.PasswordResetResponse, res, "password reset confirm response");
 }
 
 /* ---- user -------------------------------------------------------------- */
 
-export async function fetchUserSelfDetails(
-  client: ApiClient,
-  userId: string | number,
-): Promise<S.User> {
+export async function fetchUserSelfDetails(client: ApiClient, userId: string | number): Promise<S.User> {
   const res = await client.get<unknown>(`/user/${userId}/`);
   return parseResponse(S.User, res, "user self details");
 }
 
-export async function fetchUserList(
-  client: ApiClient,
-): Promise<S.ListUserList> {
+export async function fetchUserList(client: ApiClient): Promise<S.ListUserList> {
   const rows = await fetchAllPages(client, "/user/");
   return parseResponse(S.ListUserList, rows, "user list");
 }
@@ -118,7 +87,7 @@ export async function fetchUserList(
 export async function updateUserPartial(
   client: ApiClient,
   userId: string | number,
-  patch: Record<string, unknown> | FormData,
+  patch: Record<string, unknown> | FormData
 ): Promise<S.User> {
   const res = await client.patch<unknown>(`/user/${userId}/`, patch);
   return parseResponse(S.User, res, "update user");
@@ -128,17 +97,14 @@ export async function updateUserPartial(
 export async function manageUpdateUser(
   client: ApiClient,
   userId: number,
-  patch: Partial<S.ManageUser>,
+  patch: Partial<S.ManageUser>
 ): Promise<S.ManageUser> {
   const res = await client.patch<unknown>(`/manage/user/${userId}/`, patch);
   return parseResponse(S.ManageUser, res, "manage user");
 }
 
 /** Admin: delete a user and their library. The server refuses to delete a superuser. Answers 204. */
-export async function deleteUser(
-  client: ApiClient,
-  userId: number,
-): Promise<void> {
+export async function deleteUser(client: ApiClient, userId: number): Promise<void> {
   await client.delete(`/delete/user/${userId}/`);
 }
 
@@ -194,8 +160,7 @@ function dateAlbumParams(filter: DateAlbumFilter) {
     favorite: filter.favorite ? "true" : undefined,
     public: filter.public ? "true" : undefined,
     hidden: filter.hidden ? "true" : undefined,
-    archived:
-      filter.archived === undefined ? undefined : String(filter.archived),
+    archived: filter.archived === undefined ? undefined : String(filter.archived),
     in_trashcan: filter.in_trashcan ? "true" : undefined,
     photo: filter.photo ? "true" : undefined,
     video: filter.video ? "true" : undefined,
@@ -217,14 +182,10 @@ function dateAlbumParams(filter: DateAlbumFilter) {
 /** The days of a date-grouped list (the timeline, favourites, a person, a folder, ...), newest first. */
 export async function fetchDays(
   client: ApiClient,
-  filter: DateAlbumFilter = {},
+  filter: DateAlbumFilter = {}
 ): Promise<S.IncompleteDatePhotosGroup[]> {
-  const res = await client.get<unknown>(
-    `/days/${buildQuery(dateAlbumParams(filter))}`,
-  );
-  return parseResponse(S.FetchDaysResponse, res, "days").results.map(
-    S.dayGroup,
-  );
+  const res = await client.get<unknown>(`/days/${buildQuery(dateAlbumParams(filter))}`);
+  return parseResponse(S.FetchDaysResponse, res, "days").results.map(S.dayGroup);
 }
 
 /**
@@ -236,7 +197,7 @@ export async function fetchDayPhotos(
   dayId: number,
   after: string | null,
   filter: DateAlbumFilter = {},
-  limit?: number,
+  limit?: number
 ): Promise<S.DayPhotosPage> {
   const query = buildQuery({
     ...dateAlbumParams(filter),
@@ -253,11 +214,9 @@ export async function fetchDayLayout(
   client: ApiClient,
   dayId: number,
   filter: DateAlbumFilter = {},
-  limit?: number,
+  limit?: number
 ): Promise<S.DayLayout> {
-  const res = await client.get<unknown>(
-    `/days/${dayId}/layout/${buildQuery({ ...dateAlbumParams(filter), limit })}`,
-  );
+  const res = await client.get<unknown>(`/days/${dayId}/layout/${buildQuery({ ...dateAlbumParams(filter), limit })}`);
   return parseResponse(S.DayLayout, res, "day layout");
 }
 
@@ -291,7 +250,7 @@ export async function fetchDateAlbumPhotosChunk(
   groups: readonly S.IncompleteDatePhotosGroup[],
   cursor: DateAlbumCursor,
   filter: DateAlbumFilter = {},
-  limits: { photos?: number; requests?: number } = {},
+  limits: { photos?: number; requests?: number } = {}
 ): Promise<DateAlbumPhotosChunk> {
   const maxPhotos = limits.photos ?? DATE_ALBUM_PAGE_SIZE;
   const maxRequests = limits.requests ?? 8;
@@ -321,14 +280,13 @@ export async function fetchDateAlbumPhotosChunk(
     budget -= Math.max(1, day.numberOfItems);
     group += 1;
   }
-  const pages = await Promise.all(reads.map((read) => read.page));
+  const pages = await Promise.all(reads.map(read => read.page));
   const photos: S.PigPhoto[] = [];
   for (const [i, page] of pages.entries()) {
     photos.push(...page.items);
     const read = reads[i];
     // A day that grew since the list was read leaves photos behind: continue it before the next.
-    if (read && page.next)
-      return { photos, next: { group: read.group, after: page.next } };
+    if (read && page.next) return { photos, next: { group: read.group, after: page.next } };
   }
   const last = reads[reads.length - 1];
   const following = last ? last.group + 1 : group;
@@ -343,41 +301,25 @@ export async function fetchDateAlbumPhotosChunk(
 /** The photos of the latest upload day; with a media filter, of the latest day a matching photo came in. */
 export async function fetchRecentlyAddedPhotos(
   client: ApiClient,
-  filter: AlbumMediaFilter = {},
+  filter: AlbumMediaFilter = {}
 ): Promise<S.RecentlyAddedPhotosResponse> {
-  const res = await client.get<unknown>(
-    `/photos/recentlyadded/${buildQuery(albumMediaQuery(filter))}`,
-  );
-  return parseResponse(
-    S.RecentlyAddedPhotosResponse,
-    res,
-    "recently added photos",
-  );
+  const res = await client.get<unknown>(`/photos/recentlyadded/${buildQuery(albumMediaQuery(filter))}`);
+  return parseResponse(S.RecentlyAddedPhotosResponse, res, "recently added photos");
 }
 
-export async function fetchPhotoDetails(
-  client: ApiClient,
-  imageHash: string,
-): Promise<S.Photo> {
+export async function fetchPhotoDetails(client: ApiClient, imageHash: string): Promise<S.Photo> {
   const res = await client.get<unknown>(`/photos/${imageHash}/`);
   return parseResponse(S.Photo, res, "photo details");
 }
 
 /** The user albums that hold a photo (the lightbox's Albums section). */
-export async function fetchPhotoAlbums(
-  client: ApiClient,
-  imageHash: string,
-): Promise<S.UserAlbumInfo[]> {
+export async function fetchPhotoAlbums(client: ApiClient, imageHash: string): Promise<S.UserAlbumInfo[]> {
   const res = await client.get<unknown>(`/photos/${imageHash}/albums/`);
-  return parseResponse(S.FetchUserAlbumsListResponse, res, "photo albums")
-    .results;
+  return parseResponse(S.FetchUserAlbumsListResponse, res, "photo albums").results;
 }
 
 /** A photo's full structured metadata, with its edit history and sidecar files. */
-export async function fetchPhotoMetadata(
-  client: ApiClient,
-  photoId: string,
-): Promise<S.PhotoMetadata> {
+export async function fetchPhotoMetadata(client: ApiClient, photoId: string): Promise<S.PhotoMetadata> {
   const res = await client.get<unknown>(`/photos/${photoId}/metadata`);
   return parseResponse(S.PhotoMetadata, res, "photo metadata");
 }
@@ -386,10 +328,7 @@ export async function fetchPhotoMetadata(
  * Every tag ExifTool reads in a photo's file and its sidecars, read now and never stored (#2277).
  * Owner only: 404 for anyone else, and 404 `file_missing` when the file is gone from disk.
  */
-export async function fetchRawPhotoMetadata(
-  client: ApiClient,
-  photoId: string,
-): Promise<S.RawMetadata> {
+export async function fetchRawPhotoMetadata(client: ApiClient, photoId: string): Promise<S.RawMetadata> {
   const res = await client.get<unknown>(`/photos/${photoId}/metadata/raw/`);
   return parseResponse(S.RawMetadata, res, "raw photo metadata");
 }
@@ -398,12 +337,9 @@ export async function fetchRawPhotoMetadata(
 export async function updatePhotoMetadata(
   client: ApiClient,
   photoId: string,
-  updates: S.PhotoMetadataUpdate,
+  updates: S.PhotoMetadataUpdate
 ): Promise<S.PhotoMetadata> {
-  const res = await client.patch<unknown>(
-    `/photos/${photoId}/metadata`,
-    updates,
-  );
+  const res = await client.patch<unknown>(`/photos/${photoId}/metadata`, updates);
   return parseResponse(S.PhotoMetadata, res, "updated photo metadata");
 }
 
@@ -411,17 +347,13 @@ export async function updatePhotoMetadata(
 export async function bulkUpdatePhotoMetadata(
   client: ApiClient,
   photoIds: string[],
-  updates: S.PhotoMetadataUpdate,
+  updates: S.PhotoMetadataUpdate
 ): Promise<S.BulkMetadataUpdateResponse> {
   const res = await client.patch<unknown>("/photos/metadata/bulk", {
     photo_ids: photoIds,
     updates,
   });
-  return parseResponse(
-    S.BulkMetadataUpdateResponse,
-    res,
-    "bulk metadata update",
-  );
+  return parseResponse(S.BulkMetadataUpdateResponse, res, "bulk metadata update");
 }
 
 /**
@@ -431,7 +363,7 @@ export async function bulkUpdatePhotoMetadata(
 export async function updatePhoto(
   client: ApiClient,
   photoId: string,
-  patch: Partial<S.Photo>,
+  patch: Partial<S.Photo>
 ): Promise<S.PhotoEditResponse> {
   const res = await client.patch<unknown>(`/photos/edit/${photoId}/`, patch);
   return parseResponse(S.PhotoEditResponse, res, "photo update");
@@ -445,7 +377,7 @@ export async function updatePhoto(
 export async function rotatePhoto(
   client: ApiClient,
   imageHash: string,
-  counterClockwiseDegrees: number,
+  counterClockwiseDegrees: number
 ): Promise<S.RotatePhotoResponse> {
   const res = await client.post<unknown>("/photosedit/rotate/", {
     image_hash: imageHash,
@@ -458,10 +390,7 @@ export async function rotatePhoto(
  * Ask the captioning model for a caption of one photo. ApiError 503 `model_downloading` while the
  * model is still being fetched (the server has started the download).
  */
-export async function generatePhotoCaption(
-  client: ApiClient,
-  imageHash: string,
-): Promise<S.StatusResponse> {
+export async function generatePhotoCaption(client: ApiClient, imageHash: string): Promise<S.StatusResponse> {
   const res = await client.post<unknown>("/photosedit/generateim2txt/", {
     image_hash: imageHash,
   });
@@ -472,24 +401,20 @@ export async function generatePhotoCaption(
 export async function fetchPublicAlbumPhoto(
   client: ApiClient,
   slug: string,
-  photoId: string,
+  photoId: string
 ): Promise<S.PublicPhotoDetailResponse> {
   const res = await client.get<unknown>(
-    `/public/albums/s/${encodeURIComponent(slug)}/photos/${encodeURIComponent(photoId)}/`,
+    `/public/albums/s/${encodeURIComponent(slug)}/photos/${encodeURIComponent(photoId)}/`
   );
   return parseResponse(S.PublicPhotoDetailResponse, res, "public photo detail");
 }
 
 /* ---- photo edits (non-destructive editing) ----------------------------- */
 
-const photoEditPath = (photoId: string) =>
-  `/photos/${encodeURIComponent(photoId)}/edit/`;
+const photoEditPath = (photoId: string) => `/photos/${encodeURIComponent(photoId)}/edit/`;
 
 /** A photo's edit; a photo never edited answers the default recipe with `version` 0. */
-export async function fetchPhotoEdit(
-  client: ApiClient,
-  photoId: string,
-): Promise<S.PhotoEdit> {
+export async function fetchPhotoEdit(client: ApiClient, photoId: string): Promise<S.PhotoEdit> {
   const res = await client.get<unknown>(photoEditPath(photoId));
   return parseResponse(S.PhotoEdit, res, "photo edit");
 }
@@ -498,11 +423,7 @@ export async function fetchPhotoEdit(
  * Save a photo's recipe and history. The server renders the thumbnails before it answers and the
  * full-size rendition afterwards (`rendition: "pending"`). ApiError 400 `not_editable` for a video.
  */
-export async function savePhotoEdit(
-  client: ApiClient,
-  photoId: string,
-  edit: S.PhotoEditUpdate,
-): Promise<S.PhotoEdit> {
+export async function savePhotoEdit(client: ApiClient, photoId: string, edit: S.PhotoEditUpdate): Promise<S.PhotoEdit> {
   const res = await client.request<unknown>(photoEditPath(photoId), {
     method: "PUT",
     body: edit,
@@ -511,18 +432,12 @@ export async function savePhotoEdit(
 }
 
 /** Remove a photo's edit, its history and its rendition: the photo shows its original again. Answers 204. */
-export async function deletePhotoEdit(
-  client: ApiClient,
-  photoId: string,
-): Promise<void> {
+export async function deletePhotoEdit(client: ApiClient, photoId: string): Promise<void> {
   await client.delete(photoEditPath(photoId));
 }
 
 /** The reduced source the editor's preview works on, as an edit source file ("LPES"). */
-export async function fetchPhotoEditSource(
-  client: ApiClient,
-  photoId: string,
-): Promise<ArrayBuffer> {
+export async function fetchPhotoEditSource(client: ApiClient, photoId: string): Promise<ArrayBuffer> {
   const blob = await client.getBlob(`${photoEditPath(photoId)}source/`);
   return blob.arrayBuffer();
 }
@@ -533,7 +448,7 @@ export async function fetchPhotoEditSource(
 export async function setPhotoShareLink(
   client: ApiClient,
   photoId: string,
-  action: S.PhotoShareAction,
+  action: S.PhotoShareAction
 ): Promise<S.PhotoShare> {
   const res = await client.post<unknown>("/photo/share", {
     photo_id: photoId,
@@ -543,21 +458,14 @@ export async function setPhotoShareLink(
 }
 
 /** The user's active photo links, newest first. */
-export async function fetchPhotoShareLinks(
-  client: ApiClient,
-): Promise<S.PhotoShareLink[]> {
+export async function fetchPhotoShareLinks(client: ApiClient): Promise<S.PhotoShareLink[]> {
   const res = await client.get<unknown>("/photo/share/list");
   return parseResponse(S.PhotoShareListResponse, res, "photo shares").results;
 }
 
 /** A photo shared by link, for a visitor without a session. ApiError 404 for an unknown or revoked link. */
-export async function fetchSharedPhoto(
-  client: ApiClient,
-  slug: string,
-): Promise<S.SharedPhoto> {
-  const res = await client.get<unknown>(
-    `/public/photo/${encodeURIComponent(slug)}/`,
-  );
+export async function fetchSharedPhoto(client: ApiClient, slug: string): Promise<S.SharedPhoto> {
+  const res = await client.get<unknown>(`/public/photo/${encodeURIComponent(slug)}/`);
   return parseResponse(S.SharedPhotoResponse, res, "shared photo").results;
 }
 
@@ -565,61 +473,38 @@ export async function fetchSharedPhoto(
 export async function fetchPhotosWithoutTimestamp(
   client: ApiClient,
   page: number,
-  filter: AlbumMediaFilter = {},
+  filter: AlbumMediaFilter = {}
 ): Promise<S.PhotosWithoutTimestampResponse> {
-  const res = await client.get<unknown>(
-    `/photos/notimestamp/${buildQuery({ page, ...albumMediaQuery(filter) })}`,
-  );
-  return parseResponse(
-    S.PhotosWithoutTimestampResponse,
-    res,
-    "photos without timestamp",
-  );
+  const res = await client.get<unknown>(`/photos/notimestamp/${buildQuery({ page, ...albumMediaQuery(filter) })}`);
+  return parseResponse(S.PhotosWithoutTimestampResponse, res, "photos without timestamp");
 }
 
 /** One page of photos that have no GPS coordinates (paginated). */
 export async function fetchPhotosWithoutLocation(
   client: ApiClient,
   page: number,
-  filter: AlbumMediaFilter = {},
+  filter: AlbumMediaFilter = {}
 ): Promise<S.PhotosWithoutLocationResponse> {
-  const res = await client.get<unknown>(
-    `/photos/nolocation/${buildQuery({ page, ...albumMediaQuery(filter) })}`,
-  );
-  return parseResponse(
-    S.PhotosWithoutLocationResponse,
-    res,
-    "photos without location",
-  );
+  const res = await client.get<unknown>(`/photos/nolocation/${buildQuery({ page, ...albumMediaQuery(filter) })}`);
+  return parseResponse(S.PhotosWithoutLocationResponse, res, "photos without location");
 }
 
 /** One page of the photos in none of my own albums, newest first (paginated). */
 export async function fetchPhotosNotInAlbum(
   client: ApiClient,
   page: number,
-  filter: AlbumMediaFilter = {},
+  filter: AlbumMediaFilter = {}
 ): Promise<S.PhotosNotInAlbumResponse> {
-  const res = await client.get<unknown>(
-    `/photos/no-album/${buildQuery({ page, ...albumMediaQuery(filter) })}`,
-  );
-  return parseResponse(
-    S.PhotosNotInAlbumResponse,
-    res,
-    "photos not in an album",
-  );
+  const res = await client.get<unknown>(`/photos/no-album/${buildQuery({ page, ...albumMediaQuery(filter) })}`);
+  return parseResponse(S.PhotosNotInAlbumResponse, res, "photos not in an album");
 }
 
 /**
  * The first `pageSize` of my own public photos, newest first, and how many there are (`count`).
  * Other users' public photos are not in it.
  */
-export async function fetchMyPublicPhotos(
-  client: ApiClient,
-  pageSize: number,
-): Promise<S.MyPublicPhotosResponse> {
-  const res = await client.get<unknown>(
-    `/photos/public/${buildQuery({ page_size: pageSize })}`,
-  );
+export async function fetchMyPublicPhotos(client: ApiClient, pageSize: number): Promise<S.MyPublicPhotosResponse> {
+  const res = await client.get<unknown>(`/photos/public/${buildQuery({ page_size: pageSize })}`);
   return parseResponse(S.MyPublicPhotosResponse, res, "my public photos");
 }
 
@@ -707,33 +592,21 @@ export type UserAlbumOptions = AlbumMediaFilter & {
   slug?: string;
 };
 
-export async function fetchUserAlbumsList(
-  client: ApiClient,
-): Promise<S.FetchUserAlbumsListResponse["results"]> {
+export async function fetchUserAlbumsList(client: ApiClient): Promise<S.FetchUserAlbumsListResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/user/list/");
-  return parseResponse(
-    S.FetchUserAlbumsListResponse,
-    { results },
-    "user albums",
-  ).results;
+  return parseResponse(S.FetchUserAlbumsListResponse, { results }, "user albums").results;
 }
 
-export async function fetchAutoAlbumsList(
-  client: ApiClient,
-): Promise<S.FetchAutoAlbumsListResponse["results"]> {
+export async function fetchAutoAlbumsList(client: ApiClient): Promise<S.FetchAutoAlbumsListResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/auto/list/");
-  return parseResponse(
-    S.FetchAutoAlbumsListResponse,
-    { results },
-    "auto albums",
-  ).results;
+  return parseResponse(S.FetchAutoAlbumsListResponse, { results }, "auto albums").results;
 }
 
 /** Full user-album detail incl. grouped photos (drives membership mirroring). */
 export async function fetchUserAlbum(
   client: ApiClient,
   id: number | string,
-  options: UserAlbumOptions = {},
+  options: UserAlbumOptions = {}
 ): Promise<S.UserAlbum> {
   const query = buildQuery({
     ...albumMediaQuery(options),
@@ -746,62 +619,34 @@ export async function fetchUserAlbum(
 }
 
 /** A public album by its link slug, for a visitor without a session. A 404 is an unknown or expired link. */
-export async function fetchPublicAlbum(
-  client: ApiClient,
-  slug: string,
-): Promise<S.PublicAlbum> {
-  const res = await client.get<unknown>(
-    `/public/albums/s/${encodeURIComponent(slug)}/`,
-  );
+export async function fetchPublicAlbum(client: ApiClient, slug: string): Promise<S.PublicAlbum> {
+  const res = await client.get<unknown>(`/public/albums/s/${encodeURIComponent(slug)}/`);
   return parseResponse(S.FetchPublicAlbumResponse, res, "public album").results;
 }
 
 /** The id of the public album that holds a link slug (the same request, read only for the id). */
-export async function fetchPublicAlbumSlugOwner(
-  client: ApiClient,
-  slug: string,
-): Promise<number> {
-  const res = await client.get<unknown>(
-    `/public/albums/s/${encodeURIComponent(slug)}/`,
-  );
-  return parseResponse(S.PublicAlbumSlugOwner, res, "public album slug owner")
-    .results.id;
+export async function fetchPublicAlbumSlugOwner(client: ApiClient, slug: string): Promise<number> {
+  const res = await client.get<unknown>(`/public/albums/s/${encodeURIComponent(slug)}/`);
+  return parseResponse(S.PublicAlbumSlugOwner, res, "public album slug owner").results.id;
 }
 
 /** Full auto-album detail incl. its photos (drives membership mirroring). */
-export async function fetchAutoAlbum(
-  client: ApiClient,
-  id: number | string,
-): Promise<S.AutoAlbum> {
+export async function fetchAutoAlbum(client: ApiClient, id: number | string): Promise<S.AutoAlbum> {
   const res = await client.get<unknown>(`/albums/auto/${id}/`);
   return parseResponse(S.AutoAlbum, res, "auto album detail");
 }
 
-export async function fetchThingAlbumsList(
-  client: ApiClient,
-): Promise<S.FetchThingAlbumsListResponse["results"]> {
+export async function fetchThingAlbumsList(client: ApiClient): Promise<S.FetchThingAlbumsListResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/thing/list/");
-  return parseResponse(
-    S.FetchThingAlbumsListResponse,
-    { results },
-    "thing albums",
-  ).results;
+  return parseResponse(S.FetchThingAlbumsListResponse, { results }, "thing albums").results;
 }
 
-export async function fetchPlaceAlbumsList(
-  client: ApiClient,
-): Promise<S.FetchPlaceAlbumsListResponse["results"]> {
+export async function fetchPlaceAlbumsList(client: ApiClient): Promise<S.FetchPlaceAlbumsListResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/place/list/");
-  return parseResponse(
-    S.FetchPlaceAlbumsListResponse,
-    { results },
-    "place albums",
-  ).results;
+  return parseResponse(S.FetchPlaceAlbumsListResponse, { results }, "place albums").results;
 }
 
-export async function fetchTagAlbumsList(
-  client: ApiClient,
-): Promise<S.TagListResponse["results"]> {
+export async function fetchTagAlbumsList(client: ApiClient): Promise<S.TagListResponse["results"]> {
   const results = await fetchAllPages(client, "/tags/");
   return parseResponse(S.TagListResponse, { results }, "tag albums").results;
 }
@@ -810,32 +655,24 @@ export async function fetchTagAlbumsList(
 export async function fetchThingAlbum(
   client: ApiClient,
   id: number | string,
-  filter: AlbumMediaFilter = {},
+  filter: AlbumMediaFilter = {}
 ): Promise<S.ThingAlbum> {
-  const res = await client.get<unknown>(
-    `/albums/thing/${id}/${buildQuery(albumMediaQuery(filter))}`,
-  );
-  return parseResponse(S.FetchThingAlbumResponse, res, "thing album detail")
-    .results;
+  const res = await client.get<unknown>(`/albums/thing/${id}/${buildQuery(albumMediaQuery(filter))}`);
+  return parseResponse(S.FetchThingAlbumResponse, res, "thing album detail").results;
 }
 
 /** Photo grid (grouped by date) for one place album. */
 export async function fetchPlaceAlbum(
   client: ApiClient,
   id: number | string,
-  filter: AlbumMediaFilter = {},
+  filter: AlbumMediaFilter = {}
 ): Promise<S.PlaceAlbum> {
-  const res = await client.get<unknown>(
-    `/albums/place/${id}/${buildQuery(albumMediaQuery(filter))}`,
-  );
-  return parseResponse(S.FetchPlaceAlbumResponse, res, "place album detail")
-    .results;
+  const res = await client.get<unknown>(`/albums/place/${id}/${buildQuery(albumMediaQuery(filter))}`);
+  return parseResponse(S.FetchPlaceAlbumResponse, res, "place album detail").results;
 }
 
 /** Every geocoded place as `[lat, lon, name]`, for the Places map. */
-export async function fetchLocationClusters(
-  client: ApiClient,
-): Promise<S.LocationClusters> {
+export async function fetchLocationClusters(client: ApiClient): Promise<S.LocationClusters> {
   const res = await client.get<unknown>("/locclust/");
   return parseResponse(S.LocationClusters, res, "location clusters");
 }
@@ -846,7 +683,7 @@ export async function fetchLocationClusters(
  */
 export async function fetchFolderSubfolders(
   client: ApiClient,
-  options: { path?: string; page?: number } = {},
+  options: { path?: string; page?: number } = {}
 ): Promise<S.FolderSubfoldersResponse> {
   const query = buildQuery({ path: options.path, page: options.page });
   const res = await client.get<unknown>(`/folders/subfolders/${query}`);
@@ -859,22 +696,14 @@ export async function fetchFolderSubfolders(
  */
 export async function fetchAllFolderSubfolders(
   client: ApiClient,
-  options: { path?: string } = {},
+  options: { path?: string } = {}
 ): Promise<S.FolderSubfolderListing> {
   const { first, rows } = await fetchAllPagesWithFirst(
     client,
-    `/folders/subfolders/${buildQuery({ path: options.path })}`,
+    `/folders/subfolders/${buildQuery({ path: options.path })}`
   );
-  const { current_path, parent_path } = parseResponse(
-    S.FolderSubfoldersResponse,
-    first,
-    "folder subfolders",
-  );
-  const results = parseResponse(
-    S.FolderSubfolder.array(),
-    rows,
-    "folder subfolders",
-  );
+  const { current_path, parent_path } = parseResponse(S.FolderSubfoldersResponse, first, "folder subfolders");
+  const results = parseResponse(S.FolderSubfolder.array(), rows, "folder subfolders");
   return { current_path, parent_path, results };
 }
 
@@ -882,61 +711,39 @@ export async function fetchAllFolderSubfolders(
 export async function fetchTagAlbum(
   client: ApiClient,
   id: number | string,
-  filter: AlbumMediaFilter = {},
+  filter: AlbumMediaFilter = {}
 ): Promise<S.TagAlbum> {
-  const res = await client.get<unknown>(
-    `/tags/${id}/${buildQuery(albumMediaQuery(filter))}`,
-  );
+  const res = await client.get<unknown>(`/tags/${id}/${buildQuery(albumMediaQuery(filter))}`);
   return parseResponse(S.TagAlbumResponse, res, "tag album detail").results;
 }
 
 /* ---- tags -------------------------------------------------------------- */
 
 /** The tags on one photo (by photo id or image hash), all pages. */
-export async function fetchPhotoTags(
-  client: ApiClient,
-  photoId: string,
-): Promise<S.TagList> {
-  const results = await fetchAllPages(
-    client,
-    `/tags/${buildQuery({ photo: photoId })}`,
-  );
+export async function fetchPhotoTags(client: ApiClient, photoId: string): Promise<S.TagList> {
+  const results = await fetchAllPages(client, `/tags/${buildQuery({ photo: photoId })}`);
   return parseResponse(S.TagListResponse, { results }, "photo tags").results;
 }
 
 /** Create a tag. When the user already has one by that name, the server answers that tag. */
-export async function createTag(
-  client: ApiClient,
-  name: string,
-): Promise<S.Tag> {
+export async function createTag(client: ApiClient, name: string): Promise<S.Tag> {
   const res = await client.post<unknown>("/tags/", { name });
   return parseResponse(S.Tag, res, "create tag");
 }
 
 /** Rename a tag. */
-export async function renameTag(
-  client: ApiClient,
-  tagId: number | string,
-  name: string,
-): Promise<S.Tag> {
+export async function renameTag(client: ApiClient, tagId: number | string, name: string): Promise<S.Tag> {
   const res = await client.patch<unknown>(`/tags/${tagId}/`, { name });
   return parseResponse(S.Tag, res, "rename tag");
 }
 
 /** Delete a tag; its photos stay. Answers 204. */
-export async function deleteTag(
-  client: ApiClient,
-  tagId: number | string,
-): Promise<void> {
+export async function deleteTag(client: ApiClient, tagId: number | string): Promise<void> {
   await client.delete(`/tags/${tagId}/`);
 }
 
 /** Merge the tag `sourceTagId` into `tagId`: its photos move over and it is deleted. */
-export async function mergeTags(
-  client: ApiClient,
-  tagId: number | string,
-  sourceTagId: number,
-): Promise<S.Tag> {
+export async function mergeTags(client: ApiClient, tagId: number | string, sourceTagId: number): Promise<S.Tag> {
   const res = await client.post<unknown>(`/tags/${tagId}/merge/`, {
     tag: sourceTagId,
   });
@@ -947,10 +754,7 @@ export async function mergeTags(
  * Which photos a tag edit applies to: the ids or hashes (`photos`), or with `selectAll` the query
  * and its exclusions (an unset query is `{}`, unset exclusions `[]`).
  */
-function tagPhotosBody(
-  photos: string[],
-  selectAll: SelectAllPhotos | undefined,
-) {
+function tagPhotosBody(photos: string[], selectAll: SelectAllPhotos | undefined) {
   if (!selectAll) return { photos };
   return {
     select_all: true,
@@ -964,21 +768,14 @@ export async function addPhotosToTag(
   client: ApiClient,
   tagId: number | string,
   photos: string[],
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.Tag> {
-  const res = await client.post<unknown>(
-    `/tags/${tagId}/add/`,
-    tagPhotosBody(photos, selectAll),
-  );
+  const res = await client.post<unknown>(`/tags/${tagId}/add/`, tagPhotosBody(photos, selectAll));
   return parseResponse(S.Tag, res, "add photos to tag");
 }
 
 /** Take a tag off photos (by photo id or image hash). Answers the tag. */
-export async function removePhotosFromTag(
-  client: ApiClient,
-  tagId: number | string,
-  photos: string[],
-): Promise<S.Tag> {
+export async function removePhotosFromTag(client: ApiClient, tagId: number | string, photos: string[]): Promise<S.Tag> {
   const res = await client.post<unknown>(`/tags/${tagId}/remove/`, { photos });
   return parseResponse(S.Tag, res, "remove photos from tag");
 }
@@ -986,26 +783,13 @@ export async function removePhotosFromTag(
 /* ---- persons ----------------------------------------------------------- */
 
 /** Every person, all pages; `pageSize` asks for bigger pages (the server allows up to 1000). */
-export async function fetchPeopleAlbums(
-  client: ApiClient,
-  options: { pageSize?: number } = {},
-): Promise<S.PersonList> {
-  const results = await fetchAllPages(
-    client,
-    `/persons/${buildQuery({ page_size: options.pageSize })}`,
-  );
-  return parseResponse(
-    S.FetchPeopleAlbumsResponse,
-    { results },
-    "people albums",
-  ).results;
+export async function fetchPeopleAlbums(client: ApiClient, options: { pageSize?: number } = {}): Promise<S.PersonList> {
+  const results = await fetchAllPages(client, `/persons/${buildQuery({ page_size: options.pageSize })}`);
+  return parseResponse(S.FetchPeopleAlbumsResponse, { results }, "people albums").results;
 }
 
 /** One person: the person page's title (ApiError 404 for an unknown id or another user's person). */
-export async function fetchPerson(
-  client: ApiClient,
-  personId: number | string,
-): Promise<S.Person> {
+export async function fetchPerson(client: ApiClient, personId: number | string): Promise<S.Person> {
   const res = await client.get<unknown>(`/persons/${personId}/`);
   return parseResponse(S.Person, res, "person");
 }
@@ -1014,24 +798,17 @@ export async function fetchPerson(
 export async function removePhotosFromPerson(
   client: ApiClient,
   personId: number | string,
-  photoIds: string[],
+  photoIds: string[]
 ): Promise<S.PersonRemovePhotosResponse> {
-  const res = await client.post<unknown>(
-    `/persons/${personId}/remove-photos/`,
-    { photo_ids: photoIds },
-  );
-  return parseResponse(
-    S.PersonRemovePhotosResponse,
-    res,
-    "remove photos from person",
-  );
+  const res = await client.post<unknown>(`/persons/${personId}/remove-photos/`, { photo_ids: photoIds });
+  return parseResponse(S.PersonRemovePhotosResponse, res, "remove photos from person");
 }
 
 /** Merge `sourceId` into `targetId`: its faces move over, the target keeps its name and cover, and the source is deleted. */
 export async function mergePerson(
   client: ApiClient,
   targetId: number | string,
-  sourceId: number | string,
+  sourceId: number | string
 ): Promise<S.PersonMergeResponse> {
   const res = await client.post<unknown>(`/persons/${targetId}/merge/`, {
     person: Number(sourceId),
@@ -1043,7 +820,7 @@ export async function mergePerson(
 export async function renamePerson(
   client: ApiClient,
   personId: number | string,
-  newPersonName: string,
+  newPersonName: string
 ): Promise<S.PersonEditResponse> {
   const res = await client.patch<unknown>(`/persons/${personId}/`, {
     newPersonName,
@@ -1055,7 +832,7 @@ export async function renamePerson(
 export async function setPersonCover(
   client: ApiClient,
   personId: number | string,
-  coverPhoto: string,
+  coverPhoto: string
 ): Promise<S.PersonEditResponse> {
   const res = await client.patch<unknown>(`/persons/${personId}/`, {
     cover_photo: coverPhoto,
@@ -1067,7 +844,7 @@ export async function setPersonCover(
 export async function setPersonBirthDate(
   client: ApiClient,
   personId: number | string,
-  birthDate: string | null,
+  birthDate: string | null
 ): Promise<S.Person> {
   const res = await client.patch<unknown>(`/persons/${personId}/`, {
     birth_date: birthDate,
@@ -1076,38 +853,26 @@ export async function setPersonBirthDate(
 }
 
 /** Delete a person. Answers 204. */
-export async function deletePerson(
-  client: ApiClient,
-  personId: number | string,
-): Promise<void> {
+export async function deletePerson(client: ApiClient, personId: number | string): Promise<void> {
   await client.delete(`/persons/${personId}/`);
 }
 
 /* ---- person groups (#1126) --------------------------------------------- */
 
 /** The user's groups of people by name, each with its person count; all pages. */
-export async function fetchPersonGroups(
-  client: ApiClient,
-): Promise<S.PersonGroup[]> {
+export async function fetchPersonGroups(client: ApiClient): Promise<S.PersonGroup[]> {
   const results = await fetchAllPages(client, "/person-groups/");
   return parseResponse(S.PersonGroupList, { results }, "person groups").results;
 }
 
 /** Create a group (ApiError 400 `unique` when the user has one of that name in any case). */
-export async function createPersonGroup(
-  client: ApiClient,
-  name: string,
-): Promise<S.PersonGroup> {
+export async function createPersonGroup(client: ApiClient, name: string): Promise<S.PersonGroup> {
   const res = await client.post<unknown>("/person-groups/", { name });
   return parseResponse(S.PersonGroup, res, "create person group");
 }
 
 /** Rename a group; its people stay in it. */
-export async function renamePersonGroup(
-  client: ApiClient,
-  groupId: number,
-  name: string,
-): Promise<S.PersonGroup> {
+export async function renamePersonGroup(client: ApiClient, groupId: number, name: string): Promise<S.PersonGroup> {
   const res = await client.patch<unknown>(`/person-groups/${groupId}/`, {
     name,
   });
@@ -1115,10 +880,7 @@ export async function renamePersonGroup(
 }
 
 /** Delete a group; its people stay. Answers 204. */
-export async function deletePersonGroup(
-  client: ApiClient,
-  groupId: number,
-): Promise<void> {
+export async function deletePersonGroup(client: ApiClient, groupId: number): Promise<void> {
   await client.delete(`/person-groups/${groupId}/`);
 }
 
@@ -1126,7 +888,7 @@ export async function deletePersonGroup(
 export async function setPersonGroups(
   client: ApiClient,
   personId: number | string,
-  groupIds: readonly number[],
+  groupIds: readonly number[]
 ): Promise<S.PersonGroupsResponse> {
   const res = await client.request<unknown>(`/persons/${personId}/groups/`, {
     method: "PUT",
@@ -1152,18 +914,13 @@ export type UserPlaceCircle = {
 };
 
 /** My places by name, with their photo counts; all pages. */
-export async function fetchUserPlaces(
-  client: ApiClient,
-): Promise<S.UserPlace[]> {
+export async function fetchUserPlaces(client: ApiClient): Promise<S.UserPlace[]> {
   const results = await fetchAllPages(client, "/user-places/");
   return parseResponse(S.UserPlaceList, { results }, "user places").results;
 }
 
 /** Draw a place (ApiError 400 `unique` for a name I use in any case, `too_many_places` past the limit). */
-export async function createUserPlace(
-  client: ApiClient,
-  fields: UserPlaceFields,
-): Promise<S.UserPlace> {
+export async function createUserPlace(client: ApiClient, fields: UserPlaceFields): Promise<S.UserPlace> {
   const res = await client.post<unknown>("/user-places/", fields);
   return parseResponse(S.UserPlace, res, "create user place");
 }
@@ -1172,25 +929,19 @@ export async function createUserPlace(
 export async function updateUserPlace(
   client: ApiClient,
   placeId: number,
-  fields: Partial<UserPlaceFields>,
+  fields: Partial<UserPlaceFields>
 ): Promise<S.UserPlace> {
   const res = await client.patch<unknown>(`/user-places/${placeId}/`, fields);
   return parseResponse(S.UserPlace, res, "update user place");
 }
 
 /** Delete a place; its photos stay. Answers 204. */
-export async function deleteUserPlace(
-  client: ApiClient,
-  placeId: number,
-): Promise<void> {
+export async function deleteUserPlace(client: ApiClient, placeId: number): Promise<void> {
   await client.delete(`/user-places/${placeId}/`);
 }
 
 /** How many of my photos a circle being drawn holds, the newest few, and my places it overlaps. */
-export async function fetchUserPlacePreview(
-  client: ApiClient,
-  circle: UserPlaceCircle,
-): Promise<S.UserPlacePreview> {
+export async function fetchUserPlacePreview(client: ApiClient, circle: UserPlaceCircle): Promise<S.UserPlacePreview> {
   const query = buildQuery({
     lat: circle.lat,
     lon: circle.lon,
@@ -1205,11 +956,9 @@ export async function fetchUserPlacePreview(
 export async function fetchUserPlacePhotos(
   client: ApiClient,
   placeId: number,
-  filter: AlbumMediaFilter = {},
+  filter: AlbumMediaFilter = {}
 ): Promise<S.UserPlacePhotos> {
-  const res = await client.get<unknown>(
-    `/user-places/${placeId}/photos/${buildQuery(albumMediaQuery(filter))}`,
-  );
+  const res = await client.get<unknown>(`/user-places/${placeId}/photos/${buildQuery(albumMediaQuery(filter))}`);
   return parseResponse(S.UserPlacePhotos, res, "user place photos");
 }
 
@@ -1225,7 +974,7 @@ export async function searchPhotos(
   client: ApiClient,
   searchTerm: string,
   semantic = false,
-  filter: AlbumMediaFilter & SearchFilters = {},
+  filter: AlbumMediaFilter & SearchFilters = {}
 ): Promise<S.SearchPhotosResult> {
   const query = buildQuery({
     search: searchTerm,
@@ -1234,16 +983,12 @@ export async function searchPhotos(
   });
   const res = await client.get<unknown>(`/photos/searchlist/${query}`);
   if (semantic) {
-    const parsed = parseResponse(
-      S.SemanticSearchPhotos,
-      res,
-      "semantic search photos",
-    );
+    const parsed = parseResponse(S.SemanticSearchPhotos, res, "semantic search photos");
     return { photosFlat: parsed.results, photosGroupedByDate: [] };
   }
   const parsed = parseResponse(S.SearchPhotos, res, "search photos");
   return {
-    photosFlat: parsed.results.flatMap((group) => group.items),
+    photosFlat: parsed.results.flatMap(group => group.items),
     photosGroupedByDate: parsed.results,
   };
 }
@@ -1251,50 +996,34 @@ export async function searchPhotos(
 /** The cameras, makers or lenses of my photos, most photos first: the suggestions of the search filters. */
 export async function fetchMetadataValues(
   client: ApiClient,
-  field: S.MetadataValueField,
+  field: S.MetadataValueField
 ): Promise<S.MetadataValuesResponse["results"]> {
-  const res = await client.get<unknown>(
-    `/search/metadata-values/${buildQuery({ field })}`,
-  );
-  return parseResponse(S.MetadataValuesResponse, res, "metadata values")
-    .results;
+  const res = await client.get<unknown>(`/search/metadata-values/${buildQuery({ field })}`);
+  return parseResponse(S.MetadataValuesResponse, res, "metadata values").results;
 }
 
 /** A few example searches built from the user's library (captions, people, places). */
-export async function fetchSearchExamples(
-  client: ApiClient,
-): Promise<S.SearchExamples> {
+export async function fetchSearchExamples(client: ApiClient): Promise<S.SearchExamples> {
   const res = await client.get<unknown>("/searchtermexamples/");
-  return parseResponse(S.SearchExamplesResponse, res, "search examples")
-    .results;
+  return parseResponse(S.SearchExamplesResponse, res, "search examples").results;
 }
 
 /* ---- settings ---------------------------------------------------------- */
 
-export async function fetchSiteSettings(
-  client: ApiClient,
-): Promise<S.SiteSettings> {
+export async function fetchSiteSettings(client: ApiClient): Promise<S.SiteSettings> {
   const res = await client.get<unknown>("/sitesettings");
   return parseResponse(S.SiteSettings, res, "site settings");
 }
 
 /** Admin: change site settings (only the keys sent); answers the settings as GET does. */
-export async function updateSiteSettings(
-  client: ApiClient,
-  settings: S.SiteSettingsUpdate,
-): Promise<S.SiteSettings> {
+export async function updateSiteSettings(client: ApiClient, settings: S.SiteSettingsUpdate): Promise<S.SiteSettings> {
   const res = await client.post<unknown>("/sitesettings", settings);
   return parseResponse(S.SiteSettings, res, "update site settings");
 }
 
 /** Admin: how many photos, of how many users, a trash retention of `days` deletes at the next cleanup. */
-export async function fetchTrashRetentionPreview(
-  client: ApiClient,
-  days: number,
-): Promise<S.TrashRetentionPreview> {
-  const res = await client.get<unknown>(
-    `/sitesettings/trash-retention-preview/${buildQuery({ days })}`,
-  );
+export async function fetchTrashRetentionPreview(client: ApiClient, days: number): Promise<S.TrashRetentionPreview> {
+  const res = await client.get<unknown>(`/sitesettings/trash-retention-preview/${buildQuery({ days })}`);
   return parseResponse(S.TrashRetentionPreview, res, "trash retention preview");
 }
 
@@ -1306,33 +1035,21 @@ function decodeJsonString(res: unknown, context: string): unknown {
 /** Every time zone name. The view sends the list as a JSON string; a body that is no JSON throws a SyntaxError. */
 export async function fetchTimezones(client: ApiClient): Promise<S.Timezones> {
   const res = await client.get<unknown>("/timezones/");
-  return parseResponse(
-    S.Timezones,
-    decodeJsonString(res, "timezones"),
-    "timezones",
-  );
+  return parseResponse(S.Timezones, decodeJsonString(res, "timezones"), "timezones");
 }
 
 /**
  * The predefined date-time rules, parsed rule by rule: a rule type a newer backend added is
  * skipped (and listed in `skipped`), and the rest still work.
  */
-export async function fetchPredefinedRules(
-  client: ApiClient,
-): Promise<ParsedEntries<S.DateTimeRule>> {
+export async function fetchPredefinedRules(client: ApiClient): Promise<ParsedEntries<S.DateTimeRule>> {
   const res = await client.get<unknown>("/predefinedrules/");
   const context = "predefined date-time rules";
-  return parseEachResponse(
-    S.DateTimeRule,
-    decodeJsonString(res, context),
-    context,
-  );
+  return parseEachResponse(S.DateTimeRule, decodeJsonString(res, context), context);
 }
 
 /** The tags a custom date rule may read and check, and where custom rule ids start (#2272). */
-export async function fetchDateRuleOptions(
-  client: ApiClient,
-): Promise<S.DateRuleOptions> {
+export async function fetchDateRuleOptions(client: ApiClient): Promise<S.DateRuleOptions> {
   const res = await client.get<unknown>("/datetime-rules/options/");
   return parseResponse(S.DateRuleOptions, res, "date rule options");
 }
@@ -1341,64 +1058,39 @@ export async function fetchDateRuleOptions(
  * Ask whether one date rule can be saved, as the settings save checks it. A 400 (`ApiError`) has an
  * entry per param that cannot, with the param as its `field`.
  */
-export async function checkDateRule(
-  client: ApiClient,
-  rule: S.DateTimeRule,
-): Promise<S.DateRuleCheck> {
+export async function checkDateRule(client: ApiClient, rule: S.DateTimeRule): Promise<S.DateRuleCheck> {
   const res = await client.post<unknown>("/datetime-rules/check/", { rule });
   return parseResponse(S.DateRuleCheck, res, "date rule check");
 }
 
 /** What each of the signed-in user's saved date rules reads from one of their photos; changes nothing. */
-export async function fetchDateRulesTest(
-  client: ApiClient,
-  photoId: string,
-): Promise<S.DateRulesTest> {
-  const res = await client.get<unknown>(
-    `/datetime-rules/test/${buildQuery({ photo_id: photoId })}`,
-  );
+export async function fetchDateRulesTest(client: ApiClient, photoId: string): Promise<S.DateRulesTest> {
+  const res = await client.get<unknown>(`/datetime-rules/test/${buildQuery({ photo_id: photoId })}`);
   return parseResponse(S.DateRulesTest, res, "date rules test");
 }
 
 /** The predefined burst detection rules, parsed rule by rule (see fetchPredefinedRules). */
-export async function fetchPredefinedBurstRules(
-  client: ApiClient,
-): Promise<ParsedEntries<S.BurstDetectionRule>> {
+export async function fetchPredefinedBurstRules(client: ApiClient): Promise<ParsedEntries<S.BurstDetectionRule>> {
   const res = await client.get<unknown>("/predefinedburstrules/");
   const context = "predefined burst rules";
-  return parseEachResponse(
-    S.BurstDetectionRule,
-    decodeJsonString(res, context),
-    context,
-  );
+  return parseEachResponse(S.BurstDetectionRule, decodeJsonString(res, context), context);
 }
 
 /** Admin: the instance email setup. */
-export async function fetchEmailConfig(
-  client: ApiClient,
-): Promise<S.EmailConfig> {
+export async function fetchEmailConfig(client: ApiClient): Promise<S.EmailConfig> {
   const res = await client.get<unknown>("/email-config/");
   return parseResponse(S.EmailConfig, res, "email configuration");
 }
 
 /** Admin: change the email setup (only the fields sent); answers the new setup. */
-export async function updateEmailConfig(
-  client: ApiClient,
-  config: S.EmailConfigUpdate,
-): Promise<S.EmailConfig> {
+export async function updateEmailConfig(client: ApiClient, config: S.EmailConfigUpdate): Promise<S.EmailConfig> {
   const res = await client.post<unknown>("/email-config/", config);
   return parseResponse(S.EmailConfig, res, "email configuration response");
 }
 
 /** Admin: send a test email, to `to` or else to the admin's own address. */
-export async function sendTestEmail(
-  client: ApiClient,
-  to?: string,
-): Promise<S.EmailTestResponse> {
-  const res = await client.post<unknown>(
-    "/email-config/test/",
-    to ? { to } : {},
-  );
+export async function sendTestEmail(client: ApiClient, to?: string): Promise<S.EmailTestResponse> {
+  const res = await client.post<unknown>("/email-config/test/", to ? { to } : {});
   return parseResponse(S.EmailTestResponse, res, "test-email response");
 }
 
@@ -1409,7 +1101,7 @@ export async function fetchJobs(
   client: ApiClient,
   page = 1,
   pageSize = 20,
-  options: { mine?: boolean } = {},
+  options: { mine?: boolean } = {}
 ): Promise<S.JobsResponse> {
   const query = buildQuery({
     page,
@@ -1424,10 +1116,7 @@ export async function fetchJobs(
  * Every job of the list, all its pages, 1000 a request (the server's largest page). Staff get
  * everyone's unless `mine` narrows the list to their own.
  */
-export async function fetchAllJobs(
-  client: ApiClient,
-  options: { mine?: boolean } = {},
-): Promise<S.Job[]> {
+export async function fetchAllJobs(client: ApiClient, options: { mine?: boolean } = {}): Promise<S.Job[]> {
   const query = buildQuery({
     page_size: 1000,
     mine: options.mine ? "true" : undefined,
@@ -1437,40 +1126,25 @@ export async function fetchAllJobs(
 }
 
 /** One job, with its progress. */
-export async function fetchJob(
-  client: ApiClient,
-  jobId: number,
-): Promise<S.JobDetail> {
+export async function fetchJob(client: ApiClient, jobId: number): Promise<S.JobDetail> {
   const res = await client.get<unknown>(`/jobs/${jobId}/`);
   return parseResponse(S.JobDetail, res, "job");
 }
 
 /** Cancel a queued or running job (ApiError code job_finished when it has finished). */
-export async function cancelJob(
-  client: ApiClient,
-  jobId: number,
-): Promise<S.CancelJobResponse> {
+export async function cancelJob(client: ApiClient, jobId: number): Promise<S.CancelJobResponse> {
   const res = await client.post<unknown>(`/jobs/${jobId}/cancel/`, {});
   return parseResponse(S.CancelJobResponse, res, "cancel job");
 }
 
 /** Delete a job from the list. Answers 204. */
-export async function deleteJob(
-  client: ApiClient,
-  jobId: number,
-): Promise<void> {
+export async function deleteJob(client: ApiClient, jobId: number): Promise<void> {
   await client.delete(`/jobs/${jobId}/`);
 }
 
-export async function fetchWorkerAvailability(
-  client: ApiClient,
-): Promise<S.WorkerAvailabilityResponse> {
+export async function fetchWorkerAvailability(client: ApiClient): Promise<S.WorkerAvailabilityResponse> {
   const res = await client.get<unknown>("/rqavailable/");
-  return parseResponse(
-    S.WorkerAvailabilityResponse,
-    res,
-    "worker availability",
-  );
+  return parseResponse(S.WorkerAvailabilityResponse, res, "worker availability");
 }
 
 /**
@@ -1483,7 +1157,7 @@ async function triggerJob<T>(
   endpoint: string,
   schema: z.ZodType<T>,
   context: string,
-  body: object = {},
+  body: object = {}
 ): Promise<T | S.JobAlreadyRunning> {
   try {
     const res = await client.post<unknown>(endpoint, body);
@@ -1496,31 +1170,16 @@ async function triggerJob<T>(
 }
 
 /** Trigger an incremental library scan. Returns the queued (or already running) job id. */
-export async function scanPhotos(
-  client: ApiClient,
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    "/scanphotos/",
-    S.JobTriggerResponse,
-    "scan photos",
-  );
+export async function scanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/scanphotos/", S.JobTriggerResponse, "scan photos");
 }
 
 /**
  * Scan another user's library, as that user (admins only, #2037): the same scan as their own Scan
  * button, so the job is theirs. Returns the queued (or their already running) job id.
  */
-export async function scanUserPhotos(
-  client: ApiClient,
-  userId: number,
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    `/manage/user/${userId}/scan/`,
-    S.JobTriggerResponse,
-    "scan user photos",
-  );
+export async function scanUserPhotos(client: ApiClient, userId: number): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, `/manage/user/${userId}/scan/`, S.JobTriggerResponse, "scan user photos");
 }
 
 /**
@@ -1531,12 +1190,10 @@ export async function fetchScanDirectoryImpact(
   client: ApiClient,
   userId: number,
   scanDirectory: string,
-  uploadDirectory: string,
+  uploadDirectory: string
 ): Promise<S.ScanDirectoryImpact> {
   const query = `scan_directory=${encodeURIComponent(scanDirectory)}&upload_directory=${encodeURIComponent(uploadDirectory)}`;
-  const res = await client.get<unknown>(
-    `/manage/user/${userId}/scan-directory-impact/?${query}`,
-  );
+  const res = await client.get<unknown>(`/manage/user/${userId}/scan-directory-impact/?${query}`);
   return parseResponse(S.ScanDirectoryImpact, res, "scan directory impact");
 }
 
@@ -1546,32 +1203,25 @@ export async function fetchScanDirectoryImpact(
  */
 export async function trashPhotosOutsideLibrary(
   client: ApiClient,
-  userId: number,
+  userId: number
 ): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
   return triggerJob(
     client,
     `/manage/user/${userId}/trash-photos-outside-library/`,
     S.JobStartedResponse,
-    "trash photos outside the library",
+    "trash photos outside the library"
   );
 }
 
 /** The folders of the signed-in user's library (#123), the scan directory first. */
-export async function fetchOwnLibraryFolders(
-  client: ApiClient,
-): Promise<S.LibraryFolders> {
+export async function fetchOwnLibraryFolders(client: ApiClient): Promise<S.LibraryFolders> {
   const res = await client.get<unknown>("/library-folders/");
   return parseResponse(S.LibraryFolders, res, "library folders");
 }
 
 /** Admin: the folders of a user's library (#123), the scan directory first. */
-export async function fetchLibraryFolders(
-  client: ApiClient,
-  userId: number,
-): Promise<S.LibraryFolders> {
-  const res = await client.get<unknown>(
-    `/manage/user/${userId}/library-folders/`,
-  );
+export async function fetchLibraryFolders(client: ApiClient, userId: number): Promise<S.LibraryFolders> {
+  const res = await client.get<unknown>(`/manage/user/${userId}/library-folders/`);
   return parseResponse(S.LibraryFolders, res, "library folders");
 }
 
@@ -1579,15 +1229,8 @@ export async function fetchLibraryFolders(
  * Admin: add `path`, an existing folder inside the data root, to a user's library (#123). A 400
  * names `path` when it overlaps a folder of this or another user's library. Returns every folder.
  */
-export async function addLibraryFolder(
-  client: ApiClient,
-  userId: number,
-  path: string,
-): Promise<S.LibraryFolders> {
-  const res = await client.post<unknown>(
-    `/manage/user/${userId}/library-folders/`,
-    { path },
-  );
+export async function addLibraryFolder(client: ApiClient, userId: number, path: string): Promise<S.LibraryFolders> {
+  const res = await client.post<unknown>(`/manage/user/${userId}/library-folders/`, { path });
   return parseResponse(S.LibraryFolders, res, "add library folder");
 }
 
@@ -1595,11 +1238,9 @@ export async function addLibraryFolder(
 export async function removeLibraryFolder(
   client: ApiClient,
   userId: number,
-  folderId: number,
+  folderId: number
 ): Promise<S.LibraryFolders> {
-  const res = await client.delete<unknown>(
-    `/manage/user/${userId}/library-folders/${folderId}/`,
-  );
+  const res = await client.delete<unknown>(`/manage/user/${userId}/library-folders/${folderId}/`);
   return parseResponse(S.LibraryFolders, res, "remove library folder");
 }
 
@@ -1610,7 +1251,7 @@ export async function removeLibraryFolder(
  */
 export async function setExcludedFolders(
   client: ApiClient,
-  excludedFolders: string[],
+  excludedFolders: string[]
 ): Promise<S.ExcludedFoldersSaved> {
   const res = await client.request<unknown>("/library-folders/excluded/", {
     method: "PUT",
@@ -1620,76 +1261,41 @@ export async function setExcludedFolders(
 }
 
 /** The folders inside `path`, a folder of the signed-in user's library (#791). */
-export async function fetchLibrarySubfolders(
-  client: ApiClient,
-  path: string,
-): Promise<S.LibrarySubfolders> {
-  const res = await client.get<unknown>(
-    `/library-folders/subfolders/${buildQuery({ path })}`,
-  );
+export async function fetchLibrarySubfolders(client: ApiClient, path: string): Promise<S.LibrarySubfolders> {
+  const res = await client.get<unknown>(`/library-folders/subfolders/${buildQuery({ path })}`);
   return parseResponse(S.LibrarySubfolders, res, "library subfolders");
 }
 
 /** Move the signed-in user's photos outside their library to their trash, as a job (#791). */
 export async function trashOwnPhotosOutsideLibrary(
-  client: ApiClient,
+  client: ApiClient
 ): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
   return triggerJob(
     client,
     "/library-folders/trash-outside/",
     S.JobStartedResponse,
-    "trash own photos outside the library",
+    "trash own photos outside the library"
   );
 }
 
 /** Trigger a full library rescan. */
-export async function fullScanPhotos(
-  client: ApiClient,
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    "/fullscanphotos/",
-    S.JobTriggerResponse,
-    "full scan photos",
-  );
+export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/fullscanphotos/", S.JobTriggerResponse, "full scan photos");
 }
 
 /** Start the job that removes the photos whose files are gone. */
-export async function deleteMissingPhotos(
-  client: ApiClient,
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    "/deletemissingphotos",
-    S.JobTriggerResponse,
-    "delete missing photos",
-  );
+export async function deleteMissingPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/deletemissingphotos", S.JobTriggerResponse, "delete missing photos");
 }
 
 /** Scan the user's Nextcloud folder. */
-export async function scanNextcloudPhotos(
-  client: ApiClient,
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    "/nextcloud/scanphotos/",
-    S.JobTriggerResponse,
-    "scan Nextcloud photos",
-  );
+export async function scanNextcloudPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/nextcloud/scanphotos/", S.JobTriggerResponse, "scan Nextcloud photos");
 }
 
 /** Run text recognition: on the photos without a result yet, or with `fullScan` on every photo. */
-export async function generateOcr(
-  client: ApiClient,
-  fullScan: boolean,
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    "/generateocr/",
-    S.JobTriggerResponse,
-    "generate OCR",
-    { full_scan: fullScan },
-  );
+export async function generateOcr(client: ApiClient, fullScan: boolean): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/generateocr/", S.JobTriggerResponse, "generate OCR", { full_scan: fullScan });
 }
 
 /**
@@ -1699,17 +1305,11 @@ export async function generateOcr(
  */
 export async function generateCaptions(
   client: ApiClient,
-  fullScan: boolean,
+  fullScan: boolean
 ): Promise<S.CaptionsJobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/generate-captions/",
-    S.CaptionsJobStartedResponse,
-    "generate captions",
-    {
-      full_scan: fullScan,
-    },
-  );
+  return triggerJob(client, "/generate-captions/", S.CaptionsJobStartedResponse, "generate captions", {
+    full_scan: fullScan,
+  });
 }
 
 /**
@@ -1719,36 +1319,21 @@ export async function generateCaptions(
  */
 export async function findThings(
   client: ApiClient,
-  fullScan: boolean,
+  fullScan: boolean
 ): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/find-things/",
-    S.JobStartedResponse,
-    "find things",
-    { full_scan: fullScan },
-  );
+  return triggerJob(client, "/find-things/", S.JobStartedResponse, "find things", { full_scan: fullScan });
 }
 
 /**
  * Remove photo details (EXIF, GPS, XMP) from the thumbnails older releases wrote, over the whole
  * instance (admins only, #2321). Returns the queued (or already running) job.
  */
-export async function stripThumbnailMetadata(
-  client: ApiClient,
-): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/strip-thumbnail-metadata/",
-    S.JobStartedResponse,
-    "strip thumbnail metadata",
-  );
+export async function stripThumbnailMetadata(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/strip-thumbnail-metadata/", S.JobStartedResponse, "strip thumbnail metadata");
 }
 
 /** What each processing stage still has to do in the caller's library (#2741). */
-export async function fetchProcessingStatus(
-  client: ApiClient,
-): Promise<S.ProcessingStatus> {
+export async function fetchProcessingStatus(client: ApiClient): Promise<S.ProcessingStatus> {
   const res = await client.get<unknown>("/library/processing-status/");
   return parseResponse(S.ProcessingStatus, res, "processing status");
 }
@@ -1759,17 +1344,11 @@ export async function fetchProcessingStatus(
  */
 export async function runProcessingStage(
   client: ApiClient,
-  stage: S.ProcessingStageKey,
+  stage: S.ProcessingStageKey
 ): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/library/processing-status/run/",
-    S.JobStartedResponse,
-    "run processing stage",
-    {
-      stage,
-    },
-  );
+  return triggerJob(client, "/library/processing-status/run/", S.JobStartedResponse, "run processing stage", {
+    stage,
+  });
 }
 
 /**
@@ -1777,21 +1356,17 @@ export async function runProcessingStage(
  * start the face recognition job as Run now does. A 403 while face detection is off; its job
  * already running resolves as that job.
  */
-export async function retryUnmatchedFaces(
-  client: ApiClient,
-): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+export async function retryUnmatchedFaces(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
   return triggerJob(
     client,
     "/library/processing-status/retry-unmatched-faces/",
     S.JobStartedResponse,
-    "retry unmatched faces",
+    "retry unmatched faces"
   );
 }
 
 /** The post-upgrade tasks this instance still has, and those done in the last day (admins only, #2322). */
-export async function fetchUpgradeTasks(
-  client: ApiClient,
-): Promise<S.UpgradeTaskList> {
+export async function fetchUpgradeTasks(client: ApiClient): Promise<S.UpgradeTaskList> {
   const res = await client.get<unknown>("/upgrade-tasks/");
   return parseResponse(S.UpgradeTaskList, res, "upgrade tasks");
 }
@@ -1802,25 +1377,14 @@ export async function fetchUpgradeTasks(
  */
 export async function startUpgradeTask(
   client: ApiClient,
-  key: string,
+  key: string
 ): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    `/upgrade-tasks/${encodeURIComponent(key)}/start/`,
-    S.JobStartedResponse,
-    "upgrade task",
-  );
+  return triggerJob(client, `/upgrade-tasks/${encodeURIComponent(key)}/start/`, S.JobStartedResponse, "upgrade task");
 }
 
 /** Not now: hide an optional post-upgrade task for good (400 `task_required` for a required one). */
-export async function dismissUpgradeTask(
-  client: ApiClient,
-  key: string,
-): Promise<S.UpgradeTaskList> {
-  const res = await client.post<unknown>(
-    `/upgrade-tasks/${encodeURIComponent(key)}/dismiss/`,
-    {},
-  );
+export async function dismissUpgradeTask(client: ApiClient, key: string): Promise<S.UpgradeTaskList> {
+  const res = await client.post<unknown>(`/upgrade-tasks/${encodeURIComponent(key)}/dismiss/`, {});
   return parseResponse(S.UpgradeTaskList, res, "dismiss upgrade task");
 }
 
@@ -1828,27 +1392,13 @@ export async function dismissUpgradeTask(
  * Look the place names of every photo up again with the current Map Provider, over the whole
  * instance (admins only, #2302). Returns the queued (or already running) job.
  */
-export async function lookUpPlaces(
-  client: ApiClient,
-): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/look-up-places/",
-    S.JobStartedResponse,
-    "look up place names",
-  );
+export async function lookUpPlaces(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/look-up-places/", S.JobStartedResponse, "look up place names");
 }
 
 /** Delete the duplicate faces of every user's photos, as a job (admins only, #2030). */
-export async function deduplicateFaces(
-  client: ApiClient,
-): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/deduplicate-faces/",
-    S.JobStartedResponse,
-    "deduplicate faces",
-  );
+export async function deduplicateFaces(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/deduplicate-faces/", S.JobStartedResponse, "deduplicate faces");
 }
 
 /** Whose files Check file contents reads: every user's (`user_id` null) or one user's, optionally one folder. */
@@ -1865,54 +1415,32 @@ export type CheckFileContentsScope = Readonly<{
  */
 export async function checkFileContents(
   client: ApiClient,
-  scope: CheckFileContentsScope,
+  scope: CheckFileContentsScope
 ): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/check-file-contents/",
-    S.JobStartedResponse,
-    "check file contents",
-    scope,
-  );
+  return triggerJob(client, "/check-file-contents/", S.JobStartedResponse, "check file contents", scope);
 }
 
 /**
  * Permanently delete every photo in the signed-in user's trash, files included, as a job (#2203).
  * Returns the queued (or already running) job.
  */
-export async function emptyTrash(
-  client: ApiClient,
-): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/photosedit/empty-trash/",
-    S.JobStartedResponse,
-    "empty trash",
-  );
+export async function emptyTrash(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/photosedit/empty-trash/", S.JobStartedResponse, "empty trash");
 }
 
 /**
  * Read the date of the signed-in user's photos again with their current date rules (#437). A date
  * set by hand stays and nothing is written to the files. Returns the queued (or already running) job.
  */
-export async function reapplyDateRules(
-  client: ApiClient,
-): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/photos/reapply-date-rules/",
-    S.JobStartedResponse,
-    "apply date rules",
-  );
+export async function reapplyDateRules(client: ApiClient): Promise<S.JobStartedResponse | S.JobAlreadyRunning> {
+  return triggerJob(client, "/photos/reapply-date-rules/", S.JobStartedResponse, "apply date rules");
 }
 
 /**
  * What "Write metadata to files" (#2287) would write for the signed-in user now: where (the saved
  * "Write edits to files"), and how many photos each type writes.
  */
-export async function fetchWriteMetadataPreview(
-  client: ApiClient,
-): Promise<S.WriteMetadataPreview> {
+export async function fetchWriteMetadataPreview(client: ApiClient): Promise<S.WriteMetadataPreview> {
   const res = await client.get<unknown>("/savemetadata/");
   return parseResponse(S.WriteMetadataPreview, res, "write metadata preview");
 }
@@ -1923,14 +1451,14 @@ export async function fetchWriteMetadataPreview(
  */
 export async function writeMetadataToFiles(
   client: ApiClient,
-  types?: readonly string[],
+  types?: readonly string[]
 ): Promise<S.WriteMetadataStarted | S.JobAlreadyRunning> {
   return triggerJob(
     client,
     "/savemetadata/",
     S.WriteMetadataStarted,
     "write metadata to files",
-    types ? { types } : {},
+    types ? { types } : {}
   );
 }
 
@@ -1941,15 +1469,9 @@ export async function writeMetadataToFiles(
  */
 export async function rescanPhotos(
   client: ApiClient,
-  photoIds: readonly string[],
+  photoIds: readonly string[]
 ): Promise<S.RescanPhotosResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/photos/rescan/",
-    S.RescanPhotosResponse,
-    "rescan photos",
-    { photo_ids: photoIds },
-  );
+  return triggerJob(client, "/photos/rescan/", S.RescanPhotosResponse, "rescan photos", { photo_ids: photoIds });
 }
 
 /**
@@ -1960,7 +1482,7 @@ export async function rescanPhotos(
 export async function scanFiles(
   client: ApiClient,
   paths: readonly string[],
-  removedPaths: readonly string[] = [],
+  removedPaths: readonly string[] = []
 ): Promise<S.ScanFilesResponse | S.JobAlreadyRunning> {
   return triggerJob(client, "/scan-files/", S.ScanFilesResponse, "scan files", {
     paths,
@@ -1969,27 +1491,13 @@ export async function scanFiles(
 }
 
 /** Make event albums from the photos added or changed since the last run, and title them. */
-export async function generateEventAlbums(
-  client: ApiClient,
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    "/autoalbumgen/",
-    S.JobTriggerResponse,
-    "generate event albums",
-  );
+export async function generateEventAlbums(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/autoalbumgen/", S.JobTriggerResponse, "generate event albums");
 }
 
 /** Re-title every event album (generateEventAlbums only titles the albums whose photos changed). */
-export async function regenerateEventAlbumTitles(
-  client: ApiClient,
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    "/autoalbumtitlegen/",
-    S.JobTriggerResponse,
-    "regenerate event album titles",
-  );
+export async function regenerateEventAlbumTitles(client: ApiClient): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/autoalbumtitlegen/", S.JobTriggerResponse, "regenerate event album titles");
 }
 
 /* ---- zip downloads ------------------------------------------------------ */
@@ -2002,7 +1510,7 @@ export async function regenerateEventAlbumTitles(
 export async function startPhotoDownload(
   client: ApiClient,
   imageHashes: string[],
-  options: { selectAll?: SelectAllPhotos; includeStackedPhotos?: boolean } = {},
+  options: { selectAll?: SelectAllPhotos; includeStackedPhotos?: boolean } = {}
 ): Promise<S.PhotoDownloadStart> {
   const res = await client.post<unknown>("/photos/download", {
     ...photoSelection(imageHashes, options.selectAll),
@@ -2012,21 +1520,13 @@ export async function startPhotoDownload(
 }
 
 /** Where a zip download's job is: PENDING, SUCCESS or FAILURE. */
-export async function fetchPhotoDownloadStatus(
-  client: ApiClient,
-  jobId: string,
-): Promise<S.PhotoDownloadStatus> {
-  const res = await client.get<unknown>(
-    `/photos/download${buildQuery({ job_id: jobId })}`,
-  );
+export async function fetchPhotoDownloadStatus(client: ApiClient, jobId: string): Promise<S.PhotoDownloadStatus> {
+  const res = await client.get<unknown>(`/photos/download${buildQuery({ job_id: jobId })}`);
   return parseResponse(S.PhotoDownloadStatus, res, "photo download status");
 }
 
 /** Delete a zip download's archive once it has been saved. */
-export async function deletePhotoDownload(
-  client: ApiClient,
-  fileName: string,
-): Promise<void> {
+export async function deletePhotoDownload(client: ApiClient, fileName: string): Promise<void> {
   await client.delete(`/delete/zip/${fileName}`);
 }
 
@@ -2040,10 +1540,7 @@ export type StackListParams = {
 };
 
 /** One page of stacks (only those with at least two photos), newest first. */
-export async function fetchStacks(
-  client: ApiClient,
-  params: StackListParams = {},
-): Promise<S.PhotoStackListResponse> {
+export async function fetchStacks(client: ApiClient, params: StackListParams = {}): Promise<S.PhotoStackListResponse> {
   const query = buildQuery({
     page: params.page || undefined,
     page_size: params.pageSize || undefined,
@@ -2055,17 +1552,12 @@ export async function fetchStacks(
 }
 
 /** One stack with all its photos. */
-export async function fetchStack(
-  client: ApiClient,
-  stackId: string,
-): Promise<S.PhotoStack> {
+export async function fetchStack(client: ApiClient, stackId: string): Promise<S.PhotoStack> {
   const res = await client.get<unknown>(`/stacks/${stackId}/`);
   return parseResponse(S.PhotoStack, res, "stack details");
 }
 
-export async function fetchStackStats(
-  client: ApiClient,
-): Promise<S.PhotoStackStats> {
+export async function fetchStackStats(client: ApiClient): Promise<S.PhotoStackStats> {
   const res = await client.get<unknown>("/stacks/stats/");
   return parseResponse(S.PhotoStackStats, res, "stack stats");
 }
@@ -2074,7 +1566,7 @@ export async function fetchStackStats(
 export async function removePhotosFromStack(
   client: ApiClient,
   stackId: string,
-  photoHashes: string[],
+  photoHashes: string[]
 ): Promise<S.RemoveFromStackResponse> {
   const res = await client.post<unknown>(`/stacks/${stackId}/remove/`, {
     photo_hashes: photoHashes,
@@ -2083,10 +1575,7 @@ export async function removePhotosFromStack(
 }
 
 /** Merge every manual stack that holds one of the photos into one. */
-export async function mergeStacks(
-  client: ApiClient,
-  photoHashes: string[],
-): Promise<S.MergeStacksResponse> {
+export async function mergeStacks(client: ApiClient, photoHashes: string[]): Promise<S.MergeStacksResponse> {
   const res = await client.post<unknown>("/stacks/merge/", {
     photo_hashes: photoHashes,
   });
@@ -2096,7 +1585,7 @@ export async function mergeStacks(
 /** Put photos (at least two) in a manual stack: the one a photo is already in, or a new one. */
 export async function createManualStack(
   client: ApiClient,
-  photoHashes: string[],
+  photoHashes: string[]
 ): Promise<S.CreateManualStackResponse> {
   const res = await client.post<unknown>("/stacks/manual/", {
     photo_hashes: photoHashes,
@@ -2105,10 +1594,7 @@ export async function createManualStack(
 }
 
 /** Delete a stack; its photos stay. */
-export async function deleteStack(
-  client: ApiClient,
-  stackId: string,
-): Promise<S.UnlinkGroupResponse> {
+export async function deleteStack(client: ApiClient, stackId: string): Promise<S.UnlinkGroupResponse> {
   const res = await client.delete<unknown>(`/stacks/${stackId}/`);
   return parseResponse(S.UnlinkGroupResponse, res, "delete stack");
 }
@@ -2117,7 +1603,7 @@ export async function deleteStack(
 export async function setStackPrimary(
   client: ApiClient,
   stackId: string,
-  photoHash: string,
+  photoHash: string
 ): Promise<S.SetStackPrimaryResponse> {
   const res = await client.post<unknown>(`/stacks/${stackId}/primary/`, {
     photo_hash: photoHash,
@@ -2128,15 +1614,9 @@ export async function setStackPrimary(
 /** Start stack detection (bursts, by the user's burst rules). */
 export async function detectStacks(
   client: ApiClient,
-  options: S.DetectStacksRequest = {},
+  options: S.DetectStacksRequest = {}
 ): Promise<S.DetectionQueuedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/stacks/detect/",
-    S.DetectionQueuedResponse,
-    "detect stacks",
-    options,
-  );
+  return triggerJob(client, "/stacks/detect/", S.DetectionQueuedResponse, "detect stacks", options);
 }
 
 /* ---- duplicates (exact copies, visual duplicates) ----------------------- */
@@ -2151,7 +1631,7 @@ export type DuplicateListParams = {
 /** One page of duplicate groups (only those with at least two photos), newest first. */
 export async function fetchDuplicates(
   client: ApiClient,
-  params: DuplicateListParams = {},
+  params: DuplicateListParams = {}
 ): Promise<S.DuplicateListResponse> {
   const query = buildQuery({
     duplicate_type: params.duplicateType,
@@ -2164,17 +1644,12 @@ export async function fetchDuplicates(
 }
 
 /** One duplicate group with all its photos and the one the server suggests keeping. */
-export async function fetchDuplicate(
-  client: ApiClient,
-  duplicateId: string,
-): Promise<S.DuplicateDetail> {
+export async function fetchDuplicate(client: ApiClient, duplicateId: string): Promise<S.DuplicateDetail> {
   const res = await client.get<unknown>(`/duplicates/${duplicateId}`);
   return parseResponse(S.DuplicateDetail, res, "duplicate details");
 }
 
-export async function fetchDuplicateStats(
-  client: ApiClient,
-): Promise<S.DuplicateStats> {
+export async function fetchDuplicateStats(client: ApiClient): Promise<S.DuplicateStats> {
   const res = await client.get<unknown>("/duplicates/stats");
   return parseResponse(S.DuplicateStats, res, "duplicate stats");
 }
@@ -2184,7 +1659,7 @@ export async function resolveDuplicate(
   client: ApiClient,
   duplicateId: string,
   keepPhotoHash: string,
-  trashOthers: boolean,
+  trashOthers: boolean
 ): Promise<S.ResolveDuplicateResponse> {
   const res = await client.post<unknown>(`/duplicates/${duplicateId}/resolve`, {
     keep_photo_hash: keepPhotoHash,
@@ -2194,34 +1669,19 @@ export async function resolveDuplicate(
 }
 
 /** Mark a group as not duplicates. */
-export async function dismissDuplicate(
-  client: ApiClient,
-  duplicateId: string,
-): Promise<S.DismissDuplicateResponse> {
-  const res = await client.post<unknown>(
-    `/duplicates/${duplicateId}/dismiss`,
-    {},
-  );
+export async function dismissDuplicate(client: ApiClient, duplicateId: string): Promise<S.DismissDuplicateResponse> {
+  const res = await client.post<unknown>(`/duplicates/${duplicateId}/dismiss`, {});
   return parseResponse(S.DismissDuplicateResponse, res, "dismiss duplicate");
 }
 
 /** Undo a resolved group: its trashed photos come back and it is pending again. */
-export async function revertDuplicate(
-  client: ApiClient,
-  duplicateId: string,
-): Promise<S.RevertDuplicateResponse> {
-  const res = await client.post<unknown>(
-    `/duplicates/${duplicateId}/revert`,
-    {},
-  );
+export async function revertDuplicate(client: ApiClient, duplicateId: string): Promise<S.RevertDuplicateResponse> {
+  const res = await client.post<unknown>(`/duplicates/${duplicateId}/revert`, {});
   return parseResponse(S.RevertDuplicateResponse, res, "revert duplicate");
 }
 
 /** Delete a duplicate group; its photos stay. */
-export async function deleteDuplicate(
-  client: ApiClient,
-  duplicateId: string,
-): Promise<S.UnlinkGroupResponse> {
+export async function deleteDuplicate(client: ApiClient, duplicateId: string): Promise<S.UnlinkGroupResponse> {
   const res = await client.delete<unknown>(`/duplicates/${duplicateId}/delete`);
   return parseResponse(S.UnlinkGroupResponse, res, "delete duplicate");
 }
@@ -2229,15 +1689,9 @@ export async function deleteDuplicate(
 /** Start duplicate detection (unset options take the server's defaults). */
 export async function detectDuplicates(
   client: ApiClient,
-  options: S.DetectDuplicatesRequest = {},
+  options: S.DetectDuplicatesRequest = {}
 ): Promise<S.DetectionQueuedResponse | S.JobAlreadyRunning> {
-  return triggerJob(
-    client,
-    "/duplicates/detect",
-    S.DetectionQueuedResponse,
-    "detect duplicates",
-    options,
-  );
+  return triggerJob(client, "/duplicates/detect", S.DetectionQueuedResponse, "detect duplicates", options);
 }
 
 /* ---- sharing ----------------------------------------------------------- */
@@ -2248,32 +1702,14 @@ export async function detectDuplicates(
  */
 const SHARED_PHOTOS_PAGE = buildQuery({ page_size: 1000 });
 
-export async function fetchSharedPhotosByMe(
-  client: ApiClient,
-): Promise<S.SharedPhotosResponse["results"]> {
-  const results = await fetchAllPages(
-    client,
-    `/photos/shared/fromme/${SHARED_PHOTOS_PAGE}`,
-  );
-  return parseResponse(
-    S.SharedPhotosResponse,
-    { results },
-    "shared photos by me",
-  ).results;
+export async function fetchSharedPhotosByMe(client: ApiClient): Promise<S.SharedPhotosResponse["results"]> {
+  const results = await fetchAllPages(client, `/photos/shared/fromme/${SHARED_PHOTOS_PAGE}`);
+  return parseResponse(S.SharedPhotosResponse, { results }, "shared photos by me").results;
 }
 
-export async function fetchSharedPhotosWithMe(
-  client: ApiClient,
-): Promise<S.SharedToMePhotosResponse["results"]> {
-  const results = await fetchAllPages(
-    client,
-    `/photos/shared/tome/${SHARED_PHOTOS_PAGE}`,
-  );
-  return parseResponse(
-    S.SharedToMePhotosResponse,
-    { results },
-    "shared photos with me",
-  ).results;
+export async function fetchSharedPhotosWithMe(client: ApiClient): Promise<S.SharedToMePhotosResponse["results"]> {
+  const results = await fetchAllPages(client, `/photos/shared/tome/${SHARED_PHOTOS_PAGE}`);
+  return parseResponse(S.SharedToMePhotosResponse, { results }, "shared photos with me").results;
 }
 
 /** What "Shared with you" groups the shared photos by (#2721, #2722). */
@@ -2282,70 +1718,43 @@ export type SharedGroupKind = "places" | "things";
 /** The places or things of the photos shared with me, one entry per title. */
 export async function fetchSharedGroupsWithMe(
   client: ApiClient,
-  kind: SharedGroupKind,
+  kind: SharedGroupKind
 ): Promise<S.SharedGroupsResponse["results"]> {
   const results = await fetchAllPages(client, `/photos/shared/tome/${kind}/`);
-  return parseResponse(
-    S.SharedGroupsResponse,
-    { results },
-    `shared ${kind} with me`,
-  ).results;
+  return parseResponse(S.SharedGroupsResponse, { results }, `shared ${kind} with me`).results;
 }
 
 /** The photos shared with me under one place or thing title; a 404 once none are left. */
 export async function fetchSharedGroupPhotos(
   client: ApiClient,
   kind: SharedGroupKind,
-  title: string,
+  title: string
 ): Promise<S.SharedToMePhotosResponse["results"]> {
   const query = buildQuery({ title, page_size: 1000 });
-  const results = await fetchAllPages(
-    client,
-    `/photos/shared/tome/${kind}/photos/${query}`,
-  );
-  return parseResponse(
-    S.SharedToMePhotosResponse,
-    { results },
-    `shared ${kind} photos`,
-  ).results;
+  const results = await fetchAllPages(client, `/photos/shared/tome/${kind}/photos/${query}`);
+  return parseResponse(S.SharedToMePhotosResponse, { results }, `shared ${kind} photos`).results;
 }
 
 /** The named people on the photos shared with me, one entry per owner and person. */
-export async function fetchSharedPeopleWithMe(
-  client: ApiClient,
-): Promise<S.SharedPeopleResponse["results"]> {
+export async function fetchSharedPeopleWithMe(client: ApiClient): Promise<S.SharedPeopleResponse["results"]> {
   const results = await fetchAllPages(client, "/photos/shared/tome/people/");
-  return parseResponse(
-    S.SharedPeopleResponse,
-    { results },
-    "shared people with me",
-  ).results;
+  return parseResponse(S.SharedPeopleResponse, { results }, "shared people with me").results;
 }
 
 /** The photos shared with me that show one of those people; a 404 once none are left. */
 export async function fetchSharedPersonPhotos(
   client: ApiClient,
-  personId: number,
+  personId: number
 ): Promise<S.SharedToMePhotosResponse["results"]> {
   const query = buildQuery({ person: personId, page_size: 1000 });
-  const results = await fetchAllPages(
-    client,
-    `/photos/shared/tome/people/photos/${query}`,
-  );
-  return parseResponse(
-    S.SharedToMePhotosResponse,
-    { results },
-    "shared person photos",
-  ).results;
+  const results = await fetchAllPages(client, `/photos/shared/tome/people/photos/${query}`);
+  return parseResponse(S.SharedToMePhotosResponse, { results }, "shared person photos").results;
 }
 
 /* ---- public gallery (#434) --------------------------------------------- */
 
 /** The gallery's filters as query parameters; an unset one is left out. */
-function galleryQuery(
-  filter: S.GalleryFilter,
-  extra: Record<string, number> = {},
-): string {
+function galleryQuery(filter: S.GalleryFilter, extra: Record<string, number> = {}): string {
   return buildQuery({
     owner: filter.owner,
     place: filter.place,
@@ -2366,21 +1775,17 @@ export async function fetchGallery(client: ApiClient): Promise<S.Gallery> {
  */
 export async function fetchGalleryDays(
   client: ApiClient,
-  filter: S.GalleryFilter = {},
+  filter: S.GalleryFilter = {}
 ): Promise<S.IncompleteDatePhotosGroup[]> {
-  const res = await client.get<unknown>(
-    `/gallery/days/${galleryQuery(filter)}`,
-  );
-  return parseResponse(S.GalleryDaysResponse, res, "gallery days").results.map(
-    (day) => ({
-      id: day.id,
-      date: day.date,
-      location: day.location,
-      incomplete: true,
-      numberOfItems: day.photo_count,
-      items: [],
-    }),
-  );
+  const res = await client.get<unknown>(`/gallery/days/${galleryQuery(filter)}`);
+  return parseResponse(S.GalleryDaysResponse, res, "gallery days").results.map(day => ({
+    id: day.id,
+    date: day.date,
+    location: day.location,
+    incomplete: true,
+    numberOfItems: day.photo_count,
+    items: [],
+  }));
 }
 
 /** One page (100 photos) of a day of the gallery's timeline. */
@@ -2388,80 +1793,44 @@ export async function fetchGalleryDayPhotos(
   client: ApiClient,
   day: number,
   page: number,
-  filter: S.GalleryFilter = {},
+  filter: S.GalleryFilter = {}
 ): Promise<S.GalleryPhotosResponse> {
-  const res = await client.get<unknown>(
-    `/gallery/photos/${galleryQuery(filter, { day, page })}`,
-  );
+  const res = await client.get<unknown>(`/gallery/photos/${galleryQuery(filter, { day, page })}`);
   return parseResponse(S.GalleryPhotosResponse, res, "gallery photos");
 }
 
 /** The towns of the gallery's photos, most photos first. */
-export async function fetchGalleryPlaces(
-  client: ApiClient,
-  owner?: number,
-): Promise<S.GalleryPlace[]> {
-  const results = await fetchAllPages(
-    client,
-    `/gallery/places/${buildQuery({ owner })}`,
-  );
-  return parseResponse(S.GalleryPlacesResponse, { results }, "gallery places")
-    .results;
+export async function fetchGalleryPlaces(client: ApiClient, owner?: number): Promise<S.GalleryPlace[]> {
+  const results = await fetchAllPages(client, `/gallery/places/${buildQuery({ owner })}`);
+  return parseResponse(S.GalleryPlacesResponse, { results }, "gallery places").results;
 }
 
 /** The named people of the gallery's photos, one entry per photographer and person. */
-export async function fetchGalleryPeople(
-  client: ApiClient,
-  owner?: number,
-): Promise<S.GalleryPerson[]> {
-  const results = await fetchAllPages(
-    client,
-    `/gallery/people/${buildQuery({ owner })}`,
-  );
-  return parseResponse(S.GalleryPeopleResponse, { results }, "gallery people")
-    .results;
+export async function fetchGalleryPeople(client: ApiClient, owner?: number): Promise<S.GalleryPerson[]> {
+  const results = await fetchAllPages(client, `/gallery/people/${buildQuery({ owner })}`);
+  return parseResponse(S.GalleryPeopleResponse, { results }, "gallery people").results;
 }
 
 /** The users who take part, most photos first. */
-export async function fetchGalleryPhotographers(
-  client: ApiClient,
-): Promise<S.GalleryPhotographer[]> {
+export async function fetchGalleryPhotographers(client: ApiClient): Promise<S.GalleryPhotographer[]> {
   const results = await fetchAllPages(client, "/gallery/photographers/");
-  return parseResponse(
-    S.GalleryPhotographersResponse,
-    { results },
-    "gallery photographers",
-  ).results;
+  return parseResponse(S.GalleryPhotographersResponse, { results }, "gallery photographers").results;
 }
 
 /** Admin: what the gallery shows once it is open, whatever it is set to now. */
-export async function fetchGalleryPreview(
-  client: ApiClient,
-): Promise<S.GalleryPreview> {
+export async function fetchGalleryPreview(client: ApiClient): Promise<S.GalleryPreview> {
   const res = await client.get<unknown>("/gallery/preview/");
   return parseResponse(S.GalleryPreview, res, "gallery preview");
 }
 
-export async function fetchSharedAlbumsByMe(
-  client: ApiClient,
-): Promise<S.SharedAlbumsResponse["results"]> {
+export async function fetchSharedAlbumsByMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/user/shared/fromme/");
-  return parseResponse(
-    S.SharedAlbumsResponse,
-    { results },
-    "shared albums by me",
-  ).results;
+  return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums by me").results;
 }
 
-export async function fetchSharedAlbumsWithMe(
-  client: ApiClient,
-): Promise<S.SharedAlbumsResponse["results"]> {
+export async function fetchSharedAlbumsWithMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
   const results = await fetchAllPages(client, "/albums/user/shared/tome/");
-  return parseResponse(
-    S.SharedAlbumsResponse,
-    { results },
-    "shared albums with me",
-  ).results;
+  return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums with me").results;
 }
 
 /** Share (or unshare) photos to another user, by hash or selected-all; `count` is the photos changed. */
@@ -2470,7 +1839,7 @@ export async function setPhotosShared(
   imageHashes: string[],
   targetUserId: number,
   shared: boolean,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/share/", {
     ...photoSelection(imageHashes, selectAll),
@@ -2490,7 +1859,7 @@ export async function setUserAlbumShared(
   albumId: number | string,
   targetUserId: number | string,
   shared: boolean,
-  role?: S.AlbumRole,
+  role?: S.AlbumRole
 ): Promise<S.UserAlbumInfo> {
   const res = await client.post<unknown>("/useralbum/share/", {
     album_id: String(albumId),
@@ -2509,7 +1878,7 @@ export async function addPhotosToAlbum(
   client: ApiClient,
   albumId: number | string,
   photoIds: string[],
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.AlbumPhotosChanged> {
   const body = selectAll
     ? {
@@ -2518,10 +1887,7 @@ export async function addPhotosToAlbum(
         excluded_hashes: selectAll.excludedHashes ?? [],
       }
     : { photos: photoIds };
-  const res = await client.post<unknown>(
-    `/albums/user/${albumId}/photos/add/`,
-    body,
-  );
+  const res = await client.post<unknown>(`/albums/user/${albumId}/photos/add/`, body);
   return parseResponse(S.AlbumPhotosChanged, res, "add photos to album");
 }
 
@@ -2532,14 +1898,11 @@ export async function addPhotosToAlbum(
 export async function removePhotosFromAlbum(
   client: ApiClient,
   albumId: number | string,
-  photoIds: string[],
+  photoIds: string[]
 ): Promise<S.AlbumPhotosChanged> {
-  const res = await client.post<unknown>(
-    `/albums/user/${albumId}/photos/remove/`,
-    {
-      photos: photoIds,
-    },
-  );
+  const res = await client.post<unknown>(`/albums/user/${albumId}/photos/remove/`, {
+    photos: photoIds,
+  });
   return parseResponse(S.AlbumPhotosChanged, res, "remove photos from album");
 }
 
@@ -2547,20 +1910,14 @@ export async function removePhotosFromAlbum(
 export async function setAlbumMembership(
   client: ApiClient,
   albumId: number | string,
-  switches: Partial<S.AlbumMemberSwitches>,
+  switches: Partial<S.AlbumMemberSwitches>
 ): Promise<S.AlbumMemberSwitches> {
-  const res = await client.patch<unknown>(
-    `/albums/user/${albumId}/membership/`,
-    switches,
-  );
+  const res = await client.patch<unknown>(`/albums/user/${albumId}/membership/`, switches);
   return parseResponse(S.AlbumMemberSwitches, res, "set album membership");
 }
 
 /** Who one of your people is shared with (#668). */
-export async function fetchPersonSharing(
-  client: ApiClient,
-  personId: number,
-): Promise<S.PersonSharing> {
+export async function fetchPersonSharing(client: ApiClient, personId: number): Promise<S.PersonSharing> {
   const res = await client.get<unknown>(`/persons/${personId}/sharing/`);
   return parseResponse(S.PersonSharing, res, "person sharing");
 }
@@ -2576,7 +1933,7 @@ export async function setPersonSharing(
     recipient_ids: number[];
     share_location?: boolean;
     share_other_people?: boolean;
-  },
+  }
 ): Promise<S.PersonSharing> {
   const res = await client.request<unknown>(`/persons/${personId}/sharing/`, {
     method: "PUT",
@@ -2588,11 +1945,9 @@ export async function setPersonSharing(
 /** The first page of the photos of a shared person that wait for your review. */
 export async function fetchPersonSharingPending(
   client: ApiClient,
-  personId: number,
+  personId: number
 ): Promise<S.PersonSharePendingPage> {
-  const res = await client.get<unknown>(
-    `/persons/${personId}/sharing/pending/`,
-  );
+  const res = await client.get<unknown>(`/persons/${personId}/sharing/pending/`);
   return parseResponse(S.PersonSharePendingPage, res, "person sharing pending");
 }
 
@@ -2601,12 +1956,9 @@ export async function reviewPersonSharing(
   client: ApiClient,
   personId: number,
   approve: string[],
-  decline: string[],
+  decline: string[]
 ): Promise<S.PersonSharing> {
-  const res = await client.post<unknown>(
-    `/persons/${personId}/sharing/review/`,
-    { approve, decline },
-  );
+  const res = await client.post<unknown>(`/persons/${personId}/sharing/review/`, { approve, decline });
   return parseResponse(S.PersonSharing, res, "review person sharing");
 }
 
@@ -2618,12 +1970,9 @@ function threadPath(albumId: number | string, photoId: string) {
 export async function fetchAlbumPhotoComments(
   client: ApiClient,
   albumId: number | string,
-  photoId: string,
+  photoId: string
 ): Promise<S.AlbumComment[]> {
-  const rows = await fetchAllPages(
-    client,
-    `${threadPath(albumId, photoId)}comments/`,
-  );
+  const rows = await fetchAllPages(client, `${threadPath(albumId, photoId)}comments/`);
   return parseResponse(S.AlbumComment.array(), rows, "album photo comments");
 }
 
@@ -2632,12 +1981,9 @@ export async function addAlbumPhotoComment(
   client: ApiClient,
   albumId: number | string,
   photoId: string,
-  text: string,
+  text: string
 ): Promise<S.AlbumComment> {
-  const res = await client.post<unknown>(
-    `${threadPath(albumId, photoId)}comments/`,
-    { text },
-  );
+  const res = await client.post<unknown>(`${threadPath(albumId, photoId)}comments/`, { text });
   return parseResponse(S.AlbumComment, res, "add album photo comment");
 }
 
@@ -2647,12 +1993,9 @@ export async function editAlbumPhotoComment(
   albumId: number | string,
   photoId: string,
   commentId: number,
-  text: string,
+  text: string
 ): Promise<S.AlbumComment> {
-  const res = await client.patch<unknown>(
-    `${threadPath(albumId, photoId)}comments/${commentId}/`,
-    { text },
-  );
+  const res = await client.patch<unknown>(`${threadPath(albumId, photoId)}comments/${commentId}/`, { text });
   return parseResponse(S.AlbumComment, res, "edit album photo comment");
 }
 
@@ -2661,7 +2004,7 @@ export async function deleteAlbumPhotoComment(
   client: ApiClient,
   albumId: number | string,
   photoId: string,
-  commentId: number,
+  commentId: number
 ): Promise<void> {
   await client.delete(`${threadPath(albumId, photoId)}comments/${commentId}/`);
 }
@@ -2670,11 +2013,9 @@ export async function deleteAlbumPhotoComment(
 export async function fetchAlbumPhotoLikes(
   client: ApiClient,
   albumId: number | string,
-  photoId: string,
+  photoId: string
 ): Promise<S.AlbumLikes> {
-  const res = await client.get<unknown>(
-    `${threadPath(albumId, photoId)}likes/`,
-  );
+  const res = await client.get<unknown>(`${threadPath(albumId, photoId)}likes/`);
   return parseResponse(S.AlbumLikes, res, "album photo likes");
 }
 
@@ -2683,7 +2024,7 @@ export async function setAlbumPhotoLiked(
   client: ApiClient,
   albumId: number | string,
   photoId: string,
-  liked: boolean,
+  liked: boolean
 ): Promise<S.AlbumLikes> {
   const path = `${threadPath(albumId, photoId)}likes/`;
   const res = await client.request<unknown>(path, {
@@ -2696,14 +2037,10 @@ export async function setAlbumPhotoLiked(
 export async function setAlbumMemberCeiling(
   client: ApiClient,
   albumId: number | string,
-  ceiling: S.AlbumMemberCeiling,
+  ceiling: S.AlbumMemberCeiling
 ): Promise<S.UserAlbumRenameResponse> {
   const res = await client.patch<unknown>(`/albums/user/${albumId}/`, ceiling);
-  return parseResponse(
-    S.UserAlbumRenameResponse,
-    res,
-    "set what album members see",
-  );
+  return parseResponse(S.UserAlbumRenameResponse, res, "set what album members see");
 }
 
 /**
@@ -2713,19 +2050,16 @@ export async function setAlbumMemberCeiling(
 /* ---- library shares (a whole library, read-only, #2731) ---------------- */
 
 /** The library shares I gave and the ones I received, every page. */
-export async function fetchLibraryShares(
-  client: ApiClient,
-): Promise<S.LibraryShare[]> {
+export async function fetchLibraryShares(client: ApiClient): Promise<S.LibraryShare[]> {
   const results = await fetchAllPages(client, "/library-shares/");
-  return parseResponse(S.LibrarySharesResponse, { results }, "library shares")
-    .results;
+  return parseResponse(S.LibrarySharesResponse, { results }, "library shares").results;
 }
 
 /** Share my library with `recipientId`; 409 `library_already_shared` when it already is. */
 export async function createLibraryShare(
   client: ApiClient,
   recipientId: number,
-  switches: Partial<S.LibraryShareSwitches> = {},
+  switches: Partial<S.LibraryShareSwitches> = {}
 ): Promise<S.LibraryShare> {
   const res = await client.post<unknown>("/library-shares/", {
     recipient_id: recipientId,
@@ -2741,26 +2075,18 @@ export async function createLibraryShare(
 export async function updateLibraryShare(
   client: ApiClient,
   shareId: number,
-  patch: Partial<
-    S.LibraryShareSwitches & Pick<S.LibraryShare, "show_in_timeline">
-  >,
+  patch: Partial<S.LibraryShareSwitches & Pick<S.LibraryShare, "show_in_timeline">>
 ): Promise<S.LibraryShare> {
   const res = await client.patch<unknown>(`/library-shares/${shareId}/`, patch);
   return parseResponse(S.LibraryShare, res, "library share");
 }
 
 /** The owner stops sharing, or the recipient leaves. Answers 204. */
-export async function deleteLibraryShare(
-  client: ApiClient,
-  shareId: number,
-): Promise<void> {
+export async function deleteLibraryShare(client: ApiClient, shareId: number): Promise<void> {
   await client.delete(`/library-shares/${shareId}/`);
 }
 
-export async function leaveSharedAlbum(
-  client: ApiClient,
-  albumId: number | string,
-): Promise<void> {
+export async function leaveSharedAlbum(client: ApiClient, albumId: number | string): Promise<void> {
   await client.post("/useralbum/leave/", { album_id: String(albumId) });
 }
 
@@ -2771,7 +2097,7 @@ export async function setPhotosPublic(
   client: ApiClient,
   imageHashes: string[],
   isPublic: boolean,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/makepublic/", {
     ...photoSelection(imageHashes, selectAll),
@@ -2789,7 +2115,7 @@ export async function setUserAlbumPublic(
     slug?: string;
     expiresAt?: string | null;
     sharingOptions?: S.PublicSharingOptions;
-  },
+  }
 ): Promise<S.SetUserAlbumPublicResponse> {
   const res = await client.post<unknown>("/useralbum/makepublic", {
     album_id: String(args.albumId),
@@ -2798,11 +2124,7 @@ export async function setUserAlbumPublic(
     expires_at: args.expiresAt,
     sharing_options: args.sharingOptions,
   });
-  return parseResponse(
-    S.SetUserAlbumPublicResponse,
-    res,
-    "make user album public",
-  );
+  return parseResponse(S.SetUserAlbumPublicResponse, res, "make user album public");
 }
 
 /* ---- faces ------------------------------------------------------------- */
@@ -2820,10 +2142,7 @@ export type FaceListParams = {
   deleted?: boolean;
 };
 
-export async function fetchFaces(
-  client: ApiClient,
-  params: FaceListParams = {},
-): Promise<S.PersonFaceListResponse> {
+export async function fetchFaces(client: ApiClient, params: FaceListParams = {}): Promise<S.PersonFaceListResponse> {
   const query = buildQuery({
     person: params.person ?? 0,
     page: params.page ?? 1,
@@ -2853,14 +2172,12 @@ export async function fetchIncompleteFaces(
     deleted?: boolean;
     /** Only the people in this group of the user's (#1126); "Unknown - Other" still comes last. */
     group?: number;
-  } = {},
+  } = {}
 ): Promise<S.IncompleteFacesResponse> {
   const query = buildQuery({
     inferred: params.inferred ?? false,
     order_by: params.orderBy ?? "confidence",
-    analysis_method: params.inferred
-      ? (params.analysisMethod ?? "clustering")
-      : undefined,
+    analysis_method: params.inferred ? (params.analysisMethod ?? "clustering") : undefined,
     min_confidence: params.minConfidence,
     deleted: params.deleted || undefined,
     group: params.group,
@@ -2879,7 +2196,7 @@ export async function fetchFacesReviewCount(
     analysisMethod: S.FaceAnalysisMethod;
     minConfidence: number;
     group?: number;
-  },
+  }
 ): Promise<S.FacesReviewCountResponse> {
   const query = buildQuery({
     analysis_method: params.analysisMethod,
@@ -2897,7 +2214,7 @@ export async function fetchFacesReviewCount(
 export async function labelFaces(
   client: ApiClient,
   faceIds: number[],
-  personName: string,
+  personName: string
 ): Promise<S.SetFacesLabelResponse> {
   const res = await client.post<unknown>("/labelfaces", {
     face_ids: faceIds,
@@ -2906,19 +2223,13 @@ export async function labelFaces(
   return parseResponse(S.SetFacesLabelResponse, res, "label faces");
 }
 
-export async function deleteFaces(
-  client: ApiClient,
-  faceIds: number[],
-): Promise<S.DeleteFacesResponse> {
+export async function deleteFaces(client: ApiClient, faceIds: number[]): Promise<S.DeleteFacesResponse> {
   const res = await client.post<unknown>("/deletefaces", { face_ids: faceIds });
   return parseResponse(S.DeleteFacesResponse, res, "delete faces");
 }
 
 /** Bring deleted faces back to the person each one had (#127); other ids are skipped. */
-export async function restoreFaces(
-  client: ApiClient,
-  faceIds: number[],
-): Promise<S.RestoreFacesResponse> {
+export async function restoreFaces(client: ApiClient, faceIds: number[]): Promise<S.RestoreFacesResponse> {
   const res = await client.post<unknown>("/restore-faces/", {
     face_ids: faceIds,
   });
@@ -2928,38 +2239,26 @@ export async function restoreFaces(
 /** Undo a labelling: give the faces back the people `labelFaces` answered as `previous` (#127). */
 export async function restoreFaceLabels(
   client: ApiClient,
-  faces: readonly S.FaceLabels[],
+  faces: readonly S.FaceLabels[]
 ): Promise<S.RestoreFacesResponse> {
   const res = await client.post<unknown>("/restore-face-labels/", { faces });
   return parseResponse(S.RestoreFacesResponse, res, "restore face labels");
 }
 
-export async function trainFaces(
-  client: ApiClient,
-): Promise<S.JobTriggerResponse> {
+export async function trainFaces(client: ApiClient): Promise<S.JobTriggerResponse> {
   return triggerJob(client, "/trainfaces", S.JobTriggerResponse, "train faces");
 }
 
 /** Where a face scan looks (#524): every photo, one folder (and those below it), or some photos. */
-export type FaceScanScope =
-  Record<string, never> | { path: string } | { photo_ids: readonly string[] };
+export type FaceScanScope = Record<string, never> | { path: string } | { photo_ids: readonly string[] };
 
 /**
  * Detect faces again in every photo, or with `scope` in one folder or some photos of the user's
  * (#524). ApiError 403 when face detection is turned off, 400 for a folder outside the library,
  * 404 when none of the photos is the user's.
  */
-export async function scanFaces(
-  client: ApiClient,
-  scope: FaceScanScope = {},
-): Promise<S.JobTriggerResponse> {
-  return triggerJob(
-    client,
-    "/scanfaces",
-    S.JobTriggerResponse,
-    "scan faces",
-    scope,
-  );
+export async function scanFaces(client: ApiClient, scope: FaceScanScope = {}): Promise<S.JobTriggerResponse> {
+  return triggerJob(client, "/scanfaces", S.JobTriggerResponse, "scan faces", scope);
 }
 
 /**
@@ -2973,7 +2272,7 @@ export async function addFace(
   photo: string,
   personName: string,
   box: S.NormalizedFaceBox,
-  fit?: boolean,
+  fit?: boolean
 ): Promise<S.AddFaceResponse> {
   const body = {
     photo,
@@ -2986,53 +2285,39 @@ export async function addFace(
 }
 
 /** Every face with an encoding, projected onto three axes for the face cluster chart. */
-export async function fetchClusterFaces(
-  client: ApiClient,
-): Promise<S.ClusterFacesResponse> {
+export async function fetchClusterFaces(client: ApiClient): Promise<S.ClusterFacesResponse> {
   const res = await client.get<unknown>("/clusterfaces");
   return parseResponse(S.ClusterFacesResponse, res, "cluster faces");
 }
 
 /* ---- statistics --------------------------------------------------------- */
 
-export async function fetchCountStats(
-  client: ApiClient,
-): Promise<S.CountStats> {
+export async function fetchCountStats(client: ApiClient): Promise<S.CountStats> {
   const res = await client.get<unknown>("/stats/");
   return parseResponse(S.CountStats, res, "count stats");
 }
 
-export async function fetchLocationSunburst(
-  client: ApiClient,
-): Promise<S.LocationSunburst> {
+export async function fetchLocationSunburst(client: ApiClient): Promise<S.LocationSunburst> {
   const res = await client.get<unknown>("/locationsunburst/");
   return parseResponse(S.LocationSunburst, res, "location tree");
 }
 
-export async function fetchPhotoMonthCounts(
-  client: ApiClient,
-): Promise<S.PhotoMonthCountResponse> {
+export async function fetchPhotoMonthCounts(client: ApiClient): Promise<S.PhotoMonthCountResponse> {
   const res = await client.get<unknown>("/photomonthcounts/");
   return parseResponse(S.PhotoMonthCountResponse, res, "photo month counts");
 }
 
-export async function fetchSocialGraph(
-  client: ApiClient,
-): Promise<S.SocialGraph> {
+export async function fetchSocialGraph(client: ApiClient): Promise<S.SocialGraph> {
   const res = await client.get<unknown>("/socialgraph/");
   return parseResponse(S.SocialGraph, res, "social graph");
 }
 
-export async function fetchWordCloud(
-  client: ApiClient,
-): Promise<S.WordCloudResponse> {
+export async function fetchWordCloud(client: ApiClient): Promise<S.WordCloudResponse> {
   const res = await client.get<unknown>("/wordcloud/");
   return parseResponse(S.WordCloudResponse, res, "word cloud");
 }
 
-export async function fetchLocationTimeline(
-  client: ApiClient,
-): Promise<S.LocationTimeline> {
+export async function fetchLocationTimeline(client: ApiClient): Promise<S.LocationTimeline> {
   const res = await client.get<unknown>("/locationtimeline/");
   return parseResponse(S.LocationTimeline, res, "location timeline");
 }
@@ -3046,41 +2331,29 @@ export async function fetchImageTag(client: ApiClient): Promise<S.ImageTag> {
 }
 
 /** Admin: whether a newer release is out, from the last daily check (#2311). Asks nobody else. */
-export async function fetchUpdateStatus(
-  client: ApiClient,
-): Promise<S.UpdateStatus> {
+export async function fetchUpdateStatus(client: ApiClient): Promise<S.UpdateStatus> {
   const res = await client.get<unknown>("/updates/");
   return parseResponse(S.UpdateStatus, res, "update status");
 }
 
-export async function fetchParallelWorkers(
-  client: ApiClient,
-): Promise<S.ParallelWorkers> {
+export async function fetchParallelWorkers(client: ApiClient): Promise<S.ParallelWorkers> {
   const res = await client.get<unknown>("/parallel-workers/");
   return parseResponse(S.ParallelWorkers, res, "parallel workers");
 }
 
-export async function setWorkerIntention(
-  client: ApiClient,
-  intention: S.WorkerIntention,
-): Promise<S.ParallelWorkers> {
+export async function setWorkerIntention(client: ApiClient, intention: S.WorkerIntention): Promise<S.ParallelWorkers> {
   const res = await client.patch<unknown>("/parallel-workers/", { intention });
   return parseResponse(S.ParallelWorkers, res, "parallel workers");
 }
 
 /** Admin: Skip this release; `""` shows the newest release again. Answers the new status. */
-export async function skipRelease(
-  client: ApiClient,
-  version: string,
-): Promise<S.UpdateStatus> {
+export async function skipRelease(client: ApiClient, version: string): Promise<S.UpdateStatus> {
   const res = await client.post<unknown>("/updates/skip/", { version });
   return parseResponse(S.UpdateStatus, res, "skip release");
 }
 
 /** Admin: close the Update available card for a week. Answers the new status. */
-export async function snoozeUpdateNotice(
-  client: ApiClient,
-): Promise<S.UpdateStatus> {
+export async function snoozeUpdateNotice(client: ApiClient): Promise<S.UpdateStatus> {
   const res = await client.post<unknown>("/updates/snooze/", {});
   return parseResponse(S.UpdateStatus, res, "snooze update notice");
 }
@@ -3090,10 +2363,7 @@ export async function snoozeUpdateNotice(
  * and unpack it. `install` in the answer and in `fetchUpdateStatus` follows it; 409 `not_supported`
  * elsewhere.
  */
-export async function installUpdate(
-  client: ApiClient,
-  version: string,
-): Promise<S.UpdateStatus> {
+export async function installUpdate(client: ApiClient, version: string): Promise<S.UpdateStatus> {
   const res = await client.post<unknown>("/updates/install/", { version });
   return parseResponse(S.UpdateStatus, res, "install update");
 }
@@ -3102,38 +2372,26 @@ export async function installUpdate(
  * Admin, Windows app (#2788): Restart to update once the download is ready. 409 `job_running` while
  * a job runs, unless `force`.
  */
-export async function restartToUpdate(
-  client: ApiClient,
-  force: boolean,
-): Promise<S.UpdateStatus> {
+export async function restartToUpdate(client: ApiClient, force: boolean): Promise<S.UpdateStatus> {
   const res = await client.post<unknown>("/updates/restart/", { force });
   return parseResponse(S.UpdateStatus, res, "restart to update");
 }
 
 /** Disk space where the server keeps its data (bytes). */
-export async function fetchStorageStats(
-  client: ApiClient,
-): Promise<S.StorageStats> {
+export async function fetchStorageStats(client: ApiClient): Promise<S.StorageStats> {
   const res = await client.get<unknown>("/storagestats/");
   return parseResponse(S.StorageStats, res, "storage stats");
 }
 
 /** Admin: the machine and every user's library. */
-export async function fetchServerStats(
-  client: ApiClient,
-): Promise<S.ServerStats> {
+export async function fetchServerStats(client: ApiClient): Promise<S.ServerStats> {
   const res = await client.get<unknown>("/serverstats/");
   return parseResponse(S.ServerStats, res, "server stats");
 }
 
 /** Admin: the last `lines` lines of the server log. ApiError 404 when there is no log file. */
-export async function fetchServerLogs(
-  client: ApiClient,
-  lines: number,
-): Promise<S.ServerLogs> {
-  const res = await client.get<unknown>(
-    `/serverlogs/view${buildQuery({ lines })}`,
-  );
+export async function fetchServerLogs(client: ApiClient, lines: number): Promise<S.ServerLogs> {
+  const res = await client.get<unknown>(`/serverlogs/view${buildQuery({ lines })}`);
   return parseResponse(S.ServerLogs, res, "server logs");
 }
 
@@ -3172,8 +2430,7 @@ function startupReadiness(body: unknown): S.BackendReadiness {
 /** What a readiness probe that did not answer 200 says about the server. */
 function readinessFromError(error: unknown): S.BackendReadiness {
   // No answer at all (fetch rejected: server down, network gone), or the proxy answered for it.
-  if (!(error instanceof ApiError) || GATEWAY_ERRORS.has(error.status))
-    return UNREACHABLE;
+  if (!(error instanceof ApiError) || GATEWAY_ERRORS.has(error.status)) return UNREACHABLE;
   // Any other answer comes from the server, so it serves requests again: the app's own error
   // handling takes over from here, rather than a status screen that could never go away.
   return error.status === 503 ? startupReadiness(error.body) : READY;
@@ -3184,9 +2441,7 @@ function readinessFromError(error: unknown): S.BackendReadiness {
  * (its `HealthReady` body is not needed), a 503 from the startup placeholder names its phase
  * (`StartupStatus`), and no answer, a proxy's 502-504 or another 503 is `unreachable`.
  */
-export async function fetchBackendReadiness(
-  client: ApiClient,
-): Promise<S.BackendReadiness> {
+export async function fetchBackendReadiness(client: ApiClient): Promise<S.BackendReadiness> {
   try {
     await client.get<unknown>("/healthz/ready/");
     return READY;
@@ -3198,18 +2453,13 @@ export async function fetchBackendReadiness(
 /* ---- services (sidecars) ------------------------------------------------ */
 
 /** Admin: every sidecar service by name. */
-export async function fetchServices(
-  client: ApiClient,
-): Promise<S.ServicesList> {
+export async function fetchServices(client: ApiClient): Promise<S.ServicesList> {
   const res = await client.get<unknown>("/services/");
   return parseResponse(S.ServicesList, res, "services list");
 }
 
 /** Admin: whether one service is turned on and answering. */
-export async function fetchServiceHealth(
-  client: ApiClient,
-  serviceName: string,
-): Promise<S.ServiceHealth> {
+export async function fetchServiceHealth(client: ApiClient, serviceName: string): Promise<S.ServiceHealth> {
   const res = await client.get<unknown>(`/services/${serviceName}/`);
   return parseResponse(S.ServiceHealth, res, `health of ${serviceName}`);
 }
@@ -3218,14 +2468,10 @@ export async function fetchServiceHealth(
 export async function runServiceAction(
   client: ApiClient,
   serviceName: string,
-  action: "start" | "stop",
+  action: "start" | "stop"
 ): Promise<S.ServiceActionResponse> {
   const res = await client.post<unknown>(`/services/${serviceName}/${action}/`);
-  return parseResponse(
-    S.ServiceActionResponse,
-    res,
-    `${action} ${serviceName}`,
-  );
+  return parseResponse(S.ServiceActionResponse, res, `${action} ${serviceName}`);
 }
 
 /* ---- upload (chunked) --------------------------------------------------- */
@@ -3234,10 +2480,7 @@ export async function runServiceAction(
  * Send one chunk of a file: `form_data` holds the chunk (`file`), `offset`, `md5` and, after the
  * first chunk, the `upload_id` the server answered. Answers the upload and the bytes it holds.
  */
-export async function uploadChunk(
-  client: ApiClient,
-  options: S.UploadOptions,
-): Promise<S.UploadResponse> {
+export async function uploadChunk(client: ApiClient, options: S.UploadOptions): Promise<S.UploadResponse> {
   const end = options.offset + options.chunk_size - 1;
   const res = await client.request<unknown>("/upload/", {
     method: "POST",
@@ -3255,10 +2498,7 @@ export async function uploadChunk(
  * refuses is a 400 with code `album_not_found` or `album_locked`, after which the same upload can
  * be completed again without it.
  */
-export async function completeUpload(
-  client: ApiClient,
-  formData: FormData,
-): Promise<S.UploadCompleteResponse> {
+export async function completeUpload(client: ApiClient, formData: FormData): Promise<S.UploadCompleteResponse> {
   const res = await client.post<unknown>("/upload/complete/", formData);
   return parseResponse(S.UploadCompleteResponse, res, "upload complete");
 }
@@ -3267,10 +2507,7 @@ export async function completeUpload(
  * The upload run is over: the import jobs `/upload/complete/` answered take no more files and finish
  * once their files are processed (#2737). Without it the server seals them after a few idle minutes.
  */
-export async function sealUploadImports(
-  client: ApiClient,
-  jobIds: readonly string[],
-): Promise<S.UploadSealResponse> {
+export async function sealUploadImports(client: ApiClient, jobIds: readonly string[]): Promise<S.UploadSealResponse> {
   const res = await client.post<unknown>("/upload/seal/", { job_ids: jobIds });
   return parseResponse(S.UploadSealResponse, res, "seal upload imports");
 }
@@ -3279,25 +2516,14 @@ export async function sealUploadImports(
  * What the caller's uploads do on the server (#2739): their unfinished import jobs plus `jobIds`,
  * which of `photoIds` are ready, and the follow-ups. Each list is sent as repeated parameters.
  */
-export async function fetchUploadStatus(
-  client: ApiClient,
-  params: S.UploadStatusParams = {},
-): Promise<S.UploadStatus> {
-  const res = await client.get<unknown>(
-    `/upload/status/${repeatedQuery(params)}`,
-  );
+export async function fetchUploadStatus(client: ApiClient, params: S.UploadStatusParams = {}): Promise<S.UploadStatus> {
+  const res = await client.get<unknown>(`/upload/status/${repeatedQuery(params)}`);
   return parseResponse(S.UploadStatus, res, "upload status");
 }
 
 /** `?job_id=a&job_id=b&photo_id=c` for the upload status, or "" without ids. */
-function repeatedQuery({
-  jobIds = [],
-  photoIds = [],
-}: S.UploadStatusParams): string {
-  const pairs = [
-    ...jobIds.map((id) => ["job_id", id]),
-    ...photoIds.map((id) => ["photo_id", id]),
-  ];
+function repeatedQuery({ jobIds = [], photoIds = [] }: S.UploadStatusParams): string {
+  const pairs = [...jobIds.map(id => ["job_id", id]), ...photoIds.map(id => ["photo_id", id])];
   const text = new URLSearchParams(pairs).toString();
   return text ? `?${text}` : "";
 }
@@ -3306,11 +2532,7 @@ function repeatedQuery({
  * Whether the user already has a file with this MD5 (the server keys uploads by MD5 plus user id),
  * and that photo's id.
  */
-export async function uploadExists(
-  client: ApiClient,
-  md5: string,
-  userId: number,
-): Promise<S.UploadExistsResponse> {
+export async function uploadExists(client: ApiClient, md5: string, userId: number): Promise<S.UploadExistsResponse> {
   const res = await client.get<unknown>(`/exists/${md5}${userId}`);
   return parseResponse(S.UploadExistsResponse, res, "upload exists");
 }
@@ -3321,14 +2543,9 @@ export async function uploadExists(
  * Admin: the folders below `path` on the server (the data root when it is blank), for picking a
  * scan directory. ApiError 403 for a path outside the data root.
  */
-export async function fetchDirTree(
-  client: ApiClient,
-  path: string,
-): Promise<S.DirTreeResponse> {
+export async function fetchDirTree(client: ApiClient, path: string): Promise<S.DirTreeResponse> {
   // Always sent, blank included; encoded so "&", "#" or "+" in a folder name do not cut it short.
-  const res = await client.get<unknown>(
-    `/dirtree/?path=${encodeURIComponent(path)}`,
-  );
+  const res = await client.get<unknown>(`/dirtree/?path=${encodeURIComponent(path)}`);
   return parseResponse(S.DirTreeResponse, res, "directory tree");
 }
 
@@ -3336,11 +2553,7 @@ export async function fetchDirTree(
  * Admin: make the folder `name` in `parent`, a folder inside the data root (#2035). ApiError 400
  * for a bad name or parent or a folder the server cannot write to, 409 `folder_exists`.
  */
-export async function createFolder(
-  client: ApiClient,
-  parent: string,
-  name: string,
-): Promise<S.CreatedFolder> {
+export async function createFolder(client: ApiClient, parent: string, name: string): Promise<S.CreatedFolder> {
   const res = await client.post<unknown>("/dirtree/folders/", {
     parent_path: parent,
     name,
@@ -3349,9 +2562,7 @@ export async function createFolder(
 }
 
 /** The folders at the top of the user's Nextcloud. */
-export async function fetchNextcloudDirs(
-  client: ApiClient,
-): Promise<S.DirTreeResponse> {
+export async function fetchNextcloudDirs(client: ApiClient): Promise<S.DirTreeResponse> {
   const res = await client.get<unknown>("/nextcloud/listdir/?fpath=/");
   return parseResponse(S.DirTreeResponse, res, "Nextcloud directories");
 }
@@ -3359,26 +2570,15 @@ export async function fetchNextcloudDirs(
 /* ---- geocode ------------------------------------------------------------ */
 
 /** Places matching a name, for the location picker (the server asks its geocoder). */
-export async function searchGeocode(
-  client: ApiClient,
-  query: string,
-): Promise<S.GeocodeSearchResponse> {
-  const res = await client.get<unknown>(
-    `/geocode/search?q=${encodeURIComponent(query)}`,
-  );
+export async function searchGeocode(client: ApiClient, query: string): Promise<S.GeocodeSearchResponse> {
+  const res = await client.get<unknown>(`/geocode/search?q=${encodeURIComponent(query)}`);
   return parseResponse(S.GeocodeSearchResponse, res, "geocode search");
 }
 
 /** The place name at a spot, for the location picker before it saves. */
-export async function reverseGeocode(
-  client: ApiClient,
-  lat: number,
-  lon: number,
-): Promise<S.GeocodeReverseResponse> {
+export async function reverseGeocode(client: ApiClient, lat: number, lon: number): Promise<S.GeocodeReverseResponse> {
   const params = new URLSearchParams({ lat: String(lat), lon: String(lon) });
-  const res = await client.get<unknown>(
-    `/geocode/reverse/?${params.toString()}`,
-  );
+  const res = await client.get<unknown>(`/geocode/reverse/?${params.toString()}`);
   return parseResponse(S.GeocodeReverseResponse, res, "reverse geocode");
 }
 
@@ -3392,7 +2592,7 @@ export async function setPhotosLocation(
   client: ApiClient,
   imageHashes: string[],
   location: { lat: number; lon: number; overwrite: boolean },
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.SetPhotosLocationResponse> {
   const res = await client.post<unknown>("/photosedit/location/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3405,12 +2605,9 @@ export async function setPhotosLocation(
 export async function fetchLocationSummary(
   client: ApiClient,
   imageHashes: string[],
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.LocationSummaryResponse> {
-  const res = await client.post<unknown>(
-    "/photos/location-summary/",
-    photoSelection(imageHashes, selectAll),
-  );
+  const res = await client.post<unknown>("/photos/location-summary/", photoSelection(imageHashes, selectAll));
   return parseResponse(S.LocationSummaryResponse, res, "location summary");
 }
 
@@ -3426,7 +2623,7 @@ export async function setPhotosRights(
   imageHashes: string[],
   rights: S.PhotoRightsUpdate,
   keep: S.RightsKeep,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.SetPhotosRightsResponse> {
   const res = await client.post<unknown>("/photos/rights/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3440,32 +2637,20 @@ export async function setPhotosRights(
 export async function fetchRightsSummary(
   client: ApiClient,
   imageHashes: string[],
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.RightsSummaryResponse> {
-  const res = await client.post<unknown>(
-    "/photos/rights-summary/",
-    photoSelection(imageHashes, selectAll),
-  );
+  const res = await client.post<unknown>("/photos/rights-summary/", photoSelection(imageHashes, selectAll));
   return parseResponse(S.RightsSummaryResponse, res, "rights summary");
 }
 
 /** How many of my photos "Apply" of my default rights would reach. */
-export async function fetchRightsDefaultCounts(
-  client: ApiClient,
-): Promise<S.RightsDefaultCountsResponse> {
+export async function fetchRightsDefaultCounts(client: ApiClient): Promise<S.RightsDefaultCountsResponse> {
   const res = await client.get<unknown>("/photos/rights/apply-default/");
-  return parseResponse(
-    S.RightsDefaultCountsResponse,
-    res,
-    "default rights counts",
-  );
+  return parseResponse(S.RightsDefaultCountsResponse, res, "default rights counts");
 }
 
 /** Give my photos my default rights (Settings > Metadata), keeping what `keep` says. */
-export async function applyRightsDefault(
-  client: ApiClient,
-  keep: S.RightsKeep,
-): Promise<S.SetPhotosRightsResponse> {
+export async function applyRightsDefault(client: ApiClient, keep: S.RightsKeep): Promise<S.SetPhotosRightsResponse> {
   const res = await client.post<unknown>("/photos/rights/apply-default/", {
     keep,
   });
@@ -3476,17 +2661,11 @@ export async function applyRightsDefault(
 export async function fetchLocatedNearbyInTime(
   client: ApiClient,
   from: string,
-  to: string,
+  to: string
 ): Promise<S.LocatedPhotosResponse> {
   const params = new URLSearchParams({ from, to });
-  const res = await client.get<unknown>(
-    `/photos/located-nearby-in-time/?${params.toString()}`,
-  );
-  return parseResponse(
-    S.LocatedPhotosResponse,
-    res,
-    "photos located nearby in time",
-  );
+  const res = await client.get<unknown>(`/photos/located-nearby-in-time/?${params.toString()}`);
+  return parseResponse(S.LocatedPhotosResponse, res, "photos located nearby in time");
 }
 
 /* ---- the Places map (#343) ---------------------------------------------- */
@@ -3508,35 +2687,21 @@ const boundsQuery = ({ south, west, north, east }: MapBounds) =>
   });
 
 /** Where my photos were taken: one point per spot with the number of photos there. */
-export async function fetchPhotoMapPoints(
-  client: ApiClient,
-): Promise<S.PhotoMapPoints> {
+export async function fetchPhotoMapPoints(client: ApiClient): Promise<S.PhotoMapPoints> {
   const res = await client.get<unknown>("/photos/map-points/");
   return parseResponse(S.PhotoMapPoints, res, "photo map points");
 }
 
 /** Every one of my photos taken inside `bounds`, newest first (all pages). */
-export async function fetchPhotosInBounds(
-  client: ApiClient,
-  bounds: MapBounds,
-): Promise<S.PigPhoto[]> {
-  const results = await fetchAllPages(
-    client,
-    `/photos/in-bounds/?${boundsQuery(bounds).toString()}`,
-  );
+export async function fetchPhotosInBounds(client: ApiClient, bounds: MapBounds): Promise<S.PigPhoto[]> {
+  const results = await fetchAllPages(client, `/photos/in-bounds/?${boundsQuery(bounds).toString()}`);
   return parseResponse(S.PigPhoto.array(), results, "photos in bounds");
 }
 
 /** The ids of my place albums with a photo inside `bounds`. */
-export async function fetchPlaceAlbumsInBounds(
-  client: ApiClient,
-  bounds: MapBounds,
-): Promise<number[]> {
-  const res = await client.get<unknown>(
-    `/albums/place/in-bounds/?${boundsQuery(bounds).toString()}`,
-  );
-  return parseResponse(S.PlaceAlbumsInBounds, res, "place albums in bounds")
-    .ids;
+export async function fetchPlaceAlbumsInBounds(client: ApiClient, bounds: MapBounds): Promise<number[]> {
+  const res = await client.get<unknown>(`/albums/place/in-bounds/?${boundsQuery(bounds).toString()}`);
+  return parseResponse(S.PlaceAlbumsInBounds, res, "place albums in bounds").ids;
 }
 
 /* ---- moving photos (#352) ----------------------------------------------- */
@@ -3552,11 +2717,7 @@ export type MovePhotosTarget = {
   onConflict?: S.MoveOnConflict;
 };
 
-const moveTargetBody = ({
-  targetFolder,
-  folderPattern,
-  onConflict,
-}: MovePhotosTarget) => ({
+const moveTargetBody = ({ targetFolder, folderPattern, onConflict }: MovePhotosTarget) => ({
   target_folder: targetFolder,
   ...(folderPattern ? { folder_pattern: folderPattern } : {}),
   ...(onConflict ? { on_conflict: onConflict } : {}),
@@ -3567,7 +2728,7 @@ export async function previewPhotosMove(
   client: ApiClient,
   imageHashes: string[],
   target: Omit<MovePhotosTarget, "onConflict">,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.MovePreviewResponse> {
   const res = await client.post<unknown>("/photos/move/preview/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3584,7 +2745,7 @@ export async function movePhotos(
   client: ApiClient,
   imageHashes: string[],
   target: MovePhotosTarget,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.MovePhotosAnswer> {
   const res = await client.post<unknown>("/photos/move/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3600,7 +2761,7 @@ export async function previewPhotosRename(
   client: ApiClient,
   imageHashes: string[],
   pattern: string,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.RenamePreviewResponse> {
   const res = await client.post<unknown>("/photos/rename/preview/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3617,7 +2778,7 @@ export async function renamePhotos(
   client: ApiClient,
   imageHashes: string[],
   pattern: string,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.RenamePhotosAnswer> {
   const res = await client.post<unknown>("/photos/rename/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3627,12 +2788,8 @@ export async function renamePhotos(
 }
 
 /** The subfolders of `path` a move can go to; without it the library folders themselves. */
-export async function fetchMoveFolders(
-  client: ApiClient,
-  path: string | null,
-): Promise<S.LibraryFolderListing> {
-  const query =
-    path === null ? "" : `?${new URLSearchParams({ path }).toString()}`;
+export async function fetchMoveFolders(client: ApiClient, path: string | null): Promise<S.LibraryFolderListing> {
+  const query = path === null ? "" : `?${new URLSearchParams({ path }).toString()}`;
   const res = await client.get<unknown>(`/photos/move/folders/${query}`);
   return parseResponse(S.LibraryFolderListing, res, "move folders");
 }
@@ -3640,10 +2797,7 @@ export async function fetchMoveFolders(
 /* ---- media -------------------------------------------------------------- */
 
 /** Admin: why the web server refused to serve this photo's original. */
-export async function fetchMediaDiagnostics(
-  client: ApiClient,
-  mediaHash: string,
-): Promise<S.MediaDiagnostics> {
+export async function fetchMediaDiagnostics(client: ApiClient, mediaHash: string): Promise<S.MediaDiagnostics> {
   const res = await client.get<unknown>(`/media/diagnostics/${mediaHash}/`);
   return parseResponse(S.MediaDiagnostics, res, "media diagnostics");
 }
@@ -3654,26 +2808,16 @@ export async function fetchMediaDiagnostics(
  * Today's memories: photos from this date in earlier years. Each memory carries a page of its
  * photos; `size` asks for bigger pages (up to MAX_MEMORY_ITEMS).
  */
-export async function fetchMemories(
-  client: ApiClient,
-  size?: number,
-): Promise<S.FetchMemoriesResponse> {
-  const res = await client.get<unknown>(
-    size ? `/memories${buildQuery({ size })}` : "/memories",
-  );
+export async function fetchMemories(client: ApiClient, size?: number): Promise<S.FetchMemoriesResponse> {
+  const res = await client.get<unknown>(size ? `/memories${buildQuery({ size })}` : "/memories");
   return parseResponse(S.FetchMemoriesResponse, res, "memories");
 }
 
 /* ---- rewind ------------------------------------------------------------- */
 
 /** The user's year in photos; without `year`, this year (last year in January). */
-export async function fetchRewind(
-  client: ApiClient,
-  year?: number,
-): Promise<S.Rewind> {
-  const res = await client.get<unknown>(
-    year ? `/rewind/${buildQuery({ year })}` : "/rewind/",
-  );
+export async function fetchRewind(client: ApiClient, year?: number): Promise<S.Rewind> {
+  const res = await client.get<unknown>(year ? `/rewind/${buildQuery({ year })}` : "/rewind/");
   return parseResponse(S.Rewind, res, "rewind");
 }
 
@@ -3694,76 +2838,54 @@ function syncQuery(params: SyncPullParams): string {
   });
 }
 
-export async function syncPhotos(
-  client: ApiClient,
-  params: SyncPullParams = {},
-): Promise<S.SyncPhotosResponse> {
+export async function syncPhotos(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncPhotosResponse> {
   const res = await client.get<unknown>(`/sync/photos/${syncQuery(params)}`);
   return parseResponse(S.SyncPhotosResponse, res, "sync photos");
 }
 
-export async function syncPersons(
-  client: ApiClient,
-  params: SyncPullParams = {},
-): Promise<S.SyncPersonsResponse> {
+export async function syncPersons(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncPersonsResponse> {
   const res = await client.get<unknown>(`/sync/persons/${syncQuery(params)}`);
   return parseResponse(S.SyncPersonsResponse, res, "sync persons");
 }
 
 export async function syncUserAlbums(
   client: ApiClient,
-  params: SyncPullParams = {},
+  params: SyncPullParams = {}
 ): Promise<S.SyncUserAlbumsResponse> {
-  const res = await client.get<unknown>(
-    `/sync/albums/user/${syncQuery(params)}`,
-  );
+  const res = await client.get<unknown>(`/sync/albums/user/${syncQuery(params)}`);
   return parseResponse(S.SyncUserAlbumsResponse, res, "sync user albums");
 }
 
 export async function syncAutoAlbums(
   client: ApiClient,
-  params: SyncPullParams = {},
+  params: SyncPullParams = {}
 ): Promise<S.SyncAutoAlbumsResponse> {
-  const res = await client.get<unknown>(
-    `/sync/albums/auto/${syncQuery(params)}`,
-  );
+  const res = await client.get<unknown>(`/sync/albums/auto/${syncQuery(params)}`);
   return parseResponse(S.SyncAutoAlbumsResponse, res, "sync auto albums");
 }
 
 export async function syncThingAlbums(
   client: ApiClient,
-  params: SyncPullParams = {},
+  params: SyncPullParams = {}
 ): Promise<S.SyncThingAlbumsResponse> {
-  const res = await client.get<unknown>(
-    `/sync/albums/thing/${syncQuery(params)}`,
-  );
+  const res = await client.get<unknown>(`/sync/albums/thing/${syncQuery(params)}`);
   return parseResponse(S.SyncThingAlbumsResponse, res, "sync thing albums");
 }
 
 export async function syncPlaceAlbums(
   client: ApiClient,
-  params: SyncPullParams = {},
+  params: SyncPullParams = {}
 ): Promise<S.SyncPlaceAlbumsResponse> {
-  const res = await client.get<unknown>(
-    `/sync/albums/place/${syncQuery(params)}`,
-  );
+  const res = await client.get<unknown>(`/sync/albums/place/${syncQuery(params)}`);
   return parseResponse(S.SyncPlaceAlbumsResponse, res, "sync place albums");
 }
 
-export async function syncTagAlbums(
-  client: ApiClient,
-  params: SyncPullParams = {},
-): Promise<S.SyncTagAlbumsResponse> {
-  const res = await client.get<unknown>(
-    `/sync/albums/tag/${syncQuery(params)}`,
-  );
+export async function syncTagAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncTagAlbumsResponse> {
+  const res = await client.get<unknown>(`/sync/albums/tag/${syncQuery(params)}`);
   return parseResponse(S.SyncTagAlbumsResponse, res, "sync tag albums");
 }
 
-export async function syncSharing(
-  client: ApiClient,
-  params: SyncPullParams = {},
-): Promise<S.SyncSharingResponse> {
+export async function syncSharing(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncSharingResponse> {
   const res = await client.get<unknown>(`/sync/sharing/${syncQuery(params)}`);
   return parseResponse(S.SyncSharingResponse, res, "sync sharing");
 }
@@ -3785,7 +2907,7 @@ export async function setPhotosFavorite(
   client: ApiClient,
   imageHashes: string[],
   favorite: boolean,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/favorite/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3799,7 +2921,7 @@ export async function setPhotosHidden(
   client: ApiClient,
   imageHashes: string[],
   hidden: boolean,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/hide/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3816,7 +2938,7 @@ export async function setPhotosArchived(
   client: ApiClient,
   imageHashes: string[],
   archived: boolean,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/archive/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3830,7 +2952,7 @@ export async function setPhotosDeleted(
   client: ApiClient,
   imageHashes: string[],
   deleted: boolean,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/setdeleted/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3850,7 +2972,7 @@ export async function setPhotosCategory(
   client: ApiClient,
   imageHashes: string[],
   category: PhotoCategory | "auto",
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/category/", {
     ...photoSelection(imageHashes, selectAll),
@@ -3863,12 +2985,9 @@ export async function setPhotosCategory(
 export async function deletePhotos(
   client: ApiClient,
   imageHashes: string[],
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.DeletePhotosResponse> {
-  const res = await client.delete<unknown>(
-    "/photosedit/delete/",
-    photoSelection(imageHashes, selectAll),
-  );
+  const res = await client.delete<unknown>("/photosedit/delete/", photoSelection(imageHashes, selectAll));
   return parseResponse(S.DeletePhotosResponse, res, "delete photos");
 }
 
@@ -3886,7 +3005,7 @@ export async function deletePhotos(
 export async function setPhotosRating(
   client: ApiClient,
   imageHashes: string[],
-  rating: number,
+  rating: number
 ): Promise<S.BulkPhotoMutationResponse> {
   const res = await client.post<unknown>("/photosedit/rating/", {
     image_hashes: imageHashes,
@@ -3899,7 +3018,7 @@ export async function setPhotosRating(
 export async function setPhotoRating(
   client: ApiClient,
   imageHash: string,
-  rating: number,
+  rating: number
 ): Promise<S.BulkPhotoMutationResponse> {
   return setPhotosRating(client, [imageHash], rating);
 }
@@ -3917,7 +3036,7 @@ export async function setPhotoRating(
 export async function setPhotoTimestamp(
   client: ApiClient,
   imageHash: string,
-  timestamp: string | null,
+  timestamp: string | null
 ): Promise<S.PhotoEditResponse> {
   const res = await client.patch<unknown>(`/photos/edit/${imageHash}/`, {
     exif_timestamp: timestamp,
@@ -3926,8 +3045,7 @@ export async function setPhotoTimestamp(
 }
 
 /** How a bulk date change moves the photos: by a number of seconds, or all to one wall-clock time. */
-export type DateTimeChange =
-  { mode: "shift"; seconds: number } | { mode: "set"; datetime: string };
+export type DateTimeChange = { mode: "shift"; seconds: number } | { mode: "set"; datetime: string };
 
 /**
  * Shift the date of photos by `seconds` (negative for earlier), or give them all one date and time
@@ -3938,29 +3056,22 @@ export async function setPhotosDateTime(
   client: ApiClient,
   imageHashes: string[],
   change: DateTimeChange,
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.SetPhotosDateTimeResponse> {
   const res = await client.post<unknown>("/photosedit/datetime/", {
     ...photoSelection(imageHashes, selectAll),
     ...change,
   });
-  return parseResponse(
-    S.SetPhotosDateTimeResponse,
-    res,
-    "set photos date and time",
-  );
+  return parseResponse(S.SetPhotosDateTimeResponse, res, "set photos date and time");
 }
 
 /** The dates of a selection (by hash, or selected-all): counts and the oldest and newest dated photo. */
 export async function fetchDateSummary(
   client: ApiClient,
   imageHashes: string[],
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.DateSummary> {
-  const res = await client.post<unknown>(
-    "/photos/date-summary/",
-    photoSelection(imageHashes, selectAll),
-  );
+  const res = await client.post<unknown>("/photos/date-summary/", photoSelection(imageHashes, selectAll));
   return parseResponse(S.DateSummary, res, "date summary");
 }
 
@@ -3968,7 +3079,7 @@ export async function fetchDateSummary(
 export async function savePhotoCaption(
   client: ApiClient,
   imageHash: string,
-  caption: string,
+  caption: string
 ): Promise<S.StatusResponse> {
   const res = await client.post<unknown>("/photosedit/savecaption/", {
     image_hash: imageHash,
@@ -3990,10 +3101,7 @@ export type SelectAllPhotos = {
  * Which photos a bulk photo mutation applies to: the hashes, or with `selectAll` the query and its
  * exclusions (`select_all`, `query`, `excluded_hashes`; what is not set is left out).
  */
-function photoSelection(
-  imageHashes: string[],
-  selectAll: SelectAllPhotos | undefined,
-) {
+function photoSelection(imageHashes: string[], selectAll: SelectAllPhotos | undefined) {
   if (!selectAll) return { image_hashes: imageHashes };
   return {
     select_all: true,
@@ -4002,11 +3110,7 @@ function photoSelection(
   };
 }
 
-function userAlbumPhotosBody(
-  title: string,
-  photoIds: string[],
-  selectAll: SelectAllPhotos | undefined,
-) {
+function userAlbumPhotosBody(title: string, photoIds: string[], selectAll: SelectAllPhotos | undefined) {
   if (!selectAll) return { title, photos: photoIds };
   return {
     title,
@@ -4022,12 +3126,9 @@ export async function createUserAlbum(
   client: ApiClient,
   title: string,
   photoIds: string[],
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.CreateUserAlbumResponse> {
-  const res = await client.post<unknown>(
-    "/albums/user/edit/",
-    userAlbumPhotosBody(title, photoIds, selectAll),
-  );
+  const res = await client.post<unknown>("/albums/user/edit/", userAlbumPhotosBody(title, photoIds, selectAll));
   return parseResponse(S.CreateUserAlbumResponse, res, "create user album");
 }
 
@@ -4038,16 +3139,12 @@ export async function createUserAlbum(
 export async function addPhotosToUserAlbumById(
   client: ApiClient,
   albumId: number | string,
-  photoIds: string[],
+  photoIds: string[]
 ): Promise<S.UserAlbumEditResponse> {
   const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, {
     photos: photoIds,
   });
-  return parseResponse(
-    S.UserAlbumEditResponse,
-    res,
-    "add photos to user album by id",
-  );
+  return parseResponse(S.UserAlbumEditResponse, res, "add photos to user album by id");
 }
 
 /** Add photos (by UUID pk, or a selected-all set) to an existing user album. */
@@ -4056,41 +3153,30 @@ export async function addPhotosToUserAlbum(
   albumId: number | string,
   title: string,
   photoIds: string[],
-  selectAll?: SelectAllPhotos,
+  selectAll?: SelectAllPhotos
 ): Promise<S.UserAlbumEditResponse> {
   const body = userAlbumPhotosBody(title, photoIds, selectAll);
-  const res = await client.patch<unknown>(
-    `/albums/user/edit/${albumId}/`,
-    body,
-  );
-  return parseResponse(
-    S.UserAlbumEditResponse,
-    res,
-    "add photos to user album",
-  );
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, body);
+  return parseResponse(S.UserAlbumEditResponse, res, "add photos to user album");
 }
 
 /** Remove photos (by image hash) from a user album. */
 export async function removePhotosFromUserAlbum(
   client: ApiClient,
   albumId: number | string,
-  imageHashes: string[],
+  imageHashes: string[]
 ): Promise<S.UserAlbumEditResponse> {
   const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, {
     removedPhotos: imageHashes,
   });
-  return parseResponse(
-    S.UserAlbumEditResponse,
-    res,
-    "remove photos from user album",
-  );
+  return parseResponse(S.UserAlbumEditResponse, res, "remove photos from user album");
 }
 
 /** Set a user album's cover photo by photo id, or null for the automatic cover. */
 export async function setUserAlbumCover(
   client: ApiClient,
   albumId: number | string,
-  coverPhoto: string | null,
+  coverPhoto: string | null
 ): Promise<S.UserAlbumEditResponse> {
   const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, {
     cover_photo: coverPhoto,
@@ -4102,7 +3188,7 @@ export async function setUserAlbumCover(
 export async function setUserAlbumLocked(
   client: ApiClient,
   albumId: number | string,
-  locked: boolean,
+  locked: boolean
 ): Promise<S.UserAlbumEditResponse> {
   const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, {
     locked,
@@ -4114,7 +3200,7 @@ export async function setUserAlbumLocked(
 export async function renameUserAlbum(
   client: ApiClient,
   albumId: number | string,
-  title: string,
+  title: string
 ): Promise<S.UserAlbumRenameResponse> {
   const res = await client.patch<unknown>(`/albums/user/${albumId}/`, {
     title,
@@ -4123,32 +3209,20 @@ export async function renameUserAlbum(
 }
 
 /** Delete a user album; its photos stay. Answers 204. */
-export async function deleteUserAlbum(
-  client: ApiClient,
-  albumId: number | string,
-): Promise<void> {
+export async function deleteUserAlbum(client: ApiClient, albumId: number | string): Promise<void> {
   await client.delete(`/albums/user/${albumId}/`);
 }
 
 /* ---- album collections (#1009) ----------------------------------------- */
 
 /** The user's album collections by name, all pages. */
-export async function fetchAlbumCollections(
-  client: ApiClient,
-): Promise<S.AlbumCollection[]> {
+export async function fetchAlbumCollections(client: ApiClient): Promise<S.AlbumCollection[]> {
   const results = await fetchAllPages(client, "/albums/collections/");
-  return parseResponse(
-    S.AlbumCollectionListResponse,
-    { results },
-    "album collections",
-  ).results;
+  return parseResponse(S.AlbumCollectionListResponse, { results }, "album collections").results;
 }
 
 /** Create a collection. A name the user already has (in any letter case) is a 400 on `name`. */
-export async function createAlbumCollection(
-  client: ApiClient,
-  name: string,
-): Promise<S.AlbumCollection> {
+export async function createAlbumCollection(client: ApiClient, name: string): Promise<S.AlbumCollection> {
   const res = await client.post<unknown>("/albums/collections/", { name });
   return parseResponse(S.AlbumCollection, res, "create album collection");
 }
@@ -4157,20 +3231,14 @@ export async function createAlbumCollection(
 export async function renameAlbumCollection(
   client: ApiClient,
   collectionId: number,
-  name: string,
+  name: string
 ): Promise<S.AlbumCollection> {
-  const res = await client.patch<unknown>(
-    `/albums/collections/${collectionId}/`,
-    { name },
-  );
+  const res = await client.patch<unknown>(`/albums/collections/${collectionId}/`, { name });
   return parseResponse(S.AlbumCollection, res, "rename album collection");
 }
 
 /** Delete a collection; its albums stay. Answers 204. */
-export async function deleteAlbumCollection(
-  client: ApiClient,
-  collectionId: number,
-): Promise<void> {
+export async function deleteAlbumCollection(client: ApiClient, collectionId: number): Promise<void> {
   await client.delete(`/albums/collections/${collectionId}/`);
 }
 
@@ -4178,20 +3246,13 @@ export async function deleteAlbumCollection(
 export async function setUserAlbumCollections(
   client: ApiClient,
   albumId: number | string,
-  collectionIds: number[],
+  collectionIds: number[]
 ): Promise<S.UserAlbumCollections> {
-  const res = await client.request<unknown>(
-    `/albums/user/${albumId}/collections/`,
-    {
-      method: "PUT",
-      body: { collection_ids: collectionIds },
-    },
-  );
-  return parseResponse(
-    S.UserAlbumCollections,
-    res,
-    "set user album collections",
-  );
+  const res = await client.request<unknown>(`/albums/user/${albumId}/collections/`, {
+    method: "PUT",
+    body: { collection_ids: collectionIds },
+  });
+  return parseResponse(S.UserAlbumCollections, res, "set user album collections");
 }
 
 /**
@@ -4201,7 +3262,7 @@ export async function setUserAlbumCollections(
 export async function setAutoAlbumCover(
   client: ApiClient,
   albumId: number | string,
-  coverPhoto: string | null,
+  coverPhoto: string | null
 ): Promise<S.AutoAlbumEdit> {
   const res = await client.patch<unknown>(`/albums/auto/${albumId}/`, {
     cover_photo: coverPhoto,
@@ -4210,10 +3271,7 @@ export async function setAutoAlbumCover(
 }
 
 /** Delete one event album. Answers 204. */
-export async function deleteAutoAlbum(
-  client: ApiClient,
-  albumId: number | string,
-): Promise<void> {
+export async function deleteAutoAlbum(client: ApiClient, albumId: number | string): Promise<void> {
   await client.delete(`/albums/auto/${albumId}/`);
 }
 
@@ -4224,9 +3282,7 @@ export async function deleteAllAutoAlbums(client: ApiClient): Promise<string> {
 }
 
 /** The saved error reports, newest first, at most 30 (admins only, #2938). */
-export async function fetchErrorReports(
-  client: ApiClient,
-): Promise<S.ErrorReport[]> {
+export async function fetchErrorReports(client: ApiClient): Promise<S.ErrorReport[]> {
   const res = await client.get<unknown>("/error-reports/");
   return parseResponse(S.ErrorReport.array(), res, "error reports");
 }
@@ -4236,30 +3292,19 @@ export async function fetchErrorReports(
  * error reporting is off. A 502 when that server refuses it, a 503 `no_error_reporting_server` when
  * there is none.
  */
-export async function sendErrorReport(
-  client: ApiClient,
-  reportId: number,
-): Promise<S.ErrorReport> {
-  const res = await client.post<unknown>(
-    `/error-reports/${reportId}/send/`,
-    {},
-  );
+export async function sendErrorReport(client: ApiClient, reportId: number): Promise<S.ErrorReport> {
+  const res = await client.post<unknown>(`/error-reports/${reportId}/send/`, {});
   return parseResponse(S.ErrorReport, res, "send error report");
 }
 
 /** Send all: every saved report not sent yet, to the same server as Send once. */
-export async function sendAllErrorReports(
-  client: ApiClient,
-): Promise<S.ErrorReportSendAll> {
+export async function sendAllErrorReports(client: ApiClient): Promise<S.ErrorReportSendAll> {
   const res = await client.post<unknown>("/error-reports/send/", {});
   return parseResponse(S.ErrorReportSendAll, res, "send all error reports");
 }
 
 /** Delete one saved report. Answers 204. */
-export async function deleteErrorReport(
-  client: ApiClient,
-  reportId: number,
-): Promise<void> {
+export async function deleteErrorReport(client: ApiClient, reportId: number): Promise<void> {
   await client.delete(`/error-reports/${reportId}/`);
 }
 
@@ -4269,10 +3314,7 @@ export async function deleteAllErrorReports(client: ApiClient): Promise<void> {
 }
 
 /** One saved report's event, exactly as it would be sent, as a JSON file. */
-export async function downloadErrorReport(
-  client: ApiClient,
-  reportId: number,
-): Promise<Blob> {
+export async function downloadErrorReport(client: ApiClient, reportId: number): Promise<Blob> {
   return client.getBlob(`/error-reports/${reportId}/download/`);
 }
 
@@ -4280,10 +3322,7 @@ export async function downloadErrorReport(
  * Forward a browser error (a Sentry envelope, as text) to the server, which scrubs and saves it like
  * its own and sends it on only when an admin chose a server (#2938). Any signed-in user may.
  */
-export async function forwardBrowserErrorReport(
-  client: ApiClient,
-  envelope: string,
-): Promise<S.BrowserErrorReport> {
+export async function forwardBrowserErrorReport(client: ApiClient, envelope: string): Promise<S.BrowserErrorReport> {
   const res = await client.post<unknown>("/error-reports/browser/", {
     envelope,
   });
