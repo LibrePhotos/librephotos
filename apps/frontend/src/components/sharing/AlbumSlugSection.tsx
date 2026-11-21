@@ -2,6 +2,7 @@ import type { PublicSharingOptions, UserAlbum } from "@librephotos/api-client";
 import { type PublicSharingDefaults } from "@librephotos/api-client";
 import { Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconPlayerPlay } from "@tabler/icons-react";
 import React, { useEffect, useEffectEvent, useState } from "react";

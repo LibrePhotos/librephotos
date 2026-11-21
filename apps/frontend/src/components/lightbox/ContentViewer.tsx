@@ -1,4 +1,5 @@
 import { Carousel, type CarouselProps } from "@mantine/carousel";
+import "@mantine/carousel/styles.css";
 import { Modal } from "@mantine/core";
 import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
 import { IconChevronLeft as ChevronLeft, IconChevronRight as ChevronRight } from "@tabler/icons-react";

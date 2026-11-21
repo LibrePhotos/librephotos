@@ -1,5 +1,6 @@
 import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { DatePicker, TimeInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconCalendar as Calendar, IconCheck as Check, IconEraser, IconX as X } from "@tabler/icons-react";
 import React, { useId, useState } from "react";

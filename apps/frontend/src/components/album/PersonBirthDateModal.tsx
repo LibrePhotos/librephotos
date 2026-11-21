@@ -1,6 +1,7 @@
 import type { DatePhotosGroup } from "@librephotos/api-client";
 import { Alert, Button, FocusTrap, Group, Modal, Stack } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconAlertTriangle, IconCake } from "@tabler/icons-react";
 import React from "react";

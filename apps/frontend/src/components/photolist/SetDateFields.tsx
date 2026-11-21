@@ -1,5 +1,6 @@
 import { Stack, Text } from "@mantine/core";
 import { DatePicker, TimeInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import type { UseFormReturnType } from "@mantine/form";
 import React from "react";
 import { useTranslation } from "react-i18next";

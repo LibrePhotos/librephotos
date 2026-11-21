@@ -58,7 +58,7 @@ describe("i18n lazy locale loading", () => {
     expect(Settings.defaultLocale).toBe("nb-NO");
   });
 
-  it("bundles English and leaves other locales unloaded until needed", async () => {
+  it("loads English as the fallback and leaves other locales unloaded until needed", async () => {
     window.localStorage.setItem("i18nextLng", "en");
     const i18n = await loadI18n();
 

@@ -2,20 +2,17 @@ import i18n, { type BackendModule, type ResourceKey } from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { Settings } from "luxon";
 import { initReactI18next } from "react-i18next";
-import translationEn from "./locales/en/translation.json";
 import { formatCount, intlLocale } from "./util/formatCount";
 
 export const i18nResolvedLanguage = () => intlLocale(i18n.resolvedLanguage);
 
-// English ships in the main bundle: it is the fallback language and the one
-// most people use. Every other directory under ./locales is its own chunk,
-// fetched the first time that language is needed (initial detection or a
-// switch in the settings). The list comes from the files, so a language that
-// Weblate adds loads with no change here.
-const localeFiles = import.meta.glob<{ default: ResourceKey }>([
-  "./locales/*/translation.json",
-  "!./locales/en/translation.json",
-]);
+const localeFiles = import.meta.glob<{ default: ResourceKey }>("./locales/*/translation.json");
+const englishInTests =
+  import.meta.env.MODE === "test"
+    ? import.meta.glob<ResourceKey>("./locales/en/translation.json", { eager: true, import: "default" })[
+        "./locales/en/translation.json"
+      ]
+    : undefined;
 // The names of the things the tagger finds (#2744), one chunk per language,
 // English included: an English name is the stored tag itself, so nothing waits
 // for it, and only the pages that show things load the namespace.
@@ -125,8 +122,7 @@ export const i18nReady = i18n
   // init i18next
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
-    resources: { en: { translation: translationEn } },
-    // Load everything that is not in `resources` through lazyLocaleBackend.
+    resources: englishInTests ? { en: { translation: englishInTests } } : undefined,
     partialBundledLanguages: true,
     debug: process.env.NODE_ENV === "development",
     fallbackLng: "en",
