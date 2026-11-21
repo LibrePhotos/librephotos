@@ -1,47 +1,95 @@
-; LibrePhotos Viewer: NSIS installer hooks (tauri.conf.json > bundle > windows > nsis > installerHooks).
-;
-; Tauri's template writes the ProgIDs (fileAssociations) but no "Capabilities", so Windows 11 lists
-; the app under "Open with" without giving it a page in Settings > Apps > Default apps. Registering
-; it under Software\RegisteredApplications as "${PRODUCTNAME}" adds that page, and the app's
-; "Set as default photo viewer" opens it with ms-settings:defaultapps?registeredAppUser=<name>
-; (see src/ops.rs; the name there must match PRODUCTNAME). SHCTX is HKCU or HKLM, as the install mode.
+!define LPV_CAPABILITIES "Software\${PRODUCTNAME}\Capabilities"
+!define LPV_APPLICATION "Software\Classes\Applications\${MAINBINARYNAME}.exe"
+!define LPV_APP_PATH "Software\Microsoft\Windows\CurrentVersion\App Paths\${MAINBINARYNAME}.exe"
+
+!macro LPV_EACH_TYPE MACRO
+  !insertmacro ${MACRO} ".jpg" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".jpeg" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".jpe" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".jfif" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".png" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".gif" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".webp" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".bmp" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".tif" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".tiff" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".heic" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".heif" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".hif" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".avif" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".jxl" "LibrePhotosViewer.Image"
+  !insertmacro ${MACRO} ".dng" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".cr2" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".cr3" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".nef" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".nrw" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".arw" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".orf" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".rw2" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".raf" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".pef" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".srw" "LibrePhotosViewer.Raw"
+  !insertmacro ${MACRO} ".raw" "LibrePhotosViewer.Raw"
+!macroend
+
+!macro LPV_OFFER_TYPE EXT PROGID
+  ReadRegStr $R0 SHCTX "Software\Classes\${EXT}" ""
+  ${If} $R0 == "${PROGID}"
+    ReadRegStr $R1 SHCTX "Software\Classes\${EXT}" "${PROGID}_backup"
+    ${If} $R1 == ""
+      DeleteRegValue SHCTX "Software\Classes\${EXT}" ""
+    ${Else}
+      WriteRegStr SHCTX "Software\Classes\${EXT}" "" "$R1"
+    ${EndIf}
+  ${EndIf}
+  DeleteRegValue SHCTX "Software\Classes\${EXT}" "${PROGID}_backup"
+  WriteRegStr SHCTX "Software\Classes\${EXT}\OpenWithProgids" "${PROGID}" ""
+  WriteRegStr SHCTX "${LPV_APPLICATION}\SupportedTypes" "${EXT}" ""
+  WriteRegStr SHCTX "${LPV_CAPABILITIES}\FileAssociations" "${EXT}" "${PROGID}"
+!macroend
+
+!macro LPV_KEEP_DEFAULT_ON_UNINSTALL EXT PROGID
+  ReadRegStr $R0 SHCTX "Software\Classes\${EXT}" ""
+  ${If} $R0 == "${PROGID}"
+    StrCpy $R0 ""
+  ${EndIf}
+  WriteRegStr SHCTX "Software\Classes\${EXT}" "${PROGID}_backup" "$R0"
+!macroend
+
+!macro LPV_WITHDRAW_TYPE EXT PROGID
+  DeleteRegValue SHCTX "Software\Classes\${EXT}" "${PROGID}_backup"
+  ReadRegStr $R0 SHCTX "Software\Classes\${EXT}" ""
+  ${If} $R0 == ""
+    DeleteRegValue SHCTX "Software\Classes\${EXT}" ""
+  ${EndIf}
+  DeleteRegValue SHCTX "Software\Classes\${EXT}\OpenWithProgids" "${PROGID}"
+  DeleteRegKey /ifempty SHCTX "Software\Classes\${EXT}\OpenWithProgids"
+  DeleteRegKey /ifempty SHCTX "Software\Classes\${EXT}"
+!macroend
 
 !macro NSIS_HOOK_POSTINSTALL
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities" "ApplicationName" "${PRODUCTNAME}"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities" "ApplicationDescription" "Fast, private, local photo viewer"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities" "ApplicationIcon" "$INSTDIR\${MAINBINARYNAME}.exe,0"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".jpg" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".jpeg" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".jpe" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".jfif" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".png" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".gif" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".webp" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".bmp" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".tif" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".tiff" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".heic" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".heif" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".hif" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".avif" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".jxl" "LibrePhotosViewer.Image"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".dng" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".cr2" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".cr3" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".nef" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".nrw" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".arw" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".orf" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".rw2" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".raf" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".pef" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".srw" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\${PRODUCTNAME}\Capabilities\FileAssociations" ".raw" "LibrePhotosViewer.Raw"
-  WriteRegStr SHCTX "Software\RegisteredApplications" "${PRODUCTNAME}" "Software\${PRODUCTNAME}\Capabilities"
+  WriteRegStr SHCTX "${LPV_CAPABILITIES}" "ApplicationName" "${PRODUCTNAME}"
+  WriteRegStr SHCTX "${LPV_CAPABILITIES}" "ApplicationDescription" "Fast, private, local photo viewer"
+  WriteRegStr SHCTX "${LPV_CAPABILITIES}" "ApplicationIcon" "$INSTDIR\${MAINBINARYNAME}.exe,0"
+  WriteRegStr SHCTX "${LPV_APPLICATION}" "FriendlyAppName" "${PRODUCTNAME}"
+  WriteRegStr SHCTX "${LPV_APPLICATION}\DefaultIcon" "" "$\"$INSTDIR\${MAINBINARYNAME}.exe$\",0"
+  WriteRegStr SHCTX "${LPV_APPLICATION}\shell\open\command" "" "$\"$INSTDIR\${MAINBINARYNAME}.exe$\" $\"%1$\""
+  WriteRegStr SHCTX "${LPV_APP_PATH}" "" "$INSTDIR\${MAINBINARYNAME}.exe"
+  !insertmacro LPV_EACH_TYPE LPV_OFFER_TYPE
+  WriteRegStr SHCTX "Software\RegisteredApplications" "${PRODUCTNAME}" "${LPV_CAPABILITIES}"
+  System::Call "shell32::SHChangeNotify(i 0x08000000, i 0x1000, p 0, p 0)"
+!macroend
+
+!macro NSIS_HOOK_PREUNINSTALL
+  !insertmacro LPV_EACH_TYPE LPV_KEEP_DEFAULT_ON_UNINSTALL
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL
   DeleteRegValue SHCTX "Software\RegisteredApplications" "${PRODUCTNAME}"
-  DeleteRegKey SHCTX "Software\${PRODUCTNAME}\Capabilities"
+  DeleteRegKey SHCTX "${LPV_CAPABILITIES}"
   DeleteRegKey /ifempty SHCTX "Software\${PRODUCTNAME}"
+  DeleteRegKey SHCTX "${LPV_APPLICATION}"
+  DeleteRegKey SHCTX "${LPV_APP_PATH}"
+  !insertmacro LPV_EACH_TYPE LPV_WITHDRAW_TYPE
+  System::Call "shell32::SHChangeNotify(i 0x08000000, i 0x1000, p 0, p 0)"
 !macroend
