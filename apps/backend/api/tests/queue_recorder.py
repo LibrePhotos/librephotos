@@ -44,3 +44,17 @@ def queued_calls() -> list[QueuedCall]:
         )
         for task in QueuedTask.objects.order_by("id")
     ]
+
+
+def run_queued(limit: int = 10000) -> int:
+    from api.jobs.worker import run_task
+    from api.models.task_queue import QUEUES
+
+    ran = 0
+    while ran < limit:
+        task = store.claim("test-runner", QUEUES)
+        if task is None:
+            return ran
+        run_task(task)
+        ran += 1
+    return ran

@@ -15,7 +15,8 @@ from django.test import TestCase
 from api.directory_watcher import processing_jobs
 from api.drf.exceptions import JobAlreadyRunning, QueueBusy
 from api.jobs.queue import enqueue_job, reserve_job
-from api.models import LongRunningJob
+from api.models import LongRunningJob, QueuedTask
+from api.models.task_queue import QUEUED, WAITING
 from api.runtime.ml_models import start_model_download
 from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_job, create_test_user
@@ -91,46 +92,67 @@ class ScanBesideMoveTest(TestCase):
 
 
 class ScanFacesTailTest(TestCase):
-    """Scan Faces encodes and clusters under rows written like a user's start."""
-
     def setUp(self) -> None:
         self.user = create_test_user()
 
-    def run_tail(self) -> tuple[MagicMock, MagicMock]:
+    def run_tail(self) -> list[QueuedTask]:
         needs_encoding = MagicMock()
         needs_encoding.exists.return_value = True
         with (
-            patch.object(processing_jobs, "generate_face_embeddings") as encode,
-            patch.object(processing_jobs, "cluster_all_faces") as cluster,
             patch.object(
                 processing_jobs, "faces_missing_encoding", return_value=needs_encoding
             ),
             patch.object(processing_jobs, "feature_enabled", return_value=True),
         ):
-            processing_jobs._encode_and_cluster(self.user)
-        return encode, cluster
+            processing_jobs._queue_face_followups(self.user)
+        return list(QueuedTask.objects.order_by("id"))
 
-    def test_each_step_runs_under_a_row_of_its_type(self) -> None:
-        encode, cluster = self.run_tail()
+    def test_embeddings_then_clustering_each_under_a_row_of_its_type(self) -> None:
+        embeddings, clustering = self.run_tail()
 
-        for work, job_type in (
-            (encode, J.JOB_GENERATE_FACE_EMBEDDINGS),
-            (cluster, J.JOB_CLUSTER_ALL_FACES),
+        self.assertEqual(
+            [
+                (
+                    "api.directory_watcher.processing_jobs.generate_face_embeddings",
+                    QUEUED,
+                ),
+                ("api.faces.classify.cluster_all_faces", WAITING),
+            ],
+            [
+                (embeddings.func, embeddings.status),
+                (clustering.func, clustering.status),
+            ],
+        )
+        self.assertEqual(embeddings.pk, clustering.after_id)
+        self.assertFalse(clustering.continue_on_error)
+        for task, job_type in (
+            (embeddings, J.JOB_GENERATE_FACE_EMBEDDINGS),
+            (clustering, J.JOB_CLUSTER_ALL_FACES),
         ):
             with self.subTest(job_type=job_type):
-                work.assert_called_once()
-                job_id = work.call_args.kwargs["job_id"]
-                job = J.objects.get(job_id=job_id)
-                self.assertEqual(job.job_type, job_type)
-                self.assertEqual(job.started_by, self.user)
+                job = J.objects.get(job_id=task.job_id)
+                self.assertEqual((job_type, self.user), (job.job_type, job.started_by))
 
     def test_a_step_the_user_started_is_left_to_that_job(self) -> None:
         create_test_job(self.user, J.JOB_GENERATE_FACE_EMBEDDINGS)
 
-        encode, cluster = self.run_tail()
+        [clustering] = self.run_tail()
 
-        encode.assert_not_called()
-        cluster.assert_called_once()
+        self.assertEqual(
+            J.JOB_CLUSTER_ALL_FACES, J.objects.get(job_id=clustering.job_id).job_type
+        )
+
+    def test_lanes_finishing_together_queue_the_follow_ups_once(self) -> None:
+        self.run_tail()
+        self.run_tail()
+
+        self.assertEqual(2, QueuedTask.objects.count())
+        self.assertEqual(
+            2,
+            J.objects.filter(
+                job_type__in=[J.JOB_GENERATE_FACE_EMBEDDINGS, J.JOB_CLUSTER_ALL_FACES]
+            ).count(),
+        )
 
     def test_reserving_is_refused_like_a_start(self) -> None:
         running = create_test_job(self.user, J.JOB_CLUSTER_ALL_FACES)

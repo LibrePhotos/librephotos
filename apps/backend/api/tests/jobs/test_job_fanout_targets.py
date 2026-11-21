@@ -21,6 +21,7 @@ from api.directory_watcher import processing_jobs
 from api.models import LongRunningJob, Photo
 from api.models.photo_caption import PhotoCaption
 from api.search.semantic import OPENCLIP
+from api.tests.queue_recorder import run_queued
 from api.tests.utils import create_test_photo, create_test_user
 from api.video import color, transcode_cache
 
@@ -116,9 +117,10 @@ class WalkedFanOutTest(TestCase):
         with (
             meanwhile(scanned_elsewhere),
             patch.object(processing_jobs, "extract_faces") as extract,
-            patch.object(processing_jobs, "_encode_and_cluster"),
+            patch.object(processing_jobs, "_queue_face_followups"),
         ):
             processing_jobs.scan_faces(self.user, self.job_id)
+            run_queued()
 
         self.assertEqual(
             [call.args[0].pk for call in extract.call_args_list], [photos[0].pk]
@@ -131,9 +133,10 @@ class WalkedFanOutTest(TestCase):
         with (
             meanwhile(lambda: Photo.objects.filter(pk=photos[0].pk).delete()),
             patch.object(processing_jobs, "extract_faces"),
-            patch.object(processing_jobs, "_encode_and_cluster"),
+            patch.object(processing_jobs, "_queue_face_followups"),
         ):
             processing_jobs.scan_faces(self.user, self.job_id)
+            run_queued()
 
         self.assert_finished_at_target(2)
 
@@ -143,9 +146,10 @@ class WalkedFanOutTest(TestCase):
         with (
             meanwhile(lambda: create_test_photo(owner=self.user)),
             patch.object(processing_jobs, "extract_faces") as extract,
-            patch.object(processing_jobs, "_encode_and_cluster"),
+            patch.object(processing_jobs, "_queue_face_followups"),
         ):
             processing_jobs.scan_faces(self.user, self.job_id)
+            run_queued()
 
         self.assertEqual(extract.call_count, 1)
         self.assert_finished_at_target(1)

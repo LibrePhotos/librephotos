@@ -23,9 +23,9 @@ from api.jobs.queue import (
 from api.jobs.release_guard import ReleaseGuard
 from api.jobs.worker import Worker, WorkerStoppingError, run_task
 from api.jobs.worker_settings import WorkerSettings
-from api.models import LongRunningJob, QueuedTask, TaskSchedule, User
+from api.models import LongRunningJob, QueuedTask, TaskGroup, TaskSchedule, User
 from api.models.task_queue import CANCELLED, FAILED, QUEUED, RUNNING, WAITING
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_job, create_test_user
 
 CALLS: list[tuple[object, ...]] = []
 
@@ -323,6 +323,36 @@ def cancel_my_job_step(user: User, job_id: str) -> None:
 
 def explode_step(user: User, job_id: str) -> None:
     explode()
+
+
+class GroupTest(TestCase):
+    def setUp(self):
+        CALLS.clear()
+
+    def test_the_follow_up_runs_once_after_every_member_ended(self):
+        job = create_test_job(
+            started_by=create_test_user(), job_type=LongRunningJob.JOB_SCAN_FACES
+        )
+        group = store.new_group(3)
+        store.add(record, ("ok",), None, store.Placement(group=group))
+        store.add(explode, (), None, store.Placement(group=group))
+        store.add(per_photo, ("p", job.job_id), None, store.Placement(group=group))
+        store.add(
+            record,
+            ("then",),
+            None,
+            store.Placement(group=group, status=WAITING, is_group_followup=True),
+        )
+
+        remove_queued_tasks(job.job_id)
+        _run_next()
+        self.assertEqual(WAITING, QueuedTask.objects.get(is_group_followup=True).status)
+        _run_next()
+        _run_next()
+
+        self.assertEqual([(("ok",), {}), (("then",), {})], CALLS)
+        self.assertTrue(TaskGroup.objects.get().fired)
+        self.assertEqual(3, TaskGroup.objects.get().ended)
 
 
 class DedupeTest(TestCase):
