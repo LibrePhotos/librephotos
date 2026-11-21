@@ -1,0 +1,66 @@
+name: opencv-wheel
+
+on:
+  push:
+    paths:
+      - apps/backend/scripts/build_opencv_wheel.py
+      - apps/backend/scripts/opencv_wheel_parity.py
+      - .github/workflows/opencv-wheel.yml
+  pull_request:
+    paths:
+      - apps/backend/scripts/build_opencv_wheel.py
+      - apps/backend/scripts/opencv_wheel_parity.py
+      - .github/workflows/opencv-wheel.yml
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest, arch: x86_64, variant: "", modules: "", defines: "" }
+          - { runner: ubuntu-24.04-arm, arch: aarch64, variant: "", modules: "", defines: "" }
+          - { runner: ubuntu-latest, arch: x86_64, variant: "-noipp", modules: "", defines: "--define WITH_IPP=OFF" }
+          - { runner: ubuntu-latest, arch: x86_64, variant: "-nocodecs", modules: "--modules core,flann,geometry,imgproc", defines: "" }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build the manylinux_2_28_${{ matrix.arch }} wheel
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo quay.io/pypa/manylinux_2_28_${{ matrix.arch }} bash -c "
+            set -e
+            /opt/python/cp314-cp314/bin/python -m venv /tmp/build
+            /tmp/build/bin/python apps/backend/scripts/build_opencv_wheel.py /repo/opencv-wheels \
+              --work-dir /tmp/opencv --plat manylinux_2_28_${{ matrix.arch }} ${{ matrix.modules }} ${{ matrix.defines }}"
+          ls -l opencv-wheels
+      - uses: actions/upload-artifact@v7
+        with:
+          name: opencv-wheel-linux-${{ matrix.arch }}${{ matrix.variant }}
+          path: opencv-wheels/*.whl
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Build the win_amd64 wheel
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/build"
+          "$RUNNER_TEMP/build/Scripts/python.exe" apps/backend/scripts/build_opencv_wheel.py opencv-wheels --work-dir "$RUNNER_TEMP/opencv"
+          ls -l opencv-wheels
+      - uses: actions/upload-artifact@v7
+        with:
+          name: opencv-wheel-windows-amd64
+          path: opencv-wheels/*.whl
