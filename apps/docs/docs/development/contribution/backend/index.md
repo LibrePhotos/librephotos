@@ -150,6 +150,8 @@ Migrations 0001 to 0100 are squashed into `0001_squashed_0100`, so the folder st
 
 Here are the actual data types. If you want to figure out how a photo works or how faces are connected to persons, then this is your folder.
 
+<Since version="1.7.0" /> Secrets stored in the database (`EmailConfig.secret`, `User.nextcloud_app_password`) use `EncryptedTextField` and `EncryptedCharField` from `api/models/encrypted_fields.py` instead of the django-cryptography package. They behave like a `TextField`/`CharField` in forms and serializers, keep the value in a binary column and only support the `isnull` lookup. They still write django-cryptography's format (a pickled string under AES-256-CBC with a PBKDF2-SHA256 key of `SECRET_KEY`, signed with HMAC-SHA256 keyed by `SECRET_KEY`), so a container of the previous release that runs next to the new one during an update reads every value. They read that format, unpickling only a string or bytes and never an object, and also a [Fernet](https://cryptography.io/en/latest/fernet/) token under a key derived from `SECRET_KEY` with HKDF-SHA256, the format the release after 1.7.0 will write and convert the stored values to. Both formats try `SECRET_KEY` first and then each of Django's `SECRET_KEY_FALLBACKS`; a value none of them decrypts raises `UndecryptableValueError`, a `django.core.signing.BadSignature`, and an empty column reads as an empty value.
+
 #### views
 
 Here you can find our API implemented. They are separated, similar to the models. Views that expose the photos will be here in photos too.
