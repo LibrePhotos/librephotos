@@ -51,7 +51,7 @@ jobs:
         env:
           CHECK: |
             import importlib.util, sys
-            import django, onnxruntime, timezonefinder, rawpy, pyvips, cv2, psycopg, tokenizers
+            import django, onnxruntime, rawpy, pyvips, cv2, psycopg, tokenizers
             assert importlib.util.find_spec("huggingface_hub") is None, "huggingface_hub is installed"
             print(sys.version)
             print("Django", django.__version__, "onnxruntime", onnxruntime.__version__)

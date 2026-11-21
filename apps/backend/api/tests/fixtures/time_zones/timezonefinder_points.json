@@ -1,0 +1,425 @@
+{
+ "timezonefinder_version": "8.2.4",
+ "points": [
+  {
+   "name": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "timezonefinder": "Europe/Berlin"
+  },
+  {
+   "name": "new_york",
+   "lat": 40.7128,
+   "lon": -74.006,
+   "timezonefinder": "America/New_York"
+  },
+  {
+   "name": "tokyo",
+   "lat": 35.68,
+   "lon": 139.69,
+   "timezonefinder": "Asia/Tokyo"
+  },
+  {
+   "name": "sydney",
+   "lat": -33.87,
+   "lon": 151.21,
+   "timezonefinder": "Australia/Sydney"
+  },
+  {
+   "name": "kolkata",
+   "lat": 22.57,
+   "lon": 88.36,
+   "timezonefinder": "Asia/Kolkata"
+  },
+  {
+   "name": "kathmandu",
+   "lat": 27.7172,
+   "lon": 85.324,
+   "timezonefinder": "Asia/Kathmandu"
+  },
+  {
+   "name": "adelaide",
+   "lat": -34.93,
+   "lon": 138.6,
+   "timezonefinder": "Australia/Adelaide"
+  },
+  {
+   "name": "chatham_islands",
+   "lat": -43.95,
+   "lon": -176.55,
+   "timezonefinder": "Pacific/Chatham"
+  },
+  {
+   "name": "tehran",
+   "lat": 35.69,
+   "lon": 51.39,
+   "timezonefinder": "Asia/Tehran"
+  },
+  {
+   "name": "herat",
+   "lat": 34.35,
+   "lon": 62.2,
+   "timezonefinder": "Asia/Kabul"
+  },
+  {
+   "name": "rio_de_janeiro",
+   "lat": -22.9,
+   "lon": -43.2,
+   "timezonefinder": "America/Sao_Paulo"
+  },
+  {
+   "name": "buenos_aires",
+   "lat": -34.6,
+   "lon": -58.38,
+   "timezonefinder": "America/Argentina/Buenos_Aires"
+  },
+  {
+   "name": "cape_town",
+   "lat": -33.92,
+   "lon": 18.42,
+   "timezonefinder": "Africa/Johannesburg"
+  },
+  {
+   "name": "nairobi",
+   "lat": -1.29,
+   "lon": 36.82,
+   "timezonefinder": "Africa/Nairobi"
+  },
+  {
+   "name": "cairo",
+   "lat": 30.04,
+   "lon": 31.24,
+   "timezonefinder": "Africa/Cairo"
+  },
+  {
+   "name": "moscow",
+   "lat": 55.75,
+   "lon": 37.62,
+   "timezonefinder": "Europe/Moscow"
+  },
+  {
+   "name": "reykjavik",
+   "lat": 64.15,
+   "lon": -21.94,
+   "timezonefinder": "Atlantic/Reykjavik"
+  },
+  {
+   "name": "honolulu",
+   "lat": 21.31,
+   "lon": -157.86,
+   "timezonefinder": "Pacific/Honolulu"
+  },
+  {
+   "name": "anchorage",
+   "lat": 61.22,
+   "lon": -149.9,
+   "timezonefinder": "America/Anchorage"
+  },
+  {
+   "name": "auckland",
+   "lat": -36.85,
+   "lon": 174.76,
+   "timezonefinder": "Pacific/Auckland"
+  },
+  {
+   "name": "phoenix",
+   "lat": 33.45,
+   "lon": -112.07,
+   "timezonefinder": "America/Phoenix"
+  },
+  {
+   "name": "window_rock_navajo",
+   "lat": 35.6803,
+   "lon": -109.0526,
+   "timezonefinder": "America/Denver"
+  },
+  {
+   "name": "kehl_de",
+   "lat": 48.5726,
+   "lon": 7.8155,
+   "timezonefinder": "Europe/Berlin"
+  },
+  {
+   "name": "strasbourg_fr",
+   "lat": 48.5734,
+   "lon": 7.7521,
+   "timezonefinder": "Europe/Paris"
+  },
+  {
+   "name": "badajoz_es",
+   "lat": 38.879,
+   "lon": -6.97,
+   "timezonefinder": "Europe/Madrid"
+  },
+  {
+   "name": "elvas_pt",
+   "lat": 38.881,
+   "lon": -7.163,
+   "timezonefinder": "Europe/Lisbon"
+  },
+  {
+   "name": "brest_by",
+   "lat": 52.0976,
+   "lon": 23.7341,
+   "timezonefinder": "Europe/Minsk"
+  },
+  {
+   "name": "terespol_pl",
+   "lat": 52.0757,
+   "lon": 23.6166,
+   "timezonefinder": "Europe/Warsaw"
+  },
+  {
+   "name": "el_paso_us",
+   "lat": 31.7619,
+   "lon": -106.485,
+   "timezonefinder": "America/Denver"
+  },
+  {
+   "name": "ciudad_juarez_mx",
+   "lat": 31.69,
+   "lon": -106.42,
+   "timezonefinder": "America/Ciudad_Juarez"
+  },
+  {
+   "name": "big_diomede_ru",
+   "lat": 65.78,
+   "lon": -169.06,
+   "timezonefinder": "Asia/Anadyr"
+  },
+  {
+   "name": "little_diomede_us",
+   "lat": 65.75,
+   "lon": -168.95,
+   "timezonefinder": "America/Nome"
+  },
+  {
+   "name": "apia_samoa",
+   "lat": -13.83,
+   "lon": -171.76,
+   "timezonefinder": "Pacific/Apia"
+  },
+  {
+   "name": "pago_pago_american_samoa",
+   "lat": -14.27,
+   "lon": -170.7,
+   "timezonefinder": "Pacific/Pago_Pago"
+  },
+  {
+   "name": "kiritimati",
+   "lat": 1.87,
+   "lon": -157.4,
+   "timezonefinder": "Pacific/Kiritimati"
+  },
+  {
+   "name": "taveuni_fiji",
+   "lat": -16.8,
+   "lon": 179.95,
+   "timezonefinder": "Pacific/Fiji"
+  },
+  {
+   "name": "sahara_algeria",
+   "lat": 23.0,
+   "lon": 5.0,
+   "timezonefinder": "Africa/Algiers"
+  },
+  {
+   "name": "gibson_desert_wa",
+   "lat": -24.0,
+   "lon": 125.0,
+   "timezonefinder": "Australia/Perth"
+  },
+  {
+   "name": "northern_territory_outback",
+   "lat": -22.0,
+   "lon": 130.0,
+   "timezonefinder": "Australia/Darwin"
+  },
+  {
+   "name": "greenland_interior",
+   "lat": 72.0,
+   "lon": -40.0,
+   "timezonefinder": "America/Nuuk"
+  },
+  {
+   "name": "siberia_interior",
+   "lat": 65.0,
+   "lon": 105.0,
+   "timezonefinder": "Asia/Krasnoyarsk"
+  },
+  {
+   "name": "amazon",
+   "lat": -5.0,
+   "lon": -65.0,
+   "timezonefinder": "America/Manaus"
+  },
+  {
+   "name": "taklamakan",
+   "lat": 39.0,
+   "lon": 83.0,
+   "timezonefinder": "Asia/Urumqi"
+  },
+  {
+   "name": "canadian_arctic",
+   "lat": 75.0,
+   "lon": -100.0,
+   "timezonefinder": "America/Rankin_Inlet"
+  },
+  {
+   "name": "alaska_interior",
+   "lat": 65.0,
+   "lon": -150.0,
+   "timezonefinder": "America/Anchorage"
+  },
+  {
+   "name": "wrangel_island",
+   "lat": 71.2,
+   "lon": -179.5,
+   "timezonefinder": "Asia/Anadyr"
+  },
+  {
+   "name": "off_brighton_5km",
+   "lat": 50.78,
+   "lon": -0.14,
+   "timezonefinder": "Europe/London"
+  },
+  {
+   "name": "off_nice_30km",
+   "lat": 43.4,
+   "lon": 7.3,
+   "timezonefinder": "Europe/Paris"
+  },
+  {
+   "name": "florida_straits",
+   "lat": 26.0,
+   "lon": -79.8,
+   "timezonefinder": "Etc/GMT+5"
+  },
+  {
+   "name": "english_channel_mid",
+   "lat": 50.2,
+   "lon": -1.0,
+   "timezonefinder": "Etc/GMT"
+  },
+  {
+   "name": "lake_michigan_wisconsin_side",
+   "lat": 43.5,
+   "lon": -87.4,
+   "timezonefinder": "America/Chicago"
+  },
+  {
+   "name": "lake_michigan_michigan_side",
+   "lat": 44.5,
+   "lon": -86.6,
+   "timezonefinder": "America/Detroit"
+  },
+  {
+   "name": "lake_michigan_mid_south",
+   "lat": 42.5,
+   "lon": -87.3,
+   "timezonefinder": "America/Chicago"
+  },
+  {
+   "name": "lake_superior",
+   "lat": 47.5,
+   "lon": -88.0,
+   "timezonefinder": "America/Detroit"
+  },
+  {
+   "name": "lake_victoria",
+   "lat": -1.0,
+   "lon": 33.0,
+   "timezonefinder": "Africa/Dar_es_Salaam"
+  },
+  {
+   "name": "caspian_sea",
+   "lat": 42.0,
+   "lon": 50.5,
+   "timezonefinder": "Etc/GMT-3"
+  },
+  {
+   "name": "lake_titicaca",
+   "lat": -15.8,
+   "lon": -69.4,
+   "timezonefinder": "America/Lima"
+  },
+  {
+   "name": "atlantic_mid",
+   "lat": 30.0,
+   "lon": -40.0,
+   "timezonefinder": "Etc/GMT+3"
+  },
+  {
+   "name": "pacific_equator",
+   "lat": 0.0,
+   "lon": -140.0,
+   "timezonefinder": "Etc/GMT+9"
+  },
+  {
+   "name": "pacific_west",
+   "lat": 10.0,
+   "lon": 170.0,
+   "timezonefinder": "Pacific/Majuro"
+  },
+  {
+   "name": "indian_ocean",
+   "lat": -30.0,
+   "lon": 80.0,
+   "timezonefinder": "Etc/GMT-5"
+  },
+  {
+   "name": "southern_ocean",
+   "lat": -60.0,
+   "lon": -120.0,
+   "timezonefinder": "Etc/GMT+8"
+  },
+  {
+   "name": "north_pole",
+   "lat": 90.0,
+   "lon": 0.0,
+   "timezonefinder": "Etc/GMT"
+  },
+  {
+   "name": "near_north_pole",
+   "lat": 89.9,
+   "lon": 100.0,
+   "timezonefinder": "Etc/GMT-7"
+  },
+  {
+   "name": "south_pole",
+   "lat": -90.0,
+   "lon": 0.0,
+   "timezonefinder": "Antarctica/McMurdo"
+  },
+  {
+   "name": "near_south_pole",
+   "lat": -89.9,
+   "lon": 179.9,
+   "timezonefinder": "Antarctica/McMurdo"
+  },
+  {
+   "name": "antimeridian_east",
+   "lat": 0.0,
+   "lon": 180.0,
+   "timezonefinder": "Etc/GMT-12"
+  },
+  {
+   "name": "antimeridian_west",
+   "lat": 0.0,
+   "lon": -180.0,
+   "timezonefinder": "Etc/GMT-12"
+  },
+  {
+   "name": "antimeridian_just_east",
+   "lat": 0.0,
+   "lon": 179.99,
+   "timezonefinder": "Etc/GMT-12"
+  },
+  {
+   "name": "antimeridian_just_west",
+   "lat": 0.0,
+   "lon": -179.99,
+   "timezonefinder": "Etc/GMT+12"
+  }
+ ]
+}

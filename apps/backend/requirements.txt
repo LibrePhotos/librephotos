@@ -36,8 +36,7 @@ psycopg[binary]==3.3.8
 # (sidecars, geocoders, the Nextcloud client, updates), urllib3
 # (api/runtime/sidecars.py, nextcloud/server_address.py) through requests and
 # sentry-sdk, cryptography (api/updates/signature.py) through django-cryptography-5,
-# numpy through onnxruntime and opencv. opencv-python-headless 5 and timezonefinder 8
-# need numpy >= 2.
+# numpy through onnxruntime and opencv. opencv-python-headless 5 needs numpy >= 2.
 requests==2.34.2
 urllib3==2.8.0
 cryptography==50.0.2
@@ -49,12 +48,6 @@ pyvips[binary]==3.2.0
 pyvips-binary==8.18.7
 pillow-heif==1.8.1
 pillow-jxl-plugin==1.3.8
-# timezonefinder has no Windows or aarch64 wheel on PyPI: prebuilt-wheels.yml builds them
-# and the lines below pin them by URL. Bump every line together (Renovate is off for it).
-timezonefinder==8.2.4; sys_platform != "win32" and (sys_platform != "linux" or platform_machine != "aarch64")
-timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/timezonefinder-8.2.4-cp314-cp314-win_amd64.whl ; sys_platform == "win32"
-# No aarch64 wheel on PyPI either; built by prebuilt-wheels.yml for the arm64 image.
-timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.10.22/timezonefinder-8.2.4-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
 rawpy==0.28.0
 # The editor develops RAW files with FlashRaw (api/editing/source.py), 5 to 9 times
 # faster than LibRaw; rawpy stays for what it cannot read and for embedded thumbnails.
