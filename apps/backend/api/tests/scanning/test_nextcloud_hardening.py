@@ -26,6 +26,7 @@ from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
 from api.serializers.user import UserSerializer
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_user, patch_nextcloud_dns
 from nextcloud import directory_watcher
 from nextcloud.server_address import (
@@ -216,7 +217,9 @@ class NextcloudViewsRefuseUnsafeAddressTest(TransactionTestCase):
     def test_scanphotos_refuses_unsafe_addresses_without_queueing(self):
         for address in ("", "http://127.0.0.1:8000", "http://nextcloud.internal"):
             self._login(address)
-            with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+            with mock.patch(
+                "api.jobs.store.add", new_callable=QueueRecorder
+            ) as async_task:
                 response = self.client.post(SCANPHOTOS_URL)
             self.assertEqual(400, response.status_code, address)
             async_task.assert_not_called()
@@ -224,12 +227,12 @@ class NextcloudViewsRefuseUnsafeAddressTest(TransactionTestCase):
 
     def test_scanphotos_reports_a_job_that_could_not_start_as_an_error(self):
         self._login("https://cloud.example.com")
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
-            async_task.return_value.run.side_effect = RuntimeError("broker down")
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
+            async_task.side_effect = RuntimeError("broker down")
             response = self.client.post(SCANPHOTOS_URL)
         self.assertEqual(500, response.status_code)
         self.assertEqual("job_start_failed", response.json()["errors"][0]["code"])
-        self.assertTrue(LongRunningJob.objects.get().failed)
+        self.assertFalse(LongRunningJob.objects.exists())
 
 
 class UserSerializerServerAddressTest(TestCase):

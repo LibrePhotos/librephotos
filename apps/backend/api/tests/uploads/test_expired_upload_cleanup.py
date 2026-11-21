@@ -17,8 +17,8 @@ from django.core.files.base import ContentFile
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
-from django_q.models import Schedule
 
+from api.models.task_queue import TaskSchedule as Schedule
 from api.tests.utils import create_test_user
 from chunked_upload.cleanup import delete_expired_uploads
 from chunked_upload.constants import COMPLETE, UPLOADING

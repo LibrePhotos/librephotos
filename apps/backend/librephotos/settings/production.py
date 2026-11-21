@@ -279,6 +279,8 @@ Q_CLUSTER = {
 _WORKER_CONCURRENCY = env_int("WORKER_CONCURRENCY", None)
 if _WORKER_CONCURRENCY is not None:
     Q_CLUSTER["workers"] = _WORKER_CONCURRENCY
+TASK_WORKERS = _WORKER_CONCURRENCY or os.cpu_count() or 1
+TASK_WORKER_RECYCLE_RSS_MB = 300
 
 # Hours a job may go without reporting progress before the hourly cleanup
 # marks it failed and stops counting it as running (#1919, #2248). Counted from

@@ -5,7 +5,7 @@ Pins the behaviour of:
 * ``api.views.scan_triggers.ScanPhotosView._scan_photos`` (reached via both GET and
   POST on ``/api/scanphotos``)
 
-Nothing heavy runs: django-q's ``AsyncTask`` and ``Chain`` are patched in
+Nothing heavy runs: the queue's ``store.add`` is patched in
 ``api.jobs.queue`` (the one module that queues), ``scan_photos`` at its import
 site in ``api.views.scan_triggers`` and ``do_all_models_exist`` in
 ``api.runtime.ml_models``, so no broker, no filesystem walking and no model downloads
@@ -16,6 +16,7 @@ import os
 import tempfile
 from contextlib import nullcontext
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
@@ -35,37 +36,22 @@ NO_DIR_MESSAGE = (
 
 
 class RecordingChain:
-    """Stand-in for django-q's ``Chain`` (and, via ``RecordingTask``, ``AsyncTask``).
-
-    Records every ``append`` so tests can assert on the queued tasks without
-    touching a broker.  ``instances`` collects every chain or task queued.
-    """
-
     instances = []
     run_error = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self.appended = []
-        self.ran = False
+        self.ran = True
         RecordingChain.instances.append(self)
 
-    def append(self, *args, **kwargs):
-        self.appended.append((args, kwargs))
-        return len(self.appended)
 
-    def run(self):
-        self.ran = True
-        if RecordingChain.run_error is not None:
-            raise RecordingChain.run_error
-        return "chain-group-id"
-
-
-class RecordingTask(RecordingChain):
-    """Stand-in for ``AsyncTask``: a chain of one."""
-
-    def __init__(self, func, *args, **kwargs):
-        super().__init__()
-        self.append(func, *args, **kwargs)
+def record_queued(func, args=(), kwargs=None, placement=None):
+    if RecordingChain.run_error is not None:
+        raise RecordingChain.run_error
+    after = placement.after if placement is not None else None
+    chain = RecordingChain.instances[-1] if after is not None else RecordingChain()
+    chain.appended.append(((func, *args), dict(kwargs or {})))
+    return SimpleNamespace(pk=len(chain.appended))
 
 
 class ScanViewTestBase(TestCase):
@@ -101,8 +87,7 @@ class ScanViewTestBase(TestCase):
             )
         )
         with (
-            patch("api.jobs.queue.Chain", RecordingChain),
-            patch("api.jobs.queue.AsyncTask", RecordingTask),
+            patch("api.jobs.store.add", record_queued),
             models_check,
             patch(f"{MODULE}.scan_photos", autospec=True) as scan_photos,
             self.captureOnCommitCallbacks(execute=True),
@@ -274,14 +259,11 @@ class ScanPhotosViewErrorPathTest(ScanViewTestBase):
     ``api/tests/jobs/test_start_job.py`` checks the 500 of a real commit.
     """
 
-    def test_queue_failure_propagates_and_fails_the_row(self):
-        with self.assertRaises(RuntimeError):
-            self.call_view(ScanPhotosView, run_error=RuntimeError("broker down"))
+    def test_queue_failure_is_a_500_and_leaves_no_row(self):
+        response = self.call_view(ScanPhotosView, run_error=RuntimeError("broker down"))
 
-        job = LongRunningJob.objects.get()
-        self.assertTrue(job.failed)
-        self.assertTrue(job.finished)
-        self.assertIn("broker down", job.result["error"])
+        self.assertEqual(500, response.status_code)
+        self.assertFalse(LongRunningJob.objects.exists())
 
     def test_non_exception_baseexception_is_not_swallowed(self):
         # ``except Exception``: KeyboardInterrupt/SystemExit propagate.
@@ -293,7 +275,7 @@ class ScanPhotosViewAuthTest(TestCase):
     def test_unauthenticated_request_is_rejected_before_the_body_runs(self):
         factory = APIRequestFactory()
         request = factory.get("/api/scanphotos")
-        with patch("api.jobs.queue.AsyncTask", RecordingTask):
+        with patch("api.jobs.store.add", record_queued):
             RecordingChain.instances = []
             response = ScanPhotosView.as_view()(request)
 

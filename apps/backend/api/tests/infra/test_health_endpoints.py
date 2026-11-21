@@ -71,8 +71,8 @@ class HealthzTest(TestCase):
 
     def test_queue_should_fail_when_the_broker_is_unreachable(self):
         with patch(
-            "api.views.health.get_broker",
-            side_effect=OperationalError("no such table: django_q_ormq"),
+            "api.views.health.tasks_are_waiting",
+            side_effect=OperationalError("no such table: api_queuedtask"),
         ):
             response = self.client.get("/api/healthz/queue")
         self.assertEqual(503, response.status_code)
@@ -99,8 +99,8 @@ class HealthzTest(TestCase):
 
     def test_ready_should_fail_when_the_broker_is_unreachable(self):
         with patch(
-            "api.views.health.get_broker",
-            side_effect=OperationalError("no such table: django_q_ormq"),
+            "api.views.health.tasks_are_waiting",
+            side_effect=OperationalError("no such table: api_queuedtask"),
         ):
             response = self.client.get("/api/healthz/ready")
         data = response.json()

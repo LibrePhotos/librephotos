@@ -35,6 +35,7 @@ from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.search.semantic import OPENCLIP, TAG_THING_TYPE
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     create_test_album_thing,
     create_test_photo,
@@ -157,7 +158,7 @@ class ReEmbeddingQueuedTest(TestCase):
 
         _forwards()
         with (
-            patch("api.jobs.queue.AsyncTask") as task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as task,
             patch("api.management.commands.build_similarity_index.enqueue_task"),
             self.captureOnCommitCallbacks(execute=True),
         ):

@@ -192,7 +192,10 @@ class MovePhotosView(APIView):
                     (
                         user,
                         [photo.pk for photo in photos],
-                        moves.Destination(target, data.get("folder_pattern") or None),
+                        {
+                            "folder": target,
+                            "folder_pattern": data.get("folder_pattern") or None,
+                        },
                         on_conflict,
                     ),
                 )

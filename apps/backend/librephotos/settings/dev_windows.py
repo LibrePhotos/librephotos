@@ -40,3 +40,4 @@ INSTALLED_APPS = [  # noqa: F405
 ]
 
 Q_CLUSTER = {**Q_CLUSTER, "workers": env_int("WORKER_CONCURRENCY", 1)}  # noqa: F405
+TASK_WORKERS = env_int("WORKER_CONCURRENCY", 1) or 1

@@ -19,6 +19,7 @@ from api.search import semantic
 from api.search.embedding_jobs import store_clip_embeddings
 from api.search.semantic import generate_photo_tags
 from api.search.similarity import search_similar_image
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     create_test_job,
     create_test_photo,
@@ -242,7 +243,7 @@ class EmbeddingsAfterTagsTest(TestCase):
             progress_target=1,
         )
         with (
-            patch("api.jobs.queue.AsyncTask") as task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             watcher_utils.finish_job_if_complete(job.job_id)
@@ -257,7 +258,7 @@ class EmbeddingsAfterTagsTest(TestCase):
         self.assertEqual(task.call_args.args, (batch_calculate_clip_embedding, user))
         job = LongRunningJob.objects.get(job_id=task.call_args.kwargs["job_id"])
         self.assertEqual(job.job_type, LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS)
-        task.return_value.run.assert_called_once()
+        task.assert_called_once()
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
     def test_tagging_turned_off_while_the_job_ran_still_fills_the_gaps(self):
@@ -294,7 +295,7 @@ class ConversionTest(TestCase):
         from api.search.similarity import build_image_similarity_index
 
         with (
-            patch("api.jobs.queue.AsyncTask") as task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as task,
             patch(
                 "api.management.commands.build_similarity_index.enqueue_task"
             ) as index_task,

@@ -3,14 +3,8 @@
 Every job-starting view used to wrap the enqueue in ``except BaseException``
 and answer ``{"status": False}`` with HTTP 200 when the queue was down, so a
 client saw a success status code for a job that never started. They now share
-``start_job`` (over ``api.jobs.queue``), which writes the job's row, queues
-the task once the row is committed, and answers 500 with a message when the
-queue refuses it.
-
-The task is handed to django-q in ``transaction.on_commit``. A ``TestCase``
-never commits, so the success tests run the callbacks with
-``captureOnCommitCallbacks``; the failure tests are ``TransactionTestCase``s,
-where the request's own commit queues the task as in production.
+``start_job`` (over ``api.jobs.queue``), which writes the job's row and its task
+in one transaction, and answers 500 with a message when the queue refuses it.
 """
 
 import shutil
@@ -20,7 +14,8 @@ from unittest.mock import patch
 from django.test import TestCase, TransactionTestCase, override_settings
 from rest_framework.test import APIClient
 
-from api.models import LongRunningJob
+from api.models import LongRunningJob, QueuedTask
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import api_error, create_test_user
 
 ASYNC_JOB_URLS = (
@@ -47,7 +42,9 @@ class StartJobTest(TestCase):
         for url in ASYNC_JOB_URLS:
             with self.subTest(url=url):
                 with (
-                    patch("api.jobs.queue.AsyncTask") as async_task,
+                    patch(
+                        "api.jobs.store.add", new_callable=QueueRecorder
+                    ) as async_task,
                     self.captureOnCommitCallbacks(execute=True),
                 ):
                     response = self.client.post(url)
@@ -55,7 +52,7 @@ class StartJobTest(TestCase):
                 data = response.json()
                 self.assertTrue(data["status"])
                 self.assertEqual(async_task.call_args.kwargs["job_id"], data["job_id"])
-                async_task.return_value.run.assert_called_once_with()
+                async_task.assert_called_once()
                 # Finish it, so the next URL is not refused as a duplicate.
                 LongRunningJob.objects.filter(job_id=data["job_id"]).update(
                     finished=True
@@ -73,17 +70,14 @@ class StartJobFailureTest(TransactionTestCase):
         self.client.force_authenticate(user=self.user)
 
     def assertNothingLeftQueued(self):
-        self.assertFalse(LongRunningJob.objects.filter(finished=False).exists())
-        self.assertTrue(
-            all(job.failed for job in LongRunningJob.objects.all()),
-            "a job whose task could not be queued is marked failed",
-        )
+        self.assertFalse(LongRunningJob.objects.exists())
+        self.assertFalse(QueuedTask.objects.exists())
 
     def test_async_job_start_failure_is_a_500_with_a_message(self):
         for url in ASYNC_JOB_URLS:
             with self.subTest(url=url):
                 with patch(
-                    "api.jobs.queue.AsyncTask", side_effect=RuntimeError("queue down")
+                    "api.jobs.store.add", side_effect=RuntimeError("queue down")
                 ):
                     response = self.client.post(url)
                 self.assertEqual(response.status_code, 500)
@@ -96,28 +90,28 @@ class StartJobFailureTest(TransactionTestCase):
         for url in SCAN_URLS:
             with self.subTest(url=url):
                 with (
-                    patch("api.jobs.queue.AsyncTask") as async_task,
+                    patch(
+                        "api.jobs.store.add", new_callable=QueueRecorder
+                    ) as async_task,
                     patch(
                         "api.runtime.ml_models.do_all_models_exist", return_value=True
                     ),
                 ):
-                    async_task.return_value.run.side_effect = RuntimeError("down")
+                    async_task.side_effect = RuntimeError("down")
                     response = self.client.post(url)
                 self.assertEqual(response.status_code, 500)
                 self.assertTrue(api_error(response)["message"])
                 self.assertNothingLeftQueued()
 
     def test_a_non_exception_base_exception_is_not_swallowed(self):
-        with patch("api.jobs.queue.AsyncTask", side_effect=KeyboardInterrupt):
+        with patch("api.jobs.store.add", side_effect=KeyboardInterrupt):
             with self.assertRaises(KeyboardInterrupt):
                 self.client.post("/api/deletemissingphotos/")
 
     def test_auto_album_start_failure_is_a_500(self):
         for url in ("/api/autoalbumgen/", "/api/autoalbumtitlegen/"):
             with self.subTest(url=url):
-                with patch(
-                    "api.jobs.queue.AsyncTask", side_effect=RuntimeError("down")
-                ):
+                with patch("api.jobs.store.add", side_effect=RuntimeError("down")):
                     response = self.client.post(url)
                 self.assertEqual(response.status_code, 500)
                 self.assertTrue(api_error(response)["message"])
@@ -126,10 +120,9 @@ class StartJobFailureTest(TransactionTestCase):
     @override_settings(FEATURE_FACE_DETECTION=True)
     def test_face_scan_start_failure_is_a_500(self):
         with (
-            patch("api.jobs.queue.Chain") as chain,
+            patch("api.jobs.store.add", side_effect=RuntimeError("down")),
             patch("api.runtime.ml_models.do_all_models_exist", return_value=False),
         ):
-            chain.return_value.run.side_effect = RuntimeError("down")
             response = self.client.post("/api/scanfaces/")
         self.assertEqual(response.status_code, 500)
         self.assertTrue(api_error(response)["message"])
@@ -140,16 +133,13 @@ class StartJobFailureTest(TransactionTestCase):
         # It answered 200 {"status": false}, which web and mobile showed as
         # "training started" (#2325).
         with (
-            patch("api.jobs.queue.Chain") as chain,
+            patch("api.jobs.store.add", side_effect=RuntimeError("down")),
             patch("api.runtime.ml_models.do_all_models_exist", return_value=True),
         ):
-            chain.return_value.run.side_effect = RuntimeError("down")
             response = self.client.post("/api/trainfaces/")
         self.assertEqual(response.status_code, 500)
         self.assertEqual(api_error(response)["code"], "job_start_failed")
         self.assertNotIn("job_id", response.json())
-        # Both rows of the chain (embeddings, clustering) are failed.
-        self.assertEqual(LongRunningJob.objects.filter(failed=True).count(), 2)
         self.assertNothingLeftQueued()
 
 
@@ -163,7 +153,7 @@ class OtherJobStartersTest(TestCase):
 
     def test_auto_album_start_returns_the_job_id(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post("/api/autoalbumgen/")
@@ -175,9 +165,8 @@ class OtherJobStartersTest(TestCase):
     @override_settings(FEATURE_FACE_CLUSTER=True)
     def test_face_training_queues_both_jobs_and_returns_both_ids(self):
         with (
-            patch("api.jobs.queue.Chain") as chain,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as queued,
             patch("api.runtime.ml_models.do_all_models_exist", return_value=True),
-            self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post("/api/trainfaces/")
         self.assertEqual(response.status_code, 200)
@@ -195,8 +184,8 @@ class OtherJobStartersTest(TestCase):
                 clustering_id: LongRunningJob.JOB_CLUSTER_ALL_FACES,
             },
         )
-        queued = [c.kwargs["job_id"] for c in chain.return_value.append.call_args_list]
-        self.assertEqual(queued, [embeddings_id, clustering_id])
+        ids = [c.kwargs["job_id"] for c in queued.call_args_list]
+        self.assertEqual(ids, [embeddings_id, clustering_id])
 
 
 class FullScanValidatesScanDirectoryTest(TestCase):
@@ -207,7 +196,7 @@ class FullScanValidatesScanDirectoryTest(TestCase):
         user = create_test_user(scan_directory=scan_directory)
         self.client.force_authenticate(user=user)
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post("/api/fullscanphotos/")

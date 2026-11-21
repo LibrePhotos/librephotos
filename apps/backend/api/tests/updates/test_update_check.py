@@ -12,8 +12,8 @@ from constance.test import override_config
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
-from django_q.models import Schedule
 
+from api.models.task_queue import TaskSchedule as Schedule
 from api.updates import check
 from api.updates.check import (
     RELEASES_URL,

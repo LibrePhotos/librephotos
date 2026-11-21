@@ -4,6 +4,7 @@ from constance.test import override_config
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_user, patch_nextcloud_dns
 
 LISTDIR_URL = "/api/nextcloud/listdir/?fpath=/"
@@ -80,14 +81,14 @@ class NextcloudEndpointGatingTest(TestCase):
     @override_config(NEXTCLOUD_ENABLED=True)
     def test_scanphotos_is_reachable_once_nextcloud_is_enabled(self):
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(SCANPHOTOS_URL)
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["status"])
-        async_task.return_value.run.assert_called_once()
+        async_task.assert_called_once()
 
 
 class NextcloudTokenClaimsTest(TestCase):

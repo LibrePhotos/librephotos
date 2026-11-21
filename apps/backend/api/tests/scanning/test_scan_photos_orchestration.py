@@ -6,7 +6,7 @@ metadata paths, which follow-up tasks are enqueued (scan_missing_photos,
 repair, feature-flagged jobs, the CLIP/face chain), how the progress target is
 computed, when the job is auto-finished, and what happens on failure.
 
-Everything that leaves the process is mocked: django-q's ``AsyncTask``/``Chain``
+Everything that leaves the process is mocked: the queue's ``store.add``
 are recorders in ``api.jobs.queue`` (follow-up jobs are queued when their rows
 commit, so the commit hooks are run), the directory walkers are patched, and ``MEDIA_ROOT`` points at a
 temp dir so the thumbnail ``makedirs`` calls are harmless. No ML models, no
@@ -25,22 +25,34 @@ from django.utils import timezone
 from api.directory_watcher import scan_jobs
 from api.directory_watcher.scan_jobs import scan_photos
 from api.directory_watcher.utils import update_scan_counter
+from api.jobs.store import add as real_add
 from api.models import LongRunningJob, Photo
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
 
 
-class TaskRecorder:
-    """Stand-in for ``AsyncTask`` that records every enqueued task."""
+class Chained:
+    def __init__(self, appended):
+        self.appended = appended
 
+
+class TaskRecorder:
     def __init__(self, calls):
         self.calls = calls
+        self.by_pk = {}
+        self.chained = []
 
-    def __call__(self, func, *args, **kwargs):
-        self.calls.append((func, args, kwargs))
-        return self
-
-    def run(self):
-        return None
+    def __call__(self, func, args=(), kwargs=None, placement=None):
+        call = (func, tuple(args), dict(kwargs or {}))
+        self.calls.append(call)
+        task = real_add(func, args, kwargs, placement)
+        if task is not None:
+            self.by_pk[task.pk] = call
+            after = placement.after if placement is not None else None
+            if after is not None:
+                if not self.chained:
+                    self.chained.append(self.by_pk[after.pk])
+                self.chained.append(call)
+        return task
 
     def funcs(self):
         return [call[0] for call in self.calls]
@@ -48,23 +60,8 @@ class TaskRecorder:
     def find(self, func):
         return [call for call in self.calls if call[0] is func]
 
-
-class ChainRecorder:
-    """Stand-in for ``Chain``; the last instance is kept on the class."""
-
-    last = None
-
-    def __init__(self, *args, **kwargs):
-        self.appended = []
-        self.ran = False
-        ChainRecorder.last = self
-
-    def append(self, func, *args, **kwargs):
-        self.appended.append((func, args, kwargs))
-        return self
-
-    def run(self):
-        self.ran = True
+    def chain(self):
+        return Chained(self.chained) if self.chained else None
 
 
 class ScanPhotosCharacterizationBase(TestCase):
@@ -78,7 +75,6 @@ class ScanPhotosCharacterizationBase(TestCase):
         self.user.save(update_fields=["scan_directory"])
         self.job_id = str(uuid.uuid4())
         self.tasks = []
-        ChainRecorder.last = None
 
     def run_scan(
         self,
@@ -130,8 +126,7 @@ class ScanPhotosCharacterizationBase(TestCase):
 
         with override_settings(**settings_overrides):
             with (
-                patch("api.jobs.queue.AsyncTask", recorder),
-                patch("api.jobs.queue.Chain", ChainRecorder),
+                patch("api.jobs.store.add", recorder),
                 self.captureOnCommitCallbacks(execute=True),
                 patch.object(
                     scan_jobs, "walk_directory", side_effect=fake_walk
@@ -162,7 +157,7 @@ class ScanPhotosCharacterizationBase(TestCase):
             "photo_scanner": photo_scanner,
             "backfill": backfill,
             "select": select_mock,
-            "chain": ChainRecorder.last,
+            "chain": recorder.chain(),
         }
 
     def job(self, job_id=None):
@@ -215,14 +210,12 @@ class GroupingAndQueueingTest(ScanPhotosCharacterizationBase):
             queued_paths, [["/p/IMG_1.CR2", "/p/IMG_1.jpg"], ["/p/IMG_2.jpg"]]
         )
 
-    def test_group_tasks_share_one_group_id_and_carry_user_and_job(self):
+    def test_group_tasks_carry_user_and_job(self):
         res = self.run_scan(walk_result=["/p/a.jpg", "/p/b.jpg"])
         group_tasks = res["tasks"].find(scan_jobs.handle_file_group)
-        group_ids = {call[2]["group"] for call in group_tasks}
-        self.assertEqual(len(group_ids), 1)
-        # group id is a uuid4 string
-        uuid.UUID(group_ids.pop())
-        for _func, args, _kwargs in group_tasks:
+        self.assertEqual(len(group_tasks), 2)
+        for _func, args, kwargs in group_tasks:
+            self.assertNotIn("group", kwargs)
             self.assertIs(args[0], self.user)
             self.assertEqual(args[2], self.job_id)
 
@@ -531,8 +524,7 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
                 FEATURE_REVERSE_GEOCODING=False,
                 FEATURE_FACE_DETECTION=False,
             ),
-            patch("api.jobs.queue.AsyncTask", recorder),
-            patch("api.jobs.queue.Chain", ChainRecorder),
+            patch("api.jobs.store.add", recorder),
         ):
             with self.captureOnCommitCallbacks(execute=True):
                 self.finish_queued_work(units=1)
@@ -563,7 +555,7 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         res = self.run_scan(walk_result=["/p/a.jpg"])
         self.job().cancel()
         with (
-            patch("api.jobs.queue.AsyncTask", TaskRecorder(self.tasks)),
+            patch("api.jobs.store.add", TaskRecorder(self.tasks)),
             self.captureOnCommitCallbacks(execute=True),
         ):
             self.finish_queued_work(units=1)
@@ -581,8 +573,7 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         self.assertEqual(Photo.objects.count(), 5)
 
         with (
-            patch("api.jobs.queue.AsyncTask", TaskRecorder(self.tasks)),
-            patch("api.jobs.queue.Chain", ChainRecorder),
+            patch("api.jobs.store.add", TaskRecorder(self.tasks)),
             self.assertLogs("api.directory_watcher.scan_jobs", level="INFO") as logs,
         ):
             self.finish_queued_work()

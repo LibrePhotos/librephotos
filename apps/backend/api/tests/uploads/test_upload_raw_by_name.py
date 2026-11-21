@@ -20,6 +20,7 @@ from django.test import TestCase
 
 from api.photos.media_files import is_valid_media
 from api.tests.editing.dng import test_card, write_dng
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.uploads.test_chunked_upload_completion import OnCompletionTestBase
 from chunked_upload.exceptions import ChunkedUploadError
 
@@ -103,7 +104,7 @@ class StagedFileTest(TestCase):
             self.assertTrue(is_valid_media(path, None))
 
 
-@patch("api.jobs.queue.AsyncTask")
+@patch("api.jobs.store.add", new_callable=QueueRecorder)
 @patch("api.views.upload.create_new_image")
 @patch("api.views.upload.get_object_or_404")
 class CompletionByClientNameTest(OnCompletionTestBase):
