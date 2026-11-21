@@ -106,10 +106,6 @@ PROVIDER_CHOICES = [
 class EmailConfig(models.Model):
     """Singleton holding the instance's outgoing-email configuration.
 
-    Stored in the database (not the environment) so an administrator can manage
-    it from the Site Settings UI, and the secret credential is encrypted at rest
-    (Fernet, keyed off the install's SECRET_KEY via django-cryptography).
-
     Only ever one row (pk=1); use `EmailConfig.load()` to fetch it.
     """
 

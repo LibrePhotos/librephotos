@@ -1,18 +1,21 @@
 import hmac
+import os
 import pickle
 import struct
+import time
 from base64 import urlsafe_b64encode
 from collections.abc import Callable
 from functools import lru_cache
 from hashlib import sha256
 from io import BytesIO
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 from cryptography.hazmat.primitives import hashes, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from django.conf import settings
+from django.core.signing import BadSignature
 from django.db import models
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models.lookups import Lookup
@@ -28,28 +31,28 @@ LEGACY_ITERATIONS = 30000
 SUPPORTED_LOOKUPS = frozenset({"isnull"})
 
 
-class UndecryptableValueError(ValueError):
+class UndecryptableValueError(BadSignature):
     pass
 
 
+def _secret_keys() -> list[str | bytes]:
+    return [settings.SECRET_KEY, *settings.SECRET_KEY_FALLBACKS]
+
+
 @lru_cache(maxsize=8)
-def _field_key(secret_key: str) -> bytes:
+def field_key(secret_key: str | bytes) -> bytes:
     derived = HKDF(
         algorithm=hashes.SHA256(), length=32, salt=None, info=FIELD_KEY_INFO
     ).derive(force_bytes(secret_key))
     return urlsafe_b64encode(derived)
 
 
-def _fernet() -> Fernet:
-    return Fernet(_field_key(settings.SECRET_KEY))
+def _fernet() -> MultiFernet:
+    return MultiFernet([Fernet(field_key(key)) for key in _secret_keys()])
 
 
 def is_legacy_token(token: bytes) -> bool:
     return token[:1] == LEGACY_VERSION
-
-
-def encrypt_text(value: str) -> bytes:
-    return _fernet().encrypt(value.encode("utf-8"))
 
 
 def decrypt_text(token: bytes) -> str:
@@ -59,12 +62,12 @@ def decrypt_text(token: bytes) -> str:
         return _fernet().decrypt(token).decode("utf-8")
     except (InvalidToken, UnicodeDecodeError) as error:
         raise UndecryptableValueError(
-            "an encrypted value does not decrypt with SECRET_KEY"
+            "an encrypted value does not decrypt with SECRET_KEY or its fallbacks"
         ) from error
 
 
 @lru_cache(maxsize=8)
-def legacy_cipher_key(secret_key: str) -> bytes:
+def legacy_cipher_key(secret_key: str | bytes) -> bytes:
     return PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -73,7 +76,7 @@ def legacy_cipher_key(secret_key: str) -> bytes:
     ).derive(force_bytes(secret_key))
 
 
-def legacy_signature(secret_key: str, signed: bytes) -> bytes:
+def legacy_signature(secret_key: str | bytes, signed: bytes) -> bytes:
     return hmac.new(force_bytes(secret_key), signed, sha256).digest()
 
 
@@ -105,7 +108,7 @@ def _unpickled_text(data: bytes) -> str:
     return value
 
 
-def _legacy_plaintext(token: bytes, secret_key: str) -> bytes | None:
+def _legacy_plaintext(token: bytes, secret_key: str | bytes) -> bytes | None:
     signed, signature = token[:-LEGACY_SIGNATURE_BYTES], token[-LEGACY_SIGNATURE_BYTES:]
     if not hmac.compare_digest(signature, legacy_signature(secret_key, signed)):
         return None
@@ -128,26 +131,47 @@ def legacy_decrypt(token: bytes) -> str:
     minimum = LEGACY_HEADER.size + LEGACY_IV_BYTES + LEGACY_SIGNATURE_BYTES
     if len(token) < minimum or not is_legacy_token(token):
         raise UndecryptableValueError("not a django-cryptography value")
-    plaintext = _legacy_plaintext(token, settings.SECRET_KEY)
-    if plaintext is None:
-        raise UndecryptableValueError(
-            "a django-cryptography value does not verify with SECRET_KEY"
-        )
-    return _unpickled_text(plaintext)
+    for secret_key in _secret_keys():
+        plaintext = _legacy_plaintext(token, secret_key)
+        if plaintext is not None:
+            return _unpickled_text(plaintext)
+    raise UndecryptableValueError(
+        "a django-cryptography value does not verify with SECRET_KEY or its fallbacks"
+    )
+
+
+def legacy_encrypt(value: str) -> bytes:
+    secret_key = settings.SECRET_KEY
+    padder = padding.PKCS7(algorithms.AES.block_size).padder()
+    padded = padder.update(pickle.dumps(value)) + padder.finalize()
+    iv = os.urandom(LEGACY_IV_BYTES)
+    encryptor = Cipher(
+        algorithms.AES(legacy_cipher_key(secret_key)), modes.CBC(iv)
+    ).encryptor()
+    signed = (
+        LEGACY_HEADER.pack(LEGACY_VERSION, int(time.time()))
+        + iv
+        + encryptor.update(padded)
+        + encryptor.finalize()
+    )
+    return signed + legacy_signature(secret_key, signed)
 
 
 def _to_database(value: object) -> bytes | None:
     if value is None:
         return None
-    return encrypt_text(str(value))
+    return legacy_encrypt(str(value))
+
+
+def stored_bytes(value: object) -> bytes:
+    return bytes(value) if isinstance(value, memoryview) else force_bytes(value)
 
 
 def _from_database(value: object) -> str | None:
     if value is None:
         return None
-    return decrypt_text(
-        bytes(value) if isinstance(value, memoryview) else force_bytes(value)
-    )
+    token = stored_bytes(value)
+    return decrypt_text(token) if token else ""
 
 
 class EncryptedCharField(models.CharField):

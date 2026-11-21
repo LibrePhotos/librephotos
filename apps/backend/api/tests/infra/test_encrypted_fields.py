@@ -1,22 +1,28 @@
 import base64
-import importlib
+import importlib.util
 import json
+import time
+import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.apps import apps as global_apps
+from cryptography.fernet import Fernet
+from django.conf import settings
 from django.core.exceptions import FieldError
+from django.core.signing import BadSignature
 from django.db import connection
 from django.test import SimpleTestCase, TestCase, override_settings
 
 from api.models import EmailConfig, User
 from api.models.encrypted_fields import (
+    LEGACY_HEADER,
+    LEGACY_VERSION,
     UndecryptableValueError,
     decrypt_text,
-    encrypt_text,
+    field_key,
     is_legacy_token,
     legacy_decrypt,
+    legacy_encrypt,
 )
 from api.tests.utils import create_test_user
 
@@ -39,12 +45,14 @@ CHAR_VALUE = next(
     for row in FIXTURE["values"]
     if row["field"] == "char" and "ä" in row["plaintext"]
 )
-migration_0242 = importlib.import_module("api.migrations.0242_encrypted_fields_fernet")
-legacy_encrypt = migration_0242.legacy_encrypt
 
 
 def _token(row: dict[str, str]) -> bytes:
     return base64.b64decode(row["token"])
+
+
+def _fernet_token(secret_key: str, value: str) -> bytes:
+    return Fernet(field_key(secret_key)).encrypt(value.encode("utf-8"))
 
 
 def _stored(table: str, column: str, pk: object) -> bytes:
@@ -54,9 +62,9 @@ def _stored(table: str, column: str, pk: object) -> bytes:
     return bytes(value)
 
 
-def _store(table: str, column: str, pk: object, token: bytes) -> None:
+def _store(table: str, column: str, pk: object, value: bytes | str) -> None:
     with connection.cursor() as cursor:
-        cursor.execute(f"UPDATE {table} SET {column} = %s WHERE id = %s", [token, pk])
+        cursor.execute(f"UPDATE {table} SET {column} = %s WHERE id = %s", [value, pk])
 
 
 @override_settings(SECRET_KEY=LEGACY_KEY)
@@ -98,79 +106,135 @@ class DjangoCryptographyTokensTest(SimpleTestCase):
                 self.assertTrue(is_legacy_token(token))
                 self.assertEqual(value, legacy_decrypt(token))
 
+    def test_legacy_encrypt_writes_the_librarys_header(self):
+        token = legacy_encrypt("app-password")
+
+        version, stamp = LEGACY_HEADER.unpack(token[: LEGACY_HEADER.size])
+        self.assertEqual(LEGACY_VERSION, version)
+        self.assertLess(abs(time.time() - stamp), 60)
+        self.assertEqual(0, (len(token) - LEGACY_HEADER.size - 16 - 32) % 16)
+
+    @unittest.skipUnless(
+        importlib.util.find_spec("django_cryptography"),
+        "django-cryptography is not installed",
+    )
+    def test_the_library_reads_what_legacy_encrypt_writes(self):
+        from django.db import models
+        from django_cryptography.fields import encrypt
+
+        field = encrypt(models.TextField())
+        for value in ("", "app-password", "päss \U0001f511", "x" * 4000):
+            with self.subTest(value=value[:20]):
+                self.assertEqual(value, field._load(legacy_encrypt(value)))
+
+    def test_the_same_value_encrypts_differently_each_time(self):
+        self.assertNotEqual(
+            legacy_encrypt("app-password"), legacy_encrypt("app-password")
+        )
+        self.assertNotIn(b"app-password", legacy_encrypt("app-password"))
+
 
 class WrongKeyTest(SimpleTestCase):
     def test_a_library_value_does_not_decrypt_with_another_key(self):
         with self.assertRaises(UndecryptableValueError):
             legacy_decrypt(_token(CHAR_VALUE))
 
-    def test_a_value_does_not_decrypt_with_another_key(self):
-        with override_settings(SECRET_KEY="the-key-it-was-encrypted-with"):
-            token = encrypt_text("app-password")
-        with override_settings(SECRET_KEY="another-key"):
-            with self.assertRaises(UndecryptableValueError):
-                decrypt_text(token)
-
-
-class RoundTripTest(SimpleTestCase):
-    def test_text_comes_back_as_it_went_in(self):
-        for value in ("", " ", "app-password", "päss \U0001f511 密", "y" * 10000):
-            with self.subTest(value=value[:20]):
-                token = encrypt_text(value)
-                self.assertFalse(is_legacy_token(token))
-                self.assertEqual(value, decrypt_text(token))
-
-    def test_the_same_value_encrypts_differently_each_time(self):
-        self.assertNotEqual(encrypt_text("app-password"), encrypt_text("app-password"))
-
-    def test_the_value_is_not_in_the_token(self):
-        token = encrypt_text("app-password")
-        self.assertNotIn(b"app-password", token)
-        self.assertNotIn(b"app-password", base64.urlsafe_b64decode(token))
-
-    def test_a_damaged_token_is_refused(self):
-        token = bytearray(encrypt_text("app-password"))
-        token[30] = ord("A") if token[30] != ord("A") else ord("B")
+    def test_a_fernet_value_does_not_decrypt_with_another_key(self):
         with self.assertRaises(UndecryptableValueError):
-            decrypt_text(bytes(token))
+            decrypt_text(_fernet_token("the-key-it-was-encrypted-with", "secret"))
+
+    def test_the_error_is_a_bad_signature(self):
+        with self.assertRaises(BadSignature):
+            decrypt_text(_token(CHAR_VALUE))
+
+
+class FernetReadTest(SimpleTestCase):
+    def test_a_fernet_token_under_secret_key_decrypts(self):
+        with override_settings(SECRET_KEY="current-key"):
+            token = _fernet_token("current-key", "päss \U0001f511")
+            self.assertFalse(is_legacy_token(token))
+            self.assertEqual("päss \U0001f511", decrypt_text(token))
+
+    def test_a_damaged_fernet_token_is_refused(self):
+        token = bytearray(_fernet_token("current-key", "app-password"))
+        token[30] = ord("A") if token[30] != ord("A") else ord("B")
+        with override_settings(SECRET_KEY="current-key"):
+            with self.assertRaises(UndecryptableValueError):
+                decrypt_text(bytes(token))
+
+
+class SecretKeyFallbacksTest(SimpleTestCase):
+    def test_a_value_under_a_fallback_key_decrypts(self):
+        with override_settings(SECRET_KEY="new-key", SECRET_KEY_FALLBACKS=[LEGACY_KEY]):
+            self.assertEqual(CHAR_VALUE["plaintext"], decrypt_text(_token(CHAR_VALUE)))
+            self.assertEqual(
+                "rotated", decrypt_text(_fernet_token(LEGACY_KEY, "rotated"))
+            )
+
+    def test_new_values_are_written_under_secret_key(self):
+        with override_settings(SECRET_KEY="new-key", SECRET_KEY_FALLBACKS=[LEGACY_KEY]):
+            token = legacy_encrypt("app-password")
+        with override_settings(SECRET_KEY="new-key"):
+            self.assertEqual("app-password", decrypt_text(token))
 
 
 class EncryptedColumnsTest(TestCase):
-    def test_the_nextcloud_app_password_is_stored_encrypted(self):
+    def test_the_nextcloud_app_password_is_stored_in_the_librarys_format(self):
         user = create_test_user()
         user.nextcloud_app_password = "app-password"
         user.save(update_fields=["nextcloud_app_password"])
 
         stored = _stored("api_user", "nextcloud_app_password", user.pk)
+        self.assertTrue(is_legacy_token(stored))
         self.assertNotIn(b"app-password", stored)
-        self.assertEqual("app-password", decrypt_text(stored))
+        self.assertEqual("app-password", legacy_decrypt(stored))
         self.assertEqual(
             "app-password", User.objects.get(pk=user.pk).nextcloud_app_password
         )
 
-    def test_the_email_secret_is_stored_encrypted(self):
+    def test_the_email_secret_is_stored_in_the_librarys_format(self):
         config = EmailConfig.load()
         config.secret = "smtp-secret"
         config.save()
 
         stored = _stored("api_emailconfig", "secret", config.pk)
+        self.assertTrue(is_legacy_token(stored))
         self.assertNotIn(b"smtp-secret", stored)
         self.assertEqual("smtp-secret", EmailConfig.objects.get(pk=config.pk).secret)
 
-    def test_an_empty_value_stays_empty(self):
+    def test_an_empty_value_is_stored_encrypted_and_reads_back_empty(self):
         user = create_test_user()
+        stored = _stored("api_user", "nextcloud_app_password", user.pk)
+
+        self.assertTrue(is_legacy_token(stored))
         self.assertEqual("", User.objects.get(pk=user.pk).nextcloud_app_password)
-        self.assertEqual(
-            "", decrypt_text(_stored("api_user", "nextcloud_app_password", user.pk))
-        )
+
+    def test_an_empty_column_reads_as_an_empty_value(self):
+        user = create_test_user()
+        for empty in (b"", ""):
+            with self.subTest(empty=empty):
+                _store("api_user", "nextcloud_app_password", user.pk, empty)
+                self.assertEqual(
+                    "", User.objects.get(pk=user.pk).nextcloud_app_password
+                )
 
     @override_settings(SECRET_KEY=LEGACY_KEY)
-    def test_a_row_the_library_wrote_still_reads(self):
+    def test_a_row_the_library_wrote_reads(self):
         user = create_test_user()
         _store("api_user", "nextcloud_app_password", user.pk, _token(CHAR_VALUE))
 
         self.assertEqual(
             CHAR_VALUE["plaintext"], User.objects.get(pk=user.pk).nextcloud_app_password
+        )
+
+    def test_a_row_in_the_fernet_format_reads(self):
+        user = create_test_user()
+        token = _fernet_token(settings.SECRET_KEY, "from-the-next-release")
+        _store("api_user", "nextcloud_app_password", user.pk, token)
+
+        self.assertEqual(
+            "from-the-next-release",
+            User.objects.get(pk=user.pk).nextcloud_app_password,
         )
 
     def test_only_isnull_is_a_lookup(self):
@@ -179,57 +243,3 @@ class EncryptedColumnsTest(TestCase):
         )
         with self.assertRaises(FieldError):
             User.objects.filter(nextcloud_app_password="app-password").exists()
-
-
-@override_settings(SECRET_KEY=LEGACY_KEY)
-class ReencryptMigrationTest(TestCase):
-    def _run(self, step):
-        step(global_apps, SimpleNamespace(connection=connection))
-
-    def test_library_values_are_rewritten_in_the_new_format(self):
-        user = create_test_user()
-        _store("api_user", "nextcloud_app_password", user.pk, _token(CHAR_VALUE))
-        config = EmailConfig.load()
-        _store("api_emailconfig", "secret", config.pk, _token(TEXT_VALUE))
-
-        self._run(migration_0242.reencrypt)
-
-        stored = _stored("api_user", "nextcloud_app_password", user.pk)
-        self.assertFalse(is_legacy_token(stored))
-        self.assertEqual(CHAR_VALUE["plaintext"], decrypt_text(stored))
-        email_stored = _stored("api_emailconfig", "secret", config.pk)
-        self.assertFalse(is_legacy_token(email_stored))
-        self.assertEqual(TEXT_VALUE["plaintext"], decrypt_text(email_stored))
-
-    def test_new_values_are_left_alone(self):
-        user = create_test_user()
-        user.nextcloud_app_password = "app-password"
-        user.save(update_fields=["nextcloud_app_password"])
-        before = _stored("api_user", "nextcloud_app_password", user.pk)
-
-        self._run(migration_0242.reencrypt)
-
-        self.assertEqual(before, _stored("api_user", "nextcloud_app_password", user.pk))
-
-    def test_the_reverse_writes_what_the_library_reads(self):
-        user = create_test_user()
-        user.nextcloud_app_password = "app-password"
-        user.save(update_fields=["nextcloud_app_password"])
-
-        self._run(migration_0242.restore_legacy_format)
-
-        stored = _stored("api_user", "nextcloud_app_password", user.pk)
-        self.assertTrue(is_legacy_token(stored))
-        self.assertEqual("app-password", legacy_decrypt(stored))
-
-    def test_a_value_encrypted_with_another_key_stops_the_migration(self):
-        user = create_test_user()
-        _store("api_user", "nextcloud_app_password", user.pk, _token(CHAR_VALUE))
-
-        with override_settings(SECRET_KEY="another-key"):
-            with self.assertRaisesMessage(UndecryptableValueError, "api_user"):
-                self._run(migration_0242.reencrypt)
-
-        self.assertTrue(
-            is_legacy_token(_stored("api_user", "nextcloud_app_password", user.pk))
-        )
