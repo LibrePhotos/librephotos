@@ -1,9 +1,6 @@
-import { Carousel, type CarouselProps } from "@mantine/carousel";
-import "@mantine/carousel/styles.css";
 import { Modal } from "@mantine/core";
 import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
-import { IconChevronLeft as ChevronLeft, IconChevronRight as ChevronRight } from "@tabler/icons-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
@@ -27,20 +24,17 @@ import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";
 import { LightboxControls } from "./LightboxControls";
 import { liveTextBlocks, mainSlide } from "./lightboxSlide";
+import { LightboxStage } from "./LightboxStage";
 import { MediaDisplay } from "./MediaDisplay";
 import { photoActionHotkeys } from "./photoActionHotkeys";
 import { useEditorJustClosed } from "./photoEditorLauncher";
 import { Sidebar } from "./Sidebar";
-import { SlideTransition } from "./SlideTransition";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import { useAfterTrashToggle } from "./useAfterTrashToggle";
 import { useSlideshow } from "./useSlideshow";
 import { useViewerMode } from "./useViewerMode";
 import { SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./videoFailure";
 import { ViewerDarkScope } from "./ViewerDarkScope";
-
-/** The Embla carousel API that Mantine's Carousel hands to getEmblaApi. */
-type EmblaApi = Parameters<NonNullable<CarouselProps["getEmblaApi"]>>[0];
 
 export function ContentViewer({
   mainSrc,
@@ -65,7 +59,6 @@ export function ContentViewer({
 }: ContentViewerProps) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
-  const [embla, setEmbla] = useState<EmblaApi | null>(null);
 
   const contentRef = useRef<HTMLDivElement>(null);
   // Fullscreen support. The whole document goes fullscreen, as it always has
@@ -90,7 +83,7 @@ export function ContentViewer({
     onStartFace: clearFaceLocation,
   });
   const { zoom, panorama, faceDrawing, rotation, playing, setPlaying, showOcrText, toggleOcrText, held } = modes;
-  const { isZoomed, scale, offset, toggleZoom, isMagnified, bind } = zoom;
+  const { isZoomed, scale, toggleZoom } = zoom;
   // The rotate buttons only show once the details are in.
   const { rotationAngle, imageCacheKey, suppressRotationTransition, rotate, onImageLoad } = rotation;
   const slideshow = useSlideshow({ startSlideshow, isPublic, type, mainSrc, nextSrc, onMoveNextRequest, held });
@@ -110,32 +103,6 @@ export function ContentViewer({
 
   const ocrBlocks = liveTextBlocks(photoDetails, type);
   const hasOcrText = ocrBlocks !== undefined;
-
-  // Setup slide change handler for Embla
-  useEffect(() => {
-    if (!embla) return;
-
-    const onSlideChange = () => {
-      const currentSlide = embla.selectedScrollSnap();
-
-      if (currentSlide === 0 && prevSrc) {
-        onMovePrevRequest();
-      } else if (currentSlide === 2 && nextSrc) {
-        onMoveNextRequest();
-      }
-
-      // Reset to middle slide to keep the illusion of movement
-      embla.scrollTo(1, true);
-    };
-
-    embla.on("select", onSlideChange);
-    return () => {
-      embla.off("select", onSlideChange);
-    };
-    // prevSrc/nextSrc must be deps: the handler decides from them whether a swipe
-    // can move at all, and a handler registered on the first photo would otherwise
-    // keep seeing "no previous photo" after navigating forward.
-  }, [embla, prevSrc, nextSrc, onMovePrevRequest, onMoveNextRequest]);
 
   // Handle close - exit fullscreen first if active
   const handleClose = () => {
@@ -211,13 +178,6 @@ export function ContentViewer({
     ],
   ]);
 
-  // Dragging pans a zoomed photo or turns a sphere instead of swiping to the next one.
-  const holdsDrag = isMagnified || panorama.active;
-
-  useEffect(() => {
-    if (embla) embla.reInit();
-  }, [lightboxSidebarShow, embla]);
-
   const handleDragStart = (event: React.DragEvent) => {
     event.preventDefault();
   };
@@ -273,102 +233,64 @@ export function ContentViewer({
                   title={toolbarTitle}
                 />
 
-                {/* Main photo/video with swipe navigation */}
-                <div className={classes.media}>
-                  <Carousel
-                    getEmblaApi={setEmbla}
-                    initialSlide={1}
-                    height="100%"
-                    classNames={{
-                      root: classes.carousel,
-                      viewport: classes.viewport,
-                      container: classes.container,
-                      slide: classes.slide,
-                      controls: classes.controls,
-                      control: classes.control,
-                    }}
-                    controlSize={44}
-                    controlsOffset="md"
-                    previousControlIcon={<ChevronLeft size={24} />}
-                    nextControlIcon={<ChevronRight size={24} />}
-                    slideSize="100%"
-                    slideGap={0}
-                    orientation="horizontal"
-                    // Mantine 8 takes Embla options only here (loop: false and
-                    // containScroll: "trimSnaps" are its defaults); the old
-                    // `draggable` prop was silently dropped.
-                    emblaOptions={{ watchDrag: !holdsDrag }}
-                    // Mantine leaves the arrow buttons unnamed.
-                    previousControlProps={{ "aria-label": t("lightbox.controls.previous") }}
-                    nextControlProps={{ "aria-label": t("lightbox.controls.next") }}
-                  >
-                    {/* Previous slide */}
-                    <Carousel.Slide>
-                      <MediaDisplay
-                        id={prevSrc ?? undefined}
-                        image_hash={prevSrcHash ?? undefined}
-                        type={type}
-                        bind={bind}
-                        faceLocation={faceLocation}
-                        toggleZoom={toggleZoom}
-                        scale={scale}
-                        offset={offset}
-                        handleDragStart={handleDragStart}
-                        playing={false}
-                      />
-                    </Carousel.Slide>
-
-                    {/* Current slide */}
-                    <Carousel.Slide>
-                      <SlideTransition slideKey={mainSrc}>
-                        <MediaDisplay
-                          id={mainSrc}
-                          image_hash={mainSrcHash}
-                          isMainContent
-                          type={mainType}
-                          bind={bind}
-                          faceLocation={faceLocation}
-                          toggleZoom={toggleZoom}
-                          scale={scale}
-                          offset={offset}
-                          handleDragStart={handleDragStart}
-                          playing={playing}
-                          onEnded={slideshow.handleVideoEnded}
-                          onUnplayable={slideshow.handleVideoUnplayable}
-                          rotationAngle={rotationAngle}
-                          imageCacheKey={imageCacheKey}
-                          suppressRotationTransition={suppressRotationTransition}
-                          onImageLoad={onImageLoad}
-                          ocrBlocks={ocrBlocks}
-                          showOcrText={showOcrText}
-                          drawingFace={faceDrawing.isDrawing}
-                          onFaceDrawn={faceDrawing.onDrawn}
-                          onCancelDrawFace={faceDrawing.cancel}
-                          isPublic={isPublic}
-                          panoramaActive={panorama.active}
-                          onPanoramaError={panorama.fail}
-                          {...(photoDetails ? { photoDetails } : {})}
-                        />
-                      </SlideTransition>
-                    </Carousel.Slide>
-
-                    {/* Next slide */}
-                    <Carousel.Slide>
-                      <MediaDisplay
-                        id={nextSrc ?? undefined}
-                        image_hash={nextSrcHash ?? undefined}
-                        type={type}
-                        bind={bind}
-                        faceLocation={faceLocation}
-                        toggleZoom={toggleZoom}
-                        scale={scale}
-                        offset={offset}
-                        handleDragStart={handleDragStart}
-                        playing={false}
-                      />
-                    </Carousel.Slide>
-                  </Carousel>
-                </div>
+                <LightboxStage
+                  mainSrc={mainSrc}
+                  nextSrc={nextSrc}
+                  prevSrc={prevSrc}
+                  onMoveNextRequest={onMoveNextRequest}
+                  onMovePrevRequest={onMovePrevRequest}
+                  zoom={zoom}
+                  gesturesEnabled={!panorama.active}
+                  zoomable={mainType === "photo" && !faceDrawing.isDrawing}
+                  quarterTurned={rotationAngle % 180 !== 0}
+                  previous={
+                    <MediaDisplay
+                      id={prevSrc ?? undefined}
+                      image_hash={prevSrcHash ?? undefined}
+                      type={type}
+                      faceLocation={faceLocation}
+                      handleDragStart={handleDragStart}
+                      playing={false}
+                    />
+                  }
+                  main={
+                    <MediaDisplay
+                      id={mainSrc}
+                      image_hash={mainSrcHash}
+                      isMainContent
+                      type={mainType}
+                      faceLocation={faceLocation}
+                      scale={scale}
+                      handleDragStart={handleDragStart}
+                      playing={playing}
+                      onEnded={slideshow.handleVideoEnded}
+                      onUnplayable={slideshow.handleVideoUnplayable}
+                      rotationAngle={rotationAngle}
+                      imageCacheKey={imageCacheKey}
+                      suppressRotationTransition={suppressRotationTransition}
+                      onImageLoad={onImageLoad}
+                      ocrBlocks={ocrBlocks}
+                      showOcrText={showOcrText}
+                      drawingFace={faceDrawing.isDrawing}
+                      onFaceDrawn={faceDrawing.onDrawn}
+                      onCancelDrawFace={faceDrawing.cancel}
+                      isPublic={isPublic}
+                      panoramaActive={panorama.active}
+                      onPanoramaError={panorama.fail}
+                      {...(photoDetails ? { photoDetails } : {})}
+                    />
+                  }
+                  next={
+                    <MediaDisplay
+                      id={nextSrc ?? undefined}
+                      image_hash={nextSrcHash ?? undefined}
+                      type={type}
+                      faceLocation={faceLocation}
+                      handleDragStart={handleDragStart}
+                      playing={false}
+                    />
+                  }
+                />
 
                 {/* Bottom preview thumbnails */}
                 <ThumbnailNavigation

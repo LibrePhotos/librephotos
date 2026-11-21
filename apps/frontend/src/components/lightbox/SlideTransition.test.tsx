@@ -29,7 +29,7 @@ function Photo({ id }: Readonly<{ id: string }>) {
   return <img data-photo={id} alt="" />;
 }
 
-function show(id: string) {
+function show(id: string, fade = true) {
   if (!container) {
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -37,7 +37,7 @@ function show(id: string) {
   }
   act(() =>
     defined(root).render(
-      <SlideTransition slideKey={id}>
+      <SlideTransition slideKey={id} fade={fade}>
         <Photo id={id} />
       </SlideTransition>
     )
@@ -74,6 +74,16 @@ describe("SlideTransition", () => {
     expect(leaving()[0]?.querySelector("img")).toBe(first);
     expect(photoIn(shown()[0])).toBe("b");
     expect(shown()[0]?.className).toMatch(/entering/);
+  });
+
+  it("shows a photo a swipe slid in at once, without a second transition", () => {
+    show("a");
+
+    show("b", false);
+
+    expect(slides()).toHaveLength(1);
+    expect(photoIn(shown()[0])).toBe("b");
+    expect(shown()[0]?.className).not.toMatch(/entering/);
   });
 
   it("keeps the leaving photo away from assistive tech, focus and the pointer", () => {

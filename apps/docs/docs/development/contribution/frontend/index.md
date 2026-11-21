@@ -212,11 +212,21 @@ Everything below is relative to
   miscellaneous functions.
 - <Since version="1.7.0" /> A package stylesheet that only a lazy feature uses is imported by the
   component that renders it, not by `index.tsx`: `maplibre-gl/dist/maplibre-gl.css` in
-  `components/map/ThemedMap.tsx` (every map renders through it), `@mantine/dates/styles.css` in each
-  component with a date picker, `@mantine/tiptap/styles.css` in the caption editor and
-  `@mantine/carousel/styles.css` in the lightbox's `ContentViewer`. Vite loads a lazy chunk's CSS before
+  `components/map/ThemedMap.tsx` (every map renders through it). Vite loads a lazy chunk's CSS before
   the chunk runs, and after `@mantine/core/styles.css`, so the order Mantine asks for holds and nothing
   renders unstyled. `index.tsx` keeps only the core styles and the app's colour variables.
+- <Since version="1.7.0" /> Touch, pen and mouse gestures go through `hooks/useViewerGestures.ts`
+  (`trackViewerGestures` in `hooks/viewerGestures.ts`). It reads pointer events on one element and
+  reports a drag (locked to the axis it started on, with the velocity of its last 100 ms), a pinch
+  (scale and the fingers' midpoint), the wheel (in pixels; return true to keep the page from scrolling)
+  and a double tap. A pointer that starts inside `[data-own-gesture]` is left to that element (the
+  live text, the face drawing layer, the editor's crop overlay and split divider). The element needs
+  `touch-action: none`. The lightbox (`lightbox/LightboxStage.tsx`, `useLightboxGestures.ts`,
+  `lightboxView.ts`) lays the previous, current and next photo side by side and moves them with
+  `--lb-swipe-x`. It zooms and pans the current one with `--lb-x`, `--lb-y` and `--lb-scale`, written
+  to the element while a gesture runs and kept in React state (`useLightboxZoom`) only when it ends, so
+  a gesture never re-renders per frame. The photo editor's canvas (`editor/canvas/useStageGestures.ts`)
+  uses the same hook.
 
 ### The API client outside the browser {#native-transports}
 
