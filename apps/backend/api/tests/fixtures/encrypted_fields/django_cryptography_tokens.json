@@ -1,0 +1,117 @@
+{
+ "generated_with": "django-cryptography-5 2.0.3, cryptography 50.0.2, Django 6.1.3, Python 3.14.9",
+ "secret_key": "legacy-fixture-secret-key-not-used-anywhere-else-0123456789",
+ "values": [
+  {
+   "field": "text",
+   "plaintext": "",
+   "token": "gAAAAABrAbRxJD/uZZuA8q3BcTr1Y6J6q1I7Sxg1XUNuZLnDAHpDFo1J40LhwSiNX8lTo22XnrUJW88icm0jkixJkmdjv8tmWg=="
+  },
+  {
+   "field": "text",
+   "plaintext": "app-password",
+   "token": "gAAAAABrAbRxCZiWkzvHKDM4cP+y43GReXGs3WXTxvZpkhS/twkr1mb2WvHLeXT4oegaJRfkvkrXvx1oI+XgtqaDUqALedgsLZz5TzjxAH9KAxKp3KOx7EY="
+  },
+  {
+   "field": "text",
+   "plaintext": "p\u00e4ssw\u00f6rd \ud83d\udd11 \u5bc6\u7801",
+   "token": "gAAAAABrAbRxZdX+bYzFOlCB15sDRC0S/hMX++VE7jOjeTvfTJU1u/SuMzjIESwG1+yPQsLdWCscSHU51Gechx+a8+y0znXg3w2j/5ZUse6bzgIh3ayOmw5csEDspr0AZ+dex4ajBUJW"
+  },
+  {
+   "field": "text",
+   "plaintext": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "token": "gAAAAABrAbRx9s8jwLhOi02h1LhTPqjTq5FKJsuaiED+LiVKSG/d9tlKovR/R1aT21GuzYHHuraVAfdgbEr6MdZrXOf4PySH7o1n3X8pVqWi36XyeizJFB+Uwqd6Zpq8oD3SDWpSmBMK3o+BbAv60xNGV8G4uKG8G53dot/402Mrh2XuzIZT08o="
+  },
+  {
+   "field": "text",
+   "plaintext": "SG.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nline two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two ",
+   "token": "gAAAAABrAbRxlpX+q92DUkx8WBvMBOwEfNnW64ItRY/qDqVxZDaBRCWDtGD1WQS5GSY59+b5PkDb6FrCCgJJWNWGXvJ6fMS6opwSt8JVz2Mygr+w3jci+kZxPm7cg6bHB8ltuR9Zx1jbkhXjmh70SYAR4rU+NdhdRg82LnNyrRZ9S4TT4N0rW44W7bRD/NEgJQCUMv9h14O6Flpm45yveWf3MeuYYgD17r+olL/QfgOXoz9BPkpkRIXD2lOlhmOc5j0mBwxW+lBNXR1gfSg5SfXUf+vgmaW2XPeo/0fW2bq8YLeGCMC4BmTNEt/auUNXDAx6wYt9I7hE4PHHCSrIUljoFbKuI0f22peVIyrkRui35mJhJeIkzyHq6xhWoIz/l/baklvWNUF3RgbBIylD1XU7jHw2xrI8k/M+toxa1R2e+n7eVu6OkWWBnQHgw1yxK7mEC+I9FuRhRGBHA+3Q0LR13J7n+DeS02ZV0SMNoTRWJaQDEjTRPmHvfrRsKvaWfOAzXTZLHBFE5U/1/VKBq2YEZp2fRhrfQkwxesVvMD09gY0TfG0g0oSfGRzC9iFfdhm9Eo6g0dIBwulrCVD+9iPZpPU0Vkrnh7Z1L3RWq7MCQ7XuzPCWlyqZZ1CTjNIEbKVahosBfz61uUHkCiRi/hNLjOi6InXsj/sfh9qB7L3hfLR0NuqPcX6rpJ5ubLBRhyCQSfg3O5vTJ0Hh1uFWpdIcdeIWrvAPmNVNvw4lu8RbAnCTo8QMUpHahTFo3AzLYF2VLtvRk5qRWyiDJPHZcMRExAZni5FlNoAP1HM9Bcd8nmHniNnCAwdSc+mby9oQZrpZoz90zNY/f9cxHhqIm9ZQbhwV21msCfUw6roIJj5lvztvoDyFeGcoM91Kj0RATUTjdhioWyyhngwlmxZ1Xb5zEmPy/1aaYgNZs2gYa7//c47aUOoGxCWBrFA3WLrzncTsCFUZWCEvFFhh6i+1seM1y7KAO7I0HBoiRVhC7kl8gO0zLCVz1+a8Elsuf0327F+oxWHU+PfnwBL2wWDcB7lwUnVb7TWYTasjgoiOr+Zp65obnIBAJgE5QIFOGlef107DnNuPTNT7wBvoFXrn1yyRiOw4aEcWU9iANCQNyHnxX0XQlTsJyCPKu00oW8xNlgPMMJC22uHdRevF3nwPwGk1XXDPoT1F/yvsr2+ekXpsDME7a8sVWOPJkLfCNk3qjzPFw1Lm+fFAi2+aRykaLlgaL5kzePcJ6EAdCwJVcHafVH9panSsW2/jHMxt9/UTTprOuD+AreS/JuyO/QP3z8kPw08zU1FURIDer3wPhYHzodsRsjioUoAxc7RYkPTrqoWbg5Dwv1x0AqWbviB7/TUQBqrLEzK2rzLtpVcKNIbrgMovsXfEakkEoqkXj+w/BmCI11rBTN0hu5CYmJkIVNV614w8CyQosCrQUlY9jzZ+AbYfuTKTDF+xM070Xb81lEZjuQZxEQtQivn0agLmyZnd3QOfw4sHycDILoeUPP7bGv/YO0UH5D6hsTtAJOaAiXo8+d9/TNBL39QJaQQX1ITGqLmDnI7C/vgsok4svkYWi7VkKFthVhv0A4UqVpMUek+TUx40tfT0CaLK+cduuMVgyxCApGrHNUnVAZPddH8JPfEsOAaFzKw="
+  },
+  {
+   "field": "char",
+   "plaintext": "",
+   "token": "gAAAAABrAbRxwAPqsZ9gSycOv8AZZtSRsHZQmOosGPzHhJgq0IdbPjbNo3OwR1wnzxs5nzj+eYQrcvT5PfxW5rp3bg9VoD6jvg=="
+  },
+  {
+   "field": "char",
+   "plaintext": "app-password",
+   "token": "gAAAAABrAbRxNznwCofXpsD0L7prObhFBNrwb8PaA4Tj4jwL8yH3hW4WDxAHjhbel9pdlMrHU/VNbXEYIWYb439RO4nv1lLIr3GwHtKmuVVb+8VVvFIDrJU="
+  },
+  {
+   "field": "char",
+   "plaintext": "p\u00e4ssw\u00f6rd \ud83d\udd11 \u5bc6\u7801",
+   "token": "gAAAAABrAbRxKFKeB3E3X5scA9XQhUndOmJiwViNEISa+/PDSxhP9vlTgwwY1ZdePMnrvMHks4oskgzXc6D4oLvj0YFLq1FPFE+tEgJj0TjJyMFylDH/Y/q6YBaJBS53svperIJ0EjI5"
+  },
+  {
+   "field": "char",
+   "plaintext": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "token": "gAAAAABrAbRxJDazUmD29Kuurd36Us4liuhTEjOhpz1sQkSmoao6SqkkP1tKySmU/Vv+mwWW3Bus+YYUOwCINXrxqFx9BsfuUXU8ao1gEf9+/U9SAkchst3lTxkySg2YA08R8vkHobw4N7udQhLeskEO22HJfBr/nh9jQZyDD2GKFZEa0sbp9PA="
+  },
+  {
+   "field": "char",
+   "plaintext": "SG.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nline two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two line two ",
+   "token": "gAAAAABrAbRx2uiJp+5Yfhd5TmYLQI/zq2ACGH4njZqqb9fxB+Ra+NJGyypx+fNXNAdbqNkoGRb2MyDHvnnQVma8nwpxoYv1oWbeBdk0J66t7Mnbu/6sJoTQN07dJRUZThZ4LxOuG9GPTvJoD8nahhpiNTDh4ZzqPGDl9Hb+5Xvc5Ux/HgD50fY280BpGDGOLVyyou6ay7feSF/GIavPlB5wx41c2VWOnMCT2O+/+qgrgesoALm8GwI5r5Z25c9Weo1JduXlSBHIfPKwmkYNrxMd25zpfATSRfH9dPQHqD6kjp0kdENokUF+bmV+cYQibyCu7ehj/N4PBKxz/CdErVcqlsWEti8n6ZV3DjKdEdm/7y/Km9hWYp3uf4WUeSMAb/bWuuxEUAHEzIcb4adxDw759YZ9XuCuxaAqpoSkfuBSizjKjI21AGf/44rLHWcMPYpC2QQUQ0dQXol92+lifgffz+znIByH2MjCKT7fHD8sR8FUkmmQXaAnh9/+OwhiOrLDA7vAY0WRAIuCjHgj1m9qJvK+m77XhTXfW+LjbzTVcUY6qoiaThkGzSVwQeZTXVUEpxBDRvqY6KmitCZ5jSlozYPdggWF9kS6vsUuti3op7cLN/aEo0156MNJV0s0vyMKkA6pcHS9Gph4+6ODbrfpdloxOVyoBGW2+Kp0B2abIYvJAcW1juZJxDXiKwf9GCQoF+hp03wx58ZNRDY9leepqM0mqinxs6S8UPWtGfi6pPwdjAqVxHMhtbEI4C/+VE69Dvh62dwiq3Fb3B+jzS1iytnFGYcLEsoUURC3VNmmMrURDuClx3JtLRifvUlK4iDqK2eFJghQ2G4jHRgbJxFVoAKgnBihVcrK7jBUfJFIbY4sTTvwHkpF2RY2HnD8kK3oQBdylNM4Vzu4TATaLuR0firjaZRcnodUnujPhk7MLai9fo7Xec1UpnMr3T1mtXCgNl5OLZ9jis01XQ7PfmZx9EHBXGVWYChWJhCI2EdIhNs5Ds4MRGC/2tY+7TAsHG4cU06KLmvLSYYKrkuxxU10TAJlvcoRnw+GldSde2PuY4CX7V6zap6xNvl/Ax1Kc79iEHpbQ4veUOzpo2ZZZDWpLSjiaHa2eHDe6NsqSB9Bt8rRo6iPCzqWZsP2weNQ5lrD9YdYvuIqbP3mD3TCkPpTQF1AWuQw8iIJN2BF9mqD97qNLKUezb8ULfSeti9DK3w8TL7dxWD0oy5PGSWdXDekmw9GBm8LCGk90mpZ5ghvvDYZwKv/xCg0FMuXiLZWm969DMU8U8qAD/Ey2uArU9rL1CmHRLsdxHAqHQex6/NmCi4rfy/3WOnmUNToFM1C2sUo5g00uyOi1oAVzCnd1Y8Dh7DdEAG1LivfUKT/HXdq2cay5t993ObESJ+0dcQelgFz1Dci+snbM0NVx0iWfAv0mRX4sYHW7+FJEY7mafY31sFJ0+wb3vRwvlRLonfTF7xOYyC44CI+A3UiKnX9XxaQd9ygIe012mOvxkZQImGq7/MtPVXdWsMfOJ5gFeMqYf8mnYbVkC8Uovl7UyvNNw0YxcpCsqA7TrwI2TvnDoxIHWM559d3dOgLL0aJWXY89N10VwDDuET2+dGzTAwL9qMyunQ/avdhqX8GFy2qNa6niyFDq9PfXGQ="
+  },
+  {
+   "field": "pickle-protocol-0",
+   "plaintext": "protocol 0 value \u00e9",
+   "token": "gAAAAABrAbRxM7zWYbo5c3E2/sLr9CJ8qmWBoeaWNbPi2sTZmWuDyGmT0fwr1acRx7jek1Om2IXH75DCvDzdJIXetNxXzShwFJMpobJ91uYIYr1/lPlub3Y="
+  },
+  {
+   "field": "pickle-protocol-1",
+   "plaintext": "protocol 1 value \u00e9",
+   "token": "gAAAAABrAbRxEtIlAGYsa5cm5yWQ7PoATdgZweqF3imfd3ifSMrXaHkz5FDbzf+T78Bg2p12Wl7eAMPapLYXRnuXGGBpSHtnAG6aBajO1vDVuiTgjS5QBTg="
+  },
+  {
+   "field": "pickle-protocol-2",
+   "plaintext": "protocol 2 value \u00e9",
+   "token": "gAAAAABrAbRxDYjDl3S3+IRk4ghyMBL/qz14M7gKivVlLdM+Dlnff+XOE5FP+FuhAW24FkWCe7Cf/R/NtzHwcP+Y6DYLvgV4AQEXmo0uftCkhimEU/68a1E="
+  },
+  {
+   "field": "pickle-protocol-3",
+   "plaintext": "protocol 3 value \u00e9",
+   "token": "gAAAAABrAbRx9XKe8RSYVFH2O+Vt694Qt5+YMoamiQp6zI5X1hwLCwqSTnC2mNN96U8XzvfXYs25Iwn/FfI/pwAq9uUilggEbwffA8WEjEeHK8XPAz/DDSs="
+  },
+  {
+   "field": "pickle-protocol-4",
+   "plaintext": "protocol 4 value \u00e9",
+   "token": "gAAAAABrAbRx3B3NYqCeARVixbLlQfK0Ujp0hU3hbhu6xGhPeIh1t8CMMwlXP93/bZakmfcu77N4qmSFv5t4OUYgMpdxd+8dkYfk3EYc15DrJ/DXo7cZtzpP2cXddi0mzWkjUVfg7FHy"
+  },
+  {
+   "field": "pickle-protocol-5",
+   "plaintext": "protocol 5 value \u00e9",
+   "token": "gAAAAABrAbRxydEjY6QKnlacO5wN63M144QK6CT7HaMDNUvLCIS0k06lO1lb3E1Ga/vD10AFxjuE8yI+L6ekVL2grDDCXV34eXA73smD2cIyPXbLyPzdTuus8KZzJqPY5JT03ttcHRDr"
+  },
+  {
+   "field": "bytes",
+   "plaintext": "bytes value",
+   "token": "gAAAAABrAbRx8qTLVohoMjq7NL5uuhwTOnjrM5S+Mit1BAyMu1TbCRMVaOSNkRPV1m0Ekx3s8yXFWp67yKyKubA8zm0uqFfksnl03G+G5DqI8BOWZzP/6Os="
+  }
+ ],
+ "rejected": [
+  {
+   "case": "dict",
+   "token": "gAAAAABrAbRxUTGdpJqTbhQTPDu7jHGinU3xDqGec1wSuO3/RFBilUPr0EGYlTLiQ5iy1avnja8VCOX/NhoTUtLNmZ5kpDkSsKX/wHJaKsuCZ+ju79ovo7U="
+  },
+  {
+   "case": "int",
+   "token": "gAAAAABrAbRxViybVLOX6qAfTVNe9CAa+bUubLDaKUPjXOt+KvZl7k8JL6LwKeC/Tl6hniVYvWx4XhZayOKXA3I0gcBit8KTJg=="
+  },
+  {
+   "case": "none",
+   "token": "gAAAAABrAbRx2X8Q5aun6kgtb19HFJWYrr93BmxUZUONPsNKtqzpsLVIJdHCZ1RH+dFRM9EJNhFLzRCjCdazR1Tx2wnw5ZMxBA=="
+  },
+  {
+   "case": "global_reduce",
+   "token": "gAAAAABrAbRx5ZmqB+0JawdfY3V+/pJiygaXGb8e1ej7Hy49A6vzbiGHl1y2AYeN+bvyQWbfki69G12JPPEG5C6ePN/bcq+u+G/iQX6JqNwvb3Zk+H2IjcZpMRTnw8MqvpaO7ed1arFY"
+  },
+  {
+   "case": "stack_global",
+   "token": "gAAAAABrAbRxqa6yXHNY5oseOUFZljr+XWFrmX4y1pjFPiUtbQfgRjP2YpYZFb+yg7xcYRa73206ffQ/eMLjz/+z0KSg+NRD/EQ0xacRfPk107O+/eiHkBfsPhOoTN7l45Q0j74mkrHB"
+  },
+  {
+   "case": "not_a_pickle",
+   "token": "gAAAAABrAbRxqXHwDTHvPYU+JDcE9a5cca84GdNifHXXJSaPQo/a6Y5mqE0fyF3vKgOkvK5osJsoFIypU+vS4ht3+BZppv3flLUiErtxwwBEW88KHfnEa0s="
+  }
+ ]
+}

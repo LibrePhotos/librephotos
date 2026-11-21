@@ -4,7 +4,6 @@ Django==6.1.3
 django-allauth[socialaccount]==65.21.1
 django-constance==4.5.0
 django-cors-headers==4.9.0
-django-cryptography-5==2.0.3
 djangorestframework==3.18.3
 djangorestframework-simplejwt==5.5.1
 drf-spectacular==0.30.0
@@ -31,7 +30,7 @@ psycopg[binary]==3.3.8
 # Imported directly, so declared here instead of left to other packages: requests
 # (sidecars, geocoders, the Nextcloud client, updates), urllib3
 # (api/runtime/sidecars.py, nextcloud/server_address.py) through requests and
-# sentry-sdk, cryptography (api/updates/signature.py) through django-cryptography-5,
+# sentry-sdk, cryptography (api/updates/signature.py, api/models/encrypted_fields.py),
 # numpy through onnxruntime and opencv. opencv-python-headless 5 and timezonefinder 8
 # need numpy >= 2.
 requests==2.34.2

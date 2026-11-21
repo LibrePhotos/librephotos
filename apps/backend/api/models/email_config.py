@@ -4,7 +4,8 @@ from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import models
-from django_cryptography.fields import encrypt
+
+from api.models.encrypted_fields import EncryptedTextField
 
 
 class SmtpKwargs(TypedDict):
@@ -122,7 +123,7 @@ class EmailConfig(models.Model):
     use_ssl = models.BooleanField(default=False)
     username = models.CharField(max_length=255, blank=True, default="")
     # SMTP password or provider API key. Encrypted at rest.
-    secret = encrypt(models.TextField(blank=True, default=""))
+    secret = EncryptedTextField(blank=True, default="")
 
     class Meta:
         verbose_name = "Email configuration"
