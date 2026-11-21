@@ -22,11 +22,13 @@ import type { SignupValues } from "../auth/SignupFields";
 import { DirectoryPicker } from "./DirectoryPicker";
 import classes from "./FirstTimeSetup.module.css";
 import { SetupErrorReportingStep } from "./SetupErrorReportingStep";
+import { SetupWorkersStep } from "./SetupWorkersStep";
 import { uploadLocation } from "./uploadLocation";
 
 // The steps after the account (0) and the site settings (1).
 const STEP_ERRORS = 2;
 const STEP_LIBRARY = 3;
+const STEP_WORKERS = 4;
 
 type FirstTimeSetupProps = {
   onComplete?: () => void;
@@ -173,12 +175,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
       updateScanDirectory(
         { id: currentUser.id, scan_directory: scanDirectory || null },
         {
-          onSuccess: () => {
-            if (scanDirectory) {
-              scanPhotos.mutate();
-            }
-            finish();
-          },
+          onSuccess: () => setActiveStep(STEP_WORKERS),
           // Without this the wizard just does nothing when the backend rejects
           // the directory, leaving the admin stuck. See issue #492.
           onError: reportUserSaveError,
@@ -195,7 +192,15 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
     { label: t("login.setupstepsettings"), description: t("login.setupsitesettings") },
     { label: t("errorreports.setup_step"), description: t("errorreports.setup_description") },
     { label: t("login.setupsteplibrary"), description: t("login.setupdatadirectory") },
+    { label: t("login.setupstepworkers"), description: t("login.setupworkers") },
   ];
+
+  const handleWorkersDone = () => {
+    if (scanDirectory) {
+      scanPhotos.mutate();
+    }
+    finish();
+  };
 
   return (
     <AuthCard
@@ -253,6 +258,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps): React.JSX.E
         </Stack>
       )}
       {activeStep === STEP_ERRORS && <SetupErrorReportingStep onDone={() => setActiveStep(STEP_LIBRARY)} />}
+      {activeStep === STEP_WORKERS && <SetupWorkersStep onDone={handleWorkersDone} busy={scanPhotos.isPending} />}
       {activeStep === STEP_LIBRARY && (
         <Stack gap="md">
           <DirectoryPicker

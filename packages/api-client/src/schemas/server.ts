@@ -63,6 +63,49 @@ export const UpdateStatus = z.object({
 });
 export type UpdateStatus = z.infer<typeof UpdateStatus>;
 
+export const WorkerIntention = z.enum(["gentle", "balanced", "fast"]);
+export type WorkerIntention = z.infer<typeof WorkerIntention>;
+
+export const MachineCapacity = z.object({
+  cores: z.number(),
+  cpu_source: z.string(),
+  ram_total_mb: z.number(),
+  ram_available_mb: z.number(),
+  ram_source: z.string(),
+});
+export type MachineCapacity = z.infer<typeof MachineCapacity>;
+
+export const WorkerPlan = z.object({
+  intention: z.string(),
+  workers: z.number(),
+  heavy_workers: z.number(),
+  budget_mb: z.number(),
+  needed_mb: z.number(),
+  limited_by: z.string(),
+  fits: z.boolean(),
+});
+export type WorkerPlan = z.infer<typeof WorkerPlan>;
+
+export const RunningWorker = z.object({
+  name: z.string(),
+  slot: z.number(),
+  active: z.boolean(),
+  rss_mb: z.number(),
+  heartbeat_at: z.string(),
+  memory_recycles: z.number(),
+  last_recycle: z.string(),
+});
+export type RunningWorker = z.infer<typeof RunningWorker>;
+
+export const ParallelWorkers = z.object({
+  capacity: MachineCapacity,
+  intention: z.string(),
+  override: z.number().nullable(),
+  plans: z.array(WorkerPlan),
+  workers: z.array(RunningWorker),
+});
+export type ParallelWorkers = z.infer<typeof ParallelWorkers>;
+
 /** `GET /storagestats/` (bytes). */
 export const StorageStats = z.object({
   total_storage: z.number(),

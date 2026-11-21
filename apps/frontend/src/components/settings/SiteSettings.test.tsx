@@ -40,6 +40,7 @@ vi.mock("./useSaveSiteSettings", () => ({
 // Its own test: TrashRetentionSetting.test.tsx.
 vi.mock("./TrashRetentionSetting", () => ({ TrashRetentionSetting: () => null }));
 vi.mock("./UpdateCheckSetting", () => ({ UpdateCheckSetting: () => null }));
+vi.mock("./ParallelWorkersSetting", () => ({ ParallelWorkersSetting: () => null }));
 // Its own test: PlaceNameLanguageSetting.test.tsx. The card tells it which provider is set.
 vi.mock("./PlaceNameLanguageSetting", () => ({
   PlaceNameLanguageSetting: ({ provider }: { provider?: { label: string; data: { place_language: boolean } } }) => (

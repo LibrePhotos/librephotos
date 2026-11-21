@@ -10,6 +10,7 @@ import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
 import { AutoScanSetting } from "./AutoScanSetting";
 import { NoticeSiteSettings } from "./NoticeSiteSettings";
+import { ParallelWorkersSetting } from "./ParallelWorkersSetting";
 import { PlaceNameLanguageSetting } from "./PlaceNameLanguageSetting";
 import { CONTROL_SPAN, LABEL_SPAN, MissingPhotosLimitSetting, SkipPatternsSetting } from "./ScanSettings";
 import { SettingsCard } from "./SettingsCard";
@@ -224,6 +225,7 @@ function SiteSettingsForm({ settings }: Readonly<{ settings: SiteSettingsValues 
             checked={autoCreateUserDirectory.value}
           />
           <UpdateCheckSetting />
+          <ParallelWorkersSetting />
           <NoticeSiteSettings />
           <SsoSettingsGroup />
 
