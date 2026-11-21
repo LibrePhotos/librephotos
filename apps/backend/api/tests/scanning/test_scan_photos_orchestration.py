@@ -1,18 +1,3 @@
-"""Characterization tests for ``scan_jobs.scan_photos`` (CRAP unit 8).
-
-These pin the CURRENT behavior of the two-phase scan orchestrator before it is
-refactored: which walker is used, how files are grouped into image groups vs
-metadata paths, which follow-up tasks are enqueued (scan_missing_photos,
-repair, feature-flagged jobs, the CLIP/face chain), how the progress target is
-computed, when the job is auto-finished, and what happens on failure.
-
-Everything that leaves the process is mocked: the queue's ``store.add``
-are recorders in ``api.jobs.queue`` (follow-up jobs are queued when their rows
-commit, so the commit hooks are run), the directory walkers are patched, and ``MEDIA_ROOT`` points at a
-temp dir so the thumbnail ``makedirs`` calls are harmless. No ML models, no
-network, no exiftool.
-"""
-
 import datetime
 import os
 import tempfile

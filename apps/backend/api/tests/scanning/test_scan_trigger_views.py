@@ -1,17 +1,3 @@
-"""Characterization tests for the scan-trigger views (unit 40).
-
-Pins the behaviour of:
-
-* ``api.views.scan_triggers.ScanPhotosView._scan_photos`` (reached via both GET and
-  POST on ``/api/scanphotos``)
-
-Nothing heavy runs: the queue's ``store.add`` is patched in
-``api.jobs.queue`` (the one module that queues), ``scan_photos`` at its import
-site in ``api.views.scan_triggers`` and ``do_all_models_exist`` in
-``api.runtime.ml_models``, so no broker, no filesystem walking and no model downloads
-happen. The task is queued on commit; the tests run those callbacks.
-"""
-
 import os
 import tempfile
 from contextlib import nullcontext

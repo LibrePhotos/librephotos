@@ -1,12 +1,3 @@
-"""Starting a background job from a request.
-
-Every job-starting view used to wrap the enqueue in ``except BaseException``
-and answer ``{"status": False}`` with HTTP 200 when the queue was down, so a
-client saw a success status code for a job that never started. They now share
-``start_job`` (over ``api.jobs.queue``), which writes the job's row and its task
-in one transaction, and answers 500 with a message when the queue refuses it.
-"""
-
 import shutil
 import tempfile
 from unittest.mock import patch
