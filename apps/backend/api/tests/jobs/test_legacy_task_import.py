@@ -32,13 +32,18 @@ def signed(
     ).sign(value)
 
 
+AUTO_ID = (
+    "integer PRIMARY KEY" if connection.vendor == "sqlite" else "serial PRIMARY KEY"
+)
+
+
 class LegacyTaskImportTest(TestCase):
     def setUp(self):
         RAN.clear()
         if not legacy_import.legacy_table_exists():
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "CREATE TABLE django_q_ormq (id integer PRIMARY KEY, key varchar(100), "
+                    f"CREATE TABLE django_q_ormq (id {AUTO_ID}, key varchar(100), "
                     "payload text, lock timestamp NULL)"
                 )
         self.user = create_test_user()
