@@ -1,3 +1,4 @@
+import threading
 from unittest import TestCase as PlainTestCase
 from unittest.mock import patch
 
@@ -10,6 +11,7 @@ from api.jobs import parallel
 from api.jobs.pool import Pool, PoolSettings
 from api.jobs.queue import enqueue_task
 from api.models import LongRunningJob
+from api.runtime import supervisor
 from api.runtime.capacity import (
     BALANCED,
     FAST,
@@ -184,3 +186,34 @@ class ParallelWorkersEndpointTest(TestCase):
                 "/api/parallel-workers/", {"intention": FAST}, format="json"
             ).status_code,
         )
+
+
+class SidecarWatchdogTest(TestCase):
+    def test_the_supervisor_runs_the_watchdog_in_one_thread_at_a_time(self):
+        started = threading.Event()
+        release = threading.Event()
+        runs = []
+
+        def watchdog():
+            runs.append(1)
+            started.set()
+            release.wait(5)
+
+        pool = Pool(PoolSettings(workers=1, watchdog=watchdog))
+        pool.watch_sidecars()
+        started.wait(5)
+        pool.watch_sidecars()
+        release.set()
+        defined_thread = pool.watching
+        self.assertIsNotNone(defined_thread)
+        defined_thread.join(5)
+
+        self.assertEqual([1], runs)
+
+    def test_each_host_watches_its_own_sidecars(self):
+        with patch.object(
+            supervisor.socket, "gethostname", side_effect=["host-a", "host-b"]
+        ):
+            keys = {supervisor.watch_key("tags"), supervisor.watch_key("tags")}
+
+        self.assertEqual({"host-a:tags", "host-b:tags"}, keys)

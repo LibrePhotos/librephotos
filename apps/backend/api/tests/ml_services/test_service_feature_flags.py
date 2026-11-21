@@ -239,17 +239,19 @@ class StartAllCommandTest(TestCase):
             spawned_services(popen_mock),
         )
 
-    def test_the_watchdog_is_still_scheduled(self, popen_mock):
-        from api.models import TaskSchedule as Schedule
+    def test_the_old_minutely_watchdog_schedule_is_dropped(self, popen_mock):
+        from api.jobs.queue import ensure_schedule
+        from api.models import TaskSchedule
 
+        ensure_schedule(
+            "api.runtime.supervisor.check_services",
+            schedule_type=TaskSchedule.MINUTES,
+            minutes=1,
+        )
         with override_settings(FEATURE_FACE_DETECTION=False):
             call_command("start_service", "all")
 
-        self.assertTrue(
-            Schedule.objects.filter(
-                func="api.runtime.supervisor.check_services"
-            ).exists()
-        )
+        self.assertFalse(TaskSchedule.objects.exists())
 
 
 @UNREADABLE_CONFIG

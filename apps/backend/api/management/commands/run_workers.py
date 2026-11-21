@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand, CommandParser
 from api.jobs import parallel
 from api.jobs.pool import Pool, PoolSettings
 from api.jobs.worker_settings import WorkerSettings
+from api.runtime.supervisor import check_services
 
 
 class Command(BaseCommand):
@@ -26,6 +27,7 @@ class Command(BaseCommand):
                 ),
                 sizer=parallel.Sizer(workers),
                 every_minute=parallel.FastFirstImport(),
+                watchdog=check_services,
             )
         )
         pool.install_signal_handlers()

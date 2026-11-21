@@ -144,12 +144,13 @@ class OverlappingWatchdogRunsTest(_Watchdog):
         self.assertEqual(self.start.call_count, 2)
 
     def test_a_lease_left_by_a_run_that_died_expires(self):
-        self.assertTrue(SidecarWatchLease.objects.take(self.service, "died", 60))
+        key = supervisor.watch_key(self.service)
+        self.assertTrue(SidecarWatchLease.objects.take(key, "died", 60))
 
         supervisor.check_services()
         self.start.assert_not_called()
 
-        SidecarWatchLease.objects.filter(service=self.service).update(
+        SidecarWatchLease.objects.filter(service=key).update(
             expires_at=timezone.now() - datetime.timedelta(seconds=1)
         )
         supervisor.check_services()

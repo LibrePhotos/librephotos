@@ -43,6 +43,7 @@ class PoolSettings:
     tick_seconds: float = 1.0
     sizer: Callable[[], tuple[int, int]] | None = None
     every_minute: Callable[[], object] | None = None
+    watchdog: Callable[[], object] | None = None
 
 
 def kill_tree(pid: int) -> None:
@@ -80,6 +81,27 @@ class Pool:
             self.periodic.append(Every(30, self.resize))
         if settings.every_minute is not None:
             self.periodic.append(Every(60, settings.every_minute))
+        self.watching: threading.Thread | None = None
+        if settings.watchdog is not None:
+            self.periodic.append(Every(60, self.watch_sidecars))
+
+    def watch_sidecars(self) -> None:
+        watchdog = self.settings.watchdog
+        if watchdog is None or (self.watching is not None and self.watching.is_alive()):
+            return
+
+        def run() -> None:
+            try:
+                watchdog()
+            except Exception:
+                logger.exception("the sidecar watchdog failed")
+            finally:
+                db.connections.close_all()
+
+        self.watching = threading.Thread(
+            target=run, name="sidecar-watchdog", daemon=True
+        )
+        self.watching.start()
 
     def resize(self) -> None:
         if self.settings.sizer is None:

@@ -28,7 +28,6 @@ _.on_authentication_error  # SSOSocialAccountAdapter hook; allauth's render_auth
 _.ApiConfig  # class in api/apps.py
 _.NextcloudConfig  # class in nextcloud/apps.py
 
-_.check_services  # function in api/runtime/supervisor.py (start_service)
 _.empty_expired_trash  # function in api/photos/retention.py (start_cleaning_service)
 _.cleanup_deleted_photos  # function in api/photos/retention.py (start_cleaning_service)
 _.prune_deletion_log  # function in api/photos/retention.py (start_cleaning_service)
