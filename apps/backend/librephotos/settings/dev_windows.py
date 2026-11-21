@@ -39,4 +39,4 @@ INSTALLED_APPS = [  # noqa: F405
     if app != "django.contrib.postgres"
 ]
 
-TASK_WORKERS = env_int("WORKER_CONCURRENCY", 1) or 1
+TASK_WORKERS = env_int("WORKER_CONCURRENCY", None)
