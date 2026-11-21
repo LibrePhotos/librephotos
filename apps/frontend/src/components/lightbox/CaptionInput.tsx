@@ -1,4 +1,5 @@
 import { RichTextEditor } from "@mantine/tiptap";
+import "@mantine/tiptap/styles.css";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
 import Paragraph from "@tiptap/extension-paragraph";

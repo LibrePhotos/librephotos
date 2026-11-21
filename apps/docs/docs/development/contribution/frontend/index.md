@@ -179,9 +179,14 @@ Everything below is relative to
   translations, set up in `i18n.ts`. Translations are contributed through
   [Weblate](https://hosted.weblate.org/engage/librephotos/) rather than edited directly: its
   `librephotos-frontend` component translates `apps/frontend/src/locales/*/translation.json` against
-  the English file, `apps/frontend/src/locales/en/translation.json`. English ships in the main bundle,
-  and `i18n.ts` loads every other directory under `locales` as its own chunk, so a language Weblate
-  adds loads without a code change. To offer it in the Profile language picker, give it an entry in
+  the English file, `apps/frontend/src/locales/en/translation.json`. `i18n.ts` loads every directory
+  under `locales` as its own chunk, English included, so a language Weblate adds loads without a code
+  change. <Since version="1.7.0" /> The first render waits for the user's language and English, the
+  fallback (`index.tsx` awaits `i18nReady`), so no raw keys flash. A small script that the build adds
+  to `index.html` (`localePreload.ts`, a Vite plugin) preloads both chunks before the app's JavaScript
+  runs, from the `lng` query parameter, the saved `i18nextLng` or the browser's first language, so
+  neither waits for the main bundle. Under vitest (`MODE` "test") `i18n.ts` still passes English as a
+  bundled resource, so component tests read it synchronously; the build drops that branch. To offer it in the Profile language picker, give it an entry in
   `components/settings/languageOptions.ts` and a dayjs locale in `dayjsLocaleLoaders` (`i18n.ts`);
   `src/i18n.test.ts` fails until both are there.
 - The names of things (the words the tagger finds, `apps/backend/service/tags/tags.txt`) are their own
@@ -192,6 +197,13 @@ Everything below is relative to
   links and search keep the English word.
 - In [util](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/util) you can find
   miscellaneous functions.
+- <Since version="1.7.0" /> A package stylesheet that only a lazy feature uses is imported by the
+  component that renders it, not by `index.tsx`: `maplibre-gl/dist/maplibre-gl.css` in
+  `components/map/ThemedMap.tsx` (every map renders through it), `@mantine/dates/styles.css` in each
+  component with a date picker, `@mantine/tiptap/styles.css` in the caption editor and
+  `@mantine/carousel/styles.css` in the lightbox's `ContentViewer`. Vite loads a lazy chunk's CSS before
+  the chunk runs, and after `@mantine/core/styles.css`, so the order Mantine asks for holds and nothing
+  renders unstyled. `index.tsx` keeps only the core styles and the app's colour variables.
 
 ### The API client outside the browser {#native-transports}
 

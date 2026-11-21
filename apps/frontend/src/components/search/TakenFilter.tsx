@@ -1,5 +1,6 @@
 import { Chip, Group, Stack } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { calendarDaysAgo, calendarYear } from "../../util/dateUtils";

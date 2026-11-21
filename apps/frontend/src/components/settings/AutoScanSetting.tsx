@@ -1,6 +1,7 @@
 import type { SiteAutoScanStatus } from "@librephotos/api-client";
 import { Chip, Grid, Group, Select, Stack, Text } from "@mantine/core";
 import { TimeInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import {
   IconAlertTriangle,
   IconCheck,
