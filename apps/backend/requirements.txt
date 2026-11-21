@@ -66,6 +66,13 @@ onnxruntime-ep-webgpu==0.5.0
 # pyclipper: polygon offsetting for the PP-OCRv6 detector's DBPostProcess
 # (unclip step).
 pyclipper==1.4.0
-# OpenCV: face detection and alignment (service/face_recognition/face_analysis.py)
-# and the OCR geometry (service/ocr/ppocr).
-opencv-python-headless==5.0.0.93
+# OpenCV: face detection and alignment (service/face_recognition/face_analysis.py),
+# the OCR geometry (service/ocr/ppocr) and the photo editor (api/editing).
+# opencv-lp-headless is OpenCV 5.0.0 with only core, imgproc, geometry, flann and
+# imgcodecs, built by .github/workflows/opencv-wheel.yml from opencv-python's tag 93;
+# macOS keeps the PyPI wheel of the same build. Bump every line together (Renovate is
+# off for it) and rebuild the wheels (docs: development/contribution/backend/opencv-wheel).
+opencv-lp-headless @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.11.21/opencv_lp_headless-5.0.0.93-cp37-abi3-win_amd64.whl ; sys_platform == "win32"
+opencv-lp-headless @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.11.21/opencv_lp_headless-5.0.0.93-cp37-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
+opencv-lp-headless @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.11.21/opencv_lp_headless-5.0.0.93-cp37-abi3-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
+opencv-python-headless==5.0.0.93 ; sys_platform == "darwin"
