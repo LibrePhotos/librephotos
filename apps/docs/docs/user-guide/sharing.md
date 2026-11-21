@@ -238,7 +238,7 @@ When public sharing is enabled, click **Show settings** in the sharing dialog to
 Change the URL slug to something memorable — 3–64 characters using only lowercase letters, digits and hyphens. Capitals you type are converted to lowercase automatically; spaces, underscores and other punctuation are rejected. Slugs must be unique across the instance, and the field checks availability as you type. For example: `summer-vacation-2025` → `/public/s/summer-vacation-2025`.
 
 #### Expiration
-Expiration is optional. Pick any expiry date and time with the date picker (down to the second), or use the built-in **7 days**, **30 days** or **90 days** presets in the picker's dropdown for a quick choice. Click **Never** (or clear the field) to remove the expiry so the link never expires. After expiration, the link no longer works.
+Expiration is optional. Pick any expiry date and time in the field (down to the second; it uses your browser's own date and time control), or click **7 days**, **30 days** or **90 days** under it for a quick choice. <Since version="1.7.0" /> Up to 1.6.0 these presets were in the picker's dropdown. Click **Never** (or clear the field) to remove the expiry so the link never expires. After expiration, the link no longer works.
 
 #### Photo Details
 

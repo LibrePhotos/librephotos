@@ -35,9 +35,11 @@ echo "==> Installing Python dependencies..."
 # to --user to avoid modifying the system Python installation.
 if [ -n "${VIRTUAL_ENV:-}" ]; then
     pip install --no-cache-dir -r requirements.txt -r requirements.dev.txt
+    pip install --no-cache-dir --no-deps -r requirements.nodeps.txt
 else
     echo "  (No virtualenv active — using --user install to avoid modifying system Python)"
     pip install --no-cache-dir --user -r requirements.txt -r requirements.dev.txt
+    pip install --no-cache-dir --user --no-deps -r requirements.nodeps.txt
 fi
 
 echo "==> Creating test runtime directories..."

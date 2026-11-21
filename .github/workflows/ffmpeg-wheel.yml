@@ -1,0 +1,239 @@
+name: ffmpeg-wheel
+
+on:
+  pull_request:
+    paths:
+      - 'apps/backend/scripts/ffmpeg/**'
+      - 'apps/backend/scripts/build_ffmpeg_wheel.py'
+      - '.github/workflows/ffmpeg-wheel.yml'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Create the ffmpeg-bin-<version> release and attach the wheels and the sources"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ffmpeg-wheel-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MANYLINUX_TAG: "2026.11.07-1"
+  REFERENCE_RELEASE: https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16
+  REFERENCE_VERSION: "9.0.1"
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      source_url: ${{ steps.version.outputs.source_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: version
+        run: |
+          version=$(python3 apps/backend/scripts/ffmpeg/sources.py version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=ffmpeg-bin-$version" >> "$GITHUB_OUTPUT"
+          echo "source_url=https://github.com/${{ github.repository }}/releases/tag/ffmpeg-bin-$version" >> "$GITHUB_OUTPUT"
+
+  sources:
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Fetch and bundle the corresponding source
+        run: |
+          python apps/backend/scripts/ffmpeg/sources.py fetch "$RUNNER_TEMP/src" "$RUNNER_TEMP/archives"
+          python apps/backend/scripts/ffmpeg/sources.py bundle "$RUNNER_TEMP/archives" sources
+          ls -l sources
+          cat sources/SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ffmpeg-sources
+          path: sources/
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: linux-x86_64, runner: ubuntu-24.04, image: manylinux_2_28_x86_64 }
+          - { target: linux-aarch64, runner: ubuntu-24.04-arm, image: manylinux_2_28_aarch64 }
+          - { target: win64, runner: ubuntu-24.04, image: "" }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      TARGET: ${{ matrix.target }}
+      VERSION: ${{ needs.version.outputs.version }}
+      SOURCE_URL: ${{ needs.version.outputs.source_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build in manylinux
+        if: matrix.image != ''
+        run: |
+          docker run --rm -e TARGET -e VERSION -e SOURCE_URL -v "$PWD:/w" -w /w \
+            "quay.io/pypa/${{ matrix.image }}:$MANYLINUX_TAG" bash -euo pipefail -c '
+              /opt/python/cp314-cp314/bin/python -m venv /tmp/venv
+              /tmp/venv/bin/pip install --quiet -r apps/backend/scripts/ffmpeg/requirements.build.txt
+              export PATH=/tmp/venv/bin:$PATH PYTHON=/tmp/venv/bin/python
+              python apps/backend/scripts/ffmpeg/sources.py fetch /tmp/src /tmp/archives
+              bash apps/backend/scripts/ffmpeg/build.sh "$TARGET" /tmp/src out/stage "$SOURCE_URL" /tmp/work
+              python apps/backend/scripts/build_ffmpeg_wheel.py out/stage "$TARGET" "$VERSION" "$SOURCE_URL" out/wheels
+              auditwheel show out/wheels/*.whl | tee out/auditwheel.txt
+              grep -qE "manylinux_2_([5-9]|1[0-9]|2[0-8])_" out/auditwheel.txt
+              chown -R "$(stat -c %u:%g /w)" out'
+      - uses: actions/setup-python@v7
+        if: matrix.image == ''
+        with:
+          python-version: "3.14"
+      - name: Cross-compile with mingw-w64
+        if: matrix.image == ''
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-mingw-w64-x86-64-win32 g++-mingw-w64-x86-64-win32 binutils-mingw-w64-x86-64 \
+            nasm autoconf automake libtool pkg-config
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet -r apps/backend/scripts/ffmpeg/requirements.build.txt
+          export PATH="$RUNNER_TEMP/venv/bin:$PATH" PYTHON="$RUNNER_TEMP/venv/bin/python"
+          python apps/backend/scripts/ffmpeg/sources.py fetch "$RUNNER_TEMP/src" "$RUNNER_TEMP/archives"
+          bash apps/backend/scripts/ffmpeg/build.sh "$TARGET" "$RUNNER_TEMP/src" out/stage "$SOURCE_URL" "$RUNNER_TEMP/work"
+          python apps/backend/scripts/build_ffmpeg_wheel.py out/stage "$TARGET" "$VERSION" "$SOURCE_URL" out/wheels
+      - name: Sizes
+        run: |
+          {
+            echo "### ffmpeg-bin $VERSION $TARGET"
+            echo '```'
+            ls -l out/wheels
+            du -ab out/stage | sort -n | tail -n 15
+            cat out/stage/BUILD.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ffmpeg-bin-${{ matrix.target }}
+          path: out/wheels/*.whl
+
+  corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Make the clip corpus with the reference build, which has every encoder
+        working-directory: apps/backend
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/reference.whl" "$REFERENCE_RELEASE/ffmpeg_bin-$REFERENCE_VERSION-py3-none-manylinux_2_28_x86_64.whl"
+          unzip -q "$RUNNER_TEMP/reference.whl" -d "$RUNNER_TEMP/reference"
+          python -m scripts.ffmpeg.compat corpus "$RUNNER_TEMP/reference/ffmpeg_bin/bin" "$GITHUB_WORKSPACE/corpus"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ffmpeg-corpus
+          path: corpus/
+
+  compat:
+    needs: [build, corpus]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: linux-x86_64, runner: ubuntu-24.04, wheel: manylinux_2_28_x86_64 }
+          - { target: linux-aarch64, runner: ubuntu-24.04-arm, wheel: manylinux_2_28_aarch64 }
+          - { target: win64, runner: windows-latest, wheel: win_amd64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - uses: actions/download-artifact@v8
+        with:
+          name: ffmpeg-bin-${{ matrix.target }}
+          path: ${{ runner.temp }}/new-wheel
+      - uses: actions/download-artifact@v8
+        with:
+          name: ffmpeg-corpus
+          path: ${{ runner.temp }}/corpus
+      - name: Unpack the reference and the new build
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/reference.whl" "$REFERENCE_RELEASE/ffmpeg_bin-$REFERENCE_VERSION-py3-none-${{ matrix.wheel }}.whl"
+          python -m zipfile -e "$RUNNER_TEMP/reference.whl" "$RUNNER_TEMP/reference"
+          python -m zipfile -e "$RUNNER_TEMP"/new-wheel/*.whl "$RUNNER_TEMP/new"
+          if [ "$RUNNER_OS" != Windows ]; then
+            chmod +x "$RUNNER_TEMP"/reference/ffmpeg_bin/bin/* "$RUNNER_TEMP"/new/ffmpeg_bin/bin/*
+          fi
+          {
+            echo "### ${{ matrix.target }} installed size (bytes)"
+            echo '```'
+            du -sb "$RUNNER_TEMP/reference/ffmpeg_bin" "$RUNNER_TEMP/new/ffmpeg_bin"
+            ls -l "$RUNNER_TEMP/reference.whl" "$RUNNER_TEMP"/new-wheel/*.whl
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: The new build has what LibrePhotos calls
+        working-directory: apps/backend
+        run: python -m scripts.ffmpeg.compat check "$RUNNER_TEMP/new/ffmpeg_bin/bin"
+      - name: Compatibility matrix against the reference build
+        working-directory: apps/backend
+        run: |
+          status=0
+          python -m scripts.ffmpeg.compat matrix "$RUNNER_TEMP/reference/ffmpeg_bin/bin" "$RUNNER_TEMP/new/ffmpeg_bin/bin" \
+            "$RUNNER_TEMP/corpus" "$GITHUB_WORKSPACE/matrix" || status=$?
+          cat "$GITHUB_WORKSPACE/matrix/matrix.md" >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ffmpeg-matrix-${{ matrix.target }}
+          path: matrix/
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: [version, sources, build, compat]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: assets
+          pattern: ffmpeg-bin-*
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: ffmpeg-sources
+          path: assets
+      - name: Create the release with the wheels and their corresponding source
+        run: |
+          ls -l assets
+          gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1 || gh release create "$TAG" --repo "${{ github.repository }}" \
+            --title "$TAG" --prerelease --target "${{ github.sha }}" \
+            --notes "ffmpeg and ffprobe wheels for apps/backend/requirements.txt, built by .github/workflows/ffmpeg-wheel.yml from ${{ github.sha }}. GPL-2.0-or-later: the corresponding source of every component and the build scripts are attached (SHA256SUMS lists them)."
+          gh release upload "$TAG" --repo "${{ github.repository }}" assets/* --clobber

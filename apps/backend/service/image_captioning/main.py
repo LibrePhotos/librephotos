@@ -1,7 +1,7 @@
-from flask.typing import ResponseReturnValue
 from lfm2_vl import Lfm2VlCaptioner
 
 from service._common import create_app, json_fields, logger, serve_forever
+from service._web import ResponseReturnValue
 
 captioner: Lfm2VlCaptioner | None = None
 log = logger("image_captioning")

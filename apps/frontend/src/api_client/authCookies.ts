@@ -1,4 +1,4 @@
-import { jwtDecode } from "jwt-decode";
+import { decodeJwtClaims } from "@librephotos/api-client";
 import { fromUnixSeconds } from "../util/dateUtils";
 import { isCookiePath, readCookie, removeCookie, writeCookie } from "./documentCookie";
 
@@ -73,13 +73,8 @@ export function getAuthCookie(name: "access" | "refresh"): string | undefined {
  * plain or SSO sign-in, and for a value that is not a JWT.
  */
 function rememberedUntil(token: string): Date | undefined {
-  try {
-    const payload: object = jwtDecode(token);
-    const claim = "remember_until" in payload ? payload.remember_until : undefined;
-    return typeof claim === "number" ? fromUnixSeconds(claim).toJSDate() : undefined;
-  } catch {
-    return undefined;
-  }
+  const claim = decodeJwtClaims(token)?.remember_until;
+  return typeof claim === "number" ? fromUnixSeconds(claim).toJSDate() : undefined;
 }
 
 /**

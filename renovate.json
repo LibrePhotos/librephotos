@@ -17,8 +17,8 @@
       "automerge": true
     },
     {
-      "description": "Never auto-bump timezonefinder: it has Windows and arm64 wheels built by prebuilt-wheels.yml and pinned by URL in apps/backend/requirements.txt next to the PyPI pin. Renovate would move the PyPI line alone. Bump every line together by hand and re-run the workflow.",
-      "matchPackageNames": ["timezonefinder"],
+      "description": "Never auto-bump opencv-python-headless: apps/backend/requirements.txt installs opencv-lp-headless, our build of the same OpenCV release (opencv-python tag 93), from a windows-wheels-* release on Windows and Linux, and the PyPI wheel only on macOS. Renovate would move the macOS line alone. Rebuild with prebuilt-wheels.yml and bump every line together by hand.",
+      "matchPackageNames": ["opencv-python-headless"],
       "enabled": false
     },
     {

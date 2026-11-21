@@ -5,7 +5,6 @@
  */
 import { Media, type DatePhotosGroup, type PigPhoto } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
-import { DatesProvider } from "@mantine/dates";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -76,14 +75,12 @@ async function renderDialog(birthDate: string | null) {
     root.render(
       // env="test": no transitions or portals, so the dialog renders in place
       <MantineProvider env="test">
-        <DatesProvider settings={{ locale: "en" }}>
-          <PersonBirthDateModal
-            opened
-            onClose={onClose}
-            person={{ id: "5", name: "Mia", birth_date: birthDate }}
-            groups={groups}
-          />
-        </DatesProvider>
+        <PersonBirthDateModal
+          opened
+          onClose={onClose}
+          person={{ id: "5", name: "Mia", birth_date: birthDate }}
+          groups={groups}
+        />
       </MantineProvider>
     );
   });
@@ -124,10 +121,12 @@ describe("PersonBirthDateModal", () => {
     );
   });
 
-  it("saves the date typed, and closes once the server took it", async () => {
+  it("saves the date picked, and closes once the server took it", async () => {
     await renderDialog(null);
 
-    await type("May 3, 2019");
+    expect(input().type).toBe("date");
+    expect(input().max).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    await type("2019-05-03");
     await submit();
 
     expect(stubs.setBirthDate).toHaveBeenCalledWith(
@@ -140,13 +139,24 @@ describe("PersonBirthDateModal", () => {
   it("opens on the saved date and saves it unchanged with Enter", async () => {
     await renderDialog("2019-05-03");
 
-    expect(input().value).toBe("May 3, 2019");
+    expect(input().value).toBe("2019-05-03");
     await submit();
 
     expect(stubs.setBirthDate).toHaveBeenCalledWith(
       { id: "5", name: "Mia", birthDate: "2019-05-03" },
       expect.anything()
     );
+  });
+
+  it("clears the field without saving, then saves no date", async () => {
+    await renderDialog("2019-05-03");
+
+    await act(async () => defined(container.querySelector<HTMLButtonElement>('button[aria-label="Clear"]')).click());
+    expect(input().value).toBe("");
+    expect(stubs.setBirthDate).not.toHaveBeenCalled();
+    await submit();
+
+    expect(stubs.setBirthDate).toHaveBeenCalledWith({ id: "5", name: "Mia", birthDate: null }, expect.anything());
   });
 
   it("removes the date", async () => {

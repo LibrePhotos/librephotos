@@ -9,6 +9,7 @@ from unittest.mock import patch
 import numpy as np
 import pyvips
 
+from api.tests.sidecar_client import test_client
 from service.thumbnail import main as thumbnail_main
 from service.thumbnail.main import app, render_raw
 
@@ -77,7 +78,7 @@ class RenderRawTests(unittest.TestCase):
         self.assertEqual(_load(self.out).height, 200)
 
     def test_endpoint_returns_destination(self):
-        client = app.test_client()
+        client = test_client(app)
         with patch("service.thumbnail.main.rawpy.imread", FakeRaw):
             response = client.post(
                 "/",
@@ -88,7 +89,7 @@ class RenderRawTests(unittest.TestCase):
         self.assertTrue(os.path.exists(self.out))
 
     def test_bad_request_without_fields(self):
-        self.assertEqual(app.test_client().post("/", json={}).status_code, 400)
+        self.assertEqual(test_client(app).post("/", json={}).status_code, 400)
 
 
 class DestinationTests(unittest.TestCase):
@@ -106,7 +107,7 @@ class DestinationTests(unittest.TestCase):
 
     def post(self, destination, **extra):
         with patch.object(thumbnail_main, "render_raw") as render:
-            response = app.test_client().post(
+            response = test_client(app).post(
                 "/",
                 json={
                     "source": "/photos/x.nef",

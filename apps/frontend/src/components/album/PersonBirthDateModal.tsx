@@ -1,6 +1,5 @@
 import type { DatePhotosGroup } from "@librephotos/api-client";
 import { Alert, Button, FocusTrap, Group, Modal, Stack } from "@mantine/core";
-import { DateInput } from "@mantine/dates";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconAlertTriangle, IconCake } from "@tabler/icons-react";
 import React from "react";
@@ -8,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useSetPersonBirthDateMutation, type Person } from "../../api_client/albums/hooks";
 import { ICON_SIZE } from "../../uiConstants";
 import { calendarDaysAgo } from "../../util/dateUtils";
+import { NativeDateInput } from "../common/NativeDateInput";
 import { DIALOG_SIZE } from "../modals/dialogSize";
 import { photosBefore } from "./personAge";
 import { makePersonBirthDateSchema } from "./PersonBirthDateModal.schema";
@@ -39,16 +39,15 @@ function PersonBirthDateForm({ person, groups, onClose }: FormProps) {
     // A form, so Enter saves too
     <form onSubmit={form.onSubmit(values => save(values.birthDate))}>
       <Stack>
-        <DateInput
+        <NativeDateInput
           label={t("personbirthdate.label")}
           description={t("personbirthdate.description")}
-          placeholder={t("personbirthdate.placeholder")}
           leftSection={<IconCake size={ICON_SIZE.inline} />}
-          maxDate={today}
+          max={today}
           clearable
-          // A birthday decades back: start on the years, not on this month
-          defaultLevel={birthDate ? "month" : "decade"}
           {...form.getInputProps("birthDate")}
+          value={birthDate ?? ""}
+          onChange={value => form.setFieldValue("birthDate", value || null)}
         />
         {older > 0 && (
           <Alert color="yellow" icon={<IconAlertTriangle size={ICON_SIZE.inline} />}>

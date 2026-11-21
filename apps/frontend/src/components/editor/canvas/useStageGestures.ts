@@ -1,5 +1,6 @@
-import { useGesture } from "@use-gesture/react";
 import { useEffect, useRef, type RefObject } from "react";
+import { useViewerGestures } from "../../../hooks/useViewerGestures";
+import type { GesturePoint } from "../../../hooks/viewerGestures";
 import type { ViewTransform } from "../engine/geometry";
 import type { DrawnFrame } from "./usePreview";
 import { isFitted, panBy, toggleZoom, zoomAround, type ZoomState } from "./viewMath";
@@ -18,11 +19,6 @@ type Args = Readonly<{
   onZoom: (zoom: ZoomState) => void;
 }>;
 
-/** A drag that starts on a control over the picture (the split view's divider) is that control's. */
-function ownsDrag(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest("[data-own-drag]") !== null;
-}
-
 /**
  * Zooming and panning the canvas: the wheel and a pinch zoom around the pointer, a drag pans a
  * zoomed picture, a double click goes between fitted and 100 %. Positions are taken in canvas pixels.
@@ -32,8 +28,7 @@ export function useStageGestures({ stage, drawn, pixelRatio, locked, onZoom }: A
   // The view asked for and not drawn yet: wheel events come faster than frames, and each one
   // zooms on from the last, not from the frame on screen.
   const asked = useRef<ViewTransform | null>(null);
-  // Where a pinch began: its view and the distance between the fingers.
-  const pinchStart = useRef<{ view: ViewTransform; distance: number } | null>(null);
+  const pinchStart = useRef<ViewTransform | null>(null);
   useEffect(() => {
     latest.current = { drawn, pixelRatio, locked, onZoom };
   });
@@ -41,60 +36,60 @@ export function useStageGestures({ stage, drawn, pixelRatio, locked, onZoom }: A
     asked.current = null;
   }, [drawn]);
 
-  const toCanvas = (clientX: number, clientY: number) => {
+  const toCanvas = ({ x, y }: GesturePoint) => {
     const rect = stage.current?.getBoundingClientRect();
     const ratio = latest.current.pixelRatio;
-    return { x: (clientX - (rect?.left ?? 0)) * ratio, y: (clientY - (rect?.top ?? 0)) * ratio };
+    return { x: (x - (rect?.left ?? 0)) * ratio, y: (y - (rect?.top ?? 0)) * ratio };
   };
   const base = (frame: DrawnFrame) => asked.current ?? frame.view;
   const zoomTo = (view: ViewTransform) => {
     asked.current = view;
     latest.current.onZoom({ kind: "manual", view });
   };
+  const active = () => (latest.current.locked ? null : latest.current.drawn);
 
-  useGesture(
-    {
-      onWheel: ({ event, delta: [, dy] }) => {
-        const { drawn: frame, locked: off } = latest.current;
-        if (off || !frame) return;
-        event.preventDefault();
-        const from = base(frame);
-        const scale = from.scale * Math.exp(-dy * WHEEL_ZOOM_RATE);
-        zoomTo(
-          zoomAround(from, scale, toCanvas(event.clientX, event.clientY), frame.canvas, frame.picture, frame.margin)
-        );
-      },
-      onPinch: ({ origin: [ox, oy], da: [distance], first }) => {
-        const { drawn: frame, locked: off } = latest.current;
-        if (off || !frame) return;
-        if (first || !pinchStart.current) pinchStart.current = { view: base(frame), distance };
-        const start = pinchStart.current;
-        const scale = start.view.scale * (distance / Math.max(1, start.distance));
-        zoomTo(zoomAround(start.view, scale, toCanvas(ox, oy), frame.canvas, frame.picture, frame.margin));
-      },
-      onDrag: ({ delta: [dx, dy], pinching, tap, event }) => {
-        const { drawn: frame, locked: off, pixelRatio: ratio } = latest.current;
-        if (off || pinching || tap || !frame || ownsDrag(event.target)) return;
-        const from = base(frame);
-        if (isFitted(from, frame.canvas, frame.picture, frame.margin)) return;
-        zoomTo(panBy(from, { x: dx * ratio, y: dy * ratio }, frame.canvas, frame.picture));
-      },
+  useViewerGestures(stage, {
+    onWheel: ({ point, deltaY }) => {
+      const frame = active();
+      if (!frame) return false;
+      const from = base(frame);
+      const scale = from.scale * Math.exp(-deltaY * WHEEL_ZOOM_RATE);
+      zoomTo(zoomAround(from, scale, toCanvas(point), frame.canvas, frame.picture, frame.margin));
+      return true;
     },
-    {
-      target: stage,
-      eventOptions: { passive: false },
-      drag: { filterTaps: true },
-      pinch: { scaleBounds: { min: 0.01, max: 100 } },
-    }
-  );
+    onPinch: ({ first, scale, origin }) => {
+      const frame = active();
+      if (!frame) return;
+      if (first || !pinchStart.current) pinchStart.current = base(frame);
+      const start = pinchStart.current;
+      zoomTo(zoomAround(start, start.scale * scale, toCanvas(origin), frame.canvas, frame.picture, frame.margin));
+    },
+    onPinchEnd: () => {
+      pinchStart.current = null;
+    },
+    onDrag: ({ delta }) => {
+      const frame = active();
+      if (!frame) return;
+      const ratio = latest.current.pixelRatio;
+      const from = base(frame);
+      if (isFitted(from, frame.canvas, frame.picture, frame.margin)) return;
+      zoomTo(panBy(from, { x: delta.x * ratio, y: delta.y * ratio }, frame.canvas, frame.picture));
+    },
+  });
 
   /** A double click on the picture: fitted and 100 % in turn, around the pointer. */
   return (event: { clientX: number; clientY: number }) => {
-    const { drawn: frame, locked: off } = latest.current;
-    if (off || !frame) return;
+    const frame = active();
+    if (!frame) return;
     asked.current = null;
     latest.current.onZoom(
-      toggleZoom(base(frame), toCanvas(event.clientX, event.clientY), frame.canvas, frame.picture, frame.margin)
+      toggleZoom(
+        base(frame),
+        toCanvas({ x: event.clientX, y: event.clientY }),
+        frame.canvas,
+        frame.picture,
+        frame.margin
+      )
     );
   };
 }

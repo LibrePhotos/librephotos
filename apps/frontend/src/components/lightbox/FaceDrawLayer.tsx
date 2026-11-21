@@ -69,12 +69,7 @@ export function FaceDrawLayer({ onCommit, onCancel }: Props) {
     };
   }, []);
 
-  // The photo sits inside a carousel and a drag-to-pan handler, both of which
-  // would rather treat this drag as a swipe.
-  const swallow = (event: React.PointerEvent) => {
-    event.stopPropagation();
-    event.preventDefault();
-  };
+  const swallow = (event: React.PointerEvent) => event.preventDefault();
 
   const handlePointerDown = (event: React.PointerEvent) => {
     if (event.button !== 0 && event.pointerType === "mouse") return;
@@ -112,6 +107,7 @@ export function FaceDrawLayer({ onCommit, onCancel }: Props) {
     <Box
       ref={layerRef}
       data-testid="face-draw-layer"
+      data-own-gesture
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
