@@ -1,0 +1,55 @@
+.field {
+  display: grid;
+  border: 1px solid light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-default);
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  color: var(--mantine-color-text);
+  transition: border-color 100ms ease;
+}
+
+.field:focus-within {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.backdrop,
+.input {
+  grid-area: 1 / 1;
+  min-height: calc(2em * var(--mantine-line-height) + 2 * var(--mantine-spacing-xs));
+  margin: 0;
+  border: 0;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  font-family: inherit;
+  font-size: var(--mantine-font-size-md);
+  line-height: var(--mantine-line-height);
+  letter-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 4;
+}
+
+.backdrop {
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+
+.input {
+  overflow: hidden;
+  resize: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+}
+
+.anchor {
+  display: inline-block;
+  width: 0;
+}
+
+.hashtag {
+  border-radius: var(--mantine-radius-xs);
+  background-color: light-dark(var(--mantine-color-lime-2), var(--mantine-color-lime-light));
+  box-shadow: 0 0 0 1px light-dark(var(--mantine-color-lime-2), var(--mantine-color-lime-light));
+  color: transparent;
+}
