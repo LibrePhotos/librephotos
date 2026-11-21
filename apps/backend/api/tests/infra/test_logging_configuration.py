@@ -163,11 +163,8 @@ class LogLevelTest(SimpleTestCase):
                 self.assertIn("region_info debug line", f.read())
 
     def test_third_party_floor_survives_debug(self):
-        # LOG_LEVEL=DEBUG must not turn django-q2's per-task chatter back on.
         with temporary_logging(level="DEBUG"):
-            self.assertEqual(
-                logging.getLogger("django_q").getEffectiveLevel(), logging.INFO
-            )
+            self.assertEqual(logging.getLogger("PIL").getEffectiveLevel(), logging.INFO)
             self.assertEqual(
                 logging.getLogger("django.db.backends").getEffectiveLevel(),
                 logging.WARNING,
@@ -184,7 +181,6 @@ class LogLevelTest(SimpleTestCase):
         # A floor should never make a logger more verbose than the admin asked
         # for, so ERROR pushes the INFO floors down with everything else.
         config = build_logging_config(level="ERROR")
-        self.assertEqual(config["loggers"]["django_q"]["level"], "ERROR")
         self.assertEqual(config["loggers"]["urllib3"]["level"], "ERROR")
 
     def test_unknown_level_falls_back_to_info_instead_of_raising(self):
@@ -252,8 +248,8 @@ class LoggerLevelsTest(SimpleTestCase):
         self.assertEqual(config["root"]["level"], "WARNING")
 
     def test_override_beats_a_third_party_floor(self):
-        config = build_logging_config(level="INFO", logger_levels={"django_q": "DEBUG"})
-        self.assertEqual(config["loggers"]["django_q"]["level"], "DEBUG")
+        config = build_logging_config(level="INFO", logger_levels={"urllib3": "DEBUG"})
+        self.assertEqual(config["loggers"]["urllib3"]["level"], "DEBUG")
 
     def test_one_module_at_debug_reaches_the_file_and_the_rest_stays_quiet(self):
         with temporary_logging(

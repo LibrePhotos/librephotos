@@ -255,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"\ncheck_dead_code: {len(findings)} unused definition(s). Delete them; "
         f"whitelist one in {WHITELIST} only if something outside the scanned "
-        "code calls it (a dotted path in settings, a django_q schedule)."
+        "code calls it (a dotted path in settings, a task schedule)."
     )
     return 1
 

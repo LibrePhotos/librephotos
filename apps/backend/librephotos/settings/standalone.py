@@ -28,14 +28,6 @@ CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS", ["http://localhost:8000", "http://127.0.0.1:8000"]
 )
 
-# One person's desktop. Left alone django-q2 starts a worker per CPU core, and
-# every worker is a full copy of the backend: a dozen processes and several GB
-# of RAM on an ordinary PC, all queueing behind sidecars that serve one request
-# at a time anyway. WORKER_CONCURRENCY still overrides it.
-Q_CLUSTER = {  # noqa: F405
-    **Q_CLUSTER,  # noqa: F405
-    "workers": env_int("WORKER_CONCURRENCY", 2),
-}
 TASK_WORKERS = env_int("WORKER_CONCURRENCY", 2) or 2
 
 # The update check offers only releases with the Windows zip, and links to the
