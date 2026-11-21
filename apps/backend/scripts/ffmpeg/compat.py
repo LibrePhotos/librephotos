@@ -21,8 +21,8 @@ PREVIEW_SECONDS = 5
 PREVIEW_CRF = 20
 SQUARE_HEIGHT = 500
 LIVE_THREADS = "2"
-LIVE_READRATE = "2"
-LIVE_BURST_SECONDS = "30"
+LIVE_READRATE = "2.0"
+LIVE_BURST_SECONDS = "30.0"
 CACHED_THREADS = "2"
 CACHED_PRESET = "veryfast"
 VIDEO_NO_METADATA = (*NO_METADATA, "-map_metadata:s:v", "-1", "-map_metadata:s:a", "-1")
@@ -412,7 +412,7 @@ def filter_entries(lines: list[str]) -> set[str]:
     return {
         fields[1]
         for fields in (line.split() for line in lines)
-        if len(fields) > 2 and re.fullmatch(r"[T.][S.][C.]", fields[0])
+        if len(fields) > 2 and "->" in fields[2]
     }
 
 
@@ -549,8 +549,7 @@ def with_editlist_retry(args: list[str], output: Path) -> str:
     return video_shape(output)
 
 
-def thumbnail(source: Path, out: Path, transfer: str | None) -> str:
-    output = out / "thumbnail.webp"
+def thumbnail_args(source: Path, output: Path, transfer: str | None) -> list[str]:
     args = [
         "-y",
         "-i",
@@ -564,12 +563,16 @@ def thumbnail(source: Path, out: Path, transfer: str | None) -> str:
     tonemap = color.video_filter(str(source), transfer=transfer)
     if tonemap:
         args += ["-filter:v", tonemap]
-    return with_editlist_retry([*args, str(output)], output)
+    return [*args, str(output)]
 
 
-def preview(source: Path, out: Path, transfer: str | None) -> str:
-    output = out / "preview.mp4"
-    args = [
+def thumbnail(source: Path, out: Path, transfer: str | None) -> str:
+    output = out / "thumbnail.webp"
+    return with_editlist_retry(thumbnail_args(source, output, transfer), output)
+
+
+def preview_args(source: Path, output: Path, transfer: str | None) -> list[str]:
+    return [
         "-y",
         "-i",
         str(source),
@@ -584,7 +587,11 @@ def preview(source: Path, out: Path, transfer: str | None) -> str:
         *color.h264_video_args(str(source), f"scale=-2:{SQUARE_HEIGHT}", transfer),
         str(output),
     ]
-    return with_editlist_retry(args, output)
+
+
+def preview(source: Path, out: Path, transfer: str | None) -> str:
+    output = out / "preview.mp4"
+    return with_editlist_retry(preview_args(source, output, transfer), output)
 
 
 def live_args(source: Path, transfer: str | None) -> list[str]:

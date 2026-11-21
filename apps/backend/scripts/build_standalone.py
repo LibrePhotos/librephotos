@@ -141,7 +141,7 @@ BYTECODE_MODULES = [
 # Wheels whose executables the binary puts on PATH (librephotos.standalone).
 BUNDLED_BINARY_DIRS = {
     "exiftool_bin": Path("exiftool_bin"),
-    "ffmpeg_bin/bin": Path("ffmpeg_bin") / "bin",
+    "ffmpeg_bin": Path("ffmpeg_bin"),
 }
 
 # Source files that must exist on disk next to their compiled module: simplejwt's

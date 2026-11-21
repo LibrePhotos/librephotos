@@ -62,7 +62,7 @@ EOF
     meson_cross=(--cross-file "$work/cross.meson")
     ffmpeg_target=(--target-os=mingw32 --arch=x86_64 --cross-prefix=$triplet- --enable-w32threads)
     ffmpeg_ldflags="-static-libgcc -static-libstdc++"
-    ffmpeg_libs="-l:libstdc++.a -lm"
+    ffmpeg_libs="-lm"
     ;;
   *)
     echo "unknown target $target" >&2
@@ -121,6 +121,9 @@ build_zimg() {
   "$work/zimg-src/configure" --prefix="$prefix" "${host_args[@]}" --enable-static --disable-shared --with-pic \
     --disable-testapp --disable-example --disable-unit-test
   make -j"$jobs" install
+  if [ "$target" = win64 ]; then
+    sed -i 's/-lstdc++/-l:libstdc++.a/g' "$prefix/lib/pkgconfig/zimg.pc"
+  fi
   cd - >/dev/null
 }
 
