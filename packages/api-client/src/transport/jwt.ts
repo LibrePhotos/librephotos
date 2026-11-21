@@ -27,8 +27,15 @@ export function userIdFromAccessToken(token: string | null): number | null {
   return typeof id === "number" && Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
-/** The payload of `token` when it is a JSON object, else null. */
-function decodeJwtClaims(token: string): { exp?: unknown; user_id?: unknown } | null {
+export type JwtClaims = Readonly<{
+  exp?: unknown;
+  user_id?: unknown;
+  name?: unknown;
+  is_admin?: unknown;
+  remember_until?: unknown;
+}>;
+
+export function decodeJwtClaims(token: string): JwtClaims | null {
   const payload = token.split(".")[1];
   if (!payload) return null;
   try {

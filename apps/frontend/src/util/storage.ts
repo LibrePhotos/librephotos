@@ -93,6 +93,24 @@ export function writeStored(key: StorageKey, value: unknown): void {
   listeners.get(key)?.forEach(listener => listener());
 }
 
+const LANGUAGE_STORAGE_KEY = "i18nextLng";
+
+export function readStoredLanguage(area: "local" | "session"): string | undefined {
+  try {
+    return (area === "local" ? localStorage : sessionStorage).getItem(LANGUAGE_STORAGE_KEY) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function writeStoredLanguage(language: string): void {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch (e) {
+    console.error(`Error saving ${LANGUAGE_STORAGE_KEY} to localStorage:`, e);
+  }
+}
+
 /** Calls `listener` after each write to `key` made through writeStored or useStoredState. */
 export function subscribeStored(key: StorageKey, listener: Listener): () => void {
   const subscribers = listeners.get(key) ?? new Set<Listener>();

@@ -1,9 +1,9 @@
 import i18n, { type BackendModule, type ResourceKey } from "i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
 import { Settings } from "luxon";
 import { initReactI18next } from "react-i18next";
 import translationEn from "./locales/en/translation.json";
 import { formatCount, intlLocale } from "./util/formatCount";
+import { browserLanguageDetector } from "./util/languageDetector";
 
 export const i18nResolvedLanguage = () => intlLocale(i18n.resolvedLanguage);
 
@@ -116,9 +116,7 @@ i18n.on("languageChanged", () => {
 
 /** Resolves once the detected (or saved) language has been loaded. */
 export const i18nReady = i18n
-  // detect user language
-  // learn more: https://github.com/i18next/i18next-browser-languageDetector
-  .use(LanguageDetector)
+  .use(browserLanguageDetector)
   .use(lazyLocaleBackend)
   // pass the i18n instance to react-i18next.
   .use(initReactI18next)

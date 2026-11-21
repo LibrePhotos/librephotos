@@ -183,7 +183,11 @@ Everything below is relative to
   and `i18n.ts` loads every other directory under `locales` as its own chunk, so a language Weblate
   adds loads without a code change. To offer it in the Profile language picker, give it an entry in
   `components/settings/languageOptions.ts` and a dayjs locale in `dayjsLocaleLoaders` (`i18n.ts`);
-  `src/i18n.test.ts` fails until both are there.
+  `src/i18n.test.ts` fails until both are there. <Since version="1.7.0" /> The UI language is detected
+  by `util/languageDetector.ts`, in the order the i18next-browser-languagedetector package used before
+  it: the `lng` query parameter, the `i18next` cookie, `i18nextLng` in localStorage, then in
+  sessionStorage, the browser's languages and `<html lang>`. The language a user picks is saved under
+  `i18nextLng`, so a saved choice survives the change.
 - The names of things (the words the tagger finds, `apps/backend/service/tags/tags.txt`) are their own
   namespace, `locales/<lang>/tags.json`, loaded only by the pages that show things
   (`hooks/useThingLabel.ts`). `locales/en/tags.json` names every word as itself and is the source a
