@@ -1,6 +1,12 @@
 !define LPV_CAPABILITIES "Software\${PRODUCTNAME}\Capabilities"
 !define LPV_APPLICATION "Software\Classes\Applications\${MAINBINARYNAME}.exe"
 !define LPV_APP_PATH "Software\Microsoft\Windows\CurrentVersion\App Paths\${MAINBINARYNAME}.exe"
+!define LPV_DEFAULT_APPS "ms-settings:defaultapps?registeredApp"
+!searchreplace LPV_URL_NAME "${PRODUCTNAME}" " " "%20"
+
+Var LpvDefaultAppsPage
+!define MUI_FINISHPAGE_LINK "Choose ${PRODUCTNAME} as your photo viewer"
+!define MUI_FINISHPAGE_LINK_LOCATION "$LpvDefaultAppsPage"
 
 !macro LPV_EACH_TYPE MACRO
   !insertmacro ${MACRO} ".jpg" "LibrePhotosViewer.Image"
@@ -77,6 +83,11 @@
   WriteRegStr SHCTX "${LPV_APP_PATH}" "" "$INSTDIR\${MAINBINARYNAME}.exe"
   !insertmacro LPV_EACH_TYPE LPV_OFFER_TYPE
   WriteRegStr SHCTX "Software\RegisteredApplications" "${PRODUCTNAME}" "${LPV_CAPABILITIES}"
+  ${If} $MultiUser.InstallMode == "AllUsers"
+    StrCpy $LpvDefaultAppsPage "${LPV_DEFAULT_APPS}Machine=${LPV_URL_NAME}"
+  ${Else}
+    StrCpy $LpvDefaultAppsPage "${LPV_DEFAULT_APPS}User=${LPV_URL_NAME}"
+  ${EndIf}
   System::Call "shell32::SHChangeNotify(i 0x08000000, i 0x1000, p 0, p 0)"
 !macroend
 

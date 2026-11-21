@@ -35,7 +35,7 @@ Started without a picture, the app opens the library. Started with a file (or wi
 
 The installer never changes which app opens your pictures; you choose. To make LibrePhotos Viewer the viewer Windows opens pictures with:
 
-- **Installed for anyone using this computer:** choose **Set as default photo viewer** in the **⋮** menu of the viewer. It opens Windows' **Default apps** settings at the app's page, which lists every picture and RAW format it reads with the app that opens it now. Click a format and pick **LibrePhotos Viewer**; Windows asks once per format.
+- **Installed for anyone using this computer:** click **Choose LibrePhotos Viewer as your photo viewer** on the installer's last page, or later choose **Set as default photo viewer** in the **⋮** menu of the viewer. Both open Windows' **Default apps** settings at the app's page, which lists every picture and RAW format it reads with the app that opens it now. Click a format and pick **LibrePhotos Viewer**; Windows asks once per format.
 - **Installed just for you:** Windows may not show the app's page in **Default apps** until you sign out and back in. Until then, right-click a picture, choose **Open with** → **Choose another app** → **Choose an app on your PC**, select `%LOCALAPPDATA%\LibrePhotos Viewer\librephotos-viewer.exe` and click **Always**, once per format.
 
 To update, run the installer of the newer release; your library, settings and edits stay. To remove the app, use **Settings** → **Apps** → **Installed apps** → **LibrePhotos Viewer** → **Uninstall**; tick **Delete the application data** to remove the library, caches and settings too (see below). Your pictures and their sidecars are never removed.
