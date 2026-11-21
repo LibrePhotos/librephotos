@@ -54,6 +54,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
+      - uses: ilammy/setup-nasm@v1
       - name: Build the win_amd64 wheel
         shell: bash
         run: |
@@ -124,10 +125,12 @@ jobs:
             -r ../../scratch/requirements/requirements.txt -r requirements.dev.txt \
             -r requirements.mlval.txt -r requirements.standalone.txt
           "$MINIMAL" - <<'PY'
-          import importlib.metadata, json, sys
-          resolved = [i["metadata"]["name"].lower() for i in json.load(open("../../scratch/report.json"))["install"]]
-          installed = [d.metadata["Name"].lower() for d in importlib.metadata.distributions()]
-          opencv = sorted({n for n in resolved + installed if "opencv" in n})
+          import importlib.metadata, json, re, sys
+          report = json.loads(open("../../scratch/report.json", encoding="utf-8").read())
+          resolved = [i["metadata"]["name"] for i in report["install"]]
+          installed = [d.metadata["Name"] for d in importlib.metadata.distributions()]
+          names = {re.sub(r"[-_.]+", "-", n).lower() for n in resolved + installed}
+          opencv = sorted(n for n in names if "opencv" in n)
           print("opencv distributions:", opencv)
           sys.exit(opencv != ["opencv-lp-headless"])
           PY
