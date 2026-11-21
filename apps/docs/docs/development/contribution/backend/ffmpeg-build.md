@@ -24,7 +24,7 @@ FFmpeg 9.0.2 with `--enable-gpl --disable-everything`, then only what LibrePhoto
 | Filters | `scale format zscale tonemap`, the filters ffmpeg inserts by itself (`aformat`, `aresample`, `null`, `anull`, `copy`, `trim`, `atrim`, `setpts`, `asetpts`, `fps`, `crop`), the automatic rotation (`transpose`, `hflip`, `vflip`, `rotate`) and `setparams`, `setsar`, `setdar` | the filter chains of `api/video/color.py` (HDR tonemapping needs zscale, which is libzimg) |
 | Protocols | `file`, `pipe` | local files and the live conversion's stdout and `-progress pipe:2` |
 | Other libraries | zlib | PNG-based and zlib-compressed tracks (Matroska, QuickTime `cmov`) |
-| For tests and diagnosis | the `lavfi` input device, the `testsrc`, `testsrc2`, `color`, `sine` and `anullsrc` sources, `signalstats`, `metadata`, `concat`, the `ffv1` and `mpeg4` encoders | the backend's tests make their clips with the installed ffmpeg (`-f lavfi -i testsrc2=...`); a few hundred kB |
+| For tests and diagnosis | the `lavfi` input device, the `testsrc`, `testsrc2`, `color`, `sine` and `anullsrc` sources, `signalstats`, `concat`, the `ffv1` and `mpeg4` encoders | the backend's tests make their clips with the installed ffmpeg (`-f lavfi -i testsrc2=...`); a few hundred kB |
 | Left out | every other input or output device, network, hardware acceleration, ffplay, docs, every other external library | never called |
 
 Shared libraries as before: `bin/` plus `lib/` with an `$ORIGIN` rpath on Linux, `bin/` with the DLLs on Windows. Two

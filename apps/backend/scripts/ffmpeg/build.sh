@@ -29,7 +29,7 @@ muxers=mp4,mov,ipod,tgp,tg2,matroska,webm,avi,asf,flv,mpegts,mpeg1system,mpeg2vo
 filters=format,aformat,null,anull,copy,scale,zscale,tonemap
 filters=$filters,transpose,hflip,vflip,rotate,crop,trim,atrim,aresample,setpts,asetpts,fps,setparams,setsar,setdar
 test_encoders=ffv1,mpeg4
-test_filters=testsrc,testsrc2,color,sine,anullsrc,signalstats,metadata,concat
+test_filters=testsrc,testsrc2,color,sine,anullsrc,signalstats,concat
 
 case $target in
   linux-x86_64 | linux-aarch64)
