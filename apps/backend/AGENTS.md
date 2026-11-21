@@ -20,7 +20,7 @@ Without Docker, install with `bash scripts/setup_test_env.sh` inside an activate
 Never export `PHOTOS` in that shell: a registration test creates and deletes `<PHOTOS>/family`.
 
 Windows, natively: Python 3.14 (the prebuilt Windows wheels are cp314), `py -3.14 -m venv .venv-win` and
-`pip install -r requirements.txt -r requirements.dev.txt` (the Windows wheels come from the
+`pip install -r requirements.txt -r requirements.dev.txt`, then `pip install --no-deps -r requirements.nodeps.txt` (the Windows wheels come from the
 `windows-wheels-*` release via markers in `requirements.txt`). `scripts/dev_windows.ps1 -DataDir C:\devdata`
 starts the exif sidecar, qcluster and uvicorn on :8000 with `librephotos.settings.dev_windows`. ML
 sidecars are off there: set `FEATURE_<NAME>=1` and run `python manage.py start_service <name>`; they find
