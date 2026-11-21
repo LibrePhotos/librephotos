@@ -2576,6 +2576,26 @@ class WriteTargetGuardTest(RealExifToolTestCase):
                     edits.set_text_field(photo, "copyright", "(c) Anna", user)
                     edits.set_text_field(photo, "license", "cc-by-4.0", user)
 
+    def test_an_existing_sidecar_is_updated_in_place(self):
+        # #2960: ``-overwrite_original`` replaced the sidecar with a new file and
+        # chmodded it, which on an ACL share (Synology) left mode 000 and no ACL.
+        # In place, the file other apps set up is the one that changes: a hard
+        # link to it sees the new value, and its permission bits stay.
+        path = self.make_image(".jpg")
+        write_metadata(path, {Tags.RATING: 2}, use_sidecar=True)
+        sidecar = self.sidecar_of(path)
+        os.chmod(sidecar, 0o664)
+        mode = os.stat(sidecar).st_mode & 0o777
+        linked = os.path.join(self.directory, "linked.xmp")
+        os.link(sidecar, linked)
+
+        write_metadata(path, {Tags.RATING: 4}, use_sidecar=True)
+
+        self.assertWritesLanded(expected=2)
+        self.assertEqual(4, self.exiftool.read(linked, Tags.RATING)[Tags.RATING])
+        self.assertTrue(os.path.samefile(sidecar, linked))
+        self.assertEqual(mode, os.stat(sidecar).st_mode & 0o777)
+
     def test_the_guard_fails_a_tag_exiftool_leaves_unchanged(self):
         path = self.make_image(".jpg")
 
