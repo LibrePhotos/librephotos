@@ -5,8 +5,9 @@ sidebar_position: 7
 ---
 
 <Since version="1.7.0" /> Status: phases 0 to 4 are in: the queue runs every job, `manage.py run_workers` replaced
-`qcluster`, django-q2 is gone (its tables stay one release for the upgrade), and Scan Faces fans out. The later
-phases land one pull request at a time.
+`qcluster`, django-q2 is gone (its tables stay one release for the upgrade), Scan Faces fans out, and the width
+follows `PARALLEL_WORKERS` and the capacity check at runtime (`api/jobs/parallel.py`, `GET`/`PATCH
+/api/parallel-workers/` for admins). The later phases land one pull request at a time.
 
 This page is the plan for [#3073](https://github.com/LibrePhotos/librephotos/issues/3073): a queue that
 LibrePhotos owns, so that the number of parallel workers can follow what the machine (or the container)

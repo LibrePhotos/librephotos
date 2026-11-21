@@ -3,6 +3,7 @@ from typing import Any
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandParser
 
+from api.jobs import parallel
 from api.jobs.pool import Pool, PoolSettings
 from api.jobs.worker_settings import WorkerSettings
 
@@ -15,13 +16,16 @@ class Command(BaseCommand):
         parser.add_argument("--stop-file", default="")
 
     def handle(self, *args: Any, **options: Any) -> None:
-        workers = max(1, options["workers"] or settings.TASK_WORKERS)
+        workers = max(1, options["workers"] or parallel.max_workers())
         pool = Pool(
             PoolSettings(
                 workers=workers,
                 worker=WorkerSettings(
                     recycle_rss_mb=settings.TASK_WORKER_RECYCLE_RSS_MB,
+                    memory_limit_mb=settings.TASK_WORKER_MEMORY_LIMIT_MB,
                 ),
+                sizer=parallel.Sizer(workers),
+                every_minute=parallel.FastFirstImport(),
             )
         )
         pool.install_signal_handlers()

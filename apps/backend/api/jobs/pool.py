@@ -41,6 +41,8 @@ class PoolSettings:
     workers: int
     worker: WorkerSettings = field(default_factory=WorkerSettings)
     tick_seconds: float = 1.0
+    sizer: Callable[[], tuple[int, int]] | None = None
+    every_minute: Callable[[], object] | None = None
 
 
 def kill_tree(pid: int) -> None:
@@ -61,7 +63,7 @@ class Pool:
         self.settings = settings
         self.context = multiprocessing.get_context("spawn")
         self.stop_event = self.context.Event()
-        self.width = self.context.Value("i", settings.workers)
+        self.limits = self.context.Array("i", [settings.workers, settings.workers])
         self.processes: dict[int, SpawnProcess] = {}
         self.started: dict[int, float] = {}
         self.quick_exits: dict[int, int] = {}
@@ -74,6 +76,17 @@ class Pool:
             Every(60, legacy_import.import_waiting_tasks),
             Every(3600, store.delete_old_ended),
         ]
+        if settings.sizer is not None:
+            self.periodic.append(Every(30, self.resize))
+        if settings.every_minute is not None:
+            self.periodic.append(Every(60, settings.every_minute))
+
+    def resize(self) -> None:
+        if self.settings.sizer is None:
+            return
+        width, heavy = self.settings.sizer()
+        self.limits[0] = max(1, min(self.settings.workers, width))
+        self.limits[1] = max(1, min(self.limits[0], heavy))
 
     def request_stop(
         self, signum: int | None = None, frame: FrameType | None = None
@@ -103,7 +116,7 @@ class Pool:
     def start_worker(self, slot: int) -> None:
         process = self.context.Process(
             target=worker_main,
-            args=(slot, self.stop_event, self.width, self.settings.worker),
+            args=(slot, self.stop_event, self.limits, self.settings.worker),
             name=f"librephotos-worker-{slot}",
             daemon=False,
         )
@@ -114,6 +127,7 @@ class Pool:
 
     def run(self) -> None:
         legacy_import.import_waiting_tasks()
+        self.tick()
         for slot in range(self.settings.workers):
             self.start_worker(slot)
         try:

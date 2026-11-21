@@ -638,6 +638,7 @@ STAFF_ONLY_VIEWS = {
     "api.views.updates.RestartToUpdateView",
     "api.views.updates.SkipReleaseView",
     "api.views.updates.SnoozeUpdateNoticeView",
+    "api.views.parallel_workers.ParallelWorkersView",
     "api.views.updates.UpdateStatusView",
     "api.views.upgrade_tasks.UpgradeTaskDismissView",
     "api.views.upgrade_tasks.UpgradeTaskListView",

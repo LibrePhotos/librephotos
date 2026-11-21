@@ -28,7 +28,7 @@ CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS", ["http://localhost:8000", "http://127.0.0.1:8000"]
 )
 
-TASK_WORKERS = env_int("WORKER_CONCURRENCY", 2) or 2
+TASK_WORKERS = env_int("WORKER_CONCURRENCY", None)
 
 # The update check offers only releases with the Windows zip, and links to the
 # Windows app's update steps (api/updates).
