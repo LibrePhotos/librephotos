@@ -240,7 +240,7 @@ class StartAllCommandTest(TestCase):
         )
 
     def test_the_watchdog_is_still_scheduled(self, popen_mock):
-        from django_q.models import Schedule
+        from api.models import TaskSchedule as Schedule
 
         with override_settings(FEATURE_FACE_DETECTION=False):
             call_command("start_service", "all")

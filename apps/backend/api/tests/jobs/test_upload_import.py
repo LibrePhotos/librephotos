@@ -13,11 +13,9 @@ from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
-from django_q.brokers import get_broker
-from django_q.models import Schedule
 from rest_framework.test import APIClient
 
-from api.jobs import upload_import
+from api.jobs import store, upload_import
 from api.jobs.queue import tasks_are_waiting
 from api.jobs.upload_import import (
     FAILED_FILES_KEPT,
@@ -32,7 +30,7 @@ from api.jobs.upload_import import (
     seal_upload_imports,
     sweep_upload_imports,
 )
-from api.models import LongRunningJob, Photo
+from api.models import LongRunningJob, Photo, TaskSchedule
 from api.models.long_running_job import LongRunningJobQuerySet
 from api.tests.jobs.test_stuck_job_cleanup import hold, queue_task
 from api.tests.utils import create_test_job, create_test_photo, create_test_user
@@ -312,22 +310,19 @@ class SweepTest(TestCase):
         call_command("start_job_cleanup_service")
         call_command("start_job_cleanup_service")
 
-        schedule = Schedule.objects.get(func=SWEEP_FUNC)
-        self.assertEqual(Schedule.MINUTES, schedule.schedule_type)
+        schedule = TaskSchedule.objects.get(func=SWEEP_FUNC)
+        self.assertEqual(TaskSchedule.MINUTES, schedule.schedule_type)
         self.assertEqual(1, schedule.minutes)
 
 
 class TasksAreWaitingTest(TransactionTestCase):
     def test_counts_only_tasks_no_worker_took(self):
-        broker = get_broker()
         self.assertFalse(tasks_are_waiting())
 
-        broker.enqueue("payload")
+        store.add("math.floor", (1,))
         self.assertTrue(tasks_are_waiting())
 
-        # A taken task is locked while its cluster holds it, and comes back
-        # only once that cluster is gone and the lease has run out.
-        broker.dequeue()
+        store.claim("w", ["default"])
         self.assertFalse(tasks_are_waiting())
 
 

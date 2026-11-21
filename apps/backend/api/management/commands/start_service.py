@@ -1,9 +1,9 @@
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
-from django_q.models import Schedule
 
 from api.jobs.queue import ensure_schedule
+from api.models.task_queue import TaskSchedule
 from api.runtime.supervisor import (
     SERVICES,
     disabled_reason,
@@ -38,7 +38,7 @@ class Command(BaseCommand):
             self._summarise(start_services(enabled))
             ensure_schedule(
                 "api.runtime.supervisor.check_services",
-                schedule_type=Schedule.MINUTES,
+                schedule_type=TaskSchedule.MINUTES,
                 minutes=1,
             )
         else:

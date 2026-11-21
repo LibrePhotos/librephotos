@@ -27,6 +27,7 @@ from rest_framework.test import APIClient
 from api.models import LongRunningJob, Photo, User
 from api.tests.infra.test_declared_responses import DeclaredResponseTestCase
 from api.tests.openapi_responses import SCHEMA_FILE
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     create_test_face,
     create_test_file,
@@ -41,7 +42,7 @@ from api.tests.utils import (
 def queue_stub() -> Iterator[None]:
     """Jobs start without a queue or ML models (the rows are written, nothing runs)."""
     with (
-        patch("api.jobs.queue.AsyncTask"),
+        patch("api.jobs.store.add", new_callable=QueueRecorder),
         patch("api.runtime.ml_models.do_all_models_exist", return_value=True),
     ):
         yield

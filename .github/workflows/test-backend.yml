@@ -153,3 +153,51 @@ jobs:
             BASE="--base-ref origin/$GITHUB_BASE_REF"
           fi
           python scripts/typecheck.py $BASE
+
+  task-queue-postgres:
+    name: task queue on PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: docker
+          POSTGRES_PASSWORD: queue-test
+          POSTGRES_DB: db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U docker"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        working-directory: apps/backend
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          bash scripts/setup_test_env.sh
+      - name: Claims, leases, chains and the django-q import on PostgreSQL
+        working-directory: apps/backend
+        env:
+          BASE_LOGS: /tmp/librephotos/logs
+          BASE_DATA: /tmp/librephotos
+          SECRET_KEY: test-secret-key
+          DJANGO_SETTINGS_MODULE: librephotos.settings.test
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_NAME: db
+          DB_USER: docker
+          DB_PASS: queue-test
+          NO_COVERAGE: "1"
+        run: |
+          . .venv/bin/activate
+          python manage.py test api.tests.jobs.test_task_queue_store api.tests.jobs.test_task_queue_processes api.tests.jobs.test_legacy_task_import

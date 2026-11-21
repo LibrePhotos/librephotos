@@ -16,7 +16,6 @@ from constance import config
 from constance.test import override_config
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
-from django_q.models import Schedule
 from rest_framework.test import APIClient
 
 from api.directory_watcher.scan_schedule import (
@@ -36,6 +35,8 @@ from api.directory_watcher.scan_schedule import (
 )
 from api.jobs.queue import Task, remove_schedule, replace_schedule
 from api.models import LongRunningJob
+from api.models.task_queue import TaskSchedule as Schedule
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_job,
@@ -172,7 +173,6 @@ class ScheduleRowTest(TestCase):
         self.assertEqual(row.name, "Library scan: every day at 04:15")
         self.assertEqual((row.next_run.hour, row.next_run.minute), (4, 15))
         self.assertEqual(row.intended_date_kwarg, "intended_at")
-        self.assertEqual(row.repeats, -1)
 
     def test_an_unchanged_setting_keeps_its_next_run(self):
         sync_scan_schedule(ScanSchedule(DAILY))
@@ -235,8 +235,7 @@ class ReplaceScheduleTest(TestCase):
     "api.directory_watcher.scan_schedule.missing_models_prerequisites",
     return_value=[],
 )
-@patch("api.jobs.queue.Chain")
-@patch("api.jobs.queue.AsyncTask")
+@patch("api.jobs.store.add", new_callable=QueueRecorder)
 class ScheduledScansTest(TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
@@ -253,7 +252,7 @@ class ScheduledScansTest(TestCase):
         return LastRun.from_json(config.AUTO_SCAN_LAST_RUN)
 
     @override_config(AUTO_SCAN=DAILY)
-    def test_queues_an_incremental_scan_per_library(self, async_task, chain, models):
+    def test_queues_an_incremental_scan_per_library(self, async_task, models):
         anna = create_test_user(scan_directory=self._library())
         bob = create_test_user(scan_directory=self._library())
         create_test_user(scan_directory="")
@@ -272,7 +271,7 @@ class ScheduledScansTest(TestCase):
         self.assertEqual(run.skipped, [])
 
     @override_config(AUTO_SCAN=HOURLY)
-    def test_a_user_whose_scan_still_runs_is_skipped(self, async_task, chain, models):
+    def test_a_user_whose_scan_still_runs_is_skipped(self, async_task, models):
         busy = create_test_user(scan_directory=self._library())
         running = create_test_job(busy, job_type=LongRunningJob.JOB_SCAN_PHOTOS)
         idle = create_test_user(scan_directory=self._library())
@@ -287,9 +286,7 @@ class ScheduledScansTest(TestCase):
         self.assertEqual(list(run.started), [idle.id])
 
     @override_config(AUTO_SCAN=DAILY)
-    def test_a_missing_scan_directory_fails_without_a_job(
-        self, async_task, chain, models
-    ):
+    def test_a_missing_scan_directory_fails_without_a_job(self, async_task, models):
         gone = create_test_user(scan_directory=f"{self.root}/gone")
 
         self.assertEqual(self._run(), {"started": 0, "skipped": 0, "failed": 1})
@@ -298,7 +295,7 @@ class ScheduledScansTest(TestCase):
         self.assertEqual(self._last_run().failed, [gone.id])
 
     @override_config(AUTO_SCAN=DAILY)
-    def test_a_queue_failure_counts_as_failed(self, async_task, chain, models):
+    def test_a_queue_failure_counts_as_failed(self, async_task, models):
         user = create_test_user(scan_directory=self._library())
         with patch(
             "api.directory_watcher.scan_schedule.enqueue_chain",
@@ -308,7 +305,7 @@ class ScheduledScansTest(TestCase):
         self.assertEqual(self._last_run().failed, [user.id])
 
     @override_config(AUTO_SCAN=DAILY)
-    def test_missing_models_download_once(self, async_task, chain, models):
+    def test_missing_models_download_once(self, async_task, models):
         models.return_value = [Task(print)]
         create_test_user(scan_directory=self._library())
         create_test_user(scan_directory=self._library())
@@ -316,12 +313,12 @@ class ScheduledScansTest(TestCase):
         self._run()
 
         models.assert_called_once()
-        # The first scan waits for the download in a chain; the second is queued alone.
-        chain.return_value.run.assert_called_once_with()
-        async_task.assert_called_once()
+        funcs = [call.args[0] for call in async_task.call_args_list]
+        self.assertEqual(1, funcs.count(print))
+        self.assertEqual(3, len(funcs))
 
     @override_config(AUTO_SCAN=CUSTOM, AUTO_SCAN_DAYS="0")
-    def test_custom_skips_a_day_that_is_not_picked(self, async_task, chain, models):
+    def test_custom_skips_a_day_that_is_not_picked(self, async_task, models):
         create_test_user(scan_directory=self._library())
 
         self.assertEqual(self._run(WEDNESDAY_NOON.isoformat()), {})
@@ -330,7 +327,7 @@ class ScheduledScansTest(TestCase):
         self.assertEqual(config.AUTO_SCAN_LAST_RUN, "")
 
     @override_config(AUTO_SCAN=CUSTOM, AUTO_SCAN_DAYS="2")
-    def test_custom_goes_by_the_intended_day(self, async_task, chain, models):
+    def test_custom_goes_by_the_intended_day(self, async_task, models):
         create_test_user(scan_directory=self._library())
         # Due on Wednesday, picked up from a busy queue on Thursday.
         with patch(
@@ -341,19 +338,19 @@ class ScheduledScansTest(TestCase):
         self.assertEqual(result["started"], 1)
 
     @override_config(AUTO_SCAN=DAILY)
-    def test_an_unreadable_intended_time_means_now(self, async_task, chain, models):
+    def test_an_unreadable_intended_time_means_now(self, async_task, models):
         create_test_user(scan_directory=self._library())
         self.assertEqual(self._run("yesterday")["started"], 1)
 
     @override_config(AUTO_SCAN=OFF)
-    def test_off_does_nothing(self, async_task, chain, models):
+    def test_off_does_nothing(self, async_task, models):
         create_test_user(scan_directory=self._library())
         self.assertEqual(self._run(), {})
         self.assertFalse(LongRunningJob.objects.exists())
 
     @override_config(AUTO_SCAN=DAILY, NEXTCLOUD_ENABLED=True)
     def test_nextcloud_folders_are_scanned_after_the_local_one(
-        self, async_task, chain, models
+        self, async_task, models
     ):
         both = create_test_user(
             scan_directory=self._library(),
@@ -364,12 +361,11 @@ class ScheduledScansTest(TestCase):
             self.assertEqual(self._run()["started"], 1)
 
         self.assertEqual(LongRunningJob.objects.owned_by(both).count(), 2)
-        # Both scans run one after the other in one chain.
-        self.assertEqual(chain.return_value.append.call_count, 2)
+        self.assertEqual(async_task.call_count, 2)
         self.assertEqual(len(self._last_run().started[both.id]), 2)
 
     @override_config(AUTO_SCAN=DAILY, NEXTCLOUD_ENABLED=True)
-    def test_an_unsafe_nextcloud_address_fails(self, async_task, chain, models):
+    def test_an_unsafe_nextcloud_address_fails(self, async_task, models):
         user = create_test_user(
             nextcloud_server_address="http://127.0.0.1",
             nextcloud_scan_directory="/Photos",
@@ -379,7 +375,7 @@ class ScheduledScansTest(TestCase):
 
     @override_config(AUTO_SCAN=DAILY, NEXTCLOUD_ENABLED=True)
     def test_a_missing_scan_directory_still_scans_the_nextcloud_folder(
-        self, async_task, chain, models
+        self, async_task, models
     ):
         user = create_test_user(
             scan_directory=f"{self.root}/gone",
@@ -392,9 +388,7 @@ class ScheduledScansTest(TestCase):
         self.assertEqual(self._last_run().failed, [user.id])
 
     @override_config(AUTO_SCAN=DAILY, NEXTCLOUD_ENABLED=False)
-    def test_nextcloud_folders_wait_for_the_integration(
-        self, async_task, chain, models
-    ):
+    def test_nextcloud_folders_wait_for_the_integration(self, async_task, models):
         create_test_user(
             nextcloud_server_address="https://cloud.example.com",
             nextcloud_scan_directory="/Photos",
@@ -402,7 +396,7 @@ class ScheduledScansTest(TestCase):
         self.assertEqual(self._run(), {"started": 0, "skipped": 0, "failed": 0})
 
     @override_config(AUTO_SCAN=DAILY)
-    def test_inactive_users_are_not_scanned(self, async_task, chain, models):
+    def test_inactive_users_are_not_scanned(self, async_task, models):
         create_test_user(scan_directory=self._library(), is_active=False)
         self.assertEqual(self._run(), {"started": 0, "skipped": 0, "failed": 0})
 

@@ -7,6 +7,7 @@ from django.test import TestCase  # type: ignore
 
 from api.directory_watcher import handle_new_image, scan_photos
 from api.models import LongRunningJob
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_job, create_test_user
 
 
@@ -166,8 +167,7 @@ class EmptyDirectoryScanTestCase(TestCase):
         # Mock AsyncTask to prevent background task issues in tests
         with (
             patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
-            patch("api.jobs.queue.AsyncTask"),
-            patch("api.jobs.queue.Chain"),
+            patch("api.jobs.store.add", new_callable=QueueRecorder),
         ):
             # Run the scan
             scan_photos(

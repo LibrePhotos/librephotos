@@ -438,27 +438,26 @@ def _job_plan(
     return plan_move(user, base, photos_to_move(user, photo_ids), pattern)
 
 
+def _destination(destination: str | dict[str, str | None]) -> Destination:
+    if isinstance(destination, str):
+        return Destination(destination)
+    return Destination(
+        destination.get("folder") or "", destination.get("folder_pattern")
+    )
+
+
 def move_photos_job(
     user: User,
     photo_ids: list[uuid.UUID],
-    destination: Destination | str,
+    destination: str | dict[str, str | None],
     on_conflict: OnConflict,
     job_id: uuid.UUID | str | None = None,
 ) -> None:
-    """The "Move Photos" job: ``move_photos`` with progress and cancel.
-
-    ``destination`` is a plain folder in jobs queued before #2774. The
-    targets are checked again: the library folders may have changed since
-    the request. A cancel stops after the photo the job is on; the photos
-    moved until then stay moved.
-    """
     job = LongRunningJob.claim(user, LongRunningJob.JOB_MOVE_PHOTOS, job_id)
     if job is None:
         return
-    if isinstance(destination, str):
-        destination = Destination(destination)
     try:
-        plan = _job_plan(user, photo_ids, destination)
+        plan = _job_plan(user, photo_ids, _destination(destination))
     except (InvalidTargetError, InvalidPatternError) as error:
         job.fail(error=str(error))
         return

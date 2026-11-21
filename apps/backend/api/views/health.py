@@ -1,7 +1,6 @@
 import logging
 
 from django.db import connections
-from django_q.brokers import get_broker
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -9,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.jobs.queue import tasks_are_waiting
 from api.serializers.health import HealthCheckSerializer, HealthReadySerializer
 
 logger = logging.getLogger(__name__)
@@ -30,12 +30,8 @@ def _check_postgresql() -> dict[str, str]:
 
 
 def _check_queue() -> dict[str, str]:
-    """Count the queued tasks. django-q2 keeps its queue in the database (ORM broker),
-    so this covers both the broker configuration and the django_q tables. The count
-    itself stays out of the response: these endpoints are unauthenticated, and a
-    backlog rising and falling tells a bystander when a scan is running."""
     try:
-        get_broker().queue_size()
+        tasks_are_waiting()
     except Exception as e:
         logger.warning("Healthcheck: queue broker unreachable: %s", e)
         return {"status": "error", "error": "queue broker unreachable"}

@@ -611,7 +611,7 @@ class NamedExecutableTest(SimpleTestCase):
             patch("multiprocessing.set_executable") as set_executable,
             patch("django.core.management.execute_from_command_line"),
         ):
-            standalone.run_manage(["qcluster"])
+            standalone.run_manage(["run_workers"])
         (path,), _ = set_executable.call_args
         self.assertEqual(os.path.basename(path), "librephotos-worker.exe")
 
@@ -630,7 +630,7 @@ class NamedExecutableTest(SimpleTestCase):
                 side_effect=link_gone,
             ) as execute,
         ):
-            standalone.run_manage(["qcluster"])
+            standalone.run_manage(["run_workers"])
 
         spawned_from = [call.args[0] for call in set_executable.call_args_list]
         self.assertEqual(
@@ -648,7 +648,7 @@ class NamedExecutableTest(SimpleTestCase):
             ) as execute,
             self.assertRaises(FileNotFoundError),
         ):
-            standalone.run_manage(["qcluster"])
+            standalone.run_manage(["run_workers"])
         self.assertEqual(execute.call_count, 1)
 
     def test_other_commands_leave_multiprocessing_alone(self):

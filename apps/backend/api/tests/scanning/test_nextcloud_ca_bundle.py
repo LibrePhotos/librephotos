@@ -18,6 +18,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_user, patch_nextcloud_dns
 from nextcloud.server_address import (
     CABundleError,
@@ -190,7 +191,7 @@ class NextcloudViewsReportABrokenBundleTest(TestCase):
         request.assert_not_called()
 
     def test_scanphotos_explains_the_bundle_without_queueing(self):
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(SCANPHOTOS_URL)
         self.assertIn(MISSING, self._message(response))
         async_task.assert_not_called()

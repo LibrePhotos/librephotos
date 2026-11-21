@@ -14,6 +14,7 @@ from api.models import LongRunningJob, Photo
 from api.models.long_running_job import JobCancelledError
 from api.photos import files
 from api.photos.retention import MAX_JOB_ERRORS, empty_trash_job
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_job,
@@ -141,7 +142,7 @@ class EmptyTrashViewTest(TestCase):
     def test_starts_the_job_for_the_requester(self):
         self.client.force_authenticate(user=self.user)
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(URL)
@@ -158,7 +159,7 @@ class EmptyTrashViewTest(TestCase):
         running = create_test_job(self.user, LongRunningJob.JOB_EMPTY_TRASH)
         self.client.force_authenticate(user=self.user)
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(response.status_code, 409)
@@ -170,7 +171,7 @@ class EmptyTrashViewTest(TestCase):
         create_test_job(create_test_user(), LongRunningJob.JOB_EMPTY_TRASH)
         self.client.force_authenticate(user=self.user)
 
-        with mock.patch("api.jobs.queue.AsyncTask"):
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder):
             response = self.client.post(URL)
 
         self.assertEqual(response.status_code, 200, response.content)
