@@ -176,6 +176,16 @@ When you click on any photo in LibrePhotos, it opens in the photo viewer (also k
 - **Thumbnail bar** at the bottom shows nearby photos for quick navigation
 - **Close button** (X) or press **Escape** to return to the gallery
 
+<Since version="1.7.0" /> Touch and mouse gestures in the viewer:
+
+- **Swipe** sideways: the next or previous photo follows your finger and slides in. A short, quick flick is enough; a short, slow drag slides back. At the first or last photo the photo only gives a little.
+- **Pinch** zooms around the point between your fingers.
+- **Double-tap** or **double-click** zooms to 2× around that point, and back.
+- **Mouse wheel** or a trackpad pinch zooms around the pointer.
+- While zoomed in, **drag** to move around the photo. It stops at the photo's edges.
+
+Up to 1.6.0 a swipe snapped the photo back and then faded in the next one, a pinch zoomed around the photo's centre, and the wheel did not zoom.
+
 ### Linking to a photo {#photo-link}
 
 The open photo is part of the page's address, as `?photo=<id>` (for example `/favorites?photo=<id>` or `/album/user/12?photo=<id>`). <Since version="1.4.0" /> Up to 1.3.0, opening a photo left the address as it was. That gives you:
