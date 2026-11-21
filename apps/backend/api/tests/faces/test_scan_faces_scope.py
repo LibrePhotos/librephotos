@@ -18,6 +18,7 @@ from rest_framework.test import APIClient
 from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import _faces_to_scan, scan_faces
 from api.models import LongRunningJob, Photo
+from api.tests.queue_recorder import run_queued
 from api.tests.scanning.test_rescan_selected_photos import recorded_tasks
 from api.tests.utils import (
     api_error,
@@ -88,7 +89,7 @@ class NarrowedRunLeavesTheRestTest(FaceScanScopeTestBase):
 
     def setUp(self):
         super().setUp()
-        for name in ("generate_face_embeddings", "cluster_all_faces"):
+        for name in ("_queue_face_followups",):
             tail = patch.object(processing_jobs, name)
             tail.start()
             self.addCleanup(tail.stop)
@@ -108,6 +109,7 @@ class NarrowedRunLeavesTheRestTest(FaceScanScopeTestBase):
             processing_jobs, "_extract_faces_for_photo", side_effect=extract
         ):
             scan_faces(self.user, job_id, **scope)
+            run_queued()
         return scanned
 
     def test_the_next_incremental_run_still_covers_the_other_photos(self):

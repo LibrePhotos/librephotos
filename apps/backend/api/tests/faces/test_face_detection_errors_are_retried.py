@@ -24,6 +24,7 @@ from api.faces import extractor
 from api.faces.photo_faces import extract_faces
 from api.models import LongRunningJob, Photo
 from api.runtime import sidecars
+from api.tests.queue_recorder import run_queued
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -60,7 +61,7 @@ class FaceDetectionErrorsAreRetriedTest(TestCase):
         no_regions = patch.object(extractor, "extract_from_exif", return_value=None)
         no_regions.start()
         self.addCleanup(no_regions.stop)
-        for name in ("generate_face_embeddings", "cluster_all_faces"):
+        for name in ("_queue_face_followups",):
             tail = patch.object(processing_jobs, name)
             tail.start()
             self.addCleanup(tail.stop)
@@ -84,6 +85,7 @@ class FaceDetectionErrorsAreRetriedTest(TestCase):
 
         with patch.object(sidecars.http, "post", side_effect=post):
             scan_faces(self.user, job_id)
+            run_queued()
         return LongRunningJob.objects.get(job_id=str(job_id)), seen
 
     def test_a_photo_the_face_service_failed_on_is_a_job_error_and_scanned_again(self):
@@ -162,6 +164,7 @@ class FaceDetectionErrorsAreRetriedTest(TestCase):
 
         with patch.object(sidecars.http, "post", return_value=NO_FACES) as post:
             scan_faces(self.user, uuid.uuid4(), full_scan=True)
+            run_queued()
 
         post.assert_called_once()
 
@@ -178,6 +181,7 @@ class FaceDetectionErrorsAreRetriedTest(TestCase):
             patch.object(processing_jobs, "generate_face_embeddings") as embed,
         ):
             scan_faces(self.user, uuid.uuid4())
+            run_queued()
 
         cluster.assert_not_called()
         embed.assert_not_called()

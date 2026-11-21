@@ -21,6 +21,7 @@ from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import scan_faces
 from api.models import Face, LongRunningJob, Photo
 from api.runtime import sidecars
+from api.tests.queue_recorder import run_queued
 from api.tests.utils import create_test_photo, create_test_user
 
 ONE_FACE = b'{"face_locations": [[10, 50, 50, 10]], "encodings": [[0.5, 0.25]]}'
@@ -45,7 +46,7 @@ def _post(url: str, json: dict[str, object], **kwargs: object) -> requests.Respo
 class FaceRegionsUnreadableTest(TestCase):
     def setUp(self) -> None:
         self.user = create_test_user()
-        for name in ("generate_face_embeddings", "cluster_all_faces"):
+        for name in ("_queue_face_followups",):
             tail = patch.object(processing_jobs, name)
             tail.start()
             self.addCleanup(tail.stop)
@@ -69,6 +70,7 @@ class FaceRegionsUnreadableTest(TestCase):
             self.assertLogs("api.faces.photo_faces", "WARNING") as logs,
         ):
             scan_faces(self.user, job_id)
+            run_queued()
 
         job = LongRunningJob.objects.get(job_id=str(job_id))
         self.assertNotIn("error_count", job.result or {})

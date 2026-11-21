@@ -13,7 +13,13 @@ from django.utils import timezone
 from api.drf.exceptions import JobAlreadyRunning, QueueBusy
 from api.jobs import store
 from api.models.long_running_job import LongRunningJob
-from api.models.task_queue import QUEUED, WAITING, QueuedTask, TaskSchedule
+from api.models.task_queue import (
+    DEFAULT_QUEUE,
+    QUEUED,
+    WAITING,
+    QueuedTask,
+    TaskSchedule,
+)
 from api.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -184,6 +190,67 @@ def enqueue_followup(
         exclusive=False,
         **kwargs,
     )
+
+
+def enqueue_group(
+    tasks: Sequence[Task], *, then: Task, queue: str = DEFAULT_QUEUE
+) -> None:
+    with transaction.atomic():
+        group = store.new_group(len(tasks))
+        for task in tasks:
+            store.add(
+                task.func,
+                task.args,
+                task.kwargs,
+                store.Placement(queue=queue, group=group),
+            )
+        store.add(
+            then.func,
+            then.args,
+            then.kwargs,
+            store.Placement(status=WAITING, group=group, is_group_followup=True),
+        )
+
+
+def followup_key(user: User, job_type: int) -> str:
+    return f"job:{job_type}:user:{user.pk}"
+
+
+def enqueue_unique_followups(
+    user: User, steps: Sequence[JobStep]
+) -> list[LongRunningJob]:
+    for step in steps:
+        _check_call(step)
+    with transaction.atomic():
+        job_types = [step.job_type for step in steps]
+        _lock_starts(user, job_types)
+        running = set(
+            LongRunningJob.objects.running()
+            .filter(LongRunningJob.objects.owner_q(user), job_type__in=job_types)
+            .values_list("job_type", flat=True)
+        )
+        todo = [step for step in steps if step.job_type not in running]
+        jobs = [
+            LongRunningJob.create_job(user=user, job_type=step.job_type)
+            for step in todo
+        ]
+        previous: QueuedTask | None = None
+        for step, job in zip(todo, jobs, strict=True):
+            task = store.add(
+                step.func,
+                step.args,
+                {**(step.kwargs or {}), "job_id": job.job_id},
+                store.Placement(
+                    status=WAITING if previous else QUEUED,
+                    after=previous,
+                    dedupe_key=followup_key(user, step.job_type),
+                ),
+            )
+            if task is None:
+                job.cancel()
+                break
+            previous = task
+    return jobs
 
 
 def reserve_job(user: User, job_type: int) -> LongRunningJob:

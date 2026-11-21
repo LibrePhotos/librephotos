@@ -51,6 +51,19 @@ class _Running:
     lock: threading.Lock = field(default_factory=threading.Lock)
 
 
+_state: _Running | None = None
+_stop: Flag | None = None
+
+
+def checkpoint() -> None:
+    if _state is None:
+        return
+    if _stop is not None and _stop.is_set():
+        raise WorkerStoppingError("the workers are stopping")
+    if _state.drain:
+        raise WorkerStoppingError(_state.drain)
+
+
 def resolve(path: str) -> Callable[..., object]:
     try:
         found = pydoc.locate(path)
@@ -118,6 +131,8 @@ class Worker:
         self.exit_process = exit_process
 
     def run(self) -> int:
+        global _state, _stop
+        _state, _stop = self.running, self.stop
         self._register()
         threading.Thread(
             target=self._renew_forever, name="task-lease", daemon=True
@@ -126,7 +141,10 @@ class Worker:
             threading.Thread(
                 target=self._watch_memory, name="memory-watchdog", daemon=True
             ).start()
-        return self._loop()
+        try:
+            return self._loop()
+        finally:
+            _state, _stop = None, None
 
     def _loop(self) -> int:
         while not self.stop.is_set():

@@ -156,6 +156,8 @@ A restored face goes back to its person (or to the unknown faces), counts for th
 
 Re-scan faces looks through all your photos again and adds any face it finds that does not already have a face record. This will take a while, because it has to look up all the photos again.
 
+<Since version="1.7.0" /> A face scan works through your photos in batches of 64, so several background workers can look at them at once. When the last batch is done, **Generate Face Embeddings** and then **Find Similar Faces** run once, and only if no such job of yours is already queued or running. When you cancel the scan, or it fails because the face service cannot be reached, neither runs. Up to 1.6.0 one worker looked at every photo in turn.
+
 <Since version="1.4.0" /> Every face scan, the one after a photo scan as well as Re-scan faces, first gives each face whose thumbnail is missing a new one, cut from the photo where the face was found. A face whose photo has no thumbnail keeps the grey person icon until the photo has one.
 
 :::note
