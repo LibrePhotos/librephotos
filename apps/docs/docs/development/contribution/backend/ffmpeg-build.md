@@ -20,11 +20,12 @@ FFmpeg 9.0.2 with `--enable-gpl --disable-everything`, then only what LibrePhoto
 | Decoders, demuxers, parsers, bitstream filters | all of FFmpeg's own | the probe at scan time and every conversion must read whatever a camera, phone or old archive wrote |
 | AV1 decoding | libdav1d | FFmpeg has no software AV1 decoder of its own |
 | Encoders | `libx264` (8-bit 4:2:0 only), `aac`, `mjpeg`, `libwebp`, `libwebp_anim`, `wrapped_avframe`, `pcm_s16le` | animated previews and both playback conversions (H.264 + AAC), face-scan frames (JPEG), the big video thumbnail (WebP); the last two are what `-f null` uses to decode a file in tests |
-| Muxers | `mp4 mov ipod 3gp 3g2 matroska webm avi asf flv mpegts mpeg vob ogg ogv image2 webp null` | the playback copies, thumbnails and frames, and the metadata-free copy for sharing, which remuxes into the original container: one muxer for every extension in `VIDEO_EXTENSIONS` (`api/mime.py`) |
+| Muxers | `mp4 mov ipod tgp tg2 matroska webm avi asf flv mpegts mpeg1system mpeg2vob mpeg2svcd ogg ogv image2 webp null` | the playback copies, thumbnails and frames, and the metadata-free copy for sharing, which remuxes into the original container: one muxer for every extension in `VIDEO_EXTENSIONS` (`api/mime.py`) |
 | Filters | `scale format zscale tonemap`, the filters ffmpeg inserts by itself (`buffer`, `buffersink`, `abuffer`, `abuffersink`, `aformat`, `aresample`, `null`, `anull`, `copy`, `trim`, `atrim`, `setpts`, `asetpts`, `fps`, `crop`), the automatic rotation (`transpose`, `hflip`, `vflip`, `rotate`) and `setparams`, `setsar`, `setdar` | the filter chains of `api/video/color.py` (HDR tonemapping needs zscale, which is libzimg) |
 | Protocols | `file`, `pipe` | local files and the live conversion's stdout and `-progress pipe:2` |
 | Other libraries | zlib | PNG-based and zlib-compressed tracks (Matroska, QuickTime `cmov`) |
-| Left out | avdevice, network, hardware acceleration, ffplay, docs, every other external library | never called |
+| For tests and diagnosis | the `lavfi` input device, the `testsrc`, `testsrc2`, `color`, `sine` and `anullsrc` sources, `signalstats`, `metadata`, `concat`, the `ffv1` and `mpeg4` encoders | the backend's tests make their clips with the installed ffmpeg (`-f lavfi -i testsrc2=...`); a few hundred kB |
+| Left out | every other input or output device, network, hardware acceleration, ffplay, docs, every other external library | never called |
 
 Shared libraries as before: `bin/` plus `lib/` with an `$ORIGIN` rpath on Linux, `bin/` with the DLLs on Windows. Two
 binaries would each carry libavcodec if they were linked statically. The external libraries are linked statically into
@@ -43,7 +44,7 @@ The external libraries of the old build that decode something were checked one b
 | libopenh264 | H.264 | dropped, FFmpeg's own decoder is the default |
 | libdavs2, libuavs3d | AVS2, AVS3 | dropped: Chinese broadcast formats, never written by a camera or phone |
 | libjxl, librsvg | JPEG XL, SVG | dropped: still images, which pyvips decodes; ffmpeg only ever sees videos |
-| libsnappy | HAP (its Snappy-compressed variants) | dropped: a VJ playback codec, never written by a camera or phone |
+| libsnappy | nothing: FFmpeg decompresses HAP itself, the library is only for encoding it | dropped |
 | libxml2 | DASH and IMF manifests | dropped: streaming and cinema delivery manifests, not files in a library |
 | liblzma | LZMA-compressed TIFF frames | dropped |
 | libaribb24, libaribcaption, libzvbi | ARIB and teletext subtitles | dropped: subtitles are never decoded (the copies use `-sn`) |
@@ -80,7 +81,7 @@ The matrix and the sizes are in each run's summary and its `ffmpeg-matrix-*` art
 
 To bump a component, change its entry in `sources.json` (version, URL and SHA-256, or the commit), open a pull
 request and read the matrix. A new ffmpeg call in the backend that needs another encoder, muxer or filter needs it in
-`build.sh` too; `compat.py` and its mirror test then cover it.
+`build.sh` too (it fails when FFmpeg does not know a component name: 3GP is `tgp`, MPEG-PS is `mpeg1system`); `compat.py` and its mirror test then cover it.
 
 ## Licensing and source
 

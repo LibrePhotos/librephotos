@@ -86,8 +86,29 @@ FATE_SAMPLES = {
     "dnxhd/dnxhd100_cid1260.mov": "e0f38194b223b85264c2bfb95ab72cb839229803bce11a59f37166e63b5c3a9a",
 }
 
-EXPECTED_LOST_CODECS: dict[str, str] = {}
-EXPECTED_LOST_DEMUXERS: dict[str, str] = {}
+SUBTITLES_NOT_DECODED = "a subtitle codec; LibrePhotos never decodes subtitles"
+NETWORK = "a network stream; LibrePhotos reads local files only"
+EXPECTED_LOST_CODECS = {
+    "arib_caption": SUBTITLES_NOT_DECODED,
+    "dvb_teletext": SUBTITLES_NOT_DECODED,
+    "avs2": "libdavs2 only: a Chinese broadcast codec no camera or phone writes",
+    "avs3": "libuavs3d only: a Chinese broadcast codec no camera or phone writes",
+    "jpegxl": "libjxl only: a still image format, which pyvips decodes",
+    "jpegxl_anim": "libjxl only: a still image format, which pyvips decodes",
+    "svg": "librsvg only: a vector image, never a video",
+}
+EXPECTED_LOST_DEMUXERS = {
+    "avisynth": "AviSynth scripts, not video files",
+    "dash": NETWORK,
+    "dvdvideo": "DVD folder structures through libdvdread; a .vob file uses the MPEG-PS demuxer",
+    "imf": "IMF cinema delivery packages (libxml2), not files in a library",
+    "libgme": "game console music, not video",
+    "libopenmpt": "tracker music modules, not video",
+    "rtp": NETWORK,
+    "rtsp": NETWORK,
+    "sap": NETWORK,
+    "sdp": NETWORK,
+}
 EXPECTED_REGRESSIONS: dict[str, str] = {}
 
 
@@ -834,6 +855,12 @@ def matrix(old_bin: Path, new_bin: Path, corpus: Path, out: Path) -> int:
     return 1 if any(report["unexpected"].values()) else 0
 
 
+def losses(names: list[str], reasons: dict[str, str]) -> list[str]:
+    return [f"- `{name}`: {reasons.get(name, 'NOT EXPECTED')}" for name in names] or [
+        "- none"
+    ]
+
+
 def markdown(report: dict, rows: list[tuple[str, dict[str, dict[str, str]]]]) -> str:
     lines = [
         "| Clip | " + " | ".join(PIPELINES) + " | HDR tonemap (old/new) |",
@@ -851,12 +878,10 @@ def markdown(report: dict, rows: list[tuple[str, dict[str, dict[str, str]]]]) ->
         f"| {kind} | {count['old']} | {count['new']} |"
         for kind, count in report["counts"].items()
     ]
-    lines += [
-        "",
-        "Codecs no decoder reads any more: "
-        + (", ".join(report["lost"]["decoded_codecs"]) or "none"),
-    ]
-    lines += ["", "Demuxers gone: " + (", ".join(report["lost"]["demuxers"]) or "none")]
+    lines += ["", "Codecs no decoder reads any more:", ""]
+    lines += losses(report["lost"]["decoded_codecs"], EXPECTED_LOST_CODECS)
+    lines += ["", "Demuxers gone:", ""]
+    lines += losses(report["lost"]["demuxers"], EXPECTED_LOST_DEMUXERS)
     lines += ["", "Regressions: " + (", ".join(report["regressions"]) or "none"), ""]
     return "\n".join(lines)
 

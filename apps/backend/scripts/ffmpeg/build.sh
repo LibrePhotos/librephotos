@@ -25,9 +25,11 @@ export PKG_CONFIG_PATH=
 export SOURCE_DATE_EPOCH=946684800
 
 encoders=libx264,aac,mjpeg,libwebp,libwebp_anim,wrapped_avframe,pcm_s16le
-muxers=mp4,mov,ipod,3gp,3g2,matroska,webm,avi,asf,flv,mpegts,mpeg,vob,ogg,ogv,image2,webp,null
+muxers=mp4,mov,ipod,tgp,tg2,matroska,webm,avi,asf,flv,mpegts,mpeg1system,mpeg2vob,mpeg2svcd,ogg,ogv,image2,webp,null
 filters=buffer,buffersink,abuffer,abuffersink,format,aformat,null,anull,copy,scale,zscale,tonemap
 filters=$filters,transpose,hflip,vflip,rotate,crop,trim,atrim,aresample,setpts,asetpts,fps,setparams,setsar,setdar
+test_encoders=ffv1,mpeg4
+test_filters=testsrc,testsrc2,color,sine,anullsrc,signalstats,metadata,concat
 
 case $target in
   linux-x86_64 | linux-aarch64)
@@ -148,7 +150,6 @@ configure_args=(
   --disable-debug
   --disable-doc
   --disable-ffplay
-  --disable-avdevice
   --disable-network
   --disable-everything
   --enable-decoders
@@ -156,9 +157,10 @@ configure_args=(
   --enable-parsers
   --enable-bsfs
   --enable-protocol=file,pipe
-  --enable-encoder=$encoders
+  --enable-encoder=$encoders,$test_encoders
   --enable-muxer=$muxers
-  --enable-filter=$filters
+  --enable-filter=$filters,$test_filters
+  --enable-indev=lavfi
   --enable-libx264
   --enable-libdav1d
   --enable-libzimg
@@ -171,6 +173,17 @@ configure_args=(
   --extra-version=librephotos
 )
 
+require_components() {
+  local kind=$1 name missing=0
+  for name in ${2//,/ }; do
+    if ! grep -q "^#define CONFIG_${name^^}_${kind^^} 1" config_components.h; then
+      echo "FFmpeg did not enable the $kind $name" >&2
+      missing=1
+    fi
+  done
+  [ "$missing" = 0 ]
+}
+
 build_ffmpeg() {
   mkdir -p "$work/ffmpeg"
   cd "$work/ffmpeg"
@@ -178,6 +191,12 @@ build_ffmpeg() {
     tail -n 80 ffbuild/config.log >&2
     exit 1
   fi
+  require_components encoder "$encoders,$test_encoders"
+  require_components muxer "$muxers"
+  require_components filter "$filters,$test_filters"
+  require_components protocol file,pipe
+  require_components indev lavfi
+  require_components decoder libdav1d
   make -j"$jobs"
   make install
   cd - >/dev/null
