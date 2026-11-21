@@ -16,7 +16,6 @@ MODULES = ("core", "flann", "geometry", "imgproc", "imgcodecs")
 
 OPTIONS = {
     "PYTHON3_LIMITED_API": "ON",
-    "WITH_IPP": "ON",
     "WITH_LAPACK": "OFF",
     "WITH_EIGEN": "OFF",
     "WITH_OPENCL": "OFF",
@@ -164,7 +163,16 @@ def repair(raw: Path, out: Path, platform: str | None) -> None:
     for wheel in raw.glob("*.whl"):
         if platform:
             run(
-                ["auditwheel", "repair", "--plat", platform, "-w", str(out), str(wheel)]
+                [
+                    "auditwheel",
+                    "repair",
+                    "--strip",
+                    "--plat",
+                    platform,
+                    "-w",
+                    str(out),
+                    str(wheel),
+                ]
             )
         else:
             shutil.copy2(wheel, out / wheel.name)

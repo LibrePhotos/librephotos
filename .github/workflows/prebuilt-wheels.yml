@@ -51,6 +51,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          if ! compgen -G "apps/backend/wheels/*.whl" >/dev/null; then
+            echo "Nothing to upload"
+            exit 0
+          fi
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \
             --notes "Prebuilt wheels referenced by apps/backend/requirements.txt."
           gh release upload "$TAG" apps/backend/wheels/*.whl --clobber
@@ -77,7 +81,7 @@ jobs:
     uses: ./.github/workflows/opencv-wheel.yml
 
   opencv-upload:
-    needs: opencv
+    needs: [opencv, windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
