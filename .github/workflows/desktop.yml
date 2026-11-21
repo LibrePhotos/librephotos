@@ -52,7 +52,7 @@ jobs:
           ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - name: Install
@@ -130,7 +130,7 @@ jobs:
           fi
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - name: Install

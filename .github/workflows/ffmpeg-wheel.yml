@@ -27,7 +27,7 @@ env:
 
 jobs:
   version:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -45,7 +45,7 @@ jobs:
 
   sources:
     needs: version
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -130,7 +130,7 @@ jobs:
           path: out/wheels/*.whl
 
   corpus:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -214,7 +214,7 @@ jobs:
   publish:
     if: github.event_name == 'workflow_dispatch' && inputs.publish
     needs: [version, sources, build, compat]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     env:
