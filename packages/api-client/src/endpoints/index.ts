@@ -199,11 +199,7 @@ export async function fetchDayPhotos(
   filter: DateAlbumFilter = {},
   limit?: number
 ): Promise<S.DayPhotosPage> {
-  const query = buildQuery({
-    ...dateAlbumParams(filter),
-    after: after ?? undefined,
-    limit,
-  });
+  const query = buildQuery({ ...dateAlbumParams(filter), after: after ?? undefined, limit });
   // Trailing slash: the router 301-redirects without it, one extra round trip per day page.
   const res = await client.get<unknown>(`/days/${dayId}/photos/${query}`);
   return parseResponse(S.DayPhotosPage, res, "day photos");
@@ -230,10 +226,7 @@ export const DATE_ALBUM_PAGE_SIZE = 100;
 export type DateAlbumCursor = { group: number; after: string | null };
 
 /** One chunk of a date-album list's photos, in list order, and where the next one starts (null at the end). */
-export type DateAlbumPhotosChunk = {
-  photos: S.PigPhoto[];
-  next: DateAlbumCursor | null;
-};
+export type DateAlbumPhotosChunk = { photos: S.PigPhoto[]; next: DateAlbumCursor | null };
 
 /**
  * The next photos of a date-grouped list (`groups`, from fetchDays with the same `filter`) from
@@ -262,19 +255,13 @@ export async function fetchDateAlbumPhotosChunk(
     const day = groups[group];
     if (!day) break;
     if (!day.incomplete && day.items.length > 0) {
-      reads.push({
-        group,
-        page: Promise.resolve({ items: day.items, next: null }),
-      });
+      reads.push({ group, page: Promise.resolve({ items: day.items, next: null }) });
       budget -= day.items.length;
       group += 1;
       after = null;
       continue;
     }
-    reads.push({
-      group,
-      page: fetchDayPhotos(client, day.id, after, filter, DATE_ALBUM_PAGE_SIZE),
-    });
+    reads.push({ group, page: fetchDayPhotos(client, day.id, after, filter, DATE_ALBUM_PAGE_SIZE) });
     // Only the first page of a day that fits in one is known to finish the day.
     if (after !== null || day.numberOfItems > DATE_ALBUM_PAGE_SIZE) break;
     budget -= Math.max(1, day.numberOfItems);
@@ -290,10 +277,7 @@ export async function fetchDateAlbumPhotosChunk(
   }
   const last = reads[reads.length - 1];
   const following = last ? last.group + 1 : group;
-  return {
-    photos,
-    next: following < groups.length ? { group: following, after: null } : null,
-  };
+  return { photos, next: following < groups.length ? { group: following, after: null } : null };
 }
 
 /* ---- photos ------------------------------------------------------------ */
@@ -349,10 +333,7 @@ export async function bulkUpdatePhotoMetadata(
   photoIds: string[],
   updates: S.PhotoMetadataUpdate
 ): Promise<S.BulkMetadataUpdateResponse> {
-  const res = await client.patch<unknown>("/photos/metadata/bulk", {
-    photo_ids: photoIds,
-    updates,
-  });
+  const res = await client.patch<unknown>("/photos/metadata/bulk", { photo_ids: photoIds, updates });
   return parseResponse(S.BulkMetadataUpdateResponse, res, "bulk metadata update");
 }
 
@@ -391,9 +372,7 @@ export async function rotatePhoto(
  * model is still being fetched (the server has started the download).
  */
 export async function generatePhotoCaption(client: ApiClient, imageHash: string): Promise<S.StatusResponse> {
-  const res = await client.post<unknown>("/photosedit/generateim2txt/", {
-    image_hash: imageHash,
-  });
+  const res = await client.post<unknown>("/photosedit/generateim2txt/", { image_hash: imageHash });
   return parseResponse(S.StatusResponse, res, "generate photo caption");
 }
 
@@ -424,10 +403,7 @@ export async function fetchPhotoEdit(client: ApiClient, photoId: string): Promis
  * full-size rendition afterwards (`rendition: "pending"`). ApiError 400 `not_editable` for a video.
  */
 export async function savePhotoEdit(client: ApiClient, photoId: string, edit: S.PhotoEditUpdate): Promise<S.PhotoEdit> {
-  const res = await client.request<unknown>(photoEditPath(photoId), {
-    method: "PUT",
-    body: edit,
-  });
+  const res = await client.request<unknown>(photoEditPath(photoId), { method: "PUT", body: edit });
   return parseResponse(S.PhotoEdit, res, "photo edit");
 }
 
@@ -450,10 +426,7 @@ export async function setPhotoShareLink(
   photoId: string,
   action: S.PhotoShareAction
 ): Promise<S.PhotoShare> {
-  const res = await client.post<unknown>("/photo/share", {
-    photo_id: photoId,
-    action,
-  });
+  const res = await client.post<unknown>("/photo/share", { photo_id: photoId, action });
   return parseResponse(S.PhotoShareResponse, res, "photo share").share;
 }
 
@@ -744,9 +717,7 @@ export async function deleteTag(client: ApiClient, tagId: number | string): Prom
 
 /** Merge the tag `sourceTagId` into `tagId`: its photos move over and it is deleted. */
 export async function mergeTags(client: ApiClient, tagId: number | string, sourceTagId: number): Promise<S.Tag> {
-  const res = await client.post<unknown>(`/tags/${tagId}/merge/`, {
-    tag: sourceTagId,
-  });
+  const res = await client.post<unknown>(`/tags/${tagId}/merge/`, { tag: sourceTagId });
   return parseResponse(S.Tag, res, "merge tags");
 }
 
@@ -756,11 +727,7 @@ export async function mergeTags(client: ApiClient, tagId: number | string, sourc
  */
 function tagPhotosBody(photos: string[], selectAll: SelectAllPhotos | undefined) {
   if (!selectAll) return { photos };
-  return {
-    select_all: true,
-    query: selectAll.query ?? {},
-    excluded_hashes: selectAll.excludedHashes ?? [],
-  };
+  return { select_all: true, query: selectAll.query ?? {}, excluded_hashes: selectAll.excludedHashes ?? [] };
 }
 
 /** Tag photos (by photo id or image hash, or a selected-all set). Answers the tag. */
@@ -810,9 +777,7 @@ export async function mergePerson(
   targetId: number | string,
   sourceId: number | string
 ): Promise<S.PersonMergeResponse> {
-  const res = await client.post<unknown>(`/persons/${targetId}/merge/`, {
-    person: Number(sourceId),
-  });
+  const res = await client.post<unknown>(`/persons/${targetId}/merge/`, { person: Number(sourceId) });
   return parseResponse(S.PersonMergeResponse, res, "merge person");
 }
 
@@ -822,9 +787,7 @@ export async function renamePerson(
   personId: number | string,
   newPersonName: string
 ): Promise<S.PersonEditResponse> {
-  const res = await client.patch<unknown>(`/persons/${personId}/`, {
-    newPersonName,
-  });
+  const res = await client.patch<unknown>(`/persons/${personId}/`, { newPersonName });
   return parseResponse(S.PersonEditResponse, res, "rename person");
 }
 
@@ -834,9 +797,7 @@ export async function setPersonCover(
   personId: number | string,
   coverPhoto: string
 ): Promise<S.PersonEditResponse> {
-  const res = await client.patch<unknown>(`/persons/${personId}/`, {
-    cover_photo: coverPhoto,
-  });
+  const res = await client.patch<unknown>(`/persons/${personId}/`, { cover_photo: coverPhoto });
   return parseResponse(S.PersonEditResponse, res, "set person cover");
 }
 
@@ -846,9 +807,7 @@ export async function setPersonBirthDate(
   personId: number | string,
   birthDate: string | null
 ): Promise<S.Person> {
-  const res = await client.patch<unknown>(`/persons/${personId}/`, {
-    birth_date: birthDate,
-  });
+  const res = await client.patch<unknown>(`/persons/${personId}/`, { birth_date: birthDate });
   return parseResponse(S.Person, res, "set person birth date");
 }
 
@@ -873,9 +832,7 @@ export async function createPersonGroup(client: ApiClient, name: string): Promis
 
 /** Rename a group; its people stay in it. */
 export async function renamePersonGroup(client: ApiClient, groupId: number, name: string): Promise<S.PersonGroup> {
-  const res = await client.patch<unknown>(`/person-groups/${groupId}/`, {
-    name,
-  });
+  const res = await client.patch<unknown>(`/person-groups/${groupId}/`, { name });
   return parseResponse(S.PersonGroup, res, "rename person group");
 }
 
@@ -906,12 +863,7 @@ export type UserPlaceFields = Pick<
 >;
 
 /** A circle being drawn, and the place it edits (left out for a new one). */
-export type UserPlaceCircle = {
-  lat: number;
-  lon: number;
-  radiusM: number;
-  exclude?: number;
-};
+export type UserPlaceCircle = { lat: number; lon: number; radiusM: number; exclude?: number };
 
 /** My places by name, with their photo counts; all pages. */
 export async function fetchUserPlaces(client: ApiClient): Promise<S.UserPlace[]> {
@@ -942,12 +894,7 @@ export async function deleteUserPlace(client: ApiClient, placeId: number): Promi
 
 /** How many of my photos a circle being drawn holds, the newest few, and my places it overlaps. */
 export async function fetchUserPlacePreview(client: ApiClient, circle: UserPlaceCircle): Promise<S.UserPlacePreview> {
-  const query = buildQuery({
-    lat: circle.lat,
-    lon: circle.lon,
-    radius_m: circle.radiusM,
-    exclude: circle.exclude,
-  });
+  const query = buildQuery({ lat: circle.lat, lon: circle.lon, radius_m: circle.radiusM, exclude: circle.exclude });
   const res = await client.get<unknown>(`/user-places/preview/${query}`);
   return parseResponse(S.UserPlacePreview, res, "user place preview");
 }
@@ -976,11 +923,7 @@ export async function searchPhotos(
   semantic = false,
   filter: AlbumMediaFilter & SearchFilters = {}
 ): Promise<S.SearchPhotosResult> {
-  const query = buildQuery({
-    search: searchTerm,
-    ...albumMediaQuery(filter),
-    ...searchFiltersQuery(filter),
-  });
+  const query = buildQuery({ search: searchTerm, ...albumMediaQuery(filter), ...searchFiltersQuery(filter) });
   const res = await client.get<unknown>(`/photos/searchlist/${query}`);
   if (semantic) {
     const parsed = parseResponse(S.SemanticSearchPhotos, res, "semantic search photos");
@@ -1103,11 +1046,7 @@ export async function fetchJobs(
   pageSize = 20,
   options: { mine?: boolean } = {}
 ): Promise<S.JobsResponse> {
-  const query = buildQuery({
-    page,
-    page_size: pageSize,
-    mine: options.mine ? "true" : undefined,
-  });
+  const query = buildQuery({ page, page_size: pageSize, mine: options.mine ? "true" : undefined });
   const res = await client.get<unknown>(`/jobs/${query}`);
   return parseResponse(S.JobsResponse, res, "jobs");
 }
@@ -1117,10 +1056,7 @@ export async function fetchJobs(
  * everyone's unless `mine` narrows the list to their own.
  */
 export async function fetchAllJobs(client: ApiClient, options: { mine?: boolean } = {}): Promise<S.Job[]> {
-  const query = buildQuery({
-    page_size: 1000,
-    mine: options.mine ? "true" : undefined,
-  });
+  const query = buildQuery({ page_size: 1000, mine: options.mine ? "true" : undefined });
   const rows = await fetchAllPages(client, `/jobs/${query}`);
   return parseResponse(S.Job.array(), rows, "jobs");
 }
@@ -1568,17 +1504,13 @@ export async function removePhotosFromStack(
   stackId: string,
   photoHashes: string[]
 ): Promise<S.RemoveFromStackResponse> {
-  const res = await client.post<unknown>(`/stacks/${stackId}/remove/`, {
-    photo_hashes: photoHashes,
-  });
+  const res = await client.post<unknown>(`/stacks/${stackId}/remove/`, { photo_hashes: photoHashes });
   return parseResponse(S.RemoveFromStackResponse, res, "remove from stack");
 }
 
 /** Merge every manual stack that holds one of the photos into one. */
 export async function mergeStacks(client: ApiClient, photoHashes: string[]): Promise<S.MergeStacksResponse> {
-  const res = await client.post<unknown>("/stacks/merge/", {
-    photo_hashes: photoHashes,
-  });
+  const res = await client.post<unknown>("/stacks/merge/", { photo_hashes: photoHashes });
   return parseResponse(S.MergeStacksResponse, res, "merge stacks");
 }
 
@@ -1587,9 +1519,7 @@ export async function createManualStack(
   client: ApiClient,
   photoHashes: string[]
 ): Promise<S.CreateManualStackResponse> {
-  const res = await client.post<unknown>("/stacks/manual/", {
-    photo_hashes: photoHashes,
-  });
+  const res = await client.post<unknown>("/stacks/manual/", { photo_hashes: photoHashes });
   return parseResponse(S.CreateManualStackResponse, res, "create manual stack");
 }
 
@@ -1605,9 +1535,7 @@ export async function setStackPrimary(
   stackId: string,
   photoHash: string
 ): Promise<S.SetStackPrimaryResponse> {
-  const res = await client.post<unknown>(`/stacks/${stackId}/primary/`, {
-    photo_hash: photoHash,
-  });
+  const res = await client.post<unknown>(`/stacks/${stackId}/primary/`, { photo_hash: photoHash });
   return parseResponse(S.SetStackPrimaryResponse, res, "set stack cover");
 }
 
@@ -1755,12 +1683,7 @@ export async function fetchSharedPersonPhotos(
 
 /** The gallery's filters as query parameters; an unset one is left out. */
 function galleryQuery(filter: S.GalleryFilter, extra: Record<string, number> = {}): string {
-  return buildQuery({
-    owner: filter.owner,
-    place: filter.place,
-    person: filter.person,
-    ...extra,
-  });
+  return buildQuery({ owner: filter.owner, place: filter.place, person: filter.person, ...extra });
 }
 
 /** Whether the public gallery is open to me and how much it shows; a 404 ApiError while it is closed. */
@@ -1881,11 +1804,7 @@ export async function addPhotosToAlbum(
   selectAll?: SelectAllPhotos
 ): Promise<S.AlbumPhotosChanged> {
   const body = selectAll
-    ? {
-        select_all: true,
-        query: selectAll.query ?? {},
-        excluded_hashes: selectAll.excludedHashes ?? [],
-      }
+    ? { select_all: true, query: selectAll.query ?? {}, excluded_hashes: selectAll.excludedHashes ?? [] }
     : { photos: photoIds };
   const res = await client.post<unknown>(`/albums/user/${albumId}/photos/add/`, body);
   return parseResponse(S.AlbumPhotosChanged, res, "add photos to album");
@@ -1929,16 +1848,9 @@ export async function fetchPersonSharing(client: ApiClient, personId: number): P
 export async function setPersonSharing(
   client: ApiClient,
   personId: number,
-  body: {
-    recipient_ids: number[];
-    share_location?: boolean;
-    share_other_people?: boolean;
-  }
+  body: { recipient_ids: number[]; share_location?: boolean; share_other_people?: boolean }
 ): Promise<S.PersonSharing> {
-  const res = await client.request<unknown>(`/persons/${personId}/sharing/`, {
-    method: "PUT",
-    body,
-  });
+  const res = await client.request<unknown>(`/persons/${personId}/sharing/`, { method: "PUT", body });
   return parseResponse(S.PersonSharing, res, "set person sharing");
 }
 
@@ -2027,9 +1939,7 @@ export async function setAlbumPhotoLiked(
   liked: boolean
 ): Promise<S.AlbumLikes> {
   const path = `${threadPath(albumId, photoId)}likes/`;
-  const res = await client.request<unknown>(path, {
-    method: liked ? "PUT" : "DELETE",
-  });
+  const res = await client.request<unknown>(path, { method: liked ? "PUT" : "DELETE" });
   return parseResponse(S.AlbumLikes, res, "set album photo liked");
 }
 
@@ -2061,10 +1971,7 @@ export async function createLibraryShare(
   recipientId: number,
   switches: Partial<S.LibraryShareSwitches> = {}
 ): Promise<S.LibraryShare> {
-  const res = await client.post<unknown>("/library-shares/", {
-    recipient_id: recipientId,
-    ...switches,
-  });
+  const res = await client.post<unknown>("/library-shares/", { recipient_id: recipientId, ...switches });
   return parseResponse(S.LibraryShare, res, "library share");
 }
 
@@ -2192,11 +2099,7 @@ export async function fetchIncompleteFaces(
  */
 export async function fetchFacesReviewCount(
   client: ApiClient,
-  params: {
-    analysisMethod: S.FaceAnalysisMethod;
-    minConfidence: number;
-    group?: number;
-  }
+  params: { analysisMethod: S.FaceAnalysisMethod; minConfidence: number; group?: number }
 ): Promise<S.FacesReviewCountResponse> {
   const query = buildQuery({
     analysis_method: params.analysisMethod,
@@ -2216,10 +2119,7 @@ export async function labelFaces(
   faceIds: number[],
   personName: string
 ): Promise<S.SetFacesLabelResponse> {
-  const res = await client.post<unknown>("/labelfaces", {
-    face_ids: faceIds,
-    person_name: personName,
-  });
+  const res = await client.post<unknown>("/labelfaces", { face_ids: faceIds, person_name: personName });
   return parseResponse(S.SetFacesLabelResponse, res, "label faces");
 }
 
@@ -2230,9 +2130,7 @@ export async function deleteFaces(client: ApiClient, faceIds: number[]): Promise
 
 /** Bring deleted faces back to the person each one had (#127); other ids are skipped. */
 export async function restoreFaces(client: ApiClient, faceIds: number[]): Promise<S.RestoreFacesResponse> {
-  const res = await client.post<unknown>("/restore-faces/", {
-    face_ids: faceIds,
-  });
+  const res = await client.post<unknown>("/restore-faces/", { face_ids: faceIds });
   return parseResponse(S.RestoreFacesResponse, res, "restore faces");
 }
 
@@ -2274,12 +2172,7 @@ export async function addFace(
   box: S.NormalizedFaceBox,
   fit?: boolean
 ): Promise<S.AddFaceResponse> {
-  const body = {
-    photo,
-    person_name: personName,
-    box,
-    ...(fit === undefined ? {} : { fit }),
-  };
+  const body = { photo, person_name: personName, box, ...(fit === undefined ? {} : { fit }) };
   const res = await client.post<unknown>("/addface", body);
   return parseResponse(S.AddFaceResponse, res, "add face");
 }
@@ -2403,11 +2296,7 @@ export async function fetchServerLogFile(client: ApiClient): Promise<Blob> {
 /* ---- health ------------------------------------------------------------- */
 
 const READY: S.BackendReadiness = { state: "ready" };
-const UNREACHABLE: S.BackendNotReady = {
-  state: "unreachable",
-  reasonCode: null,
-  version: null,
-};
+const UNREACHABLE: S.BackendNotReady = { state: "unreachable", reasonCode: null, version: null };
 
 /** A proxy's answer for a server that does not answer (Bad Gateway, Gateway Timeout). */
 const GATEWAY_ERRORS = new Set([502, 504]);
@@ -2420,11 +2309,7 @@ function startupReadiness(body: unknown): S.BackendReadiness {
   const startup = S.StartupStatus.safeParse(body);
   if (!startup.success) return UNREACHABLE;
   const { status, reason_code: reasonCode, version } = startup.data;
-  return {
-    state: status,
-    reasonCode: reasonCode ?? null,
-    version: version ?? null,
-  };
+  return { state: status, reasonCode: reasonCode ?? null, version: version ?? null };
 }
 
 /** What a readiness probe that did not answer 200 says about the server. */
@@ -2485,9 +2370,7 @@ export async function uploadChunk(client: ApiClient, options: S.UploadOptions): 
   const res = await client.request<unknown>("/upload/", {
     method: "POST",
     body: options.form_data,
-    headers: new Headers({
-      "Content-Range": `bytes ${options.offset}-${end}/${options.chunk_size}`,
-    }),
+    headers: new Headers({ "Content-Range": `bytes ${options.offset}-${end}/${options.chunk_size}` }),
   });
   return parseResponse(S.UploadResponse, res, "upload chunk");
 }
@@ -2554,10 +2437,7 @@ export async function fetchDirTree(client: ApiClient, path: string): Promise<S.D
  * for a bad name or parent or a folder the server cannot write to, 409 `folder_exists`.
  */
 export async function createFolder(client: ApiClient, parent: string, name: string): Promise<S.CreatedFolder> {
-  const res = await client.post<unknown>("/dirtree/folders/", {
-    parent_path: parent,
-    name,
-  });
+  const res = await client.post<unknown>("/dirtree/folders/", { parent_path: parent, name });
   return parseResponse(S.CreatedFolder, res, "create folder");
 }
 
@@ -2651,9 +2531,7 @@ export async function fetchRightsDefaultCounts(client: ApiClient): Promise<S.Rig
 
 /** Give my photos my default rights (Settings > Metadata), keeping what `keep` says. */
 export async function applyRightsDefault(client: ApiClient, keep: S.RightsKeep): Promise<S.SetPhotosRightsResponse> {
-  const res = await client.post<unknown>("/photos/rights/apply-default/", {
-    keep,
-  });
+  const res = await client.post<unknown>("/photos/rights/apply-default/", { keep });
   return parseResponse(S.SetPhotosRightsResponse, res, "apply default rights");
 }
 
@@ -2671,20 +2549,10 @@ export async function fetchLocatedNearbyInTime(
 /* ---- the Places map (#343) ---------------------------------------------- */
 
 /** A map's view in degrees. `west` greater than `east` is a view across the 180th meridian. */
-export type MapBounds = {
-  south: number;
-  west: number;
-  north: number;
-  east: number;
-};
+export type MapBounds = { south: number; west: number; north: number; east: number };
 
 const boundsQuery = ({ south, west, north, east }: MapBounds) =>
-  new URLSearchParams({
-    south: String(south),
-    west: String(west),
-    north: String(north),
-    east: String(east),
-  });
+  new URLSearchParams({ south: String(south), west: String(west), north: String(north), east: String(east) });
 
 /** Where my photos were taken: one point per spot with the number of photos there. */
 export async function fetchPhotoMapPoints(client: ApiClient): Promise<S.PhotoMapPoints> {
@@ -2711,11 +2579,7 @@ export async function fetchPlaceAlbumsInBounds(client: ApiClient, bounds: MapBou
  * the folder of each one's capture date inside it; and what to do with a name taken there (absent:
  * a 409 `name_conflict`).
  */
-export type MovePhotosTarget = {
-  targetFolder: string;
-  folderPattern?: string;
-  onConflict?: S.MoveOnConflict;
-};
+export type MovePhotosTarget = { targetFolder: string; folderPattern?: string; onConflict?: S.MoveOnConflict };
 
 const moveTargetBody = ({ targetFolder, folderPattern, onConflict }: MovePhotosTarget) => ({
   target_folder: targetFolder,
@@ -2832,10 +2696,7 @@ export type SyncPullParams = {
 };
 
 function syncQuery(params: SyncPullParams): string {
-  return buildQuery({
-    cursor: params.cursor ?? undefined,
-    page_size: params.pageSize,
-  });
+  return buildQuery({ cursor: params.cursor ?? undefined, page_size: params.pageSize });
 }
 
 export async function syncPhotos(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncPhotosResponse> {
@@ -2923,10 +2784,7 @@ export async function setPhotosHidden(
   hidden: boolean,
   selectAll?: SelectAllPhotos
 ): Promise<S.BulkPhotoMutationResponse> {
-  const res = await client.post<unknown>("/photosedit/hide/", {
-    ...photoSelection(imageHashes, selectAll),
-    hidden,
-  });
+  const res = await client.post<unknown>("/photosedit/hide/", { ...photoSelection(imageHashes, selectAll), hidden });
   return parseResponse(S.BulkPhotoMutationResponse, res, "set hidden");
 }
 
@@ -3103,11 +2961,7 @@ export type SelectAllPhotos = {
  */
 function photoSelection(imageHashes: string[], selectAll: SelectAllPhotos | undefined) {
   if (!selectAll) return { image_hashes: imageHashes };
-  return {
-    select_all: true,
-    query: selectAll.query,
-    excluded_hashes: selectAll.excludedHashes,
-  };
+  return { select_all: true, query: selectAll.query, excluded_hashes: selectAll.excludedHashes };
 }
 
 function userAlbumPhotosBody(title: string, photoIds: string[], selectAll: SelectAllPhotos | undefined) {
@@ -3141,9 +2995,7 @@ export async function addPhotosToUserAlbumById(
   albumId: number | string,
   photoIds: string[]
 ): Promise<S.UserAlbumEditResponse> {
-  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, {
-    photos: photoIds,
-  });
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { photos: photoIds });
   return parseResponse(S.UserAlbumEditResponse, res, "add photos to user album by id");
 }
 
@@ -3166,9 +3018,7 @@ export async function removePhotosFromUserAlbum(
   albumId: number | string,
   imageHashes: string[]
 ): Promise<S.UserAlbumEditResponse> {
-  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, {
-    removedPhotos: imageHashes,
-  });
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { removedPhotos: imageHashes });
   return parseResponse(S.UserAlbumEditResponse, res, "remove photos from user album");
 }
 
@@ -3178,9 +3028,7 @@ export async function setUserAlbumCover(
   albumId: number | string,
   coverPhoto: string | null
 ): Promise<S.UserAlbumEditResponse> {
-  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, {
-    cover_photo: coverPhoto,
-  });
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { cover_photo: coverPhoto });
   return parseResponse(S.UserAlbumEditResponse, res, "set user album cover");
 }
 
@@ -3190,9 +3038,7 @@ export async function setUserAlbumLocked(
   albumId: number | string,
   locked: boolean
 ): Promise<S.UserAlbumEditResponse> {
-  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, {
-    locked,
-  });
+  const res = await client.patch<unknown>(`/albums/user/edit/${albumId}/`, { locked });
   return parseResponse(S.UserAlbumEditResponse, res, "lock user album");
 }
 
@@ -3202,9 +3048,7 @@ export async function renameUserAlbum(
   albumId: number | string,
   title: string
 ): Promise<S.UserAlbumRenameResponse> {
-  const res = await client.patch<unknown>(`/albums/user/${albumId}/`, {
-    title,
-  });
+  const res = await client.patch<unknown>(`/albums/user/${albumId}/`, { title });
   return parseResponse(S.UserAlbumRenameResponse, res, "rename user album");
 }
 
@@ -3264,9 +3108,7 @@ export async function setAutoAlbumCover(
   albumId: number | string,
   coverPhoto: string | null
 ): Promise<S.AutoAlbumEdit> {
-  const res = await client.patch<unknown>(`/albums/auto/${albumId}/`, {
-    cover_photo: coverPhoto,
-  });
+  const res = await client.patch<unknown>(`/albums/auto/${albumId}/`, { cover_photo: coverPhoto });
   return parseResponse(S.AutoAlbumEdit, res, "set event cover");
 }
 
@@ -3323,8 +3165,6 @@ export async function downloadErrorReport(client: ApiClient, reportId: number): 
  * its own and sends it on only when an admin chose a server (#2938). Any signed-in user may.
  */
 export async function forwardBrowserErrorReport(client: ApiClient, envelope: string): Promise<S.BrowserErrorReport> {
-  const res = await client.post<unknown>("/error-reports/browser/", {
-    envelope,
-  });
+  const res = await client.post<unknown>("/error-reports/browser/", { envelope });
   return parseResponse(S.BrowserErrorReport, res, "forward browser error");
 }

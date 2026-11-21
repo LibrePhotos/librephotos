@@ -14,10 +14,7 @@ import type { ContractEntry } from "./openapi-contract";
 export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   // photos
   Photo: { schema: S.Photo, components: ["Photo"] },
-  PhotoMetadataSummary: {
-    schema: S.PhotoMetadataSummary,
-    components: ["PhotoMetadataSummary"],
-  },
+  PhotoMetadataSummary: { schema: S.PhotoMetadataSummary, components: ["PhotoMetadataSummary"] },
   PigPhoto: { schema: S.PigPhoto, components: ["PhotoSummary"] },
   PhotoHash: { schema: S.PhotoHash, components: ["PhotoHashList"] },
   PhotosWithoutTimestampResponse: {
@@ -37,46 +34,22 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
     components: ["PaginatedPhotoSummaryList"],
   },
   PhotoMapPoints: { schema: S.PhotoMapPoints, components: ["PhotoMapPoints"] },
-  PlaceAlbumsInBounds: {
-    schema: S.PlaceAlbumsInBounds,
-    components: ["PlaceAlbumsInBounds"],
-  },
+  PlaceAlbumsInBounds: { schema: S.PlaceAlbumsInBounds, components: ["PlaceAlbumsInBounds"] },
   UserPlace: { schema: S.UserPlace, components: ["UserPlace"] },
-  UserPlaceOverlap: {
-    schema: S.UserPlaceOverlap,
-    components: ["PreviewOverlap"],
-  },
-  UserPlacePreview: {
-    schema: S.UserPlacePreview,
-    components: ["UserPlacePreview"],
-  },
-  UserPlacePhotos: {
-    schema: S.UserPlacePhotos,
-    components: ["UserPlacePhotos"],
-  },
+  UserPlaceOverlap: { schema: S.UserPlaceOverlap, components: ["PreviewOverlap"] },
+  UserPlacePreview: { schema: S.UserPlacePreview, components: ["UserPlacePreview"] },
+  UserPlacePhotos: { schema: S.UserPlacePhotos, components: ["UserPlacePhotos"] },
   MyPublicPhotosResponse: {
     schema: S.MyPublicPhotosResponse,
     components: ["PaginatedPhotoSummaryList"],
   },
-  SharedFromMePhoto: {
-    schema: S.SharedFromMePhoto,
-    components: ["SharedFromMePhotoThrough"],
-  },
+  SharedFromMePhoto: { schema: S.SharedFromMePhoto, components: ["SharedFromMePhotoThrough"] },
   PhotoMetadata: { schema: S.PhotoMetadata, components: ["PhotoMetadata"] },
   MetadataEdit: { schema: S.MetadataEdit, components: ["MetadataEdit"] },
   RawMetadata: { schema: S.RawMetadata, components: ["RawMetadata"] },
-  RawMetadataFile: {
-    schema: S.RawMetadataFile,
-    components: ["RawMetadataFile"],
-  },
-  RawMetadataGroup: {
-    schema: S.RawMetadataGroup,
-    components: ["RawMetadataGroup"],
-  },
-  SetPhotosDateTimeResponse: {
-    schema: S.SetPhotosDateTimeResponse,
-    components: ["SetPhotosDateTimeResponse"],
-  },
+  RawMetadataFile: { schema: S.RawMetadataFile, components: ["RawMetadataFile"] },
+  RawMetadataGroup: { schema: S.RawMetadataGroup, components: ["RawMetadataGroup"] },
+  SetPhotosDateTimeResponse: { schema: S.SetPhotosDateTimeResponse, components: ["SetPhotosDateTimeResponse"] },
   DatedPhoto: { schema: S.DatedPhoto, components: ["DatedPhoto"] },
   DateSummary: { schema: S.DateSummary, components: ["DateSummaryResponse"] },
   // date groups (timeline, albums)
@@ -87,40 +60,19 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   DayPhotosPage: { schema: S.DayPhotosPage, components: ["DayPhotos"] },
   DayLayout: { schema: S.DayLayout, components: ["DayLayout"] },
   // albums
-  PhotoSuperSimple: {
-    schema: S.PhotoSuperSimple,
-    components: ["PhotoSuperSimple"],
-  },
+  PhotoSuperSimple: { schema: S.PhotoSuperSimple, components: ["PhotoSuperSimple"] },
   UserAlbumInfo: { schema: S.UserAlbumInfo, components: ["AlbumUserList"] },
-  AlbumCollection: {
-    schema: S.AlbumCollection,
-    components: ["AlbumCollection"],
-  },
-  UserAlbumCollections: {
-    schema: S.UserAlbumCollections,
-    components: ["UserAlbumCollections"],
-  },
+  AlbumCollection: { schema: S.AlbumCollection, components: ["AlbumCollection"] },
+  UserAlbumCollections: { schema: S.UserAlbumCollections, components: ["UserAlbumCollections"] },
   UserAlbum: { schema: S.UserAlbum, components: ["AlbumUser"] },
   AlbumMember: { schema: S.AlbumMember, components: ["AlbumMember"] },
-  AlbumMemberSwitches: {
-    schema: S.AlbumMemberSwitches,
-    components: ["AlbumMemberSwitches"],
-  },
-  AlbumPhotosChanged: {
-    schema: S.AlbumPhotosChanged,
-    components: ["AlbumPhotosChanged"],
-  },
+  AlbumMemberSwitches: { schema: S.AlbumMemberSwitches, components: ["AlbumMemberSwitches"] },
+  AlbumPhotosChanged: { schema: S.AlbumPhotosChanged, components: ["AlbumPhotosChanged"] },
   AlbumComment: { schema: S.AlbumComment, components: ["AlbumComment"] },
   PersonSharing: { schema: S.PersonSharing, components: ["PersonSharing"] },
-  PersonSharePendingPage: {
-    schema: S.PersonSharePendingPage,
-    components: ["PersonSharePendingPage"],
-  },
+  PersonSharePendingPage: { schema: S.PersonSharePendingPage, components: ["PersonSharePendingPage"] },
   AlbumLikes: { schema: S.AlbumLikes, components: ["AlbumLikes"] },
-  EventTitleParts: {
-    schema: S.EventTitleParts,
-    components: ["EventTitleParts"],
-  },
+  EventTitleParts: { schema: S.EventTitleParts, components: ["EventTitleParts"] },
   AutoAlbumInfo: { schema: S.AutoAlbumInfo, components: ["AlbumAutoList"] },
   AutoAlbum: { schema: S.AutoAlbum, components: ["AlbumAuto"] },
   AutoAlbumEdit: { schema: S.AutoAlbumEdit, components: ["AlbumAutoEdit"] },
@@ -130,230 +82,89 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   // people, faces, tags
   Person: { schema: S.Person, components: ["Person"] },
   PersonGroup: { schema: S.PersonGroup, components: ["PersonGroup"] },
-  PersonGroupsResponse: {
-    schema: S.PersonGroupsResponse,
-    components: ["PersonGroups"],
-  },
+  PersonGroupsResponse: { schema: S.PersonGroupsResponse, components: ["PersonGroups"] },
   PersonFace: { schema: S.PersonFace, components: ["PersonFaceList"] },
-  PersonFaceListResponse: {
-    schema: S.PersonFaceListResponse,
-    components: ["PaginatedPersonFaceListList"],
-  },
-  IncompletePersonFace: {
-    schema: S.IncompletePersonFace,
-    components: ["IncompletePersonFaceList"],
-  },
+  PersonFaceListResponse: { schema: S.PersonFaceListResponse, components: ["PaginatedPersonFaceListList"] },
+  IncompletePersonFace: { schema: S.IncompletePersonFace, components: ["IncompletePersonFaceList"] },
   LabelledFace: { schema: S.LabelledFace, components: ["FaceList"] },
-  SetFacesLabelResponse: {
-    schema: S.SetFacesLabelResponse,
-    components: ["SetFacePersonLabelResponse"],
-  },
-  AddFaceResponse: {
-    schema: S.AddFaceResponse,
-    components: ["AddFaceResponse"],
-  },
-  DeleteFacesResponse: {
-    schema: S.DeleteFacesResponse,
-    components: ["DeleteFacesResponse"],
-  },
-  FacesReviewCountResponse: {
-    schema: S.FacesReviewCountResponse,
-    components: ["FacesReviewCountResponse"],
-  },
-  RestoreFacesResponse: {
-    schema: S.RestoreFacesResponse,
-    components: ["RestoreFacesResponse"],
-  },
+  SetFacesLabelResponse: { schema: S.SetFacesLabelResponse, components: ["SetFacePersonLabelResponse"] },
+  AddFaceResponse: { schema: S.AddFaceResponse, components: ["AddFaceResponse"] },
+  DeleteFacesResponse: { schema: S.DeleteFacesResponse, components: ["DeleteFacesResponse"] },
+  FacesReviewCountResponse: { schema: S.FacesReviewCountResponse, components: ["FacesReviewCountResponse"] },
+  RestoreFacesResponse: { schema: S.RestoreFacesResponse, components: ["RestoreFacesResponse"] },
   FaceLabels: { schema: S.FaceLabels, components: ["FaceLabels"] },
   RejectedPerson: { schema: S.RejectedPerson, components: ["RejectedPerson"] },
   Tag: { schema: S.Tag, components: ["Tag"] },
   TagAlbum: { schema: S.TagAlbum, components: ["GroupedTagPhotos"] },
   // jobs
-  WorkerAvailabilityResponse: {
-    schema: S.WorkerAvailabilityResponse,
-    components: ["QueueAvailability"],
-  },
+  WorkerAvailabilityResponse: { schema: S.WorkerAvailabilityResponse, components: ["QueueAvailability"] },
   Job: { schema: S.Job, components: ["LongRunningJob"] },
   JobDetail: { schema: S.JobDetail, components: ["LongRunningJob"] },
-  JobsResponse: {
-    schema: S.JobsResponse,
-    components: ["PaginatedLongRunningJobList"],
-  },
-  CancelJobResponse: {
-    schema: S.CancelJobResponse,
-    components: ["CancelJobResponse"],
-  },
-  JobStartedResponse: {
-    schema: S.JobStartedResponse,
-    components: ["JobStartedResponse"],
-  },
-  JobTriggerResponse: {
-    schema: S.JobTriggerResponse,
-    components: ["JobStartedResponse"],
-  },
-  CaptionsJobStartedResponse: {
-    schema: S.CaptionsJobStartedResponse,
-    components: ["CaptionsJobStartedResponse"],
-  },
-  WriteMetadataStarted: {
-    schema: S.WriteMetadataStarted,
-    components: ["WriteMetadataStarted"],
-  },
-  WriteMetadataPreview: {
-    schema: S.WriteMetadataPreview,
-    components: ["WriteMetadataPreview"],
-  },
+  JobsResponse: { schema: S.JobsResponse, components: ["PaginatedLongRunningJobList"] },
+  CancelJobResponse: { schema: S.CancelJobResponse, components: ["CancelJobResponse"] },
+  JobStartedResponse: { schema: S.JobStartedResponse, components: ["JobStartedResponse"] },
+  JobTriggerResponse: { schema: S.JobTriggerResponse, components: ["JobStartedResponse"] },
+  CaptionsJobStartedResponse: { schema: S.CaptionsJobStartedResponse, components: ["CaptionsJobStartedResponse"] },
+  WriteMetadataStarted: { schema: S.WriteMetadataStarted, components: ["WriteMetadataStarted"] },
+  WriteMetadataPreview: { schema: S.WriteMetadataPreview, components: ["WriteMetadataPreview"] },
   WriteTypeCount: { schema: S.WriteTypeCount, components: ["WriteTypeCount"] },
   UpgradeTask: { schema: S.UpgradeTask, components: ["UpgradeTask"] },
-  ProcessingStage: {
-    schema: S.ProcessingStage,
-    components: ["ProcessingStage"],
-  },
-  ProcessingStatus: {
-    schema: S.ProcessingStatus,
-    components: ["ProcessingStatus"],
-  },
-  UpgradeTaskList: {
-    schema: S.UpgradeTaskList,
-    components: ["UpgradeTaskList"],
-  },
-  RescanPhotosResponse: {
-    schema: S.RescanPhotosResponse,
-    components: ["RescanPhotosResponse"],
-  },
-  ScanFilesResponse: {
-    schema: S.ScanFilesResponse,
-    components: ["ScanFilesResponse"],
-  },
+  ProcessingStage: { schema: S.ProcessingStage, components: ["ProcessingStage"] },
+  ProcessingStatus: { schema: S.ProcessingStatus, components: ["ProcessingStatus"] },
+  UpgradeTaskList: { schema: S.UpgradeTaskList, components: ["UpgradeTaskList"] },
+  RescanPhotosResponse: { schema: S.RescanPhotosResponse, components: ["RescanPhotosResponse"] },
+  ScanFilesResponse: { schema: S.ScanFilesResponse, components: ["ScanFilesResponse"] },
   // photo edits
-  RotatePhotoResponse: {
-    schema: S.RotatePhotoResponse,
-    components: ["RotatePhotoResponse"],
-  },
-  BulkPhotoMutationResponse: {
-    schema: S.BulkPhotoMutationResponse,
-    components: ["BulkPhotoMutationResponse"],
-  },
-  DeletePhotosResponse: {
-    schema: S.DeletePhotosResponse,
-    components: ["DeletePhotosResponse"],
-  },
+  RotatePhotoResponse: { schema: S.RotatePhotoResponse, components: ["RotatePhotoResponse"] },
+  BulkPhotoMutationResponse: { schema: S.BulkPhotoMutationResponse, components: ["BulkPhotoMutationResponse"] },
+  DeletePhotosResponse: { schema: S.DeletePhotosResponse, components: ["DeletePhotosResponse"] },
   StatusResponse: { schema: S.StatusResponse, components: ["StatusResponse"] },
   // users and auth
-  IsFirstTimeSetupResponse: {
-    schema: S.IsFirstTimeSetupResponse,
-    components: ["FirstTimeSetup"],
-  },
-  PasswordResetResponse: {
-    schema: S.PasswordResetResponse,
-    components: ["PasswordResetResponse"],
-  },
+  IsFirstTimeSetupResponse: { schema: S.IsFirstTimeSetupResponse, components: ["FirstTimeSetup"] },
+  PasswordResetResponse: { schema: S.PasswordResetResponse, components: ["PasswordResetResponse"] },
   SsoConfig: { schema: S.SsoConfig, components: ["SSOConfig"] },
   SimpleUser: { schema: S.SimpleUser, components: ["SimpleUser"] },
   User: { schema: S.User, components: ["User"] },
-  PublicPhotoSample: {
-    schema: S.PublicPhotoSample,
-    components: ["PhotoSuperSimple"],
-  },
+  PublicPhotoSample: { schema: S.PublicPhotoSample, components: ["PhotoSuperSimple"] },
   ManageUser: { schema: S.ManageUser, components: ["ManageUser"] },
-  ScanDirectoryImpact: {
-    schema: S.ScanDirectoryImpact,
-    components: ["ScanDirectoryImpact"],
-  },
+  ScanDirectoryImpact: { schema: S.ScanDirectoryImpact, components: ["ScanDirectoryImpact"] },
   LibraryFolders: { schema: S.LibraryFolders, components: ["LibraryFolders"] },
-  LibraryFolderEntry: {
-    schema: S.LibraryFolderEntry,
-    components: ["LibraryFolderEntry"],
-  },
-  ExcludedFoldersSaved: {
-    schema: S.ExcludedFoldersSaved,
-    components: ["ExcludedFoldersSaved"],
-  },
-  LibrarySubfolders: {
-    schema: S.LibrarySubfolders,
-    components: ["LibrarySubfolders"],
-  },
-  LibrarySubfolder: {
-    schema: S.LibrarySubfolder,
-    components: ["LibrarySubfolder"],
-  },
+  LibraryFolderEntry: { schema: S.LibraryFolderEntry, components: ["LibraryFolderEntry"] },
+  ExcludedFoldersSaved: { schema: S.ExcludedFoldersSaved, components: ["ExcludedFoldersSaved"] },
+  LibrarySubfolders: { schema: S.LibrarySubfolders, components: ["LibrarySubfolders"] },
+  LibrarySubfolder: { schema: S.LibrarySubfolder, components: ["LibrarySubfolder"] },
   CreatedFolder: { schema: S.CreatedFolder, components: ["CreatedFolder"] },
   RefreshResponse: { schema: S.RefreshResponse, components: ["TokenRefresh"] },
   SignupUser: { schema: S.SignupUser, components: ["SignupUser"] },
   // site settings
   EmailConfig: { schema: S.EmailConfig, components: ["EmailConfigResponse"] },
-  EmailTestResponse: {
-    schema: S.EmailTestResponse,
-    components: ["EmailTestResponse"],
-  },
+  EmailTestResponse: { schema: S.EmailTestResponse, components: ["EmailTestResponse"] },
   SiteSettings: { schema: S.SiteSettings, components: ["SiteSettings"] },
   SiteFeatures: { schema: S.SiteFeatures, components: ["SiteFeatures"] },
-  SiteModelDownload: {
-    schema: S.SiteModelDownload,
-    components: ["SiteModelDownload"],
-  },
-  SiteAutoScanStatus: {
-    schema: S.SiteAutoScanStatus,
-    components: ["SiteAutoScanStatus"],
-  },
-  SiteSsoProvider: {
-    schema: S.SiteSsoProvider,
-    components: ["SiteSsoProvider"],
-  },
-  TrashRetentionPreview: {
-    schema: S.TrashRetentionPreview,
-    components: ["TrashRetentionPreview"],
-  },
+  SiteModelDownload: { schema: S.SiteModelDownload, components: ["SiteModelDownload"] },
+  SiteAutoScanStatus: { schema: S.SiteAutoScanStatus, components: ["SiteAutoScanStatus"] },
+  SiteSsoProvider: { schema: S.SiteSsoProvider, components: ["SiteSsoProvider"] },
+  TrashRetentionPreview: { schema: S.TrashRetentionPreview, components: ["TrashRetentionPreview"] },
   DateTag: { schema: S.DateTag, components: ["DateTag"] },
-  DateRuleOptions: {
-    schema: S.DateRuleOptions,
-    components: ["DateRuleOptionsResponse"],
-  },
-  DateRuleCheck: {
-    schema: S.DateRuleCheck,
-    components: ["DateRuleCheckResponse"],
-  },
+  DateRuleOptions: { schema: S.DateRuleOptions, components: ["DateRuleOptionsResponse"] },
+  DateRuleCheck: { schema: S.DateRuleCheck, components: ["DateRuleCheckResponse"] },
   DateRuleOutcome: { schema: S.DateRuleOutcome, components: ["RuleOutcome"] },
-  DateRulesTest: {
-    schema: S.DateRulesTest,
-    components: ["DateRulesTestResponse"],
-  },
+  DateRulesTest: { schema: S.DateRulesTest, components: ["DateRulesTestResponse"] },
   // search
   MetadataValue: { schema: S.MetadataValue, components: ["MetadataValue"] },
-  MetadataValuesResponse: {
-    schema: S.MetadataValuesResponse,
-    components: ["MetadataValues"],
-  },
+  MetadataValuesResponse: { schema: S.MetadataValuesResponse, components: ["MetadataValues"] },
   // geocode
-  GeocodeReverseResponse: {
-    schema: S.GeocodeReverseResponse,
-    components: ["GeocodeReverseResponse"],
-  },
+  GeocodeReverseResponse: { schema: S.GeocodeReverseResponse, components: ["GeocodeReverseResponse"] },
   // photo locations (#2279)
-  SetPhotosLocationResponse: {
-    schema: S.SetPhotosLocationResponse,
-    components: ["SetPhotosLocationResponse"],
-  },
+  SetPhotosLocationResponse: { schema: S.SetPhotosLocationResponse, components: ["SetPhotosLocationResponse"] },
   PlaceCount: { schema: S.PlaceCount, components: ["PlaceCount"] },
-  LocationSummaryResponse: {
-    schema: S.LocationSummaryResponse,
-    components: ["LocationSummaryResponse"],
-  },
+  LocationSummaryResponse: { schema: S.LocationSummaryResponse, components: ["LocationSummaryResponse"] },
   LocatedPhoto: { schema: S.LocatedPhoto, components: ["LocatedPhoto"] },
   // photo rights (#425)
   PhotoRights: { schema: S.PhotoRights, components: ["PhotoRights"] },
-  SetPhotosRightsResponse: {
-    schema: S.SetPhotosRightsResponse,
-    components: ["SetPhotosRightsResponse"],
-  },
-  RightsFieldSummary: {
-    schema: S.RightsFieldSummary,
-    components: ["RightsFieldSummary"],
-  },
-  RightsSummaryResponse: {
-    schema: S.RightsSummaryResponse,
-    components: ["RightsSummaryResponse"],
-  },
+  SetPhotosRightsResponse: { schema: S.SetPhotosRightsResponse, components: ["SetPhotosRightsResponse"] },
+  RightsFieldSummary: { schema: S.RightsFieldSummary, components: ["RightsFieldSummary"] },
+  RightsSummaryResponse: { schema: S.RightsSummaryResponse, components: ["RightsSummaryResponse"] },
   RightsDefaultCountsResponse: {
     schema: S.RightsDefaultCountsResponse,
     components: ["RightsDefaultCountsResponse"],
@@ -361,156 +172,54 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   // moving photos (#352)
   MoveClash: { schema: S.MoveClash, components: ["MoveClash"] },
   RefusedCount: { schema: S.RefusedCount, components: ["RefusedCount"] },
-  MovePreviewResponse: {
-    schema: S.MovePreviewResponse,
-    components: ["MovePreviewResponse"],
-  },
-  MovePhotosResponse: {
-    schema: S.MovePhotosResponse,
-    components: ["MovePhotosResponse"],
-  },
-  MovePhotosStartedResponse: {
-    schema: S.MovePhotosStartedResponse,
-    components: ["MovePhotosStartedResponse"],
-  },
+  MovePreviewResponse: { schema: S.MovePreviewResponse, components: ["MovePreviewResponse"] },
+  MovePhotosResponse: { schema: S.MovePhotosResponse, components: ["MovePhotosResponse"] },
+  MovePhotosStartedResponse: { schema: S.MovePhotosStartedResponse, components: ["MovePhotosStartedResponse"] },
   LibraryFolder: { schema: S.LibraryFolder, components: ["LibraryFolder"] },
-  LibraryFolderListing: {
-    schema: S.LibraryFolderListing,
-    components: ["LibraryFolderListing"],
-  },
-  MoveFolderCount: {
-    schema: S.MoveFolderCount,
-    components: ["MoveFolderCount"],
-  },
+  LibraryFolderListing: { schema: S.LibraryFolderListing, components: ["LibraryFolderListing"] },
+  MoveFolderCount: { schema: S.MoveFolderCount, components: ["MoveFolderCount"] },
   // renaming photos after their date (#2773)
   RenameRow: { schema: S.RenameRow, components: ["RenameRow"] },
-  RenamePreviewResponse: {
-    schema: S.RenamePreviewResponse,
-    components: ["RenamePreviewResponse"],
-  },
-  RenamePhotosResponse: {
-    schema: S.RenamePhotosResponse,
-    components: ["RenamePhotosResponse"],
-  },
-  RenamePhotosStartedResponse: {
-    schema: S.RenamePhotosStartedResponse,
-    components: ["RenamePhotosStartedResponse"],
-  },
+  RenamePreviewResponse: { schema: S.RenamePreviewResponse, components: ["RenamePreviewResponse"] },
+  RenamePhotosResponse: { schema: S.RenamePhotosResponse, components: ["RenamePhotosResponse"] },
+  RenamePhotosStartedResponse: { schema: S.RenamePhotosStartedResponse, components: ["RenamePhotosStartedResponse"] },
   // photo editing (/api/photos/<photo_id>/edit/): the recipe and its groups are compared as the
   // response and as the PUT body (the *Request twins)
   PhotoEdit: { schema: S.PhotoEdit, components: ["PhotoEditState"] },
-  PhotoEditUpdate: {
-    schema: S.PhotoEditUpdate,
-    components: ["PhotoEditUpdateRequestRequest"],
-  },
-  PhotoEditSummary: {
-    schema: S.PhotoEditSummary,
-    components: ["PhotoEditSummary"],
-  },
-  EditHistoryStep: {
-    schema: S.EditHistoryStep,
-    components: ["EditHistoryStep", "EditHistoryStepRequest"],
-  },
-  EditRecipe: {
-    schema: S.EditRecipe,
-    components: ["EditRecipe", "EditRecipeRequest"],
-  },
-  EditGeometry: {
-    schema: S.EditGeometry,
-    components: ["EditGeometry", "EditGeometryRequest"],
-  },
+  PhotoEditUpdate: { schema: S.PhotoEditUpdate, components: ["PhotoEditUpdateRequestRequest"] },
+  PhotoEditSummary: { schema: S.PhotoEditSummary, components: ["PhotoEditSummary"] },
+  EditHistoryStep: { schema: S.EditHistoryStep, components: ["EditHistoryStep", "EditHistoryStepRequest"] },
+  EditRecipe: { schema: S.EditRecipe, components: ["EditRecipe", "EditRecipeRequest"] },
+  EditGeometry: { schema: S.EditGeometry, components: ["EditGeometry", "EditGeometryRequest"] },
   EditCrop: { schema: S.EditCrop, components: ["EditCrop", "EditCropRequest"] },
-  EditWhiteBalance: {
-    schema: S.EditWhiteBalance,
-    components: ["EditWhiteBalance", "EditWhiteBalanceRequest"],
-  },
-  EditLight: {
-    schema: S.EditLight,
-    components: ["EditLight", "EditLightRequest"],
-  },
-  EditCurve: {
-    schema: S.EditCurve,
-    components: ["EditCurve", "EditCurveRequest"],
-  },
-  EditColor: {
-    schema: S.EditColor,
-    components: ["EditColor", "EditColorRequest"],
-  },
-  EditMixer: {
-    schema: S.EditMixer,
-    components: ["EditMixer", "EditMixerRequest"],
-  },
-  EditMixerBand: {
-    schema: S.EditMixerBand,
-    components: ["EditBand", "EditBandRequest"],
-  },
-  EditBwMix: {
-    schema: S.EditBwMix,
-    components: ["EditBwMix", "EditBwMixRequest"],
-  },
-  EditGrading: {
-    schema: S.EditGrading,
-    components: ["EditGrading", "EditGradingRequest"],
-  },
-  EditWheel: {
-    schema: S.EditWheel,
-    components: ["EditWheel", "EditWheelRequest"],
-  },
-  EditEffects: {
-    schema: S.EditEffects,
-    components: ["EditEffects", "EditEffectsRequest"],
-  },
-  EditVignette: {
-    schema: S.EditVignette,
-    components: ["EditVignette", "EditVignetteRequest"],
-  },
-  EditGrain: {
-    schema: S.EditGrain,
-    components: ["EditGrain", "EditGrainRequest"],
-  },
-  EditDetail: {
-    schema: S.EditDetail,
-    components: ["EditDetail", "EditDetailRequest"],
-  },
+  EditWhiteBalance: { schema: S.EditWhiteBalance, components: ["EditWhiteBalance", "EditWhiteBalanceRequest"] },
+  EditLight: { schema: S.EditLight, components: ["EditLight", "EditLightRequest"] },
+  EditCurve: { schema: S.EditCurve, components: ["EditCurve", "EditCurveRequest"] },
+  EditColor: { schema: S.EditColor, components: ["EditColor", "EditColorRequest"] },
+  EditMixer: { schema: S.EditMixer, components: ["EditMixer", "EditMixerRequest"] },
+  EditMixerBand: { schema: S.EditMixerBand, components: ["EditBand", "EditBandRequest"] },
+  EditBwMix: { schema: S.EditBwMix, components: ["EditBwMix", "EditBwMixRequest"] },
+  EditGrading: { schema: S.EditGrading, components: ["EditGrading", "EditGradingRequest"] },
+  EditWheel: { schema: S.EditWheel, components: ["EditWheel", "EditWheelRequest"] },
+  EditEffects: { schema: S.EditEffects, components: ["EditEffects", "EditEffectsRequest"] },
+  EditVignette: { schema: S.EditVignette, components: ["EditVignette", "EditVignetteRequest"] },
+  EditGrain: { schema: S.EditGrain, components: ["EditGrain", "EditGrainRequest"] },
+  EditDetail: { schema: S.EditDetail, components: ["EditDetail", "EditDetailRequest"] },
   // mutations
   PhotoEditResponse: { schema: S.PhotoEditResponse, components: ["PhotoEdit"] },
-  CreateUserAlbumResponse: {
-    schema: S.CreateUserAlbumResponse,
-    components: ["AlbumUserEdit"],
-  },
-  UserAlbumEditResponse: {
-    schema: S.UserAlbumEditResponse,
-    components: ["AlbumUserEdit"],
-  },
-  UserAlbumRenameResponse: {
-    schema: S.UserAlbumRenameResponse,
-    components: ["AlbumUser"],
-  },
+  CreateUserAlbumResponse: { schema: S.CreateUserAlbumResponse, components: ["AlbumUserEdit"] },
+  UserAlbumEditResponse: { schema: S.UserAlbumEditResponse, components: ["AlbumUserEdit"] },
+  UserAlbumRenameResponse: { schema: S.UserAlbumRenameResponse, components: ["AlbumUser"] },
   PersonEditResponse: { schema: S.PersonEditResponse, components: ["Person"] },
-  PersonRemovePhotosResponse: {
-    schema: S.PersonRemovePhotosResponse,
-    components: ["PersonRemovePhotosResponse"],
-  },
-  PersonMergeResponse: {
-    schema: S.PersonMergeResponse,
-    components: ["PersonMergeResponse"],
-  },
-  ClusterFacesResponse: {
-    schema: S.ClusterFacesResponse,
-    components: ["ClusterFacesResponse"],
-  },
+  PersonRemovePhotosResponse: { schema: S.PersonRemovePhotosResponse, components: ["PersonRemovePhotosResponse"] },
+  PersonMergeResponse: { schema: S.PersonMergeResponse, components: ["PersonMergeResponse"] },
+  ClusterFacesResponse: { schema: S.ClusterFacesResponse, components: ["ClusterFacesResponse"] },
   // statistics
   CountStats: { schema: S.CountStats, components: ["CountStats"] },
   WordCloudResponse: { schema: S.WordCloudResponse, components: ["WordCloud"] },
   SocialGraph: { schema: S.SocialGraph, components: ["SocialGraph"] },
-  PhotoMonthCount: {
-    schema: S.PhotoMonthCount,
-    components: ["PhotoMonthCount"],
-  },
-  LocationTimelineSpan: {
-    schema: S.LocationTimelineSpan,
-    components: ["LocationTimelineSpan"],
-  },
+  PhotoMonthCount: { schema: S.PhotoMonthCount, components: ["PhotoMonthCount"] },
+  LocationTimelineSpan: { schema: S.LocationTimelineSpan, components: ["LocationTimelineSpan"] },
   // server
   ImageTag: { schema: S.ImageTag, components: ["ImageTag"] },
   StorageStats: { schema: S.StorageStats, components: ["StorageStats"] },
@@ -518,200 +227,71 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   ServerStats: { schema: S.ServerStats, components: ["ServerStats"] },
   UpdateStatus: { schema: S.UpdateStatus, components: ["UpdateStatus"] },
   InstallState: { schema: S.InstallState, components: ["InstallState"] },
-  ParallelWorkers: {
-    schema: S.ParallelWorkers,
-    components: ["ParallelWorkers"],
-  },
+  ParallelWorkers: { schema: S.ParallelWorkers, components: ["ParallelWorkers"] },
   MachineCapacity: { schema: S.MachineCapacity, components: ["Capacity"] },
   WorkerPlan: { schema: S.WorkerPlan, components: ["WorkerPlan"] },
   RunningWorker: { schema: S.RunningWorker, components: ["RunningWorker"] },
   // error reports (#2938)
   ErrorReport: { schema: S.ErrorReport, components: ["ErrorReport"] },
-  ErrorReportSendAll: {
-    schema: S.ErrorReportSendAll,
-    components: ["ErrorReportSendAll"],
-  },
-  BrowserErrorReport: {
-    schema: S.BrowserErrorReport,
-    components: ["BrowserErrorReport"],
-  },
+  ErrorReportSendAll: { schema: S.ErrorReportSendAll, components: ["ErrorReportSendAll"] },
+  BrowserErrorReport: { schema: S.BrowserErrorReport, components: ["BrowserErrorReport"] },
   // stacks
-  StackFileVariant: {
-    schema: S.StackFileVariant,
-    components: ["StackFileVariant"],
-  },
+  StackFileVariant: { schema: S.StackFileVariant, components: ["StackFileVariant"] },
   StackPhoto: { schema: S.StackPhoto, components: ["StackPhoto"] },
-  StackThumbnail: {
-    schema: S.StackThumbnail,
-    components: ["PhotoGroupThumbnail"],
-  },
-  PhotoStackListItem: {
-    schema: S.PhotoStackListItem,
-    components: ["PhotoStackListItem"],
-  },
-  PhotoStackListResponse: {
-    schema: S.PhotoStackListResponse,
-    components: ["PhotoStackPage"],
-  },
+  StackThumbnail: { schema: S.StackThumbnail, components: ["PhotoGroupThumbnail"] },
+  PhotoStackListItem: { schema: S.PhotoStackListItem, components: ["PhotoStackListItem"] },
+  PhotoStackListResponse: { schema: S.PhotoStackListResponse, components: ["PhotoStackPage"] },
   PhotoStack: { schema: S.PhotoStack, components: ["PhotoStack"] },
-  PhotoStackStats: {
-    schema: S.PhotoStackStats,
-    components: ["PhotoStackStats"],
-  },
-  SetStackPrimaryResponse: {
-    schema: S.SetStackPrimaryResponse,
-    components: ["SetStackPrimaryResponse"],
-  },
-  CreateManualStackResponse: {
-    schema: S.CreateManualStackResponse,
-    components: ["CreateManualStackResponse"],
-  },
-  RemoveFromStackResponse: {
-    schema: S.RemoveFromStackResponse,
-    components: ["RemoveFromStackResponse"],
-  },
-  MergeStacksResponse: {
-    schema: S.MergeStacksResponse,
-    components: ["MergeStacksResponse"],
-  },
-  UnlinkGroupResponse: {
-    schema: S.UnlinkGroupResponse,
-    components: ["UnlinkGroupResponse"],
-  },
+  PhotoStackStats: { schema: S.PhotoStackStats, components: ["PhotoStackStats"] },
+  SetStackPrimaryResponse: { schema: S.SetStackPrimaryResponse, components: ["SetStackPrimaryResponse"] },
+  CreateManualStackResponse: { schema: S.CreateManualStackResponse, components: ["CreateManualStackResponse"] },
+  RemoveFromStackResponse: { schema: S.RemoveFromStackResponse, components: ["RemoveFromStackResponse"] },
+  MergeStacksResponse: { schema: S.MergeStacksResponse, components: ["MergeStacksResponse"] },
+  UnlinkGroupResponse: { schema: S.UnlinkGroupResponse, components: ["UnlinkGroupResponse"] },
   DetectionQueuedResponse: {
     schema: S.DetectionQueuedResponse,
     components: ["DetectStacksQueued", "DetectDuplicatesQueued"],
   },
   // duplicates
   DuplicatePhoto: { schema: S.DuplicatePhoto, components: ["DuplicatePhoto"] },
-  DuplicateThumbnail: {
-    schema: S.DuplicateThumbnail,
-    components: ["PhotoGroupThumbnail"],
-  },
-  DuplicateListItem: {
-    schema: S.DuplicateListItem,
-    components: ["DuplicateListItem"],
-  },
-  DuplicateListResponse: {
-    schema: S.DuplicateListResponse,
-    components: ["DuplicatePage"],
-  },
-  DuplicateDetail: {
-    schema: S.DuplicateDetail,
-    components: ["DuplicateDetail"],
-  },
+  DuplicateThumbnail: { schema: S.DuplicateThumbnail, components: ["PhotoGroupThumbnail"] },
+  DuplicateListItem: { schema: S.DuplicateListItem, components: ["DuplicateListItem"] },
+  DuplicateListResponse: { schema: S.DuplicateListResponse, components: ["DuplicatePage"] },
+  DuplicateDetail: { schema: S.DuplicateDetail, components: ["DuplicateDetail"] },
   DuplicateStats: { schema: S.DuplicateStats, components: ["DuplicateStats"] },
-  ResolveDuplicateResponse: {
-    schema: S.ResolveDuplicateResponse,
-    components: ["ResolveDuplicateResponse"],
-  },
-  DismissDuplicateResponse: {
-    schema: S.DismissDuplicateResponse,
-    components: ["DismissDuplicateResponse"],
-  },
-  RevertDuplicateResponse: {
-    schema: S.RevertDuplicateResponse,
-    components: ["RevertDuplicateResponse"],
-  },
+  ResolveDuplicateResponse: { schema: S.ResolveDuplicateResponse, components: ["ResolveDuplicateResponse"] },
+  DismissDuplicateResponse: { schema: S.DismissDuplicateResponse, components: ["DismissDuplicateResponse"] },
+  RevertDuplicateResponse: { schema: S.RevertDuplicateResponse, components: ["RevertDuplicateResponse"] },
   // delta sync (the mobile app's mirror)
   SyncPhotoItem: { schema: S.SyncPhotoItem, components: ["SyncPhotoItem"] },
   SyncPersonItem: { schema: S.SyncPersonItem, components: ["SyncPersonItem"] },
-  SyncUserAlbumItem: {
-    schema: S.SyncUserAlbumItem,
-    components: ["SyncUserAlbumItem"],
-  },
-  SyncAutoAlbumItem: {
-    schema: S.SyncAutoAlbumItem,
-    components: ["SyncAutoAlbumItem"],
-  },
-  SyncNamedAlbumItem: {
-    schema: S.SyncNamedAlbumItem,
-    components: ["SyncNamedAlbumItem"],
-  },
-  SyncPlaceAlbumItem: {
-    schema: S.SyncPlaceAlbumItem,
-    components: ["SyncPlaceAlbumItem"],
-  },
-  SyncSharedUserItem: {
-    schema: S.SyncSharedUserItem,
-    components: ["SyncSharedUserItem"],
-  },
-  SyncPhotosResponse: {
-    schema: S.SyncPhotosResponse,
-    components: ["SyncPhotosResponse"],
-  },
-  SyncPersonsResponse: {
-    schema: S.SyncPersonsResponse,
-    components: ["SyncPersonsResponse"],
-  },
-  SyncUserAlbumsResponse: {
-    schema: S.SyncUserAlbumsResponse,
-    components: ["SyncUserAlbumsResponse"],
-  },
-  SyncAutoAlbumsResponse: {
-    schema: S.SyncAutoAlbumsResponse,
-    components: ["SyncAutoAlbumsResponse"],
-  },
-  SyncThingAlbumsResponse: {
-    schema: S.SyncThingAlbumsResponse,
-    components: ["SyncThingAlbumsResponse"],
-  },
-  SyncPlaceAlbumsResponse: {
-    schema: S.SyncPlaceAlbumsResponse,
-    components: ["SyncPlaceAlbumsResponse"],
-  },
-  SyncTagAlbumsResponse: {
-    schema: S.SyncTagAlbumsResponse,
-    components: ["SyncTagAlbumsResponse"],
-  },
-  SyncSharingResponse: {
-    schema: S.SyncSharingResponse,
-    components: ["SyncSharingResponse"],
-  },
+  SyncUserAlbumItem: { schema: S.SyncUserAlbumItem, components: ["SyncUserAlbumItem"] },
+  SyncAutoAlbumItem: { schema: S.SyncAutoAlbumItem, components: ["SyncAutoAlbumItem"] },
+  SyncNamedAlbumItem: { schema: S.SyncNamedAlbumItem, components: ["SyncNamedAlbumItem"] },
+  SyncPlaceAlbumItem: { schema: S.SyncPlaceAlbumItem, components: ["SyncPlaceAlbumItem"] },
+  SyncSharedUserItem: { schema: S.SyncSharedUserItem, components: ["SyncSharedUserItem"] },
+  SyncPhotosResponse: { schema: S.SyncPhotosResponse, components: ["SyncPhotosResponse"] },
+  SyncPersonsResponse: { schema: S.SyncPersonsResponse, components: ["SyncPersonsResponse"] },
+  SyncUserAlbumsResponse: { schema: S.SyncUserAlbumsResponse, components: ["SyncUserAlbumsResponse"] },
+  SyncAutoAlbumsResponse: { schema: S.SyncAutoAlbumsResponse, components: ["SyncAutoAlbumsResponse"] },
+  SyncThingAlbumsResponse: { schema: S.SyncThingAlbumsResponse, components: ["SyncThingAlbumsResponse"] },
+  SyncPlaceAlbumsResponse: { schema: S.SyncPlaceAlbumsResponse, components: ["SyncPlaceAlbumsResponse"] },
+  SyncTagAlbumsResponse: { schema: S.SyncTagAlbumsResponse, components: ["SyncTagAlbumsResponse"] },
+  SyncSharingResponse: { schema: S.SyncSharingResponse, components: ["SyncSharingResponse"] },
   SyncCounts: { schema: S.SyncCounts, components: ["SyncCounts"] },
   // album and photo links, sharing
-  PublicSharingSettings: {
-    schema: S.PublicSharingSettings,
-    components: ["PublicSharingSettings"],
-  },
-  FetchPublicAlbumResponse: {
-    schema: S.FetchPublicAlbumResponse,
-    components: ["PublicAlbumResponse"],
-  },
-  SetUserAlbumPublicResponse: {
-    schema: S.SetUserAlbumPublicResponse,
-    components: ["SetUserAlbumPublicResponse"],
-  },
-  PublicPhotoDetail: {
-    schema: S.PublicPhotoDetail,
-    components: ["PublicPhotoDetail"],
-  },
-  PublicPhotoDetailResponse: {
-    schema: S.PublicPhotoDetailResponse,
-    components: ["PublicPhotoDetailResponse"],
-  },
+  PublicSharingSettings: { schema: S.PublicSharingSettings, components: ["PublicSharingSettings"] },
+  FetchPublicAlbumResponse: { schema: S.FetchPublicAlbumResponse, components: ["PublicAlbumResponse"] },
+  SetUserAlbumPublicResponse: { schema: S.SetUserAlbumPublicResponse, components: ["SetUserAlbumPublicResponse"] },
+  PublicPhotoDetail: { schema: S.PublicPhotoDetail, components: ["PublicPhotoDetail"] },
+  PublicPhotoDetailResponse: { schema: S.PublicPhotoDetailResponse, components: ["PublicPhotoDetailResponse"] },
   PhotoShare: { schema: S.PhotoShare, components: ["PhotoShare"] },
-  PhotoShareLink: {
-    schema: S.PhotoShareLink,
-    components: ["PhotoShareListItem"],
-  },
-  PhotoShareResponse: {
-    schema: S.PhotoShareResponse,
-    components: ["SetPhotoShareResponse"],
-  },
-  PhotoShareListResponse: {
-    schema: S.PhotoShareListResponse,
-    components: ["PhotoShareList"],
-  },
+  PhotoShareLink: { schema: S.PhotoShareLink, components: ["PhotoShareListItem"] },
+  PhotoShareResponse: { schema: S.PhotoShareResponse, components: ["SetPhotoShareResponse"] },
+  PhotoShareListResponse: { schema: S.PhotoShareListResponse, components: ["PhotoShareList"] },
   SharedPhoto: { schema: S.SharedPhoto, components: ["SharedPhoto"] },
-  SharedPhotoResponse: {
-    schema: S.SharedPhotoResponse,
-    components: ["SharedPhotoResponse"],
-  },
-  SharedGroupCover: {
-    schema: S.SharedGroupCover,
-    components: ["SharedGroupCover"],
-  },
+  SharedPhotoResponse: { schema: S.SharedPhotoResponse, components: ["SharedPhotoResponse"] },
+  SharedGroupCover: { schema: S.SharedGroupCover, components: ["SharedGroupCover"] },
   SharedGroup: { schema: S.SharedGroup, components: ["SharedGroup"] },
   SharedPerson: { schema: S.SharedPerson, components: ["SharedPerson"] },
   LibraryShare: { schema: S.LibraryShare, components: ["LibraryShare"] },
@@ -719,83 +299,38 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   // the public gallery (#434)
   Gallery: { schema: S.Gallery, components: ["Gallery"] },
   GalleryDay: { schema: S.GalleryDay, components: ["GalleryDay"] },
-  GalleryDaysResponse: {
-    schema: S.GalleryDaysResponse,
-    components: ["GalleryDayList"],
-  },
-  GalleryPhotosResponse: {
-    schema: S.GalleryPhotosResponse,
-    components: ["PaginatedPhotoSummaryList"],
-  },
+  GalleryDaysResponse: { schema: S.GalleryDaysResponse, components: ["GalleryDayList"] },
+  GalleryPhotosResponse: { schema: S.GalleryPhotosResponse, components: ["PaginatedPhotoSummaryList"] },
   GalleryCover: { schema: S.GalleryCover, components: ["GalleryCover"] },
   GalleryPlace: { schema: S.GalleryPlace, components: ["GalleryPlace"] },
   GalleryPerson: { schema: S.GalleryPerson, components: ["GalleryPerson"] },
-  GalleryPhotographer: {
-    schema: S.GalleryPhotographer,
-    components: ["GalleryPhotographer"],
-  },
+  GalleryPhotographer: { schema: S.GalleryPhotographer, components: ["GalleryPhotographer"] },
   GalleryPreview: { schema: S.GalleryPreview, components: ["GalleryPreview"] },
   // folders, search, geocode, memories, metadata
   FolderSubfolder: { schema: S.FolderSubfolder, components: ["FolderEntry"] },
-  FolderSubfoldersResponse: {
-    schema: S.FolderSubfoldersResponse,
-    components: ["FolderSubfoldersPage"],
-  },
-  SearchExamplesResponse: {
-    schema: S.SearchExamplesResponse,
-    components: ["SearchTermExamples"],
-  },
-  GeocodeResult: {
-    schema: S.GeocodeResult,
-    components: ["GeocodeSearchResult"],
-  },
+  FolderSubfoldersResponse: { schema: S.FolderSubfoldersResponse, components: ["FolderSubfoldersPage"] },
+  SearchExamplesResponse: { schema: S.SearchExamplesResponse, components: ["SearchTermExamples"] },
+  GeocodeResult: { schema: S.GeocodeResult, components: ["GeocodeSearchResult"] },
   Memory: { schema: S.Memory, components: ["Memory"] },
-  FetchMemoriesResponse: {
-    schema: S.FetchMemoriesResponse,
-    components: ["Memories"],
-  },
+  FetchMemoriesResponse: { schema: S.FetchMemoriesResponse, components: ["Memories"] },
   Rewind: { schema: S.Rewind, components: ["Rewind"] },
   RewindDay: { schema: S.RewindDay, components: ["RewindDay"] },
   RewindPerson: { schema: S.RewindPerson, components: ["RewindPerson"] },
   RewindPlace: { schema: S.RewindPlace, components: ["RewindPlace"] },
-  BulkMetadataUpdateResponse: {
-    schema: S.BulkMetadataUpdateResponse,
-    components: ["BulkMetadataUpdateResponse"],
-  },
+  BulkMetadataUpdateResponse: { schema: S.BulkMetadataUpdateResponse, components: ["BulkMetadataUpdateResponse"] },
   // downloads, uploads
-  PhotoDownloadStart: {
-    schema: S.PhotoDownloadStart,
-    components: ["ZipDownloadStarted"],
-  },
-  PhotoDownloadStatus: {
-    schema: S.PhotoDownloadStatus,
-    components: ["ZipDownloadFinished", "ZipDownloadPending"],
-  },
-  UploadExistsResponse: {
-    schema: S.UploadExistsResponse,
-    components: ["UploadExists"],
-  },
-  UploadSealResponse: {
-    schema: S.UploadSealResponse,
-    components: ["UploadSealResponse"],
-  },
+  PhotoDownloadStart: { schema: S.PhotoDownloadStart, components: ["ZipDownloadStarted"] },
+  PhotoDownloadStatus: { schema: S.PhotoDownloadStatus, components: ["ZipDownloadFinished", "ZipDownloadPending"] },
+  UploadExistsResponse: { schema: S.UploadExistsResponse, components: ["UploadExists"] },
+  UploadSealResponse: { schema: S.UploadSealResponse, components: ["UploadSealResponse"] },
   UploadStatus: { schema: S.UploadStatus, components: ["UploadStatus"] },
-  UploadFollowups: {
-    schema: S.UploadFollowups,
-    components: ["UploadFollowups"],
-  },
+  UploadFollowups: { schema: S.UploadFollowups, components: ["UploadFollowups"] },
   ImportJob: { schema: S.ImportJob, components: ["LongRunningJob"] },
   // services, serving diagnostics
   ServicesList: { schema: S.ServicesList, components: ["Services"] },
   ServiceHealth: { schema: S.ServiceHealth, components: ["ServiceHealth"] },
-  ServiceActionResponse: {
-    schema: S.ServiceActionResponse,
-    components: ["ServiceAction"],
-  },
-  MediaDiagnostics: {
-    schema: S.MediaDiagnostics,
-    components: ["MediaDiagnosis"],
-  },
+  ServiceActionResponse: { schema: S.ServiceActionResponse, components: ["ServiceAction"] },
+  MediaDiagnostics: { schema: S.MediaDiagnostics, components: ["MediaDiagnosis"] },
 };
 
 /** Exported zod objects that are not compared, and why. */

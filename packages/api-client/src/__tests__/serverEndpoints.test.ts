@@ -42,43 +42,25 @@ describe("statistics", () => {
     [
       "fetchSocialGraph",
       "/socialgraph/",
-      {
-        nodes: [{ id: "Alice", x: 1.5, y: -2 }],
-        links: [{ source: "Alice", target: "Bob" }],
-      },
+      { nodes: [{ id: "Alice", x: 1.5, y: -2 }], links: [{ source: "Alice", target: "Bob" }] },
       endpoints.fetchSocialGraph,
     ],
     [
       "fetchWordCloud",
       "/wordcloud/",
-      {
-        captions: [{ label: "beach", y: 3 }],
-        people: [],
-        locations: [{ label: "Berlin", y: 8 }],
-      },
+      { captions: [{ label: "beach", y: 3 }], people: [], locations: [{ label: "Berlin", y: 8 }] },
       endpoints.fetchWordCloud,
     ],
     [
       "fetchLocationTimeline",
       "/locationtimeline/",
-      [
-        {
-          data: [86400.5],
-          color: "#56db8b",
-          loc: "Berlin",
-          start: 1683280800.0,
-          end: 1683367200.5,
-        },
-      ],
+      [{ data: [86400.5], color: "#56db8b", loc: "Berlin", start: 1683280800.0, end: 1683367200.5 }],
       endpoints.fetchLocationTimeline,
     ],
   ])("%s GETs %s", async (_name, path, answer, call) => {
     const { client, requests } = fakeServer(answer);
     await call(client);
-    expect(defined(requests[0])).toMatchObject({
-      url: `${API}${path}`,
-      method: "GET",
-    });
+    expect(defined(requests[0])).toMatchObject({ url: `${API}${path}`, method: "GET" });
   });
 
   it("keeps each place's photo count in the location tree (the chart shows it on the leaves)", async () => {
@@ -121,26 +103,17 @@ describe("update check", () => {
   it("reads the stored result", async () => {
     const { client, requests } = fakeServer(updateStatus);
     const status = await endpoints.fetchUpdateStatus(client);
-    expect(defined(requests[0])).toMatchObject({
-      url: `${API}/updates/`,
-      method: "GET",
-    });
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/updates/`, method: "GET" });
     expect(status.latest).toBe("1.5.0");
   });
 
   it("keeps a state this client does not know", async () => {
     const { client } = fakeServer({ ...updateStatus, status: "paused" });
-    await expect(endpoints.fetchUpdateStatus(client)).resolves.toMatchObject({
-      status: "paused",
-    });
+    await expect(endpoints.fetchUpdateStatus(client)).resolves.toMatchObject({ status: "paused" });
   });
 
   it("skips a release and shows it again", async () => {
-    const { client, requests } = fakeServer({
-      ...updateStatus,
-      status: "skipped",
-      notice: false,
-    });
+    const { client, requests } = fakeServer({ ...updateStatus, status: "skipped", notice: false });
     const status = await endpoints.skipRelease(client, "1.5.0");
     expect(defined(requests[0])).toMatchObject({
       url: `${API}/updates/skip/`,
@@ -153,15 +126,9 @@ describe("update check", () => {
   });
 
   it("closes the card for a week", async () => {
-    const { client, requests } = fakeServer({
-      ...updateStatus,
-      snoozed_until: "2026-11-22T10:00:00Z",
-    });
+    const { client, requests } = fakeServer({ ...updateStatus, snoozed_until: "2026-11-22T10:00:00Z" });
     const status = await endpoints.snoozeUpdateNotice(client);
-    expect(defined(requests[0])).toMatchObject({
-      url: `${API}/updates/snooze/`,
-      method: "POST",
-    });
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/updates/snooze/`, method: "POST" });
     expect(status.snoozed_until).not.toBeNull();
   });
 
@@ -177,9 +144,7 @@ describe("update check", () => {
       signature_checked: false,
     };
     const { client } = fakeServer({ ...updateStatus, install });
-    await expect(endpoints.fetchUpdateStatus(client)).resolves.toMatchObject({
-      install,
-    });
+    await expect(endpoints.fetchUpdateStatus(client)).resolves.toMatchObject({ install });
     const older = fakeServer(updateStatus);
     expect((await endpoints.fetchUpdateStatus(older.client)).install).toBeUndefined();
   });
@@ -203,21 +168,14 @@ describe("update check", () => {
 
 describe("server", () => {
   it("reads the build tag, also outside Docker where it is blank", async () => {
-    const { client, requests } = fakeServer({
-      image_tag: "",
-      git_hash: "05d973e83",
-    });
+    const { client, requests } = fakeServer({ image_tag: "", git_hash: "05d973e83" });
     const tag = await endpoints.fetchImageTag(client);
     expect(defined(requests[0]).url).toBe(`${API}/imagetag/`);
     expect(tag.image_tag).toBe("");
   });
 
   it("reads the storage numbers", async () => {
-    const { client, requests } = fakeServer({
-      total_storage: 100,
-      used_storage: 60,
-      free_storage: 40,
-    });
+    const { client, requests } = fakeServer({ total_storage: 100, used_storage: 60, free_storage: 40 });
     const storage = await endpoints.fetchStorageStats(client);
     expect(defined(requests[0]).url).toBe(`${API}/storagestats/`);
     expect(storage.free_storage).toBe(40);
@@ -272,10 +230,7 @@ describe("server", () => {
   });
 
   it("asks for the last lines of the log", async () => {
-    const { client, requests } = fakeServer({
-      logs: "line 0\nline 1\n",
-      count: 2,
-    });
+    const { client, requests } = fakeServer({ logs: "line 0\nline 1\n", count: 2 });
     const logs = await endpoints.fetchServerLogs(client, 100);
     expect(defined(requests[0]).url).toBe(`${API}/serverlogs/view?lines=100`);
     expect(logs.count).toBe(2);
@@ -291,9 +246,7 @@ describe("server", () => {
 
 describe("services", () => {
   it("lists the services", async () => {
-    const { client, requests } = fakeServer({
-      services: { thumbnail: 8003, ocr: 8012 },
-    });
+    const { client, requests } = fakeServer({ services: { thumbnail: 8003, ocr: 8012 } });
     const list = await endpoints.fetchServices(client);
     expect(defined(requests[0]).url).toBe(`${API}/services/`);
     expect(Object.keys(list.services)).toEqual(["thumbnail", "ocr"]);
@@ -332,14 +285,9 @@ describe("services", () => {
   });
 
   it.each(["start", "stop"] as const)("POSTs a %s", async action => {
-    const { client, requests } = fakeServer({
-      message: `Service ocr ${action}ed successfully`,
-    });
+    const { client, requests } = fakeServer({ message: `Service ocr ${action}ed successfully` });
     const result = await endpoints.runServiceAction(client, "ocr", action);
-    expect(defined(requests[0])).toMatchObject({
-      url: `${API}/services/ocr/${action}/`,
-      method: "POST",
-    });
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/services/ocr/${action}/`, method: "POST" });
     expect(result.message).toContain("ocr");
   });
 });
@@ -355,9 +303,7 @@ describe("fetchBackendReadiness", () => {
       status: "ok",
       checks: { postgresql: { status: "ok" }, queue: { status: "ok" } },
     });
-    expect(await endpoints.fetchBackendReadiness(client)).toEqual({
-      state: "ready",
-    });
+    expect(await endpoints.fetchBackendReadiness(client)).toEqual({ state: "ready" });
     expect(defined(requests[0]).url).toBe(`${API}/healthz/ready/`);
   });
 
@@ -419,9 +365,7 @@ describe("fetchBackendReadiness", () => {
   // Something answers for the server, so the app's own error handling takes over.
   it.each([404, 500])("is ready on a %i", async status => {
     const { client } = fakeServer({ errors: [] }, status);
-    expect(await endpoints.fetchBackendReadiness(client)).toEqual({
-      state: "ready",
-    });
+    expect(await endpoints.fetchBackendReadiness(client)).toEqual({ state: "ready" });
   });
 });
 
