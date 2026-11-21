@@ -166,6 +166,7 @@ jobs:
           "$MINIMAL" scripts/opencv_wheel_parity.py compare ../../scratch/official.npz ../../scratch/minimal.npz
       - name: The cv2 tests pass on our wheel
         run: |
+          "$MINIMAL" -c "import os; os.makedirs('/tmp', exist_ok=True)"
           "$MINIMAL" manage.py test api.tests.editing api.tests.ml_services.test_face_analysis \
             api.tests.ml_services.test_face_recognition_sidecar api.tests.ocr --parallel 2
       - name: Nuitka compiles and runs cv2 from our wheel
