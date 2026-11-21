@@ -10,7 +10,6 @@ search query into an embedding (``/query-embeddings``).
 import os
 
 import numpy as np
-from flask.typing import ResponseReturnValue
 from openclip.openclip import (
     DEFAULT_MAX_TAGS,
     DEFAULT_MIN_PROBABILITY,
@@ -19,6 +18,7 @@ from openclip.openclip import (
 )
 
 from service._common import create_app, json_fields, logger, serve_forever
+from service._web import ResponseReturnValue
 
 MAX_TAGS = DEFAULT_MAX_TAGS
 MIN_PROBABILITY = DEFAULT_MIN_PROBABILITY

@@ -8,11 +8,11 @@ is fully testable via ppocr.* without touching Flask or the server.
 
 import os
 
-from flask.typing import ResponseReturnValue
 from ppocr.detect import OCRDecodeError
 from ppocr.engine import PPOCREngine
 
 from service._common import create_app, json_fields, logger, serve_forever
+from service._web import ResponseReturnValue
 
 ocr_engine: PPOCREngine | None = None
 

@@ -88,8 +88,6 @@ INCLUDE_PACKAGE_DATA = [
 ]
 
 # Never useful in the binary, and some of them drag in whole test frameworks.
-# Only our own test packages are named: a wildcard like "*.test" also hits
-# werkzeug.test, which werkzeug imports at run time.
 NOFOLLOW = [
     "api.tests",
     "nextcloud.tests",
@@ -259,9 +257,6 @@ def nuitka_command(output_dir, jobs, version, cache=True):
     for directory in SIDECAR_DIRS:
         module = directory.relative_to(BACKEND).as_posix().replace("/", ".")
         command.append(f"--include-module={module}.main")
-    # Shared by the ML sidecars' top-level neighbours (openclip, lfm2_vl, ...)
-    # and by every sidecar's main.py (the Flask app, /health, serve); named so
-    # the binary never depends on Nuitka following those imports.
     command.append("--include-module=service.onnx_session")
     command.append("--include-module=service._common")
     command += [f"--include-module={name}" for name in lazy_module_targets()]

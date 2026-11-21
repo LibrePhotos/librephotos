@@ -1,7 +1,7 @@
 # LibrePhotos backend
 
 Django 6.1 + DRF on Python 3.14 and Postgres 15+ (SQLite for tests, the Windows dev server and the standalone build),
-background jobs on django-q2, and ML in separate Flask sidecars running ONNX Runtime.
+background jobs on django-q2, and ML in separate sidecars (`service/_web.py`, a small WSGI app layer) running ONNX Runtime.
 
 ## Commands
 

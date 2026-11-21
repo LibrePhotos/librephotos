@@ -54,6 +54,7 @@ from api.models.photo import Photo
 from api.models.user import User
 from api.photos.media_files import get_or_create_file
 from api.runtime import sidecars
+from api.tests.sidecar_client import test_client
 from api.tests.utils import create_test_photo
 from api.thumbnails.render import generate_thumbnail
 
@@ -295,7 +296,7 @@ def _exif_service_post(
 
     if service != "exif":
         raise AssertionError(f"unexpected sidecar call to {service}{path}")
-    response = app.test_client().post(path, json=json)
+    response = test_client(app).post(path, json=json)
     if response.status_code >= 400:
         # With the status and body, as requests' raise_for_status gives them.
         answer = requests.Response()

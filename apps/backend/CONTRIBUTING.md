@@ -305,7 +305,7 @@ Ruff's `T20` rejects `print()` in the backend. The places that cannot simply log
 
 - **Settings modules** run before logging is configured. Hand the message to `librephotos.logging_bootstrap.defer(level, message)`; `ApiConfig.ready()` logs it once the handlers exist.
 - **Management commands** write their output with `self.stdout.write` / `self.stderr.write`, so `call_command(..., stdout=...)` captures it.
-- **Sidecars** (`service/`, `image_similarity/`) log through `service._common.logger(name)`: the backend's line format and `LOG_LEVEL`, written to the sidecar's stdout (the container log) only. A module there that must not import Flask uses `logging.getLogger(name)` with the sidecar's name and goes through the same handler.
+- **Sidecars** (`service/`, `image_similarity/`) log through `service._common.logger(name)`: the backend's line format and `LOG_LEVEL`, written to the sidecar's stdout (the container log) only. A module there that must not import the sidecar app (`service._common`) uses `logging.getLogger(name)` with the sidecar's name and goes through the same handler.
 - `scripts/` and the `librephotos/standalone.py` launcher are console tools and may print.
 
 ### Levels

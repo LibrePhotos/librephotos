@@ -2,8 +2,6 @@ import os
 from collections import Counter
 from typing import Any
 
-from flask.typing import ResponseReturnValue
-
 from api.metadata.exiftool_client import ExifTool, without_paths
 from api.metadata.tags import SIDECAR_EQUIVALENTS, describes_the_file
 from api.mime import METADATA_EXTENSIONS, extension
@@ -14,6 +12,7 @@ from service._common import (
     logger,
     serve_forever,
 )
+from service._web import ResponseReturnValue
 from service.exif.all_tags import FileNotReadableError, read_all_tags
 from service.exif.geolocate import (
     InvalidPointsError,
