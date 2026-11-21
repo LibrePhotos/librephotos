@@ -227,7 +227,6 @@ INSTALLED_APPS = [
     "chunked_upload",
     "constance",
     "constance.backends.database",
-    "django_q",
     # The OpenAPI schema: apps/backend/openapi.yaml is generated from it
     # (`manage.py spectacular`, checked in test-backend.yml) and the api-client
     # contract test compares the zod schemas with it. Its routes are mounted
@@ -247,38 +246,7 @@ INSTALLED_APPS = [
 
 SITE_ID = 1
 
-Q_CLUSTER = {
-    "name": "DjangORM",
-    "queue_limit": 50,
-    "recycle": 50,
-    "timeout": 10000000,
-    # Unused by the broker below, which holds a taken task on a lease its
-    # cluster renews instead; django-q2 warns while it is below the timeout.
-    "retry": 20000000,
-    "orm": "default",
-    # The ORM broker, except that a taken task is held on a lease, so the
-    # tasks of a cluster that went away run again (#2852), and that a cluster
-    # takes no tasks once a newer release has migrated the database: during a
-    # rolling deploy the old container's cluster would otherwise run the new
-    # release's tasks.
-    "broker_class": "api.jobs.broker.ReleaseGuardedORM",
-    "max_rss": 300000,
-    "poll": 1,
-    # Schedules missed while the workers were busy (the minutely service
-    # check, during a scan) are skipped rather than run back to back once the
-    # queue drains: five service checks in the same second restart the same
-    # sidecar five times.
-    "catch_up": False,
-}
-
-# Number of background workers doing the heavy lifting (thumbnails, face
-# detection, captioning). Left unset, django-q falls back to cpu_count(), which
-# reports the *host's* cores even when the container is capped with a compose
-# `cpus:` limit - so the pool stays just as wide and the limit only starves it.
-# Setting this is the way to actually reduce LibrePhotos' CPU and RAM appetite.
 _WORKER_CONCURRENCY = env_int("WORKER_CONCURRENCY", None)
-if _WORKER_CONCURRENCY is not None:
-    Q_CLUSTER["workers"] = _WORKER_CONCURRENCY
 TASK_WORKERS = _WORKER_CONCURRENCY or os.cpu_count() or 1
 TASK_WORKER_RECYCLE_RSS_MB = 300
 

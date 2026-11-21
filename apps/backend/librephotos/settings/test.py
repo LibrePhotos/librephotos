@@ -40,10 +40,6 @@ REST_FRAMEWORK = {
     },
 }
 
-# The broker renews the leases of the tasks a cluster took from a thread it
-# starts on the first dequeue (api/jobs/broker.py); in the suite the tests
-# renew them themselves, and no thread writes to the test database.
-Q_CLUSTER = {**Q_CLUSTER, "testing": True}  # noqa: F405
 
 # The suite starts the error capture itself where it tests it
 # (api/tests/error_reports/harness.py); every other test's errors stay out.

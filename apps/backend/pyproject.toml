@@ -93,10 +93,7 @@ allow-star-arg-any = true
 # External tools run through one module (issue #2338): it resolves the binary
 # (the System32 trap on Windows), demands a timeout and logs failures the same way.
 "subprocess".msg = "Run external tools through api.runtime.binaries.run_tool (with a timeout) or start_tool."
-# Background work is queued in one module (issue #2333): it writes the job's
-# LongRunningJob row before the task is queued and refuses a duplicate start.
-# Each entry must name the replacement in its message.
-"django_q.tasks".msg = "Queue work through api.jobs.queue (enqueue_job, enqueue_followup, enqueue_task, schedule_once)."
+"api.jobs.store".msg = "Queue work through api.jobs.queue (enqueue_job, enqueue_followup, enqueue_task, schedule_once)."
 
 [tool.ruff.lint.extend-per-file-ignores]
 # Permanent exceptions only; findings still to be fixed live in ruff-baseline.toml.
@@ -123,8 +120,7 @@ allow-star-arg-any = true
 # The one runner of external tools.
 # PLW1509: start_piped_tool's preexec_fn only calls a prctl bound in the parent.
 "api/runtime/binaries.py" = ["TID251", "PLW1509"]
-# The one module that queues background work (issue #2333).
-"api/jobs/queue.py" = ["TID251"]
+"api/jobs/{queue,pool,worker,scheduler,legacy_import}.py" = ["TID251"]
 # The update's folder swap: it starts the new release with the environment
 # the old one was started with (issue #2788).
 "librephotos/updater.py" = ["TID251"]
@@ -158,7 +154,7 @@ warn_redundant_casts = true
 enable_error_code = ["ignore-without-code", "truthy-bool", "redundant-expr"]
 
 [[tool.mypy.overrides]]          # untyped third-party packages and sidecar-local imports
-module = ["allauth.*", "constance.*", "django_q.*",
+module = ["allauth.*", "constance.*",
           "geopy.*", "onnxruntime.*", "onnxruntime_ep_webgpu",
           "pyclipper.*", "pystray.*", "pyvips.*", "tokenizers.*",
           "lfm2_vl", "openclip.*", "ppocr.*", "retrieval_index", "utils", "vulture"]

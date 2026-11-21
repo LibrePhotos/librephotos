@@ -19,7 +19,7 @@ from api.geocode.config import MAP_API_PROVIDERS, _get_config
 from api.geocode.exiftool_provider import GeolocateError, lookup
 from api.geocode.geocode import reverse_geocode, search_location, search_provider
 from api.geocode.parsers.exiftool import no_place, parse
-from api.geocode.rate_limit import _delay_for
+from api.geocode.rate_limit import delay_for
 from service.exif import main as exif_main
 from service.exif.geolocate import lookup_args, parse_max_distance, parse_points
 
@@ -183,7 +183,7 @@ class ExifToolProviderTest(SimpleTestCase):
 @override_config(MAP_API_PROVIDER="exiftool")
 @patch("api.geocode.exiftool_provider.sidecars.post")
 class ExifToolReverseGeocodeTest(TestCase):
-    @patch("api.geocode.rate_limit._sleep")
+    @patch("api.jobs.throttle.time.sleep")
     @patch("geopy.get_geocoder_for_service")
     def test_answers_without_geopy_or_waiting(self, get_geocoder, sleep, post):
         post.return_value = sidecar_answer([ZERMATT])
@@ -195,7 +195,7 @@ class ExifToolReverseGeocodeTest(TestCase):
 
         get_geocoder.assert_not_called()
         sleep.assert_not_called()
-        self.assertEqual(_delay_for(EXIFTOOL_PROVIDER), 0)
+        self.assertEqual(delay_for(EXIFTOOL_PROVIDER), 0)
 
     def test_no_town_is_no_place_and_a_failure_is_empty(self, post):
         post.return_value = sidecar_answer([None])

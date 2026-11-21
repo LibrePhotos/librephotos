@@ -58,7 +58,6 @@ INCLUDE_PACKAGES = [
     "rest_framework",
     "rest_framework_simplejwt",
     "constance",
-    "django_q",
     "corsheaders",
     "allauth",
     "whitenoise",
@@ -134,7 +133,6 @@ BYTECODE_MODULES = [
     "allauth",  # 838, mostly one module per login provider
     "psycopg",  # 83, the PostgreSQL driver (the standalone build runs SQLite)
     "rest_framework",  # 73
-    "django_q",  # 66
     "drf_spectacular",  # 36
 ]
 
