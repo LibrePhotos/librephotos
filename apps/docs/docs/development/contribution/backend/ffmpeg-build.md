@@ -103,3 +103,7 @@ gh workflow run ffmpeg-wheel.yml --ref dev -f publish=true
 The `publish` job creates the `ffmpeg-bin-<version>` release and attaches the three wheels and the source bundle.
 Then point the three `ffmpeg-bin @` lines in `apps/backend/requirements.txt` at the new release, in a pull request
 of their own.
+
+<Since version="1.7.0" /> `requirements.txt` installs the first of these releases,
+[`ffmpeg-bin-9.0.2`](https://github.com/LibrePhotos/librephotos/releases/tag/ffmpeg-bin-9.0.2). The
+`windows-wheels-2026.09.16` release stays: its BtbN wheels are the reference the compatibility matrix compares against.
