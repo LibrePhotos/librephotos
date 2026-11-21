@@ -7,8 +7,9 @@ import socket
 import threading
 import time
 import traceback
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from multiprocessing.sharedctypes import SynchronizedArray
 from typing import Protocol
 
 import psutil
@@ -18,7 +19,7 @@ from django.utils import timezone
 from api.jobs import payload, store
 from api.jobs.release_guard import ReleaseGuard
 from api.jobs.worker_settings import WorkerSettings
-from api.models.task_queue import QUEUES, QueuedTask, WorkerProcess
+from api.models.task_queue import HEAVY_QUEUE, QUEUES, QueuedTask, WorkerProcess
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,6 @@ MB = 1024 * 1024
 
 class Flag(Protocol):
     def is_set(self) -> bool: ...
-
-
-class Width(Protocol):
-    @property
-    def value(self) -> int: ...
 
 
 class WorkerStoppingError(BaseException):
@@ -117,14 +113,14 @@ class Worker:
         self,
         slot: int,
         stop: Flag,
-        width: Width,
+        limits: Sequence[int] | SynchronizedArray[int],
         settings: WorkerSettings,
         exit_process: Callable[[int], None] = os._exit,
     ) -> None:
         self.slot = slot
         self.name = f"{socket.gethostname()}:{slot}:{os.getpid()}"
         self.stop = stop
-        self.width = width
+        self.limits = limits
         self.settings = settings
         self.guard = ReleaseGuard()
         self.running = _Running()
@@ -159,13 +155,13 @@ class Worker:
         return 0
 
     def run_one(self) -> bool:
-        if self.slot >= self.width.value or self.guard.database_is_newer():
+        if self.slot >= self.limits[0] or self.guard.database_is_newer():
             return False
         _close_old_connections()
         task = store.claim(
             self.name,
             self.settings.queues or QUEUES,
-            {**store.CAPS, **self.settings.caps},
+            {**store.CAPS, HEAVY_QUEUE: self.limits[1], **self.settings.caps},
         )
         if task is None:
             return False
@@ -217,6 +213,7 @@ class Worker:
             rss_mb=rss_mb(),
             pid=os.getpid(),
             task_id=None if task is None else task.pk,
+            active=self.slot < self.limits[0],
         )
 
     def _watch_memory(self) -> None:

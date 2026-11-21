@@ -524,7 +524,7 @@ class WorkerDefaultTest(SimpleTestCase):
                     sys.executable,
                     "-c",
                     "from librephotos.settings import standalone as s;"
-                    "print('workers=%d' % s.TASK_WORKERS)",
+                    "print('workers=%d' % (s.TASK_WORKERS or 0))",
                 ],
                 cwd=standalone.BACKEND_ROOT,
                 env=env,
@@ -534,8 +534,8 @@ class WorkerDefaultTest(SimpleTestCase):
             ).stdout
         return int(output.rsplit("workers=", 1)[1])
 
-    def test_two_workers_unless_told_otherwise(self):
-        self.assertEqual(self._workers(), 2)
+    def test_the_capacity_check_decides_unless_told_otherwise(self):
+        self.assertEqual(self._workers(), 0)
 
     def test_worker_concurrency_still_overrides(self):
         self.assertEqual(self._workers(WORKER_CONCURRENCY="5"), 5)

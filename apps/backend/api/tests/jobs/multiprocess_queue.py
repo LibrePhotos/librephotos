@@ -2,7 +2,6 @@ import os
 import time
 from datetime import timedelta
 from pathlib import Path
-from types import SimpleNamespace
 
 SQLITE_MODELS = ("QueuedTask", "TaskGroup", "WorkerProcess")
 
@@ -93,4 +92,4 @@ def run_worker(
 
     stop = UntilIdle(seconds, idle_seconds=lease_seconds * 3)
     settings = WorkerSettings(poll_seconds=0.05)
-    ReapingWorker(slot, stop, SimpleNamespace(value=64), settings).run()
+    ReapingWorker(slot, stop, [64, 64], settings).run()

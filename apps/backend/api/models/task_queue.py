@@ -141,6 +141,7 @@ class WorkerProcess(models.Model):
     host = models.CharField(max_length=255)
     pid = models.PositiveIntegerField()
     slot = models.PositiveSmallIntegerField()
+    active = models.BooleanField(default=True)
     started_at = models.DateTimeField(default=timezone.now)
     heartbeat_at = models.DateTimeField(default=timezone.now)
     rss_mb = models.PositiveIntegerField(default=0)

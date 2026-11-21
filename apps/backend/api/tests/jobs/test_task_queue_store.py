@@ -1,6 +1,5 @@
 import datetime
 import uuid
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.db import connection
@@ -60,7 +59,7 @@ class Never:
 
 
 def _worker(slot: int = 0, width: int = 4) -> Worker:
-    return Worker(slot, Never(), SimpleNamespace(value=width), WorkerSettings())
+    return Worker(slot, Never(), [width, width], WorkerSettings())
 
 
 def _run_next() -> QueuedTask | None:

@@ -128,7 +128,7 @@ class ScanFacesFanOutTest(TestCase):
     def test_a_worker_that_must_stop_hands_the_rest_of_its_chunk_back(self):
         self.photos(4)
         scan_faces(self.user, self.job_id)
-        drained = worker.Worker(0, _Never(), _Width(), worker.WorkerSettings())
+        drained = worker.Worker(0, _Never(), [4, 4], worker.WorkerSettings())
         extracted = []
 
         def extract_then_drain(photo):
@@ -157,7 +157,3 @@ class ScanFacesFanOutTest(TestCase):
 class _Never:
     def is_set(self):
         return False
-
-
-class _Width:
-    value = 4
