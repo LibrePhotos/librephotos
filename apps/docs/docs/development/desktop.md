@@ -131,7 +131,7 @@ Pictures with more than 24 MP (`MIN_TILED_PIXELS`, displayed size, opaque) are z
 
 The disk cache (`diskcache.rs`) keeps one file per response under `<root>/v1/<hh>/<hash>.lpc`. The file starts with the full cache id (kind, box, mtime, size and path of the source), so a hash collision or a torn file is a miss, never a wrong picture. Writes go through one background thread (temp file plus rename, so readers and a second app instance never see half a file); when 512 writes wait, more are dropped, since the cache is best effort. "Used" is the file's mtime, refreshed by a hit at most once an hour; a sweep deletes the least recently used files down to 90 % of the cap, plus temp files older than an hour left by a crash. The first sweep waits 20 s after start-up so it does not compete with the first pictures. Several processes can share the directory: every operation tolerates files appearing or vanishing underneath it.
 
-`appdirs.rs` puts everything under one data directory (`%LOCALAPPDATA%\LibrePhotos Viewer`, macOS `~/Library/Application Support/LibrePhotos Viewer`, else `$XDG_DATA_HOME/librephotos-viewer`); `LPVIEW_DATA_DIR` moves all of it, so test runs never touch the user's state.
+`appdirs.rs` puts everything under one data directory (`%LOCALAPPDATA%\com.librephotos.viewer`, macOS `~/Library/Application Support/com.librephotos.viewer`, else `$XDG_DATA_HOME/com.librephotos.viewer`); `LPVIEW_DATA_DIR` moves all of it, so test runs never touch the user's state.
 
 ## Local database
 
@@ -207,3 +207,20 @@ For test runs over the Chrome DevTools Protocol the page exposes `window.__lpDev
 | `LPVIEW_TRACE=1`, `LPVIEW_TILE_TRACE=1`, `LPVIEW_DB_TRACE=1` | log every `lpview` request (queued, memory or disk hit, decode), the cost of every tile band, every database call's statements, time and answer size to stderr |
 | `LPVIEW_KEYRING_SERVICE` | the keychain service the refresh token is stored under (tests) |
 | `LPVIEW_MULTI_INSTANCE=1` | lets several copies run side by side (test harnesses) |
+
+## CI and releases
+
+<Since version="1.7.0" />
+
+`.github/workflows/desktop.yml` runs on Windows for every pull request and push to `dev` that changes `apps/desktop`, `packages/api-client` or `packages/local-db`, and for every release:
+
+| Job | Does |
+| --- | --- |
+| `check` | `npm ci`, the UI's typecheck and build, `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test` |
+| `installer` | builds the NSIS installer with `npx tauri build --bundles nsis`, stamped with the release tag (`0.0.0` outside a release), and smoke-tests it with `apps/desktop/scripts/smoke-installer.mjs` |
+
+The smoke test is what a user does: it installs silently (`/S`), checks the registry entries the installer hooks write for **Set as default photo viewer** (`RegisteredApplications`, `Capabilities\FileAssociations`, the `LibrePhotosViewer.Image` ProgID), starts the installed app on a picture and waits until its window title is `<picture> - LibrePhotos Viewer` (the viewer sets it once it has listed the folder and opened the picture; GitHub's Windows runners don't answer on WebView2's remote-debugging port, so the test reads the title through Windows instead), then uninstalls silently and checks that the program and its registration are gone. Run it locally with `node apps/desktop/scripts/smoke-installer.mjs <setup.exe> <picture>`; it installs into your own user profile.
+
+Every build uploads the installer as the workflow artifact `librephotos-desktop-windows-x64`. For a release (`release: created`, not drafts or pre-releases) it is also attached to the release as `librephotos-desktop-<tag>-windows-x64-setup.exe`, as `librephotos-desktop-windows-x64-setup.exe` (the name the user guide's `releases/latest/download` link uses) and with `SHA256SUMS-desktop`. A tag must be `X.Y.Z`. A failed release build opens an issue. To build a release's installer again, dispatch the workflow from the tag: `gh workflow run desktop.yml --ref <tag> -f tag=<tag>` (`-f replace_asset=true` to overwrite assets it already has).
+
+The installer is per user (`%LOCALAPPDATA%\LibrePhotos Viewer`, no administrator rights) and not signed yet, so Windows SmartScreen warns about it. The app keeps its data in a different folder named after the bundle identifier (`com.librephotos.viewer`, `appdirs::DIR_NAME`, held equal to `tauri.conf.json` by a test), which is the folder the uninstaller's **Delete the application data** option removes.

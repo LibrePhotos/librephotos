@@ -16,7 +16,7 @@ pub fn default_root() -> Option<PathBuf> {
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from))
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))?;
-    Some(base.join("LibrePhotos Viewer").join("tiles"))
+    Some(base.join(crate::appdirs::DIR_NAME).join("tiles"))
 }
 
 struct Dir {

@@ -107,8 +107,8 @@ decodes off the main thread. The UI prefetches the neighbours (+/-2) through the
 ## Disk cache
 
 Encoded `thumb` and `screen` responses that took at least 12 ms to make (so not pass-through files
-or embedded EXIF thumbnails) are also written to `%LOCALAPPDATA%\LibrePhotos Viewer\cache\v1\`
-(macOS `~/Library/Caches/LibrePhotos Viewer`, elsewhere `$XDG_CACHE_HOME/librephotos-viewer`), one
+or embedded EXIF thumbnails) are also written to `%LOCALAPPDATA%\com.librephotos.viewer\cache\v1\`
+(macOS `~/Library/Caches/com.librephotos.viewer`, elsewhere `$XDG_CACHE_HOME/com.librephotos.viewer`), one
 file per response, keyed by kind, box, path, mtime and size. The size cap is 1 GB, least recently
 used first. Writes happen on a background thread (temp file + rename), lookups on two I/O threads,
 so a hit never waits behind a decode; two app instances can share the directory.
@@ -144,7 +144,7 @@ when that answers a `TileInfo` it draws tiles instead (null: small, has alpha, G
   in the background. Tile work runs on its own threads, never on the `thumb`/`screen` workers;
   background fill at below-normal priority.
 - Caches: a 96 MB memory LRU of encoded tiles, and a disk cache in
-  `%LOCALAPPDATA%\LibrePhotos Viewer\tiles\<id>\<L>-<x>-<y>.jpg` (`<id>` hashes the canonical path,
+  `%LOCALAPPDATA%\com.librephotos.viewer\tiles\<id>\<L>-<x>-<y>.jpg` (`<id>` hashes the canonical path,
   mtime and size;
   `<L>.done` marks a complete level) capped at 2 GB, whole image folders evicted least recently
   viewed first. `LPVIEW_TILE_CACHE=<dir>` moves it, `=off` disables it; `LPVIEW_TILES=off` turns tiling
@@ -283,8 +283,8 @@ install).
   back and rejected; a batch statement that begins or ends a transaction is rejected (savepoints are
   fine). So the package writes several statements with `db.batch([...])`, never
   `db.transaction(...)`, whose `begin`/`commit` would be separate calls.
-- Storage: `<data dir>/local.db` (WAL). `<data dir>` is `%LOCALAPPDATA%\LibrePhotos Viewer` (macOS
-  `~/Library/Application Support/LibrePhotos Viewer`, else `$XDG_DATA_HOME/librephotos-viewer`);
+- Storage: `<data dir>/local.db` (WAL). `<data dir>` is `%LOCALAPPDATA%\com.librephotos.viewer` (macOS
+  `~/Library/Application Support/com.librephotos.viewer`, else `$XDG_DATA_HOME/com.librephotos.viewer`);
   `LPVIEW_DATA_DIR` moves it, and with it the thumbnail cache (`cache/`), the tile cache (`tiles/`)
   and the server media cache, so test runs never touch the user's state. The old Rust library's
   `library.db` is no longer read (its folders are added again). Migrations: `packages/local-db/migrations/migrations.json`
