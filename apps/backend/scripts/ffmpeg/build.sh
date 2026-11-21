@@ -26,7 +26,7 @@ export SOURCE_DATE_EPOCH=946684800
 
 encoders=libx264,aac,mjpeg,libwebp,libwebp_anim,wrapped_avframe,pcm_s16le
 muxers=mp4,mov,ipod,tgp,tg2,matroska,webm,avi,asf,flv,mpegts,mpeg1system,mpeg2vob,mpeg2svcd,ogg,ogv,image2,webp,null
-filters=buffer,buffersink,abuffer,abuffersink,format,aformat,null,anull,copy,scale,zscale,tonemap
+filters=format,aformat,null,anull,copy,scale,zscale,tonemap
 filters=$filters,transpose,hflip,vflip,rotate,crop,trim,atrim,aresample,setpts,asetpts,fps,setparams,setsar,setdar
 test_encoders=ffv1,mpeg4
 test_filters=testsrc,testsrc2,color,sine,anullsrc,signalstats,metadata,concat
