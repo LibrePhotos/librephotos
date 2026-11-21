@@ -1,8 +1,6 @@
 import hmac
-import os
 import pickle
 import struct
-import time
 from base64 import urlsafe_b64encode
 from collections.abc import Callable
 from functools import lru_cache
@@ -49,6 +47,10 @@ def field_key(secret_key: str | bytes) -> bytes:
 
 def _fernet() -> MultiFernet:
     return MultiFernet([Fernet(field_key(key)) for key in _secret_keys()])
+
+
+def encrypt_text(value: str) -> bytes:
+    return Fernet(field_key(settings.SECRET_KEY)).encrypt(value.encode("utf-8"))
 
 
 def is_legacy_token(token: bytes) -> bool:
@@ -140,27 +142,10 @@ def legacy_decrypt(token: bytes) -> str:
     )
 
 
-def legacy_encrypt(value: str) -> bytes:
-    secret_key = settings.SECRET_KEY
-    padder = padding.PKCS7(algorithms.AES.block_size).padder()
-    padded = padder.update(pickle.dumps(value)) + padder.finalize()
-    iv = os.urandom(LEGACY_IV_BYTES)
-    encryptor = Cipher(
-        algorithms.AES(legacy_cipher_key(secret_key)), modes.CBC(iv)
-    ).encryptor()
-    signed = (
-        LEGACY_HEADER.pack(LEGACY_VERSION, int(time.time()))
-        + iv
-        + encryptor.update(padded)
-        + encryptor.finalize()
-    )
-    return signed + legacy_signature(secret_key, signed)
-
-
 def _to_database(value: object) -> bytes | None:
     if value is None:
         return None
-    return legacy_encrypt(str(value))
+    return encrypt_text(str(value))
 
 
 def stored_bytes(value: object) -> bytes:

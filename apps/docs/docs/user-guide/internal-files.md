@@ -22,6 +22,8 @@ Django signs every session, login token and password-reset link with a secret ke
 
 If you delete it, a new key is generated: every user is logged out and the SMTP password has to be entered again. Anyone who has a copy of the file can forge a login to your instance.
 
+<Since version="1.8.0" /> The first start of 1.8.0 encrypts the stored SMTP password and the Nextcloud app passwords in a new format, with a key derived from the same secret key. 1.7.0 reads that format; to go back to an older release, restore the backup made before the upgrade (see [Going back to an older release](../installation/upgrading.md#downgrade)). If the upgrade stops because a stored password does not decrypt with the secret key (the key was changed since it was saved), start with the old key again, or run the command the message shows, which empties that one password, and enter it again in LibrePhotos after the upgrade.
+
 If you set `shhhhKey` in your `.env` file (`SECRET_KEY` for the backend container), that value is used as the secret key instead and this file is never created or read.
 
 LibrePhotos 1.3.0 and older keep the file in `/logs` instead. The first start of a newer release moves it here and logs a warning saying so. If both files exist, the one in `/protected_media` is used. An old file holding the same key is the rest of an unfinished move and is removed; one holding a different key is left untouched with a warning in the log: delete it once you have checked that you can log in.
