@@ -90,6 +90,11 @@ def run_task(task: QueuedTask) -> None:
     store.succeed(task)
 
 
+def _close_old_connections() -> None:
+    if not db.connection.in_atomic_block:
+        db.close_old_connections()
+
+
 def rss_mb() -> int:
     return int(psutil.Process().memory_info().rss // MB)
 
@@ -138,7 +143,7 @@ class Worker:
     def run_one(self) -> bool:
         if self.slot >= self.width.value or self.guard.database_is_newer():
             return False
-        db.close_old_connections()
+        _close_old_connections()
         task = store.claim(self.name, self.settings.queues, self.settings.caps)
         if task is None:
             return False
@@ -153,7 +158,7 @@ class Worker:
         finally:
             with self.running.lock:
                 self.running.task = None
-            db.close_old_connections()
+            _close_old_connections()
         return True
 
     def _register(self) -> None:

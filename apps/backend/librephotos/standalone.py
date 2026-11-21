@@ -1073,7 +1073,9 @@ def run_server(
         )
     )
     cluster = subprocess.Popen(
-        child_command("manage", "run_workers", "--stop-file", workers_stop_file(), role="jobs")
+        child_command(
+            "manage", "run_workers", "--stop-file", workers_stop_file(), role="jobs"
+        )
     )
     startup.server = server
     enable_updater(startup, url)
