@@ -102,8 +102,7 @@ build_x264() {
     cross=(--host=$triplet --cross-prefix=$triplet-)
   fi
   "$src/x264/configure" --prefix="$prefix" "${cross[@]}" --enable-static --enable-pic --disable-cli \
-    --disable-opencl --disable-lavf --disable-swscale --disable-ffms --disable-gpac --disable-lsmash \
-    --bit-depth=8 --chroma-format=420
+    --disable-opencl --disable-lavf --disable-swscale --disable-ffms --disable-gpac --disable-lsmash
   make -j"$jobs" install-lib-static
   cd - >/dev/null
 }
