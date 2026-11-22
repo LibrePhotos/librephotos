@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   calendarDaysAgo,
   calendarYear,
+  dateTimeInputDaysFromNow,
   describeDuration,
   firstDayOfWeek,
   formatCalendarDay,
@@ -10,17 +11,16 @@ import {
   formatPhotoDaySpan,
   formatUtcOffset,
   formatVideoTime,
-  fromPickerValue,
+  fromDateTimeInputValue,
   fromUnixSeconds,
   isCalendarDay,
+  isWholeTime,
   parseInstant,
   parsePhotoTimestamp,
-  parsePickerDate,
-  photoTimestampToPickerDate,
-  pickerDateToPhotoTimestamp,
-  pickerValueDaysFromNow,
+  photoTimestampWallClock,
   shiftPhotoTimestamp,
-  toPickerValue,
+  toDateTimeInputValue,
+  wallClockToPhotoTimestamp,
 } from "./dateUtils";
 import { defined } from "./defined.test-utils";
 
@@ -74,61 +74,49 @@ describe("parsePhotoTimestamp", () => {
   });
 });
 
-describe("photoTimestampToPickerDate", () => {
-  test("exposes the wall clock through the Date's local getters", () => {
-    const date = photoTimestampToPickerDate("2023-09-21T14:30:15Z");
-    expect(date).not.toBeNull();
-    expect(defined(date).getFullYear()).toBe(2023);
-    expect(defined(date).getMonth()).toBe(8);
-    expect(defined(date).getDate()).toBe(21);
-    expect(defined(date).getHours()).toBe(14);
-    expect(defined(date).getMinutes()).toBe(30);
-    expect(defined(date).getSeconds()).toBe(15);
+describe("photoTimestampWallClock", () => {
+  test("gives the camera's wall clock as date and time input values, whatever the viewer's zone", () => {
+    Settings.defaultZone = "America/Los_Angeles";
+    expect(photoTimestampWallClock("2023-09-21T00:30:15Z")).toEqual({ day: "2023-09-21", time: "00:30:15" });
   });
 
   test("returns null for an unparseable timestamp", () => {
-    expect(photoTimestampToPickerDate("nope")).toBeNull();
+    expect(photoTimestampWallClock("nope")).toBeNull();
   });
 });
 
-describe("parsePickerDate", () => {
-  test("keeps the calendar day the user clicked", () => {
-    // `new Date("2023-09-21")` resolves to UTC midnight, which is still the
-    // 20th anywhere west of UTC.
-    const parsed = parsePickerDate("2023-09-21");
-    expect(parsed).not.toBeNull();
-    expect(defined(parsed).getFullYear()).toBe(2023);
-    expect(defined(parsed).getMonth()).toBe(8);
-    expect(defined(parsed).getDate()).toBe(21);
-  });
-
-  test("passes a Date through unchanged", () => {
-    const date = new Date(2023, 8, 21, 14, 30);
-    expect(defined(parsePickerDate(date)).getTime()).toBe(date.getTime());
-  });
-
-  test("returns null for unusable input", () => {
-    expect(parsePickerDate("not a date")).toBeNull();
-    // eslint-disable-next-line ban/date-constructor -- an invalid Date is the input under test
-    expect(parsePickerDate(new Date(Number.NaN))).toBeNull();
-  });
-});
-
-describe("pickerDateToPhotoTimestamp", () => {
+describe("wallClockToPhotoTimestamp", () => {
   test("round-trips a timestamp unchanged", () => {
     const timestamp = "2023-09-21T14:30:15.000Z";
-    expect(pickerDateToPhotoTimestamp(defined(photoTimestampToPickerDate(timestamp)))).toBe(timestamp);
+    expect(wallClockToPhotoTimestamp(defined(photoTimestampWallClock(timestamp)))).toBe(timestamp);
   });
 
-  test("stores the wall clock the user picked, not a converted instant", () => {
-    // The user picks 09:00 in the time input; that is what should be stored.
-    const picked = new Date(2023, 8, 21, 9, 0, 0);
-    expect(pickerDateToPhotoTimestamp(picked)).toBe("2023-09-21T09:00:00.000Z");
+  test("stores the day picked, never the day before, west of UTC (#630)", () => {
+    Settings.defaultZone = "America/New_York";
+    expect(wallClockToPhotoTimestamp({ day: "2023-09-21", time: "00:00:00" })).toBe("2023-09-21T00:00:00.000Z");
   });
 
-  test("returns null for an invalid Date", () => {
-    // eslint-disable-next-line ban/date-constructor -- an invalid Date is the input under test
-    expect(pickerDateToPhotoTimestamp(new Date(Number.NaN))).toBeNull();
+  test("takes a time input's value without seconds", () => {
+    expect(wallClockToPhotoTimestamp({ day: "2023-09-21", time: "09:05" })).toBe("2023-09-21T09:05:00.000Z");
+  });
+
+  test("returns null while the day or the time is missing or incomplete", () => {
+    expect(wallClockToPhotoTimestamp({ day: "", time: "10:00:00" })).toBeNull();
+    expect(wallClockToPhotoTimestamp({ day: "2023-09-21", time: "" })).toBeNull();
+    expect(wallClockToPhotoTimestamp({ day: "2023-09-21", time: "10:0" })).toBeNull();
+    expect(wallClockToPhotoTimestamp({ day: "2023-02-30", time: "10:00:00" })).toBeNull();
+  });
+});
+
+describe("isWholeTime", () => {
+  test.each([
+    ["10:00", true],
+    ["23:59:59", true],
+    ["24:00", false],
+    ["10:0", false],
+    ["", false],
+  ])("%s is %s", (time, expected) => {
+    expect(isWholeTime(time)).toBe(expected);
   });
 });
 
@@ -182,52 +170,56 @@ describe("fromUnixSeconds", () => {
   });
 });
 
-describe("toPickerValue", () => {
+describe("toDateTimeInputValue", () => {
   test("shows the stored instant as the viewer's local wall clock", () => {
     Settings.defaultZone = "Europe/Moscow";
-    expect(toPickerValue("2023-09-21T14:30:00.000Z")).toBe("2023-09-21 17:30:00");
+    expect(toDateTimeInputValue("2023-09-21T14:30:00.000Z")).toBe("2023-09-21T17:30:00");
   });
 
   test("shows the wall clock across a DST boundary", () => {
     Settings.defaultZone = "Europe/Berlin";
-    expect(toPickerValue("2023-03-26T01:30:00.000Z")).toBe("2023-03-26 03:30:00");
+    expect(toDateTimeInputValue("2023-03-26T01:30:00.000Z")).toBe("2023-03-26T03:30:00");
   });
 
   test("returns an empty value for an unparseable timestamp", () => {
-    expect(toPickerValue("nope")).toBe("");
+    expect(toDateTimeInputValue("nope")).toBe("");
   });
 });
 
-describe("fromPickerValue", () => {
-  test("turns the picked local wall clock into a UTC instant", () => {
+describe("fromDateTimeInputValue", () => {
+  test("turns the local wall clock into a UTC instant", () => {
     Settings.defaultZone = "Europe/Moscow";
-    expect(fromPickerValue("2023-09-21 17:30:00")).toBe("2023-09-21T14:30:00.000Z");
+    expect(fromDateTimeInputValue("2023-09-21T17:30:00")).toBe("2023-09-21T14:30:00.000Z");
+  });
+
+  test("takes a value without seconds, as a datetime-local input gives it on a whole minute", () => {
+    Settings.defaultZone = "Europe/Moscow";
+    expect(fromDateTimeInputValue("2023-09-21T17:30")).toBe("2023-09-21T14:30:00.000Z");
   });
 
   test("converts a DST-boundary wall clock with the offset in force then", () => {
     Settings.defaultZone = "Europe/Berlin";
-    expect(fromPickerValue("2023-03-26 03:30:00")).toBe("2023-03-26T01:30:00.000Z");
+    expect(fromDateTimeInputValue("2023-03-26T03:30:00")).toBe("2023-03-26T01:30:00.000Z");
   });
 
-  test("round-trips with toPickerValue", () => {
+  test("round-trips with toDateTimeInputValue", () => {
     Settings.defaultZone = "America/New_York";
     const iso = "2023-07-01T12:00:00.000Z";
-    expect(fromPickerValue(toPickerValue(iso))).toBe(iso);
+    expect(fromDateTimeInputValue(toDateTimeInputValue(iso))).toBe(iso);
   });
 
   test("returns null for a value that does not parse", () => {
-    expect(fromPickerValue("")).toBeNull();
-    expect(fromPickerValue("21 September")).toBeNull();
+    expect(fromDateTimeInputValue("")).toBeNull();
+    expect(fromDateTimeInputValue("21 September")).toBeNull();
   });
 });
 
-describe("pickerValueDaysFromNow", () => {
+describe("dateTimeInputDaysFromNow", () => {
   test("adds calendar days in the viewer's zone, keeping the wall clock across DST", () => {
     Settings.defaultZone = "Europe/Berlin";
-    // 2023-03-25 12:30 CET (11:30Z), the day before the clocks change.
     Settings.now = () => Date.UTC(2023, 2, 25, 11, 30);
-    expect(pickerValueDaysFromNow(1)).toBe("2023-03-26 12:30:00");
-    expect(pickerValueDaysFromNow(7)).toBe("2023-04-01 12:30:00");
+    expect(dateTimeInputDaysFromNow(1)).toBe("2023-03-26T12:30:00");
+    expect(dateTimeInputDaysFromNow(7)).toBe("2023-04-01T12:30:00");
   });
 });
 

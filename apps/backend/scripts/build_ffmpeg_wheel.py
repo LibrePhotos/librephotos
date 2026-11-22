@@ -1,21 +1,6 @@
-"""Wrap BtbN's FFmpeg builds (GPL, shared) in wheels so pip installs ffmpeg + ffprobe:
-
-    python scripts/build_ffmpeg_wheel.py <autobuild-tag> <build-id> [out_dir]
-    python scripts/build_ffmpeg_wheel.py autobuild-2026-09-15-13-18 ffmpeg-n9.0.1-30-g9258bacca5
-
-writes ffmpeg_bin-<ver>-py3-none-{win_amd64,manylinux_2_28_x86_64,manylinux_2_28_aarch64}.whl.
-The package puts its bin/ on PATH when imported, and a .pth imports it at
-interpreter start. GPL: the wheel carries the build's LICENSE.txt and points at the
-release the binaries and their build scripts came from.
-"""
-
+import argparse
 import base64
 import hashlib
-import io
-import re
-import sys
-import tarfile
-import urllib.request
 import zipfile
 from pathlib import Path
 
@@ -25,80 +10,53 @@ from pathlib import Path
 os.environ["PATH"] = str(Path(__file__).parent / "bin") + os.pathsep + os.environ.get("PATH", "")
 """
 
-PLATFORMS = {
-    "win64": ("py3-none-win_amd64", ".zip"),
-    # libavcodec references GLIBC_2.28, so 2_28 is the honest floor.
-    "linux64": ("py3-none-manylinux_2_28_x86_64", ".tar.xz"),
-    "linuxarm64": ("py3-none-manylinux_2_28_aarch64", ".tar.xz"),
+WHEEL_TAGS = {
+    "win64": "py3-none-win_amd64",
+    "linux-x86_64": "py3-none-manylinux_2_28_x86_64",
+    "linux-aarch64": "py3-none-manylinux_2_28_aarch64",
 }
 
 
-def version_of(build_id):
-    """ffmpeg-n9.0.1-30-g9258bacca5 -> 9.0.1"""
-    return build_id.split("-")[1].lstrip("n")
+def file_mode(relative: str) -> int:
+    executable = relative.startswith("bin/") or relative.startswith("lib/")
+    return 0o755 if executable else 0o644
 
 
-def payload(tag, build, platform):
-    """(relative path, bytes, mode) for ffmpeg, ffprobe, their shared libraries and the license."""
-    suffix = PLATFORMS[platform][1]
-    branch = version_of(build).rsplit(".", 1)[0]  # 9.0.1 -> 9.0
-    name = f"{build}-{platform}-gpl-shared-{branch}{suffix}"
-    url = f"https://github.com/BtbN/FFmpeg-Builds/releases/download/{tag}/{name}"
-    print("downloading", url)
-    data = urllib.request.urlopen(url, timeout=600).read()
-    if suffix == ".zip":
-        src = zipfile.ZipFile(io.BytesIO(data))
-        for info in src.infolist():
-            rel = info.filename.split("/", 1)[1] if "/" in info.filename else ""
-            if re.fullmatch(
-                r"bin/(ffmpeg|ffprobe)\.exe|bin/[^/]+\.dll|LICENSE\.txt", rel
-            ):
-                yield rel, src.read(info), 0o755 if rel.endswith(".exe") else 0o644
-        return
-    src = tarfile.open(fileobj=io.BytesIO(data))
-    for member in src.getmembers():
-        rel = member.name.split("/", 1)[1] if "/" in member.name else ""
-        if member.isfile() and re.fullmatch(r"bin/(ffmpeg|ffprobe)|LICENSE\.txt", rel):
-            yield (
-                rel,
-                src.extractfile(member).read(),
-                0o755 if rel.startswith("bin/") else 0o644,
-            )
-        elif member.isfile() and re.fullmatch(
-            r"lib/lib[a-z]+\.so\.[0-9]+\.[0-9]+\.[0-9]+", rel
-        ):
-            # Wheels cannot hold symlinks; store the real file under its SONAME
-            # (libavutil.so.61), the name the binaries and the other libraries ask for.
-            soname = re.sub(r"(\.so\.[0-9]+)\.[0-9]+\.[0-9]+$", r"\1", rel)
-            yield soname, src.extractfile(member).read(), 0o755
-
-
-def build(tag, build_id, platform, out_dir):
-    version = version_of(build_id)
-    wheel_tag = PLATFORMS[platform][0]
+def payload(stage: Path) -> dict[str, tuple[bytes, int]]:
     files = {
         "ffmpeg_bin/__init__.py": (INIT.encode(), 0o644),
         "ffmpeg_bin.pth": (b"import ffmpeg_bin\n", 0o644),
     }
-    for rel, data, mode in payload(tag, build_id, platform):
-        files["ffmpeg_bin/" + rel] = (data, mode)
+    for path in sorted(p for p in stage.rglob("*") if p.is_file()):
+        relative = path.relative_to(stage).as_posix()
+        files["ffmpeg_bin/" + relative] = (path.read_bytes(), file_mode(relative))
+    return files
+
+
+def metadata(version: str, source_url: str) -> bytes:
+    return (
+        f"Metadata-Version: 2.1\nName: ffmpeg-bin\nVersion: {version}\n"
+        f"Summary: ffmpeg and ffprobe {version}, a minimal GPL build for LibrePhotos\n"
+        "License: GPL-2.0-or-later\n"
+        f"Project-URL: Source, {source_url}\n"
+    ).encode()
+
+
+def build(
+    stage: Path, platform: str, version: str, source_url: str, out_dir: Path
+) -> Path:
+    wheel_tag = WHEEL_TAGS[platform]
+    files = payload(stage)
     dist = f"ffmpeg_bin-{version}.dist-info/"
-    files[dist + "METADATA"] = (
-        (
-            f"Metadata-Version: 2.1\nName: ffmpeg-bin\nVersion: {version}\n"
-            f"Summary: ffmpeg and ffprobe from BtbN/FFmpeg-Builds {tag} ({build_id}, GPL shared build)\n"
-            "License: GPL-3.0-or-later\n"
-            f"Project-URL: Source, https://github.com/BtbN/FFmpeg-Builds/releases/tag/{tag}\n"
-        ).encode(),
-        0o644,
-    )
+    files[dist + "METADATA"] = (metadata(version, source_url), 0o644)
     files[dist + "WHEEL"] = (
         f"Wheel-Version: 1.0\nGenerator: build_ffmpeg_wheel\nRoot-Is-Purelib: true\nTag: {wheel_tag}\n".encode(),
         0o644,
     )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"ffmpeg_bin-{version}-{wheel_tag}.whl"
     record = []
-    out = Path(out_dir) / f"ffmpeg_bin-{version}-{wheel_tag}.whl"
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as whl:
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as whl:
         for name, (data, mode) in files.items():
             info = zipfile.ZipInfo(name, date_time=(2000, 1, 1, 0, 0, 0))
             info.create_system = 3
@@ -110,12 +68,27 @@ def build(tag, build_id, platform, out_dir):
             )
             record.append(f"{name},sha256={digest.decode()},{len(data)}")
         record.append(dist + "RECORD,,")
-        whl.writestr(dist + "RECORD", "\n".join(record) + "\n")
-    print(out, out.stat().st_size // 1000000, "MB")
+        info = zipfile.ZipInfo(dist + "RECORD", date_time=(2000, 1, 1, 0, 0, 0))
+        info.create_system = 3
+        info.external_attr = (0o100000 | 0o644) << 16
+        info.compress_type = zipfile.ZIP_DEFLATED
+        whl.writestr(info, "\n".join(record) + "\n")
+    print(out, out.stat().st_size // 1_000_000, "MB")
+    return out
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Package a staged ffmpeg build (scripts/ffmpeg/build.sh) as the ffmpeg-bin wheel."
+    )
+    parser.add_argument("stage", type=Path)
+    parser.add_argument("platform", choices=sorted(WHEEL_TAGS))
+    parser.add_argument("version")
+    parser.add_argument("source_url")
+    parser.add_argument("out_dir", type=Path)
+    args = parser.parse_args()
+    build(args.stage, args.platform, args.version, args.source_url, args.out_dir)
 
 
 if __name__ == "__main__":
-    tag, build_id = sys.argv[1], sys.argv[2]
-    out_dir = sys.argv[3] if len(sys.argv) > 3 else "."
-    for platform in PLATFORMS:
-        build(tag, build_id, platform, out_dir)
+    main()

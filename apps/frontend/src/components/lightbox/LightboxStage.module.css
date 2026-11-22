@@ -1,0 +1,69 @@
+.media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.track {
+  display: flex;
+  height: 100%;
+  transform: translate3d(calc(-100% + var(--lb-swipe-x, 0px)), 0, 0);
+  transition: var(--lb-swipe-transition, none);
+  will-change: transform;
+}
+
+.slide {
+  display: flex;
+  flex: 0 0 100%;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.control {
+  position: absolute;
+  top: calc(50% - 22px);
+  z-index: 2;
+  background-color: var(--app-scrim-black-35);
+  color: var(--mantine-color-white);
+  opacity: 0;
+  transition:
+    opacity 150ms ease,
+    background-color 150ms ease;
+}
+
+.previous {
+  left: var(--mantine-spacing-md);
+}
+
+.next {
+  right: var(--mantine-spacing-md);
+}
+
+:hover > .control,
+.control:focus-visible {
+  opacity: 1;
+}
+
+.control:hover {
+  background-color: var(--app-scrim-black-60);
+}
+
+@media (hover: none) {
+  .control {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    transition: none;
+  }
+}

@@ -42,6 +42,7 @@ WORKDIR /code
 # Install backend requirements first, so a source-only change reuses these layers
 COPY apps/backend/requirements*.txt /code/
 RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
+RUN pip install --break-system-packages --no-cache-dir --no-deps -r requirements.nodeps.txt
 
 # WhiteNoise serves the frontend build; pinned in requirements.unified.txt
 RUN pip install --break-system-packages --no-cache-dir -r requirements.unified.txt

@@ -30,14 +30,18 @@ const SlideContent = memo(
  * Under `prefers-reduced-motion` only the fade runs, without the zoom: a slideshow (#1457) would
  * zoom every few seconds.
  */
-export function SlideTransition({ slideKey, children }: Readonly<{ slideKey: string; children: React.ReactNode }>) {
+export function SlideTransition({
+  slideKey,
+  fade = true,
+  children,
+}: Readonly<{ slideKey: string; fade?: boolean; children: React.ReactNode }>) {
   const [shownKey, setShownKey] = useState(slideKey);
   const [leavingKey, setLeavingKey] = useState<string | null>(null);
   // State adjusted while rendering, as React documents it for a value derived from a prop: the
   // photo that was shown starts to leave in the same render the next one appears in.
   if (slideKey !== shownKey) {
     setShownKey(slideKey);
-    setLeavingKey(shownKey);
+    setLeavingKey(fade ? shownKey : null);
   }
 
   useEffect(() => {

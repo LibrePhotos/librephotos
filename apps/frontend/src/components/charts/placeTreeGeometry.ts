@@ -1,6 +1,5 @@
 import { tree } from "d3-hierarchy";
 import type { HierarchyNode, HierarchyPointNode } from "d3-hierarchy";
-import { pointRadial } from "d3-shape";
 import type { TreeLayout, TreeLinkType, TreeOrientation } from "./PlaceTreeControls";
 
 /**
@@ -29,7 +28,7 @@ type Point = Readonly<{ x: number; y: number }>;
 
 /** Where a laid-out node is drawn: a tree's breadth runs down the page when it grows left to right. */
 export function nodePoint(node: Point, { layout, orientation }: Omit<PlaceTreeShape, "linkType">): [number, number] {
-  if (layout === "polar") return pointRadial(node.x, node.y);
+  if (layout === "polar") return radialPoint(node.x, node.y);
   return orientation === "vertical" ? [node.x, node.y] : [node.y, node.x];
 }
 

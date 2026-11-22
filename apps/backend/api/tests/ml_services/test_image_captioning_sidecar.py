@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
+from api.tests.sidecar_client import test_client
 from api.tests.stubs import load_backend_file
 from service.image_captioning import lfm2_vl
 
@@ -31,7 +32,7 @@ sidecar = _load_sidecar_main()
 class GenerateCaptionRouteTest(SimpleTestCase):
     def setUp(self):
         sidecar.captioner = None
-        self.client = sidecar.app.test_client()
+        self.client = test_client(sidecar.app)
 
     def tearDown(self):
         sidecar.captioner = None
