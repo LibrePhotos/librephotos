@@ -94,13 +94,11 @@ describe("issue 630: lightbox 'Time taken' date picker", () => {
       editButton.click();
     });
 
-    // Click day 21 of the displayed month (May 2022).
-    const dayButton = Array.from(container.querySelectorAll<HTMLButtonElement>("table button")).find(
-      button => button.getAttribute("data-outside") !== "true" && button.textContent === String(PICKED_DAY)
-    );
-    expect(dayButton, "day cell for the picked day").toBeTruthy();
+    const dayInput = defined(container.querySelector<HTMLInputElement>('input[type="date"]'));
+    const setValue = defined(Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set);
     await act(async () => {
-      defined(dayButton).click();
+      setValue.call(dayInput, `2022-05-${String(PICKED_DAY).padStart(2, "0")}`);
+      dayInput.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
     // Confirm (the green check ActionIcon).

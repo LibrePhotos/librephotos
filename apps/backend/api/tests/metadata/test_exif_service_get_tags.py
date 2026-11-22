@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
+from api.tests.sidecar_client import test_client
 from service.exif import main as exif_main
 
 
@@ -67,7 +68,7 @@ class FakeExifTool:
 class GetTagsTest(SimpleTestCase):
     def setUp(self):
         exif_main.app.config["TESTING"] = True
-        self.client = exif_main.app.test_client()
+        self.client = test_client(exif_main.app)
 
     def post(self, payload, raw=None, content_type="application/json"):
         if raw is not None:
@@ -366,7 +367,7 @@ class OriginsTest(SimpleTestCase):
 
     def setUp(self):
         exif_main.app.config["TESTING"] = True
-        self.client = exif_main.app.test_client()
+        self.client = test_client(exif_main.app)
 
     def answer(self, fake, files, tags, **extra):
         with patch.object(exif_main, "static_et", fake):
@@ -430,7 +431,7 @@ class OriginsTest(SimpleTestCase):
 class HealthAndLogTest(SimpleTestCase):
     def setUp(self):
         exif_main.app.config["TESTING"] = True
-        self.client = exif_main.app.test_client()
+        self.client = test_client(exif_main.app)
 
     def test_health(self):
         resp = self.client.get("/health")

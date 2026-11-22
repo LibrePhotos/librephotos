@@ -40,7 +40,7 @@ export function SplitDivider({ split, onChange, width, height }: Props) {
         <g
           className={classes.handle}
           // The stage pans a zoomed picture on a drag: one on the divider is the divider's.
-          data-own-drag
+          data-own-gesture
           role="slider"
           tabIndex={0}
           aria-label={t("editor.split.divider")}

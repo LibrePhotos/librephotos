@@ -5,7 +5,6 @@
  * decisions ContentViewer makes itself are under test.
  */
 import type { Photo } from "@librephotos/api-client";
-import type { CarouselProps } from "@mantine/carousel";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -22,7 +21,6 @@ import { createUnsavedDrafts, UnsavedDraftsContext, type UnsavedDrafts } from ".
 type DetailsStub = { data: Partial<Photo> | undefined; isLoading: boolean };
 
 const stubs = vi.hoisted(() => {
-  const carousel: CarouselProps[] = [];
   const media: MediaDisplayProps[] = [];
   const controls: LightboxControlsProps[] = [];
   /** The commands of each render of the toolbar stub: the lightbox's own, as a toolbar would subscribe. */
@@ -30,7 +28,7 @@ const stubs = vi.hoisted(() => {
   const details: DetailsStub = { data: undefined, isLoading: false };
   /** What the viewer asks the rotate mutation for. */
   const rotate: Array<{ image_hash: string; clockwiseDegrees: number }> = [];
-  return { carousel, media, controls, commands, details, rotate };
+  return { media, controls, commands, details, rotate };
 });
 
 /** The last props the stubbed toolbar got. */
@@ -47,14 +45,6 @@ function afterTrashToggle(): () => void {
   return onAfterTrashToggle;
 }
 
-vi.mock("@mantine/carousel", () => {
-  const Carousel = (props: CarouselProps) => {
-    stubs.carousel.push(props);
-    return <div>{props.children}</div>;
-  };
-  Carousel.Slide = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
-  return { Carousel };
-});
 vi.mock("./MediaDisplay", () => ({
   MediaDisplay: (props: MediaDisplayProps) => {
     if (props.isMainContent) stubs.media.push(props);
@@ -120,7 +110,6 @@ const mounted: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
   while (mounted.length) await defined(mounted.pop())();
-  stubs.carousel.length = 0;
   stubs.media.length = 0;
   stubs.controls.length = 0;
   stubs.commands.length = 0;
@@ -265,14 +254,27 @@ describe("ContentViewer Escape", () => {
   });
 });
 
+const gestureStage = () => defined(document.querySelector("[data-lightbox-media]"));
+
 describe("ContentViewer swiping", () => {
-  it("swipes until the photo is zoomed, then pans instead", async () => {
+  it("zooms with Z and keeps the gestures, which pan the zoomed photo instead of swiping", async () => {
     await renderViewer();
-    expect(defined(stubs.carousel.at(-1)).emblaOptions).toEqual({ watchDrag: true });
+    expect(gestureStage().hasAttribute("data-gestures")).toBe(true);
 
     await press("z");
 
-    expect(defined(stubs.carousel.at(-1)).emblaOptions).toEqual({ watchDrag: false });
+    expect(lastControls().isZoomed).toBe(true);
+    expect(defined(stubs.media.at(-1)).scale).toBe(2);
+    expect(gestureStage().hasAttribute("data-gestures")).toBe(true);
+  });
+
+  it("offers the arrows only where there is a photo to go to", async () => {
+    await renderViewer();
+    const labels = [...document.querySelectorAll("button[aria-label]")].map(button =>
+      button.getAttribute("aria-label")
+    );
+
+    expect(labels).toEqual(expect.arrayContaining(["lightbox.controls.previous", "lightbox.controls.next"]));
   });
 
   it("drops the zoom on the next item, so swiping works there again", async () => {
@@ -281,7 +283,6 @@ describe("ContentViewer swiping", () => {
 
     await rerender(NEXT_ITEM);
 
-    expect(defined(stubs.carousel.at(-1)).emblaOptions).toEqual({ watchDrag: true });
     expect(lastControls().isZoomed).toBe(false);
     expect(defined(stubs.media.at(-1)).scale).toBe(1);
   });
@@ -293,6 +294,8 @@ describe("ContentViewer focus", () => {
   const lightboxBody = () => defined(document.querySelector<HTMLElement>("[data-autofocus]"));
   const control = (name: string) =>
     defined([...document.querySelectorAll("button")].find(button => button.textContent === name));
+  const arrow = (direction: "previous" | "next") =>
+    defined(document.querySelector<HTMLElement>(`button[aria-label="lightbox.controls.${direction}"]`));
 
   /** The viewer once the trap has given the body its opening focus, as it is when the user first presses Tab. */
   async function renderOpenedViewer() {
@@ -307,7 +310,7 @@ describe("ContentViewer focus", () => {
     const event = await press("Tab", lightboxBody(), { shiftKey: true });
 
     expect(event.defaultPrevented).toBe(true);
-    expect(document.activeElement).toBe(control("last"));
+    expect(document.activeElement).toBe(arrow("next"));
   });
 
   it("starts Tab from the body at the first control", async () => {
@@ -324,8 +327,12 @@ describe("ContentViewer focus", () => {
 
     await press("Tab", control("first"));
     expect(document.activeElement).toBe(control("last"));
+    await press("Tab", control("last"));
+    expect(document.activeElement).toBe(arrow("previous"));
+    await press("Tab", arrow("previous"));
+    expect(document.activeElement).toBe(arrow("next"));
 
-    const event = await press("Tab", control("last"));
+    const event = await press("Tab", arrow("next"));
     expect(event.defaultPrevented).toBe(true);
     expect(document.activeElement).toBe(control("first"));
   });
@@ -515,7 +522,7 @@ describe("ContentViewer 360° view", () => {
 
     expect(lastControls().panorama?.active).toBe(true);
     expect(defined(stubs.media.at(-1)).panoramaActive).toBe(true);
-    expect(defined(stubs.carousel.at(-1)).emblaOptions).toEqual({ watchDrag: false });
+    expect(gestureStage().hasAttribute("data-gestures")).toBe(false);
   });
 
   it("leaves the arrows and Z to the viewer, and Escape leaves the view before the lightbox", async () => {

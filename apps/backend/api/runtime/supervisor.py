@@ -2,6 +2,7 @@ import logging
 import os
 import socket
 import subprocess
+import sys
 import time
 import uuid
 from collections.abc import Collection, Iterable
@@ -556,16 +557,10 @@ def _service_script(service: str) -> str:
 
 
 def _service_command(service: str) -> list[str]:
-    """argv that starts the sidecar.
-
-    From source that is the script under the interpreter on PATH, as the
-    Docker images have always done. The standalone build has no interpreter:
-    the binary runs the sidecar itself (librephotos.standalone.run_service).
-    """
     executable = named_executable(service)
     if executable is not None:
         return [executable, "service", service]
-    return ["python", _service_script(service)]
+    return [sys.executable, _service_script(service)]
 
 
 def _is_service_process(cmdline: list[str] | None, service: str) -> bool:

@@ -23,6 +23,10 @@ is compiled with [Nuitka](https://nuitka.net/), so no Python, Docker or database
 installed. The database is SQLite, the same setup as the [single container deployment](unified-deployment.md)
 with its internal database.
 
+ffmpeg is LibrePhotos' own minimal build, licensed under the GPL (version 2 or later). Its license and the list of
+its components are in `ffmpeg_bin\LICENSE.txt` inside the folder, and its source code is on the release its wheel
+came from; see [The ffmpeg build](../development/contribution/backend/ffmpeg-build.md).
+
 It is meant for one person's library on their own PC. For a shared server, or for PostgreSQL, use one
 of the Docker deployments.
 
@@ -498,6 +502,7 @@ Your photos in your own folders are not touched by any of this.
 cd apps\backend
 py -3.14 -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt -r requirements.standalone.txt
+.\.venv\Scripts\pip install --no-deps -r requirements.nodeps.txt
 .\.venv\Scripts\python scripts\build_standalone.py --zip
 ```
 

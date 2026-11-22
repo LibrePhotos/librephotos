@@ -4,12 +4,12 @@
  * both over to the next photo.
  */
 import { MantineProvider } from "@mantine/core";
-import type { TiptapEditorHTMLElement } from "@tiptap/core";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { defined } from "../../util/defined.test-utils";
+import captionInputClasses from "./CaptionInput.module.css";
 import { captionInput, Description } from "./Description";
 import hashtagClasses from "./Hashtag.module.css";
 import { createUnsavedDrafts, UnsavedDraftsContext } from "./unsavedDrafts";
@@ -51,8 +51,6 @@ const photo = (hash: string, caption: string, extra: Record<string, unknown> = {
   captions_json: { user_caption: caption, ...extra },
 });
 
-let warn: MockInstance<typeof console.warn>;
-
 beforeAll(async () => {
   // jsdom has no matchMedia, MantineProvider needs it
   window.matchMedia = (query: string): MediaQueryList => ({
@@ -65,11 +63,6 @@ beforeAll(async () => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   });
-  // jsdom does no layout; ProseMirror measures the caret to scroll it into view
-  // when the editor takes focus. An element's list, which jsdom leaves empty,
-  // stands in for the range's.
-  Range.prototype.getClientRects = () => document.createElement("div").getClientRects();
-  Range.prototype.getBoundingClientRect = () => new DOMRect();
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
   // The editor is a chunk of its own, which the lightbox prefetches: loaded first here too.
@@ -80,11 +73,6 @@ beforeEach(() => {
   document.body.innerHTML = "";
   saveCaption.mockReset();
   navigate.mockReset();
-  warn = vi.spyOn(console, "warn");
-});
-
-afterEach(() => {
-  warn.mockRestore();
 });
 
 function mount() {
@@ -114,15 +102,15 @@ async function render(
 /** The caption as text, as it shows while it is not edited; undefined while the editor is open. */
 const shownCaption = (container: HTMLElement) => container.querySelector("[class*=captionText]")?.textContent;
 
-const editorElement = (container: HTMLElement) => defined(container.querySelector<HTMLElement>(".ProseMirror"));
+const editorElement = (container: HTMLElement) => defined(container.querySelector("textarea"));
 
-/** Types at the caret, as the user would; tiptap keeps its editor on the DOM node. */
+const setTextareaValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+
 async function type(container: HTMLElement, text: string) {
-  const element: TiptapEditorHTMLElement = editorElement(container);
-  if (!element.editor) throw new Error("tiptap left no editor on its node");
-  const { view } = element.editor;
+  const element = editorElement(container);
   await act(async () => {
-    view.dispatch(view.state.tr.insertText(text));
+    setTextareaValue?.call(element, element.value + text);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
 
@@ -140,18 +128,13 @@ describe("Description", () => {
     await render(root, photo("a", "Sunset at the #beach"));
 
     // As text, without loading the editor.
-    expect(container.querySelector(".ProseMirror")).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
     expect(shownCaption(container)).toBe("Sunset at the #beach");
     expect(container.querySelector(`span.${defined(hashtagClasses.hashtag)}`)?.textContent).toBe("#beach");
 
-    // The editor shows the hashtag as a mention of the same look.
     await clickLabelled(container, "Edit caption");
-    expect(editorElement(container).textContent).toBe("Sunset at the #beach");
-    expect(container.querySelector(`span.${defined(hashtagClasses.hashtag)}[data-type="mention"]`)?.textContent).toBe(
-      "#beach"
-    );
-    // renderLabel is deprecated in tiptap v3 and warned on every render.
-    expect(warn.mock.calls.flat().join(" ")).not.toContain("renderLabel");
+    expect(editorElement(container).value).toBe("Sunset at the #beach");
+    expect(container.querySelector(`mark.${defined(captionInputClasses.hashtag)}`)?.textContent).toBe("#beach");
   });
 
   it("offers the owner a quiet Add a caption that opens the editor, and tells others there is none", async () => {
@@ -182,12 +165,12 @@ describe("Description", () => {
     await render(root, photo("a", "Saved text"));
 
     await clickLabelled(container, "Edit caption");
-    expect(editorElement(container).getAttribute("contenteditable")).toBe("true");
+    expect(editorElement(container).readOnly).toBe(false);
     await type(container, " and a draft");
-    expect(editorElement(container).textContent).toBe("Saved text and a draft");
+    expect(editorElement(container).value).toBe("Saved text and a draft");
 
     await clickLabelled(container, "Cancel");
-    expect(container.querySelector(".ProseMirror")).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
     expect(shownCaption(container)).toBe("Saved text");
     expect(saveCaption).not.toHaveBeenCalled();
   });
@@ -199,7 +182,7 @@ describe("Description", () => {
     await type(container, " and a draft");
 
     await render(root, photo("a", "Saved text", { im2txt: "A beach" }));
-    expect(editorElement(container).textContent).toBe("Saved text and a draft");
+    expect(editorElement(container).value).toBe("Saved text and a draft");
     expect(container.textContent).toContain("A beach");
   });
 
@@ -211,7 +194,7 @@ describe("Description", () => {
     await clickLabelled(container, "Edit caption");
     await clickLabelled(container, "Save");
     expect(saveCaption).not.toHaveBeenCalled();
-    expect(container.querySelector(".ProseMirror")).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
 
     await clickLabelled(container, "Edit caption");
     await type(container, " and a draft");
@@ -225,7 +208,7 @@ describe("Description", () => {
     await clickLabelled(container, "Edit caption");
 
     await render(root, photo("b", "Photo B"));
-    expect(container.querySelector(".ProseMirror")).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
     expect(shownCaption(container)).toBe("Photo B");
     expect(container.querySelector('button[aria-label="Save"]')).toBeNull();
   });
@@ -272,7 +255,7 @@ describe("Description", () => {
   it("opens the editor at once when asked to, but never for a public page", async () => {
     const { container, root } = mount();
     await render(root, photo("a", ""), false, { startEditing: true });
-    expect(editorElement(container).getAttribute("contenteditable")).toBe("true");
+    expect(editorElement(container).readOnly).toBe(false);
 
     const shared = mount();
     await render(shared.root, photo("b", ""), true, { startEditing: true });
@@ -312,7 +295,7 @@ describe("Description's unsaved draft (#2284)", () => {
     expect(drafts.dirtyFields()).toEqual(["caption"]);
     await settleSave("saved");
     expect(drafts.dirtyFields()).toEqual([]);
-    expect(container.querySelector(".ProseMirror")).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
     // The saved text, before the refetch brings it back from the server.
     expect(shownCaption(container)).toBe("Saved text and a draft");
   });
@@ -327,8 +310,8 @@ describe("Description's unsaved draft (#2284)", () => {
     await clickLabelled(container, "Save");
     await settleSave("failed");
 
-    expect(editorElement(container).getAttribute("contenteditable")).toBe("true");
-    expect(editorElement(container).textContent).toBe("Saved text and a draft");
+    expect(editorElement(container).readOnly).toBe(false);
+    expect(editorElement(container).value).toBe("Saved text and a draft");
     expect(drafts.dirtyFields()).toEqual(["caption"]);
     expect(container.querySelector('button[aria-label="Save"]')).not.toBeNull();
   });

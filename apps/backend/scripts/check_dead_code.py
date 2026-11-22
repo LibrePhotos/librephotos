@@ -68,6 +68,10 @@ FRAMEWORK_METHODS = frozenset(
         "handle",
         "add_arguments",
         "send_messages",
+        "get_internal_type",
+        "get_db_prep_value",
+        "from_db_value",
+        "find_class",
         # DRF views, viewsets and permissions
         "get_permissions",
         "get_serializer_class",

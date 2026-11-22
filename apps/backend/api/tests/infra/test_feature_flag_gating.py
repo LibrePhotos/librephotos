@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import requests
 from constance import config as site_config
+from constance import settings as constance_settings
 from constance.codecs import dumps
 from constance.models import Constance
 from constance.test import override_config
@@ -523,7 +524,7 @@ class ScanPipelineFeatureFlagTest(TestCase):
         self.assertNotIn(generate_tags, queued)
 
 
-def _save_in_another_process(key: str, value: bool) -> None:
+def _save_in_another_process(key: str, value: bool | None) -> None:
     """What a save in the web process looks like from a worker: the row
     changes, and no config_updated signal reaches this process."""
     Constance.objects.update_or_create(  # raw-create: constance's own table
@@ -604,13 +605,25 @@ class FeatureEnabledTest(TestCase):
         with patch("api.runtime.features.time.monotonic", return_value=later):
             self.assertFalse(feature_enabled("REVERSE_GEOCODING"))
 
+    def test_a_stored_none_reads_as_the_default(self):
+        _save_in_another_process("VIDEO_ENABLED", None)
+        _save_in_another_process("MAP_API_PROVIDER", None)
+
+        self.assertTrue(feature_enabled("VIDEO"))
+        self.assertEqual(
+            {
+                "VIDEO_ENABLED": True,
+                "MAP_API_PROVIDER": constance_settings.CONFIG["MAP_API_PROVIDER"][0],
+            },
+            features.site_config_values(["VIDEO_ENABLED", "MAP_API_PROVIDER"]),
+        )
+
     def test_an_unreadable_configuration_leaves_features_on(self):
         """Fail open: a database that is not up yet must not take a feature away."""
         with (
             override_config(VIDEO_ENABLED=False),
-            patch.object(
-                site_config._backend,
-                "mget",
+            patch(
+                "api.runtime.features.site_config_values",
                 side_effect=OperationalError("no such table: constance_config"),
             ),
         ):
@@ -619,8 +632,9 @@ class FeatureEnabledTest(TestCase):
 
     def test_an_unreadable_configuration_is_not_cached(self):
         with override_config(VIDEO_ENABLED=False):
-            with patch.object(
-                site_config._backend, "mget", side_effect=DatabaseError("down")
+            with patch(
+                "api.runtime.features.site_config_values",
+                side_effect=DatabaseError("down"),
             ):
                 self.assertTrue(feature_enabled("VIDEO"))
             self.assertFalse(feature_enabled("VIDEO"))
@@ -628,7 +642,10 @@ class FeatureEnabledTest(TestCase):
     def test_a_bug_reading_the_configuration_is_not_swallowed(self):
         """Only a database error fails open; anything else is a bug to see."""
         with (
-            patch.object(site_config._backend, "mget", side_effect=RuntimeError("bug")),
+            patch(
+                "api.runtime.features.site_config_values",
+                side_effect=RuntimeError("bug"),
+            ),
             self.assertRaises(RuntimeError),
         ):
             feature_enabled("VIDEO")

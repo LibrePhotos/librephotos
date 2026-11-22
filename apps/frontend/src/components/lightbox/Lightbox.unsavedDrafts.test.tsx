@@ -32,11 +32,6 @@ import type { LightboxControlsProps } from "./lightbox.types";
 import type { ThumbnailNavigationProps } from "./ThumbnailNavigation";
 import { useRegisterDraft } from "./unsavedDrafts";
 
-vi.mock("@mantine/carousel", () => {
-  const Carousel = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
-  Carousel.Slide = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
-  return { Carousel };
-});
 vi.mock("./MediaDisplay", () => ({
   MediaDisplay: () => null,
 }));
