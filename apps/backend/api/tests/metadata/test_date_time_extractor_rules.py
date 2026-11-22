@@ -22,6 +22,7 @@ from api.metadata.edits import set_capture_times, set_to
 from api.metadata.photo_datetime import extract_date_time
 from api.metadata.tags import Tags
 from api.models import Photo
+from api.tests.metadata.gps_time_zones import known_time_zones
 from api.tests.utils import create_test_photo, create_test_user
 
 # "Timestamp set by user" as lists saved before #2254 hold it.
@@ -168,6 +169,7 @@ class DefaultRulesOrderTest(TestCase):
         self.assertNotIn(14, [rule["id"] for rule in PREDEFINED_RULES_PARAMS])
 
 
+@known_time_zones
 class DefaultVideoRulesTest(TestCase):
     """Where the default rules date a video from (#2268).
 
@@ -442,6 +444,7 @@ def _predefined(rule_id):
     return next(rule for rule in PREDEFINED_RULES_PARAMS if rule["id"] == rule_id)
 
 
+@known_time_zones
 class UtcValueOfALocalTimeTagTest(TestCase):
     """#2767: a local-time tag written in UTC ("...Z") is turned into local time."""
 
@@ -541,6 +544,7 @@ class UtcValueOfALocalTimeTagTest(TestCase):
         )
 
 
+@known_time_zones
 class CaptureTimeOffsetTest(TestCase):
     """#2768: the rules hand back the UTC offset of the time they read."""
 

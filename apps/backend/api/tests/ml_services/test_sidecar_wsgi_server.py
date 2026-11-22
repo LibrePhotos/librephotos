@@ -19,11 +19,11 @@ from unittest.mock import patch
 
 import requests
 from django.test import SimpleTestCase
-from flask import Response, request
 
 from api.runtime.sidecars import _retry_policy
 from service import _wsgi_server
 from service._common import create_app, logger
+from service._web import Response, request
 from service._wsgi_server import WSGIServer
 
 BACKEND = Path(__file__).resolve().parents[3]

@@ -102,6 +102,7 @@ Requires Python 3.14 (<Since version="1.5.0" />; 3.11 up to 1.4.0) and Node 24 (
 cd apps\backend
 py -3.14 -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt -r requirements.dev.txt
+.\.venv\Scripts\pip install --no-deps -r requirements.nodeps.txt
 .\scripts\dev_windows.ps1 -DataDir C:\librephotos-devdata   # API on http://localhost:8000
 ```
 
@@ -123,7 +124,7 @@ Create a user with `python manage.py createadmin <user> <email>` in the backend 
 Both frontend and backend support hot reload:
 
 - **Frontend**: Changes to React/TypeScript files automatically refresh the browser
-- **Backend**: Django auto-reloads when Python files change (you may need to refresh the page)
+- **Backend**: uvicorn restarts the API when Python files change (you may need to refresh the page). <Since version="1.7.0" /> It watches the files with watchfiles from `requirements.dev.txt`, which the development compose build installs; without it, as in a released image started with `DEBUG=1`, uvicorn polls them instead.
 
 ### Viewing Logs
 

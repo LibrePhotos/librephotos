@@ -1,0 +1,11 @@
+# Installed after requirements.txt with `pip install --no-deps -r requirements.nodeps.txt`,
+# because pip cannot drop one dependency of a package any other way. Every dependency these
+# packages declare is either in requirements.txt or never used, and
+# api/tests/infra/test_no_deps_requirements.py fails when a bump declares a new one.
+#
+# Tokenizers for the ONNX models: CLIP BPE (OpenCLIP tags and search) and the
+# LFM2 tokenizer (captions). The Rust package alone, no transformers. It declares
+# huggingface-hub (with hf-xet, httpx2, httpcore2, anyio, fsspec, filelock, tqdm and
+# truststore, about 18 MB) for Tokenizer.from_pretrained; the sidecars load their
+# tokenizer.json with Tokenizer.from_file.
+tokenizers==0.23.3
