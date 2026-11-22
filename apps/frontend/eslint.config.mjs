@@ -47,10 +47,9 @@ export const importBans = [
       "lodash is not a dependency: use native code, or groupEntries, orderBy, chunk, uniqBy, plainDataEqual, deburr, escapeRegExp, debounce or throttle from src/util/helpers.ts.",
   },
   {
-    // dayjs is only Mantine's date-picker glue (its locales are loaded in i18n.ts); dates are luxon.
     id: "dayjs",
     group: ["dayjs", "dayjs/*"],
-    message: "dayjs is only for Mantine's date pickers. Use util/dateUtils (luxon) for dates.",
+    message: "Dates are luxon: use util/dateUtils.",
   },
   {
     // Toasts have one colour and one entry point; see service/notifications/toast.ts. The app shell

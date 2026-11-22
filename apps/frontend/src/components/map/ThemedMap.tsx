@@ -3,6 +3,7 @@ import clsx from "clsx";
 import React, { useState } from "react";
 import type { MapProps, MapRef } from "react-map-gl/maplibre";
 import MapGL from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { FeatureBoundary } from "../common/FeatureBoundary";
 import { calmBasemap, flattenBasemap, foldAttribution } from "./basemap";
 import classes from "./ThemedMap.module.css";

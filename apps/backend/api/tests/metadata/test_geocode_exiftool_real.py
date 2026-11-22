@@ -23,6 +23,7 @@ from api.metadata.exiftool_client import ExifTool
 from api.models import Photo
 from api.models.album_place import AlbumPlace
 from api.models.photo_search import PhotoSearch
+from api.tests.sidecar_client import test_client
 from api.tests.utils import create_test_photo, create_test_user
 from service.exif import main as exif_main
 
@@ -44,7 +45,7 @@ class RealExifToolMixin:
 
     def route_to_sidecar(self) -> None:
         exif_main.app.config["TESTING"] = True
-        self.client = exif_main.app.test_client()
+        self.client = test_client(exif_main.app)
         patcher = patch.object(exif_main, "static_et", self.et)
         patcher.start()
         self.addCleanup(patcher.stop)

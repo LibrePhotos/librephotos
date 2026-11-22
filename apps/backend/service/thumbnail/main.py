@@ -2,7 +2,6 @@ import os
 
 import pyvips
 import rawpy
-from flask.typing import ResponseReturnValue
 
 from librephotos.env import protected_media_root
 from service._common import (
@@ -12,6 +11,7 @@ from service._common import (
     logger,
     serve_forever,
 )
+from service._web import ResponseReturnValue
 
 app = create_app("thumbnail")
 log = logger("thumbnail")

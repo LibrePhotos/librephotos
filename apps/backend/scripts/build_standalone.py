@@ -81,14 +81,11 @@ INCLUDE_PACKAGE_DATA = [
     "rest_framework",
     "allauth",
     "constance",
-    "timezonefinder",
     "tzdata",
     "certifi",
 ]
 
 # Never useful in the binary, and some of them drag in whole test frameworks.
-# Only our own test packages are named: a wildcard like "*.test" also hits
-# werkzeug.test, which werkzeug imports at run time.
 NOFOLLOW = [
     "api.tests",
     "nextcloud.tests",
@@ -107,13 +104,6 @@ NOFOLLOW = [
     # optional import never compiles it back in.
     "matplotlib",
     "mpl_toolkits",
-    # Optional imports nothing in LibrePhotos needs (counted with
-    # --generate-c-only): DRF guards pygments with try/except ImportError, and
-    # prompt_toolkit and ipdb are development tools (requirements.dev.txt) that
-    # a build venv may still have installed. pip and
-    # huggingface_hub (with httpx2, httpcore2, anyio) came in through
-    # insightface and albumentations, which are gone; they stay listed so a
-    # new optional importer does not compile them back in.
     "pip",
     "huggingface_hub",
     "pygments",
@@ -139,7 +129,7 @@ BYTECODE_MODULES = [
 # Wheels whose executables the binary puts on PATH (librephotos.standalone).
 BUNDLED_BINARY_DIRS = {
     "exiftool_bin": Path("exiftool_bin"),
-    "ffmpeg_bin/bin": Path("ffmpeg_bin") / "bin",
+    "ffmpeg_bin": Path("ffmpeg_bin"),
 }
 
 # Source files that must exist on disk next to their compiled module: simplejwt's
@@ -257,9 +247,6 @@ def nuitka_command(output_dir, jobs, version, cache=True):
     for directory in SIDECAR_DIRS:
         module = directory.relative_to(BACKEND).as_posix().replace("/", ".")
         command.append(f"--include-module={module}.main")
-    # Shared by the ML sidecars' top-level neighbours (openclip, lfm2_vl, ...)
-    # and by every sidecar's main.py (the Flask app, /health, serve); named so
-    # the binary never depends on Nuitka following those imports.
     command.append("--include-module=service.onnx_session")
     command.append("--include-module=service._common")
     command += [f"--include-module={name}" for name in lazy_module_targets()]

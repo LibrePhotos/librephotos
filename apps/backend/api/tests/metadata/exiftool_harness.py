@@ -54,6 +54,7 @@ from api.models.photo import Photo
 from api.models.user import User
 from api.photos.media_files import get_or_create_file
 from api.runtime import sidecars
+from api.tests.sidecar_client import test_client
 from api.tests.utils import create_test_photo
 from api.thumbnails.render import generate_thumbnail
 
@@ -295,7 +296,7 @@ def _exif_service_post(
 
     if service != "exif":
         raise AssertionError(f"unexpected sidecar call to {service}{path}")
-    response = app.test_client().post(path, json=json)
+    response = test_client(app).post(path, json=json)
     if response.status_code >= 400:
         # With the status and body, as requests' raise_for_status gives them.
         answer = requests.Response()
@@ -349,13 +350,12 @@ class RealExifToolTestCase(TestCase):
         def shared_exiftool(*args: object, **kwargs: object) -> RecordingExifTool:
             return shared
 
+        in_process = SimpleNamespace(
+            post=_exif_service_post, error_detail=sidecars.error_detail
+        )
         patchers = [
-            patch(
-                "api.metadata.reader.sidecars",
-                SimpleNamespace(
-                    post=_exif_service_post, error_detail=sidecars.error_detail
-                ),
-            ),
+            patch("api.metadata.reader.sidecars", in_process),
+            patch("api.metadata.gps_time_zone.sidecars", in_process),
             patch("api.metadata.writer._orientation_reader", shared_exiftool),
             patch("api.metadata.writer._start_process", shared_writer_process),
             patch.object(exif_service, "static_et", cls.exiftool),

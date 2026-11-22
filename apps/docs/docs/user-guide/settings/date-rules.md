@@ -44,7 +44,7 @@ the timezone of the location where the photo/video was taken. Both "source_tz" a
 should be one of the following:
 
 - "utc" - UTC timezone
-- "gps_timezonefinder" - the timezone of the GPS location associated with the photo/video
+- "gps_timezonefinder" - the timezone of the GPS location associated with the photo/video. <Since version="1.7.0" /> It is the time zone of the nearest town in ExifTool's offline Geolocation database (towns of 2,000 people or more) within 200 km of the position; farther from every town, as in the open sea or near the poles, it is the nautical time zone of the longitude (`Etc/GMT+3` in the middle of the Atlantic, one hour per 15 degrees). The name stays for existing rules: up to 1.6.0 the timezonefinder library looked the position up in the time zone borders. The two can differ where a town of another zone is closer than any of the position's own (Little Diomede, Alaska, gets Russia's zone), at sea within 200 km of a town (the coast's zone with its daylight saving time instead of the nautical zone, for example in the Florida Straits or the English Channel), more than 200 km from any town (central Greenland, Australia's outback and the Line Islands get the nautical zone) and at the South Pole.
 - "user_default" - the **Default timezone** set in your user settings; several of the built-in rules rely on this, including "Video creation datetime in user default timezone"
 - "server_local" - the local timezone of the machine running LibrePhotos (in Docker this is normally UTC unless you set a `TZ` for the container)
 - "name:&lt;timezone_name&gt;" - the timezone with the name &lt;timezone_name&gt;, e.g. "name:Europe/Berlin"
