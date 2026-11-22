@@ -67,13 +67,7 @@ function UserRow({ user, wide, onEdit, onDelete }: RowProps) {
       {wide && <Table.Td>{user.date_joined ? parseInstant(user.date_joined).toRelative() : null}</Table.Td>}
       <Table.Td>
         <Group gap={5} wrap="nowrap">
-          <ActionIcon
-            variant="transparent"
-            color="blue"
-            title={t("modify")}
-            aria-label={t("modify")}
-            onClick={() => onEdit(user)}
-          >
+          <ActionIcon variant="transparent" title={t("modify")} aria-label={t("modify")} onClick={() => onEdit(user)}>
             <Edit />
           </ActionIcon>
           <ActionIcon

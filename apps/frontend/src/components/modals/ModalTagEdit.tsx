@@ -83,7 +83,7 @@ export function ModalTagEdit(props: Props) {
         <Text c="dimmed">{t("modaltag.selectedimages", { count: photoCount })}</Text>
 
         {selection.kind === "all" ? (
-          <Badge color="blue" size="lg" variant="light">
+          <Badge size="lg" variant="light">
             {selectionLabel(t, selection)}
           </Badge>
         ) : (

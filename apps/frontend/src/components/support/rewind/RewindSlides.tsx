@@ -149,7 +149,7 @@ function MonthsSlide({ rewind }: SlideProps) {
   return (
     <div className={clsx(classes.slide, classes.months)}>
       <div className={classes.lead}>{t("rewind.busiestmonth")}</div>
-      <Text className={classes.title} c="yellow.4">
+      <Text className={classes.title} c="var(--app-rewind-highlight)">
         {monthName(best, "long")}
       </Text>
       <div className={classes.body}>

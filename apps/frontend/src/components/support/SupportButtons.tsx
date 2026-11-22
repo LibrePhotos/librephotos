@@ -3,6 +3,7 @@ import { IconBrandGithub as Github, IconHeart as Heart } from "@tabler/icons-rea
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { GITHUB_REPO_LINK, PAYPAL_DONATE_LINK, SUPPORT_LINK } from "../../uiConstants";
+import classes from "./SupportButtons.module.css";
 
 type SupportButtonsProps = Readonly<{
   /** Called when one of the links opens (in a new tab). */
@@ -17,7 +18,7 @@ export function SupportButtons({ onAction, stacked = false }: SupportButtonsProp
   const link = { component: "a", target: "_blank", rel: "noreferrer", onClick: onAction, fullWidth: stacked } as const;
   const buttons = (
     <>
-      <Button {...link} href={SUPPORT_LINK} color="pink.9" leftSection={<Heart size={16} />}>
+      <Button {...link} href={SUPPORT_LINK} className={classes.sponsor} leftSection={<Heart size={16} />}>
         {t("support.sponsor")}
       </Button>
       {/* Rewind's end slide is white in either colour scheme: an outline, not the dark default. */}

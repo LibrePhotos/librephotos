@@ -88,7 +88,6 @@ export function FileCard({ photo }: Readonly<{ photo: Photo }>) {
   return (
     <PhotoCard
       icon={IconFile}
-      color="grape"
       title={t("photopage.file.title")}
       aside={<CategoryBadge key={photo.image_hash} photoDetail={photo} />}
     >

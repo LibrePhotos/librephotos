@@ -78,7 +78,7 @@ function YourPlaceLine({ place }: Readonly<{ place: NonNullable<LocationSectionP
   const Icon = PLACE_ICONS[place.icon];
   return (
     <Group gap={4} wrap="nowrap" title={t("yourplaces.yourPlace")}>
-      <Icon size={16} color="var(--mantine-color-blue-filled)" aria-hidden />
+      <Icon size={16} color="var(--mantine-primary-color-filled)" aria-hidden />
       <Text fw={600} size="sm">
         {place.name}
       </Text>

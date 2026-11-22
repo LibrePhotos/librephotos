@@ -82,7 +82,6 @@ export function RightsForm({ saved, fromFile, saving, onSave, onCancel, heading 
               <ActionIcon
                 type="submit"
                 variant="subtle"
-                color="blue"
                 size="sm"
                 aria-label={t("lightbox.sidebar.save")}
                 loading={saving}

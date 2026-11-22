@@ -75,5 +75,5 @@
 }
 
 .root[data-channel="blue"] {
-  --curve-color: var(--mantine-color-blue-6);
+  --curve-color: var(--app-channel-blue);
 }

@@ -37,7 +37,7 @@ export function ChunkedUploadButton() {
       <input {...getInputProps()} data-testid="upload-input" />
       {/* Same round 36px button and 20px glyph as the colour scheme toggle beside it.
           A block Indicator gave the button a line box that lifted it ~2px. */}
-      <Indicator processing disabled={!isUploading} color="blue" size={8} offset={3} style={{ display: "flex" }}>
+      <Indicator processing disabled={!isUploading} size={8} offset={3} style={{ display: "flex" }}>
         <ActionIcon
           color="gray"
           variant="subtle"

@@ -84,7 +84,7 @@ function CheckFileContentsForm({ onClose }: FormProps) {
           {...form.getInputProps("folder")}
         />
         <Alert
-          color="yellow"
+          color="orange"
           title={t("checkfilecontents.longrun")}
           icon={<IconAlertTriangle size={ICON_SIZE.inline} />}
         >

@@ -11,7 +11,7 @@
 }
 
 .sky {
-  fill: light-dark(var(--mantine-color-blue-1), var(--mantine-color-dark-8));
+  fill: light-dark(var(--mantine-primary-color-1), var(--mantine-color-dark-8));
 }
 
 .ground {
@@ -23,7 +23,7 @@
 }
 
 .body {
-  fill: light-dark(var(--mantine-color-blue-4), var(--mantine-color-blue-8));
+  fill: light-dark(var(--mantine-primary-color-4), var(--mantine-primary-color-8));
 }
 
 /* Solid for a kept face, dashed for a skipped one: the line says it as well as the colour. */

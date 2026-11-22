@@ -1,9 +1,10 @@
-import { Alert, Badge, Card, Group, List, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Badge, Group, List, Stack, Table, Text, Title } from "@mantine/core";
 import { IconCircleCheck } from "@tabler/icons-react";
 import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../uiConstants";
+import { ContentCard } from "../common/surfaces/ContentCard";
 import type { CheckFileContentsResult, Verdict } from "./checkFileContentsResult";
 import classes from "./CheckFileContentsResults.module.css";
 
@@ -48,10 +49,10 @@ const VERDICT_LABEL: Record<Verdict, ParseKeys> = {
 };
 
 const VERDICT_COLOR: Record<Verdict, string> = {
-  new_picture: "blue",
+  new_picture: "brand",
   same_picture: "gray",
-  similar_picture: "teal",
-  uncomparable: "yellow",
+  similar_picture: "green",
+  uncomparable: "orange",
 };
 
 type Props = Readonly<{ result: CheckFileContentsResult }>;
@@ -160,7 +161,7 @@ export function CheckFileContentsResults({ result }: Props) {
   const { t } = useTranslation();
   const changed = result.new_picture + result.same_picture + result.similar_picture + result.uncomparable;
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <ContentCard>
       <Stack>
         <div>
           <Title order={4}>{t("checkfilecontents.results")}</Title>
@@ -183,6 +184,6 @@ export function CheckFileContentsResults({ result }: Props) {
         {result.users.length > 1 && <UsersTable result={result} />}
         {result.changed.length > 0 && <ChangedFiles result={result} />}
       </Stack>
-    </Card>
+    </ContentCard>
   );
 }

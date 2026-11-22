@@ -42,3 +42,5 @@ export const LIGHT_DIMMED = "#5f6670";
 
 /** Main text in the light scheme: a soft near-black like Apple's #1d1d1f, not pure black. */
 export const LIGHT_TEXT = "#1b1b1f";
+
+export const AVATAR_TINTS = ["blue", "indigo", "teal", "green", "grape", "cyan", "violet", "gray"] as const;

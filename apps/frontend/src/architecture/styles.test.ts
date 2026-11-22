@@ -12,7 +12,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-const METRICS = ["colours", "important", "globalCss", "inlineStyles"] as const;
+const METRICS = ["colours", "paletteColours", "important", "globalCss", "inlineStyles"] as const;
 type Metric = (typeof METRICS)[number];
 type Counts = Partial<Record<Metric, number>>;
 type CountsByFile = Record<string, Counts>;
@@ -29,6 +29,7 @@ const COLOUR_HOMES = new Set([
 
 const HEX = /(?<![\w&.#])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\w-])/g;
 const COLOUR_FUNCTION = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/g;
+const PALETTE_VARIABLE = /--mantine-color-(?:blue|cyan|grape|indigo|lime|pink|teal|violet|yellow)-/g;
 const IMPORTANT = /!\s*important\b/g;
 const INLINE_STYLE = /\bstyle=\{\{/g;
 // A side-effect or default import of a relative stylesheet. CSS modules do not count, and neither
@@ -52,10 +53,12 @@ function measure(path: string, source: string): Counts {
   const code = stripComments(path, source);
   const counts: Counts = {};
   const colours = COLOUR_HOMES.has(path) ? 0 : countOf(code, HEX) + countOf(code, COLOUR_FUNCTION);
+  const paletteColours = COLOUR_HOMES.has(path) ? 0 : countOf(code, PALETTE_VARIABLE);
   const important = countOf(code, IMPORTANT);
   const globalCss = (code.match(RELATIVE_CSS_IMPORT) ?? []).filter(match => !NOT_GLOBAL.test(match)).length;
   const inlineStyles = countOf(code, INLINE_STYLE);
   if (colours) counts.colours = colours;
+  if (paletteColours) counts.paletteColours = paletteColours;
   if (important) counts.important = important;
   if (globalCss) counts.globalCss = globalCss;
   if (inlineStyles) counts.inlineStyles = inlineStyles;
@@ -117,7 +120,7 @@ function serialise(baseline: CountsByFile): string {
 const count = z.number().int().positive().optional();
 const baselineSchema = z.record(
   z.string(),
-  z.strictObject({ colours: count, important: count, globalCss: count, inlineStyles: count })
+  z.strictObject({ colours: count, paletteColours: count, important: count, globalCss: count, inlineStyles: count })
 );
 
 // `yarn test` runs from apps/frontend.
@@ -143,7 +146,7 @@ describe("styling ratchet (stylesBaseline.json)", () => {
     const { over } = compare(actual, baseline);
     expect(
       over,
-      "Use theme colours (c, bg, var(--mantine-color-*), light-dark()), a CSS module and :hover, or Mantine style props; see AGENTS.md, Styling"
+      "Use theme colours (c, bg, var(--mantine-primary-color-*), the gray, red, orange and green roles, light-dark(), an accent from src/theme/colors.css), a CSS module and :hover, or Mantine style props; see AGENTS.md, Styling"
     ).toEqual([]);
   });
 
@@ -183,6 +186,19 @@ describe("the style counts", () => {
     expect(planted("src/index.tsx", `import "./theme/colors.css";`)).toEqual([]);
   });
 
+  it("flag a palette hue in a CSS module, not a role or the primary", () => {
+    expect(planted("src/components/Foo.module.css", ".a {\n  color: var(--mantine-color-teal-6);\n}\n")).toEqual([
+      "src/components/Foo.module.css: paletteColours 1 (baseline 0)",
+    ]);
+    expect(
+      planted(
+        "src/components/Foo.module.css",
+        ".a {\n  color: var(--mantine-primary-color-filled);\n  border-color: var(--mantine-color-red-6);\n}\n"
+      )
+    ).toEqual([]);
+    expect(planted("src/theme/colors.css", ":root {\n  --app-folder: var(--mantine-color-yellow-7);\n}\n")).toEqual([]);
+  });
+
   it("flag an inline style object", () => {
     expect(planted("src/components/Foo.tsx", `<Box style={{ marginTop: 8 }} />`)).toEqual([
       "src/components/Foo.tsx: inlineStyles 1 (baseline 0)",
@@ -193,7 +209,7 @@ describe("the style counts", () => {
     const source = [
       "// was #ff0000, see #2359",
       "/* rgba(0, 0, 0, 0.5) */",
-      `const fill = "var(--mantine-color-blue-6)"; // not #fff`,
+      `const fill = "var(--mantine-color-red-6)"; // not #fff`,
       `const link = "https://example.com/#top";`,
     ].join("\n");
     expect(planted("src/components/Foo.tsx", source)).toEqual([]);

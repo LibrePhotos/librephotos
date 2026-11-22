@@ -14,28 +14,18 @@
   letter-spacing: -0.01em;
 }
 
-/*
- * No border: a soft shadow sets the card off the page, and in dark mode its raised surface does.
- * 400px with 32px of padding on every one of these pages, as Immich's sign-in; 24px on a phone.
- */
 .card {
   width: min(400px, 100%);
-  box-shadow: 0 8px 32px var(--app-scrim-black-8);
 }
 
-/* Two classes: Mantine's own Card rule sets the same variable with one. */
 .page .card {
-  --card-padding: 32px;
+  padding: 32px;
 }
 
 @media (max-width: 30em) {
   .page .card {
-    --card-padding: 24px;
+    padding: 24px;
   }
-}
-
-[data-mantine-color-scheme="dark"] .card {
-  box-shadow: 0 8px 32px var(--app-scrim-black-40);
 }
 
 /*

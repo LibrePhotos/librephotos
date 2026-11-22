@@ -1,16 +1,17 @@
-import { Paper, Stack, Text, ThemeIcon } from "@mantine/core";
+import { Stack, Text, ThemeIcon } from "@mantine/core";
 import { IconCloudUpload, IconFileX, IconFolderOff } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { FloatingCard } from "../common/surfaces/FloatingCard";
 import type { DropAlbum } from "./UploadContext";
 import classes from "./UploadDropOverlay.module.css";
 
 /** What dropping the dragged files would do. */
 export type DropVerdict = "accept" | "add" | "reject" | "no_scan_directory";
 
-const TONE: Record<DropVerdict, "blue" | "red" | "gray"> = {
-  accept: "blue",
-  add: "blue",
+const TONE: Record<DropVerdict, "brand" | "red" | "gray"> = {
+  accept: "brand",
+  add: "brand",
   reject: "red",
   no_scan_directory: "gray",
 };
@@ -59,7 +60,7 @@ export function UploadDropOverlay({ verdict, album }: { verdict: DropVerdict; al
   const tone = TONE[verdict];
   return (
     <div className={classes.overlay} data-tone={tone} data-testid="upload-drop-overlay" aria-hidden>
-      <Paper shadow="xl" radius="lg" p="xl" withBorder className={classes.card}>
+      <FloatingCard p="xl" className={classes.card}>
         <Stack align="center" gap="sm">
           <ThemeIcon size={72} radius="xl" variant="light" color={tone}>
             <VerdictIcon verdict={verdict} />
@@ -71,7 +72,7 @@ export function UploadDropOverlay({ verdict, album }: { verdict: DropVerdict; al
             {text}
           </Text>
         </Stack>
-      </Paper>
+      </FloatingCard>
     </div>
   );
 }

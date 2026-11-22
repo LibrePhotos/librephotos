@@ -20,7 +20,7 @@
 .photoButton:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px var(--app-scrim-black-10);
-  border-color: var(--mantine-color-blue-filled);
+  border-color: var(--mantine-primary-color-filled);
   z-index: 1;
 }
 
@@ -38,7 +38,7 @@
 /* The cover in use */
 .photoButton[data-selected],
 .automaticButton[data-selected] {
-  border-color: var(--mantine-color-blue-filled);
+  border-color: var(--mantine-primary-color-filled);
 }
 
 .selectedMark {
@@ -51,7 +51,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--mantine-color-blue-filled);
+  background: var(--mantine-primary-color-filled);
   color: var(--mantine-color-white);
 }
 
@@ -72,10 +72,10 @@
 }
 
 .automaticButton:hover {
-  border-color: var(--mantine-color-blue-filled);
+  border-color: var(--mantine-primary-color-filled);
 }
 
 .automaticButton[data-selected] {
   border-style: solid;
-  color: var(--mantine-color-blue-light-color);
+  color: var(--mantine-primary-color-light-color);
 }

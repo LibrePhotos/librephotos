@@ -1,23 +1,12 @@
 import type { Job } from "@librephotos/api-client";
-import {
-  Anchor,
-  Card,
-  Center,
-  Flex,
-  Group,
-  Loader,
-  Pagination,
-  Table,
-  Text,
-  Title,
-  VisuallyHidden,
-} from "@mantine/core";
+import { Anchor, Center, Flex, Group, Loader, Pagination, Table, Text, Title, VisuallyHidden } from "@mantine/core";
 import { Link, useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
 import { parseInstant } from "../../util/dateUtils";
 import { ErrorState } from "../common/ErrorState";
+import { ContentCard } from "../common/surfaces/ContentCard";
 import { useListFailure } from "../common/useListFailure";
 import { SectionLink } from "../settings/SettingsSection";
 import { useStepBackFromMissingPage } from "../stacks-duplicates/useStepBackFromMissingPage";
@@ -77,7 +66,7 @@ export function JobList({ variant = "admin" }: IJobList) {
   const jobCount = jobs?.count ?? 0;
 
   return (
-    <Card withBorder radius="lg" padding="lg">
+    <ContentCard>
       {/* On /jobs the page heading already says "My Jobs"; a card title repeating it read as a second page title. */}
       {!mine && (
         <Title order={4} mb={16}>
@@ -174,6 +163,6 @@ export function JobList({ variant = "admin" }: IJobList) {
       <Flex justify="center" mt={20}>
         <Pagination total={Math.ceil(jobCount / pageSize)} value={activePage} onChange={setActivePage} withEdges />
       </Flex>
-    </Card>
+    </ContentCard>
   );
 }
