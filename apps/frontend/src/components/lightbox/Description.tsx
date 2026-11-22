@@ -126,7 +126,6 @@ function CaptionHeader({
           <Tooltip label={t("lightbox.sidebar.save")}>
             <ActionIcon
               variant="subtle"
-              color="blue"
               size="sm"
               aria-label={t("lightbox.sidebar.save")}
               onClick={onSave}

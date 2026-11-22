@@ -3,8 +3,8 @@
   font-size: 0.6875rem;
   /* lime-2 on lime-8 was a light pill in dark mode too; dark gets the light
      variant a Mantine Badge uses there. */
-  background-color: light-dark(var(--mantine-color-lime-2), var(--mantine-color-lime-light));
-  color: light-dark(var(--mantine-color-lime-8), var(--mantine-color-lime-light-color));
+  background-color: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
   /* Not rem(): that needs postcss-preset-mantine, which this build has not got. */
   letter-spacing: 0.25px;
   border-radius: 2rem;

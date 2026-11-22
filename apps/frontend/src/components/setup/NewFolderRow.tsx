@@ -44,7 +44,7 @@ export function NewFolderRow({ parent, onCreated, onCancel }: Props) {
 
   return (
     <Group gap="xs" align="flex-start" wrap="nowrap" px={4} py={4}>
-      <IconFolderPlus size={16} color="var(--mantine-color-yellow-9)" aria-hidden />
+      <IconFolderPlus size={16} color="var(--app-folder)" aria-hidden />
       <TextInput
         aria-label={t("directorypicker.foldername")}
         placeholder={t("directorypicker.foldername")}

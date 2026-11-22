@@ -15,7 +15,7 @@ export function DrawnFaceStatus({
   const { t } = useTranslation();
   if (outcome.state === "finding") {
     return (
-      <Alert mt="xs" color="blue" role="status" icon={<Loader size="xs" />}>
+      <Alert mt="xs" role="status" icon={<Loader size="xs" />}>
         <Text size="sm">{t("lightbox.addface.finding")}</Text>
       </Alert>
     );
@@ -54,7 +54,7 @@ export function DetectFacesStatus({ outcome, onDrawFace }: DetectProps) {
   switch (outcome.state) {
     case "running":
       return (
-        <Alert mt="xs" color="blue" role="status" icon={<Loader size="xs" />} title={t("lightbox.detectfaces.running")}>
+        <Alert mt="xs" role="status" icon={<Loader size="xs" />} title={t("lightbox.detectfaces.running")}>
           <Text size="sm">{t("lightbox.detectfaces.runninghint")}</Text>
         </Alert>
       );

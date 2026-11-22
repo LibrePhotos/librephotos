@@ -1,9 +1,10 @@
 import type { DirTree, DirTreeResponse } from "@librephotos/api-client";
-import { Button, FocusTrap, Group, Modal, Paper, Stack, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
+import { Button, FocusTrap, Group, Modal, Stack, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import React, { useEffect, useEffectEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
+import { Panel } from "../common/surfaces/Panel";
 import { DIALOG_SIZE } from "./dialogSize";
 import { Leaf } from "./Leaf";
 import { makeNextcloudScanDirectorySchema } from "./ModalNextcloudScanDirectoryEdit.schema";
@@ -79,7 +80,7 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
           <Text size="sm" c="dimmed" mb={4}>
             {t("modalnextcloud.choosedirectory")}
           </Text>
-          <Paper withBorder radius="sm" p={4} mah={250} style={{ overflow: "auto" }}>
+          <Panel p={4} mah={250} style={{ overflow: "auto" }}>
             {/* Mantine's Tree has no per-node click handler: the Leaf reports the
                 clicked folder (Tree's own onClick receives the <ul> click event). */}
             <Tree
@@ -90,7 +91,7 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
                 <Leaf {...payload} nodeClicked={node => form.setFieldValue("directory", node.value)} />
               )}
             />
-          </Paper>
+          </Panel>
         </div>
         <Group justify="flex-end">
           <Button variant="light" onClick={onClose}>

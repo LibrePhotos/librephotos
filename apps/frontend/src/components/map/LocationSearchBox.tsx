@@ -97,7 +97,7 @@ function CoordinatesOption({ typed }: Readonly<{ typed: TypedCoordinates }>) {
   return (
     <Combobox.Option value={`${typed.lat},${typed.lon}`}>
       <PlaceLines
-        icon={<IconMapPin size={16} color="var(--mantine-color-blue-6)" />}
+        icon={<IconMapPin size={16} color="var(--mantine-primary-color-filled)" />}
         title={t("locationpicker.use_coordinates", { lat: typed.lat, lon: typed.lon })}
       />
     </Combobox.Option>

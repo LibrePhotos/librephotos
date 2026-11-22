@@ -1,5 +1,5 @@
 import type { DuplicateListItem } from "@librephotos/api-client";
-import { ActionIcon, Badge, Card, Checkbox, Group, Image, Menu, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Checkbox, Group, Image, Menu, Tooltip } from "@mantine/core";
 import { IconDots, IconTrash } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/urls";
@@ -7,6 +7,7 @@ import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { buttonRoleProps } from "../../util/a11y";
 import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
+import { MediaCard } from "../common/surfaces/MediaCard";
 import classes from "./DuplicatesPageContent.module.css";
 import { getDuplicateTypeColor, getDuplicateTypeIcon } from "./duplicateTypeDisplay";
 
@@ -31,7 +32,7 @@ export function DuplicateCard({
   const typeColor = getDuplicateTypeColor(duplicate.duplicate_type);
 
   return (
-    <Card padding={0} radius="md" withBorder className={classes.groupCard} data-selected={isSelected || undefined}>
+    <MediaCard padding={0} className={classes.groupCard} data-selected={isSelected || undefined}>
       {/* Selection checkbox */}
       {onToggleSelect && (
         <Checkbox
@@ -67,7 +68,7 @@ export function DuplicateCard({
         <Badge size="sm" variant="light" color={typeColor} leftSection={getDuplicateTypeIcon(duplicate.duplicate_type)}>
           {duplicate.photo_count}
         </Badge>
-        <Badge size="sm" variant="light" color={isPending ? "yellow" : isResolved ? "green" : "gray"}>
+        <Badge size="sm" variant="light" color={isPending ? "orange" : isResolved ? "green" : "gray"}>
           {t(`duplicates.${duplicate.review_status}`)}
         </Badge>
         {duplicate.potential_savings > 1024 * 1024 && (
@@ -84,7 +85,7 @@ export function DuplicateCard({
         <Menu.Target>
           <ActionIcon
             variant="subtle"
-            color="gray"
+            color="white"
             size="sm"
             className={classes.menuButton}
             pos="absolute"
@@ -109,6 +110,6 @@ export function DuplicateCard({
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
-    </Card>
+    </MediaCard>
   );
 }

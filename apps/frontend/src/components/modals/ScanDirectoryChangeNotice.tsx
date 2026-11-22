@@ -32,7 +32,7 @@ export function ScanDirectoryChangeNotice({ username, outsideCount, choice, onCh
   }
   if (outsideCount === 0) {
     return (
-      <Alert color="blue" variant="light" mt="sm" icon={<IconInfoCircle size={18} />}>
+      <Alert variant="light" mt="sm" icon={<IconInfoCircle size={18} />}>
         <Text size="sm">{t("scandirectorychange.nothingoutside", { username })}</Text>
       </Alert>
     );

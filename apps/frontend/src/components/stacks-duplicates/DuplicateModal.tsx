@@ -153,7 +153,7 @@ export function DuplicateModal({
               {getDuplicateDescription()}
               {/* !! so a score of 0 does not render a stray "0" */}
               {!!duplicate.similarity_score && (
-                <Text span size="sm" c="blue" ml="xs">
+                <Text span size="sm" c="brand" ml="xs">
                   {t("duplicates.similarpercent", {
                     percent: Math.round(duplicate.similarity_score * 100),
                   })}
@@ -170,7 +170,7 @@ export function DuplicateModal({
             {isResolved && (
               <Text size="sm" c="dimmed">
                 {t("duplicates.resolvedInfo")}{" "}
-                <Text span size="sm" c="blue">
+                <Text span size="sm" c="brand">
                   {t("duplicates.revertInfo")}
                 </Text>
               </Text>

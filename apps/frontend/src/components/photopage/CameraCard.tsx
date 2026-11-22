@@ -48,7 +48,7 @@ export function CameraCard({ photo }: Readonly<{ photo: CameraPhoto }>) {
     return null;
   }
   return (
-    <PhotoCard icon={IconCamera} color="gray" title={t("photopage.camera.title")}>
+    <PhotoCard icon={IconCamera} title={t("photopage.camera.title")}>
       <Stack gap="sm">
         {(details.camera || details.lens) && (
           <div>

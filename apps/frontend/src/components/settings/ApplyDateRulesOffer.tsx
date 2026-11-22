@@ -24,7 +24,6 @@ export function ApplyDateRulesOffer({ onApply, onClose }: ApplyDateRulesOfferPro
   return (
     <Alert
       role="status"
-      color="blue"
       icon={<CalendarRepeat />}
       title={t("settings.daterulesoffertitle")}
       withCloseButton

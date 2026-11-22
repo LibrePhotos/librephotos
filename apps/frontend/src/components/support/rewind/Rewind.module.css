@@ -56,17 +56,17 @@
 }
 
 .intro {
-  background: var(--mantine-color-blue-9);
+  background: var(--mantine-primary-color-9);
   color: var(--mantine-color-white);
 }
 
 .count {
-  background: var(--mantine-color-yellow-4);
+  background: var(--app-rewind-highlight);
   color: var(--mantine-color-gray-9);
 }
 
 .people {
-  background: var(--mantine-color-pink-9);
+  background: var(--app-rewind-people);
   color: var(--mantine-color-white);
   align-items: center;
   text-align: center;
@@ -173,7 +173,7 @@
 }
 
 .bar[data-best] {
-  background: var(--mantine-color-yellow-4);
+  background: var(--app-rewind-highlight);
 }
 
 .barLabels {

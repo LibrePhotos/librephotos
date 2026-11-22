@@ -14,7 +14,7 @@ export function MediaTypeHint() {
   if (current === DEFAULT_MEDIA_TYPE) return null;
 
   return (
-    <Text ta="left" size="sm" c="blue">
+    <Text ta="left" size="sm" c="brand">
       {t(MEDIA_TYPE_OPTIONS[current].labelKey)}
       {" · "}
       <Anchor component="button" type="button" size="sm" onClick={() => select(DEFAULT_MEDIA_TYPE)}>

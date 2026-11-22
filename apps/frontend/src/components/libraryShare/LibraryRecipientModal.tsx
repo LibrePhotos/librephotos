@@ -1,10 +1,11 @@
 import type { LibraryShare } from "@librephotos/api-client";
-import { Avatar, Button, Divider, Group, Modal, Paper, Stack, Text } from "@mantine/core";
+import { Avatar, Button, Divider, Group, Modal, Stack, Text } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconEye } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteLibraryShareMutation, useUpdateLibraryShareMutation } from "../../api_client/libraryShares/hooks";
+import { Panel } from "../common/surfaces/Panel";
 import { ConfirmModal } from "../modals/ConfirmModal";
 import { LibraryPreviewModal } from "./LibraryPreviewModal";
 import { firstName, personName, shareDate, switchesOf } from "./libraryShareFields";
@@ -64,7 +65,7 @@ export function LibraryRecipientModal({ opened, onClose, share }: Props) {
             {t("librarySharing.previewAs", { name: first })}
           </Button>
           <Divider />
-          <Paper withBorder p="sm" radius="md">
+          <Panel p="sm">
             <Group justify="space-between" wrap="nowrap">
               <div>
                 <Text size="sm" fw={500} c="red">
@@ -78,7 +79,7 @@ export function LibraryRecipientModal({ opened, onClose, share }: Props) {
                 {t("librarySharing.stopSharing")}
               </Button>
             </Group>
-          </Paper>
+          </Panel>
           <Group justify="flex-end">
             <Button variant="default" onClick={onClose}>
               {t("librarySharing.close")}

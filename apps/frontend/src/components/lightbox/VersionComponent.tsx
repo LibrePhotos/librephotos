@@ -24,9 +24,9 @@ const TEXT_COLUMN = "calc(20px + var(--mantine-spacing-md))";
 export function getVariantBadgeProps(variant: FileVariant): { color: string; label: string } {
   const unknownBadge = { color: "gray", label: "FILE" };
   const typeMap: Record<string, { color: string; label: string }> = {
-    image: { color: "blue", label: "JPG" },
+    image: { color: "brand", label: "JPG" },
     raw: { color: "gray", label: "RAW" },
-    video: { color: "grape", label: "VIDEO" },
+    video: { color: "dark", label: "VIDEO" },
     metadata: { color: "gray", label: "META" },
     unknown: unknownBadge,
   };
@@ -92,7 +92,6 @@ function PhotoInfoSection({
                 component="button"
                 type="button"
                 size="xs"
-                c="blue"
                 onClick={() => setShowVariants(!showVariants)}
                 style={{ cursor: "pointer" }}
               >

@@ -79,6 +79,8 @@ const planted = {
   "square-thumbnail-url": `const plantedCover = <Image src={mediaUrl.squareThumbnail(hash)} alt="" />;`,
   "square-thumbnail-small-url": `const plantedRow = <Avatar src={mediaUrl.squareThumbnailSmall(hash)} />;`,
   "style-from-handler": `event.currentTarget.style.opacity = "1";`,
+  "raw-surface": `import { Paper } from "@mantine/core";`,
+  "palette-color": `const plantedBadge = <Badge color={done ? "teal" : "gray"}>Done</Badge>;`,
 };
 const isJsx = code => /<[A-Z]/.test(code);
 
