@@ -315,6 +315,11 @@ Administrators can download a server-stats report from the Admin area (**Admin t
 - **Storage** — Total, used, and free disk space
 - **Per-user stats** — Detailed counts per user (photos, videos, albums, faces, and more)
 
+<Since version="1.7.0" /> The core count and the RAM are what LibrePhotos may use: inside a container
+with a memory or CPU limit (Docker `mem_limit`/`cpus`, a Kubernetes pod limit, cgroup v1 or v2) they are the
+limit, not the host's; on Windows a Job Object memory limit counts the same way. Up to 1.6.0 they were the
+host's.
+
 The stats are not rendered in the UI — download the JSON to inspect them. Per-user photo counts are also shown directly in the Admin area's user table.
 
 ### Storage Display

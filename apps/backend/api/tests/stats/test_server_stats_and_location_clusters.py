@@ -23,6 +23,7 @@ from api.dataviz.stats import (
 from api.models import Person, Photo
 from api.models.user import get_deleted_user
 from api.runtime import binaries
+from api.runtime.capacity import CGROUP_V2, Capacity
 from api.tests.utils import (
     create_test_album_auto,
     create_test_album_place,
@@ -71,6 +72,18 @@ class ServerStatsBaseTest(TestCase):
         )
         smi_patch.start()
         self.addCleanup(smi_patch.stop)
+        capacity_patch = patch(
+            "api.dataviz.stats.capacity.detect",
+            return_value=Capacity(
+                cores=3,
+                cpu_source=CGROUP_V2,
+                ram_total=2048 * 1024 * 1024,
+                ram_available=1024 * 1024 * 1024,
+                ram_source=CGROUP_V2,
+            ),
+        )
+        capacity_patch.start()
+        self.addCleanup(capacity_patch.stop)
 
 
 class GetServerStatsShapeTest(ServerStatsBaseTest):
@@ -92,7 +105,8 @@ class GetServerStatsShapeTest(ServerStatsBaseTest):
                 "users",
             },
         )
-        self.assertEqual(stats["cpu_info"], CPU_INFO)
+        self.assertEqual(stats["cpu_info"], {**CPU_INFO, "count": 3})
+        self.assertEqual(stats["available_ram_in_mb"], 2048)
         self.assertEqual(stats["number_of_users"], 0)
         self.assertEqual(stats["users"], [])
         for key in (
