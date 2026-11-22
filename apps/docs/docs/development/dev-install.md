@@ -117,6 +117,8 @@ yarn start                                            # http://localhost:3000
 
 Create a user with `python manage.py createadmin <user> <email>` in the backend venv. ML features (faces, captions, tags, semantic search) are off in this stack; see `apps/backend/CLAUDE.md`.
 
+<Since version="1.7.0" /> `manage.py start_service` and the watchdog start each sidecar with the interpreter that runs them (`sys.executable`), so a sidecar started from the venv runs in the venv. Up to 1.6.0 they ran `python` from `PATH`, which on Windows finds the base interpreter before the venv's launcher, and such a sidecar died at its first import.
+
 ## Development Workflow
 
 ### Hot Reload
