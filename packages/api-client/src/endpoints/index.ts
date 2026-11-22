@@ -2229,6 +2229,16 @@ export async function fetchUpdateStatus(client: ApiClient): Promise<S.UpdateStat
   return parseResponse(S.UpdateStatus, res, "update status");
 }
 
+export async function fetchParallelWorkers(client: ApiClient): Promise<S.ParallelWorkers> {
+  const res = await client.get<unknown>("/parallel-workers/");
+  return parseResponse(S.ParallelWorkers, res, "parallel workers");
+}
+
+export async function setWorkerIntention(client: ApiClient, intention: S.WorkerIntention): Promise<S.ParallelWorkers> {
+  const res = await client.patch<unknown>("/parallel-workers/", { intention });
+  return parseResponse(S.ParallelWorkers, res, "parallel workers");
+}
+
 /** Admin: Skip this release; `""` shows the newest release again. Answers the new status. */
 export async function skipRelease(client: ApiClient, version: string): Promise<S.UpdateStatus> {
   const res = await client.post<unknown>("/updates/skip/", { version });

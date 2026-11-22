@@ -368,3 +368,48 @@ describe("fetchBackendReadiness", () => {
     expect(await endpoints.fetchBackendReadiness(client)).toEqual({ state: "ready" });
   });
 });
+
+describe("parallel workers (#3073)", () => {
+  const parallelWorkers = {
+    capacity: {
+      cores: 4,
+      cpu_source: "cgroup v2",
+      ram_total_mb: 2048,
+      ram_available_mb: 1500,
+      ram_source: "cgroup v2",
+    },
+    intention: "balanced",
+    override: null,
+    plans: [
+      {
+        intention: "balanced",
+        workers: 1,
+        heavy_workers: 1,
+        budget_mb: 900,
+        needed_mb: 2100,
+        limited_by: "memory",
+        fits: false,
+      },
+    ],
+    workers: [],
+  };
+
+  it("reads what was detected and sets the intention", async () => {
+    const { client, requests } = fakeServer({
+      ...parallelWorkers,
+      intention: "fast",
+    });
+    const status = await endpoints.fetchParallelWorkers(client);
+    expect(defined(requests[0])).toMatchObject({
+      url: `${API}/parallel-workers/`,
+      method: "GET",
+    });
+    expect(defined(status.plans[0]).fits).toBe(false);
+    await endpoints.setWorkerIntention(client, "fast");
+    expect(defined(requests[1])).toMatchObject({
+      url: `${API}/parallel-workers/`,
+      method: "PATCH",
+      body: { intention: "fast" },
+    });
+  });
+});
