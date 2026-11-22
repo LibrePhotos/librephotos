@@ -49,7 +49,7 @@
 
 .hashtag {
   border-radius: var(--mantine-radius-xs);
-  background-color: light-dark(var(--mantine-color-lime-2), var(--mantine-color-lime-light));
-  box-shadow: 0 0 0 1px light-dark(var(--mantine-color-lime-2), var(--mantine-color-lime-light));
+  background-color: var(--mantine-primary-color-light);
+  box-shadow: 0 0 0 1px var(--mantine-primary-color-light);
   color: transparent;
 }

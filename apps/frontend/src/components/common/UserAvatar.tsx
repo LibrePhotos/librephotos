@@ -2,6 +2,7 @@ import type { AvatarProps } from "@mantine/core";
 import { Avatar } from "@mantine/core";
 import React from "react";
 import { serverAddress } from "../../api_client/urls";
+import { AVATAR_TINTS } from "../../theme/palette";
 
 type AvatarUser = Readonly<{
   username: string;
@@ -24,14 +25,10 @@ export function userDisplayName(user: AvatarUser): string {
   return full || user.username;
 }
 
-// Calm hues only: red and orange mean errors and warnings elsewhere in the app.
-const INITIALS_COLORS = ["blue", "indigo", "teal", "green", "grape", "cyan", "violet", "gray"] as const;
-
-/** The same colour for a name every time (a small string hash into INITIALS_COLORS). */
-function initialsColor(name: string): (typeof INITIALS_COLORS)[number] {
+function initialsColor(name: string): (typeof AVATAR_TINTS)[number] {
   let hash = 0;
   for (const char of name) hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 1_000_003;
-  return INITIALS_COLORS[hash % INITIALS_COLORS.length] ?? "gray";
+  return AVATAR_TINTS[hash % AVATAR_TINTS.length] ?? "gray";
 }
 
 /**

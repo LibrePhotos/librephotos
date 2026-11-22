@@ -32,7 +32,7 @@ export function SharedPhotoDetails({ photo, onOpenViewer, onCopy }: Props) {
           </Button>
         )}
       </Group>
-      <PhotoCard icon={IconInfoCircle} color="gray" title={t("photopage.sharedby", { name: ownerName })}>
+      <PhotoCard icon={IconInfoCircle} title={t("photopage.sharedby", { name: ownerName })}>
         <Text size="sm" c="dimmed">
           {t("lightbox.sidebar.ownerOnlyMoreDetails")}
         </Text>

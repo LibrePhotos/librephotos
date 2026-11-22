@@ -50,7 +50,7 @@ function PersonBirthDateForm({ person, groups, onClose }: FormProps) {
           onChange={value => form.setFieldValue("birthDate", value || null)}
         />
         {older > 0 && (
-          <Alert color="yellow" icon={<IconAlertTriangle size={ICON_SIZE.inline} />}>
+          <Alert color="orange" icon={<IconAlertTriangle size={ICON_SIZE.inline} />}>
             {t("personbirthdate.photosbefore", { count: older, name: person.name })}
           </Alert>
         )}

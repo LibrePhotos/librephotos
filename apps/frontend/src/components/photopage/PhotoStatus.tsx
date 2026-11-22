@@ -39,7 +39,7 @@ function photoStatus(actions: PhotoActions, t: TFunction): Status | null {
   }
   if (actions.isArchived) {
     return {
-      color: "teal",
+      color: "brand",
       icon: <IconArchive size={18} />,
       title: t("photopage.status.archived"),
       undoLabel: t("photopage.actions.unarchive"),

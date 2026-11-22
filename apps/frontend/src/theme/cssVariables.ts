@@ -1,6 +1,6 @@
 import type { CSSVariablesResolver } from "@mantine/core";
 import { v8CssVariablesResolver } from "@mantine/core";
-import { LIGHT_DIMMED, LIGHT_TEXT } from "./palette";
+import { LIGHT_DIMMED, LIGHT_TEXT, LIGHT_WARNING_TEXT } from "./palette";
 
 /**
  * Mantine 8's variables (transparent light variants), with the dark scheme's primary tint
@@ -25,6 +25,11 @@ export const appCssVariablesResolver: CSSVariablesResolver = theme => {
         ],
         [`--mantine-color-${color}-light-color`, `var(--mantine-color-${color}-2)`],
         [`--mantine-color-${color}-text`, `var(--mantine-color-${color}-2)`],
+        [`--mantine-color-${color}-outline`, `var(--mantine-color-${color}-3)`],
+        [
+          `--mantine-color-${color}-outline-hover`,
+          `color-mix(in srgb, var(--mantine-color-${color}-3) 12%, transparent)`,
+        ],
       ])
   );
   return {
@@ -36,6 +41,10 @@ export const appCssVariablesResolver: CSSVariablesResolver = theme => {
       // the viewer's stage.
       "--mantine-color-text": LIGHT_TEXT,
       "--mantine-primary-color-contrast": "var(--mantine-color-white)",
+      "--mantine-color-orange-text": LIGHT_WARNING_TEXT,
+      "--mantine-color-orange-light-color": LIGHT_WARNING_TEXT,
+      "--mantine-color-gray-text": "var(--mantine-color-gray-7)",
+      "--mantine-color-gray-light-color": "var(--mantine-color-gray-7)",
     },
     dark: {
       ...base.dark,

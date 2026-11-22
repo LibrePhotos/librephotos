@@ -39,7 +39,7 @@ function DatePatternPreview({ pattern }: Readonly<{ pattern: string }>) {
         onChange={event => setSample(event.currentTarget.value)}
         aria-describedby={resultId}
       />
-      <Text id={resultId} size="xs" c={read ? "teal" : "dimmed"} aria-live="polite">
+      <Text id={resultId} size="xs" c={read ? "green" : "dimmed"} aria-live="polite">
         {typeof parsed === "string"
           ? ""
           : read

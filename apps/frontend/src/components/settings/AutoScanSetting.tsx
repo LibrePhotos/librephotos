@@ -32,7 +32,7 @@ const NO_DAYS: number[] = [];
 const TONES: Record<AutoScanTone, { icon: TablerIcon; color: string }> = {
   idle: { icon: IconClock, color: "dimmed" },
   ok: { icon: IconCheck, color: "dimmed" },
-  running: { icon: IconRefresh, color: "blue" },
+  running: { icon: IconRefresh, color: "brand" },
   skipped: { icon: IconPlayerSkipForward, color: "orange" },
   failed: { icon: IconAlertTriangle, color: "red" },
 };

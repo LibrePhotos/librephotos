@@ -1,5 +1,5 @@
 import type { DuplicatePhoto } from "@librephotos/api-client";
-import { ActionIcon, Badge, Box, Button, Card, Group, Image, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Box, Button, Group, Image, Stack, Text, Tooltip } from "@mantine/core";
 import { IconCheck, IconMaximize } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,7 @@ import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
+import { MediaCard } from "../common/surfaces/MediaCard";
 import classes from "./DuplicatesPageContent.module.css";
 
 function formatResolution(width: number | null, height: number | null): string | null {
@@ -37,15 +38,8 @@ export function DuplicatePhotoCard({
       : undefined;
 
   return (
-    <Card
-      shadow="sm"
-      padding="sm"
-      radius="md"
-      withBorder
-      className={classes.photoCard}
-      data-selected={isSelected || undefined}
-    >
-      <Card.Section className={classes.photoSection}>
+    <MediaCard padding="sm" className={classes.photoCard} data-selected={isSelected || undefined}>
+      <MediaCard.Section className={classes.photoSection}>
         <Box className={classes.preview}>
           <Image
             src={thumbnailUrl}
@@ -78,14 +72,14 @@ export function DuplicatePhotoCard({
         >
           <IconMaximize size={14} />
         </ActionIcon>
-      </Card.Section>
+      </MediaCard.Section>
 
       <Stack gap="xs" mt="sm" flex={1}>
         <Group justify="space-between">
           <Text size="sm" fw={500}>
             {formatResolution(photo.width, photo.height) ?? t("settings.unknown")}
           </Text>
-          <Badge color={photo.size > 1024 * 1024 ? "blue" : "gray"} variant="light">
+          <Badge color={photo.size > 1024 * 1024 ? "brand" : "gray"} variant="light">
             {formatFileSize(photo.size, locale)}
           </Badge>
         </Group>
@@ -130,6 +124,6 @@ export function DuplicatePhotoCard({
           </Button>
         )}
       </Stack>
-    </Card>
+    </MediaCard>
   );
 }

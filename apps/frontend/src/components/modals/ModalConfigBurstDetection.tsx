@@ -72,7 +72,7 @@ export function ModalConfigBurstDetection({ opened, onClose, availableRules, onA
         <Table.Td className={classes.ruleCell}>
           <Group gap="xs">
             <strong>{rule.name}</strong>
-            <Badge size="xs" color={rule.category === "hard" ? "blue" : "orange"}>
+            <Badge size="xs" color={rule.category === "hard" ? "brand" : "orange"}>
               {rule.category === "hard" ? t("settings.burst.hard_criterion") : t("settings.burst.soft_criterion")}
             </Badge>
           </Group>

@@ -22,9 +22,9 @@
   border-radius: var(--mantine-radius-md);
 }
 
-.overlay[data-tone="blue"] {
-  --overlay-tint: var(--mantine-color-blue-light);
-  --overlay-frame: var(--mantine-color-blue-filled);
+.overlay[data-tone="brand"] {
+  --overlay-tint: var(--mantine-primary-color-light);
+  --overlay-frame: var(--mantine-primary-color-filled);
 }
 
 .overlay[data-tone="red"] {

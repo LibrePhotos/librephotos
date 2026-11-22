@@ -1,5 +1,5 @@
 import type { LibraryFolderEntry } from "@librephotos/api-client";
-import { ActionIcon, Badge, Group, Menu, Paper, Stack, Text } from "@mantine/core";
+import { ActionIcon, Badge, Group, Menu, Stack, Text } from "@mantine/core";
 import {
   IconDotsVertical,
   IconFolder,
@@ -12,6 +12,7 @@ import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../uiConstants";
+import { Panel } from "../common/surfaces/Panel";
 import classes from "./LibraryFolderRow.module.css";
 
 type Props = Readonly<{
@@ -67,7 +68,7 @@ export function LibraryFolderRow({ folder, leftOutCount, onRemove, onLeaveOut }:
   const { t } = useTranslation();
   const FolderIcon = folder.available ? IconFolder : IconFolderOff;
   return (
-    <Paper withBorder radius="md" px="sm" py="xs">
+    <Panel px="sm" py="xs">
       <Group wrap="nowrap" gap="sm">
         <FolderIcon size={ICON_SIZE.toolbar} stroke={1.5} className={classes.icon} aria-hidden />
         <Stack gap={0} flex={1} miw={0}>
@@ -107,6 +108,6 @@ export function LibraryFolderRow({ folder, leftOutCount, onRemove, onLeaveOut }:
           </Menu.Dropdown>
         </Menu>
       </Group>
-    </Paper>
+    </Panel>
   );
 }

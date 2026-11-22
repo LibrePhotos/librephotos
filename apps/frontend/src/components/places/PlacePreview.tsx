@@ -43,7 +43,7 @@ export function PlacePreview({ query }: Props) {
         </Group>
       )}
       {data?.overlaps.map(overlap => (
-        <Alert key={overlap.id} color="yellow" variant="light" p="xs" icon={<IconAlertTriangle size={16} />}>
+        <Alert key={overlap.id} color="orange" variant="light" p="xs" icon={<IconAlertTriangle size={16} />}>
           <Text size="xs">
             {t(overlap.smaller ? "yourplaces.preview.overlapSmaller" : "yourplaces.preview.overlapLarger", {
               count: overlap.photo_count,

@@ -42,7 +42,7 @@ export function ImportJobMenuSection({ imports, divider = true }: Props) {
             color="green"
             aria-label={t("topmenu.importingprogress", { ready, total })}
           />
-          <Progress.Section value={100 - percent} color="blue" />
+          <Progress.Section value={100 - percent} />
         </Progress.Root>
         <Text size="xs" c="dimmed">
           {t("topmenu.importingprogress", { ready, total })}

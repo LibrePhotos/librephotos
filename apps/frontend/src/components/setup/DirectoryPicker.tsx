@@ -1,5 +1,5 @@
 import type { CreatedFolder, DirTree } from "@librephotos/api-client";
-import { Box, Button, Grid, Group, Paper, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
+import { Box, Button, Grid, Group, Text, TextInput, Tree, type TreeNodeData } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconFolderPlus } from "@tabler/icons-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchDirsQuery } from "../../api_client/folders/hooks";
 import { mergeDirTree } from "../../util/util";
 import { DisabledReason } from "../common/DisabledReason";
+import { Panel } from "../common/surfaces/Panel";
 import { Leaf } from "../modals/Leaf";
 import { NewFolderRow } from "./NewFolderRow";
 
@@ -187,7 +188,7 @@ export function DirectoryPicker(props: DirectoryPickerProps) {
       </Group>
       {/* Grows with the expanded folders up to treeHeight instead of reserving
           it: the tree starts as a single row. The border shows it is a list. */}
-      <Paper withBorder radius="sm" p={4} mt={4} mah={treeHeight} style={{ overflow: "auto" }}>
+      <Panel p={4} mt={4} mah={treeHeight} style={{ overflow: "auto" }}>
         {creating && parentForNew !== null && (
           <NewFolderRow parent={parentForNew} onCreated={folderCreated} onCancel={stopCreating} />
         )}
@@ -197,7 +198,7 @@ export function DirectoryPicker(props: DirectoryPickerProps) {
           clearSelectionOnOutsideClick
           renderNode={payload => <Leaf {...payload} nodeClicked={nodeClicked} />}
         />
-      </Paper>
+      </Panel>
     </>
   );
 }

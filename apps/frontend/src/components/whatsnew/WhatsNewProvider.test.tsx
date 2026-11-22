@@ -139,13 +139,7 @@ describe("WhatsNewCard", () => {
     expect(shown.getAttribute("aria-label")).toBe("What's new in LibrePhotos 1.4.0");
     expect(shown.textContent).toContain("After the update");
     const titles = [...shown.querySelectorAll("li p:first-child")].map(item => item.textContent);
-    expect(titles).toEqual([
-      "Title of rescan",
-      "Title of edits",
-      "Title of many",
-      "Title of filters",
-      "Title of collections",
-    ]);
+    expect(titles).toEqual(["Title of rescan", "Title of edits", "Title of many"]);
     expect(shown.querySelector('a[href="https://docs.librephotos.com/blog/1-4-0"]')).not.toBeNull();
     expect(stubs.patch).not.toHaveBeenCalled();
   });
@@ -198,8 +192,7 @@ describe("WhatsNewCard", () => {
     await render(testUser({ is_superuser: true }));
     const shown = defined(card());
     expect(shown.textContent).toContain("2 tasks to finish the upgrade.");
-    // Both after-update steps (one only for admins) and four highlights.
-    expect(shown.querySelectorAll("li")).toHaveLength(6);
+    expect(shown.querySelectorAll("li")).toHaveLength(4);
     await click(buttonNamed("Open", shown));
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/admin", hash: "admin-upgrade" });
   });

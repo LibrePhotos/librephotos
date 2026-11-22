@@ -68,7 +68,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--mantine-color-blue-filled);
+  background-color: var(--mantine-primary-color-filled);
 }
 
 .storage {
@@ -93,10 +93,10 @@
   margin: 0 var(--mantine-spacing-xs) var(--mantine-spacing-xs);
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   border-radius: var(--mantine-radius-md);
-  color: var(--mantine-color-yellow-light-color);
-  background-color: var(--mantine-color-yellow-light);
+  color: var(--mantine-color-orange-light-color);
+  background-color: var(--mantine-color-orange-light);
   &:hover {
-    background-color: var(--mantine-color-yellow-light-hover);
+    background-color: var(--mantine-color-orange-light-hover);
   }
 }
 

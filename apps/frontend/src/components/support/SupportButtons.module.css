@@ -1,0 +1,8 @@
+.sponsor.sponsor {
+  background-color: var(--app-support);
+  color: var(--mantine-color-white);
+}
+
+.sponsor.sponsor:hover {
+  background-color: var(--app-support-hover);
+}
