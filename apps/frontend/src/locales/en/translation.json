@@ -2234,6 +2234,8 @@
     "workers_faces_limited_memory": "Fewer face services than heavy workers ({{lanes}}): more do not fit in memory.",
     "workers_faces_limited_vram": "Fewer face services than heavy workers ({{lanes}}): more do not fit in the {{budget}} GB of GPU memory LibrePhotos may use.",
     "workers_faces_limited_gpu": "One face service on the GPU, since LibrePhotos cannot tell how much GPU memory there is.",
+    "workers_faces_limited_gpu_share": "Fewer face services than heavy workers ({{lanes}}): two share the GPU, and more do not make it faster.",
+
     "workers_faces_override": "FACE_SIDECAR_REPLICAS asks for {{wanted}} face services; {{count}} fit, so {{count}} run.",
     "workers_faces_running_one": "Face services running now: {{count}}, using {{memory}} GB.",
     "workers_faces_running_other": "Face services running now: {{count}}, using {{memory}} GB.",

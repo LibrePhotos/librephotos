@@ -294,6 +294,7 @@ spare     = room - W × 600 MB - heavy × 150 MB
 replicas  = clamp(min(heavy,
                       1 + spare // face_mb,
                       vram_budget // face_vram_mb   (GPU, VRAM known),
+                      2                             (GPU, VRAM known: one GPU's queue),
                       1                             (GPU, VRAM unknown),
                       FACE_SIDECAR_REPLICAS if set), 1, 8)
 vram_budget = 0.8 × (nvidia-smi free + what our face services hold)

@@ -86,15 +86,28 @@ class FaceReplicaPlanTest(PlainTestCase):
         )
 
     def test_the_gpu_memory_our_face_services_hold_counts_as_free(self):
-        held = plan(
-            intention=FAST,
-            face=face_cost("buffalo_l", GPU),
-            face_device=GPU,
-            gpu=Gpu(total_mb=6144, free_mb=2048),
-            held_vram_mb=1100,
+        gpu = {
+            "face": face_cost("buffalo_l", GPU),
+            "face_device": GPU,
+            "gpu": Gpu(total_mb=6144, free_mb=1000),
+        }
+
+        self.assertEqual(1, plan(intention=FAST, **gpu).face_replicas)
+        self.assertEqual(
+            2, plan(intention=FAST, held_vram_mb=1100, **gpu).face_replicas
         )
 
-        self.assertEqual(4, held.face_replicas)
+    def test_two_face_services_share_a_gpu_at_most(self):
+        planned = plan(
+            intention=FAST,
+            face=face_cost("buffalo_sc", GPU),
+            face_device=GPU,
+            gpu=Gpu(total_mb=24576, free_mb=20000),
+        )
+
+        self.assertEqual(
+            ("gpu_share", 2), (planned.face_limited_by, planned.face_replicas)
+        )
 
     def test_the_setting_only_lowers_the_plan(self):
         self.assertEqual(

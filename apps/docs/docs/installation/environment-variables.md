@@ -120,7 +120,7 @@ workerConcurrency=1
 
 - at most one per heavy worker, so **Gentle** always has one;
 - as many as fit in the memory left after the workers, at the cost below each;
-- on a GPU, as many as fit in 80 % of the free GPU memory. LibrePhotos reads it from `nvidia-smi`; for an AMD or Intel GPU, or an NVIDIA GPU without `nvidia-smi` in the container, it cannot tell, so only one face service runs on the GPU;
+- on a GPU, as many as fit in 80 % of the free GPU memory, and at most two: one GPU works through their photos one after another, and in our measurements a third and fourth face service made Scan Faces no faster. LibrePhotos reads the GPU memory from `nvidia-smi`; for an AMD or Intel GPU, or an NVIDIA GPU without `nvidia-smi` in the container, it cannot tell, so only one face service runs on the GPU;
 - at most 8.
 
 | Face model | Memory per face service, CPU | GPU (WebGPU): memory | GPU memory |

@@ -219,6 +219,7 @@ HEAVY_LANE_MB = 750
 SQLITE_MAX_WORKERS = 4
 LOW_WATER_MB = 512
 MAX_REPLICAS = 8
+GPU_SHARE = 2
 VRAM_SHARE = 0.8
 
 CPU = "cpu"
@@ -330,6 +331,7 @@ def plan_face_replicas(
     if load.face_device != CPU:
         if vram_budget is not None and face.vram_mb:
             limits["vram"] = vram_budget // face.vram_mb
+            limits["gpu_share"] = GPU_SHARE
         else:
             limits["gpu"] = 1
     limits["memory"] = 1 + max(0, spare_mb) // face.ram_mb

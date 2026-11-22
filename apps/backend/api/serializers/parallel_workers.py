@@ -43,7 +43,7 @@ class WorkerPlanSerializer(serializers.Serializer[None]):
     )
     face_device = serializers.CharField(help_text="cpu, gpu or unknown")
     face_limited_by = serializers.CharField(
-        help_text="lanes, memory, vram, gpu, setting, maximum or off"
+        help_text="lanes, memory, vram, gpu, gpu_share, setting, maximum or off"
     )
     vram_budget_mb = serializers.IntegerField(
         allow_null=True,

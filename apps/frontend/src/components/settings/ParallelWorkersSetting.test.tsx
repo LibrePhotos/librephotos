@@ -158,6 +158,18 @@ describe("ParallelWorkersSetting", () => {
     expect(text).toContain("FACE_SIDECAR_REPLICAS asks for 6 face services; 1 fit, so 1 run.");
   });
 
+  it("says two face services share a GPU", async () => {
+    stubs.status = status({
+      plans: [
+        plan("gentle"),
+        plan("balanced", { heavy_workers: 4, face_replicas: 2, face_limited_by: "gpu_share", face_vram_mb: 150 }),
+        plan("fast"),
+      ],
+    });
+    const container = await render();
+    expect(container.textContent ?? "").toContain("two share the GPU, and more do not make it faster.");
+  });
+
   it("names memory as the limit of the face services", async () => {
     stubs.status = status({
       plans: [

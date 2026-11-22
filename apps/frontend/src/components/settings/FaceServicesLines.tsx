@@ -30,6 +30,13 @@ function LimitNote({ plan }: Readonly<{ plan: WorkerPlan }>) {
           {t("sitesettings.workers_faces_limited_gpu")}
         </Text>
       );
+    case "gpu_share":
+      return (
+        <Text fz="xs" c="dimmed">
+          {t("sitesettings.workers_faces_limited_gpu_share", { lanes })}
+        </Text>
+      );
+
     default:
       return null;
   }

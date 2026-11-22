@@ -33824,7 +33824,7 @@
           },
           "face_limited_by": {
             "type": "string",
-            "description": "lanes, memory, vram, gpu, setting, maximum or off"
+            "description": "lanes, memory, vram, gpu, gpu_share, setting, maximum or off"
           },
           "vram_budget_mb": {
             "type": "integer",
