@@ -131,7 +131,7 @@ export function FaceDrawLayer({ onCommit, onCancel }: Props) {
             left: `${rubberBand.left * 100}%`,
             width: `${(rubberBand.right - rubberBand.left) * 100}%`,
             height: `${(rubberBand.bottom - rubberBand.top) * 100}%`,
-            border: `2px solid ${theme.colors.blue[4]}`,
+            border: "2px solid var(--mantine-primary-color-4)",
             borderRadius: theme.radius.sm,
             backgroundColor: "var(--app-scrim-white-12)",
             pointerEvents: "none",

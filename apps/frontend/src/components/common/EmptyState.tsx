@@ -66,7 +66,7 @@ export function EmptyState({
   return (
     <Center py={80} className={dropZone ? classes.dropZone : undefined} data-drop-zone={dropZone || undefined}>
       <Stack align="center" gap="md" maw={400} w="100%">
-        <ThemeIcon size={80} radius="xl" variant="light" color={iconColor ?? (progress ? "blue" : "gray")}>
+        <ThemeIcon size={80} radius="xl" variant="light" color={iconColor ?? (progress ? "brand" : "gray")}>
           {icon || <IconPhoto size={40} />}
         </ThemeIcon>
         <Title order={3} ta="center">
@@ -79,7 +79,6 @@ export function EmptyState({
               size="md"
               radius="xl"
               animated={progressPercent === undefined || progressPercent < 100}
-              color="blue"
             />
             <Text c="dimmed" ta="center" size="sm">
               {/* One string, so translations can order the numbers and words themselves */}

@@ -1,10 +1,11 @@
-import { Anchor, Button, Group, Modal, Paper, SimpleGrid, Stack, Text, ThemeIcon } from "@mantine/core";
+import { Anchor, Button, Group, Modal, SimpleGrid, Stack, Text, ThemeIcon } from "@mantine/core";
 import { IconCheck as Check } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks/useFetchCountStatsQuery";
 import { TRANSLATE_LINK } from "../../uiConstants";
+import { Panel } from "../common/surfaces/Panel";
 import { CLOUD_PRICES_CHECKED, librarySize, plansFor, planSize, usd } from "./cloudPrices";
 import { SupportButtons } from "./SupportButtons";
 import classes from "./ThankYouModal.module.css";
@@ -25,14 +26,14 @@ type ThankYouModalProps = Readonly<{
 
 function Stat({ value, label }: Readonly<{ value: string; label: string }>) {
   return (
-    <Paper className={classes.stat} radius="md" p="sm">
+    <Panel className={classes.stat} p="sm">
       <Text fw={700} size="xl">
         {value}
       </Text>
       <Text size="xs" c="dimmed">
         {label}
       </Text>
-    </Paper>
+    </Panel>
   );
 }
 
@@ -43,7 +44,7 @@ function CloudPrices({ bytes }: Readonly<{ bytes: number }>) {
   if ((plans[0]?.yearlyUsd ?? 0) === 0) return null;
   const locale = i18n.language;
   return (
-    <Paper withBorder radius="md" className={classes.prices} data-testid="cloud-prices">
+    <Panel className={classes.prices} data-testid="cloud-prices">
       <Group justify="space-between" gap="xs" className={classes.pricesHeader}>
         <Text size="sm" fw={600}>
           {t("support.thankyou.elsewhere", { size: librarySize(bytes, locale) })}
@@ -73,7 +74,7 @@ function CloudPrices({ bytes }: Readonly<{ bytes: number }>) {
           {usd(0, locale)}
         </Text>
       </Group>
-    </Paper>
+    </Panel>
   );
 }
 

@@ -1,7 +1,8 @@
-import { Card, Group, Stack, Text, Title } from "@mantine/core";
+import { Group, Stack, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Logo } from "../common/Logo";
+import { FloatingCard } from "../common/surfaces/FloatingCard";
 import classes from "./AuthCard.module.css";
 
 type Props = Readonly<{
@@ -16,13 +17,6 @@ type Props = Readonly<{
   top?: ReactNode;
 }>;
 
-/**
- * The layout of every page before the app: sign-in, sign-up, password reset and first-time setup.
- * The logo and the product name above one 400px borderless card with a soft shadow, in the middle of
- * a plain page; inside it the heading, an optional description, the form with its labels above the
- * fields and a full-width primary (AuthCard.module.css sizes them), then a row of small links, as
- * Immich and Google draw their sign-in. The tagline sits under the card on every one of these pages.
- */
 export function AuthCard({ title, description, children, links, top }: Props) {
   const { t } = useTranslation();
   return (
@@ -34,7 +28,7 @@ export function AuthCard({ title, description, children, links, top }: Props) {
           {t("login.name")}
         </Text>
       </Group>
-      <Card radius={16} className={classes.card}>
+      <FloatingCard className={classes.card}>
         <Stack gap="lg">
           {top}
           <Stack gap={6} align="center">
@@ -50,7 +44,7 @@ export function AuthCard({ title, description, children, links, top }: Props) {
             </Group>
           ) : null}
         </Stack>
-      </Card>
+      </FloatingCard>
       <Text c="dimmed" size="sm" ta="center">
         {t("login.tagline")}
       </Text>

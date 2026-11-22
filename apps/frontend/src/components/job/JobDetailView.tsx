@@ -1,5 +1,5 @@
 import type { JobDetail } from "@librephotos/api-client";
-import { Badge, Box, Button, Card, Code, Stack, Table, Text, Title } from "@mantine/core";
+import { Badge, Box, Button, Code, Stack, Table, Text, Title } from "@mantine/core";
 import { IconArrowLeft, IconListDetails } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { DateTime } from "luxon";
@@ -11,6 +11,7 @@ import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
 import { PageHeader } from "../PageHeader";
+import { SettingsCard } from "../settings/SettingsCard";
 import { SettingsPageFrame } from "../SettingsPageFrame";
 import { CancelJobButton } from "./CancelJobButton";
 import { CHECK_FILE_CONTENTS_JOB_TYPE, parseCheckFileContentsResult } from "./checkFileContentsResult";
@@ -123,7 +124,7 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
         </>
       }
     >
-      <Card withBorder radius="lg" padding="lg">
+      <SettingsCard>
         <Title order={4} mb={16}>
           {t("joblist.jobinformation")}
         </Title>
@@ -186,12 +187,12 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
             </Table.Tr>
           </Table.Tbody>
         </Table>
-      </Card>
+      </SettingsCard>
 
       <JobReport job={job} />
 
       {outcome === "failed" && (
-        <Card withBorder radius="lg" padding="lg" style={{ border: "1px solid var(--mantine-color-red-6)" }}>
+        <SettingsCard style={{ border: "1px solid var(--mantine-color-red-6)" }}>
           <Title order={4} mb={16} c="red">
             {t("joblist.errordetails")}
           </Title>
@@ -215,12 +216,12 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
               </Box>
             )}
           </Stack>
-        </Card>
+        </SettingsCard>
       )}
 
       {/* Partial failure: some items failed, the job as a whole did not */}
       {outcome === "partial_failure" && (
-        <Card withBorder radius="lg" padding="lg" style={{ border: "1px solid var(--mantine-color-orange-6)" }}>
+        <SettingsCard style={{ border: "1px solid var(--mantine-color-orange-6)" }}>
           <Title order={4} mb={16} c="orange">
             {t("joblist.partialfailurebadge")}
           </Title>
@@ -240,19 +241,19 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
               </Box>
             )}
           </Stack>
-        </Card>
+        </SettingsCard>
       )}
 
       {/* A cancelled job's result is only {"status": "cancelled"}, which the status already says */}
       {(outcome === "completed" || outcome === "running" || outcome === "queued") &&
         job.result &&
         Object.keys(job.result).length > 0 && (
-          <Card withBorder radius="lg" padding="lg">
+          <SettingsCard>
             <Title order={4} mb={16}>
               {t("joblist.resultdata")}
             </Title>
             {resultCode}
-          </Card>
+          </SettingsCard>
         )}
     </SettingsPageFrame>
   );

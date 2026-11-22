@@ -98,7 +98,7 @@ beforeEach(() => {
 describe("UpdateAvailableCard", () => {
   it("names the release, the one running and when it came out", async () => {
     const { container } = await renderInMantine(<UpdateAvailableCard status={status()} />);
-    expect(container.querySelector("h4")?.textContent).toBe("LibrePhotos 1.5.0 is available");
+    expect(container.querySelector("h3")?.textContent).toBe("LibrePhotos 1.5.0 is available");
     expect(container.textContent).toContain("1.4.0 → 1.5.0");
     expect(container.textContent).toContain("You have 1.4.0. 1.5.0 was published on Nov 14, 2026.");
     expect(container.textContent).toContain("Nothing about this server is sent.");

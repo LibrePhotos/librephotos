@@ -29,8 +29,8 @@ type Down = Extract<BackendStatus, { kind: "down" }>;
 type Look = { color: MantineColor; icon: React.ReactNode; tab: ParseKeys };
 
 const LOOKS: Record<StatusScreen, Look> = {
-  updating: { color: "blue", icon: <Loader size="md" />, tab: "backendStatus.updating.tab" },
-  starting: { color: "blue", icon: <Loader size="md" />, tab: "backendStatus.starting.tab" },
+  updating: { color: "brand", icon: <Loader size="md" />, tab: "backendStatus.updating.tab" },
+  starting: { color: "brand", icon: <Loader size="md" />, tab: "backendStatus.starting.tab" },
   unreachable: { color: "gray", icon: <IconPlugConnectedX size={40} />, tab: "backendStatus.unreachable.tab" },
   "failed.E001": { color: "orange", icon: <IconAlertTriangle size={40} />, tab: "backendStatus.failed.tab" },
   "failed.E002": { color: "orange", icon: <IconAlertTriangle size={40} />, tab: "backendStatus.failed.tab" },

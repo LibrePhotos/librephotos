@@ -51,7 +51,7 @@ export function DatedFoldersFields({ form, target, firstFolder }: Props) {
           {target !== null && (
             <Text size="xs" c="dimmed" ff="monospace" className={classes.example}>
               {t("movephotos.example")} {childPath(target, "")}
-              <Box component="strong" c="blue">
+              <Box component="strong" c="brand">
                 {examplePart(target, firstFolder, folderPattern)}
               </Box>
             </Text>

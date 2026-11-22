@@ -170,7 +170,6 @@ export function ScanLibraryRow({ busyReason, scanBlocked, onScan, onRescan }: Sc
               <Menu.Target>
                 <ActionIcon
                   variant="filled"
-                  color="blue"
                   size={36}
                   aria-label={t("settings.statusrescanphotosfalse")}
                   style={{

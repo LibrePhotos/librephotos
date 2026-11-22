@@ -50,7 +50,7 @@ function NewName({ row }: Readonly<{ row: RenameRow }>) {
   if (row.status !== "rename" || row.new_name === null) return <KeptName row={row} />;
   return (
     <Group gap={6} wrap="wrap">
-      <Text size="sm" ff="monospace" c={row.number > 0 ? "orange" : "teal"} className={classes.newName}>
+      <Text size="sm" ff="monospace" c={row.number > 0 ? "orange" : "green"} className={classes.newName}>
         {row.new_name}
       </Text>
       {row.number > 0 && (

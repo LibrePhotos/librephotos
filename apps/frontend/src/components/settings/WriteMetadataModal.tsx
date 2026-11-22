@@ -1,7 +1,8 @@
 import type { WriteMetadataTarget } from "@librephotos/api-client";
-import { Button, Group, Modal, Paper, Stack, Text } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "../common/surfaces/Panel";
 import { modalTitleStyles } from "../modals/modalTitleStyles";
 import type { LabelledCount } from "./writeExistingEdits";
 import classes from "./WriteMetadataModal.module.css";
@@ -41,7 +42,7 @@ export function WriteMetadataModal({ opened, onClose, onConfirm, target, counts,
         <Text size="sm">
           {media ? t("settings.writeexisting.mediafilemessage") : t("settings.writeexisting.sidecarmessage")}
         </Text>
-        <Paper withBorder p="sm">
+        <Panel p="sm">
           <Stack gap={6}>
             {counts.map(({ type, label, photos }) => (
               <Group key={type} justify="space-between" gap="xs" wrap="nowrap">
@@ -52,7 +53,7 @@ export function WriteMetadataModal({ opened, onClose, onConfirm, target, counts,
               </Group>
             ))}
           </Stack>
-        </Paper>
+        </Panel>
         <div className={classes.actions}>
           <Button variant="default" onClick={onClose} data-autofocus>
             {t("cancel")}

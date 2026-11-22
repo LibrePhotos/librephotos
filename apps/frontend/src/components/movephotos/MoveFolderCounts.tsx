@@ -1,8 +1,9 @@
 import type { MoveFolderCount } from "@librephotos/api-client";
-import { Badge, Group, Paper, Stack, Text } from "@mantine/core";
+import { Badge, Group, Stack, Text } from "@mantine/core";
 import { IconFolder, IconFolderPlus } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "../common/surfaces/Panel";
 import classes from "./MovePhotosModal.module.css";
 
 type Props = Readonly<{
@@ -35,7 +36,7 @@ function FolderLine({ folder, target }: Readonly<{ folder: MoveFolderCount; targ
           {below(target, folder.path)}
         </Text>
         {folder.new && (
-          <Badge size="xs" color="teal" variant="light">
+          <Badge size="xs" color="green" variant="light">
             {t("movephotos.newbadge")}
           </Badge>
         )}
@@ -53,7 +54,7 @@ export function MoveFolderCounts({ target, folders }: Props) {
   if (folders.length === 0) return null;
   const more = folders.length - LISTED;
   return (
-    <Paper withBorder radius="sm" p="xs">
+    <Panel p="xs">
       <Stack gap={4} role="list" aria-label={t("movephotos.folderslabel")}>
         {folders.slice(0, LISTED).map(folder => (
           <div role="listitem" key={folder.path}>
@@ -66,6 +67,6 @@ export function MoveFolderCounts({ target, folders }: Props) {
           </Text>
         )}
       </Stack>
-    </Paper>
+    </Panel>
   );
 }

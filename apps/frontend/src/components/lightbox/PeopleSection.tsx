@@ -85,7 +85,7 @@ export function PeopleSection({
         </Group>
       )}
       {isDrawingFace && (
-        <Alert mt="xs" color="blue" title={t("lightbox.addface.drawtitle")}>
+        <Alert mt="xs" title={t("lightbox.addface.drawtitle")}>
           <Text size="sm">{t("lightbox.addface.drawhint")}</Text>
           <Button mt="xs" size="xs" variant="light" onClick={onCancelAddFace}>
             {t("cancel")}

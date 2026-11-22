@@ -23,7 +23,7 @@
 
 .warning {
   flex: none;
-  color: var(--mantine-color-yellow-5);
+  color: var(--mantine-color-orange-5);
 }
 
 .action {
@@ -33,7 +33,7 @@
   gap: 2px;
   font-size: var(--mantine-font-size-xs);
   font-weight: 600;
-  color: var(--mantine-color-blue-3);
+  color: var(--mantine-primary-color-3);
 }
 
 .action:hover,

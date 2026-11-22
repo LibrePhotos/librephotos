@@ -49,7 +49,7 @@ export function YourPlacesRow({ places, addDisabledReason, onAdd }: Props) {
                   )}
                 </div>
                 <Group gap={4} mt={6} wrap="nowrap">
-                  <Icon size={14} color="var(--mantine-color-blue-filled)" aria-hidden />
+                  <Icon size={14} color="var(--mantine-primary-color-filled)" aria-hidden />
                   <Text size="sm" fw={500} lineClamp={1} className={classes.name} title={place.name}>
                     {place.name}
                   </Text>

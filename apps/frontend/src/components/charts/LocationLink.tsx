@@ -294,7 +294,7 @@ export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }
       >
         {isLoading ? (
           <div className={styles.loadingOverlay}>
-            <Loader size="lg" color="blue" />
+            <Loader size="lg" />
             <Text c="dimmed" size="sm">
               {t("placetree.loading")}
             </Text>

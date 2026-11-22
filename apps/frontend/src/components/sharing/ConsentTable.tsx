@@ -56,7 +56,7 @@ export function ConsentTable({ album }: Props) {
                 />
               </Table.Td>
               <Table.Td>
-                <Text size="sm" fw={600} c={shown ? "teal" : "dimmed"}>
+                <Text size="sm" fw={600} c={shown ? "green" : "dimmed"}>
                   {shown ? t("collab.yes") : t("collab.no")}
                 </Text>
               </Table.Td>
