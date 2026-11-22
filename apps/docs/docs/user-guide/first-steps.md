@@ -54,7 +54,7 @@ This is where you tell LibrePhotos where your photos are stored:
 - **Balanced** (the default): half the cores, at most four.
 - **Fast first import**: as many workers as fit, until the first import is done; then LibrePhotos switches back to Balanced by itself.
 
-Under the choice it says how many workers that gives and how much memory they use, and warns when even one worker does not fit (one runs anyway, slowly). You can change it later under **Admin area → Site settings → Parallel workers**; see [Limiting CPU and memory usage](../installation/environment-variables.md#limiting-cpu-and-memory-usage).
+Under the choice it says how many workers that gives and how much memory they use, and warns when even one worker does not fit (one runs anyway, slowly). With face recognition on, it also says how many face services Scan Faces gets, one per heavy worker as far as memory and GPU memory allow, and what limits them (see [Faces in parallel](../installation/environment-variables.md#faces-in-parallel)). You can change it later under **Admin area → Site settings → Parallel workers**; see [Limiting CPU and memory usage](../installation/environment-variables.md#limiting-cpu-and-memory-usage).
 
 Click **Continue**: you'll be taken to the main LibrePhotos interface and your first scan begins if you configured a scan directory.
 
