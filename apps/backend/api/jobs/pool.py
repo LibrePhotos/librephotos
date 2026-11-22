@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from multiprocessing.context import SpawnProcess
 from pathlib import Path
 from types import FrameType
+from typing import Protocol
 
 import psutil
 from django import db
@@ -36,6 +37,12 @@ class Every:
     due: float = 0.0
 
 
+class SidecarScaler(Protocol):
+    def __call__(self, heavy_width: int) -> object: ...
+
+    def stop(self) -> None: ...
+
+
 @dataclass
 class PoolSettings:
     workers: int
@@ -44,6 +51,8 @@ class PoolSettings:
     sizer: Callable[[], tuple[int, int]] | None = None
     every_minute: Callable[[], object] | None = None
     watchdog: Callable[[], object] | None = None
+    scaler: SidecarScaler | None = None
+    scale_seconds: float = 5.0
 
 
 def kill_tree(pid: int) -> None:
@@ -84,6 +93,28 @@ class Pool:
         self.watching: threading.Thread | None = None
         if settings.watchdog is not None:
             self.periodic.append(Every(60, self.watch_sidecars))
+        self.scaling: threading.Thread | None = None
+        if settings.scaler is not None:
+            self.periodic.append(Every(settings.scale_seconds, self.scale_sidecars))
+
+    def scale_sidecars(self) -> None:
+        scaler = self.settings.scaler
+        if scaler is None or self.stopping.is_set():
+            return
+        if self.scaling is not None and self.scaling.is_alive():
+            return
+        heavy = int(self.limits[1])
+
+        def run() -> None:
+            try:
+                scaler(heavy)
+            except Exception:
+                logger.exception("the sidecar scaler failed")
+            finally:
+                db.connections.close_all()
+
+        self.scaling = threading.Thread(target=run, name="sidecar-scaler", daemon=True)
+        self.scaling.start()
 
     def watch_sidecars(self) -> None:
         watchdog = self.settings.watchdog
@@ -230,5 +261,17 @@ class Pool:
                 except Exception:
                     logger.exception("could not requeue the task of worker %s", slot)
         WorkerProcess.objects.filter(host=self.host).delete()
+        self.stop_sidecars()
         db.connections.close_all()
         logger.info("workers stopped")
+
+    def stop_sidecars(self) -> None:
+        scaler = self.settings.scaler
+        if scaler is None:
+            return
+        if self.scaling is not None:
+            self.scaling.join(STOP_GRACE_SECONDS)
+        try:
+            scaler.stop()
+        except Exception:
+            logger.exception("could not stop the sidecar replicas")

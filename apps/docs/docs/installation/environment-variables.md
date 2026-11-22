@@ -105,7 +105,7 @@ The backend container runs two things: **uvicorn**, which answers API requests, 
 - **Balanced** (the default): half the cores, at most 4.
 - **Fast first import**: all cores but one, at most 8, until the first import is done; then it switches back to Balanced by itself.
 
-Each choice is then held to the memory it may use: about 1.5 GB for the server and the sidecars plus 600 MB per worker, out of 60 % of the available memory (80 % for Fast). On SQLite at most 4 workers run, since SQLite has one writer. At least one always runs; when even that does not fit, the admin area says so. When the container runs low on memory, LibrePhotos pauses one worker at a time and resumes them once there is room, without a restart. A worker above 1.5 GB is stopped and replaced, and its task runs again. Up to 1.6.0 there was one worker per *host* core, whatever the container limit.
+Each choice is then held to the memory it may use, out of 60 % of the available memory (80 % for Fast), counting what LibrePhotos itself already holds as available to it. The budget adds up what runs: about 300 MB for the web server, the helper services that are switched on (metadata 150 MB, RAW thumbnails 150 MB, similar photos 120 MB, tags and search 700 MB, captions 1.1 GB, text recognition 600 MB), the face services (see [Faces in parallel](#faces-in-parallel)) and 600 MB per worker. On SQLite at most 4 workers run, since SQLite has one writer. At least one always runs; when even that does not fit, the admin area says so. When the container runs low on memory, LibrePhotos pauses one worker at a time and resumes them once there is room, without a restart. A worker above 1.5 GB is stopped and replaced, and its task runs again. Up to 1.6.0 there was one worker per *host* core, whatever the container limit.
 
 To set the number yourself, use `workerConcurrency` in your `.env` (the variable it fills in is `WORKER_CONCURRENCY`); it wins over the choice in the admin area:
 
@@ -113,6 +113,36 @@ To set the number yourself, use `workerConcurrency` in your `.env` (the variable
 # One background worker
 workerConcurrency=1
 ```
+
+#### Faces in parallel
+
+<Since version="1.7.0" /> Scan Faces runs on the heavy workers, and each heavy worker gets a face service of its own, so the workers do not wait for each other's photos. Up to 1.6.0 there was one face service, and every worker queued on it. How many run is not a number you set: LibrePhotos works it out with the workers, from the memory budget above and, on a GPU, the GPU's memory:
+
+- at most one per heavy worker, so **Gentle** always has one;
+- as many as fit in the memory left after the workers, at the cost below each;
+- on a GPU, as many as fit in 80 % of the free GPU memory, and at most two: one GPU works through their photos one after another, and in our measurements a third and fourth face service made Scan Faces no faster. LibrePhotos reads the GPU memory from `nvidia-smi`; for an AMD or Intel GPU, or an NVIDIA GPU without `nvidia-smi` in the container, it cannot tell, so only one face service runs on the GPU;
+- at most 8.
+
+| Face model | Memory per face service, CPU | GPU (WebGPU): memory | GPU memory |
+| --- | --- | --- | --- |
+| `buffalo_sc` (default) | 250 MB | 450 MB | 150 MB |
+| `buffalo_s` | 350 MB | 550 MB | 200 MB |
+| `buffalo_m` | 450 MB | 750 MB | 450 MB |
+| `buffalo_l` | 600 MB | 1.1 GB | 550 MB |
+| `antelopev2` | 650 MB | 1.25 GB | 700 MB |
+
+The numbers come from measuring each model with some headroom: on the CPU on Windows and Linux (glibc), on the GPU with WebGPU on Windows (GTX 1660 Ti). Until the first face service has loaded its model, LibrePhotos does not know yet whether it runs on the GPU, so it plans with the GPU's costs and one face service, and adds more once it knows. The admin area (**Site settings → Parallel workers**) shows how many face services the choice gives, what they cost, what limits them, and how many run right now.
+
+The extra face services start when Scan Faces has work queued, stop two minutes after their last photo, and listen on the face recognition port plus 100, 200, ... (8105, 8205, ... by default; `SIDECAR_PORT_FACE_RECOGNITION` moves them along). When memory gets low, one face service stops per round before any worker has to; a face service that grows past twice its cost (at least 500 MB more) is restarted. On the CPU the extra face services run ONNX Runtime with their share of the cores (the cores divided by the face services), so they do not fight over them; `ONNX_INTRA_OP_THREADS`, when you set it, applies to all of them instead.
+
+`FACE_SIDECAR_REPLICAS` (`faceSidecarReplicas` in your `.env`) asks for a number of face services. It is only ever lowered to what fits, never raised past it, and the log says so when it is lowered:
+
+```bash
+# At most two face services, even when more would fit
+faceSidecarReplicas=2
+```
+
+With a container memory limit (`mem_limit:` in Compose), all of this is held to the limit, not to the host's memory: on a 4 GB limit one worker and one face service run, whatever the model; on 8 GB with 4 cores, Balanced gives two workers with a face service each and Fast three, with `buffalo_sc` as with `buffalo_l`. On a Raspberry Pi or another small ARM64 board the CPU is the limit before memory is: each face service uses all cores for one photo, so a second one helps less than on a PC. Choose Gentle there if the board does other things. The costs above were not measured on ARM64.
 
 #### If you also want a hard cap
 
@@ -365,7 +395,7 @@ The backend talks to its helper services (thumbnails, metadata, faces, tags, cap
 | `SIDECAR_PORT_TAGS` | `8011` | Tags and search embeddings (OpenCLIP) |
 | `SIDECAR_PORT_OCR` | `8012` | Text recognition |
 
-A value that is not a port number between 1 and 65535 stops the backend with a message naming the variable.
+A value that is not a port number between 1 and 65535 stops the backend with a message naming the variable. <Since version="1.7.0" /> The extra face services listen on `SIDECAR_PORT_FACE_RECOGNITION` plus 100, 200, ... up to 700 (see [Faces in parallel](#faces-in-parallel)); a port of another service among them stops the backend with a message naming both.
 
 ### Which Nextcloud servers may be contacted
 

@@ -10,6 +10,7 @@ from librephotos.env import data_models_root
 from service._common import create_app, json_fields, logger, serve_forever
 from service._web import ResponseReturnValue
 from service.face_recognition.face_analysis import Face, FaceAnalysis
+from service.onnx_session import active_device
 
 face_analysis_models: dict[str, FaceAnalysis] = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
@@ -31,6 +32,7 @@ app = create_app(
     "face_recognition",
     unload=face_analysis_models.clear,
     is_loaded=lambda: bool(face_analysis_models),
+    device=lambda: active_device() if face_analysis_models else None,
 )
 
 

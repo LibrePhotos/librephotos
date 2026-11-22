@@ -222,7 +222,8 @@ one host). Reverse geocoding calls it per provider (Nominatim 1.1 s), and geoloc
 
 ```
 budget  = 0.6 × available at start (0.8 for Fast), at most 0.8 × total
-fixed   = server + supervisor + running sidecars (measured RSS once they run; 1.5 GB to start)
+fixed   = web 300 MB + the enabled sidecars (SIDECAR_MB) + one face service (FACE_COSTS)
+          (available counts what LibrePhotos' own workers and sidecars hold, so it does not shrink as they run)
 N_cpu   = Gentle 1 · Balanced clamp(cores // 2, 1, 4) · Fast clamp(cores - 1, 1, 8)
 N_ram   = floor((budget - fixed) / lane_ram)            lane_ram: 600 MB light, 750 MB heavy (CPU)
 N_vram  = floor((vram_free - 512 MB) / vram_per_lane)   only with a GPU provider
@@ -256,6 +257,62 @@ above. The 20-in-a-row "face service unreachable" counter moves into the job's r
 
 This does not touch the clustering itself. @metamountain's fixes on `faces-large-libraries` (batched
 `pk__in` for SQLite's 32,766-variable limit, counting a person once per photo) are independent of it.
+
+## Face services, one per heavy lane
+
+<Since version="1.7.0" /> The face sidecar serves one request at a time, so N heavy lanes on one face
+sidecar mostly queue. `api/runtime/replicas.py` (no Django) and `api/runtime/sidecar_scaler.py` give it
+replicas; the mechanism is generic (`REPLICA_KINDS`), only `face_recognition` opts in.
+
+- **Ports.** Replica `i` listens on `SIDECAR_PORT_FACE_RECOGNITION + 100 × i` (`i` up to 7). The process
+  is `main.py --replica i` (`service face_recognition --replica i` in the standalone build), `/health`
+  answers its `replica` and, once a model is loaded, its `device` (`cpu`, `webgpu`, `cuda`). A port that
+  answers as another program, or as another replica, is FOREIGN for that replica alone. Replica 0 is the
+  sidecar as before: `start_service` starts it and the minute watchdog keeps it.
+- **Owner.** The `run_workers` supervisor of each host runs the scaler every 5 s in a thread of its own
+  (one run at a time). It starts replicas 1.. while the heavy queue has queued or running tasks, at most
+  `min(plan, heavy width, open heavy tasks)`, waits until each answers as itself, and writes the live
+  ports and the device to `<tempdir>/librephotos-sidecars/<service>-<port>.json`. A replica no longer
+  wanted leaves that list at once and stops when it is idle (no request for 120 s, or 120 s after it was
+  dropped; at once when the plan no longer allows it or memory is low, but never while busy). Exiting
+  rather than unloading frees WebGPU memory and glibc's heap. On shutdown (signal or stop file) the
+  supervisor stops them after the workers; a replica left from a killed supervisor is adopted by the
+  next one. Start, stop and restart of a replica happen under a `SidecarWatchLease` keyed by host,
+  service and replica.
+- **Routing.** `api.runtime.sidecars.post/get` read the live list (cached for 1 s, ignored when older
+  than 2 minutes, so a dead supervisor falls back to replica 0). A worker starts at replica
+  `slot % live` (`set_lane` in `worker_entry`), the web process at `pid % live`; it takes a
+  non-blocking file lock per port (`port-<port>.lock`, `msvcrt.locking` / `flock`) and moves on to the
+  next free replica, so a request never waits behind another lane's while one is free. With none free it
+  goes to its own replica and queues there. A refused connection fails over to the next replica at once
+  (no connect retries) and skips that one for 10 s; an error answer or a read timeout is raised as before.
+  The drawn-box calls in `views/faces.py` go through the same client.
+- **Plan.** `plan_workers(..., load=Load(...))` replaces `FIXED_MB`. After the workers and heavy lanes:
+
+```
+spare     = room - W × 600 MB - heavy × 150 MB
+replicas  = clamp(min(heavy,
+                      1 + spare // face_mb,
+                      vram_budget // face_vram_mb   (GPU, VRAM known),
+                      2                             (GPU, VRAM known: one GPU's queue),
+                      1                             (GPU, VRAM unknown),
+                      FACE_SIDECAR_REPLICAS if set), 1, 8)
+vram_budget = 0.8 × (nvidia-smi free + what our face services hold)
+```
+
+  `FACE_COSTS` is a table per model and device (CPU vs GPU), measured (peak memory plus headroom) on
+  Windows and Linux (glibc) for the CPU and WebGPU on Windows. The device comes from the replicas'
+  `/health`; before any model is loaded it is `unknown` (GPU costs, one replica) unless `ONNX_PROVIDERS`
+  starts with the CPU or the WebGPU plugin is missing. `FACE_SIDECAR_REPLICAS` only lowers the result;
+  a higher value is logged and capped.
+- **At runtime.** When memory is low (`low_on_memory`), the scaler takes one replica away per round, down
+  to 1, before the sizer has to pause workers. A replica above `max(2 × cost, cost + 500 MB)` is
+  restarted; replica 0 only when idle. On the CPU, replicas 1.. start with
+  `ONNX_INTRA_OP_THREADS = min(cores, physical cores) // replicas` unless the variable is set; replica 0
+  keeps ONNX Runtime's default.
+- **Shown** in `GET /api/parallel-workers/`: per plan `face_replicas`, `face_replica_mb`,
+  `face_vram_mb`, `face_device`, `face_limited_by`, `vram_budget_mb`; `face_services` (running, live,
+  device, RSS, GPU memory) and `face_override`.
 
 ## Upgrade from django-q2
 
@@ -301,9 +358,11 @@ This does not touch the clustering itself. @metamountain's fixes on `faces-large
 | 4 | Scan Faces chunks, group barrier, unique follow-ups, stopping chains | 3 |
 | 5 | `PARALLEL_WORKERS`, width from capacity at runtime, heavy cap, memory watchdog | 1, 3 |
 | 6 | First-time setup step, settings and admin UI, docs (Docker `mem_limit`, Raspberry Pi, ARM64, NAS) | 5 |
+| 7 | Face services, one per heavy lane: replicas, routing, per-component budget with VRAM | 5, 6 |
 
-Later, each with its own design: several face sidecars, one per heavy lane (VRAM in the budget, a lease
-per replica); hard limits from the operating system (`oom_score_adj` +500 for workers and sidecars so the
+Later, each with its own design: replicas for tags, OCR and captions (opt in through `REPLICA_KINDS`
+and a cost table); hard limits
+ from the operating system (`oom_score_adj` +500 for workers and sidecars so the
 kernel picks them before the web server, a per-sidecar Job Object memory limit in the standalone build);
 fair sharing of lanes between users on multi-user servers (claim from the user served least recently);
 one pass instead of three over a new photo (#3071, request B).

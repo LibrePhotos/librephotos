@@ -125,6 +125,16 @@ class _WebGpuState:
 
 
 _webgpu = _WebGpuState()
+DEVICE_NAMES = {CPU: "cpu", CUDA: "cuda", WEBGPU: "webgpu"}
+_active_devices: set[str] = set()
+
+
+def active_device() -> str | None:
+    if not _active_devices:
+        return None
+    return next((name for name in ("cuda", "webgpu") if name in _active_devices), "cpu")
+
+
 # microsoft/onnxruntime#32561: concurrent Run() on two WebGPU sessions
 # segfaults on Linux/Vulkan. One lock for every WebGPU session in the process.
 _webgpu_run_lock = threading.Lock()
@@ -254,11 +264,14 @@ def _session_by_name(
     path: str, variable_shapes: bool, providers: list[str]
 ) -> ort.InferenceSession:
     # By name WebGPU would silently be the CPU anyway; leave it out.
-    return ort.InferenceSession(
+    session = ort.InferenceSession(
         path,
         sess_options=session_options(variable_shapes),
         providers=[name for name in providers if name != WEBGPU] or [CPU],
     )
+    first = session.get_providers()[0] if session.get_providers() else CPU
+    _active_devices.add(DEVICE_NAMES.get(first, "cpu"))
+    return session
 
 
 def _webgpu_session(
@@ -297,7 +310,9 @@ def inference_session(path: str, variable_shapes: bool = False) -> ort.Inference
             announce, _webgpu.announced = not _webgpu.announced, True
         if announce:
             log.info("ML models run on the GPU through WebGPU: %s", gpu_name(device))
+        _active_devices.add("webgpu")
         return session
+
     fallback = _session_by_name(path, variable_shapes, providers)
     with _webgpu.lock:
         _webgpu.failed = True

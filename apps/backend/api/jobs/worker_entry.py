@@ -14,5 +14,8 @@ def worker_main(
 
     django.setup()
     from api.jobs.worker import Worker
+    from api.runtime.replicas import set_lane
+
+    set_lane(slot)
 
     sys.exit(Worker(slot, stop, limits, settings).run())

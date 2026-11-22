@@ -8,6 +8,7 @@ image_similarity.
 """
 
 import os
+import sys
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -46,8 +47,18 @@ class HealthTest(SimpleTestCase):
                 "last_request_time": None,
                 "model_loaded": None,
                 "busy": False,
+                "replica": 0,
+                "device": None,
             },
         )
+
+    def test_a_replica_names_itself_and_its_device(self):
+        with patch.object(sys, "argv", ["main.py", "--replica", "2"]):
+            app = _app(device=lambda: "webgpu")
+
+        body = test_client(app).get("/health").get_json()
+
+        self.assertEqual((2, "webgpu"), (body["replica"], body["device"]))
 
     def test_the_trailing_slash_image_similarity_used_still_answers(self):
         self.assertEqual(test_client(_app()).get("/health/").status_code, 200)
@@ -190,6 +201,20 @@ class ServeTest(SimpleTestCase):
             _common.serve_forever(_app(), "exif")
 
         self.assertEqual(server.call_args.args[0], ("0.0.0.0", SERVICES["exif"]))
+
+    def test_a_replica_binds_its_own_port(self):
+        with (
+            patch.dict(os.environ),
+            patch.object(sys, "argv", ["main.py", "--replica", "3"]),
+            patch("service._wsgi_server.serve") as server,
+        ):
+            os.environ.pop("SERVICE_HOST", None)
+            _common.serve_forever(_app(), "face_recognition")
+
+        self.assertEqual(
+            server.call_args.args[0],
+            ("127.0.0.1", SERVICES["face_recognition"] + 300),
+        )
 
 
 class StandaloneBuildTest(SimpleTestCase):

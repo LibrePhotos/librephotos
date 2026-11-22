@@ -389,9 +389,19 @@ describe("parallel workers (#3073)", () => {
         needed_mb: 2100,
         limited_by: "memory",
         fits: false,
+        web_mb: 300,
+        sidecars_mb: 1120,
+        face_replicas: 1,
+        face_replica_mb: 250,
+        face_vram_mb: 0,
+        face_device: "cpu",
+        face_limited_by: "lanes",
+        vram_budget_mb: null,
       },
     ],
     workers: [],
+    face_override: null,
+    face_services: { running: 1, live: 1, device: "cpu", rss_mb: [180], gpu_total_mb: null, gpu_free_mb: null },
   };
 
   it("reads what was detected and sets the intention", async () => {

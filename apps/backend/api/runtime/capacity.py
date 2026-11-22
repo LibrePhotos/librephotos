@@ -214,11 +214,77 @@ GENTLE = "gentle"
 BALANCED = "balanced"
 FAST = "fast"
 INTENTIONS = (GENTLE, BALANCED, FAST)
-FIXED_MB = 1500
 LIGHT_LANE_MB = 600
 HEAVY_LANE_MB = 750
 SQLITE_MAX_WORKERS = 4
 LOW_WATER_MB = 512
+MAX_REPLICAS = 8
+GPU_SHARE = 2
+VRAM_SHARE = 0.8
+
+CPU = "cpu"
+GPU = "gpu"
+UNKNOWN = "unknown"
+
+WEB_MB = 300
+SIDECAR_MB = {
+    "image_similarity": 120,
+    "thumbnail": 150,
+    "exif": 150,
+    "tags": 700,
+    "image_captioning": 1100,
+    "ocr": 600,
+}
+CORE_SIDECARS = ("image_similarity", "thumbnail", "exif", "tags")
+
+
+@dataclass(frozen=True)
+class ReplicaCost:
+    ram_mb: int
+    vram_mb: int = 0
+
+    @property
+    def limit_mb(self) -> int:
+        return max(2 * self.ram_mb, self.ram_mb + 500)
+
+
+FACE_COSTS: dict[tuple[str, str], ReplicaCost] = {
+    ("buffalo_sc", CPU): ReplicaCost(250),
+    ("buffalo_s", CPU): ReplicaCost(350),
+    ("buffalo_m", CPU): ReplicaCost(450),
+    ("buffalo_l", CPU): ReplicaCost(600),
+    ("antelopev2", CPU): ReplicaCost(650),
+    ("buffalo_sc", GPU): ReplicaCost(450, 150),
+    ("buffalo_s", GPU): ReplicaCost(550, 200),
+    ("buffalo_m", GPU): ReplicaCost(750, 450),
+    ("buffalo_l", GPU): ReplicaCost(1100, 550),
+    ("antelopev2", GPU): ReplicaCost(1250, 700),
+}
+
+
+def face_cost(pack: str, device: str) -> ReplicaCost:
+    kind = CPU if device == CPU else GPU
+    return FACE_COSTS.get((pack, kind)) or FACE_COSTS[("buffalo_l", kind)]
+
+
+@dataclass(frozen=True)
+class Gpu:
+    total_mb: int
+    free_mb: int
+
+
+@dataclass(frozen=True)
+class Load:
+    sidecars_mb: int = sum(SIDECAR_MB[name] for name in CORE_SIDECARS)
+    face: ReplicaCost | None = FACE_COSTS[("buffalo_sc", CPU)]
+    face_device: str = CPU
+    gpu: Gpu | None = None
+    held_mb: int = 0
+    held_vram_mb: int = 0
+    face_override: int | None = None
+
+
+DEFAULT_LOAD = Load()
 
 
 @dataclass(frozen=True)
@@ -230,6 +296,14 @@ class WorkerPlan:
     needed_mb: int
     limited_by: str
     fits: bool
+    web_mb: int = WEB_MB
+    sidecars_mb: int = 0
+    face_replicas: int = 0
+    face_replica_mb: int = 0
+    face_vram_mb: int = 0
+    face_device: str = CPU
+    face_limited_by: str = "off"
+    vram_budget_mb: int | None = None
 
 
 def cores_for(intention: str, cores: int) -> int:
@@ -240,17 +314,50 @@ def cores_for(intention: str, cores: int) -> int:
     return min(4, max(1, cores // 2))
 
 
+def _vram_budget(load: Load) -> int | None:
+    if load.gpu is None:
+        return None
+    return int(VRAM_SHARE * (load.gpu.free_mb + load.held_vram_mb))
+
+
+def plan_face_replicas(
+    load: Load, heavy: int, spare_mb: int
+) -> tuple[int, str, int | None]:
+    face = load.face
+    vram_budget = _vram_budget(load)
+    if face is None:
+        return 0, "off", vram_budget
+    limits = {"lanes": heavy}
+    if load.face_device != CPU:
+        if vram_budget is not None and face.vram_mb:
+            limits["vram"] = vram_budget // face.vram_mb
+            limits["gpu_share"] = GPU_SHARE
+        else:
+            limits["gpu"] = 1
+    limits["memory"] = 1 + max(0, spare_mb) // face.ram_mb
+    if load.face_override:
+        limits["setting"] = load.face_override
+    limited_by = min(limits, key=lambda key: limits[key])
+    replicas = max(1, min(MAX_REPLICAS, limits[limited_by]))
+    if replicas == MAX_REPLICAS and limits[limited_by] > MAX_REPLICAS:
+        limited_by = "maximum"
+    return replicas, limited_by, vram_budget
+
+
 def plan_workers(
     found: Capacity,
     intention: str,
     *,
     sqlite: bool,
     override: int | None = None,
-    fixed_mb: int = FIXED_MB,
+    load: Load = DEFAULT_LOAD,
 ) -> WorkerPlan:
     share = 0.8 if intention == FAST else 0.6
-    budget = min(int(share * found.ram_available / MB), int(0.8 * found.ram_total / MB))
-    room = budget - fixed_mb
+    available = found.ram_available / MB + load.held_mb
+    budget = min(int(share * available), int(0.8 * found.ram_total / MB))
+    face_mb = load.face.ram_mb if load.face is not None else 0
+    base = WEB_MB + load.sidecars_mb + face_mb
+    room = budget - base
     limits = {
         "intention": cores_for(intention, found.cores),
         "memory": room // LIGHT_LANE_MB,
@@ -264,16 +371,39 @@ def plan_workers(
     limited_by = min(limits, key=lambda key: limits[key])
     workers = max(1, limits[limited_by])
     heavy = max(1, min(workers, room // HEAVY_LANE_MB))
+    spare = room - workers * LIGHT_LANE_MB - heavy * (HEAVY_LANE_MB - LIGHT_LANE_MB)
+    replicas, face_limited_by, vram_budget = plan_face_replicas(load, heavy, spare)
+    extra_face_mb = max(0, replicas - 1) * face_mb
     return WorkerPlan(
         intention=intention,
         workers=workers,
         heavy_workers=heavy,
         budget_mb=max(0, budget),
-        needed_mb=fixed_mb + workers * LIGHT_LANE_MB,
+        needed_mb=base + extra_face_mb + workers * LIGHT_LANE_MB,
         limited_by=limited_by,
         fits=room >= LIGHT_LANE_MB,
+        sidecars_mb=load.sidecars_mb,
+        face_replicas=replicas,
+        face_replica_mb=face_mb,
+        face_vram_mb=load.face.vram_mb if load.face is not None else 0,
+        face_device=load.face_device,
+        face_limited_by=face_limited_by,
+        vram_budget_mb=vram_budget,
     )
 
 
+@dataclass(frozen=True)
+class ReplicaTarget:
+    replicas: int
+    limit_mb: int
+    threads: int = 0
+
+
+def face_threads(cores: int, physical: int | None, replicas: int) -> int:
+    usable = min(cores, physical or cores)
+    return max(1, usable // max(1, replicas))
+
+
 def low_on_memory(found: Capacity) -> bool:
+
     return found.ram_available / MB < max(LOW_WATER_MB, 0.1 * found.ram_total / MB)

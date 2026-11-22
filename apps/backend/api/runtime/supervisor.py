@@ -8,7 +8,7 @@ import uuid
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 from django.conf import settings
@@ -23,9 +23,13 @@ from api.runtime.features import (
     site_setting_key,
 )
 from api.runtime.ports import bind_error, port_owner
+from api.runtime.replicas import REPLICA_FLAG, replica_arguments, replica_port
 from api.runtime.sidecars import SERVICES, port_variable, sidecar_url
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 from librephotos.standalone import named_executable
+
+if TYPE_CHECKING:
+    import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +216,7 @@ class SidecarCheck:
     health: dict[str, Any] | None = None
 
 
-class _Probe(Enum):
+class Probe(Enum):
     ANSWERED = "answered"
     FOREIGN = "foreign"
     SILENT = "silent"
@@ -286,9 +290,9 @@ def check_service(service: str) -> SidecarCheck:
     from api.runtime.http_timeouts import HEALTH_CHECK
 
     probe, health = _probe(service, HEALTH_CHECK)
-    if probe is _Probe.ANSWERED:
+    if probe is Probe.ANSWERED:
         return SidecarCheck(SidecarStatus.UP, health)
-    if probe is _Probe.FOREIGN:
+    if probe is Probe.FOREIGN:
         return SidecarCheck(SidecarStatus.FOREIGN)
     return _check_silent(service)
 
@@ -303,7 +307,7 @@ def _check_silent(service: str) -> SidecarCheck:
     # them, so one busy with a long batch misses the quick probe. Within a
     # client's longest wait it answers, unless it hangs.
     probe, health = _probe(service, PATIENT_HEALTH_CHECK)
-    if probe is _Probe.ANSWERED:
+    if probe is Probe.ANSWERED:
         return SidecarCheck(SidecarStatus.BUSY, health)
     return SidecarCheck(SidecarStatus.HUNG)
 
@@ -323,12 +327,12 @@ def _act_on(service: str, check: SidecarCheck) -> None:
 
 def _probe(
     service: str, timeout: tuple[float, float]
-) -> tuple[_Probe, dict[str, Any] | None]:
+) -> tuple[Probe, dict[str, Any] | None]:
     """Ask the sidecar's /health; raises ValueError for a name not in SERVICES."""
     try:
         response = requests.get(sidecar_url(service, "/health"), timeout=timeout)
     except requests.RequestException:
-        return _Probe.SILENT, None
+        return Probe.SILENT, None
     body = (
         _sidecar_health(response, service) if response.status_code == HTTP_OK else None
     )
@@ -341,8 +345,8 @@ def _probe(
             service,
             _owner_suffix(SERVICES[service]),
         )
-        return _Probe.FOREIGN, None
-    return _Probe.ANSWERED, body
+        return Probe.FOREIGN, None
+    return Probe.ANSWERED, body
 
 
 def is_healthy(service: str) -> bool:
@@ -361,8 +365,8 @@ def is_healthy(service: str) -> bool:
         # sidecar_url: a name that is not in SERVICES.
         logger.exception("Error checking health of %s: %s", service, str(e))
         return False
-    if probe is not _Probe.SILENT:
-        return probe is _Probe.ANSWERED
+    if probe is not Probe.SILENT:
+        return probe is Probe.ANSWERED
     if _service_process_running(service):
         logger.info(
             "Service %s did not answer its health check but is running", service
@@ -372,7 +376,9 @@ def is_healthy(service: str) -> bool:
     return False
 
 
-def _sidecar_health(response: requests.Response, service: str) -> dict[str, Any] | None:
+def _sidecar_health(
+    response: requests.Response, service: str, replica: int = 0
+) -> dict[str, Any] | None:
     """The /health body when it comes from the sidecar named *service*, else None.
 
     Every sidecar names itself in the ``service`` field (service._common).
@@ -381,7 +387,11 @@ def _sidecar_health(response: requests.Response, service: str) -> dict[str, Any]
         body = response.json()
     except ValueError:
         return None
-    if isinstance(body, dict) and body.get("service") == service:
+    if (
+        isinstance(body, dict)
+        and body.get("service") == service
+        and body.get("replica", 0) == replica
+    ):
         return body
     return None
 
@@ -474,7 +484,8 @@ def unload_idle_model(service: str, health: dict[str, Any]) -> bool:
     from api.runtime.http_timeouts import UNLOAD_MODEL
 
     try:
-        sidecars.get(service, "/unload-model", timeout=UNLOAD_MODEL)
+        sidecars.get_replica(service, 0, "/unload-model", timeout=UNLOAD_MODEL)
+
     except requests.RequestException as e:
         logger.warning("Service %s could not unload its model: %s", service, e)
         return False
@@ -551,16 +562,17 @@ def _service_environment() -> dict[str, str]:
 
 
 def _service_script(service: str) -> str:
+
     if service == "image_similarity":
         return "image_similarity/main.py"
     return f"service/{service}/main.py"
 
 
-def _service_command(service: str) -> list[str]:
+def _service_command(service: str, replica: int = 0) -> list[str]:
     executable = named_executable(service)
     if executable is not None:
-        return [executable, "service", service]
-    return [sys.executable, _service_script(service)]
+        return [executable, "service", service, *replica_arguments(replica)]
+    return [sys.executable, _service_script(service), *replica_arguments(replica)]
 
 
 def _is_service_process(cmdline: list[str] | None, service: str) -> bool:
@@ -770,3 +782,183 @@ def stop_service(service: str, only: Collection[int] | None = None) -> bool:
     if not processes:
         logger.warning("Service '%s' is not running", service)
     return bool(processes)
+
+
+_replica_handles: dict[tuple[str, int], subprocess.Popen[bytes]] = {}
+
+
+def replica_of(cmdline: list[str] | None, service: str) -> int | None:
+    if not cmdline:
+        return None
+    if len(cmdline) >= 2 and cmdline[-2] == REPLICA_FLAG:
+        try:
+            index = int(cmdline[-1])
+        except ValueError:
+            return None
+        base = cmdline[:-2]
+    else:
+        index, base = 0, cmdline
+    return index if _is_service_process(base, service) else None
+
+
+def replica_processes(service: str) -> dict[int, list[psutil.Process]]:
+    import psutil
+
+    found: dict[int, list[psutil.Process]] = {}
+    for process in psutil.process_iter(["pid", "cmdline"]):
+        if process.info["pid"] == os.getpid():
+            continue
+        index = replica_of(process.info["cmdline"], service)
+        if index is not None:
+            found.setdefault(index, []).append(process)
+    return found
+
+
+def probe_replica(service: str, index: int) -> tuple[Probe, dict[str, Any] | None]:
+    from api.runtime.http_timeouts import HEALTH_CHECK
+
+    url = sidecars.replica_url(service, index, "/health")
+    try:
+        response = requests.get(url, timeout=HEALTH_CHECK)
+    except requests.RequestException:
+        return Probe.SILENT, None
+    body = (
+        _sidecar_health(response, service, index)
+        if response.status_code == HTTP_OK
+        else None
+    )
+    if body is None:
+        port = replica_port(SERVICES[service], index)
+        _log_error_once(
+            "Port %s answers but is not LibrePhotos' %s replica %s%s",
+            port,
+            service,
+            index,
+            _owner_suffix(port),
+        )
+        return Probe.FOREIGN, None
+    return Probe.ANSWERED, body
+
+
+def replica_conflict(service: str, index: int) -> str | None:
+    port = replica_port(SERVICES[service], index)
+    if bind_error(LOOPBACK, port) is None:
+        return None
+    owner = port_owner(port)
+    if owner is None:
+        return None if index in replica_processes(service) else f"port {port} is used"
+    import psutil
+
+    try:
+        if replica_of(psutil.Process(owner.pid).cmdline(), service) == index:
+            return None
+    except psutil.Error:
+        return None
+    return f"port {port} is used by {owner.name or 'another program'} (process ID {owner.pid})"
+
+
+def start_replicas(
+    service: str, indices: Iterable[int], threads: int = 0
+) -> dict[int, StartOutcome]:
+    outcomes: dict[int, StartOutcome] = {}
+    launched: dict[int, subprocess.Popen[bytes]] = {}
+    environment = _service_environment()
+    if threads:
+        environment["ONNX_INTRA_OP_THREADS"] = str(threads)
+    for index in indices:
+        conflict = replica_conflict(service, index)
+        if conflict is not None:
+            _log_error_once(
+                "Replica %s of %s could not start: %s", index, service, conflict
+            )
+            outcomes[index] = StartOutcome.PORT_CONFLICT
+            continue
+        process = subprocess.Popen(_service_command(service, index), env=environment)
+        _replica_handles[(service, index)] = process
+        launched[index] = process
+    deadline = time.monotonic() + START_TIMEOUT_SECONDS
+    while launched:
+        for index, process in list(launched.items()):
+            if probe_replica(service, index)[0] is Probe.ANSWERED:
+                logger.info(
+                    "Replica %s of %s started on port %s",
+                    index,
+                    service,
+                    replica_port(SERVICES[service], index),
+                )
+                outcomes[index] = StartOutcome.STARTED
+            elif process.poll() is not None:
+                logger.error(
+                    "Replica %s of %s exited with code %s while starting",
+                    index,
+                    service,
+                    process.returncode,
+                )
+                outcomes[index] = StartOutcome.EXITED
+            else:
+                continue
+            del launched[index]
+        if not launched or time.monotonic() >= deadline:
+            break
+        time.sleep(START_POLL_SECONDS)
+    for index in launched:
+        logger.warning("Replica %s of %s has not answered yet", index, service)
+        outcomes[index] = StartOutcome.TIMED_OUT
+    return outcomes
+
+
+def stop_replica(service: str, index: int, only: Collection[int] | None = None) -> bool:
+    import psutil
+
+    processes = [
+        process
+        for process in replica_processes(service).get(index, [])
+        if only is None or process.pid in only
+    ]
+    for process in processes:
+        try:
+            process.terminate()
+        except psutil.Error:
+            pass
+    _, alive = psutil.wait_procs(processes, timeout=STOP_GRACE_SECONDS)
+    for process in alive:
+        try:
+            process.kill()
+        except psutil.Error:
+            pass
+    psutil.wait_procs(alive, timeout=STOP_GRACE_SECONDS)
+    handle = _replica_handles.pop((service, index), None)
+    if handle is not None:
+        handle.poll()
+    if processes:
+        logger.info("Replica %s of %s stopped", index, service)
+    return bool(processes)
+
+
+def stop_extra_replicas(service: str, only: Collection[int] | None = None) -> None:
+    for index in sorted(replica_processes(service)):
+        if index > 0:
+            stop_replica(service, index, only)
+
+
+def sidecar_rss_mb() -> dict[str, dict[int, int]]:
+    import psutil
+
+    sizes: dict[str, dict[int, int]] = {}
+    for process in psutil.process_iter(["pid", "cmdline", "memory_info"]):
+        cmdline = process.info["cmdline"]
+        memory = process.info["memory_info"]
+        if not cmdline or memory is None:
+            continue
+        for service in SERVICES:
+            index = replica_of(cmdline, service)
+            if index is not None:
+                per_service = sizes.setdefault(service, {})
+                per_service[index] = per_service.get(index, 0) + memory.rss // (1 << 20)
+                break
+    return sizes
+
+
+def restart_service(service: str) -> bool:
+    stop_service(service)
+    return start_service(service)

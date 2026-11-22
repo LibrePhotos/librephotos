@@ -45,7 +45,7 @@ UNREADABLE_CONFIG = patch("constance.base.Config.__getattr__", new=_no_constance
 
 # Every enabled sidecar is down: no health answer, no process. Also keeps
 # the watchdog from finding (and stopping) a real sidecar on this machine.
-SILENT = (supervisor._Probe.SILENT, None)
+SILENT = (supervisor.Probe.SILENT, None)
 NO_SIDECAR_PROCESSES = patch(
     "api.runtime.supervisor._service_process_running", new=lambda service: False
 )

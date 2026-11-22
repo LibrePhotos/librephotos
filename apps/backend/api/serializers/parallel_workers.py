@@ -27,6 +27,28 @@ class WorkerPlanSerializer(serializers.Serializer[None]):
     fits = serializers.BooleanField(
         help_text="Whether one worker fits in the memory budget."
     )
+    web_mb = serializers.IntegerField(help_text="Budgeted for the web server.")
+    sidecars_mb = serializers.IntegerField(
+        help_text="Budgeted for the enabled sidecars other than face recognition."
+    )
+    face_replicas = serializers.IntegerField(
+        help_text="Face services (one per heavy worker at most); 0 when face "
+        "recognition is off."
+    )
+    face_replica_mb = serializers.IntegerField(
+        help_text="Memory budgeted per face service."
+    )
+    face_vram_mb = serializers.IntegerField(
+        help_text="GPU memory budgeted per face service; 0 on the CPU."
+    )
+    face_device = serializers.CharField(help_text="cpu, gpu or unknown")
+    face_limited_by = serializers.CharField(
+        help_text="lanes, memory, vram, gpu, gpu_share, setting, maximum or off"
+    )
+    vram_budget_mb = serializers.IntegerField(
+        allow_null=True,
+        help_text="GPU memory the face services may use; null when unknown.",
+    )
 
 
 class RunningWorkerSerializer(serializers.Serializer[None]):
@@ -39,6 +61,17 @@ class RunningWorkerSerializer(serializers.Serializer[None]):
     last_recycle = serializers.CharField()
 
 
+class FaceServicesSerializer(serializers.Serializer[None]):
+    running = serializers.IntegerField(help_text="Face service processes running.")
+    live = serializers.IntegerField(help_text="Face services taking requests.")
+    device = serializers.CharField(
+        allow_null=True, help_text="cpu, webgpu or cuda once a model is loaded."
+    )
+    rss_mb = serializers.ListField(child=serializers.IntegerField())
+    gpu_total_mb = serializers.IntegerField(allow_null=True)
+    gpu_free_mb = serializers.IntegerField(allow_null=True)
+
+
 class ParallelWorkersSerializer(serializers.Serializer[dict[str, object]]):
     capacity = CapacitySerializer()
     intention = serializers.CharField(help_text="gentle, balanced or fast")
@@ -46,8 +79,13 @@ class ParallelWorkersSerializer(serializers.Serializer[dict[str, object]]):
         allow_null=True,
         help_text="WORKER_CONCURRENCY when it is set; it wins over the intention.",
     )
+    face_override = serializers.IntegerField(
+        allow_null=True,
+        help_text="FACE_SIDECAR_REPLICAS when it is set; the plan still caps it.",
+    )
     plans = WorkerPlanSerializer(many=True)
     workers = RunningWorkerSerializer(many=True)
+    face_services = FaceServicesSerializer()
 
 
 class ParallelWorkersRequest(serializers.Serializer[None]):

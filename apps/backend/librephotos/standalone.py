@@ -1267,11 +1267,13 @@ def _shutdown(cluster: subprocess.Popen[bytes] | None) -> None:
     LibrePhotos started it (#2316): a second instance on its way out took the
     first one's sidecars down with it.
     """
-    from api.runtime.supervisor import SERVICES, stop_service
+    from api.runtime.supervisor import SERVICES, stop_extra_replicas, stop_service
 
     own = own_process_ids()
     for service in SERVICES:
         stop_service(service, only=own)
+        stop_extra_replicas(service, only=own)
+
     if cluster is not None and cluster.poll() is None:
         Path(workers_stop_file()).touch()
         try:
