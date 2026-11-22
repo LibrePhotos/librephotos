@@ -1,5 +1,6 @@
 import logging
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -244,11 +245,17 @@ def check_services() -> None:
             _give_back_watch(service, holder)
 
 
+def watch_key(service: str) -> str:
+    return f"{socket.gethostname()}:{service}"[-64:]
+
+
 def _take_watch(service: str, holder: str) -> bool:
     from api.models.sidecar_watch_lease import SidecarWatchLease
 
     try:
-        return SidecarWatchLease.objects.take(service, holder, WATCH_LEASE_SECONDS)
+        return SidecarWatchLease.objects.take(
+            watch_key(service), holder, WATCH_LEASE_SECONDS
+        )
     except DatabaseError as e:
         # A database that is down must not stop the watchdog: the sidecars
         # matter most when the rest is struggling.
@@ -260,7 +267,7 @@ def _give_back_watch(service: str, holder: str) -> None:
     from api.models.sidecar_watch_lease import SidecarWatchLease
 
     try:
-        SidecarWatchLease.objects.give_back(service, holder)
+        SidecarWatchLease.objects.give_back(watch_key(service), holder)
     except DatabaseError as e:
         logger.warning("Could not give back the watch of %s: %s", service, e)
 

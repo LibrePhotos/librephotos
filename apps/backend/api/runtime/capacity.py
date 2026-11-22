@@ -9,6 +9,7 @@ from pathlib import Path
 
 import psutil
 
+MB = 1024 * 1024
 CGROUP_ROOT = Path("/sys/fs/cgroup")
 PROC_SELF_CGROUP = Path("/proc/self/cgroup")
 UNLIMITED_V1 = 1 << 60
@@ -207,3 +208,72 @@ def detect(root: Path = CGROUP_ROOT, proc_cgroup: Path = PROC_SELF_CGROUP) -> Ca
         ram_available=ram_available,
         ram_source=ram_source,
     )
+
+
+GENTLE = "gentle"
+BALANCED = "balanced"
+FAST = "fast"
+INTENTIONS = (GENTLE, BALANCED, FAST)
+FIXED_MB = 1500
+LIGHT_LANE_MB = 600
+HEAVY_LANE_MB = 750
+SQLITE_MAX_WORKERS = 4
+LOW_WATER_MB = 512
+
+
+@dataclass(frozen=True)
+class WorkerPlan:
+    intention: str
+    workers: int
+    heavy_workers: int
+    budget_mb: int
+    needed_mb: int
+    limited_by: str
+    fits: bool
+
+
+def cores_for(intention: str, cores: int) -> int:
+    if intention == GENTLE:
+        return 1
+    if intention == FAST:
+        return min(8, max(1, cores - 1))
+    return min(4, max(1, cores // 2))
+
+
+def plan_workers(
+    found: Capacity,
+    intention: str,
+    *,
+    sqlite: bool,
+    override: int | None = None,
+    fixed_mb: int = FIXED_MB,
+) -> WorkerPlan:
+    share = 0.8 if intention == FAST else 0.6
+    budget = min(int(share * found.ram_available / MB), int(0.8 * found.ram_total / MB))
+    room = budget - fixed_mb
+    limits = {
+        "intention": cores_for(intention, found.cores),
+        "memory": room // LIGHT_LANE_MB,
+    }
+    if intention != GENTLE:
+        limits["cores"] = found.cores
+    if sqlite:
+        limits["database"] = SQLITE_MAX_WORKERS
+    if override:
+        limits = {"setting": override}
+    limited_by = min(limits, key=lambda key: limits[key])
+    workers = max(1, limits[limited_by])
+    heavy = max(1, min(workers, room // HEAVY_LANE_MB))
+    return WorkerPlan(
+        intention=intention,
+        workers=workers,
+        heavy_workers=heavy,
+        budget_mb=max(0, budget),
+        needed_mb=fixed_mb + workers * LIGHT_LANE_MB,
+        limited_by=limited_by,
+        fits=room >= LIGHT_LANE_MB,
+    )
+
+
+def low_on_memory(found: Capacity) -> bool:
+    return found.ram_available / MB < max(LOW_WATER_MB, 0.1 * found.ram_total / MB)

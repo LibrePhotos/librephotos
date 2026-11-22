@@ -97,28 +97,22 @@ services:
 
 ### Limiting CPU and memory usage
 
-The backend container runs two things: **uvicorn**, which answers API requests, and a pool of **background workers**, which scan your library — thumbnails, face detection, captioning. Almost all of the CPU and memory LibrePhotos uses goes to the background workers, and by default there is **one worker per CPU core**.
+The backend container runs two things: **uvicorn**, which answers API requests, and a pool of **background workers**, which scan your library — thumbnails, face detection, captioning. Almost all of the CPU and memory LibrePhotos uses goes to the background workers.
 
-#### Start with the worker count, not a CPU limit
+<Since version="1.7.0" /> LibrePhotos picks the number of workers itself, from what the container may use: the cores and memory of a Docker `cpus:`/`mem_limit:` or Kubernetes limit (cgroup v1 or v2), not the host's. How many it aims for is the **Parallel workers** choice in the admin area:
 
-The instinct is to cap the container in `docker-compose.yml`:
+- **Gentle**: one worker. Scanning is slow, the machine stays fully usable.
+- **Balanced** (the default): half the cores, at most 4.
+- **Fast first import**: all cores but one, at most 8, until the first import is done; then it switches back to Balanced by itself.
 
-```yaml
-services:
-  backend:
-    cpus: 0.8
-```
+Each choice is then held to the memory it may use: about 1.5 GB for the server and the sidecars plus 600 MB per worker, out of 60 % of the available memory (80 % for Fast). On SQLite at most 4 workers run, since SQLite has one writer. At least one always runs; when even that does not fit, the admin area says so. When the container runs low on memory, LibrePhotos pauses one worker at a time and resumes them once there is room, without a restart. A worker above 1.5 GB is stopped and replaced, and its task runs again. Up to 1.6.0 there was one worker per *host* core, whatever the container limit.
 
-On its own this usually backfires. A `cpus:` limit throttles the container, but it does not change how many workers LibrePhotos starts — the worker pool is sized from the number of cores the *host* reports, which a `cpus:` limit does not change. You end up with just as many workers competing for a fraction of the CPU, and the API gets slow along with them.
-
-So set the worker count instead, with `workerConcurrency` in your `.env` (the variable it fills in is `WORKER_CONCURRENCY`):
+To set the number yourself, use `workerConcurrency` in your `.env` (the variable it fills in is `WORKER_CONCURRENCY`); it wins over the choice in the admin area:
 
 ```bash
-# One background worker instead of one per core
+# One background worker
 workerConcurrency=1
 ```
-
-This is the setting that actually gives resources back to the rest of the machine. Scanning takes longer, but the API stays responsive and nothing gets killed. Each worker is recycled once it passes roughly 300 MB of resident memory, so the worker count is also the main lever on the backend's memory footprint.
 
 #### If you also want a hard cap
 

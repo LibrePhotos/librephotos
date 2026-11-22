@@ -73,14 +73,15 @@ class RealProcessesClaimTest(TransactionTestCase):
         else:
             multiprocess_queue.enqueue_crash(self.out_dir)
 
-        workers = self._workers(2, 60)
-        for worker in workers:
-            worker.join(90)
+        crashing = self._start(multiprocess_queue.run_worker, 0, 60, LEASE_SECONDS)
+        crashing.join(90)
+        survivor = self._start(multiprocess_queue.run_worker, 1, 60, LEASE_SECONDS)
+        survivor.join(90)
 
         runs, _ = self._runs()
         self.assertTrue((Path(self.out_dir) / "crashed").exists())
+        self.assertEqual((9, 0), (crashing.exitcode, survivor.exitcode))
         self.assertEqual(1, runs[-1])
-        self.assertIn(9, [worker.exitcode for worker in workers])
 
 
 def _enqueue_crash_sqlite(database, out_dir):

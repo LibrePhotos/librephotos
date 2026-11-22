@@ -478,9 +478,8 @@ class ProductionSettingsThroughEnvTest(SimpleTestCase):
                     self._reload(**{name: "lots"})
 
     def test_worker_concurrency(self):
-        cores = os.cpu_count() or 1
-        self.assertEqual(cores, self._reload(WORKER_CONCURRENCY=None).TASK_WORKERS)
-        self.assertEqual(cores, self._reload(WORKER_CONCURRENCY="").TASK_WORKERS)
+        self.assertIsNone(self._reload(WORKER_CONCURRENCY=None).TASK_WORKERS)
+        self.assertIsNone(self._reload(WORKER_CONCURRENCY="").TASK_WORKERS)
         self.assertEqual(3, self._reload(WORKER_CONCURRENCY="3").TASK_WORKERS)
 
     def test_backend_host_feeds_allowed_and_internal_hosts(self):

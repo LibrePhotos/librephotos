@@ -247,8 +247,9 @@ INSTALLED_APPS = [
 SITE_ID = 1
 
 _WORKER_CONCURRENCY = env_int("WORKER_CONCURRENCY", None)
-TASK_WORKERS = _WORKER_CONCURRENCY or os.cpu_count() or 1
-TASK_WORKER_RECYCLE_RSS_MB = 300
+TASK_WORKERS = _WORKER_CONCURRENCY or None
+TASK_WORKER_RECYCLE_RSS_MB = 600
+TASK_WORKER_MEMORY_LIMIT_MB = 1500
 
 # Hours a job may go without reporting progress before the hourly cleanup
 # marks it failed and stops counting it as running (#1919, #2248). Counted from
@@ -304,6 +305,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
                 ("off", "Off (keep reports on this server)"),
                 ("own_server", "My own server (SENTRY_DSN)"),
                 ("maintainers", "Share with the LibrePhotos maintainers"),
+            ),
+        },
+    ],
+    "parallel_workers": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("gentle", "Gentle: one worker"),
+                ("balanced", "Balanced (default)"),
+                ("fast", "Fast first import, then Balanced"),
             ),
         },
     ],
@@ -406,6 +418,12 @@ CONSTANCE_CONFIG = {
     # The automatic library scan (#235, api/directory_watcher/scan_schedule.py).
     # Saving them in the site settings rewrites its django-q schedule; so does
     # start_cleaning_service when the server starts.
+    "PARALLEL_WORKERS": (
+        "balanced",
+        "How many background workers run, within what the machine or container"
+        " has: gentle, balanced, or fast until the first import is done.",
+        "parallel_workers",
+    ),
     "AUTO_SCAN": (
         "off",
         "Scan every user's library for new and changed files automatically:"
