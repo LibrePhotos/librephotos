@@ -5,6 +5,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useParallelWorkersQuery, useSetWorkerIntentionMutation } from "../../api_client/server";
 import { ICON_SIZE } from "../../uiConstants";
+import { FaceServicesLines, FaceServicesRunning } from "./FaceServicesLines";
 
 const INTENTIONS: readonly WorkerIntention[] = ["gentle", "balanced", "fast"];
 
@@ -47,6 +48,7 @@ function PlanLines({ plan, status }: Readonly<{ plan: WorkerPlan; status: Parall
           {t("sitesettings.workers_too_small", { needed: memory.needed, budget: memory.budget })}
         </Alert>
       )}
+      <FaceServicesLines plan={plan} status={status} />
       {status.override === null ? null : (
         <Text fz="xs" c="dimmed">
           {t("sitesettings.workers_override", { count: status.override })}
@@ -106,6 +108,7 @@ export function ParallelWorkersSetting({ showRunning = true }: Readonly<{ showRu
       </Text>
       {plan ? <PlanLines plan={plan} status={status} /> : null}
       {showRunning ? <RunningLine status={status} /> : null}
+      {showRunning ? <FaceServicesRunning status={status} /> : null}
     </Stack>
   );
 }

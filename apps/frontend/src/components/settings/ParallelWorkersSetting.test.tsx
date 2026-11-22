@@ -25,6 +25,14 @@ function plan(intention: string, overrides: Partial<WorkerPlan> = {}): WorkerPla
     needed_mb: 2700,
     limited_by: "intention",
     fits: true,
+    web_mb: 300,
+    sidecars_mb: 1120,
+    face_replicas: 2,
+    face_replica_mb: 256,
+    face_vram_mb: 0,
+    face_device: "cpu",
+    face_limited_by: "lanes",
+    vram_budget_mb: null,
     ...overrides,
   };
 }
@@ -40,6 +48,8 @@ function status(overrides: Partial<ParallelWorkers> = {}): ParallelWorkers {
     },
     intention: "balanced",
     override: null,
+    face_override: null,
+    face_services: { running: 0, live: 0, device: null, rss_mb: [], gpu_total_mb: null, gpu_free_mb: null },
     plans: [plan("gentle", { workers: 1 }), plan("balanced"), plan("fast", { workers: 3 })],
     workers: [
       {
@@ -113,5 +123,52 @@ describe("ParallelWorkersSetting", () => {
     const text = container.textContent ?? "";
     expect(text).toContain("Even one worker needs about 2.1 GB, and 1.2 GB are free for LibrePhotos.");
     expect(text).toContain("WORKER_CONCURRENCY sets 3 workers");
+  });
+
+  it("shows the face services the choice gives and what they use", async () => {
+    stubs.status = status({
+      face_services: { running: 2, live: 2, device: "cpu", rss_mb: [200, 312], gpu_total_mb: null, gpu_free_mb: null },
+    });
+    const container = await render();
+    const text = container.textContent ?? "";
+    expect(text).toContain("Face recognition: 2 face services side by side, about 0.3 GB each.");
+    expect(text).toContain("Face services running now: 2, using 0.5 GB.");
+  });
+
+  it("says why there are fewer face services than heavy workers", async () => {
+    stubs.status = status({
+      face_override: 6,
+      plans: [
+        plan("gentle"),
+        plan("balanced", {
+          heavy_workers: 4,
+          face_replicas: 1,
+          face_limited_by: "gpu",
+          face_device: "unknown",
+          face_replica_mb: 1126,
+          face_vram_mb: 563,
+        }),
+        plan("fast"),
+      ],
+    });
+    const container = await render();
+    const text = container.textContent ?? "";
+    expect(text).toContain("1 face service on the GPU, about 1.1 GB of memory and 0.5 GB of GPU memory.");
+    expect(text).toContain("cannot tell how much GPU memory there is");
+    expect(text).toContain("FACE_SIDECAR_REPLICAS asks for 6 face services; 1 fit, so 1 run.");
+  });
+
+  it("names memory as the limit of the face services", async () => {
+    stubs.status = status({
+      plans: [
+        plan("gentle"),
+        plan("balanced", { heavy_workers: 3, face_replicas: 2, face_limited_by: "memory" }),
+        plan("fast"),
+      ],
+    });
+    const container = await render();
+    expect(container.textContent ?? "").toContain(
+      "Fewer face services than heavy workers (3): more do not fit in memory."
+    );
   });
 });

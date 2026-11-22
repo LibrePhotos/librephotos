@@ -83,6 +83,14 @@ export const WorkerPlan = z.object({
   needed_mb: z.number(),
   limited_by: z.string(),
   fits: z.boolean(),
+  web_mb: z.number(),
+  sidecars_mb: z.number(),
+  face_replicas: z.number(),
+  face_replica_mb: z.number(),
+  face_vram_mb: z.number(),
+  face_device: z.string(),
+  face_limited_by: z.string(),
+  vram_budget_mb: z.number().nullable(),
 });
 export type WorkerPlan = z.infer<typeof WorkerPlan>;
 
@@ -97,13 +105,26 @@ export const RunningWorker = z.object({
 });
 export type RunningWorker = z.infer<typeof RunningWorker>;
 
+export const FaceServices = z.object({
+  running: z.number(),
+  live: z.number(),
+  device: z.string().nullable(),
+  rss_mb: z.array(z.number()),
+  gpu_total_mb: z.number().nullable(),
+  gpu_free_mb: z.number().nullable(),
+});
+export type FaceServices = z.infer<typeof FaceServices>;
+
 export const ParallelWorkers = z.object({
   capacity: MachineCapacity,
   intention: z.string(),
   override: z.number().nullable(),
+  face_override: z.number().nullable(),
   plans: z.array(WorkerPlan),
   workers: z.array(RunningWorker),
+  face_services: FaceServices,
 });
+
 export type ParallelWorkers = z.infer<typeof ParallelWorkers>;
 
 /** `GET /storagestats/` (bytes). */

@@ -231,6 +231,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   MachineCapacity: { schema: S.MachineCapacity, components: ["Capacity"] },
   WorkerPlan: { schema: S.WorkerPlan, components: ["WorkerPlan"] },
   RunningWorker: { schema: S.RunningWorker, components: ["RunningWorker"] },
+  FaceServices: { schema: S.FaceServices, components: ["FaceServices"] },
   // error reports (#2938)
   ErrorReport: { schema: S.ErrorReport, components: ["ErrorReport"] },
   ErrorReportSendAll: { schema: S.ErrorReportSendAll, components: ["ErrorReportSendAll"] },
