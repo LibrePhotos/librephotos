@@ -18,6 +18,7 @@ from api.models.task_queue import (
     CANCELLED,
     DEFAULT_QUEUE,
     FAILED,
+    GEOCODE_QUEUE,
     OPEN_STATUSES,
     QUEUED,
     RUNNING,
@@ -27,6 +28,11 @@ from api.models.task_queue import (
 )
 
 logger = logging.getLogger(__name__)
+
+ROUTES = {
+    "api.directory_watcher.processing_jobs.geolocation_job": GEOCODE_QUEUE,
+}
+CAPS = {GEOCODE_QUEUE: 1}
 
 LEASE = timedelta(minutes=10)
 RENEW_EVERY = timedelta(minutes=1)
@@ -94,11 +100,15 @@ def add(
 ) -> QueuedTask | None:
     kwargs = dict(kwargs or {})
     where = placement or Placement()
+    path = func_path(func)
+    queue = (
+        where.queue if where.queue != DEFAULT_QUEUE else ROUTES.get(path, DEFAULT_QUEUE)
+    )
     task = QueuedTask(
-        func=func_path(func),
+        func=path,
         args=payload.encode_args(args),
         kwargs=payload.encode_kwargs(kwargs),
-        queue=where.queue,
+        queue=queue,
         priority=where.priority,
         status=where.status,
         after=where.after,

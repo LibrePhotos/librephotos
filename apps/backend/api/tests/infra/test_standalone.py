@@ -524,7 +524,7 @@ class WorkerDefaultTest(SimpleTestCase):
                     sys.executable,
                     "-c",
                     "from librephotos.settings import standalone as s;"
-                    "print('workers=%d' % s.Q_CLUSTER['workers'])",
+                    "print('workers=%d' % s.TASK_WORKERS)",
                 ],
                 cwd=standalone.BACKEND_ROOT,
                 env=env,

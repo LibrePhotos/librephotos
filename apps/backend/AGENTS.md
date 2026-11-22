@@ -1,7 +1,7 @@
 # LibrePhotos backend
 
 Django 6.1 + DRF on Python 3.14 and Postgres 15+ (SQLite for tests, the Windows dev server and the standalone build),
-background jobs on django-q2, and ML in separate sidecars (`service/_web.py`, a small WSGI app layer) running ONNX Runtime.
+background jobs on its own task queue (`api/jobs`, `manage.py run_workers`), and ML in separate sidecars (`service/_web.py`, a small WSGI app layer) running ONNX Runtime.
 
 ## Commands
 
@@ -102,7 +102,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - URLs: a new route is a `path()` (or a router registration), never `re_path()`: kebab-case literal segments, a trailing slash, ids through the converters in `librephotos/converters.py`. Legacy `re_path()` routes keep both slash forms through `/?$`, and `api/tests/infra/test_url_patterns.py` fails on a new one, an unanchored route or a client path that changes view.
 - Delete unused code instead of keeping aliases or wrappers for compatibility, unless an external client
   calls it. Code only tests call counts as dead; `vulture_whitelist.py` is for names called from outside
-  Python (settings dotted paths, django_q schedules) and only shrinks.
+  Python (settings dotted paths, task schedules) and only shrinks.
 - Errors: raise a DRF exception (`ValidationError`, `NotFound`, `PermissionDenied`) or one from
   `api/drf/exceptions.py` (`Conflict`, `Gone`, `UpstreamError`, `ServiceUnavailable`, ...), with `code=` when
   a client branches on it; never build an error body or a 2xx carrying `"status": False`. The handler
@@ -113,8 +113,8 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   Disk, sidecar, subprocess and network work goes in the domain's service module, taking the instance
   first (`api/thumbnails/render.py`, `api/photos/files.py`, `api/metadata/photo_writer.py`), and the caller calls it;
   never add a side effect to `save()`. `api/tests/infra/test_models_do_no_io.py` fails on an I/O import or call in `api/models/`.
-- Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `django_q.tasks`
-  elsewhere): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
+- Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `api.jobs.store`
+  outside `api/jobs`): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
   start is a 409 `job_already_running` carrying the running `job_id`; `INSTANCE_WIDE_JOB_TYPES` are
   one per instance, scans and moves refuse each other), `enqueue_followup` (queued by
   a job), `enqueue_chain`, `reserve_job` for a job a task runs inline, and `enqueue_task` for pieces

@@ -18,7 +18,7 @@ from django.utils import timezone
 from api.jobs import payload, store
 from api.jobs.release_guard import ReleaseGuard
 from api.jobs.worker_settings import WorkerSettings
-from api.models.task_queue import QueuedTask, WorkerProcess
+from api.models.task_queue import QUEUES, QueuedTask, WorkerProcess
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +144,11 @@ class Worker:
         if self.slot >= self.width.value or self.guard.database_is_newer():
             return False
         _close_old_connections()
-        task = store.claim(self.name, self.settings.queues, self.settings.caps)
+        task = store.claim(
+            self.name,
+            self.settings.queues or QUEUES,
+            {**store.CAPS, **self.settings.caps},
+        )
         if task is None:
             return False
         with self.running.lock:

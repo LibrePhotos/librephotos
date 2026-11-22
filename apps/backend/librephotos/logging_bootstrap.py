@@ -53,13 +53,7 @@ LOG_FORMAT = (
     "%(levelname)s : %(message)s"
 )
 
-# Third-party loggers that would otherwise drown the file. They are floors, not
-# fixed levels: LOG_LEVEL=DEBUG still leaves django-q2 at INFO (it logs a line
-# per task, and there is one task per photo), while LOG_LEVEL=ERROR pushes them
-# down to ERROR with everything else - a floor should never make a logger more
-# verbose than the level the admin asked for.
 THIRD_PARTY_LEVELS = {
-    "django_q": "INFO",
     "urllib3": "WARNING",
     "PIL": "INFO",
     "asyncio": "WARNING",
@@ -365,8 +359,6 @@ def build_logging_config(
         name: {"level": _more_restrictive(level, floor)}
         for name, floor in THIRD_PARTY_LEVELS.items()
     }
-    # An explicit override beats a third-party floor: whoever sets
-    # LOG_LEVELS=django_q=DEBUG is asking for exactly that chatter.
     loggers.update({name: {"level": lvl} for name, lvl in logger_levels.items()})
 
     return {

@@ -15,6 +15,9 @@ migration_0243 = importlib.import_module("api.migrations.0243_copy_django_q_sche
 COLUMNS = "name, func, hook, args, kwargs, schedule_type, minutes, repeats, next_run, cron, cluster, intended_date_kwarg"
 
 
+AUTO_ID = "integer PRIMARY KEY" if connection.vendor == "sqlite" else "serial PRIMARY KEY"
+
+
 class CopyDjangoQSchedulesTest(TestCase):
     def setUp(self):
         if (
@@ -23,7 +26,7 @@ class CopyDjangoQSchedulesTest(TestCase):
         ):
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "CREATE TABLE django_q_schedule (id integer PRIMARY KEY, name varchar(100) NULL, "
+                    f"CREATE TABLE django_q_schedule (id {AUTO_ID}, name varchar(100) NULL, "
                     "func varchar(256), hook varchar(256) NULL, args text NULL, kwargs text NULL, "
                     "schedule_type varchar(1), minutes smallint NULL, repeats integer, next_run timestamp NULL, "
                     "cron varchar(100) NULL, cluster varchar(100) NULL, intended_date_kwarg varchar(100) NULL, task varchar(100) NULL)"
