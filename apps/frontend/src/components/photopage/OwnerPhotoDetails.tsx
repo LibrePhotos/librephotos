@@ -86,7 +86,7 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
   return (
     <>
       {(shows("face") || faceDrawing.isDrawing || drawn !== null) && (
-        <PhotoCard icon={IconUsers} color="blue" title={t("lightbox.sidebar.people")} count={photo.people.length}>
+        <PhotoCard icon={IconUsers} title={t("lightbox.sidebar.people")} count={photo.people.length}>
           {heading => (
             <PeopleSection
               photoDetail={photo}
@@ -105,19 +105,19 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
         </PhotoCard>
       )}
       {shows("caption") && (
-        <PhotoCard icon={IconNote} color="orange" title={t("lightbox.sidebar.caption")}>
+        <PhotoCard icon={IconNote} title={t("lightbox.sidebar.caption")}>
           {heading => (
             <Description photoDetail={photo} isPublic={false} heading={heading} startEditing={missing.caption} />
           )}
         </PhotoCard>
       )}
       {shows("tags") && (
-        <PhotoCard icon={IconTag} color="teal" title={t("lightbox.sidebar.tags")}>
+        <PhotoCard icon={IconTag} title={t("lightbox.sidebar.tags")}>
           {heading => <TagsSection photoDetail={photo} heading={heading} startEditing={missing.tags === true} />}
         </PhotoCard>
       )}
       {shows("place") && (
-        <PhotoCard icon={IconMapPin} color="red" title={t("photopage.place")}>
+        <PhotoCard icon={IconMapPin} title={t("photopage.place")}>
           {heading => (
             <LocationSection
               photoDetail={photo}
@@ -132,16 +132,16 @@ export function OwnerPhotoDetails({ photo, setFaceLocation, faceDrawing, addFace
       {addable.length > 0 && <AddDetailsCard missing={addable} onAdd={add} />}
       <CameraCard photo={photo} />
       <FileCard photo={photo} />
-      <PhotoCard icon={IconCopyright} color="grape" title={t("rights.title")}>
+      <PhotoCard icon={IconCopyright} title={t("rights.title")}>
         {heading => <RightsSection photo={photo} heading={heading} />}
       </PhotoCard>
       {!!albums && albums.length > 0 && (
-        <PhotoCard icon={IconBookmark} color="indigo" title={t("lightbox.sidebar.albums")} count={albums.length}>
+        <PhotoCard icon={IconBookmark} title={t("lightbox.sidebar.albums")} count={albums.length}>
           <AlbumsSection imageHash={photo.image_hash} showTitle={false} />
         </PhotoCard>
       )}
       {similarCount > 0 && (
-        <PhotoCard icon={IconPhoto} color="cyan" title={t("lightbox.sidebar.similarphotos")}>
+        <PhotoCard icon={IconPhoto} title={t("lightbox.sidebar.similarphotos")}>
           <SimilarPhotosSection photoDetail={photo} maxItems={SIMILAR_PHOTOS_SHOWN} showTitle={false} />
         </PhotoCard>
       )}

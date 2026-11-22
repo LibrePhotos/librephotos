@@ -36,7 +36,7 @@ export function FeatureModelStatus({ status, download, onRetry, retrying }: Prop
   if (status === "ready") {
     return (
       <Group gap={4} component="span" wrap="nowrap">
-        <CircleCheck size={14} color="var(--mantine-color-teal-6)" aria-hidden />
+        <CircleCheck size={14} color="var(--mantine-color-green-6)" aria-hidden />
         <Text span fz="xs" c="dimmed">
           {t("sitesettings.feature_model_ready")}
         </Text>

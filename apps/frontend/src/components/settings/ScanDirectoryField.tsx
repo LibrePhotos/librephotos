@@ -33,7 +33,7 @@ export function ScanDirectoryField({ path }: Props): React.JSX.Element {
               {({ copied, copy }) => (
                 <ActionIcon
                   variant="subtle"
-                  color={copied ? "teal" : "gray"}
+                  color={copied ? "green" : "gray"}
                   aria-label={copied ? t("settings.scandirectorycopied") : t("settings.copyscandirectory")}
                   onClick={copy}
                 >

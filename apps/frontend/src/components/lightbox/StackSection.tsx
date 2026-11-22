@@ -3,7 +3,6 @@ import {
   Accordion,
   ActionIcon,
   Badge,
-  Card,
   Group,
   Image,
   ScrollArea,
@@ -28,6 +27,8 @@ import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { buttonRoleProps } from "../../util/a11y";
 import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
+import { MediaCard } from "../common/surfaces/MediaCard";
+import { Panel } from "../common/surfaces/Panel";
 import { StackModal } from "../stacks/StackModal";
 import { SectionTitle } from "./SectionTitle";
 
@@ -42,14 +43,6 @@ const stackTypeIcons: Record<StackTypeEnum, React.ReactNode> = {
   bracket: <IconLayersLinked size={16} />,
   live_photo: <IconPhoto size={16} />,
   manual: <IconStack2 size={16} />,
-};
-
-const stackTypeColors: Record<StackTypeEnum, string> = {
-  raw_jpeg: "blue",
-  burst: "grape",
-  bracket: "cyan",
-  live_photo: "green",
-  manual: "gray",
 };
 
 type StackPhotoThumbnailProps = {
@@ -87,20 +80,19 @@ function StackPhotoThumbnail({ stackPhoto, label, isCurrent, onPhotoSelect }: St
             </Text>
           )}
           {selectable && (
-            <Text size="xs" c="blue">
+            <Text size="xs" c="brand">
               {t("lightbox.sidebar.clickToView")}
             </Text>
           )}
         </Stack>
       }
     >
-      <Card
+      <MediaCard
         p={0}
-        withBorder
         aria-label={label}
         {...interaction}
         style={{
-          borderColor: stackPhoto.is_primary ? "var(--mantine-color-blue-5)" : undefined,
+          borderColor: stackPhoto.is_primary ? "var(--mantine-primary-color-filled)" : undefined,
           borderWidth: stackPhoto.is_primary ? 2 : 1,
           opacity: isCurrent ? 1 : 0.7,
           cursor: selectable ? "pointer" : "default",
@@ -113,7 +105,7 @@ function StackPhotoThumbnail({ stackPhoto, label, isCurrent, onPhotoSelect }: St
           fit="cover"
           fallbackSrc={PLACEHOLDER_IMAGE}
         />
-      </Card>
+      </MediaCard>
     </Tooltip>
   );
 }
@@ -128,14 +120,13 @@ type SingleStackCardProps = {
 
 function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }: SingleStackCardProps) {
   const icon = stackTypeIcons[stack.type];
-  const color = stackTypeColors[stack.type];
 
   return (
-    <Card withBorder p="xs">
+    <Panel p="xs">
       <Stack gap="xs">
         <Group gap="xs" justify="space-between">
           <Group gap="xs">
-            <Badge size="sm" color={color} variant="light" leftSection={icon}>
+            <Badge size="sm" color="gray" variant="light" leftSection={icon}>
               {/* Translated, not the server's English type_display (kept as the fallback) */}
               {t(`stacks.typelabel.${stack.type}`)}
             </Badge>
@@ -164,7 +155,7 @@ function SingleStackCard({ stack, photoId, t, isCompact = false, onPhotoSelect }
           </>
         )}
       </Stack>
-    </Card>
+    </Panel>
   );
 }
 
@@ -225,7 +216,6 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
         <Accordion variant="separated" radius="sm" defaultValue={firstStack.type}>
           {stacks.map(stack => {
             const icon = stackTypeIcons[stack.type];
-            const color = stackTypeColors[stack.type];
 
             return (
               <Accordion.Item key={stack.id} value={stack.type}>
@@ -235,7 +225,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                       <Text size="sm" fw={500}>
                         {t(`stacks.typelabel.${stack.type}`)}
                       </Text>
-                      <Badge size="xs" color={color} variant="light">
+                      <Badge size="xs" color="gray" variant="light">
                         {stack.photo_count}
                       </Badge>
                     </Group>

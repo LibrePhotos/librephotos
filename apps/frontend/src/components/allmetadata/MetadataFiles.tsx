@@ -23,7 +23,7 @@ function FileTabLabel({ file }: Readonly<{ file: RawMetadataFile }>) {
   return (
     <span className={classes.tabLabel}>
       <span>{fileNameOfLabel(file.path_label)}</span>
-      <Badge size="xs" variant="light" color={isMedia ? "blue" : "gray"}>
+      <Badge size="xs" variant="light" color={isMedia ? undefined : "gray"}>
         {isMedia ? t("allmetadata.media") : t("allmetadata.sidecar")}
       </Badge>
       <Text component="span" size="xs" c="dimmed">

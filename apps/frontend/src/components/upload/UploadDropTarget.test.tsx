@@ -154,7 +154,7 @@ describe("UploadDropTarget", () => {
 
     await fire("dragenter", page(), files);
     expect(defined(overlay()).textContent).toContain("Drop photos and videos to upload");
-    expect(overlay()?.dataset.tone).toBe("blue");
+    expect(overlay()?.dataset.tone).toBe("brand");
 
     await fire("dragleave", page(), files);
     expect(overlay()).toBeNull();

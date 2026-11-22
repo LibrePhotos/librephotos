@@ -38,7 +38,7 @@
 }
 
 .b {
-  fill: var(--mantine-color-blue-6);
+  fill: var(--app-channel-blue);
 }
 
 .clip {
@@ -46,7 +46,7 @@
 }
 
 .clip[data-on] {
-  fill: var(--mantine-color-yellow-5);
+  fill: var(--mantine-color-orange-5);
 }
 
 .note {

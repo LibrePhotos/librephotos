@@ -37,7 +37,7 @@ export function CoordinatesLine({ lat, lon, altitude, size = "xs" }: Props) {
             <Tooltip label={copied ? t("exif.coordinatescopied") : t("exif.copycoordinates")}>
               <ActionIcon
                 variant="subtle"
-                color={copied ? "teal" : "gray"}
+                color={copied ? "green" : "gray"}
                 size="sm"
                 aria-label={t("exif.copycoordinates")}
                 onClick={copy}

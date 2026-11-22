@@ -104,7 +104,6 @@ function TagBadge({ tag, fromFile }: { tag: Tag; fromFile: boolean }) {
       component="button"
       type="button"
       className="mantine-focus-auto"
-      color="teal"
       variant="light"
       style={{ cursor: "pointer" }}
       leftSection={fromFile ? <FromFileIcon /> : undefined}
@@ -233,7 +232,6 @@ function TagsEditor({ photoDetail, heading, startEditing = false }: TagsSectionP
             <Tooltip label={t("lightbox.sidebar.save")}>
               <ActionIcon
                 variant="subtle"
-                color="blue"
                 size="sm"
                 aria-label={t("lightbox.sidebar.save")}
                 onClick={handleSave}

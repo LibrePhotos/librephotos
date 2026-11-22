@@ -129,6 +129,15 @@ export const importBans = [
       "Parse in the package endpoint (parseResponse); the web hook calls endpoints.* from @librephotos/api-client.",
   },
   {
+    id: "raw-surface",
+    files: APP_FILES,
+    name: "@mantine/core",
+    importNames: ["Card", "Paper", "CardSection"],
+    message:
+      "Draw surfaces with components/common/surfaces: ContentCard for a block of a page, Panel for a box inside a card or dialog, FloatingCard for a card over the page, MediaCard for a card with a photo. They own border, radius and shadow.",
+    allowIn: ["src/components/common/surfaces/**/*.{ts,tsx}", ...TEST_FILES],
+  },
+  {
     // jsdom's getComputedStyle matches every rule of every loaded stylesheet against the element, and
     // focus() and Popover/Menu positioning call it all the time: with Mantine's ~1,200 rules a dialog
     // test spent most of its time there and hit the 5 s timeout on a busy machine.
@@ -140,8 +149,29 @@ export const importBans = [
   },
 ];
 
+export const PALETTE_HUES = ["blue", "cyan", "grape", "indigo", "lime", "pink", "teal", "violet", "yellow"];
+const HUE = PALETTE_HUES.join("|");
+const COLOUR_PROP = String.raw`/^(c|bg)$|[cC]olou?r$/`;
+
 // no-restricted-syntax: `selector` (an AST selector).
 export const syntaxBans = [
+  {
+    id: "palette-color",
+    files: APP_FILES,
+    selector: [
+      `JSXAttribute[name.name=${COLOUR_PROP}] Literal[value=/^(${HUE})(\\.[0-9])?$/]`,
+      `Property[key.name=${COLOUR_PROP}] Literal[value=/^(${HUE})(\\.[0-9])?$/]`,
+      `TSLiteralType > Literal[value=/^(${HUE})$/]`,
+      `:matches(ReturnStatement, ArrowFunctionExpression, ReturnStatement > ConditionalExpression, ArrowFunctionExpression > ConditionalExpression) > Literal[value=/^(${HUE})(\\.[0-9])?$/]`,
+      `VariableDeclarator[id.name=/(colou?rs?|tones?|tints?)$/i] Literal[value=/^(${HUE})(\\.[0-9])?$/]`,
+      `Literal[value=/--mantine-color-(${HUE})-/]`,
+      `TemplateElement[value.raw=/--mantine-color-(${HUE})-/]`,
+      `MemberExpression[object.property.name='colors'][property.name=/^(${HUE})$/]`,
+    ].join(", "),
+    message:
+      "Colours name a theme role: no colour or brand (the primary), gray or dimmed (neutral), red (danger), orange (warning), green (success); var(--mantine-primary-color-*) in CSS. A deliberate accent is an --app-* variable in src/theme/colors.css (AGENTS.md, Styling).",
+    allowIn: ["src/theme/chartColors.ts", "src/theme/mapColors.ts", "src/theme/palette.ts", ...TEST_FILES],
+  },
   {
     // vi.fn() is a Mock<(...args: any[]) => any>; give it the signature it stands in for.
     id: "untyped-mock",

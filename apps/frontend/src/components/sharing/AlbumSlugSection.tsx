@@ -1,6 +1,6 @@
 import type { PublicSharingOptions, UserAlbum } from "@librephotos/api-client";
 import { type PublicSharingDefaults } from "@librephotos/api-client";
-import { Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Checkbox, Group, Stack, Text, TextInput, Title } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconPlayerPlay } from "@tabler/icons-react";
 import React, { useEffect, useEffectEvent, useState } from "react";
@@ -10,6 +10,7 @@ import { ApiError } from "../../api_client/api";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { dateTimeInputDaysFromNow, fromDateTimeInputValue, toDateTimeInputValue } from "../../util/dateUtils";
 import { NativeDateTimeInput } from "../common/NativeDateInput";
+import { Panel } from "../common/surfaces/Panel";
 import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
 import { publicAlbumLink, publicSlideshowLink } from "./publicAlbum";
 import { ShareLinkRow } from "./ShareLinkRow";
@@ -108,7 +109,7 @@ function SharingOptionsSettings({ value, onChange, userDefaults }: SharingOption
   ];
 
   return (
-    <Paper withBorder p="sm" radius="md">
+    <Panel p="sm">
       <Title order={5} mb="xs">
         {t("sharing.photoDetailsTitle")}
       </Title>
@@ -126,7 +127,7 @@ function SharingOptionsSettings({ value, onChange, userDefaults }: SharingOption
           />
         ))}
       </Stack>
-    </Paper>
+    </Panel>
   );
 }
 
