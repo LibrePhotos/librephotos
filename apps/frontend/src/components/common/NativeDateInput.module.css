@@ -1,0 +1,12 @@
+.input {
+  font-variant-numeric: tabular-nums;
+}
+
+.input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

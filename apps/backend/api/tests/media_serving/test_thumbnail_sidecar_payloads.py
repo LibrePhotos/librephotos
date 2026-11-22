@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
+from api.tests.sidecar_client import test_client
 from service.thumbnail.main import app
 
 BAD_REQUEST = 400
@@ -28,7 +29,7 @@ class ThumbnailPayloadTests(SimpleTestCase):
         render = patch("service.thumbnail.main.render_raw")
         self.render = render.start()
         self.addCleanup(render.stop)
-        self.client = app.test_client()
+        self.client = test_client(app)
 
     def test_an_empty_body_is_refused(self):
         response = self.client.post("/", data="")

@@ -1,5 +1,5 @@
 import type { PhotoOcrBlock } from "@librephotos/api-client";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import classes from "./OcrTextOverlay.module.css";
 
 // The viewBox is a fixed 1000 user units wide; its height follows the image
@@ -47,7 +47,6 @@ export function placeBlock(block: PhotoOcrBlock, viewHeight: number): PlacedBloc
  * the image below (zoom, pan, swipe).
  */
 export function OcrTextOverlay({ blocks, aspectRatio }: OcrTextOverlayProps) {
-  const svgRef = useRef<SVGSVGElement | null>(null);
   const viewHeight = VIEW_WIDTH * aspectRatio;
 
   const placed = useMemo(
@@ -55,25 +54,12 @@ export function OcrTextOverlay({ blocks, aspectRatio }: OcrTextOverlayProps) {
     [blocks, viewHeight]
   );
 
-  // Selection drags must not start a carousel swipe or a pan. Embla and
-  // use-gesture see events before React's synthetic handlers would, so the
-  // propagation stop has to be a native listener. It only fires for events
-  // originating on the glyphs — everything else passes through the svg.
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return undefined;
-    const stop = (event: Event) => event.stopPropagation();
-    const events = ["pointerdown", "mousedown", "touchstart"];
-    events.forEach(name => svg.addEventListener(name, stop));
-    return () => events.forEach(name => svg.removeEventListener(name, stop));
-  }, []);
-
   if (!placed.length || !(viewHeight > 0)) return null;
 
   return (
     <svg
-      ref={svgRef}
       data-testid="ocr-text-overlay"
+      data-own-gesture
       viewBox={`0 0 ${VIEW_WIDTH} ${viewHeight}`}
       preserveAspectRatio="none"
       style={{

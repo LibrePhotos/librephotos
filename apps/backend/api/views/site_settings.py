@@ -3,7 +3,6 @@
 from typing import Any
 
 from constance import config as site_config
-from constance import settings as constance_settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny, BasePermission, IsAdminUser
 from rest_framework.request import Request
@@ -30,6 +29,7 @@ from api.runtime.features import (
     FEATURES,
     Feature,
     feature_locked,
+    site_config_values,
     site_setting_key,
 )
 from api.runtime.ml_models import (
@@ -82,21 +82,6 @@ SETTING_KEYS = (
     LAST_RUN_KEY,
     *(site_setting_key(feature) for feature in FEATURES),
 )
-
-
-def _site_config(*keys: str) -> dict[str, Any]:
-    """The current values of several constance settings in one query.
-
-    ``site_config.KEY`` costs a query per key, and the login page and every
-    client start read this endpoint.
-    """
-    stored = site_config._backend.mget(keys)
-    return {
-        key: stored[key]
-        if stored.get(key) is not None
-        else constance_settings.CONFIG[key][0]
-        for key in keys
-    }
 
 
 def _features(config: dict[str, Any]) -> dict[str, dict[str, bool | None]]:
@@ -186,7 +171,7 @@ class SiteSettingsView(APIView):
 
     @extend_schema(responses=SiteSettingsSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
-        config = _site_config(*SETTING_KEYS)
+        config = site_config_values(SETTING_KEYS)
         out: dict[str, object] = {}
         out["allow_registration"] = config["ALLOW_REGISTRATION"]
         out["allow_upload"] = config["ALLOW_UPLOAD"]

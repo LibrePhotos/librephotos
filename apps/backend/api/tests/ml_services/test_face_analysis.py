@@ -26,6 +26,7 @@ from service.face_recognition.face_analysis import (
     FaceAnalysis,
     Recognizer,
     _route,
+    blob_from_images,
     estimate_norm,
 )
 from service.onnx_session import inference_session
@@ -207,6 +208,45 @@ class FaceAnalysisLoadTest(SimpleTestCase):
         self.assertIs(
             signature(FaceAnalysis).parameters["new_session"].default,
             inference_session,
+        )
+
+
+class BlobFromImagesMatchesOpenCvDnnTest(SimpleTestCase):
+    PIXELS = np.array([[[0, 1, 127], [128, 200, 255]]], dtype=np.uint8)
+
+    def test_the_detector_blob(self):
+        blob = blob_from_images([self.PIXELS], 1.0 / 128.0, 127.5)
+
+        self.assertEqual(blob.dtype, np.float32)
+        self.assertTrue(blob.flags["C_CONTIGUOUS"])
+        np.testing.assert_array_equal(
+            blob,
+            np.array(
+                [
+                    [
+                        [[-0.00390625, 0.99609375]],
+                        [[-0.98828125, 0.56640625]],
+                        [[-0.99609375, 0.00390625]],
+                    ]
+                ],
+                dtype=np.float32,
+            ),
+        )
+
+    def test_the_recognizer_blob(self):
+        blob = blob_from_images([self.PIXELS, self.PIXELS], 1.0 / 127.5, 127.5)
+
+        self.assertEqual(blob.shape, (2, 3, 1, 2))
+        np.testing.assert_array_equal(
+            blob[1].view(np.uint32),
+            np.array(
+                [
+                    [[0xBB808081, 0x3F800000]],
+                    [[0xBF7DFDFF, 0x3F119192]],
+                    [[0xBF800000, 0x3B808081]],
+                ],
+                dtype=np.uint32,
+            ),
         )
 
 

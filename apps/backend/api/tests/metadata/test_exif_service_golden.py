@@ -17,6 +17,7 @@ import unittest
 import PIL.Image
 from django.test import SimpleTestCase
 
+from api.tests.sidecar_client import test_client
 from service.exif import main as exif_main
 
 EXIFTOOL = shutil.which("exiftool")
@@ -134,7 +135,7 @@ class ExifServiceGoldenTest(SimpleTestCase):
         subprocess.run([EXIFTOOL, "-@", argfile], check=True, capture_output=True)
 
     def get_tags(self, files: list[str], tags: list[str], **options: object) -> dict:
-        response = exif_main.app.test_client().post(
+        response = test_client(exif_main.app).post(
             "/get-tags",
             json={
                 "files_by_reverse_priority": files,
@@ -226,9 +227,7 @@ class ExifServiceGoldenTest(SimpleTestCase):
         )
 
     def test_all_tags_of_text_that_is_not_utf8(self):
-        response = exif_main.app.test_client().post(
-            "/all-tags", json={"path": self.raw}
-        )
+        response = test_client(exif_main.app).post("/all-tags", json={"path": self.raw})
         groups = {
             group["name"]: group["tags"] for group in response.get_json()["groups"]
         }
@@ -241,7 +240,7 @@ class ExifServiceGoldenTest(SimpleTestCase):
 
     def test_an_unreadable_file_is_an_error_that_says_why_without_the_path(self):
         missing = os.path.join(self.directory, "gone.jpg")
-        response = exif_main.app.test_client().post(
+        response = test_client(exif_main.app).post(
             "/get-tags",
             json={
                 "files_by_reverse_priority": [missing],
@@ -255,7 +254,7 @@ class ExifServiceGoldenTest(SimpleTestCase):
         )
 
     def test_geolocate(self):
-        response = exif_main.app.test_client().post(
+        response = test_client(exif_main.app).post(
             "/geolocate",
             json={
                 "points": [{"lat": 52.52, "lon": 13.405}, {"lat": 0.0, "lon": -30.0}],

@@ -8,7 +8,7 @@ import django.contrib.postgres.fields
 import django.core.validators
 import django.db.models.deletion
 import django.utils.timezone
-import django_cryptography.fields
+import api.models.encrypted_fields
 import uuid
 from django.conf import settings
 from django.db import migrations, models
@@ -709,7 +709,7 @@ class Migration(migrations.Migration):
                 ('avatar', models.ImageField(blank=True, null=True, upload_to='avatars')),
                 ('nextcloud_server_address', models.CharField(blank=True, default='', max_length=200)),
                 ('nextcloud_username', models.CharField(blank=True, default='', max_length=64)),
-                ('nextcloud_app_password', django_cryptography.fields.encrypt(models.CharField(blank=True, default='', max_length=64))),
+                ('nextcloud_app_password', api.models.encrypted_fields.EncryptedCharField(blank=True, default='', max_length=64)),
                 ('nextcloud_scan_directory', models.CharField(blank=True, db_index=True, default='', max_length=512)),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),

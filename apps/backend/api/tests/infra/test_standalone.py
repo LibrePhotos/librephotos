@@ -450,16 +450,16 @@ class PrepareEnvironmentTest(SimpleTestCase):
 @fake_sidecar_starts
 @patch("api.runtime.supervisor.subprocess.Popen")
 class SidecarCommandTest(SimpleTestCase):
-    def test_from_source_the_script_runs_under_python(self, popen):
+    def test_from_source_the_script_runs_under_this_python(self, popen):
         supervisor.start_service("thumbnail")
         self.assertEqual(
-            popen.call_args.args[0], ["python", "service/thumbnail/main.py"]
+            popen.call_args.args[0], [sys.executable, "service/thumbnail/main.py"]
         )
 
     def test_image_similarity_lives_outside_service(self, popen):
         supervisor.start_service("image_similarity")
         self.assertEqual(
-            popen.call_args.args[0], ["python", "image_similarity/main.py"]
+            popen.call_args.args[0], [sys.executable, "image_similarity/main.py"]
         )
 
     def test_compiled_the_binary_runs_the_sidecar_itself(self, popen):

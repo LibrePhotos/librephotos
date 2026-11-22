@@ -30,6 +30,7 @@ from api.metadata.tags import Tags
 from api.models.photo import LocationSource
 from api.models.photo_caption import PhotoCaption
 from api.photos.indexed_mtimes import Observed
+from api.tests.metadata.gps_time_zones import known_time_zones
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 UTC = datetime.UTC
@@ -55,6 +56,7 @@ def rule_ids_before(rule_id):
     return ids[: ids.index(rule_id)]
 
 
+@known_time_zones
 class TakeoutRuleTest(SimpleTestCase):
     def apply(self, report_tz, taken_at, gps=(None, None)):
         rule = TimeExtractionRule(
@@ -151,6 +153,7 @@ def tag_values(**by_tag):
     return get_metadata
 
 
+@known_time_zones
 class TakeoutDateTest(TakeoutFilesTestCase):
     media_name = "IMG_20180101_101010.jpg"
 
