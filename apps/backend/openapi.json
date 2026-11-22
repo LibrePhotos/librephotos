@@ -21449,6 +21449,46 @@
           "video_time"
         ]
       },
+      "FaceServices": {
+        "type": "object",
+        "properties": {
+          "running": {
+            "type": "integer",
+            "description": "Face service processes running."
+          },
+          "live": {
+            "type": "integer",
+            "description": "Face services taking requests."
+          },
+          "device": {
+            "type": "string",
+            "nullable": true,
+            "description": "cpu, webgpu or cuda once a model is loaded."
+          },
+          "rss_mb": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "gpu_total_mb": {
+            "type": "integer",
+            "nullable": true
+          },
+          "gpu_free_mb": {
+            "type": "integer",
+            "nullable": true
+          }
+        },
+        "required": [
+          "device",
+          "gpu_free_mb",
+          "gpu_total_mb",
+          "live",
+          "rss_mb",
+          "running"
+        ]
+      },
       "FacesReviewCountResponse": {
         "type": "object",
         "properties": {
@@ -24765,6 +24805,11 @@
             "nullable": true,
             "description": "WORKER_CONCURRENCY when it is set; it wins over the intention."
           },
+          "face_override": {
+            "type": "integer",
+            "nullable": true,
+            "description": "FACE_SIDECAR_REPLICAS when it is set; the plan still caps it."
+          },
           "plans": {
             "type": "array",
             "items": {
@@ -24776,10 +24821,15 @@
             "items": {
               "$ref": "#/components/schemas/RunningWorker"
             }
+          },
+          "face_services": {
+            "$ref": "#/components/schemas/FaceServices"
           }
         },
         "required": [
           "capacity",
+          "face_override",
+          "face_services",
           "intention",
           "override",
           "plans",
@@ -33747,15 +33797,56 @@
           "fits": {
             "type": "boolean",
             "description": "Whether one worker fits in the memory budget."
+          },
+          "web_mb": {
+            "type": "integer",
+            "description": "Budgeted for the web server."
+          },
+          "sidecars_mb": {
+            "type": "integer",
+            "description": "Budgeted for the enabled sidecars other than face recognition."
+          },
+          "face_replicas": {
+            "type": "integer",
+            "description": "Face services (one per heavy worker at most); 0 when face recognition is off."
+          },
+          "face_replica_mb": {
+            "type": "integer",
+            "description": "Memory budgeted per face service."
+          },
+          "face_vram_mb": {
+            "type": "integer",
+            "description": "GPU memory budgeted per face service; 0 on the CPU."
+          },
+          "face_device": {
+            "type": "string",
+            "description": "cpu, gpu or unknown"
+          },
+          "face_limited_by": {
+            "type": "string",
+            "description": "lanes, memory, vram, gpu, setting, maximum or off"
+          },
+          "vram_budget_mb": {
+            "type": "integer",
+            "nullable": true,
+            "description": "GPU memory the face services may use; null when unknown."
           }
         },
         "required": [
           "budget_mb",
+          "face_device",
+          "face_limited_by",
+          "face_replica_mb",
+          "face_replicas",
+          "face_vram_mb",
           "fits",
           "heavy_workers",
           "intention",
           "limited_by",
           "needed_mb",
+          "sidecars_mb",
+          "vram_budget_mb",
+          "web_mb",
           "workers"
         ]
       },

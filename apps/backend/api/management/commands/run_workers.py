@@ -6,6 +6,8 @@ from django.core.management.base import BaseCommand, CommandParser
 from api.jobs import parallel
 from api.jobs.pool import Pool, PoolSettings
 from api.jobs.worker_settings import WorkerSettings
+from api.runtime import capacity
+from api.runtime.sidecar_scaler import ReplicaScaler
 from api.runtime.supervisor import check_services
 
 
@@ -28,8 +30,14 @@ class Command(BaseCommand):
                 sizer=parallel.Sizer(workers),
                 every_minute=parallel.FastFirstImport(),
                 watchdog=check_services,
+                scaler=ReplicaScaler(
+                    target=parallel.face_replica_target,
+                    demand=parallel.heavy_demand,
+                    memory_low=lambda: capacity.low_on_memory(capacity.detect()),
+                ),
             )
         )
+
         pool.install_signal_handlers()
         if options["stop_file"]:
             pool.stop_when_file_appears(options["stop_file"])

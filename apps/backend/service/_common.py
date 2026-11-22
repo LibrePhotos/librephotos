@@ -70,10 +70,17 @@ def logger(name: str) -> logging.Logger:
     return configure_standalone(name)
 
 
+def replica_index() -> int:
+    from api.runtime.replicas import replica_argument
+
+    return replica_argument(sys.argv)
+
+
 def create_app(
     name: str,
     unload: Callable[[], object] | None = None,
     is_loaded: Callable[[], object] | None = None,
+    device: Callable[[], str | None] | None = None,
 ) -> Flask:
     """The sidecar's Flask app.
 
@@ -85,6 +92,7 @@ def create_app(
     state = _State()
     app.extensions["librephotos_sidecar"] = state
     log = logger(name)
+    replica = replica_index()
 
     def counts(endpoint: str | None) -> bool:
         return endpoint not in ("health", "unload_model")
@@ -123,6 +131,8 @@ def create_app(
             "last_request_time": state.last_request_time,
             "model_loaded": None if is_loaded is None else bool(is_loaded()),
             "busy": state.in_flight > 0,
+            "replica": replica,
+            "device": None if device is None else device(),
         }, 200
 
     if unload is not None:
@@ -183,6 +193,7 @@ def release_memory() -> None:
 
 
 def serve_forever(app: Flask, name: str) -> None:
+    from api.runtime.replicas import replica_port
     from api.runtime.sidecars import SERVICES
     from service._wsgi_server import serve
 
@@ -191,6 +202,7 @@ def serve_forever(app: Flask, name: str) -> None:
     # as an environment value librephotos.env could not read.
     for level, message in take_deferred():
         log.log(level, message)
-    log.info("%s: service starting", name)
+    replica = replica_index()
+    log.info("%s: service starting (replica %s)", name, replica)
     host = env_str("SERVICE_HOST", DEFAULT_HOST)
-    serve((host, SERVICES[name]), app, log)
+    serve((host, replica_port(SERVICES[name], replica)), app, log)

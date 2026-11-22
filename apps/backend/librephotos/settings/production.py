@@ -250,6 +250,8 @@ _WORKER_CONCURRENCY = env_int("WORKER_CONCURRENCY", None)
 TASK_WORKERS = _WORKER_CONCURRENCY or None
 TASK_WORKER_RECYCLE_RSS_MB = 600
 TASK_WORKER_MEMORY_LIMIT_MB = 1500
+FACE_SIDECAR_REPLICAS = env_int("FACE_SIDECAR_REPLICAS", None) or None
+ONNX_PROVIDERS = env_list("ONNX_PROVIDERS")
 
 # Hours a job may go without reporting progress before the hourly cleanup
 # marks it failed and stops counting it as running (#1919, #2248). Counted from

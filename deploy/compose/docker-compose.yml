@@ -73,6 +73,7 @@ services:
       - MAP_API_PROVIDER=${mapApiProvider:-exiftool}
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - WORKER_CONCURRENCY=${workerConcurrency:-}
+      - FACE_SIDECAR_REPLICAS=${faceSidecarReplicas:-}
       - BASE_LOGS=${baseLogs:-/logs}
       - LOG_LEVEL=${logLevel:-INFO}
       - SKIP_PATTERNS=${skipPatterns:-}
