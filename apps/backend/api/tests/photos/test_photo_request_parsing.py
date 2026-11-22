@@ -11,6 +11,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.models import User
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -147,7 +148,7 @@ class SaveMetadataBodyTest(PhotoBodyTestCase):
         self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
         self.user.save()
 
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_types_default_to_what_the_settings_write(self, async_task):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(self.URL, {}, format="json")
@@ -155,7 +156,7 @@ class SaveMetadataBodyTest(PhotoBodyTestCase):
         self.assertNotIn("face_tags", response.json()["types"])
         self.assertIn("ratings", response.json()["types"])
 
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_given_types_are_passed_on(self, async_task):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(

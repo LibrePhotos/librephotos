@@ -24,6 +24,7 @@ from api.metadata.photo_datetime import reapply_date_rules
 from api.metadata.reader import MetadataReadError
 from api.metadata.tags import Tags
 from api.models import LongRunningJob, Photo
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_file,
@@ -322,7 +323,7 @@ class ReapplyDateRulesViewTest(TestCase):
     def test_a_user_starts_the_job(self):
         self.client.force_authenticate(user=self.user)
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(URL)
@@ -339,7 +340,7 @@ class ReapplyDateRulesViewTest(TestCase):
         running = create_test_job(self.user, LongRunningJob.JOB_REAPPLY_DATE_RULES)
         self.client.force_authenticate(user=self.user)
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(response.status_code, 409)

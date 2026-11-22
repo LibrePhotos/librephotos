@@ -26,7 +26,7 @@ Quirks deliberately pinned (see inline comments):
 
 import os
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 from rest_framework.exceptions import ValidationError
@@ -36,6 +36,7 @@ from api.models import LongRunningJob, User
 from api.runtime.ml_models import download_models
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.serializers.user import ManageUserSerializer, UserSerializer
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_job, create_test_user
 
 
@@ -310,7 +311,7 @@ class UserSerializerUpdateTest(TestCase):
     # ---- semantic_search_topk branch ------------------------------------
 
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_semantic_search_topk_zero_to_positive_queues_the_embeddings(
         self, task_cls, models_exist
     ):
@@ -322,7 +323,7 @@ class UserSerializerUpdateTest(TestCase):
 
         # models exist -> only the embedding job is queued
         task_cls.assert_called_once()
-        task_cls.return_value.run.assert_called_once_with()
+        task_cls.assert_called_once()
         self.assertIs(task_cls.call_args.args[0], batch_calculate_clip_embedding)
         self.assertEqual(task_cls.call_args.args[1].id, self.user.id)
         job = LongRunningJob.objects.get(job_id=task_cls.call_args.kwargs["job_id"])
@@ -330,27 +331,21 @@ class UserSerializerUpdateTest(TestCase):
         self.assertEqual(User.objects.get(id=self.user.id).semantic_search_topk, 10)
 
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=False)
-    @patch("api.jobs.queue.Chain")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_semantic_search_topk_chains_download_when_models_missing(
-        self, chain_cls, models_exist
+        self, chain, models_exist
     ):
-        chain = MagicMock()
-        chain_cls.return_value = chain
         self.user.semantic_search_topk = 0
         self.user.save()
 
-        with self.captureOnCommitCallbacks(execute=True):
-            self._update(semantic_search_topk=5)
+        self._update(semantic_search_topk=5)
 
-        self.assertEqual(chain.append.call_count, 2)
-        self.assertIs(chain.append.call_args_list[0][0][0], download_models)
-        self.assertIs(
-            chain.append.call_args_list[1][0][0], batch_calculate_clip_embedding
-        )
-        chain.run.assert_called_once_with()
+        self.assertEqual(chain.call_count, 2)
+        self.assertIs(chain.call_args_list[0][0][0], download_models)
+        self.assertIs(chain.call_args_list[1][0][0], batch_calculate_clip_embedding)
 
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_semantic_search_topk_with_embeddings_queued_queues_no_second(
         self, task_cls, models_exist
     ):
@@ -367,31 +362,25 @@ class UserSerializerUpdateTest(TestCase):
         task_cls.assert_not_called()
         self.assertEqual(User.objects.get(id=self.user.id).semantic_search_topk, 10)
 
-    @patch("api.jobs.queue.AsyncTask")
-    @patch("api.jobs.queue.Chain")
-    def test_semantic_search_topk_positive_to_positive_skips_chain(
-        self, chain_cls, task_cls
-    ):
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
+    def test_semantic_search_topk_positive_to_positive_skips_chain(self, task_cls):
         self.user.semantic_search_topk = 3
         self.user.save()
 
         with self.captureOnCommitCallbacks(execute=True):
             self._update(semantic_search_topk=20)
 
-        chain_cls.assert_not_called()
         task_cls.assert_not_called()
         self.assertEqual(User.objects.get(id=self.user.id).semantic_search_topk, 20)
 
-    @patch("api.jobs.queue.AsyncTask")
-    @patch("api.jobs.queue.Chain")
-    def test_semantic_search_topk_zero_to_zero_skips_chain(self, chain_cls, task_cls):
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
+    def test_semantic_search_topk_zero_to_zero_skips_chain(self, task_cls):
         self.user.semantic_search_topk = 0
         self.user.save()
 
         with self.captureOnCommitCallbacks(execute=True):
             self._update(semantic_search_topk=0)
 
-        chain_cls.assert_not_called()
         task_cls.assert_not_called()
         self.assertEqual(User.objects.get(id=self.user.id).semantic_search_topk, 0)
 

@@ -9,26 +9,6 @@ from api.directory_watcher import scan_photos
 from api.tests.utils import create_test_user
 
 
-class DummyAsyncTask:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def run(self):
-        return None
-
-
-class DummyChain:
-    def __init__(self, *args, **kwargs):
-        self.appended = []
-
-    def append(self, *args, **kwargs):
-        self.appended.append((args, kwargs))
-        return self
-
-    def run(self):
-        return None
-
-
 class ScanPhotosDirectoryCreationTest(TestCase):
     def test_existing_thumbnail_directory_does_not_raise(self):
         user = create_test_user()
@@ -47,8 +27,7 @@ class ScanPhotosDirectoryCreationTest(TestCase):
                     ),
                     patch("api.directory_watcher.scan_jobs.walk_files"),
                     patch("api.directory_watcher.scan_jobs.photo_scanner"),
-                    patch("api.jobs.queue.AsyncTask", DummyAsyncTask),
-                    patch("api.jobs.queue.Chain", DummyChain),
+                    patch("api.jobs.store.add"),
                     patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
                 ):
                     scan_photos(user, full_scan=False, job_id=str(uuid.uuid4()))

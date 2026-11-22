@@ -14,30 +14,36 @@ from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
-from django_q.brokers import get_broker
-from django_q.models import OrmQ, Schedule
-from django_q.signing import SignedPackage
-from django_q.tasks import async_chain
 
-from api.jobs.broker import LEASE
+from api.jobs import store
 from api.jobs.cleanup import OLD_STUCK_JOBS_FUNC, STUCK_JOBS_FUNC, fail_stuck_jobs
-from api.models import LongRunningJob
+from api.jobs.queue import ensure_schedule
+from api.models import LongRunningJob, QueuedTask, TaskSchedule
+from api.models.task_queue import RUNNING, WAITING
 from api.tests.utils import create_test_user
 
 J = LongRunningJob
 
 
+def job_task(user_id: int, job_id: str) -> None:
+    return None
+
+
+def file_group(user_id: int, paths: list[str], job_id: str) -> None:
+    return None
+
+
 def queue_task(*args: object, **kwargs: object) -> int:
-    payload = SignedPackage.dumps(
-        {"id": "t1", "name": "t1", "func": "math.floor", "args": args, "kwargs": kwargs}
-    )
-    task_id: int = get_broker().enqueue(payload)
-    return task_id
+    func = file_group if len(args) == 3 else job_task
+    task = store.add(func, args, kwargs)
+    assert task is not None
+    return task.pk
 
 
 def hold(task_id: int) -> None:
-    """Taken by a cluster that renews its lease: locked a lease ahead."""
-    OrmQ.objects.filter(pk=task_id).update(lock=timezone.now() + LEASE)
+    QueuedTask.objects.filter(pk=task_id).update(
+        status=RUNNING, worker="live-worker", lease_until=timezone.now() + store.LEASE
+    )
 
 
 class StuckJobCleanupTest(TestCase):
@@ -87,14 +93,16 @@ class StuckJobCleanupTest(TestCase):
         # failed once the task has run and left the queue.
         job = self.silent_job()
         task_id = queue_task(self.user.pk, job_id=job.job_id)
-        OrmQ.objects.filter(pk=task_id).update(
-            lock=timezone.now() - datetime.timedelta(seconds=1)
+        hold(task_id)
+        QueuedTask.objects.filter(pk=task_id).update(
+            lease_until=timezone.now() - datetime.timedelta(seconds=1)
         )
+        store.requeue_expired()
 
         self.assertEqual(fail_stuck_jobs(), 0)
         self.assert_running(job)
 
-        OrmQ.objects.filter(pk=task_id).delete()
+        store.succeed(QueuedTask.objects.get(pk=task_id))
         self.assertEqual(fail_stuck_jobs(), 1)
         self.assert_failed(job)
 
@@ -109,7 +117,7 @@ class StuckJobCleanupTest(TestCase):
 
     def test_leaves_alone_a_job_whose_per_item_tasks_still_wait(self) -> None:
         job = self.silent_job()
-        queue_task(uuid.uuid4(), job.job_id)
+        queue_task(self.user.pk, ["/photos/a.jpg"], job.job_id)
 
         self.assertEqual(fail_stuck_jobs(), 0)
         self.assert_running(job)
@@ -134,22 +142,23 @@ class StuckJobCleanupTest(TestCase):
         # Train Faces after Find Similar Faces: queued long ago, not started.
         running, waiting = self.silent_job(), self.silent_job()
         J.objects.filter(pk=waiting.pk).update(started_at=None)
-        async_chain(
-            [
-                ("math.floor", (self.user.pk,), {"job_id": running.job_id}),
-                ("math.floor", (self.user.pk,), {"job_id": waiting.job_id}),
-            ]
+        first = store.add(job_task, (self.user.pk,), {"job_id": running.job_id})
+        store.add(
+            job_task,
+            (self.user.pk,),
+            {"job_id": waiting.job_id},
+            store.Placement(status=WAITING, after=first),
         )
-        [task_id] = OrmQ.objects.values_list("pk", flat=True)
-        hold(task_id)
+        hold(first.pk)
 
         self.assertEqual(fail_stuck_jobs(), 0)
         self.assert_running(running)
         self.assert_running(waiting)
 
-    def test_skips_a_task_it_cannot_read(self) -> None:
+    def test_a_failed_task_keeps_no_job_alive(self) -> None:
         job = self.silent_job()
-        hold(get_broker().enqueue("not a signed payload"))
+        task_id = queue_task(self.user.pk, job_id=job.job_id)
+        store.fail(QueuedTask.objects.get(pk=task_id), "boom")
 
         self.assertEqual(fail_stuck_jobs(), 1)
         self.assert_failed(job)
@@ -158,11 +167,11 @@ class StuckJobCleanupTest(TestCase):
         self,
     ) -> None:
         # Every install up to 1.4.0 has it.
-        Schedule.objects.create(func=OLD_STUCK_JOBS_FUNC, schedule_type=Schedule.HOURLY)
+        ensure_schedule(OLD_STUCK_JOBS_FUNC, schedule_type=TaskSchedule.HOURLY)
 
         call_command("start_job_cleanup_service")
         call_command("start_job_cleanup_service")
 
-        self.assertFalse(Schedule.objects.filter(func=OLD_STUCK_JOBS_FUNC).exists())
-        schedule = Schedule.objects.get(func=STUCK_JOBS_FUNC)
-        self.assertEqual(Schedule.HOURLY, schedule.schedule_type)
+        self.assertFalse(TaskSchedule.objects.filter(func=OLD_STUCK_JOBS_FUNC).exists())
+        schedule = TaskSchedule.objects.get(func=STUCK_JOBS_FUNC)
+        self.assertEqual(TaskSchedule.HOURLY, schedule.schedule_type)

@@ -11,6 +11,7 @@ from api.albums import auto_albums
 from api.albums.auto_albums import delete_missing_photos
 from api.models import File, LongRunningJob, Photo, Thumbnail
 from api.models.tag import Tag
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     create_test_album_place,
     create_test_album_thing,
@@ -36,7 +37,7 @@ class DeleteMissingPhotosAsyncTaskTest(TestCase):
 
     def test_post_queues_async_task_and_returns_immediately(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task_cls,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task_cls,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post("/api/deletemissingphotos/")
@@ -51,7 +52,7 @@ class DeleteMissingPhotosAsyncTaskTest(TestCase):
         self.assertIs(args[0], delete_missing_photos)
         self.assertEqual(args[1], self.user)
         self.assertEqual(async_task_cls.call_args.kwargs["job_id"], data["job_id"])
-        async_task_cls.return_value.run.assert_called_once_with()
+        async_task_cls.assert_called_once()
 
 
 _THUMBNAIL_FIELDS = ("thumbnail_big", "square_thumbnail", "square_thumbnail_small")

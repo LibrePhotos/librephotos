@@ -24,6 +24,7 @@ from api.jobs.queue import Task
 from api.models import LongRunningJob
 from api.models.photo_caption import PhotoCaption
 from api.runtime.ml_models import download_models
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_job,
@@ -271,12 +272,11 @@ class GenerateCaptionsViewTest(TestCase):
 
     def _post(self, body=None):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
-            patch("api.jobs.queue.Chain") as chain,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(self.URL, body or {}, format="json")
-        return response, async_task, chain
+        return response, async_task, async_task
 
     def test_starts_the_job_on_the_requesters_photos(self, _prerequisites):
         response, async_task, _ = self._post()
@@ -302,8 +302,7 @@ class GenerateCaptionsViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["downloads_model"])
-        async_task.assert_not_called()
-        appended = [call.args[0] for call in chain.return_value.append.call_args_list]
+        appended = [call.args[0] for call in chain.call_args_list]
         self.assertEqual(appended, [download_models, generate_captions])
 
     @override_config(IMAGE_CAPTIONING_ENABLED=False)

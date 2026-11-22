@@ -4,8 +4,8 @@ description: "Design of the task queue that replaces django-q2, and of the memor
 sidebar_position: 7
 ---
 
-<Since version="1.7.0" /> Status: design. The phases at the end land one pull request at a time; until the
-last one, django-q2 runs the jobs as described in [Backend](./index.md).
+<Since version="1.7.0" /> Status: phases 0 to 2 are in (the queue runs every job; `manage.py run_workers` replaced
+`qcluster`). The later phases land one pull request at a time.
 
 This page is the plan for [#3073](https://github.com/LibrePhotos/librephotos/issues/3073): a queue that
 LibrePhotos owns, so that the number of parallel workers can follow what the machine (or the container)

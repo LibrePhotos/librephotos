@@ -24,9 +24,10 @@ from api.jobs.upgrade_tasks import (
     start_automatic_tasks,
     task_overview,
 )
-from api.models import LongRunningJob, Photo, UpgradeTaskState
+from api.models import LongRunningJob, Photo, QueuedTask, UpgradeTaskState
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.search.semantic import OPENCLIP
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_job,
@@ -351,7 +352,7 @@ class StartingTasksTest(UpgradeTaskTestCase):
     def test_the_cleanup_is_queued_for_the_admin(self):
         state = create_test_upgrade_task_state(STRIP)
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             [job] = upgrade_tasks.start_task(TASKS_BY_KEY[STRIP], self.admin)
@@ -367,7 +368,7 @@ class StartingTasksTest(UpgradeTaskTestCase):
     def test_the_posters_are_queued_for_the_admin(self):
         create_test_upgrade_task_state(POSTERS)
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             [job] = upgrade_tasks.start_task(TASKS_BY_KEY[POSTERS], self.admin)
@@ -380,7 +381,7 @@ class StartingTasksTest(UpgradeTaskTestCase):
     def test_the_turned_faces_repair_is_queued_for_the_admin(self):
         create_test_upgrade_task_state(TURNED_FACES)
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             [job] = upgrade_tasks.start_task(TASKS_BY_KEY[TURNED_FACES], self.admin)
@@ -393,7 +394,7 @@ class StartingTasksTest(UpgradeTaskTestCase):
     def test_the_small_squares_removal_is_queued_for_the_admin(self):
         self.legacy_squares_exist.return_value = True
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             [job] = upgrade_tasks.start_task(TASKS_BY_KEY[SMALL_SQUARES], self.admin)
@@ -410,7 +411,7 @@ class StartingTasksTest(UpgradeTaskTestCase):
         create_test_photo(owner=self.admin, video=True)
         create_test_photo(owner=other, video=True)
         create_test_upgrade_task_state(PROBE)
-        with mock.patch("api.jobs.queue.AsyncTask"):
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder):
             jobs = upgrade_tasks.start_task(TASKS_BY_KEY[PROBE], self.admin)
 
         self.assertEqual(
@@ -425,7 +426,7 @@ class StartingTasksTest(UpgradeTaskTestCase):
         photo = create_test_photo(owner=self.admin)
         Photo.objects.filter(pk=photo.pk).update(clip_embeddings=[1.0])
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             [job] = upgrade_tasks.start_task(TASKS_BY_KEY[SEARCH], self.admin)
@@ -442,7 +443,7 @@ class StartingAtStartupTest(UpgradeTaskTestCase):
         create_test_upgrade_task_state(EXPOSURE)
         create_test_photo(owner=self.admin, video=True)
         create_test_upgrade_task_state(PROBE)
-        with mock.patch("api.jobs.queue.AsyncTask"):
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder):
             self.assertEqual(start_automatic_tasks(), [STRIP, EXPOSURE])
             # Not again on the next start, though the jobs have not run.
             self.assertEqual(start_automatic_tasks(), [])
@@ -457,7 +458,7 @@ class StartingAtStartupTest(UpgradeTaskTestCase):
 
     def test_the_small_squares_removal_starts_itself(self):
         self.legacy_squares_exist.return_value = True
-        with mock.patch("api.jobs.queue.AsyncTask"):
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder):
             self.assertEqual(start_automatic_tasks(), [SMALL_SQUARES])
             self.assertEqual(start_automatic_tasks(), [])
 
@@ -471,14 +472,14 @@ class StartingAtStartupTest(UpgradeTaskTestCase):
         finished_job(
             self.admin, LongRunningJob.JOB_STRIP_THUMBNAIL_METADATA, failed=True
         )
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             self.assertEqual(start_automatic_tasks(), [])
         async_task.assert_not_called()
 
     def test_a_task_already_running_is_not_queued_again(self):
         create_test_upgrade_task_state(STRIP)
         create_test_job(self.admin, LongRunningJob.JOB_STRIP_THUMBNAIL_METADATA)
-        with mock.patch("api.jobs.queue.AsyncTask"):
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder):
             self.assertEqual(start_automatic_tasks(), [])
 
     def test_nothing_without_an_admin(self):
@@ -501,7 +502,7 @@ class StartingAtStartupTest(UpgradeTaskTestCase):
     def test_the_command_says_what_it_queued(self):
         create_test_upgrade_task_state(STRIP)
         out = StringIO()
-        with mock.patch("api.jobs.queue.AsyncTask"):
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder):
             call_command("start_upgrade_tasks", stdout=out)
         self.assertIn(STRIP, out.getvalue())
 
@@ -552,7 +553,7 @@ class UpgradeTaskApiTest(UpgradeTaskTestCase):
     def test_start(self):
         create_test_upgrade_task_state(STRIP)
         with (
-            mock.patch("api.jobs.queue.AsyncTask"),
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder),
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(start_url(STRIP))
@@ -578,7 +579,7 @@ class UpgradeTaskApiTest(UpgradeTaskTestCase):
             create_test_user(), LongRunningJob.JOB_IMPORT_UPLOADS, sealed=False
         )
         with (
-            mock.patch("api.jobs.queue.AsyncTask"),
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder),
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(start_url(STRIP))
@@ -678,13 +679,11 @@ class StateTransitionTest(UpgradeTaskTestCase):
         with (
             # The other owner's probe was queued after the busy check ran.
             mock.patch.object(upgrade_tasks, "_refuse_while_busy"),
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
-            self.captureOnCommitCallbacks(execute=True),
             self.assertRaises(upgrade_tasks.JobAlreadyRunning),
         ):
             upgrade_tasks.start_task(TASKS_BY_KEY[PROBE], self.admin)
 
-        async_task.assert_not_called()
+        self.assertFalse(QueuedTask.objects.exists())
         self.assertFalse(LongRunningJob.objects.filter(started_by=self.admin).exists())
         self.assertIsNone(UpgradeTaskState.objects.get(key=PROBE).started_at)
 
@@ -699,7 +698,7 @@ class StateTransitionTest(UpgradeTaskTestCase):
                 "_refuse_while_busy",
                 side_effect=lambda task: self.assertTrue(lock.called),
             ),
-            mock.patch("api.jobs.queue.AsyncTask"),
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder),
         ):
             upgrade_tasks.start_task(TASKS_BY_KEY[STRIP], self.admin)
 
@@ -713,7 +712,7 @@ class StateTransitionTest(UpgradeTaskTestCase):
 
         with (
             mock.patch.object(upgrade_tasks, "sync_states", return_value=stale),
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
         ):
             self.assertEqual(start_automatic_tasks(), [])
 

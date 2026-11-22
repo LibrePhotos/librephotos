@@ -29,6 +29,7 @@ from api.jobs.queue import JobStep, enqueue_chain, enqueue_job
 from api.models import LongRunningJob, Photo
 from api.search.embedding_jobs import batch_calculate_clip_embedding
 from api.stacks.detection import batch_detect_stacks
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_job,
@@ -57,12 +58,11 @@ class ScanQueuedTest(TestCase):
         self.addCleanup(models.stop)
 
     def test_the_row_exists_before_the_task_runs(self):
-        with patch("api.jobs.queue.AsyncTask") as async_task:
+        with patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post("/api/scanphotos/")
 
         self.assertEqual(response.status_code, 200)
-        # The commit hooks never ran: nothing reached the broker.
-        async_task.assert_not_called()
+        async_task.assert_called_once()
         job = LongRunningJob.objects.get(job_id=response.json()["job_id"])
         self.assertEqual(job.job_type, LongRunningJob.JOB_SCAN_PHOTOS)
         self.assertIsNone(job.started_at)
@@ -74,7 +74,7 @@ class ScanQueuedTest(TestCase):
 
     def test_a_second_start_while_queued_is_a_409_with_the_first_job_id(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             first = self.client.post("/api/scanphotos/")
@@ -97,7 +97,7 @@ class ScanQueuedTest(TestCase):
         create_test_job(
             started_by=create_test_user(), job_type=LongRunningJob.JOB_SCAN_PHOTOS
         )
-        with patch("api.jobs.queue.AsyncTask"):
+        with patch("api.jobs.store.add", new_callable=QueueRecorder):
             response = self.client.post("/api/scanphotos/")
         self.assertEqual(response.status_code, 200)
 
@@ -113,13 +113,13 @@ class ScanQueuedTest(TestCase):
             queued_at=timezone.now()
             - datetime.timedelta(hours=settings.STUCK_JOB_HOURS + 1),
         )
-        with patch("api.jobs.queue.AsyncTask"):
+        with patch("api.jobs.store.add", new_callable=QueueRecorder):
             response = self.client.post("/api/scanphotos/")
         self.assertEqual(response.status_code, 200)
 
     def test_stack_detection_and_a_scan_do_not_block_each_other(self):
         with (
-            patch("api.jobs.queue.AsyncTask"),
+            patch("api.jobs.store.add", new_callable=QueueRecorder),
             self.captureOnCommitCallbacks(execute=True),
         ):
             stacks = self.client.post("/api/stacks/detect/", {}, format="json")
@@ -141,7 +141,7 @@ class DetectionJobIdTest(TestCase):
 
     def test_duplicate_detection_returns_its_job_and_the_task_uses_that_row(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post("/api/duplicates/detect", {}, format="json")
@@ -161,7 +161,7 @@ class DetectionJobIdTest(TestCase):
 
     def test_stack_detection_returns_its_job_and_the_task_uses_that_row(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post("/api/stacks/detect/", {}, format="json")
@@ -183,7 +183,7 @@ class EnqueueJobTest(TestCase):
 
     def test_a_task_without_a_job_id_parameter_is_refused_before_any_row(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             with self.assertRaises(TypeError):
@@ -210,7 +210,7 @@ class EnqueueJobTest(TestCase):
 
     def test_the_task_gets_the_rows_id_by_name(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             job = enqueue_job(
@@ -236,10 +236,7 @@ class EnqueueJobTest(TestCase):
         self.assertEqual(LongRunningJob.objects.count(), 2)
 
     def test_a_chain_writes_every_row_up_front(self):
-        with (
-            patch("api.jobs.queue.Chain") as chain,
-            self.captureOnCommitCallbacks(execute=True),
-        ):
+        with patch("api.jobs.store.add", new_callable=QueueRecorder) as chain:
             jobs = enqueue_chain(
                 self.user,
                 [
@@ -256,10 +253,10 @@ class EnqueueJobTest(TestCase):
             [LongRunningJob.JOB_SCAN_FACES, LongRunningJob.JOB_TRAIN_FACES],
         )
         self.assertEqual(
-            [c.kwargs["job_id"] for c in chain.return_value.append.call_args_list],
+            [c.kwargs["job_id"] for c in chain.call_args_list],
             [job.job_id for job in jobs],
         )
-        chain.return_value.run.assert_called_once_with()
+        self.assertEqual(2, chain.call_count)
 
 
 class ClaimTest(TestCase):

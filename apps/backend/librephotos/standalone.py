@@ -347,7 +347,7 @@ def run_manage(argv: list[str]) -> None:
     """Run a manage.py command in this process."""
     from django.core.management import execute_from_command_line
 
-    worker = named_executable("worker") if argv[:1] == ["qcluster"] else None
+    worker = named_executable("worker") if argv[:1] == ["run_workers"] else None
     if worker is None:
         execute_from_command_line(["manage.py", *argv])
         return
@@ -1072,7 +1072,11 @@ def run_server(
             workers=1,
         )
     )
-    cluster = subprocess.Popen(child_command("manage", "qcluster", role="jobs"))
+    cluster = subprocess.Popen(
+        child_command(
+            "manage", "run_workers", "--stop-file", workers_stop_file(), role="jobs"
+        )
+    )
     startup.server = server
     enable_updater(startup, url)
     _serve(server, cluster, url, startup)
@@ -1249,6 +1253,13 @@ def _server_start_failure(host: str, port: int) -> Exception:
     return RuntimeError(f"The server could not start on {host}:{port}")
 
 
+WORKERS_STOP_SECONDS = 35
+
+
+def workers_stop_file() -> str:
+    return os.path.join(os.environ["BASE_DATA"], f"workers-{os.getpid()}.stop")
+
+
 def _shutdown(cluster: subprocess.Popen[bytes] | None) -> None:
     """Stop this instance's sidecars and job cluster, and nobody else's.
 
@@ -1262,11 +1273,13 @@ def _shutdown(cluster: subprocess.Popen[bytes] | None) -> None:
     for service in SERVICES:
         stop_service(service, only=own)
     if cluster is not None and cluster.poll() is None:
-        cluster.terminate()
+        Path(workers_stop_file()).touch()
         try:
-            cluster.wait(timeout=15)
+            cluster.wait(timeout=WORKERS_STOP_SECONDS)
         except subprocess.TimeoutExpired:
-            cluster.kill()
+            from api.jobs.pool import kill_tree
+
+            kill_tree(cluster.pid)
 
 
 def own_process_ids() -> set[int]:

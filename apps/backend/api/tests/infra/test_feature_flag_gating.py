@@ -40,6 +40,7 @@ from api.runtime.features import (
     forget_site_switches,
 )
 from api.search.semantic import generate_photo_tags
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_file,
@@ -346,7 +347,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
 
     @override_config(FACE_DETECTION_ENABLED=False)
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_scan_faces_endpoint_refuses_when_the_site_setting_is_off(
         self, task_mock, models_exist_mock
     ):
@@ -356,7 +357,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
         task_mock.assert_not_called()
 
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_scan_faces_endpoint_starts_a_job_by_default(
         self, task_mock, models_exist_mock
     ):
@@ -365,11 +366,11 @@ class FaceDetectionFeatureFlagTest(TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response.json()["status"])
-        task_mock.return_value.run.assert_called_once()
+        task_mock.assert_called_once()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_scan_faces_endpoint_refuses_when_disabled(
         self, task_mock, models_exist_mock
     ):
@@ -428,7 +429,7 @@ class FaceClusterFeatureFlagTest(TestCase):
         create_clusters_mock.assert_not_called()
 
     @override_config(FACE_CLUSTER_ENABLED=False)
-    @patch("api.jobs.queue.Chain")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_train_faces_endpoint_refuses_when_the_site_setting_is_off(
         self, chain_mock
     ):
@@ -438,7 +439,7 @@ class FaceClusterFeatureFlagTest(TestCase):
         chain_mock.assert_not_called()
 
     @override_settings(FEATURE_FACE_CLUSTER=False)
-    @patch("api.jobs.queue.Chain")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_train_faces_endpoint_refuses_when_disabled(self, chain_mock):
         response = self.client.post("/api/trainfaces/", format="json")
 
@@ -459,18 +460,14 @@ class ScanPipelineFeatureFlagTest(TestCase):
 
     def _scan(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as task_mock,
-            patch("api.jobs.queue.Chain") as chain_mock,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as task_mock,
             patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
             self.captureOnCommitCallbacks(execute=True),
         ):
             scan_photos(self.user, False, str(uuid.uuid4()))
 
         queued = [call.args[0] for call in task_mock.call_args_list]
-        chained = [
-            call.args[0] for call in chain_mock.return_value.append.call_args_list
-        ]
-        return queued, chained
+        return queued, queued
 
     def test_every_job_is_queued_by_default(self):
         queued, chained = self._scan()

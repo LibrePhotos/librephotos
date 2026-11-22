@@ -5,7 +5,6 @@ library-level steps of a scan: the similarity index was not rebuilt, photos
 got no search embedding with tagging off, and XMP-region faces no encoding.
 """
 
-import ast
 import io
 from datetime import timedelta
 from unittest import mock
@@ -15,7 +14,6 @@ from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
-from django_q.models import Schedule
 
 from api.jobs.queue import schedule_once_by
 from api.jobs.upload_followups import (
@@ -27,6 +25,7 @@ from api.jobs.upload_followups import (
     run_upload_followups,
 )
 from api.models import UploadFollowupState
+from api.models.task_queue import TaskSchedule as Schedule
 from api.search.semantic import OPENCLIP
 from api.tests.utils import (
     create_test_photo,
@@ -54,7 +53,7 @@ class ScheduleOnceByTest(TestCase):
         schedule = Schedule.objects.get(name="job-a")
         self.assertEqual(Schedule.ONCE, schedule.schedule_type)
         self.assertEqual(at, schedule.next_run)
-        self.assertEqual((7,), ast.literal_eval(schedule.args))
+        self.assertEqual([7], schedule.args)
 
     def test_moves_an_existing_schedule_sooner_never_later(self):
         soon = timezone.now() + timedelta(minutes=1)
@@ -67,7 +66,7 @@ class ScheduleOnceByTest(TestCase):
         self.assertEqual([soon], [s.next_run for s in Schedule.objects.all()])
 
     def test_a_concurrent_create_is_not_an_error(self):
-        with mock.patch("api.jobs.queue.schedule", side_effect=IntegrityError):
+        with mock.patch.object(Schedule.objects, "create", side_effect=IntegrityError):
             schedule_once_by("job-a", FUNC, 7, at=timezone.now())
 
         self.assertFalse(Schedule.objects.exists())
@@ -84,7 +83,7 @@ class RequestUploadFollowupsTest(TestCase):
 
         [schedule] = _schedules(self.user)
         self.assertEqual(RUN_FUNC, schedule.func)
-        self.assertEqual((self.user.id,), ast.literal_eval(schedule.args))
+        self.assertEqual([self.user.id], schedule.args)
         self.assertLessEqual(schedule.next_run, timezone.now() + DEBOUNCE)
         self.assertGreaterEqual(schedule.next_run, before + DEBOUNCE)
         self.assertTrue(_state(self.user).photos_added)

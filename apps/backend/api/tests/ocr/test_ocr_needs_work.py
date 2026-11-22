@@ -15,7 +15,6 @@ import requests
 from constance.test import override_config
 from django.test import TestCase
 from django.utils import timezone
-from django_q.models import Schedule
 
 from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import (
@@ -33,6 +32,7 @@ from api.jobs.upload_followups import (
     run_upload_followups,
 )
 from api.models import LongRunningJob, Photo
+from api.models.task_queue import TaskSchedule as Schedule
 from api.tests.ocr.test_ocr_job_and_model import (
     ACTIVE_MODEL,
     _error_response,

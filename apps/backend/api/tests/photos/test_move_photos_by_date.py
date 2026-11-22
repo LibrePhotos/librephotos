@@ -11,6 +11,7 @@ from api.models import LongRunningJob
 from api.photos import moves
 from api.tests.openapi_responses import openapi_mismatches
 from api.tests.photos.move_fixtures import LibraryTestCase
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_job
 
 MOVE = "/api/photos/move/"
@@ -119,7 +120,7 @@ class DatedMoveJobTest(DatedMoveTestCase):
         moves.move_photos_job(
             self.user,
             [june.pk, undated.pk],
-            moves.Destination(self.sorted, "{year}/{month}"),
+            {"folder": self.sorted, "folder_pattern": "{year}/{month}"},
             "skip",
             job.job_id,
         )
@@ -135,7 +136,7 @@ class DatedMoveJobTest(DatedMoveTestCase):
         moves.move_photos_job(
             self.user,
             [photo.pk],
-            moves.Destination(self.sorted, "../{year}"),
+            {"folder": self.sorted, "folder_pattern": "../{year}"},
             "skip",
             job.job_id,
         )
@@ -231,7 +232,7 @@ class DatedMoveViewTest(DatedMoveTestCase):
         photos = [self.photo(taken=JUNE), self.photo("IMG_2.jpg", taken=JULY)]
         with (
             patch("api.photos.moves.SYNC_MOVE_LIMIT", 1),
-            patch("api.jobs.queue.AsyncTask") as task,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as task,
             patch("api.runtime.ml_models.do_all_models_exist", return_value=True),
             self.captureOnCommitCallbacks(execute=True),
         ):

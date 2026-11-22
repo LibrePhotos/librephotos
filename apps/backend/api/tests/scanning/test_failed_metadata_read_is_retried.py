@@ -90,8 +90,7 @@ class FailedMetadataReadIsRetriedTest(TestCase):
                 "api.metadata.photo_datetime.get_metadata",
             ):
                 stack.enter_context(patch(target, self.fake_get_metadata))
-            stack.enter_context(patch("api.jobs.queue.AsyncTask", queue))
-            stack.enter_context(patch("django_q.tasks.count_group", queue.count_group))
+            stack.enter_context(patch("api.jobs.store.add", queue))
             stack.enter_context(override_settings(MEDIA_ROOT=self.media_root))
             yield queue
 

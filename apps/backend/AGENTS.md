@@ -22,7 +22,7 @@ Never export `PHOTOS` in that shell: a registration test creates and deletes `<P
 Windows, natively: Python 3.14 (the prebuilt Windows wheels are cp314), `py -3.14 -m venv .venv-win` and
 `pip install -r requirements.txt -r requirements.dev.txt`, then `pip install --no-deps -r requirements.nodeps.txt` (the Windows wheels come from the
 `windows-wheels-*` release via markers in `requirements.txt`). `scripts/dev_windows.ps1 -DataDir C:\devdata`
-starts the exif sidecar, qcluster and uvicorn on :8000 with `librephotos.settings.dev_windows`. ML
+starts the exif sidecar, `run_workers` and uvicorn on :8000 with `librephotos.settings.dev_windows`. ML
 sidecars are off there: set `FEATURE_<NAME>=1` and run `python manage.py start_service <name>`; they find
 their models under `$BASE_DATA/protected_media/data_models`. A failing
 test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that package serially.
@@ -124,6 +124,9 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (with its `JOB_TYPES` entry and migration), a task taking `job_id` that starts with
   `LongRunningJob.claim` and returns when it gets `None` (cancelled while queued), started from a view
   through `start_job` (`api/jobs/start.py`). Tests: `api/tests/jobs/test_job_queue.py`.
+  Task arguments are stored as JSON (`api/jobs/payload.py`): ids, strings, numbers, lists, dicts, UUIDs,
+  dates and saved model instances (loaded again when the task runs); anything else is a `TypeError` at
+  enqueue time. Tests that must not queue patch `api.jobs.store.add` with `api/tests/queue_recorder.py`.
   A job row is written only through its methods (`update_progress`, `complete`, `fail`, `cancel`, `set_result`):
   `LongRunningJob.save()` refuses a full-row save of an existing row, which would undo a cancel made
   while the job ran. A job ends once: `complete`/`fail`/`cancel` only move an unfinished row (return False
@@ -248,7 +251,7 @@ golden tests at a local bundle.
 ## Windows standalone build
 
 `scripts/build_standalone.py --zip` (needs `requirements.standalone.txt`, MSVC and Node 24) compiles
-`librephotos_standalone.py` with Nuitka into one `librephotos.exe` that runs the server, qcluster and
+`librephotos_standalone.py` with Nuitka into one `librephotos.exe` that runs the server, the workers (`run_workers`) and
 every sidecar (`librephotos/standalone.py` dispatches on `run`/`manage`/`service`) with
 `librephotos.settings.standalone`. `.github/workflows/standalone-windows.yml` builds it in CI, runs the zip
 with `scripts/smoke_standalone.py` (server, sidecars, a scan, the shutdown; `--from-source` tries it without a

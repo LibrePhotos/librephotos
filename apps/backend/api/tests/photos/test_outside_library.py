@@ -22,6 +22,7 @@ from api.photos.outside_library import (
     trash_photos_outside_library_job,
 )
 from api.photos.paths import nextcloud_media_root
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_file,
@@ -228,7 +229,7 @@ class TrashPhotosOutsideLibraryViewTest(TestCase):
         self.client.force_authenticate(user=self.admin)
 
     def post(self, user_id):
-        with patch("api.jobs.queue.AsyncTask") as task:
+        with patch("api.jobs.store.add", new_callable=QueueRecorder) as task:
             with self.captureOnCommitCallbacks(execute=True):
                 response = self.client.post(
                     f"/api/manage/user/{user_id}/trash-photos-outside-library/"

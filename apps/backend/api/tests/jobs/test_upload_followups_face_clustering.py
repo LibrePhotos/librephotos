@@ -11,7 +11,6 @@ from unittest import mock
 
 from django.test import TestCase
 from django.utils import timezone
-from django_q.models import Schedule
 
 from api.faces.classify import ClusterPlan, cluster_all_faces
 from api.faces.clustering_gate import (
@@ -29,6 +28,7 @@ from api.jobs.upload_followups import (
     run_upload_followups,
 )
 from api.models import Face, LongRunningJob, UploadFollowupState
+from api.models.task_queue import TaskSchedule as Schedule
 from api.tests.utils import (
     create_test_cluster,
     create_test_face,

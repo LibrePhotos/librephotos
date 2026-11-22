@@ -17,6 +17,7 @@ from api.drf.exceptions import JobAlreadyRunning, QueueBusy
 from api.jobs.queue import enqueue_job, reserve_job
 from api.models import LongRunningJob
 from api.runtime.ml_models import start_model_download
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_job, create_test_user
 
 J = LongRunningJob
@@ -30,7 +31,7 @@ class InstanceWideJobTest(TestCase):
     def setUp(self) -> None:
         self.admin = create_test_user(is_admin=True)
         self.other_admin = create_test_user(is_admin=True)
-        queue = patch("api.jobs.queue.AsyncTask")
+        queue = patch("api.jobs.store.add", new_callable=QueueRecorder)
         queue.start()
         self.addCleanup(queue.stop)
 
@@ -60,7 +61,7 @@ class InstanceWideJobTest(TestCase):
 class ScanBesideMoveTest(TestCase):
     def setUp(self) -> None:
         self.user = create_test_user()
-        queue = patch("api.jobs.queue.AsyncTask")
+        queue = patch("api.jobs.store.add", new_callable=QueueRecorder)
         queue.start()
         self.addCleanup(queue.stop)
 
@@ -145,7 +146,7 @@ class InstanceWideRefusalAnswerTest(TestCase):
 
     def setUp(self) -> None:
         self.admin = create_test_user(is_admin=True)
-        queue = patch("api.jobs.queue.AsyncTask")
+        queue = patch("api.jobs.store.add", new_callable=QueueRecorder)
         queue.start()
         self.addCleanup(queue.stop)
         self.running = enqueue_job(

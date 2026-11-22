@@ -29,7 +29,6 @@ from api.directory_watcher.scan_jobs import scan_photos
 from api.directory_watcher.utils import update_scan_counter, walk_directory
 from api.models import LongRunningJob
 from api.tests.scanning.test_scan_photos_orchestration import (
-    ChainRecorder,
     TaskRecorder,
 )
 from api.tests.utils import create_test_user
@@ -153,8 +152,7 @@ class ScanWithUnreadableDirectoryTest(TestCase):
                 FEATURE_REVERSE_GEOCODING=False,
                 FEATURE_FACE_DETECTION=False,
             ),
-            patch("api.jobs.queue.AsyncTask", tasks),
-            patch("api.jobs.queue.Chain", ChainRecorder),
+            patch("api.jobs.store.add", tasks),
             self.captureOnCommitCallbacks(execute=True),
             patch.object(scan_jobs, "photo_scanner"),
             patch.object(scan_jobs, "backfill_missing_aspect_ratios"),

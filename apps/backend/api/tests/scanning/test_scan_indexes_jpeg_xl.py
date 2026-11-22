@@ -70,8 +70,7 @@ class ScanIndexesJpegXlTest(TestCase):
                 "api.metadata.photo_datetime.get_metadata",
             ):
                 stack.enter_context(patch(target, no_metadata))
-            stack.enter_context(patch("api.jobs.queue.AsyncTask", queue))
-            stack.enter_context(patch("django_q.tasks.count_group", queue.count_group))
+            stack.enter_context(patch("api.jobs.store.add", queue))
             yield queue
 
     def scan(self) -> LongRunningJob:

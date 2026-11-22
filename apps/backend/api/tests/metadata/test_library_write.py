@@ -24,6 +24,7 @@ from api.metadata.library_write import (
 from api.metadata.writer import MetadataWriteError
 from api.models import LongRunningJob, User
 from api.models.photo import LocationSource
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_face,
@@ -430,7 +431,7 @@ class SaveMetadataViewTest(TestCase):
 
     def post(self, body=None):
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(URL, body or {}, format="json")

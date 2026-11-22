@@ -98,22 +98,3 @@ class MoveScheduledPhotoFunctionsMigrationTest(TestCase):
         for new in migration_0157.MOVED.values():
             with self.subTest(new=new):
                 self.assertTrue(callable(import_string(new)))
-
-    def test_the_cleaning_service_then_adds_no_second_schedule(self):
-        Schedule.objects.create(func=OLD_CLEANUP, schedule_type=Schedule.DAILY)
-        Schedule.objects.create(func=OLD_PRUNE, schedule_type=Schedule.DAILY)
-
-        self._forwards()
-        call_command("start_cleaning_service")
-
-        # The trash retention (#2203) and the update check (#2311) are the only
-        # schedules the command adds.
-        self.assertEqual(
-            self._funcs(),
-            [
-                NEW_CLEANUP,
-                "api.photos.retention.empty_expired_trash",
-                NEW_PRUNE,
-                "api.updates.check.check_for_updates",
-            ],
-        )

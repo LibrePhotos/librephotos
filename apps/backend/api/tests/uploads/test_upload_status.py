@@ -5,7 +5,6 @@ from urllib.parse import urlencode
 
 from django.test import TestCase
 from django.utils import timezone
-from django_q.models import Schedule
 from rest_framework.test import APIClient
 
 from api.jobs.queue import next_scheduled_run
@@ -16,6 +15,7 @@ from api.jobs.upload_followups import (
 )
 from api.jobs.upload_status import MAX_IMPORTS_SHOWN
 from api.models import LongRunningJob, Thumbnail, UploadFollowupState
+from api.models.task_queue import TaskSchedule as Schedule
 from api.tests.utils import (
     create_test_job,
     create_test_photo,

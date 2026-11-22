@@ -166,7 +166,7 @@ Not everything runs inside Django. The heavy machine-learning work lives in stan
 
 The backend reaches them with `sidecar_url(name)` and calls them through `api.runtime.sidecars.post`/`get`, which retry a refused connection or a 503 and raise `requests.HTTPError` for any other error status; a caller turns that into its own error (for example `MetadataReadError`).
 
-You start them with `python manage.py start_service`, which also schedules `api.runtime.supervisor.check_services` in django-q2 to poll each service's `/health` endpoint every minute: a service that died is restarted, and one that has held a model for two minutes without a request is asked to unload it. Stopping a service sends SIGTERM and kills it only if it is still there five seconds later.
+You start them with `python manage.py start_service`, which also schedules `api.runtime.supervisor.check_services` in the task queue to poll each service's `/health` endpoint every minute: a service that died is restarted, and one that has held a model for two minutes without a request is asked to unload it. Stopping a service sends SIGTERM and kills it only if it is still there five seconds later.
 
 Because these are separate processes, the `docker attach` + pdb trick above does not reach them — to debug a service, check its log under `/logs/` or add logging in the service's own `main.py`.
 
