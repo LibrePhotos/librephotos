@@ -42,7 +42,7 @@ export function PhotoCard({ icon: Icon, title, count, aside, children }: Props) 
   );
   const placesHeading = typeof children === "function";
   return (
-    <ContentCard component="section" padding="md" pt="sm" aria-labelledby={headingId}>
+    <ContentCard component="section" padding="md" aria-labelledby={headingId}>
       {!placesHeading && (
         <Group justify="space-between" wrap="nowrap" className={classes.headingRow}>
           {heading}

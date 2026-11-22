@@ -39,7 +39,9 @@ The web app has one accent colour and a small set of surfaces, and two lint rule
 
 **Colours name a role, not a hue.** A colour prop (`c`, `color`, `bg`, `iconColor`, ...) takes no colour or `brand` for the
 primary accent, `gray`, `dark` or `dimmed` for neutral, `red` for danger, `orange` for a warning and `green` for
-success. CSS uses `var(--mantine-primary-color-*)` for the primary. Mantine's other palette names (`blue`, `cyan`,
+success. CSS uses `var(--mantine-primary-color-*)` for the primary. The theme (`src/theme/cssVariables.ts`) keeps the roles readable in both
+schemes: outline buttons in the dark scheme use shade 3 of their colour, and warning and gray text in the light scheme
+use darker inks that pass WCAG AA on white and on their tints. Mantine's other palette names (`blue`, `cyan`,
 `grape`, `indigo`, `lime`, `pink`, `teal`, `violet`, `yellow`) are decoration with no meaning, and stock `blue` is not
 the app's accent. `ban/palette-color` fails on them in props, colour maps, returned colour names, union types and
 `--mantine-color-<hue>-*` strings, and `src/architecture/styles.test.ts` counts them in CSS modules. A colour that
@@ -53,7 +55,7 @@ really is not a role, such as the histogram's red, green and blue channels or th
 | --- | --- | --- |
 | `ContentCard` | a block of a page (`SettingsCard` builds on it) | border, large radius, no shadow |
 | `Panel` | a box inside a card or dialog | border, medium radius, no shadow |
-| `FloatingCard` | a card over the page: the upload and What's new cards, map popups, the sign-in card | border, large radius, extra-large shadow |
+| `FloatingCard` | a card over the page: the upload and What's new cards, map popups, the sign-in card | border, large radius, extra-large shadow, a raised background in the dark scheme so it sits above the page cards |
 | `MediaCard` | a card with a photo that runs to its edges (`MediaCard.Section`) | border, medium radius, no shadow |
 
 Their props leave out `radius`, `shadow` and `withBorder`, so a page cannot restyle one. A new kind of surface is a

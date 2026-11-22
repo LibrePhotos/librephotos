@@ -10,8 +10,8 @@ import { PAGE_GUTTER } from "../../uiConstants";
 import { parseInstant } from "../../util/dateUtils";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
-import { ContentCard } from "../common/surfaces/ContentCard";
 import { PageHeader } from "../PageHeader";
+import { SettingsCard } from "../settings/SettingsCard";
 import { SettingsPageFrame } from "../SettingsPageFrame";
 import { CancelJobButton } from "./CancelJobButton";
 import { CHECK_FILE_CONTENTS_JOB_TYPE, parseCheckFileContentsResult } from "./checkFileContentsResult";
@@ -124,7 +124,7 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
         </>
       }
     >
-      <ContentCard>
+      <SettingsCard>
         <Title order={4} mb={16}>
           {t("joblist.jobinformation")}
         </Title>
@@ -187,12 +187,12 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
             </Table.Tr>
           </Table.Tbody>
         </Table>
-      </ContentCard>
+      </SettingsCard>
 
       <JobReport job={job} />
 
       {outcome === "failed" && (
-        <ContentCard style={{ border: "1px solid var(--mantine-color-red-6)" }}>
+        <SettingsCard style={{ border: "1px solid var(--mantine-color-red-6)" }}>
           <Title order={4} mb={16} c="red">
             {t("joblist.errordetails")}
           </Title>
@@ -216,12 +216,12 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
               </Box>
             )}
           </Stack>
-        </ContentCard>
+        </SettingsCard>
       )}
 
       {/* Partial failure: some items failed, the job as a whole did not */}
       {outcome === "partial_failure" && (
-        <ContentCard style={{ border: "1px solid var(--mantine-color-orange-6)" }}>
+        <SettingsCard style={{ border: "1px solid var(--mantine-color-orange-6)" }}>
           <Title order={4} mb={16} c="orange">
             {t("joblist.partialfailurebadge")}
           </Title>
@@ -241,19 +241,19 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
               </Box>
             )}
           </Stack>
-        </ContentCard>
+        </SettingsCard>
       )}
 
       {/* A cancelled job's result is only {"status": "cancelled"}, which the status already says */}
       {(outcome === "completed" || outcome === "running" || outcome === "queued") &&
         job.result &&
         Object.keys(job.result).length > 0 && (
-          <ContentCard>
+          <SettingsCard>
             <Title order={4} mb={16}>
               {t("joblist.resultdata")}
             </Title>
             {resultCode}
-          </ContentCard>
+          </SettingsCard>
         )}
     </SettingsPageFrame>
   );

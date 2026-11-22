@@ -2,7 +2,7 @@ import type { User } from "@librephotos/api-client";
 import { Stack, Text, Title } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ContentCard } from "../common/surfaces/ContentCard";
+import { SettingsCard } from "../settings/SettingsCard";
 import { LibraryFolderList } from "./LibraryFolderList";
 
 type Props = Readonly<{
@@ -18,7 +18,7 @@ export function LibraryFoldersCard({ user, isAdmin }: Props) {
     return null;
   }
   return (
-    <ContentCard>
+    <SettingsCard>
       <Stack gap="sm">
         <Stack gap={0}>
           <Title order={4}>{t("libraryfolders.title")}</Title>
@@ -28,6 +28,6 @@ export function LibraryFoldersCard({ user, isAdmin }: Props) {
         </Stack>
         <LibraryFolderList owner="self" userId={user.id} username={user.username} canManage={isAdmin} />
       </Stack>
-    </ContentCard>
+    </SettingsCard>
   );
 }

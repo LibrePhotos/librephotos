@@ -4,7 +4,7 @@ import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE } from "../../uiConstants";
-import { ContentCard } from "../common/surfaces/ContentCard";
+import { SettingsCard } from "../settings/SettingsCard";
 import type { CheckFileContentsResult, Verdict } from "./checkFileContentsResult";
 import classes from "./CheckFileContentsResults.module.css";
 
@@ -161,7 +161,7 @@ export function CheckFileContentsResults({ result }: Props) {
   const { t } = useTranslation();
   const changed = result.new_picture + result.same_picture + result.similar_picture + result.uncomparable;
   return (
-    <ContentCard>
+    <SettingsCard>
       <Stack>
         <div>
           <Title order={4}>{t("checkfilecontents.results")}</Title>
@@ -184,6 +184,6 @@ export function CheckFileContentsResults({ result }: Props) {
         {result.users.length > 1 && <UsersTable result={result} />}
         {result.changed.length > 0 && <ChangedFiles result={result} />}
       </Stack>
-    </ContentCard>
+    </SettingsCard>
   );
 }

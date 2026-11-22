@@ -130,7 +130,7 @@ function StackCard({ stack, onClick }: { stack: StackListItem; onClick: () => vo
         <Menu.Target>
           <ActionIcon
             variant="subtle"
-            color="gray"
+            color="white"
             size="sm"
             style={{
               position: "absolute",

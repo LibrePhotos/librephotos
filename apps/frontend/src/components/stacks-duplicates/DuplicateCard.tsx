@@ -85,7 +85,7 @@ export function DuplicateCard({
         <Menu.Target>
           <ActionIcon
             variant="subtle"
-            color="gray"
+            color="white"
             size="sm"
             className={classes.menuButton}
             pos="absolute"

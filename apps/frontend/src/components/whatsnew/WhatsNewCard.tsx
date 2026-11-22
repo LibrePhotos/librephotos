@@ -15,9 +15,9 @@ import classes from "./WhatsNewCard.module.css";
 import { WHATS_NEW_RELEASES, type WhatsNewRelease } from "./whatsNewReleases";
 
 /** The card lists this many highlights; the dialog has them all. */
-const MAX_CARD_HIGHLIGHTS = 4;
+const MAX_CARD_HIGHLIGHTS = 2;
 /** And this many after-update steps above them, the newest release's first. */
-const MAX_CARD_STEPS = 3;
+const MAX_CARD_STEPS = 2;
 
 type WhatsNewCardProps = Readonly<{
   user: User;
