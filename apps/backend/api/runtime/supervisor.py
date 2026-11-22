@@ -562,6 +562,7 @@ def _service_environment() -> dict[str, str]:
 
 
 def _service_script(service: str) -> str:
+
     if service == "image_similarity":
         return "image_similarity/main.py"
     return f"service/{service}/main.py"
@@ -856,9 +857,14 @@ def replica_conflict(service: str, index: int) -> str | None:
     return f"port {port} is used by {owner.name or 'another program'} (process ID {owner.pid})"
 
 
-def start_replicas(service: str, indices: Iterable[int]) -> dict[int, StartOutcome]:
+def start_replicas(
+    service: str, indices: Iterable[int], threads: int = 0
+) -> dict[int, StartOutcome]:
     outcomes: dict[int, StartOutcome] = {}
     launched: dict[int, subprocess.Popen[bytes]] = {}
+    environment = _service_environment()
+    if threads:
+        environment["ONNX_INTRA_OP_THREADS"] = str(threads)
     for index in indices:
         conflict = replica_conflict(service, index)
         if conflict is not None:
@@ -867,9 +873,7 @@ def start_replicas(service: str, indices: Iterable[int]) -> dict[int, StartOutco
             )
             outcomes[index] = StartOutcome.PORT_CONFLICT
             continue
-        process = subprocess.Popen(
-            _service_command(service, index), env=_service_environment()
-        )
+        process = subprocess.Popen(_service_command(service, index), env=environment)
         _replica_handles[(service, index)] = process
         launched[index] = process
     deadline = time.monotonic() + START_TIMEOUT_SECONDS

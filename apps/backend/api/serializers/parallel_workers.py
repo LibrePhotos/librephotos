@@ -88,6 +88,5 @@ class ParallelWorkersSerializer(serializers.Serializer[dict[str, object]]):
     face_services = FaceServicesSerializer()
 
 
-
 class ParallelWorkersRequest(serializers.Serializer[None]):
     intention = serializers.ChoiceField(choices=INTENTIONS)

@@ -224,4 +224,3 @@ def claim(ports: Sequence[int]) -> Iterator[list[int]]:
         if held is not None:
             _unlock(held)
             held.close()
-

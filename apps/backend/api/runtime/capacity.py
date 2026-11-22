@@ -390,5 +390,18 @@ def plan_workers(
     )
 
 
+@dataclass(frozen=True)
+class ReplicaTarget:
+    replicas: int
+    limit_mb: int
+    threads: int = 0
+
+
+def face_threads(cores: int, physical: int | None, replicas: int) -> int:
+    usable = min(cores, physical or cores)
+    return max(1, usable // max(1, replicas))
+
+
 def low_on_memory(found: Capacity) -> bool:
+
     return found.ram_available / MB < max(LOW_WATER_MB, 0.1 * found.ram_total / MB)

@@ -6,6 +6,7 @@ import threading
 import time
 from dataclasses import asdict, dataclass, field
 
+import psutil
 from constance import config
 from django.conf import settings
 from django.db import connection
@@ -31,6 +32,7 @@ from api.runtime.capacity import (
     Capacity,
     Gpu,
     Load,
+    ReplicaTarget,
     WorkerPlan,
 )
 from api.runtime.sidecars import SERVICES
@@ -186,7 +188,7 @@ def heavy_demand() -> int:
     ).count()
 
 
-def face_replica_target() -> tuple[int, int]:
+def face_replica_target() -> ReplicaTarget:
     found = capacity.detect()
     planned = plan_for(intention(), found)
     load = current_load()
@@ -194,7 +196,11 @@ def face_replica_target() -> tuple[int, int]:
     if wanted and wanted > planned.face_replicas:
         _warn_clamped(wanted, planned)
     limit = load.face.limit_mb if load.face is not None else 0
-    return planned.face_replicas, limit
+    threads = 0
+    if load.face_device == CPU and not settings.ONNX_INTRA_OP_THREADS:
+        physical = psutil.cpu_count(logical=False)
+        threads = capacity.face_threads(found.cores, physical, planned.face_replicas)
+    return ReplicaTarget(planned.face_replicas, limit, threads)
 
 
 _clamp_warned: set[tuple[int, int, str]] = set()

@@ -18,6 +18,7 @@ from api.runtime.capacity import (
     Gpu,
     Load,
     face_cost,
+    face_threads,
     plan_workers,
 )
 from api.runtime.sidecars import SERVICES
@@ -137,6 +138,18 @@ def _replicas(planned):
     return planned.face_limited_by, planned.face_replicas
 
 
+class FaceThreadsTest(PlainTestCase):
+    def test_each_face_service_gets_its_share_of_the_cores(self):
+        self.assertEqual(
+            [6, 3, 1, 1],
+            [face_threads(12, 6, replicas) for replicas in (1, 2, 4, 8)],
+        )
+
+    def test_a_container_quota_counts_before_the_host_cores(self):
+        self.assertEqual(2, face_threads(4, 16, 2))
+        self.assertEqual(4, face_threads(4, None, 1))
+
+
 class FaceDeviceTest(PlainTestCase):
     def test_the_device_a_face_service_reports_wins(self):
         self.assertEqual(GPU, parallel.face_device("webgpu"))
@@ -182,9 +195,11 @@ class FaceReplicaTargetTest(TestCase):
             patch.object(parallel, "current_load", return_value=load),
             self.assertLogs(parallel.logger, "WARNING") as logs,
         ):
-            replicas_wanted, limit = parallel.face_replica_target()
+            target = parallel.face_replica_target()
 
-        self.assertEqual((1, 2200), (replicas_wanted, limit))
+        self.assertEqual(
+            (1, 2200, 0), (target.replicas, target.limit_mb, target.threads)
+        )
         self.assertIn("FACE_SIDECAR_REPLICAS asks for 6", logs.output[0])
 
     def test_the_status_shows_the_face_services(self):
@@ -217,6 +232,31 @@ class FaceReplicaTargetTest(TestCase):
         )
         balanced = next(p for p in status["plans"] if p["intention"] == BALANCED)
         self.assertEqual(4, balanced["face_replicas"])
+
+
+@override_settings(
+    TASK_WORKERS=None, FACE_SIDECAR_REPLICAS=None, ONNX_INTRA_OP_THREADS=""
+)
+class CpuThreadsTargetTest(TestCase):
+    def test_cpu_face_services_split_the_cores(self):
+        load = Load(face=face_cost("buffalo_sc", CPU), face_device=CPU)
+        with (
+            patch.object(parallel.capacity, "detect", return_value=LAPTOP),
+            patch.object(parallel, "current_load", return_value=load),
+            patch.object(parallel.psutil, "cpu_count", return_value=8),
+        ):
+            target = parallel.face_replica_target()
+
+        self.assertEqual((4, 2), (target.replicas, target.threads))
+
+    def test_a_threads_setting_is_left_alone(self):
+        load = Load(face=face_cost("buffalo_sc", CPU), face_device=CPU)
+        with (
+            override_settings(ONNX_INTRA_OP_THREADS="4"),
+            patch.object(parallel.capacity, "detect", return_value=LAPTOP),
+            patch.object(parallel, "current_load", return_value=load),
+        ):
+            self.assertEqual(0, parallel.face_replica_target().threads)
 
 
 class PoolScalerTest(PlainTestCase):

@@ -10,6 +10,7 @@ from typing import Any
 from django.db import DatabaseError
 
 from api.runtime import replicas, supervisor
+from api.runtime.capacity import ReplicaTarget
 from api.runtime.replicas import MAX_REPLICAS, REPLICA_KINDS, replica_port
 from api.runtime.sidecars import SERVICES
 
@@ -37,7 +38,7 @@ class _Kind:
 class ReplicaScaler:
     def __init__(
         self,
-        target: Callable[[], tuple[int, int]],
+        target: Callable[[], ReplicaTarget],
         demand: Callable[[], int],
         memory_low: Callable[[], bool],
         clock: Callable[[], float] = time.monotonic,
@@ -64,7 +65,8 @@ class ReplicaScaler:
             replicas.write_live(service, base, [base], kind.device)
             kind.replicas.clear()
             return
-        planned, limit_mb = self.target()
+        target = self.target()
+        planned, limit_mb = target.replicas, target.limit_mb
         allowed = max(1, min(planned, heavy_width))
         low = self.memory_low()
         running = supervisor.replica_processes(service)
@@ -87,7 +89,7 @@ class ReplicaScaler:
         self._watch_primary(service, sizes.get(0, 0), limit_mb, kind)
         missing = [index for index in range(1, wanted) if index not in running]
         if missing:
-            self._start(service, missing)
+            self._start(service, missing, target.threads)
             running = supervisor.replica_processes(service)
         live = [base]
         for index in range(1, MAX_REPLICAS):
@@ -97,7 +99,7 @@ class ReplicaScaler:
             state = kind.replicas.setdefault(index, _Replica())
             if index < wanted:
                 state.unwanted_since = None
-                if self._serves(service, index, state, sizes.get(index, 0), limit_mb):
+                if self._serves(service, index, state, sizes.get(index, 0), target):
                     live.append(replica_port(base, index))
             else:
                 self._retire(service, index, state, index >= allowed or low)
@@ -124,15 +126,21 @@ class ReplicaScaler:
         if isinstance(device, str):
             kind.device = device
 
-    def _start(self, service: str, indices: list[int]) -> None:
+    def _start(self, service: str, indices: list[int], threads: int) -> None:
         def start() -> None:
-            supervisor.start_replicas(service, indices)
+            supervisor.start_replicas(service, indices, threads)
 
         self._leased(service, -1, start)
 
     def _serves(
-        self, service: str, index: int, state: _Replica, rss_mb: int, limit_mb: int
+        self,
+        service: str,
+        index: int,
+        state: _Replica,
+        rss_mb: int,
+        target: ReplicaTarget,
     ) -> bool:
+        limit_mb, threads = target.limit_mb, target.threads
         probe, health = supervisor.probe_replica(service, index)
         if probe is supervisor.Probe.ANSWERED and health is not None:
             state.silent_rounds = 0
@@ -145,7 +153,7 @@ class ReplicaScaler:
                     rss_mb,
                     limit_mb,
                 )
-                self._restart(service, index)
+                self._restart(service, index, threads)
                 return False
             return True
         if probe is supervisor.Probe.FOREIGN:
@@ -156,13 +164,13 @@ class ReplicaScaler:
                 "Replica %s of %s does not answer: restarting it", index, service
             )
             state.silent_rounds = 0
-            self._restart(service, index)
+            self._restart(service, index, threads)
         return False
 
-    def _restart(self, service: str, index: int) -> None:
+    def _restart(self, service: str, index: int, threads: int) -> None:
         def restart() -> None:
             supervisor.stop_replica(service, index)
-            supervisor.start_replicas(service, [index])
+            supervisor.start_replicas(service, [index], threads)
 
         self._leased(service, index, restart)
 

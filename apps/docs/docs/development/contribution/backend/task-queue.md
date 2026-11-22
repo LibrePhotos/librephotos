@@ -306,7 +306,9 @@ vram_budget = 0.8 × (nvidia-smi free + what our face services hold)
   a higher value is logged and capped.
 - **At runtime.** When memory is low (`low_on_memory`), the scaler takes one replica away per round, down
   to 1, before the sizer has to pause workers. A replica above `max(2 × cost, cost + 500 MB)` is
-  restarted; replica 0 only when idle.
+  restarted; replica 0 only when idle. On the CPU, replicas 1.. start with
+  `ONNX_INTRA_OP_THREADS = min(cores, physical cores) // replicas` unless the variable is set; replica 0
+  keeps ONNX Runtime's default.
 - **Shown** in `GET /api/parallel-workers/`: per plan `face_replicas`, `face_replica_mb`,
   `face_vram_mb`, `face_device`, `face_limited_by`, `vram_budget_mb`; `face_services` (running, live,
   device, RSS, GPU memory) and `face_override`.

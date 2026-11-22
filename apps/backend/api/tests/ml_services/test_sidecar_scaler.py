@@ -7,6 +7,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase, TestCase
 
 from api.runtime import replicas, sidecar_scaler, supervisor
+from api.runtime.capacity import ReplicaTarget
 from api.runtime.sidecar_scaler import ReplicaScaler
 from api.runtime.sidecars import SERVICES
 from api.runtime.supervisor import Probe
@@ -21,6 +22,7 @@ class FakeSidecars:
         self.rss = {0: 200}
         self.health = {}
         self.started = []
+        self.threads = []
         self.stopped = []
         self.restarted = []
 
@@ -43,7 +45,8 @@ class FakeSidecars:
         body.update(self.health.get(index, {}))
         return Probe.ANSWERED, body
 
-    def start(self, service, indices):
+    def start(self, service, indices, threads=0):
+        self.threads.append(threads)
         self.started.extend(indices)
         self.running.update(indices)
         return {}
@@ -76,11 +79,12 @@ class ScalerTestCase(TestCase):
         }.items():
             self.enterContext(patch.object(supervisor, name, new=new))
         self.plan = 4
+        self.threads = 0
         self.demand = 10
         self.low = False
         self.now = 1000.0
         self.scaler = ReplicaScaler(
-            target=lambda: (self.plan, 500),
+            target=lambda: ReplicaTarget(self.plan, 500, self.threads),
             demand=lambda: self.demand,
             memory_low=lambda: self.low,
             clock=lambda: self.now,
@@ -96,6 +100,12 @@ class ScaleUpTest(ScalerTestCase):
 
         self.assertEqual([1, 2], self.fake.started)
         self.assertEqual((BASE, BASE + 100, BASE + 200), self.live())
+
+    def test_replicas_start_with_their_share_of_the_cores(self):
+        self.threads = 3
+        self.scaler(heavy_width=2)
+
+        self.assertEqual([3], self.fake.threads)
 
     def test_the_plan_caps_the_lanes(self):
         self.plan = 2
