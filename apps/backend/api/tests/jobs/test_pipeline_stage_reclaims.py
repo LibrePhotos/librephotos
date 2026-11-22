@@ -36,6 +36,7 @@ from api.directory_watcher.scan_jobs import _known_paths
 from api.models import Face, LongRunningJob, Photo, Thumbnail
 from api.tests.ocr.test_ocr_job_and_model import ACTIVE_MODEL, _error_response
 from api.tests.ocr.test_ocr_job_and_model import _run_now as run_now
+from api.tests.queue_recorder import run_queued
 from api.tests.utils import (
     create_test_face,
     create_test_job,
@@ -156,9 +157,10 @@ class FaceDetectionTurnedOffTest(TestCase):
 
         with (
             patch.object(processing_jobs, "_extract_faces_for_photo") as extract,
-            patch.object(processing_jobs, "_encode_and_cluster") as encode,
+            patch.object(processing_jobs, "_queue_face_followups") as encode,
         ):
             scan_faces(self.user, job.job_id)
+            run_queued()
 
         extract.assert_not_called()
         encode.assert_not_called()

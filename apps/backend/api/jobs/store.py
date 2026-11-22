@@ -131,6 +131,10 @@ def add(
     return task
 
 
+def new_group(total: int) -> TaskGroup:
+    return TaskGroup.objects.create(total=total)
+
+
 def _capped_queue_lock(queue: str) -> None:
     if connection.vendor == "postgresql":
         with connection.cursor() as cursor:

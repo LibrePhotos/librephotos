@@ -22,6 +22,7 @@ from api.directory_watcher.utils import (
     is_job_cancelled,
     item_key,
     update_batch_counter,
+    update_job_result,
     update_scan_counter,
 )
 from api.drf.exceptions import JobAlreadyRunning
@@ -34,13 +35,22 @@ from api.geocode.photo_location import (
     geolocate_photo,
     needs_geocoding,
 )
-from api.jobs.queue import enqueue_job, enqueue_task, reserve_job
+from api.jobs.queue import (
+    JobStep,
+    Task,
+    enqueue_group,
+    enqueue_job,
+    enqueue_task,
+    enqueue_unique_followups,
+)
+from api.jobs.worker import checkpoint
 from api.mime import CV2_DECODABLE_EXTENSIONS, extension
-from api.models import Face, LongRunningJob, Photo, User
+from api.models import CountedJobItem, Face, LongRunningJob, Photo, User
 from api.models.album_thing import AlbumThing
 from api.models.photo import CategorySource
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
+from api.models.task_queue import HEAVY_QUEUE
 from api.photos.paths import folder_path_q
 from api.runtime import sidecars
 from api.runtime.features import feature_enabled
@@ -1073,15 +1083,17 @@ def geolocation_job(photo_id: UUID | Photo, job_id: UUID, force: bool = False) -
     _count_photo(job_id, photo.pk, failed, error)
 
 
-# Consecutive photos the face service could not be reached for before Scan
-# Faces gives up: each one already waited through the sidecar client's
-# retries, and the photos left over are scanned by the next run (#2199).
 FACE_SERVICE_UNREACHABLE_LIMIT = 20
 PLANNER_STATS_CHECK_INTERVAL = 5000
+FACE_SCAN_CHUNK = 64
+UNREACHABLE_KEY = "face_service_unreachable"
 
 
-def _extract_faces_for_photo(photo: Photo, job_id: UUID) -> Exception | None:
-    """Detect the photo's faces, counting it on the job; the error, if any."""
+def _face_item(photo_id: object) -> str:
+    return item_key("face-photo", photo_id)
+
+
+def _extract_faces_for_photo(photo: Photo, job_id: UUID | str) -> Exception | None:
     failure = None
     error = None
     try:
@@ -1089,7 +1101,7 @@ def _extract_faces_for_photo(photo: Photo, job_id: UUID) -> Exception | None:
     except Exception as err:
         failure = err
         error = _record_photo_error(photo, err)
-    update_scan_counter(job_id, failure is not None, error)
+    update_scan_counter(job_id, failure is not None, error, item=_face_item(photo.pk))
     return failure
 
 
@@ -1137,61 +1149,96 @@ def scan_faces(
     path: str | None = None,
     photo_ids: list[str] | None = None,
 ) -> None:
-    """
-    Detect and extract faces from photos.
-
-    Which photos have been looked at is kept per photo
-    (``Photo.faces_scanned_at``), so a run over a folder or a few photos
-    leaves the others to the next incremental run: there is no run-wide
-    baseline that a partial run could move past them.
-
-    Args:
-        user: The user whose photos to process
-        job_id: Job ID for tracking progress
-        full_scan: If True, process all photos; otherwise those not scanned yet
-        path: Only the photos with a file in this folder or below it (#524)
-        photo_ids: Only these photos of the user's (#524)
-    """
     lrj = LongRunningJob.claim(user, LongRunningJob.JOB_SCAN_FACES, job_id)
     if lrj is None:
         return
-
     try:
         if _face_detection_turned_off(0, lrj):
             return
-        # Needs no face service, and photos already scanned have such faces too (#2642)
         photo_faces.restore_missing_crops(user)
         refresh_planner_stats(reload=True)
         existing_photos = _faces_to_scan(user, full_scan, path, photo_ids)
         listed = _begin_photo_scan(lrj, existing_photos)
         if not listed:
             return
-
-        unreachable = 0
-        for idx, photo in enumerate(_listed(listed, existing_photos, job_id)):
-            cancelled = _scan_cancelled(idx, job_id, "Scan faces job cancelled")
-            if cancelled or _face_detection_turned_off(idx, lrj):
-                return
-            if idx and idx % PLANNER_STATS_CHECK_INTERVAL == 0:
-                refresh_planner_stats(reload=True)
-            failure = _extract_faces_for_photo(photo, job_id)
-            if isinstance(failure, requests.ConnectionError | requests.Timeout):
-                unreachable += 1
-            else:
-                unreachable = 0
-            if unreachable >= FACE_SERVICE_UNREACHABLE_LIMIT:
-                logger.error("Scan faces job %s: face service unreachable", job_id)
-                lrj.fail(
-                    error=f"Face service unreachable: {unreachable} photos in a "
-                    f"row failed with: {failure}"
-                )
-                return
+        chunks = [
+            [str(pk) for pk in listed[start : start + FACE_SCAN_CHUNK]]
+            for start in range(0, len(listed), FACE_SCAN_CHUNK)
+        ]
+        enqueue_group(
+            [
+                Task(scan_faces_chunk, (lrj.job_id, chunk, index, full_scan))
+                for index, chunk in enumerate(chunks)
+            ],
+            then=Task(finish_face_scan, (user, lrj.job_id)),
+            queue=HEAVY_QUEUE,
+        )
     except Exception as err:
         logger.exception("An error occurred: ")
         lrj.fail(error=err)
-        return
 
-    _encode_and_cluster(user)
+
+def scan_faces_chunk(
+    job_id: str, photo_ids: list[str], index: int = 0, full_scan: bool = False
+) -> None:
+    lrj = LongRunningJob.objects.filter(job_id=job_id, finished=False).first()
+    if lrj is None or _face_detection_turned_off(0, lrj):
+        return
+    if (
+        index
+        and index * FACE_SCAN_CHUNK % PLANNER_STATS_CHECK_INTERVAL < FACE_SCAN_CHUNK
+    ):
+        refresh_planner_stats(reload=True)
+    items = {pk: _face_item(pk) for pk in photo_ids}
+    counted = set(
+        CountedJobItem.objects.filter(
+            job_id=job_id, item__in=items.values()
+        ).values_list("item", flat=True)
+    )
+    todo = [pk for pk in photo_ids if items[pk] not in counted]
+    scannable = Photo.objects.owned_by(lrj.started_by).filter(_FACE_SCANNABLE)
+    if not full_scan:
+        scannable = scannable.filter(_FACES_NOT_SCANNED)
+    photos = {str(pk): photo for pk, photo in scannable.in_bulk(todo).items()}
+    unreachable = int((lrj.result or {}).get(UNREACHABLE_KEY, 0))
+    for idx, pk in enumerate(todo):
+        checkpoint()
+        if _scan_cancelled(idx, job_id, "Scan faces job cancelled"):
+            return
+        photo = photos.get(pk)
+        if photo is None:
+            update_scan_counter(job_id, item=items[pk])
+            continue
+        failure = _extract_faces_for_photo(photo, job_id)
+        down = isinstance(failure, requests.ConnectionError | requests.Timeout)
+        if down or unreachable:
+            unreachable = unreachable + 1 if down else 0
+            _record_unreachable(job_id, unreachable)
+        if unreachable >= FACE_SERVICE_UNREACHABLE_LIMIT:
+            logger.error("Scan faces job %s: face service unreachable", job_id)
+            lrj.fail(
+                error=f"Face service unreachable: {unreachable} photos in a "
+                f"row failed with: {failure}"
+            )
+            return
+
+
+def _record_unreachable(job_id: str, count: int) -> None:
+    def write(result: dict[str, object], job: LongRunningJob) -> None:
+        result[UNREACHABLE_KEY] = count
+
+    update_job_result(job_id, write, unfinished_only=True)
+
+
+def finish_face_scan(user: User, job_id: str) -> None:
+    job = LongRunningJob.objects.filter(job_id=job_id).first()
+    if job is None or is_job_cancelled(job_id):
+        return
+    reached = job.progress_target > 0 and job.progress_current >= job.progress_target
+    if job.failed and not reached:
+        return
+    job.complete()
+    _queue_face_followups(user)
     refresh_planner_stats()
 
 
@@ -1210,27 +1257,19 @@ def _face_detection_turned_off(idx: int, lrj: LongRunningJob) -> bool:
     return True
 
 
-def _encode_and_cluster(user: User) -> None:
-    """Scan Faces' last steps: encode the faces left without one, then cluster.
-
-    Each runs under a row of its own written as for a user's start
-    (``reserve_job``), so neither runs beside the same job queued or started
-    by the user, which does that work already. Encoding writes no row when
-    no face needs it, clustering none while it is turned off.
-    """
+def _queue_face_followups(user: User) -> None:
+    steps = []
     if faces_missing_encoding(user).exists():
-        _run_reserved(
-            user, LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS, generate_face_embeddings
+        steps.append(
+            JobStep(
+                LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS,
+                generate_face_embeddings,
+                (user,),
+            )
         )
     if feature_enabled("FACE_CLUSTER"):
-        _run_reserved(user, LongRunningJob.JOB_CLUSTER_ALL_FACES, cluster_all_faces)
-
-
-def _run_reserved(user: User, job_type: int, work: Callable[..., object]) -> None:
-    """Run ``work(user, job_id=...)`` here under a reserved row, unless refused."""
-    try:
-        job = reserve_job(user, job_type)
-    except JobAlreadyRunning as running:
-        logger.info("user %s: job %s does this work already", user.id, running.job_id)
-        return
-    work(user, job_id=job.job_id)
+        steps.append(
+            JobStep(LongRunningJob.JOB_CLUSTER_ALL_FACES, cluster_all_faces, (user,))
+        )
+    if steps:
+        enqueue_unique_followups(user, steps)
