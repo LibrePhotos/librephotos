@@ -6,12 +6,11 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDateSummaryQuery, useSetPhotosDateTimeMutation } from "../../api_client/photos/hooks";
 import type { PhotoSelection } from "../../api_client/photos/photoSelection";
-import { photoTimestampToPickerDate } from "../../util/dateUtils";
+import { calendarDaysAgo, photoTimestampWallClock } from "../../util/dateUtils";
 import { DisabledReason } from "../common/DisabledReason";
 import { ErrorState } from "../common/ErrorState";
 import { PageLoader } from "../common/PageLoader";
 import { useListFailure } from "../common/useListFailure";
-import { formatPickerTime } from "../lightbox/TimestampForm.schema";
 import { WriteBackHint } from "../lightbox/WriteBackHint";
 import { DIALOG_SIZE } from "../modals/dialogSize";
 import { dateTimeChange, makeChangeDateTimeSchema, type ChangeDateTimeValues } from "./ChangeDateTimeModal.schema";
@@ -36,9 +35,8 @@ type FormProps = Readonly<{
 
 /** Set starts on the oldest selected photo's day and time, or on today when none has a date. */
 function initialValues(summary: DateSummary): ChangeDateTimeValues {
-  const start = summary.oldest ? photoTimestampToPickerDate(summary.oldest.exif_timestamp) : null;
-  const today = new Date();
-  const day = start ?? new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const start = summary.oldest ? photoTimestampWallClock(summary.oldest.exif_timestamp) : null;
+  const { day, time } = start ?? { day: calendarDaysAgo(0), time: "00:00:00" };
   return {
     // Without a dated photo there is nothing to shift.
     mode: summary.oldest ? "shift" : "set",
@@ -48,7 +46,7 @@ function initialValues(summary: DateSummary): ChangeDateTimeValues {
     minutes: 0,
     seconds: 0,
     day,
-    time: formatPickerTime(day),
+    time,
   };
 }
 

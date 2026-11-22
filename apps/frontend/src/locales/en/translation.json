@@ -799,7 +799,6 @@
     "customUrlError": "Use lowercase letters, numbers and hyphens (3-64).",
     "urlTaken": "This URL is already taken.",
     "expiration": "Expiration (optional)",
-    "pickExpiration": "Pick expiration",
     "days7": "7 days",
     "days30": "30 days",
     "days90": "90 days",
@@ -2377,7 +2376,6 @@
     "menuedit": "Birth date…",
     "title": "Birth date of {{name}}",
     "label": "Birth date",
-    "placeholder": "Pick a day",
     "description": "Only you see it. It shows ages on this page and keeps face suggestions off photos taken before it.",
     "remove": "Remove birth date",
     "errorfuture": "The birth date can't be in the future.",
@@ -3635,7 +3633,6 @@
     "taken": {
       "after": "On or after",
       "before": "On or before",
-      "any": "Any day",
       "thisyear": "This year",
       "lastyear": "Last year",
       "last12months": "Last 12 months"

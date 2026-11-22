@@ -4,7 +4,8 @@ from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import models
-from django_cryptography.fields import encrypt
+
+from api.models.encrypted_fields import EncryptedTextField
 
 
 class SmtpKwargs(TypedDict):
@@ -105,10 +106,6 @@ PROVIDER_CHOICES = [
 class EmailConfig(models.Model):
     """Singleton holding the instance's outgoing-email configuration.
 
-    Stored in the database (not the environment) so an administrator can manage
-    it from the Site Settings UI, and the secret credential is encrypted at rest
-    (Fernet, keyed off the install's SECRET_KEY via django-cryptography).
-
     Only ever one row (pk=1); use `EmailConfig.load()` to fetch it.
     """
 
@@ -122,7 +119,7 @@ class EmailConfig(models.Model):
     use_ssl = models.BooleanField(default=False)
     username = models.CharField(max_length=255, blank=True, default="")
     # SMTP password or provider API key. Encrypted at rest.
-    secret = encrypt(models.TextField(blank=True, default=""))
+    secret = EncryptedTextField(blank=True, default="")
 
     class Meta:
         verbose_name = "Email configuration"

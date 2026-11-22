@@ -11,9 +11,8 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
-from django.core.signing import BadSignature
 from django.db import ProgrammingError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.accounts.mail import DynamicEmailBackend, email_is_configured
@@ -54,11 +53,34 @@ class EmailConfigModelTest(TestCase):
             self.assertFalse(email_is_configured())
 
     def test_not_configured_when_the_secret_does_not_decrypt(self):
+        with override_settings(SECRET_KEY="the-key-it-was-saved-with"):
+            c = EmailConfig.load()
+            c.provider = "custom"
+            c.host = "smtp.example.com"
+            c.from_email = "photos@example.com"
+            c.secret = "smtp-password"
+            c.save()
+            self.assertTrue(email_is_configured())
         with (
-            patch.object(EmailConfig, "load", side_effect=BadSignature("changed key")),
+            override_settings(SECRET_KEY="a-changed-key"),
             self.assertLogs("api.accounts.mail", "WARNING"),
         ):
             self.assertFalse(email_is_configured())
+
+    def test_the_anonymous_site_settings_answer_after_a_key_change(self):
+        with override_settings(SECRET_KEY="the-key-it-was-saved-with"):
+            c = EmailConfig.load()
+            c.provider = "custom"
+            c.host = "smtp.example.com"
+            c.from_email = "photos@example.com"
+            c.secret = "smtp-password"
+            c.save()
+        with (
+            override_settings(SECRET_KEY="a-changed-key"),
+            self.assertLogs("api.accounts.mail", "WARNING"),
+        ):
+            response = APIClient().get("/api/sitesettings/")
+        self.assertEqual(200, response.status_code)
 
     def test_any_other_error_is_not_swallowed(self):
         with (

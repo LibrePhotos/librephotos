@@ -3,6 +3,7 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { loadEnv, searchForWorkspaceRoot } from "vite";
 import { configDefaults, defineConfig } from "vitest/config";
+import { localePreloadPlugin } from "./localePreload.ts";
 
 // The shared API client (packages/api-client) ships TypeScript source and is
 // compiled as part of this app, through an alias rather than an installed
@@ -45,6 +46,7 @@ export default defineConfig(({ mode }) => {
         routeTreeFileHeader: ["/* eslint-disable */", "// noinspection JSUnusedGlobalSymbols"],
       }),
       react(wdyr ? { jsxImportSource: "@welldone-software/why-did-you-render" } : {}),
+      localePreloadPlugin(),
     ],
     resolve: {
       alias: [

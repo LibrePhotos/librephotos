@@ -1,16 +1,13 @@
 import { createTheme, MantineProvider, Modal, PasswordInput, useMatches } from "@mantine/core";
-import { DatesProvider } from "@mantine/dates";
 import { Notifications, type NotificationsProps } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
 import "@mantine/spotlight/styles.css";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import React from "react";
 import notificationClasses from "./App.module.css";
 import { NotFoundPage, RouteErrorPage } from "./components/common/RouteFallbacks";
 import { modalTitleStyles } from "./components/modals/modalTitleStyles";
 import { photoListScrollRestorationKey } from "./components/photolist/photoSearch";
-import { loadDayjsLocale } from "./i18n";
 import { routeTree } from "./routeTree.gen";
 import { controlsTheme } from "./theme/controlsTheme";
 import { appCssVariablesResolver } from "./theme/cssVariables";
@@ -21,7 +18,6 @@ import { BRAND_SCALE, DARK_SCALE } from "./theme/palette";
 import { tooltipTheme } from "./theme/tooltipTheme";
 import { appVariantColorResolver } from "./theme/variantColors";
 import { FOOTER_HEIGHT, PAGE_GUTTER, PAGE_GUTTER_MOBILE, TOP_MENU_HEIGHT } from "./uiConstants";
-import { firstDayOfWeek } from "./util/dateUtils";
 
 // Set up a Router instance
 const router = createRouter({
@@ -134,33 +130,13 @@ function AppNotifications() {
   );
 }
 
-/** Date pickers in the UI language (Mantine formats them with dayjs, "en" by default). */
-function LocalizedDatesProvider({ children }: Readonly<{ children: React.ReactNode }>) {
-  const { i18n } = useTranslation();
-  const [locale, setLocale] = useState("en");
-
-  useEffect(() => {
-    let current = true;
-    loadDayjsLocale(i18n.resolvedLanguage).then(name => {
-      if (current) setLocale(name);
-    });
-    return () => {
-      current = false;
-    };
-  }, [i18n.resolvedLanguage]);
-
-  return <DatesProvider settings={{ locale, firstDayOfWeek: firstDayOfWeek() }}>{children}</DatesProvider>;
-}
-
 export function App() {
   // No ColorSchemeScript here: React never runs a <script> it renders, so the
   // equivalent inline script lives in index.html's <head>.
   return (
     <MantineProvider defaultColorScheme="auto" theme={theme} cssVariablesResolver={appCssVariablesResolver}>
       <AppNotifications />
-      <LocalizedDatesProvider>
-        <RouterProvider router={router} />
-      </LocalizedDatesProvider>
+      <RouterProvider router={router} />
     </MantineProvider>
   );
 }
