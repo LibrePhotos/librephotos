@@ -18,6 +18,7 @@ WORKDIR /code
 # Requirements go in first, so a source-only change reuses the install layers.
 COPY apps/backend/requirements*.txt /code/
 RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
+RUN pip install --break-system-packages --no-cache-dir --no-deps -r requirements.nodeps.txt
 RUN if [ "$DEBUG" = 1 ] ; then \
   pip install --break-system-packages -r requirements.dev.txt; \
   fi

@@ -57,6 +57,10 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
   admin only through `manage.py createadmin`. Every `image:`/`FROM` names a tag other than `latest` and
   `pip install` only takes `-r requirements*.txt`, so Renovate owns every bump (pgautoupgrade majors come as
   their own PR). `apps/backend/api/tests/infra/test_deploy_images.py` enforces all of it.
+- A package whose declared dependencies LibrePhotos never uses (tokenizers and huggingface-hub) goes into
+  `apps/backend/requirements.nodeps.txt`, installed with `pip install --no-deps` after every install of
+  `requirements.txt` (images, `setup_test_env.sh`, workflows, docs); `api/tests/infra/test_no_deps_requirements.py`
+  fails on an install that skips it and on a bump that declares a dependency not installed otherwise.
 
 ## Commands
 

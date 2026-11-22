@@ -7,6 +7,7 @@ import numpy as np
 from django.test import SimpleTestCase
 from PIL import Image
 
+from api.tests.sidecar_client import test_client
 from service.face_recognition import main as face_main
 from service.face_recognition.face_analysis import Detector, FaceAnalysis
 from service.face_recognition.main import (
@@ -104,7 +105,7 @@ class UnmatchedRegionTest(SimpleTestCase):
             patch.object(face_main.Image, "open") as open_image,
         ):
             open_image.return_value.convert.return_value = np.zeros((4, 4, 3))
-            response = face_main.app.test_client().post(
+            response = test_client(face_main.app).post(
                 "/face-encodings",
                 json={
                     "source": "/tmp/p.jpg",
@@ -121,7 +122,7 @@ class FaceLocationsErrorStatusTest(SimpleTestCase):
 
     def setUp(self):
         face_main.app.config["TESTING"] = True
-        self.client = face_main.app.test_client()
+        self.client = test_client(face_main.app)
 
     def test_a_file_that_is_not_a_picture_answers_422(self):
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as handle:

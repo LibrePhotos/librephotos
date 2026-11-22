@@ -10,6 +10,10 @@ The goal of automatic image captioning is to understand the content of an image 
 
 To use the feature, open one of your own photos and click the information icon (**Show info panel**, or `i`) in the top bar to show the details panel; on a phone the icon is in the bar at the bottom. In the **Caption** section, click the pencil icon in the top-right corner of the caption box to start editing, then click the wand icon that appears in its place. Once a caption has been generated, it appears as a suggestion just above the caption box — click it to drop the text into the caption field, then press the green tick below the box to save it. (If a caption has already been generated for this photo, the suggestion appears as soon as you start editing.) The wand, cancel and tick controls are only shown while you are editing, and captions cannot be generated on publicly shared photos.
 
+## Hashtags in a caption {#hashtags}
+
+<Since version="1.7.0" /> Type `#` in the caption box to tag the photo with a hashtag. A list opens under the `#` with the hashtags you already use that match what you type, and what you typed as a new hashtag. Pick one with the arrow keys and **Enter** or **Tab**, or click or tap it; **Esc** closes the list and keeps what you typed. Every hashtag is marked in the box as you type, and each one becomes a hashtag album when you save. The caption box keeps line breaks as you type them. Up to 1.6.0 a hashtag picked from the list could be saved with a double `##`.
+
 ## Captioning the whole library {#captioning-the-whole-library}
 
 <Since version="1.4.0" /> To caption many photos at once, open **Account menu > Library**. Under the **Captions** heading is the **Generate captions** row:
