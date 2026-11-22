@@ -33,7 +33,7 @@ function RunningProgress({ stage, job }: Readonly<{ stage: KnownStage; job: NonN
   if (job.progress_target === 0) {
     // Queued behind another job, or not counted its items yet.
     return (
-      <Text size="xs" c="blue">
+      <Text size="xs" c="brand">
         {t("processingstatus.starting")}
       </Text>
     );
@@ -42,7 +42,7 @@ function RunningProgress({ stage, job }: Readonly<{ stage: KnownStage; job: NonN
   const total = formatCount(job.progress_target, locale);
   return (
     <Stack gap={2} className={classes.progress}>
-      <Text size="xs" c="blue">
+      <Text size="xs" c="brand">
         {t("processingstatus.running", { done, total })}
       </Text>
       {/* The counts, not Mantine's percentage, are what a screen reader hears. */}

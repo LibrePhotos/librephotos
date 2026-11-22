@@ -33,4 +33,4 @@ export const PAGE_GUTTER_MOBILE = 12;
 export const PAGE_GUTTER_PX = { base: PAGE_GUTTER_MOBILE, sm: PAGE_GUTTER } as const;
 
 // Colour of the favourite star everywhere it appears.
-export const FAVORITE_COLOR = "var(--mantine-color-yellow-5)";
+export const FAVORITE_COLOR = "var(--app-favorite)";

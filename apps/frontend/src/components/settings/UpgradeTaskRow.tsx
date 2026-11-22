@@ -23,7 +23,7 @@ const STATUS_ICON_SIZE = 20;
 function StatusIcon({ task }: Readonly<{ task: UpgradeTask }>) {
   switch (task.status) {
     case "running":
-      return <Loader2 size={STATUS_ICON_SIZE} className={classes.spin} color="var(--mantine-color-blue-filled)" />;
+      return <Loader2 size={STATUS_ICON_SIZE} className={classes.spin} color="var(--mantine-primary-color-filled)" />;
     case "failed":
       return <CircleX size={STATUS_ICON_SIZE} color="var(--mantine-color-red-filled)" />;
     case "done":

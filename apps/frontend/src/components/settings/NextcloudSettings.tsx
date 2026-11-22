@@ -32,7 +32,7 @@ function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetchi
 
 /** The badge's colour, from the connection check alone. */
 function statusColor(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
-  if (isFetching) return "blue";
+  if (isFetching) return "brand";
   if (isSuccess && details.nextcloud_server_address) return "green";
   return isError ? "red" : "gray";
 }

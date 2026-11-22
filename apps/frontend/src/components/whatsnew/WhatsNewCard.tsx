@@ -1,5 +1,5 @@
 import type { User } from "@librephotos/api-client";
-import { Anchor, Box, Button, CloseButton, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { Anchor, Button, CloseButton, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconExternalLink as ExternalLink, IconSparkles as Sparkles } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useEffect } from "react";
@@ -7,16 +7,17 @@ import { useTranslation } from "react-i18next";
 import { useOpenUpgradeTaskCount } from "../../api_client/jobs/hooks/useUpgradeTasks";
 import { useSaveLastSeenReleaseMutation } from "../../api_client/user/hooks/useSaveLastSeenReleaseMutation";
 import { FOOTER_HEIGHT, LEFT_MENU_WIDTH } from "../../uiConstants";
-import { NoticeCard } from "../common/NoticeCard";
+import { NoticeContent } from "../common/NoticeCard";
+import { FloatingCard } from "../common/surfaces/FloatingCard";
 import { ADMIN_SECTIONS } from "../settings/sectionIds";
 import { selectUnseen } from "./selectUnseen";
 import classes from "./WhatsNewCard.module.css";
 import { WHATS_NEW_RELEASES, type WhatsNewRelease } from "./whatsNewReleases";
 
 /** The card lists this many highlights; the dialog has them all. */
-const MAX_CARD_HIGHLIGHTS = 4;
+const MAX_CARD_HIGHLIGHTS = 2;
 /** And this many after-update steps above them, the newest release's first. */
-const MAX_CARD_STEPS = 3;
+const MAX_CARD_STEPS = 2;
 
 type WhatsNewCardProps = Readonly<{
   user: User;
@@ -125,19 +126,20 @@ export function WhatsNewCard({ user, runningTag, onSeeWhatsNew }: WhatsNewCardPr
   const newest = decision.releases[0];
 
   return (
-    <Box
+    <FloatingCard
       component="section"
       aria-label={title}
       pos="fixed"
       left={{ base: 8, sm: LEFT_MENU_WIDTH + 16 }}
       right={{ base: 8, sm: "auto" }}
       bottom={{ base: FOOTER_HEIGHT + 8, sm: 16 }}
-      w={{ base: "auto", sm: 360 }}
+      w={{ base: "auto", sm: 380 }}
+      p="md"
       className={classes.card}
       data-testid="whats-new-card"
     >
-      <NoticeCard
-        color="grape"
+      <NoticeContent
+        tone="brand"
         icon={<Sparkles size={20} />}
         title={title}
         description={
@@ -153,11 +155,9 @@ export function WhatsNewCard({ user, runningTag, onSeeWhatsNew }: WhatsNewCardPr
         <Highlights releases={decision.releases} />
         <UpgradeTasksLine isAdmin={isAdmin} />
         <Group gap="xs">
-          {/* The card's main action is tonal (filled is for a dialog's confirm); the link out is quiet */}
           <Button
             size="xs"
             variant="light"
-            color="grape"
             onClick={() => {
               onSeeWhatsNew(decision.releases.map(release => release.release));
               seen();
@@ -179,7 +179,7 @@ export function WhatsNewCard({ user, runningTag, onSeeWhatsNew }: WhatsNewCardPr
             </Button>
           ) : null}
         </Group>
-      </NoticeCard>
-    </Box>
+      </NoticeContent>
+    </FloatingCard>
   );
 }

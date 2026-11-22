@@ -82,7 +82,6 @@ export function TimestampForm({ exifTimestamp, canRemove, saving, onSave, onRemo
           >
             <ActionIcon
               variant="subtle"
-              color="blue"
               size="sm"
               aria-label={t("lightbox.sidebar.save")}
               loading={saving}

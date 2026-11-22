@@ -4,7 +4,6 @@ import {
   Checkbox,
   CloseButton,
   Group,
-  Paper,
   SegmentedControl,
   Slider,
   Stack,
@@ -19,6 +18,8 @@ import { useTranslation } from "react-i18next";
 import { useSaveUserPlaceMutation, useUserPlacePreviewQuery } from "../../api_client/albums/hooks";
 import { ApiError } from "../../api_client/apiError";
 import { DisabledReason } from "../common/DisabledReason";
+import { FloatingCard } from "../common/surfaces/FloatingCard";
+import { Panel } from "../common/surfaces/Panel";
 import { makePlaceEditorSchema } from "./PlaceEditor.schema";
 import classes from "./PlaceEditorPanel.module.css";
 import { RADIUS_LIMITS } from "./placeGeometry";
@@ -83,13 +84,12 @@ export function PlaceEditorPanel({ editor, places, onRadiusChange, onClose, floa
   });
 
   const title = editor.id === undefined ? t("yourplaces.editor.newTitle") : t("yourplaces.editor.editTitle");
+  const Surface = floating ? FloatingCard : Panel;
   return (
-    <Paper
+    <Surface
       component="form"
       onSubmit={submit}
       className={floating ? classes.floating : undefined}
-      withBorder
-      shadow={floating ? "md" : undefined}
       p="md"
       aria-label={title}
     >
@@ -162,6 +162,6 @@ export function PlaceEditorPanel({ editor, places, onRadiusChange, onClose, floa
           </DisabledReason>
         </Group>
       </Stack>
-    </Paper>
+    </Surface>
   );
 }

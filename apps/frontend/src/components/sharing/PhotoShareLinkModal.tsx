@@ -125,7 +125,7 @@ function ShownLink({ url, replace, onReplace, onRevoke }: ShownLinkProps) {
             <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} withArrow>
               <ActionIcon
                 variant="subtle"
-                color={copied ? "teal" : "gray"}
+                color={copied ? "green" : "gray"}
                 onClick={copy}
                 aria-label={t("sharing.copyLink")}
               >

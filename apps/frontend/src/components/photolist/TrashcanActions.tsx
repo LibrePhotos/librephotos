@@ -47,7 +47,7 @@ export function TrashcanActions({ selected, onDone }: Readonly<Props>) {
       {location.pathname.startsWith("/deleted") && (
         <>
           <DisabledReason label={restoreLabel} reason={noSelection} position="bottom">
-            <ActionIcon variant="light" color="blue" aria-label={restoreLabel} onClick={restore}>
+            <ActionIcon variant="light" aria-label={restoreLabel} onClick={restore}>
               <ArrowBackUp />
             </ActionIcon>
           </DisabledReason>

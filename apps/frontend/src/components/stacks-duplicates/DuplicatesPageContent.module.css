@@ -11,7 +11,7 @@
 }
 
 .photoCard[data-with-border][data-selected] {
-  border-color: var(--mantine-color-blue-5);
+  border-color: var(--mantine-primary-color-filled);
   border-width: 2px;
 }
 
@@ -50,7 +50,7 @@
 }
 
 .groupCard[data-with-border][data-selected] {
-  border-color: var(--mantine-color-blue-5);
+  border-color: var(--mantine-primary-color-filled);
   border-width: 2px;
 }
 

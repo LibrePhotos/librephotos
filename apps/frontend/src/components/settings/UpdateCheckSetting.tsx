@@ -19,7 +19,7 @@ import { useSaveSiteSettings } from "./useSaveSiteSettings";
 const TONES: Record<UpdateCheckTone, { icon: TablerIcon; color: string }> = {
   idle: { icon: IconClock, color: "dimmed" },
   ok: { icon: IconCheck, color: "dimmed" },
-  available: { icon: IconDownload, color: "blue" },
+  available: { icon: IconDownload, color: "brand" },
   failed: { icon: IconAlertTriangle, color: "orange" },
 };
 
