@@ -1,44 +1,3 @@
-"""What every sidecar shares: its Flask app, /health, the idle clock and serve().
-
-The sidecars are small Flask apps started as ``python service/<name>/main.py``
-(or ``python image_similarity/main.py``) by api.runtime.supervisor, which puts the
-backend root on their PYTHONPATH, so this module imports as
-``service._common`` there as in the tests and the standalone build.
-
-``create_app(name)``
-    The Flask app, with the parts that used to be copied into every main.py:
-
-    * ``GET /health`` answers ``{"status": "OK", "service": ...,
-      "last_request_time": ..., "model_loaded": ..., "busy": ...}`` with 200
-      for every sidecar alike. ``last_request_time`` is stamped when any
-      other request *starts*; ``busy`` says one is still running, so a
-      minutes-long inference never looks idle. ``model_loaded`` is None for a
-      sidecar that holds no model.
-    * ``GET``/``POST /unload-model``, for a sidecar that passes ``unload``:
-      the watchdog (api.runtime.supervisor.check_services) calls it once the sidecar has
-      been idle for a while, to give the model's memory back without killing
-      the process. It answers 409 while a request is running.
-    * A request body that is not a JSON object with the required fields
-      (``json_fields``) is answered with an empty 400, as every sidecar did,
-      and an unexpected exception with ``{"error": "..."}`` and 500.
-
-``serve_forever(app, name)``
-    Serves the app (``service._wsgi_server``: one thread, one request at a
-    time, keep-alive) on the port api.runtime.sidecars.SERVICES gives the
-    sidecar, on loopback unless SERVICE_HOST says otherwise: the sidecars
-    have no authentication, and the backend only ever calls them on
-    127.0.0.1. Each main.py wraps it in the ``serve()`` the standalone build
-    calls (librephotos.standalone.run_service).
-
-``logger(name)``
-    The sidecar's stdlib logger: the backend's line format and LOG_LEVEL (or
-    its LOG_LEVELS entry), written to the stdout api.runtime.supervisor leaves the
-    sidecar (see _service_environment), which is the container log, and
-    nowhere else (logging_bootstrap.configure_standalone). Modules that must
-    not import Flask take ``logging.getLogger(name)`` instead and log through
-    the same handler. A sidecar never calls print().
-"""
-
 import gc
 import logging
 import sys
@@ -46,12 +5,9 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from flask import Flask, request
-from flask.typing import ResponseReturnValue
-from werkzeug.exceptions import HTTPException
-
 from librephotos.env import env_str
 from librephotos.logging_bootstrap import configure_standalone, take_deferred
+from service._web import App, ResponseReturnValue, request
 
 DEFAULT_HOST = "127.0.0.1"
 
@@ -74,14 +30,8 @@ def create_app(
     name: str,
     unload: Callable[[], object] | None = None,
     is_loaded: Callable[[], object] | None = None,
-) -> Flask:
-    """The sidecar's Flask app.
-
-    ``unload`` releases the models the sidecar holds (registers
-    ``/unload-model``); ``is_loaded`` says whether any is held right now
-    (reported by /health as ``model_loaded``).
-    """
-    app = Flask(name)
+) -> App:
+    app = App(name)
     state = _State()
     app.extensions["librephotos_sidecar"] = state
     log = logger(name)
@@ -108,10 +58,6 @@ def create_app(
 
     @app.errorhandler(Exception)
     def unexpected_error(error: Exception) -> ResponseReturnValue:
-        if isinstance(error, HTTPException):
-            return error
-        # JSON with the reason rather than Flask's HTML page: the backend
-        # logs the "error" field of a failed reply.
         log.error("%s: error handling %s: %r", name, request.path, error)
         return {"error": f"{type(error).__name__}: {error}"}, 500
 
@@ -140,7 +86,7 @@ def create_app(
     return app
 
 
-def last_request_time(app: Flask) -> float | None:
+def last_request_time(app: App) -> float | None:
     state: _State = app.extensions["librephotos_sidecar"]
     return state.last_request_time
 
@@ -182,7 +128,7 @@ def release_memory() -> None:
             pass
 
 
-def serve_forever(app: Flask, name: str) -> None:
+def serve_forever(app: App, name: str) -> None:
     from api.runtime.sidecars import SERVICES
     from service._wsgi_server import serve
 

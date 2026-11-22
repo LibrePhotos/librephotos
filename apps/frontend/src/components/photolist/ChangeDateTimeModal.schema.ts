@@ -1,8 +1,7 @@
 import type { DateTimeChange } from "@librephotos/api-client";
 import type { TFunction } from "i18next";
 import { z } from "zod";
-import { pickerDateToPhotoTimestamp } from "../../util/dateUtils";
-import { combineDayAndTime, WHOLE_TIME } from "../lightbox/TimestampForm.schema";
+import { isWholeTime, wallClockToPhotoTimestamp } from "../../util/dateUtils";
 
 /** Shift moves every photo by one amount; Set gives them all one date and time. */
 type DateTimeMode = DateTimeChange["mode"];
@@ -18,8 +17,7 @@ export type ChangeDateTimeValues = {
   hours: NumberField;
   minutes: NumberField;
   seconds: NumberField;
-  /** Set: the day picked and the time typed, as the lightbox's date editor takes them. */
-  day: Date | null;
+  day: string;
   time: string;
 };
 
@@ -50,8 +48,7 @@ export function dateTimeChange(values: ChangeDateTimeValues): DateTimeChange | n
     const seconds = shiftSeconds(values);
     return seconds === 0 ? null : { mode: "shift", seconds };
   }
-  const picked = combineDayAndTime(values);
-  const datetime = picked && pickerDateToPhotoTimestamp(picked);
+  const datetime = wallClockToPhotoTimestamp(values);
   return datetime ? { mode: "set", datetime } : null;
 }
 
@@ -70,7 +67,7 @@ export function makeChangeDateTimeSchema(t: TFunction) {
       hours: unitField(UNIT_MAX.hours),
       minutes: unitField(UNIT_MAX.minutes),
       seconds: unitField(UNIT_MAX.seconds),
-      day: z.date().nullable(),
+      day: z.string(),
       time: z.string(),
     })
     .superRefine((values, context) => {
@@ -80,10 +77,10 @@ export function makeChangeDateTimeSchema(t: TFunction) {
         }
         return;
       }
-      if (values.day === null) {
+      if (values.day === "") {
         context.addIssue({ code: "custom", path: ["day"], message: t("changedatetime.pickdatetime") });
       }
-      if (!WHOLE_TIME.test(values.time)) {
+      if (!isWholeTime(values.time)) {
         context.addIssue({ code: "custom", path: ["time"], message: t("lightbox.sidebar.timeincomplete") });
       }
     });

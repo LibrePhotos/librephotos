@@ -1,11 +1,5 @@
 import type { ParseKeys } from "i18next";
 
-/**
- * The Profile language picker, in the order it lists them. `value` is the directory under
- * `src/locales/` (i18n.ts loads every directory there on its own); `label` is the language's name
- * in the UI language. Weblate adds a directory when a translator starts a language, and
- * `src/i18n.test.ts` fails until it has an entry here and a dayjs locale in `i18n.ts`.
- */
 export const LANGUAGE_OPTIONS: readonly { value: string; label: ParseKeys }[] = [
   { value: "en", label: "settings.english" },
   { value: "ca", label: "settings.catalan" },

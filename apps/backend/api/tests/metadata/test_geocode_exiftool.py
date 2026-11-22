@@ -20,6 +20,7 @@ from api.geocode.exiftool_provider import GeolocateError, lookup
 from api.geocode.geocode import reverse_geocode, search_location, search_provider
 from api.geocode.parsers.exiftool import no_place, parse
 from api.geocode.rate_limit import _delay_for
+from api.tests.sidecar_client import test_client
 from service.exif import main as exif_main
 from service.exif.geolocate import lookup_args, parse_max_distance, parse_points
 
@@ -269,7 +270,7 @@ def grouped(tags: dict[str, object]) -> list[dict[str, object]]:
 class GeolocateRouteTest(SimpleTestCase):
     def setUp(self):
         exif_main.app.config["TESTING"] = True
-        self.client = exif_main.app.test_client()
+        self.client = test_client(exif_main.app)
 
     def use(self, fake: FakeExifTool) -> None:
         patcher = patch.object(exif_main, "static_et", fake)

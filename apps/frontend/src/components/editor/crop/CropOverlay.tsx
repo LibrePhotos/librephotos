@@ -90,7 +90,7 @@ export function CropOverlay({ frame, pixelRatio }: Props) {
   };
 
   return (
-    <div className={classes.overlay}>
+    <div className={classes.overlay} data-own-gesture>
       <Box
         className={classes.frame}
         left={origin.x + (crop.x - crop.width / 2) * scale}
