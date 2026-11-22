@@ -1,9 +1,10 @@
-import { Box, Group, Paper, Text, Tooltip, VisuallyHidden } from "@mantine/core";
+import { Box, Group, Text, Tooltip, VisuallyHidden } from "@mantine/core";
 import React from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { i18nResolvedLanguage } from "../i18n";
 import { formatCompactCount, formatCount } from "../util/formatCount";
+import { ContentCard } from "./common/surfaces/ContentCard";
 import classes from "./StatTile.module.css";
 
 /** The class that keeps a wrapper around a tile (a HoverCard target) at the tile's full height. */
@@ -67,7 +68,7 @@ type Props = Readonly<{
  */
 export function StatTile({ icon, label, value, detail }: Props) {
   return (
-    <Paper withBorder radius="lg" px="md" py="sm" h="100%" className={classes.tile}>
+    <ContentCard px="md" py="sm" h="100%" className={classes.tile}>
       <Group gap={8} wrap="nowrap" className={classes.label}>
         <span className={classes.icon}>{icon}</span>
         <span className={classes.labelText}>{label}</span>
@@ -82,6 +83,6 @@ export function StatTile({ icon, label, value, detail }: Props) {
           </Text>
         ) : null}
       </Group>
-    </Paper>
+    </ContentCard>
   );
 }

@@ -1,6 +1,7 @@
-import { Group, Kbd, Paper, Text } from "@mantine/core";
+import { Group, Kbd, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { FloatingCard } from "../common/surfaces/FloatingCard";
 import classes from "./ChordHint.module.css";
 import { CHORD_KEY, goToShortcuts } from "./goToShortcuts";
 
@@ -8,7 +9,7 @@ import { CHORD_KEY, goToShortcuts } from "./goToShortcuts";
 export function ChordHint({ isAdmin }: Readonly<{ isAdmin: boolean }>) {
   const { t } = useTranslation();
   return (
-    <Paper className={classes.hint} shadow="md" withBorder radius="md" px="md" py="xs" role="status">
+    <FloatingCard className={classes.hint} px="md" py="xs" role="status">
       <Group gap="md" wrap="wrap" justify="center">
         <Text size="sm" fw={600}>
           {t("shortcuts.goto")} <Kbd size="xs">{CHORD_KEY}</Kbd>
@@ -20,6 +21,6 @@ export function ChordHint({ isAdmin }: Readonly<{ isAdmin: boolean }>) {
           </Group>
         ))}
       </Group>
-    </Paper>
+    </FloatingCard>
   );
 }

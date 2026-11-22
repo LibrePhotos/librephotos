@@ -56,6 +56,15 @@
   --app-ai-red: #ef4444;
   --app-ai-violet-30: rgba(139, 69, 255, 0.3);
   --app-ai-violet-40: rgba(139, 69, 255, 0.4);
+
+  --app-favorite: var(--mantine-color-yellow-5);
+  --app-favorite-light: var(--mantine-color-yellow-light);
+  --app-folder: var(--mantine-color-yellow-7);
+  --app-channel-blue: var(--mantine-color-blue-6);
+  --app-support: var(--mantine-color-pink-9);
+  --app-support-hover: color-mix(in srgb, var(--mantine-color-pink-9) 88%, black);
+  --app-rewind-highlight: var(--mantine-color-yellow-4);
+  --app-rewind-people: var(--mantine-color-pink-9);
 }
 
 /*

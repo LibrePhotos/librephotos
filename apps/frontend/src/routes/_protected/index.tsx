@@ -158,7 +158,7 @@ function TimestampPhotos() {
   const filterSummary = useMemo(
     () =>
       filterActive ? (
-        <Text ta="left" size="sm" c="blue">
+        <Text ta="left" size="sm" c="brand">
           {t("timelinefilter.filtered", { summary: describeTimelineFilter(filter, t, i18nResolvedLanguage()) })}
         </Text>
       ) : null,

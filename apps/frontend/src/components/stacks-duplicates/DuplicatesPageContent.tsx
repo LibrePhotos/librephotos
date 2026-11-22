@@ -5,7 +5,7 @@
  * Supports both exact copies (identical files) and visual duplicates (similar images).
  */
 import { DuplicateType, ReviewStatus, type User } from "@librephotos/api-client";
-import { Button, Group, Pagination, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
+import { Button, Group, Pagination, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconCopy } from "@tabler/icons-react";
 import React, { useEffect, useState, type SetStateAction } from "react";
@@ -20,6 +20,7 @@ import {
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { Panel } from "../common/surfaces/Panel";
 import { useListFailure } from "../common/useListFailure";
 import { DeleteDuplicatesModal } from "./DeleteDuplicatesModal";
 import { DetectDuplicatesMenu } from "./DetectDuplicatesMenu";
@@ -182,7 +183,7 @@ export function DuplicatesPageContent() {
     <Stack gap="lg">
       {/* Bulk Actions Toolbar */}
       {selectedDuplicateIds.size > 0 && (
-        <Paper p="md" withBorder bg="var(--mantine-color-blue-light)">
+        <Panel p="md" bg="var(--mantine-primary-color-light)">
           <Group justify="space-between">
             <Text size="sm" fw={500}>
               {t("duplicates.selectedCount", { count: selectedDuplicateIds.size })}
@@ -196,7 +197,7 @@ export function DuplicatesPageContent() {
               </Button>
             </Group>
           </Group>
-        </Paper>
+        </Panel>
       )}
 
       {/* Filters and Action Buttons */}

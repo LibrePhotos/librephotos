@@ -106,7 +106,7 @@ export function TimelineFilterPopover({
         disabled={saving}
         label={
           <Group gap={6} wrap="nowrap">
-            <Screenshot size={16} color="var(--mantine-color-violet-6)" />
+            <Screenshot size={16} />
             {t("timelinefilter.screenshots")}
           </Group>
         }

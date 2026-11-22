@@ -7,7 +7,6 @@ import {
   Badge,
   Box,
   Button,
-  Card,
   Group,
   Image,
   Modal,
@@ -30,6 +29,7 @@ import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { formatFileSize } from "../../util/fileSize";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { PageLoader } from "../common/PageLoader";
+import { MediaCard } from "../common/surfaces/MediaCard";
 import { StackLightbox } from "./StackLightbox";
 import classes from "./StackModal.module.css";
 
@@ -150,15 +150,8 @@ function StackPhotoCard({
       : undefined;
 
   return (
-    <Card
-      shadow="sm"
-      padding="sm"
-      radius="md"
-      withBorder
-      className={classes.photoCard}
-      data-cover={isCover || undefined}
-    >
-      <Card.Section className={classes.photoSection}>
+    <MediaCard padding="sm" className={classes.photoCard} data-cover={isCover || undefined}>
+      <MediaCard.Section className={classes.photoSection}>
         <Box className={classes.preview}>
           <Image
             src={thumbnailUrl}
@@ -170,7 +163,7 @@ function StackPhotoCard({
             mah="100%"
           />
           {isCover && (
-            <Badge size="xs" color="blue" pos="absolute" top="4px" left="4px">
+            <Badge size="xs" pos="absolute" top="4px" left="4px">
               {t("stacks.cover")}
             </Badge>
           )}
@@ -191,14 +184,14 @@ function StackPhotoCard({
         >
           <IconMaximize size={14} />
         </ActionIcon>
-      </Card.Section>
+      </MediaCard.Section>
 
       <Stack gap="xs" mt="sm" flex={1}>
         <Group justify="space-between">
           <Text size="sm" fw={500}>
             {formatResolution(photo.width, photo.height) ?? t("settings.unknown")}
           </Text>
-          <Badge color={photo.size > 1024 * 1024 ? "blue" : "gray"} variant="light">
+          <Badge color={photo.size > 1024 * 1024 ? "brand" : "gray"} variant="light">
             {formatFileSize(photo.size, locale)}
           </Badge>
         </Group>
@@ -251,7 +244,6 @@ function StackPhotoCard({
         {!isCover && (
           <Button
             variant="outline"
-            color="blue"
             leftSection={<IconPhoto size={16} />}
             onClick={onSetCover}
             fullWidth
@@ -262,7 +254,7 @@ function StackPhotoCard({
           </Button>
         )}
       </Stack>
-    </Card>
+    </MediaCard>
   );
 }
 

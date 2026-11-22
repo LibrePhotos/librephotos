@@ -90,7 +90,7 @@ describe("FinishUpgradeCard", () => {
   it("counts the tasks left and explains each one", async () => {
     const container = await renderCard([SEARCH, FAILED, PROBE]);
 
-    expect(container.querySelector("h4")?.textContent).toBe("Finish the upgrade");
+    expect(container.querySelector("h3")?.textContent).toBe("Finish the upgrade");
     expect(container.textContent).toContain("3 left");
     const [search, strip, probe] = rows(container).map(row => row.textContent ?? "");
     expect(search).toContain("Update search for the new search model");
@@ -174,7 +174,7 @@ describe("FinishUpgradeCard", () => {
   it("says the upgrade is finished when every task is done", async () => {
     const container = await renderCard([task({ status: "done", completed_at: new Date().toISOString() })]);
 
-    expect(container.querySelector("h4")?.textContent).toBe("The upgrade is finished");
+    expect(container.querySelector("h3")?.textContent).toBe("The upgrade is finished");
     expect(container.textContent).not.toContain("1 left");
     expect(container.textContent).toContain("Done");
     expect(container.querySelector("button")).toBeNull();

@@ -1,9 +1,10 @@
-import { ActionIcon, Box, Button, Group, Paper, Progress, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Button, Group, Progress, Stack, Text, Tooltip } from "@mantine/core";
 import { IconChevronDown, IconChevronUp, IconRotateClockwise, IconX } from "@tabler/icons-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FOOTER_HEIGHT } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
+import { FloatingCard } from "../common/surfaces/FloatingCard";
 import { toolbarLook } from "../common/toolbarLook";
 import { UploadAlbumStrip } from "./UploadAlbumStrip";
 import { useOptionalUploadProcessing, useUpload } from "./UploadContext";
@@ -162,14 +163,11 @@ function UploadCard() {
   const { title, detail } = useCardHeading(stage, summary, processing);
 
   return (
-    <Paper
+    <FloatingCard
       pos="fixed"
       right={16}
       bottom={{ base: FOOTER_HEIGHT + 16, sm: 16 }}
       w="min(92vw, 360px)"
-      shadow="xl"
-      radius="lg"
-      withBorder
       className={classes.card}
       data-testid="upload-progress-card"
     >
@@ -221,6 +219,6 @@ function UploadCard() {
           ))}
         </Box>
       )}
-    </Paper>
+    </FloatingCard>
   );
 }

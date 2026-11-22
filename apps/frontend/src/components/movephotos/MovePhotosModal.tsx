@@ -1,6 +1,6 @@
 import type { MoveOnConflict } from "@librephotos/api-client";
 import { ApiError } from "@librephotos/api-client";
-import { Button, Group, Modal, Paper, Stack, Text, TextInput } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
 import { IconFolderPlus } from "@tabler/icons-react";
@@ -12,6 +12,7 @@ import { useMovePreviewQuery } from "../../api_client/photos/hooks/useMovePrevie
 import type { PhotoSelection } from "../../api_client/photos/photoSelection";
 import { childPath, folderName } from "../../util/folderPaths";
 import { DisabledReason } from "../common/DisabledReason";
+import { Panel } from "../common/surfaces/Panel";
 import { DatedFoldersFields } from "./DatedFoldersFields";
 import { MoveConflictModal } from "./MoveConflictModal";
 import { MoveFolderTree, type NewFolder } from "./MoveFolderTree";
@@ -107,7 +108,7 @@ function MovePhotosBody({ selection, onClose, onDone, currentFolder }: BodyProps
         description={t("movephotos.destinationhint")}
         {...form.getInputProps("target")}
       />
-      <Paper withBorder radius="sm" p={4}>
+      <Panel p={4}>
         {/* Not a ScrollArea: its table layout lets a long folder name widen the tree instead of truncating. */}
         <div className={classes.scroller}>
           <MoveFolderTree
@@ -117,7 +118,7 @@ function MovePhotosBody({ selection, onClose, onDone, currentFolder }: BodyProps
             newFolders={newFolders}
           />
         </div>
-      </Paper>
+      </Panel>
       {naming ? (
         <NewFolderForm parent={valid ? target : null} onCreate={addFolder} onCancel={newFolder.close} />
       ) : (

@@ -5,9 +5,9 @@ import React from "react";
 
 function FileIcon({ expanded }: { expanded: boolean }) {
   return expanded ? (
-    <IconFolderOpen color="var(--mantine-color-yellow-9)" size={14} stroke={2.5} />
+    <IconFolderOpen color="var(--app-folder)" size={14} stroke={2.5} />
   ) : (
-    <IconFolder color="var(--mantine-color-yellow-9)" size={14} stroke={2.5} />
+    <IconFolder color="var(--app-folder)" size={14} stroke={2.5} />
   );
 }
 

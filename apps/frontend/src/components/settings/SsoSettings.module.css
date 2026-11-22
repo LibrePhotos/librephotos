@@ -26,7 +26,7 @@
 }
 
 .warning .icon {
-  color: light-dark(var(--mantine-color-orange-7), var(--mantine-color-yellow-4));
+  color: light-dark(var(--mantine-color-orange-7), var(--mantine-color-orange-4));
 }
 
 .error .icon {

@@ -1,10 +1,11 @@
 import { Media, type PigPhoto } from "@librephotos/api-client";
-import { Button, CloseButton, Group, Paper, Skeleton, Stack, Text, UnstyledButton } from "@mantine/core";
+import { Button, CloseButton, Group, Skeleton, Stack, Text, UnstyledButton } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { usePhotosInBoundsQuery } from "../../api_client/albums/hooks";
 import { ErrorState } from "../common/ErrorState";
 import { MediaThumbnail } from "../common/MediaThumbnail";
+import { FloatingCard } from "../common/surfaces/FloatingCard";
 import { useListFailure } from "../common/useListFailure";
 import type { MapSpot } from "./mapSpot";
 import classes from "./SpotCard.module.css";
@@ -33,7 +34,7 @@ export function SpotCard({ spot, onClose, onOpen }: Props) {
   const title = query.data ? t("placealbum.photosHere", { count: photos.length }) : t("loading");
 
   return (
-    <Paper className={classes.card} withBorder shadow="md" p="sm" role="dialog" aria-label={title}>
+    <FloatingCard className={classes.card} p="sm" role="dialog" aria-label={title}>
       <Stack gap="xs">
         <Group justify="space-between" wrap="nowrap" gap="xs">
           <Text size="sm" fw={600} aria-live="polite">
@@ -71,7 +72,7 @@ export function SpotCard({ spot, onClose, onOpen }: Props) {
           </Button>
         )}
       </Stack>
-    </Paper>
+    </FloatingCard>
   );
 }
 

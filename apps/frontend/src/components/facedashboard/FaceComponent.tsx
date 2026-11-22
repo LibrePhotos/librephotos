@@ -40,7 +40,6 @@ export const UNSURE_PROBABILITY = 0.8;
 
 export const calculateProbabiltyColor = (labelProbability: number) => {
   if (labelProbability > 0.9) return "green";
-  if (labelProbability > 0.8) return "yellow";
   if (labelProbability > 0.7) return "orange";
   return "red";
 };

@@ -13,7 +13,6 @@ import {
   Badge,
   Box,
   Button,
-  Card,
   Checkbox,
   Flex,
   Group,
@@ -51,6 +50,7 @@ import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { DisabledReason } from "../common/DisabledReason";
 import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { MediaCard } from "../common/surfaces/MediaCard";
 import { TabCount } from "../common/TabCount";
 import { toolbarLook } from "../common/toolbarLook";
 import { useListFailure } from "../common/useListFailure";
@@ -73,19 +73,6 @@ function getStackTypeIcon(type: StackType) {
   }
 }
 
-function getStackTypeColor(type: StackType): string {
-  switch (type) {
-    case "burst":
-      return "yellow";
-    case "bracket":
-      return "lime";
-    case "manual":
-      return "blue";
-    default:
-      return "gray";
-  }
-}
-
 // Stack list item type
 type StackListItem = {
   id: string;
@@ -100,16 +87,13 @@ type StackListItem = {
 
 function StackCard({ stack, onClick }: { stack: StackListItem; onClick: () => void }) {
   const { t } = useTranslation();
-  const typeColor = getStackTypeColor(stack.stack_type);
   const { mutate: deleteStack, isPending: isUnstacking } = useDeleteStackMutation();
   // Rendered beside the Menu, not in its dropdown, which unmounts when the item closes it.
   const [unstackOpened, { open: openUnstack, close: closeUnstack }] = useDisclosure(false);
 
   return (
-    <Card
+    <MediaCard
       padding={0}
-      radius="md"
-      withBorder
       style={{
         cursor: "pointer",
         position: "relative",
@@ -133,7 +117,7 @@ function StackCard({ stack, onClick }: { stack: StackListItem; onClick: () => vo
 
       {/* Footer with badges */}
       <Group gap="xs" p="xs" onClick={onClick}>
-        <Badge size="sm" variant="light" color={typeColor} leftSection={getStackTypeIcon(stack.stack_type)}>
+        <Badge size="sm" variant="light" color="gray" leftSection={getStackTypeIcon(stack.stack_type)}>
           {stack.photo_count}
         </Badge>
         <Text size="xs" c="dimmed">
@@ -146,7 +130,7 @@ function StackCard({ stack, onClick }: { stack: StackListItem; onClick: () => vo
         <Menu.Target>
           <ActionIcon
             variant="subtle"
-            color="gray"
+            color="white"
             size="sm"
             style={{
               position: "absolute",
@@ -189,7 +173,7 @@ function StackCard({ stack, onClick }: { stack: StackListItem; onClick: () => vo
         }
         confirmLabel={t("confirmdialog.unstack.confirm")}
       />
-    </Card>
+    </MediaCard>
   );
 }
 
