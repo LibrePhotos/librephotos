@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barPath, barSlots, slotAt, valueAxis } from "./barGeometry";
+import { axisLabelPlacement, barPath, barSlots, slotAt, valueAxis } from "./barGeometry";
 import { segmentAt, staySegments } from "./StayBarChart";
 
 describe("valueAxis", () => {
@@ -82,5 +82,13 @@ describe("staySegments", () => {
     expect(segmentAt(segments, 204.9)).toBe(2);
     expect(segmentAt(segments, 2)).toBeNull();
     expect(segmentAt(segments, 205)).toBeNull();
+  });
+});
+
+describe("axisLabelPlacement", () => {
+  it("centres a label under its bar and ends one at the chart's edge rather than past it", () => {
+    expect(axisLabelPlacement(300, 35, 600)).toEqual({ x: 300, anchor: "middle" });
+    expect(axisLabelPlacement(580, 35, 600)).toEqual({ x: 600, anchor: "end" });
+    expect(axisLabelPlacement(20, 35, 600)).toEqual({ x: 0, anchor: "start" });
   });
 });

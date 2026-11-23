@@ -26,7 +26,7 @@ import { SCROLL_SCRUBBER_TARGET } from "../scrollscrubber/scrollScrubberTarget";
 import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
 import { BottomLeftOverlay } from "./BottomLeftOverlay";
 import { BottomRightOverlay } from "./BottomRightOverlay";
-import { DefaultHeader, type CollectionHeader } from "./DefaultHeader";
+import { DefaultHeader, type CollectionHeader, type SizeCap } from "./DefaultHeader";
 import { FileSizeMarksContext } from "./fileSizeMarks";
 import { MediaTypeHint } from "./MediaTypeHint";
 import { PhotoListDialogs } from "./PhotoListDialogs";
@@ -36,7 +36,6 @@ import { PhotoListSelectionBar } from "./PhotoListSelectionBar";
 import { PhotoListToolbar } from "./PhotoListToolbar";
 import classes from "./PhotoListView.module.css";
 import { isSizeSort } from "./photoSort";
-import { SizeSortNote } from "./SizeSortNote";
 import { TopRightOverlay } from "./TopRightOverlay";
 import { usePhotoListAlbumCover } from "./usePhotoListAlbumCover";
 import { usePhotoListClick } from "./usePhotoListClick";
@@ -194,19 +193,9 @@ function pageOrSettingOldestFirst(
   return isDateView && sort === "oldest";
 }
 
-function withSortNote(
-  additionalSubHeader: React.ReactNode,
-  sort: SearchSort | undefined,
-  shown: number,
-  total: number | undefined
-): React.ReactNode {
-  if (sort === undefined || !isSizeSort(sort) || total === undefined || total <= shown) return additionalSubHeader;
-  return (
-    <>
-      {additionalSubHeader}
-      <SizeSortNote sort={sort} shown={shown} total={total} />
-    </>
-  );
+function sizeSortCap(sort: SearchSort | undefined, shown: number, total: number | undefined): SizeCap | undefined {
+  if (sort === undefined || !isSizeSort(sort) || total === undefined || total <= shown) return undefined;
+  return { sort, shown, total };
 }
 
 /** Still loading: the parent's data, or (outside public pages) who is looking. */
@@ -338,7 +327,8 @@ function PhotoListViewComponent({
                 titleLeading={titleLeading}
                 dayHeaderPrefix={dayHeaderPrefix}
                 date={date}
-                additionalSubHeader={withSortNote(additionalSubHeader, sort, getNumPhotos(), sortTotal)}
+                additionalSubHeader={additionalSubHeader}
+                sizeCap={sizeSortCap(sort, getNumPhotos(), sortTotal)}
                 hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
                 isPublic={isPublic}
                 countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}

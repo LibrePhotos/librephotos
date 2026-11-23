@@ -26,7 +26,8 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
         <Select
           searchable
           label={t("changedatetime.fromzone")}
-          placeholder={t("changedatetime.fromzoneplaceholder")}
+          description={t("changedatetime.fromzonedescription")}
+          placeholder={t("changedatetime.zoneplaceholder")}
           data={[...timezones]}
           {...form.getInputProps("fromTimezone")}
           value={fromTimezone || null}
@@ -35,7 +36,8 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
         <Select
           searchable
           label={t("changedatetime.tozone")}
-          placeholder={t("changedatetime.tozoneplaceholder")}
+          description={t("changedatetime.tozonedescription")}
+          placeholder={t("changedatetime.zoneplaceholder")}
           data={[...timezones]}
           {...form.getInputProps("toTimezone")}
           value={toTimezone || null}
@@ -48,6 +50,7 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
           fromTimezone && toTimezone ? convertPhotoTimestamp(photo.exif_timestamp, fromTimezone, toTimezone) : null
         }
         pending="—"
+        withSeconds={false}
       />
       {summary.without_date > 0 && (
         <Text size="sm" c="orange">

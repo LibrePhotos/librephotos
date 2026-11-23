@@ -1,10 +1,8 @@
-import { Group, Loader, Select, Stack, Title } from "@mantine/core";
+import { Group, Loader, Select, Stack, Text, Title } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { IconChartBar } from "@tabler/icons-react";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoDayCountQuery } from "../../api_client/stats/hooks";
-import { EmptyState } from "../common/EmptyState";
 import { ErrorState } from "../common/ErrorState";
 import { useListFailure } from "../common/useListFailure";
 import { DayHeatmap } from "./DayHeatmap";
@@ -50,13 +48,9 @@ export function PhotoDayHeatmap() {
       {isLoading && <Loader />}
       {listFailure && <ErrorState failure={listFailure} />}
       {!isLoading && !listFailure && !hasData && (
-        <EmptyState
-          icon={<IconChartBar size={40} />}
-          title={t("emptystate.timeline.title")}
-          description={t("emptystate.timeline.description")}
-          actionLabel={t("emptystate.goToLibrary")}
-          actionLink="/library"
-        />
+        <Text c="dimmed" size="sm">
+          {t("statistics.nodatedphotos")}
+        </Text>
       )}
       {fetchedPhotoDayCounts && hasData && (
         <div ref={plotRef} className={classes.dayPlot}>

@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { barPath, barSlots, slotAt, valueAxis } from "./barGeometry";
+import { axisLabelPlacement, barPath, barSlots, slotAt, valueAxis } from "./barGeometry";
 import { ChartTooltip } from "./ChartTooltip";
 import { BAR_GAP_SHARE, PLOT_INSET_LEFT_PX } from "./photoMonthChart";
 import classes from "./StatisticsCharts.module.css";
@@ -137,13 +137,14 @@ export function BarChartFrame({
         {axisLabels(plotWidth).map(({ index, text }) => {
           const slot = slots[index];
           if (!slot) return null;
-          const centre = slot.slotX + slot.slotWidth / 2;
+          const placement = axisLabelPlacement(slot.slotX + slot.slotWidth / 2, axisLabelHalfWidth, width);
           return (
             <text
               key={keyOf(index)}
-              x={Math.min(width - axisLabelHalfWidth, Math.max(axisLabelHalfWidth, centre))}
+              x={placement.x}
               y={bottom + AXIS_LABEL_OFFSET_PX}
               className={classes.axisLabel}
+              data-anchor={placement.anchor}
               aria-hidden
             >
               {text}

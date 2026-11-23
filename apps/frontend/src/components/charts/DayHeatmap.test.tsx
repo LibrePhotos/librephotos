@@ -107,6 +107,30 @@ describe("DayHeatmap", () => {
     expect(Number(svg.getAttribute("width"))).toBeGreaterThan(360);
   });
 
+  it("keeps the weekday names out of the part that scrolls", async () => {
+    await renderInMantine(<DayHeatmap grid={grid} width={360} />);
+    const cells = defined(document.body.querySelector("svg[role='group']"));
+    const monday = defined([...document.body.querySelectorAll("text")].find(text => text.textContent === "Mon"));
+    const scroller = defined(cells.parentElement?.parentElement);
+
+    expect(getComputedStyle(scroller).overflowX === "auto" || scroller.className.includes("dayScroll")).toBe(true);
+    expect(scroller.contains(monday)).toBe(false);
+  });
+
+  it("drops a month name the scroll has cut off", async () => {
+    await renderInMantine(<DayHeatmap grid={grid} width={360} />);
+    const scroller = defined(document.body.querySelector("svg[role='group']")?.parentElement?.parentElement);
+    const months = () => [...scroller.querySelectorAll("text")].map(text => text.textContent);
+    expect(months()).toContain("Jan");
+
+    await act(async () => {
+      scroller.scrollLeft = 200;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    expect(months()).not.toContain("Jan");
+    expect(months()).toContain("Dec");
+  });
+
   it("paints the cells and the legend from the same level classes", async () => {
     await renderInMantine(<DayHeatmap grid={grid} width={1200} />);
     const busy = defined(cellFor("2023-01-09").querySelector("rect"));

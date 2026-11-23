@@ -63,7 +63,7 @@ describe("describeSearchFilters", () => {
       "Aperture f/1.4 to f/2",
       "Focal length up to 35 mm",
       "35 mm equivalent 24 mm to 70 mm",
-      "Shutter speed 1/250 to 2 s",
+      "Shutter speed 1/250–2 s",
       "4 stars or more",
       "Taken Mar 1, 2024 to May 31, 2024",
       "No location",
@@ -90,12 +90,20 @@ describe("describeSearchFilters", () => {
     expect(chips.map(chip => chip.label)).toEqual(["ISO up to 800", "Taken on or before Jan 31, 2024"]);
   });
 
+  it("says a shutter speed band as faster or longer, with its unit", () => {
+    const labels = (filters: Parameters<typeof describeSearchFilters>[0]) =>
+      describeSearchFilters(filters, context()).map(chip => chip.label);
+    expect(labels({ shutter_max: 1 / 500 })).toEqual(["Shutter speed 1/500 s or faster"]);
+    expect(labels({ shutter_min: 1 })).toEqual(["Shutter speed 1 s or longer"]);
+    expect(labels({ shutter_min: 1 / 500, shutter_max: 1 / 60 })).toEqual(["Shutter speed 1/500–1/60 s"]);
+  });
+
   it("names a range with one value once, as a statistics bar links it", () => {
     const chips = describeSearchFilters(
       { iso_min: 400, iso_max: 400, aperture_min: 1.78, aperture_max: 1.8, shutter_min: 1 / 60, shutter_max: 1 / 60 },
       context()
     );
-    expect(chips.map(chip => chip.label)).toEqual(["ISO 400", "Aperture f/1.78 to f/1.8", "Shutter speed 1/60"]);
+    expect(chips.map(chip => chip.label)).toEqual(["ISO 400", "Aperture f/1.78 to f/1.8", "Shutter speed 1/60 s"]);
     expect(chips[0]?.patch).toEqual({ iso_min: undefined, iso_max: undefined });
   });
 

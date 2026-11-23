@@ -52,6 +52,25 @@ describe("clusterLayers", () => {
     expect(radius[0]).toBeGreaterThanOrEqual(10);
   });
 
+  it("spreads a city into a soft patch at world zoom and merges a city's spots up close", () => {
+    const stops = (expression: unknown): Map<number, number> => {
+      const parts: readonly unknown[] = Array.isArray(expression) ? expression : [];
+      const pairs = parts.slice(3);
+      return new Map(
+        pairs.flatMap((part, index) => {
+          const output = pairs[index + 1];
+          return index % 2 === 0 && typeof part === "number" && typeof output === "number" ? [[part, output]] : [];
+        })
+      );
+    };
+    const radius = stops(layers.heatmap.paint?.["heatmap-radius"]);
+    const intensity = stops(layers.heatmap.paint?.["heatmap-intensity"]);
+
+    expect(radius.get(0)).toBeGreaterThanOrEqual(25);
+    expect(intensity.get(0)).toBeLessThan(1);
+    expect(radius.get(12)).toBeGreaterThanOrEqual(50);
+  });
+
   it("colours the density with the map colour module's ramp, faded in from transparent", () => {
     const ramp: readonly unknown[] = layers.heatmap.paint?.["heatmap-color"] ?? [];
     expect(ramp.slice(3).filter((_, index) => index % 2 === 1)).toEqual([colors.heatmap.fade, ...colors.heatmap.ramp]);

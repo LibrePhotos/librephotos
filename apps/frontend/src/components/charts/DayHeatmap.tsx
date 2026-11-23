@@ -33,22 +33,25 @@ const KEY_STEPS: Readonly<Record<string, number>> = {
 export function DayHeatmap({ grid, width }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { cells, monthTicks, weekdayLabels } = grid;
+  const { cells, rest, monthTicks, weekdayLabels } = grid;
   const [active, setActive] = useState<number | null>(null);
   const [current, setCurrent] = useState(cells.length - 1);
+  const [scrolled, setScrolled] = useState(0);
   const refs = useRef(new Map<number, SVGGElement>());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const cellPx = dayCellPx(width, grid.weeks);
+  const x = (column: number) => column * (cellPx + DAY_CELL_GAP_PX);
+  const latestEdge = x(cells.at(-1)?.column ?? 0) + cellPx;
 
   useLayoutEffect(() => {
     const scroller = scrollRef.current;
-    if (scroller) scroller.scrollLeft = scroller.scrollWidth;
-  }, [grid]);
+    if (scroller) scroller.scrollLeft = latestEdge - scroller.clientWidth;
+  }, [grid, latestEdge]);
 
   if (grid.weeks < 1) return null;
 
-  const cellPx = dayCellPx(width, grid.weeks);
   const gridWidth = dayGridWidth(grid.weeks, cellPx);
-  const x = (column: number) => DAY_HEATMAP_LEFT_PX + column * (cellPx + DAY_CELL_GAP_PX);
+  const cellsWidth = gridWidth - DAY_HEATMAP_LEFT_PX;
   const y = (row: number) => TOP_PX + row * (cellPx + DAY_CELL_GAP_PX);
   const height = TOP_PX + 7 * cellPx + 6 * DAY_CELL_GAP_PX;
   const lastIndex = cells.length - 1;
@@ -113,70 +116,98 @@ export function DayHeatmap({ grid, width }: Props) {
     : "";
 
   const activeCell = active === null ? undefined : cells[active];
+  const monthX = (column: number) => Math.min(x(column), Math.max(0, cellsWidth - MONTH_LABEL_PX));
 
   return (
-    <div ref={scrollRef} className={classes.dayScroll}>
-      <Box w={gridWidth} className={classes.chartFrame}>
-        <svg width={gridWidth} height={height} role="group" aria-label={summary} className={classes.chart}>
-          {monthTicks.map(tick => (
-            <text
-              key={`${tick.column}-${tick.text}`}
-              x={Math.min(x(tick.column), Math.max(DAY_HEATMAP_LEFT_PX, gridWidth - MONTH_LABEL_PX))}
-              y={TOP_PX - 5}
-              className={classes.monthLabel}
-              aria-hidden
-            >
-              {tick.text}
-            </text>
-          ))}
+    <div>
+      <div className={classes.dayLayout}>
+        <svg width={DAY_HEATMAP_LEFT_PX} height={height} className={classes.chart} aria-hidden>
           {weekdayLabels.map(labelRow => (
             <text
               key={labelRow.row}
               x={DAY_HEATMAP_LEFT_PX - 6}
               y={y(labelRow.row) + cellPx / 2}
               className={classes.weekdayLabel}
-              aria-hidden
             >
               {labelRow.text}
             </text>
           ))}
-          {cells.map((cell, index) => (
-            <g
-              key={cell.day}
-              role="link"
-              aria-label={label(cell)}
-              className={classes.dayCell}
-              {...cellProps(index)}
-              onClick={() => openDay(cell)}
-              onPointerEnter={() => show(index)}
-              onPointerLeave={() => setActive(null)}
-            >
-              <rect
-                x={x(cell.column)}
-                y={y(cell.row)}
-                width={cellPx}
-                height={cellPx}
-                rx={2}
-                className={classes[`level${cell.level}`]}
-                data-level={cell.level}
-              />
-            </g>
-          ))}
         </svg>
-        <ChartTooltip
-          anchorKey={active ?? -1}
-          anchor={activeCell ? { x: x(activeCell.column), y: y(activeCell.row), width: cellPx, height: cellPx } : null}
+        <div
+          ref={scrollRef}
+          className={classes.dayScroll}
+          onScroll={event => setScrolled(event.currentTarget.scrollLeft)}
         >
-          {activeCell && (
-            <>
-              <div className={classes.tooltipTitle}>{formatCalendarDay(activeCell.day)}</div>
-              <div className={classes.tooltipValue}>{t("statistics.photocount", { count: activeCell.count })}</div>
-            </>
-          )}
-        </ChartTooltip>
-      </Box>
+          <Box w={cellsWidth} className={classes.chartFrame}>
+            <svg width={cellsWidth} height={height} role="group" aria-label={summary} className={classes.chart}>
+              {monthTicks
+                .filter(tick => monthX(tick.column) >= scrolled - 1)
+                .map(tick => (
+                  <text
+                    key={`${tick.column}-${tick.text}`}
+                    x={monthX(tick.column)}
+                    y={TOP_PX - 5}
+                    className={classes.monthLabel}
+                    aria-hidden
+                  >
+                    {tick.text}
+                  </text>
+                ))}
+              {cells.map((cell, index) => (
+                <g
+                  key={cell.day}
+                  role="link"
+                  aria-label={label(cell)}
+                  className={classes.dayCell}
+                  {...cellProps(index)}
+                  onClick={() => openDay(cell)}
+                  onPointerEnter={() => show(index)}
+                  onPointerLeave={() => setActive(null)}
+                >
+                  <rect
+                    x={x(cell.column)}
+                    y={y(cell.row)}
+                    width={cellPx}
+                    height={cellPx}
+                    rx={2}
+                    className={classes[`level${cell.level}`]}
+                    data-level={cell.level}
+                  />
+                </g>
+              ))}
+              <g aria-hidden data-rest>
+                {rest.map(slot => (
+                  <rect
+                    key={slot.day}
+                    x={x(slot.column)}
+                    y={y(slot.row)}
+                    width={cellPx}
+                    height={cellPx}
+                    rx={2}
+                    className={classes.level0}
+                  />
+                ))}
+              </g>
+            </svg>
+            <ChartTooltip
+              anchorKey={active ?? -1}
+              position={activeCell && activeCell.row < 2 ? "bottom" : "top"}
+              anchor={
+                activeCell ? { x: x(activeCell.column), y: y(activeCell.row), width: cellPx, height: cellPx } : null
+              }
+            >
+              {activeCell && (
+                <>
+                  <div className={classes.tooltipTitle}>{formatCalendarDay(activeCell.day)}</div>
+                  <div className={classes.tooltipValue}>{t("statistics.photocount", { count: activeCell.count })}</div>
+                </>
+              )}
+            </ChartTooltip>
+          </Box>
+        </div>
+      </div>
       <Group
-        w={gridWidth}
+        w={Math.min(width, gridWidth)}
         gap={DAY_CELL_GAP_PX}
         justify="flex-end"
         wrap="nowrap"

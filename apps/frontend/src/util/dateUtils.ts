@@ -140,6 +140,15 @@ export function formatPhotoDateTime(timestamp: string): string {
   return parsePhotoTimestamp(timestamp).toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
 }
 
+export function formatClockTime(time: string): string {
+  const clock = DateTime.fromFormat(time, "HH:mm");
+  return clock.isValid ? clock.toLocaleString(DateTime.TIME_SIMPLE) : time;
+}
+
+export function formatPhotoDateTimeToMinute(timestamp: string): string {
+  return parsePhotoTimestamp(timestamp).toLocaleString(DateTime.DATETIME_MED);
+}
+
 const DURATION_UNITS = ["days", "hours", "minutes", "seconds"] as const;
 
 /**

@@ -63,4 +63,17 @@ describe("PhotoDayHeatmap", () => {
     expect(cellDays()).toHaveLength(365);
     expect(cellDays()).toContain("Jul 14, 1998: 2 photos");
   });
+
+  it("says in one line that there is nothing to draw", async () => {
+    const counts = stubs.counts;
+    stubs.counts = [];
+    try {
+      await renderInMantine(<PhotoDayHeatmap />);
+      expect(document.body.textContent).toContain("No dated photos yet");
+      expect(document.body.querySelector("a, button")).toBeNull();
+      expect(document.body.querySelector("input[aria-label='Year']")).toBeNull();
+    } finally {
+      stubs.counts = counts;
+    }
+  });
 });

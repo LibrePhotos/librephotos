@@ -85,6 +85,7 @@ export function useWallDisplay(slideshowArgs: SlideshowArgs) {
     slideshow,
     asleep,
     wake,
+    wakeAt: sleepEnd,
     stageProps: { "data-hidecursor": cursorHidden || undefined, style: stageStyle },
     openSettings,
     dialog: { opened: dialogOpened, onClose: closeSettings, settings, onChange: updateSettings },

@@ -1,4 +1,5 @@
 import { Group, Modal, Stack, Switch, Text } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { NativeTimeInput } from "../common/NativeDateInput";
@@ -12,8 +13,11 @@ type Props = Readonly<{
   onChange: (change: (previous: WallDisplaySettings) => WallDisplaySettings) => void;
 }>;
 
+const SWITCH_INDENT_PX = 58;
+
 export function WallDisplayModal({ opened, onClose, settings, onChange }: Props) {
   const { t } = useTranslation();
+  const finePointer = useMediaQuery("(hover: hover) and (pointer: fine)");
   const set = <Key extends keyof WallDisplaySettings>(key: Key, value: WallDisplaySettings[Key]) =>
     onChange(previous => ({ ...previous, [key]: value }));
   return (
@@ -38,7 +42,7 @@ export function WallDisplayModal({ opened, onClose, settings, onChange }: Props)
           onChange={event => set("sleepEnabled", event.currentTarget.checked)}
         />
         {settings.sleepEnabled && (
-          <Stack gap={4}>
+          <Stack gap={4} pl={SWITCH_INDENT_PX}>
             <Group grow>
               <NativeTimeInput
                 label={t("lightbox.walldisplay.sleepfrom")}
@@ -56,7 +60,7 @@ export function WallDisplayModal({ opened, onClose, settings, onChange }: Props)
               />
             </Group>
             {settings.sleepStart === settings.sleepEnd && (
-              <Text size="xs" c="dimmed">
+              <Text size="xs" c="orange">
                 {t("lightbox.walldisplay.sleepoff")}
               </Text>
             )}
@@ -68,12 +72,14 @@ export function WallDisplayModal({ opened, onClose, settings, onChange }: Props)
           checked={settings.burnInProtection}
           onChange={event => set("burnInProtection", event.currentTarget.checked)}
         />
-        <Switch
-          label={t("lightbox.walldisplay.hidecursor")}
-          description={t("lightbox.walldisplay.hidecursordesc")}
-          checked={settings.hideCursor}
-          onChange={event => set("hideCursor", event.currentTarget.checked)}
-        />
+        {finePointer && (
+          <Switch
+            label={t("lightbox.walldisplay.hidecursor")}
+            description={t("lightbox.walldisplay.hidecursordesc")}
+            checked={settings.hideCursor}
+            onChange={event => set("hideCursor", event.currentTarget.checked)}
+          />
+        )}
       </Stack>
     </Modal>
   );

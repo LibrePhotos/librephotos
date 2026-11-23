@@ -56,11 +56,23 @@ describe("dayHeatmap", () => {
     expect(defined(dayHeatmap([{ day: "2026-12-05", count: 1 }], 2026, 1, TODAY).cells.at(-1)).day).toBe("2026-12-05");
   });
 
+  it("keeps the rest of this year as empty days, so every year is as wide", () => {
+    const thisYear = dayHeatmap([{ day: "2026-02-01", count: 1 }], 2026, 1, TODAY);
+    const pastYear = dayHeatmap([{ day: "2025-02-01", count: 1 }], 2025, 1, TODAY);
+
+    expect(defined(thisYear.rest[0]).day).toBe("2026-11-24");
+    expect(defined(thisYear.rest.at(-1))).toMatchObject({ day: "2026-12-31", row: 3 });
+    expect(thisYear.cells.length + thisYear.rest.length).toBe(365);
+    expect(thisYear.weeks).toBe(53);
+    expect(pastYear.rest).toHaveLength(0);
+    expect(defined(thisYear.monthTicks.at(-1)).text).toBe("Dec");
+  });
+
   it("draws a year before 2000", () => {
     const grid = dayHeatmap([{ day: "1987-06-30", count: 4 }], 1987, 1, TODAY);
 
     expect(grid.cells).toHaveLength(365);
-    expect(defined(grid.cells.find(cell => cell.day === "1987-06-30"))).toMatchObject({ count: 4, level: 1 });
+    expect(defined(grid.cells.find(cell => cell.day === "1987-06-30"))).toMatchObject({ count: 4, level: 4 });
   });
 
   it("drops days that are no calendar day and empties on no year", () => {
@@ -94,6 +106,28 @@ describe("dayHeatmap", () => {
 
     expect(levels).toEqual([1, 2, 3, 4]);
   });
+
+  it("gives the busiest day of a sparse year the deepest shade", () => {
+    const grid = dayHeatmap(
+      [
+        { day: "2023-05-01", count: 1 },
+        { day: "2023-05-02", count: 1 },
+        { day: "2023-05-03", count: 1 },
+        { day: "2023-05-04", count: 1 },
+        { day: "2023-05-05", count: 2 },
+      ],
+      2023,
+      1,
+      TODAY
+    );
+    const level = (day: string) => defined(grid.cells.find(cell => cell.day === day)).level;
+
+    expect(level("2023-05-05")).toBe(4);
+    expect(level("2023-05-01")).toBe(1);
+    expect(
+      dayHeatmap([{ day: "2023-06-01", count: 1 }], 2023, 1, TODAY).cells.find(cell => cell.count > 0)?.level
+    ).toBe(4);
+  });
 });
 
 describe("photoYears", () => {
@@ -115,15 +149,15 @@ describe("levels", () => {
   it("splits the nonzero counts at their quartiles", () => {
     const quartiles = countQuartiles([1, 1, 1, 4, 4, 4, 8, 8, 16]);
     expect(quartiles).toEqual([1, 4, 8]);
-    expect(dayLevel(0, quartiles)).toBe(0);
-    expect(dayLevel(1, quartiles)).toBe(1);
-    expect(dayLevel(4, quartiles)).toBe(2);
-    expect(dayLevel(8, quartiles)).toBe(3);
-    expect(dayLevel(16, quartiles)).toBe(4);
+    expect(dayLevel(0, quartiles, 16)).toBe(0);
+    expect(dayLevel(1, quartiles, 16)).toBe(1);
+    expect(dayLevel(4, quartiles, 16)).toBe(2);
+    expect(dayLevel(8, quartiles, 16)).toBe(3);
+    expect(dayLevel(16, quartiles, 16)).toBe(4);
   });
 
-  it("levels every day alike when the counts are alike", () => {
-    expect(dayLevel(5, countQuartiles([5, 5, 5]))).toBe(1);
+  it("gives every day the deepest shade when the counts are alike", () => {
+    expect(dayLevel(5, countQuartiles([5, 5, 5]), 5)).toBe(4);
   });
 });
 
@@ -131,6 +165,7 @@ describe("cell size", () => {
   it("keeps a tappable cell on a narrow card and grows to the maximum on a wide one", () => {
     expect(dayCellPx(360, 53)).toBe(DAY_CELL_PX.min);
     expect(dayCellPx(2000, 53)).toBe(DAY_CELL_PX.max);
+    expect(dayCellPx(1200, 53)).toBe(19);
     expect(dayGridWidth(53, DAY_CELL_PX.min)).toBeGreaterThan(360);
   });
 });

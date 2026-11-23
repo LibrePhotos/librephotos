@@ -75,8 +75,8 @@ export function clusterLayers(colors: MapLayerColors): ClusterLayers {
       source: PHOTO_DENSITY_SOURCE,
       paint: {
         "heatmap-weight": ["interpolate", ["linear"], PHOTOS, 1, 0.35, 10, 0.6, 100, 0.85, 1000, 1],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 6, 2, 12, 3],
-        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 14, 4, 20, 9, 30, 14, 40],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 0.4, 3, 0.6, 6, 1, 10, 1.6, 14, 2.4],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 28, 3, 30, 6, 34, 10, 48, 12, 60, 15, 72],
         "heatmap-color": [
           "interpolate",
           ["linear"],

@@ -324,7 +324,7 @@ export function ContentViewer({
                   addFaceBlockedReason={addFaceBlockedReason}
                 />
               )}
-              {wallDisplay.asleep && <WallDisplaySleep onWake={wallDisplay.wake} />}
+              {wallDisplay.asleep && <WallDisplaySleep onWake={wallDisplay.wake} wakeAt={wallDisplay.wakeAt} />}
             </ViewerDarkScope>
             {/* Only an owner adds faces; mounted on a public page, its people query would 401. */}
             {!isPublic && (

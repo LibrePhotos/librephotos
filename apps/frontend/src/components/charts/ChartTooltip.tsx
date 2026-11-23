@@ -7,7 +7,7 @@ type ChartAnchor = Readonly<{ x: number; y: number; width: number; height: numbe
 
 type Props = Readonly<{
   /** Which side of the anchor; Floating UI flips it where there is no room. */
-  position?: "top" | "right";
+  position?: "top" | "right" | "bottom";
   /** The bar shown; null hides the tooltip. */
   anchor: ChartAnchor | null;
   /** Re-places the tooltip when it changes: the bar's index. */
@@ -25,7 +25,7 @@ export function ChartTooltip({ anchor, anchorKey, position = "top", children }: 
     <Popover
       opened={anchor !== null}
       position={position}
-      offset={position === "top" ? 8 : 12}
+      offset={position === "right" ? 12 : 8}
       withRoles={false}
       withinPortal
       shadow="md"
