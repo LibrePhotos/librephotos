@@ -136,6 +136,14 @@ not written: the edit goes to the sidecar of the photo's main file, the JPEG.
 A photo that up to 1.3.0 got an `IMG_2.xmp` next to an existing `IMG_2.jpg.xmp` keeps both:
 LibrePhotos reads and writes `IMG_2.xmp`, and the other app keeps its own file.
 
+<Since version="1.7.0" /> An existing sidecar is rewritten in place: the file stays the same file,
+so its owner, permissions, ACL and extended attributes stay as you or the other app set them. Up to
+1.6.0 every write replaced the sidecar with a new file and copied the old mode bits onto it. On a
+share governed by ACLs, such as a Synology shared folder, the mode bits read `000`, so the sidecar
+lost its ACL and only root could open it. A write into the photo or video itself (`Save to media
+file`) still goes to a new file that replaces the old one, so a crash mid-write cannot damage the
+photo.
+
 ### Sidecars in a download
 
 <Since version="1.4.0" /> A zip download of photos also holds the XMP sidecars next to their files,
