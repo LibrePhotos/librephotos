@@ -1,5 +1,5 @@
 import { Modal } from "@mantine/core";
-import { useFullscreenDocument, useHotkeys } from "@mantine/hooks";
+import { useDisclosure, useFullscreenDocument, useHotkeys } from "@mantine/hooks";
 import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
@@ -33,8 +33,11 @@ import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import { useAfterTrashToggle } from "./useAfterTrashToggle";
 import { useSlideshow } from "./useSlideshow";
 import { useViewerMode } from "./useViewerMode";
+import { useWallDisplay } from "./useWallDisplay";
 import { SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./videoFailure";
 import { ViewerDarkScope } from "./ViewerDarkScope";
+import { DRIFT_EVERY_MS } from "./wallDisplay";
+import { WallDisplayModal } from "./WallDisplayModal";
 
 export function ContentViewer({
   mainSrc,
@@ -87,6 +90,8 @@ export function ContentViewer({
   // The rotate buttons only show once the details are in.
   const { rotationAngle, imageCacheKey, suppressRotationTransition, rotate, onImageLoad } = rotation;
   const slideshow = useSlideshow({ startSlideshow, isPublic, type, mainSrc, nextSrc, onMoveNextRequest, held });
+  const wallDisplay = useWallDisplay(slideshow.isSlideshowActive);
+  const [wallDisplayOpened, { open: openWallDisplay, close: closeWallDisplay }] = useDisclosure(false);
   // A drawn box is read against the layer's on-screen rect, which stays right
   // through zoom and pan but not through rotation: the rect of a rotated
   // rectangle is its bounding box, so the fractions would not line up.
@@ -197,7 +202,19 @@ export function ContentViewer({
             className={classes.body}
           >
             <ViewerDarkScope className={classes.viewer}>
-              <div className={classes.stage} data-info={lightboxSidebarShow || undefined}>
+              <div
+                className={classes.stage}
+                data-info={lightboxSidebarShow || undefined}
+                data-hidecursor={wallDisplay.hideCursor || undefined}
+                style={
+                  wallDisplay.drifting
+                    ? {
+                        transform: `translate(${wallDisplay.drift.x}px, ${wallDisplay.drift.y}px)`,
+                        transition: `transform ${DRIFT_EVERY_MS}ms linear`,
+                      }
+                    : undefined
+                }
+              >
                 {/* Preload images */}
                 <ImagePreloader prevSrc={prevSrcHash} mainSrc={mainSrcHash} nextSrc={nextSrcHash} />
 
@@ -228,6 +245,7 @@ export function ContentViewer({
                   showOcrText={showOcrText}
                   toggleOcrText={toggleOcrText}
                   onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
+                  onOpenWallDisplay={openWallDisplay}
                   onAfterTrashToggle={handleAfterTrashToggle}
                   beforeTrash={beforeTrash}
                   title={toolbarTitle}
@@ -320,6 +338,7 @@ export function ContentViewer({
                   addFaceBlockedReason={addFaceBlockedReason}
                 />
               )}
+              {wallDisplay.sleeping && <div className={classes.sleep} />}
             </ViewerDarkScope>
             {/* Only an owner adds faces; mounted on a public page, its people query would 401. */}
             {!isPublic && (
@@ -334,6 +353,12 @@ export function ContentViewer({
           </Modal.Body>
         </Modal.Content>
       </Modal.Root>
+      <WallDisplayModal
+        opened={wallDisplayOpened}
+        onClose={closeWallDisplay}
+        settings={wallDisplay.settings}
+        onChange={wallDisplay.updateSettings}
+      />
     </LightboxCommandsContext.Provider>
   );
 }

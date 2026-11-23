@@ -210,6 +210,7 @@ The toolbar at the top starts with the back arrow (**Close**), which returns to 
 - **More actions** (⋮) - A menu with the rest:
   - **Zoom in** / **Zoom out** - Magnify the image. Still photos only, not videos. See [Zooming into the original](#zooming-into-the-original).
   - **Slideshow** / **Stop slideshow** - Start or stop an automatic slideshow. While it runs, the toolbar shows its controls, with a dropdown to choose the interval (3, 5, 10, 15 or 30 seconds).
+  - **Wall display** - <Since version="1.7.0" /> Settings for a screen that runs the slideshow for a long time, like a wall display or a tablet: keep the screen awake, sleep between two times of day (the screen goes black, the slideshow keeps playing), drift the photo slowly so static parts do not burn in, and hide the cursor. The choices are saved in the browser, so every display keeps its own.
   - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. It is offered for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
   - **Fullscreen** / **Exit fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
   - **Hide photo** / **Unhide photo** - Hide the photo everywhere but the Hidden page, or unhide it.

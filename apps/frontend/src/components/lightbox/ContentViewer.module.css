@@ -28,6 +28,18 @@
   overflow: hidden;
 }
 
+.sleep {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  background: black;
+  cursor: none;
+}
+
+.stage[data-hidecursor] {
+  cursor: none;
+}
+
 /* A phone (useCompactViewer): a video's box (MediaDisplay .videoStage) runs from under the
    toolbar's row of buttons to the action bar (LightboxControls .bottomBar). */
 @media (max-width: 599px) {
