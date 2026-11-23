@@ -68,6 +68,14 @@ export const PhotoMonthCount = z.object({
 export const PhotoMonthCountResponse = z.array(PhotoMonthCount);
 export type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponse>;
 
+export const PhotoDayCount = z.object({
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid day"),
+  count: z.number(),
+});
+
+export const PhotoDayCountResponse = z.array(PhotoDayCount);
+export type PhotoDayCountResponse = z.infer<typeof PhotoDayCountResponse>;
+
 /** One stretch of `GET /locationtimeline/`: `data` holds its duration in seconds, `start`/`end` are Unix times. */
 export const LocationTimelineSpan = z.object({
   data: z.array(z.number()),
@@ -98,3 +106,30 @@ export const SocialGraph = z.object({
     .array(),
 });
 export type SocialGraph = z.infer<typeof SocialGraph>;
+
+const RankStat = z.object({
+  label: z.string(),
+  value: z.string(),
+  count: z.number(),
+});
+
+const CameraStat = RankStat.extend({ make: z.string() });
+
+export const RangeBucket = z.object({
+  label: z.string(),
+  min: z.number(),
+  max: z.number(),
+  count: z.number(),
+});
+export type RangeBucket = z.infer<typeof RangeBucket>;
+
+export const CameraStats = z.object({
+  cameras: CameraStat.array(),
+  lenses: RankStat.array(),
+  iso: RangeBucket.array(),
+  aperture: RangeBucket.array(),
+  focal_length: RangeBucket.array(),
+  focal_length_35mm: RangeBucket.array(),
+  shutter_speed: RangeBucket.array(),
+});
+export type CameraStats = z.infer<typeof CameraStats>;

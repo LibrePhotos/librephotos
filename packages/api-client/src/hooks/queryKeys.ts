@@ -469,7 +469,9 @@ const statsRoot = ["stats"] as const;
 export const statsKeys = {
   all: statsRoot,
   counts: () => [...statsRoot, "counts"] as const,
+  cameraStats: () => [...statsRoot, "cameraStats"] as const,
   photoMonthCounts: () => [...statsRoot, "photoMonthCounts"] as const,
+  photoDayCounts: () => [...statsRoot, "photoDayCounts"] as const,
   locationTree: () => [...statsRoot, "locationTree"] as const,
   socialGraph: () => [...statsRoot, "socialGraph"] as const,
   wordCloud: () => [...statsRoot, "wordCloud"] as const,

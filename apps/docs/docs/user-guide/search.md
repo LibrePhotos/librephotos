@@ -104,7 +104,7 @@ Besides the words you type, a search can be narrowed by the people in the photo,
 
 - **People**: pick one or more people. With several, you get the photos with all of them together. While you type a name, the matching people are listed with the most faces first. <Since version="1.5.0" /> Up to 1.4.0, matches stayed in name order.
 - **Camera**: the maker, the camera and the lens. The lists show the cameras of your own photos, most used first, with how many photos of your library each one took.
-- **Exposure**: ISO, aperture, focal length and 35 mm equivalent focal length, each as a lowest and a highest value (either can stay empty). A value applies when you leave the field or press Enter. Shortcuts set common ISO and focal length bands in one click.
+- **Exposure**: ISO, aperture, focal length, 35 mm equivalent focal length and <Since version="1.7.0" /> shutter speed, each as a lowest and a highest value (either can stay empty). A value applies when you leave the field or press Enter. Type a shutter speed as the camera shows it, `1/250` or `2 s` (or `0.5` seconds); the lowest is the fastest. Shortcuts set common ISO, focal length and shutter speed bands in one click.
 - **Rating**: with star ratings, the fewest stars a photo needs. With the favorite toggle (see the rating style in Settings), one **Favorites only** switch.
 - **Taken**: on or after and on or before a day, or **This year**, **Last year** and **Last 12 months**.
 - **Location**: only photos with GPS coordinates, or only those without.
@@ -129,6 +129,7 @@ The filters are query parameters of `GET /api/photos/searchlist/`. They combine 
 | `aperture_min`, `aperture_max` | with an f-number in this range, for example `aperture_min=1.4&aperture_max=2` |
 | `focal_min`, `focal_max` | with a focal length in this range, in millimetres |
 | `focal35_min`, `focal35_max` | with a 35 mm equivalent focal length in this range |
+| <Since version="1.7.0" /> `shutter_min`, `shutter_max` | with an exposure time in this range, in seconds: `shutter_min=0.004&shutter_max=0.008` finds 1/250 s to 1/125 s. A bound matches the camera's own value however it was rounded, so `shutter_max=0.016666666666666666` (1/60) also finds a stored `0.0166666666666667` |
 | `rating_min` | rated at least this many stars (1 to 5) |
 | `taken_after`, `taken_before` | taken on or after, or on or before, this day (`2024-03-01`) |
 | `has_location` | with GPS coordinates (`true`) or without them (`false`, the same photos as the **No Location** page) |

@@ -290,6 +290,8 @@ export const BulkPhotoQuery = z.object({
   focal_max: z.number().optional(),
   focal35_min: z.number().optional(),
   focal35_max: z.number().optional(),
+  shutter_min: z.number().optional(),
+  shutter_max: z.number().optional(),
   rating_min: z.number().optional(),
   taken_after: z.string().optional(),
   taken_before: z.string().optional(),

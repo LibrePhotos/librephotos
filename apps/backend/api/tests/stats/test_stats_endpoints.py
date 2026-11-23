@@ -1,3 +1,5 @@
+import datetime
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -70,6 +72,46 @@ class TestApiUtil(TestCase):
         response = self.client.get("/api/photomonthcounts/")
         actual = response.json()
         self.assertEqual(actual, [])
+
+    def test_photo_day_count(self):
+        create_photos(self.user)
+        response = self.client.get("/api/photo-day-counts/")
+        actual = response.json()
+        self.assertEqual(
+            actual,
+            [
+                {"day": "2017-08-09", "count": 1},
+                {"day": "2017-08-17", "count": 3},
+                {"day": "2017-08-22", "count": 1},
+                {"day": "2017-08-23", "count": 1},
+                {"day": "2017-10-12", "count": 1},
+                {"day": "2017-10-17", "count": 1},
+                {"day": "2017-10-18", "count": 1},
+            ],
+        )
+
+    def test_photo_day_count_no_photos(self):
+        response = self.client.get("/api/photo-day-counts/")
+        actual = response.json()
+        self.assertEqual(actual, [])
+
+    def test_photo_day_count_skips_hidden_trashed_and_removed_photos(self):
+        noon = datetime.datetime(2021, 5, 4, 12, tzinfo=datetime.UTC)
+        create_test_photo(owner=self.user, exif_timestamp=noon)
+        create_test_photo(owner=self.user, exif_timestamp=noon, hidden=True)
+        create_test_photo(owner=self.user, exif_timestamp=noon, in_trashcan=True)
+        create_test_photo(owner=self.user, exif_timestamp=noon, removed=True)
+        response = self.client.get("/api/photo-day-counts/")
+        self.assertEqual(response.json(), [{"day": "2021-05-04", "count": 1}])
+
+    def test_photo_day_count_keeps_days_before_2000_and_skips_undated(self):
+        create_test_photo(
+            owner=self.user,
+            exif_timestamp=datetime.datetime(1987, 6, 30, 9, tzinfo=datetime.UTC),
+        )
+        create_test_photo(owner=self.user, exif_timestamp=None)
+        response = self.client.get("/api/photo-day-counts/")
+        self.assertEqual(response.json(), [{"day": "1987-06-30", "count": 1}])
 
     def test_location_sunburst(self):
         create_photos(self.user)

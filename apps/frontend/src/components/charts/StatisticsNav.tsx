@@ -13,6 +13,7 @@ type StatisticsNavProps = {
 
 type StatisticsView =
   | "/statistics/timeline"
+  | "/statistics/cameras"
   | "/statistics/placetree"
   | "/statistics/wordclouds"
   | "/statistics/socialgraph"
@@ -21,6 +22,7 @@ type StatisticsView =
 // The timeline first: it is where /statistics opens, with charts that fill the page from the start
 const views: ReadonlyArray<{ path: StatisticsView; labelKey: ParseKeys }> = [
   { path: "/statistics/timeline", labelKey: "sidemenu.timeline" },
+  { path: "/statistics/cameras", labelKey: "sidemenu.cameras" },
   { path: "/statistics/placetree", labelKey: "sidemenu.placetree" },
   { path: "/statistics/wordclouds", labelKey: "sidemenu.wordclouds" },
   { path: "/statistics/socialgraph", labelKey: "sidemenu.socialgraph" },
