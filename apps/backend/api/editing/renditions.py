@@ -460,6 +460,29 @@ def forget_edit(photo: Photo, old_hash: str) -> None:
     transaction.on_commit(partial(files.remove_edit_files, old_hash))
 
 
+def follow_main_file(photo: Photo) -> None:
+    edit = PhotoEdit.objects.filter(pk=photo.pk).first()
+    if edit is None:
+        return
+    if not photo.video:
+        if render_again(photo) or not edit.shown:
+            return
+    else:
+        with transaction.atomic():
+            forget_edit(photo, photo.image_hash)
+        if not edit.shown:
+            return
+    thumbnail = getattr(photo, "thumbnail", None)
+    if thumbnail is None:
+        return
+    try:
+        thumbnails.regenerate_thumbnails(thumbnail)
+    except Exception:
+        logger.exception(
+            "photo %s: could not make its thumbnails again", photo.image_hash
+        )
+
+
 # --- Rotating an edited photo ---------------------------------------------------
 
 

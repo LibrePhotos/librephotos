@@ -16,6 +16,7 @@ from collections.abc import Callable, Collection, Container, Iterable, Mapping
 from typing import TYPE_CHECKING, Literal, NamedTuple
 
 from django.db import transaction
+from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
 
 from api.metadata.reader import existing_sidecars
@@ -84,8 +85,40 @@ def detach_missing_files(photo: Photo, missing: list[File] | None = None) -> Non
         photo.files.remove(file)
         file.missing = True
         file.save()
-    if missing:
+    if missing and not stand_in_for_main_file(photo):
         photo.save(update_fields=["last_modified"])
+
+
+def stand_in_for_main_file(photo: Photo) -> bool:
+    from api.directory_watcher.file_grouping import select_main_file
+    from api.editing import renditions
+
+    gone = File.objects.filter(pk=photo.main_file_id, missing=True).first()
+    if gone is None:
+        return False
+    survivors = photo.files.exclude(type=File.METADATA_FILE).exclude(missing=True)
+    stand_in = select_main_file(list(survivors))
+    if stand_in is None:
+        return False
+    photo.main_file = stand_in
+    photo.video = stand_in.type == File.VIDEO
+    photo.save(update_fields=["main_file", "video"])
+    logger.info(
+        "photo %s: main file %s is gone, %s stands in",
+        photo.image_hash,
+        gone.hash,
+        stand_in.hash,
+    )
+    renditions.follow_main_file(photo)
+    return True
+
+
+def stand_in_for_gone_main_files(photos: QuerySet[Photo]) -> int:
+    on_disk = photos.model.files.through.objects.filter(
+        photo_id=OuterRef("pk"), file__missing=False
+    ).exclude(file__type=File.METADATA_FILE)
+    flagged = photos.filter(main_file__missing=True).filter(Exists(on_disk))
+    return sum(stand_in_for_main_file(photo) for photo in flagged.iterator())
 
 
 def remove_photo(photo: Photo) -> bool:
