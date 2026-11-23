@@ -1,3 +1,4 @@
+export * from "./useFetchCameraStatsQuery";
 export * from "./useFetchCountStatsQuery";
 export * from "./useFetchPhotoMonthCountQuery";
 export * from "./useLocationTimelineQuery";

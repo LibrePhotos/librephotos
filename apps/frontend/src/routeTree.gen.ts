@@ -61,6 +61,7 @@ import { Route as ProtectedSharingWithmePeoplePersonIdRouteImport } from "./rout
 import { Route as ProtectedSharingWithmePlacesTitleRouteImport } from "./routes/_protected/sharing/withme.places.$title";
 import { Route as ProtectedSharingWithmeThingsTitleRouteImport } from "./routes/_protected/sharing/withme.things.$title";
 import { Route as ProtectedStacksRouteImport } from "./routes/_protected/stacks";
+import { Route as ProtectedStatisticsCamerasRouteImport } from "./routes/_protected/statistics/cameras";
 import { Route as ProtectedStatisticsFaceclustersRouteImport } from "./routes/_protected/statistics/faceclusters";
 import { Route as ProtectedStatisticsIndexRouteImport } from "./routes/_protected/statistics/index";
 import { Route as ProtectedStatisticsPlacetreeRouteImport } from "./routes/_protected/statistics/placetree";
@@ -277,6 +278,11 @@ const ProtectedStatisticsIndexRoute = ProtectedStatisticsIndexRouteImport.update
   path: "/statistics/",
   getParentRoute: () => ProtectedRouteRoute,
 } as any);
+const ProtectedStatisticsCamerasRoute = ProtectedStatisticsCamerasRouteImport.update({
+  id: "/statistics/cameras",
+  path: "/statistics/cameras",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
 const ProtectedStatisticsFaceclustersRoute = ProtectedStatisticsFaceclustersRouteImport.update({
   id: "/statistics/faceclusters",
   path: "/statistics/faceclusters",
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   "/search/$query": typeof ProtectedSearchQueryRoute;
   "/sharing/links": typeof ProtectedSharingLinksRoute;
   "/sharing/public": typeof ProtectedSharingPublicRoute;
+  "/statistics/cameras": typeof ProtectedStatisticsCamerasRoute;
   "/statistics/faceclusters": typeof ProtectedStatisticsFaceclustersRoute;
   "/statistics/placetree": typeof ProtectedStatisticsPlacetreeRoute;
   "/statistics/socialgraph": typeof ProtectedStatisticsSocialgraphRoute;
@@ -531,6 +538,7 @@ export interface FileRoutesByTo {
   "/search/$query": typeof ProtectedSearchQueryRoute;
   "/sharing/links": typeof ProtectedSharingLinksRoute;
   "/sharing/public": typeof ProtectedSharingPublicRoute;
+  "/statistics/cameras": typeof ProtectedStatisticsCamerasRoute;
   "/statistics/faceclusters": typeof ProtectedStatisticsFaceclustersRoute;
   "/statistics/placetree": typeof ProtectedStatisticsPlacetreeRoute;
   "/statistics/socialgraph": typeof ProtectedStatisticsSocialgraphRoute;
@@ -604,6 +612,7 @@ export interface FileRoutesById {
   "/_protected/search/$query": typeof ProtectedSearchQueryRoute;
   "/_protected/sharing/links": typeof ProtectedSharingLinksRoute;
   "/_protected/sharing/public": typeof ProtectedSharingPublicRoute;
+  "/_protected/statistics/cameras": typeof ProtectedStatisticsCamerasRoute;
   "/_protected/statistics/faceclusters": typeof ProtectedStatisticsFaceclustersRoute;
   "/_protected/statistics/placetree": typeof ProtectedStatisticsPlacetreeRoute;
   "/_protected/statistics/socialgraph": typeof ProtectedStatisticsSocialgraphRoute;
@@ -1147,6 +1156,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ProtectedStatisticsIndexRouteImport;
       parentRoute: typeof ProtectedRouteRoute;
     };
+    "/_protected/statistics/cameras": {
+      id: "/_protected/statistics/cameras";
+      path: "/statistics/cameras";
+      fullPath: "/statistics/cameras";
+      preLoaderRoute: typeof ProtectedStatisticsCamerasRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
     "/_protected/statistics/faceclusters": {
       id: "/_protected/statistics/faceclusters";
       path: "/statistics/faceclusters";
@@ -1401,6 +1417,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute;
   ProtectedSharingLinksRoute: typeof ProtectedSharingLinksRoute;
   ProtectedSharingPublicRoute: typeof ProtectedSharingPublicRoute;
+  ProtectedStatisticsCamerasRoute: typeof ProtectedStatisticsCamerasRoute;
   ProtectedStatisticsFaceclustersRoute: typeof ProtectedStatisticsFaceclustersRoute;
   ProtectedStatisticsPlacetreeRoute: typeof ProtectedStatisticsPlacetreeRoute;
   ProtectedStatisticsSocialgraphRoute: typeof ProtectedStatisticsSocialgraphRoute;
@@ -1461,6 +1478,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedSearchQueryRoute: ProtectedSearchQueryRoute,
   ProtectedSharingLinksRoute: ProtectedSharingLinksRoute,
   ProtectedSharingPublicRoute: ProtectedSharingPublicRoute,
+  ProtectedStatisticsCamerasRoute: ProtectedStatisticsCamerasRoute,
   ProtectedStatisticsFaceclustersRoute: ProtectedStatisticsFaceclustersRoute,
   ProtectedStatisticsPlacetreeRoute: ProtectedStatisticsPlacetreeRoute,
   ProtectedStatisticsSocialgraphRoute: ProtectedStatisticsSocialgraphRoute,

@@ -82,6 +82,7 @@ class CameraAndExposureFilterTest(MetadataFilterTestCase):
             aperture=1.4,
             focal_length=23.0,
             focal_length_35mm=35,
+            shutter_speed="1/250",
         )
         self.r5 = self.photo(
             camera_make="Canon",
@@ -91,6 +92,7 @@ class CameraAndExposureFilterTest(MetadataFilterTestCase):
             aperture=2.8,
             focal_length=70.0,
             focal_length_35mm=70,
+            shutter_speed="1/60",
         )
         self.no_metadata = self.photo()
 
@@ -104,6 +106,11 @@ class CameraAndExposureFilterTest(MetadataFilterTestCase):
     def test_make_and_lens(self):
         self.assert_matches({"make": "canon"}, [self.r5])
         self.assert_matches({"lens": "XF23mmF1.4 R LM WR"}, [self.xt5])
+
+    def test_shutter_matches_the_stored_text_ignoring_case(self):
+        self.assert_matches({"shutter": "1/250"}, [self.xt5])
+        self.assert_matches({"shutter": "1/60"}, [self.r5])
+        self.assert_matches({"shutter": "1/2"}, [])
 
     def test_ranges_are_inclusive(self):
         self.assert_matches({"iso_min": 3200}, [self.xt5])
@@ -412,6 +419,12 @@ class MetadataValuesTest(MetadataFilterTestCase):
                 self.assertEqual(
                     response.data["results"], [{"value": value, "count": 1}]
                 )
+
+    def test_shutter_speeds(self):
+        self.photo(shutter_speed="1/250")
+        self.photo()
+        response = self.client.get(VALUES_URL, {"field": "shutter"})
+        self.assertEqual(response.data["results"], [{"value": "1/250", "count": 1}])
 
     def test_an_unknown_field_is_refused(self):
         for params in ({"field": "iso"}, {}):

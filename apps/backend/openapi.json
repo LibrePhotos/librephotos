@@ -2604,6 +2604,34 @@
         }
       }
     },
+    "/api/camera-stats/": {
+      "get": {
+        "operationId": "api_camera_stats_retrieve",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraStats"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/check-file-contents/": {
       "post": {
         "operationId": "api_check_file_contents_create",
@@ -10862,6 +10890,16 @@
           },
           {
             "in": "query",
+            "name": "shutter",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "description": "Shutter speed, exact match ignoring case (values: metadata-values?field=shutter)"
+          },
+          {
+            "in": "query",
             "name": "taken_after",
             "schema": {
               "type": "string",
@@ -12961,7 +12999,6 @@
     "/api/search/metadata-values/": {
       "get": {
         "operationId": "api_search_metadata_values_retrieve",
-        "description": "The cameras, makers or lenses of the requester's photos, for the\nsuggestions of the search filters: each distinct value with its photo\ncount, most photos first, in one answer (a library has few).",
         "parameters": [
           {
             "in": "query",
@@ -12970,12 +13007,13 @@
               "enum": [
                 "camera",
                 "make",
-                "lens"
+                "lens",
+                "shutter"
               ],
               "type": "string",
               "minLength": 1
             },
-            "description": "camera (model), make (camera maker) or lens (model)\n\n* `camera` - camera\n* `make` - make\n* `lens` - lens",
+            "description": "camera (model), make (camera maker), lens (model) or shutter (speed)\n\n* `camera` - camera\n* `make` - make\n* `lens` - lens\n* `shutter` - shutter",
             "required": true
           }
         ],
@@ -17601,6 +17639,88 @@
         "required": [
           "job",
           "status"
+        ]
+      },
+      "CameraStat": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "The shown name"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value the search filters on"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "make": {
+            "type": "string",
+            "description": "The camera maker the count groups with, blank when unknown"
+          }
+        },
+        "required": [
+          "count",
+          "label",
+          "make",
+          "value"
+        ]
+      },
+      "CameraStats": {
+        "type": "object",
+        "properties": {
+          "cameras": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CameraStat"
+            }
+          },
+          "lenses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NamedStat"
+            }
+          },
+          "iso": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NumberStat"
+            }
+          },
+          "aperture": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NumberStat"
+            }
+          },
+          "focal_length": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NumberStat"
+            }
+          },
+          "focal_length_35mm": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NumberStat"
+            }
+          },
+          "shutter_speed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextStat"
+            }
+          }
+        },
+        "required": [
+          "aperture",
+          "cameras",
+          "focal_length",
+          "focal_length_35mm",
+          "iso",
+          "lenses",
+          "shutter_speed"
         ]
       },
       "Capacity": {
@@ -23672,9 +23792,47 @@
         "type": "string",
         "description": "* `owner` - owner\n* `contributor` - contributor\n* `viewer` - viewer\n* `none` - none"
       },
+      "NamedStat": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "The shown name"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value the search filters on"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "label",
+          "value"
+        ]
+      },
       "NullEnum": {
         "enum": [
           null
+        ]
+      },
+      "NumberStat": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "format": "double",
+            "description": "The value a range filter can match"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "value"
         ]
       },
       "OutcomeEnum": {
@@ -32718,6 +32876,22 @@
         ],
         "type": "string",
         "description": "* `left` - Left\n* `right` - Right"
+      },
+      "TextStat": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "The value the search filters on"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "value"
+        ]
       },
       "TimeOfDayEnum": {
         "enum": [

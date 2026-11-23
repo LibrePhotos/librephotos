@@ -37,8 +37,7 @@ export const SearchPhotosResult = z.object({
 });
 export type SearchPhotosResult = z.infer<typeof SearchPhotosResult>;
 
-/** What `GET /api/search/metadata-values/` lists: camera models, camera makers or lens models. */
-export const MetadataValueField = z.enum(["camera", "make", "lens"]);
+export const MetadataValueField = z.enum(["camera", "make", "lens", "shutter"]);
 export type MetadataValueField = z.infer<typeof MetadataValueField>;
 
 /** The `file_type` search filter: the main file's type, or (raw) a photo with a RAW file. */

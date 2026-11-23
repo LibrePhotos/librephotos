@@ -44,6 +44,7 @@ TEXT_FILTERS = (
     ("camera", "metadata__camera_model__iexact"),
     ("make", "metadata__camera_make__iexact"),
     ("lens", "metadata__lens_model__iexact"),
+    ("shutter", "metadata__shutter_speed__iexact"),
 )
 #: Inclusive ranges: (lowest parameter, highest parameter, column).
 RANGE_FILTERS = (
@@ -125,6 +126,11 @@ class MetadataFilterQuery(serializers.Serializer[None]):
         required=False,
         max_length=100,
         help_text="Lens model, exact match ignoring case (values: metadata-values?field=lens)",
+    )
+    shutter = serializers.CharField(
+        required=False,
+        max_length=20,
+        help_text="Shutter speed, exact match ignoring case (values: metadata-values?field=shutter)",
     )
     iso_min = serializers.IntegerField(
         required=False, min_value=0, help_text="Lowest ISO speed"
@@ -320,6 +326,7 @@ VALUE_COLUMNS = {
     "camera": "metadata__camera_model",
     "make": "metadata__camera_make",
     "lens": "metadata__lens_model",
+    "shutter": "metadata__shutter_speed",
 }
 
 

@@ -32,6 +32,39 @@ class CountStatsSerializer(serializers.Serializer[None]):
     )
 
 
+class NamedStatSerializer(serializers.Serializer[None]):
+    label = serializers.CharField(help_text="The shown name")
+    value = serializers.CharField(help_text="The value the search filters on")
+    count = serializers.IntegerField()
+
+
+class CameraStatSerializer(NamedStatSerializer):
+    make = serializers.CharField(
+        allow_blank=True,
+        help_text="The camera maker the count groups with, blank when unknown",
+    )
+
+
+class NumberStatSerializer(serializers.Serializer[None]):
+    value = serializers.FloatField(help_text="The value a range filter can match")
+    count = serializers.IntegerField()
+
+
+class TextStatSerializer(serializers.Serializer[None]):
+    value = serializers.CharField(help_text="The value the search filters on")
+    count = serializers.IntegerField()
+
+
+class CameraStatsSerializer(serializers.Serializer[None]):
+    cameras = CameraStatSerializer(many=True)
+    lenses = NamedStatSerializer(many=True)
+    iso = NumberStatSerializer(many=True)
+    aperture = NumberStatSerializer(many=True)
+    focal_length = NumberStatSerializer(many=True)
+    focal_length_35mm = NumberStatSerializer(many=True)
+    shutter_speed = TextStatSerializer(many=True)
+
+
 class WordCloudEntrySerializer(serializers.Serializer[None]):
     y = serializers.FloatField(help_text="The natural log of the label's count")
 

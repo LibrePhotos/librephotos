@@ -513,6 +513,7 @@ export type SearchFilters = {
   camera?: string;
   make?: string;
   lens?: string;
+  shutter?: string;
   iso_min?: number;
   iso_max?: number;
   aperture_min?: number;
@@ -540,6 +541,7 @@ function searchFiltersQuery(filter: SearchFilters) {
     camera: filter.camera,
     make: filter.make,
     lens: filter.lens,
+    shutter: filter.shutter,
     iso_min: filter.iso_min,
     iso_max: filter.iso_max,
     aperture_min: filter.aperture_min,
@@ -936,7 +938,6 @@ export async function searchPhotos(
   };
 }
 
-/** The cameras, makers or lenses of my photos, most photos first: the suggestions of the search filters. */
 export async function fetchMetadataValues(
   client: ApiClient,
   field: S.MetadataValueField
@@ -2188,6 +2189,11 @@ export async function fetchClusterFaces(client: ApiClient): Promise<S.ClusterFac
 export async function fetchCountStats(client: ApiClient): Promise<S.CountStats> {
   const res = await client.get<unknown>("/stats/");
   return parseResponse(S.CountStats, res, "count stats");
+}
+
+export async function fetchCameraStats(client: ApiClient): Promise<S.CameraStats> {
+  const res = await client.get<unknown>("/camera-stats/");
+  return parseResponse(S.CameraStats, res, "camera stats");
 }
 
 export async function fetchLocationSunburst(client: ApiClient): Promise<S.LocationSunburst> {

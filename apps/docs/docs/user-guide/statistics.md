@@ -4,7 +4,7 @@ description: "Explore your photo library through interactive visualizations"
 sidebar_position: 10
 ---
 
-LibrePhotos includes a **Statistics** section with several interactive visualizations that help you explore patterns in your photo library. It is not in the sidebar: open it with **View statistics** at the top right of the **Library** page (**Account menu > Library**), or press `Ctrl+K` (`Cmd+K` on macOS) and search for "Statistics". You can also go straight to `/statistics`. The page starts with the same counts as the Library page, then a tab bar to switch between the five views: **Timeline** (where it opens), **Place tree**, **Word clouds**, **Social graph** and **Face clusters**.
+LibrePhotos includes a **Statistics** section with several interactive visualizations that help you explore patterns in your photo library. It is not in the sidebar: open it with **View statistics** at the top right of the **Library** page (**Account menu > Library**), or press `Ctrl+K` (`Cmd+K` on macOS) and search for "Statistics". You can also go straight to `/statistics`. The page starts with the same counts as the Library page, then a tab bar to switch between the six views: **Timeline** (where it opens), **Cameras**, **Place tree**, **Word clouds**, **Social graph** and **Face clusters**.
 
 ## Place Tree
 
@@ -28,6 +28,17 @@ A bar chart showing how many photos you took each month. This makes it easy to s
 ### Location Duration
 
 A single horizontal stacked bar spanning your whole library, laid out chronologically. Each colored segment is one continuous stay at a location, and the segment's **width** shows how long that stay lasted. Hover over a segment to see the location name and the month-and-year range it covers; the color legend underneath lists every segment. Note that each stay gets its own color, so a place you visited more than once appears more than once. This is great for seeing travel patterns at a glance.
+
+## Cameras
+
+<Since version="1.7.0" />
+
+The Cameras view shows which cameras and lenses took your photos, and the spread of your exposure settings:
+
+- **Cameras** and **Lenses** — the camera and lens models your photos were taken with, most photos first. A camera is counted with its maker, so the same model name from two makers is listed separately.
+- **Exposure charts** — one bar chart each for ISO, aperture, focal length, 35 mm equivalent focal length and shutter speed, a bar per stored value showing how many photos carry it.
+
+Every row and every bar opens the search its count comes from: a camera row searches for that model (and its maker, when known), and an exposure bar searches for that exact value.
 
 ## Word Clouds
 

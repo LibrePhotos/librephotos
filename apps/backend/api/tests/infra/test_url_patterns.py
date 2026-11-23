@@ -180,6 +180,7 @@ CLIENT_PATHS = {
     "/api/auth/token/obtain/": "librephotos.urls.CustomTokenObtainPairView",
     "/api/auth/token/refresh/": "librephotos.urls.CustomTokenRefreshView",
     "/api/autoalbumgen/": "api.views.album_auto.AutoAlbumGenerateView",
+    "/api/camera-stats/": "api.views.dataviz.CameraStatsView",
     "/api/clusterfaces": "api.views.dataviz.ClusterFaceView",
     "/api/days/": "api.views.days.DayViewSet get=list",
     "/api/days/20240501/layout/": "api.views.days.DayViewSet get=layout",

@@ -282,6 +282,7 @@ export const BulkPhotoQuery = z.object({
   camera: z.string().optional(),
   make: z.string().optional(),
   lens: z.string().optional(),
+  shutter: z.string().optional(),
   iso_min: z.number().optional(),
   iso_max: z.number().optional(),
   aperture_min: z.number().optional(),

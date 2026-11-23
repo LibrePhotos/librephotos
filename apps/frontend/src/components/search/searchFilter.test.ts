@@ -21,6 +21,7 @@ const EVERY_FILTER: SearchFilters = {
   camera: "X-T5",
   make: "FUJIFILM",
   lens: "XF23mmF1.4 R",
+  shutter: "1/250",
   iso_min: 400,
   iso_max: 3200,
   aperture_min: 1.4,
@@ -100,7 +101,7 @@ describe("countSearchFilters", () => {
   it("counts a range or a day span once and each person once", () => {
     expect(countSearchFilters({})).toBe(0);
     expect(countSearchFilters({ iso_min: 400, iso_max: 800, taken_after: "2024-01-01" })).toBe(2);
-    expect(countSearchFilters(EVERY_FILTER)).toBe(14);
+    expect(countSearchFilters(EVERY_FILTER)).toBe(15);
     expect(hasSearchFilters({ person: [1] })).toBe(true);
     expect(hasSearchFilters({ camera: undefined })).toBe(false);
   });

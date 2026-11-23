@@ -187,7 +187,16 @@ class StatsResponsesTest(DeclaredResponseTestCase):
         # also feed the word cloud's people and the face cluster chart, the
         # tags its captions.
         photo = create_test_photo(
-            owner=self.user, captions_json={OPENCLIP: {"tags": ["beach", "sea"]}}
+            owner=self.user,
+            captions_json={OPENCLIP: {"tags": ["beach", "sea"]}},
+            camera_make="FUJIFILM",
+            camera="X-T5",
+            lens="XF23mmF1.4 R LM WR",
+            iso=400,
+            fstop=2.0,
+            focal_length=23.0,
+            shutter_speed="1/250",
+            shutter_speed_seconds=0.004,
         )
         for name in ("Alice", "Bob", "Carol"):
             person = create_test_person(name=name, cluster_owner=self.user)
@@ -197,6 +206,7 @@ class StatsResponsesTest(DeclaredResponseTestCase):
 
     STATS_PATHS = (
         "/api/stats/",
+        "/api/camera-stats/",
         "/api/wordcloud/",
         "/api/photomonthcounts/",
         "/api/locationsunburst/",

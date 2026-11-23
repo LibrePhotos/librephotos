@@ -88,6 +88,15 @@ function takenChip(filters: SearchFilters, t: TFunction): SearchFilterChip | und
   return undefined;
 }
 
+function shutterChip(filters: SearchFilters, t: TFunction): SearchFilterChip | undefined {
+  if (!filters.shutter) return undefined;
+  return {
+    id: "shutter",
+    label: t("searchfilter.chip.shutter", { value: filters.shutter }),
+    patch: { shutter: undefined },
+  };
+}
+
 function ratingChip(rating: number | undefined, ctx: ChipContext): SearchFilterChip | undefined {
   if (rating === undefined) return undefined;
   const label =
@@ -150,6 +159,7 @@ export function describeSearchFilters(filters: SearchFilters, ctx: ChipContext):
     ...personChips(filters.person, ctx),
     ...textChips(filters, ctx.t),
     ...ranges,
+    shutterChip(filters, ctx.t),
     ratingChip(filters.rating_min, ctx),
     takenChip(filters, ctx.t),
     ...fileChips(filters, ctx.t),

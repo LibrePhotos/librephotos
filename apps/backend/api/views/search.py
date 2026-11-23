@@ -116,10 +116,6 @@ class SearchListViewSet(ListViewSet):
 
 
 class MetadataValuesView(APIView):
-    """The cameras, makers or lenses of the requester's photos, for the
-    suggestions of the search filters: each distinct value with its photo
-    count, most photos first, in one answer (a library has few)."""
-
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(parameters=[MetadataValuesQuery], responses=MetadataValuesSerializer)

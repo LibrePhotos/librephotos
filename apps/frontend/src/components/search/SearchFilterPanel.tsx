@@ -82,6 +82,12 @@ export function SearchFilterPanel({ filters, onChange, people, favoriteRating, a
             />
           );
         })}
+        <MetadataValueSelect
+          field="shutter"
+          value={filters.shutter}
+          onChange={shutter => onChange({ shutter })}
+          active={active}
+        />
       </Section>
       <Divider />
       <Section id="search-filter-rating" label={t("searchfilter.section.rating")}>

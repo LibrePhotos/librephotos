@@ -708,6 +708,7 @@
     "timeline": "Timeline",
     "socialgraph": "Social graph",
     "facecluster": "Face clusters",
+    "cameras": "Cameras",
     "datavizsmall": "Data",
     "statistics": "Statistics",
     "facerecognition": "Faces",
@@ -2314,7 +2315,10 @@
     "barlabel": "{{label}}: {{value}}",
     "monthchartsummary": "Photos per month from {{from}} to {{to}}, the most in {{peak}} ({{value}}). Use the arrow keys to read each bar.",
     "staylabel": "{{place}}, {{from}} – {{to}}",
-    "staychartsummary": "Where your photos were taken from {{from}} to {{to}}, place by place. Use the arrow keys to read each stay."
+    "staychartsummary": "Where your photos were taken from {{from}} to {{to}}, place by place. Use the arrow keys to read each stay.",
+    "cameras": "Cameras",
+    "lenses": "Lenses",
+    "distchartsummary": "{{name}} spread of your photos, from {{from}} to {{to}}, most often {{peak}} ({{value}}). Arrow keys read the bars, Enter opens one's search."
   },
   "autoalbum": {
     "subtitle": "Showing {{ autoalbumlength }} events",
@@ -3217,6 +3221,10 @@
       "title": "No timeline data",
       "description": "Add photos with timestamps to see your photo timeline."
     },
+    "camerastats": {
+      "title": "No camera data yet",
+      "description": "Photos that carry camera, lens or exposure data in their EXIF appear here once they are scanned."
+    },
     "scanning": {
       "titlewithjob": "Scan in progress: {{job}}",
       "refresh": "Refresh the page to see newly scanned photos.",
@@ -3619,6 +3627,10 @@
       "label": "Lens",
       "placeholder": "Any lens"
     },
+    "shutter": {
+      "label": "Shutter speed",
+      "placeholder": "Any shutter speed"
+    },
     "nosuggestions": "None of your photos has this",
     "countshint": "The numbers are photos in your library, not in these results.",
     "range": {
@@ -3671,6 +3683,7 @@
       "make": "Maker: {{value}}",
       "camera": "Camera: {{value}}",
       "lens": "Lens: {{value}}",
+      "shutter": "Shutter speed: {{value}}",
       "between": "{{name}} {{low}} to {{high}}",
       "atleast": "{{name}} {{low}} or more",
       "atmost": "{{name}} up to {{high}}",

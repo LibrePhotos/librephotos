@@ -225,6 +225,7 @@ class CrossTenantReadTest(TestCase):
             (f"/api/photos/shared/tome/people/photos/?person={v.v_person.pk}", None),
             ("/api/photos/nolocation/", v.v_photo.image_hash),
             ("/api/search/metadata-values/?field=camera", "VictimCameraModel"),
+            ("/api/camera-stats/", "VictimCameraModel"),
             (
                 f"/api/photos/searchlist/?person={v.v_person.pk}",
                 v.v_photo.image_hash,
