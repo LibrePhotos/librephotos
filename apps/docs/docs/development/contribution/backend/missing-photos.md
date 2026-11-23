@@ -209,10 +209,11 @@ def delete_missing_photos(user, job_id):
             album_thing.save(update_fields=["photo_count"])
             album_thing.update_default_cover_photo()
 
-        # File.hash is `md5 + str(user.id)`, so the user's missing files are
-        # identified by that suffix.
-        File.objects.filter(
-            Q(hash__endswith=str(user.id)) & Q(missing=True)
+        owner_part = str(user.id)
+        File.objects.annotate(hash_length=Length("hash")).filter(
+            hash__endswith=owner_part,
+            hash_length=MD5_HEX_LENGTH + len(owner_part),
+            missing=True,
         ).delete()
 
         lrj.complete()
@@ -225,7 +226,7 @@ Notes on the implementation:
 - The missing-photo query is `owned_by(user).missing()`, so every branch of it is scoped to the requesting user.
 - A gone main file first gets a stand-in from the files still on disk (see [Stand-in for a gone main file](#stand-in-for-a-gone-main-file)), so a photo flagged by an older scan is kept when its RAW is still there.
 - Photos are deleted in batches of `_DELETE_MISSING_BATCH_SIZE` (200) to bound peak memory.
-- The file cleanup filter uses `str(user.id)`, because `File.hash` is `md5 + str(user.id)`. Passing the `User` instance would stringify to the username and match nothing.
+- The file cleanup filter uses `str(user.id)`, because `File.hash` is `md5 + str(user.id)`. Passing the `User` instance would stringify to the username and match nothing. The hash must also be exactly `MD5_HEX_LENGTH` (32) characters plus the id: <Since version="1.7.0" /> up to 1.6.0 the suffix match alone also deleted the missing `File` rows of every user whose id ends in the requester's (those of user 17 on a run of user 7).
 
 **What gets deleted**:
 - Photo records from database

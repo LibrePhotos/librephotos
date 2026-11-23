@@ -255,3 +255,16 @@ class ScanAfterOlderScanTest(TestCase):
         photo.refresh_from_db()
         self.assertEqual(photo.main_file, raw)
         self.assertNotIn(photo, Photo.objects.owned_by(self.user).missing())
+
+
+class RemoveMissingOwnerSuffixTest(TestCase):
+    def test_a_user_whose_id_ends_in_mine_keeps_their_missing_files(self):
+        me = create_test_user(id=7007)
+        other = create_test_user(id=17007)
+        mine = create_test_file(None, me, missing=True)
+        theirs = create_test_file(None, other, missing=True)
+
+        remove_missing(me)
+
+        self.assertFalse(File.objects.filter(pk=mine.pk).exists())
+        self.assertTrue(File.objects.filter(pk=theirs.pk).exists())
