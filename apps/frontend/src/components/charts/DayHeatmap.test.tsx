@@ -131,6 +131,18 @@ describe("DayHeatmap", () => {
     expect(months()).toContain("Dec");
   });
 
+  it("outlines the days still to come instead of filling them like empty days", async () => {
+    const thisYear = dayHeatmap([{ day: "2026-02-01", count: 1 }], 2026, 1, DateTime.local(2026, 11, 23));
+    await renderInMantine(<DayHeatmap grid={thisYear} width={1200} />);
+    const future = [...document.body.querySelectorAll("[data-rest] rect")];
+    const swatches = [...document.body.querySelectorAll("[class*='daySwatch']")];
+
+    expect(future).toHaveLength(38);
+    expect(future.every(rect => rect.getAttribute("class")?.includes("restDay"))).toBe(true);
+    expect(future.some(rect => rect.getAttribute("class")?.includes("level0"))).toBe(false);
+    expect(swatches.some(swatch => swatch.className.includes("restDay"))).toBe(false);
+  });
+
   it("paints the cells and the legend from the same level classes", async () => {
     await renderInMantine(<DayHeatmap grid={grid} width={1200} />);
     const busy = defined(cellFor("2023-01-09").querySelector("rect"));

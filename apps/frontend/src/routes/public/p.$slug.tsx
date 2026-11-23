@@ -46,7 +46,12 @@ function PublicPhotoBySlug() {
   }
 
   if (!photo || isError) {
-    return <UnavailableShareLink expired={error instanceof ApiError && error.serverCode === "link_expired"} />;
+    return (
+      <UnavailableShareLink
+        subject="photo"
+        expired={error instanceof ApiError && error.serverCode === "link_expired"}
+      />
+    );
   }
 
   const thumbnailUrl = `${serverAddress}${photo.thumbnail_url}`;

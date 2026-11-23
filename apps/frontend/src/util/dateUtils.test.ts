@@ -174,12 +174,17 @@ describe("fromUnixSeconds", () => {
 describe("toDateTimeInputValue", () => {
   test("shows the stored instant as the viewer's local wall clock", () => {
     Settings.defaultZone = "Europe/Moscow";
-    expect(toDateTimeInputValue("2023-09-21T14:30:00.000Z")).toBe("2023-09-21T17:30:00");
+    expect(toDateTimeInputValue("2023-09-21T14:30:00.000Z")).toBe("2023-09-21T17:30");
+  });
+
+  test("leaves out the seconds of an expiry saved with them", () => {
+    Settings.defaultZone = "Europe/Moscow";
+    expect(toDateTimeInputValue("2023-09-21T14:30:59.900Z")).toBe("2023-09-21T17:30");
   });
 
   test("shows the wall clock across a DST boundary", () => {
     Settings.defaultZone = "Europe/Berlin";
-    expect(toDateTimeInputValue("2023-03-26T01:30:00.000Z")).toBe("2023-03-26T03:30:00");
+    expect(toDateTimeInputValue("2023-03-26T01:30:00.000Z")).toBe("2023-03-26T03:30");
   });
 
   test("returns an empty value for an unparseable timestamp", () => {
@@ -219,8 +224,8 @@ describe("dateTimeInputDaysFromNow", () => {
   test("adds calendar days in the viewer's zone, keeping the wall clock across DST, to the minute", () => {
     Settings.defaultZone = "Europe/Berlin";
     Settings.now = () => Date.UTC(2023, 2, 25, 11, 30, 42, 500);
-    expect(dateTimeInputDaysFromNow(1)).toBe("2023-03-26T12:30:00");
-    expect(dateTimeInputDaysFromNow(7)).toBe("2023-04-01T12:30:00");
+    expect(dateTimeInputDaysFromNow(1)).toBe("2023-03-26T12:30");
+    expect(dateTimeInputDaysFromNow(7)).toBe("2023-04-01T12:30");
   });
 });
 

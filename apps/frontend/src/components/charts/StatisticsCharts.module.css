@@ -90,6 +90,12 @@
   background-color: var(--app-heatmap-level-4);
 }
 
+.restDay {
+  fill: none;
+  stroke: var(--app-heatmap-level-0);
+  stroke-width: 1;
+}
+
 /* A hairline of the page between two stays, so neighbouring tints read as two places. */
 .staySegment {
   stroke: var(--mantine-color-body);

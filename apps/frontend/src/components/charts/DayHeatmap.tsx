@@ -179,12 +179,12 @@ export function DayHeatmap({ grid, width }: Props) {
                 {rest.map(slot => (
                   <rect
                     key={slot.day}
-                    x={x(slot.column)}
-                    y={y(slot.row)}
-                    width={cellPx}
-                    height={cellPx}
+                    x={x(slot.column) + 0.5}
+                    y={y(slot.row) + 0.5}
+                    width={cellPx - 1}
+                    height={cellPx - 1}
                     rx={2}
-                    className={classes.level0}
+                    className={classes.restDay}
                   />
                 ))}
               </g>

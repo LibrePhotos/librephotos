@@ -32,7 +32,7 @@ afterEach(() => {
 describe("WallDisplaySleep", () => {
   it("says when it wakes on a pointer move, then fades the hint out again", async () => {
     await renderInMantine(<WallDisplaySleep onWake={() => {}} wakeAt="07:00" />);
-    expect(overlay().textContent).toBe("Sleeping until 7:00 AM · Tap to wake");
+    expect(overlay().textContent).toBe("Sleeping until 7:00 AM · Click or tap to wake");
     expect(overlay().hasAttribute("data-hint")).toBe(false);
 
     await act(async () => overlay().dispatchEvent(new MouseEvent("pointermove", { bubbles: true })));

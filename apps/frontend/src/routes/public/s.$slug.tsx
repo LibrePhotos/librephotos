@@ -1,12 +1,11 @@
-import { Button, Center, Group, Stack, Text } from "@mantine/core";
-import { IconAlertCircle } from "@tabler/icons-react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { usePublicAlbumQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PlaySlideshowButton } from "../../components/sharing/PlaySlideshowButton";
 import { isUndatedShare, validatePublicAlbumSearch } from "../../components/sharing/publicAlbum";
+import { UnavailableShareLink } from "../../components/sharing/UnavailableShareLink";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
@@ -31,22 +30,7 @@ function PublicAlbumBySlug() {
   usePublicPageTitle(album?.title);
 
   if (!isLoading && (album === null || isError)) {
-    return (
-      <Center style={{ minHeight: "60vh" }}>
-        <Stack align="center" gap="xs">
-          <IconAlertCircle size={48} />
-          <Text fw={600}>{t("publicalbum.notFound")}</Text>
-          <Text c="dimmed" size="sm">
-            {t("publicalbum.checkUrl")}
-          </Text>
-          <Group gap="xs">
-            <Button component={Link} to="/" variant="light">
-              {t("publicalbum.goHome")}
-            </Button>
-          </Group>
-        </Stack>
-      </Center>
-    );
+    return <UnavailableShareLink subject="album" />;
   }
 
   return (

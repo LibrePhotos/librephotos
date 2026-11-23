@@ -41,7 +41,7 @@ export type WallClock = Readonly<{ day: string; time: string }>;
 
 const DAY_INPUT = "yyyy-MM-dd";
 const TIME_INPUT = "HH:mm:ss";
-const DATE_TIME_INPUT = "yyyy-MM-dd'T'HH:mm:ss";
+const DATE_TIME_INPUT = "yyyy-MM-dd'T'HH:mm";
 const WHOLE_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const WHOLE_TIME = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
 
@@ -62,7 +62,7 @@ export function wallClockToPhotoTimestamp({ day, time }: WallClock): string | nu
 
 export function toDateTimeInputValue(iso: string): string {
   const parsed = parseInstant(iso);
-  return parsed.isValid ? parsed.toFormat(DATE_TIME_INPUT) : "";
+  return parsed.isValid ? parsed.startOf("minute").toFormat(DATE_TIME_INPUT) : "";
 }
 
 export function fromDateTimeInputValue(value: string): string | null {
