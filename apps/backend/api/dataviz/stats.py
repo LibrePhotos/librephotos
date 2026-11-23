@@ -386,11 +386,7 @@ def get_photo_day_counts(user: User) -> list[dict[str, str | int]]:
         .values("day", "c")
         .order_by("day")
     )
-    return [
-        {"day": count["day"].isoformat(), "count": count["c"]}
-        for count in counts
-        if count["day"] is not None
-    ]
+    return [{"day": count["day"].isoformat(), "count": count["c"]} for count in counts]
 
 
 class _LabelTally:
