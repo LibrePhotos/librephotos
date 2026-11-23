@@ -56,7 +56,11 @@ from api.metadata.reader import existing_sidecars
 from api.mime import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, extension
 from api.models import File, FileCopy, LongRunningJob, Photo, Thumbnail, User
 from api.photos import indexed_mtimes
-from api.photos.files import detach_missing_files, missing_files
+from api.photos.files import (
+    detach_missing_files,
+    missing_files,
+    stand_in_for_gone_main_files,
+)
 from api.photos.media_files import is_metadata
 from api.photos.paths import excluded_folders, is_valid_path, library_folder_paths
 from api.runtime.features import feature_enabled
@@ -988,6 +992,7 @@ def scan_missing_photos(user: User, job_id: UUID) -> None:
             return
 
         _detach_missing(tally.missing, job_id)
+        stand_in_for_gone_main_files(Photo.objects.owned_by(user))
         update_scan_counter(job_id)
         logger.info("Finished checking paths for missing photos")
     except Exception as e:

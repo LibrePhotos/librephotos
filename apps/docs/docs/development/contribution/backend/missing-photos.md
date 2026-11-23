@@ -94,6 +94,24 @@ This method:
 
 Note that it removes a vanished file from `photo.files`. When the vanished file is the main file, `stand_in_for_main_file` (`apps/backend/api/photos/files.py`) makes the best file still on disk the main file (`select_main_file`: an image, then a video, then a RAW), and sets `video` to match. Sidecars never stand in: a photo with nothing but sidecars left keeps `main_file` pointing at the vanished file, which is what makes it missing, and lets a reappearing file be relinked (see [Relinking Process](#relinking-process)). <Since version="1.7.0" /> Up to 1.6.0 `main_file` was always left on the vanished file, so a RAW+JPEG photo whose JPEG was deleted lost its main file when the missing `File` rows were deleted, and the next **Remove missing photos** removed it with its RAW still on disk.
 
+#### Stand-in for a gone main file
+
+<Since version="1.7.0" /> `stand_in_for_main_file(photo)` returns whether the main file changed; its save bumps `last_modified`, so `detach_missing_files` only saves `last_modified` itself when no stand-in was made. Details that matter:
+
+- The gone main file is read again (`File.objects.filter(pk=photo.main_file_id, missing=True)`): the caller may hold the `File` instance from before it was flagged.
+- The candidates come from a query (`photo.files.exclude(type=METADATA_FILE).exclude(missing=True)`), not `photo.files.all()`: the scan prefetches `files`, and the prefetched list still holds what was just removed.
+- The photo's edit follows the new main file (`renditions.follow_main_file`, `apps/backend/api/editing/renditions.py`), as `rekey_replaced_file` does for a file replaced in place. An edit is rendered from `photo.main_file`, so an image or RAW stand-in renders the edit again from it (`render_again`: a new version, a new preview and thumbnails, the rendition queued). A video cannot be edited, so a video stand-in forgets the edit (`forget_edit`: the default recipe, no history, the edit files removed once it commits). When the edit was shown and could not be rendered, or was forgotten, the thumbnails are made again from the new main file.
+
+Every path that unlinks a gone file runs it:
+
+- `detach_missing_files`, used by the missing-file check (`scan_missing_photos`) and by the removal of reported paths (`apps/backend/api/directory_watcher/removed_paths.py`).
+- `detach_deleted_files` (`apps/backend/nextcloud/directory_watcher.py`), for the files the Nextcloud server no longer lists. It flags the file `missing` before it unlinks it from each photo, because the stand-in only replaces a main file that is flagged.
+- `stand_in_for_gone_main_files(photos)`, for photos whose main file was flagged by a scan from before 1.7.0 and so is already out of `files`. It only visits the photos whose main file is `missing` and that still have a non-sidecar file that is not, one `EXISTS` subquery, so a library without such photos costs one query. `scan_missing_photos` runs it after detaching what the check found, and `delete_missing_photos` runs it before it picks the photos to remove.
+
+When the main file comes back, the scan adopts it into the photo again (`_adopt_files_into_photo` in `apps/backend/api/directory_watcher/file_handlers.py`) and makes it the main file by `FILE_TYPE_PRIORITY`. That sets `video` from the new main file as well, so a Live Photo whose video stood in for its HEIC is a photo again, and the edit follows it the same way.
+
+`PhotoQuerySet.missing()` tests the files with `NOT EXISTS` subqueries rather than joins, so each photo comes back once and Postgres hashes nothing in shared memory (#2868).
+
 **When is this called?**
 - Only during the `scan_missing_photos` job (`apps/backend/api/directory_watcher/scan_jobs.py`). This is the sole production call site.
 
@@ -143,6 +161,7 @@ def scan_missing_photos(user, job_id: UUID):
 - Polls `is_job_cancelled(job_id)` (`apps/backend/api/directory_watcher/utils.py`) once per page, so the job can be cancelled from the UI mid-run.
 - Any exception marks the job failed via `lrj.fail(error=e)`.
 - Automatically triggered after full scans if not scanning specific files.
+- <Since version="1.7.0" /> After detaching, gives every photo whose main file is gone but which still has a file on disk a stand-in (`stand_in_for_gone_main_files`), including photos an older scan flagged.
 
 ### Delete Missing Photos Job
 
@@ -161,10 +180,7 @@ def delete_missing_photos(user, job_id):
         job_id=job_id,
     )
     try:
-        # Photos flagged before the main file had a stand-in: a file still on
-        # disk takes over before the missing File rows are deleted below.
-        for photo in Photo.objects.owned_by(user).filter(main_file__missing=True):
-            stand_in_for_main_file(photo)
+        stand_in_for_gone_main_files(Photo.objects.owned_by(user))
 
         missing_pks = list(
             Photo.objects.owned_by(user).missing().values_list("pk", flat=True)
@@ -206,7 +222,8 @@ def delete_missing_photos(user, job_id):
 ```
 
 Notes on the implementation:
-- The missing-photo query is parenthesised, so both OR branches are scoped to the requesting user.
+- The missing-photo query is `owned_by(user).missing()`, so every branch of it is scoped to the requesting user.
+- A gone main file first gets a stand-in from the files still on disk (see [Stand-in for a gone main file](#stand-in-for-a-gone-main-file)), so a photo flagged by an older scan is kept when its RAW is still there.
 - Photos are deleted in batches of `_DELETE_MISSING_BATCH_SIZE` (200) to bound peak memory.
 - The file cleanup filter uses `str(user.id)`, because `File.hash` is `md5 + str(user.id)`. Passing the `User` instance would stringify to the username and match nothing.
 
