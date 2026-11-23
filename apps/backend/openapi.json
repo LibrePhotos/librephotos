@@ -7963,6 +7963,7 @@
     "/api/photo-day-counts/": {
       "get": {
         "operationId": "api_photo_day_counts_list",
+        "description": "How many of the user's visible photos were taken on each day, oldest day first. Days without photos and photos without a date are left out.",
         "tags": [
           "api"
         ],

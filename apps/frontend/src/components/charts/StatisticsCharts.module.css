@@ -58,26 +58,28 @@
 }
 
 .level0 {
-  fill: var(--mantine-color-default-hover);
+  fill: var(--app-heatmap-level-0);
+  background-color: var(--app-heatmap-level-0);
 }
 
 .level1 {
-  fill: var(--mantine-primary-color-filled);
-  fill-opacity: 0.35;
+  fill: var(--app-heatmap-level-1);
+  background-color: var(--app-heatmap-level-1);
 }
 
 .level2 {
-  fill: var(--mantine-primary-color-filled);
-  fill-opacity: 0.55;
+  fill: var(--app-heatmap-level-2);
+  background-color: var(--app-heatmap-level-2);
 }
 
 .level3 {
-  fill: var(--mantine-primary-color-filled);
-  fill-opacity: 0.75;
+  fill: var(--app-heatmap-level-3);
+  background-color: var(--app-heatmap-level-3);
 }
 
 .level4 {
-  fill: var(--mantine-primary-color-filled);
+  fill: var(--app-heatmap-level-4);
+  background-color: var(--app-heatmap-level-4);
 }
 
 /* A hairline of the page between two stays, so neighbouring tints read as two places. */
@@ -155,5 +157,20 @@
 
 .dayPlot {
   width: 100%;
+  min-width: 0;
+}
+
+.dayScroll {
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 4px;
+}
+
+.dayLegend {
+  font-size: var(--mantine-font-size-xs);
+}
+
+.daySwatch {
+  flex-shrink: 0;
+  border-radius: 2px;
 }

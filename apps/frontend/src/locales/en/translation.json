@@ -2314,6 +2314,7 @@
     "barlabel": "{{label}}: {{value}}",
     "monthchartsummary": "Photos per month from {{from}} to {{to}}, the most in {{peak}} ({{value}}). Use the arrow keys to read each bar.",
     "photosperday": "Photos per day",
+    "dayheatmapyear": "Year",
     "daychartsummary": "Photos per day from {{from}} to {{to}}, the most on {{peak}} ({{value}}). Use the arrow keys to move by a day or a week, Enter opens a day.",
     "less": "Less",
     "more": "More",

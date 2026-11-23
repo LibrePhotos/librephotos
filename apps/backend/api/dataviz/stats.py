@@ -388,20 +388,18 @@ def get_photo_month_counts(user: User) -> list[dict[str, str | int]]:
 
 def get_photo_day_counts(user: User) -> list[dict[str, str | int]]:
     counts = (
-        Photo.objects.owned_by(user)
+        Photo.visible.owned_by(user)
         .exclude(exif_timestamp=None)
         .annotate(day=taken_day())
         .values("day")
-        .annotate(c=Count("image_hash"))
+        .annotate(c=Count("id"))
         .values("day", "c")
         .order_by("day")
     )
-
-    this_year = datetime.now().year
     return [
         {"day": count["day"].isoformat(), "count": count["c"]}
         for count in counts
-        if 2000 <= count["day"].year <= this_year
+        if count["day"] is not None
     ]
 
 
@@ -593,7 +591,7 @@ def _location_cluster_row(feature: object) -> list[Any] | None:
         return None
     try:
         return [float(center[1]), float(center[0]), location_text]
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 

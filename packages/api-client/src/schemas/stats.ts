@@ -69,7 +69,7 @@ export const PhotoMonthCountResponse = z.array(PhotoMonthCount);
 export type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponse>;
 
 export const PhotoDayCount = z.object({
-  day: z.string(),
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid day"),
   count: z.number(),
 });
 

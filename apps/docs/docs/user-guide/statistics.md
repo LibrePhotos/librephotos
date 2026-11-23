@@ -29,7 +29,11 @@ A bar chart showing how many photos you took each month. This makes it easy to s
 
 <Since version="1.7.0" />
 
-A calendar heatmap like a contribution graph: every column is a week and every cell a day, and the deeper the colour the more photos you took that day. It spans the year up to your most recent photo (less on a narrow screen). Hover or focus a cell to see the date and its count, and click a day (or press `Enter` on it) to open that day's photos in the search view.
+A calendar heatmap like a contribution graph: every column is a week and every cell a day, and the deeper the colour the more photos you took that day. It shows one calendar year at a time, from January to December (the current year up to today). The year picker next to the title lists every year you have dated photos in, including years before 2000, and starts on the latest one. The five shades are relative to the year shown, so a quiet year still shows its busiest days in the deepest shade.
+
+Only the photos you see in your library count: hidden photos, photos in the trash and photos without a date are left out, so clicking a day always opens the photos it counts.
+
+Hover or focus a cell to see the date and its count, and click a day (or press `Enter` on it) to open that day's photos in the search view. With the keyboard, the left and right arrow keys move by a week, up and down by a day, and `Home` and `End` jump to the first and the last day. On a narrow screen the cells keep a size you can tap and the year scrolls sideways, starting at its latest week.
 
 ### Location Duration
 

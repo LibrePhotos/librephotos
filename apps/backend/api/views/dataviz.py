@@ -187,7 +187,13 @@ class PhotoMonthCountsView(APIView):
 class PhotoDayCountsView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    @extend_schema(responses=PhotoDayCountSerializer(many=True))
+    @extend_schema(
+        description=(
+            "How many of the user's visible photos were taken on each day, oldest "
+            "day first. Days without photos and photos without a date are left out."
+        ),
+        responses=PhotoDayCountSerializer(many=True),
+    )
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_photo_day_counts(request_user(request))
         return Response(res)
