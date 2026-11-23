@@ -9,6 +9,22 @@ from rest_framework import serializers
 
 from api.search.metadata_filter import VALUE_COLUMNS
 
+SEARCH_SORT_CHOICES = [
+    ("newest", "Newest"),
+    ("oldest", "Oldest"),
+    ("largest", "Largest"),
+    ("smallest", "Smallest"),
+]
+
+
+class SearchListQuery(serializers.Serializer[None]):
+    sort = serializers.ChoiceField(
+        choices=SEARCH_SORT_CHOICES,
+        default="newest",
+        help_text="newest (the default) or oldest: the matches grouped by day; "
+        "largest or smallest: a flat list by file size",
+    )
+
 
 class MetadataValuesQuery(serializers.Serializer[None]):
     field = serializers.ChoiceField(

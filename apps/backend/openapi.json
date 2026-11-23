@@ -10669,7 +10669,7 @@
     "/api/photos/searchlist/": {
       "get": {
         "operationId": "api_photos_searchlist_list",
-        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. The structured filters (camera, lens, exposure ranges, rating, capture days, location, file type, people) narrow the results with or without a search term; a bad value is a 400 naming the parameter. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries instead of date groups.",
+        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. The structured filters (camera, lens, exposure ranges, rating, capture days, location, file type, people) narrow the results with or without a search term; a bad value is a 400 naming the parameter. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries instead of date groups. sort=largest or sort=smallest answers a flat list by file size, whatever the semantic setting.",
         "parameters": [
           {
             "in": "query",
@@ -10859,6 +10859,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "enum": [
+                "newest",
+                "oldest",
+                "largest",
+                "smallest"
+              ],
+              "type": "string",
+              "default": "newest",
+              "minLength": 1
+            },
+            "description": "newest (the default) or oldest: the matches grouped by day; largest or smallest: a flat list by file size\n\n* `newest` - Newest\n* `oldest` - Oldest\n* `largest` - Largest\n* `smallest` - Smallest"
           },
           {
             "in": "query",
@@ -27994,6 +28010,12 @@
             "minimum": -9223372036854775808,
             "format": "int64"
           },
+          "size": {
+            "type": "integer",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "format": "int64"
+          },
           "projection_type": {
             "type": "string",
             "readOnly": true,
@@ -28021,6 +28043,7 @@
           "projection_type",
           "rating",
           "removed",
+          "size",
           "stacks",
           "thumbhash",
           "thumbnail_version",

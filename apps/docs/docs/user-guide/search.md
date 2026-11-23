@@ -88,6 +88,8 @@ The search results header also has a media button in the top right for narrowing
 
 Results are displayed grouped by date, similar to the main timeline view.
 
+<Since version="1.7.0" /> The header's **Sort** button also offers **Largest files first** and **Smallest files first**, which list the matches by file size as one flat list instead of grouping them by day — a way to find what takes the most space. In a size order each tile shows the file's size, and the same sort is on the [Videos page](./viewing-photos.md#videos-only). In the API the order is the `sort` parameter of `GET /api/photos/searchlist/` (`sort=largest`, `sort=smallest`, `sort=oldest`; the default `newest` groups by day).
+
 ## Search Filters
 
 :::note

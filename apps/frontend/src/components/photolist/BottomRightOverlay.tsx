@@ -4,13 +4,16 @@ import { IconUser } from "@tabler/icons-react";
 import React, { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { useFormatLocale } from "../../hooks/useFormatLocale";
 import { formatVideoTime } from "../../util/dateUtils";
+import { formatFileSize } from "../../util/fileSize";
 import { sharerName } from "../sharing/sharerGroups";
 import classes from "./BottomRightOverlay.module.css";
+import { FileSizeMarksContext } from "./fileSizeMarks";
 import { OwnerMarksContext } from "./ownerMarks";
 import { TILE_GLYPH_SIZE, TileBadge, TileCorner } from "./TileBadge";
 
-type Item = Pick<PigPhoto, "owner" | "person_video_time">;
+type Item = Pick<PigPhoto, "owner" | "person_video_time" | "size">;
 
 /** In a person's photos: the moment of the video the person is at, where it opens (#2762). */
 function PersonMomentBadge({ seconds }: Readonly<{ seconds: number }>) {
@@ -48,10 +51,17 @@ function OwnerMark({ item }: Readonly<{ item: Item }>) {
   );
 }
 
+function FileSizeBadge({ bytes }: Readonly<{ bytes: number }>) {
+  const locale = useFormatLocale();
+  return <TileBadge>{formatFileSize(bytes, locale)}</TileBadge>;
+}
+
 /** A tile's bottom-right corner: who it is from, and in a person's videos where they appear. */
 export function BottomRightOverlay({ item }: Readonly<{ item: Item }>) {
+  const fileSizeMarks = useContext(FileSizeMarksContext);
   return (
     <TileCorner position="bottomRight">
+      {fileSizeMarks && typeof item.size === "number" && <FileSizeBadge bytes={item.size} />}
       {typeof item.person_video_time === "number" && <PersonMomentBadge seconds={item.person_video_time} />}
       <OwnerMark item={item} />
     </TileCorner>

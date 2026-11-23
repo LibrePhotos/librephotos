@@ -24,6 +24,7 @@ from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.serializers.search import (
     MetadataValuesQuery,
     MetadataValuesSerializer,
+    SearchListQuery,
     SearchTermExamplesSerializer,
 )
 from api.views.custom_api_view import ListViewSet
@@ -33,6 +34,11 @@ from api.views.custom_api_view import ListViewSet
 # would fail the whole search in mobile apps already installed. Switch to null
 # once a mobile release that accepts it has shipped.
 LEGACY_UNDATED_DATE = "No timestamp"
+
+SIZE_SORT_ORDERINGS: dict[str, tuple[str, ...]] = {
+    "largest": ("-size", "-exif_timestamp", "pk"),
+    "smallest": ("size", "-exif_timestamp", "pk"),
+}
 
 
 class SearchListViewSet(ListViewSet):
@@ -62,6 +68,7 @@ class SearchListViewSet(ListViewSet):
             OpenApiParameter("photo", OpenApiTypes.BOOL),
             OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
             OpenApiParameter("is_document", OpenApiTypes.BOOL),
+            SearchListQuery,
             MetadataFilterQuery,
         ],
         description=(
@@ -71,7 +78,9 @@ class SearchListViewSet(ListViewSet):
             "file type, people) narrow the results with or without a search "
             "term; a bad value is a 400 naming the parameter. With semantic "
             "search on (the user's semantic_search_topk), results is a flat "
-            "list of photo summaries instead of date groups."
+            "list of photo summaries instead of date groups. sort=largest or "
+            "sort=smallest answers a flat list by file size, whatever the "
+            "semantic setting."
         ),
         responses=SearchResultsSerializer,
     )
@@ -79,13 +88,23 @@ class SearchListViewSet(ListViewSet):
         # The helper loads the stacks, files and local_orientation the summary
         # serializer reads; without them every match cost three more queries.
         user = request_user(request)
+        sort = parse_query(request, SearchListQuery)["sort"]
         photos = with_photo_summary_relations(Photo.visible.owned_by(user))
         # The request: a shared library's photos show what their owner shares.
         context = {"request": request}
-        if user.semantic_search_topk == 0:
+        if sort in SIZE_SORT_ORDERINGS:
             queryset = self._with_libraries(
-                request, self.filter_queryset(photos.order_by("-exif_timestamp"))
-            ).order_by("-exif_timestamp")
+                request, self.filter_queryset(photos)
+            ).order_by(*SIZE_SORT_ORDERINGS[sort])
+            summary_serializer = PhotoSummarySerializer(
+                queryset, many=True, context=context
+            )
+            return Response({"results": summary_serializer.data})
+        if user.semantic_search_topk == 0:
+            ordering = "exif_timestamp" if sort == "oldest" else "-exif_timestamp"
+            queryset = self._with_libraries(
+                request, self.filter_queryset(photos.order_by(ordering))
+            ).order_by(ordering)
             grouped_photos = get_photos_ordered_by_date(
                 queryset, undated_date=LEGACY_UNDATED_DATE
             )
@@ -95,6 +114,8 @@ class SearchListViewSet(ListViewSet):
             return Response({"results": serializer.data})
         else:
             queryset = self._with_libraries(request, self.filter_queryset(photos))
+            if sort == "oldest":
+                queryset = queryset.order_by("exif_timestamp", "pk")
             summary_serializer = PhotoSummarySerializer(
                 queryset, many=True, context=context
             )

@@ -31,6 +31,23 @@ describe("photo search query", () => {
     expect(filtered.queryKey.slice(0, 5)).toEqual(photoGridKeys.search("", "all", "grouped"));
   });
 
+  it("keys each sort apart from the default search, which keeps its key", () => {
+    const plain = searchPhotosQueryOptions(client, "tram", false).queryKey;
+    expect(searchPhotosQueryOptions(client, "tram", false, {}, "newest").queryKey).toEqual(plain);
+    expect(searchPhotosQueryOptions(client, "tram", false, {}, "oldest").queryKey).not.toEqual(plain);
+    expect(searchPhotosQueryOptions(client, "tram", false, {}, "largest").queryKey).not.toEqual(plain);
+    expect(searchPhotosQueryOptions(client, "tram", false, {}, "largest").queryKey).not.toEqual(
+      searchPhotosQueryOptions(client, "tram", false, {}, "smallest").queryKey
+    );
+    expect(plain).toEqual(photoGridKeys.search("tram", "all", "grouped"));
+  });
+
+  it("searches by a size sort alone, without words or filters", () => {
+    expect(searchPhotosQueryOptions(client, "", false, {}, "largest").enabled).toBe(true);
+    expect(searchPhotosQueryOptions(client, "", false, {}, "smallest").enabled).toBe(true);
+    expect(searchPhotosQueryOptions(client, "", false, {}, "oldest").enabled).toBe(false);
+  });
+
   it("keys the suggestions of each filter apart, under the search keys", () => {
     const cameras = metadataValuesQueryOptions(client, "camera").queryKey;
     expect(cameras).not.toEqual(metadataValuesQueryOptions(client, "lens").queryKey);

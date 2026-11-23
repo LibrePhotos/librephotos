@@ -179,6 +179,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "stacks",
             "has_raw_variant",
             "local_orientation",
+            "size",
             # "equirectangular" for a 360° photo sphere, else null: the tile's
             # 360° badge (#483).
             "projection_type",

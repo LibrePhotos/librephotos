@@ -921,12 +921,19 @@ export async function searchPhotos(
   client: ApiClient,
   searchTerm: string,
   semantic = false,
-  filter: AlbumMediaFilter & SearchFilters = {}
+  filter: AlbumMediaFilter & SearchFilters = {},
+  sort?: S.SearchSort
 ): Promise<S.SearchPhotosResult> {
-  const query = buildQuery({ search: searchTerm, ...albumMediaQuery(filter), ...searchFiltersQuery(filter) });
+  const flat = semantic || sort === "largest" || sort === "smallest";
+  const query = buildQuery({
+    search: searchTerm,
+    ...albumMediaQuery(filter),
+    ...searchFiltersQuery(filter),
+    sort: sort === undefined || sort === "newest" ? undefined : sort,
+  });
   const res = await client.get<unknown>(`/photos/searchlist/${query}`);
-  if (semantic) {
-    const parsed = parseResponse(S.SemanticSearchPhotos, res, "semantic search photos");
+  if (flat) {
+    const parsed = parseResponse(S.SemanticSearchPhotos, res, "flat search photos");
     return { photosFlat: parsed.results, photosGroupedByDate: [] };
   }
   const parsed = parseResponse(S.SearchPhotos, res, "search photos");

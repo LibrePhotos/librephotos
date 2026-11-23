@@ -6,7 +6,7 @@
  * popped a "Failed to parse search photos ... report this on GitHub" toast.
  */
 import { ApiError, ResponseParseError } from "@librephotos/api-client";
-import type { MediaType, SearchFilters } from "@librephotos/api-client";
+import type { MediaType, SearchFilters, SearchSort } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -38,10 +38,10 @@ const pigPhoto = {
 let root: ReturnType<typeof createRoot> | undefined;
 let container: HTMLDivElement;
 let result: ReturnType<typeof useSearchPhotosQuery>;
-let args: { term: string; mediaType?: MediaType; filters?: SearchFilters } = { term: "beach" };
+let args: { term: string; mediaType?: MediaType; filters?: SearchFilters; sort?: SearchSort } = { term: "beach" };
 
 function Probe() {
-  result = useSearchPhotosQuery(args.term, args.mediaType, args.filters);
+  result = useSearchPhotosQuery(args.term, args.mediaType, args.filters, args.sort);
   return null;
 }
 
@@ -186,6 +186,21 @@ describe("useSearchPhotosQuery", () => {
 
     expect(stubs.get).not.toHaveBeenCalled();
     expect(result.fetchStatus).toBe("idle");
+  });
+
+  it("searches by a size sort alone and sends the sort", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    stubs.get.mockResolvedValue({ results: [{ ...pigPhoto, size: 42000 }] });
+    args = { term: "", mediaType: "videos", sort: "largest" };
+    container = document.createElement("div");
+    root = createRoot(container);
+
+    await render(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    await settle(() => result.isSuccess);
+
+    expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?video=true&sort=largest");
+    expect(result.data?.photosFlat[0]?.size).toBe(42000);
+    expect(result.data?.photosGroupedByDate).toEqual([]);
   });
 
   it("does not ask again after the server refused a filter", async () => {

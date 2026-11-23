@@ -19,6 +19,7 @@ import { ScrollerType } from "../scrollscrubber/scrollScrubberTypes";
 import { BottomLeftOverlay } from "./BottomLeftOverlay";
 import { BottomRightOverlay } from "./BottomRightOverlay";
 import { DefaultHeader, type CollectionHeader } from "./DefaultHeader";
+import { FileSizeMarksContext } from "./fileSizeMarks";
 import { MediaTypeHint } from "./MediaTypeHint";
 import { PhotoListDialogs } from "./PhotoListDialogs";
 import { PhotoListFallback } from "./PhotoListFallback";
@@ -141,6 +142,7 @@ type Props = Readonly<{
   eventOrder?: boolean;
   // An album, event, place or thing: the larger title and one "dates · N photos" meta line.
   collection?: CollectionHeader;
+  showFileSize?: boolean;
 }>;
 
 // An admin's empty timeline before a scan directory is set: DefaultHeader shows the setup
@@ -211,6 +213,7 @@ function PhotoListViewComponent({
   onSlideshowClose,
   eventOrder,
   collection,
+  showFileSize = false,
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
@@ -363,27 +366,29 @@ function PhotoListViewComponent({
           stickyHeader={headerRef}
         >
           <Box px={PAGE_GUTTER_PX} py={10} ref={gridRef} data-selecting={selectMode.selecting}>
-            <Pig<PigPhoto>
-              ref={pigRef}
-              className={SCROLL_SCRUBBER_TARGET}
-              imageData={photos}
-              selectable={selectable}
-              selectedItems={pigSelectedItems}
-              handleSelection={handleSelection}
-              handleClick={handleClick}
-              scaleOfImages={localImageScale}
-              groupByDate={isDateView}
-              getUrl={getTileUrl}
-              toprightoverlay={TopRightOverlay}
-              bottomleftoverlay={BottomLeftOverlay}
-              bottomrightoverlay={BottomRightOverlay}
-              numberOfItems={numberOfItems}
-              updateItems={updateItems ? throttledUpdateItems : noop}
-              updateGroups={updateGroups ? throttledUpdateGroups : noop}
-              bgColor="inherit"
-              textAlignment={localTextAlignment}
-              headerSize={localHeaderSize}
-            />
+            <FileSizeMarksContext value={showFileSize}>
+              <Pig<PigPhoto>
+                ref={pigRef}
+                className={SCROLL_SCRUBBER_TARGET}
+                imageData={photos}
+                selectable={selectable}
+                selectedItems={pigSelectedItems}
+                handleSelection={handleSelection}
+                handleClick={handleClick}
+                scaleOfImages={localImageScale}
+                groupByDate={isDateView}
+                getUrl={getTileUrl}
+                toprightoverlay={TopRightOverlay}
+                bottomleftoverlay={BottomLeftOverlay}
+                bottomrightoverlay={BottomRightOverlay}
+                numberOfItems={numberOfItems}
+                updateItems={updateItems ? throttledUpdateItems : noop}
+                updateGroups={updateGroups ? throttledUpdateGroups : noop}
+                bgColor="inherit"
+                textAlignment={localTextAlignment}
+                headerSize={localHeaderSize}
+              />
+            </FileSizeMarksContext>
           </Box>
         </ScrollScrubber>
       ) : (

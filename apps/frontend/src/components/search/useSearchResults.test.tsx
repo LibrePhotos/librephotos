@@ -4,7 +4,7 @@
  * a search with words selects the listed photos, and a filter the server refuses is explained
  * with a way out instead of a failed list.
  */
-import { ApiError, type MediaType, type SearchFilters } from "@librephotos/api-client";
+import { ApiError, type MediaType, type SearchFilters, type SearchSort } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -19,7 +19,7 @@ type SearchUpdater = (prev: Record<string, unknown>) => Record<string, unknown>;
 const stubs = vi.hoisted(() => ({
   search: {} as Record<string, unknown>,
   navigate: vi.fn<(options: { to: string; search: SearchUpdater }) => Promise<void>>(),
-  asked: [] as [string, MediaType | undefined, SearchFilters | undefined][],
+  asked: [] as [string, MediaType | undefined, SearchFilters | undefined, SearchSort | undefined][],
   error: null as Error | null,
   props: undefined as PhotoListViewProps | undefined,
 }));
@@ -39,9 +39,12 @@ vi.mock("../../api_client/user/hooks", () => ({
     data: { semantic_search_topk: 0, rating_mode: "favorite", favorite_min_rating: 4 },
   }),
 }));
+vi.mock("../../api_client/user/hooks/usePhotoOrder", () => ({
+  usePhotoOrder: () => ({ order: "newest", ready: true }),
+}));
 vi.mock("../../api_client/search/hooks", () => ({
-  useSearchPhotosQuery: (term: string, mediaType?: MediaType, filters?: SearchFilters) => {
-    stubs.asked.push([term, mediaType, filters]);
+  useSearchPhotosQuery: (term: string, mediaType?: MediaType, filters?: SearchFilters, sort?: SearchSort) => {
+    stubs.asked.push([term, mediaType, filters, sort]);
     return {
       data: stubs.error ? undefined : { photosFlat: [], photosGroupedByDate: [] },
       isPending: false,
@@ -85,7 +88,7 @@ describe("SearchResultsView", () => {
     stubs.search = { media: "photos", camera: "X-T5", person: [3, 7], iso_min: "bad" };
     const { props, unmount } = await renderView("");
 
-    expect(stubs.asked.at(-1)).toEqual(["", "photos", { camera: "X-T5", person: [3, 7] }]);
+    expect(stubs.asked.at(-1)).toEqual(["", "photos", { camera: "X-T5", person: [3, 7] }, "newest"]);
     expect(props.title).toBe("Filtered photos");
     expect(props.photosetQuery).toEqual({
       camera: "X-T5",

@@ -114,6 +114,8 @@ Shows only still photos, filtering out all videos.
 
 Shows only video files, filtering out all still photos.
 
+<Since version="1.7.0" /> The header's **Sort** button also offers **Largest files first** and **Smallest files first**: the videos then list by file size as one flat list instead of day groups, and each tile shows the file's size — handy for finding the videos that take the most space.
+
 ### Screenshots and Documents
 
 **Screenshots** lists the photos detected or marked as screenshots. **Documents** lists the photos of receipts, letters, forms and other paper (see [Documents](./text-recognition.md#documents)). Both are in the Photos view switcher in the page header and in the command palette (`Ctrl+K`). When a photo is in the wrong one, change its [Category](#category).

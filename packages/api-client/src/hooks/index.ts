@@ -15,6 +15,7 @@ import type {
   LoginPost,
   MetadataValueField,
   PigPhoto,
+  SearchSort,
   WorkerAvailabilityResponse,
 } from "../schemas";
 import type { ApiClient } from "../transport/types";
@@ -314,29 +315,32 @@ export function useDateAlbumPhotoChunksQuery(
 
 /* ---- search ------------------------------------------------------------ */
 
-/**
- * A photo search. A semantic search answers with a flat list, a plain one with date groups. With
- * structured `filters` the term may be empty; without either nothing is asked.
- */
 export function searchPhotosQueryOptions(
   client: ApiClient,
   searchTerm: string,
   semantic = false,
-  filters: endpoints.SearchFilters = {}
+  filters: endpoints.SearchFilters = {},
+  sort?: SearchSort
 ) {
   const filtered = Object.values(filters).some(value => value !== undefined);
+  const keySort = sort === undefined || sort === "newest" ? undefined : sort;
   return queryOptions({
     queryKey: filtered
-      ? photoGridKeys.filteredSearch(searchTerm, "all", semantic ? "semantic" : "grouped", filters)
-      : photoGridKeys.search(searchTerm, "all", semantic ? "semantic" : "grouped"),
-    queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic, filters),
-    enabled: searchTerm.length > 0 || filtered,
+      ? photoGridKeys.filteredSearch(searchTerm, "all", semantic ? "semantic" : "grouped", filters, keySort)
+      : photoGridKeys.search(searchTerm, "all", semantic ? "semantic" : "grouped", keySort),
+    queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic, filters, keySort),
+    enabled: searchTerm.length > 0 || filtered || sort === "largest" || sort === "smallest",
   });
 }
 
-export function useSearchPhotosQuery(searchTerm: string, semantic = false, filters: endpoints.SearchFilters = {}) {
+export function useSearchPhotosQuery(
+  searchTerm: string,
+  semantic = false,
+  filters: endpoints.SearchFilters = {},
+  sort?: SearchSort
+) {
   const client = useApiClient();
-  return useQuery(searchPhotosQueryOptions(client, searchTerm, semantic, filters));
+  return useQuery(searchPhotosQueryOptions(client, searchTerm, semantic, filters, sort));
 }
 
 /** The suggestions of one search filter: my cameras, makers or lenses, most photos first. */

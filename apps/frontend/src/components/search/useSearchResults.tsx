@@ -6,10 +6,15 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchPhotosQuery } from "../../api_client/search/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { usePhotoOrder } from "../../api_client/user/hooks/usePhotoOrder";
 import { PAGE_GUTTER_PX } from "../../uiConstants";
+import { STORAGE_KEYS } from "../../util/storage";
 import { useListFailure } from "../common/useListFailure";
 import type { EmptyStateConfig, PhotoListView } from "../photolist/PhotoListView";
+import { isSizeSort } from "../photolist/photoSort";
+import { PhotoSortMenu } from "../photolist/PhotoSortMenu";
 import { useMediaTypeFilter } from "../photolist/useMediaTypeFilter";
+import { usePhotoSort } from "../photolist/usePhotoSort";
 import { hasSearchFilters, searchSelectAllQuery } from "./searchFilter";
 import { SearchFilterButton, type FilterPanelState } from "./SearchFilterButton";
 import { SearchFilterChips } from "./SearchFilterChips";
@@ -91,10 +96,14 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
   // Not isLoading either: that is false while the query still waits for the
   // user, and the page flashed "No matching photos" on every hard load. A
   // filter-only page without filters asks nothing, so it is not loading.
-  const searchResult = useSearchPhotosQuery(term, mediaType, filters);
+  const { order: photoOrder } = usePhotoOrder();
+  const photoSort = usePhotoSort(STORAGE_KEYS.photoSortSearch, photoOrder);
+  const { sort } = photoSort;
+  const searchResult = useSearchPhotosQuery(term, mediaType, filters, sort);
   const { data: { photosGroupedByDate, photosFlat } = DEFAULTS, isPending, error } = searchResult;
   const listFailure = useListFailure(searchResult);
   const rejection = rejectionOf(error);
+  const flat = Boolean(currentUser?.semantic_search_topk) || isSizeSort(sort);
 
   const emptyStateConfig = useMemo(
     () => searchEmptyState({ term, filtered, rejection, clearFilters }, t),
@@ -105,24 +114,32 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
   return {
     // No trailing "...": the header shows its own loading state.
     title: term ? t("search.resultsfor", { query: term }) : t("searchfilter.filteredtitle"),
-    loading: isPending && (term.length > 0 || filtered),
-    photoset: currentUser?.semantic_search_topk ? photosFlat : photosGroupedByDate,
+    loading: isPending && (term.length > 0 || filtered || isSizeSort(sort)),
+    photoset: flat ? photosFlat : photosGroupedByDate,
     idx2hash: photosFlat,
     mediaType,
     selectable: true,
+    showFileSize: isSizeSort(sort),
     emptyStateConfig,
     // A refused filter is not a failed list: the empty state says which and offers to clear.
     error: rejection === undefined ? listFailure : undefined,
     photosetQuery,
     headerActions: (
-      <SearchFilterButton
-        filters={filters}
-        onChange={setFilters}
-        onClear={clearFilters}
-        favoriteRating={favoriteRating}
-        resultCount={photosFlat.length}
-        {...filterPanel}
-      />
+      <>
+        <PhotoSortMenu
+          sort={sort}
+          onChange={photoSort.setSort}
+          onReset={photoSort.explicit ? photoSort.reset : undefined}
+        />
+        <SearchFilterButton
+          filters={filters}
+          onChange={setFilters}
+          onClear={clearFilters}
+          favoriteRating={favoriteRating}
+          resultCount={photosFlat.length}
+          {...filterPanel}
+        />
+      </>
     ),
     // On the page's content edge: PhotoListView puts the bar under the header as it is.
     filterBar: (

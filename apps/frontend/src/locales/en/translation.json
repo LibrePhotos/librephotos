@@ -2560,6 +2560,10 @@
     "largestfirst": "Largest first",
     "smallestfirst": "Smallest first"
   },
+  "photosort": {
+    "largestfirst": "Largest files first",
+    "smallestfirst": "Smallest files first"
+  },
   "personedit": {
     "labelfaces": "Label faces",
     "numberselected": "Label selected {{number}} face(s) as…",
