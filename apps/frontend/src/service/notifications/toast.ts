@@ -23,7 +23,7 @@ type ToastKind = "success" | "warning" | "error";
  * (service/notifications), never @mantine/notifications directly; the lint config bans that import.
  */
 const LOOKS: Record<ToastKind, { color: string; icon: Icon; className: string | undefined }> = {
-  success: { color: "teal", icon: IconCheck, className: classes.success },
+  success: { color: "green", icon: IconCheck, className: classes.success },
   warning: { color: "orange", icon: IconAlertTriangle, className: classes.warning },
   error: { color: "red", icon: IconAlertCircle, className: classes.error },
 };

@@ -2,9 +2,7 @@ import {
   Avatar,
   Badge,
   Box,
-  Card,
   Group,
-  Paper,
   RemoveScroll,
   ScrollArea,
   Stack,
@@ -25,6 +23,8 @@ import {
 } from "../../theme/chartColors";
 import { ListEmptyState } from "../common/ListEmptyState";
 import { PageLoader } from "../common/PageLoader";
+import { FloatingCard } from "../common/surfaces/FloatingCard";
+import { Panel } from "../common/surfaces/Panel";
 import { useListFailure } from "../common/useListFailure";
 import { Lightbox } from "../lightbox";
 import classes from "./FaceClusterGraph.module.css";
@@ -432,10 +432,8 @@ export function FaceClusterGraph({ height }: Props) {
 
             {/* Hover tooltip */}
             {hoveredPoint && (
-              <Paper
-                shadow="xl"
+              <FloatingCard
                 p="sm"
-                radius="md"
                 style={{
                   position: "fixed",
                   left: mousePos.x + 15,
@@ -466,13 +464,13 @@ export function FaceClusterGraph({ height }: Props) {
                     </Text>
                   </Stack>
                 </Group>
-              </Paper>
+              </FloatingCard>
             )}
           </Box>
 
           {/* Stats */}
           <Group gap="xl" justify="center">
-            <Card padding="xs" radius="md" withBorder>
+            <Panel p="xs">
               <Group gap="xs">
                 <IconUser size={16} style={{ opacity: 0.6 }} />
                 <Text size="sm" c="dimmed">
@@ -482,8 +480,8 @@ export function FaceClusterGraph({ height }: Props) {
                   {sortedPersonStats.length}
                 </Text>
               </Group>
-            </Card>
-            <Card padding="xs" radius="md" withBorder>
+            </Panel>
+            <Panel p="xs">
               <Group gap="xs">
                 <IconMoodSmile size={16} style={{ opacity: 0.6 }} />
                 <Text size="sm" c="dimmed">
@@ -493,7 +491,7 @@ export function FaceClusterGraph({ height }: Props) {
                   {points.length}
                 </Text>
               </Group>
-            </Card>
+            </Panel>
           </Group>
 
           {/* Lightbox for viewing photos */}

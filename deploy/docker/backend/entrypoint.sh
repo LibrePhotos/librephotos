@@ -148,7 +148,7 @@ fi
 
 echo "Running backend server..."
 
-python manage.py qcluster 2>&1 | tee "$logs_dir/qcluster.log" &
+python manage.py run_workers 2>&1 | tee "$logs_dir/workers.log" &
 
 # WEB_CONCURRENCY uvicorn processes; recycle each one after WEB_MAX_REQUESTS
 # requests when there is more than one, so a recycled worker never takes the

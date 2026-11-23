@@ -6,17 +6,17 @@
  */
 import { sql } from "drizzle-orm";
 import type { SyncPhotoItem, SyncPhotosResponse } from "@librephotos/api-client";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { syncPhotoToRow } from "../remote/mappers";
 import { applyPhotosPage } from "../remote/applier";
 import { photoItem } from "./fake-source";
 
 type FlagRow = { id: string; archived: number; is_screenshot: number; is_document: number };
 
-function flags(t: TestDb): FlagRow[] {
-  return t.db.all(
+async function flags(t: TestDb): Promise<FlagRow[]> {
+  return await t.db.all<FlagRow>(
     sql`SELECT id, archived, is_screenshot, is_document FROM remote_photo ORDER BY id`
-  ) as FlagRow[];
+  );
 }
 
 describe("syncPhotoToRow: archive and category flags", () => {
@@ -48,8 +48,8 @@ describe("applyPhotosPage: archive and category flags", () => {
     server_time: "0",
   });
 
-  it("writes the flags and a later page flips them back", () => {
-    applyPhotosPage(
+  it("writes the flags and a later page flips them back", async () => {
+    await applyPhotosPage(
       t.db,
       page([
         photoItem("a", { archived: true }),
@@ -58,13 +58,13 @@ describe("applyPhotosPage: archive and category flags", () => {
       ]),
       0
     );
-    expect(flags(t)).toEqual([
+    expect(await flags(t)).toEqual([
       { id: "a", archived: 1, is_screenshot: 0, is_document: 0 },
       { id: "b", archived: 0, is_screenshot: 1, is_document: 0 },
       { id: "c", archived: 0, is_screenshot: 0, is_document: 1 },
     ]);
 
-    applyPhotosPage(
+    await applyPhotosPage(
       t.db,
       page([
         photoItem("a", { archived: false, last_modified: 2000 }),
@@ -73,6 +73,6 @@ describe("applyPhotosPage: archive and category flags", () => {
       ]),
       0
     );
-    expect(flags(t).every((r) => r.archived + r.is_screenshot + r.is_document === 0)).toBe(true);
+    expect((await flags(t)).every((r) => r.archived + r.is_screenshot + r.is_document === 0)).toBe(true);
   });
 });

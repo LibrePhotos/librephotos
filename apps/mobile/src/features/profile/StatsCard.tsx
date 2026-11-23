@@ -1,14 +1,14 @@
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useReactiveQuery } from "@/db/provider";
-import { libraryStats } from "@/db/queries/counts";
+import { EMPTY_LIBRARY_STATS, libraryStats } from "@librephotos/local-db";
 import { useTheme } from "@/theme";
 
 /** "Library stats" card on the profile — mirror counts, offline-safe (doc 05 §8). */
 export function StatsCard() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const stats = useReactiveQuery((db) => libraryStats(db), []);
+  const { data: stats } = useReactiveQuery(["library-stats"], (db) => libraryStats(db), EMPTY_LIBRARY_STATS);
 
   const cells: { key: keyof typeof stats; label: string }[] = [
     { key: "photos", label: t("stats.photos") },

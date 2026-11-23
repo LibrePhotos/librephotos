@@ -21,12 +21,13 @@ import { pigPhotoToItem } from "@/lib/pigPhoto";
 import {
   clearRecentSearches,
   getRecentSearches,
+  NO_OFFLINE_RESULTS,
   offlineSearch,
   pushRecentSearch,
   type OfflineSearchResult,
   type SearchAlbumHit,
   type SearchPersonHit,
-} from "@/db/queries/search";
+} from "@librephotos/local-db";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { serverAddress } from "@/lib/apiClient";
@@ -100,19 +101,24 @@ export function SearchScreen() {
     if (q) setText(q);
   }
 
-  const recent = useReactiveQuery(d => getRecentSearches(d), []);
-  const offline = useReactiveQuery(d => offlineSearch(d, query), [query]);
+  const { data: recent } = useReactiveQuery(["recent-searches"], (d) => getRecentSearches(d), [] as string[], { tables: ["app_meta"] });
+  const { data: offline, loading: offlineLoading } = useReactiveQuery(
+    ["offline-search", query],
+    (d) => offlineSearch(d, query),
+    NO_OFFLINE_RESULTS,
+    { keepPrevious: true }
+  );
 
   const server = useSearchPhotosQuery(query, false);
 
   // Remember a term once it yields something (either surface).
   useEffect(() => {
-    if (!query) return;
+    if (!query || offlineLoading) return;
     const hasServer = isOnline && (server.data?.photosFlat.length ?? 0) > 0;
     const hasOffline = offline.photos.length + offline.people.length + offline.albums.length > 0;
-    if (hasServer || hasOffline) pushRecentSearch(db, query);
+    if (hasServer || hasOffline) void pushRecentSearch(db, query);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, server.data, isOnline]);
+  }, [query, server.data, isOnline, offlineLoading]);
 
   const serverItems = useMemo(() => (server.data?.photosFlat ?? []).map(pigPhotoToItem), [server.data]);
 
@@ -124,7 +130,7 @@ export function SearchScreen() {
           <SearchField
             value={text}
             onChangeText={setText}
-            onSubmit={() => query && pushRecentSearch(db, query)}
+            onSubmit={async () => query && await pushRecentSearch(db, query)}
             placeholder={t("search.placeholder")}
             clearAccessibilityLabel={t("search.clearField")}
           />
@@ -133,7 +139,7 @@ export function SearchScreen() {
       </View>
 
       {query.length === 0 ? (
-        <SearchIntro recent={recent} onPick={setText} onClear={() => clearRecentSearches(db)} />
+        <SearchIntro recent={recent} onPick={setText} onClear={async () => await clearRecentSearches(db)} />
       ) : isOnline ? (
         <OnlineResults
           query={query}

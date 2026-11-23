@@ -45,7 +45,7 @@ UNREADABLE_CONFIG = patch("constance.base.Config.__getattr__", new=_no_constance
 
 # Every enabled sidecar is down: no health answer, no process. Also keeps
 # the watchdog from finding (and stopping) a real sidecar on this machine.
-SILENT = (supervisor._Probe.SILENT, None)
+SILENT = (supervisor.Probe.SILENT, None)
 NO_SIDECAR_PROCESSES = patch(
     "api.runtime.supervisor._service_process_running", new=lambda service: False
 )
@@ -239,17 +239,19 @@ class StartAllCommandTest(TestCase):
             spawned_services(popen_mock),
         )
 
-    def test_the_watchdog_is_still_scheduled(self, popen_mock):
-        from django_q.models import Schedule
+    def test_the_old_minutely_watchdog_schedule_is_dropped(self, popen_mock):
+        from api.jobs.queue import ensure_schedule
+        from api.models import TaskSchedule
 
+        ensure_schedule(
+            "api.runtime.supervisor.check_services",
+            schedule_type=TaskSchedule.MINUTES,
+            minutes=1,
+        )
         with override_settings(FEATURE_FACE_DETECTION=False):
             call_command("start_service", "all")
 
-        self.assertTrue(
-            Schedule.objects.filter(
-                func="api.runtime.supervisor.check_services"
-            ).exists()
-        )
+        self.assertFalse(TaskSchedule.objects.exists())
 
 
 @UNREADABLE_CONFIG

@@ -6,7 +6,7 @@
     135deg,
     var(--mantine-color-dark-8) 0%,
     var(--mantine-color-dark-7) 50%,
-    color-mix(in srgb, var(--mantine-color-blue-9) 15%, var(--mantine-color-dark-7)) 100%
+    color-mix(in srgb, var(--mantine-primary-color-9) 15%, var(--mantine-color-dark-7)) 100%
   );
   border-radius: var(--mantine-radius-lg);
   border: 1px solid var(--mantine-color-dark-5);
@@ -17,7 +17,7 @@
     135deg,
     var(--mantine-color-gray-0) 0%,
     var(--mantine-color-gray-1) 50%,
-    color-mix(in srgb, var(--mantine-color-blue-1) 30%, var(--mantine-color-gray-1)) 100%
+    color-mix(in srgb, var(--mantine-primary-color-1) 30%, var(--mantine-color-gray-1)) 100%
   );
   border-color: var(--mantine-color-gray-3);
 }
@@ -318,12 +318,12 @@
 
 .tooltipCount {
   font-size: 11px;
-  color: var(--mantine-color-blue-4);
+  color: var(--mantine-primary-color-4);
   font-weight: 500;
 }
 
 [data-mantine-color-scheme="light"] .tooltipCount {
-  color: var(--mantine-color-blue-6);
+  color: var(--mantine-primary-color-6);
 }
 
 .tooltipHint {

@@ -9,9 +9,9 @@ from constance.test import override_config
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
-from django_q.models import Schedule
 
 from api.models import Photo
+from api.models.task_queue import TaskSchedule as Schedule
 from api.photos import files
 from api.photos.retention import cleanup_deleted_photos, empty_expired_trash
 from api.tests.utils import create_test_photo, create_test_user

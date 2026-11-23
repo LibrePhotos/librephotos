@@ -72,5 +72,5 @@ function LookupResult({
 }
 
 function PinIcon() {
-  return <IconMapPin size={16} color="var(--mantine-color-blue-6)" />;
+  return <IconMapPin size={16} color="var(--mantine-primary-color-filled)" />;
 }

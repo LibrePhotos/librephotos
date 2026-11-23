@@ -47,11 +47,6 @@ vi.mock("../editor/LazyPhotoEditor", () => ({
     </button>
   ),
 }));
-vi.mock("@mantine/carousel", () => {
-  const Carousel = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
-  Carousel.Slide = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
-  return { Carousel };
-});
 vi.mock("./MediaDisplay", () => ({ MediaDisplay: () => null }));
 vi.mock("./ThumbnailNavigation", () => ({ ThumbnailNavigation: () => null }));
 vi.mock("./Sidebar", () => ({ Sidebar: () => null }));

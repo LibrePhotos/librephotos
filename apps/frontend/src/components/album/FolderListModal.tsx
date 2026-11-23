@@ -69,7 +69,7 @@ const FolderButton = memo(({ subfolder, folderSearch, onClose }: FolderButtonPro
               />
             </Box>
           ) : (
-            <Avatar size="lg" radius="md" color="blue">
+            <Avatar size="lg" radius="md" color="brand">
               <Folder size={24} />
             </Avatar>
           )}
@@ -93,7 +93,6 @@ const FolderButton = memo(({ subfolder, folderSearch, onClose }: FolderButtonPro
           size="xl"
           radius="xl"
           variant="filled"
-          color="blue"
           style={{
             fontSize: "var(--mantine-font-size-md)",
             fontWeight: 700,
@@ -183,7 +182,7 @@ const FolderListModal = memo<FolderListModalProps>(({ opened, onClose, folderPat
             {t("results")}: {filteredSubfolders.length}
           </Text>
           {hasNextPage && (
-            <Badge variant="light" color="blue" size="sm">
+            <Badge variant="light" size="sm">
               {t("more_available")}
             </Badge>
           )}

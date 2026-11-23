@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { FlatList, Modal, Pressable, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useReactiveQuery } from "@/db/provider";
-import { people } from "@/db/queries/people";
+import { people, type PersonRow } from "@librephotos/local-db";
 import { useTheme } from "@/theme";
 
 /**
@@ -22,7 +22,7 @@ export function AssignNameSheet({
   const { t } = useTranslation();
   const theme = useTheme();
   const [text, setText] = useState("");
-  const persons = useReactiveQuery((db) => people(db), []);
+  const { data: persons } = useReactiveQuery(["people"], (db) => people(db), [] as PersonRow[], { tables: ["person"] });
 
   const matches = useMemo(() => {
     const q = text.trim().toLowerCase();

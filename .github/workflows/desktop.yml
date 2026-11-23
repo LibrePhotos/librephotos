@@ -1,0 +1,198 @@
+name: desktop
+
+on:
+  release:
+    types: [created]
+  pull_request:
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/api-client/**'
+      - 'packages/local-db/**'
+      - '.github/workflows/desktop.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/api-client/**'
+      - 'packages/local-db/**'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build the installer of and attach it to; dispatch from that tag (leave empty for an artifact only)"
+        required: false
+      replace_asset:
+        description: "Replace the installer and SHA256SUMS-desktop when the release already has them"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: desktop-${{ inputs.tag || github.event.release.tag_name || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    if: github.event_name != 'release' || (!github.event.release.prerelease && !github.event.release.draft)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Install
+        working-directory: apps/desktop
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        working-directory: apps/desktop
+        run: npm run typecheck
+      - name: Build the UI
+        working-directory: apps/desktop
+        run: npx vite build
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component clippy,rustfmt && rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0
+        with:
+          workspaces: apps/desktop/src-tauri
+          shared-key: desktop-check
+      - name: Format
+        working-directory: apps/desktop/src-tauri
+        run: cargo fmt --check
+      - name: Clippy
+        working-directory: apps/desktop/src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Test
+        working-directory: apps/desktop/src-tauri
+        run: cargo test
+
+  installer:
+    needs: check
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      REPLACE_ASSET: ${{ inputs.replace_asset && 'true' || 'false' }}
+      STABLE_SETUP: librephotos-desktop-windows-x64-setup.exe
+      CHECKSUMS: SHA256SUMS-desktop
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Resolve the version
+        run: |
+          VERSION=0.0.0
+          if [ -n "$TAG" ]; then
+            if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::A release installer is stamped with its tag, which must be X.Y.Z; got $TAG"
+              exit 1
+            fi
+            VERSION="$TAG"
+          fi
+          {
+            echo "VERSION=$VERSION"
+            echo "VERSIONED_SETUP=librephotos-desktop-$VERSION-windows-x64-setup.exe"
+          } >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
+      - name: Check the release assets
+        if: env.TAG != ''
+        run: |
+          existing=$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>/dev/null || true)
+          clash=""
+          for name in "$VERSIONED_SETUP" "$STABLE_SETUP" "$CHECKSUMS"; do
+            if grep -qxF "$name" <<<"$existing"; then
+              clash="$clash $name"
+            fi
+          done
+          if [ -n "$clash" ] && [ "$REPLACE_ASSET" != "true" ]; then
+            echo "::error::Release $TAG already has$clash. Dispatch with replace_asset to replace them."
+            exit 1
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Install
+        working-directory: apps/desktop
+        run: npm ci --no-audit --no-fund
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0
+        with:
+          workspaces: apps/desktop/src-tauri
+          shared-key: desktop-release
+      - name: Build the installer
+        working-directory: apps/desktop
+        run: npx tauri build --bundles nsis --config "{\"version\":\"$VERSION\"}"
+      - name: Name the installer and its checksum
+        run: |
+          mkdir -p dist-desktop
+          built=(apps/desktop/src-tauri/target/release/bundle/nsis/*_x64-setup.exe)
+          if [ "${#built[@]}" -ne 1 ] || [ ! -f "${built[0]}" ]; then
+            echo "::error::Expected one NSIS installer, found: ${built[*]}"
+            exit 1
+          fi
+          cp "${built[0]}" "dist-desktop/$VERSIONED_SETUP"
+          cp "${built[0]}" "dist-desktop/$STABLE_SETUP"
+          cd dist-desktop
+          sha256sum "$VERSIONED_SETUP" "$STABLE_SETUP" > "$CHECKSUMS"
+          cat "$CHECKSUMS"
+      - name: Smoke test the installer for the current user
+        run: node apps/desktop/scripts/smoke-installer.mjs --scope user "dist-desktop/$STABLE_SETUP" apps/desktop/src-tauri/icons/128x128.png
+      - name: Smoke test the installer for everyone
+        run: node apps/desktop/scripts/smoke-installer.mjs --scope machine "dist-desktop/$STABLE_SETUP" apps/desktop/src-tauri/icons/128x128.png
+      - uses: actions/upload-artifact@v7
+        with:
+          name: librephotos-desktop-windows-x64
+          path: dist-desktop/
+          if-no-files-found: error
+          compression-level: 0
+      - name: Attach to the release
+        if: env.TAG != ''
+        working-directory: dist-desktop
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --title "$TAG" --prerelease \
+              --notes "Desktop app installer; see the desktop app docs."
+          fi
+          clobber=()
+          if [ "$REPLACE_ASSET" = "true" ]; then
+            clobber=(--clobber)
+          fi
+          gh release upload "$TAG" "$VERSIONED_SETUP" "$STABLE_SETUP" "$CHECKSUMS" "${clobber[@]}"
+          echo "Attached $VERSIONED_SETUP, $STABLE_SETUP and $CHECKSUMS to $TAG." >> "$GITHUB_STEP_SUMMARY"
+      - name: Open an issue about the failure
+        if: failure() && env.TAG != ''
+        run: |
+          title="Desktop installer failed for $TAG"
+          body="The [desktop run]($RUN_URL) for $TAG failed, so $TAG has no desktop installer yet.
+
+          Fix the build, then re-run the failed job, or dispatch the desktop workflow from the tag with tag=$TAG (and replace_asset if some of the assets were attached)."
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+            exit 0
+          fi
+          gh issue create --title "$title" --body "$body"

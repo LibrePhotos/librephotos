@@ -22,7 +22,7 @@ Thank you for considering contributing to LibrePhotos! We welcome contributions 
     git checkout -b my-feature-branch
     ```
 
-4. **Make Changes**: Make your changes to the codebase. Ensure your code follows the project's coding standards.
+4. **Make Changes**: Make your changes to the codebase. Ensure your code follows the project's coding standards, including the two [conventions](./conventions.md) every pull request is checked for: no comments in new code, and the docs updated with the change.
 
 5. **Commit Changes**: Commit your changes with a descriptive commit message.
     ```sh

@@ -403,6 +403,7 @@ export const serverKeys = {
   storageStats: () => [...serverRoot, "storageStats"] as const,
   /** The update check's result (admins, #2311). */
   updates: () => [...serverRoot, "updates"] as const,
+  parallelWorkers: () => [...serverRoot, "parallelWorkers"] as const,
 };
 
 const errorReportRoot = ["errorReports"] as const;

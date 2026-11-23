@@ -9,6 +9,7 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./core": "./src/core.ts",
     "./schemas": "./src/schemas/index.ts",
     "./transport": "./src/transport/index.ts",
     "./hooks": "./src/hooks/index.ts"

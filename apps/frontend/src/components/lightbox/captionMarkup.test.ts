@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { captionParts, captionToEditorHtml } from "./captionMarkup";
+import { captionParts, hashtagRuns } from "./captionMarkup";
 
 describe("captionParts", () => {
   it("splits a caption into text and hashtags, each keyed by where it starts", () => {
@@ -12,7 +12,7 @@ describe("captionParts", () => {
     ]);
   });
 
-  it("collapses line breaks and runs of spaces into one, as the editor's HTML parse did", () => {
+  it("collapses line breaks and runs of spaces into one, as the caption has always been shown", () => {
     expect(captionParts("  Two\n\nparagraphs   here  ").map(part => part.text)).toEqual(["Two paragraphs here"]);
   });
 
@@ -29,8 +29,12 @@ describe("captionParts", () => {
   });
 });
 
-describe("captionToEditorHtml", () => {
-  it("turns each hashtag into a mention for the editor", () => {
-    expect(captionToEditorHtml("At the #beach")).toBe('At the <span data-type="mention" data-id=beach>#beach</span>');
+describe("hashtagRuns", () => {
+  it("keeps the text as typed, line breaks and spaces included, for the editor's highlight", () => {
+    expect(hashtagRuns("Day one\n\n  at the #beach ")).toEqual([
+      { text: "Day one\n\n  at the ", hashtag: false, start: 0 },
+      { text: "#beach", hashtag: true, start: 18 },
+      { text: " ", hashtag: false, start: 24 },
+    ]);
   });
 });

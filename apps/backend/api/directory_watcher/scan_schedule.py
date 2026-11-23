@@ -33,7 +33,6 @@ from constance import config as site_config
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
-from django_q.models import Schedule
 
 from api.drf.exceptions import JobAlreadyRunning
 from api.jobs.queue import (
@@ -44,6 +43,7 @@ from api.jobs.queue import (
     replace_schedule,
 )
 from api.models import LongRunningJob, User
+from api.models.task_queue import TaskSchedule
 from api.runtime.ml_models import missing_models_prerequisites
 from nextcloud.directory_watcher import scan_photos as scan_nextcloud_photos
 from nextcloud.server_address import (
@@ -136,7 +136,7 @@ class ScanSchedule:
     @property
     def schedule_type(self) -> str:
         """Hourly, or daily: a custom schedule runs daily and skips other days."""
-        return Schedule.HOURLY if self.frequency == HOURLY else Schedule.DAILY
+        return TaskSchedule.HOURLY if self.frequency == HOURLY else TaskSchedule.DAILY
 
     def runs_on(self, when: datetime.datetime) -> bool:
         """Whether a run meant for ``when`` scans (server time)."""

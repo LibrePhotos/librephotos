@@ -37,6 +37,7 @@ from urllib3.exceptions import ReadTimeoutError
 from urllib3.response import BaseHTTPResponse
 from urllib3.util.retry import Retry
 
+from api.runtime import replicas
 from librephotos.env import EnvError, env_int
 
 if TYPE_CHECKING:
@@ -59,6 +60,16 @@ def _valid_ports(ports: dict[str, int]) -> dict[str, int]:
                 f"{port_variable(service)} must be a port between 1 and "
                 f"{HIGHEST_PORT}, got {port}"
             )
+        top = replicas.replica_port(port, replicas.MAX_REPLICAS - 1)
+        if service in replicas.REPLICA_KINDS and top > HIGHEST_PORT:
+            raise EnvError(
+                f"{port_variable(service)} leaves no room for its replicas: "
+                f"the last one would listen on {top}"
+            )
+    try:
+        replicas.all_ports(ports)
+    except ValueError as error:
+        raise EnvError(f"{error}: move one with its SIDECAR_PORT_<NAME>") from None
     return ports
 
 
@@ -121,11 +132,11 @@ class _SidecarRetry(Retry):
         )
 
 
-def _retry_policy() -> _SidecarRetry:
+def _retry_policy(connect: int = MAX_RETRIES) -> _SidecarRetry:
     return _SidecarRetry(
         total=MAX_RETRIES,
-        connect=MAX_RETRIES,
-        read=MAX_RETRIES,
+        connect=connect,
+        read=connect,
         status=MAX_RETRIES,
         other=0,
         redirect=0,
@@ -148,14 +159,15 @@ class _Client:
     processes, so a child builds its own session.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, connect_retries: int = MAX_RETRIES) -> None:
         self._session: requests.Session | None = None
         self._pid: int | None = None
+        self._connect_retries = connect_retries
 
     def session(self) -> requests.Session:
         if self._session is None or self._pid != os.getpid():
             session = requests.Session()
-            adapter = HTTPAdapter(max_retries=_retry_policy())
+            adapter = HTTPAdapter(max_retries=_retry_policy(self._connect_retries))
             session.mount("http://", adapter)
             self._session = session
             self._pid = os.getpid()
@@ -175,11 +187,38 @@ class _Client:
 
 
 http = _Client()
+failover = _Client(connect_retries=0)
 
 
 def _checked(response: requests.Response) -> requests.Response:
     response.raise_for_status()
     return response
+
+
+def _port_url(port: int, path: str) -> str:
+    return f"{SIDECAR_HOST}:{port}{path}"
+
+
+def _call(client: _Client, method: str, url: str, **kwargs: Any) -> requests.Response:
+    if method == "POST":
+        return _checked(client.post(url, **kwargs))
+    return _checked(client.get(url, **kwargs))
+
+
+def _send(method: str, service: str, path: str, **kwargs: Any) -> requests.Response:
+    url = sidecar_url(service, path)
+    if service not in replicas.REPLICA_KINDS:
+        return _call(http, method, url, **kwargs)
+    order = replicas.router.order(service, SERVICES[service])
+    if len(order) == 1:
+        return _call(http, method, _port_url(order[0], path), **kwargs)
+    with replicas.claim(order) as ports:
+        for port in ports[:-1]:
+            try:
+                return _call(failover, method, _port_url(port, path), **kwargs)
+            except requests.ConnectionError:
+                replicas.router.mark_down(port)
+        return _call(http, method, _port_url(ports[-1], path), **kwargs)
 
 
 def post(
@@ -190,14 +229,26 @@ def post(
     timeout: float | tuple[float, float],
 ) -> requests.Response:
     """POST *json* to a sidecar; the response, or HTTPError for an error status."""
-    return _checked(http.post(sidecar_url(service, path), json=json, timeout=timeout))
+    return _send("POST", service, path, json=json, timeout=timeout)
 
 
 def get(
     service: str, path: str, *, timeout: float | tuple[float, float]
 ) -> requests.Response:
     """GET from a sidecar; the response, or HTTPError for an error status."""
-    return _checked(http.get(sidecar_url(service, path), timeout=timeout))
+    return _send("GET", service, path, timeout=timeout)
+
+
+def replica_url(service: str, index: int, path: str = "") -> str:
+    if index == 0:
+        return sidecar_url(service, path)
+    return _port_url(replicas.replica_port(SERVICES[service], index), path)
+
+
+def get_replica(
+    service: str, index: int, path: str, *, timeout: float | tuple[float, float]
+) -> requests.Response:
+    return _call(http, "GET", replica_url(service, index, path), timeout=timeout)
 
 
 def error_detail(error: Exception) -> str:

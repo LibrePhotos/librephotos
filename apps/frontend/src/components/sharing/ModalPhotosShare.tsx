@@ -58,7 +58,7 @@ export function ModalPhotosShare(props: Props) {
       <FocusTrap.InitialFocus />
       <Stack>
         {selection.kind === "all" ? (
-          <Badge color="blue" size="lg" variant="light">
+          <Badge size="lg" variant="light">
             {selectionLabel(t, selection)}
           </Badge>
         ) : (

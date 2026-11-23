@@ -14,7 +14,7 @@ from rest_framework.test import APIClient
 
 from api.directory_watcher import scan_jobs
 from api.models import LongRunningJob
-from api.tests.scanning.test_scan_trigger_views import RecordingChain, RecordingTask
+from api.tests.scanning.test_scan_trigger_views import RecordingChain, record_queued
 from api.tests.utils import (
     api_error,
     create_test_job,
@@ -43,8 +43,7 @@ class ScanUserPhotosViewTest(TestCase):
     def post(self, user_id: int, as_user=None):
         self.client.force_authenticate(user=as_user or self.admin)
         with (
-            patch("api.jobs.queue.Chain", RecordingChain),
-            patch("api.jobs.queue.AsyncTask", RecordingTask),
+            patch("api.jobs.store.add", record_queued),
             patch("api.runtime.ml_models.do_all_models_exist", return_value=True),
             patch(f"{MODULE}.scan_photos", autospec=True) as scan_photos,
             self.captureOnCommitCallbacks(execute=True),

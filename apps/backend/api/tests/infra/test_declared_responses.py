@@ -92,7 +92,8 @@ class HealthResponsesTest(DeclaredResponseTestCase):
 
     def test_queue_probe_with_the_broker_down(self) -> None:
         with patch(
-            "api.views.health.get_broker", side_effect=OperationalError("no broker")
+            "api.views.health.tasks_are_waiting",
+            side_effect=OperationalError("no queue"),
         ):
             self.assert_declared("/api/healthz/queue/", "/api/healthz/queue", 503)
 

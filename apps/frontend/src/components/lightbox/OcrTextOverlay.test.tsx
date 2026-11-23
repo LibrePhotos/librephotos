@@ -11,6 +11,7 @@ import type { PhotoOcrBlock } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ownsGesture } from "../../hooks/viewerGestures";
 import { defined } from "../../util/defined.test-utils";
 import { OcrTextOverlay, placeBlock } from "./OcrTextOverlay";
 
@@ -124,18 +125,9 @@ describe("OcrTextOverlay", () => {
     expect(container.querySelector("svg")).toBeNull();
   });
 
-  it("stops pointerdown on glyphs from bubbling out (would start a swipe)", () => {
+  it("owns the gestures that start on its glyphs, so a selection drag never swipes or pans", () => {
     render([axisAlignedBlock]);
-    let escaped = false;
-    const listener = () => {
-      escaped = true;
-    };
-    container.addEventListener("pointerdown", listener);
-    const text = defined(container.querySelector("text"));
-    // jsdom lacks PointerEvent; a bubbling Event with the right type is enough
-    // to exercise the native capture-free stopPropagation listener.
-    text.dispatchEvent(new Event("pointerdown", { bubbles: true }));
-    container.removeEventListener("pointerdown", listener);
-    expect(escaped).toBe(false);
+
+    expect(ownsGesture(defined(container.querySelector("text")))).toBe(true);
   });
 });

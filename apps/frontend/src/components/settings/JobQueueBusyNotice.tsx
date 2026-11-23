@@ -19,7 +19,6 @@ export function JobQueueBusyNotice({ job }: JobQueueBusyNoticeProps) {
   const { t } = useTranslation();
   return (
     <Alert
-      color="blue"
       icon={<IconInfoCircle />}
       title={job ? t("jobs.queuebusy.title", { job: jobTypeLabel(job, t) }) : t("jobs.queuebusy.titleother")}
       data-testid="job-queue-busy"

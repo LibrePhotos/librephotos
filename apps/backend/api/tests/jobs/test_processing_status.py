@@ -26,6 +26,7 @@ from api.search.embedding_jobs import (
     photos_missing_clip_embeddings,
 )
 from api.search.semantic import OPENCLIP
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     TEST_MEDIA_ROOT,
     api_error,
@@ -301,13 +302,12 @@ class RunProcessingStageTest(TestCase):
 
     def run_stage(self, stage):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
-            patch("api.jobs.queue.Chain") as chain,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(RUN_URL, {"stage": stage}, format="json")
         self.async_task = async_task
-        self.chain = chain
+        self.chain = async_task
         return response
 
     def assert_started(self, stage, job_type, func):
@@ -355,9 +355,7 @@ class RunProcessingStageTest(TestCase):
         response = self.run_stage("face_recognition")
 
         self.assertEqual(200, response.status_code, response.content)
-        appended = [
-            call.args[0] for call in self.chain.return_value.append.call_args_list
-        ]
+        appended = [call.args[0] for call in self.chain.call_args_list]
         self.assertEqual([pj.generate_face_embeddings, cluster_all_faces], appended)
 
     @override_config(FACE_CLUSTER_ENABLED=False)
@@ -417,13 +415,12 @@ class RetryUnmatchedFacesTest(TestCase):
 
     def retry(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as async_task,
-            patch("api.jobs.queue.Chain") as chain,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(RETRY_URL)
         self.async_task = async_task
-        self.chain = chain
+        self.chain = async_task
         return response
 
     def marks(self):
@@ -438,9 +435,7 @@ class RetryUnmatchedFacesTest(TestCase):
         self.assertEqual(200, response.status_code, response.content)
         self.assertEqual({self.mine.pk: "", self.theirs.pk: FACE_MODEL}, self.marks())
         self.assertEqual([self.mine], list(pj.faces_missing_encoding(self.user)))
-        appended = [
-            call.args[0] for call in self.chain.return_value.append.call_args_list
-        ]
+        appended = [call.args[0] for call in self.chain.call_args_list]
         self.assertEqual([pj.generate_face_embeddings, cluster_all_faces], appended)
         job = J.objects.get(job_id=response.json()["job_id"])
         self.assertEqual(self.user, job.started_by)

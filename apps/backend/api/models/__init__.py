@@ -35,6 +35,13 @@ from api.models.photo_share import PhotoShare
 from api.models.photo_stack import PhotoStack
 from api.models.sidecar_watch_lease import SidecarWatchLease
 from api.models.tag import Tag
+from api.models.task_queue import (
+    QueuedTask,
+    TaskGroup,
+    TaskSchedule,
+    Throttle,
+    WorkerProcess,
+)
 from api.models.thumbnail import Thumbnail
 from api.models.upgrade_task_state import UpgradeTaskState
 from api.models.upload_followup_state import UploadFollowupState
@@ -77,13 +84,18 @@ __all__ = [
     "PhotoSearch",
     "PhotoShare",
     "PhotoStack",
+    "QueuedTask",
     "SidecarWatchLease",
+    "TaskGroup",
+    "TaskSchedule",
+    "Throttle",
     "Tag",
     "Thumbnail",
     "UpgradeTaskState",
     "UploadFollowupState",
     "User",
     "UserPlace",
+    "WorkerProcess",
     "File",
     "FileCopy",
 ]

@@ -43,6 +43,44 @@ module.exports = defineConfig([
       "@typescript-eslint/no-unsafe-return": "error",
       "@typescript-eslint/no-unsafe-type-assertion": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": ["error", { checksVoidReturn: { attributes: false } }],
+      "@typescript-eslint/await-thenable": "error",
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "CallExpression[callee.property.name='transaction']:not([callee.object.name='sqlite']):not([callee.object.property.name='sqlite'])",
+          message: "Use db.batch([...]) (or runBatch) for atomic writes; interactive transactions are not supported.",
+        },
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "drizzle-orm/expo-sqlite", message: "Use @librephotos/local-db over the executor in src/db/client.ts." },
+            { name: "drizzle-orm/better-sqlite3", message: "Tests use @librephotos/local-db/testing." },
+            { name: "better-sqlite3", message: "Tests use @librephotos/local-db/testing." },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    ignores: ["src/db/client.ts", "src/db/DatabaseGate.tsx", "src/lib/preferencesStorage.ts", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "drizzle-orm/expo-sqlite", message: "Use @librephotos/local-db over the executor in src/db/client.ts." },
+            { name: "drizzle-orm/better-sqlite3", message: "Tests use @librephotos/local-db/testing." },
+            { name: "better-sqlite3", message: "Tests use @librephotos/local-db/testing." },
+            { name: "expo-sqlite", message: "The database is @librephotos/local-db; only src/db/client.ts opens it." },
+          ],
+        },
+      ],
     },
   },
   {

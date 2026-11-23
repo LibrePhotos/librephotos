@@ -23,16 +23,22 @@ import { Pressable, ScrollView, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useDb, useReactiveQuery } from "@/db/provider";
-import { allSyncState, type SyncStateRow } from "@/db/queries/sync-state";
-import { recentSyncLog, type SyncLogRow } from "@/db/queries/sync-log";
-import { localCounts, type LocalCounts } from "@/db/queries/counts";
-import { outboxSummary, type OutboxSummary } from "@/mutations/outbox";
+import {
+  allSyncState,
+  EMPTY_LOCAL_COUNTS,
+  localCounts,
+  recentSyncLog,
+  type LocalCounts,
+  type SyncLogRow,
+  type SyncStateRow,
+} from "@librephotos/local-db";
+import { EMPTY_OUTBOX_SUMMARY, outboxSummary } from "@/mutations/outbox";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 import { retryFailedJobs } from "@/sync/jobs/queue";
-import { jobQueueSnapshot, syncStages, type JobQueueSnapshot, type StageProgress } from "@/sync/jobs/status";
+import { EMPTY_JOB_QUEUE_SNAPSHOT, jobQueueSnapshot, syncStages, type StageProgress } from "@/sync/jobs/status";
 import type { JobKind } from "@/sync/jobs/types";
 
 const ENTITY_LABEL: Record<string, string> = {
@@ -81,12 +87,12 @@ export function SyncStatusScreen() {
   const db = useDb();
   const userId = useAuthStore((s) => s.userId);
 
-  const states = useReactiveQuery<SyncStateRow[]>((d) => allSyncState(d), []);
-  const logs = useReactiveQuery<SyncLogRow[]>((d) => recentSyncLog(d, 100), []);
-  const counts = useReactiveQuery<LocalCounts>((d) => localCounts(d), []);
-  const outbox = useReactiveQuery<OutboxSummary>((d) => outboxSummary(d), []);
-  const queue = useReactiveQuery<JobQueueSnapshot>((d) => jobQueueSnapshot(d), []);
-  const stages = useReactiveQuery<StageProgress[]>((d) => syncStages(d), []);
+  const { data: states } = useReactiveQuery(["sync-state"], (d) => allSyncState(d), [] as SyncStateRow[], { tables: ["sync_state"] });
+  const { data: logs } = useReactiveQuery(["sync-log", 100], (d) => recentSyncLog(d, 100), [] as SyncLogRow[], { tables: ["sync_log"] });
+  const { data: counts } = useReactiveQuery(["local-counts"], (d) => localCounts(d), EMPTY_LOCAL_COUNTS);
+  const { data: outbox } = useReactiveQuery(["outbox-summary"], (d) => outboxSummary(d), EMPTY_OUTBOX_SUMMARY, { tables: ["outbox"] });
+  const { data: queue } = useReactiveQuery(["job-queue-snapshot", 20], (d) => jobQueueSnapshot(d), EMPTY_JOB_QUEUE_SNAPSHOT, { tables: ["job_queue"] });
+  const { data: stages } = useReactiveQuery(["sync-stages"], (d) => syncStages(d), [] as StageProgress[]);
 
   const running = useSyncStore((s) => s.running);
   const progress = useSyncStore((s) => s.progress);
@@ -95,7 +101,7 @@ export function SyncStatusScreen() {
   const [busy, setBusy] = useState(false);
 
   const onRetryJobs = useCallback(async () => {
-    retryFailedJobs(db);
+    await retryFailedJobs(db);
     setBusy(true);
     try {
       const { runSync } = await import("@/sync/run");

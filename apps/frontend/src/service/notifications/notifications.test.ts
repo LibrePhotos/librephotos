@@ -134,7 +134,7 @@ describe("notifications", () => {
 describe("routine photo changes", () => {
   it("say what happened in one sentence, with no title and real plurals", () => {
     notification.togglePhotosFavorite(2, true);
-    expect(lastShown()).toMatchObject({ message: "Added 2 photos to favorites", title: undefined, color: "teal" });
+    expect(lastShown()).toMatchObject({ message: "Added 2 photos to favorites", title: undefined, color: "green" });
 
     notification.togglePhotosHidden(1, true);
     expect(lastShown()).toMatchObject({ message: "Hid 1 photo", title: undefined });
@@ -159,7 +159,7 @@ describe("routine photo changes", () => {
 
 describe("notification primitives", () => {
   it.each([
-    ["success", "teal"],
+    ["success", "green"],
     ["warning", "orange"],
     ["error", "red"],
   ] as const)("%s shows a %s toast", (kind, color) => {
@@ -247,7 +247,7 @@ describe("counted toasts (#599: faces confirmed one at a time)", () => {
     notification.deleteFaces(1);
 
     expect(showNotification).toHaveBeenCalledTimes(2);
-    expect(lastShown()).toMatchObject({ id: "faces-deleted", message: "Deleted 1 face", color: "teal" });
+    expect(lastShown()).toMatchObject({ id: "faces-deleted", message: "Deleted 1 face", color: "green" });
   });
 });
 
@@ -258,7 +258,7 @@ describe("date rules applied (#437)", () => {
     expect(lastShown()).toMatchObject({
       title: "Date rules applied",
       message: "312 photos moved to another day. 41 photos keep the date you set by hand.",
-      color: "teal",
+      color: "green",
     });
   });
 
@@ -357,7 +357,7 @@ describe("moving photos (#352)", () => {
 
   it("names the folder the photos went to", () => {
     notification.photosMoved(counts, "Porto");
-    expect(lastShown()).toMatchObject({ color: "teal", message: "Moved 3 photos to Porto." });
+    expect(lastShown()).toMatchObject({ color: "green", message: "Moved 3 photos to Porto." });
   });
 
   it("says how many stayed, and keeps that toast up", () => {
@@ -391,7 +391,7 @@ describe("sorting and renaming photos by date (#2773, #2774)", () => {
 
   it("says how many were renamed and how many kept their names", () => {
     notification.photosRenamed(counts);
-    expect(lastShown()).toMatchObject({ color: "teal", message: "Renamed 3 photos." });
+    expect(lastShown()).toMatchObject({ color: "green", message: "Renamed 3 photos." });
     notification.photosRenamed({ ...counts, undated: 2, unchanged: 1 });
     expect(lastShown().message).toBe("Renamed 3 photos. 3 photos kept their names.");
   });

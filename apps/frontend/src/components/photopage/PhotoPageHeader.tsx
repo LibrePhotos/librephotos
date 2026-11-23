@@ -1,7 +1,7 @@
 import type { Photo } from "@librephotos/api-client";
-import { Paper } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { ContentCard } from "../common/surfaces/ContentCard";
 import { TimestampEditActions, TimestampEditForm } from "../lightbox/TimestampItem";
 import { useTimestampEditor } from "../lightbox/useTimestampEditor";
 import { PageHeader } from "../PageHeader";
@@ -47,9 +47,9 @@ export function PhotoPageHeader({ photo, isOwner }: Props) {
         actions={isOwner && !editor.editMode ? <TimestampEditActions editor={editor} /> : undefined}
       />
       {isOwner && editor.editMode && (
-        <Paper withBorder radius="md" p="sm">
+        <ContentCard padding="sm">
           <TimestampEditForm editor={editor} />
-        </Paper>
+        </ContentCard>
       )}
     </>
   );

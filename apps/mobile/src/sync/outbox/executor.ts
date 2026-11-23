@@ -6,7 +6,7 @@
  * ./replay is what the unit tests exercise.
  */
 import { endpoints } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
+import type { AppDatabase } from "@librephotos/local-db";
 import { apiClient } from "@/lib/apiClient";
 import { useToastStore } from "@/stores/toasts";
 import { drainOutbox, type DrainOptions, type OutboxExecutor, type OutboxReplayResult } from "./replay";

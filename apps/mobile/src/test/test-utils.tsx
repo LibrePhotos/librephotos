@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { render } from "@testing-library/react-native";
+import { act, render } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   ApiClientProvider,
@@ -11,7 +11,7 @@ import { I18nextProvider } from "react-i18next";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import i18n from "@/i18n";
 import { DbProvider, type DbChangeSubscribe } from "@/db/provider";
-import type { AppDatabase } from "@/db/types";
+import type { AppDatabase } from "@librephotos/local-db";
 
 /** The router jest.setup.js installs: what the expo-router mock's `useRouter` returns. */
 export function mockRouter(): NonNullable<typeof globalThis.__mockRouter> {
@@ -70,19 +70,19 @@ export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
-/**
- * Render UI over a real (better-sqlite3) test database inside the DbProvider,
- * plus the app providers with a mocked ApiClient. Lets screens that read synced
- * entities render against the actual SQL. `subscribe` is a no-op — test data is
- * static, so no live-query re-fire is needed.
- */
-export function renderWithDb(
+export async function settleDb(rounds = 8): Promise<void> {
+  await act(async () => {
+    for (let i = 0; i < rounds; i += 1) await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  });
+}
+
+export async function renderWithDb(
   ui: ReactElement,
   db: AppDatabase,
-  client: ApiClient = makeMockClient(async () => jsonResponse({}, 404))
+  client: ApiClient = makeMockClient(async () => jsonResponse({}, 404)),
+  subscribe: DbChangeSubscribe = () => () => {}
 ) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const subscribe: DbChangeSubscribe = () => () => {};
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <SafeAreaProvider
       initialMetrics={{
@@ -101,5 +101,7 @@ export function renderWithDb(
       </QueryClientProvider>
     </SafeAreaProvider>
   );
-  return render(ui, { wrapper: Wrapper });
+  const view = render(ui, { wrapper: Wrapper });
+  await settleDb();
+  return view;
 }

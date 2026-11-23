@@ -57,7 +57,7 @@ Rules for new code:
 - Every function is annotated, including `-> None` (`disallow_untyped_defs`).
 - No explicit `Any` in an annotation; use `object`, a `Protocol` or a `TypedDict` instead. Ruff's `ANN401` enforces this outside tests. `*args: Any, **kwargs: Any` on a pass-through override is allowed.
 - No bare `# type: ignore`. An ignore needs an error code, and an ignore that no longer suppresses anything is itself an error. Fix the type instead of ignoring it.
-- `typing.cast` only where the value really is narrower than the stubs say, with a comment saying why.
+- `typing.cast` only where the value really is narrower than the stubs say; say why in the commit message, since new code carries no comments ([Conventions](../conventions.md)).
 - Never run `--update` to accept new errors.
 
 The second `[[tool.mypy.overrides]]` table lists the strict modules, which additionally forbid explicit `Any`, untyped calls and bare generics such as `dict`. The list only grows: when you add a new module or package, add it there in the same pull request, and when you move or rename a listed module, rename its entry.
@@ -150,6 +150,8 @@ Migrations 0001 to 0100 are squashed into `0001_squashed_0100`, so the folder st
 
 Here are the actual data types. If you want to figure out how a photo works or how faces are connected to persons, then this is your folder.
 
+<Since version="1.7.0" /> Secrets stored in the database (`EmailConfig.secret`, `User.nextcloud_app_password`) use `EncryptedTextField` and `EncryptedCharField` from `api/models/encrypted_fields.py` instead of the django-cryptography package. They behave like a `TextField`/`CharField` in forms and serializers, keep the value in a binary column and only support the `isnull` lookup. They still write django-cryptography's format (a pickled string under AES-256-CBC with a PBKDF2-SHA256 key of `SECRET_KEY`, signed with HMAC-SHA256 keyed by `SECRET_KEY`), so a container of the previous release that runs next to the new one during an update reads every value. They read that format, unpickling only a string or bytes and never an object, and also a [Fernet](https://cryptography.io/en/latest/fernet/) token under a key derived from `SECRET_KEY` with HKDF-SHA256, the format the release after 1.7.0 will write and convert the stored values to. Both formats try `SECRET_KEY` first and then each of Django's `SECRET_KEY_FALLBACKS`; a value none of them decrypts raises `UndecryptableValueError`, a `django.core.signing.BadSignature`, and an empty column reads as an empty value.
+
 #### views
 
 Here you can find our API implemented. They are separated, similar to the models. Views that expose the photos will be here in photos too.
@@ -160,11 +162,11 @@ You have your python model and want to somehow convert that to JSON. That's what
 
 ### Services
 
-Not everything runs inside Django. The heavy machine-learning work lives in standalone Flask processes that Django talks to over plain HTTP on localhost. Six of them sit under `service/` — `thumbnail`, `face_recognition`, `image_captioning`, `exif`, `tags` and `ocr` — and `image_similarity/` is a separate top-level folder. Each builds its Flask app with `service/_common.py` (`create_app`, the shared `/health` and `/unload-model`, `json_fields` for request parsing) and is served by `service/_wsgi_server.py` (one thread, one request at a time, keep-alive) on a fixed port; the ports are defined in the `SERVICES` dict in `api/runtime/sidecars.py` (image_similarity 8002, thumbnail 8003, face_recognition 8005, image_captioning 8007, exif 8010, tags 8011, ocr 8012).
+Not everything runs inside Django. The heavy machine-learning work lives in standalone HTTP processes (sidecars) that Django talks to over plain HTTP on localhost. Six of them sit under `service/` — `thumbnail`, `face_recognition`, `image_captioning`, `exif`, `tags` and `ocr` — and `image_similarity/` is a separate top-level folder. Each builds its app with `service/_common.py` (`create_app`, the shared `/health` and `/unload-model`, `json_fields` for request parsing) on the small WSGI layer in `service/_web.py` (<Since version="1.7.0" /> up to 1.6.0 Flask: routes by path and method, a 308 to the slash form of a path, JSON bodies from dicts, error handlers, before and teardown hooks, and `app.test_client()` for tests) and is served by `service/_wsgi_server.py` (one thread, one request at a time, keep-alive) on a fixed port; the ports are defined in the `SERVICES` dict in `api/runtime/sidecars.py` (image_similarity 8002, thumbnail 8003, face_recognition 8005, image_captioning 8007, exif 8010, tags 8011, ocr 8012).
 
 The backend reaches them with `sidecar_url(name)` and calls them through `api.runtime.sidecars.post`/`get`, which retry a refused connection or a 503 and raise `requests.HTTPError` for any other error status; a caller turns that into its own error (for example `MetadataReadError`).
 
-You start them with `python manage.py start_service`, which also schedules `api.runtime.supervisor.check_services` in django-q2 to poll each service's `/health` endpoint every minute: a service that died is restarted, and one that has held a model for two minutes without a request is asked to unload it. Stopping a service sends SIGTERM and kills it only if it is still there five seconds later.
+You start them with `python manage.py start_service`, and the `run_workers` supervisor runs `api.runtime.supervisor.check_services` every minute, in a thread of its own, to poll each service's `/health` endpoint every minute: a service that died is restarted, and one that has held a model for two minutes without a request is asked to unload it. Stopping a service sends SIGTERM and kills it only if it is still there five seconds later.
 
 Because these are separate processes, the `docker attach` + pdb trick above does not reach them — to debug a service, check its log under `/logs/` or add logging in the service's own `main.py`.
 

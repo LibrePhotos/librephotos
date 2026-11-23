@@ -5,7 +5,7 @@ import type { People, Photo } from "@librephotos/api-client";
 import { BottomSheet, type SheetDetent } from "@/components/BottomSheet";
 import { useTheme } from "@/theme";
 import { formatFullDate } from "@/lib/format";
-import type { LocalAssetSummary, PhotoAlbumRow, PhotoSummary } from "@/db/queries/detail";
+import type { LocalAssetSummary, PhotoAlbumRow, PhotoSummary } from "@librephotos/local-db";
 import { Note } from "./InfoPrimitives";
 import {
   AlbumsSection,

@@ -7121,6 +7121,79 @@
         }
       }
     },
+    "/api/parallel-workers/": {
+      "get": {
+        "operationId": "api_parallel_workers_retrieve",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParallelWorkers"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "api_parallel_workers_partial_update",
+        "tags": [
+          "api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedParallelWorkersRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedParallelWorkersRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedParallelWorkersRequestRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParallelWorkers"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/person-groups/": {
       "get": {
         "operationId": "api_person_groups_list",
@@ -17530,6 +17603,35 @@
           "status"
         ]
       },
+      "Capacity": {
+        "type": "object",
+        "properties": {
+          "cores": {
+            "type": "integer"
+          },
+          "cpu_source": {
+            "type": "string",
+            "description": "host, affinity, cgroup v1 or cgroup v2"
+          },
+          "ram_total_mb": {
+            "type": "integer"
+          },
+          "ram_available_mb": {
+            "type": "integer"
+          },
+          "ram_source": {
+            "type": "string",
+            "description": "host, cgroup v1, cgroup v2 or job object"
+          }
+        },
+        "required": [
+          "cores",
+          "cpu_source",
+          "ram_available_mb",
+          "ram_source",
+          "ram_total_mb"
+        ]
+      },
       "CaptionsJobStartedResponse": {
         "type": "object",
         "description": "``POST /api/generate-captions/``: the started job, and whether it waits for the model.",
@@ -21347,6 +21449,46 @@
           "video_time"
         ]
       },
+      "FaceServices": {
+        "type": "object",
+        "properties": {
+          "running": {
+            "type": "integer",
+            "description": "Face service processes running."
+          },
+          "live": {
+            "type": "integer",
+            "description": "Face services taking requests."
+          },
+          "device": {
+            "type": "string",
+            "nullable": true,
+            "description": "cpu, webgpu or cuda once a model is loaded."
+          },
+          "rss_mb": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "gpu_total_mb": {
+            "type": "integer",
+            "nullable": true
+          },
+          "gpu_free_mb": {
+            "type": "integer",
+            "nullable": true
+          }
+        },
+        "required": [
+          "device",
+          "gpu_free_mb",
+          "gpu_total_mb",
+          "live",
+          "rss_mb",
+          "running"
+        ]
+      },
       "FacesReviewCountResponse": {
         "type": "object",
         "properties": {
@@ -22038,6 +22180,15 @@
         "required": [
           "version"
         ]
+      },
+      "IntentionEnum": {
+        "enum": [
+          "gentle",
+          "balanced",
+          "fast"
+        ],
+        "type": "string",
+        "description": "* `gentle` - gentle\n* `balanced` - balanced\n* `fast` - fast"
       },
       "JobStartedResponse": {
         "type": "object",
@@ -24639,6 +24790,52 @@
           }
         }
       },
+      "ParallelWorkers": {
+        "type": "object",
+        "properties": {
+          "capacity": {
+            "$ref": "#/components/schemas/Capacity"
+          },
+          "intention": {
+            "type": "string",
+            "description": "gentle, balanced or fast"
+          },
+          "override": {
+            "type": "integer",
+            "nullable": true,
+            "description": "WORKER_CONCURRENCY when it is set; it wins over the intention."
+          },
+          "face_override": {
+            "type": "integer",
+            "nullable": true,
+            "description": "FACE_SIDECAR_REPLICAS when it is set; the plan still caps it."
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkerPlan"
+            }
+          },
+          "workers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunningWorker"
+            }
+          },
+          "face_services": {
+            "$ref": "#/components/schemas/FaceServices"
+          }
+        },
+        "required": [
+          "capacity",
+          "face_override",
+          "face_services",
+          "intention",
+          "override",
+          "plans",
+          "workers"
+        ]
+      },
       "PasswordResetConfirmRequestRequest": {
         "type": "object",
         "description": "The emailed link's ``uid`` and ``token`` plus the new password.\n\nA missing, blank or null parameter is one error with the code\n``missing_parameters``, not a per-field one: the web client branches on it.",
@@ -24929,6 +25126,14 @@
             "writeOnly": true,
             "minLength": 1,
             "maxLength": 128
+          }
+        }
+      },
+      "PatchedParallelWorkersRequestRequest": {
+        "type": "object",
+        "properties": {
+          "intention": {
+            "$ref": "#/components/schemas/IntentionEnum"
           }
         }
       },
@@ -29241,6 +29446,42 @@
           "stage"
         ]
       },
+      "RunningWorker": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slot": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "rss_mb": {
+            "type": "integer"
+          },
+          "heartbeat_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "memory_recycles": {
+            "type": "integer"
+          },
+          "last_recycle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "active",
+          "heartbeat_at",
+          "last_recycle",
+          "memory_recycles",
+          "name",
+          "rss_mb",
+          "slot"
+        ]
+      },
       "SSOConfig": {
         "type": "object",
         "description": "``GET /api/auth/sso/config/``: whether to show the SSO login button.",
@@ -33529,6 +33770,84 @@
         "required": [
           "label",
           "y"
+        ]
+      },
+      "WorkerPlan": {
+        "type": "object",
+        "properties": {
+          "intention": {
+            "type": "string"
+          },
+          "workers": {
+            "type": "integer"
+          },
+          "heavy_workers": {
+            "type": "integer"
+          },
+          "budget_mb": {
+            "type": "integer"
+          },
+          "needed_mb": {
+            "type": "integer"
+          },
+          "limited_by": {
+            "type": "string",
+            "description": "intention, cores, memory, database or setting"
+          },
+          "fits": {
+            "type": "boolean",
+            "description": "Whether one worker fits in the memory budget."
+          },
+          "web_mb": {
+            "type": "integer",
+            "description": "Budgeted for the web server."
+          },
+          "sidecars_mb": {
+            "type": "integer",
+            "description": "Budgeted for the enabled sidecars other than face recognition."
+          },
+          "face_replicas": {
+            "type": "integer",
+            "description": "Face services (one per heavy worker at most); 0 when face recognition is off."
+          },
+          "face_replica_mb": {
+            "type": "integer",
+            "description": "Memory budgeted per face service."
+          },
+          "face_vram_mb": {
+            "type": "integer",
+            "description": "GPU memory budgeted per face service; 0 on the CPU."
+          },
+          "face_device": {
+            "type": "string",
+            "description": "cpu, gpu or unknown"
+          },
+          "face_limited_by": {
+            "type": "string",
+            "description": "lanes, memory, vram, gpu, gpu_share, setting, maximum or off"
+          },
+          "vram_budget_mb": {
+            "type": "integer",
+            "nullable": true,
+            "description": "GPU memory the face services may use; null when unknown."
+          }
+        },
+        "required": [
+          "budget_mb",
+          "face_device",
+          "face_limited_by",
+          "face_replica_mb",
+          "face_replicas",
+          "face_vram_mb",
+          "fits",
+          "heavy_workers",
+          "intention",
+          "limited_by",
+          "needed_mb",
+          "sidecars_mb",
+          "vram_budget_mb",
+          "web_mb",
+          "workers"
         ]
       },
       "WriteMetadataPreview": {

@@ -33,6 +33,34 @@ The repository ships a `husky` pre-commit hook (`apps/frontend/.husky/pre-commit
 script — `husky` — with the working directory set to `apps/frontend`, which has no `.git` of
 its own, so husky exits without registering the hook. Don't rely on it; lint before you commit.
 
+## 🎨 Colours and surfaces {#colours-and-surfaces}
+
+The web app has one accent colour and a small set of surfaces, and two lint rules keep it that way.
+
+**Colours name a role, not a hue.** A colour prop (`c`, `color`, `bg`, `iconColor`, ...) takes no colour or `brand` for the
+primary accent, `gray`, `dark` or `dimmed` for neutral, `red` for danger, `orange` for a warning and `green` for
+success. CSS uses `var(--mantine-primary-color-*)` for the primary. The theme (`src/theme/cssVariables.ts`) keeps the roles readable in both
+schemes: outline buttons in the dark scheme use shade 3 of their colour, and warning and gray text in the light scheme
+use darker inks that pass WCAG AA on white and on their tints. Mantine's other palette names (`blue`, `cyan`,
+`grape`, `indigo`, `lime`, `pink`, `teal`, `violet`, `yellow`) are decoration with no meaning, and stock `blue` is not
+the app's accent. `ban/palette-color` fails on them in props, colour maps, returned colour names, union types and
+`--mantine-color-<hue>-*` strings, and `src/architecture/styles.test.ts` counts them in CSS modules. A colour that
+really is not a role, such as the histogram's red, green and blue channels or the favourite star, is a named
+`--app-*` variable in `src/theme/colors.css`, the one place allowed to use the palette directly.
+
+**Surfaces come from `components/common/surfaces`.** Only that folder imports Mantine's `Card` and `Paper`
+(`ban/raw-surface`), so border, radius and shadow are decided once:
+
+| Surface | Use it for | Look |
+| --- | --- | --- |
+| `ContentCard` | a block of a page (`SettingsCard` builds on it) | border, large radius, no shadow |
+| `Panel` | a box inside a card or dialog | border, medium radius, no shadow |
+| `FloatingCard` | a card over the page: the upload and What's new cards, map popups, the sign-in card | border, large radius, extra-large shadow, a raised background in the dark scheme so it sits above the page cards |
+| `MediaCard` | a card with a photo that runs to its edges (`MediaCard.Section`) | border, medium radius, no shadow |
+
+Their props leave out `radius`, `shadow` and `withBorder`, so a page cannot restyle one. A new kind of surface is a
+new component in that folder.
+
 ## 🧪 End-to-end tests {#end-to-end-tests}
 
 `apps/frontend/e2e` holds a [Playwright](https://playwright.dev/) smoke suite: log in, the timeline
@@ -179,11 +207,29 @@ Everything below is relative to
   translations, set up in `i18n.ts`. Translations are contributed through
   [Weblate](https://hosted.weblate.org/engage/librephotos/) rather than edited directly: its
   `librephotos-frontend` component translates `apps/frontend/src/locales/*/translation.json` against
-  the English file, `apps/frontend/src/locales/en/translation.json`. English ships in the main bundle,
-  and `i18n.ts` loads every other directory under `locales` as its own chunk, so a language Weblate
-  adds loads without a code change. To offer it in the Profile language picker, give it an entry in
-  `components/settings/languageOptions.ts` and a dayjs locale in `dayjsLocaleLoaders` (`i18n.ts`);
-  `src/i18n.test.ts` fails until both are there.
+  the English file, `apps/frontend/src/locales/en/translation.json`. `i18n.ts` loads every directory
+  under `locales` as its own chunk, English included, so a language Weblate adds loads without a code
+  change. <Since version="1.7.0" /> The first render waits for the user's language and English, the
+  fallback (`index.tsx` awaits `i18nReady`), so no raw keys flash. A small script that the build adds
+  to `index.html` (`localePreload.ts`, a Vite plugin) preloads both chunks before the app's JavaScript
+  runs, from the `lng` query parameter, the saved `i18nextLng` or the browser's first language, so
+  neither waits for the main bundle. Under vitest (`MODE` "test") `i18n.ts` still passes English as a
+  bundled resource, so component tests read it synchronously; the build drops that branch. To offer it in the Profile language picker, give it an entry in
+  `components/settings/languageOptions.ts`; `src/i18n.test.ts` fails
+  until it is there. <Since version="1.7.0" /> The UI language is detected
+  by `util/languageDetector.ts`, in the order the i18next-browser-languagedetector package used before
+  it: the `lng` query parameter, the `i18next` cookie, `i18nextLng` in localStorage, then in
+  sessionStorage, the browser's languages and `<html lang>`. The language a user picks is saved under
+  `i18nextLng`, so a saved choice survives the change.
+- <Since version="1.7.0" /> Date and time fields are the browser's own inputs, `NativeDateInput`,
+  `NativeTimeInput` (`withSeconds` for `step=1`) and `NativeDateTimeInput` in
+  `components/common/NativeDateInput.tsx`, styled as Mantine inputs with an optional clear button. They
+  read and write the input's wall-clock strings (`yyyy-MM-dd`, `HH:mm:ss`, `yyyy-MM-ddTHH:mm:ss`), which
+  `util/dateUtils.ts` converts with luxon: `photoTimestampWallClock` and `wallClockToPhotoTimestamp` for
+  an `exif_timestamp`, `toDateTimeInputValue` and `fromDateTimeInputValue` for an instant. No JS `Date`
+  sits in between, so a picked day cannot turn into the day before (#630). The pickers follow the
+  browser's language and calendar, not the UI language, and Firefox on desktop has no time picker.
+  There is no Mantine dates package and no dayjs.
 - The names of things (the words the tagger finds, `apps/backend/service/tags/tags.txt`) are their own
   namespace, `locales/<lang>/tags.json`, loaded only by the pages that show things
   (`hooks/useThingLabel.ts`). `locales/en/tags.json` names every word as itself and is the source a
@@ -192,3 +238,39 @@ Everything below is relative to
   links and search keep the English word.
 - In [util](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/util) you can find
   miscellaneous functions.
+- <Since version="1.7.0" /> A package stylesheet that only a lazy feature uses is imported by the
+  component that renders it, not by `index.tsx`: `maplibre-gl/dist/maplibre-gl.css` in
+  `components/map/ThemedMap.tsx` (every map renders through it). Vite loads a lazy chunk's CSS before
+  the chunk runs, and after `@mantine/core/styles.css`, so the order Mantine asks for holds and nothing
+  renders unstyled. `index.tsx` keeps only the core styles and the app's colour variables.
+- <Since version="1.7.0" /> Touch, pen and mouse gestures go through `hooks/useViewerGestures.ts`
+  (`trackViewerGestures` in `hooks/viewerGestures.ts`). It reads pointer events on one element and
+  reports a drag (locked to the axis it started on, with the velocity of its last 100 ms), a pinch
+  (scale and the fingers' midpoint), the wheel (in pixels; return true to keep the page from scrolling)
+  and a double tap. A pointer that starts inside `[data-own-gesture]` is left to that element (the
+  live text, the face drawing layer, the editor's crop overlay and split divider). The element needs
+  `touch-action: none`. The lightbox (`lightbox/LightboxStage.tsx`, `useLightboxGestures.ts`,
+  `lightboxView.ts`) lays the previous, current and next photo side by side and moves them with
+  `--lb-swipe-x`. It zooms and pans the current one with `--lb-x`, `--lb-y` and `--lb-scale`, written
+  to the element while a gesture runs and kept in React state (`useLightboxZoom`) only when it ends, so
+  a gesture never re-renders per frame. The photo editor's canvas (`editor/canvas/useStageGestures.ts`)
+  uses the same hook.
+
+### The API client outside the browser {#native-transports}
+
+<Since version="1.7.0" /> `packages/api-client` has three entry points: `@librephotos/api-client` (everything, for the web and mobile apps), `@librephotos/api-client/core` (`src/core.ts`: the schemas, the transport, `endpoints`, the media URL helpers and `ResponseParseError`, without the TanStack Query hooks and the polling helpers, so it needs only zod), and the narrower `schemas`, `transport` and `hooks`. The [desktop app](../../desktop.md) imports `core`, through a Vite alias like the web app, and `node scripts/check-shared-deps.mjs` checks its zod (and React or React Query, if it ever declares them) against the package's peer ranges along with the web and mobile apps'.
+
+`ApiClientConfig.fetch` takes any `fetch`. `createNativeFetch(send)` (`src/transport/native.ts`) builds one that sends every request through a host's own HTTP stack instead of the runtime's `fetch`, so CORS, the webview's cookie jar and its request limits never apply; the desktop sends everything from Rust this way:
+
+```ts
+import { createApiClient, createNativeFetch } from "@librephotos/api-client/core";
+
+const client = createApiClient({ baseUrl, tokens, fetch: createNativeFetch(sendThroughRust) });
+```
+
+- The adapter encodes the request the way `fetch` would (a `FormData` body becomes multipart with its boundary in `content-type`; an object body was already JSON-encoded by the client) and hands `send` plain data: a `NativeRequest` with the URL, the upper-case method, lower-case header pairs, the body's bytes (or null), the caller's `AbortSignal` and the body's file parts. `send` answers a `NativeResponse` (status, headers, bytes) for any HTTP status, and rejects only when there is no answer, preferably with a `TypeError` like `fetch`. The adapter turns the answer into a `Response` (no body for 204, 205 and 304), so the refresh interceptor, `ApiError` and the endpoint schemas run exactly as on the web and on mobile. Aborting the caller's signal rejects at once with an `AbortError`, whatever `send` does with its copy of the signal.
+- `nativeFilePart(ref, name)` is a `FormData` file part whose bytes the native side already has, such as a byte range of a file on disk: append it without a file name (`form.append("file", part)`, so `FormData` keeps that very object). The adapter sends a random marker in its place and lists it in `NativeRequest.fileParts` with its `ref`; the native side replaces the marker with the bytes before sending. It only works with a `fetch` made by `createNativeFetch`; any other `fetch` would send the marker itself. The desktop's backup engine uploads every chunk this way, so no file bytes pass through JavaScript.
+- Request bodies may also be bytes: a `Blob`, an `ArrayBuffer` or a typed array goes out unchanged with the `Content-Type` given in `headers`, like a `FormData` body.
+- `endpoints.refreshAccessToken(client, refresh)` trades the refresh token for a new access token outside any request, for a platform whose media loader (a native image proxy, an image component with headers) needs a fresh token while no API request is due. The transport still refreshes on its own around requests; a refused refresh token answers 401, which signs the client out like any other unrecoverable 401.
+
+`src/__tests__/nativeFetch.test.ts` drives the client through a fake native stack that only sees plain data, as a Rust command would.

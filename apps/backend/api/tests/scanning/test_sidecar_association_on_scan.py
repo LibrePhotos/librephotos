@@ -16,7 +16,7 @@ import struct
 import tempfile
 import uuid
 import zlib
-from collections import defaultdict, deque
+from collections import deque
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
@@ -174,45 +174,20 @@ class XMPAssociationTest(TestCase):
 
 
 class SlowIngestQueue:
-    """Stand-in for ``AsyncTask`` modelling a busy django-q cluster.
-
-    Tasks queued in a django-q ``group`` (the scan's image groups) only finish
-    after every ungrouped task has run: the worst case where the workers pick
-    up the metadata work while the photos it belongs to are still being
-    ingested. ``count_group`` reports the grouped tasks finished so far.
-    """
-
     def __init__(self):
         self.grouped = deque()
         self.ungrouped = deque()
-        self.completed = defaultdict(int)
 
-    def __call__(self, func, *args, **kwargs):
-        return _QueuedTask(self, func, args, kwargs)
-
-    def count_group(self, group_id, *args, **kwargs):
-        return self.completed[group_id]
+    def __call__(self, func, args=(), kwargs=None, placement=None):
+        grouped = getattr(func, "__name__", "") == "handle_file_group"
+        target = self.grouped if grouped else self.ungrouped
+        target.append((func, tuple(args), dict(kwargs or {})))
 
     def drain(self):
         while self.ungrouped or self.grouped:
-            if self.ungrouped:
-                func, args, kwargs, _group = self.ungrouped.popleft()
-                func(*args, **kwargs)
-                continue
-            func, args, kwargs, group = self.grouped.popleft()
+            source = self.ungrouped if self.ungrouped else self.grouped
+            func, args, kwargs = source.popleft()
             func(*args, **kwargs)
-            self.completed[group] += 1
-
-
-class _QueuedTask:
-    def __init__(self, queue, func, args, kwargs):
-        self.queue = queue
-        self.group = kwargs.pop("group", None)
-        self.entry = (func, args, kwargs, self.group)
-
-    def run(self):
-        target = self.queue.grouped if self.group else self.queue.ungrouped
-        target.append(self.entry)
 
 
 class SidecarsSurviveSlowIngestTest(TestCase):
@@ -247,8 +222,7 @@ class SidecarsSurviveSlowIngestTest(TestCase):
             queue = SlowIngestQueue()
             with override_settings(MEDIA_ROOT=media_root):
                 with (
-                    patch("api.jobs.queue.AsyncTask", queue),
-                    patch("django_q.tasks.count_group", queue.count_group),
+                    patch("api.jobs.store.add", queue),
                     patch(
                         "api.directory_watcher.scan_jobs._queue_followup_jobs"
                     ) as followups,

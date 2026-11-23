@@ -116,7 +116,7 @@ export function PublicGallerySetting() {
           title={t("sitesettings.publicGalleryConfirmTitle")}
           message={`${t(audience)} ${previewSentence(preview.data, preview.isError, t)} ${t("sitesettings.publicGalleryConfirmNote")}`}
           confirmLabel={t("sitesettings.publicGalleryConfirmButton")}
-          confirmColor="blue"
+          confirmColor="brand"
         />
       </Stack>
     </SettingsCard>

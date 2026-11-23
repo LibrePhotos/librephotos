@@ -1,7 +1,6 @@
 import type { PublicSharingOptions, UserAlbum } from "@librephotos/api-client";
 import { type PublicSharingDefaults } from "@librephotos/api-client";
-import { Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
-import { DateTimePicker } from "@mantine/dates";
+import { Button, Checkbox, Group, Stack, Text, TextInput, Title } from "@mantine/core";
 import { schemaResolver, useForm } from "@mantine/form";
 import { IconPlayerPlay } from "@tabler/icons-react";
 import React, { useEffect, useEffectEvent, useState } from "react";
@@ -9,7 +8,9 @@ import { useTranslation } from "react-i18next";
 import { useSlugAvailabilityQuery, useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { ApiError } from "../../api_client/api";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { fromPickerValue, pickerValueDaysFromNow, toPickerValue } from "../../util/dateUtils";
+import { dateTimeInputDaysFromNow, fromDateTimeInputValue, toDateTimeInputValue } from "../../util/dateUtils";
+import { NativeDateTimeInput } from "../common/NativeDateInput";
+import { Panel } from "../common/surfaces/Panel";
 import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
 import { publicAlbumLink, publicSlideshowLink } from "./publicAlbum";
 import { ShareLinkRow } from "./ShareLinkRow";
@@ -26,6 +27,12 @@ function useSlugTaken(slug: string, enabled: boolean, albumId: number | undefine
   return { taken, checking: isFetching };
 }
 
+const EXPIRY_PRESETS = [
+  { days: 7, label: "sharing.days7" },
+  { days: 30, label: "sharing.days30" },
+  { days: 90, label: "sharing.days90" },
+] as const;
+
 type ExpiresProps = Readonly<{
   value: string;
   onChange: (v: string) => void;
@@ -35,26 +42,23 @@ function ExpiresSetting({ value, onChange }: ExpiresProps) {
   const { t } = useTranslation();
   return (
     <Stack gap="xs">
-      <DateTimePicker
+      <NativeDateTimeInput
         label={t("sharing.expiration")}
-        placeholder={t("sharing.pickExpiration")}
-        withSeconds
         clearable
-        value={toPickerValue(value)}
-        onChange={v => {
-          if (!v) {
-            onChange("");
-            return;
-          }
-          onChange(fromPickerValue(v) ?? "");
-        }}
-        presets={[
-          { value: pickerValueDaysFromNow(7), label: t("sharing.days7") },
-          { value: pickerValueDaysFromNow(30), label: t("sharing.days30") },
-          { value: pickerValueDaysFromNow(90), label: t("sharing.days90") },
-        ]}
+        value={toDateTimeInputValue(value)}
+        onChange={picked => onChange(fromDateTimeInputValue(picked) ?? "")}
       />
       <Group gap="xs">
+        {EXPIRY_PRESETS.map(({ days, label }) => (
+          <Button
+            key={days}
+            size="xs"
+            variant="light"
+            onClick={() => onChange(fromDateTimeInputValue(dateTimeInputDaysFromNow(days)) ?? "")}
+          >
+            {t(label)}
+          </Button>
+        ))}
         <Button size="xs" variant="subtle" onClick={() => onChange("")}>
           {t("sharing.never")}
         </Button>
@@ -105,7 +109,7 @@ function SharingOptionsSettings({ value, onChange, userDefaults }: SharingOption
   ];
 
   return (
-    <Paper withBorder p="sm" radius="md">
+    <Panel p="sm">
       <Title order={5} mb="xs">
         {t("sharing.photoDetailsTitle")}
       </Title>
@@ -123,7 +127,7 @@ function SharingOptionsSettings({ value, onChange, userDefaults }: SharingOption
           />
         ))}
       </Stack>
-    </Paper>
+    </Panel>
   );
 }
 

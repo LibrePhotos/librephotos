@@ -49,9 +49,9 @@ const ICONS: Record<PhotoCategory, typeof Photo> = {
 };
 
 const COLORS: Record<PhotoCategory, string> = {
-  photo: "blue",
-  screenshot: "violet",
-  document: "orange",
+  photo: "brand",
+  screenshot: "gray",
+  document: "gray",
 };
 
 // One undo toast at a time: a newer change replaces the older one's Undo.

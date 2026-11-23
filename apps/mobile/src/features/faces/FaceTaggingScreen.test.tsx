@@ -1,8 +1,8 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
 import { FaceTaggingScreen } from "./FaceTaggingScreen";
 import { faceImageUrl } from "./faceImage";
-import { renderWithDb, makeMockClient, jsonResponse } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { renderWithDb, makeMockClient, jsonResponse, settleDb } from "@/test/test-utils";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { useToastStore } from "@/stores/toasts";
 
 function facesResponse(results: unknown[]) {
@@ -49,10 +49,11 @@ describe("FaceTaggingScreen", () => {
 
   it("accepts an inferred face with its suggested name", async () => {
     let body: unknown;
-    const { getByTestId } = renderWithDb(<FaceTaggingScreen />, t.db, client((b) => (body = b)));
+    const { getByTestId } = await renderWithDb(<FaceTaggingScreen />, t.db, client((b) => (body = b)));
 
     await waitFor(() => expect(getByTestId("face-accept-10")).toBeTruthy());
     fireEvent.press(getByTestId("face-accept-10"));
+    await settleDb();
 
     await waitFor(() => expect(body).toEqual({ face_ids: [10], person_name: "Alice" }));
   });
@@ -68,35 +69,44 @@ describe("FaceTaggingScreen", () => {
       if (url.endsWith("/labelfaces")) return jsonResponse({ status: true, results: [], updated: [], not_updated: [] });
       return jsonResponse({}, 404);
     });
-    const { getByTestId } = renderWithDb(<FaceTaggingScreen />, t.db, api);
+    const { getByTestId } = await renderWithDb(<FaceTaggingScreen />, t.db, api);
 
     await waitFor(() => expect(getByTestId("face-accept-10")).toBeTruthy());
     expect(suggestedLoads).toBe(1);
     fireEvent.press(getByTestId("face-accept-10"));
+    await settleDb();
 
     await waitFor(() => expect(suggestedLoads).toBe(2));
   });
 
   it("assigns a new name to selected unknown faces", async () => {
     let body: unknown;
-    const { getByTestId } = renderWithDb(<FaceTaggingScreen />, t.db, client((b) => (body = b)));
+    const { getByTestId } = await renderWithDb(<FaceTaggingScreen />, t.db, client((b) => (body = b)));
 
     fireEvent.press(getByTestId("faces-tab-unknown"));
+
+    await settleDb();
     await waitFor(() => expect(getByTestId("face-20")).toBeTruthy());
 
     fireEvent.press(getByTestId("face-20"));
+
+    await settleDb();
     await waitFor(() => expect(getByTestId("faces-assign")).toBeTruthy());
     fireEvent.press(getByTestId("faces-assign"));
+    await settleDb();
 
     fireEvent.changeText(getByTestId("assign-name-input"), "Bob");
+
+    await settleDb();
     fireEvent.press(getByTestId("assign-name-create"));
+    await settleDb();
 
     await waitFor(() => expect(body).toEqual({ face_ids: [20], person_name: "Bob" }));
   });
 
   it("shows an offline state when disconnected", async () => {
     globalThis.__mockNetworkConnected = false;
-    const { getByTestId } = renderWithDb(<FaceTaggingScreen />, t.db, client());
+    const { getByTestId } = await renderWithDb(<FaceTaggingScreen />, t.db, client());
     await waitFor(() => expect(getByTestId("faces-offline")).toBeTruthy());
   });
 });

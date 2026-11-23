@@ -15,9 +15,8 @@
  */
 import { sql } from "drizzle-orm";
 import { ApiError } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
+import type { AppDatabase, SyncLogEntry } from "@librephotos/local-db";
 import { isRecord, parseJson } from "@/lib/guards";
-import type { SyncLogEntry } from "@/db/queries/sync-log";
 import {
   AlbumAddPayload,
   AlbumCoverPayload,
@@ -93,55 +92,45 @@ function isPermanent(err: unknown): boolean {
  * mirror rows AND rewrite any still-pending outbox payloads that reference the
  * temp id, so chained offline edits (add/remove/rename) target the real album.
  */
-export function reconcileTempAlbum(db: AppDatabase, tempId: number, realId: number): void {
+export async function reconcileTempAlbum(db: AppDatabase, tempId: number, realId: number): Promise<void> {
   if (tempId === realId) return;
-  const temp = db.get(
+  const temp = await db.get<{ title: string; owner_id: number | null; shared: number; favorited: number; cover_hash: string | null; created_on: number | null; last_modified: number | null; } | undefined>(
     sql`SELECT title, owner_id, shared, favorited, cover_hash, created_on, last_modified
         FROM user_album WHERE id = ${tempId}`
-  ) as
-    | {
-        title: string;
-        owner_id: number | null;
-        shared: number;
-        favorited: number;
-        cover_hash: string | null;
-        created_on: number | null;
-        last_modified: number | null;
-      }
-    | undefined;
+  );
 
   if (temp) {
     // Upsert the album row under the real id (merge onto an already-synced row).
-    db.run(
+    await db.run(
       sql`INSERT INTO user_album (id, title, owner_id, shared, favorited, cover_hash, photo_count, created_on, last_modified)
           VALUES (${realId}, ${temp.title}, ${temp.owner_id}, ${temp.shared}, ${temp.favorited},
                   ${temp.cover_hash}, 0, ${temp.created_on}, ${temp.last_modified})
           ON CONFLICT(id) DO NOTHING`
     );
     // Move membership across, then drop the temp album.
-    db.run(
+    await db.run(
       sql`INSERT OR IGNORE INTO user_album_photo (album_id, photo_id, ordering)
           SELECT ${realId}, photo_id, ordering FROM user_album_photo WHERE album_id = ${tempId}`
     );
-    db.run(sql`DELETE FROM user_album_photo WHERE album_id = ${tempId}`);
-    db.run(sql`DELETE FROM user_album WHERE id = ${tempId}`);
-    db.run(
+    await db.run(sql`DELETE FROM user_album_photo WHERE album_id = ${tempId}`);
+    await db.run(sql`DELETE FROM user_album WHERE id = ${tempId}`);
+    await db.run(
       sql`UPDATE user_album SET photo_count = (SELECT COUNT(*) FROM user_album_photo WHERE album_id = ${realId})
           WHERE id = ${realId}`
     );
   }
 
   // Rewrite pending outbox rows still pointing at the temp album.
-  const rows = db.all(
+  const rows = await db.all<{ id: number; kind: string; payload: string }>(
     sql`SELECT id, kind, payload FROM outbox
         WHERE kind IN ('album_add', 'album_remove', 'album_rename', 'album_delete', 'album_cover')
           AND payload IS NOT NULL`
-  ) as { id: number; kind: string; payload: string }[];
+  );
   for (const r of rows) {
     try {
       const p = parseJson(r.payload);
       if (isRecord(p) && p.albumId === tempId) {
-        db.run(sql`UPDATE outbox SET payload = ${JSON.stringify({ ...p, albumId: realId })} WHERE id = ${r.id}`);
+        await db.run(sql`UPDATE outbox SET payload = ${JSON.stringify({ ...p, albumId: realId })} WHERE id = ${r.id}`);
       }
     } catch {
       // Unparseable payload — skip; replay will drop it as a 4xx later.
@@ -176,7 +165,7 @@ async function execRow(db: AppDatabase, executor: OutboxExecutor, row: OutboxRow
     case "album_create": {
       const p = AlbumCreatePayload.parse(raw);
       const { id } = await executor.albumCreate({ title: p.title, photoIds: p.photoIds });
-      reconcileTempAlbum(db, p.tempId, id);
+      await reconcileTempAlbum(db, p.tempId, id);
       return;
     }
     case "album_rename": {
@@ -211,23 +200,23 @@ export async function drainOutbox(
   let replayed = 0;
   let dropped = 0;
 
-  reclaimStaleInflight(db, now());
+  await reclaimStaleInflight(db, now());
 
   let processed = 0;
   for (;;) {
     if (opts.signal?.aborted) break;
     if (processed >= maxRows) break;
-    const row = nextOutboxRow(db, now());
+    const row = await nextOutboxRow(db, now());
     if (!row) break;
     processed += 1;
-    markInflight(db, row.id, now());
+    await markInflight(db, row.id, now());
     try {
       await execRow(db, executor, row);
-      deleteOutboxRow(db, row.id);
+      await deleteOutboxRow(db, row.id);
       replayed += 1;
     } catch (err) {
       if (isPermanent(err)) {
-        dropOutboxRow(db, row.id);
+        await dropOutboxRow(db, row.id);
         dropped += 1;
         const message = err instanceof Error ? err.message : String(err);
         opts.log?.({ op: "replay", entity: row.kind, level: "error", message: `dropped: ${message}` });
@@ -236,14 +225,14 @@ export async function drainOutbox(
         // Transient (network / 5xx): keep + backoff, and stop — the rest will
         // fail the same way until connectivity returns.
         const message = err instanceof Error ? err.message : String(err);
-        failOutboxRow(db, row.id, message, now());
+        await failOutboxRow(db, row.id, message, now());
         opts.log?.({ op: "replay", entity: row.kind, level: "warn", message: `retry: ${message}` });
         break;
       }
     }
   }
 
-  const remaining = pendingOutboxCount(db);
+  const remaining = await pendingOutboxCount(db);
   if (replayed > 0 || dropped > 0) {
     opts.log?.({ op: "replay", level: "info", applied: replayed, message: `replayed ${replayed}, dropped ${dropped}, remaining ${remaining}` });
   }

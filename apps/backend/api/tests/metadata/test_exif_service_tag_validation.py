@@ -14,6 +14,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 
 from api.tests.metadata.test_exif_service_get_tags import FakeExifTool
+from api.tests.sidecar_client import test_client
 from service.exif import main as exif_main
 from service.exif.tag_validation import is_safe_media_path, is_safe_tag_name
 
@@ -21,7 +22,7 @@ from service.exif.tag_validation import is_safe_media_path, is_safe_tag_name
 class GetTagsSecurityTest(SimpleTestCase):
     def setUp(self):
         exif_main.app.config["TESTING"] = True
-        self.client = exif_main.app.test_client()
+        self.client = test_client(exif_main.app)
 
     def post(self, files, tags, struct=False):
         return self.client.post(

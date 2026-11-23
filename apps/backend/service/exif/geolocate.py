@@ -24,14 +24,13 @@ No Flask or Django here: the route in ``service.exif.main`` calls it.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 
 from api.metadata.exiftool_client import ExifTool
 
 # GeoNames feature codes ExifTool leaves out: sections of a populated place.
 FEATURE_FILTER = "-PPLX"
 
-# What a lookup asks for. Every other Geolocation tag (time zone, population,
-# bearing) stays unread: the nearest town's time zone is wrong away from towns.
 TAGS = (
     "GeolocationCity",
     "GeolocationSubregion",
@@ -42,6 +41,8 @@ TAGS = (
     "GeolocationDistance",
     "GeolocationFeatureCode",
 )
+
+TIME_ZONE_TAG = "GeolocationTimeZone"
 
 # Points one request may ask for: a lookup takes ~9 ms, so a full batch stays
 # well inside the backend's 30 s read timeout.
@@ -101,7 +102,9 @@ def parse_max_distance(value: object) -> float | None:
     return distance
 
 
-def lookup_args(point: Point, max_distance_km: float | None) -> list[str]:
+def lookup_args(
+    point: Point, max_distance_km: float | None, tags: Sequence[str] = TAGS
+) -> list[str]:
     """The ExifTool arguments of one lookup."""
     lat, lon = point
     args = [
@@ -113,13 +116,26 @@ def lookup_args(point: Point, max_distance_km: float | None) -> list[str]:
     ]
     if max_distance_km is not None:
         args += ["-api", f"GeolocMaxDist={max_distance_km:.3f}"]
-    return args + [f"-{tag}" for tag in TAGS]
+    return args + [f"-{tag}" for tag in tags]
 
 
-def _ungrouped(data: dict[str, object]) -> dict[str, object]:
-    """``ExifTool:GeolocationCity`` -> ``GeolocationCity``, the lookup's tags only."""
+def _ungrouped(
+    data: dict[str, object], tags: Sequence[str] = TAGS
+) -> dict[str, object]:
     by_name = {key.rpartition(":")[2]: value for key, value in data.items()}
-    return {tag: by_name[tag] for tag in TAGS if tag in by_name}
+    return {tag: by_name[tag] for tag in tags if tag in by_name}
+
+
+def _lookup(
+    et: ExifTool, point: Point, max_distance_km: float | None, tags: Sequence[str]
+) -> dict[str, object]:
+    answer: object = et.execute_json(*lookup_args(point, max_distance_km, tags))
+    if not isinstance(answer, list) or len(answer) != 1:
+        raise ValueError("ExifTool answered a lookup without one result")
+    data = answer[0]
+    if not isinstance(data, dict):
+        raise ValueError("ExifTool answered a lookup without an object")
+    return _ungrouped(data, tags)
 
 
 def geolocate(
@@ -131,14 +147,14 @@ def geolocate(
     runs with ``-n``, so ``GeolocationDistance`` is a number of km and
     ``GeolocationPosition`` the town's ``"<lat> <lon>"``.
     """
-    # Checked here as well: the sidecar's tests answer with a stand-in.
-    answer: object = et.execute_json(*lookup_args(point, max_distance_km))
-    if not isinstance(answer, list) or len(answer) != 1:
-        raise ValueError("ExifTool answered a lookup without one result")
-    data = answer[0]
-    if not isinstance(data, dict):
-        raise ValueError("ExifTool answered a lookup without an object")
-    tags = _ungrouped(data)
+    tags = _lookup(et, point, max_distance_km, TAGS)
     if not tags.get("GeolocationCity"):
         return None
     return tags
+
+
+def time_zone_at(
+    et: ExifTool, point: Point, max_distance_km: float | None
+) -> str | None:
+    zone = _lookup(et, point, max_distance_km, (TIME_ZONE_TAG,)).get(TIME_ZONE_TAG)
+    return zone if isinstance(zone, str) and zone else None

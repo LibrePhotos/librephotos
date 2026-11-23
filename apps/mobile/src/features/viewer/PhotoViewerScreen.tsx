@@ -19,7 +19,7 @@ import {
   remotePhotoIdByHash,
   type PhotoAlbumRow,
   type ViewerSlide,
-} from "@/db/queries/detail";
+} from "@librephotos/local-db";
 import { useMutations } from "@/mutations/useMutations";
 import { TextPromptModal } from "@/components/TextPromptModal";
 import { AlbumPickerSheet } from "@/components/AlbumPickerSheet";
@@ -142,7 +142,7 @@ export function PhotoViewerScreen() {
   useLayoutEffect(() => {
     if (restoreIndex == null) return;
     if (restoreIndex !== currentIndex) {
-      listRef.current?.scrollToIndex({ index: restoreIndex, animated: false });
+      void listRef.current?.scrollToIndex({ index: restoreIndex, animated: false });
       setCurrentIndex(restoreIndex);
     }
     restored();
@@ -190,48 +190,48 @@ export function PhotoViewerScreen() {
   /* ---- mutations ------------------------------------------------------- */
 
   const toggleFavorite = useCallback(() => {
-    if (hash && flags) mutations.favorite([hash], flags.is_favorite === 0);
+    if (hash && flags) void mutations.favorite([hash], flags.is_favorite === 0);
   }, [hash, flags, mutations]);
   const toggleHide = useCallback(() => {
-    if (hash && flags) mutations.hide([hash], flags.hidden === 0);
+    if (hash && flags) void mutations.hide([hash], flags.hidden === 0);
   }, [hash, flags, mutations]);
   const toggleTrash = useCallback(() => {
-    if (hash && flags) mutations.trash([hash], flags.in_trashcan === 0);
+    if (hash && flags) void mutations.trash([hash], flags.in_trashcan === 0);
   }, [hash, flags, mutations]);
   const toggleArchive = useCallback(() => {
-    if (hash && flags) mutations.archive([hash], flags.archived === 0);
+    if (hash && flags) void mutations.archive([hash], flags.archived === 0);
   }, [hash, flags, mutations]);
   const rate = useCallback(
     (r: number) => {
-      if (hash) mutations.rate(hash, r);
+      if (hash) void mutations.rate(hash, r);
     },
     [hash, mutations]
   );
   const saveCaption = useCallback(
     (caption: string) => {
-      if (hash) mutations.caption(hash, caption);
+      if (hash) void mutations.caption(hash, caption);
     },
     [hash, mutations]
   );
   const removeFromAlbum = useCallback(
     (album: PhotoAlbumRow) => {
-      if (hash && summary) mutations.removeFromAlbum(album.id, album.title, [summary.id], [hash]);
+      if (hash && summary) void mutations.removeFromAlbum(album.id, album.title, [summary.id], [hash]);
     },
     [hash, summary, mutations]
   );
   const renamePerson = useCallback(
-    (name: string) => {
+    async (name: string) => {
       const person = renamingPerson;
       setRenamingPerson(null);
       if (!person) return;
-      const personId = personIdByName(db, person.name);
+      const personId = await personIdByName(db, person.name);
       if (personId == null) {
         // Renaming needs the mirrored person row: the outbox payload is keyed by
         // person id, and the face payload only carries a name.
         pushToast({ level: "error", message: t("viewer.renameUnavailable") });
         return;
       }
-      mutations.renamePerson(personId, name);
+      void mutations.renamePerson(personId, name);
     },
     [renamingPerson, db, mutations, pushToast, t]
   );
@@ -262,7 +262,7 @@ export function PhotoViewerScreen() {
       const index = slides.findIndex((s) => s.image_hash === imageHash);
       if (index >= 0) {
         // Already in this pager's window — scroll rather than stack a screen.
-        listRef.current?.scrollToIndex({ index, animated: true });
+        void listRef.current?.scrollToIndex({ index, animated: true });
         setCurrentKey(slides[index].key);
         setCurrentIndex(index);
         return;
@@ -273,8 +273,8 @@ export function PhotoViewerScreen() {
   );
 
   const openPerson = useCallback(
-    (name: string) => {
-      const personId = personIdByName(db, name);
+    async (name: string) => {
+      const personId = await personIdByName(db, name);
       if (personId != null) router.push(`/(tabs)/albums/people/${personId}`);
       else router.push(`/(tabs)/search?q=${encodeURIComponent(name)}`);
     },
@@ -428,7 +428,7 @@ export function PhotoViewerScreen() {
         onClose={() => goBackOr(router, "/(tabs)/photos")}
         onToggleInfo={() => setDetent(sheetOpen ? "hidden" : "peek")}
         onSelectSlide={(index) => {
-          listRef.current?.scrollToIndex({ index, animated: true });
+          void listRef.current?.scrollToIndex({ index, animated: true });
           setCurrentKey(slides[index].key);
           setCurrentIndex(index);
         }}
@@ -505,18 +505,18 @@ export function PhotoViewerScreen() {
 
       <AlbumPickerSheet
         visible={pickingAlbum}
-        onPick={(album) => {
+        onPick={async (album) => {
           setPickingAlbum(false);
           if (hash) {
-            const photoId = remotePhotoIdByHash(db, hash);
-            if (photoId) mutations.addToAlbum(album.id, album.title, [photoId], [hash]);
+            const photoId = await remotePhotoIdByHash(db, hash);
+            if (photoId) void mutations.addToAlbum(album.id, album.title, [photoId], [hash]);
           }
         }}
-        onCreate={(title_) => {
+        onCreate={async (title_) => {
           setPickingAlbum(false);
           if (hash) {
-            const photoId = remotePhotoIdByHash(db, hash);
-            mutations.createAlbum(title_, photoId ? [photoId] : []);
+            const photoId = await remotePhotoIdByHash(db, hash);
+            void mutations.createAlbum(title_, photoId ? [photoId] : []);
           }
         }}
         onCancel={() => setPickingAlbum(false)}

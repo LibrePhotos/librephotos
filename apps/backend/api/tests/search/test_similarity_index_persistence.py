@@ -29,6 +29,7 @@ from api.search.similarity import (
     build_image_similarity_index,
     search_similar_embedding,
 )
+from api.tests.sidecar_client import test_client
 from api.tests.stubs import load_backend_file
 from api.tests.utils import create_test_photos, create_test_user
 
@@ -186,7 +187,7 @@ class SidecarRoutesTest(_TempStore):
         self.main = _load_main(self.tmp.name)
         self.addCleanup(self.main.index.close)
         self.main.app.config["TESTING"] = True
-        self.client = self.main.app.test_client()
+        self.client = test_client(self.main.app)
 
     def test_the_index_lives_under_base_data(self):
         self.assertEqual(

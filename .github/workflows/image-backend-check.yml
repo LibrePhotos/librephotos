@@ -10,6 +10,7 @@ on:
   pull_request:
     paths:
       - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements.nodeps.txt'
       - 'apps/backend/requirements.unified.txt'
       - 'deploy/docker/backend/**'
       - '.github/workflows/image-backend-check.yml'
@@ -49,8 +50,9 @@ jobs:
       - name: The native packages import, Django checks pass
         env:
           CHECK: |
-            import sys
-            import django, onnxruntime, timezonefinder, rawpy, pyvips, cv2, psycopg
+            import importlib.util, sys
+            import django, onnxruntime, rawpy, pyvips, cv2, psycopg, tokenizers
+            assert importlib.util.find_spec("huggingface_hub") is None, "huggingface_hub is installed"
             print(sys.version)
             print("Django", django.__version__, "onnxruntime", onnxruntime.__version__)
             print("libvips", pyvips.version(0), pyvips.version(1), "LibRaw", rawpy.libraw_version)

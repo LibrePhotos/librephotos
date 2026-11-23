@@ -22,8 +22,8 @@ subsystem to its plan chapter.
 ### Mirror-first reads
 
 Synced content (photos, albums, people, sharing) renders from a **local SQLite
-mirror** of the server database, via `expo-sqlite` + Drizzle ORM with
-`useLiveQuery` for reactive screens. The network is used only to *converge* the
+mirror** of the server database, via the shared `packages/local-db` (Drizzle over
+expo-sqlite's async API) with `useReactiveQuery` for reactive screens. The network is used only to *converge* the
 mirror and to fetch image bytes — never on the read path. The rule (enforced
 per screen): **synced entities render from SQLite; everything else renders
 through TanStack Query. A screen never mixes both for the same entity.** See
@@ -151,9 +151,25 @@ Backup screen names the state rather than showing a stalled bar.
 
 ### Local database
 
-Drizzle schema, checked-in SQL migrations, and query layer in `src/db/`.
-Migrations are generated with `drizzle-kit` and inlined into a TS module so the
-runtime has no filesystem dependency (see "Regenerating migrations" below).
+The schema, migrations, queries, writers and the change hub are the shared
+package `packages/local-db` (the desktop app uses the same one). `src/db/` is
+the app glue only: `client.ts` (the expo-sqlite executor: async API, one serial
+connection, WAL, a statement cache), `DatabaseGate.tsx` (open, migrate, warm the
+timeline's first reads, bridge the update hook to the change hub) and
+`provider.tsx` (`useReactiveQuery`). Every read and write is async:
+
+```ts
+const { data, loading } = useReactiveQuery(["people"], (db) => people(db), [] as PersonRow[], {
+  tables: ["person"],
+});
+```
+
+The key names the query and every input it reads; results are cached per key,
+so a screen that comes back paints its last rows at once, and `loading` is true
+only until the current key has an answer (show the empty state only when it is
+false). Atomic writes are one `db.batch([...])` / `runBatch(db, statements)`.
+The design is in the developer docs:
+[On-device database](../docs/docs/development/local-database.md).
 
 ## Dev setup
 
@@ -240,19 +256,14 @@ fnm exec --using=24 -- npx.cmd vitest run       # zod schema + endpoint contract
 
 ## Regenerating migrations
 
-After changing the Drizzle schema in `src/db/`, regenerate the checked-in SQL
-migrations and the inlined runtime module:
+The schema lives in `packages/local-db/src/schema.ts`. After changing it:
 
 ```bash
-cd apps/mobile
-fnm exec --using=24 -- npm.cmd run db:generate
+fnm exec --using=24 -- npm.cmd run db:generate --workspace packages/local-db
 ```
 
-This runs `drizzle-kit generate` (writes `src/db/migrations/`) and then
-`scripts/inline-migrations.mjs`, which bundles the SQL into
-`src/db/migrations-sql.ts`. Commit both. The command is idempotent — if the
-schema already matches the migrations it is a no-op. A CI-style "schema matches
-migrations" check is just running this and confirming a clean `git status`.
+That writes the SQL migration and `packages/local-db/migrations/migrations.json`,
+which the app applies at start (`runMigrations`).
 
 ## Dependency constraints
 
@@ -316,14 +327,9 @@ These are load-bearing — changing them breaks the build or tests:
   relative to `apps/mobile/babel.config.js` — cannot find it, and every jest
   suite dies with *"Cannot find module 'babel-preset-expo'"*. Keep its range in
   step with the SDK.
-- **`.sql` migrations need two pieces of config.** `metro.config.js` adds `sql`
-  to `resolver.sourceExts` (so Metro resolves the imports in drizzle's
-  generated `migrations.js`) **and** `babel.config.js` applies
-  `babel-plugin-inline-import` for `.sql` (so Babel inlines them as strings
-  instead of parsing SQL as JavaScript). With only the first, every bundle
-  fails with a `TransformError`. Note the jest DB tests import the inlined
-  `migrations-sql.ts` instead, so they stay green either way — only a real
-  bundle catches this.
+- **Migrations are JSON, not `.sql` modules.** The app imports
+  `packages/local-db/migrations/migrations.json` (Metro and jest read JSON as
+  is), so neither Metro nor Babel needs any `.sql` configuration.
 
 ## App identity
 

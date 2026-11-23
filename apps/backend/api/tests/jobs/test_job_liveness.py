@@ -15,10 +15,9 @@ import uuid
 from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
-from django_q.brokers import get_broker
-from django_q.signing import SignedPackage
 from rest_framework.test import APIClient
 
+from api.jobs import store
 from api.jobs.cleanup import fail_stuck_jobs
 from api.models import LongRunningJob
 from api.tests.utils import create_test_job, create_test_user
@@ -26,12 +25,14 @@ from api.tests.utils import create_test_job, create_test_user
 J = LongRunningJob
 
 
+def job_task(user_id: int, job_id: str) -> None:
+    return None
+
+
 def queue_task(*args: object, **kwargs: object) -> int:
-    payload = SignedPackage.dumps(
-        {"id": "t1", "name": "t1", "func": "math.floor", "args": args, "kwargs": kwargs}
-    )
-    task_id: int = get_broker().enqueue(payload)
-    return task_id
+    task = store.add(job_task, args, kwargs)
+    assert task is not None
+    return task.pk
 
 
 def hours_ago(hours: float) -> datetime.datetime:

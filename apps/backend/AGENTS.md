@@ -1,7 +1,7 @@
 # LibrePhotos backend
 
 Django 6.1 + DRF on Python 3.14 and Postgres 15+ (SQLite for tests, the Windows dev server and the standalone build),
-background jobs on django-q2, and ML in separate Flask sidecars running ONNX Runtime.
+background jobs on its own task queue (`api/jobs`, `manage.py run_workers`), and ML in separate sidecars (`service/_web.py`, a small WSGI app layer) running ONNX Runtime.
 
 ## Commands
 
@@ -20,9 +20,9 @@ Without Docker, install with `bash scripts/setup_test_env.sh` inside an activate
 Never export `PHOTOS` in that shell: a registration test creates and deletes `<PHOTOS>/family`.
 
 Windows, natively: Python 3.14 (the prebuilt Windows wheels are cp314), `py -3.14 -m venv .venv-win` and
-`pip install -r requirements.txt -r requirements.dev.txt` (the Windows wheels come from the
+`pip install -r requirements.txt -r requirements.dev.txt`, then `pip install --no-deps -r requirements.nodeps.txt` (the Windows wheels come from the
 `windows-wheels-*` release via markers in `requirements.txt`). `scripts/dev_windows.ps1 -DataDir C:\devdata`
-starts the exif sidecar, qcluster and uvicorn on :8000 with `librephotos.settings.dev_windows`. ML
+starts the exif sidecar, `run_workers` and uvicorn on :8000 with `librephotos.settings.dev_windows`. ML
 sidecars are off there: set `FEATURE_<NAME>=1` and run `python manage.py start_service <name>`; they find
 their models under `$BASE_DATA/protected_media/data_models`. A failing
 test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that package serially.
@@ -30,7 +30,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 ## Rules
 
 - Type everything. Every function is annotated; no `# type: ignore`, no bare `Any` in an annotation
-  (ruff ANN401), `cast` only with a comment saying why the stubs are wrong. Never run
+  (ruff ANN401), `cast` only where the stubs are wrong, with the reason in the commit message. Never run
   `scripts/typecheck.py --update` to accept new errors.
 - Ruff findings that predate a rule live in the generated `ruff-baseline.toml`, which only shrinks: run
   `python scripts/ruff_baseline.py --update` after a fix, never to absorb a new finding, and add no `# noqa`
@@ -102,7 +102,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 - URLs: a new route is a `path()` (or a router registration), never `re_path()`: kebab-case literal segments, a trailing slash, ids through the converters in `librephotos/converters.py`. Legacy `re_path()` routes keep both slash forms through `/?$`, and `api/tests/infra/test_url_patterns.py` fails on a new one, an unanchored route or a client path that changes view.
 - Delete unused code instead of keeping aliases or wrappers for compatibility, unless an external client
   calls it. Code only tests call counts as dead; `vulture_whitelist.py` is for names called from outside
-  Python (settings dotted paths, django_q schedules) and only shrinks.
+  Python (settings dotted paths, task schedules) and only shrinks.
 - Errors: raise a DRF exception (`ValidationError`, `NotFound`, `PermissionDenied`) or one from
   `api/drf/exceptions.py` (`Conflict`, `Gone`, `UpstreamError`, `ServiceUnavailable`, ...), with `code=` when
   a client branches on it; never build an error body or a 2xx carrying `"status": False`. The handler
@@ -113,8 +113,8 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   Disk, sidecar, subprocess and network work goes in the domain's service module, taking the instance
   first (`api/thumbnails/render.py`, `api/photos/files.py`, `api/metadata/photo_writer.py`), and the caller calls it;
   never add a side effect to `save()`. `api/tests/infra/test_models_do_no_io.py` fails on an I/O import or call in `api/models/`.
-- Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `django_q.tasks`
-  elsewhere): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
+- Background work is queued only through `api/jobs/queue.py` (ruff TID251 bans `api.jobs.store`
+  outside `api/jobs`): `enqueue_job` (user-started; writes the `LongRunningJob` row before queuing, a duplicate
   start is a 409 `job_already_running` carrying the running `job_id`; `INSTANCE_WIDE_JOB_TYPES` are
   one per instance, scans and moves refuse each other), `enqueue_followup` (queued by
   a job), `enqueue_chain`, `reserve_job` for a job a task runs inline, and `enqueue_task` for pieces
@@ -124,6 +124,9 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
   (with its `JOB_TYPES` entry and migration), a task taking `job_id` that starts with
   `LongRunningJob.claim` and returns when it gets `None` (cancelled while queued), started from a view
   through `start_job` (`api/jobs/start.py`). Tests: `api/tests/jobs/test_job_queue.py`.
+  Task arguments are stored as JSON (`api/jobs/payload.py`): ids, strings, numbers, lists, dicts, UUIDs,
+  dates and saved model instances (loaded again when the task runs); anything else is a `TypeError` at
+  enqueue time. Tests that must not queue patch `api.jobs.store.add` with `api/tests/queue_recorder.py`.
   A job row is written only through its methods (`update_progress`, `complete`, `fail`, `cancel`, `set_result`):
   `LongRunningJob.save()` refuses a full-row save of an existing row, which would undo a cancel made
   while the job ran. A job ends once: `complete`/`fail`/`cancel` only move an unfinished row (return False
@@ -177,7 +180,7 @@ test makes `--parallel` runs crash with "cannot pickle 'traceback'"; rerun that 
 
 - Build test rows with the factories in `api/tests/utils.py` (`create_test_photo`, `create_test_stack`,
   `create_test_duplicate`, `create_test_tag`, ...), not `Model.objects.create` or a private `_make_*`
-  helper. A model without a factory gets one there, with a docstring. Keep the test-data rule in
+  helper. A model without a factory gets one there. Keep the test-data rule in
   `api/tests/infra/test_test_data_factories.py`: it fails on a new raw create, and
   `api/tests/infra/test_data_baseline.txt` only shrinks (`python scripts/factory_baseline.py --update`).
 - A raw create that must stay raw (a constraint test) carries `# raw-create: <reason>` on its line.
@@ -248,7 +251,7 @@ golden tests at a local bundle.
 ## Windows standalone build
 
 `scripts/build_standalone.py --zip` (needs `requirements.standalone.txt`, MSVC and Node 24) compiles
-`librephotos_standalone.py` with Nuitka into one `librephotos.exe` that runs the server, qcluster and
+`librephotos_standalone.py` with Nuitka into one `librephotos.exe` that runs the server, the workers (`run_workers`) and
 every sidecar (`librephotos/standalone.py` dispatches on `run`/`manage`/`service`) with
 `librephotos.settings.standalone`. `.github/workflows/standalone-windows.yml` builds it in CI, runs the zip
 with `scripts/smoke_standalone.py` (server, sidecars, a scan, the shutdown; `--from-source` tries it without a

@@ -28,21 +28,21 @@
  * Pure: transport + gate + materialize + notify are injected; Node-tested with
  * fakes.
  */
-import type { AppDatabase } from "@/db/types";
-import type { SyncLogEntry } from "@/db/queries/sync-log";
-import { sql } from "drizzle-orm";
-import { storeHash } from "@/sync/device/hasher";
-import type { AssetMaterializer } from "@/sync/device/types";
 import {
+  BACKOFF_BASE_MS,
   markDone,
   markFailed,
   markSkipped,
   nextEligible,
-  setQueueState,
-  BACKOFF_BASE_MS,
   QUEUE_ITEM_COLUMNS,
+  setQueueState,
+  type AppDatabase,
   type QueueItem,
-} from "./queue";
+  type SyncLogEntry,
+} from "@librephotos/local-db";
+import { sql } from "drizzle-orm";
+import { storeHash } from "@/sync/device/hasher";
+import type { AssetMaterializer } from "@/sync/device/types";
 import type { UploadGate } from "./gate";
 import { rawMd5, type UploadTransport } from "./transport";
 
@@ -111,7 +111,7 @@ export async function runUploadQueue(db: AppDatabase, opts: WorkerOptions): Prom
       }
     }
 
-    const item = nextEligible(db, now());
+    const item = await nextEligible(db, now());
     if (!item) {
       res.stoppedReason = "drained";
       break;
@@ -161,11 +161,11 @@ export async function runUploadItem(
     if (!decision.allowed) return { uploaded: false, skipped: false, failed: false, gated: decision.reason };
   }
 
-  const item = db.get(
+  const item = await db.get<QueueItem | undefined>(
     sql`SELECT ${QUEUE_ITEM_COLUMNS}
         FROM upload_queue uq JOIN local_asset la ON la.id = uq.asset_id
         WHERE uq.asset_id = ${assetId}`
-  ) as QueueItem | undefined;
+  );
   // The row can legitimately have vanished (the asset was deleted from the
   // device and swept) or already be done. Neither is an error.
   if (!item) return { uploaded: false, skipped: true, failed: false };
@@ -193,7 +193,7 @@ async function processItem(
 ): Promise<void> {
   const { asset_id: assetId, uri, name } = item;
   if (!uri) {
-    markFailed(db, assetId, "asset missing uri", now(), base);
+    await markFailed(db, assetId, "asset missing uri", now(), base);
     res.failed += 1;
     res.lastError = "asset missing uri";
     return;
@@ -207,19 +207,19 @@ async function processItem(
     let fetchedMd5: string | undefined;
     if (!hash) {
       if (!opts.materialize) {
-        markFailed(db, assetId, "asset has no hash and no way to fetch it", now(), base);
+        await markFailed(db, assetId, "asset has no hash and no way to fetch it", now(), base);
         res.failed += 1;
         res.lastError = "asset has no hash and no way to fetch it";
         return;
       }
-      setQueueState(db, assetId, "checking");
+      await setQueueState(db, assetId, "checking");
       const fetched = await opts.materialize({
         id: assetId,
         uri,
         type: item.type === "video" ? "video" : "image",
       });
       if (!fetched) {
-        markFailed(db, assetId, "could not download the original from iCloud", now(), base);
+        await markFailed(db, assetId, "could not download the original from iCloud", now(), base);
         res.failed += 1;
         res.lastError = "could not download the original from iCloud";
         return;
@@ -229,24 +229,24 @@ async function processItem(
       hash = fetched.md5 + String(opts.userId);
       // Persist before the network round trips: a run killed mid-upload must not
       // have to download the same original all over again.
-      storeHash(db, assetId, fetched.md5, opts.userId, now());
+      await storeHash(db, assetId, fetched.md5, opts.userId, now());
     }
 
     // 1. Dedup check — a server row will arrive via delta; the join absorbs it.
-    setQueueState(db, assetId, "checking");
+    await setQueueState(db, assetId, "checking");
     if (await opts.transport.exists(hash)) {
-      markSkipped(db, assetId);
+      await markSkipped(db, assetId);
       res.skipped += 1;
       return;
     }
 
     // 2. Chunked upload of the bytes.
-    setQueueState(db, assetId, "uploading", 0);
+    await setQueueState(db, assetId, "uploading", 0);
     const filename = name ?? assetId;
     const { uploadId, md5: uploadedMd5 } = await opts.transport.uploadFile(
       { assetId, uri: readableUri, filename, type: item.type, hash, userId: opts.userId, md5: fetchedMd5 },
       (p) => {
-        if (p.total > 0) setQueueState(db, assetId, "uploading", p.sent / p.total);
+        if (p.total > 0) setQueueState(db, assetId, "uploading", p.sent / p.total).catch(() => undefined);
         opts.onProgress?.(assetId, p.sent, p.total);
       }
     );
@@ -265,13 +265,13 @@ async function processItem(
       deviceModifiedAt: item.modified_at ?? null,
     });
 
-    markDone(db, assetId, completed.photoId);
+    await markDone(db, assetId, completed.photoId);
     res.uploaded += 1;
     opts.onUploaded?.(assetId);
   } catch (err) {
     if (opts.signal?.aborted) throw new UploadAbortedError();
     const message = err instanceof Error ? err.message : String(err);
-    markFailed(db, assetId, message, now(), base);
+    await markFailed(db, assetId, message, now(), base);
     res.failed += 1;
     res.lastError = message;
   }

@@ -78,7 +78,7 @@ function FolderChildren({ folder, level, ...tree }: NodeProps) {
 }
 
 function FolderIcon({ open, isNew }: Readonly<{ open: boolean; isNew: boolean }>) {
-  const color = "var(--mantine-color-yellow-7)";
+  const color = "var(--app-folder)";
   if (isNew) return <IconFolderPlus size={16} color={color} />;
   return open ? <IconFolderOpen size={16} color={color} /> : <IconFolder size={16} color={color} />;
 }

@@ -49,7 +49,7 @@ function outcomeText(outcome: DateRuleOutcome, t: Translate): string {
 function Summary({ result }: Readonly<{ result: DateRulesTest }>) {
   const { t } = useTranslation();
   if (result.date_set_by_user) {
-    return <Alert color="blue">{t("daterules.test_set_by_hand")}</Alert>;
+    return <Alert>{t("daterules.test_set_by_hand")}</Alert>;
   }
   const winner = result.winner === null ? undefined : result.outcomes[result.winner];
   if (!winner || result.winner === null) {
@@ -94,7 +94,7 @@ function OutcomeTable({ result }: Readonly<{ result: DateRulesTest }>) {
                 <Group gap={6}>
                   <span>{ruleName(outcome, position, t)}</span>
                   {used && (
-                    <Badge size="xs" color="teal" variant="light" leftSection={<CircleCheck size={12} aria-hidden />}>
+                    <Badge size="xs" color="green" variant="light" leftSection={<CircleCheck size={12} aria-hidden />}>
                       {t("daterules.test_used")}
                     </Badge>
                   )}

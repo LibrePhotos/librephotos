@@ -4,3 +4,4 @@ export * from "./useFetchServerLogsViewQuery";
 export * from "./useFetchStorageStatsQuery";
 export * from "./useFetchImageTagQuery";
 export * from "./useUpdateStatus";
+export * from "./useParallelWorkers";

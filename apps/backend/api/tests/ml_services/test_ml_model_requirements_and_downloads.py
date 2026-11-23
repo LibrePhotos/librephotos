@@ -28,6 +28,7 @@ from api.runtime.ml_models import (
     download_models,
     start_model_download,
 )
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_user
 
 
@@ -417,16 +418,17 @@ class DownloadModelsJobTest(TestCase):
 
 
 class StartModelDownloadFailureTest(TransactionTestCase):
-    """The task is queued when the row commits; a TestCase never commits."""
-
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_start_model_download_reports_a_queue_failure(self, async_task):
-        async_task.return_value.run.side_effect = RuntimeError("broker down")
+        async_task.side_effect = RuntimeError("broker down")
 
         self.assertFalse(start_model_download(create_test_user()))
 
-        job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
-        self.assertTrue(job.failed)
+        self.assertFalse(
+            LongRunningJob.objects.filter(
+                job_type=LongRunningJob.JOB_DOWNLOAD_MODELS
+            ).exists()
+        )
 
 
 _SHA256_RE = re.compile(r"^[0-9a-fA-F]{40,}$")
@@ -594,7 +596,7 @@ class MlModelSelectionTest(TestCase):
                 (model_root / "lfm2_vl_450m" / LFM_FILES[-2]).unlink()
                 self.assertFalse(captioning_model_exists())
 
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_start_model_download_queues_one_job(self, async_task):
         user = create_test_user()
 
@@ -605,9 +607,9 @@ class MlModelSelectionTest(TestCase):
         self.assertIs(async_task.call_args.args[1], user)
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertEqual(async_task.call_args.kwargs["job_id"], job.job_id)
-        async_task.return_value.run.assert_called_once_with()
+        async_task.assert_called_once()
 
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_start_model_download_skips_when_one_is_queued(self, async_task):
         # A queued download has its row before a worker picks it up, so a
         # second save of the settings meanwhile queues nothing.
@@ -618,7 +620,7 @@ class MlModelSelectionTest(TestCase):
 
         async_task.assert_called_once()
 
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_start_model_download_skips_when_one_is_running(self, async_task):
         user = create_test_user()
         LongRunningJob.create_job(

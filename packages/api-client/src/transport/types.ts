@@ -62,11 +62,6 @@ export interface ApiClientConfig {
 export type ResponseType = "auto" | "blob" | "text";
 
 export type RequestOptions = Omit<RequestInit, "body"> & {
-  /**
-   * Object bodies are JSON-encoded automatically. FormData passes through with
-   * no Content-Type (the runtime adds the multipart boundary); a string passes
-   * through as JSON unless a Content-Type header says otherwise.
-   */
   body?: unknown;
   /** Not sent to fetch; see ResponseType. */
   responseType?: ResponseType;

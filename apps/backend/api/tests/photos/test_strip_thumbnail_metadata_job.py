@@ -19,6 +19,7 @@ from rest_framework.test import APIClient
 from api.models import LongRunningJob
 from api.runtime import binaries
 from api.tests.photos.test_thumbnail_metadata import ALL_SIZES, _gps_jpeg, _leaky_webp
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import api_error, create_test_job, create_test_user
 from api.thumbnails import metadata
 from api.thumbnails.metadata import (
@@ -192,7 +193,7 @@ class StripThumbnailMetadataViewTest(TestCase):
         admin = create_test_user(is_admin=True)
         self.client.force_authenticate(user=admin)
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(URL)
@@ -213,7 +214,7 @@ class StripThumbnailMetadataViewTest(TestCase):
         running = create_test_job(admin, LongRunningJob.JOB_STRIP_THUMBNAIL_METADATA)
         self.client.force_authenticate(user=admin)
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(response.status_code, 409)
@@ -224,7 +225,7 @@ class StripThumbnailMetadataViewTest(TestCase):
     def test_a_normal_user_may_not_start_it(self):
         self.client.force_authenticate(user=create_test_user())
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(response.status_code, 403)

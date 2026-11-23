@@ -1,10 +1,9 @@
 import { fireEvent, waitFor } from "@testing-library/react-native";
 import { sql } from "drizzle-orm";
 import { BackupScreen } from "./BackupScreen";
-import { renderWithDb } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { insertLocalAlbum, insertLocalAsset } from "@/db/__tests__/fixtures";
-import { getBackupConfig, setBackupConfig } from "@/db/queries/backup";
+import { renderWithDb, settleDb } from "@/test/test-utils";
+import { createTestDb, insertLocalAlbum, insertLocalAsset, type TestDb } from "@librephotos/local-db/testing";
+import { getBackupConfig, setBackupConfig } from "@librephotos/local-db";
 import { setMediaAccess } from "@/sync/device/media-store";
 import { claimNextJob, enqueueJob, failJob } from "@/sync/jobs/queue";
 import { MAX_JOB_ATTEMPTS } from "@/sync/jobs/types";
@@ -13,12 +12,12 @@ import { useSyncStore } from "@/stores/sync";
 import { defined } from "@/test/defined";
 
 /** Seed a couple of albums + a queued upload row for the fixture render. */
-function seed(t: TestDb): void {
-  insertLocalAsset(t.db, { id: "a1", hash: "h1" });
-  insertLocalAsset(t.db, { id: "a2", hash: "h2" });
-  insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
-  insertLocalAlbum(t.db, { id: "screens", backupSelection: 0, assetIds: ["a2"] });
-  t.db.run(
+async function seed(t: TestDb): Promise<void> {
+  await insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+  await insertLocalAsset(t.db, { id: "a2", hash: "h2" });
+  await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
+  await insertLocalAlbum(t.db, { id: "screens", backupSelection: 0, assetIds: ["a2"] });
+  await t.db.run(
     sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
         VALUES ('a1', 'uploading', 0.5, 0, 1000), ('a2', 'done', 1, 0, 1000)`
   );
@@ -26,7 +25,7 @@ function seed(t: TestDb): void {
 
 describe("BackupScreen", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
     useAuthStore.setState({ userId: 1 });
     useSyncStore.setState({ running: false, progress: null, lastError: null });
@@ -34,9 +33,9 @@ describe("BackupScreen", () => {
   afterEach(() => t.close());
 
   it("renders albums, queue, and status from fixture state", async () => {
-    seed(t);
-    setBackupConfig(t.db, { enabled: true });
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    await seed(t);
+    await setBackupConfig(t.db, { enabled: true });
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
 
     await waitFor(() => {
       expect(getByTestId("backup-title")).toBeTruthy();
@@ -51,44 +50,44 @@ describe("BackupScreen", () => {
   });
 
   it("shows the iOS limited-access note when access is limited", async () => {
-    setMediaAccess(t.db, "limited");
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    await setMediaAccess(t.db, "limited");
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
     await waitFor(() => expect(getByTestId("backup-limited-note")).toBeTruthy());
   });
 
   it("cycles an album's backup selection on tap (none → selected)", async () => {
-    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 0, assetIds: ["a1"] });
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    await insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 0, assetIds: ["a1"] });
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
 
     await waitFor(() => expect(getByTestId("backup-album-cam")).toBeTruthy());
     fireEvent.press(getByTestId("backup-album-cam"));
+    await settleDb();
 
-    const row = t.db.get(sql`SELECT backup_selection FROM local_album WHERE id = 'cam'`) as {
-      backup_selection: number;
-    };
+    const row = await t.db.get<{ backup_selection: number; }>(sql`SELECT backup_selection FROM local_album WHERE id = 'cam'`);
     expect(row.backup_selection).toBe(1); // none(0) → selected(1)
   });
 
   it("turns backup on when the first album is selected", async () => {
     // Device-run report: "I can click on an album … but it will not upload
     // anything". The master toggle defaults off, so the selection was inert.
-    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 0, assetIds: ["a1"] });
-    expect(getBackupConfig(t.db).enabled).toBe(false);
+    await insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 0, assetIds: ["a1"] });
+    expect((await getBackupConfig(t.db)).enabled).toBe(false);
 
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
     await waitFor(() => expect(getByTestId("backup-album-cam")).toBeTruthy());
     fireEvent.press(getByTestId("backup-album-cam"));
+    await settleDb();
 
-    await waitFor(() => expect(getBackupConfig(t.db).enabled).toBe(true));
+    await waitFor(async () => expect((await getBackupConfig(t.db)).enabled).toBe(true));
   });
 
   it("explains an idle queue instead of leaving it silent", async () => {
-    setMediaAccess(t.db, "all");
-    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    await setMediaAccess(t.db, "all");
+    await insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
 
     // Backup is off → that, and not "nothing queued", is the explanation.
     await waitFor(() => expect(getByTestId("backup-blocker")).toBeTruthy());
@@ -96,24 +95,24 @@ describe("BackupScreen", () => {
   });
 
   it("shows hashing progress against the album total, not the hashed count", async () => {
-    setMediaAccess(t.db, "all");
-    setBackupConfig(t.db, { enabled: true });
+    await setMediaAccess(t.db, "all");
+    await setBackupConfig(t.db, { enabled: true });
     for (let i = 0; i < 10; i += 1) {
-      insertLocalAsset(t.db, { id: `a${i}`, hash: i < 3 ? `h${i}` : null });
+      await insertLocalAsset(t.db, { id: `a${i}`, hash: i < 3 ? `h${i}` : null });
     }
-    insertLocalAlbum(t.db, {
+    await insertLocalAlbum(t.db, {
       id: "cam",
       backupSelection: 1,
       assetIds: Array.from({ length: 10 }, (_, i) => `a${i}`),
     });
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
 
     await waitFor(() => expect(getByTestId("backup-stage")).toBeTruthy());
     expect(getByTestId("backup-stage").props.children).toContain("3 of 10");
   });
 
   it("shows an empty-queue message when nothing is queued", async () => {
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
     await waitFor(() => expect(getByTestId("backup-queue-empty")).toBeTruthy());
   });
 
@@ -121,19 +120,19 @@ describe("BackupScreen", () => {
     // The device run, exactly: 2867 photos on the phone, 161 enumerated. The
     // headline used to report a hash fraction over a library that had not
     // finished being enumerated, so it read "0/161" and meant nothing.
-    setMediaAccess(t.db, "all");
-    setBackupConfig(t.db, { enabled: true });
-    t.db.run(
+    await setMediaAccess(t.db, "all");
+    await setBackupConfig(t.db, { enabled: true });
+    await t.db.run(
       sql`INSERT INTO local_album (id, title, asset_count, modified_at, backup_selection)
           VALUES ('__library__', 'All Photos', 2867, 0, 1)`
     );
     for (let i = 0; i < 161; i += 1) {
-      insertLocalAsset(t.db, { id: `a${i}` });
-      t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('__library__', ${`a${i}`})`);
+      await insertLocalAsset(t.db, { id: `a${i}` });
+      await t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('__library__', ${`a${i}`})`);
     }
-    enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 0 } });
+    await enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 0 } });
 
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
     await waitFor(() => {
       expect(getByTestId("backup-stage").props.children).toContain("161 of 2867");
       // Each pipeline still gets its own denominator on the detail line.
@@ -142,15 +141,15 @@ describe("BackupScreen", () => {
   });
 
   it("blames a stage the queue gave up on, quoting the actual error", async () => {
-    setMediaAccess(t.db, "all");
-    setBackupConfig(t.db, { enabled: true });
-    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
-    enqueueJob(t.db, { kind: "hash_batch" });
-    const job = defined(claimNextJob(t.db, 1_000));
-    failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "media library denied", 1_000);
+    await setMediaAccess(t.db, "all");
+    await setBackupConfig(t.db, { enabled: true });
+    await insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
+    await enqueueJob(t.db, { kind: "hash_batch" });
+    const job = defined(await claimNextJob(t.db, 1_000));
+    await failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "media library denied", 1_000);
 
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
     await waitFor(() => {
       expect(getByTestId("backup-blocker").props.children).toContain("media library denied");
       // A dead stage must offer the same way out as a failed upload.
@@ -161,13 +160,13 @@ describe("BackupScreen", () => {
     // The state a phone on "Optimise iPhone Storage" spends most of its time
     // in: hashing has done everything it can without downloading, and the rest
     // is simply not on the device. That has to be a sentence, not a stuck bar.
-    setMediaAccess(t.db, "all");
-    setBackupConfig(t.db, { enabled: true });
-    insertLocalAsset(t.db, { id: "here", hash: "h1" });
-    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["here", "cloud"] });
+    await setMediaAccess(t.db, "all");
+    await setBackupConfig(t.db, { enabled: true });
+    await insertLocalAsset(t.db, { id: "here", hash: "h1" });
+    await insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["here", "cloud"] });
 
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
     await waitFor(() => {
       expect(getByTestId("backup-icloud").props.children).toContain("iCloud");
       expect(getByTestId("backup-stage").props.children).toContain("iCloud");
@@ -175,23 +174,23 @@ describe("BackupScreen", () => {
   });
 
   describe("uploads the server is still processing (#2740)", () => {
-    function seedUploaded(states: Record<string, string>): void {
-      setMediaAccess(t.db, "all");
-      setBackupConfig(t.db, { enabled: true });
+    async function seedUploaded(states: Record<string, string>): Promise<void> {
+      await setMediaAccess(t.db, "all");
+      await setBackupConfig(t.db, { enabled: true });
       const ids = Object.keys(states);
       for (const id of ids) {
-        insertLocalAsset(t.db, { id, hash: `h-${id}` });
-        t.db.run(
+        await insertLocalAsset(t.db, { id, hash: `h-${id}` });
+        await t.db.run(
           sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
               VALUES (${id}, ${states[id]}, 0.5, 0, 1)`
         );
       }
-      insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ids });
+      await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ids });
     }
 
     it("counts them on a line of their own and labels their queue rows", async () => {
-      seedUploaded({ done1: "done", busy: "uploading" });
-      const { getByTestId, getByText } = renderWithDb(<BackupScreen />, t.db);
+      await seedUploaded({ done1: "done", busy: "uploading" });
+      const { getByTestId, getByText } = await renderWithDb(<BackupScreen />, t.db);
       await waitFor(() => {
         expect(getByTestId("backup-processing").props.children).toBe("1 processing on the server");
         expect(getByText("Processing on server")).toBeTruthy();
@@ -199,8 +198,8 @@ describe("BackupScreen", () => {
     });
 
     it("never calls the library up to date while the server still works", async () => {
-      seedUploaded({ done1: "done", done2: "skipped_exists" });
-      const { getByTestId, queryByText } = renderWithDb(<BackupScreen />, t.db);
+      await seedUploaded({ done1: "done", done2: "skipped_exists" });
+      const { getByTestId, queryByText } = await renderWithDb(<BackupScreen />, t.db);
       await waitFor(() => {
         expect(getByTestId("backup-stage").props.children).toBe(
           "2 uploaded, 2 still processing on the server"
@@ -211,42 +210,41 @@ describe("BackupScreen", () => {
     });
 
     it("says nothing about the server when it has finished", async () => {
-      seedUploaded({ busy: "pending" });
-      const { getByTestId, queryByTestId } = renderWithDb(<BackupScreen />, t.db);
+      await seedUploaded({ busy: "pending" });
+      const { getByTestId, queryByTestId } = await renderWithDb(<BackupScreen />, t.db);
       await waitFor(() => expect(getByTestId("backup-stage")).toBeTruthy());
       expect(queryByTestId("backup-processing")).toBeNull();
     });
   });
 
   it("keeps quiet about iCloud when every photo is on the device", async () => {
-    setMediaAccess(t.db, "all");
-    setBackupConfig(t.db, { enabled: true });
-    insertLocalAsset(t.db, { id: "here", hash: "h1" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["here"] });
+    await setMediaAccess(t.db, "all");
+    await setBackupConfig(t.db, { enabled: true });
+    await insertLocalAsset(t.db, { id: "here", hash: "h1" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["here"] });
 
-    const { queryByTestId, getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    const { queryByTestId, getByTestId } = await renderWithDb(<BackupScreen />, t.db);
     await waitFor(() => expect(getByTestId("backup-title")).toBeTruthy());
     expect(queryByTestId("backup-icloud")).toBeNull();
   });
 
   it("un-parks iCloud-deferred assets when the user retries", async () => {
-    setMediaAccess(t.db, "all");
-    setBackupConfig(t.db, { enabled: true });
-    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud"] });
-    t.db.run(
+    await setMediaAccess(t.db, "all");
+    await setBackupConfig(t.db, { enabled: true });
+    await insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud"] });
+    await t.db.run(
       sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
           VALUES ('cloud', 'failed', 0, 1, 1000)`
     );
 
-    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    const { getByTestId } = await renderWithDb(<BackupScreen />, t.db);
     await waitFor(() => expect(getByTestId("backup-retry-button")).toBeTruthy());
     fireEvent.press(getByTestId("backup-retry-button"));
+    await settleDb();
 
     // Retry is also how a user says "I turned Optimise iPhone Storage off".
-    const row = t.db.get(sql`SELECT hash_state FROM local_asset WHERE id = 'cloud'`) as {
-      hash_state: string | null;
-    };
+    const row = await t.db.get<{ hash_state: string | null; }>(sql`SELECT hash_state FROM local_asset WHERE id = 'cloud'`);
     expect(row.hash_state).toBeNull();
   });
 });

@@ -2,10 +2,10 @@ from unittest.mock import patch
 
 from constance.test import override_config
 from django.test import TestCase
-from django_q.tasks import AsyncTask
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_user
 
 
@@ -48,7 +48,7 @@ class SiteSettingsTest(TestCase):
         self.assertEqual(response.json()["map_tile_provider"], "none")
 
     @patch("api.views.site_settings.do_all_models_exist", return_value=False)
-    @patch.object(AsyncTask, "run")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_saving_while_models_download_queues_no_second_download(
         self, run, _mock_do_all_models_exist
     ):
@@ -65,7 +65,7 @@ class SiteSettingsTest(TestCase):
         run.assert_not_called()
 
     @patch("api.views.site_settings.do_all_models_exist", return_value=False)
-    @patch.object(AsyncTask, "run")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_saving_with_models_missing_queues_the_download(
         self, run, _mock_do_all_models_exist
     ):
@@ -74,7 +74,7 @@ class SiteSettingsTest(TestCase):
                 "/api/sitesettings", data={"allow_upload": True}, format="json"
             )
         self.assertEqual(response.status_code, 200)
-        run.assert_called_once_with()
+        run.assert_called_once()
         # The download's row exists from the moment it is queued.
         self.assertTrue(
             LongRunningJob.objects.filter(

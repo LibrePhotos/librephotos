@@ -17,20 +17,24 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useTheme } from "@/theme";
 import {
   cycleAlbumSelection,
+  DEFAULT_BACKUP_CONFIG,
+  EMPTY_QUEUE_SUMMARY,
   getBackupConfig,
   listBackupAlbums,
+  queueList,
+  queueSummary,
+  retryFailed,
   setAlbumBackupSelection,
   setBackupConfig,
   type AlbumBackupRow,
-  type BackupConfig,
-} from "@/db/queries/backup";
-import { queueList, queueSummary, retryFailed, type QueueListRow, type QueueSummary } from "@/sync/upload/queue";
+  type QueueListRow,
+} from "@librephotos/local-db";
 import type { BackupBlocker, BackupState } from "@/sync/upload/status";
 import { stageText, useBackupState } from "./backupStatus";
 import { getMediaAccess } from "@/sync/device/media-store";
 import { clearDeferredHashes } from "@/sync/device/hasher";
 import { LIBRARY_ALBUM_ID } from "@/sync/device/media-sync";
-import { jobQueueSnapshot, type JobQueueSnapshot } from "@/sync/jobs/status";
+import { EMPTY_JOB_QUEUE_SNAPSHOT, jobQueueSnapshot } from "@/sync/jobs/status";
 import { retryFailedJobs } from "@/sync/jobs/queue";
 import type { MediaAccess } from "@/sync/device/types";
 
@@ -54,19 +58,19 @@ export function BackupScreen() {
   const running = useSyncStore((s) => s.running);
   const deviceProgress = useSyncStore((s) => s.deviceProgress);
 
-  const config = useReactiveQuery<BackupConfig>((d) => getBackupConfig(d), []);
-  const summary = useReactiveQuery<QueueSummary>((d) => queueSummary(d), []);
-  const albums = useReactiveQuery<AlbumBackupRow[]>((d) => listBackupAlbums(d), []);
-  const queue = useReactiveQuery<QueueListRow[]>((d) => queueList(d, 100), []);
-  const access = useReactiveQuery<MediaAccess | null>((d) => getMediaAccess(d), []);
-  const jobs = useReactiveQuery<JobQueueSnapshot>((d) => jobQueueSnapshot(d), []);
+  const { data: config } = useReactiveQuery(["backup-config"], (d) => getBackupConfig(d), DEFAULT_BACKUP_CONFIG, { tables: ["app_meta"] });
+  const { data: summary } = useReactiveQuery(["upload-queue-summary"], (d) => queueSummary(d), EMPTY_QUEUE_SUMMARY, { tables: ["upload_queue"] });
+  const { data: albums } = useReactiveQuery(["backup-albums"], (d) => listBackupAlbums(d), [] as AlbumBackupRow[]);
+  const { data: queue } = useReactiveQuery(["upload-queue-list", 100], (d) => queueList(d, 100), [] as QueueListRow[]);
+  const { data: access } = useReactiveQuery<MediaAccess | null>(["media-access"], (d) => getMediaAccess(d), null, { tables: ["app_meta"] });
+  const { data: jobs } = useReactiveQuery(["job-queue-snapshot", 20], (d) => jobQueueSnapshot(d), EMPTY_JOB_QUEUE_SNAPSHOT, { tables: ["job_queue"] });
   const state = useBackupState();
 
   const [busy, setBusy] = useState(false);
 
   const onToggleEnabled = useCallback(
-    (value: boolean) => {
-      setBackupConfig(db, { enabled: value });
+    async (value: boolean) => {
+      await setBackupConfig(db, { enabled: value });
       if (value) void backupNow(db, userId, setBusy);
     },
     [db, userId]
@@ -74,30 +78,30 @@ export function BackupScreen() {
 
   const onBackupNow = useCallback(() => backupNow(db, userId, setBusy), [db, userId]);
 
-  const onRetry = useCallback(() => {
-    retryFailed(db);
+  const onRetry = useCallback(async () => {
+    await retryFailed(db);
     // Un-park the iCloud-deferred assets too: "Retry" is also the only way to
     // tell the app that "Optimise iPhone Storage" is off now, or that iOS has
     // pulled the originals back down. Re-checking costs one no-network lookup
     // each, not a download.
-    clearDeferredHashes(db);
+    await clearDeferredHashes(db);
     // A stage that gave up is as much a reason for "nothing is uploading" as a
     // failed item, so one Retry has to revive both.
-    retryFailedJobs(db);
+    await retryFailedJobs(db);
     void backupNow(db, userId, setBusy);
   }, [db, userId]);
 
   const onCycleAlbum = useCallback(
-    (album: AlbumBackupRow) => {
+    async (album: AlbumBackupRow) => {
       const next = cycleAlbumSelection(album.backup_selection);
-      setAlbumBackupSelection(db, album.id, next);
+      await setAlbumBackupSelection(db, album.id, next);
       // Picking an album *is* the user asking for it to be backed up. The
       // master toggle defaults to off, so on the device run selecting an album
       // did precisely nothing and said nothing about why. Turning backup on
       // with the first selection (the toggle stays available to turn it back
       // off) makes the choice mean what it looks like it means.
-      if (next === 1 && !getBackupConfig(db).enabled) {
-        setBackupConfig(db, { enabled: true });
+      if (next === 1 && !(await getBackupConfig(db)).enabled) {
+        await setBackupConfig(db, { enabled: true });
       }
       if (next === 1) void backupNow(db, userId, setBusy);
     },
@@ -194,14 +198,14 @@ export function BackupScreen() {
             testID="backup-wifi-toggle"
             label={t("backup.wifiOnly")}
             value={config.wifiOnly}
-            onValueChange={(v) => setBackupConfig(db, { wifiOnly: v })}
+            onValueChange={async (v) => await setBackupConfig(db, { wifiOnly: v })}
             theme={theme}
           />
           <ToggleRow
             testID="backup-charging-toggle"
             label={t("backup.chargingOnly")}
             value={config.chargingOnly}
-            onValueChange={(v) => setBackupConfig(db, { chargingOnly: v })}
+            onValueChange={async (v) => await setBackupConfig(db, { chargingOnly: v })}
             theme={theme}
           />
         </View>

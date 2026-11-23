@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { squareThumbnailUrl } from "@librephotos/api-client";
 import { Icon, type IconName } from "@/components/Icon";
-import type { ViewerSlide } from "@/db/queries/detail";
+import type { ViewerSlide } from "@librephotos/local-db";
 
 /**
  * The viewer's overlay chrome: a top bar and a thumbnail filmstrip.

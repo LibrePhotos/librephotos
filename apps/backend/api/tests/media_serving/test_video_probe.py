@@ -28,6 +28,7 @@ from api.serializers.photos import (
     PhotoSummarySerializer,
     with_photo_summary_relations,
 )
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_photo, create_test_user
 from api.thumbnails import render
 from api.video import color, ffmpeg_budget, transcode_cache
@@ -720,8 +721,7 @@ class BackfillIsQueuedOnlyWhenNeededTest(TestCase):
 
     def _queued(self, can_probe=True):
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as task,
-            mock.patch("api.jobs.queue.Chain"),
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as task,
             self.captureOnCommitCallbacks(execute=True),
             mock.patch.object(scan_jobs.color, "can_probe", return_value=can_probe),
         ):

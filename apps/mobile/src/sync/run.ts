@@ -10,12 +10,11 @@
  * chunk, a hash batch, a single upload. The queue decides what runs next.
  */
 import { endpoints } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
+import { enqueueBackups, getBackupConfig, queueSummary, type AppDatabase } from "@librephotos/local-db";
 import { apiClient, serverAddress } from "@/lib/apiClient";
 import { tokenStorage } from "@/lib/tokenStorage";
 import { useSettingsStore } from "@/stores/settings";
 import { useSyncStore } from "@/stores/sync";
-import { getBackupConfig } from "@/db/queries/backup";
 import { refreshMemoriesReminders } from "@/features/memories/reminders";
 import {
   repairSync,
@@ -33,15 +32,13 @@ import { runHashPass } from "./device/hasher";
 import { createExpoMediaProvider } from "./device/expo-media-provider";
 import { createExpoAssetHasher } from "./device/expo-asset-hasher";
 import type { MediaProvider, AssetHasher, AssetMaterializer } from "./device/types";
-import { enqueueBackups, queueSummary } from "./upload/queue";
 import { runUploadItem } from "./upload/worker";
-import { makeUploadGate } from "./upload/gate";
+import { makeUploadGate, type DeviceProbe } from "./upload/gate";
 import { createExpoUploadTransport } from "./upload/expo-transport";
 import { createExpoDeviceProbe } from "./upload/expo-probe";
 import { jobQueueSnapshot } from "./jobs/status";
 import { createAdaptiveYield } from "./activity";
 import type { UploadTransport } from "./upload/transport";
-import type { DeviceProbe } from "./upload/gate";
 
 let source: RemoteSyncSource | null = null;
 function getSource(): RemoteSyncSource {
@@ -71,8 +68,8 @@ function getDeviceProbe(): DeviceProbe {
 }
 
 /** Push the current queue snapshot to the UI store after every job settles. */
-function publishQueue(db: AppDatabase): void {
-  useSyncStore.getState().setQueue(jobQueueSnapshot(db));
+async function publishQueue(db: AppDatabase): Promise<void> {
+  useSyncStore.getState().setQueue(await jobQueueSnapshot(db));
 }
 
 /**
@@ -136,7 +133,7 @@ function appSeams(userId: number | null | undefined): SyncAllOptions {
       // are queued too — unhashed and sorted last — because the upload path is
       // the only place allowed to fetch their bytes, and it hashes them on the
       // way out.
-      if (getBackupConfig(ctx.db).enabled) enqueueBackups(ctx.db);
+      if ((await getBackupConfig(ctx.db)).enabled) (await enqueueBackups(ctx.db));
       return {
         hashed: result.hashed,
         failed: result.failed,
@@ -147,7 +144,7 @@ function appSeams(userId: number | null | undefined): SyncAllOptions {
 
     uploadAsset: async (ctx, assetId) => {
       if (userId == null) return { uploaded: false, skipped: true };
-      const config = getBackupConfig(ctx.db);
+      const config = await getBackupConfig(ctx.db);
       if (!config.enabled) return { uploaded: false, skipped: true };
 
       const gate = makeUploadGate(
@@ -201,13 +198,13 @@ function appSeams(userId: number | null | undefined): SyncAllOptions {
       return { fetched, more: fetched >= limit };
     },
 
-    backupEnabled: (db) => getBackupConfig(db).enabled,
+    backupEnabled: async (db) => (await getBackupConfig(db)).enabled,
   };
 }
 
 /** Live upload-queue summary for the Backup screen header. */
-export function backupQueueSummary(db: AppDatabase) {
-  return queueSummary(db);
+export async function backupQueueSummary(db: AppDatabase) {
+  return await queueSummary(db);
 }
 
 /**
@@ -245,7 +242,9 @@ export async function runSync(db: AppDatabase, opts: RunSyncOptions): Promise<Sy
       reason: opts.reason,
       signal: opts.signal,
       maxJobs: opts.maxJobs,
-      onWorkerProgress: () => publishQueue(db),
+      onWorkerProgress: () => {
+        publishQueue(db).catch(() => undefined);
+      },
     });
     useSyncStore.getState().setResult(result);
     // New or removed photos change which days have memories. Awaited, so a
@@ -256,7 +255,7 @@ export async function runSync(db: AppDatabase, opts: RunSyncOptions): Promise<Sy
     useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
     return null;
   } finally {
-    publishQueue(db);
+    await publishQueue(db);
     useSyncStore.getState().setRunning(false);
   }
 }
@@ -278,15 +277,17 @@ export async function runBackupNow(
       ...appSeams(userId),
       reason: "manual",
       maxJobs: opts.maxJobs,
-      onWorkerProgress: () => publishQueue(db),
+      onWorkerProgress: () => {
+        publishQueue(db).catch(() => undefined);
+      },
     });
   } catch (err) {
     useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
   } finally {
-    publishQueue(db);
+    await publishQueue(db);
     useSyncStore.getState().setRunning(false);
   }
-  return queueSummary(db);
+  return await queueSummary(db);
 }
 
 /** Manual "Repair sync": wipe the mirror and reseed. */
@@ -295,7 +296,9 @@ export async function repair(db: AppDatabase, userId?: number | null): Promise<S
   try {
     const result = await repairSync(db, getSource(), {
       ...appSeams(userId),
-      onWorkerProgress: () => publishQueue(db),
+      onWorkerProgress: () => {
+        publishQueue(db).catch(() => undefined);
+      },
     });
     useSyncStore.getState().setResult(result);
     // New or removed photos change which days have memories. Awaited, so a
@@ -306,7 +309,7 @@ export async function repair(db: AppDatabase, userId?: number | null): Promise<S
     useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
     return null;
   } finally {
-    publishQueue(db);
+    await publishQueue(db);
     useSyncStore.getState().setRunning(false);
   }
 }

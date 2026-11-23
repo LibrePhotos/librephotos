@@ -83,7 +83,7 @@ function RunningSlideshow({
         <RingProgress
           size={40}
           thickness={2}
-          sections={[{ value: slideshowProgress, color: "blue" }]}
+          sections={[{ value: slideshowProgress, color: "brand" }]}
           className={classes.ringProgress}
           rootColor="var(--app-scrim-white-20)"
         />

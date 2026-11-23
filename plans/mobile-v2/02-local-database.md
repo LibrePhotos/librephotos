@@ -1,5 +1,17 @@
 # 02 — Local Database (SQLite mirror)
 
+> **Now `packages/local-db`** (shared with the desktop app). Everything below
+> still describes the tables; what changed since this plan: all access is
+> async (Drizzle `sqlite-proxy` over a per-app executor: expo-sqlite's async API
+> on the phone, Tauri IPC to rusqlite on the desktop); atomic writes are
+> `db.batch([...])`, never interactive transactions; the migrations were
+> squashed into one baseline (`0000_baseline`) plus `0001_local_search` (FTS5
+> over `local_asset`), shipped as `migrations/migrations.json` and tracked in
+> `__local_db_migrations`; and the local media tables also hold the desktop's
+> folder library (`local_album.source = 'folder'`, file metadata columns on
+> `local_asset`, resumable `upload_id` / `upload_offset` on `upload_queue`).
+> See `packages/local-db/README.md`.
+
 Drizzle ORM over `expo-sqlite`. One database file, three groups of tables:
 **remote mirror** (server state), **local media** (camera roll), **app state**
 (sync cursors, outbox, queues, caches). Timeline and album screens are pure
@@ -190,15 +202,16 @@ Semantics (matching Immich):
 - All hot queries must be covered by indexes; CI runs `EXPLAIN QUERY PLAN`
   assertions on the timeline, bucket, and favorites queries against a seeded
   100k-row fixture.
-- Writes happen in transactions of ≤1k rows during sync to keep the UI thread
-  responsive (expo-sqlite runs on a background thread; live queries re-fire
-  per transaction commit, not per row).
+- Writes happen in batches (one transaction each) of ≤1k rows during sync to
+  keep the UI thread responsive (expo-sqlite runs on a background thread; live
+  queries re-fire per flush of the change hub, not per row).
 
 ## 6. Migrations
 
-- drizzle-kit generates SQL migrations, committed to the repo; applied on app
-  start before any query.
-- Schema version tracked by drizzle's migration table. A failed/impossible
+- drizzle-kit generates SQL migrations, committed to the repo and turned into
+  `migrations.json`; applied on app start before any query, each in one batch.
+- Applied tags tracked in `__local_db_migrations(tag, applied_at)`, the same
+  table the desktop's Rust runner uses. A failed/impossible
   migration falls back to **wipe-and-reseed** (the mirror is disposable by
   design; only `outbox`, `upload_queue`, and auth must survive, so they are
   migrated first and separately).

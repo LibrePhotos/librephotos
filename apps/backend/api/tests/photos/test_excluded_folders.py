@@ -29,6 +29,7 @@ from api.photos.outside_library import (
     trash_photos_outside_library_job,
 )
 from api.photos.paths import library_of
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_file,
@@ -247,7 +248,7 @@ class ExcludedFoldersViewsTest(ExcludedFoldersTestBase):
         self.assertEqual(own.status_code, 200)
 
     def test_moves_the_own_photos_outside_the_library_to_the_trash(self):
-        with patch("api.jobs.queue.AsyncTask") as task:
+        with patch("api.jobs.store.add", new_callable=QueueRecorder) as task:
             with self.captureOnCommitCallbacks(execute=True):
                 response = self.client.post("/api/library-folders/trash-outside/")
 

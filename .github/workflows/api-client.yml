@@ -20,6 +20,8 @@ on:
       # Read by the shared dependency check below (lint-frontend.yml runs it on
       # web changes).
       - 'apps/mobile/package.json'
+      - 'apps/desktop/package.json'
+      - 'packages/local-db/package.json'
       - 'scripts/check-shared-deps*.mjs'
       # The root lockfile, and any nested one the guard below rejects.
       - '**/package-lock.json'
@@ -33,6 +35,8 @@ on:
       # Read by the shared dependency check below (lint-frontend.yml runs it on
       # web changes).
       - 'apps/mobile/package.json'
+      - 'apps/desktop/package.json'
+      - 'packages/local-db/package.json'
       - 'scripts/check-shared-deps*.mjs'
       # The root lockfile, and any nested one the guard below rejects.
       - '**/package-lock.json'
@@ -53,11 +57,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      # npm ignores a lockfile inside a workspace, but Renovate still edits it
-      # and it drifts. The root package-lock.json is the only npm lockfile.
       - name: no nested package-lock.json
         run: |
-          nested=$(git ls-files '*package-lock.json' | grep -vx 'package-lock.json' || true)
+          nested=$(git ls-files '*package-lock.json' | grep -vx -e 'package-lock.json' -e 'apps/desktop/package-lock.json' || true)
           if [ -n "$nested" ]; then
             echo "::error::Only the root package-lock.json may be committed. Remove: $nested"
             exit 1

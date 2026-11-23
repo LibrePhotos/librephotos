@@ -1,58 +1,66 @@
-import { Card, Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { Group, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import React, { type ReactNode } from "react";
+import { SettingsCard } from "../settings/SettingsCard";
 import { SectionLink } from "../settings/SettingsSection";
-import classes from "./NoticeCard.module.css";
 
-/**
- * One colour per kind of notice, so they tell apart at a glance: blue for a release to install,
- * grape for what is new, orange for work an update left to do.
- */
-type NoticeColor = "blue" | "grape" | "orange";
+type NoticeTone = "brand" | "orange";
 
-type NoticeCardProps = Readonly<{
-  color: NoticeColor;
-  /** A Tabler icon, drawn in a light square in the card's colour. */
+type NoticeContentProps = Readonly<{
+  tone: NoticeTone;
   icon: ReactNode;
   title: ReactNode;
-  /** Next to the title: a count, a version. */
   badge?: ReactNode;
   description?: ReactNode;
-  /** At the right of the header: a close or menu button. */
   actions?: ReactNode;
   children?: ReactNode;
+  contentIndent?: number;
 }>;
 
-/**
- * A card that asks for attention at the top of a page, in the page flow (never a modal): a bar in
- * its colour on top, an icon, a title with an optional badge and one explaining sentence, then its
- * content. Inside a SettingsSection the title links to it like every other card's.
- */
-export function NoticeCard({ color, icon, title, badge, description, actions, children }: NoticeCardProps) {
+export function NoticeContent({
+  tone,
+  icon,
+  title,
+  badge,
+  description,
+  actions,
+  children,
+  contentIndent = 0,
+}: NoticeContentProps) {
   return (
-    <Card shadow="md" className={classes.card} data-color={color}>
-      <Stack gap="sm">
-        <Group align="flex-start" wrap="nowrap" gap="sm">
-          <ThemeIcon variant="light" color={color} size="lg" radius="md" aria-hidden>
-            {icon}
-          </ThemeIcon>
-          <Stack gap={2} flex={1} miw={0}>
-            <Group gap="xs" align="center">
-              <Title order={4}>
-                {title}
-                <SectionLink />
-              </Title>
-              {badge}
-            </Group>
-            {description ? (
-              <Text size="sm" c="dimmed">
-                {description}
-              </Text>
-            ) : null}
-          </Stack>
-          {actions}
-        </Group>
-        {children}
-      </Stack>
-    </Card>
+    <Stack gap="sm">
+      <Group align={description ? "flex-start" : "center"} wrap="nowrap" gap="sm">
+        <ThemeIcon variant="light" color={tone} size="lg" radius="md" aria-hidden>
+          {icon}
+        </ThemeIcon>
+        <Stack gap={2} flex={1} miw={0}>
+          <Group gap="xs" align="center">
+            <Title order={3} size="h4">
+              {title}
+            </Title>
+            {badge}
+            <SectionLink />
+          </Group>
+          {description ? (
+            <Text size="sm" c="dimmed">
+              {description}
+            </Text>
+          ) : null}
+        </Stack>
+        {actions}
+      </Group>
+      {children ? (
+        <Stack gap="sm" pl={{ base: 0, sm: contentIndent }}>
+          {children}
+        </Stack>
+      ) : null}
+    </Stack>
+  );
+}
+
+export function NoticeCard({ contentIndent = 46, ...props }: NoticeContentProps) {
+  return (
+    <SettingsCard>
+      <NoticeContent contentIndent={contentIndent} {...props} />
+    </SettingsCard>
   );
 }

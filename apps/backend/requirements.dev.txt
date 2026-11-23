@@ -13,6 +13,8 @@ pyfakefs==6.3.2
 # shell_plus, runserver_plus and show_urls.
 django-silk==5.6.0
 django-extensions==4.1
+# uvicorn --reload (DEBUG=1) watches the source with it instead of polling.
+watchfiles==1.3.0
 ruff==0.15.22
 # Dead-code check (scripts/check_dead_code.py); lint-backend.yml installs this pin.
 vulture==2.16

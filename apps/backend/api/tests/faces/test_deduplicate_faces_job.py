@@ -18,6 +18,7 @@ from api.faces import deduplicate
 from api.faces.deduplicate import deduplicate_faces, deduplicate_faces_job
 from api.models import Face, LongRunningJob, Person, Photo, User
 from api.models.long_running_job import JobCancelledError
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_face,
@@ -190,7 +191,7 @@ class DeduplicateFacesViewTest(TestCase):
         admin = create_test_user(is_admin=True)
         self.client.force_authenticate(user=admin)
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(URL)
@@ -206,7 +207,7 @@ class DeduplicateFacesViewTest(TestCase):
         create_test_job(admin, LongRunningJob.JOB_DEDUPLICATE_FACES)
         self.client.force_authenticate(user=admin)
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(409, response.status_code)
@@ -217,7 +218,7 @@ class DeduplicateFacesViewTest(TestCase):
         photo = photo_with_duplicate(create_test_user())
         self.client.force_authenticate(user=create_test_user())
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(403, response.status_code)

@@ -21,6 +21,7 @@ from api.directory_watcher.scan_jobs import scan_photos
 from api.models import File, LongRunningJob, Photo
 from api.models.long_running_job import JobCancelledError
 from api.photos.media_files import calculate_hash
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.scanning.test_replaced_file_rescan import (
     ReplacedFileTestCase,
     _write_image,
@@ -314,7 +315,7 @@ class CheckFileContentsViewTest(CheckFileContentsTestCase):
 
     def _post(self, body):
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(URL, body, format="json")

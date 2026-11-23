@@ -15,15 +15,16 @@ import type {
   SyncSharedUserItem,
   SyncUserAlbumItem,
 } from "@librephotos/api-client";
-import { bucketDayFromMs, bucketMonthFromMs } from "@/db/time";
-import type {
-  AutoAlbumInput,
-  NamedAlbumInput,
-  PersonInput,
-  RemotePhotoInput,
-  SharedUserInput,
-  UserAlbumInput,
-} from "@/db/writers";
+import {
+  bucketDayFromMs,
+  bucketMonthFromMs,
+  type AutoAlbumInput,
+  type NamedAlbumInput,
+  type PersonInput,
+  type RemotePhotoInput,
+  type SharedUserInput,
+  type UserAlbumInput,
+} from "@librephotos/local-db";
 
 export function syncPhotoToRow(item: SyncPhotoItem, now: number): RemotePhotoInput {
   const timestamp = item.timestamp ?? null;

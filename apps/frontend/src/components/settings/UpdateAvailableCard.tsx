@@ -61,11 +61,11 @@ export function UpdateAvailableCard({ status }: Readonly<{ status: UpdateStatus 
 
   return (
     <NoticeCard
-      color="blue"
+      tone="brand"
       icon={<Download size={20} />}
       title={t("updates.title", { version: latest })}
       badge={
-        <Badge color="blue" variant="light" tt="none">
+        <Badge variant="light" tt="none">
           {t("updates.versions", { current: status.current, latest })}
         </Badge>
       }
