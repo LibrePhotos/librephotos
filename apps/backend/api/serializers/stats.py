@@ -110,6 +110,11 @@ class PhotoMonthCountSerializer(serializers.Serializer[None]):
     count = serializers.IntegerField()
 
 
+class PhotoDayCountSerializer(serializers.Serializer[None]):
+    day = serializers.DateField(help_text='"YYYY-MM-DD"')
+    count = serializers.IntegerField()
+
+
 class LocationTimelineSpanSerializer(serializers.Serializer[None]):
     """One stretch of ``GET /api/locationtimeline/``: photos taken in one place in a row."""
 

@@ -29,6 +29,7 @@ export type BulkPhotoMutationResponse = z.infer<typeof BulkPhotoMutationResponse
 export const SetPhotosDateTimeResponse = z.object({
   count: z.number(),
   skipped_without_date: z.number(),
+  skipped_other_zone: z.number(),
 });
 export type SetPhotosDateTimeResponse = z.infer<typeof SetPhotosDateTimeResponse>;
 

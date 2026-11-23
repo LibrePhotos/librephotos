@@ -54,6 +54,18 @@ class PhotoQuerySet(SharedOwnedQuerySet["Photo"]):
         anyone but their owner may still be shown (``shown_photo_q``)."""
         return self.filter(shown_photo_q())
 
+    def missing(self) -> Self:
+        files = Photo.files.through.objects.filter(photo_id=models.OuterRef("pk"))
+        own_files = files.exclude(file__type=File.METADATA_FILE)
+        main_file_gone = File.objects.filter(
+            pk=models.OuterRef("main_file_id"), missing=True
+        )
+        return self.filter(
+            Q(main_file=None)
+            | ~models.Exists(files)
+            | (models.Exists(main_file_gone) & ~models.Exists(own_files))
+        )
+
     def in_shared_libraries(self, user: User | AnonymousUser | None) -> Self:
         """The photos of the libraries other users share with ``user`` (#2731).
 

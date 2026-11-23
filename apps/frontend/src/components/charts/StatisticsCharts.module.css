@@ -14,13 +14,16 @@
 }
 
 .valueLabel,
-.axisLabel {
+.axisLabel,
+.monthLabel,
+.weekdayLabel {
   fill: var(--mantine-color-dimmed);
   font-size: var(--mantine-font-size-xs);
   dominant-baseline: middle;
 }
 
-.valueLabel {
+.valueLabel,
+.weekdayLabel {
   text-anchor: end;
 }
 
@@ -38,14 +41,45 @@
 }
 
 .bar:focus,
-.stay:focus {
+.stay:focus,
+.dayCell:focus {
   outline: none;
 }
 
 .bar:focus-visible path,
-.stay:focus-visible rect {
+.stay:focus-visible rect,
+.dayCell:focus-visible rect {
   stroke: var(--mantine-color-text);
   stroke-width: 2;
+}
+
+.dayCell {
+  cursor: pointer;
+}
+
+.level0 {
+  fill: var(--app-heatmap-level-0);
+  background-color: var(--app-heatmap-level-0);
+}
+
+.level1 {
+  fill: var(--app-heatmap-level-1);
+  background-color: var(--app-heatmap-level-1);
+}
+
+.level2 {
+  fill: var(--app-heatmap-level-2);
+  background-color: var(--app-heatmap-level-2);
+}
+
+.level3 {
+  fill: var(--app-heatmap-level-3);
+  background-color: var(--app-heatmap-level-3);
+}
+
+.level4 {
+  fill: var(--app-heatmap-level-4);
+  background-color: var(--app-heatmap-level-4);
 }
 
 /* A hairline of the page between two stays, so neighbouring tints read as two places. */
@@ -123,6 +157,26 @@
 
 .stayPlot {
   height: 56px;
+}
+
+.dayPlot {
+  width: 100%;
+  min-width: 0;
+}
+
+.dayScroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 4px;
+}
+
+.dayLegend {
+  font-size: var(--mantine-font-size-xs);
+}
+
+.daySwatch {
+  flex-shrink: 0;
+  border-radius: 2px;
 }
 
 .rankList {

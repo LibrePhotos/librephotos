@@ -27,6 +27,8 @@ The photos within a day follow the same order, and the scroll scrubber turns rou
 
 Events always read oldest first, as they happened: on an event the **Order** control shows that and cannot be changed.
 
+<Since version="1.7.0" /> The Videos view and search results have a **Sort** button of their own: they start in this order until you pick another there, and their view options have no **Order**.
+
 #### Scroll bar style
 
 <Since version="1.5.0" />
@@ -113,6 +115,8 @@ Shows only still photos, filtering out all videos.
 ### Videos Only
 
 Shows only video files, filtering out all still photos.
+
+<Since version="1.7.0" /> The header's **Sort** button picks the order: **Newest first** or **Oldest first** for the days, which start in your [photo order](#photo-order), or **Largest files first** and **Smallest files first**. The size orders list the videos by file size as one flat list instead of day groups, and each tile shows the file's size, handy for finding the videos that take the most space. At most the 1,000 largest or smallest videos are listed, and the header says when there are more. Since the Sort button decides, the view options of the Videos view have no **Order**.
 
 ### Screenshots and Documents
 
@@ -303,12 +307,13 @@ Shows when the photo was taken. You can click the edit button to modify the date
 
 ### Changing the date of many photos
 
-<Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Edit info → Change date and time…**. The dialog has two tabs:
+<Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Edit info → Change date and time…**. The dialog has three tabs:
 
 - **Shift** moves every selected photo by the same amount, so their order and the time between them stay the same. Pick **Earlier** or **Later** and enter the days, hours, minutes and seconds, or click **1 h earlier** or **1 h later**. A line spells out the shift ("1 hour, 30 minutes earlier"), and a table shows the oldest and newest selected photo now and after the shift. **Shift** stays greyed out until the amount is more than zero. Photos without a date are left alone; the dialog says how many.
 - **Set** gives every selected photo the same date and time, picked with the same day and time fields as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
+- <Since version="1.7.0" /> **Convert** moves every selected photo's date from one time zone to another, for a camera left on home time on a trip. Pick the **From time zone** the dates are in (it starts on your default time zone from the [settings](./settings/index.md#metadata-options)) and the **To time zone** to give them. The same preview table shows the oldest and newest photo now and after the conversion, with "—" until both zones are picked; the move can differ between photos when the zones' offsets differ between their dates, which a plain shift cannot express. A time that happens twice when the clocks go back is read as standard time. **Convert** stays greyed out until two different zones are picked, and photos without a date are left alone. The converted photos keep the To zone's UTC offset, so a photo whose recorded offset is not the From zone's (because the camera said so, or because you converted it already) is left alone too: converting the same photos again changes nothing.
 
-When you save, a message says how many photos got their new date and how many a shift skipped. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`.
+When you save, a message says how many photos got their new date, how many a shift or conversion skipped because they have no date, and how many a conversion skipped because they are already in another time zone. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`; a converted date carries its new UTC offset there (`2025:10:09 21:14:02+09:00`), so a rescan reads it in the To zone while the camera's own `EXIF:DateTimeOriginal` and `EXIF:OffsetTimeOriginal` stay as they were.
 
 ### File & Camera Info
 

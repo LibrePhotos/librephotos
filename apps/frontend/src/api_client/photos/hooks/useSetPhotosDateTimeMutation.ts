@@ -17,7 +17,7 @@ export const useSetPhotosDateTimeMutation = () => {
     mutationFn: async ({ selection, change }: SetPhotosDateTimeRequest) => {
       const [imageHashes, selectAll] = selectionArgs(selection);
       const data = await endpoints.setPhotosDateTime(apiClient, imageHashes, change, selectAll);
-      notification.photosDateChanged(data.count, data.skipped_without_date);
+      notification.photosDateChanged(data.count, data.skipped_without_date, data.skipped_other_zone);
       return data;
     },
     onSuccess: () => {

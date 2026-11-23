@@ -221,6 +221,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   WordCloudResponse: { schema: S.WordCloudResponse, components: ["WordCloud"] },
   SocialGraph: { schema: S.SocialGraph, components: ["SocialGraph"] },
   PhotoMonthCount: { schema: S.PhotoMonthCount, components: ["PhotoMonthCount"] },
+  PhotoDayCount: { schema: S.PhotoDayCount, components: ["PhotoDayCount"] },
   LocationTimelineSpan: { schema: S.LocationTimelineSpan, components: ["LocationTimelineSpan"] },
   // server
   ImageTag: { schema: S.ImageTag, components: ["ImageTag"] },
@@ -407,6 +408,8 @@ export const UNMAPPED: Readonly<Record<string, string>> = {
     "a {results} envelope (component SearchResults) around rows compared on their own (DatePhotosGroup); comparing it would repeat DatePhotosGroup's baselined differences",
   SemanticSearchPhotos:
     "a {results} envelope around rows compared on their own (PigPhoto); the view's wrapper is not a component",
+  SizeSortedSearchPhotos:
+    "a {results, count} envelope (component SearchResults, whose results it reads as PigPhoto rows) around rows compared on their own (PigPhoto)",
   SearchPhotosResult: "built by endpoints.searchPhotos from a response, not a response itself",
   SharedToMePhotosResponse:
     "a {results} envelope around rows compared on their own (PigPhoto); the view's wrapper is not a component",

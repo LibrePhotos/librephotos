@@ -524,7 +524,9 @@ def _adopt_files_into_photo(
     current_priority = FILE_TYPE_PRIORITY.get(photo.main_file.type, 999)
     if FILE_TYPE_PRIORITY.get(main_file.type, 999) < current_priority:
         photo.main_file = main_file
-        photo.save(update_fields=["main_file"])
+        photo.video = main_file.type == File.VIDEO
+        photo.save(update_fields=["main_file", "video"])
+        renditions.follow_main_file(photo)
 
 
 def group_files_into_photo(
@@ -563,11 +565,6 @@ def group_files_into_photo(
     if not main_file:
         return None
 
-    # Check if a Photo already exists with any of these files. Matching on
-    # main_file as well as the files m2m re-adopts photos whose file went
-    # missing and reappeared: detach_missing_files detaches a missing file from the
-    # m2m but keeps main_file pointing at it, so without that match a
-    # reappearing file would spawn a duplicate Photo with the same image_hash.
     # Sidecars are left out of the match: File rows are keyed by content hash,
     # so byte-identical XMPs of two different photos share a single row.
     # When an earlier run left the group as several photos (a RAW uploaded

@@ -174,7 +174,7 @@ export function dateAlbumsListKey(options: AlbumDateListOptions): DateAlbumsList
 // other order first.
 export const useFetchDateAlbumsQuery = (listOptions: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
   const photoOrder = usePhotoOrder();
-  const options = { ...listOptions, order: photoOrder.order };
+  const options = { ...listOptions, order: listOptions.order ?? photoOrder.order };
   return useQuery({
     queryKey: photoGridKeys.dateAlbumList(dateAlbumsListKey(options)),
     queryFn: async () => {

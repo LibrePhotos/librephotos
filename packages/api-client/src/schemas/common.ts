@@ -147,6 +147,7 @@ export const PigPhoto = z.object({
   // and 8 render swapped, #2595). Optional:
   // backends before 1.3 do not send it.
   local_orientation: z.number().optional(),
+  size: z.number().optional(),
   // A 360° photo sphere gets a badge on its tile (#483).
   projection_type: ProjectionType,
 });

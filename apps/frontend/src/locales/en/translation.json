@@ -1110,10 +1110,18 @@
     "newest": "Newest",
     "now": "Now",
     "after": "After",
-    "previewcaption": "The oldest and newest selected photo, now and after the shift",
-    "skipped_one": "{{count}} of the selected photos has no date. Shifting skips it; use Set to give it one.",
-    "skipped_other": "{{count}} of the selected photos have no date. Shifting skips them; use Set to give them one.",
-    "nothingtoshift": "None of the selected photos has a date, so there is nothing to shift. Set gives them one.",
+    "previewcaption": "The oldest and newest selected photo, now and after the change",
+    "skipped_one": "{{count}} of the selected photos has no date and is left alone; use Set to give it one.",
+    "skipped_other": "{{count}} of the selected photos have no date and are left alone; use Set to give them one.",
+    "nothingtoshift": "None of the selected photos has a date, so there is nothing to shift or convert. Set gives them one.",
+    "convert": "Convert",
+    "converthint": "Move every selected photo's date from one time zone to another, for a camera left on home time. The move can differ between photos when the zones' offsets differ.",
+    "fromzone": "From time zone",
+    "tozone": "To time zone",
+    "fromzoneplaceholder": "The zone the camera was set to",
+    "tozoneplaceholder": "The zone the photos were taken in",
+    "pickzones": "Pick the two time zones",
+    "samezone": "Pick two different time zones",
     "day": "Day",
     "time": "Time",
     "timehint": "24-hour clock, the photo's local time.",
@@ -1126,6 +1134,8 @@
     "shiftbutton_other": "Shift {{count}} photos",
     "setbutton_one": "Set {{count}} photo",
     "setbutton_other": "Set {{count}} photos",
+    "convertbutton_one": "Convert {{count}} photo",
+    "convertbutton_other": "Convert {{count}} photos",
     "cancel": "Cancel"
   },
   "lightbox": {
@@ -2331,6 +2341,11 @@
     "otherplaces": "Other",
     "barlabel": "{{label}}: {{value}}",
     "monthchartsummary": "Photos per month from {{from}} to {{to}}, the most in {{peak}} ({{value}}). Use the arrow keys to read each bar.",
+    "photosperday": "Photos per day",
+    "dayheatmapyear": "Year",
+    "daychartsummary": "Photos per day from {{from}} to {{to}}, the most on {{peak}} ({{value}}). Use the arrow keys to move by a day or a week, Enter opens a day.",
+    "less": "Less",
+    "more": "More",
     "staylabel": "{{place}}, {{from}} – {{to}}",
     "staychartsummary": "Where your photos were taken from {{from}} to {{to}}, place by place. Use the arrow keys to read each stay.",
     "cameras": "Cameras",
@@ -2475,7 +2490,10 @@
     "openPhotos_one": "Open {{count}} photo",
     "openPhotos_other": "Open {{count}} photos",
     "openPhoto": "Open this photo",
-    "mapHeight": "Map height"
+    "mapHeight": "Map height",
+    "mapMode": "Map display",
+    "mapModeClusters": "Clusters",
+    "mapModeHeatmap": "Heatmap"
   },
   "thingalbum": {
     "showingthings": "Showing {{number}} things",
@@ -2583,6 +2601,12 @@
     "oldestfirst": "Oldest first",
     "largestfirst": "Largest first",
     "smallestfirst": "Smallest first"
+  },
+  "photosort": {
+    "largestfirst": "Largest files first",
+    "smallestfirst": "Smallest files first",
+    "showinglargest": "Showing the {{shown, number}} largest of {{total, number}}",
+    "showingsmallest": "Showing the {{shown, number}} smallest of {{total, number}}"
   },
   "personedit": {
     "labelfaces": "Label faces",
@@ -2993,6 +3017,8 @@
     "datechanged_other": "{{count}} photos got their new date.",
     "dateskipped_one": "{{count}} photo without a date was skipped.",
     "dateskipped_other": "{{count}} photos without a date were skipped.",
+    "dateotherzone_one": "{{count}} photo already in another time zone than the From zone was skipped.",
+    "dateotherzone_other": "{{count}} photos already in another time zone than the From zone were skipped.",
     "setlocationtitle": "Set location",
     "setlocation_one": "Location set for {{count}} photo.",
     "setlocation_other": "Location set for {{count}} photos.",

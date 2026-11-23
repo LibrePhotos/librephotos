@@ -17,6 +17,7 @@ type Request = { selection: PhotoSelection; change: DateTimeChange };
 type Callbacks = { onSuccess?: () => void };
 const stubs = vi.hoisted(() => ({
   summary: { current: undefined as DateSummary | undefined },
+  defaultTimezone: { current: "America/New_York" },
   mutate: vi.fn<(request: Request, callbacks?: Callbacks) => void>(),
 }));
 
@@ -28,6 +29,15 @@ vi.mock("../../api_client/photos/hooks", () => ({
     refetch: () => Promise.resolve(),
   }),
   useSetPhotosDateTimeMutation: () => ({ mutate: stubs.mutate, isPending: false }),
+}));
+vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
+  useCurrentUserSelfDetailsQuery: () => ({
+    data: { default_timezone: stubs.defaultTimezone.current },
+    isLoading: false,
+  }),
+}));
+vi.mock("../../api_client/settings/hooks/useFetchTimezonesQuery", () => ({
+  useFetchTimezonesQuery: () => ({ data: ["America/New_York", "Asia/Tokyo", "UTC"] }),
 }));
 // The hint reads the user's settings; WriteBackHint.test.tsx covers its texts.
 vi.mock("../lightbox/WriteBackHint", () => ({ WriteBackHint: () => null }));
@@ -71,6 +81,7 @@ beforeAll(async () => {
 beforeEach(() => {
   document.body.innerHTML = "";
   stubs.summary.current = TRIP;
+  stubs.defaultTimezone.current = "America/New_York";
   stubs.mutate.mockReset();
   stubs.mutate.mockImplementation((_request, callbacks) => callbacks?.onSuccess?.());
   onClose.mockReset();
@@ -112,6 +123,24 @@ async function click(element: HTMLElement) {
 function previewRows() {
   return Array.from(document.querySelectorAll("tbody tr")).map(row =>
     Array.from(row.querySelectorAll("th, td")).map(cell => (cell.textContent ?? "").replace(/\s/g, " "))
+  );
+}
+
+async function pickZone(label: string, zone: string) {
+  const input = inputLabelled(label);
+  await click(input);
+  const dropdown = defined(document.getElementById(defined(input.getAttribute("aria-controls"))));
+  const option = defined(
+    Array.from(dropdown.querySelectorAll<HTMLElement>('[role="option"]')).find(item => item.textContent === zone)
+  );
+  await click(option);
+}
+
+function inputLabelled(label: string) {
+  return defined(
+    Array.from(document.querySelectorAll<HTMLInputElement>("input")).find(
+      field => field.labels?.[0]?.textContent === label
+    )
   );
 }
 
@@ -174,6 +203,46 @@ describe("ChangeDateTimeModal", () => {
     await open();
 
     expect(document.body.textContent).toContain("1 of the selected photos has no date");
+  });
+
+  it("converts the dates from the user's time zone to another and previews them", async () => {
+    await open();
+
+    await click(segment("Convert"));
+    expect(inputLabelled("From time zone").value).toBe("America/New_York");
+    expect(inputLabelled("To time zone").placeholder).toBe("The zone the photos were taken in");
+    expect(previewRows()).toEqual([
+      ["Oldest", "Oct 9, 2025, 8:14:02 AM", "—"],
+      ["Newest", "Oct 11, 2025, 7:40:55 PM", "—"],
+    ]);
+    expectDisabledWithReason(buttonWithText("Convert 3 photos"), "Pick the two time zones");
+    await pickZone("To time zone", "Asia/Tokyo");
+
+    expect(previewRows()).toEqual([
+      ["Oldest", "Oct 9, 2025, 8:14:02 AM", "Oct 9, 2025, 9:14:02 PM"],
+      ["Newest", "Oct 11, 2025, 7:40:55 PM", "Oct 12, 2025, 8:40:55 AM"],
+    ]);
+    await click(buttonWithText("Convert 3 photos"));
+    expect(defined(stubs.mutate.mock.calls[0])[0].change).toEqual({
+      mode: "convert_timezone",
+      from_timezone: "America/New_York",
+      to_timezone: "Asia/Tokyo",
+    });
+    expect(onSaved).toHaveBeenCalled();
+  });
+
+  it("starts without a From zone when the user has no default one", async () => {
+    stubs.defaultTimezone.current = "";
+    await open();
+
+    await click(segment("Convert"));
+    expect(inputLabelled("From time zone").value).toBe("");
+    expect(inputLabelled("From time zone").placeholder).toBe("The zone the camera was set to");
+    await pickZone("From time zone", "UTC");
+    expectDisabledWithReason(buttonWithText("Convert 3 photos"), "Pick the two time zones");
+    await pickZone("To time zone", "Asia/Tokyo");
+
+    expect(previewRows()[0]).toEqual(["Oldest", "Oct 9, 2025, 8:14:02 AM", "Oct 9, 2025, 5:14:02 PM"]);
   });
 
   it("sets every photo to one date and time, starting from the oldest photo's", async () => {

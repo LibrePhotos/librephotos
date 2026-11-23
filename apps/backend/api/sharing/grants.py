@@ -229,6 +229,7 @@ SUMMARY_FIELDS: FieldRules = {
     "has_raw_variant": (NEVER, False),
     # The owner's rotation: without it the photo shows sideways.
     "local_orientation": (ALWAYS, None),
+    "size": (ALWAYS, None),
     # How to draw the picture (a 360° photo sphere, #483).
     "projection_type": (ALWAYS, None),
 }

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.conf import settings
 from django.db import connection, transaction
-from django.db.models import Count, Exists, Model, OuterRef, Q, QuerySet, Sum
+from django.db.models import Count, Model, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
 from api.dataviz.color_palettes import hex_palette
@@ -273,17 +273,7 @@ def get_count_stats(user: User) -> dict[str, int]:
         .distinct()
         .count()
     )
-    # NOT EXISTS rather than a LEFT JOIN on the files: the join hashed every
-    # photo of the library in shared memory (#2868), and counted a photo with
-    # no main file once per file it still has.
-    num_missing_photos = (
-        Photo.objects.owned_by(user)
-        .filter(
-            Q(main_file=None)
-            | ~Exists(Photo.files.through.objects.filter(photo_id=OuterRef("pk")))
-        )
-        .count()
-    )
+    num_missing_photos = Photo.objects.owned_by(user).missing().count()
     # Every face counter in one pass over the user's faces.
     labelled = Q(person__isnull=False) & Q(photo__hidden=False)
     faces = Face.objects.filter(photo__owner=user).aggregate(
@@ -384,6 +374,19 @@ def get_photo_month_counts(user: User) -> list[dict[str, str | int]]:
         return out
     else:
         return []
+
+
+def get_photo_day_counts(user: User) -> list[dict[str, str | int]]:
+    counts = (
+        Photo.visible.owned_by(user)
+        .exclude(exif_timestamp=None)
+        .annotate(day=taken_day())
+        .values("day")
+        .annotate(c=Count("id"))
+        .values("day", "c")
+        .order_by("day")
+    )
+    return [{"day": count["day"].isoformat(), "count": count["c"]} for count in counts]
 
 
 class _LabelTally:

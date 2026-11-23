@@ -111,6 +111,18 @@ export function shiftPhotoTimestamp(timestamp: string, seconds: number): string 
   return parsed.isValid ? parsed.plus({ seconds }).toISO() : null;
 }
 
+function readInZone(wallClock: DateTime, zone: string): DateTime {
+  const zoned = wallClock.setZone(zone, { keepLocalTime: true });
+  const candidates = zoned.getPossibleOffsets();
+  const standard = candidates.filter(candidate => !candidate.isInDST);
+  return (standard.length === 1 ? standard[0] : candidates[candidates.length - 1]) ?? zoned;
+}
+
+export function convertPhotoTimestamp(timestamp: string, fromZone: string, toZone: string): string | null {
+  const converted = readInZone(parsePhotoTimestamp(timestamp), fromZone).setZone(toZone);
+  return converted.isValid ? converted.setZone("utc", { keepLocalTime: true }).toISO() : null;
+}
+
 /**
  * A UTC offset in minutes east of UTC (`exif_timestamp_offset`) as "UTC-07:00", "UTC+05:30" or
  * "UTC+00:00": the zone the wall clock of an `exif_timestamp` is in (#2769). Not translated.

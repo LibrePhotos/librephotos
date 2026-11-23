@@ -39,6 +39,7 @@ describe("statistics", () => {
       endpoints.fetchLocationSunburst,
     ],
     ["fetchPhotoMonthCounts", "/photomonthcounts/", [{ month: "2023-1", count: 3 }], endpoints.fetchPhotoMonthCounts],
+    ["fetchPhotoDayCounts", "/photo-day-counts/", [{ day: "2023-01-04", count: 3 }], endpoints.fetchPhotoDayCounts],
     [
       "fetchSocialGraph",
       "/socialgraph/",

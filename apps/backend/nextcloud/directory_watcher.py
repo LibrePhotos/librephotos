@@ -19,6 +19,7 @@ from api.directory_watcher.scan_jobs import remember_import_followups
 from api.directory_watcher.utils import item_key, update_scan_counter
 from api.models import File, FileCopy, LongRunningJob, Photo, User
 from api.models.long_running_job import JobCancelledError
+from api.photos.files import stand_in_for_main_file
 from api.photos.media_files import is_metadata, is_raw
 from api.photos.paths import folder_path_q, nextcloud_media_root
 from nextcloud.server_address import connect
@@ -393,11 +394,13 @@ def detach_deleted_files(user: User, scope: str, listed: set[str]) -> int:
     )
     for start in range(0, len(gone), 500):
         for file in File.objects.filter(path__in=gone[start : start + 500]):
-            for photo in photos.filter(files=file):
-                photo.files.remove(file)
-                photo.save(update_fields=["last_modified"])
+            holders = list(photos.filter(files=file))
             file.missing = True
             file.save(update_fields=["missing"])
+            for photo in holders:
+                photo.files.remove(file)
+                if not stand_in_for_main_file(photo):
+                    photo.save(update_fields=["last_modified"])
     if gone:
         logger.info("%d Nextcloud files are gone from the server", len(gone))
     return len(gone)

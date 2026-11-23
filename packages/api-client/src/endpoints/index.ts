@@ -925,10 +925,20 @@ export async function searchPhotos(
   client: ApiClient,
   searchTerm: string,
   semantic = false,
-  filter: AlbumMediaFilter & SearchFilters = {}
+  filter: AlbumMediaFilter & SearchFilters = {},
+  sort?: S.SearchSort
 ): Promise<S.SearchPhotosResult> {
-  const query = buildQuery({ search: searchTerm, ...albumMediaQuery(filter), ...searchFiltersQuery(filter) });
+  const query = buildQuery({
+    search: searchTerm,
+    ...albumMediaQuery(filter),
+    ...searchFiltersQuery(filter),
+    sort: sort === undefined || sort === "newest" ? undefined : sort,
+  });
   const res = await client.get<unknown>(`/photos/searchlist/${query}`);
+  if (sort === "largest" || sort === "smallest") {
+    const parsed = parseResponse(S.SizeSortedSearchPhotos, res, "size sorted search photos");
+    return { photosFlat: parsed.results, photosGroupedByDate: [], count: parsed.count };
+  }
   if (semantic) {
     const parsed = parseResponse(S.SemanticSearchPhotos, res, "semantic search photos");
     return { photosFlat: parsed.results, photosGroupedByDate: [] };
@@ -2209,6 +2219,11 @@ export async function fetchPhotoMonthCounts(client: ApiClient): Promise<S.PhotoM
   return parseResponse(S.PhotoMonthCountResponse, res, "photo month counts");
 }
 
+export async function fetchPhotoDayCounts(client: ApiClient): Promise<S.PhotoDayCountResponse> {
+  const res = await client.get<unknown>("/photo-day-counts/");
+  return parseResponse(S.PhotoDayCountResponse, res, "photo day counts");
+}
+
 export async function fetchSocialGraph(client: ApiClient): Promise<S.SocialGraph> {
   const res = await client.get<unknown>("/socialgraph/");
   return parseResponse(S.SocialGraph, res, "social graph");
@@ -2912,7 +2927,10 @@ export async function setPhotoTimestamp(
 }
 
 /** How a bulk date change moves the photos: by a number of seconds, or all to one wall-clock time. */
-export type DateTimeChange = { mode: "shift"; seconds: number } | { mode: "set"; datetime: string };
+export type DateTimeChange =
+  | { mode: "shift"; seconds: number }
+  | { mode: "set"; datetime: string }
+  | { mode: "convert_timezone"; from_timezone: string; to_timezone: string };
 
 /**
  * Shift the date of photos by `seconds` (negative for earlier), or give them all one date and time

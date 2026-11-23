@@ -148,6 +148,7 @@ class CrossTenantReadTest(TestCase):
             "VictimPlaceTitle",
             # v_photo2's position as the Places map sends it
             "41.1,-8.6",
+            f'"day":"{self.year_ago.date().isoformat()}"',
             f'"ids":[{self.v_place.pk}]',
             str(self.v_stack.pk),
             str(self.v_dup.pk),
@@ -276,6 +277,7 @@ class CrossTenantReadTest(TestCase):
             (f"/api/jobs/{v.v_job.pk}/", v.v_job.job_id),
             (f"/api/photos/download?job_id={v.v_job.job_id}", None),
             ("/api/memories/?fallback=true&window=30", v.v_photo.image_hash),
+            ("/api/photo-day-counts/", f'"day":"{v.year_ago.date().isoformat()}"'),
             ("/api/sync/photos/", str(v.v_photo.pk)),
             ("/api/sync/persons/", "VictimFriendName"),
             ("/api/sync/albums/user/", "VictimTripTitle"),

@@ -8,6 +8,7 @@ import type {
   MetadataValueField,
   Photoset,
   ReviewStatus,
+  SearchSort,
   UploadStatusParams,
 } from "../schemas";
 
@@ -123,11 +124,21 @@ export const photoGridKeys = {
   /** Every view of one tag's album. */
   tagAlbum: (id: string) => [...gridKind("tagAlbum"), id] as const,
   tagAlbumView: (id: string, mediaType: MediaType) => [...photoGridKeys.tagAlbum(id), mediaType] as const,
-  search: (term: string, mediaType: MediaType, mode: "semantic" | "grouped") =>
-    [...gridKind("search"), term, mediaType, mode] as const,
+  search: (term: string, mediaType: MediaType, mode: "semantic" | "grouped", sort?: SearchSort) =>
+    sort === undefined
+      ? ([...gridKind("search"), term, mediaType, mode] as const)
+      : ([...gridKind("search"), term, mediaType, mode, sort] as const),
   /** A search narrowed by the structured filters: under the same search, so it refreshes with it. */
-  filteredSearch: (term: string, mediaType: MediaType, mode: "semantic" | "grouped", filters: SearchFilters) =>
-    [...photoGridKeys.search(term, mediaType, mode), filters] as const,
+  filteredSearch: (
+    term: string,
+    mediaType: MediaType,
+    mode: "semantic" | "grouped",
+    filters: SearchFilters,
+    sort?: SearchSort
+  ) =>
+    sort === undefined
+      ? ([...photoGridKeys.search(term, mediaType, mode), filters] as const)
+      : ([...photoGridKeys.search(term, mediaType, mode), filters, sort] as const),
   withoutTimestamp: (page: number, mediaType: MediaType) => [...gridKind("withoutTimestamp"), page, mediaType] as const,
   withoutLocation: (page: number, mediaType: MediaType) => [...gridKind("withoutLocation"), page, mediaType] as const,
   /** One of my places' photos (#1365). */
@@ -460,6 +471,7 @@ export const statsKeys = {
   counts: () => [...statsRoot, "counts"] as const,
   cameraStats: () => [...statsRoot, "cameraStats"] as const,
   photoMonthCounts: () => [...statsRoot, "photoMonthCounts"] as const,
+  photoDayCounts: () => [...statsRoot, "photoDayCounts"] as const,
   locationTree: () => [...statsRoot, "locationTree"] as const,
   socialGraph: () => [...statsRoot, "socialGraph"] as const,
   wordCloud: () => [...statsRoot, "wordCloud"] as const,

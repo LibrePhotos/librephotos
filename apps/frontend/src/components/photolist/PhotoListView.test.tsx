@@ -104,16 +104,22 @@ vi.mock("./DefaultHeader", () => ({
     title,
     titleBadge,
     actions,
+    oldestFirst,
+    additionalSubHeader,
   }: {
     title: string;
     titleBadge?: React.ReactNode;
     actions?: React.ReactNode;
+    oldestFirst?: boolean;
+    additionalSubHeader?: React.ReactNode;
   }) => (
     <div>
       <h1 data-testid="title">
         {title}
         {titleBadge}
       </h1>
+      {oldestFirst && <span data-testid="oldest-first" />}
+      {additionalSubHeader}
       {actions}
     </div>
   ),
@@ -623,6 +629,37 @@ describe("PhotoListView photo order (#2712)", () => {
 
     await act(async () => defined(option("Newest first")).click());
     expect(userHooks.setOrder).not.toHaveBeenCalled();
+  });
+
+  it("offers no order where the page has its own sort, and the count line follows that sort", async () => {
+    userHooks.self = { id: 1, image_scale: 1, photo_order: "newest", scan_directory: "/data" };
+    await render({ sort: "oldest" });
+    expect(document.querySelector('[data-testid="oldest-first"]')).not.toBeNull();
+    await openSettingsMenu();
+    expect(orderControl()).toBeNull();
+  });
+
+  it("leaves Oldest first out of the count line when the page sorts newest first", async () => {
+    userHooks.self = { id: 1, image_scale: 1, photo_order: "oldest", scan_directory: "/data" };
+    await render({ sort: "newest" });
+    expect(document.querySelector('[data-testid="oldest-first"]')).toBeNull();
+  });
+});
+
+describe("PhotoListView size sort", () => {
+  it("says how many it shows of all matches when the server capped the list", async () => {
+    await render({ photoset: items, idx2hash: items, sort: "largest", sortTotal: 5000 });
+    expect(document.body.textContent).toContain("Showing the 2 largest of 5,000");
+  });
+
+  it("names the smallest for the smallest first", async () => {
+    await render({ photoset: items, idx2hash: items, sort: "smallest", sortTotal: 3 });
+    expect(document.body.textContent).toContain("Showing the 2 smallest of 3");
+  });
+
+  it("says nothing when every match is on the page", async () => {
+    await render({ photoset: items, idx2hash: items, sort: "largest", sortTotal: 2 });
+    expect(document.body.textContent).not.toContain("Showing the");
   });
 });
 
