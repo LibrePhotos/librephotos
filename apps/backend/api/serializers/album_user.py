@@ -35,6 +35,7 @@ from api.photos.selection import build_photo_queryset
 from api.serializers.days import PublicViewQuery
 from api.serializers.fields import (
     OwnedPhotoField,
+    ShareExpiryField,
     loaded,
     loaded_count,
     loaded_list,
@@ -794,15 +795,6 @@ class AlbumUserQuery(PublicViewQuery):
         max_length=64,
         help_text="With public: the slug of the album's public link (required)",
     )
-
-
-class ShareExpiryField(serializers.DateTimeField):
-    """An ISO date-time; null or an empty string clears the expiry."""
-
-    def validate_empty_values(self, data: object) -> tuple[bool, object]:
-        if data == "":
-            return (True, None)
-        return super().validate_empty_values(data)
 
 
 class AlbumSharingOptionsRequest(serializers.Serializer[None]):

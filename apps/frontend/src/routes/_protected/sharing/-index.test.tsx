@@ -109,6 +109,7 @@ const share = (slug: string, createdAt: string): PhotoShareLink => ({
   enabled: true,
   slug,
   url: `https://photos.example/p/${slug}`,
+  expires_at: null,
   created_at: createdAt,
   photo_id: `photo-${slug}`,
   image_hash: `hash-${slug}`,

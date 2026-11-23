@@ -5,9 +5,13 @@ slug, rotate it, and revoke it so the withdrawn URL stops working -- for the
 metadata endpoint and for the media it points at.
 """
 
+import datetime
+from unittest import mock
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.accounts.deletion import _turn_off_public_links
 from api.models.photo_share import PhotoShare
 from api.models.user import get_default_public_sharing_settings
 from api.tests.utils import (
@@ -325,3 +329,217 @@ class SharedPhotoMediaTest(PhotoShareTestBase):
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response["X-Accel-Redirect"])
+
+
+NOW = datetime.datetime(2026, 11, 20, 12, 0, tzinfo=datetime.UTC)
+PAST = NOW - datetime.timedelta(seconds=1)
+FUTURE = NOW + datetime.timedelta(days=1)
+
+
+class PhotoShareExpiryTest(PhotoShareTestBase):
+    def setUp(self):
+        super().setUp()
+        self.anonymous = APIClient()
+        patcher = mock.patch("django.utils.timezone.now", return_value=NOW)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def share_at(self, expires_at, photo=None, action="enable"):
+        return self.post(
+            {
+                "photo_id": str((photo or self.photo).pk),
+                "action": action,
+                "expires_at": expires_at,
+            }
+        ).json()["share"]
+
+    def stored_expiry(self):
+        return PhotoShare.objects.get(photo=self.photo).expires_at
+
+    def test_the_payload_reports_the_expiry(self):
+        share = self.share_at("2026-12-01T12:00:00Z")
+
+        self.assertEqual("2026-12-01T12:00:00Z", share["expires_at"])
+
+    def test_a_link_with_no_expiry_stays_open(self):
+        share = self.share_at(None)
+
+        self.assertIsNone(share["expires_at"])
+        self.assertEqual(200, self.anonymous.get(public_url(share["slug"])).status_code)
+        self.assertEqual(200, self.anonymous.get(media_url(share["slug"])).status_code)
+
+    def test_a_link_is_open_up_to_its_expiry(self):
+        share = self.share_at(NOW.isoformat())
+
+        self.assertEqual(200, self.anonymous.get(public_url(share["slug"])).status_code)
+        self.assertEqual(200, self.anonymous.get(media_url(share["slug"])).status_code)
+
+    def test_an_offset_expiry_is_compared_as_an_instant(self):
+        open_share = self.share_at("2026-11-20T13:00:01+01:00")
+        self.assertEqual(
+            200, self.anonymous.get(public_url(open_share["slug"])).status_code
+        )
+
+        closed_share = self.share_at("2026-11-20T12:59:59+01:00")
+        self.assertEqual(
+            410, self.anonymous.get(public_url(closed_share["slug"])).status_code
+        )
+
+    def test_an_expired_link_answers_gone_with_a_code(self):
+        share = self.share_at(PAST.isoformat())
+
+        response = self.anonymous.get(public_url(share["slug"]))
+
+        self.assertEqual(410, response.status_code)
+        self.assertEqual("link_expired", response.json()["errors"][0]["code"])
+        self.assertNotIn("results", response.json())
+
+    def test_an_expired_link_serves_no_media(self):
+        self.owner.public_sharing_defaults = dict.fromkeys(
+            get_default_public_sharing_settings(), True
+        )
+        self.owner.save()
+        video = create_test_photo(owner=self.owner, video=True)
+        still = self.share_at(PAST.isoformat())["slug"]
+        clip = self.share_at(PAST.isoformat(), photo=video)["slug"]
+
+        for url in (
+            media_url(still),
+            media_url(still, "original"),
+            media_url(clip),
+            media_url(clip, "video"),
+        ):
+            with self.subTest(url=url):
+                self.assertEqual(404, self.anonymous.get(url).status_code)
+
+    def test_an_expired_link_of_a_hidden_photo_is_not_found(self):
+        slug = self.share_at(PAST.isoformat())["slug"]
+        self.photo.hidden = True
+        self.photo.save()
+
+        self.assertEqual(404, self.anonymous.get(public_url(slug)).status_code)
+
+    def test_a_revoked_link_is_not_found_rather_than_expired(self):
+        slug = self.share_at(PAST.isoformat())["slug"]
+
+        self.share("disable")
+
+        self.assertEqual(404, self.anonymous.get(public_url(slug)).status_code)
+
+    def test_an_absent_expiry_keeps_the_current_one(self):
+        self.share_at(NOW.isoformat())
+
+        share = self.post({"photo_id": str(self.photo.pk), "action": "enable"}).json()[
+            "share"
+        ]
+
+        self.assertEqual(
+            "2026-11-20T12:00:00Z", share["expires_at"].replace("+00:00", "Z")
+        )
+
+    def test_a_null_expiry_clears_it(self):
+        self.share_at(NOW.isoformat())
+
+        share = self.share_at(None)
+
+        self.assertIsNone(share["expires_at"])
+
+    def test_a_blank_expiry_clears_it(self):
+        self.share_at(NOW.isoformat())
+
+        share = self.share_at("")
+
+        self.assertIsNone(share["expires_at"])
+
+    def test_an_invalid_expiry_is_rejected_and_changes_nothing(self):
+        self.share_at(FUTURE.isoformat())
+
+        response = self.post(
+            {
+                "photo_id": str(self.photo.pk),
+                "action": "enable",
+                "expires_at": "next tuesday",
+            }
+        )
+
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(FUTURE, self.stored_expiry())
+
+    def test_a_new_date_reopens_an_expired_link(self):
+        slug = self.share_at(PAST.isoformat())["slug"]
+
+        share = self.share_at(FUTURE.isoformat())
+
+        self.assertEqual(slug, share["slug"])
+        self.assertEqual(200, self.anonymous.get(public_url(slug)).status_code)
+        self.assertEqual(200, self.anonymous.get(media_url(slug)).status_code)
+
+    def test_replacing_the_link_keeps_its_expiry(self):
+        old = self.share_at(FUTURE.isoformat())["slug"]
+
+        share = self.post({"photo_id": str(self.photo.pk), "action": "rotate"}).json()[
+            "share"
+        ]
+
+        self.assertNotEqual(old, share["slug"])
+        self.assertEqual(FUTURE, self.stored_expiry())
+
+    def test_revoking_drops_the_expiry_so_a_new_link_starts_open(self):
+        self.share_at(PAST.isoformat())
+
+        revoked = self.share_at(None, action="disable")
+        fresh = self.post({"photo_id": str(self.photo.pk), "action": "enable"}).json()[
+            "share"
+        ]
+
+        self.assertIsNone(revoked["expires_at"])
+        self.assertIsNone(fresh["expires_at"])
+        self.assertIsNone(self.stored_expiry())
+        self.assertEqual(200, self.anonymous.get(public_url(fresh["slug"])).status_code)
+
+    def test_another_user_cannot_set_the_expiry(self):
+        self.share_at(FUTURE.isoformat())
+        self.client.force_authenticate(user=self.other)
+
+        response = self.post(
+            {
+                "photo_id": str(self.photo.pk),
+                "action": "enable",
+                "expires_at": PAST.isoformat(),
+            }
+        )
+
+        self.assertEqual(404, response.status_code)
+        self.assertEqual(FUTURE, self.stored_expiry())
+
+    def test_an_anonymous_visitor_cannot_set_the_expiry(self):
+        self.share_at(FUTURE.isoformat())
+
+        response = self.anonymous.post(
+            SHARE_URL,
+            format="json",
+            data={"photo_id": str(self.photo.pk), "expires_at": None},
+        )
+
+        self.assertIn(response.status_code, (401, 403))
+        self.assertEqual(FUTURE, self.stored_expiry())
+
+    def test_the_owners_list_keeps_an_expired_link_with_its_expiry(self):
+        slug = self.share_at(PAST.isoformat())["slug"]
+
+        results = self.client.get(LIST_URL).json()["results"]
+
+        self.assertEqual([slug], [result["slug"] for result in results])
+        self.assertEqual(
+            "2026-11-20T11:59:59Z", results[0]["expires_at"].replace("+00:00", "Z")
+        )
+
+    def test_deleting_the_account_drops_the_expiry_with_the_link(self):
+        self.share_at(FUTURE.isoformat())
+
+        _turn_off_public_links(self.owner)
+
+        share = PhotoShare.objects.get(photo=self.photo)
+        self.assertEqual(
+            (False, None, None), (share.enabled, share.slug, share.expires_at)
+        )

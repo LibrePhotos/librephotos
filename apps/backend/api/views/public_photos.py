@@ -1,6 +1,8 @@
 import uuid
 
+from django.db.models import QuerySet
 from django.http import HttpResponse, HttpResponseBase
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
@@ -9,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.drf.exceptions import Gone
 from api.drf.params import parse_body
 from api.drf.request_user import request_user
 from api.models import Photo
@@ -41,6 +44,15 @@ def shared_photo_media_url(slug: str, kind: str) -> str:
     return f"/api/public/photo/{slug}/media/{kind}/"
 
 
+def _shown_photo_shares(slug: str) -> QuerySet[PhotoShare]:
+    return PhotoShare.objects.filter(
+        slug=slug,
+        photo__hidden=False,
+        photo__in_trashcan=False,
+        photo__removed=False,
+    )
+
+
 def active_photo_share(slug: str | None) -> PhotoShare | None:
     """The live share for ``slug``, or None.
 
@@ -50,15 +62,18 @@ def active_photo_share(slug: str | None) -> PhotoShare | None:
     if not slug:
         return None
     return (
-        PhotoShare.objects.filter(
-            enabled=True,
-            slug=slug,
-            photo__hidden=False,
-            photo__in_trashcan=False,
-            photo__removed=False,
-        )
+        _shown_photo_shares(slug)
+        .filter(PhotoShare.active_q())
         .select_related("photo", "photo__owner")
         .first()
+    )
+
+
+def photo_share_expired(slug: str) -> bool:
+    return (
+        _shown_photo_shares(slug)
+        .filter(enabled=True, expires_at__lt=timezone.now())
+        .exists()
     )
 
 
@@ -81,12 +96,13 @@ def _owned_photo(user: User, photo_id: str) -> Photo | None:
 
 
 def _share_payload(share: PhotoShare | None) -> dict[str, object]:
-    if share is None or not share.is_active():
-        return {"enabled": False, "slug": None, "url": None}
+    if share is None or not (share.enabled and share.slug):
+        return {"enabled": False, "slug": None, "url": None, "expires_at": None}
     return {
         "enabled": True,
         "slug": share.slug,
         "url": f"/public/p/{share.slug}",
+        "expires_at": share.expires_at,
         "created_at": share.created_at,
     }
 
@@ -125,6 +141,7 @@ class SetPhotoShare(APIView):
                 # link ever reached would silently get access again (issue #76).
                 share.enabled = False
                 share.slug = None
+                share.expires_at = None
                 share.save()
             return Response({"status": True, "share": _share_payload(share)})
 
@@ -133,6 +150,8 @@ class SetPhotoShare(APIView):
             share.rotate()
         else:
             share.enabled = True
+        if "expires_at" in data:
+            share.expires_at = data["expires_at"]
         share.save()
 
         return Response({"status": True, "share": _share_payload(share)})
@@ -170,11 +189,16 @@ class PublicPhotoBySlug(APIView):
 
     @extend_schema(
         parameters=[OpenApiParameter("slug", OpenApiTypes.STR)],
-        description="Returns a publicly shared photo by share slug if active",
+        description=(
+            "Returns a publicly shared photo by share slug if active; 410 with "
+            "code link_expired once the link's expiry has passed"
+        ),
         responses=SharedPhotoResponseSerializer,
     )
     def get(self, request: Request, slug: str) -> Response:
         share = active_photo_share(slug)
+        if share is None and photo_share_expired(slug):
+            raise Gone("This link has expired.", code="link_expired")
         if share is None:
             raise NotFound()
         assert share.slug is not None  # active_photo_share matched on this slug

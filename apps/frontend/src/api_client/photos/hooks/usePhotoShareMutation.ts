@@ -11,8 +11,8 @@ import { apiClient, ApiError, queryClient } from "../../api";
  */
 export const usePhotoShareMutation = () =>
   useMutation({
-    mutationFn: (request: { photoId: string; action: PhotoShareAction }) =>
-      endpoints.setPhotoShareLink(apiClient, request.photoId, request.action),
+    mutationFn: (request: { photoId: string; action: PhotoShareAction; expiresAt?: string | null }) =>
+      endpoints.setPhotoShareLink(apiClient, request.photoId, request.action, request.expiresAt),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: photoKeys.shares() });
     },

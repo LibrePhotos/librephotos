@@ -50,6 +50,9 @@ export function NativeTimeInput({ withSeconds = false, ...props }: NativeDateInp
   return <NativeInput kind="time" step={withSeconds ? 1 : undefined} {...props} />;
 }
 
-export function NativeDateTimeInput(props: NativeDateInputProps) {
-  return <NativeInput kind="datetime-local" step={1} {...props} />;
+export function NativeDateTimeInput({
+  withSeconds = false,
+  ...props
+}: NativeDateInputProps & { withSeconds?: boolean }) {
+  return <NativeInput kind="datetime-local" step={withSeconds ? 1 : undefined} {...props} />;
 }

@@ -424,9 +424,14 @@ export async function fetchPhotoEditSource(client: ApiClient, photoId: string): 
 export async function setPhotoShareLink(
   client: ApiClient,
   photoId: string,
-  action: S.PhotoShareAction
+  action: S.PhotoShareAction,
+  expiresAt?: string | null
 ): Promise<S.PhotoShare> {
-  const res = await client.post<unknown>("/photo/share", { photo_id: photoId, action });
+  const res = await client.post<unknown>("/photo/share", {
+    photo_id: photoId,
+    action,
+    ...(expiresAt === undefined ? {} : { expires_at: expiresAt }),
+  });
   return parseResponse(S.PhotoShareResponse, res, "photo share").share;
 }
 

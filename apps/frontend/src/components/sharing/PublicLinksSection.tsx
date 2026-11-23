@@ -14,6 +14,7 @@ import classes from "../album/AlbumSection.module.css";
 import { collectionCardImageClass } from "../common/CollectionCard";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import { Tile } from "../Tile";
+import { isLinkExpired } from "./linkExpiry";
 import { ModalAlbumShare } from "./ModalAlbumShare";
 import { AlbumPreviewCard, PhotoLinkCard, photoTakenDate } from "./SharingPreviewCards";
 import { itemSummary, SharingPreviewSection } from "./SharingPreviewSection";
@@ -56,7 +57,7 @@ function PublicLinksRow({ albums, photoShares, publicPhotos, onShareAlbum }: Row
         <PhotoLinkCard
           key={share.slug}
           title={t("sharing.photoLink")}
-          detail={shareLinkAge(share)}
+          detail={isLinkExpired(share.expires_at) ? t("sharing.linkExpired") : shareLinkAge(share)}
           media={
             <MediaThumbnail
               imageHash={share.image_hash}

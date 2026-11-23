@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Popover, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Popover, Stack, Text, Tooltip, type FloatingPosition } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconDownload as DownloadIcon, IconQrcode as QrcodeIcon } from "@tabler/icons-react";
 import React, { useMemo } from "react";
@@ -13,15 +13,18 @@ const QR_FILE_NAME = "qr-code.svg";
 type Props = Readonly<{
   url: string;
   reason?: string | false;
+  warning?: string | null;
   variant?: "light" | "subtle";
+  size?: "md" | "lg";
+  position?: FloatingPosition;
 }>;
 
 const LOOKS = {
   light: { variant: "light", size: "lg" },
-  subtle: { variant: "subtle", color: "gray" },
+  subtle: { variant: "subtle", color: "gray", size: "md" },
 } as const;
 
-export function QrLinkButton({ url, reason, variant = "subtle" }: Props) {
+export function QrLinkButton({ url, reason, warning, variant = "subtle", size, position = "bottom-end" }: Props) {
   const { t } = useTranslation();
   const [opened, { open, close, toggle }] = useDisclosure(false);
   const label = t("sharing.showQrCode");
@@ -30,7 +33,7 @@ export function QrLinkButton({ url, reason, variant = "subtle" }: Props) {
   if (reason) {
     return (
       <DisabledReason label={label} reason={reason}>
-        <ActionIcon {...LOOKS[variant]} aria-label={label}>
+        <ActionIcon {...LOOKS[variant]} size={size ?? LOOKS[variant].size} aria-label={label}>
           {icon}
         </ActionIcon>
       </DisabledReason>
@@ -45,13 +48,14 @@ export function QrLinkButton({ url, reason, variant = "subtle" }: Props) {
       withArrow
       trapFocus
       returnFocus
-      position="bottom-end"
+      position={position}
       shadow="md"
     >
       <Popover.Target>
         <Tooltip label={label} withArrow disabled={opened}>
           <ActionIcon
             {...LOOKS[variant]}
+            size={size ?? LOOKS[variant].size}
             aria-label={label}
             aria-haspopup="dialog"
             aria-expanded={opened}
@@ -62,20 +66,21 @@ export function QrLinkButton({ url, reason, variant = "subtle" }: Props) {
         </Tooltip>
       </Popover.Target>
       <Popover.Dropdown role="dialog" aria-label={t("sharing.qrCode")}>
-        <QrCodePanel url={url} />
+        <QrCodePanel url={url} warning={warning} />
       </Popover.Dropdown>
     </Popover>
   );
 }
 
-function QrCodePanel({ url }: Readonly<{ url: string }>) {
+function QrCodePanel({ url, warning }: Readonly<{ url: string; warning?: string | null }>) {
   const { t } = useTranslation();
   const squares = useMemo(() => qrSquares(url), [url]);
+  const pixels = squares.side * Math.floor(QR_SIZE / squares.side);
   return (
     <Stack gap="xs" align="center" maw={QR_SIZE}>
-      <QrCode squares={squares} label={t("sharing.qrCode")} size={QR_SIZE} />
-      <Text size="xs" c="dimmed" ta="center">
-        {t("sharing.qrCodeHint")}
+      <QrCode squares={squares} label={t("sharing.qrCode")} size={pixels} />
+      <Text size="xs" c={warning ? "orange" : "dimmed"} ta="center">
+        {warning || t("sharing.qrCodeHint")}
       </Text>
       <Button
         component="a"

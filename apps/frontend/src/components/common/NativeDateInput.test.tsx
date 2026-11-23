@@ -37,7 +37,8 @@ describe("the native date inputs", () => {
         <NativeDateInput label="Day" value="2024-06-14" min="2024-01-01" max="2024-12-31" onChange={() => {}} />
         <NativeTimeInput label="Time" withSeconds value="10:07:05" onChange={() => {}} />
         <NativeTimeInput label="At" value="03:00" onChange={() => {}} />
-        <NativeDateTimeInput label="Expires" value="2024-06-14T10:07:05" onChange={() => {}} />
+        <NativeDateTimeInput label="Expires" withSeconds value="2024-06-14T10:07:05" onChange={() => {}} />
+        <NativeDateTimeInput label="Until" value="2024-06-14T10:07" onChange={() => {}} />
       </>
     );
     const inputs = [...container.querySelectorAll("input")];
@@ -47,6 +48,7 @@ describe("the native date inputs", () => {
       ["time", "1", "10:07:05"],
       ["time", "", "03:00"],
       ["datetime-local", "1", "2024-06-14T10:07:05"],
+      ["datetime-local", "", "2024-06-14T10:07"],
     ]);
     expect([defined(inputs[0]).min, defined(inputs[0]).max]).toEqual(["2024-01-01", "2024-12-31"]);
     expect(container.querySelector("label")?.textContent).toBe("Day");

@@ -1,0 +1,18 @@
+.row {
+  row-gap: 4px;
+}
+
+.link {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.actions {
+  flex-shrink: 0;
+  margin-left: auto;
+  min-height: 36px;
+}
+
+.expiredInput {
+  opacity: 0.6;
+}

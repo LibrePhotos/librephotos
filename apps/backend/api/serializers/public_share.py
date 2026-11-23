@@ -136,6 +136,10 @@ class PhotoShareSerializer(serializers.Serializer[None]):
     url = serializers.CharField(
         allow_null=True, help_text="The page's path, /public/p/{slug}"
     )
+    expires_at = serializers.DateTimeField(
+        allow_null=True,
+        help_text="When the link expires; null until the owner sets one",
+    )
     created_at = serializers.DateTimeField(
         required=False, help_text="Only while the link is enabled"
     )
