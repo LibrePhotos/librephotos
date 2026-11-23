@@ -279,6 +279,23 @@ describe("date rules applied (#437)", () => {
   });
 });
 
+describe("bulk date change (#2278)", () => {
+  it("says how many photos changed and leaves out skips that did not happen", () => {
+    notification.photosDateChanged(3, 0, 0);
+
+    expect(lastShown()).toMatchObject({ title: "Date and time changed", message: "3 photos got their new date." });
+  });
+
+  it("counts the photos without a date and those already in another zone (#3042)", () => {
+    notification.photosDateChanged(1, 2, 1);
+
+    expect(lastShown().message).toBe(
+      "1 photo got its new date. 2 photos without a date were skipped. " +
+        "1 photo already in another time zone than the From zone was skipped."
+    );
+  });
+});
+
 describe("toasts with an Undo (#127)", () => {
   /** Shows the message as the toast would, and clicks its Undo button. */
   async function clickUndo(message: ReactNode) {

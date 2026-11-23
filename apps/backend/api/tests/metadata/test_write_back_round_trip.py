@@ -331,6 +331,59 @@ class DateRoundTripTest(RealExifToolTestCase):
         with self.assertUntouched(path):
             self._edit_date(path, OFF)
 
+    def _convert_home_time(self, path, mode):
+        self.tag(
+            path,
+            "-EXIF:DateTimeOriginal=2025:10:09 08:14:02",
+            "-EXIF:OffsetTimeOriginal=-04:00",
+        )
+        user = create_test_user(save_metadata_to_disk=mode)
+        photo = self.photo_for(path, user)
+        extract_date_time(photo)
+        self.assertEqual(-4 * 60, photo.exif_timestamp_offset)
+        client = APIClient()
+        client.force_authenticate(user=user)
+        with (
+            patch("api.metadata.jobs.enqueue_task", side_effect=run_now),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = client.post(
+                "/api/photosedit/datetime/",
+                {
+                    "image_hashes": [photo.image_hash],
+                    "mode": "convert_timezone",
+                    "from_timezone": "America/New_York",
+                    "to_timezone": "Asia/Tokyo",
+                },
+                format="json",
+            )
+        self.assertEqual(200, response.status_code, response.content)
+        return photo
+
+    def test_a_converted_date_reads_back_with_the_new_offset(self):
+        for mode in MODES:
+            with self.subTest(mode=mode):
+                self.exiftool.writes.clear()
+                path = self.make_image(".jpg", f"convert-{mode}")
+                photo = self._convert_home_time(path, mode)
+
+                fresh = Photo.objects.get(pk=photo.pk)
+                fresh.timestamp = None
+                extract_date_time(fresh, commit=False)
+
+                self.assertWritesLanded(expected=1)
+                self.assertEqual(
+                    datetime.datetime(2025, 10, 9, 21, 14, 2, tzinfo=datetime.UTC),
+                    fresh.exif_timestamp,
+                )
+                self.assertEqual(9 * 60, fresh.exif_timestamp_offset)
+                self.assertEqual(
+                    "-04:00",
+                    self.read_tags(path, Tags.OFFSET_TIME_ORIGINAL)[
+                        Tags.OFFSET_TIME_ORIGINAL
+                    ],
+                )
+
 
 CAPTION = "Golden Gate at dusk & fog\n\nSecond paragraph"
 

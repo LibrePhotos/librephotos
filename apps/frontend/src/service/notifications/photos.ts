@@ -92,10 +92,11 @@ function setPhotosRating(numberOfPhotos: number, rating: number) {
 
 // One toast for a bulk date change (#2278): how many photos moved, and how many a shift skipped
 // because they have no date.
-function photosDateChanged(changed: number, skippedWithoutDate: number) {
-  const message = i18n.t("toasts.datechanged", { count: changed });
-  const skipped = skippedWithoutDate ? ` ${i18n.t("toasts.dateskipped", { count: skippedWithoutDate })}` : "";
-  toast.success(message + skipped, { title: i18n.t("toasts.datechangedtitle") });
+function photosDateChanged(changed: number, skippedWithoutDate: number, skippedOtherZone: number) {
+  const parts = [i18n.t("toasts.datechanged", { count: changed })];
+  if (skippedWithoutDate) parts.push(i18n.t("toasts.dateskipped", { count: skippedWithoutDate }));
+  if (skippedOtherZone) parts.push(i18n.t("toasts.dateotherzone", { count: skippedOtherZone }));
+  toast.success(parts.join(" "), { title: i18n.t("toasts.datechangedtitle") });
 }
 
 /** Apply date rules to existing photos (#437) queued its job. */
