@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { copyText } from "../../util/util";
 import { DisabledReason } from "../common/DisabledReason";
+import { QrLinkButton } from "./QrLinkButton";
 
 type Props = Readonly<{
   label: string;
@@ -60,6 +61,7 @@ export function ShareLinkRow({ label, description, link, copyLabel, openLabel, o
           <CopyIcon size={18} />
         </ActionIcon>
       </DisabledReason>
+      <QrLinkButton url={link} reason={noLinkYet} variant="light" />
       <DisabledReason label={openLabel} reason={noLinkYet}>
         <ActionIcon variant="light" size="lg" aria-label={openLabel} onClick={open}>
           <OpenIcon size={18} />

@@ -45,6 +45,11 @@ photos written by an older version, and `python manage.py refresh_exposure_time`
 shutter speeds again.
 :::
 
+<Since version="1.7.0" /> The Docker images read metadata of JPEG XL files that store it in a
+Brotli-compressed `brob` box (the way most `.jxl` encoders write it). Up to 1.6.0, the images were
+missing the Brotli decompressor ExifTool needs for such boxes, so `.jxl` files imported with no
+metadata.
+
 ## What LibrePhotos reads
 
 Where a field lists several tags, the first one the photo has is used.

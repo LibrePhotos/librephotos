@@ -12,7 +12,7 @@ FROM ubuntu:resolute
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3-pip perl libvulkan1 mesa-vulkan-drivers && \
+    apt-get install -y --no-install-recommends python3-pip perl libio-compress-brotli-perl libvulkan1 mesa-vulkan-drivers && \
     ln -s /usr/bin/python3 /usr/local/bin/python && \
     pip3 install --upgrade --break-system-packages --ignore-installed pip && \
     apt-get clean && \

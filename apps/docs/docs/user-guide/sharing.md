@@ -224,6 +224,10 @@ Only whole albums can be shared as a slideshow: there is no slideshow link for a
 
 <Since version="1.4.0" /> Up to 1.3.0, a public album link always opened on the photo grid.
 
+### QR Codes
+
+<Since version="1.7.0" /> Every public link has a **Show QR code** button next to its copy button: the **Album link** and the **Slideshow link** in the album's sharing dialog, the photo **Share link** dialog from the lightbox, and each photo link under the **Photos** tab of your **Public links** page. It opens the full link as a QR code. Point a phone's camera at it to open the link on the phone, or click **Download SVG** to save the code as an image you can print or put on a slide. The code stays black on white in the dark theme, because that is what phone cameras read. While a new album link is still being made, the button is greyed out and says so. Up to 1.6.0, links had no QR code.
+
 ### Revoking a Public Link
 
 Toggle **"Public sharing"** off again and the link stops working immediately. The slug is burned at the same time, so turning public sharing back on generates a brand-new URL rather than reviving the old one. Anyone who still holds the withdrawn link, including someone you shared it with by mistake, keeps getting a "not found" page.
@@ -302,12 +306,12 @@ Because the slug is random, the link can be withdrawn:
 - **Replace link** mints a new slug. The previous URL, and the image and video URLs behind it, stop working at once.
 - **Revoke** switches the share off and burns the slug, so anyone still holding that link gets a "not found" page. Sharing the photo again creates a brand-new link rather than reviving the old one.
 
-Your active photo links are listed under the **Photos** tab of your **Public links** page, each with its own copy, change-expiry, replace and revoke buttons and, where one is set, when it expires ("Expires in 3 days") or expired ("Expired 2 days ago", in orange).
+Your active photo links are listed under the **Photos** tab of your **Public links** page, each with its own copy, QR code, change-expiry, replace and revoke buttons (on a phone the buttons sit under the link) and, where one is set, when it expires ("Expires in 3 days") or expired ("Expired 2 days ago", in orange).
 
 <Since version="1.7.0" /> A photo link can expire like an album link: the **Share link** dialog has an **Expiration (optional)** field with the same date and time control and the **7 days**, **30 days**, **90 days** and **Never** presets, saved as you change it. From the **Public links** page, the clock button of a link opens the same dialog.
 
 - Until the expiry the link works as usual; from that moment its page, image and video stop working. A visitor sees "This link has expired" instead of the photo.
-- An expired link keeps its address and stays in your list: the dialog says it has expired, and picking a new date (or **Never**) opens the same link again.
+- An expired link keeps its address and stays in your list: the dialog says it has expired, and picking a new date (or **Never**) opens the same link again. Its QR code still opens that address, so it shows the expiry notice too, and the QR panel says so.
 - **Replace link** keeps the expiry. **Revoke** removes it along with the slug, so sharing the photo again starts a new link without an expiry.
 
 What a visitor with the link can see:

@@ -86,7 +86,7 @@ async function renderSection() {
 
 function rowOf(container: HTMLElement, slug: string): HTMLElement {
   const input = Array.from(container.querySelectorAll("input")).find(field => field.value.endsWith(`/p/${slug}`));
-  const row = input?.closest<HTMLElement>(".mantine-Stack-root");
+  const row = input?.closest<HTMLElement>(".mantine-Group-root");
   if (!row) throw new Error(`no row for ${slug}`);
   return row;
 }
@@ -120,5 +120,22 @@ describe("PhotoSharesSection", () => {
     expect(mutation.mutateAsync).toHaveBeenCalledWith({ photoId: "photo-closed", action: "enable" });
     expect(document.querySelector('input[type="datetime-local"]')).not.toBeNull();
     expect(document.body.textContent).toContain("Visitors are told the link has expired");
+  });
+
+  it("still shows the QR code of an expired link, saying it opens the expiry notice", async () => {
+    state.shares = [link("closed", DateTime.now().minus({ days: 2 }).toISO()), link("open", null)];
+    const container = await renderSection();
+    const qrOf = (slug: string) =>
+      rowOf(container, slug).querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("sharing.showQrCode")}"]`);
+
+    await act(async () => qrOf("closed")?.click());
+    const expiredPanel = document.querySelector(`[role="dialog"][aria-label="${i18n.t("sharing.qrCode")}"]`);
+    expect(expiredPanel?.querySelector("svg")).not.toBeNull();
+    expect(expiredPanel?.textContent).toContain(i18n.t("sharing.qrCodeExpired"));
+    await act(async () => qrOf("closed")?.click());
+
+    await act(async () => qrOf("open")?.click());
+    const openPanel = document.querySelector(`[role="dialog"][aria-label="${i18n.t("sharing.qrCode")}"]`);
+    expect(openPanel?.textContent).not.toContain(i18n.t("sharing.qrCodeExpired"));
   });
 });

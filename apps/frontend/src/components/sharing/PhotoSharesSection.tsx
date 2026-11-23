@@ -16,8 +16,10 @@ import { Panel } from "../common/surfaces/Panel";
 import { ConfirmPopover } from "./ConfirmPopover";
 import { isLinkExpired, linkExpiryCaption } from "./linkExpiry";
 import { PhotoShareLinkModal } from "./PhotoShareLinkModal";
+import { QrLinkButton } from "./QrLinkButton";
 
 const THUMBNAIL_SIZE = 36;
+const LINK_MIN_WIDTH = 200;
 
 /** One link, with its own mutation so only this row shows a spinner. */
 function PhotoShareRow({ share, onEditExpiry }: Readonly<{ share: PhotoShareLink; onEditExpiry: () => void }>) {
@@ -26,81 +28,78 @@ function PhotoShareRow({ share, onEditExpiry }: Readonly<{ share: PhotoShareLink
   const photoId = share.photo_id;
   const fullUrl = `${shareAddress}${share.url}`;
   const expiry = linkExpiryCaption(t, share.expires_at);
+  const expired = isLinkExpired(share.expires_at);
 
   return (
-    <Stack gap={4}>
-      <Group gap="xs" wrap="nowrap">
-        {share.image_hash && <MediaThumbnail imageHash={share.image_hash} size={THUMBNAIL_SIZE} />}
+    <Group gap="xs" align="flex-start" style={{ rowGap: 4 }}>
+      {share.image_hash && <MediaThumbnail imageHash={share.image_hash} size={THUMBNAIL_SIZE} />}
+      <Stack gap={4} style={{ flex: `1 1 ${LINK_MIN_WIDTH}px`, minWidth: 0 }}>
         <TextInput
           readOnly
           value={fullUrl}
-          style={{ flex: 1, minWidth: 0 }}
           onFocus={e => e.currentTarget.select()}
           aria-label={t("sharing.photoLink")}
         />
-        <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
-          <CopyButton value={fullUrl}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  color={copied ? "green" : "gray"}
-                  onClick={copy}
-                  aria-label={t("sharing.copyLink")}
-                >
-                  {copied ? <CheckIcon size={18} /> : <CopyIcon size={18} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
-          <Tooltip label={t("sharing.changeExpiry")} withArrow>
-            <ActionIcon variant="subtle" color="gray" onClick={onEditExpiry} aria-label={t("sharing.changeExpiry")}>
-              <ExpiryIcon size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <ConfirmPopover
-            message={t("sharing.rotateLinkConfirm")}
-            confirmLabel={t("sharing.rotateLink")}
-            tooltip={t("sharing.rotateLink")}
-            onConfirm={() => mutate({ photoId, action: "rotate" })}
-          >
-            <ActionIcon
-              variant="subtle"
-              aria-label={t("sharing.rotateLink")}
-              loading={isPending && variables?.action === "rotate"}
-              disabled={isPending}
-            >
-              <RefreshIcon size={18} />
-            </ActionIcon>
-          </ConfirmPopover>
-          <ConfirmPopover
-            message={t("sharing.revokeLinkConfirm")}
-            confirmLabel={t("sharing.revokeLink")}
-            color="red"
-            onConfirm={() => mutate({ photoId, action: "disable" })}
-          >
-            <Button
-              size="xs"
-              variant="subtle"
-              color="red"
-              loading={isPending && variables?.action === "disable"}
-              disabled={isPending}
-            >
-              {t("sharing.revokeLink")}
-            </Button>
-          </ConfirmPopover>
-        </Group>
-      </Group>
-      {expiry && (
-        <Text
-          size="xs"
-          c={isLinkExpired(share.expires_at) ? "orange" : "dimmed"}
-          pl={share.image_hash ? `calc(${THUMBNAIL_SIZE}px + var(--mantine-spacing-xs))` : 0}
+        {expiry && (
+          <Text size="xs" c={expired ? "orange" : "dimmed"}>
+            {expiry}
+          </Text>
+        )}
+      </Stack>
+      <Group gap={4} wrap="nowrap" h={THUMBNAIL_SIZE} ml="auto" style={{ flexShrink: 0 }}>
+        <CopyButton value={fullUrl}>
+          {({ copied, copy }) => (
+            <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} withArrow>
+              <ActionIcon
+                variant="subtle"
+                color={copied ? "green" : "gray"}
+                onClick={copy}
+                aria-label={t("sharing.copyLink")}
+              >
+                {copied ? <CheckIcon size={18} /> : <CopyIcon size={18} />}
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </CopyButton>
+        <QrLinkButton url={fullUrl} warning={expired ? t("sharing.qrCodeExpired") : null} />
+        <Tooltip label={t("sharing.changeExpiry")} withArrow>
+          <ActionIcon variant="subtle" color="gray" onClick={onEditExpiry} aria-label={t("sharing.changeExpiry")}>
+            <ExpiryIcon size={18} />
+          </ActionIcon>
+        </Tooltip>
+        <ConfirmPopover
+          message={t("sharing.rotateLinkConfirm")}
+          confirmLabel={t("sharing.rotateLink")}
+          tooltip={t("sharing.rotateLink")}
+          onConfirm={() => mutate({ photoId, action: "rotate" })}
         >
-          {expiry}
-        </Text>
-      )}
-    </Stack>
+          <ActionIcon
+            variant="subtle"
+            aria-label={t("sharing.rotateLink")}
+            loading={isPending && variables?.action === "rotate"}
+            disabled={isPending}
+          >
+            <RefreshIcon size={18} />
+          </ActionIcon>
+        </ConfirmPopover>
+        <ConfirmPopover
+          message={t("sharing.revokeLinkConfirm")}
+          confirmLabel={t("sharing.revokeLink")}
+          color="red"
+          onConfirm={() => mutate({ photoId, action: "disable" })}
+        >
+          <Button
+            size="xs"
+            variant="subtle"
+            color="red"
+            loading={isPending && variables?.action === "disable"}
+            disabled={isPending}
+          >
+            {t("sharing.revokeLink")}
+          </Button>
+        </ConfirmPopover>
+      </Group>
+    </Group>
   );
 }
 
@@ -128,9 +127,11 @@ export function PhotoSharesSection() {
         <Text size="sm" c="dimmed">
           {t("sharing.photoLinksExplanation")}
         </Text>
-        {shares.map(share => (
-          <PhotoShareRow key={share.photo_id} share={share} onEditExpiry={() => setExpiryPhotoId(share.photo_id)} />
-        ))}
+        <Stack gap="md">
+          {shares.map(share => (
+            <PhotoShareRow key={share.photo_id} share={share} onEditExpiry={() => setExpiryPhotoId(share.photo_id)} />
+          ))}
+        </Stack>
       </Stack>
       <PhotoShareLinkModal photoId={expiryPhotoId} onClose={() => setExpiryPhotoId(null)} />
     </Panel>

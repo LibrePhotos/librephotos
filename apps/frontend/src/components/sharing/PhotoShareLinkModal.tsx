@@ -20,6 +20,7 @@ import { DIALOG_SIZE } from "../modals/dialogSize";
 import { ConfirmPopover } from "./ConfirmPopover";
 import { isLinkExpired, linkExpiryCaption } from "./linkExpiry";
 import { LinkExpirySetting } from "./LinkExpirySetting";
+import { QrLinkButton } from "./QrLinkButton";
 
 type Props = {
   /** The photo to share; the dialog is open while this is set. */
@@ -182,6 +183,7 @@ function ShownLink({ url, expiresAt, replace, expirySaveFailed, onReplace, onExp
             </Tooltip>
           )}
         </CopyButton>
+        <QrLinkButton url={url} warning={expired ? t("sharing.qrCodeExpired") : null} />
       </Group>
       {replace === "failed" && (
         <Text size="sm" c="red">

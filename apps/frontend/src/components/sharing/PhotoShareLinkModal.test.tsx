@@ -18,6 +18,7 @@ import type { usePhotoShareMutation } from "../../api_client/photos/hooks/usePho
 import i18n from "../../i18n";
 import { parseInstant } from "../../util/dateUtils";
 import { PhotoShareLinkModal } from "./PhotoShareLinkModal";
+import { qrSquares } from "./qrMatrix";
 
 // The part of the real hook's result the dialog reads, so a change to its
 // mutate signatures fails the typecheck here too.
@@ -169,6 +170,25 @@ describe("PhotoShareLinkModal", () => {
     expect(mutation.mutate).not.toHaveBeenCalledWith(expect.objectContaining({ action: "disable" }), expect.anything());
   });
 
+  it("shows the full link as a QR code and closes only the code on Escape", async () => {
+    const { onClose } = await renderModal("photo-1");
+
+    const qrButton = document.querySelector<HTMLButtonElement>(`button[aria-label="${i18n.t("sharing.showQrCode")}"]`);
+    await act(async () => qrButton?.click());
+    const dialog = document.querySelector(`[role="dialog"][aria-label="${i18n.t("sharing.qrCode")}"]`);
+    expect(dialog?.querySelector("path")?.getAttribute("d")).toBe(
+      qrSquares("https://photos.example/public/p/abc").path
+    );
+    const download = dialog?.querySelector<HTMLElement>("a[download]");
+    download?.focus();
+    await act(async () => {
+      download?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(qrButton?.getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("says so when the link could not be created", async () => {
     mutation.mutateAsync.mockRejectedValue(new Error("refused"));
 
@@ -219,6 +239,14 @@ describe("PhotoShareLinkModal", () => {
       await renderModal("photo-1");
 
       expect(document.body.textContent).toContain("Expired 2 days ago. Visitors are told the link has expired");
+
+      const qrButton = document.querySelector<HTMLButtonElement>(
+        `button[aria-label="${i18n.t("sharing.showQrCode")}"]`
+      );
+      await act(async () => qrButton?.click());
+      const panel = document.querySelector(`[role="dialog"][aria-label="${i18n.t("sharing.qrCode")}"]`);
+      expect(panel?.querySelector("svg")).not.toBeNull();
+      expect(panel?.textContent).toContain(i18n.t("sharing.qrCodeExpired"));
     });
 
     it("sends quick changes one at a time and skips the ones overtaken", async () => {
