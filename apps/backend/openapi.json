@@ -23334,10 +23334,11 @@
       "ModeEnum": {
         "enum": [
           "shift",
-          "set"
+          "set",
+          "convert_timezone"
         ],
         "type": "string",
-        "description": "* `shift` - shift\n* `set` - set"
+        "description": "* `shift` - shift\n* `set` - set\n* `convert_timezone` - convert_timezone"
       },
       "MountSummary": {
         "type": "object",
@@ -30110,7 +30111,7 @@
                 "$ref": "#/components/schemas/ModeEnum"
               }
             ],
-            "description": "shift moves every dated photo by seconds; set gives every photo datetime\n\n* `shift` - shift\n* `set` - set"
+            "description": "shift moves every dated photo by seconds; set gives every photo datetime; convert_timezone reads every dated photo's date in from_timezone and gives it the same moment in to_timezone\n\n* `shift` - shift\n* `set` - set\n* `convert_timezone` - convert_timezone"
           },
           "seconds": {
             "type": "integer",
@@ -30123,6 +30124,16 @@
             "type": "string",
             "format": "date-time",
             "description": "With set: the photos' local wall-clock time, without an offset (as the lightbox's date editor sends it)"
+          },
+          "from_timezone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "With convert_timezone: the zone the dates are in, an IANA name from /api/timezones/"
+          },
+          "to_timezone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "With convert_timezone: the zone to give the dates, an IANA name from /api/timezones/"
           }
         },
         "required": [

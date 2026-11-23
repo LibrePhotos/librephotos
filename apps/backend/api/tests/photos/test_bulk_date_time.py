@@ -8,6 +8,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.metadata import edits
+from api.metadata.datetime_rules import CaptureTime
 from api.metadata.jobs import write_photo_fields
 from api.models import Photo, User
 from api.models.photo_metadata import MetadataEdit
@@ -161,6 +162,74 @@ class SetTest(BulkDateTimeTestCase):
         self.assertFalse(MetadataEdit.objects.exists())
 
 
+class ConvertTimeZoneTest(BulkDateTimeTestCase):
+    def _convert(self, photos, **body):
+        return self._post(photos, mode="convert_timezone", **body)
+
+    def test_dates_move_by_the_zones_offset_at_their_moment(self):
+        response = self._convert(
+            self.trip[:1],
+            from_timezone="America/New_York",
+            to_timezone="Asia/Tokyo",
+        )
+
+        self.assertEqual(200, response.status_code, response.content)
+        self.assertEqual({"count": 1, "skipped_without_date": 0}, response.json())
+        self.assertEqual([at(21, 14, 2)], self._dates(self.trip[:1]))
+
+    def test_a_date_over_a_daylight_saving_change_moves_less(self):
+        november = self._photo(at(8, 14, 2, day=9).replace(month=11))
+
+        self._convert(
+            [november],
+            from_timezone="America/New_York",
+            to_timezone="Asia/Tokyo",
+        )
+
+        self.assertEqual(
+            [datetime.datetime(2025, 11, 9, 22, 14, 2, tzinfo=UTC)],
+            self._dates([november]),
+        )
+
+    def test_the_new_date_keeps_the_target_zones_offset(self):
+        self._convert(
+            self.trip[:1],
+            from_timezone="America/New_York",
+            to_timezone="Asia/Tokyo",
+        )
+
+        photo = Photo.objects.get(pk=self.trip[0].pk)
+        self.assertEqual(9 * 60, photo.exif_timestamp_offset)
+
+    def test_a_photo_without_a_date_is_skipped_and_counted(self):
+        response = self._convert(
+            [self.undated],
+            from_timezone="America/New_York",
+            to_timezone="Asia/Tokyo",
+        )
+
+        self.assertEqual({"count": 0, "skipped_without_date": 1}, response.json())
+
+    def test_missing_or_unknown_zones_are_refused(self):
+        for body, field in (
+            ({}, "from_timezone"),
+            ({"from_timezone": "Asia/Tokyo"}, "to_timezone"),
+            (
+                {"from_timezone": "Mars/Olympus", "to_timezone": "Asia/Tokyo"},
+                "from_timezone",
+            ),
+            (
+                {"from_timezone": "Asia/Tokyo", "to_timezone": "not a zone"},
+                "to_timezone",
+            ),
+        ):
+            with self.subTest(body=body):
+                response = self._convert(self.trip, **body)
+                self.assertEqual(400, response.status_code)
+                self.assertEqual(field, response.json()["errors"][0]["field"])
+        self.assertEqual([at(8, 14, 2)], self._dates(self.trip[:1]))
+
+
 class SelectAllTest(BulkDateTimeTestCase):
     def test_the_query_and_the_excluded_hashes_decide(self):
         hidden = self._photo(at(9))
@@ -218,7 +287,7 @@ class FailedBatchTest(BulkDateTimeTestCase):
             calls.append(photo.pk)
             if len(calls) == 2:
                 raise RuntimeError("the second batch fails")
-            return at(1)
+            return CaptureTime(at(1))
 
         with (
             patch.object(edits, "CAPTURE_TIME_BATCH_SIZE", 1),

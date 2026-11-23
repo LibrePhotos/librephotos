@@ -387,6 +387,21 @@ describe("bulk date and time (#2278)", () => {
     expect(defined(requests[0]).body).toEqual({ ...selectAllBody, mode: "set", datetime: "2025-10-11T10:18:00.000Z" });
   });
 
+  it("converts the dates from one time zone to another (#3042)", async () => {
+    const { client, requests } = fakeServer(changed);
+    await endpoints.setPhotosDateTime(client, ["h1"], {
+      mode: "convert_timezone",
+      from_timezone: "America/New_York",
+      to_timezone: "Asia/Tokyo",
+    });
+    expect(defined(requests[0]).body).toEqual({
+      image_hashes: ["h1"],
+      mode: "convert_timezone",
+      from_timezone: "America/New_York",
+      to_timezone: "Asia/Tokyo",
+    });
+  });
+
   it("fails loudly on an answer without the counts", async () => {
     await expect(
       endpoints.setPhotosDateTime(fakeServer({ status: true }).client, ["h1"], { mode: "shift", seconds: 1 })

@@ -298,12 +298,13 @@ Shows when the photo was taken. You can click the edit button to modify the date
 
 ### Changing the date of many photos
 
-<Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Edit info → Change date and time…**. The dialog has two tabs:
+<Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Edit info → Change date and time…**. The dialog has three tabs:
 
 - **Shift** moves every selected photo by the same amount, so their order and the time between them stay the same. Pick **Earlier** or **Later** and enter the days, hours, minutes and seconds, or click **1 h earlier** or **1 h later**. A line spells out the shift ("1 hour, 30 minutes earlier"), and a table shows the oldest and newest selected photo now and after the shift. **Shift** stays greyed out until the amount is more than zero. Photos without a date are left alone; the dialog says how many.
 - **Set** gives every selected photo the same date and time, picked with the same day and time fields as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
+- <Since version="1.7.0" /> **Convert** moves every selected photo's date from one time zone to another, for a camera left on home time on a trip. Pick the **From time zone** the dates are in and the **To time zone** to give them. The same preview table shows the oldest and newest photo now and after the conversion; the move can differ between photos when the zones' offsets differ between their dates, which a plain shift cannot express. **Convert** stays greyed out until two different zones are picked, and photos without a date are left alone.
 
-When you save, a message says how many photos got their new date and how many a shift skipped. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`.
+When you save, a message says how many photos got their new date and how many a shift or conversion skipped. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`.
 
 ### File & Camera Info
 

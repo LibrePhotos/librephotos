@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   calendarDaysAgo,
   calendarYear,
+  convertPhotoTimestamp,
   dateTimeInputDaysFromNow,
   describeDuration,
   firstDayOfWeek,
@@ -283,6 +284,24 @@ describe("shifting and describing photo dates (#2278)", () => {
 
   test("an unreadable date shifts to null", () => {
     expect(shiftPhotoTimestamp("not a date", 60)).toBeNull();
+  });
+
+  test("a conversion reads the wall clock in one zone and tells it in another", () => {
+    Settings.defaultZone = "America/Los_Angeles";
+    expect(convertPhotoTimestamp("2025-10-09T08:14:02Z", "America/New_York", "Asia/Tokyo")).toBe(
+      "2025-10-09T21:14:02.000Z"
+    );
+  });
+
+  test("the converted amount differs across a daylight-saving change", () => {
+    expect(convertPhotoTimestamp("2025-11-09T08:14:02Z", "America/New_York", "Asia/Tokyo")).toBe(
+      "2025-11-09T22:14:02.000Z"
+    );
+  });
+
+  test("an unreadable date or zone converts to null", () => {
+    expect(convertPhotoTimestamp("not a date", "UTC", "Asia/Tokyo")).toBeNull();
+    expect(convertPhotoTimestamp("2025-10-09T08:14:02Z", "not a zone", "Asia/Tokyo")).toBeNull();
   });
 
   test("the wall clock is formatted to the second", () => {

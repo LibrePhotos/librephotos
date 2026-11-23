@@ -16,6 +16,7 @@ from api.metadata import edits
 from api.metadata.photo_datetime import date_summary
 from api.photos.selection import selected_photos
 from api.serializers.photo_dates import (
+    CONVERT_TIMEZONE,
     SHIFT,
     DateSummaryResponse,
     SetPhotosDateTimeRequest,
@@ -49,6 +50,10 @@ class SetPhotosDateTimeView(APIView):
         data = parse_body(request, SetPhotosDateTimeRequest)
         if data["mode"] == SHIFT:
             compute_new = edits.shifted_by(timedelta(seconds=data["seconds"]))
+        elif data["mode"] == CONVERT_TIMEZONE:
+            compute_new = edits.converted_time_zone(
+                data["from_timezone"], data["to_timezone"]
+            )
         else:
             compute_new = edits.set_to(data["datetime"])
         result = edits.set_capture_times(selected_photos(user, data), compute_new, user)

@@ -14,6 +14,7 @@ import { useListFailure } from "../common/useListFailure";
 import { WriteBackHint } from "../lightbox/WriteBackHint";
 import { DIALOG_SIZE } from "../modals/dialogSize";
 import { dateTimeChange, makeChangeDateTimeSchema, type ChangeDateTimeValues } from "./ChangeDateTimeModal.schema";
+import { ConvertTimeZoneFields } from "./ConvertTimeZoneFields";
 import { SetDateFields } from "./SetDateFields";
 import { ShiftDateFields } from "./ShiftDateFields";
 
@@ -47,6 +48,8 @@ function initialValues(summary: DateSummary): ChangeDateTimeValues {
     seconds: 0,
     day,
     time,
+    fromTimezone: "",
+    toTimezone: "",
   };
 }
 
@@ -61,9 +64,14 @@ function ChangeDateTimeForm({ summary, selection, onClose, onSaved }: FormProps)
   const setDateTime = useSetPhotosDateTimeMutation();
   const values = form.getValues();
   const dated = summary.count - summary.without_date;
-  const count = values.mode === "shift" ? dated : summary.count;
+  const count = values.mode === "set" ? summary.count : dated;
   const reason =
-    !form.isValid() && (values.mode === "shift" ? t("changedatetime.entershift") : t("changedatetime.pickdatetime"));
+    !form.isValid() &&
+    (values.mode === "shift"
+      ? t("changedatetime.entershift")
+      : values.mode === "convert_timezone"
+        ? t("changedatetime.pickzones")
+        : t("changedatetime.pickdatetime"));
 
   const save = form.onSubmit(submitted => {
     const change = dateTimeChange(submitted);
@@ -87,20 +95,23 @@ function ChangeDateTimeForm({ summary, selection, onClose, onSaved }: FormProps)
           data={[
             { value: "shift", label: t("changedatetime.shift"), disabled: dated === 0 },
             { value: "set", label: t("changedatetime.set") },
+            { value: "convert_timezone", label: t("changedatetime.convert"), disabled: dated === 0 },
           ]}
           value={values.mode}
-          onChange={mode => form.setFieldValue("mode", mode === "set" ? "set" : "shift")}
+          onChange={mode => {
+            if (mode === "shift" || mode === "set" || mode === "convert_timezone") {
+              form.setFieldValue("mode", mode);
+            }
+          }}
         />
         {dated === 0 && (
           <Text size="sm" c="dimmed">
             {t("changedatetime.nothingtoshift")}
           </Text>
         )}
-        {values.mode === "shift" ? (
-          <ShiftDateFields form={form} summary={summary} />
-        ) : (
-          <SetDateFields form={form} count={summary.count} />
-        )}
+        {values.mode === "shift" && <ShiftDateFields form={form} summary={summary} />}
+        {values.mode === "set" && <SetDateFields form={form} count={summary.count} />}
+        {values.mode === "convert_timezone" && <ConvertTimeZoneFields form={form} summary={summary} />}
         <Stack gap={4}>
           <Text size="xs" c="dimmed">
             {t("changedatetime.usersethint")}
@@ -113,9 +124,9 @@ function ChangeDateTimeForm({ summary, selection, onClose, onSaved }: FormProps)
           </Button>
           <DisabledReason reason={reason}>
             <Button type="submit" loading={setDateTime.isPending}>
-              {values.mode === "shift"
-                ? t("changedatetime.shiftbutton", { count })
-                : t("changedatetime.setbutton", { count })}
+              {values.mode === "shift" && t("changedatetime.shiftbutton", { count })}
+              {values.mode === "set" && t("changedatetime.setbutton", { count })}
+              {values.mode === "convert_timezone" && t("changedatetime.convertbutton", { count })}
             </Button>
           </DisabledReason>
         </Group>
