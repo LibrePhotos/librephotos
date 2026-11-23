@@ -5,7 +5,7 @@ ARG BASE_TAG=dev
 # First stage: build the frontend. The same stage as in
 # deploy/docker/frontend/Dockerfile; keep the two identical
 # (apps/backend/api/tests/infra/test_deploy_images.py).
-FROM node:24-slim as builder
+FROM node:26-slim as builder
 
 RUN npm config set fetch-retry-maxtimeout 60000
 
