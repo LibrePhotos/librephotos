@@ -27468,6 +27468,12 @@
             "nullable": true,
             "description": "The page's path, /public/p/{slug}"
           },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the link expires; null until the owner sets one"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -27476,6 +27482,7 @@
         },
         "required": [
           "enabled",
+          "expires_at",
           "slug",
           "url"
         ]
@@ -27509,6 +27516,12 @@
             "type": "string",
             "description": "The page's path, /public/p/{slug}"
           },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the link expires; null until the owner sets one"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -27524,6 +27537,7 @@
         "required": [
           "created_at",
           "enabled",
+          "expires_at",
           "image_hash",
           "photo_id",
           "slug",
@@ -30003,6 +30017,12 @@
             "nullable": true,
             "default": "enable",
             "description": "enable (the default), rotate or disable; any case"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the link expires; null or blank clears it, absent keeps it"
           }
         },
         "required": [

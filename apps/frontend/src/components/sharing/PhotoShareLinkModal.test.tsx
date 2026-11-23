@@ -29,7 +29,7 @@ const mutation: ShareMutationFake = {
   mutateAsync: vi.fn<ShareMutation["mutateAsync"]>(),
 };
 
-const LINK = { enabled: true, slug: "abc", url: "/public/p/abc" };
+const LINK = { enabled: true, slug: "abc", url: "/public/p/abc", expires_at: null };
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "https://photos.example" }));
 vi.mock("../../api_client/photos/hooks", () => ({ usePhotoShareMutation: () => mutation }));

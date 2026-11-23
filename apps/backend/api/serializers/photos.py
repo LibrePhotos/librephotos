@@ -47,6 +47,7 @@ from api.models.photo_stack import PhotoStack
 from api.models.thumbnail import Thumbnail
 from api.search.similarity import search_similar_image
 from api.serializers.fields import (
+    ShareExpiryField,
     loaded_count,
     prefetched,
     shared_serializer,
@@ -1826,6 +1827,11 @@ class SetPhotoShareRequest(serializers.Serializer[None]):
         allow_null=True,
         trim_whitespace=False,
         help_text="enable (the default), rotate or disable; any case",
+    )
+    expires_at = ShareExpiryField(
+        required=False,
+        allow_null=True,
+        help_text="When the link expires; null or blank clears it, absent keeps it",
     )
 
     def validate_photo_id(self, value: str) -> str:

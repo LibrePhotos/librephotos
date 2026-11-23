@@ -8,10 +8,9 @@ import { useTranslation } from "react-i18next";
 import { useSlugAvailabilityQuery, useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { ApiError } from "../../api_client/api";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { dateTimeInputDaysFromNow, fromDateTimeInputValue, toDateTimeInputValue } from "../../util/dateUtils";
-import { NativeDateTimeInput } from "../common/NativeDateInput";
 import { Panel } from "../common/surfaces/Panel";
 import { makeAlbumLinkSchema } from "./AlbumSlugSection.schema";
+import { LinkExpirySetting } from "./LinkExpirySetting";
 import { publicAlbumLink, publicSlideshowLink } from "./publicAlbum";
 import { ShareLinkRow } from "./ShareLinkRow";
 
@@ -25,46 +24,6 @@ function useSlugTaken(slug: string, enabled: boolean, albumId: number | undefine
   // No answer yet (undefined) is not "taken": saving waits for the check through `checking`.
   const taken = enabled && existingId !== undefined && existingId !== null && existingId !== albumId;
   return { taken, checking: isFetching };
-}
-
-const EXPIRY_PRESETS = [
-  { days: 7, label: "sharing.days7" },
-  { days: 30, label: "sharing.days30" },
-  { days: 90, label: "sharing.days90" },
-] as const;
-
-type ExpiresProps = Readonly<{
-  value: string;
-  onChange: (v: string) => void;
-}>;
-
-function ExpiresSetting({ value, onChange }: ExpiresProps) {
-  const { t } = useTranslation();
-  return (
-    <Stack gap="xs">
-      <NativeDateTimeInput
-        label={t("sharing.expiration")}
-        clearable
-        value={toDateTimeInputValue(value)}
-        onChange={picked => onChange(fromDateTimeInputValue(picked) ?? "")}
-      />
-      <Group gap="xs">
-        {EXPIRY_PRESETS.map(({ days, label }) => (
-          <Button
-            key={days}
-            size="xs"
-            variant="light"
-            onClick={() => onChange(fromDateTimeInputValue(dateTimeInputDaysFromNow(days)) ?? "")}
-          >
-            {t(label)}
-          </Button>
-        ))}
-        <Button size="xs" variant="subtle" onClick={() => onChange("")}>
-          {t("sharing.never")}
-        </Button>
-      </Group>
-    </Stack>
-  );
 }
 
 // Sharing options component for controlling what metadata is shown in public albums
@@ -266,7 +225,10 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
             onChange={event => form.setFieldValue("slug", event.currentTarget.value.toLowerCase())}
             rightSection={checking ? <span style={{ fontSize: 12 }}>…</span> : undefined}
           />
-          <ExpiresSetting value={form.values.expires_at} onChange={value => form.setFieldValue("expires_at", value)} />
+          <LinkExpirySetting
+            value={form.values.expires_at}
+            onChange={value => form.setFieldValue("expires_at", value)}
+          />
           <SharingOptionsSettings
             value={form.values.sharing_options}
             onChange={value => form.setFieldValue("sharing_options", value)}

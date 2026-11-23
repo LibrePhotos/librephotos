@@ -51,7 +51,7 @@ def active_photo_share(slug: str | None) -> PhotoShare | None:
         return None
     return (
         PhotoShare.objects.filter(
-            enabled=True,
+            PhotoShare.active_q(),
             slug=slug,
             photo__hidden=False,
             photo__in_trashcan=False,
@@ -81,12 +81,13 @@ def _owned_photo(user: User, photo_id: str) -> Photo | None:
 
 
 def _share_payload(share: PhotoShare | None) -> dict[str, object]:
-    if share is None or not share.is_active():
-        return {"enabled": False, "slug": None, "url": None}
+    if share is None or not (share.enabled and share.slug):
+        return {"enabled": False, "slug": None, "url": None, "expires_at": None}
     return {
         "enabled": True,
         "slug": share.slug,
         "url": f"/public/p/{share.slug}",
+        "expires_at": share.expires_at,
         "created_at": share.created_at,
     }
 
@@ -133,6 +134,8 @@ class SetPhotoShare(APIView):
             share.rotate()
         else:
             share.enabled = True
+        if "expires_at" in data:
+            share.expires_at = data["expires_at"]
         share.save()
 
         return Response({"status": True, "share": _share_payload(share)})

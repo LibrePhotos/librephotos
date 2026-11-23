@@ -108,3 +108,10 @@ def prefetched[M: Model](obj: Model, relation: str, model: type[M]) -> list[M]:
             "queryset through the serializer's with_*_relations() function"
         )
     return [item for item in cache[relation] if isinstance(item, model)]
+
+
+class ShareExpiryField(serializers.DateTimeField):
+    def validate_empty_values(self, data: object) -> tuple[bool, object]:
+        if data == "":
+            return (True, None)
+        return super().validate_empty_values(data)

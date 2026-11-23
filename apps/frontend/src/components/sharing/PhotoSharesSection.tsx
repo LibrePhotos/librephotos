@@ -10,6 +10,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoSharesQuery, usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
+import { parseInstant } from "../../util/dateUtils";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import { Panel } from "../common/surfaces/Panel";
 import { ConfirmPopover } from "./ConfirmPopover";
@@ -25,13 +26,19 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
     <Group gap="xs" wrap="nowrap">
       {share.image_hash && <MediaThumbnail imageHash={share.image_hash} size={36} />}
       {/* The link gives way on a phone; the buttons keep their size (Revoke was cut off). */}
-      <TextInput
-        readOnly
-        value={fullUrl}
-        style={{ flex: 1, minWidth: 0 }}
-        onFocus={e => e.currentTarget.select()}
-        aria-label={t("sharing.photoLink")}
-      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <TextInput
+          readOnly
+          value={fullUrl}
+          onFocus={e => e.currentTarget.select()}
+          aria-label={t("sharing.photoLink")}
+        />
+        {share.expires_at && (
+          <Text size="xs" c="dimmed">
+            {t("sharing.expiresOn", { date: parseInstant(share.expires_at).toRelative() })}
+          </Text>
+        )}
+      </div>
       <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
         <CopyButton value={fullUrl}>
           {({ copied, copy }) => (

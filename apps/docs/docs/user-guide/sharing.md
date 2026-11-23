@@ -302,7 +302,9 @@ Because the slug is random, the link can be withdrawn:
 - **Replace link** mints a new slug. The previous URL, and the image and video URLs behind it, stop working at once.
 - **Revoke** switches the share off and burns the slug, so anyone still holding that link gets a "not found" page. Sharing the photo again creates a brand-new link rather than reviving the old one.
 
-Your active photo links are listed under the **Photos** tab of your **Public links** page, each with its own copy, replace and revoke buttons.
+Your active photo links are listed under the **Photos** tab of your **Public links** page, each with its own copy, replace and revoke buttons and, where one is set, its expiry.
+
+<Since version="1.7.0" /> A photo link can expire like an album link: the **Share link** dialog has an **Expiration (optional)** field with the same date and time control and the **7 days**, **30 days**, **90 days** and **Never** presets, saved as you change it. After the expiry the link shows "not found" to visitors; it keeps its address, so setting a new date reopens the same link. **Replace link** keeps the expiry, **Revoke** removes it with the slug.
 
 What a visitor with the link can see:
 
@@ -311,7 +313,7 @@ What a visitor with the link can see:
 
 What they cannot see: the original file of a photo, face thumbnails, any other photo, or anything that identifies the file's content hash. While the photo is hidden or in the trash, its link shows "not found" as well.
 
-Expiring links and password-protected links are not available for photo shares yet.
+Password-protected links are not available for photo shares.
 
 :::caution
 Making a photo private stops it from being served through the public views, but it cannot retroactively invalidate a direct link that someone has already opened or saved a copy of the image from.

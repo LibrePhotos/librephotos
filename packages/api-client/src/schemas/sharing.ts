@@ -91,7 +91,11 @@ export type LibrarySharesResponse = z.infer<typeof LibrarySharesResponse>;
 /** The owner's switches of a library share, as the share dialog sends them. */
 export type LibraryShareSwitches = Pick<
   LibraryShare,
-  "share_location" | "share_faces" | "share_camera_info" | "share_captions" | "share_originals"
+  | "share_location"
+  | "share_faces"
+  | "share_camera_info"
+  | "share_captions"
+  | "share_originals"
 >;
 
 /** Albums shared by-me / with-me reuse the UserAlbumInfo row shape. */
@@ -105,7 +109,9 @@ export const SetUserAlbumPublicResponse = z.object({
   status: z.boolean(),
   album: UserAlbumInfo,
 });
-export type SetUserAlbumPublicResponse = z.infer<typeof SetUserAlbumPublicResponse>;
+export type SetUserAlbumPublicResponse = z.infer<
+  typeof SetUserAlbumPublicResponse
+>;
 
 /**
  * One photo of a public album, for a visitor: PublicPhotoDetailSerializer. What the album's
@@ -153,13 +159,16 @@ export const PublicPhotoDetailResponse = z.object({
   results: PublicPhotoDetail,
   sharing_settings: PublicSharingSettings,
 });
-export type PublicPhotoDetailResponse = z.infer<typeof PublicPhotoDetailResponse>;
+export type PublicPhotoDetailResponse = z.infer<
+  typeof PublicPhotoDetailResponse
+>;
 
 /** A photo's public link (issue #2028): `enabled: false` with a null slug and url once revoked. */
 export const PhotoShare = z.object({
   enabled: z.boolean(),
   slug: z.string().nullable(),
   url: z.string().nullable(),
+  expires_at: z.string().nullable().optional(),
   // Only while the link is enabled.
   created_at: z.string().optional(),
 });
@@ -176,11 +185,16 @@ export const PhotoShareLink = PhotoShare.extend({
 export type PhotoShareLink = z.infer<typeof PhotoShareLink>;
 
 /** POST /photo/share: the link after the action. */
-export const PhotoShareResponse = z.object({ status: z.boolean(), share: PhotoShare });
+export const PhotoShareResponse = z.object({
+  status: z.boolean(),
+  share: PhotoShare,
+});
 export type PhotoShareResponse = z.infer<typeof PhotoShareResponse>;
 
 /** GET /photo/share/list: the user's active photo links, newest first. */
-export const PhotoShareListResponse = z.object({ results: PhotoShareLink.array() });
+export const PhotoShareListResponse = z.object({
+  results: PhotoShareLink.array(),
+});
 export type PhotoShareListResponse = z.infer<typeof PhotoShareListResponse>;
 
 /** What POST /photo/share does with a photo's link. */

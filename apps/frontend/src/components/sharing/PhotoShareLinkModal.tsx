@@ -18,6 +18,7 @@ import { usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
 import { DIALOG_SIZE } from "../modals/dialogSize";
 import { ConfirmPopover } from "./ConfirmPopover";
+import { LinkExpirySetting } from "./LinkExpirySetting";
 
 type Props = {
   /** The photo to share; the dialog is open while this is set. */
@@ -33,7 +34,7 @@ type Props = {
 type LinkState =
   | { status: "creating" }
   | { status: "failed" }
-  | { status: "shown"; url: string; replace: "idle" | "running" | "failed" };
+  | { status: "shown"; url: string; expiresAt: string; replace: "idle" | "running" | "failed" };
 
 /** Create (or show) a photo's share link, with copy, replace and revoke.
  *
@@ -65,19 +66,34 @@ function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose
     if (requested.current) return;
     requested.current = true;
     mutateAsync({ photoId, action: "enable" }).then(
-      share => setLink(share.url ? { status: "shown", url: share.url, replace: "idle" } : { status: "failed" }),
+      share =>
+        setLink(
+          share.url
+            ? { status: "shown", url: share.url, expiresAt: share.expires_at ?? "", replace: "idle" }
+            : { status: "failed" }
+        ),
       () => setLink({ status: "failed" })
     );
   }, [mutateAsync, photoId]);
 
-  const replace = async (url: string) => {
-    setLink({ status: "shown", url, replace: "running" });
+  const replace = async (url: string, expiresAt: string) => {
+    setLink({ status: "shown", url, expiresAt, replace: "running" });
     try {
       const share = await mutateAsync({ photoId, action: "rotate" });
-      setLink({ status: "shown", url: share.url ?? url, replace: share.url ? "idle" : "failed" });
+      setLink({
+        status: "shown",
+        url: share.url ?? url,
+        expiresAt,
+        replace: share.url ? "idle" : "failed",
+      });
     } catch {
-      setLink({ status: "shown", url, replace: "failed" });
+      setLink({ status: "shown", url, expiresAt, replace: "failed" });
     }
+  };
+
+  const setExpiry = (state: Extract<LinkState, { status: "shown" }>, expiresAt: string) => {
+    setLink({ ...state, expiresAt });
+    void mutateAsync({ photoId, action: "enable", expiresAt: expiresAt || null });
   };
 
   return (
@@ -98,8 +114,10 @@ function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose
       {link.status === "shown" && (
         <ShownLink
           url={`${shareAddress}${link.url}`}
+          expiresAt={link.expiresAt}
           replace={link.replace}
-          onReplace={() => void replace(link.url)}
+          onReplace={() => void replace(link.url, link.expiresAt)}
+          onExpiryChange={expiresAt => setExpiry(link, expiresAt)}
           onRevoke={() => mutate({ photoId, action: "disable" }, { onSuccess: onClose })}
         />
       )}
@@ -109,12 +127,14 @@ function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose
 
 type ShownLinkProps = Readonly<{
   url: string;
+  expiresAt: string;
   replace: "idle" | "running" | "failed";
   onReplace: () => void;
+  onExpiryChange: (expiresAt: string) => void;
   onRevoke: () => void;
 }>;
 
-function ShownLink({ url, replace, onReplace, onRevoke }: ShownLinkProps) {
+function ShownLink({ url, expiresAt, replace, onReplace, onExpiryChange, onRevoke }: ShownLinkProps) {
   const { t } = useTranslation();
   return (
     <>
@@ -140,6 +160,7 @@ function ShownLink({ url, replace, onReplace, onRevoke }: ShownLinkProps) {
           {t("sharing.rotateLinkFailed")}
         </Text>
       )}
+      <LinkExpirySetting value={expiresAt} onChange={onExpiryChange} />
       {/* Both end the link the recipients already have, for good. */}
       <Group justify="flex-end" gap="xs">
         <ConfirmPopover

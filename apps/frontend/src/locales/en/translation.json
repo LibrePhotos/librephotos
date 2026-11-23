@@ -799,6 +799,7 @@
     "customUrlError": "Use lowercase letters, numbers and hyphens (3-64).",
     "urlTaken": "This URL is already taken.",
     "expiration": "Expiration (optional)",
+    "expiresOn": "Expires {{date}}",
     "days7": "7 days",
     "days30": "30 days",
     "days90": "90 days",

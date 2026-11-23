@@ -5,6 +5,9 @@ slug, rotate it, and revoke it so the withdrawn URL stops working -- for the
 metadata endpoint and for the media it points at.
 """
 
+import datetime
+from unittest import mock
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -325,3 +328,72 @@ class SharedPhotoMediaTest(PhotoShareTestBase):
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response["X-Accel-Redirect"])
+
+
+NOW = datetime.datetime(2026, 11, 20, 12, 0, tzinfo=datetime.UTC)
+
+
+class PhotoShareExpiryTest(PhotoShareTestBase):
+    def setUp(self):
+        super().setUp()
+        self.anonymous = APIClient()
+        patcher = mock.patch("django.utils.timezone.now", return_value=NOW)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def share_at(self, expires_at):
+        return self.post(
+            {
+                "photo_id": str(self.photo.pk),
+                "action": "enable",
+                "expires_at": expires_at,
+            }
+        ).json()["share"]
+
+    def test_the_payload_reports_the_expiry(self):
+        share = self.share_at("2026-12-01T12:00:00Z")
+
+        self.assertEqual("2026-12-01T12:00:00Z", share["expires_at"])
+
+    def test_a_link_with_no_expiry_stays_open(self):
+        share = self.share_at(None)
+
+        self.assertIsNone(share["expires_at"])
+        self.assertEqual(200, self.anonymous.get(public_url(share["slug"])).status_code)
+
+    def test_a_link_is_open_up_to_its_expiry(self):
+        share = self.share_at(NOW.isoformat())
+
+        self.assertEqual(200, self.anonymous.get(public_url(share["slug"])).status_code)
+
+    def test_a_link_is_closed_once_it_expired(self):
+        share = self.share_at((NOW - datetime.timedelta(seconds=1)).isoformat())
+
+        self.assertEqual(404, self.anonymous.get(public_url(share["slug"])).status_code)
+        self.assertEqual(404, self.anonymous.get(media_url(share["slug"])).status_code)
+
+    def test_an_absent_expiry_keeps_the_current_one(self):
+        self.share_at(NOW.isoformat())
+
+        share = self.post({"photo_id": str(self.photo.pk), "action": "enable"}).json()[
+            "share"
+        ]
+
+        self.assertEqual(
+            "2026-11-20T12:00:00Z", share["expires_at"].replace("+00:00", "Z")
+        )
+
+    def test_a_null_expiry_clears_it(self):
+        self.share_at(NOW.isoformat())
+
+        share = self.share_at(None)
+
+        self.assertIsNone(share["expires_at"])
+
+    def test_a_new_date_reopens_an_expired_link(self):
+        slug = self.share_at((NOW - datetime.timedelta(seconds=1)).isoformat())["slug"]
+
+        share = self.share_at((NOW + datetime.timedelta(days=1)).isoformat())
+
+        self.assertEqual(slug, share["slug"])
+        self.assertEqual(200, self.anonymous.get(public_url(slug)).status_code)
