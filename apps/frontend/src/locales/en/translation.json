@@ -1279,15 +1279,17 @@
     "walldisplay": {
       "title": "Wall display",
       "keepawake": "Keep the screen awake",
-      "keepawakedesc": "While the slideshow plays, the screen stays on outside sleep hours.",
+      "keepawakedesc": "While the slideshow plays, the screen stays on, sleep hours included, so the photos come back at the wake time.",
       "sleep": "Sleep on a schedule",
-      "sleepdesc": "Blank the screen between these times while the slideshow plays on a wall display.",
+      "sleepdesc": "Between these times the screen goes black and the slideshow pauses. Tap the screen to wake it.",
       "sleepfrom": "Sleep from",
-      "sleepuntil": "until",
+      "wakeat": "Wake at",
+      "sleepoff": "The two times are the same, so the screen does not sleep.",
+      "wake": "Wake the screen and stop the slideshow",
       "burnin": "Burn-in protection",
       "burnindesc": "Slowly drift the photo a few pixels, so static parts of the screen do not burn in.",
       "hidecursor": "Hide the cursor",
-      "hidecursordesc": "Hide the pointer over the photo while the slideshow plays."
+      "hidecursordesc": "Hide the pointer after a few seconds without movement while the slideshow plays."
     },
     "panorama": {
       "toggle": "360° view (V)",

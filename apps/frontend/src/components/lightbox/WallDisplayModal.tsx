@@ -1,4 +1,4 @@
-import { Group, Modal, Stack, Switch } from "@mantine/core";
+import { Group, Modal, Stack, Switch, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { NativeTimeInput } from "../common/NativeDateInput";
@@ -38,22 +38,29 @@ export function WallDisplayModal({ opened, onClose, settings, onChange }: Props)
           onChange={event => set("sleepEnabled", event.currentTarget.checked)}
         />
         {settings.sleepEnabled && (
-          <Group grow>
-            <NativeTimeInput
-              label={t("lightbox.walldisplay.sleepfrom")}
-              value={settings.sleepStart}
-              onChange={value => {
-                if (value) set("sleepStart", value);
-              }}
-            />
-            <NativeTimeInput
-              label={t("lightbox.walldisplay.sleepuntil")}
-              value={settings.sleepEnd}
-              onChange={value => {
-                if (value) set("sleepEnd", value);
-              }}
-            />
-          </Group>
+          <Stack gap={4}>
+            <Group grow>
+              <NativeTimeInput
+                label={t("lightbox.walldisplay.sleepfrom")}
+                value={settings.sleepStart}
+                onChange={value => {
+                  if (value) set("sleepStart", value);
+                }}
+              />
+              <NativeTimeInput
+                label={t("lightbox.walldisplay.wakeat")}
+                value={settings.sleepEnd}
+                onChange={value => {
+                  if (value) set("sleepEnd", value);
+                }}
+              />
+            </Group>
+            {settings.sleepStart === settings.sleepEnd && (
+              <Text size="xs" c="dimmed">
+                {t("lightbox.walldisplay.sleepoff")}
+              </Text>
+            )}
+          </Stack>
         )}
         <Switch
           label={t("lightbox.walldisplay.burnin")}

@@ -210,7 +210,11 @@ The toolbar at the top starts with the back arrow (**Close**), which returns to 
 - **More actions** (⋮) - A menu with the rest:
   - **Zoom in** / **Zoom out** - Magnify the image. Still photos only, not videos. See [Zooming into the original](#zooming-into-the-original).
   - **Slideshow** / **Stop slideshow** - Start or stop an automatic slideshow. While it runs, the toolbar shows its controls, with a dropdown to choose the interval (3, 5, 10, 15 or 30 seconds).
-  - **Wall display** - <Since version="1.7.0" /> Settings for a screen that runs the slideshow for a long time, like a wall display or a tablet: keep the screen awake, sleep between two times of day (the screen goes black, the slideshow keeps playing), drift the photo slowly so static parts do not burn in, and hide the cursor. The choices are saved in the browser, so every display keeps its own.
+  - **Wall display** - <Since version="1.7.0" /> Settings for a screen that runs the slideshow for a long time, like a wall display or a tablet. They apply only while the slideshow plays, and they are saved in the browser, so every display keeps its own:
+    - **Keep the screen awake** (on by default) - The screen does not dim or lock while the slideshow plays, sleep hours included, so the photos come back on their own at the wake time.
+    - **Sleep on a schedule** (off by default) - Between **Sleep from** and **Wake at** the screen goes black and the slideshow pauses, so no photos load and no video plays during the night. A window that runs past midnight, like 23:00 to 07:00, works. When the two times are the same, the screen does not sleep. To wake it early, tap or click the black screen, or press `s`: that stops the slideshow.
+    - **Burn-in protection** (off by default) - Drift the photo and the toolbar a few pixels every two minutes, so static parts of an OLED or plasma screen do not burn in.
+    - **Hide the cursor** (off by default) - Hide the pointer after three seconds without movement. Moving the mouse shows it again.
   - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. It is offered for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
   - **Fullscreen** / **Exit fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
   - **Hide photo** / **Unhide photo** - Hide the photo everywhere but the Hidden page, or unhide it.
@@ -222,7 +226,7 @@ Each item in the menu shows its keyboard shortcut (see [Keyboard Shortcuts](#key
 
 <Since version="1.6.0" /> Up to 1.5.x, zoom, the slideshow, copy, fullscreen, hide, archive and the rotations had buttons of their own in the toolbar on a wide screen, and the share link button was a globe.
 
-The share link, favorite, delete, hide, archive and rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the zoom, slideshow, copy and fullscreen items in the ⋮, the info panel button and the back arrow.
+The share link, favorite, delete, hide, archive and rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the zoom, slideshow, wall display, copy and fullscreen items in the ⋮, the info panel button and the back arrow.
 
 There is no download button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu. <Since version="1.7.0" /> On a photo you [edited](./editing-photos.md#downloads-and-sharing), the ⋮ also has **Download edited** and **Download original**.
 

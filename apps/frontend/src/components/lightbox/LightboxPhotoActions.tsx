@@ -77,7 +77,7 @@ type MoreMenuProps = Readonly<{
   toggleSlideshow: () => void;
   /** Absent where copy cannot work (a video, a page without an image clipboard). */
   onCopyToClipboard?: () => void;
-  onOpenWallDisplay?: () => void;
+  onOpenWallDisplay: () => void;
   copyLabel: string;
   isFullscreen: boolean;
   toggleFullscreen: () => void;
@@ -152,11 +152,9 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
         >
           {slideshowLabel}
         </Menu.Item>
-        {onOpenWallDisplay && (
-          <Menu.Item leftSection={<DeviceTv size={ICON_SIZE.menu} />} onClick={onOpenWallDisplay}>
-            {t("lightbox.controls.walldisplay")}
-          </Menu.Item>
-        )}
+        <Menu.Item leftSection={<DeviceTv size={ICON_SIZE.menu} />} onClick={onOpenWallDisplay}>
+          {t("lightbox.controls.walldisplay")}
+        </Menu.Item>
         {onCopyToClipboard && (
           <Menu.Item
             leftSection={<Copy size={ICON_SIZE.menu} />}

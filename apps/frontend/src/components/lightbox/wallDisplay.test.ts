@@ -53,6 +53,15 @@ describe("randomDriftOffset", () => {
 });
 
 describe("WallDisplaySettings", () => {
+  it("leaves an ordinary slideshow as it was: no drift, the cursor shown, sleep off", () => {
+    expect(DEFAULT_WALL_DISPLAY_SETTINGS).toMatchObject({
+      burnInProtection: false,
+      hideCursor: false,
+      sleepEnabled: false,
+    });
+    expect(WallDisplaySettings.parse({})).toEqual(DEFAULT_WALL_DISPLAY_SETTINGS);
+  });
+
   it("keeps the fields it can read when one is corrupt", () => {
     const parsed = WallDisplaySettings.parse({
       ...DEFAULT_WALL_DISPLAY_SETTINGS,
