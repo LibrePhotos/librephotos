@@ -1,30 +1,43 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 
 const PRODUCT = "LibrePhotos Viewer";
+const MANUFACTURER = "librephotos";
 const EXE_NAME = "librephotos-viewer.exe";
 const IMAGE_PROG_ID = "LibrePhotosViewer.Image";
+const UNINSTALL_KEY = `Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${PRODUCT}`;
 const STARTUP_TIMEOUT_MS = 90_000;
 const UNINSTALL_TIMEOUT_MS = 90_000;
+const PROGRAM_FILES = process.env.ProgramW6432 ?? process.env.ProgramFiles;
 
 const SCOPES = {
   user: {
     hive: "HKCU",
     flag: "/CurrentUser",
-    folder: () => process.env.LOCALAPPDATA,
+    mode: "CurrentUser",
+    root: process.env.LOCALAPPDATA,
     env: { __COMPAT_LAYER: "RunAsInvoker" },
   },
   machine: {
     hive: "HKLM",
     flag: "/AllUsers",
-    folder: () => process.env.ProgramW6432 ?? process.env.ProgramFiles,
+    mode: "AllUsers",
+    root: PROGRAM_FILES,
     env: {},
   },
 };
+
+const diagnostics = [];
+
+function fail(message) {
+  console.error(`smoke test failed: ${message}`);
+  for (const report of diagnostics) console.error(report());
+  process.exit(1);
+}
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -38,20 +51,9 @@ if (!installerArg || !pictureArg || !scope) {
 }
 const installer = resolve(installerArg);
 const picture = resolve(pictureArg);
-const programFolder = scope.folder();
-if (!programFolder) fail(`no program folder for the ${values.scope} scope`);
-const installDir = join(programFolder, PRODUCT);
-const exe = join(installDir, EXE_NAME);
-const uninstaller = join(installDir, "uninstall.exe");
+if (!scope.root) fail(`no program folder for the ${values.scope} scope`);
 const classes = `${scope.hive}\\Software\\Classes`;
-
-const diagnostics = [];
-
-function fail(message) {
-  console.error(`smoke test failed: ${message}`);
-  for (const report of diagnostics) console.error(report());
-  process.exit(1);
-}
+const uninstallKey = `${scope.hive}\\${UNINSTALL_KEY}`;
 
 function processList(image) {
   const listed = spawnSync("tasklist", ["/FI", `IMAGENAME eq ${image}`, "/FO", "CSV", "/NH"], { encoding: "utf8" });
@@ -74,11 +76,23 @@ function registryHas(key, value) {
   return spawnSync("reg", args, { stdio: "ignore" }).status === 0;
 }
 
-function defaultClass(extension) {
-  const asked = spawnSync("reg", ["query", `${classes}\\${extension}`, "/ve"], { encoding: "utf8" });
-  if (asked.status !== 0) return "(none)";
+function registryValue(key, value) {
+  const args = value === undefined ? ["query", key, "/ve"] : ["query", key, "/v", value];
+  const asked = spawnSync("reg", args, { encoding: "utf8" });
+  if (asked.status !== 0) return undefined;
   const line = asked.stdout.split(/\r?\n/).find((text) => text.includes("REG_SZ"));
-  return line ? line.split("REG_SZ")[1].trim() || "(empty)" : "(none)";
+  return line === undefined ? undefined : line.split("REG_SZ")[1].trim();
+}
+
+function registryDump(key) {
+  const asked = spawnSync("reg", ["query", key, "/s"], { encoding: "utf8" });
+  return asked.status === 0 ? asked.stdout.trim() : `${key}: (none)`;
+}
+
+function defaultClass(extension) {
+  const value = registryValue(`${classes}\\${extension}`);
+  if (value === undefined) return "(none)";
+  return value || "(empty)";
 }
 
 function expectRegistry(key, value, why) {
@@ -95,15 +109,59 @@ async function waitFor(what, timeoutMs, probe) {
   return fail(`timed out waiting for ${what}`);
 }
 
+function isInside(folder, path) {
+  const rest = relative(folder.toLowerCase(), path.toLowerCase());
+  return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
+}
+
+function installedCopies() {
+  const roots = [
+    process.env.LOCALAPPDATA,
+    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "Programs"),
+    PROGRAM_FILES,
+    process.env["ProgramFiles(x86)"],
+  ].filter(Boolean);
+  const found = [];
+  for (const root of new Set(roots)) {
+    let entries = [];
+    try {
+      entries = readdirSync(root, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const candidate = join(root, entry.name, EXE_NAME);
+      if (entry.isDirectory() && existsSync(candidate)) found.push(candidate);
+    }
+  }
+  return found.length ? found.join("\n") : "(none)";
+}
+
+diagnostics.push(
+  () => `${EXE_NAME} found at:\n${installedCopies()}`,
+  () =>
+    ["HKCU", "HKLM"]
+      .flatMap((hive) => [`${hive}\\${UNINSTALL_KEY}`, `${hive}\\Software\\${MANUFACTURER}\\${PRODUCT}`])
+      .map(registryDump)
+      .join("\n")
+);
+
 const jpgClassBefore = defaultClass(".jpg");
-step(`installing ${basename(installer)} (${values.scope}, ${installDir}); .jpg class is ${jpgClassBefore}`);
+step(`installing ${basename(installer)} (${values.scope}, under ${scope.root}); .jpg class is ${jpgClassBefore}`);
 function runSetup(program) {
   const run = spawnSync(program, ["/S", scope.flag], { stdio: "inherit", env: { ...process.env, ...scope.env } });
   if (run.status !== 0) fail(`${basename(program)} exited with ${run.status}${run.error ? ` (${run.error.message})` : ""}`);
 }
 
 runSetup(installer);
+const installDir = registryValue(uninstallKey, "InstallLocation")?.replace(/^"|"$/g, "");
+if (!installDir) fail(`${uninstallKey} has no InstallLocation: the setup did not install for the ${values.scope} scope`);
+expectRegistry(uninstallKey, scope.mode, `the setup did not record a ${values.scope} install`);
+if (!isInside(scope.root, installDir)) fail(`the ${values.scope} install went to ${installDir}, outside ${scope.root}`);
+const exe = join(installDir, EXE_NAME);
+const uninstaller = join(installDir, "uninstall.exe");
 if (!existsSync(exe)) fail(`${exe} is missing after the install`);
+step(`installed into ${installDir}`);
 expectRegistry(`${scope.hive}\\Software\\RegisteredApplications`, PRODUCT, "Default apps has no page for the app");
 expectRegistry(`${scope.hive}\\Software\\${PRODUCT}\\Capabilities\\FileAssociations`, ".jpg", "no capability for .jpg");
 expectRegistry(`${classes}\\${IMAGE_PROG_ID}\\shell\\open\\command`, undefined, "the ProgID cannot open pictures");
@@ -156,6 +214,7 @@ await waitFor(
   UNINSTALL_TIMEOUT_MS,
   async () => !registryHas(`${scope.hive}\\Software\\RegisteredApplications`, PRODUCT)
 );
+await waitFor("the uninstaller to remove its Uninstall entry", UNINSTALL_TIMEOUT_MS, async () => !registryHas(uninstallKey));
 if (registryHas(`${classes}\\.jpg\\OpenWithProgids`, IMAGE_PROG_ID)) fail("Open with still offers the removed app");
 if (registryHas(`${classes}\\Applications\\${EXE_NAME}`)) fail("the Applications entry survived the uninstall");
 const jpgClassAfter = defaultClass(".jpg");
