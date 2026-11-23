@@ -12296,7 +12296,7 @@
     "/api/public/photo/{slug}/": {
       "get": {
         "operationId": "api_public_photo_retrieve",
-        "description": "Returns a publicly shared photo by share slug if active",
+        "description": "Returns a publicly shared photo by share slug if active; 410 with code link_expired once the link's expiry has passed",
         "parameters": [
           {
             "in": "path",

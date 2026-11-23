@@ -129,7 +129,9 @@ def _turn_off_public_links(user: User) -> None:
     """
     photos = Photo.objects.owned_by(user)
     AlbumUserShare.objects.filter(album__owner=user).update(enabled=False, slug=None)
-    PhotoShare.objects.filter(photo__in=photos).update(enabled=False, slug=None)
+    PhotoShare.objects.filter(photo__in=photos).update(
+        enabled=False, slug=None, expires_at=None
+    )
     # last_modified: synced clients show whether a photo is public.
     photos.filter(public=True).update(public=False, last_modified=timezone.now())
 
