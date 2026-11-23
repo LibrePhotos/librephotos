@@ -123,7 +123,7 @@ const failedOnScreen = (query: Query) =>
  */
 export const useDateAlbumDayPages = (listOptions: AlbumDateListOptions, queryOptions?: { skip?: boolean }) => {
   const photoOrder = usePhotoOrder();
-  const options = { ...listOptions, order: photoOrder.order };
+  const options = { ...listOptions, order: listOptions.order ?? photoOrder.order };
   const { pages, updateGroups: reportPages } = useDayPagesOnScreen(JSON.stringify(dateAlbumsListKey(options)));
   const queryClient = useQueryClient();
   const enabled = !queryOptions?.skip && photoOrder.ready;

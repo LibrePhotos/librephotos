@@ -179,6 +179,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "stacks",
             "has_raw_variant",
             "local_orientation",
+            "size",
             # "equirectangular" for a 360° photo sphere, else null: the tile's
             # 360° badge (#483).
             "projection_type",
@@ -355,6 +356,11 @@ class SearchResultsSerializer(serializers.Serializer[None]):
     """
 
     results = GroupedPhotosSerializer(many=True)
+    count = serializers.IntegerField(
+        required=False,
+        help_text="sort=largest or sort=smallest only: the number of all matches, "
+        "of which results holds the first ones",
+    )
 
 
 # The annotation ``PhotoSummarySerializer.get_thumbnail_version`` reads.
@@ -444,6 +450,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
             "archived",
             "trashed_at",
             "local_orientation",
+            "size",
             "projection_type",
             # Read by filter_photos_by_media_type for ?is_screenshot / ?is_document.
             "is_screenshot",

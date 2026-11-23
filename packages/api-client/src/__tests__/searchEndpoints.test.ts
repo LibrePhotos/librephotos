@@ -37,6 +37,41 @@ describe("search", () => {
     expect(result.photosGroupedByDate).toEqual([]);
   });
 
+  it("sends sort=oldest and reads the grouped answer", async () => {
+    const { client, requests } = fakeServer({ results: [{ date: "2024-04-02", location: "", items: [pigPhoto] }] });
+    const result = await endpoints.searchPhotos(client, "beach", false, {}, "oldest");
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?search=beach&sort=oldest`);
+    expect(result.photosFlat).toHaveLength(1);
+  });
+
+  it.each([["largest"], ["smallest"]] as const)("sends sort=%s and reads the flat answer and its count", async sort => {
+    const { client, requests } = fakeServer({ results: [pigPhoto], count: 1500 });
+    const result = await endpoints.searchPhotos(client, "", false, { video: true }, sort);
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?video=true&sort=${sort}`);
+    expect(result.photosFlat).toHaveLength(1);
+    expect(result.photosGroupedByDate).toEqual([]);
+    expect(result.count).toBe(1500);
+  });
+
+  it("reads a size sorted answer in semantic mode with its count", async () => {
+    const { client } = fakeServer({ results: [pigPhoto], count: 1 });
+    const result = await endpoints.searchPhotos(client, "beach", true, {}, "largest");
+    expect(result.photosFlat).toHaveLength(1);
+    expect(result.count).toBe(1);
+  });
+
+  it("has no count for a semantic answer", async () => {
+    const { client } = fakeServer({ results: [pigPhoto] });
+    const result = await endpoints.searchPhotos(client, "beach", true);
+    expect(result.count).toBeUndefined();
+  });
+
+  it("leaves the default and an explicit newest sort out of the query", async () => {
+    const { client, requests } = fakeServer({ results: [] });
+    await endpoints.searchPhotos(client, "beach", false, {}, "newest");
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?search=beach`);
+  });
+
   it("sends the structured filters, one person parameter per person", async () => {
     const { client, requests } = fakeServer({ results: [] });
     await endpoints.searchPhotos(client, "", false, {

@@ -1,16 +1,10 @@
-import { ActionIcon, Button, Indicator, Menu, Tooltip, useMantineTheme } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
-import {
-  IconArrowsSort as ArrowsSort,
-  IconCheck as Check,
-  IconChevronDown as ChevronDown,
-  IconRestore as Restore,
-} from "@tabler/icons-react";
+import { Menu } from "@mantine/core";
+import { IconCheck as Check, IconRestore as Restore } from "@tabler/icons-react";
 import type { ParseKeys } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
-import { toolbarLook } from "../common/toolbarLook";
+import { ICON_SIZE } from "../../uiConstants";
+import { SortMenuTarget } from "../common/SortMenuTarget";
 import { DIRECTION_LABELS, DIRECTIONS, sameSort, SORT_KEY_LABELS, sortForKey } from "./albumSort";
 import type { AlbumSort } from "./albumSort";
 import type { AlbumSortMenuState } from "./useAlbumSort";
@@ -22,40 +16,15 @@ import type { AlbumSortMenuState } from "./useAlbumSort";
  */
 export function AlbumSortMenu({ options, sort, defaultSort, onChange }: AlbumSortMenuState) {
   const { t } = useTranslation();
-  const theme = useMantineTheme();
-  // Read at once rather than after mounting, so a phone never shows the wide button first
-  const isPhone = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`, undefined, { getInitialValueInEffect: false });
   const labelOf = (key: AlbumSort["key"]): ParseKeys =>
     options.find(option => option.key === key)?.label ?? SORT_KEY_LABELS[key];
   const keyLabel = t(labelOf(sort.key));
   const name = t("albumsort.current", { key: keyLabel, direction: t(DIRECTION_LABELS[sort.key][sort.direction]) });
   const isDefault = sameSort(sort, defaultSort);
-  const look = toolbarLook(!isDefault);
 
   return (
     <Menu position="bottom-end" shadow="md">
-      <Menu.Target>
-        {isPhone ? (
-          <Indicator size={8} offset={4} disabled={isDefault}>
-            <Tooltip label={name} position="bottom">
-              <ActionIcon {...look} size={TOOLBAR_ACTION_SIZE} aria-label={name}>
-                <ArrowsSort size={ICON_SIZE.toolbar} />
-              </ActionIcon>
-            </Tooltip>
-          </Indicator>
-        ) : (
-          <Button
-            {...look}
-            h={TOOLBAR_CONTROL_HEIGHT}
-            leftSection={<ArrowsSort size={ICON_SIZE.toolbar} />}
-            rightSection={<ChevronDown size={ICON_SIZE.inline} />}
-            aria-label={name}
-            title={name}
-          >
-            {t("albumsort.button", { key: keyLabel })}
-          </Button>
-        )}
-      </Menu.Target>
+      <SortMenuTarget name={name} label={t("albumsort.button", { key: keyLabel })} active={!isDefault} />
       <Menu.Dropdown>
         <AlbumSortMenuItems options={options} sort={sort} defaultSort={defaultSort} onChange={onChange} />
       </Menu.Dropdown>
