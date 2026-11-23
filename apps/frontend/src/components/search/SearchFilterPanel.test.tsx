@@ -138,6 +138,49 @@ describe("SearchFilterPanel", () => {
     expect(onChange).toHaveBeenCalledWith({ iso_min: 1600, iso_max: 6400 });
   });
 
+  it("reads a shutter speed as a fraction or seconds and applies it in seconds", async () => {
+    await renderPanel({});
+    const low = inputNamed("Shutter speed, Min");
+    await type(low, "1/250");
+    await blur(low);
+    expect(onChange).toHaveBeenCalledWith({ shutter_min: 1 / 250, shutter_max: undefined });
+
+    const high = inputNamed("Shutter speed, Max");
+    await type(high, "2 s");
+    await blur(high);
+    expect(onChange).toHaveBeenLastCalledWith({ shutter_min: 1 / 250, shutter_max: 2 });
+  });
+
+  it("shows a linked shutter range as times and keeps it when the fields are left unchanged", async () => {
+    await renderPanel({ shutter_min: 0.0166666666666667, shutter_max: 0.0166666666666667 });
+    const low = inputNamed("Shutter speed, Min");
+    expect(low.value).toBe("1/60");
+    expect(inputNamed("Shutter speed, Max").value).toBe("1/60");
+    await blur(low);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("refuses a shutter speed it cannot read, and one faster than the lowest", async () => {
+    await renderPanel({ shutter_min: 1 });
+    const low = inputNamed("Shutter speed, Min");
+    await type(low, "fast");
+    await blur(low);
+    expect(document.body.textContent).toContain(i18n.t("searchfilter.exposuretimeerror"));
+
+    await type(low, "1");
+    const high = inputNamed("Shutter speed, Max");
+    await type(high, "1/250");
+    await blur(high);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(i18n.t("searchfilter.rangeerror"));
+  });
+
+  it("sets a shutter band with a preset", async () => {
+    await renderPanel({});
+    await act(async () => chip("1/500 to 1/60").click());
+    expect(onChange).toHaveBeenCalledWith({ shutter_min: 1 / 500, shutter_max: 1 / 60 });
+  });
+
   it("offers stars in the stars rating mode", async () => {
     await renderPanel({});
     await clickStar("3 stars or more");

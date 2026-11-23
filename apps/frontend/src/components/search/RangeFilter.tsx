@@ -8,7 +8,7 @@ import { makeRangeFilterSchema, type RangeFilterValues } from "./RangeFilter.sch
 import { formatRangeValue } from "./searchFilterLabels";
 import type { RangeField } from "./searchFilterRanges";
 
-type Props = Readonly<{
+export type RangeFilterProps = Readonly<{
   field: RangeField;
   low: number | undefined;
   high: number | undefined;
@@ -34,7 +34,7 @@ function presetLabel(field: RangeField, min: number | undefined, max: number | u
  * above the highest shows an error and is not applied. The parent re-keys it when the URL changes,
  * so the fields always start from the applied range.
  */
-export function RangeFilter({ field, low, high, onChange }: Props) {
+export function RangeFilter({ field, low, high, onChange }: RangeFilterProps) {
   const { t } = useTranslation();
   const form = useForm<RangeFilterValues>({
     initialValues: { low: low ?? "", high: high ?? "" },
@@ -74,23 +74,35 @@ export function RangeFilter({ field, low, high, onChange }: Props) {
         <NumberInput {...input("low")} flex={1} />
         <NumberInput {...input("high")} flex={1} />
       </Group>
-      {field.presets.length > 0 && (
-        <Group gap={6} role="group" aria-labelledby={labelId}>
-          {field.presets.map(preset => {
-            const checked = preset.min === low && preset.max === high;
-            return (
-              <Chip
-                key={`${preset.min}-${preset.max}`}
-                size="xs"
-                checked={checked}
-                onChange={() => (checked ? onChange(undefined, undefined) : onChange(preset.min, preset.max))}
-              >
-                {presetLabel(field, preset.min, preset.max, t)}
-              </Chip>
-            );
-          })}
-        </Group>
-      )}
+      <RangePresets field={field} low={low} high={high} onChange={onChange} labelId={labelId} />
     </Stack>
+  );
+}
+
+export function RangePresets({
+  field,
+  low,
+  high,
+  onChange,
+  labelId,
+}: RangeFilterProps & Readonly<{ labelId: string }>) {
+  const { t } = useTranslation();
+  if (field.presets.length === 0) return null;
+  return (
+    <Group gap={6} role="group" aria-labelledby={labelId}>
+      {field.presets.map(preset => {
+        const checked = preset.min === low && preset.max === high;
+        return (
+          <Chip
+            key={`${preset.min}-${preset.max}`}
+            size="xs"
+            checked={checked}
+            onChange={() => (checked ? onChange(undefined, undefined) : onChange(preset.min, preset.max))}
+          >
+            {presetLabel(field, preset.min, preset.max, t)}
+          </Chip>
+        );
+      })}
+    </Group>
   );
 }

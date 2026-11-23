@@ -544,6 +544,7 @@ def create_test_photo(**kwargs):
         "fstop": "aperture",  # Old 'fstop' -> new 'aperture'
         "focal_length": "focal_length",
         "shutter_speed": "shutter_speed",
+        "shutter_speed_seconds": "shutter_speed_seconds",
         "focalLength35Equivalent": "focal_length_35mm",
         "digitalZoomRatio": "digital_zoom_ratio",
         "subjectDistance": "subject_distance",

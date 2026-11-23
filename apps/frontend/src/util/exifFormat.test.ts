@@ -12,12 +12,14 @@ import {
   formatDimensions,
   formatDuration,
   formatExposureBias,
+  formatExposureTime,
   formatFocalLength,
   formatIso,
   formatMegapixels,
   formatShutterSpeed,
   formatSubjectDistance,
   formatVideoCodec,
+  parseExposureTime,
 } from "./exifFormat";
 
 type Row<I> = [input: I, en: string | null, de: string | null];
@@ -213,5 +215,37 @@ describe("formatVideoCodec", () => {
     [null, null],
   ])("%s", (codec, expected) => {
     expect(formatVideoCodec(codec)).toBe(expected);
+  });
+});
+
+describe("formatExposureTime", () => {
+  it.each<Row<number>>([
+    [1 / 250, "1/250", "1/250"],
+    [1 / 60, "1/60", "1/60"],
+    [0.0166666666666667, "1/60", "1/60"],
+    [0.5, "0.5 s", "0,5 s"],
+    [2, "2 s", "2 s"],
+  ])("%s", (seconds, en, de) => {
+    expect(formatExposureTime(seconds, "en")).toBe(en);
+    expect(formatExposureTime(seconds, "de")).toBe(de);
+  });
+});
+
+describe("parseExposureTime", () => {
+  it.each<[string, number | undefined]>([
+    ["1/250", 1 / 250],
+    [" 1/60 ", 1 / 60],
+    ["2", 2],
+    ["2 s", 2],
+    ["2.5s", 2.5],
+    ["0,5 s", 0.5],
+    ['30"', 30],
+    ["", undefined],
+    ["0", undefined],
+    ["1/0", undefined],
+    ["fast", undefined],
+    ["-1", undefined],
+  ])("%j", (text, seconds) => {
+    expect(parseExposureTime(text)).toBe(seconds);
   });
 });
