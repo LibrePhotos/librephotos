@@ -7960,6 +7960,38 @@
         }
       }
     },
+    "/api/photo-day-counts/": {
+      "get": {
+        "operationId": "api_photo_day_counts_list",
+        "description": "How many of the user's visible photos were taken on each day, oldest day first. Days without photos and photos without a date are left out.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PhotoDayCount"
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/photo/share/": {
       "post": {
         "operationId": "api_photo_share_create",
@@ -26433,6 +26465,23 @@
         },
         "required": [
           "image_hash"
+        ]
+      },
+      "PhotoDayCount": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "description": "\"YYYY-MM-DD\""
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "day"
         ]
       },
       "PhotoDetailsSummary": {

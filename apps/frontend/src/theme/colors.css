@@ -83,3 +83,19 @@
 :root[data-mantine-color-scheme="dark"] {
   color-scheme: dark;
 }
+
+:root[data-mantine-color-scheme="light"] {
+  --app-heatmap-level-0: var(--mantine-color-gray-2);
+  --app-heatmap-level-1: var(--mantine-primary-color-2);
+  --app-heatmap-level-2: var(--mantine-primary-color-4);
+  --app-heatmap-level-3: var(--mantine-primary-color-6);
+  --app-heatmap-level-4: var(--mantine-primary-color-8);
+}
+
+:root[data-mantine-color-scheme="dark"] {
+  --app-heatmap-level-0: var(--mantine-color-dark-5);
+  --app-heatmap-level-1: var(--mantine-primary-color-8);
+  --app-heatmap-level-2: var(--mantine-primary-color-6);
+  --app-heatmap-level-3: var(--mantine-primary-color-4);
+  --app-heatmap-level-4: var(--mantine-primary-color-2);
+}

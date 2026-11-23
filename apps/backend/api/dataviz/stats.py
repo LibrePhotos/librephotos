@@ -376,6 +376,19 @@ def get_photo_month_counts(user: User) -> list[dict[str, str | int]]:
         return []
 
 
+def get_photo_day_counts(user: User) -> list[dict[str, str | int]]:
+    counts = (
+        Photo.visible.owned_by(user)
+        .exclude(exif_timestamp=None)
+        .annotate(day=taken_day())
+        .values("day")
+        .annotate(c=Count("id"))
+        .values("day", "c")
+        .order_by("day")
+    )
+    return [{"day": count["day"].isoformat(), "count": count["c"]} for count in counts]
+
+
 class _LabelTally:
     """Counts labels and remembers the order in which they were first seen."""
 

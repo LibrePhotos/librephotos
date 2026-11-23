@@ -27,20 +27,27 @@ function throughDarkMapFilter(hex: string): Rgb {
   return eachChannel(inverted, channel => clamp(twiceLuminance - channel) * BRIGHTNESS);
 }
 
+function toLab(rgb: Rgb): readonly [number, number, number] {
+  const [r, g, b] = eachChannel(rgb, c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const f = (t: number) => (t > 216 / 24389 ? Math.cbrt(t) : ((24389 / 27) * t + 16) / 116);
+  const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047);
+  const y = f(0.2126 * r + 0.7152 * g + 0.0722 * b);
+  const z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+
 /** CIE76 colour difference: about 2.3 is just noticeable, black to white is 100. */
 function deltaE(left: Rgb, right: Rgb): number {
-  const toLab = (rgb: Rgb) => {
-    const [r, g, b] = eachChannel(rgb, c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-    const f = (t: number) => (t > 216 / 24389 ? Math.cbrt(t) : ((24389 / 27) * t + 16) / 116);
-    const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047);
-    const y = f(0.2126 * r + 0.7152 * g + 0.0722 * b);
-    const z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
-    return [116 * y - 16, 500 * (x - y), 200 * (y - z)] as const;
-  };
   const [l1, a1, b1] = toLab(left);
   const [l2, a2, b2] = toLab(right);
   return Math.hypot(l1 - l2, a1 - a2, b1 - b2);
 }
+
+const lightness = (rgb: Rgb) => toLab(rgb)[0];
+
+const steps = (values: readonly number[]) => values.slice(1).map((value, index) => value - (values[index] ?? 0));
+
+const HEATMAP_STEP = 8;
 
 const entries = (colors: MapLayerColors): Array<[string, string]> => [
   ["clusters.small", colors.clusters.small],
@@ -78,6 +85,22 @@ describe("mapLayerColors", () => {
   it("keeps the cluster count as light as the filter allows on a dark map", () => {
     for (const channel of throughDarkMapFilter(mapLayerColors("dark").clusterText)) {
       expect(channel).toBeCloseTo(BRIGHTNESS);
+    }
+  });
+
+  it("steps the heatmap from light to dark on a light map", () => {
+    const shown = mapLayerColors("light").heatmap.ramp.map(hex => lightness(hexToRgb(hex)));
+    expect(steps(shown).every(step => step <= -HEATMAP_STEP)).toBe(true);
+  });
+
+  it("steps the heatmap from dark to light on a dark map, through the filter", () => {
+    const shown = mapLayerColors("dark").heatmap.ramp.map(hex => lightness(throughDarkMapFilter(hex)));
+    expect(steps(shown).every(step => step >= HEATMAP_STEP)).toBe(true);
+  });
+
+  it("fades the heatmap in from fully transparent", () => {
+    for (const scheme of ["light", "dark"] as const) {
+      expect(mapLayerColors(scheme).heatmap.fade).toMatch(/^rgba\(\d+, \d+, \d+, 0\)$/);
     }
   });
 });

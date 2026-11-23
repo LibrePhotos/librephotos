@@ -24,6 +24,7 @@ export const STORAGE_KEYS = {
   lightboxWallDisplay: "lp:lightbox.wallDisplay.v1",
   // How tall the user made the Places map (#343)
   placesMapHeight: "lp:places.mapHeight.v1",
+  placesMapMode: "lp:places.mapMode.v1",
   photoSortSearch: "lp:photoSort.search.v1",
   photoSortVideos: "lp:photoSort.videos.v1",
   recentlyTaggedPeople: "lp:people.recentlyTagged.v1",

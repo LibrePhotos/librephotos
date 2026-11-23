@@ -199,6 +199,7 @@ class StatsResponsesTest(DeclaredResponseTestCase):
         "/api/stats/",
         "/api/wordcloud/",
         "/api/photomonthcounts/",
+        "/api/photo-day-counts/",
         "/api/locationsunburst/",
         "/api/locationtimeline/",
         "/api/locclust/",
