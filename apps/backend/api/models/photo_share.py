@@ -2,6 +2,7 @@ import secrets
 from typing import Any
 
 from django.db import models
+from django.utils import timezone
 
 from api.models.photo import Photo
 
@@ -21,6 +22,7 @@ class PhotoShare(models.Model):
     slug = models.SlugField(
         max_length=64, unique=True, null=True, blank=True, db_index=True
     )
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def ensure_slug(self) -> None:
@@ -34,8 +36,19 @@ class PhotoShare(models.Model):
                 candidate = secrets.token_urlsafe(9)
             self.slug = candidate
 
+    @staticmethod
+    def active_q(prefix: str = "") -> models.Q:
+        return models.Q(**{f"{prefix}enabled": True}) & (
+            models.Q(**{f"{prefix}expires_at__isnull": True})
+            | models.Q(**{f"{prefix}expires_at__gte": timezone.now()})
+        )
+
     def is_active(self) -> bool:
-        return bool(self.enabled and self.slug)
+        return bool(
+            self.enabled
+            and self.slug
+            and (self.expires_at is None or self.expires_at >= timezone.now())
+        )
 
     def rotate(self) -> None:
         """Mint a new slug, so the previous link stops working immediately."""

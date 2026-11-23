@@ -160,6 +160,7 @@ export const PhotoShare = z.object({
   enabled: z.boolean(),
   slug: z.string().nullable(),
   url: z.string().nullable(),
+  expires_at: z.string().nullable().optional(),
   // Only while the link is enabled.
   created_at: z.string().optional(),
 });

@@ -216,9 +216,9 @@ describe("fromDateTimeInputValue", () => {
 });
 
 describe("dateTimeInputDaysFromNow", () => {
-  test("adds calendar days in the viewer's zone, keeping the wall clock across DST", () => {
+  test("adds calendar days in the viewer's zone, keeping the wall clock across DST, to the minute", () => {
     Settings.defaultZone = "Europe/Berlin";
-    Settings.now = () => Date.UTC(2023, 2, 25, 11, 30);
+    Settings.now = () => Date.UTC(2023, 2, 25, 11, 30, 42, 500);
     expect(dateTimeInputDaysFromNow(1)).toBe("2023-03-26T12:30:00");
     expect(dateTimeInputDaysFromNow(7)).toBe("2023-04-01T12:30:00");
   });

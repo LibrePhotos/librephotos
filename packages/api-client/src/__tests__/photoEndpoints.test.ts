@@ -468,14 +468,15 @@ describe("public photos", () => {
       enabled: true,
       slug: "5b3Fk7vAH_yh",
       url: "/public/p/5b3Fk7vAH_yh",
+      expires_at: "2026-12-01T00:00:00Z",
       created_at: "2026-10-12T17:26:09Z",
     };
     const created = fakeServer({ status: true, share });
-    expect(await endpoints.setPhotoShareLink(created.client, "h1", "enable")).toEqual(share);
+    expect(await endpoints.setPhotoShareLink(created.client, "h1", "enable", share.expires_at)).toEqual(share);
     expect(defined(created.requests[0])).toEqual({
       url: `${API}/photo/share`,
       method: "POST",
-      body: { photo_id: "h1", action: "enable" },
+      body: { photo_id: "h1", action: "enable", expires_at: "2026-12-01T00:00:00Z" },
     });
 
     const listed = fakeServer({

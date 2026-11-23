@@ -18,6 +18,8 @@ import { usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
 import { DIALOG_SIZE } from "../modals/dialogSize";
 import { ConfirmPopover } from "./ConfirmPopover";
+import { isLinkExpired, linkExpiryCaption } from "./linkExpiry";
+import { LinkExpirySetting } from "./LinkExpirySetting";
 import { QrLinkButton } from "./QrLinkButton";
 
 type Props = {
@@ -34,7 +36,7 @@ type Props = {
 type LinkState =
   | { status: "creating" }
   | { status: "failed" }
-  | { status: "shown"; url: string; replace: "idle" | "running" | "failed" };
+  | { status: "shown"; url: string; expiresAt: string; replace: "idle" | "running" | "failed" };
 
 /** Create (or show) a photo's share link, with copy, replace and revoke.
  *
@@ -54,11 +56,35 @@ export function PhotoShareLinkModal({ photoId, onClose }: Readonly<Props>) {
   );
 }
 
+function useLatestExpirySave(save: (expiresAt: string) => Promise<unknown>) {
+  const [failed, setFailed] = useState(false);
+  const wanted = useRef<string | null>(null);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+
+  const request = (expiresAt: string) => {
+    wanted.current = expiresAt;
+    setFailed(false);
+    queue.current = queue.current.then(async () => {
+      if (wanted.current !== expiresAt) return;
+      try {
+        await save(expiresAt);
+      } catch {
+        if (wanted.current === expiresAt) setFailed(true);
+      }
+    });
+  };
+
+  return { request, failed };
+}
+
 function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose: () => void }>) {
   const { t } = useTranslation();
   const { mutate, mutateAsync } = usePhotoShareMutation();
   const [link, setLink] = useState<LinkState>({ status: "creating" });
   const requested = useRef(false);
+  const expirySave = useLatestExpirySave(expiresAt =>
+    mutateAsync({ photoId, action: "enable", expiresAt: expiresAt || null })
+  );
 
   useEffect(() => {
     // One request per opening: StrictMode runs this effect twice, and two "enable" requests for
@@ -66,19 +92,34 @@ function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose
     if (requested.current) return;
     requested.current = true;
     mutateAsync({ photoId, action: "enable" }).then(
-      share => setLink(share.url ? { status: "shown", url: share.url, replace: "idle" } : { status: "failed" }),
+      share =>
+        setLink(
+          share.url
+            ? { status: "shown", url: share.url, expiresAt: share.expires_at ?? "", replace: "idle" }
+            : { status: "failed" }
+        ),
       () => setLink({ status: "failed" })
     );
   }, [mutateAsync, photoId]);
 
-  const replace = async (url: string) => {
-    setLink({ status: "shown", url, replace: "running" });
+  const replace = async (url: string, expiresAt: string) => {
+    setLink({ status: "shown", url, expiresAt, replace: "running" });
     try {
       const share = await mutateAsync({ photoId, action: "rotate" });
-      setLink({ status: "shown", url: share.url ?? url, replace: share.url ? "idle" : "failed" });
+      setLink({
+        status: "shown",
+        url: share.url ?? url,
+        expiresAt,
+        replace: share.url ? "idle" : "failed",
+      });
     } catch {
-      setLink({ status: "shown", url, replace: "failed" });
+      setLink({ status: "shown", url, expiresAt, replace: "failed" });
     }
+  };
+
+  const setExpiry = (state: Extract<LinkState, { status: "shown" }>, expiresAt: string) => {
+    setLink({ ...state, expiresAt });
+    expirySave.request(expiresAt);
   };
 
   return (
@@ -99,8 +140,11 @@ function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose
       {link.status === "shown" && (
         <ShownLink
           url={`${shareAddress}${link.url}`}
+          expiresAt={link.expiresAt}
           replace={link.replace}
-          onReplace={() => void replace(link.url)}
+          expirySaveFailed={expirySave.failed}
+          onReplace={() => void replace(link.url, link.expiresAt)}
+          onExpiryChange={expiresAt => setExpiry(link, expiresAt)}
           onRevoke={() => mutate({ photoId, action: "disable" }, { onSuccess: onClose })}
         />
       )}
@@ -110,13 +154,17 @@ function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose
 
 type ShownLinkProps = Readonly<{
   url: string;
+  expiresAt: string;
   replace: "idle" | "running" | "failed";
+  expirySaveFailed: boolean;
   onReplace: () => void;
+  onExpiryChange: (expiresAt: string) => void;
   onRevoke: () => void;
 }>;
 
-function ShownLink({ url, replace, onReplace, onRevoke }: ShownLinkProps) {
+function ShownLink({ url, expiresAt, replace, expirySaveFailed, onReplace, onExpiryChange, onRevoke }: ShownLinkProps) {
   const { t } = useTranslation();
+  const expired = isLinkExpired(expiresAt);
   return (
     <>
       <Group gap="xs" wrap="nowrap">
@@ -135,11 +183,27 @@ function ShownLink({ url, replace, onReplace, onRevoke }: ShownLinkProps) {
             </Tooltip>
           )}
         </CopyButton>
-        <QrLinkButton url={url} />
+        <QrLinkButton url={url} position="right-start" warning={expired ? t("sharing.qrCodeExpired") : null} />
       </Group>
+      {expired && (
+        <Text size="sm" c="orange">
+          {t("sharing.linkExpiredHint", { expired: linkExpiryCaption(t, expiresAt) })}
+        </Text>
+      )}
       {replace === "failed" && (
         <Text size="sm" c="red">
           {t("sharing.rotateLinkFailed")}
+        </Text>
+      )}
+      <LinkExpirySetting value={expiresAt} onChange={onExpiryChange} />
+      {!expired && (
+        <Text size="sm" c="dimmed">
+          {expiresAt ? linkExpiryCaption(t, expiresAt) : t("sharing.neverExpires")}
+        </Text>
+      )}
+      {expirySaveFailed && (
+        <Text size="sm" c="red">
+          {t("sharing.expirySaveFailed")}
         </Text>
       )}
       {/* Both end the link the recipients already have, for good. */}

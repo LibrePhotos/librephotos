@@ -1,14 +1,16 @@
-import { Box, Button, Center, Group, Image, Stack, Text } from "@mantine/core";
-import { IconAlertCircle, IconDownload } from "@tabler/icons-react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Box, Button, Image, Stack, Text } from "@mantine/core";
+import { IconDownload } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { ApiError } from "../../api_client/apiError";
 import { useFetchSharedPhotoQuery } from "../../api_client/photos/hooks";
 import { serverAddress } from "../../api_client/urls";
 import { PageLoader } from "../../components/common/PageLoader";
 import { PageBody } from "../../components/PageBody";
 import { PublicRightsSection } from "../../components/rights/PublicRightsSection";
+import { UnavailableShareLink } from "../../components/sharing/UnavailableShareLink";
 import { usePublicPageTitle } from "../../components/sharing/usePublicPageTitle";
 import { PAGE_GUTTER, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
@@ -32,7 +34,7 @@ function captionOf(captions: Record<string, unknown> | undefined): string {
 function PublicPhotoBySlug() {
   const { t } = useTranslation();
   const { slug } = Route.useParams();
-  const { data: photo, isLoading, isError } = useFetchSharedPhotoQuery(slug);
+  const { data: photo, isLoading, isError, error } = useFetchSharedPhotoQuery(slug);
   // The server never converts a video for a visitor without an account, so a
   // format this browser cannot decode has no fallback here; say so instead of
   // leaving a dead player.
@@ -44,22 +46,7 @@ function PublicPhotoBySlug() {
   }
 
   if (!photo || isError) {
-    return (
-      <Center style={{ minHeight: "60vh" }}>
-        <Stack align="center" gap="xs">
-          <IconAlertCircle size={48} />
-          <Text fw={600}>{t("publicphoto.notFound")}</Text>
-          <Text c="dimmed" size="sm">
-            {t("publicalbum.checkUrl")}
-          </Text>
-          <Group gap="xs">
-            <Button component={Link} to="/" variant="light">
-              {t("publicalbum.goHome")}
-            </Button>
-          </Group>
-        </Stack>
-      </Center>
-    );
+    return <UnavailableShareLink expired={error instanceof ApiError && error.serverCode === "link_expired"} />;
   }
 
   const thumbnailUrl = `${serverAddress}${photo.thumbnail_url}`;

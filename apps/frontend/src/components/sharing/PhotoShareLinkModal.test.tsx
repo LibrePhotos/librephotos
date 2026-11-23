@@ -8,12 +8,15 @@
  * The link was made by an effect on open, twice under StrictMode, and a failed
  * replace cleared it and said "failed" although the old link still worked.
  */
+import type { PhotoShare } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
+import { DateTime } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import type { usePhotoShareMutation } from "../../api_client/photos/hooks/usePhotoShareMutation";
 import i18n from "../../i18n";
+import { parseInstant } from "../../util/dateUtils";
 import { PhotoShareLinkModal } from "./PhotoShareLinkModal";
 import { qrSquares } from "./qrMatrix";
 
@@ -30,7 +33,7 @@ const mutation: ShareMutationFake = {
   mutateAsync: vi.fn<ShareMutation["mutateAsync"]>(),
 };
 
-const LINK = { enabled: true, slug: "abc", url: "/public/p/abc" };
+const LINK: PhotoShare = { enabled: true, slug: "abc", url: "/public/p/abc", expires_at: null };
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "https://photos.example" }));
 vi.mock("../../api_client/photos/hooks", () => ({ usePhotoShareMutation: () => mutation }));
@@ -200,5 +203,100 @@ describe("PhotoShareLinkModal", () => {
 
     expect(mutation.mutate).not.toHaveBeenCalled();
     expect(mutation.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  describe("expiry", () => {
+    it("saves a preset at once through enable, and Never clears it", async () => {
+      await renderModal("photo-1");
+      mutation.mutateAsync.mockClear();
+
+      await act(async () => buttonNamed(i18n.t("sharing.days7")).click());
+      const sent = mutation.mutateAsync.mock.lastCall?.[0];
+      expect(sent).toMatchObject({ photoId: "photo-1", action: "enable" });
+      const days = parseInstant(sent?.expiresAt ?? "").diffNow("days").days;
+      expect(days).toBeGreaterThan(6.9);
+      expect(days).toBeLessThan(7.1);
+
+      await act(async () => buttonNamed(i18n.t("sharing.never")).click());
+      expect(mutation.mutateAsync).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "enable", expiresAt: null });
+      expect(document.body.textContent).toContain(i18n.t("sharing.neverExpires"));
+    });
+
+    it("shows the link's current expiry in the date field", async () => {
+      const at = DateTime.now().plus({ days: 3 }).startOf("minute");
+      mutation.mutateAsync.mockResolvedValue({ ...LINK, expires_at: at.toUTC().toISO() });
+
+      await renderModal("photo-1");
+
+      const field = document.querySelector<HTMLInputElement>('input[type="datetime-local"]');
+      expect(parseInstant(field?.value ?? "").toMillis()).toBe(at.toMillis());
+      expect(document.body.textContent).not.toContain("Visitors are told the link has expired");
+      expect(document.body.textContent).toMatch(/Expires in [23] days/);
+    });
+
+    it("says an expired link is closed and how to open it again", async () => {
+      mutation.mutateAsync.mockResolvedValue({ ...LINK, expires_at: DateTime.now().minus({ days: 2 }).toISO() });
+
+      await renderModal("photo-1");
+
+      expect(document.body.textContent).toContain("Expired 2 days ago. Visitors are told the link has expired");
+      const hint = Array.from(document.querySelectorAll("p")).find(p =>
+        p.textContent?.startsWith("Expired 2 days ago")
+      );
+      const field = document.querySelector('input[type="datetime-local"]');
+      expect(hint && field && hint.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+      const qrButton = document.querySelector<HTMLButtonElement>(
+        `button[aria-label="${i18n.t("sharing.showQrCode")}"]`
+      );
+      await act(async () => qrButton?.click());
+      const panel = document.querySelector(`[role="dialog"][aria-label="${i18n.t("sharing.qrCode")}"]`);
+      expect(panel?.querySelector("svg")).not.toBeNull();
+      expect(panel?.textContent).toContain(i18n.t("sharing.qrCodeExpired"));
+    });
+
+    it("sends quick changes one at a time and skips the ones overtaken", async () => {
+      await renderModal("photo-1");
+      mutation.mutateAsync.mockClear();
+      let finishFirst: (share: typeof LINK) => void = () => {};
+      mutation.mutateAsync.mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            finishFirst = resolve;
+          })
+      );
+
+      await act(async () => buttonNamed(i18n.t("sharing.days7")).click());
+      await act(async () => buttonNamed(i18n.t("sharing.days30")).click());
+      await act(async () => buttonNamed(i18n.t("sharing.never")).click());
+      expect(mutation.mutateAsync).toHaveBeenCalledTimes(1);
+
+      await act(async () => finishFirst(LINK));
+
+      expect(mutation.mutateAsync).toHaveBeenCalledTimes(2);
+      expect(mutation.mutateAsync).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "enable", expiresAt: null });
+    });
+
+    it("says so when the expiry could not be saved", async () => {
+      await renderModal("photo-1");
+      mutation.mutateAsync.mockRejectedValueOnce(new Error("refused"));
+
+      await act(async () => buttonNamed(i18n.t("sharing.days30")).click());
+
+      expect(document.body.textContent).toContain(i18n.t("sharing.expirySaveFailed"));
+    });
+
+    it("keeps the expiry when the link is replaced", async () => {
+      const at = DateTime.now().plus({ days: 3 }).startOf("minute");
+      mutation.mutateAsync.mockResolvedValue({ ...LINK, expires_at: at.toUTC().toISO() });
+      await renderModal("photo-1");
+      mutation.mutateAsync.mockResolvedValue({ ...LINK, url: "/public/p/new", expires_at: at.toUTC().toISO() });
+
+      await act(async () => buttonNamed(i18n.t("sharing.rotateLink")).click());
+      await act(async () => confirmButton(i18n.t("sharing.rotateLink")).click());
+
+      const field = document.querySelector<HTMLInputElement>('input[type="datetime-local"]');
+      expect(parseInstant(field?.value ?? "").toMillis()).toBe(at.toMillis());
+    });
   });
 });

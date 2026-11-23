@@ -200,7 +200,9 @@ class PhotoLinkResponsesTest(SharingResponseTestCase):
         rotated = self.act(self.photo, "rotate")["share"]
         disabled = self.act(self.photo, "disable")["share"]
         self.assertNotEqual(enabled["slug"], rotated["slug"])
-        self.assertEqual({"enabled": False, "slug": None, "url": None}, disabled)
+        self.assertEqual(
+            {"enabled": False, "slug": None, "url": None, "expires_at": None}, disabled
+        )
 
     def test_the_list_of_links(self) -> None:
         path = "/api/photo/share/list/"

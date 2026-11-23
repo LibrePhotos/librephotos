@@ -71,7 +71,7 @@ export function fromDateTimeInputValue(value: string): string | null {
 }
 
 export function dateTimeInputDaysFromNow(days: number): string {
-  return DateTime.now().plus({ days }).toFormat(DATE_TIME_INPUT);
+  return DateTime.now().plus({ days }).startOf("minute").toFormat(DATE_TIME_INPUT);
 }
 
 /**

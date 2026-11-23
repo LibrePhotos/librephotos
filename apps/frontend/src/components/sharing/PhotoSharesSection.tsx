@@ -1,44 +1,74 @@
 import type { PhotoShareLink } from "@librephotos/api-client";
-import { ActionIcon, Button, CopyButton, Group, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  CopyButton,
+  Group,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  Tooltip,
+  useMantineTheme,
+} from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import {
   IconCheck as CheckIcon,
   IconCopy as CopyIcon,
+  IconClockEdit as ExpiryIcon,
   IconLink as LinkIcon,
   IconRefresh as RefreshIcon,
 } from "@tabler/icons-react";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotoSharesQuery, usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import { Panel } from "../common/surfaces/Panel";
 import { ConfirmPopover } from "./ConfirmPopover";
+import { isLinkExpired, linkExpiryCaption } from "./linkExpiry";
+import { PhotoShareLinkModal } from "./PhotoShareLinkModal";
+import classes from "./PhotoSharesSection.module.css";
 import { QrLinkButton } from "./QrLinkButton";
 
+const THUMBNAIL_SIZE = 36;
+
 /** One link, with its own mutation so only this row shows a spinner. */
-function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
+function PhotoShareRow({ share, onEditExpiry }: Readonly<{ share: PhotoShareLink; onEditExpiry: () => void }>) {
   const { t } = useTranslation();
+  const theme = useMantineTheme();
+  const isPhone = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`, undefined, { getInitialValueInEffect: false });
   const { mutate, isPending, variables } = usePhotoShareMutation();
   const photoId = share.photo_id;
   const fullUrl = `${shareAddress}${share.url}`;
+  const expiry = linkExpiryCaption(t, share.expires_at);
+  const expired = isLinkExpired(share.expires_at);
+  const controlSize = isPhone ? "lg" : "md";
 
   return (
-    <Group gap="xs" wrap="nowrap">
-      {share.image_hash && <MediaThumbnail imageHash={share.image_hash} size={36} />}
-      {/* The link gives way on a phone; the buttons keep their size (Revoke was cut off). */}
-      <TextInput
-        readOnly
-        value={fullUrl}
-        style={{ flex: 1, minWidth: 0 }}
-        onFocus={e => e.currentTarget.select()}
-        aria-label={t("sharing.photoLink")}
-      />
-      <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
+    <Group gap="xs" align="flex-start" className={classes.row}>
+      {share.image_hash && <MediaThumbnail imageHash={share.image_hash} size={THUMBNAIL_SIZE} />}
+      <Stack gap={4} className={classes.link}>
+        <TextInput
+          readOnly
+          value={fullUrl}
+          onFocus={e => e.currentTarget.select()}
+          aria-label={t("sharing.photoLink")}
+          classNames={expired ? { input: classes.expiredInput } : undefined}
+        />
+        {expiry && (
+          <Text size="xs" c={expired ? "orange" : "dimmed"}>
+            {expiry}
+          </Text>
+        )}
+      </Stack>
+      <Group gap={isPhone ? "xs" : 4} wrap="nowrap" className={classes.actions}>
         <CopyButton value={fullUrl}>
           {({ copied, copy }) => (
             <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} withArrow>
               <ActionIcon
                 variant="subtle"
+                size={controlSize}
                 color={copied ? "green" : "gray"}
                 onClick={copy}
                 aria-label={t("sharing.copyLink")}
@@ -48,8 +78,18 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
             </Tooltip>
           )}
         </CopyButton>
-        <QrLinkButton url={fullUrl} />
-        {/* Icon-only, right next to Copy: a misclick used to end the link at once. */}
+        <QrLinkButton url={fullUrl} size={controlSize} warning={expired ? t("sharing.qrCodeExpired") : null} />
+        <Tooltip label={t("sharing.changeExpiry")} withArrow>
+          <ActionIcon
+            variant="subtle"
+            size={controlSize}
+            color={expired ? "orange" : "gray"}
+            onClick={onEditExpiry}
+            aria-label={t("sharing.changeExpiry")}
+          >
+            <ExpiryIcon size={18} />
+          </ActionIcon>
+        </Tooltip>
         <ConfirmPopover
           message={t("sharing.rotateLinkConfirm")}
           confirmLabel={t("sharing.rotateLink")}
@@ -58,6 +98,7 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
         >
           <ActionIcon
             variant="subtle"
+            size={controlSize}
             aria-label={t("sharing.rotateLink")}
             loading={isPending && variables?.action === "rotate"}
             disabled={isPending}
@@ -72,7 +113,7 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
           onConfirm={() => mutate({ photoId, action: "disable" })}
         >
           <Button
-            size="xs"
+            size={isPhone ? "sm" : "xs"}
             variant="subtle"
             color="red"
             loading={isPending && variables?.action === "disable"}
@@ -94,6 +135,7 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
 export function PhotoSharesSection() {
   const { t } = useTranslation();
   const { data: shares, isLoading } = useFetchPhotoSharesQuery();
+  const [expiryPhotoId, setExpiryPhotoId] = useState<string | null>(null);
 
   if (isLoading || !shares || shares.length === 0) {
     return null;
@@ -109,10 +151,13 @@ export function PhotoSharesSection() {
         <Text size="sm" c="dimmed">
           {t("sharing.photoLinksExplanation")}
         </Text>
-        {shares.map(share => (
-          <PhotoShareRow key={share.photo_id} share={share} />
-        ))}
+        <Stack gap="md">
+          {shares.map(share => (
+            <PhotoShareRow key={share.photo_id} share={share} onEditExpiry={() => setExpiryPhotoId(share.photo_id)} />
+          ))}
+        </Stack>
       </Stack>
+      <PhotoShareLinkModal photoId={expiryPhotoId} onClose={() => setExpiryPhotoId(null)} />
     </Panel>
   );
 }

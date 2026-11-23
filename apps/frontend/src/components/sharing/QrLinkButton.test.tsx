@@ -74,6 +74,11 @@ describe("QrLinkButton", () => {
     expect(image.getAttribute("aria-label")).toBe(i18n.t("sharing.qrCode"));
     expect(image.querySelector("path")?.getAttribute("d")).toBe(qrSquares(SHARE_URL).path);
     expect(dialog.textContent).toContain(i18n.t("sharing.qrCodeHint"));
+    const { side } = qrSquares(SHARE_URL);
+    const width = Number(image.getAttribute("width"));
+    expect(width % side).toBe(0);
+    expect(width).toBeLessThanOrEqual(176);
+    expect(width).toBeGreaterThan(176 - side);
 
     await act(async () => button.click());
 

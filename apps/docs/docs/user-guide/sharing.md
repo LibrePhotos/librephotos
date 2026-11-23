@@ -306,7 +306,13 @@ Because the slug is random, the link can be withdrawn:
 - **Replace link** mints a new slug. The previous URL, and the image and video URLs behind it, stop working at once.
 - **Revoke** switches the share off and burns the slug, so anyone still holding that link gets a "not found" page. Sharing the photo again creates a brand-new link rather than reviving the old one.
 
-Your active photo links are listed under the **Photos** tab of your **Public links** page, each with its own copy, replace and revoke buttons.
+Your active photo links are listed under the **Photos** tab of your **Public links** page, each with its own copy, QR code, change-expiry, replace and revoke buttons (on a phone the buttons sit under the link) and, where one is set, when it expires ("Expires in 3 days") or expired ("Expired 2 days ago", in orange).
+
+<Since version="1.7.0" /> A photo link can expire like an album link: the **Share link** dialog has an **Expiration (optional)** field with the same date and time control and the **7 days**, **30 days**, **90 days** and **Never** presets, saved as you change it. Under the presets the dialog says when the link expires ("Expires in 30 days") or that it **Never expires**; the presets count from now, to the minute. From the **Public links** page, the clock button of a link opens the same dialog.
+
+- Until the expiry the link works as usual; from that moment its page, image and video stop working. A visitor sees "This link has expired" instead of the photo.
+- An expired link keeps its address and stays in your list: the dialog says it has expired, and picking a new date (or **Never**) opens the same link again. Its QR code still opens that address, so it shows the expiry notice too, and the QR panel says so.
+- **Replace link** keeps the expiry. **Revoke** removes it along with the slug, so sharing the photo again starts a new link without an expiry.
 
 What a visitor with the link can see:
 
@@ -315,7 +321,7 @@ What a visitor with the link can see:
 
 What they cannot see: the original file of a photo, face thumbnails, any other photo, or anything that identifies the file's content hash. While the photo is hidden or in the trash, its link shows "not found" as well.
 
-Expiring links and password-protected links are not available for photo shares yet.
+Password-protected links are not available for photo shares.
 
 :::caution
 Making a photo private stops it from being served through the public views, but it cannot retroactively invalidate a direct link that someone has already opened or saved a copy of the image from.
