@@ -8,6 +8,7 @@ import type { ResolvedMapStyle } from "../../util/mapStyle";
 import { STORAGE_KEYS, useStoredState } from "../../util/storage";
 import { Segmented } from "../common/Segmented";
 import { MapResizeHandle } from "./MapResizeHandle";
+import { PHOTO_DENSITY_SOURCE } from "./placesLayers";
 import classes from "./PlacesPhotoMap.module.css";
 import { SpotCard, SpotRing } from "./SpotCard";
 import { SpotLightbox } from "./SpotLightbox";
@@ -23,7 +24,6 @@ export function defaultPlacesMapHeight(windowHeight: number): number {
 }
 
 const MapModeSchema = z.enum(["clusters", "heatmap"]);
-type MapMode = z.infer<typeof MapModeSchema>;
 
 type Props = Readonly<{
   placesMap: ReturnType<typeof usePlacesMap>;
@@ -79,6 +79,9 @@ export function PlacesPhotoMap({
         >
           <NavigationControl position="top-right" showCompass={false} />
           <AttributionControl compact={true} />
+          <Source id={PHOTO_DENSITY_SOURCE} type="geojson" data={placesMap.geojsonData} cluster={false}>
+            <Layer {...placesMap.layers.heatmap} layout={shown(!heatmap)} />
+          </Source>
           <Source
             id="locations"
             type="geojson"
@@ -88,7 +91,6 @@ export function PlacesPhotoMap({
             clusterRadius={50}
             clusterProperties={{ photos: ["+", ["get", "photos"]] }}
           >
-            <Layer {...placesMap.layers.heatmap} layout={shown(!heatmap)} />
             <Layer {...placesMap.layers.clusters} layout={shown(heatmap)} />
             <Layer
               {...placesMap.layers.clusterCount}
@@ -106,7 +108,10 @@ export function PlacesPhotoMap({
         <Box className={classes.modeToggle}>
           <Segmented
             value={mode}
-            onChange={value => setMode(() => value)}
+            onChange={value => {
+              if (value === "heatmap") placesMap.closeSpot();
+              setMode(() => value);
+            }}
             aria-label={t("placealbum.mapMode")}
             segments={[
               { value: "clusters", label: t("placealbum.mapModeClusters") },

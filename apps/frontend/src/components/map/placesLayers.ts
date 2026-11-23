@@ -14,6 +14,8 @@ type ClusterLayers = Readonly<{
   heatmap: HeatmapLayerSpecification;
 }>;
 
+export const PHOTO_DENSITY_SOURCE = "photo-density";
+
 /** The photos a point or a cluster stands for: each point's `photos`, which a cluster sums. */
 const PHOTOS: ExpressionSpecification = ["get", "photos"];
 /** More than one photo: a cluster, or a spot where several were taken. */
@@ -70,23 +72,27 @@ export function clusterLayers(colors: MapLayerColors): ClusterLayers {
     heatmap: {
       id: "photo-heatmap",
       type: "heatmap",
-      source: "locations",
+      source: PHOTO_DENSITY_SOURCE,
       paint: {
-        "heatmap-weight": ["interpolate", ["linear"], PHOTOS, 0, 0, 10, 0.4, 100, 1],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 9, 3],
-        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 4, 9, 24],
+        "heatmap-weight": ["interpolate", ["linear"], PHOTOS, 1, 0.35, 10, 0.6, 100, 0.85, 1000, 1],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 6, 2, 12, 3],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 14, 4, 20, 9, 30, 14, 40],
         "heatmap-color": [
           "interpolate",
           ["linear"],
           ["heatmap-density"],
           0,
-          "transparent",
+          colors.heatmap.fade,
+          0.08,
+          colors.heatmap.ramp[0],
           0.3,
-          colors.clusters.small,
-          0.6,
-          colors.clusters.medium,
+          colors.heatmap.ramp[1],
+          0.55,
+          colors.heatmap.ramp[2],
+          0.8,
+          colors.heatmap.ramp[3],
           1,
-          colors.clusters.large,
+          colors.heatmap.ramp[4],
         ],
         "heatmap-opacity": 0.85,
       },
