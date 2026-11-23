@@ -291,13 +291,6 @@ def write_metadata(
     with one_exiftool_process():
         session = _session.get()
         assert session is not None
-        # A sidecar is rewritten in place (#2960). ``-overwrite_original`` writes a
-        # new file, renames it over the old one and then chmods it with the old
-        # mode bits, which on an ACL share (Synology reports 000) drops the ACL
-        # and leaves a file nobody but root can open. In place keeps the file, so
-        # its ACL, extended attributes and owner stay as other apps set them; a
-        # small XMP file is cheap to lose to a crash mid-write, unlike a photo,
-        # which keeps the atomic rename.
         return session.write(target, arguments, option_arguments, in_place=use_sidecar)
 
 
