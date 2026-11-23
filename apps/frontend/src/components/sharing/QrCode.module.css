@@ -1,0 +1,7 @@
+.ground {
+  fill: var(--mantine-color-white);
+}
+
+.modules {
+  fill: var(--mantine-color-black);
+}

@@ -18,6 +18,7 @@ import { usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
 import { DIALOG_SIZE } from "../modals/dialogSize";
 import { ConfirmPopover } from "./ConfirmPopover";
+import { QrLinkButton } from "./QrLinkButton";
 
 type Props = {
   /** The photo to share; the dialog is open while this is set. */
@@ -134,6 +135,7 @@ function ShownLink({ url, replace, onReplace, onRevoke }: ShownLinkProps) {
             </Tooltip>
           )}
         </CopyButton>
+        <QrLinkButton url={url} />
       </Group>
       {replace === "failed" && (
         <Text size="sm" c="red">

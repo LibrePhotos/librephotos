@@ -224,6 +224,10 @@ Only whole albums can be shared as a slideshow: there is no slideshow link for a
 
 <Since version="1.4.0" /> Up to 1.3.0, a public album link always opened on the photo grid.
 
+### QR Codes
+
+<Since version="1.7.0" /> Every public link has a **Show QR code** button next to its copy button: the **Album link** and the **Slideshow link** in the album's sharing dialog, the photo **Share link** dialog from the lightbox, and each photo link under the **Photos** tab of your **Public links** page. It opens the full link as a QR code. Point a phone's camera at it to open the link on the phone, or click **Download SVG** to save the code as an image you can print or put on a slide. The code stays black on white in the dark theme, because that is what phone cameras read. While a new album link is still being made, the button is greyed out and says so. Up to 1.6.0, links had no QR code.
+
 ### Revoking a Public Link
 
 Toggle **"Public sharing"** off again and the link stops working immediately. The slug is burned at the same time, so turning public sharing back on generates a brand-new URL rather than reviving the old one. Anyone who still holds the withdrawn link, including someone you shared it with by mistake, keeps getting a "not found" page.

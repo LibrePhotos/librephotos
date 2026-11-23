@@ -13,6 +13,7 @@ import { shareAddress } from "../../api_client/urls";
 import { MediaThumbnail } from "../common/MediaThumbnail";
 import { Panel } from "../common/surfaces/Panel";
 import { ConfirmPopover } from "./ConfirmPopover";
+import { QrLinkButton } from "./QrLinkButton";
 
 /** One link, with its own mutation so only this row shows a spinner. */
 function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
@@ -47,6 +48,7 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
             </Tooltip>
           )}
         </CopyButton>
+        <QrLinkButton url={fullUrl} />
         {/* Icon-only, right next to Copy: a misclick used to end the link at once. */}
         <ConfirmPopover
           message={t("sharing.rotateLinkConfirm")}
