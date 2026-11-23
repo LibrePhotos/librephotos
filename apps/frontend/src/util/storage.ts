@@ -15,6 +15,10 @@ export const STORAGE_KEYS = {
   albumSortTags: "lp:albumSort.tags.v1",
   albumSortThings: "lp:albumSort.things.v1",
   albumSortUserAlbums: "lp:albumSort.userAlbums.v1",
+  // The photo editor's copied look (Copy settings): a sparse edit recipe without geometry, or null
+  editorCopiedLook: "lp:editor.copiedLook.v1",
+  // The photo editor's mode the user last chose: Simple or Advanced
+  editorMode: "lp:editor.mode.v1",
   facesCollapsedPersons: "lp:faces.collapsedPersons.v1",
   facesTabScrollPositions: "lp:faces.tabScrollPositions.v1",
   // How tall the user made the Places map (#343)
@@ -87,6 +91,24 @@ export function writeStored(key: StorageKey, value: unknown): void {
     console.error(`Error saving ${key} to localStorage:`, e);
   }
   listeners.get(key)?.forEach(listener => listener());
+}
+
+const LANGUAGE_STORAGE_KEY = "i18nextLng";
+
+export function readStoredLanguage(area: "local" | "session"): string | undefined {
+  try {
+    return (area === "local" ? localStorage : sessionStorage).getItem(LANGUAGE_STORAGE_KEY) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function writeStoredLanguage(language: string): void {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch (e) {
+    console.error(`Error saving ${LANGUAGE_STORAGE_KEY} to localStorage:`, e);
+  }
 }
 
 /** Calls `listener` after each write to `key` made through writeStored or useStoredState. */

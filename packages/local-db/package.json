@@ -1,0 +1,44 @@
+{
+  "name": "@librephotos/local-db",
+  "version": "0.1.0",
+  "description": "The on-device SQLite database shared by the LibrePhotos mobile and desktop apps: Drizzle schema, migrations, queries, writers and the change hub, over a tiny async executor each app implements.",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./better-sqlite3": "./src/better-sqlite3.ts",
+    "./testing": "./src/testing.ts",
+    "./migrations.json": "./migrations/migrations.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src scripts",
+    "db:generate": "drizzle-kit generate && node scripts/build-migrations.mjs",
+    "db:check": "node scripts/build-migrations.mjs --check"
+  },
+  "peerDependencies": {
+    "better-sqlite3": ">=12",
+    "drizzle-orm": "^0.45.2"
+  },
+  "peerDependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^24.19.2",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "eslint": "^10.0.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.58.0",
+    "vitest": "^5.0.0"
+  }
+}

@@ -14,6 +14,7 @@ import sys
 import tempfile
 from inspect import signature
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import numpy as np
 from django.test import SimpleTestCase
@@ -25,6 +26,7 @@ from service.face_recognition.face_analysis import (
     FaceAnalysis,
     Recognizer,
     _route,
+    blob_from_images,
     estimate_norm,
 )
 from service.onnx_session import inference_session
@@ -209,6 +211,45 @@ class FaceAnalysisLoadTest(SimpleTestCase):
         )
 
 
+class BlobFromImagesMatchesOpenCvDnnTest(SimpleTestCase):
+    PIXELS = np.array([[[0, 1, 127], [128, 200, 255]]], dtype=np.uint8)
+
+    def test_the_detector_blob(self):
+        blob = blob_from_images([self.PIXELS], 1.0 / 128.0, 127.5)
+
+        self.assertEqual(blob.dtype, np.float32)
+        self.assertTrue(blob.flags["C_CONTIGUOUS"])
+        np.testing.assert_array_equal(
+            blob,
+            np.array(
+                [
+                    [
+                        [[-0.00390625, 0.99609375]],
+                        [[-0.98828125, 0.56640625]],
+                        [[-0.99609375, 0.00390625]],
+                    ]
+                ],
+                dtype=np.float32,
+            ),
+        )
+
+    def test_the_recognizer_blob(self):
+        blob = blob_from_images([self.PIXELS, self.PIXELS], 1.0 / 127.5, 127.5)
+
+        self.assertEqual(blob.shape, (2, 3, 1, 2))
+        np.testing.assert_array_equal(
+            blob[1].view(np.uint32),
+            np.array(
+                [
+                    [[0xBB808081, 0x3F800000]],
+                    [[0xBF7DFDFF, 0x3F119192]],
+                    [[0xBF800000, 0x3B808081]],
+                ],
+                dtype=np.uint32,
+            ),
+        )
+
+
 class NmsTest(SimpleTestCase):
     def test_overlapping_boxes_keep_the_best(self):
         dets = np.array(
@@ -221,6 +262,27 @@ class NmsTest(SimpleTestCase):
         )
 
         self.assertEqual([int(i) for i in Detector._nms(dets)], [0, 2])
+
+
+class TooThinPictureTest(SimpleTestCase):
+    """A picture that shrinks to no pixels on the detector's input has no faces.
+
+    One pixel wide and 1000 tall fits 0 x 640 into 640 x 640: ``cv2.resize``
+    failed its ``inv_scale_x > 0`` assertion, and the sidecar answered 500 for
+    the photo on every Scan Faces.
+    """
+
+    def test_no_faces_and_no_inference(self):
+        session = _session(*DETECTOR)
+        session.run = Mock(side_effect=AssertionError("ran the detector"))
+        detector = Detector(session)
+
+        for shape in ((1000, 1, 3), (1, 1000, 3)):
+            with self.subTest(shape=shape):
+                boxes, landmarks = detector.detect(np.zeros(shape, np.uint8))
+
+                self.assertEqual(boxes.shape, (0, 5))
+                self.assertEqual(landmarks.shape, (0, 5, 2))
 
 
 class FaceAnalysisGetTest(SimpleTestCase):

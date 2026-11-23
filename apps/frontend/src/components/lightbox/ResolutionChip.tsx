@@ -38,15 +38,21 @@ type Props = Readonly<{
   /** Shown only while the photo is zoomed; mounted throughout, so it shrinks only once. */
   visible: boolean;
   onRetry: () => void;
-  downloadUrl: string;
+  /** An edited photo (its owner's): the full-size picture is the edit, and the chip names it so. */
+  edited: boolean;
+  /** The original file, linked from the preview's chip; null for an edited photo. */
+  downloadUrl: string | null;
 }>;
 
 /**
  * A pill in the photo's lower-left corner while zoomed in (#2742): the
  * original loading, the original shown (with its size for two seconds), why
- * the zoom stays on the preview, or that the original did not load.
+ * the zoom stays on the preview, or that the original did not load. For an
+ * edited photo it is the edited picture at full size that loads and shows,
+ * and the chip says "Edited"; the preview's link to the original is not there
+ * (the owner has both downloads in the menu).
  */
-export function ResolutionChip({ state, visible, onRetry, downloadUrl }: Props) {
+export function ResolutionChip({ state, visible, onRetry, edited, downloadUrl }: Props) {
   const [compact, setCompact] = useState(false);
   const sized = visible && state.kind === "original" && state.size !== null;
   const { start, clear } = useTimeout(() => setCompact(true), SIZE_SHOWN_MS);
@@ -58,7 +64,7 @@ export function ResolutionChip({ state, visible, onRetry, downloadUrl }: Props) 
   if (!visible) return null;
   return (
     <div className={classes.chip} role="status">
-      <ChipContent state={state} compact={compact} onRetry={onRetry} downloadUrl={downloadUrl} />
+      <ChipContent state={state} compact={compact} onRetry={onRetry} edited={edited} downloadUrl={downloadUrl} />
     </div>
   );
 }
@@ -67,14 +73,20 @@ function ChipContent({
   state,
   compact,
   onRetry,
+  edited,
   downloadUrl,
 }: Readonly<Omit<Props, "visible"> & { compact: boolean }>) {
   const { t } = useTranslation();
+  const shown = edited ? t("lightbox.original.edited.shown") : t("lightbox.original.shown");
+  const sizeLabel = (size: PixelSize) =>
+    edited
+      ? t("lightbox.original.edited.shownsize", { width: size.width, height: size.height })
+      : t("lightbox.original.shownsize", { width: size.width, height: size.height });
   switch (state.kind) {
     case "loading":
       return (
         <div>
-          <Text size="xs">{t("lightbox.original.loading")}</Text>
+          <Text size="xs">{edited ? t("lightbox.original.edited.loading") : t("lightbox.original.loading")}</Text>
           <Progress value={100} striped animated size={3} mt={4} aria-hidden />
         </div>
       );
@@ -82,18 +94,14 @@ function ChipContent({
       return (
         <Group gap={6} wrap="nowrap">
           <span className={classes.dot} />
-          <Text size="xs">
-            {state.size && !compact
-              ? t("lightbox.original.shownsize", { width: state.size.width, height: state.size.height })
-              : t("lightbox.original.shown")}
-          </Text>
+          <Text size="xs">{state.size && !compact ? sizeLabel(state.size) : shown}</Text>
         </Group>
       );
     case "failed":
       return (
         <Group gap={6} wrap="nowrap">
           <IconAlertTriangle size={14} className={classes.warning} aria-hidden />
-          <Text size="xs">{t("lightbox.original.failed")}</Text>
+          <Text size="xs">{edited ? t("lightbox.original.edited.failed") : t("lightbox.original.failed")}</Text>
           <UnstyledButton className={classes.action} onClick={onRetry}>
             {t("lightbox.original.retry")}
           </UnstyledButton>
@@ -106,9 +114,11 @@ function ChipContent({
           <Text size="xs">
             {t("lightbox.original.preview")} · {t(`lightbox.original.reason.${state.reason}`)}
           </Text>
-          <Anchor href={downloadUrl} download className={classes.action} aria-label={t("lightbox.original.download")}>
-            <IconDownload size={12} aria-hidden /> {t("lightbox.original.shown")}
-          </Anchor>
+          {downloadUrl !== null && (
+            <Anchor href={downloadUrl} download className={classes.action} aria-label={t("lightbox.original.download")}>
+              <IconDownload size={12} aria-hidden /> {t("lightbox.original.shown")}
+            </Anchor>
+          )}
         </Group>
       );
   }

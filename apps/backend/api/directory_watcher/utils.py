@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from api.models import CountedJobItem, LongRunningJob
 from api.photos.paths import is_valid_path
+from api.runtime.planner_stats import refresh_planner_stats
 
 logger = logging.getLogger(__name__)
 
@@ -399,6 +400,7 @@ def finish_job_if_complete(job_id: UUID | str) -> bool:
     ).update(finished=True, finished_at=timezone.now())
     if not finished:
         return False
+    refresh_planner_stats()
     _on_job_finished(job_id)
     return True
 

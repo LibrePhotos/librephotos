@@ -2,13 +2,19 @@
  * @jest-environment node
  */
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { insertLocalAlbum, insertLocalAsset, seedRemotePhotos, remotePhoto } from "@/db/__tests__/fixtures";
-import { enqueueBackups, nextEligible, markFailed, queueSummary, MAX_ATTEMPTS } from "../queue";
+import {
+  createTestDb,
+  insertLocalAlbum,
+  insertLocalAsset,
+  remotePhoto,
+  seedRemotePhotos,
+  type TestDb,
+} from "@librephotos/local-db/testing";
+import { enqueueBackups, nextEligible, markFailed, queueSummary, MAX_ATTEMPTS } from "@librephotos/local-db";
 import { enqueueUploadWindow } from "@/sync/jobs/handlers";
 
-function queuedIds(t: TestDb): string[] {
-  return (t.db.all(sql`SELECT asset_id FROM upload_queue ORDER BY asset_id`) as { asset_id: string }[]).map(
+async function queuedIds(t: TestDb): Promise<string[]> {
+  return (await t.db.all<{ asset_id: string }>(sql`SELECT asset_id FROM upload_queue ORDER BY asset_id`)).map(
     (r) => r.asset_id
   );
 }
@@ -18,84 +24,84 @@ describe("upload queue enqueue rule", () => {
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  it("enqueues only hashed, selected, non-excluded assets with no remote match", () => {
+  it("enqueues only hashed, selected, non-excluded assets with no remote match", async () => {
     // selected + hashed + not on server → enqueue
-    insertLocalAsset(t.db, { id: "yes", hash: "h_yes" });
+    await insertLocalAsset(t.db, { id: "yes", hash: "h_yes" });
     // selected but NOT hashed → skip
-    insertLocalAsset(t.db, { id: "unhashed", hash: null });
+    await insertLocalAsset(t.db, { id: "unhashed", hash: null });
     // hashed but album is excluded → skip
-    insertLocalAsset(t.db, { id: "excluded", hash: "h_excl" });
+    await insertLocalAsset(t.db, { id: "excluded", hash: "h_excl" });
     // hashed + selected but already on the server (hash matches remote) → skip
-    insertLocalAsset(t.db, { id: "onserver", hash: "h_srv" });
+    await insertLocalAsset(t.db, { id: "onserver", hash: "h_srv" });
     // hashed but in no backup-selected album → skip
-    insertLocalAsset(t.db, { id: "loose", hash: "h_loose" });
+    await insertLocalAsset(t.db, { id: "loose", hash: "h_loose" });
 
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["yes", "unhashed", "onserver"] });
-    insertLocalAlbum(t.db, { id: "trash", backupSelection: 2, assetIds: ["excluded"] });
-    insertLocalAlbum(t.db, { id: "misc", backupSelection: 0, assetIds: ["loose"] });
-    seedRemotePhotos(t.db, [remotePhoto({ id: "p1", imageHash: "h_srv" })]);
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["yes", "unhashed", "onserver"] });
+    await insertLocalAlbum(t.db, { id: "trash", backupSelection: 2, assetIds: ["excluded"] });
+    await insertLocalAlbum(t.db, { id: "misc", backupSelection: 0, assetIds: ["loose"] });
+    await seedRemotePhotos(t.db, [remotePhoto({ id: "p1", imageHash: "h_srv" })]);
 
-    const n = enqueueBackups(t.db, 1_000);
+    const n = await enqueueBackups(t.db, 1_000);
     expect(n).toBe(1);
-    expect(queuedIds(t)).toEqual(["yes"]);
+    expect(await queuedIds(t)).toEqual(["yes"]);
   });
 
-  it("does not double-enqueue an already-queued asset", () => {
-    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
-    expect(enqueueBackups(t.db)).toBe(1);
-    expect(enqueueBackups(t.db)).toBe(0);
+  it("does not double-enqueue an already-queued asset", async () => {
+    await insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
+    expect(await enqueueBackups(t.db)).toBe(1);
+    expect(await enqueueBackups(t.db)).toBe(0);
   });
 
-  it("excludes an asset that is in BOTH a selected and an excluded album", () => {
-    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
-    insertLocalAlbum(t.db, { id: "trash", backupSelection: 2, assetIds: ["a1"] });
-    expect(enqueueBackups(t.db)).toBe(0);
+  it("excludes an asset that is in BOTH a selected and an excluded album", async () => {
+    await insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
+    await insertLocalAlbum(t.db, { id: "trash", backupSelection: 2, assetIds: ["a1"] });
+    expect(await enqueueBackups(t.db)).toBe(0);
   });
 
-  it("nextEligible respects backoff windows and the attempt cap", () => {
-    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
-    enqueueBackups(t.db);
+  it("nextEligible respects backoff windows and the attempt cap", async () => {
+    await insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
+    await enqueueBackups(t.db);
 
     // Fail once → parked with a future backoff window.
-    markFailed(t.db, "a1", "boom", 1_000, 100);
-    expect(nextEligible(t.db, 1_050)).toBeNull(); // still inside backoff
-    expect(nextEligible(t.db, 10_000)?.asset_id).toBe("a1"); // past backoff
+    await markFailed(t.db, "a1", "boom", 1_000, 100);
+    expect(await nextEligible(t.db, 1_050)).toBeNull();
+    expect((await nextEligible(t.db, 10_000))?.asset_id).toBe("a1");
 
     // Exhaust attempts → permanently parked.
-    for (let i = 0; i < MAX_ATTEMPTS; i++) markFailed(t.db, "a1", "boom", 1_000, 1);
-    expect(nextEligible(t.db, 10_000_000)).toBeNull();
-    expect(queueSummary(t.db).failed).toBe(1);
+    for (let i = 0; i < MAX_ATTEMPTS; i++) (await markFailed(t.db, "a1", "boom", 1_000, 1));
+    expect(await nextEligible(t.db, 10_000_000)).toBeNull();
+    expect((await queueSummary(t.db)).failed).toBe(1);
   });
   /* -- iCloud-parked assets are still the user's photos ------------------ */
 
-  it("enqueues a selected iCloud-only asset even though it has no hash", () => {
+  it("enqueues a selected iCloud-only asset even though it has no hash", async () => {
     // Refusing these would silently drop most of the library on any iPhone
     // using "Optimise iPhone Storage" — the exact configuration this whole
     // change exists for. The worker fetches and hashes them on the way out.
-    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    await insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
     // …but an asset with no hash and no reason recorded is not ready for
     // anything: it has simply not been looked at yet.
-    insertLocalAsset(t.db, { id: "untouched", hash: null });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud", "untouched"] });
+    await insertLocalAsset(t.db, { id: "untouched", hash: null });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud", "untouched"] });
 
-    expect(enqueueBackups(t.db, 1_000)).toBe(1);
-    expect(queuedIds(t)).toEqual(["cloud"]);
+    expect(await enqueueBackups(t.db, 1_000)).toBe(1);
+    expect(await queuedIds(t)).toEqual(["cloud"]);
   });
 
-  it("opens the upload window on local assets before iCloud ones", () => {
+  it("opens the upload window on local assets before iCloud ones", async () => {
     // The iCloud asset is enqueued FIRST, so FIFO alone would put it in front
     // and park the serial queue on a download while ready photos waited.
-    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
-    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud"] });
-    enqueueBackups(t.db, 1_000);
-    insertLocalAsset(t.db, { id: "local", hash: "h-local" });
-    t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('cam', 'local')`);
-    enqueueBackups(t.db, 2_000);
+    await insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    await insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud"] });
+    await enqueueBackups(t.db, 1_000);
+    await insertLocalAsset(t.db, { id: "local", hash: "h-local" });
+    await t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('cam', 'local')`);
+    await enqueueBackups(t.db, 2_000);
 
-    const window = enqueueUploadWindow(t.db, 3_000);
+    const window = await enqueueUploadWindow(t.db, 3_000);
     expect(window.map((j) => j.payload?.assetId)).toEqual(["local", "cloud"]);
   });
 });

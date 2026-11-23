@@ -1,0 +1,40 @@
+.chip {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 32px;
+  aspect-ratio: 1;
+  padding: 2px;
+  border-radius: 50%;
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+}
+
+.chip[aria-pressed="true"] {
+  outline-color: var(--mantine-color-bright);
+}
+
+.chip:focus-visible {
+  outline-color: var(--mantine-primary-color-filled);
+}
+
+.chip:hover .swatch {
+  filter: brightness(1.1);
+}
+
+.swatch {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--mantine-color-body);
+  border-radius: 50%;
+  background: var(--mantine-primary-color-filled);
+}

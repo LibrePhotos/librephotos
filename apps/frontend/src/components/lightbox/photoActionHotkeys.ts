@@ -5,7 +5,7 @@ import type { LightboxCommands } from "./lightboxCommands";
 /**
  * The keys that act on the shown photo, as commands to the toolbar: F toggles
  * the favorite, 0-5 set the star rating (the toolbar acts on whichever matches
- * the user's rating style, #2202), H hides, A archives (#545), P shares and D trashes. They do
+ * the user's rating style, #2202), H hides, A archives (#545), P shares, D trashes and E opens the editor. They do
  * nothing while the photo's details are missing and on a public page.
  */
 export function photoActionHotkeys(commands: LightboxCommands, enabled: boolean): HotkeyItem[] {
@@ -18,6 +18,7 @@ export function photoActionHotkeys(commands: LightboxCommands, enabled: boolean)
     ["a", whenEnabled(() => commands.emit("archive"))],
     ["p", whenEnabled(() => commands.emit("public"))],
     ["d", whenEnabled(() => commands.emit("delete"))],
+    ["e", whenEnabled(() => commands.emit("edit"))],
     ...RATINGS_HIGHEST_FIRST.map((rating): HotkeyItem => [
       String(rating),
       whenEnabled(() => commands.emit("rate", rating)),

@@ -21,12 +21,11 @@
  *      enumeration can never hold hashing hostage.
  */
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
-import { setBackupConfig } from "@/db/queries/backup";
+import { createTestDb, type TestDb, rawCount } from "@librephotos/local-db/testing";
+import { enqueueBackups, setBackupConfig } from "@librephotos/local-db";
 import { syncBackupOnly, type SyncAllOptions } from "@/sync/orchestrator";
 import { syncDeviceMedia, LIBRARY_ALBUM_ID } from "@/sync/device/media-sync";
 import { runHashPass } from "@/sync/device/hasher";
-import { enqueueBackups } from "@/sync/upload/queue";
 import { runUploadItem } from "@/sync/upload/worker";
 import { FakeSource, emptyStore } from "@/sync/__tests__/fake-source";
 import { FakeHasher, FakeMedia, asset } from "@/sync/device/__tests__/fake-media";
@@ -49,8 +48,8 @@ const fastYield = () => Promise.resolve();
  * whole-library album selected *before* the scan runs. `upsertLocalAlbum`
  * preserves `backup_selection` across the scan's upsert, so the choice survives.
  */
-function selectLibraryForBackup(t: TestDb): void {
-  t.db.run(
+async function selectLibraryForBackup(t: TestDb): Promise<void> {
+  await t.db.run(
     sql`INSERT INTO local_album (id, title, asset_count, modified_at, backup_selection)
         VALUES (${LIBRARY_ALBUM_ID}, 'All Photos', 0, 0, 1)`
   );
@@ -78,13 +77,13 @@ function library(count: number) {
     asset(`p${String(i).padStart(4, "0")}`, { creationTime: 1_000 + i })
   );
 }
-function hashedCount(t: TestDb): number {
-  return (t.db.get(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash IS NOT NULL`) as { c: number })
+async function hashedCount(t: TestDb): Promise<number> {
+  return (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash IS NOT NULL`))
     .c;
 }
-function uploadedCount(t: TestDb): number {
+async function uploadedCount(t: TestDb): Promise<number> {
   return (
-    t.db.get(sql`SELECT COUNT(*) AS c FROM upload_queue WHERE state = 'done'`) as { c: number }
+    await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM upload_queue WHERE state = 'done'`)
   ).c;
 }
 
@@ -106,7 +105,7 @@ function seams(
   return {
     yield: fastYield,
     budgets: { scan: hooks.scan ?? 40, hash: hooks.hash ?? 10, uploadWindow: 2 },
-    backupEnabled: () => true,
+    backupEnabled: () => Promise.resolve(true),
     scanChunk: async (ctx, budget) => {
       const r = await syncDeviceMedia(ctx.db, media, {
         signal: ctx.signal,
@@ -126,7 +125,7 @@ function seams(
         batchSize: budget,
         yield: fastYield,
       });
-      enqueueBackups(ctx.db);
+      await enqueueBackups(ctx.db);
       hooks.onHash?.(hasher.order.length);
       return { hashed: r.hashed, failed: r.failed, more: r.more === true };
     },
@@ -145,11 +144,11 @@ function seams(
 
 describe("job chaining: uploads start while hashing is still running", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
     resetBootReclaimForTests();
-    setBackupConfig(t.db, { enabled: true });
-    selectLibraryForBackup(t);
+    await setBackupConfig(t.db, { enabled: true });
+    await selectLibraryForBackup(t);
   });
   afterEach(() => t.close());
 
@@ -164,8 +163,8 @@ describe("job chaining: uploads start while hashing is still running", () => {
       seams(media, new FakeHasher(), transport)
     );
 
-    expect(hashedCount(t)).toBe(60);
-    expect(uploadedCount(t)).toBe(60);
+    expect(await hashedCount(t)).toBe(60);
+    expect(await uploadedCount(t)).toBe(60);
     expect(transport.completes).toHaveLength(60);
   });
 
@@ -186,12 +185,11 @@ describe("job chaining: uploads start while hashing is still running", () => {
       seams(media, new FakeHasher(), transport, {
         onUpload: () => {
           if (hashedAtFirstUpload !== -1) return;
-          hashedAtFirstUpload = hashedCount(t);
-          unhashedAtFirstUpload = (
-            t.db.get(
-              sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash IS NULL AND hashed_at IS NULL`
-            ) as { c: number }
-          ).c;
+          hashedAtFirstUpload = rawCount(t, "SELECT COUNT(*) AS c FROM local_asset WHERE hash IS NOT NULL");
+          unhashedAtFirstUpload = rawCount(
+            t,
+            "SELECT COUNT(*) AS c FROM local_asset WHERE hash IS NULL AND hashed_at IS NULL"
+          );
         },
       })
     );
@@ -199,7 +197,7 @@ describe("job chaining: uploads start while hashing is still running", () => {
     expect(hashedAtFirstUpload).toBeGreaterThan(0); // some hashing had happened…
     expect(hashedAtFirstUpload).toBeLessThan(60); // …but not all of it.
     expect(unhashedAtFirstUpload).toBeGreaterThan(0); // work was still outstanding
-    expect(uploadedCount(t)).toBe(60);
+    expect(await uploadedCount(t)).toBe(60);
   });
 
   it("interleaves scanning, hashing and uploading instead of running them in phases", async () => {
@@ -226,7 +224,7 @@ describe("job chaining: uploads start while hashing is still running", () => {
   });
 
   it("holds uploads back when backup is switched off, but still hashes", async () => {
-    setBackupConfig(t.db, { enabled: false });
+    await setBackupConfig(t.db, { enabled: false });
     const media = new FakeMedia();
     media.setAlbum("cam", "Camera", library(30));
     const transport = new FakeTransport();
@@ -235,21 +233,21 @@ describe("job chaining: uploads start while hashing is still running", () => {
       t.db,
       new FakeSource(emptyStore()),
       // backupEnabled false ⇒ hash_batch must not open an upload window.
-      { ...seams(media, new FakeHasher(), transport), backupEnabled: () => false }
+      { ...seams(media, new FakeHasher(), transport), backupEnabled: () => Promise.resolve(false) }
     );
 
-    expect(hashedCount(t)).toBe(30);
+    expect(await hashedCount(t)).toBe(30);
     expect(transport.uploads).toHaveLength(0);
   });
 });
 
 describe("job chaining: interrupt and restart", () => {
   let t: TestDb;
-  beforeEach(() => {
+  beforeEach(async () => {
     t = createTestDb();
     resetBootReclaimForTests();
-    setBackupConfig(t.db, { enabled: true });
-    selectLibraryForBackup(t);
+    await setBackupConfig(t.db, { enabled: true });
+    await selectLibraryForBackup(t);
   });
   afterEach(() => t.close());
 
@@ -276,8 +274,8 @@ describe("job chaining: interrupt and restart", () => {
       })
     ).rejects.toThrow();
 
-    const hashedAfterCrash = hashedCount(t);
-    const uploadedAfterCrash = uploadedCount(t);
+    const hashedAfterCrash = await hashedCount(t);
+    const uploadedAfterCrash = await uploadedCount(t);
     expect(hashedAfterCrash).toBeGreaterThan(0);
     expect(hashedAfterCrash).toBeLessThan(100);
     // Uploads had already begun before the interruption — the old chain would
@@ -286,9 +284,9 @@ describe("job chaining: interrupt and restart", () => {
 
     // The interrupted work is durable, not discarded with the call stack.
     const liveJobs = (
-      t.db.get(
+      await t.db.get<{ c: number }>(
         sql`SELECT COUNT(*) AS c FROM job_queue WHERE state IN ('pending', 'running')`
-      ) as { c: number }
+      )
     ).c;
     expect(liveJobs).toBeGreaterThan(0);
 
@@ -303,12 +301,12 @@ describe("job chaining: interrupt and restart", () => {
       seams(media, hasher2, transport)
     );
 
-    expect(hashedCount(t)).toBe(100);
+    expect(await hashedCount(t)).toBe(100);
     // The core claim: hashing picked up where it stopped. Only the remainder was
     // hashed again, and no asset twice.
     expect(hasher2.order.length).toBe(100 - hashedAfterCrash);
     expect(new Set(hasher2.order).size).toBe(hasher2.order.length);
-    expect(uploadedCount(t)).toBe(100);
+    expect(await uploadedCount(t)).toBe(100);
     // And no photo was uploaded twice across the two runs.
     expect(new Set(transport.uploads.map((u) => u.assetId)).size).toBe(transport.uploads.length);
   });
@@ -334,7 +332,7 @@ describe("job chaining: interrupt and restart", () => {
 
     // Nothing is stuck `running`: the worker released its claim on the way out.
     expect(
-      (t.db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'running'`) as { c: number }).c
+      (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'running'`)).c
     ).toBe(0);
 
     resetBootReclaimForTests();
@@ -343,7 +341,7 @@ describe("job chaining: interrupt and restart", () => {
       new FakeSource(emptyStore()),
       seams(media, new FakeHasher(), transport)
     );
-    expect(hashedCount(t)).toBe(20);
-    expect(uploadedCount(t)).toBe(20);
+    expect(await hashedCount(t)).toBe(20);
+    expect(await uploadedCount(t)).toBe(20);
   });
 });

@@ -261,9 +261,9 @@ class ConcurrentScanTestCase(TransactionTestCase):
     """
 
     def setUp(self):
-        from django.conf import settings
+        from django.db import connection
 
-        if settings.DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+        if connection.vendor == "sqlite":
             self.skipTest(
                 "Concurrent tests require a multi-thread-safe database (not SQLite in-memory)"
             )

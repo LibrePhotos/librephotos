@@ -26,11 +26,11 @@ forgets them until the next Calculate CLIP embeddings job.
 import atexit
 import os
 
-from flask.typing import ResponseReturnValue
 from retrieval_index import IndexBuildError, RebuildNotOpenError, RetrievalIndex
 
 from librephotos.env import protected_media_root
 from service._common import create_app, json_fields, logger, serve_forever
+from service._web import ResponseReturnValue
 
 INDEX_ROOT = os.path.join(protected_media_root(), "similarity")
 

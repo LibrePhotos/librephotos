@@ -1,5 +1,5 @@
 import type { Photo } from "@librephotos/api-client";
-import type { ViewerSlide } from "@/db/queries/detail";
+import type { ViewerSlide } from "@librephotos/local-db";
 
 /** What the choice reads from the photo's details (null until they are in). */
 export type OriginalDetails = Pick<Photo, "image_path"> &

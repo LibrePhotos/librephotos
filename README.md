@@ -68,7 +68,7 @@ Pick the deployment that fits your setup. Step-by-step guides are in the [docume
 
 - **Framework:** [Django 6](https://www.djangoproject.com/) with [Django REST Framework](https://www.django-rest-framework.org/)
 - **Database:** [PostgreSQL](https://www.postgresql.org/)
-- **Task Queue:** [Django-Q2](https://github.com/django-q2/django-q2)
+- **Task Queue:** LibrePhotos' own, in the database (`apps/backend/api/jobs`)
 - **RAW Conversion:** [LibRaw](https://www.libraw.org/) via [rawpy](https://github.com/letmaik/rawpy)
 - **Video Conversion:** [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - **Exif Support:** [ExifTool](https://github.com/exiftool/exiftool)

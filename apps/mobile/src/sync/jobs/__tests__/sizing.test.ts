@@ -9,7 +9,7 @@
  *
  * These tests pin the new starting sizes and the controller that corrects them.
  */
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { syncDeviceMedia } from "@/sync/device/media-sync";
 import { FakeMedia, asset } from "@/sync/device/__tests__/fake-media";
 import { HASH_BATCH_SIZE, SCAN_CHUNK } from "../types";

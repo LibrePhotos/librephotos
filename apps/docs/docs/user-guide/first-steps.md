@@ -6,7 +6,7 @@ sidebar_position: 1
 
 ## First Time Setup Wizard
 
-When you first access LibrePhotos, you'll be greeted with a guided setup wizard that walks you through the initial configuration in four steps: **Account**, **Settings**, **Errors** and **Library**.
+When you first access LibrePhotos, you'll be greeted with a guided setup wizard that walks you through the initial configuration in five steps: **Account**, **Settings**, **Errors**, **Library** and **Workers**.
 
 ### Step 1: Create Your Admin Account
 
@@ -44,9 +44,19 @@ This is where you tell LibrePhotos where your photos are stored:
 
    The directory picker shows a visual tree of available folders that you can click to select, or you can type the path directly.
 
-2. Click **Save** to save your settings and start the initial photo scan, or click **Skip** if you want to configure this later.
+2. Click **Save** to save the folder and go on to the last step, or click **Skip** if you want to configure this later.
 
-Once complete, you'll be taken to the main LibrePhotos interface and your first scan will begin automatically if you configured a scan directory.
+### Step 5: Workers
+
+<Since version="1.7.0" /> LibrePhotos shows what it found on this machine, such as "4 cores, 8.0 GB of memory (container limit)", and lets you choose how hard it may work:
+
+- **Gentle**: one background worker. The machine stays fully usable; the first scan takes longest. Good for a Raspberry Pi or a NAS that also runs other things.
+- **Balanced** (the default): half the cores, at most four.
+- **Fast first import**: as many workers as fit, until the first import is done; then LibrePhotos switches back to Balanced by itself.
+
+Under the choice it says how many workers that gives and how much memory they use, and warns when even one worker does not fit (one runs anyway, slowly). With face recognition on, it also says how many face services Scan Faces gets, one per heavy worker as far as memory and GPU memory allow, and what limits them (see [Faces in parallel](../installation/environment-variables.md#faces-in-parallel)). You can change it later under **Admin area → Site settings → Parallel workers**; see [Limiting CPU and memory usage](../installation/environment-variables.md#limiting-cpu-and-memory-usage).
+
+Click **Continue**: you'll be taken to the main LibrePhotos interface and your first scan begins if you configured a scan directory.
 
 If you shoot RAW+JPEG, the scan keeps the two files of a shot together as one photo with a RAW variant when they are in the same folder and have the same name. See [Stacks & file variants](./stacks-and-file-variants.md#rawjpeg-pairs).
 

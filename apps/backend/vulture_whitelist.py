@@ -22,15 +22,12 @@ _.SSOSocialAccountAdapter  # class in api/accounts/adapters.py (SOCIALACCOUNT_AD
 _.DynamicEmailBackend  # class in api/accounts/mail.py (EMAIL_BACKEND)
 _.custom_exception_handler  # function in api/views/exception_handler.py (REST_FRAMEWORK)
 _.require_page_keys  # function in api/drf/openapi.py (SPECTACULAR_SETTINGS POSTPROCESSING_HOOKS)
-_.ReleaseGuardedORM  # class in api/jobs/broker.py (Q_CLUSTER broker_class)
 _.on_authentication_error  # SSOSocialAccountAdapter hook; allauth's render_authentication_error calls it
 
 # App configs: api/__init__.py names ApiConfig, Django finds NextcloudConfig.
 _.ApiConfig  # class in api/apps.py
 _.NextcloudConfig  # class in nextcloud/apps.py
 
-# django_q Schedule rows, created by dotted path in management commands.
-_.check_services  # function in api/runtime/supervisor.py (start_service)
 _.empty_expired_trash  # function in api/photos/retention.py (start_cleaning_service)
 _.cleanup_deleted_photos  # function in api/photos/retention.py (start_cleaning_service)
 _.prune_deletion_log  # function in api/photos/retention.py (start_cleaning_service)

@@ -22,6 +22,8 @@ from api.runtime.ml_models import _download_file, _model_target_exists, download
 
 
 class _Response:
+    status_code = 200
+
     def __init__(self, chunks, on_chunk=None):
         self._chunks = chunks
         self._on_chunk = on_chunk
@@ -129,10 +131,14 @@ class AtomicInstallTest(SimpleTestCase):
             [p.name for p in (self.models / "face_recognition" / "models").iterdir()],
             ["face_zip"],
         )
-        self.assertEqual([p.name for p in self.models.iterdir()], ["face_recognition"])
+        self.assertEqual(
+            sorted(p.name for p in self.models.iterdir()),
+            [".locks", "face_recognition"],
+        )
 
     def test_a_failed_download_leaves_no_staging_behind(self):
         with (
+            patch("api.runtime.ml_models.time.sleep"),
             patch(
                 "api.runtime.ml_models.requests.get",
                 side_effect=requests.ConnectionError("down"),
@@ -141,4 +147,4 @@ class AtomicInstallTest(SimpleTestCase):
         ):
             download_model(FACE_MODEL)
 
-        self.assertEqual(list(self.models.iterdir()), [])
+        self.assertEqual([p.name for p in self.models.iterdir()], [".locks"])

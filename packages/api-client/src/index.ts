@@ -12,26 +12,6 @@
  * mobile these are fetched with an Authorization header (expo-image), on web
  * they ride same-origin cookies.
  */
-export * from "./schemas";
-export * from "./transport";
-export * as endpoints from "./endpoints";
-// Endpoint parameter types that callers need at the top level.
-export type {
-  AlbumMediaFilter,
-  CheckFileContentsScope,
-  DateAlbumFilter,
-  DateTimeChange,
-  MapBounds,
-  PhotoCategory,
-  SearchFilters,
-  SelectAllPhotos,
-  SharedGroupKind,
-  SyncPullParams,
-  UserAlbumOptions,
-  UserPlaceCircle,
-  UserPlaceFields,
-} from "./endpoints";
+export * from "./core";
 export * from "./hooks";
 export * from "./polling";
-export * from "./media";
-export { ResponseParseError, type ParsedEntries } from "./util/parse";

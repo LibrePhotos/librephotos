@@ -12,6 +12,7 @@ from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
 from api.models.duplicate import Duplicate
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_duplicate, create_test_photo, create_test_user
 
 
@@ -79,7 +80,7 @@ class DuplicateListQueryTest(TestCase):
                 self.assertEqual(error_fields(response), [field])
 
 
-@patch("api.jobs.queue.AsyncTask")
+@patch("api.jobs.store.add", new_callable=QueueRecorder)
 class DetectDuplicatesRequestTest(TestCase):
     def setUp(self):
         self.user = create_test_user()

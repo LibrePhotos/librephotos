@@ -176,6 +176,16 @@ When you click on any photo in LibrePhotos, it opens in the photo viewer (also k
 - **Thumbnail bar** at the bottom shows nearby photos for quick navigation
 - **Close button** (X) or press **Escape** to return to the gallery
 
+<Since version="1.7.0" /> Touch and mouse gestures in the viewer:
+
+- **Swipe** sideways: the next or previous photo follows your finger and slides in. A short, quick flick is enough; a short, slow drag slides back. At the first or last photo the photo only gives a little.
+- **Pinch** zooms around the point between your fingers.
+- **Double-tap** or **double-click** zooms to 2× around that point, and back.
+- **Mouse wheel** or a trackpad pinch zooms around the pointer.
+- While zoomed in, **drag** to move around the photo. It stops at the photo's edges.
+
+Up to 1.6.0 a swipe snapped the photo back and then faded in the next one, a pinch zoomed around the photo's centre, and the wheel did not zoom.
+
 ### Linking to a photo {#photo-link}
 
 The open photo is part of the page's address, as `?photo=<id>` (for example `/favorites?photo=<id>` or `/album/user/12?photo=<id>`). <Since version="1.4.0" /> Up to 1.3.0, opening a photo left the address as it was. That gives you:
@@ -193,6 +203,7 @@ The toolbar at the top starts with the back arrow (**Close**), which returns to 
 - **360° view** - <Since version="1.5.0" /> Look around in a [360° photo sphere](#photo-spheres) instead of seeing it flat. Shown only for photo spheres.
 - **Select text in photo** - Lay the recognised text over the photo so you can select and copy it. Shown only on your own photos where [text recognition](./text-recognition.md) found text.
 - **Share link** (share icon) - Create a revocable link to this one photo and show it with a copy button, plus **Replace link** and **Revoke**. The icon is green while the photo has a live link. This does not make the photo public; see [Revocable Photo Links](./sharing.md#revocable-photo-links).
+- **Edit** - <Since version="1.7.0" /> Open the [photo editor](./editing-photos.md) to crop, straighten and adjust the photo. Your own still photos only. The button is highlighted on a photo you edited.
 - **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark. In stars mode this is a row of five stars instead (see [Rating photos with stars](#rating-photos-with-stars)).
 - **Show info panel** / **Hide info panel** - Show or hide the photo details sidebar.
 - **Delete photo** (trash icon) - Move the photo to trash. On a photo in the trash it is **Restore photo**.
@@ -212,7 +223,7 @@ Each item in the menu shows its keyboard shortcut (see [Keyboard Shortcuts](#key
 
 The share link, favorite, delete, hide, archive and rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the zoom, slideshow, copy and fullscreen items in the ⋮, the info panel button and the back arrow.
 
-There is no download button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
+There is no download button in the lightbox itself (only the **Original** link on the zoom label of a RAW or other preview). To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu. <Since version="1.7.0" /> On a photo you [edited](./editing-photos.md#downloads-and-sharing), the ⋮ also has **Download edited** and **Download original**.
 
 To put a single photo on the clipboard, open it and press the **Copy to clipboard** button or `Ctrl` + `c` (`⌘` + `c` on macOS). The browser's own right-click menu on the picture offers **Copy image** as well.
 
@@ -226,6 +237,8 @@ A small label in the photo's lower-left corner says what you are looking at whil
 - **Original · 6000 × 4000** once the original is shown, which shrinks to **Original** after two seconds. The viewer keeps the original until you move to another photo.
 - **Preview** with the reason when the browser cannot show the original: RAW, HEIC, TIFF and JPEG XL files, and photos you turned with the rotate buttons (the file itself is not turned). The **Original** link next to it downloads the file.
 - **The original did not load** with **Try again** when loading it failed.
+
+<Since version="1.7.0" /> On a photo you [edited](./editing-photos.md), zooming in loads the edited picture at full size, and the label says so: **Loading the edited photo**, then **Edited · 3000 × 2000**, which shrinks to **Edited**. While the server is still making it, the label says **Preview** with *The edited photo is still being prepared at full size*, without an **Original** link: the original file is **Download original** in the viewer's ⋮.
 
 Photos no bigger than the display-size version need nothing more, and animated GIFs always show the original. The original loads only when you are signed in and may download it anyway: your own photos and photos shared with you. Visitors of a [public album](./sharing.md#the-public-album-experience) or a public photo link keep the display-size version.
 
@@ -255,6 +268,7 @@ Rotation in LibrePhotos is **non-destructive**:
 - Each rotation composes on top of the previous one, so rotating clockwise twice produces a 180° rotation and four times returns the photo to its original orientation.
 - The change applies to the photo for every viewer, not just your own session.
 - Rotation is only available for still images. Videos cannot be rotated from the lightbox.
+- <Since version="1.7.0" /> On a photo you [edited](./editing-photos.md), the rotation turns the edit, crop included, and is added to the edit's history.
 
 Your **Write edits to files** setting (Settings → Metadata) controls whether the rotation also reaches the filesystem. This is a three-way choice, not an on/off toggle:
 
@@ -278,7 +292,7 @@ The sidebar displays detailed information about the current photo and provides q
 
 ### Timestamp
 
-Shows when the photo was taken. You can click the edit button to modify the date and time if needed. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.
+Shows when the photo was taken. You can click the edit button to modify the date and time if needed. <Since version="1.7.0" /> The editor has a **Day** and a **Time** field (with seconds), which use your browser's own date and time controls, so they follow your browser's language and date format; Firefox on a computer offers no clock for the time, so type it there. Up to 1.6.0 the editor showed its own calendar. **Save** stays greyed out while the time field is empty or incomplete, and the editor stays open until the date is saved; if the save fails, LibrePhotos says so and your input is kept. After a save, an **Undo timestamp modification** button next to the date puts the previous date back.
 
 <Since version="1.4.0" /> A date you set this way wins over the [date rules](./settings/date-rules.md) and is marked **Set by you**. To drop it, edit the date and click **Remove timestamp**: the date rules decide the photo's date again, so it keeps a date read from its file if it has one.
 
@@ -287,7 +301,7 @@ Shows when the photo was taken. You can click the edit button to modify the date
 <Since version="1.4.0" /> A camera with a wrong clock, or one left on summer time, puts a whole trip off by the same amount. To fix it, select the photos in the grid (or **Select all**), open the selection actions menu (⋮) and choose **Edit info → Change date and time…**. The dialog has two tabs:
 
 - **Shift** moves every selected photo by the same amount, so their order and the time between them stay the same. Pick **Earlier** or **Later** and enter the days, hours, minutes and seconds, or click **1 h earlier** or **1 h later**. A line spells out the shift ("1 hour, 30 minutes earlier"), and a table shows the oldest and newest selected photo now and after the shift. **Shift** stays greyed out until the amount is more than zero. Photos without a date are left alone; the dialog says how many.
-- **Set** gives every selected photo the same date and time, picked with the same calendar and time field as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
+- **Set** gives every selected photo the same date and time, picked with the same day and time fields as the [Timestamp](#timestamp) editor. Use it for scans and photos without a date. The photos then share one time, so their order on the timeline is lost.
 
 When you save, a message says how many photos got their new date and how many a shift skipped. The new dates count as set by you: they win over the [date rules](./settings/date-rules.md), a rescan keeps them, and **Remove timestamp** in a photo's [Timestamp](#timestamp) editor hands that photo back to the rules. With [Write edits to files](./settings/index.md#metadata-options) on, LibrePhotos writes them to the photos' files or sidecars in the background, as `XMP:DateCreated`.
 
@@ -392,7 +406,8 @@ Under the title, labelled buttons hold the photo's actions:
 - **Favorite**: mark the photo as a favorite, or remove the mark. The button is yellow while it is one. In stars mode it is a wider **Rating** tile with five stars instead, which work as in the photo viewer (see [Rating photos with stars](#rating-photos-with-stars)).
 - **Share**: create a revocable link to this photo, as **Share link** in the lightbox does (see [Revocable Photo Links](./sharing.md#revocable-photo-links)). The button is green while the photo has a live link.
 - **Album**: add the photo to one of your albums, or to a new one.
-- **Download**: download the original file. When the photo has more than one file (a RAW next to its JPEG, the video of a Live Photo), it opens a list to pick the file from.
+- <Since version="1.7.0" /> **Edit**: open the [photo editor](./editing-photos.md) on this photo. Still photos only.
+- **Download**: download the original file. When the photo has more than one file (a RAW next to its JPEG, the video of a Live Photo), it opens a list to pick the file from. <Since version="1.7.0" /> On a photo you [edited](./editing-photos.md#downloads-and-sharing), it always opens the list, with **Download edited** and **Download original** first.
 - **More**: **Copy image** (still photos, HTTPS only), **Rotate 90° counter-clockwise** and **Rotate 90° clockwise** (still photos), **Hide photo** / **Show photo**, **Archive photo** / **Unarchive photo**, **Open in viewer**, and **Move to trash** / **Restore from trash**.
 
 A photo in the trash, hidden or archived says so above these buttons, with a button to restore it, show it again or unarchive it.
@@ -444,6 +459,7 @@ The account menu shows the same keys next to its pages, and **Keyboard shortcuts
 | `h` | Hide / unhide photo |
 | `a` | Archive / unarchive photo |
 | `p` | Open the photo's share link dialog |
+| `e` | <Since version="1.7.0" /> Open the [photo editor](./editing-photos.md) (your own still photos) |
 | `d` | Move photo to trash |
 | `g` | Toggle fullscreen |
 | `s` | Start / stop slideshow |

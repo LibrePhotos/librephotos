@@ -21,8 +21,22 @@ const stubs = vi.hoisted(() => {
   const album: React.ComponentProps<typeof AlbumEditModal>[] = [];
   const move: React.ComponentProps<typeof MovePhotosModal>[] = [];
   const rename: React.ComponentProps<typeof RenamePhotosModal>[] = [];
-  return { album, move, rename };
+  const saved = vi.fn<(url: string, name: string) => Promise<void>>(() => Promise.resolve());
+  return { album, move, rename, saved };
 });
+
+vi.mock("../editor/engine/canEdit", () => ({ canEdit: () => true }));
+vi.mock("../editor/LazyPhotoEditor", () => ({
+  photoEditor: { prefetch: () => {} },
+  LazyPhotoEditor: ({ photo, onClose }: { photo: Photo; onClose: () => void }) => (
+    <button type="button" data-editing={photo.id} onClick={onClose}>
+      Close editor
+    </button>
+  ),
+}));
+vi.mock("../../api_client/media/saveMedia", () => ({ saveMediaFile: stubs.saved }));
+// The real module loads i18n, and these tests read the keys.
+vi.mock("../../service/notifications", () => ({ notification: { error: () => {} } }));
 
 // The Files items have their own tests (FileActionItems.test.tsx).
 vi.mock("../photolist/FileActionItems", () => ({ FileActionItems: () => null, SelectionFileItems: () => null }));
@@ -162,6 +176,36 @@ describe("photo action tiles", () => {
     const download = byText(container, "a", "photopage.tiles.download");
     expect(download.getAttribute("href")).toContain("h1");
     expect(download.getAttribute("download")).toBe("IMG_1.jpg");
+  });
+
+  it("offers an edited photo as edited or original, each under a name that fits its bytes", async () => {
+    const photo = makePhoto({
+      id: "p1",
+      image_hash: "h1",
+      image_path: ["/lib/IMG_1.CR2"],
+      edit: { version: 2, rendition: "ready", width: 300, height: 200 },
+    });
+    const { container } = await renderTiles({ photo });
+    // No plain link: the photo's address answers the edited JPEG, which must not be saved as IMG_1.CR2.
+    expect(container.querySelector("a[download]")).toBeNull();
+    await act(async () => byText(container, "button", "photopage.tiles.download").click());
+    await act(async () => byText(document, '[role="menuitem"]', "lightbox.download.original").click());
+    expect(stubs.saved).toHaveBeenLastCalledWith("/media/photos/h1?original=1", "IMG_1.CR2");
+    await act(async () => byText(container, "button", "photopage.tiles.download").click());
+    await act(async () => byText(document, '[role="menuitem"]', "lightbox.download.edited").click());
+    expect(stubs.saved).toHaveBeenLastCalledWith("/media/photos/h1?v=2", "IMG_1-edited.jpg");
+  });
+
+  it("opens the photo editor on a still photo, and has no Edit for a video", async () => {
+    const { container } = await renderTiles();
+    expect(document.querySelector("[data-editing]")).toBeNull();
+    await act(async () => byText(container, "button", "photopage.tiles.edit").click());
+    expect(document.querySelector("[data-editing]")?.getAttribute("data-editing")).toBe("p1");
+    await act(async () => byText(document, "button", "Close editor").click());
+    expect(document.querySelector("[data-editing]")).toBeNull();
+
+    const video = await renderTiles({ photo: makePhoto({ id: "v1", video: true }) });
+    expect(() => byText(video.container, "button", "photopage.tiles.edit")).toThrow();
   });
 
   it("lists the original and every other format to download", async () => {

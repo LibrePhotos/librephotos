@@ -450,16 +450,16 @@ class PrepareEnvironmentTest(SimpleTestCase):
 @fake_sidecar_starts
 @patch("api.runtime.supervisor.subprocess.Popen")
 class SidecarCommandTest(SimpleTestCase):
-    def test_from_source_the_script_runs_under_python(self, popen):
+    def test_from_source_the_script_runs_under_this_python(self, popen):
         supervisor.start_service("thumbnail")
         self.assertEqual(
-            popen.call_args.args[0], ["python", "service/thumbnail/main.py"]
+            popen.call_args.args[0], [sys.executable, "service/thumbnail/main.py"]
         )
 
     def test_image_similarity_lives_outside_service(self, popen):
         supervisor.start_service("image_similarity")
         self.assertEqual(
-            popen.call_args.args[0], ["python", "image_similarity/main.py"]
+            popen.call_args.args[0], [sys.executable, "image_similarity/main.py"]
         )
 
     def test_compiled_the_binary_runs_the_sidecar_itself(self, popen):
@@ -524,7 +524,7 @@ class WorkerDefaultTest(SimpleTestCase):
                     sys.executable,
                     "-c",
                     "from librephotos.settings import standalone as s;"
-                    "print('workers=%d' % s.Q_CLUSTER['workers'])",
+                    "print('workers=%d' % (s.TASK_WORKERS or 0))",
                 ],
                 cwd=standalone.BACKEND_ROOT,
                 env=env,
@@ -534,8 +534,8 @@ class WorkerDefaultTest(SimpleTestCase):
             ).stdout
         return int(output.rsplit("workers=", 1)[1])
 
-    def test_two_workers_unless_told_otherwise(self):
-        self.assertEqual(self._workers(), 2)
+    def test_the_capacity_check_decides_unless_told_otherwise(self):
+        self.assertEqual(self._workers(), 0)
 
     def test_worker_concurrency_still_overrides(self):
         self.assertEqual(self._workers(WORKER_CONCURRENCY="5"), 5)
@@ -611,9 +611,45 @@ class NamedExecutableTest(SimpleTestCase):
             patch("multiprocessing.set_executable") as set_executable,
             patch("django.core.management.execute_from_command_line"),
         ):
-            standalone.run_manage(["qcluster"])
+            standalone.run_manage(["run_workers"])
         (path,), _ = set_executable.call_args
         self.assertEqual(os.path.basename(path), "librephotos-worker.exe")
+
+    def test_the_cluster_starts_from_the_binary_when_the_worker_name_is_gone(self):
+        # 1.6.0: qcluster died with WinError 2 at its first spawn, so no job
+        # ever ran. The link is a convenience; the binary itself is running.
+        def link_gone(argv):
+            if execute.call_count == 1:
+                os.remove(os.path.join(self.root.name, "librephotos-worker.exe"))
+                raise FileNotFoundError(2, "The system cannot find the file specified")
+
+        with (
+            patch("multiprocessing.set_executable") as set_executable,
+            patch(
+                "django.core.management.execute_from_command_line",
+                side_effect=link_gone,
+            ) as execute,
+        ):
+            standalone.run_manage(["run_workers"])
+
+        spawned_from = [call.args[0] for call in set_executable.call_args_list]
+        self.assertEqual(
+            [os.path.basename(path) for path in spawned_from],
+            ["librephotos-worker.exe", "librephotos.exe"],
+        )
+        self.assertEqual(execute.call_count, 2)
+
+    def test_a_cluster_failure_with_the_worker_name_in_place_is_raised(self):
+        with (
+            patch("multiprocessing.set_executable"),
+            patch(
+                "django.core.management.execute_from_command_line",
+                side_effect=FileNotFoundError(2, "a file the cluster opens"),
+            ) as execute,
+            self.assertRaises(FileNotFoundError),
+        ):
+            standalone.run_manage(["run_workers"])
+        self.assertEqual(execute.call_count, 1)
 
     def test_other_commands_leave_multiprocessing_alone(self):
         with (

@@ -4,20 +4,23 @@ import { useRouter, type Href } from "expo-router";
 import { ExploreSection, type ExploreItem } from "@/components/ExploreSection";
 import { FloatingTopBar, useTopBarInset } from "@/components/FloatingTopBar";
 import { Icon, type IconName } from "@/components/Icon";
-import { filterCounts, type PhotoFilter } from "@/db/queries/filters";
-import { LIBRARY_VIEWS, QUICK_VIEWS, libraryHref } from "@/features/photos/libraryViews";
-import { useReactiveQuery } from "@/db/provider";
-import type { AppDatabase } from "@/db/types";
 import {
+  allSyncState,
   autoAlbums,
+  filterCounts,
   firstCoverHash,
+  people,
   placeAlbumsList,
+  SYNC_ENTITIES,
   tagAlbumsList,
   thingAlbumsList,
   userAlbums,
-} from "@/db/queries/albums";
-import { people } from "@/db/queries/people";
-import { allSyncState, SYNC_ENTITIES, type SyncEntity } from "@/db/queries/sync-state";
+  type AppDatabase,
+  type PhotoFilter,
+  type SyncEntity,
+} from "@librephotos/local-db";
+import { LIBRARY_VIEWS, QUICK_VIEWS, libraryHref } from "@/features/photos/libraryViews";
+import { useReactiveQuery } from "@/db/provider";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useTheme, type ThemeColors } from "@/theme";
 
@@ -37,6 +40,27 @@ type ExploreData = {
   seeding: Set<SyncEntity>;
 };
 
+const LOADING_EXPLORE: ExploreData = {
+  user: [],
+  people: [],
+  things: [],
+  tags: [],
+  places: [],
+  events: [],
+  counts: {
+    favorites: 0,
+    hidden: 0,
+    deleted: 0,
+    archived: 0,
+    screenshots: 0,
+    documents: 0,
+    videos: 0,
+    recent: 0,
+    notimestamp: 0,
+  },
+  seeding: new Set<SyncEntity>(["user_album", "person", "thing_album", "tag_album", "place_album", "auto_album"]),
+};
+
 /**
  * Read every hub section in one pass over the mirror. A single reactive query
  * keeps the whole screen consistent (one re-run per DB commit) and keeps the
@@ -46,9 +70,9 @@ type ExploreData = {
  * from the same lists, which is what the frontend shows too ("N albums" is the
  * number of albums, not of photos).
  */
-export function readExplore(db: AppDatabase, labels: { unknownPerson: string }): ExploreData {
+export async function readExplore(db: AppDatabase, labels: { unknownPerson: string }): Promise<ExploreData> {
   const seeded = new Set<SyncEntity>();
-  for (const row of allSyncState(db)) {
+  for (const row of (await allSyncState(db))) {
     const entity = SYNC_ENTITIES.find((e) => e === row.entity);
     if (entity && row.last_full_sync != null) seeded.add(entity);
   }
@@ -59,48 +83,48 @@ export function readExplore(db: AppDatabase, labels: { unknownPerson: string }):
   );
 
   return {
-    user: userAlbums(db).map(a => ({
+    user: (await userAlbums(db)).map(a => ({
       id: a.id,
       title: a.title,
       coverHash: a.cover_hash,
       photoCount: a.photo_count,
       href: `/albums/user/${a.id}` as Href,
     })),
-    people: people(db).map(p => ({
+    people: (await people(db)).map(p => ({
       id: p.id,
       title: p.name ?? labels.unknownPerson,
       coverHash: p.cover_photo_hash,
       href: `/albums/people/${p.id}` as Href,
     })),
-    things: thingAlbumsList(db).map(a => ({
+    things: (await thingAlbumsList(db)).map(a => ({
       id: a.id,
       title: a.title,
       coverHash: firstCoverHash(a.cover_hashes),
       photoCount: a.photo_count,
       href: `/albums/things/${a.id}` as Href,
     })),
-    tags: tagAlbumsList(db).map(a => ({
+    tags: (await tagAlbumsList(db)).map(a => ({
       id: a.id,
       title: a.title,
       coverHash: firstCoverHash(a.cover_hashes),
       photoCount: a.photo_count,
       href: `/albums/tags/${a.id}` as Href,
     })),
-    places: placeAlbumsList(db).map(a => ({
+    places: (await placeAlbumsList(db)).map(a => ({
       id: a.id,
       title: a.title,
       coverHash: firstCoverHash(a.cover_hashes),
       photoCount: a.photo_count,
       href: `/albums/places/${a.id}` as Href,
     })),
-    events: autoAlbums(db).map(a => ({
+    events: (await autoAlbums(db)).map(a => ({
       id: a.id,
       title: a.title,
       coverHash: a.cover_hash,
       photoCount: a.photo_count,
       href: `/albums/events/${a.id}` as Href,
     })),
-    counts: filterCounts(db, LIBRARY_VIEWS.map((v) => v.filter)),
+    counts: await filterCounts(db, LIBRARY_VIEWS.map((v) => v.filter)),
     seeding,
   };
 }
@@ -123,7 +147,7 @@ export function ExploreScreen() {
   const theme = useTheme();
   const isOnline = useOnlineStatus();
   const unknownPerson = t("faces.unknown");
-  const data = useReactiveQuery(db => readExplore(db, { unknownPerson }), [unknownPerson]);
+  const { data } = useReactiveQuery(["explore", unknownPerson], (db) => readExplore(db, { unknownPerson }), LOADING_EXPLORE);
   const topInset = useTopBarInset();
   const router = useRouter();
   const moreViews = LIBRARY_VIEWS.filter((v) => !QUICK_VIEWS.includes(v.filter));

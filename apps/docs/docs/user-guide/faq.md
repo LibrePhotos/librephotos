@@ -12,6 +12,12 @@ Yes. Version 1.0.0 came out in June 2026, and new versions have followed every f
 
 Not an official one yet. The official app, [LibrePhotos Mobile](mobile/librephotos-mobile.md), is being developed and can be tried by running it from the source code. Until it is released, [UhuruPhotos](https://uhuru.photos/) is a third-party Android app for LibrePhotos. See [Mobile Apps](mobile/index.md).
 
+## Does editing a photo change my original file?
+
+<Since version="1.7.0" />
+
+No. The [photo editor](editing-photos.md) stores your edit as a list of settings and shows an edited copy that LibrePhotos makes in its own folder. The original file stays as it was, you can download it with **Download original**, and **Revert to original...** removes the edit.
+
 ## Proxmox - Scan always fails after importing few images
 
 ### Symptom

@@ -33,11 +33,17 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 
-async function render(state: ChipState, visible = true) {
+async function render(state: ChipState, visible = true, edited = false) {
   await act(async () => {
     root.render(
       <MantineProvider env="test">
-        <ResolutionChip state={state} visible={visible} onRetry={() => {}} downloadUrl="/media/photos/abc" />
+        <ResolutionChip
+          state={state}
+          visible={visible}
+          onRetry={() => {}}
+          edited={edited}
+          downloadUrl={edited ? null : "/media/photos/abc"}
+        />
       </MantineProvider>
     );
   });
@@ -62,6 +68,22 @@ describe("ResolutionChip", () => {
     expect(chipText()).toBeNull();
     await render(shown);
     expect(chipText()).toBe("lightbox.original.shown");
+  });
+
+  it("says Edited, not Original, for the full-size picture of an edited photo", async () => {
+    await render({ kind: "original", size: { width: 3000, height: 2000 } }, true, true);
+    expect(chipText()).toBe("lightbox.original.edited.shownsize");
+    await act(async () => vi.advanceTimersByTime(2000));
+    expect(chipText()).toBe("lightbox.original.edited.shown");
+    await render({ kind: "loading" }, true, true);
+    expect(chipText()).toBe("lightbox.original.edited.loading");
+  });
+
+  it("links the preview to the original, but not for an edited photo", async () => {
+    await render({ kind: "preview", reason: "raw" });
+    expect(container.querySelector("a[download]")?.getAttribute("href")).toBe("/media/photos/abc");
+    await render({ kind: "preview", reason: "rendering" }, true, true);
+    expect(container.querySelector("a")).toBeNull();
   });
 
   it("says Original without a size it does not know", async () => {

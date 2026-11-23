@@ -40,7 +40,7 @@ export function ErrorReportRow({ report }: Readonly<{ report: ErrorReport }>) {
             {t("errorreports.not_sent")}
           </Badge>
         ) : (
-          <Badge size="sm" variant="light" color="teal">
+          <Badge size="sm" variant="light" color="green">
             {t("errorreports.sent")}
           </Badge>
         )}

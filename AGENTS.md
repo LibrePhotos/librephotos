@@ -5,22 +5,31 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 
 | Path | What | Guide |
 | --- | --- | --- |
-| `apps/backend` | Django 6.1 + DRF on Python 3.14, django-q2 jobs, ONNX sidecars | `apps/backend/AGENTS.md` |
+| `apps/backend` | Django 6.1 + DRF on Python 3.14, its own task queue, ONNX sidecars | `apps/backend/AGENTS.md` |
 | `apps/frontend` | React 19, Vite, TanStack Router/Query, Mantine 9, i18next | `apps/frontend/AGENTS.md` |
 | `apps/mobile` | Expo SDK 57, offline-first sync | `apps/mobile/AGENTS.md` |
-| `packages/api-client` | Shared zod schemas and endpoints for every request, web and mobile (#2347) | `apps/frontend/AGENTS.md` (API layer) |
+| `packages/api-client` | Shared zod schemas and endpoints for every request, web, mobile and desktop (#2347) | `apps/frontend/AGENTS.md` (API layer) |
+| `packages/local-db` | The on-device SQLite database of mobile and desktop: schema, migrations, queries, writers, change hub | its `README.md` |
 | `apps/docs` | Docusaurus 3, deployed to docs.librephotos.com from `dev` | |
 | `deploy/` | Dockerfiles, compose, k8s, e2e setup | |
 | `tools/report-mail-bridge` | Bun SMTP server that forwards mailed error reports to the maintainers' GlitchTip | its `README.md` |
 
 ## Rules
 
-- A user-facing feature, setting or env var ships with its docs in `apps/docs` in the same PR.
+- Every change to what an app or package does (`apps/backend`, `apps/frontend/src`, `apps/mobile/src`,
+  `apps/desktop`, `packages/*/src`, `deploy/`) is reflected in `apps/docs/docs` or `apps/docs/blog` in the
+  same PR: the user guide for what users see, installation for deploy, settings and env vars, `development/`
+  for internal changes. Tests, workflows, lockfiles, translations and version-only dependency bumps are
+  exempt; `scripts/check-conventions.mjs` (CI: `conventions.yml`) fails otherwise.
   Docs deploy from `dev` before a release, so say when something is not released yet: write
   `<Since version="<next release>" />` on the line under a heading or at the start of a note
   (`<Since version="1.4.0" /> Up to 1.3.0, ...`). It turns into "New in 1.4.0" when that release post
   is merged (`apps/docs/src/data/releases.json`), and the docs build fails on a version that is neither
   released nor newer than the latest.
+- New or changed code carries no comments, docstrings included: names, types and tests explain it, and the
+  why goes in the commit message, the PR or the docs. A line you touch loses its comment.
+  `scripts/check-conventions.mjs` (CI: `conventions.yml`) fails on a comment on an added line; only shebangs,
+  `/// <reference>`, `@ts-check`, coding lines, `# raw-create:` and generated or vendored files pass.
 - Release notes follow `.github/release-notes-template.md`: plain "What's new for you" and "After you update"
   blocks above the technical part, UI labels from `locales/en`, no em dashes. They are written as a post in
   `apps/docs/blog/` and the GitHub release body is generated from it (`scripts/check-release-posts.mjs` in CI).
@@ -48,6 +57,10 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
   admin only through `manage.py createadmin`. Every `image:`/`FROM` names a tag other than `latest` and
   `pip install` only takes `-r requirements*.txt`, so Renovate owns every bump (pgautoupgrade majors come as
   their own PR). `apps/backend/api/tests/infra/test_deploy_images.py` enforces all of it.
+- A package whose declared dependencies LibrePhotos never uses (tokenizers and huggingface-hub) goes into
+  `apps/backend/requirements.nodeps.txt`, installed with `pip install --no-deps` after every install of
+  `requirements.txt` (images, `setup_test_env.sh`, workflows, docs); `api/tests/infra/test_no_deps_requirements.py`
+  fails on an install that skips it and on a bump that declares a dependency not installed otherwise.
 
 ## Commands
 
@@ -64,7 +77,15 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
   Both apps run its schemas on their own zod 4, so use zod 4 APIs only (lint: `no-deprecated`), and
   bump zod or React Query in the web, mobile, package and root manifests together:
   `node scripts/check-shared-deps.mjs` (CI) fails on a peer-range or zod-major mismatch.
+- Local database (`packages/local-db`): `npm run typecheck|lint|test|db:check --workspace packages/local-db`
+  (CI: `local-db.yml`). On-device SQLite lives there and only there: schema, migrations, every query and writer.
+  An app only provides an executor (`apps/mobile/src/db/client.ts`); everything is async, and atomic writes are
+  `db.batch([...])`, never `db.transaction()` (lint in both). Change the schema, then `npm run db:generate --workspace
+  packages/local-db`; CI fails when `migrations/migrations.json` is stale.
 - Docs (`apps/docs`): `yarn install --frozen-lockfile`, `yarn build`.
+- Conventions (repo root): `node scripts/check-conventions.mjs` (diffs against `origin/dev`; `--base <rev>`,
+  `--only comments|docs`) and `node --test scripts/check-conventions.test.mjs`. It needs `typescript` in a
+  `node_modules` (`npm ci --workspace packages/api-client --ignore-scripts`) and Python 3.12+ (`PYTHON=`).
 
 ## History
 

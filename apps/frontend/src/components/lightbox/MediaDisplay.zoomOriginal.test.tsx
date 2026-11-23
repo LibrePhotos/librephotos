@@ -194,6 +194,32 @@ describe("MediaDisplay loads the original when zoomed", () => {
     expect(container.querySelector("a")?.getAttribute("href")).toBe(ORIGINAL);
   });
 
+  it("versions every picture of an edit by its rendition too, and calls the full size Edited", async () => {
+    const pending: MediaDisplayDetails = {
+      ...JPEG,
+      edit: { version: 3, rendition: "pending", width: 3000, height: 2000 },
+    };
+    await render({ scale: 1, photoDetails: pending });
+    // The thumbnails are made again when the rendition turns ready (a tight crop): a new URL then.
+    expect(photo().getAttribute("src")).toBe(`${THUMBNAIL}?v=e3-pending`);
+    await render({ scale: 2, photoDetails: pending });
+    expect(chipText()).toContain("lightbox.original.reason.rendering");
+    // No link to the original that would say "Original" on an edited photo.
+    expect(container.querySelector("a")).toBeNull();
+
+    const ready: MediaDisplayDetails = {
+      ...pending,
+      edit: { version: 3, rendition: "ready", width: 3000, height: 2000 },
+    };
+    await render({ scale: 1, photoDetails: ready });
+    expect(photo().getAttribute("src")).toBe(`${THUMBNAIL}?v=e3-ready`);
+    await imgLoaded(1620, 1080);
+    await render({ scale: 2, photoDetails: ready });
+    await act(async () => defined(FakeImage.instances[0]).finish(3000, 2000));
+    expect(defined(FakeImage.instances[0]).src).toBe(`${ORIGINAL}?v=e3-ready`);
+    expect(chipText()).toBe("lightbox.original.edited.shownsize");
+  });
+
   it("keeps the preview after a rotation, before the details say so", async () => {
     await render({ scale: 2, imageCacheKey: 42 });
 

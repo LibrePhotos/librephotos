@@ -9,7 +9,7 @@ import {
   type PhotoFlags,
   type PhotoSummary,
   type ViewerSlide,
-} from "@/db/queries/detail";
+} from "@librephotos/local-db";
 import { usePhotoDetail } from "./usePhotoDetail";
 
 /**
@@ -24,14 +24,31 @@ export function useViewerData(current: ViewerSlide | undefined, ready: boolean) 
   const localId = current?.local_id ?? null;
   // Server-side rows exist only for photos the server knows about; a local-only
   // asset gets its metadata from the camera roll instead.
-  const flags = useReactiveQuery<PhotoFlags | null>((d) => (hash ? photoFlagsByHash(d, hash) : null), [hash]);
-  const summary = useReactiveQuery<PhotoSummary | null>((d) => (hash ? photoSummaryByHash(d, hash) : null), [hash]);
-  const local = useReactiveQuery((d) => (localId ? localAssetById(d, localId) : null), [localId]);
+  const { data: flags } = useReactiveQuery<PhotoFlags | null>(
+    ["photo-flags", hash],
+    async (d) => (hash ? await photoFlagsByHash(d, hash) : null),
+    null,
+    { tables: ["remote_photo"] }
+  );
+  const { data: summary } = useReactiveQuery<PhotoSummary | null>(
+    ["photo-summary", hash],
+    async (d) => (hash ? await photoSummaryByHash(d, hash) : null),
+    null,
+    { tables: ["remote_photo"] }
+  );
+  const { data: local } = useReactiveQuery(
+    ["local-asset", localId],
+    async (d) => (localId ? await localAssetById(d, localId) : null),
+    null,
+    { tables: ["local_asset"] }
+  );
   // Album membership is sheet content, never first-frame content: a two-table
   // UNION for a surface the user has not opened yet.
-  const albums = useReactiveQuery<PhotoAlbumRow[]>(
-    (d) => (ready && summary ? albumsContainingPhoto(d, summary.id) : []),
-    [ready, summary?.id]
+  const summaryId = summary?.id ?? null;
+  const { data: albums } = useReactiveQuery(
+    ["photo-albums", ready, summaryId],
+    async (d) => (ready && summaryId ? await albumsContainingPhoto(d, summaryId) : []),
+    [] as PhotoAlbumRow[]
   );
 
   // Deferred: this reads the cached payload off disk and runs it through zod,

@@ -29,7 +29,7 @@ from api.models import (
 )
 from api.models.place_names import place_name
 from api.models.user import get_deleted_user
-from api.runtime import binaries
+from api.runtime import binaries, capacity
 from api.search.semantic import OPENCLIP
 from api.timeline.days import taken_day
 
@@ -232,10 +232,9 @@ def _get_user_stats(user: User) -> dict[str, Any]:
 def get_server_stats() -> dict[str, Any]:
     import shutil
 
-    import psutil
-
-    cpu_info = get_cpu_info()
-    available_ram = calc_megabytes(psutil.virtual_memory().total)
+    machine = capacity.detect()
+    cpu_info = {**get_cpu_info(), "count": machine.cores}
+    available_ram = calc_megabytes(machine.ram_total)
     gpu_name, gpu_memory = _get_gpu_info()
     total_storage, used_storage, free_storage = shutil.disk_usage("/")
     real_users = User.objects.filter(~Q(id=get_deleted_user().id))

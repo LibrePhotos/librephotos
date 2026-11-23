@@ -78,10 +78,10 @@ function RestartControls({ install, version }: PanelProps) {
         </Alert>
       ) : null}
       {jobRunning ? (
-        <Alert color="yellow" variant="light">
+        <Alert color="orange" variant="light">
           <Stack gap="xs" align="flex-start">
             <Text size="sm">{jobRunning}</Text>
-            <Button size="xs" color="yellow" onClick={() => restart.mutate(true)} loading={restart.isPending}>
+            <Button size="xs" color="orange" onClick={() => restart.mutate(true)} loading={restart.isPending}>
               {t("updates.install.restartanyway")}
             </Button>
           </Stack>

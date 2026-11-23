@@ -20,10 +20,6 @@ import { UnsavedBadge } from "./UnsavedBadge";
 import { useRegisterDraft } from "./unsavedDrafts";
 import { WriteBackHint } from "./WriteBackHint";
 
-/**
- * The editor (tiptap and ProseMirror) is its own chunk, loaded when a caption is edited; the
- * lightbox prefetches it when it opens (see Lightbox.tsx).
- */
 export const captionInput = lazyWithPreload<CaptionInputProps>(
   async () => (await import("./CaptionInput")).CaptionInput
 );
@@ -130,7 +126,6 @@ function CaptionHeader({
           <Tooltip label={t("lightbox.sidebar.save")}>
             <ActionIcon
               variant="subtle"
-              color="blue"
               size="sm"
               aria-label={t("lightbox.sidebar.save")}
               onClick={onSave}

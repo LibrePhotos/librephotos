@@ -29,6 +29,7 @@ from api.models import LongRunningJob
 from api.models.album_place import AlbumPlace, get_album_place
 from api.tests.metadata.test_geocode_exiftool import ZERMATT, sidecar_answer
 from api.tests.metadata.test_place_names import STORED_NOMINATIM_ZERMATT
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_job,
@@ -183,7 +184,7 @@ class LookUpPlacesViewTest(TestCase):
         admin = create_test_user(is_admin=True)
         self.client.force_authenticate(user=admin)
         with (
-            mock.patch("api.jobs.queue.AsyncTask") as async_task,
+            mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task,
             self.captureOnCommitCallbacks(execute=True),
         ):
             response = self.client.post(URL)
@@ -199,7 +200,7 @@ class LookUpPlacesViewTest(TestCase):
         create_test_job(admin, LongRunningJob.JOB_LOOK_UP_PLACES)
         self.client.force_authenticate(user=admin)
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(response.status_code, 409)
@@ -210,7 +211,7 @@ class LookUpPlacesViewTest(TestCase):
     def test_refused_while_reverse_geocoding_is_off(self):
         self.client.force_authenticate(user=create_test_user(is_admin=True))
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(response.status_code, 400)
@@ -220,7 +221,7 @@ class LookUpPlacesViewTest(TestCase):
     def test_a_normal_user_may_not_start_it(self):
         self.client.force_authenticate(user=create_test_user())
 
-        with mock.patch("api.jobs.queue.AsyncTask") as async_task:
+        with mock.patch("api.jobs.store.add", new_callable=QueueRecorder) as async_task:
             response = self.client.post(URL)
 
         self.assertEqual(response.status_code, 403)

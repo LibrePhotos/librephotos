@@ -75,10 +75,12 @@ from api.views import (
     library_shares,
     media,
     memories,
+    parallel_workers,
     password_reset,
     person_groups,
     person_sharing,
     photo_dates,
+    photo_edits,
     photo_locations,
     photo_metadata,
     photo_moves,
@@ -712,6 +714,7 @@ urlpatterns = [
     ),
     path("api/deduplicate-faces/", scan_triggers.DeduplicateFacesView.as_view()),
     path("api/check-file-contents/", scan_triggers.CheckFileContentsView.as_view()),
+    path("api/parallel-workers/", parallel_workers.ParallelWorkersView.as_view()),
     path("api/updates/", updates.UpdateStatusView.as_view()),
     path("api/updates/skip/", updates.SkipReleaseView.as_view()),
     path("api/updates/snooze/", updates.SnoozeUpdateNoticeView.as_view()),
@@ -776,6 +779,12 @@ urlpatterns = [
     path(
         "api/photos/<uuid:photo_id>/metadata/raw/",
         photo_metadata.RawMetadataView.as_view(),
+    ),
+    # A photo's non-destructive edit (apps/docs/docs/development/photo-editing.md)
+    path("api/photos/<uuid:photo_id>/edit/", photo_edits.PhotoEditView.as_view()),
+    path(
+        "api/photos/<uuid:photo_id>/edit/source/",
+        photo_edits.PhotoEditSourceView.as_view(),
     ),
     re_path(
         rf"^api/photos/(?P<photo_id>{PHOTO_KEY_REGEX})/metadata/history/?$",

@@ -1,0 +1,141 @@
+{
+  "photo_id": "015277db-afc9-4894-a0cb-aa1b7361def8",
+  "settings": {
+    "version": 1,
+    "geometry": {
+      "orientation": 90,
+      "straighten": 2.5,
+      "crop": {
+        "cx": 0.52,
+        "cy": 0.48,
+        "w": 0.8,
+        "h": 0.6
+      },
+      "aspect": "4:3"
+    },
+    "wb": {
+      "temp": 18.0,
+      "tint": -4.0
+    },
+    "light": {
+      "exposure": 0.35,
+      "contrast": 12.0,
+      "highlights": -30.0,
+      "shadows": 25.0
+    },
+    "curve": {
+      "master": [
+        [0.0, 0.04],
+        [0.5, 0.56],
+        [1.0, 0.97]
+      ]
+    },
+    "color": {
+      "vibrance": 15.0
+    },
+    "grading": {
+      "shadows": {
+        "hue": 210.0,
+        "sat": 12.0
+      },
+      "highlights": {
+        "hue": 40.0,
+        "sat": 8.0
+      }
+    },
+    "vignette": {
+      "amount": -20.0
+    }
+  },
+  "history": [
+    {
+      "action": "set",
+      "at": "2026-11-12T09:30:00Z",
+      "settings": {
+        "version": 1,
+        "light": {
+          "exposure": 0.35
+        }
+      },
+      "control": "light.exposure",
+      "value": 0.35
+    },
+    {
+      "action": "crop",
+      "at": "2026-11-12T09:31:10Z",
+      "settings": {
+        "version": 1,
+        "geometry": {
+          "orientation": 90,
+          "straighten": 2.5,
+          "crop": {
+            "cx": 0.52,
+            "cy": 0.48,
+            "w": 0.8,
+            "h": 0.6
+          },
+          "aspect": "4:3"
+        },
+        "light": {
+          "exposure": 0.35
+        }
+      }
+    },
+    {
+      "action": "preset",
+      "at": "2026-11-12T09:32:45Z",
+      "settings": {
+        "version": 1,
+        "geometry": {
+          "orientation": 90,
+          "straighten": 2.5,
+          "crop": {
+            "cx": 0.52,
+            "cy": 0.48,
+            "w": 0.8,
+            "h": 0.6
+          },
+          "aspect": "4:3"
+        },
+        "wb": {
+          "temp": 18.0,
+          "tint": -4.0
+        },
+        "light": {
+          "exposure": 0.35,
+          "contrast": 12.0,
+          "highlights": -30.0,
+          "shadows": 25.0
+        },
+        "curve": {
+          "master": [
+            [0.0, 0.04],
+            [0.5, 0.56],
+            [1.0, 0.97]
+          ]
+        },
+        "color": {
+          "vibrance": 15.0
+        },
+        "grading": {
+          "shadows": {
+            "hue": 210.0,
+            "sat": 12.0
+          },
+          "highlights": {
+            "hue": 40.0,
+            "sat": 8.0
+          }
+        },
+        "vignette": {
+          "amount": -20.0
+        }
+      },
+      "value": "warm-film"
+    }
+  ],
+  "history_cursor": 2,
+  "version": 1,
+  "rendition": "ready",
+  "updated_at": "2026-11-12T09:22:45.569250Z"
+}

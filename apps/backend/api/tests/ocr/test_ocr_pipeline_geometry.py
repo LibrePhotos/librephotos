@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 from django.test import SimpleTestCase
 
+from api.tests.sidecar_client import test_client
 from service.ocr.ppocr.config import OCRConfig
 from service.ocr.ppocr.crop import get_rotate_crop_image
 from service.ocr.ppocr.detect import (
@@ -397,7 +398,7 @@ class MainRequestValidationTests(SimpleTestCase):
 
     def test_nonexistent_image_path_returns_400(self):
         main = _load_ocr_main_module()
-        client = main.app.test_client()
+        client = test_client(main.app)
         response = client.post(
             "/ocr",
             json={"image_path": os.path.join(tempfile.gettempdir(), "nope-xyz.png")},
@@ -408,6 +409,6 @@ class MainRequestValidationTests(SimpleTestCase):
 
     def test_missing_image_path_returns_400(self):
         main = _load_ocr_main_module()
-        client = main.app.test_client()
+        client = test_client(main.app)
         response = client.post("/ocr", json={})
         self.assertEqual(response.status_code, 400)

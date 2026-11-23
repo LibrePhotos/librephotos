@@ -5,7 +5,7 @@
   gap: 4px;
   padding: 2px 8px 2px 6px;
   border-radius: var(--mantine-radius-xl);
-  background: var(--mantine-color-blue-filled);
+  background: var(--mantine-primary-color-filled);
   color: var(--mantine-color-white);
   font-size: var(--mantine-font-size-xs);
   font-weight: 600;
@@ -29,7 +29,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--mantine-color-blue-filled);
+  background: var(--mantine-primary-color-filled);
   border: 2px solid var(--mantine-color-white);
 }
 
@@ -39,7 +39,7 @@
   height: 18px;
   border-radius: 50%;
   background: var(--mantine-color-white);
-  border: 3px solid var(--mantine-color-blue-filled);
+  border: 3px solid var(--mantine-primary-color-filled);
   box-shadow: var(--mantine-shadow-sm);
   cursor: ew-resize;
 }

@@ -109,6 +109,16 @@ describe("file card", () => {
     expect(container.textContent).toContain("category");
   });
 
+  it("opens the original file from its name, also for an edited photo", async () => {
+    const plain = await renderCard(photo);
+    const link = () => defined(plain.querySelector<HTMLAnchorElement>('a[target="_blank"]'));
+    expect(link().getAttribute("href")).toMatch(/\/media\/photos\/[^?]+$/);
+    const edited = await renderCard({ ...photo, edit: { version: 4, rendition: "pending", width: 10, height: 10 } });
+    const editedLink = defined(edited.querySelector<HTMLAnchorElement>('a[target="_blank"]'));
+    // The plain address answers the edit; the name says the file.
+    expect(editedLink.getAttribute("href")).toMatch(/\?original=1$/);
+  });
+
   it("shows the folder below the library root, each part linking to its full path", async () => {
     const container = await renderCard(photo);
     const folderLinks = [...container.querySelectorAll<HTMLAnchorElement>('a[href^="/album/folder"]')];

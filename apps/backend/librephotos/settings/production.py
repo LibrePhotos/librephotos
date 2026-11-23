@@ -227,7 +227,6 @@ INSTALLED_APPS = [
     "chunked_upload",
     "constance",
     "constance.backends.database",
-    "django_q",
     # The OpenAPI schema: apps/backend/openapi.yaml is generated from it
     # (`manage.py spectacular`, checked in test-backend.yml) and the api-client
     # contract test compares the zod schemas with it. Its routes are mounted
@@ -247,38 +246,13 @@ INSTALLED_APPS = [
 
 SITE_ID = 1
 
-Q_CLUSTER = {
-    "name": "DjangORM",
-    "queue_limit": 50,
-    "recycle": 50,
-    "timeout": 10000000,
-    # Unused by the broker below, which holds a taken task on a lease its
-    # cluster renews instead; django-q2 warns while it is below the timeout.
-    "retry": 20000000,
-    "orm": "default",
-    # The ORM broker, except that a taken task is held on a lease, so the
-    # tasks of a cluster that went away run again (#2852), and that a cluster
-    # takes no tasks once a newer release has migrated the database: during a
-    # rolling deploy the old container's cluster would otherwise run the new
-    # release's tasks.
-    "broker_class": "api.jobs.broker.ReleaseGuardedORM",
-    "max_rss": 300000,
-    "poll": 1,
-    # Schedules missed while the workers were busy (the minutely service
-    # check, during a scan) are skipped rather than run back to back once the
-    # queue drains: five service checks in the same second restart the same
-    # sidecar five times.
-    "catch_up": False,
-}
-
-# Number of background workers doing the heavy lifting (thumbnails, face
-# detection, captioning). Left unset, django-q falls back to cpu_count(), which
-# reports the *host's* cores even when the container is capped with a compose
-# `cpus:` limit - so the pool stays just as wide and the limit only starves it.
-# Setting this is the way to actually reduce LibrePhotos' CPU and RAM appetite.
 _WORKER_CONCURRENCY = env_int("WORKER_CONCURRENCY", None)
-if _WORKER_CONCURRENCY is not None:
-    Q_CLUSTER["workers"] = _WORKER_CONCURRENCY
+TASK_WORKERS = _WORKER_CONCURRENCY or None
+TASK_WORKER_RECYCLE_RSS_MB = 600
+TASK_WORKER_MEMORY_LIMIT_MB = 1500
+FACE_SIDECAR_REPLICAS = env_int("FACE_SIDECAR_REPLICAS", None) or None
+ONNX_PROVIDERS = env_list("ONNX_PROVIDERS")
+ONNX_INTRA_OP_THREADS = env_str("ONNX_INTRA_OP_THREADS", "")
 
 # Hours a job may go without reporting progress before the hourly cleanup
 # marks it failed and stops counting it as running (#1919, #2248). Counted from
@@ -334,6 +308,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
                 ("off", "Off (keep reports on this server)"),
                 ("own_server", "My own server (SENTRY_DSN)"),
                 ("maintainers", "Share with the LibrePhotos maintainers"),
+            ),
+        },
+    ],
+    "parallel_workers": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("gentle", "Gentle: one worker"),
+                ("balanced", "Balanced (default)"),
+                ("fast", "Fast first import, then Balanced"),
             ),
         },
     ],
@@ -436,6 +421,12 @@ CONSTANCE_CONFIG = {
     # The automatic library scan (#235, api/directory_watcher/scan_schedule.py).
     # Saving them in the site settings rewrites its django-q schedule; so does
     # start_cleaning_service when the server starts.
+    "PARALLEL_WORKERS": (
+        "balanced",
+        "How many background workers run, within what the machine or container"
+        " has: gentle, balanced, or fast until the first import is done.",
+        "parallel_workers",
+    ),
     "AUTO_SCAN": (
         "off",
         "Scan every user's library for new and changed files automatically:"
@@ -760,6 +751,13 @@ SPECTACULAR_SETTINGS = {
         "RenameStatusEnum": "api.serializers.photo_renames.RENAME_STATUS_CHOICES",
         # A stage of the library processing status (#2741).
         "ProcessingStageEnum": "api.serializers.processing_status.PROCESSING_STAGES",
+        # Photo editing: the recipe's choices, a history step's action, the rendition.
+        "EditRecipeVersionEnum": "api.serializers.photo_edits.RECIPE_VERSIONS",
+        "EditOrientationEnum": "api.serializers.photo_edits.EDIT_ORIENTATIONS",
+        "EditAspectEnum": "api.serializers.photo_edits.EDIT_ASPECTS",
+        "EditTreatmentEnum": "api.serializers.photo_edits.EDIT_TREATMENTS",
+        "EditHistoryActionEnum": "api.serializers.photo_edits.HISTORY_ACTIONS",
+        "EditRenditionEnum": "api.serializers.photo_edits.RENDITION_STATES",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

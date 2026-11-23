@@ -9,7 +9,7 @@
  * (doc 03 §4).
  */
 import { sql } from "drizzle-orm";
-import type { AppDatabase } from "@/db/types";
+import { runBatch, type AppDatabase } from "@librephotos/local-db";
 import type { MediaAsset } from "./types";
 
 export type BackupSelection = 0 | 1 | 2; // 0 none | 1 selected | 2 excluded
@@ -17,11 +17,11 @@ export type BackupSelection = 0 | 1 | 2; // 0 none | 1 selected | 2 excluded
 const typeToDb = (t: MediaAsset["type"]): string => t;
 
 /** Upsert one album row, PRESERVING its user-chosen backup_selection. */
-export function upsertLocalAlbum(
+export async function upsertLocalAlbum(
   db: AppDatabase,
   album: { id: string; title: string; assetCount: number; modifiedAt: number }
-): void {
-  db.run(
+): Promise<void> {
+  await db.run(
     sql`INSERT INTO local_album (id, title, asset_count, modified_at, backup_selection)
         VALUES (${album.id}, ${album.title}, ${album.assetCount}, ${album.modifiedAt}, 0)
         ON CONFLICT(id) DO UPDATE SET
@@ -35,11 +35,12 @@ export function upsertLocalAlbum(
  * Upsert asset rows. On a `modified_at` change the stored hash is invalidated
  * (set NULL) so the row is re-hashed. Runs in one transaction for the batch.
  */
-export function upsertLocalAssets(db: AppDatabase, assets: MediaAsset[]): void {
+export async function upsertLocalAssets(db: AppDatabase, assets: MediaAsset[]): Promise<void> {
   if (assets.length === 0) return;
-  db.transaction((tx) => {
-    for (const a of assets) {
-      tx.run(
+  await runBatch(
+    db,
+    assets.map(
+      (a) =>
         sql`INSERT INTO local_asset
               (id, name, type, created_at, modified_at, width, height, duration_ms, uri, hash, hashed_at, hash_state)
             VALUES (${a.id}, ${a.filename}, ${typeToDb(a.type)}, ${a.creationTime}, ${a.modificationTime},
@@ -55,32 +56,30 @@ export function upsertLocalAssets(db: AppDatabase, assets: MediaAsset[]): void {
               -- is re-checked for local availability rather than staying deferred.
               hash_state = CASE WHEN local_asset.modified_at = excluded.modified_at THEN local_asset.hash_state ELSE NULL END,
               modified_at = excluded.modified_at`
-      );
-    }
-  });
+    )
+  );
 }
 
 /** Link assets to an album (idempotent). */
-export function linkAlbumAssets(db: AppDatabase, albumId: string, assetIds: string[]): void {
+export async function linkAlbumAssets(db: AppDatabase, albumId: string, assetIds: string[]): Promise<void> {
   if (assetIds.length === 0) return;
-  db.transaction((tx) => {
-    for (const assetId of assetIds) {
-      tx.run(
+  await runBatch(
+    db,
+    assetIds.map(
+      (assetId) =>
         sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES (${albumId}, ${assetId})
             ON CONFLICT(album_id, asset_id) DO NOTHING`
-      );
-    }
-  });
+    )
+  );
 }
 
 /** Remove album↔asset links (an asset removed from this album). */
-export function unlinkAlbumAssets(db: AppDatabase, albumId: string, assetIds: string[]): void {
+export async function unlinkAlbumAssets(db: AppDatabase, albumId: string, assetIds: string[]): Promise<void> {
   if (assetIds.length === 0) return;
-  db.transaction((tx) => {
-    for (const assetId of assetIds) {
-      tx.run(sql`DELETE FROM local_album_asset WHERE album_id = ${albumId} AND asset_id = ${assetId}`);
-    }
-  });
+  await runBatch(
+    db,
+    assetIds.map((assetId) => sql`DELETE FROM local_album_asset WHERE album_id = ${albumId} AND asset_id = ${assetId}`)
+  );
 }
 
 /**
@@ -89,39 +88,39 @@ export function unlinkAlbumAssets(db: AppDatabase, albumId: string, assetIds: st
  * counting every re-seen asset as an addition. Chunked to stay under SQLite's
  * bound-variable limit.
  */
-export function existingAssetIds(db: AppDatabase, ids: string[], chunkSize = 400): Set<string> {
+export async function existingAssetIds(db: AppDatabase, ids: string[], chunkSize = 400): Promise<Set<string>> {
   const out = new Set<string>();
   for (let i = 0; i < ids.length; i += chunkSize) {
     const chunk = ids.slice(i, i + chunkSize);
     if (chunk.length === 0) continue;
-    const rows = db.all(
+    const rows = await db.all<{ id: string }>(
       sql`SELECT id FROM local_asset WHERE id IN (${sql.join(
         chunk.map((id) => sql`${id}`),
         sql`, `
       )})`
-    ) as { id: string }[];
+    );
     for (const r of rows) out.add(r.id);
   }
   return out;
 }
 
 /** Membership index (asset_id → modified_at) for one album, for the full diff. */
-export function albumAssetIndex(db: AppDatabase, albumId: string): Map<string, number> {
-  const rows = db.all(
+export async function albumAssetIndex(db: AppDatabase, albumId: string): Promise<Map<string, number>> {
+  const rows = await db.all<{ id: string; modified_at: number | null }>(
     sql`SELECT la.id AS id, la.modified_at AS modified_at
         FROM local_album_asset laa JOIN local_asset la ON la.id = laa.asset_id
         WHERE laa.album_id = ${albumId}`
-  ) as { id: string; modified_at: number | null }[];
+  );
   const out = new Map<string, number>();
   for (const r of rows) out.set(r.id, r.modified_at ?? 0);
   return out;
 }
 
 /** Current membership count for an album (our DB's view). */
-export function albumMembershipCount(db: AppDatabase, albumId: string): number {
-  const row = db.get(
+export async function albumMembershipCount(db: AppDatabase, albumId: string): Promise<number> {
+  const row = await db.get<{ c: number } | undefined>(
     sql`SELECT COUNT(*) AS c FROM local_album_asset WHERE album_id = ${albumId}`
-  ) as { c: number } | undefined;
+  );
   return row?.c ?? 0;
 }
 
@@ -133,10 +132,10 @@ export type LocalAlbumRow = {
   backup_selection: number;
 };
 
-export function getLocalAlbum(db: AppDatabase, id: string): LocalAlbumRow | null {
-  const row = db.get(
+export async function getLocalAlbum(db: AppDatabase, id: string): Promise<LocalAlbumRow | null> {
+  const row = await db.get<LocalAlbumRow | undefined>(
     sql`SELECT id, title, asset_count, modified_at, backup_selection FROM local_album WHERE id = ${id}`
-  ) as LocalAlbumRow | undefined;
+  );
   return row ?? null;
 }
 
@@ -145,20 +144,21 @@ export function getLocalAlbum(db: AppDatabase, id: string): LocalAlbumRow | null
  * surface here after every album's membership has been reconciled (doc 03 §4).
  * Cascades to membership + any queued upload rows. Returns the deleted ids.
  */
-export function sweepOrphanAssets(db: AppDatabase): string[] {
-  const orphans = db.all(
+export async function sweepOrphanAssets(db: AppDatabase): Promise<string[]> {
+  const orphans = await db.all<{ id: string }>(
     sql`SELECT id FROM local_asset la
         WHERE NOT EXISTS (SELECT 1 FROM local_album_asset laa WHERE laa.asset_id = la.id)`
-  ) as { id: string }[];
+  );
   const ids = orphans.map((o) => o.id);
   if (ids.length === 0) return ids;
-  db.transaction((tx) => {
-    for (const id of ids) {
-      tx.run(sql`DELETE FROM local_asset WHERE id = ${id}`);
-      tx.run(sql`DELETE FROM local_album_asset WHERE asset_id = ${id}`);
-      tx.run(sql`DELETE FROM upload_queue WHERE asset_id = ${id}`);
-    }
-  });
+  await runBatch(
+    db,
+    ids.flatMap((id) => [
+      sql`DELETE FROM local_asset WHERE id = ${id}`,
+      sql`DELETE FROM local_album_asset WHERE asset_id = ${id}`,
+      sql`DELETE FROM upload_queue WHERE asset_id = ${id}`,
+    ])
+  );
   return ids;
 }
 
@@ -167,17 +167,17 @@ export function sweepOrphanAssets(db: AppDatabase): string[] {
 const watermarkKey = (albumId: string) => `media_watermark:${albumId}`;
 
 /** Last-synced max creationTime for an album (fast-path `createdAfter`). */
-export function getAlbumWatermark(db: AppDatabase, albumId: string): number | null {
-  const row = db.get(
+export async function getAlbumWatermark(db: AppDatabase, albumId: string): Promise<number | null> {
+  const row = await db.get<{ value: string | null } | undefined>(
     sql`SELECT value FROM app_meta WHERE key = ${watermarkKey(albumId)}`
-  ) as { value: string | null } | undefined;
+  );
   if (row?.value == null) return null;
   const n = Number(row.value);
   return Number.isFinite(n) ? n : null;
 }
 
-export function setAlbumWatermark(db: AppDatabase, albumId: string, value: number, now = Date.now()): void {
-  db.run(
+export async function setAlbumWatermark(db: AppDatabase, albumId: string, value: number, now = Date.now()): Promise<void> {
+  await db.run(
     sql`INSERT INTO app_meta (key, value, updated_at) VALUES (${watermarkKey(albumId)}, ${String(value)}, ${now})
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
   );
@@ -186,17 +186,15 @@ export function setAlbumWatermark(db: AppDatabase, albumId: string, value: numbe
 const MEDIA_ACCESS_KEY = "media_access";
 
 /** Persist the last-seen media access level (all | limited | none) for the UI. */
-export function setMediaAccess(db: AppDatabase, access: string, now = Date.now()): void {
-  db.run(
+export async function setMediaAccess(db: AppDatabase, access: string, now = Date.now()): Promise<void> {
+  await db.run(
     sql`INSERT INTO app_meta (key, value, updated_at) VALUES (${MEDIA_ACCESS_KEY}, ${access}, ${now})
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
   );
 }
 
-export function getMediaAccess(db: AppDatabase): "all" | "limited" | "none" | null {
-  const row = db.get(sql`SELECT value FROM app_meta WHERE key = ${MEDIA_ACCESS_KEY}`) as
-    | { value: string | null }
-    | undefined;
+export async function getMediaAccess(db: AppDatabase): Promise<"all" | "limited" | "none" | null> {
+  const row = await db.get<{ value: string | null } | undefined>(sql`SELECT value FROM app_meta WHERE key = ${MEDIA_ACCESS_KEY}`);
   const v = row?.value;
   return v === "all" || v === "limited" || v === "none" ? v : null;
 }

@@ -5,12 +5,16 @@ pillow-heif and pillow-jxl-plugin bring those to Pillow, so anything libvips
 rejects is decoded there, EXIF-rotated, and handed to pyvips as an array.
 """
 
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
+
 import numpy as np
 import pillow_heif
 import pillow_jxl  # noqa: F401  registers the JPEG XL plugin on import
 import pyvips
 import rawpy
-from PIL import Image, ImageOps
+from PIL import Image, ImageFile, ImageOps
 
 pillow_heif.register_heif_opener()
 # The Pillow path decodes the whole image into memory, so a crafted JPEG XL or BMP
@@ -20,10 +24,40 @@ pillow_heif.register_heif_opener()
 Image.MAX_IMAGE_PIXELS = 250_000_000
 
 
-def _pillow_to_vips(path: str) -> pyvips.Image:
+def _pillow_decode(path: str) -> pyvips.Image:
     with Image.open(path) as image:
         rgb = ImageOps.exif_transpose(image).convert("RGB")
         return pyvips.Image.new_from_array(np.asarray(rgb))
+
+
+# Pillow's switch for decoding a truncated file is module-wide.
+_TRUNCATED_LOADS = threading.Lock()
+
+
+@contextmanager
+def _truncated_images_allowed() -> Iterator[None]:
+    with _TRUNCATED_LOADS:
+        previous = ImageFile.LOAD_TRUNCATED_IMAGES
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
+        try:
+            yield
+        finally:
+            ImageFile.LOAD_TRUNCATED_IMAGES = previous
+
+
+def _pillow_to_vips(path: str) -> pyvips.Image:
+    """The file decoded by Pillow; one a few bytes short renders what is there.
+
+    Phones and cameras leave such files, and libvips renders a truncated JPEG
+    with its missing rows grey, as other photo apps do. Pillow refuses one
+    unless its module-wide switch is on, so the switch is on only for a
+    second try at a file that failed.
+    """
+    try:
+        return _pillow_decode(path)
+    except OSError:
+        with _truncated_images_allowed():
+            return _pillow_decode(path)
 
 
 def thumbnail(path: str, height: int) -> pyvips.Image:
@@ -60,8 +94,9 @@ def full_size(path: str) -> pyvips.Image:
         return _pillow_to_vips(path)
 
 
-# LibRaw's flip value as the EXIF orientation pyvips' autorot understands.
-_FLIP_TO_ORIENTATION = {3: 3, 5: 8, 6: 6}
+# LibRaw's flip value as the EXIF orientation pyvips' autorot understands
+# (4 and 7 are the mirrored quarter turns, orientations 5 and 7).
+_FLIP_TO_ORIENTATION = {3: 3, 4: 5, 5: 8, 6: 6, 7: 7}
 # Unconstrained side of a thumbnail box (vips wants a number).
 _ANY = 100_000
 # libvips loaders that take text files (matrixload_source, csvload_source too).
@@ -102,7 +137,7 @@ def raw_preview(path: str, height: int) -> pyvips.Image | None:
         return None
 
     orientation = _FLIP_TO_ORIENTATION.get(sizes.flip, 1)
-    sideways = orientation in (6, 8)
+    sideways = orientation in (5, 6, 7, 8)
     preview_height = header.width if sideways else header.height
     render_height = sizes.width if sideways else sizes.height
     if preview_height < min(height, render_height):
@@ -125,6 +160,19 @@ def raw_preview(path: str, height: int) -> pyvips.Image | None:
         image.set_type(pyvips.GValue.gint_type, "orientation", orientation)
         image = image.autorot()
     return image
+
+
+def libraw_opens(path: str) -> bool:
+    """Whether LibRaw recognises the file as a camera RAW, from its header (no unpack).
+
+    libvips and Pillow read the TIFF-based RAWs (NEF, CR2, DNG) but not the
+    others (CR3, RAF, ORF, RW2), so ``can_decode`` alone cannot vouch for those.
+    """
+    try:
+        with rawpy.imread(path):
+            return True
+    except rawpy.LibRawError, rawpy.NotSupportedError, OSError:
+        return False
 
 
 def can_decode(path: str) -> bool:

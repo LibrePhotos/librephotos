@@ -1,0 +1,20 @@
+/* At least the panel's height, and as tall as its content: the panel body scrolls it, and the
+   sticky tab list stays inside it all the way down. */
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+}
+
+.list {
+  flex: none;
+  position: sticky;
+  top: 0;
+  /* Above the controls it passes over: Mantine's slider thumbs sit at z-index 3. */
+  z-index: 10;
+  background: var(--mantine-color-body);
+}
+
+.panel {
+  padding: 12px 16px 16px;
+}

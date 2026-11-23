@@ -17,6 +17,7 @@ from api.jobs.queue import enqueue_job
 from api.models import LongRunningJob
 from api.photos import moves, renames
 from api.tests.photos.move_fixtures import LibraryTestCase
+from api.tests.queue_recorder import QueueRecorder
 
 J = LongRunningJob
 
@@ -30,7 +31,7 @@ class SyncMoveExclusivityTest(LibraryTestCase):
         super().setUp()
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-        queue = patch("api.jobs.queue.AsyncTask")
+        queue = patch("api.jobs.store.add", new_callable=QueueRecorder)
         queue.start()
         self.addCleanup(queue.stop)
         self.refused: list[JobAlreadyRunning] = []

@@ -30,7 +30,6 @@ from api.tests.scanning.test_rescan_selected_photos import (
     recorded_tasks,
 )
 from api.tests.scanning.test_scan_photos_orchestration import (
-    ChainRecorder,
     TaskRecorder,
 )
 from api.tests.utils import (
@@ -139,8 +138,7 @@ class ScanOfAFolderTest(LibraryFilesTestBase):
         recorder = TaskRecorder([])
         with (
             override_settings(MEDIA_ROOT=os.path.join(self.root, "media")),
-            patch("api.jobs.queue.AsyncTask", recorder),
-            patch("api.jobs.queue.Chain", ChainRecorder),
+            patch("api.jobs.store.add", recorder),
             self.captureOnCommitCallbacks(execute=True),
             patch.object(scan_jobs, "photo_scanner"),
             patch.object(scan_jobs, "backfill_missing_aspect_ratios"),

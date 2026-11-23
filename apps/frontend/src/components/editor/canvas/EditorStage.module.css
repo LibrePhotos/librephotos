@@ -1,0 +1,63 @@
+.stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--mantine-color-black);
+  touch-action: none;
+  user-select: none;
+}
+
+.stage[data-zoomed] {
+  cursor: grab;
+}
+
+.stage[data-zoomed]:active {
+  cursor: grabbing;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mantine-color-black);
+}
+
+.notice {
+  position: absolute;
+  inset-inline: 16px;
+  top: 16px;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  padding: 8px 12px;
+  border-radius: var(--mantine-radius-md);
+  background: var(--app-scrim-black-75);
+  color: var(--mantine-color-white);
+}
+
+.zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 2px 4px 2px 10px;
+  border-radius: var(--mantine-radius-xl);
+  background: var(--app-scrim-black-60);
+}
+
+.percent {
+  min-width: 40px;
+  font-variant-numeric: tabular-nums;
+  color: var(--mantine-color-white);
+}

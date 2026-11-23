@@ -22,6 +22,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api.jobs.upload_import import import_uploaded_photo
 from api.models import LongRunningJob, Photo
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_photo, create_test_user
 from api.views.upload import UploadPhotosChunked, UploadPhotosChunkedComplete
 from chunked_upload.exceptions import ChunkedUploadError
@@ -206,7 +207,7 @@ class OnCompletionAuthTest(OnCompletionTestBase):
         )
 
     @override_config(ALLOW_UPLOAD=False)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     @patch("api.views.upload.create_new_image")
     @patch("api.views.upload.get_object_or_404")
     @patch("api.views.upload.is_valid_media", return_value=True)
@@ -249,7 +250,7 @@ class OnCompletionScanDirectoryTest(OnCompletionTestBase):
         self.assertIn(missing, ctx.exception.data["detail"])
 
 
-@patch("api.jobs.queue.AsyncTask")
+@patch("api.jobs.store.add", new_callable=QueueRecorder)
 @patch("api.views.upload.create_new_image")
 @patch("api.views.upload.get_object_or_404")
 class OnCompletionBodyTest(OnCompletionTestBase):
@@ -269,8 +270,10 @@ class OnCompletionBodyTest(OnCompletionTestBase):
         self.assertEqual(400, ctx.exception.status_code)
         self.assertEqual("File type not allowed", ctx.exception.data["detail"])
         chunked.delete.assert_called_once_with(delete_file=True)
-        # is_valid_media is given the temp file path and the user, positionally.
+        # is_valid_media is given the temp file path and the user, positionally,
+        # and the client's file name, whose extension the staged path lacks.
         self.assertEqual((self.source, self.user), is_valid_media.call_args[0])
+        self.assertEqual({"name": "pic.jpg"}, is_valid_media.call_args[1])
         # Nothing was written into the scan directory.
         self.assertFalse(os.path.exists(os.path.join(self.scan_dir, "uploads")))
         create_new_image.assert_not_called()
@@ -303,7 +306,7 @@ class OnCompletionBodyTest(OnCompletionTestBase):
         args = task_cls.call_args.args
         self.assertIs(import_uploaded_photo, args[0])
         self.assertEqual((str(photo.pk), expected_path, job.job_id), args[1:])
-        task_cls.return_value.run.assert_called_once_with()
+        task_cls.assert_called_once()
         self.assertEqual(1, job.progress_target)
         self.assertEqual(job.job_id, self.view.import_job_id)
         self.assertEqual(str(photo.pk), self.view.photo_id)

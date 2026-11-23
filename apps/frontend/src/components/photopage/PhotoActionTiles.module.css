@@ -36,8 +36,8 @@
 
 /* A favourite or a photo with a live share link shows it on its tile. */
 .tile[data-active] {
-  border-color: var(--mantine-color-yellow-filled);
-  background: var(--mantine-color-yellow-light);
+  border-color: var(--app-favorite);
+  background: var(--app-favorite-light);
 }
 
 .tile[data-shared] {

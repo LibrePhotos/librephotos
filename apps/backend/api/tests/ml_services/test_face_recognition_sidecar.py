@@ -1,17 +1,30 @@
 import os
 import tempfile
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 from django.test import SimpleTestCase
+from PIL import Image
 
+from api.tests.sidecar_client import test_client
 from service.face_recognition import main as face_main
+from service.face_recognition.face_analysis import Detector, FaceAnalysis
 from service.face_recognition.main import (
     MIN_FACE_MATCH_IOU,
     _find_best_face_match,
     _normalize_model_name,
 )
+
+
+def _detector_session():
+    """An SCRFD session of any input size whose model must not run."""
+    port = SimpleNamespace(name="in", shape=[1, 3, "?", "?"])
+    return SimpleNamespace(
+        get_inputs=lambda: [port],
+        get_outputs=lambda: [SimpleNamespace(name=f"out{i}") for i in range(9)],
+        run=Mock(side_effect=AssertionError("ran the detector")),
+    )
 
 
 def _detected(bbox, embedding):
@@ -92,7 +105,7 @@ class UnmatchedRegionTest(SimpleTestCase):
             patch.object(face_main.Image, "open") as open_image,
         ):
             open_image.return_value.convert.return_value = np.zeros((4, 4, 3))
-            response = face_main.app.test_client().post(
+            response = test_client(face_main.app).post(
                 "/face-encodings",
                 json={
                     "source": "/tmp/p.jpg",
@@ -109,7 +122,7 @@ class FaceLocationsErrorStatusTest(SimpleTestCase):
 
     def setUp(self):
         face_main.app.config["TESTING"] = True
-        self.client = face_main.app.test_client()
+        self.client = test_client(face_main.app)
 
     def test_a_file_that_is_not_a_picture_answers_422(self):
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as handle:
@@ -122,6 +135,20 @@ class FaceLocationsErrorStatusTest(SimpleTestCase):
         self.assertEqual(response.status_code, 422)
         self.assertIn("error", response.get_json())
         get_analysis.assert_not_called()
+
+    def test_a_picture_too_thin_to_detect_on_has_no_faces(self):
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as handle:
+            Image.new("RGB", (1, 1000), "white").save(handle, format="PNG")
+        self.addCleanup(os.remove, handle.name)
+        analysis = FaceAnalysis.__new__(FaceAnalysis)
+        analysis.detector = Detector(_detector_session())
+        analysis.recognizer = SimpleNamespace(embedding=None)
+
+        with patch.object(face_main, "_get_face_analysis", return_value=analysis):
+            response = self.client.post("/face-locations", json={"source": handle.name})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"face_locations": [], "encodings": []})
 
     def test_a_model_failure_answers_500(self):
         with (

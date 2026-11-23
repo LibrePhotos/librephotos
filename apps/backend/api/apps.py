@@ -27,6 +27,8 @@ SIGNAL_MODULES = (
     "api.photos.file_cleanup",
     # The copies of a library share's owner, when their last share goes.
     "api.sharing.copies",
+    # A photo's edit files, when its edit or the photo goes.
+    "api.editing.cleanup",
     # Delta-sync bookkeeping: last_modified bumps + tombstone writers
     # (mobile v2, doc 04).
     "api.sync_signals",
@@ -102,6 +104,10 @@ class ApiConfig(AppConfig):
         from api.runtime import features
 
         features.register()
+
+        from api.runtime import planner_stats
+
+        planner_stats.register()
 
         from django.conf import settings
 

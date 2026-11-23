@@ -6,6 +6,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models.photo_stack import PhotoStack
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import create_test_photo, create_test_stack, create_test_user
 
 
@@ -71,7 +72,7 @@ class ManualStackBodyTest(StackRequestTestCase):
         self.assertEqual(error_fields(response), ["photo_hash"])
 
 
-@patch("api.jobs.queue.AsyncTask")
+@patch("api.jobs.store.add", new_callable=QueueRecorder)
 class DetectStacksBodyTest(StackRequestTestCase):
     def test_detect_bursts_defaults_to_true(self, async_task):
         with self.captureOnCommitCallbacks(execute=True):

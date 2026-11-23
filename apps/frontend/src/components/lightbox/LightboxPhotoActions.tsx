@@ -22,6 +22,7 @@ import { ICON_SIZE } from "../../uiConstants";
 import { DisabledReason } from "../common/DisabledReason";
 import { menuShortcut } from "../common/menuShortcut";
 import { FileActionItems } from "../photolist/FileActionItems";
+import { EditedDownloadItems } from "./EditedDownloadItems";
 import { COPY_KEY } from "./lightbox.hotkeys";
 import { LightboxToolbarButton, TOOLBAR_BUTTON, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
 import { VisibilityMenuItems } from "./LightboxVisibilityActions";
@@ -103,7 +104,7 @@ function useRotationItems({ canRotate, onRotate }: MoreMenuProps): MenuItemProps
 /**
  * The toolbar's ⋮: what is used less often, with labels. Zoom, the slideshow, copy and fullscreen
  * for everyone; for the owner's photo also hide, archive, the rotations and the file actions
- * (rescan, faces). Their shortcuts (Z, S, Ctrl+C, G, H, A) work with the menu closed.
+ * (rescan, faces), and an edited photo's two downloads. Their shortcuts (Z, S, Ctrl+C, G, H, A) work with the menu closed.
  */
 export function LightboxMoreMenu(props: MoreMenuProps) {
   const { t } = useTranslation();
@@ -180,6 +181,7 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
           <>
             <Menu.Divider />
             <FileActionItems photoIds={[ownPhoto.id]} single />
+            <EditedDownloadItems photo={ownPhoto} />
           </>
         )}
       </Menu.Dropdown>

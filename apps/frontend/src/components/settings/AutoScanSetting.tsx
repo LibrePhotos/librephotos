@@ -1,6 +1,5 @@
 import type { SiteAutoScanStatus } from "@librephotos/api-client";
 import { Chip, Grid, Group, Select, Stack, Text } from "@mantine/core";
-import { TimeInput } from "@mantine/dates";
 import {
   IconAlertTriangle,
   IconCheck,
@@ -16,6 +15,7 @@ import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { ICON_SIZE } from "../../uiConstants";
 import { firstDayOfWeek } from "../../util/dateUtils";
 import { plainDataEqual } from "../../util/helpers";
+import { NativeTimeInput } from "../common/NativeDateInput";
 import {
   AUTO_SCAN_FREQUENCIES,
   autoScanStatusLine,
@@ -32,7 +32,7 @@ const NO_DAYS: number[] = [];
 const TONES: Record<AutoScanTone, { icon: TablerIcon; color: string }> = {
   idle: { icon: IconClock, color: "dimmed" },
   ok: { icon: IconCheck, color: "dimmed" },
-  running: { icon: IconRefresh, color: "blue" },
+  running: { icon: IconRefresh, color: "brand" },
   skipped: { icon: IconPlayerSkipForward, color: "orange" },
   failed: { icon: IconAlertTriangle, color: "red" },
 };
@@ -74,11 +74,11 @@ function StartTime({ stored }: { stored: string }) {
       <Text fz="sm" c="dimmed">
         {t("sitesettings.autoscanat")}
       </Text>
-      <TimeInput
+      <NativeTimeInput
         aria-label={t("sitesettings.autoscantime")}
         leftSection={<IconClock size={ICON_SIZE.inline} />}
         value={time.value}
-        onChange={event => time.edit(event.currentTarget.value)}
+        onChange={time.edit}
         onBlur={commit}
         onKeyDown={event => {
           if (event.key === "Enter") commit();

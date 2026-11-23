@@ -50,12 +50,8 @@ export type MediaDisplayProps = {
   image_hash?: string | undefined;
   isMainContent?: boolean;
   type: string;
-  /** useGesture's bind(): the pinch and drag handlers for the main photo. */
-  bind?: () => React.DOMAttributes<HTMLDivElement>;
   faceLocation: FaceLocationType;
-  toggleZoom?: () => void;
   scale?: number;
-  offset?: { x: number; y: number };
   handleDragStart: (event: React.DragEvent) => void;
   fullHeight?: boolean;
   playing?: boolean;
@@ -151,10 +147,10 @@ function VideoMedia({
 /** The CSS that zooms, pans and turns the main photo; the overlays share it so they track it exactly. */
 function mainMotion(props: ResolvedProps): { transition: string; transform: string } {
   if (!props.isMainContent) return { transition: "none", transform: "none" };
-  const { offset = { x: 0, y: 0 }, scale = 1, rotationAngle = 0 } = props;
+  const { rotationAngle = 0 } = props;
   return {
-    transition: props.suppressRotationTransition ? "none" : "transform 0.3s ease-out",
-    transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotationAngle}deg)`,
+    transition: props.suppressRotationTransition ? "none" : "var(--lb-zoom-transition, transform 0.3s ease-out)",
+    transform: `translate(var(--lb-x, 0px), var(--lb-y, 0px)) scale(var(--lb-scale, 1)) rotate(${rotationAngle}deg)`,
   };
 }
 
@@ -221,7 +217,6 @@ function PhotoMedia(props: ResolvedProps) {
   const motion = mainMotion(props);
   return (
     <div
-      {...(isMainContent && props.bind ? props.bind() : {})}
       style={{
         position: "relative",
         overflow: "hidden",
@@ -239,13 +234,18 @@ function PhotoMedia(props: ResolvedProps) {
           alt={name}
           loading="eager"
           onDragStart={props.handleDragStart}
-          onDoubleClick={isMainContent ? props.toggleZoom : undefined}
           onLoad={handleLoad}
           style={imageStyle(isMainContent, !props.fullHeight, motion)}
         />
         {isMainContent && <PhotoOverlays {...props} motion={motion} naturalSize={naturalSize} />}
         {zoom.chip && (
-          <ResolutionChip state={zoom.chip} visible={scale > 1} onRetry={zoom.retry} downloadUrl={zoom.originalUrl} />
+          <ResolutionChip
+            state={zoom.chip}
+            visible={scale > 1}
+            onRetry={zoom.retry}
+            edited={zoom.edited}
+            downloadUrl={zoom.downloadUrl}
+          />
         )}
       </div>
     </div>

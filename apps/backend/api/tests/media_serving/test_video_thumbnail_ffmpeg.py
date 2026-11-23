@@ -55,14 +55,14 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
     def test_a_failed_run_raises_with_the_end_of_stderr(self):
         with (
             mock.patch.object(render.binaries, "run_tool", side_effect=_failed_run),
-            self.assertLogs("api.thumbnails.render", "ERROR") as logs,
+            # Reported once, by generate_thumbnail, which gets the error.
+            self.assertNoLogs("api.thumbnails.render", "ERROR"),
         ):
             with self.assertRaises(render.VideoThumbnailError) as raised:
                 render.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
 
         self.assertIn("status 1", str(raised.exception))
         self.assertIn("Invalid data found", str(raised.exception))
-        self.assertIn("Invalid data found", "".join(logs.output))
 
     def test_a_hung_run_raises_and_leaves_no_partial_file(self):
         def hang_after_writing(*args, **kwargs):
@@ -74,7 +74,7 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
             mock.patch.object(
                 render.binaries, "run_tool", side_effect=hang_after_writing
             ),
-            self.assertLogs("api.thumbnails.render", "ERROR"),
+            self.assertNoLogs("api.thumbnails.render", "ERROR"),
         ):
             with self.assertRaisesRegex(render.VideoThumbnailError, "300 s"):
                 render.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")

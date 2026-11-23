@@ -3,7 +3,8 @@ import type { BulkPhotoQuery } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient } from "../../api";
-import { fetchMedia, mediaUrl } from "../../media/mediaUrl";
+import { mediaUrl } from "../../media/mediaUrl";
+import { saveMediaFile } from "../../media/saveMedia";
 
 // Downloads still waiting on their archive job or on the file; cancelPhotoDownloads() aborts them.
 const activeDownloads = new Set<AbortController>();
@@ -20,16 +21,7 @@ async function downloadFile(fileUuid: string, signal: AbortSignal) {
   // requester's user id and ".zip" itself. It works behind the proxy (X-Accel)
   // and without it; the old nginx-only /api/downloads/ route 404ed on the
   // unified image, the Windows build and native dev.
-  const response = await fetchMedia(mediaUrl.zip(fileUuid), { signal });
-  const blob = await response.blob();
-  const downloadUrl = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = downloadUrl;
-  link.setAttribute("download", "photos.zip");
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(downloadUrl);
+  await saveMediaFile(mediaUrl.zip(fileUuid), "photos.zip", { signal });
 }
 
 type IndividualMutationArgs = {

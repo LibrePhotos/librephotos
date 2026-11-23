@@ -18,6 +18,7 @@ from django.test import SimpleTestCase, TestCase
 from api.models.long_running_job import LongRunningJob
 from api.search import embedding_jobs
 from api.search.similarity import SimilarityIndexError, build_image_similarity_index
+from api.tests.sidecar_client import test_client
 from api.tests.stubs import load_backend_file
 from api.tests.utils import create_test_photos, create_test_user
 
@@ -135,7 +136,7 @@ class RebuildRoutesTest(SimpleTestCase):
         self.main = _load_main(self.tmp.name)
         self.addCleanup(self.main.index.close)
         self.main.app.config["TESTING"] = True
-        self.client = self.main.app.test_client()
+        self.client = test_client(self.main.app)
 
     def build(self, **page):
         body = {"user_id": 2, "image_hashes": [], "image_embeddings": [], **page}

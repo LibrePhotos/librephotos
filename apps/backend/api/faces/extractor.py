@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import PIL.Image
@@ -21,6 +21,8 @@ from api.metadata.tags import Tags
 from api.thumbnails.render import exif_orientation_showing
 
 if TYPE_CHECKING:
+    from api.editing.faces import RegionFrame
+
     # (top, right, bottom, left, person name or None, *optional encoding).
     type FaceLocation = tuple[int, int, int, int, str | None, *tuple[object, ...]]
 
@@ -177,6 +179,66 @@ def extract_from_exif(
     one of the two ways (``_confirmed_quarter_turn``). Every other region
     stays as written.
     """
+
+    def thumbnail_size() -> tuple[int, int]:
+        big_thumbnail_image = np.array(PIL.Image.open(big_thumbnail_image_path))
+        return big_thumbnail_image.shape[1], big_thumbnail_image.shape[0]
+
+    detected_boxes: list[Box] | None = (
+        None
+        if detected_faces is None
+        else [(face[0], face[1], face[2], face[3]) for face in detected_faces]
+    )
+    return _read_regions(
+        image_path, sidecar_files, local_orientation, detected_boxes, thumbnail_size
+    )
+
+
+def extract_through_edit(
+    region_frame: RegionFrame,
+    image_path: str,
+    sidecar_files: list[str] | None,
+    local_orientation: int,
+    detected_faces: Sequence[FaceLocation] | None,
+) -> list[FaceLocation] | None:
+    """``extract_from_exif`` for a photo whose edit crops or turns the picture.
+
+    The regions are of the unedited picture: they are read there, with the
+    detections taken back there too, and each box is then moved onto the big
+    thumbnail through the edit as its stored face boxes are
+    (``api.editing.faces.region_frame``).
+    """
+    detected_boxes: list[Box] | None = (
+        None
+        if detected_faces is None
+        else [
+            region_frame.to_unedited((face[0], face[1], face[2], face[3]))
+            for face in detected_faces
+        ]
+    )
+    regions = _read_regions(
+        image_path,
+        sidecar_files,
+        local_orientation,
+        detected_boxes,
+        lambda: region_frame.unedited_size,
+    )
+    if regions is None:
+        return None
+    return [
+        (*region_frame.to_shown((top, right, bottom, left)), name)
+        for top, right, bottom, left, name, *_ in regions
+    ]
+
+
+def _read_regions(
+    image_path: str,
+    sidecar_files: list[str] | None,
+    local_orientation: int,
+    detected_boxes: list[Box] | None,
+    image_size_of: Callable[[], tuple[int, int]],
+) -> list[FaceLocation] | None:
+    """The face regions as boxes on a picture of ``image_size_of()``; see ``extract_from_exif``."""
     (region_info, *orientation_values) = get_metadata(
         image_path,
         tags=[Tags.REGION_INFO, *SHOWN_ORIENTATION_TAGS],
@@ -188,23 +250,19 @@ def extract_from_exif(
         return None
     logger.debug("Extracted region_info for %s", image_path)
     logger.debug("region_info: %s", region_info)
-    detected_boxes: list[Box] = [
-        (face[0], face[1], face[2], face[3]) for face in detected_faces or []
-    ]
     face_locations: list[FaceLocation] = []
     for region in region_info["RegionList"]:
         if region.get("Type") != "Face":
             continue
 
         area = region.get("Area")
-        big_thumbnail_image = np.array(PIL.Image.open(big_thumbnail_image_path))
+        image_size = image_size_of()
         if not has_normalized_area(area, region.get("AppliedToDimensions")):
             continue
 
         orientation = exif_orientation_showing(
             shown_orientation(image_path, *orientation_values), local_orientation
         )
-        image_size = (big_thumbnail_image.shape[1], big_thumbnail_image.shape[0])
         box = to_face_box(area, orientation, *image_size)
         if box is None:
             logger.info(
@@ -214,7 +272,7 @@ def extract_from_exif(
             continue
 
         if (
-            detected_faces is not None
+            detected_boxes is not None
             and is_quarter_turn_off(
                 region.get("AppliedToDimensions")
                 or region_info.get("AppliedToDimensions"),

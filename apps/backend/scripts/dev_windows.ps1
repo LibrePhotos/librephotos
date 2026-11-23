@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Run the native Windows dev stack: exif sidecar (:8010) + qcluster + uvicorn (:8000).
+    Run the native Windows dev stack: exif sidecar (:8010) + run_workers + uvicorn (:8000).
     Needs a venv from requirements.txt (.venv or .venv-win); see
     CLAUDE.md. Frontend: VITE_BACKEND_URL in apps/frontend/.env.development, `yarn start`.
 .EXAMPLE
@@ -54,9 +54,9 @@ try {
             -RedirectStandardError (Join-Path $LogsDir "dev-exif.err.log")
     }
     if ($Only -in @("all", "workers")) {
-        $children += Start-Process -FilePath $Python -ArgumentList "manage.py", "qcluster" -NoNewWindow -PassThru `
-            -RedirectStandardOutput (Join-Path $LogsDir "dev-qcluster.log") `
-            -RedirectStandardError (Join-Path $LogsDir "dev-qcluster.err.log")
+        $children += Start-Process -FilePath $Python -ArgumentList "manage.py", "run_workers" -NoNewWindow -PassThru `
+            -RedirectStandardOutput (Join-Path $LogsDir "dev-workers.log") `
+            -RedirectStandardError (Join-Path $LogsDir "dev-workers.err.log")
     }
     if ($Only -in @("all", "server")) {
         Write-Host "API http://${BindAddress}:$Port  (logs: $LogsDir)" -ForegroundColor Green

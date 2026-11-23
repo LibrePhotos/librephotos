@@ -15,17 +15,23 @@ import {
   IconEyeOff,
   IconFolderSymlink,
   IconGlobe,
+  IconPhotoEdit,
   IconRotate2,
   IconRotateClockwise2,
   IconStar,
   IconStarFilled,
   IconTrash,
 } from "@tabler/icons-react";
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { mediaUrl } from "../../api_client/media/mediaUrl";
 import { FAVORITE_COLOR, ICON_SIZE } from "../../uiConstants";
 import { parentFolder } from "../../util/folderPaths";
+import { DisabledReason } from "../common/DisabledReason";
+import { canEdit } from "../editor/engine/canEdit";
+import { LazyPhotoEditor, photoEditor } from "../editor/LazyPhotoEditor";
+import { EditedDownloadItems } from "../lightbox/EditedDownloadItems";
+import { editedDownloads } from "../lightbox/editedDownloads";
 import { StarRow, starSymbols } from "../lightbox/LightboxRating";
 import type { PhotoActions } from "../lightbox/usePhotoActions";
 import { getVariantBadgeProps } from "../lightbox/VersionComponent";
@@ -88,14 +94,19 @@ function RatingTile({ actions }: Readonly<{ actions: PhotoActions }>) {
   );
 }
 
-/** Download: the original at once, or a menu with each format when the photo has more than one file. */
+/**
+ * Download: the original at once, or a menu with each format when the photo has more than one file.
+ * An edited photo always gets the menu: Download edited and Download original (the lightbox's
+ * items), each saved under its own name, since the photo's plain address answers the edit.
+ */
 function DownloadTile({ photo }: Readonly<{ photo: Photo }>) {
   const { t } = useTranslation();
   const mainPath = photo.image_path[0];
   const mainName = mainPath !== undefined ? fileNameOf(mainPath) : undefined;
   const variants = (photo.file_variants ?? []).filter(variant => !variant.is_main);
+  const edited = editedDownloads(photo) !== null;
   const face = <TileFace icon={<IconDownload size={TILE_ICON} />} label={t("photopage.tiles.download")} />;
-  if (variants.length === 0) {
+  if (variants.length === 0 && !edited) {
     return (
       <UnstyledButton
         component="a"
@@ -113,9 +124,13 @@ function DownloadTile({ photo }: Readonly<{ photo: Photo }>) {
         <UnstyledButton className={classes.tile}>{face}</UnstyledButton>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Item component="a" href={mediaUrl.photo(photo.image_hash)} download={mainName}>
-          {t("photopage.download.original", { name: mainName ?? t("photopage.unknownfilename") })}
-        </Menu.Item>
+        {edited ? (
+          <EditedDownloadItems photo={photo} divider={false} />
+        ) : (
+          <Menu.Item component="a" href={mediaUrl.photo(photo.image_hash)} download={mainName}>
+            {t("photopage.download.original", { name: mainName ?? t("photopage.unknownfilename") })}
+          </Menu.Item>
+        )}
         {variants.map(variant => {
           const name = variant.filename || fileNameOf(variant.path);
           return (
@@ -126,6 +141,33 @@ function DownloadTile({ photo }: Readonly<{ photo: Photo }>) {
         })}
       </Menu.Dropdown>
     </Menu>
+  );
+}
+
+/**
+ * Edit: the photo editor on this still photo, as the lightbox's Edit opens it. A browser that cannot
+ * run the editor keeps the tile, which says why.
+ */
+function EditTile({ photo }: Readonly<{ photo: Photo }>) {
+  const { t } = useTranslation();
+  const [editing, { open, close }] = useDisclosure(false);
+  const supported = useMemo(canEdit, []);
+  if (photo.video) return null;
+  return (
+    <>
+      <DisabledReason reason={!supported && t("editor.unsupported.short")}>
+        <UnstyledButton
+          className={classes.tile}
+          onClick={open}
+          // The editor is its own chunk: fetched once the pointer or the focus says it may be wanted.
+          onPointerEnter={photoEditor.prefetch}
+          onFocus={photoEditor.prefetch}
+        >
+          <TileFace icon={<IconPhotoEdit size={TILE_ICON} />} label={t("photopage.tiles.edit")} />
+        </UnstyledButton>
+      </DisabledReason>
+      {editing && <LazyPhotoEditor photo={photo} onClose={close} />}
+    </>
   );
 }
 
@@ -140,7 +182,7 @@ type Props = Readonly<{
 }>;
 
 /**
- * The owner's actions on the photo as labelled tiles (Favorite or the stars, Share, Album,
+ * The owner's actions on the photo as labelled tiles (Favorite or the stars, Share, Album, Edit,
  * Download, More), so none hides behind an unlabelled icon. More holds the
  * rest of the lightbox's toolbar: copy, rotate, hide, the viewer and trash.
  */
@@ -166,6 +208,7 @@ export function PhotoActionTiles({ photo, actions, onRotate, onCopy, onOpenViewe
       <UnstyledButton className={classes.tile} title={t("photopage.tiles.albumhint")} onClick={openAlbum}>
         <TileFace icon={<IconBookmarkPlus size={TILE_ICON} />} label={t("photopage.tiles.album")} />
       </UnstyledButton>
+      <EditTile photo={photo} />
       <DownloadTile photo={photo} />
       {/* Wide enough for the note under Rescan file. */}
       <Menu position="bottom-end" width={260}>

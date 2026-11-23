@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
-import type { People, Photo } from "@librephotos/api-client";
-import { squareThumbnailUrl } from "@librephotos/api-client";
+import { squareThumbnailUrl, type People, type Photo } from "@librephotos/api-client";
 import { Icon } from "@/components/Icon";
 import { useTheme } from "@/theme";
 import { formatBytes, formatFullDate } from "@/lib/format";
-import type { PhotoAlbumRow } from "@/db/queries/detail";
+import type { PhotoAlbumRow } from "@librephotos/local-db";
 import {
   Chip,
   Disclosure,

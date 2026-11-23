@@ -42,6 +42,33 @@ INTEGER_OR_EMPTY_STRING: dict[str, Any] = {
     "oneOf": [{"type": "integer"}, {"type": "string", "enum": [""]}]
 }
 
+# A photo edit's history step value (``api.serializers.photo_edits``): a
+# number, a boolean or a short string, or null.
+EDIT_STEP_VALUE_SCHEMA: dict[str, Any] = {
+    "oneOf": [
+        {"type": "number"},
+        {"type": "boolean"},
+        {"type": "string", "maxLength": 64},
+    ],
+    "nullable": True,
+}
+
+
+def number_above(minimum: float, maximum: float) -> dict[str, Any]:
+    """A number above ``minimum`` (exclusive) and at most ``maximum``.
+
+    DRF's ``FloatField`` only has inclusive bounds; OpenAPI 3.0 marks an
+    exclusive one with a boolean ``exclusiveMinimum``.
+    """
+    return {
+        "type": "number",
+        "format": "double",
+        "minimum": minimum,
+        "exclusiveMinimum": True,
+        "maximum": maximum,
+    }
+
+
 # ``GET /api/locclust/`` (``get_location_clusters``): one row per place name,
 # sorted by name. The rows are triples.
 LOCATION_CLUSTERS_SCHEMA: dict[str, Any] = {

@@ -1,13 +1,12 @@
-import { Card, createPolymorphicComponent, type CardProps } from "@mantine/core";
+import { createPolymorphicComponent } from "@mantine/core";
 import cx from "clsx";
 import React from "react";
+import { ContentCard, type SurfaceCardProps } from "../common/surfaces/ContentCard";
 import classes from "./SettingsCard.module.css";
 
-function SettingsCardRoot({ className, padding = "lg", ...props }: CardProps) {
+function SettingsCardRoot({ className, padding = "lg", ...props }: SurfaceCardProps) {
   return (
-    <Card
-      withBorder
-      radius="lg"
+    <ContentCard
       padding={padding}
       className={cx(classes.card, className)}
       // A card that lays out its own padding (the server log's header bar) keeps it on a phone too.
@@ -23,4 +22,4 @@ function SettingsCardRoot({ className, padding = "lg", ...props }: CardProps) {
  * small uppercase title and a band between sections (SettingsCard.module.css). Polymorphic like
  * Mantine's Card, so a card can render as a form or a section.
  */
-export const SettingsCard = createPolymorphicComponent<"div", CardProps>(SettingsCardRoot);
+export const SettingsCard = createPolymorphicComponent<"div", SurfaceCardProps>(SettingsCardRoot);

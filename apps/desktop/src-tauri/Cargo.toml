@@ -1,0 +1,69 @@
+[package]
+name = "librephotos-viewer"
+version = "0.1.0"
+description = "LibrePhotos desktop viewer (prototype)"
+license = "MIT"
+edition = "2024"
+
+[lib]
+name = "librephotos_viewer_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+natord = "1"
+percent-encoding = "2"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "tiff", "bmp"] }
+jxl-oxide = { version = "0.12", features = ["image"] }
+kamadak-exif = "0.6"
+flashraw = "0.3.1"
+fast_image_resize = "6"
+jpeg-encoder = { version = "0.7", features = ["simd"] }
+png = "0.18"
+trash = "5"
+arboard = { version = "3", default-features = false, features = ["image-data"] }
+rusqlite = { version = "0.40", features = ["bundled", "hooks"] }
+base64 = "0.23"
+itoa = "1"
+notify = "8"
+md-5 = "0.10"
+reqwest = { version = "0.13", default-features = false, features = ["native-tls"] }
+keyring = { version = "3", features = ["windows-native", "apple-native", "linux-native"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+tokio = { version = "1", features = ["time", "sync", "rt", "macros"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_Graphics_Imaging",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_Registry",
+  "Win32_System_Threading",
+  "Win32_System_Ole",
+  "Win32_System_Variant",
+  "Win32_UI_Shell",
+  "Win32_UI_Shell_Common",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.dev]
+opt-level = 2
+
+[profile.dev.package."*"]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true

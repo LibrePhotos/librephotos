@@ -117,6 +117,14 @@ function isFormData(value: unknown): value is FormData {
   return typeof FormData !== "undefined" && value instanceof FormData;
 }
 
+function isBinary(value: unknown): value is Blob | ArrayBuffer | ArrayBufferView<ArrayBuffer> {
+  return (
+    (typeof Blob !== "undefined" && value instanceof Blob) ||
+    value instanceof ArrayBuffer ||
+    (ArrayBuffer.isView(value) && value.buffer instanceof ArrayBuffer)
+  );
+}
+
 /**
  * Build the injectable, React-free fetch transport with a single-flight refresh
  * interceptor. Adapted from apps/frontend `api_client/api.ts` and the original
@@ -201,7 +209,7 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     let body: BodyInit | undefined;
     if (rawBody === undefined || rawBody === null) {
       body = undefined;
-    } else if (isFormData(rawBody)) {
+    } else if (isFormData(rawBody) || isBinary(rawBody)) {
       body = rawBody;
     } else if (typeof rawBody === "string") {
       body = rawBody;

@@ -1,0 +1,65 @@
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.readout {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wheel {
+  position: relative;
+  width: 100%;
+  max-width: 128px;
+  aspect-ratio: 1;
+  margin-inline: auto;
+  border-radius: 50%;
+  touch-action: none;
+  cursor: crosshair;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.wheel:focus-visible {
+  outline-color: var(--mantine-primary-color-filled);
+}
+
+.disc,
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.disc {
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--mantine-color-default-border);
+}
+
+.overlay {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.centre {
+  fill: var(--mantine-color-dark-4);
+}
+
+.spoke {
+  stroke: var(--mantine-color-dark-5);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.6;
+}
+
+.handle {
+  fill: none;
+  stroke: var(--mantine-color-white);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 1px var(--mantine-color-black));
+}

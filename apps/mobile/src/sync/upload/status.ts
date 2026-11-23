@@ -38,14 +38,18 @@
  * Pure SQL + plain values so every state is Node-tested.
  */
 import { sql } from "drizzle-orm";
-import type { AppDatabase } from "@/db/types";
-import type { BackupConfig } from "@/db/queries/backup";
+import {
+  EMPTY_QUEUE_SUMMARY,
+  PROCESSING_ON_SERVER,
+  queueSummary,
+  type AppDatabase,
+  type BackupConfig,
+  type QueueSummary,
+} from "@librephotos/local-db";
 import type { MediaAccess } from "@/sync/device/types";
 import { HASH_STATE_ICLOUD } from "@/sync/device/hasher";
 import { scanCounts, type JobQueueSnapshot } from "@/sync/jobs/status";
-import { PROCESSING_ON_SERVER } from "@/db/queries/upload-processing";
 import type { GateDecision } from "./gate";
-import { queueSummary, type QueueSummary } from "./queue";
 
 /** Counts over the assets the user actually asked to back up. */
 export type BackupCounts = {
@@ -132,8 +136,8 @@ const PROCESSING = sql`EXISTS (SELECT 1 FROM upload_queue uq
                                WHERE uq.asset_id = la.id AND ${sql.raw(PROCESSING_ON_SERVER)})`;
 
 /** Counts over the backup-selected asset set (the real denominators). */
-export function backupCounts(db: AppDatabase): BackupCounts {
-  const row = db.get(
+export async function backupCounts(db: AppDatabase): Promise<BackupCounts> {
+  const row = await db.get<{ selected: number; hashed: number | null; awaiting_hash: number | null; awaiting_remote: number | null; on_server: number | null; processing_on_server: number | null; }>(
     sql`SELECT COUNT(*) AS selected,
                SUM(CASE WHEN la.hash IS NOT NULL THEN 1 ELSE 0 END) AS hashed,
                SUM(CASE WHEN la.hash IS NULL AND la.hashed_at IS NULL AND la.hash_state IS NULL
@@ -146,17 +150,10 @@ export function backupCounts(db: AppDatabase): BackupCounts {
                SUM(CASE WHEN ${PROCESSING} THEN 1 ELSE 0 END) AS processing_on_server
         FROM local_asset la
         WHERE ${SELECTED} AND NOT ${EXCLUDED}`
-  ) as {
-    selected: number;
-    hashed: number | null;
-    awaiting_hash: number | null;
-    awaiting_remote: number | null;
-    on_server: number | null;
-    processing_on_server: number | null;
-  };
-  const albums = db.get(
+  );
+  const albums = await db.get<{ c: number }>(
     sql`SELECT COUNT(*) AS c FROM local_album WHERE backup_selection = 1`
-  ) as { c: number };
+  );
   return {
     selected: row?.selected ?? 0,
     hashed: row?.hashed ?? 0,
@@ -173,6 +170,22 @@ const GATE_BLOCKER: Record<string, BackupBlocker> = {
   wifi_required: { kind: "wifi_required" },
   charging_required: { kind: "charging_required" },
 };
+
+export const INITIAL_BACKUP_STATE: BackupState = Object.freeze({
+  stage: { kind: "idle" },
+  blocker: null,
+  counts: {
+    selected: 0,
+    hashed: 0,
+    awaitingHash: 0,
+    awaitingRemote: 0,
+    onServer: 0,
+    processingOnServer: 0,
+    selectedAlbums: 0,
+  },
+  queue: EMPTY_QUEUE_SUMMARY,
+  scan: { scanned: 0, total: 0 },
+});
 
 export type BackupStateOptions = {
   config: BackupConfig;
@@ -192,10 +205,10 @@ export type BackupStateOptions = {
  * observed (null when it has not run yet) — a blocked gate is only reported
  * when there is actually work waiting on it.
  */
-export function backupState(db: AppDatabase, opts: BackupStateOptions): BackupState {
-  const counts = backupCounts(db);
-  const queue = queueSummary(db);
-  const scan = scanCounts(db);
+export async function backupState(db: AppDatabase, opts: BackupStateOptions): Promise<BackupState> {
+  const counts = await backupCounts(db);
+  const queue = await queueSummary(db);
+  const scan = await scanCounts(db);
   const inFlight = queue.uploading + queue.checking;
   const scanning = jobsActive(opts.jobs, "device_scan");
   const hasWork =

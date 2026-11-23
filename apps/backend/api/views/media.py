@@ -33,6 +33,8 @@ from api.accounts.authentication import (
     ThrottledBasicAuthentication,
 )
 from api.drf.params import parse_query
+from api.editing.files import EDITS_DIR
+from api.editing.renditions import NoEditedFileError, edited_picture
 from api.mime import mime_type, still_content_type
 from api.models import AlbumUser, AlbumUserPhoto, Photo
 from api.models.album_user_share import AlbumUserShare
@@ -752,6 +754,44 @@ class MediaServingView(APIView):
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
         return self._serve_file_direct(file_path, "image/jpg")
 
+    def _rendition_response(self, rendition: str, use_proxy: bool) -> HttpResponseBase:
+        """An edited photo's rendition, a JPEG under MEDIA_ROOT (``api.editing``)."""
+        if not use_proxy:
+            return self._serve_file_direct(rendition, "image/jpeg")
+        response = HttpResponse()
+        response["Content-Type"] = "image/jpeg"
+        response["X-Accel-Redirect"] = self._protected_media_url(
+            EDITS_DIR, os.path.basename(rendition)
+        )
+        return response
+
+    def _edited_response(
+        self, photo: Photo, use_proxy: bool
+    ) -> HttpResponseBase | None:
+        """The edited picture of an edited photo; None to serve its original.
+
+        Only the photo's owner ever gets the original of an edited photo, and
+        only by asking (``?original=1``); anyone else asking is answered the
+        edited picture as if they had not, so the parameter tells them
+        nothing. The edited picture is the rendition when it is ready, else
+        the save's render (``api.editing.renditions.edited_picture``). A
+        photo whose recipe changes nothing has nothing to hide: None.
+        """
+        requester = self._requester(self.request)
+        if (
+            requester is not None
+            and requester.id == photo.owner_id
+            and parse_query(self.request, MediaQuery)["original"]
+        ):
+            return None
+        try:
+            picture = edited_picture(photo)
+        except NoEditedFileError:
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        if picture is None:
+            return None
+        return self._rendition_response(picture.path, use_proxy)
+
     def _generate_response_original(
         self,
         photo: Photo,
@@ -759,13 +799,18 @@ class MediaServingView(APIView):
         transcode_videos: bool,
         inline: bool = False,
     ) -> HttpResponseBase:
-        """Serve the untouched original file (path == "photos").
+        """Serve the photo's file (path == "photos").
 
+        An edited photo's edited picture (``_edited_response``); the untouched
+        original otherwise.
         Videos go through ffmpeg first when the requester enabled "Always
         transcode videos", exactly like the thumbnail/video paths do.
         """
         if photo.video and transcode_videos:
             return self._transcoded_video_response(photo, use_proxy=use_proxy)
+        edited = self._edited_response(photo, use_proxy)
+        if edited is not None:
+            return edited
         content_type = self._original_content_type(photo)
 
         if use_proxy:
@@ -976,12 +1021,21 @@ class MediaServingView(APIView):
     ) -> HttpResponseBase:
         """The full-size copy without metadata a recipient gets instead of the
         original when its owner does not share original files (also a member
-        of a collaborative album, counted by ``allow_new``)."""
+        of a collaborative album, counted by ``allow_new``). An edited
+        still's copy is made from its edited picture, never its original."""
         original = _original_path(photo)
         requester = self._requester(self.request)
         try:
+            picture = edited_picture(photo)
+        except NoEditedFileError:
+            return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+        try:
             copy = ensure_copy(
-                photo, original, requester.pk if requester else 0, allow_new
+                photo,
+                picture.path if picture else original,
+                requester.pk if requester else 0,
+                allow_new,
+                tag=picture.tag if picture else "",
             )
         except CopyUnavailableError:
             # Still being made by another request, or this recipient made

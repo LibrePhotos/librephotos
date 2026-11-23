@@ -1,7 +1,7 @@
 """Characterization tests for api/thumbnails/render.py (CRAP unit 30).
 
 Pins the CURRENT behavior of:
-  * ``_apply_local_orientation`` -- the EXIF-orientation transform dispatch
+  * ``apply_local_orientation`` -- the EXIF-orientation transform dispatch
   * ``create_thumbnail``         -- raw/non-raw thumbnail creation
 
 The orientation tests use real (tiny, in-memory) pyvips images so the actual
@@ -18,8 +18,8 @@ from django.test import SimpleTestCase, override_settings
 
 from api.thumbnails.render import (
     WEBP,
-    _apply_local_orientation,
     _big_webp,
+    apply_local_orientation,
     create_thumbnail,
 )
 
@@ -47,49 +47,49 @@ class ApplyLocalOrientationTests(SimpleTestCase):
         self.image = _make_image()
 
     def test_orientation_1_returns_same_object(self):
-        result = _apply_local_orientation(self.image, 1)
+        result = apply_local_orientation(self.image, 1)
         self.assertIs(result, self.image)
 
     def test_orientation_none_returns_same_object(self):
         # ``None`` short-circuits on the first ``if`` (the ``is None`` check).
-        result = _apply_local_orientation(self.image, None)
+        result = apply_local_orientation(self.image, None)
         self.assertIs(result, self.image)
 
     def test_orientation_2_flips_horizontally(self):
-        result = _apply_local_orientation(self.image, 2)
+        result = apply_local_orientation(self.image, 2)
         self.assertEqual((result.width, result.height), (3, 2))
         self.assertEqual(_pixels(result), [2, 1, 0, 5, 4, 3])
 
     def test_orientation_3_rotates_180(self):
-        result = _apply_local_orientation(self.image, 3)
+        result = apply_local_orientation(self.image, 3)
         self.assertEqual((result.width, result.height), (3, 2))
         self.assertEqual(_pixels(result), [5, 4, 3, 2, 1, 0])
 
     def test_orientation_4_flips_vertically(self):
-        result = _apply_local_orientation(self.image, 4)
+        result = apply_local_orientation(self.image, 4)
         self.assertEqual((result.width, result.height), (3, 2))
         self.assertEqual(_pixels(result), [3, 4, 5, 0, 1, 2])
 
     def test_orientation_5_rot90_then_flip_horizontal(self):
-        result = _apply_local_orientation(self.image, 5)
+        result = apply_local_orientation(self.image, 5)
         self.assertEqual((result.width, result.height), (2, 3))
         # rot90 -> [3,0 / 4,1 / 5,2]; flip H -> [0,3 / 1,4 / 2,5]
         self.assertEqual(_pixels(result), [0, 3, 1, 4, 2, 5])
 
     def test_orientation_6_uses_rot270(self):
-        result = _apply_local_orientation(self.image, 6)
+        result = apply_local_orientation(self.image, 6)
         self.assertEqual((result.width, result.height), (2, 3))
         self.assertEqual(_pixels(result), [2, 5, 1, 4, 0, 3])
         self.assertEqual(_pixels(result), _pixels(self.image.rot270()))
 
     def test_orientation_7_rot270_then_flip_horizontal(self):
-        result = _apply_local_orientation(self.image, 7)
+        result = apply_local_orientation(self.image, 7)
         self.assertEqual((result.width, result.height), (2, 3))
         # rot270 -> [2,5 / 1,4 / 0,3]; flip H -> [5,2 / 4,1 / 3,0]
         self.assertEqual(_pixels(result), [5, 2, 4, 1, 3, 0])
 
     def test_orientation_8_uses_rot90(self):
-        result = _apply_local_orientation(self.image, 8)
+        result = apply_local_orientation(self.image, 8)
         self.assertEqual((result.width, result.height), (2, 3))
         self.assertEqual(_pixels(result), [3, 0, 4, 1, 5, 2])
         self.assertEqual(_pixels(result), _pixels(self.image.rot90()))
@@ -97,17 +97,17 @@ class ApplyLocalOrientationTests(SimpleTestCase):
     def test_unknown_orientation_returns_image_unchanged(self):
         for value in (9, -1, 42):
             with self.subTest(value=value):
-                self.assertIs(_apply_local_orientation(self.image, value), self.image)
+                self.assertIs(apply_local_orientation(self.image, value), self.image)
 
     def test_orientation_zero_falls_through_to_identity(self):
         # 0 is falsy but not ``None`` and not 1 -- it reaches the final return.
-        self.assertIs(_apply_local_orientation(self.image, 0), self.image)
+        self.assertIs(apply_local_orientation(self.image, 0), self.image)
 
     def test_5_and_7_are_not_equal(self):
         # Guards against collapsing the two "rotate + flip" branches.
         self.assertNotEqual(
-            _pixels(_apply_local_orientation(self.image, 5)),
-            _pixels(_apply_local_orientation(self.image, 7)),
+            _pixels(apply_local_orientation(self.image, 5)),
+            _pixels(apply_local_orientation(self.image, 7)),
         )
 
 
@@ -129,7 +129,7 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
         self.thumb.write_to_file.assert_called_once_with(expected, **_big_webp())
 
     def test_orientation_none_skips_transform(self):
-        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render.apply_local_orientation") as apply_mock:
             create_thumbnail(
                 "/data/photo.jpg",
                 200,
@@ -142,7 +142,7 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
 
     def test_orientation_zero_skips_transform(self):
         # 0 is falsy, so the ``local_orientation and ...`` guard skips it.
-        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render.apply_local_orientation") as apply_mock:
             create_thumbnail(
                 "/data/photo.jpg",
                 200,
@@ -153,7 +153,7 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
         apply_mock.assert_not_called()
 
     def test_non_trivial_orientation_transforms(self):
-        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render.apply_local_orientation") as apply_mock:
             result = create_thumbnail(
                 "/data/photo.jpg",
                 200,
@@ -228,7 +228,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         self.pyvips.Image.new_from_file.assert_not_called()
 
     def test_big_thumbnail_applies_local_orientation_in_place(self):
-        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render.apply_local_orientation") as apply_mock:
             result = create_thumbnail(
                 self.RAW_PATH,
                 800,
@@ -260,7 +260,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         )
 
     def test_small_raw_thumbnail_ignores_local_orientation(self):
-        with mock.patch("api.thumbnails.render._apply_local_orientation") as apply_mock:
+        with mock.patch("api.thumbnails.render.apply_local_orientation") as apply_mock:
             create_thumbnail(
                 self.RAW_PATH,
                 200,

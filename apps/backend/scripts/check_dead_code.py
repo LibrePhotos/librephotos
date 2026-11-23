@@ -68,6 +68,10 @@ FRAMEWORK_METHODS = frozenset(
         "handle",
         "add_arguments",
         "send_messages",
+        "get_internal_type",
+        "get_db_prep_value",
+        "from_db_value",
+        "find_class",
         # DRF views, viewsets and permissions
         "get_permissions",
         "get_serializer_class",
@@ -255,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"\ncheck_dead_code: {len(findings)} unused definition(s). Delete them; "
         f"whitelist one in {WHITELIST} only if something outside the scanned "
-        "code calls it (a dotted path in settings, a django_q schedule)."
+        "code calls it (a dotted path in settings, a task schedule)."
     )
     return 1
 

@@ -9,7 +9,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { sql } from "drizzle-orm";
 import { mediaHeaders, squareThumbnailUrl } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
+import type { AppDatabase } from "@librephotos/local-db";
 import {
   DEFAULT_THUMB_CAP_BYTES,
   getThumb,
@@ -33,10 +33,10 @@ function pathFor(photoId: string): string {
 }
 
 /** Local file uri for a prefetched thumb, or null if not cached. Touches LRU. */
-export function cachedThumbUri(db: AppDatabase, photoId: string, now = Date.now()): string | null {
-  const row = getThumb(db, photoId);
+export async function cachedThumbUri(db: AppDatabase, photoId: string, now = Date.now()): Promise<string | null> {
+  const row = await getThumb(db, photoId);
   if (!row) return null;
-  touchThumb(db, photoId, now);
+  await touchThumb(db, photoId, now);
   return row.file_path;
 }
 
@@ -55,7 +55,7 @@ export async function prefetchThumb(
   }
 ): Promise<string | null> {
   const now = Date.now();
-  const existing = cachedThumbUri(db, args.photoId, now);
+  const existing = await cachedThumbUri(db, args.photoId, now);
   if (existing) return existing;
 
   await ensureDir();
@@ -70,7 +70,7 @@ export async function prefetchThumb(
   const size = info.exists && !info.isDirectory ? info.size : 0;
 
   await enforceCap(db, size, args.capBytes ?? DEFAULT_THUMB_CAP_BYTES, args.photoId);
-  recordThumb(db, { photoId: args.photoId, filePath: dest, sizeBytes: size, now });
+  await recordThumb(db, { photoId: args.photoId, filePath: dest, sizeBytes: size, now });
   return dest;
 }
 
@@ -92,7 +92,7 @@ export async function prefetchNewThumbs(
 ): Promise<number> {
   if (!args.serverAddress) return 0;
   const limit = args.limit ?? 60;
-  const rows = db.all(
+  const rows = await db.all<{ id: string; image_hash: string }>(
     sql`SELECT rp.id AS id, rp.image_hash AS image_hash
         FROM remote_photo rp
         LEFT JOIN thumb_cache tc ON tc.photo_id = rp.id
@@ -101,7 +101,7 @@ export async function prefetchNewThumbs(
           AND rp.timestamp IS NOT NULL
         ORDER BY rp.timestamp DESC
         LIMIT ${limit}`
-  ) as { id: string; image_hash: string }[];
+  );
 
   let fetched = 0;
   for (const row of rows) {
@@ -129,16 +129,16 @@ export async function enforceCap(
   capBytes: number,
   keepPhotoId?: string
 ): Promise<void> {
-  const total = thumbCacheTotalBytes(db);
+  const total = await thumbCacheTotalBytes(db);
   if (total + incomingBytes <= capBytes) return;
   const victims = selectEvictions(
-    lruCandidates(db),
+    await lruCandidates(db),
     capBytes,
     incomingBytes,
     keepPhotoId ? new Set([keepPhotoId]) : new Set()
   );
   for (const v of victims) {
     await FileSystem.deleteAsync(v.file_path, { idempotent: true });
-    removeThumb(db, v.photo_id);
+    await removeThumb(db, v.photo_id);
   }
 }

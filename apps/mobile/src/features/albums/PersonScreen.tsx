@@ -18,7 +18,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { TextPromptModal } from "@/components/TextPromptModal";
 import { Icon } from "@/components/Icon";
 import { useReactiveQuery } from "@/db/provider";
-import { people, personById } from "@/db/queries/people";
+import { people, personById, type PersonRow } from "@librephotos/local-db";
 import { useGridSelection, type GridExtraAction } from "@/features/selection/useGridSelection";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { useOnlineStatus } from "@/hooks/use-online-status";
@@ -58,8 +58,13 @@ export function PersonScreen({ id }: { id: number }) {
   const mutations = useMutations();
   const actions = usePersonActions(id);
 
-  const mirrored = useReactiveQuery((db) => personById(db, id), [id]);
-  const others = useReactiveQuery((db) => people(db).filter((p) => p.id !== id), [id]);
+  const { data: mirrored } = useReactiveQuery(["person", id], (db) => personById(db, id), null, { tables: ["person"] });
+  const { data: others } = useReactiveQuery(
+    ["people-except", id],
+    async (db) => (await people(db)).filter((p) => p.id !== id),
+    [] as PersonRow[],
+    { tables: ["person"] }
+  );
   const fetched = usePersonQuery(id);
   const photos = useDateAlbumPhotoChunksQuery(Photoset.PERSON, { person: id });
 
@@ -279,7 +284,7 @@ export function PersonScreen({ id }: { id: number }) {
         testID="person-rename-prompt"
         onSubmit={(value) => {
           setSheet(null);
-          if (value && value !== name) mutations.renamePerson(id, value);
+          if (value && value !== name) void mutations.renamePerson(id, value);
         }}
         onCancel={() => setSheet(null)}
       />

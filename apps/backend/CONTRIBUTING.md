@@ -254,7 +254,7 @@ pre-commit install
 - Line length: 88 characters
 - Annotate every function; `python scripts/typecheck.py` (mypy) must pass. See the [type checking section](https://docs.librephotos.com/docs/development/contribution/backend#type-checking) of the contributor docs
 - Follow PEP 8 naming conventions
-- Write docstrings for public functions
+- No comments or docstrings in new or changed code: names, types and tests explain it, the why goes in the commit message or the docs ([Conventions](https://docs.librephotos.com/docs/development/contribution/conventions))
 
 ### Frontend (React/TypeScript)
 
@@ -278,7 +278,8 @@ Before submitting a PR, ensure:
 - [ ] Code follows the project's style guidelines
 - [ ] All linting passes without errors
 - [ ] New features include tests (if applicable)
-- [ ] Documentation is updated (if needed)
+- [ ] The docs in `apps/docs` reflect the change (every app change; the `conventions` check fails otherwise)
+- [ ] Added lines carry no comments
 - [ ] Commit messages are clear and descriptive
 - [ ] The PR addresses a single concern/feature
 
@@ -304,7 +305,7 @@ Ruff's `T20` rejects `print()` in the backend. The places that cannot simply log
 
 - **Settings modules** run before logging is configured. Hand the message to `librephotos.logging_bootstrap.defer(level, message)`; `ApiConfig.ready()` logs it once the handlers exist.
 - **Management commands** write their output with `self.stdout.write` / `self.stderr.write`, so `call_command(..., stdout=...)` captures it.
-- **Sidecars** (`service/`, `image_similarity/`) log through `service._common.logger(name)`: the backend's line format and `LOG_LEVEL`, written to the sidecar's stdout (the container log) only. A module there that must not import Flask uses `logging.getLogger(name)` with the sidecar's name and goes through the same handler.
+- **Sidecars** (`service/`, `image_similarity/`) log through `service._common.logger(name)`: the backend's line format and `LOG_LEVEL`, written to the sidecar's stdout (the container log) only. A module there that must not import the sidecar app (`service._common`) uses `logging.getLogger(name)` with the sidecar's name and goes through the same handler.
 - `scripts/` and the `librephotos/standalone.py` launcher are console tools and may print.
 
 ### Levels

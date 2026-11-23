@@ -1,0 +1,89 @@
+[
+  {
+    "tag": "0000_baseline",
+    "statements": [
+      "CREATE TABLE `app_meta` (\n\t`key` text PRIMARY KEY NOT NULL,\n\t`value` text,\n\t`updated_at` integer\n);",
+      "CREATE TABLE `auto_album` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`title` text NOT NULL,\n\t`timestamp` integer,\n\t`favorited` integer DEFAULT false NOT NULL,\n\t`photo_count` integer DEFAULT 0 NOT NULL,\n\t`cover_hash` text,\n\t`last_modified` integer\n);",
+      "CREATE TABLE `auto_album_photo` (\n\t`album_id` integer NOT NULL,\n\t`photo_id` text NOT NULL,\n\t`ordering` integer DEFAULT 0 NOT NULL,\n\tPRIMARY KEY(`album_id`, `photo_id`)\n);",
+      "CREATE INDEX `idx_auto_album_photo_album` ON `auto_album_photo` (`album_id`,`ordering`);",
+      "CREATE TABLE `job_queue` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`kind` text NOT NULL,\n\t`dedupe_key` text NOT NULL,\n\t`payload` text,\n\t`state` text DEFAULT 'pending' NOT NULL,\n\t`priority` integer DEFAULT 100 NOT NULL,\n\t`attempts` integer DEFAULT 0 NOT NULL,\n\t`next_attempt_at` integer DEFAULT 0 NOT NULL,\n\t`created_at` integer NOT NULL,\n\t`started_at` integer,\n\t`finished_at` integer,\n\t`last_error` text\n);",
+      "CREATE INDEX `idx_job_queue_ready` ON `job_queue` (`state`,`priority`,`next_attempt_at`,`id`);",
+      "CREATE INDEX `idx_job_queue_kind` ON `job_queue` (`kind`,`state`);",
+      "CREATE UNIQUE INDEX `idx_job_queue_dedupe` ON `job_queue` (`dedupe_key`) WHERE state IN ('pending', 'running');",
+      "CREATE TABLE `local_album` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`title` text,\n\t`asset_count` integer,\n\t`modified_at` integer,\n\t`backup_selection` integer DEFAULT 0 NOT NULL,\n\t`source` text DEFAULT 'device' NOT NULL,\n\t`path` text,\n\t`added_at` integer\n);",
+      "CREATE UNIQUE INDEX `idx_local_album_path` ON `local_album` (`path`) WHERE path IS NOT NULL;",
+      "CREATE TABLE `local_album_asset` (\n\t`album_id` text NOT NULL,\n\t`asset_id` text NOT NULL,\n\tPRIMARY KEY(`album_id`, `asset_id`)\n);",
+      "CREATE INDEX `idx_local_album_asset_asset` ON `local_album_asset` (`asset_id`);",
+      "CREATE TABLE `local_asset` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`name` text,\n\t`type` text,\n\t`created_at` integer,\n\t`modified_at` integer,\n\t`width` integer,\n\t`height` integer,\n\t`duration_ms` integer,\n\t`uri` text,\n\t`hash` text,\n\t`hashed_at` integer,\n\t`hash_state` text,\n\t`bucket_day` text,\n\t`folder` text,\n\t`size_bytes` integer,\n\t`taken_at` text,\n\t`latitude` real,\n\t`longitude` real,\n\t`camera` text,\n\t`lens` text,\n\t`format` text,\n\t`meta_state` text\n);",
+      "CREATE INDEX `idx_local_asset_hash` ON `local_asset` (`hash`);",
+      "CREATE INDEX `idx_local_asset_modified` ON `local_asset` (`modified_at`);",
+      "CREATE INDEX `idx_local_asset_timeline` ON `local_asset` (`created_at`,`id`);",
+      "CREATE INDEX `idx_local_asset_bucket_day` ON `local_asset` (`bucket_day`);",
+      "CREATE INDEX `idx_local_asset_meta_pending` ON `local_asset` (`modified_at`) WHERE meta_state = 'pending';",
+      "CREATE INDEX `idx_local_asset_uri` ON `local_asset` (`uri`);",
+      "CREATE TABLE `outbox` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`created_at` integer NOT NULL,\n\t`kind` text NOT NULL,\n\t`payload` text,\n\t`state` text DEFAULT 'pending' NOT NULL,\n\t`attempts` integer DEFAULT 0 NOT NULL,\n\t`last_error` text,\n\t`inflight_at` integer,\n\t`next_attempt_at` integer\n);",
+      "CREATE INDEX `idx_outbox_state` ON `outbox` (`state`);",
+      "CREATE TABLE `person` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`name` text,\n\t`kind` text,\n\t`face_count` integer,\n\t`cover_photo_hash` text,\n\t`last_modified` integer\n);",
+      "CREATE TABLE `place_album` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`title` text NOT NULL,\n\t`photo_count` integer DEFAULT 0 NOT NULL,\n\t`geolocation_level` integer,\n\t`cover_hashes` text,\n\t`last_modified` integer\n);",
+      "CREATE TABLE `remote_photo` (\n\t`id` text PRIMARY KEY NOT NULL,\n\t`image_hash` text NOT NULL,\n\t`owner_id` integer NOT NULL,\n\t`timestamp` integer,\n\t`added_on` integer NOT NULL,\n\t`last_modified` integer NOT NULL,\n\t`type` text NOT NULL,\n\t`video_length_ms` integer,\n\t`rating` integer DEFAULT 0 NOT NULL,\n\t`is_favorite` integer DEFAULT false NOT NULL,\n\t`hidden` integer DEFAULT false NOT NULL,\n\t`archived` integer DEFAULT false NOT NULL,\n\t`is_screenshot` integer DEFAULT false NOT NULL,\n\t`is_document` integer DEFAULT false NOT NULL,\n\t`in_trashcan` integer DEFAULT false NOT NULL,\n\t`removed` integer DEFAULT false NOT NULL,\n\t`is_public` integer DEFAULT false NOT NULL,\n\t`aspect_ratio` real,\n\t`latitude` real,\n\t`longitude` real,\n\t`search_location` text,\n\t`dominant_color` text,\n\t`bucket_day` text NOT NULL,\n\t`bucket_month` text NOT NULL\n);",
+      "CREATE INDEX `idx_remote_photo_bucket_day` ON `remote_photo` (`bucket_day`);",
+      "CREATE INDEX `idx_remote_photo_timestamp` ON `remote_photo` (`timestamp`);",
+      "CREATE INDEX `idx_remote_photo_image_hash` ON `remote_photo` (`image_hash`);",
+      "CREATE INDEX `idx_remote_photo_last_modified` ON `remote_photo` (`last_modified`);",
+      "CREATE INDEX `idx_remote_photo_favorite` ON `remote_photo` (`timestamp`) WHERE is_favorite = 1 AND hidden = 0 AND in_trashcan = 0 AND removed = 0;",
+      "CREATE INDEX `idx_remote_photo_hidden` ON `remote_photo` (`timestamp`) WHERE hidden = 1 AND removed = 0;",
+      "CREATE INDEX `idx_remote_photo_trash` ON `remote_photo` (`timestamp`) WHERE in_trashcan = 1 AND removed = 0;",
+      "CREATE INDEX `idx_remote_photo_archived` ON `remote_photo` (`timestamp`) WHERE archived = 1 AND hidden = 0 AND in_trashcan = 0 AND removed = 0;",
+      "CREATE INDEX `idx_remote_photo_screenshot` ON `remote_photo` (`timestamp`) WHERE is_screenshot = 1 AND hidden = 0 AND in_trashcan = 0 AND removed = 0 AND archived = 0;",
+      "CREATE INDEX `idx_remote_photo_document` ON `remote_photo` (`timestamp`) WHERE is_document = 1 AND hidden = 0 AND in_trashcan = 0 AND removed = 0 AND archived = 0;",
+      "CREATE INDEX `idx_remote_photo_visible` ON `remote_photo` (`timestamp`,`id`) WHERE hidden = 0 AND in_trashcan = 0 AND removed = 0 AND archived = 0 AND timestamp IS NOT NULL;",
+      "CREATE TABLE `remote_photo_detail` (\n\t`photo_id` text PRIMARY KEY NOT NULL,\n\t`payload` text NOT NULL,\n\t`fetched_at` integer NOT NULL\n);",
+      "CREATE TABLE `shared_from_me` (\n\t`photo_id` text NOT NULL,\n\t`shared_to_user_id` integer NOT NULL,\n\tPRIMARY KEY(`photo_id`, `shared_to_user_id`)\n);",
+      "CREATE TABLE `shared_user` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`username` text,\n\t`first_name` text,\n\t`last_name` text,\n\t`avatar_url` text\n);",
+      "CREATE TABLE `sync_log` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`ts` integer NOT NULL,\n\t`op` text,\n\t`entity` text,\n\t`level` text DEFAULT 'info' NOT NULL,\n\t`applied` integer,\n\t`deleted` integer,\n\t`duration_ms` integer,\n\t`cursor` text,\n\t`message` text\n);",
+      "CREATE INDEX `idx_sync_log_ts` ON `sync_log` (`ts`);",
+      "CREATE TABLE `sync_state` (\n\t`entity` text PRIMARY KEY NOT NULL,\n\t`cursor_modified` integer,\n\t`cursor_id` text,\n\t`last_full_sync` integer,\n\t`status` text,\n\t`progress_current` integer DEFAULT 0 NOT NULL,\n\t`progress_total` integer DEFAULT 0 NOT NULL\n);",
+      "CREATE TABLE `tag_album` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`title` text NOT NULL,\n\t`photo_count` integer DEFAULT 0 NOT NULL,\n\t`cover_hashes` text,\n\t`last_modified` integer\n);",
+      "CREATE TABLE `thing_album` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`title` text NOT NULL,\n\t`photo_count` integer DEFAULT 0 NOT NULL,\n\t`cover_hashes` text,\n\t`last_modified` integer\n);",
+      "CREATE TABLE `thumb_cache` (\n\t`photo_id` text PRIMARY KEY NOT NULL,\n\t`file_path` text NOT NULL,\n\t`size_bytes` integer DEFAULT 0 NOT NULL,\n\t`last_used` integer DEFAULT 0 NOT NULL\n);",
+      "CREATE INDEX `idx_thumb_cache_last_used` ON `thumb_cache` (`last_used`);",
+      "CREATE TABLE `upload_queue` (\n\t`asset_id` text PRIMARY KEY NOT NULL,\n\t`state` text DEFAULT 'pending' NOT NULL,\n\t`progress` real DEFAULT 0 NOT NULL,\n\t`attempts` integer DEFAULT 0 NOT NULL,\n\t`last_error` text,\n\t`enqueued_at` integer,\n\t`next_attempt_at` integer,\n\t`server_photo_id` text,\n\t`server_ready_at` integer,\n\t`upload_id` text,\n\t`upload_offset` integer DEFAULT 0 NOT NULL\n);",
+      "CREATE INDEX `idx_upload_queue_state` ON `upload_queue` (`state`);",
+      "CREATE TABLE `user_album` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`title` text NOT NULL,\n\t`owner_id` integer,\n\t`shared` integer DEFAULT false NOT NULL,\n\t`favorited` integer DEFAULT false NOT NULL,\n\t`cover_hash` text,\n\t`photo_count` integer DEFAULT 0 NOT NULL,\n\t`created_on` integer,\n\t`last_modified` integer\n);",
+      "CREATE TABLE `user_album_photo` (\n\t`album_id` integer NOT NULL,\n\t`photo_id` text NOT NULL,\n\t`ordering` integer DEFAULT 0 NOT NULL,\n\tPRIMARY KEY(`album_id`, `photo_id`)\n);",
+      "CREATE INDEX `idx_user_album_photo_album` ON `user_album_photo` (`album_id`,`ordering`);"
+    ]
+  },
+  {
+    "tag": "0001_local_search",
+    "statements": [
+      "CREATE VIRTUAL TABLE `local_asset_fts` USING fts5(terms, tokenize = 'unicode61 remove_diacritics 2');",
+      "CREATE VIEW `local_asset_search_terms` AS\nSELECT la.rowid AS asset_rowid,\n       COALESCE(la.name, '')\n       || ' ' || CASE la.type WHEN 'raw' THEN 'raw photo' WHEN 'video' THEN 'video movie' ELSE 'photo picture image' END\n       || ' ' || COALESCE(la.folder, '')\n       || ' ' || COALESCE(\n            (SELECT substr(d.day, 1, 4)\n                    || ' ' || CASE substr(d.day, 6, 2)\n                         WHEN '01' THEN 'january jan' WHEN '02' THEN 'february feb' WHEN '03' THEN 'march mar'\n                         WHEN '04' THEN 'april apr' WHEN '05' THEN 'may may' WHEN '06' THEN 'june jun'\n                         WHEN '07' THEN 'july jul' WHEN '08' THEN 'august aug' WHEN '09' THEN 'september sep'\n                         WHEN '10' THEN 'october oct' WHEN '11' THEN 'november nov' WHEN '12' THEN 'december dec'\n                         ELSE '' END\n                    || ' ' || substr(d.day, 1, 7) || ' ' || d.day\n             FROM (SELECT COALESCE(la.bucket_day,\n                                   strftime('%Y-%m-%d', la.created_at / 1000, 'unixepoch', 'localtime')) AS day) d\n             WHERE d.day IS NOT NULL),\n            '')\n       || CASE WHEN la.meta_state = 'done' AND la.taken_at IS NULL THEN ' undated' ELSE '' END\n       || ' ' || COALESCE(la.format, '')\n       || ' ' || COALESCE(la.camera, '')\n       || ' ' || COALESCE(la.lens, '') AS terms\nFROM local_asset la;",
+      "CREATE TRIGGER `local_asset_fts_insert` AFTER INSERT ON `local_asset` BEGIN\n  INSERT INTO local_asset_fts(rowid, terms)\n  SELECT asset_rowid, terms FROM local_asset_search_terms WHERE asset_rowid = NEW.rowid;\nEND;",
+      "CREATE TRIGGER `local_asset_fts_update`\nAFTER UPDATE OF name, type, folder, bucket_day, created_at, meta_state, taken_at, format, camera, lens ON `local_asset` BEGIN\n  DELETE FROM local_asset_fts WHERE rowid = OLD.rowid;\n  INSERT INTO local_asset_fts(rowid, terms)\n  SELECT asset_rowid, terms FROM local_asset_search_terms WHERE asset_rowid = NEW.rowid;\nEND;",
+      "CREATE TRIGGER `local_asset_fts_delete` AFTER DELETE ON `local_asset` BEGIN\n  DELETE FROM local_asset_fts WHERE rowid = OLD.rowid;\nEND;"
+    ]
+  },
+  {
+    "tag": "0002_local_asset_edits",
+    "statements": [
+      "ALTER TABLE `local_asset` ADD `rating` integer;",
+      "ALTER TABLE `local_asset` ADD `is_favorite` integer;",
+      "ALTER TABLE `local_asset` ADD `caption` text;",
+      "ALTER TABLE `local_asset` ADD `keywords` text;",
+      "ALTER TABLE `local_asset` ADD `edited_at` integer;",
+      "ALTER TABLE `local_asset` ADD `app_only_fields` text;"
+    ]
+  },
+  {
+    "tag": "0003_local_edits_search",
+    "statements": [
+      "DROP TRIGGER IF EXISTS `local_asset_fts_update`;",
+      "DROP VIEW IF EXISTS `local_asset_search_terms`;",
+      "CREATE VIEW `local_asset_search_terms` AS\nSELECT la.rowid AS asset_rowid,\n       COALESCE(la.name, '')\n       || ' ' || CASE la.type WHEN 'raw' THEN 'raw photo' WHEN 'video' THEN 'video movie' ELSE 'photo picture image' END\n       || ' ' || COALESCE(la.folder, '')\n       || ' ' || COALESCE(\n            (SELECT substr(d.day, 1, 4)\n                    || ' ' || CASE substr(d.day, 6, 2)\n                         WHEN '01' THEN 'january jan' WHEN '02' THEN 'february feb' WHEN '03' THEN 'march mar'\n                         WHEN '04' THEN 'april apr' WHEN '05' THEN 'may may' WHEN '06' THEN 'june jun'\n                         WHEN '07' THEN 'july jul' WHEN '08' THEN 'august aug' WHEN '09' THEN 'september sep'\n                         WHEN '10' THEN 'october oct' WHEN '11' THEN 'november nov' WHEN '12' THEN 'december dec'\n                         ELSE '' END\n                    || ' ' || substr(d.day, 1, 7) || ' ' || d.day\n             FROM (SELECT COALESCE(la.bucket_day,\n                                   strftime('%Y-%m-%d', la.created_at / 1000, 'unixepoch', 'localtime')) AS day) d\n             WHERE d.day IS NOT NULL),\n            '')\n       || CASE WHEN la.meta_state = 'done' AND la.taken_at IS NULL THEN ' undated' ELSE '' END\n       || ' ' || COALESCE(la.format, '')\n       || ' ' || COALESCE(la.camera, '')\n       || ' ' || COALESCE(la.lens, '')\n       || ' ' || COALESCE(la.caption, '')\n       || ' ' || COALESCE(la.keywords, '') AS terms\nFROM local_asset la;",
+      "CREATE TRIGGER `local_asset_fts_update`\nAFTER UPDATE OF name, type, folder, bucket_day, created_at, meta_state, taken_at, format, camera, lens, caption, keywords ON `local_asset` BEGIN\n  DELETE FROM local_asset_fts WHERE rowid = OLD.rowid;\n  INSERT INTO local_asset_fts(rowid, terms)\n  SELECT asset_rowid, terms FROM local_asset_search_terms WHERE asset_rowid = NEW.rowid;\nEND;",
+      "DELETE FROM local_asset_fts;",
+      "INSERT INTO local_asset_fts(rowid, terms) SELECT asset_rowid, terms FROM local_asset_search_terms;"
+    ]
+  }
+]

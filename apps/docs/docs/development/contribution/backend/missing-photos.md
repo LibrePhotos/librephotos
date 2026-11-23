@@ -272,7 +272,7 @@ class DeleteMissingPhotosView(APIView):
 }
 ```
 
-The deletion runs as a background django-q2 task (`AsyncTask(...).run()`), so the `200` is returned as soon as the task is queued — not when the sweep finishes. Track progress on the `LongRunningJob` identified by the returned `job_id` and poll it rather than treating the response as completion.
+The deletion runs as a background task (`api.jobs.queue`), so the `200` is returned as soon as the task is queued — not when the sweep finishes. Track progress on the `LongRunningJob` identified by the returned `job_id` and poll it rather than treating the response as completion.
 
 **Note**: Also supports GET (deprecated) for backward compatibility; both methods delegate to the same `_delete_missing_photos` helper.
 

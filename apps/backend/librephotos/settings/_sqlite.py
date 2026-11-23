@@ -16,11 +16,17 @@ _INIT_COMMAND = """
     PRAGMA cache_size=2000;
 """
 
+# Django's backend with chunked reads off (librephotos/sqlite_backend).
+SQLITE_ENGINE = "librephotos.sqlite_backend"
+
 # Seconds a connection waits for another one's write lock before giving up
 # with "database is locked". The scan workers, the web server and the
-# sidecar-facing jobs all write, and 5 s was too short on the Windows dev
-# server, so every SQLite deployment gets the 30 s that server needed.
-SQLITE_TIMEOUT_SECONDS = 30
+# sidecar-facing jobs all write. 5 s was too short on the Windows dev server,
+# and in 1.6.0 30 s was too short as well: a Scan Faces worker, django-q's
+# scheduler and its monitor all gave up within half a second of each other,
+# so all three had waited out one write transaction of more than 30 s. A
+# background task that waits longer finishes; one that gives up is lost.
+SQLITE_TIMEOUT_SECONDS = 300
 
 # SQLite has no covering indexes: it builds an Index(include=...) without the
 # included columns (the index-only scan they serve is a PostgreSQL one). Since
@@ -32,7 +38,7 @@ SQLITE_SILENCED_CHECKS = ["models.W040"]
 def sqlite_database(path: str) -> dict[str, object]:
     """The ``DATABASES["default"]`` entry for an SQLite file at ``path``."""
     return {
-        "ENGINE": "django.db.backends.sqlite3",
+        "ENGINE": SQLITE_ENGINE,
         "NAME": path,
         "OPTIONS": {
             "transaction_mode": "IMMEDIATE",

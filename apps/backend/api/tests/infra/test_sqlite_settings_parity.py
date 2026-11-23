@@ -20,6 +20,8 @@ import tempfile
 from django.conf import settings
 from django.test import SimpleTestCase
 
+from librephotos.settings._sqlite import SQLITE_ENGINE
+
 BACKEND_ROOT = os.path.dirname(str(settings.BASE_DIR))
 
 PROBE = """
@@ -75,10 +77,8 @@ class SqliteSettingsParityTest(SimpleTestCase):
 
     def test_options(self):
         options = self.databases["noproxy"]["OPTIONS"]
-        self.assertEqual(
-            "django.db.backends.sqlite3", self.databases["noproxy"]["ENGINE"]
-        )
-        self.assertEqual(30, options["timeout"])
+        self.assertEqual(SQLITE_ENGINE, self.databases["noproxy"]["ENGINE"])
+        self.assertEqual(300, options["timeout"])
         self.assertEqual("IMMEDIATE", options["transaction_mode"])
         for pragma in (
             "journal_mode=WAL",

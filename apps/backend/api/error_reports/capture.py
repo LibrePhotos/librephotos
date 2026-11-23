@@ -18,7 +18,8 @@ import json
 import logging
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from urllib.parse import urlsplit
 
 import sentry_sdk
 from sentry_sdk.envelope import Envelope
@@ -46,6 +47,8 @@ from api.models import ErrorReport
 MAX_EVENTS_PER_MINUTE = 20
 # Error events one browser envelope may carry.
 MAX_BROWSER_EVENTS = 5
+# Where the web app's bundle lives (Vite's build.assetsDir).
+WEB_APP_SCRIPTS = "/assets/"
 
 # Loggers whose records are never reported: this package's own (a failure
 # to save a report must not become a report) and noise.
@@ -154,6 +157,38 @@ class InvalidEnvelopeError(ValueError):
     """The web app sent something that is not a Sentry envelope."""
 
 
+def _frame_files(event: Mapping[str, Json]) -> list[str]:
+    """The script URL of every frame of the event's stacks that names one."""
+    exception = event.get("exception")
+    values = exception.get("values") if isinstance(exception, dict) else None
+    files: list[str] = []
+    for value in values if isinstance(values, list) else []:
+        stack = value.get("stacktrace") if isinstance(value, dict) else None
+        frames = stack.get("frames") if isinstance(stack, dict) else None
+        for frame in frames if isinstance(frames, list) else []:
+            name = frame.get("filename") if isinstance(frame, dict) else None
+            if isinstance(name, str) and name:
+                files.append(name)
+    return files
+
+
+def _is_web_app_script(url: str) -> bool:
+    path = urlsplit(url).path
+    return WEB_APP_SCRIPTS in path and path.endswith((".js", ".mjs"))
+
+
+def raised_in_web_app(event: Mapping[str, Json]) -> bool:
+    """Whether the web app's own code was on the stack, as far as it shows.
+
+    A browser extension or an in-app browser runs its own scripts in the page
+    (``window.ethereum.selectedAddress = undefined`` from a wallet), and the
+    SDK reports what they throw; their frames point at the page itself or at
+    the extension, never at the bundle. An error without a stack is kept.
+    """
+    files = _frame_files(event)
+    return not files or any(_is_web_app_script(file) for file in files)
+
+
 def ingest_browser_envelope(raw: bytes) -> list[ErrorReport]:
     """Save the web app's error events; new ones are sent when sharing is on.
 
@@ -165,7 +200,8 @@ def ingest_browser_envelope(raw: bytes) -> list[ErrorReport]:
     except (ValueError, TypeError, AttributeError) as error:
         raise InvalidEnvelopeError("Not a Sentry envelope.") from error
     reports: list[ErrorReport] = []
-    for event in events[:MAX_BROWSER_EVENTS]:
+    own = [event for event in events if raised_in_web_app(event)]
+    for event in own[:MAX_BROWSER_EVENTS]:
         report, created = save_event(event, SOURCE_BROWSER)
         reports.append(report)
         if created:

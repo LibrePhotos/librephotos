@@ -18,6 +18,7 @@ from rest_framework.test import APIClient
 
 from api.models import Photo
 from api.models.photo_stack import PhotoStack
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     api_error,
     create_test_photo,
@@ -659,7 +660,7 @@ class StackDetectionTestCase(TestCase):
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
 
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_detect_stacks_queues_background_job(self, mock_async_task):
         """Test detect stacks queues a background job."""
         with self.captureOnCommitCallbacks(execute=True):
@@ -673,7 +674,7 @@ class StackDetectionTestCase(TestCase):
         mock_async_task.assert_called_once()
         self.assertEqual(mock_async_task.call_args.kwargs["job_id"], data["job_id"])
 
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_detect_stacks_with_options(self, mock_async_task):
         """Test detect stacks with custom options.
 

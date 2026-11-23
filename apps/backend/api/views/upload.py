@@ -489,7 +489,10 @@ class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView
         validate_scan_directory(user)
         album = self.target_album(user, request, uploaded_file)
 
-        if not is_valid_media(_staged_path(uploaded_file), user):
+        # The staged file is "<upload_id>.part": the client's name carries the
+        # extension a RAW is recognised by (a CR3 no image loader opens).
+        client_name = str(request.POST.get("filename") or "")
+        if not is_valid_media(_staged_path(uploaded_file), user, name=client_name):
             self.delete_chunked_upload(request, uploaded_file)
             raise _bad_request("File type not allowed")
 

@@ -1,11 +1,4 @@
-/**
- * Page applier: writes one delta page to the mirror in ONE transaction —
- * upsert items, delete tombstoned ids, advance the resume cursor (doc 03 §3).
- * Because the cursor is advanced inside the same transaction as the writes, a
- * crash mid-page leaves the cursor un-advanced and the page is simply re-fetched
- * and re-applied on the next run (idempotent by construction).
- */
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import type {
   SyncAutoAlbumsResponse,
   SyncPersonsResponse,
@@ -16,24 +9,25 @@ import type {
   SyncUserAlbumsResponse,
   SyncTagAlbumsResponse,
 } from "@librephotos/api-client";
-import type { AppDatabase } from "@/db/types";
-import type { SyncEntity } from "@/db/queries/sync-state";
-import { settleUploads } from "@/db/queries/upload-processing";
 import {
-  deleteAutoAlbums,
-  deleteNamedAlbums,
-  deletePersons,
-  deleteRemotePhotos,
-  deleteSharedUsers,
-  deleteUserAlbums,
-  writeAutoAlbums,
-  writeNamedAlbums,
-  writePersons,
-  writePlaceAlbums,
-  writeRemotePhotos,
-  writeSharedUsers,
-  writeUserAlbums,
-} from "@/db/writers";
+  deleteAutoAlbumsSql,
+  deleteNamedAlbumsSql,
+  deletePersonsSql,
+  deleteRemotePhotosSql,
+  deleteSharedUsersSql,
+  deleteUserAlbumsSql,
+  runBatch,
+  settleUploadsSql,
+  upsertAutoAlbumsSql,
+  upsertNamedAlbumsSql,
+  upsertPersonsSql,
+  upsertPlaceAlbumsSql,
+  upsertRemotePhotosSql,
+  upsertSharedUsersSql,
+  upsertUserAlbumsSql,
+  type AppDatabase,
+  type SyncEntity,
+} from "@librephotos/local-db";
 import {
   syncAutoAlbumToRow,
   syncNamedAlbumToRow,
@@ -55,17 +49,12 @@ export type PageEnvelope<T> = {
 };
 
 /** Advance the durable resume cursor (only when the server gave us a token). */
-function advanceCursor(
-  tx: AppDatabase,
-  entity: SyncEntity,
-  nextCursor: string | null,
-  cursorModified: number | null
-): void {
-  if (nextCursor == null) return;
-  tx.run(
+function advanceCursorSql(entity: SyncEntity, nextCursor: string | null, cursorModified: number | null): SQL[] {
+  if (nextCursor == null) return [];
+  return [
     sql`UPDATE sync_state SET cursor_id = ${nextCursor}, cursor_modified = ${cursorModified}
-        WHERE entity = ${entity}`
-  );
+        WHERE entity = ${entity}`,
+  ];
 }
 
 function lastModifiedOf(items: { last_modified?: number | null }[]): number | null {
@@ -73,87 +62,96 @@ function lastModifiedOf(items: { last_modified?: number | null }[]): number | nu
   return items[items.length - 1]?.last_modified ?? null;
 }
 
-export function applyPhotosPage(db: AppDatabase, env: SyncPhotosResponse, now: number): ApplyResult {
+async function applyPage(
+  db: AppDatabase,
+  entity: SyncEntity,
+  env: PageEnvelope<{ last_modified?: number | null }>,
+  writes: SQL[],
+  deletes: SQL[]
+): Promise<ApplyResult> {
+  await runBatch(db, [...writes, ...deletes, ...advanceCursorSql(entity, env.next_cursor, lastModifiedOf(env.items))]);
+  return { applied: env.items.length, deleted: env.tombstones.length };
+}
+
+export function applyPhotosPage(db: AppDatabase, env: SyncPhotosResponse, now: number): Promise<ApplyResult> {
   const rows = env.items.map((i) => syncPhotoToRow(i, now));
-  db.transaction((tx) => {
-    writeRemotePhotos(tx, rows);
+  return applyPage(
+    db,
+    "photo",
+    env,
     // Uploads whose photo this page brought in with a thumbnail are no longer
     // "processing on the server" (#2740).
-    settleUploads(tx, now);
-    deleteRemotePhotos(tx, env.tombstones);
-    advanceCursor(tx, "photo", env.next_cursor, lastModifiedOf(env.items));
-  });
-  return { applied: rows.length, deleted: env.tombstones.length };
+    [...upsertRemotePhotosSql(rows), settleUploadsSql(now)],
+    deleteRemotePhotosSql(env.tombstones)
+  );
 }
 
-export function applyPersonsPage(db: AppDatabase, env: SyncPersonsResponse, _now: number): ApplyResult {
-  const rows = env.items.map(syncPersonToRow);
-  db.transaction((tx) => {
-    writePersons(tx, rows);
-    deletePersons(tx, env.tombstones.map(Number));
-    advanceCursor(tx, "person", env.next_cursor, lastModifiedOf(env.items));
-  });
-  return { applied: rows.length, deleted: env.tombstones.length };
+export function applyPersonsPage(db: AppDatabase, env: SyncPersonsResponse, _now: number): Promise<ApplyResult> {
+  return applyPage(
+    db,
+    "person",
+    env,
+    upsertPersonsSql(env.items.map(syncPersonToRow)),
+    deletePersonsSql(env.tombstones.map(Number))
+  );
 }
 
-export function applyUserAlbumsPage(db: AppDatabase, env: SyncUserAlbumsResponse, _now: number): ApplyResult {
-  const rows = env.items.map(syncUserAlbumToRow);
-  db.transaction((tx) => {
-    writeUserAlbums(tx, rows);
-    deleteUserAlbums(tx, env.tombstones.map(Number));
-    advanceCursor(tx, "user_album", env.next_cursor, lastModifiedOf(env.items));
-  });
-  return { applied: rows.length, deleted: env.tombstones.length };
+export function applyUserAlbumsPage(db: AppDatabase, env: SyncUserAlbumsResponse, _now: number): Promise<ApplyResult> {
+  return applyPage(
+    db,
+    "user_album",
+    env,
+    upsertUserAlbumsSql(env.items.map(syncUserAlbumToRow)),
+    deleteUserAlbumsSql(env.tombstones.map(Number))
+  );
 }
 
-export function applyAutoAlbumsPage(db: AppDatabase, env: SyncAutoAlbumsResponse, _now: number): ApplyResult {
-  const rows = env.items.map(syncAutoAlbumToRow);
-  db.transaction((tx) => {
-    writeAutoAlbums(tx, rows);
-    deleteAutoAlbums(tx, env.tombstones.map(Number));
-    advanceCursor(tx, "auto_album", env.next_cursor, lastModifiedOf(env.items));
-  });
-  return { applied: rows.length, deleted: env.tombstones.length };
+export function applyAutoAlbumsPage(db: AppDatabase, env: SyncAutoAlbumsResponse, _now: number): Promise<ApplyResult> {
+  return applyPage(
+    db,
+    "auto_album",
+    env,
+    upsertAutoAlbumsSql(env.items.map(syncAutoAlbumToRow)),
+    deleteAutoAlbumsSql(env.tombstones.map(Number))
+  );
 }
 
-export function applyThingAlbumsPage(db: AppDatabase, env: SyncThingAlbumsResponse, _now: number): ApplyResult {
-  const rows = env.items.map(syncNamedAlbumToRow);
-  db.transaction((tx) => {
-    writeNamedAlbums(tx, "thing_album", rows);
-    deleteNamedAlbums(tx, "thing_album", env.tombstones.map(Number));
-    advanceCursor(tx, "thing_album", env.next_cursor, lastModifiedOf(env.items));
-  });
-  return { applied: rows.length, deleted: env.tombstones.length };
+export function applyThingAlbumsPage(db: AppDatabase, env: SyncThingAlbumsResponse, _now: number): Promise<ApplyResult> {
+  return applyPage(
+    db,
+    "thing_album",
+    env,
+    upsertNamedAlbumsSql("thing_album", env.items.map(syncNamedAlbumToRow)),
+    deleteNamedAlbumsSql("thing_album", env.tombstones.map(Number))
+  );
 }
 
-export function applyTagAlbumsPage(db: AppDatabase, env: SyncTagAlbumsResponse, _now: number): ApplyResult {
-  const rows = env.items.map(syncNamedAlbumToRow);
-  db.transaction((tx) => {
-    writeNamedAlbums(tx, "tag_album", rows);
-    deleteNamedAlbums(tx, "tag_album", env.tombstones.map(Number));
-    advanceCursor(tx, "tag_album", env.next_cursor, lastModifiedOf(env.items));
-  });
-  return { applied: rows.length, deleted: env.tombstones.length };
+export function applyTagAlbumsPage(db: AppDatabase, env: SyncTagAlbumsResponse, _now: number): Promise<ApplyResult> {
+  return applyPage(
+    db,
+    "tag_album",
+    env,
+    upsertNamedAlbumsSql("tag_album", env.items.map(syncNamedAlbumToRow)),
+    deleteNamedAlbumsSql("tag_album", env.tombstones.map(Number))
+  );
 }
 
-export function applyPlaceAlbumsPage(db: AppDatabase, env: SyncPlaceAlbumsResponse, _now: number): ApplyResult {
-  const rows = env.items.map(syncPlaceAlbumToRow);
-  db.transaction((tx) => {
-    writePlaceAlbums(tx, rows);
-    deleteNamedAlbums(tx, "place_album", env.tombstones.map(Number));
-    advanceCursor(tx, "place_album", env.next_cursor, lastModifiedOf(env.items));
-  });
-  return { applied: rows.length, deleted: env.tombstones.length };
+export function applyPlaceAlbumsPage(db: AppDatabase, env: SyncPlaceAlbumsResponse, _now: number): Promise<ApplyResult> {
+  return applyPage(
+    db,
+    "place_album",
+    env,
+    upsertPlaceAlbumsSql(env.items.map(syncPlaceAlbumToRow)),
+    deleteNamedAlbumsSql("place_album", env.tombstones.map(Number))
+  );
 }
 
-export function applySharingPage(db: AppDatabase, env: SyncSharingResponse, _now: number): ApplyResult {
-  const rows = env.items.map(syncSharedUserToRow);
-  db.transaction((tx) => {
-    writeSharedUsers(tx, rows);
-    // Sharing has no DeletionLog tombstones (entity=None server-side); the set
-    // is reconciled by a periodic reseed of this cheap feed.
-    deleteSharedUsers(tx, env.tombstones.map(Number));
-    advanceCursor(tx, "sharing", env.next_cursor, lastModifiedOf(env.items));
-  });
-  return { applied: rows.length, deleted: env.tombstones.length };
+export function applySharingPage(db: AppDatabase, env: SyncSharingResponse, _now: number): Promise<ApplyResult> {
+  return applyPage(
+    db,
+    "sharing",
+    env,
+    upsertSharedUsersSql(env.items.map(syncSharedUserToRow)),
+    deleteSharedUsersSql(env.tombstones.map(Number))
+  );
 }

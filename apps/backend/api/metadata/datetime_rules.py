@@ -2,22 +2,18 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import os
 import pathlib
 import re
-import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta, timezone, tzinfo
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from api.metadata.date_patterns import compile_date_pattern
+from api.metadata.gps_time_zone import time_zone_name_at
 from api.metadata.tags import LOCAL_TIME_TAG_OFFSETS, Tags
 from api.models.time_zones import ALL_TIME_ZONES, localize, time_zone
-
-if TYPE_CHECKING:
-    from timezonefinder import TimezoneFinder
 
 logger = logging.getLogger(__name__)
 
@@ -215,7 +211,8 @@ def _extract_no_tz_datetime_from_str(
         )
         delta = parsed_datetime - datetime.now()
         if delta.days > 30:
-            logger.error(
+            # A wrong camera clock or a number in a file name: the rule skips it.
+            logger.warning(
                 "Error while parsing datetime from '%s': Parsed datetime is %s in the future.",
                 x,
                 delta.days,
@@ -657,42 +654,15 @@ def _utc_to_local(
 def _get_gps_tz(lat: float | None, lon: float | None) -> tuple[bool, tzinfo | None]:
     if lat is None or lon is None or not _check_gps_ok(lat, lon):
         return (False, None)
-    tz_name = _timezones.timezone_name_at(lat, lon)
-    return (True, time_zone(tz_name)) if tz_name else (False, None)
-
-
-class ProcessTimezoneFinder:
-    """One TimezoneFinder per process, made on the first GPS lookup.
-
-    Building one loads its index (about a second); a lookup on it takes
-    milliseconds. The import waits for that first lookup too, so a process that
-    never dates a GPS photo pays for neither. timezonefinder does not promise
-    that one instance may be shared between threads (the web process serves
-    requests on several), so lookups hold the lock as well.
-    """
-
-    def __init__(self) -> None:
-        self._finder: TimezoneFinder | None = None
-        self._lock = threading.Lock()
-
-    def timezone_name_at(self, lat: float, lon: float) -> str | None:
-        with self._lock:
-            if self._finder is None:
-                from timezonefinder import TimezoneFinder
-
-                self._finder = TimezoneFinder()
-            return self._finder.timezone_at(lng=lon, lat=lat)
-
-
-_timezones = ProcessTimezoneFinder()
+    return (True, time_zone(time_zone_name_at(lat, lon)))
 
 
 def _check_gps_ok(lat: float | None, lon: float | None) -> bool:
     return (
         lat is not None
         and lon is not None
-        and math.isfinite(lat)
-        and math.isfinite(lon)
+        and -90.0 <= lat <= 90.0
+        and -180.0 <= lon <= 180.0
         and (lat != 0.0 or lon != 0.0)
     )
 

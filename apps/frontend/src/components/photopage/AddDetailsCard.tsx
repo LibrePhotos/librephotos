@@ -26,7 +26,7 @@ type Props = Readonly<{
 export function AddDetailsCard({ missing, onAdd }: Props) {
   const { t } = useTranslation();
   return (
-    <PhotoCard icon={IconPlus} color="gray" title={t("photopage.add.title")}>
+    <PhotoCard icon={IconPlus} title={t("photopage.add.title")}>
       <Group gap="xs">
         {missing.map(detail => {
           const { icon: Icon, label } = OFFERS[detail];

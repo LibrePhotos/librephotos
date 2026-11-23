@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import requests
 from constance import config as site_config
+from constance import settings as constance_settings
 from constance.codecs import dumps
 from constance.models import Constance
 from constance.test import override_config
@@ -39,6 +40,7 @@ from api.runtime.features import (
     forget_site_switches,
 )
 from api.search.semantic import generate_photo_tags
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_file,
@@ -283,7 +285,16 @@ class FaceDetectionFeatureFlagTest(TestCase):
         self.client = APIClient()
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        self.photo = create_test_photo(owner=self.user)
+        self.photo = self._photo()
+
+    def _photo(self):
+        """A photo with a big thumbnail file; PIL.Image.open is patched to read it."""
+        photo = create_test_photo(owner=self.user)
+        path = photo.thumbnail.thumbnail_big.path
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        open(path, "wb").close()
+        self.addCleanup(os.remove, path)
+        return photo
 
     @patch("api.faces.photo_faces.PIL.Image.open")
     @patch("api.faces.photo_faces.extractor")
@@ -322,7 +333,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
     ):
         """extract_faces runs once per photo: no switch query per photo."""
         face_extractor_mock.extract_from_face_service.return_value = []
-        photos = [create_test_photo(owner=self.user) for _ in range(3)]
+        photos = [self._photo() for _ in range(3)]
         forget_site_switches()
         with patch(
             "api.runtime.features._read_site_switches",
@@ -336,7 +347,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
 
     @override_config(FACE_DETECTION_ENABLED=False)
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_scan_faces_endpoint_refuses_when_the_site_setting_is_off(
         self, task_mock, models_exist_mock
     ):
@@ -346,7 +357,7 @@ class FaceDetectionFeatureFlagTest(TestCase):
         task_mock.assert_not_called()
 
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_scan_faces_endpoint_starts_a_job_by_default(
         self, task_mock, models_exist_mock
     ):
@@ -355,11 +366,11 @@ class FaceDetectionFeatureFlagTest(TestCase):
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response.json()["status"])
-        task_mock.return_value.run.assert_called_once()
+        task_mock.assert_called_once()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
     @patch("api.runtime.ml_models.do_all_models_exist", return_value=True)
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_scan_faces_endpoint_refuses_when_disabled(
         self, task_mock, models_exist_mock
     ):
@@ -418,7 +429,7 @@ class FaceClusterFeatureFlagTest(TestCase):
         create_clusters_mock.assert_not_called()
 
     @override_config(FACE_CLUSTER_ENABLED=False)
-    @patch("api.jobs.queue.Chain")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_train_faces_endpoint_refuses_when_the_site_setting_is_off(
         self, chain_mock
     ):
@@ -428,7 +439,7 @@ class FaceClusterFeatureFlagTest(TestCase):
         chain_mock.assert_not_called()
 
     @override_settings(FEATURE_FACE_CLUSTER=False)
-    @patch("api.jobs.queue.Chain")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_train_faces_endpoint_refuses_when_disabled(self, chain_mock):
         response = self.client.post("/api/trainfaces/", format="json")
 
@@ -449,18 +460,14 @@ class ScanPipelineFeatureFlagTest(TestCase):
 
     def _scan(self):
         with (
-            patch("api.jobs.queue.AsyncTask") as task_mock,
-            patch("api.jobs.queue.Chain") as chain_mock,
+            patch("api.jobs.store.add", new_callable=QueueRecorder) as task_mock,
             patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
             self.captureOnCommitCallbacks(execute=True),
         ):
             scan_photos(self.user, False, str(uuid.uuid4()))
 
         queued = [call.args[0] for call in task_mock.call_args_list]
-        chained = [
-            call.args[0] for call in chain_mock.return_value.append.call_args_list
-        ]
-        return queued, chained
+        return queued, queued
 
     def test_every_job_is_queued_by_default(self):
         queued, chained = self._scan()
@@ -517,7 +524,7 @@ class ScanPipelineFeatureFlagTest(TestCase):
         self.assertNotIn(generate_tags, queued)
 
 
-def _save_in_another_process(key: str, value: bool) -> None:
+def _save_in_another_process(key: str, value: bool | None) -> None:
     """What a save in the web process looks like from a worker: the row
     changes, and no config_updated signal reaches this process."""
     Constance.objects.update_or_create(  # raw-create: constance's own table
@@ -598,13 +605,25 @@ class FeatureEnabledTest(TestCase):
         with patch("api.runtime.features.time.monotonic", return_value=later):
             self.assertFalse(feature_enabled("REVERSE_GEOCODING"))
 
+    def test_a_stored_none_reads_as_the_default(self):
+        _save_in_another_process("VIDEO_ENABLED", None)
+        _save_in_another_process("MAP_API_PROVIDER", None)
+
+        self.assertTrue(feature_enabled("VIDEO"))
+        self.assertEqual(
+            {
+                "VIDEO_ENABLED": True,
+                "MAP_API_PROVIDER": constance_settings.CONFIG["MAP_API_PROVIDER"][0],
+            },
+            features.site_config_values(["VIDEO_ENABLED", "MAP_API_PROVIDER"]),
+        )
+
     def test_an_unreadable_configuration_leaves_features_on(self):
         """Fail open: a database that is not up yet must not take a feature away."""
         with (
             override_config(VIDEO_ENABLED=False),
-            patch.object(
-                site_config._backend,
-                "mget",
+            patch(
+                "api.runtime.features.site_config_values",
                 side_effect=OperationalError("no such table: constance_config"),
             ),
         ):
@@ -613,8 +632,9 @@ class FeatureEnabledTest(TestCase):
 
     def test_an_unreadable_configuration_is_not_cached(self):
         with override_config(VIDEO_ENABLED=False):
-            with patch.object(
-                site_config._backend, "mget", side_effect=DatabaseError("down")
+            with patch(
+                "api.runtime.features.site_config_values",
+                side_effect=DatabaseError("down"),
             ):
                 self.assertTrue(feature_enabled("VIDEO"))
             self.assertFalse(feature_enabled("VIDEO"))
@@ -622,7 +642,10 @@ class FeatureEnabledTest(TestCase):
     def test_a_bug_reading_the_configuration_is_not_swallowed(self):
         """Only a database error fails open; anything else is a bug to see."""
         with (
-            patch.object(site_config._backend, "mget", side_effect=RuntimeError("bug")),
+            patch(
+                "api.runtime.features.site_config_values",
+                side_effect=RuntimeError("bug"),
+            ),
             self.assertRaises(RuntimeError),
         ):
             feature_enabled("VIDEO")

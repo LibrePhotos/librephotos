@@ -1,0 +1,80 @@
+.app {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.viewer {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app.viewing {
+  background: var(--lp-stage);
+}
+
+.app.info-open .toasts {
+  right: calc(var(--lp-panel-width) + var(--lp-space-5));
+}
+@media (max-width: 760px) {
+  .app.info-open .toasts {
+    right: calc(300px + var(--lp-space-3));
+  }
+}
+
+.app.immersive .topbar,
+.app.immersive .filmstrip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transition:
+    opacity var(--lp-duration-slow) ease,
+    transform var(--lp-duration-slow) var(--lp-ease);
+}
+.app.immersive .topbar {
+  top: 0;
+  height: 72px;
+  align-items: start;
+  padding-top: var(--lp-space-1);
+  background: linear-gradient(var(--lp-scrim-black-60), rgba(0, 0, 0, 0.25) 55%, transparent);
+}
+.app.immersive .filmstrip {
+  bottom: 0;
+  height: 96px;
+  padding-top: 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.25) 35%, var(--lp-scrim-black-60));
+}
+.app.immersive .film-item:not(.active) {
+  opacity: 0.75;
+}
+.app.immersive .film-item:hover {
+  opacity: 1;
+}
+.app.chrome-hidden .topbar {
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+}
+.app.chrome-hidden .filmstrip {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+.app.chrome-hidden .stage,
+.app.chrome-hidden .stage-surface.pannable {
+  cursor: none;
+}
+.app.chrome-hidden .toasts {
+  top: var(--lp-space-4);
+}

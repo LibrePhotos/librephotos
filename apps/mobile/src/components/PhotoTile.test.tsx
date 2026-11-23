@@ -1,6 +1,6 @@
 import { PhotoTile, tileBadge, type GridItem } from "./PhotoTile";
 import { renderWithDb } from "@/test/test-utils";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 
 function item(over: Partial<GridItem>): GridItem {
   return {
@@ -34,20 +34,20 @@ describe("PhotoTile badges", () => {
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  function render(over: Partial<GridItem>) {
-    return renderWithDb(<PhotoTile item={item(over)} size={100} serverAddress="https://lp.test" headers={{}} />, t.db);
+  async function render(over: Partial<GridItem>) {
+    return await renderWithDb(<PhotoTile item={item(over)} size={100} serverAddress="https://lp.test" headers={{}} />, t.db);
   }
 
-  it("swaps the arrow for a labelled hourglass while the server processes", () => {
-    const { getByTestId, queryByTestId } = render({ processing: true });
+  it("swaps the arrow for a labelled hourglass while the server processes", async () => {
+    const { getByTestId, queryByTestId } = await render({ processing: true });
     expect(getByTestId("processing-badge-k1").props.accessibilityLabel).toBe(
       "Uploaded, the server is still processing it"
     );
     expect(queryByTestId("local-badge-k1")).toBeNull();
   });
 
-  it("keeps the arrow on a photo that is only on this phone", () => {
-    const { getByTestId, queryByTestId } = render({});
+  it("keeps the arrow on a photo that is only on this phone", async () => {
+    const { getByTestId, queryByTestId } = await render({});
     expect(getByTestId("local-badge-k1")).toBeTruthy();
     expect(queryByTestId("processing-badge-k1")).toBeNull();
   });

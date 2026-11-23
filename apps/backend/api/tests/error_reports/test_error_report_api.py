@@ -27,7 +27,13 @@ ADMIN_ROUTES = (
 )
 
 
-def browser_envelope(value: str = "Cannot read properties of undefined") -> str:
+def browser_envelope(
+    value: str = "Cannot read properties of undefined",
+    frames: list[dict[str, object]] | None = None,
+) -> str:
+    exception: dict[str, object] = {"type": "TypeError", "value": value}
+    if frames is not None:
+        exception["stacktrace"] = {"frames": frames}
     return "\n".join(
         [
             json.dumps({"event_id": "1b2c3d4e5f60718293a4b5c6d7e8f901"}),
@@ -38,7 +44,7 @@ def browser_envelope(value: str = "Cannot read properties of undefined") -> str:
                 {
                     "platform": "javascript",
                     "level": "error",
-                    "exception": {"values": [{"type": "TypeError", "value": value}]},
+                    "exception": {"values": [exception]},
                     "request": {"url": "https://photos.example.org/person/1"},
                 }
             ),
@@ -184,6 +190,45 @@ class BrowserForwarderTest(TestCase):
         stored = json.dumps(report.event)
         self.assertNotIn("Hildegard", stored)
         self.assertNotIn("photos.example.org", stored)
+
+    def test_an_error_from_a_script_the_page_did_not_load_is_dropped(self) -> None:
+        # A wallet extension or an in-app browser runs its own code in the
+        # page; its only frame is the page itself. Ten such reports in 1.6.0.
+        injected = browser_envelope(
+            "undefined is not an object "
+            "(evaluating 'window.ethereum.selectedAddress = undefined')",
+            frames=[
+                {
+                    "filename": "https://photos.example.org/album/persons/22",
+                    "function": "global code",
+                    "lineno": 1,
+                }
+            ],
+        )
+
+        with no_network(), inline_background():
+            response = self.client.post(
+                "/api/error-reports/browser/", {"envelope": injected}, format="json"
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"saved": 0})
+        self.assertFalse(ErrorReport.objects.exists())
+
+    def test_an_error_with_a_frame_of_the_web_app_is_kept(self) -> None:
+        envelope = browser_envelope(
+            frames=[
+                {"filename": "https://photos.example.org/person/1", "lineno": 1},
+                {
+                    "filename": "https://photos.example.org/assets/index-BfX2a9.js",
+                    "function": "PersonCard",
+                    "lineno": 12,
+                },
+            ]
+        )
+
+        self.assertEqual(self.post(envelope), 200)
+        self.assertEqual(ErrorReport.objects.count(), 1)
 
     def test_something_else_is_a_400(self) -> None:
         self.assertEqual(self.post("not an envelope"), 400)

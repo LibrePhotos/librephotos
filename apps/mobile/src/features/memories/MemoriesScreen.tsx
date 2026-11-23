@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { MirrorGrid, type GridItem } from "@/components/MirrorGrid";
 import { useReactiveQuery } from "@/db/provider";
-import { onThisDay } from "@/db/queries/memories";
+import { onThisDay } from "@librephotos/local-db";
 import { tileRowToItem } from "@/features/photos/FilterScreen";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
@@ -21,7 +21,12 @@ export function MemoriesScreen() {
   const router = useRouter();
   const token = useAccessToken();
   const base = serverAddress();
-  const items = useReactiveQuery((db) => onThisDay(db, { limit: 500 }).map(tileRowToItem), []);
+  const { data: items, loading } = useReactiveQuery(
+    ["on-this-day-items", 500],
+    async (db) => (await onThisDay(db, { limit: 500 })).map(tileRowToItem),
+    [] as GridItem[],
+    { tables: ["remote_photo"] }
+  );
 
   const openPhoto = useCallback(
     (item: GridItem) => {
@@ -46,9 +51,10 @@ export function MemoriesScreen() {
           accessToken={token}
           onPressItem={openPhoto}
           ListEmptyComponent={
+            loading ? null : (
             <View testID="memories-empty" style={{ padding: 32, alignItems: "center" }}>
               <Text style={{ color: theme.muted }}>{t("memories.empty")}</Text>
-            </View>
+            </View>)
           }
         />
       </View>

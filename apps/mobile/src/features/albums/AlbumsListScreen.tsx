@@ -6,8 +6,8 @@ import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { useRouter, type Href } from "expo-router";
 import { mediaHeaders, squareThumbnailUrl } from "@librephotos/api-client";
-import { useReactiveQuery } from "@/db/provider";
-import type { AppDatabase } from "@/db/types";
+import { useReactiveQuery, type ReactiveQueryKey } from "@/db/provider";
+import type { AppDatabase } from "@librephotos/local-db";
 import { TextPromptModal } from "@/components/TextPromptModal";
 import { useMutations } from "@/mutations/useMutations";
 import { useAccessToken } from "@/hooks/use-access-token";
@@ -30,18 +30,17 @@ export function AlbumsListScreen({
   query,
   hrefFor,
   creatable = false,
-  queryDeps = [],
+  queryKey,
   headerActions,
   onLongPressItem,
   testID = "albums-list",
 }: {
   title: string;
-  query: (db: AppDatabase) => AlbumCard[];
+  query: (db: AppDatabase) => Promise<AlbumCard[]>;
+  queryKey: ReactiveQueryKey;
   hrefFor: (id: number) => Href;
   /** My Albums: show a "New album" affordance (empty album, offline-capable). */
   creatable?: boolean;
-  /** Re-run `query` when these change (e.g. the chosen sort). */
-  queryDeps?: readonly unknown[];
   /** Extra header buttons, before "New album" (My Albums: the sort menu). */
   headerActions?: ReactNode;
   /** My Albums: long-press a card to delete the album. */
@@ -57,7 +56,7 @@ export function AlbumsListScreen({
   const { width } = useWindowDimensions();
   const size = useMemo(() => Math.floor((width - 48) / 2), [width]);
   const headers = useMemo(() => mediaHeaders(token), [token]);
-  const albums = useReactiveQuery(query, queryDeps);
+  const { data: albums, loading } = useReactiveQuery(queryKey, query, [] as AlbumCard[]);
   const [creating, setCreating] = useState(false);
 
   return (
@@ -85,10 +84,11 @@ export function AlbumsListScreen({
         keyExtractor={(a) => String(a.id)}
         contentContainerStyle={{ padding: 12 }}
         ListEmptyComponent={
+            loading ? null : (
           <View testID="albums-empty" style={{ padding: 32, alignItems: "center" }}>
             <Text style={{ color: theme.muted }}>{t("explore.noAlbums")}</Text>
-          </View>
-        }
+          </View>)
+          }
         renderItem={({ item }) => (
           <Pressable
             testID={`album-${item.id}`}
@@ -121,7 +121,7 @@ export function AlbumsListScreen({
           testID="albums-create-prompt"
           onSubmit={(value) => {
             setCreating(false);
-            if (value) mutations.createAlbum(value, []);
+            if (value) void mutations.createAlbum(value, []);
           }}
           onCancel={() => setCreating(false)}
         />

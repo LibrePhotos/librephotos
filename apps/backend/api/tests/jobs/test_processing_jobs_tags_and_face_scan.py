@@ -21,6 +21,7 @@ from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import generate_tags, scan_faces
 from api.models import LongRunningJob, Photo
 from api.search.semantic import OPENCLIP
+from api.tests.queue_recorder import run_queued
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -221,7 +222,7 @@ class ScanFacesCharacterizationTest(TestCase):
         """Patch the two tail calls made after the main loop."""
         return (
             patch.object(processing_jobs, "generate_face_embeddings"),
-            patch.object(processing_jobs, "cluster_all_faces"),
+            patch.object(processing_jobs, "_queue_face_followups"),
         )
 
     def test_extracts_faces_for_each_photo_and_finishes_job(self):
@@ -234,6 +235,7 @@ class ScanFacesCharacterizationTest(TestCase):
             patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         self.assertEqual(extract.call_count, 2)
         job = _job(self.job_id)
@@ -256,6 +258,7 @@ class ScanFacesCharacterizationTest(TestCase):
 
         with embed as mock_embed, cluster as mock_cluster:
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         job = _job(self.job_id)
         self.assertEqual(job.progress_target, 0)
@@ -276,6 +279,7 @@ class ScanFacesCharacterizationTest(TestCase):
             patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         extract.assert_not_called()
         self.assertEqual(_job(self.job_id).progress_target, 0)
@@ -291,6 +295,7 @@ class ScanFacesCharacterizationTest(TestCase):
             patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         extract.assert_not_called()
         self.assertEqual(_job(self.job_id).progress_target, 0)
@@ -310,6 +315,7 @@ class ScanFacesCharacterizationTest(TestCase):
             ) as extract,
         ):
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         self.assertEqual(extract.call_count, 2)
         job = _job(self.job_id)
@@ -334,6 +340,7 @@ class ScanFacesCharacterizationTest(TestCase):
             ),
         ):
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         job = _job(self.job_id)
         self.assertTrue(job.finished)
@@ -352,6 +359,7 @@ class ScanFacesCharacterizationTest(TestCase):
             patch.object(processing_jobs, "is_job_cancelled", return_value=True),
         ):
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         extract.assert_not_called()
         mock_embed.assert_not_called()
@@ -376,6 +384,7 @@ class ScanFacesCharacterizationTest(TestCase):
             patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id)  # must not raise
+            run_queued()
 
         extract.assert_not_called()
         job = _job(self.job_id)
@@ -421,6 +430,7 @@ class ScanFacesCharacterizationTest(TestCase):
             ),
         ):
             scan_faces(self.user, self.job_id, full_scan=False)
+            run_queued()
 
         self.assertCountEqual(seen, [missed.pk, new.pk])
 
@@ -437,6 +447,7 @@ class ScanFacesCharacterizationTest(TestCase):
             patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id, full_scan=True)
+            run_queued()
 
         self.assertEqual(extract.call_count, 2)
 
@@ -457,6 +468,7 @@ class ScanFacesCharacterizationTest(TestCase):
             ) as extract,
         ):
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         self.assertEqual(extract.call_count, limit)
         job = _job(self.job_id)
@@ -481,6 +493,7 @@ class ScanFacesCharacterizationTest(TestCase):
             ) as extract,
         ):
             scan_faces(self.user, self.job_id)
+            run_queued()
 
         self.assertEqual(extract.call_count, limit + 1)
         self.assertNotIn("Face service unreachable", _job(self.job_id).result["error"])

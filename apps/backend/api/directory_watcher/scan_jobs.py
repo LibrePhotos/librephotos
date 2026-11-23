@@ -8,7 +8,6 @@ two-phase scan architecture to avoid race conditions with RAW+JPEG grouping.
 import datetime
 import logging
 import os
-import uuid
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from typing import Any, NamedTuple
@@ -563,7 +562,6 @@ def _queue_scan_work(
     ``force_files``: the groups rebuild their thumbnails too (a rescan of
     chosen photos, #2214).
     """
-    image_group_id = str(uuid.uuid4())
     group_options = {"rebuild_thumbnails": True} if force_files else {}
     for idx, (_, paths) in enumerate(_videos_first(groups_to_process)):
         if _queuing_cancelled(idx, job_id):
@@ -573,7 +571,6 @@ def _queue_scan_work(
             user,
             paths,
             job_id,
-            group=image_group_id,
             **group_options,
         )
 

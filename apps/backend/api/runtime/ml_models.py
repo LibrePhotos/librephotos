@@ -7,9 +7,12 @@ import os
 import shutil
 import tarfile
 import tempfile
+import time
 import uuid
 import zipfile
 from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
@@ -24,6 +27,7 @@ from api.models.user import User
 from api.runtime.features import Feature, feature_enabled
 from api.runtime.http_timeouts import MODEL_DOWNLOAD
 from librephotos.env import data_models_root
+from librephotos.instance_lock import try_lock
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +37,22 @@ class MlTypes:
     FACE_RECOGNITION = "face_recognition"
     CLIP = "clip"
     OCR = "ocr"
+
+
+# A dropped connection or a stalled mirror (the Hugging Face CDN times out
+# now and then) is tried again, resuming where it stopped; an HTTP error is not.
+DOWNLOAD_ATTEMPTS = 4
+_RETRY_BACKOFF_SECONDS = 5.0
+_TRANSIENT_ERRORS = (
+    requests.ConnectionError,
+    requests.Timeout,
+    requests.exceptions.ChunkedEncodingError,
+)
+_LOCK_POLL_SECONDS = 0.2
+# Past this a holder is taken for one whose lock never drops (a file system
+# without locks); the download then goes ahead, which its own temporary file
+# keeps safe.
+_LOCK_WAIT_SECONDS = 30 * 60
 
 
 class ModelChecksumError(Exception):
@@ -421,7 +441,28 @@ def download_model(model: MlModel) -> None:
         return
 
     model_folder = _models_folder()
+    with _model_download_lock(model_folder, model["name"]):
+        _install_model(model_folder, model)
 
+
+@contextmanager
+def _model_download_lock(model_folder: Path, model_name: str) -> Iterator[None]:
+    """Hold the model's download lock, waiting while another download holds it.
+
+    The startup download, a chained Download Models and a second worker can
+    fetch one model at once. The second now waits for the first and then
+    finds the model installed. An OS file lock, so a holder that dies drops it.
+    """
+    lock_dir = model_folder / ".locks"
+    lock_dir.mkdir(parents=True, exist_ok=True)
+    deadline = time.monotonic() + _LOCK_WAIT_SECONDS
+    with open(lock_dir / f"{model_name}.lock", "a+b") as handle:
+        while not try_lock(handle) and time.monotonic() < deadline:
+            time.sleep(_LOCK_POLL_SECONDS)
+        yield
+
+
+def _install_model(model_folder: Path, model: MlModel) -> None:
     if model["unpack-command"] == "zip":
         # Repairs installs unpacked before the wrapper folder was flattened,
         # which would otherwise fail the .onnx check and download again.
@@ -475,30 +516,110 @@ def _log_download_progress(
     return percentage
 
 
+@dataclass
+class _Transfer:
+    """What one file's download has received so far, across its attempts."""
+
+    partial_path: Path
+    hasher: hashlib._Hash | None
+    received: int = 0
+    total_size: int = 0
+    is_decoded: bool = False
+
+    def restart(self) -> None:
+        self.received = 0
+        if self.hasher is not None:
+            self.hasher = hashlib.sha256()
+
+
 def _stream_to_partial(
-    response: requests.Response,
-    partial_path: Path,
-    model_name: str,
-    hasher: hashlib._Hash | None,
-) -> tuple[int, int]:
-    total_size = int(response.headers.get("content-length", 0))
+    response: requests.Response, transfer: _Transfer, model_name: str
+) -> None:
     block_size = 1024
-    current_progress = 0
     previous_percentage = -1
 
-    with open(partial_path, "wb") as target_file:
+    with open(transfer.partial_path, "ab" if transfer.received else "wb") as target:
         for chunk in response.iter_content(chunk_size=block_size):
             if not chunk:
                 continue
-            target_file.write(chunk)
-            if hasher is not None:
-                hasher.update(chunk)
-            current_progress += len(chunk)
+            target.write(chunk)
+            if transfer.hasher is not None:
+                transfer.hasher.update(chunk)
+            transfer.received += len(chunk)
             previous_percentage = _log_download_progress(
-                model_name, current_progress, total_size, previous_percentage
+                model_name, transfer.received, transfer.total_size, previous_percentage
             )
 
-    return current_progress, total_size
+
+def _resume_headers(transfer: _Transfer) -> dict[str, str]:
+    """Ask for the bytes after those received, unencoded so the offsets match.
+
+    A body requests decompressed cannot be resumed: its offsets are not the
+    server's. It is fetched again from the start.
+    """
+    if not transfer.received or transfer.is_decoded:
+        return {}
+    return {"Range": f"bytes={transfer.received}-", "Accept-Encoding": "identity"}
+
+
+def _fetch_attempt(url: str, transfer: _Transfer, model_name: str) -> None:
+    """Stream ``url`` into the partial file, from where the last attempt stopped."""
+    with requests.get(
+        url,
+        stream=True,
+        allow_redirects=True,
+        timeout=MODEL_DOWNLOAD,
+        headers=_resume_headers(transfer),
+    ) as response:
+        # Error responses have a body too. Without this check a "404: Entry
+        # not found" page gets written out as if it were the model.
+        response.raise_for_status()
+        if response.status_code != 206:
+            # A whole body: the first attempt, or a server that ignores ranges.
+            transfer.restart()
+        content_length = int(response.headers.get("content-length", 0))
+        transfer.total_size = (
+            transfer.received + content_length if content_length else 0
+        )
+        # content-length describes the encoded body, so it only bounds the
+        # bytes we wrote when requests did not decompress on the fly.
+        content_encoding = response.headers.get("content-encoding", "identity").lower()
+        transfer.is_decoded = content_encoding not in ("", "identity")
+        _stream_to_partial(response, transfer, model_name)
+
+
+def _fetch(url: str, transfer: _Transfer, model_name: str) -> None:
+    for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+        try:
+            _fetch_attempt(url, transfer, model_name)
+            return
+        except _TRANSIENT_ERRORS as error:
+            if attempt == DOWNLOAD_ATTEMPTS:
+                raise
+            logger.warning(
+                "Download of %s stopped after %s bytes (%s); attempt %s of %s next",
+                model_name,
+                transfer.received,
+                type(error).__name__,
+                attempt + 1,
+                DOWNLOAD_ATTEMPTS,
+            )
+            time.sleep(_RETRY_BACKOFF_SECONDS * attempt)
+
+
+def _check_size(transfer: _Transfer, model_name: str, url: str) -> None:
+    if transfer.total_size == 0:
+        logger.info(
+            "Downloaded %s: %s bytes (size unknown during transfer)",
+            model_name,
+            transfer.received,
+        )
+        return
+    if not transfer.is_decoded and transfer.received != transfer.total_size:
+        raise OSError(
+            f"Incomplete download for {model_name}: got {transfer.received} of "
+            f"{transfer.total_size} bytes from {url}"
+        )
 
 
 def _verify_checksum(
@@ -541,7 +662,9 @@ def _download_file(
     completed successfully. Nothing that is not a fully downloaded file ever
     reaches ``target_path``, so a failed transfer cannot leave behind a
     corrupt archive or - worse, for models that are stored unpacked - a file
-    that later checks happily accept as an installed model.
+    that later checks happily accept as an installed model. A transfer cut by
+    a network error is retried up to ``DOWNLOAD_ATTEMPTS`` times, asking for
+    the rest of the file with a ``Range`` header.
 
     When ``expected_sha256`` is given, the digest is computed over the streamed
     bytes and compared before the file is moved into place (so archives are
@@ -557,47 +680,17 @@ def _download_file(
         dir=target_path.parent, prefix=f".{target_path.name}.", suffix=".part"
     )
     os.close(handle)
-    partial_path = Path(partial_name)
-
-    hasher = hashlib.sha256() if expected_sha256 else None
+    transfer = _Transfer(
+        Path(partial_name), hashlib.sha256() if expected_sha256 else None
+    )
 
     try:
-        with requests.get(
-            url, stream=True, allow_redirects=True, timeout=MODEL_DOWNLOAD
-        ) as response:
-            # Error responses have a body too. Without this check a "404: Entry
-            # not found" page gets written out as if it were the model.
-            response.raise_for_status()
-
-            current_progress, total_size = _stream_to_partial(
-                response, partial_path, model_name, hasher
-            )
-
-            # content-length describes the encoded body, so it only bounds the
-            # bytes we wrote when requests did not decompress on the fly.
-            content_encoding = response.headers.get(
-                "content-encoding", "identity"
-            ).lower()
-            is_decoded = content_encoding not in ("", "identity")
-
-        if total_size > 0 and not is_decoded and current_progress != total_size:
-            raise OSError(
-                f"Incomplete download for {model_name}: got {current_progress} of "
-                f"{total_size} bytes from {url}"
-            )
-
-        _verify_checksum(hasher, expected_sha256, model_name, url)
-
-        if total_size == 0:
-            logger.info(
-                "Downloaded %s: %s bytes (size unknown during transfer)",
-                model_name,
-                current_progress,
-            )
-
-        os.replace(partial_path, target_path)
+        _fetch(url, transfer, model_name)
+        _check_size(transfer, model_name, url)
+        _verify_checksum(transfer.hasher, expected_sha256, model_name, url)
+        os.replace(transfer.partial_path, target_path)
     except Exception:
-        partial_path.unlink(missing_ok=True)
+        transfer.partial_path.unlink(missing_ok=True)
         raise
     # What an older version left of a download cut short.
     target_path.with_name(target_path.name + ".part").unlink(missing_ok=True)

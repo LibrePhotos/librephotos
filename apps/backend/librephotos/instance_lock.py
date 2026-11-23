@@ -32,7 +32,9 @@ def lock_path(data_dir: str) -> str:
     return os.path.join(data_dir, LOCK_NAME)
 
 
-def _try_lock(handle: IO[bytes]) -> bool:
+def try_lock(handle: IO[bytes]) -> bool:
+    """Take an exclusive OS lock on ``handle`` without waiting; False when
+    another handle holds it, in this process or another."""
     if sys.platform == "win32":
         import msvcrt
 
@@ -68,7 +70,7 @@ def acquire(data_dir: str, url: str) -> InstanceLock | None:
     os.makedirs(data_dir, exist_ok=True)
     # "a+b": opening must not truncate what the holder wrote.
     handle = open(lock_path(data_dir), "a+b")  # noqa: SIM115 - held for the process's life
-    if not _try_lock(handle):
+    if not try_lock(handle):
         handle.close()
         return None
     handle.seek(0)

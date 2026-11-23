@@ -26,10 +26,14 @@
  * the same idea one layer down: the core stays pure and Node-testable against a
  * fake source, and the app wiring lives in ./run.
  */
-import type { AppDatabase } from "@/db/types";
-import { clearMirror } from "@/db/reset";
-import { getSyncState, SYNC_ENTITIES } from "@/db/queries/sync-state";
-import { appendSyncLog, type SyncLogEntry } from "@/db/queries/sync-log";
+import {
+  appendSyncLog,
+  clearMirror,
+  getSyncState,
+  SYNC_ENTITIES,
+  type AppDatabase,
+  type SyncLogEntry,
+} from "@librephotos/local-db";
 import type { RemoteSyncSource } from "./remote/source";
 import { SyncAbortedError, type PullOptions, type SyncProgress } from "./remote/delta";
 import type { IntegrityReport } from "./integrity";
@@ -74,8 +78,8 @@ export type SyncResult = {
 };
 
 /** Whether a first full seed is still needed (photo mirror never completed). */
-export function needsInitialSeed(db: AppDatabase): boolean {
-  return getSyncState(db, "photo")?.status !== "done";
+export async function needsInitialSeed(db: AppDatabase): Promise<boolean> {
+  return (await getSyncState(db, "photo"))?.status !== "done";
 }
 
 let inFlight: Promise<SyncResult> | null = null;
@@ -160,7 +164,9 @@ async function drain(
   const now = opts.now ?? Date.now();
   const reason = opts.reason ?? "foreground";
   const wallStart = Date.now();
-  const log = (entry: SyncLogEntry) => appendSyncLog(db, entry, Date.now());
+  const log = (entry: SyncLogEntry): void => {
+    appendSyncLog(db, entry, Date.now()).catch(() => undefined);
+  };
 
   log({ op: "run", level: "info", message: `start:${reason}` });
 
@@ -196,7 +202,7 @@ async function drain(
     },
   };
 
-  enqueueJobs(db, jobs(), now);
+  await enqueueJobs(db, jobs(), now);
 
   const stats = await runWorker(db, {
     handlers: createJobHandlers(seams),
@@ -248,9 +254,9 @@ export async function repairSync(
   source: RemoteSyncSource,
   opts: SyncAllOptions = {}
 ): Promise<SyncResult> {
-  clearMirror(db);
-  clearJobs(db);
-  appendSyncLog(db, { op: "reseed", level: "warn", message: "manual repair" }, Date.now());
+  await clearMirror(db);
+  await clearJobs(db);
+  await appendSyncLog(db, { op: "reseed", level: "warn", message: "manual repair" }, Date.now());
   return syncAll(db, source, { ...opts, reason: "manual" });
 }
 

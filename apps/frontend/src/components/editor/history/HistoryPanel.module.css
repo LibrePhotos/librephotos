@@ -1,0 +1,47 @@
+.scroller {
+  max-height: 280px;
+  margin-inline: -8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-text);
+}
+
+.row:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.row[aria-current="step"] {
+  background: var(--mantine-primary-color-light);
+  color: var(--mantine-color-bright);
+  font-weight: 600;
+}
+
+.row[data-undone] {
+  color: var(--mantine-color-dimmed);
+  font-style: italic;
+}
+
+.label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

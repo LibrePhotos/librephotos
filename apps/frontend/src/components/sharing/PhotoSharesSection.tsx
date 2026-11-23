@@ -1,5 +1,5 @@
 import type { PhotoShareLink } from "@librephotos/api-client";
-import { ActionIcon, Button, CopyButton, Group, Paper, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, CopyButton, Group, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import {
   IconCheck as CheckIcon,
   IconCopy as CopyIcon,
@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchPhotoSharesQuery, usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
 import { MediaThumbnail } from "../common/MediaThumbnail";
+import { Panel } from "../common/surfaces/Panel";
 import { ConfirmPopover } from "./ConfirmPopover";
 
 /** One link, with its own mutation so only this row shows a spinner. */
@@ -37,7 +38,7 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
             <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} withArrow>
               <ActionIcon
                 variant="subtle"
-                color={copied ? "teal" : "gray"}
+                color={copied ? "green" : "gray"}
                 onClick={copy}
                 aria-label={t("sharing.copyLink")}
               >
@@ -97,7 +98,7 @@ export function PhotoSharesSection() {
   }
 
   return (
-    <Paper p="md" withBorder>
+    <Panel p="md">
       <Stack gap="sm">
         <Group gap="xs">
           <LinkIcon size={18} />
@@ -110,6 +111,6 @@ export function PhotoSharesSection() {
           <PhotoShareRow key={share.photo_id} share={share} />
         ))}
       </Stack>
-    </Paper>
+    </Panel>
   );
 }

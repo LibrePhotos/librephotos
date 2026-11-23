@@ -79,12 +79,18 @@ def owner_copies_dir(owner_id: int | None) -> str:
     return os.path.join(copies_root(), str(owner_id))
 
 
-def copy_name(photo: Photo, original: str) -> str:
+def copy_name(photo: Photo, original: str, tag: str = "") -> str:
     """The copy's file name: the hash, ``.jpg`` for a still, a video's own
-    extension (its container is kept)."""
+    extension (its container is kept).
+
+    ``tag`` names which picture of an edited photo it is a copy of
+    (``api.editing.renditions.EditedPicture``), so a copy made from another
+    version, even one finished after the copies were cleared, is never served.
+    """
+    stem = f"{photo.image_hash}.{tag}" if tag else photo.image_hash
     if photo.video:
-        return photo.image_hash + (extension(original) or MP4_EXTENSION)
-    return photo.image_hash + JPEG_EXTENSION
+        return stem + (extension(original) or MP4_EXTENSION)
+    return stem + JPEG_EXTENSION
 
 
 def _part_path(final: str) -> str:
@@ -229,6 +235,7 @@ def ensure_copy(
     original: str,
     requester_id: int,
     allow_new: Callable[[], bool] | None = None,
+    tag: str = "",
 ) -> str | None:
     """The path of ``photo``'s copy without metadata, made now if missing.
 
@@ -238,8 +245,11 @@ def ensure_copy(
     when ``requester_id`` made too many this hour: the view answers 503 with
     ``Retry-After`` at once instead of holding a worker. ``allow_new`` counts
     a new copy; by default on the library share of ``photo``'s owner.
+    ``tag`` as in ``copy_name``.
     """
-    final = os.path.join(owner_copies_dir(photo.owner_id), copy_name(photo, original))
+    final = os.path.join(
+        owner_copies_dir(photo.owner_id), copy_name(photo, original, tag)
+    )
     if os.path.exists(final):
         return final
     os.makedirs(os.path.dirname(final), exist_ok=True)
@@ -270,7 +280,8 @@ def _remove(path: str) -> None:
 
 
 def delete_copies(image_hash: str) -> None:
-    """Remove the copies of ``image_hash`` (when its thumbnails go)."""
+    """Remove the copies of ``image_hash``, of every tag (when its thumbnails go,
+    and when its edit changes)."""
     pattern = os.path.join(
         glob.escape(copies_root()), "*", glob.escape(image_hash) + ".*"
     )

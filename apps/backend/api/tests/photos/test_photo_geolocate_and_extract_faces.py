@@ -13,9 +13,11 @@ Quirks deliberately pinned (see inline comments):
   * ``AlbumPlace.geolocation_level`` is only assigned when the photo is not
     already a member of that album place.
   * ``extract_faces`` swallows ``IntegrityError`` (retrying exactly once) but
-    re-raises every other exception.
+    re-raises every other exception; a photo without its big thumbnail on
+    disk is skipped.
 """
 
+import os
 from unittest.mock import patch
 
 import PIL.Image
@@ -45,6 +47,11 @@ GEO_RESULT = {
         {"text": "Germany"},
     ],
 }
+
+
+def _remove_if_there(path):
+    if os.path.exists(path):
+        os.remove(path)
 
 
 def _thumb_image(mode="RGB", size=(200, 200)):
@@ -363,6 +370,11 @@ class ExtractFacesCharacterizationTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
+        # Only there: PIL.Image.open is patched to return the picture.
+        path = self.photo.thumbnail.thumbnail_big.path
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        open(path, "wb").close()
+        self.addCleanup(_remove_if_there, path)
 
     # ---- feature flag / empty results ---------------------------------
 
@@ -594,17 +606,17 @@ class ExtractFacesCharacterizationTest(TestCase):
 
         self.assertEqual(extractor.extract_from_face_service.call_count, 1)
 
-    @patch(
-        "api.faces.photo_faces.PIL.Image.open",
-        side_effect=FileNotFoundError("no thumb"),
-    )
+    @patch("api.faces.photo_faces.PIL.Image.open")
     @patch("api.faces.photo_faces.extractor")
-    def test_missing_thumbnail_propagates(self, extractor, _open):
-        with self.assertRaises(FileNotFoundError):
-            extract_faces(self.photo)
+    def test_missing_thumbnail_is_skipped_and_left_unscanned(self, extractor, _open):
+        os.remove(self.photo.thumbnail.thumbnail_big.path)
 
+        extract_faces(self.photo)
+
+        _open.assert_not_called()
         extractor.extract_from_exif.assert_not_called()
         extractor.extract_from_face_service.assert_not_called()
+        self.assertIsNone(Photo.objects.get(pk=self.photo.pk).faces_scanned_at)
 
     @patch("api.faces.photo_faces.PIL.Image.open", return_value=_thumb_image())
     @patch("api.faces.photo_faces.extractor")

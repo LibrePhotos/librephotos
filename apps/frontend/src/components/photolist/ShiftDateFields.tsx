@@ -54,7 +54,7 @@ function PreviewRow({ label, photo, seconds }: Readonly<{ label: string; photo: 
         </Group>
       </Table.Th>
       <Table.Td>{formatPhotoDateTime(photo.exif_timestamp)}</Table.Td>
-      <Table.Td c={seconds === 0 ? "dimmed" : "blue"}>{after ? formatPhotoDateTime(after) : ""}</Table.Td>
+      <Table.Td c={seconds === 0 ? "dimmed" : "brand"}>{after ? formatPhotoDateTime(after) : ""}</Table.Td>
     </Table.Tr>
   );
 }

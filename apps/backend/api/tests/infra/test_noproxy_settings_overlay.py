@@ -23,6 +23,8 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase
 
+from librephotos.settings._sqlite import SQLITE_ENGINE
+
 BACKEND_ROOT = Path(settings.BASE_DIR).parent
 REPO_ROOT = BACKEND_ROOT.parent.parent
 UNIFIED_DIR = REPO_ROOT / "deploy" / "docker" / "unified"
@@ -129,7 +131,7 @@ class NoProxySettingsTest(SimpleTestCase):
 
     def test_sqlite_is_the_default_and_drops_the_postgres_app(self):
         loaded = load_noproxy_settings()
-        self.assertEqual(loaded["engine"], "django.db.backends.sqlite3")
+        self.assertEqual(loaded["engine"], SQLITE_ENGINE)
         self.assertNotIn("django.contrib.postgres", loaded["installed_apps"])
 
     def test_postgresql_keeps_productions_database_configuration(self):

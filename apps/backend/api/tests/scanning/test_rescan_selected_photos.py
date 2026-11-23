@@ -273,7 +273,7 @@ def recorded_tasks() -> Iterator[TaskRecorder]:
     """Queue jobs into a recorder: no broker, no model downloads."""
     recorder = TaskRecorder([])
     with (
-        patch("api.jobs.queue.AsyncTask", recorder),
+        patch("api.jobs.store.add", recorder),
         patch("api.runtime.ml_models.do_all_models_exist", return_value=True),
     ):
         yield recorder

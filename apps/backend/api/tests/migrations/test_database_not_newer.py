@@ -68,7 +68,7 @@ class DatabaseNotNewerCheckTest(TestCase):
         self.assertEqual(self.run_check(), [])
 
     def test_third_party_apps_are_left_alone(self):
-        self.record(("django_q", "9999_from_a_newer_package"))
+        self.record(("constance", "9999_from_a_newer_package"))
         self.assertEqual(self.run_check(), [])
 
     def test_quiet_without_a_migrations_table(self):

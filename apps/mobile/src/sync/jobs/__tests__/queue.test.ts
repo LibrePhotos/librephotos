@@ -6,7 +6,7 @@
  * recoverable, and priority decides who runs next.
  */
 import { sql } from "drizzle-orm";
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import {
   claimNextJob,
   clearJobs,
@@ -26,11 +26,11 @@ import {
 import { JOB_BACKOFF_BASE_MS, MAX_JOB_ATTEMPTS, jobBackoffDelay } from "../types";
 import { defined } from "@/test/defined";
 
-function stateOf(t: TestDb, id: number): string {
-  return (t.db.get(sql`SELECT state FROM job_queue WHERE id = ${id}`) as { state: string }).state;
+async function stateOf(t: TestDb, id: number): Promise<string> {
+  return (await t.db.get<{ state: string }>(sql`SELECT state FROM job_queue WHERE id = ${id}`)).state;
 }
-function countAll(t: TestDb): number {
-  return (t.db.get(sql`SELECT COUNT(*) AS c FROM job_queue`) as { c: number }).c;
+async function countAll(t: TestDb): Promise<number> {
+  return (await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM job_queue`)).c;
 }
 
 describe("job_queue: enqueue + dedupe", () => {
@@ -38,10 +38,10 @@ describe("job_queue: enqueue + dedupe", () => {
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  it("enqueues a job with the kind's default priority and dedupe key", () => {
-    const id = enqueueJob(t.db, { kind: "hash_batch" }, 1_000);
+  it("enqueues a job with the kind's default priority and dedupe key", async () => {
+    const id = await enqueueJob(t.db, { kind: "hash_batch" }, 1_000);
     expect(id).not.toBeNull();
-    const row = defined(getJob(t.db, defined(id)));
+    const row = defined(await getJob(t.db, defined(id)));
     expect(row.kind).toBe("hash_batch");
     expect(row.dedupe_key).toBe("hash_batch");
     expect(row.state).toBe("pending");
@@ -50,17 +50,17 @@ describe("job_queue: enqueue + dedupe", () => {
     expect(row.created_at).toBe(1_000);
   });
 
-  it("drops a duplicate while an identical job is still live", () => {
-    expect(enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 0 } })).not.toBeNull();
+  it("drops a duplicate while an identical job is still live", async () => {
+    expect(await enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 0 } })).not.toBeNull();
     // Every trigger, foreground event and chained job re-requests this work; it
     // must collapse onto the one outstanding row rather than pile up.
-    expect(enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 1 } })).toBeNull();
-    expect(enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 2 } })).toBeNull();
-    expect(countAll(t)).toBe(1);
+    expect(await enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 1 } })).toBeNull();
+    expect(await enqueueJob(t.db, { kind: "device_scan", payload: { chunk: 2 } })).toBeNull();
+    expect(await countAll(t)).toBe(1);
   });
 
-  it("dedupes per entity / per asset, not across them", () => {
-    const inserted = enqueueJobs(t.db, [
+  it("dedupes per entity / per asset, not across them", async () => {
+    const inserted = await enqueueJobs(t.db, [
       { kind: "remote_delta", payload: { entity: "photo" } },
       { kind: "remote_delta", payload: { entity: "person" } },
       { kind: "remote_delta", payload: { entity: "photo" } }, // dup
@@ -69,29 +69,29 @@ describe("job_queue: enqueue + dedupe", () => {
       { kind: "upload_asset", payload: { assetId: "a1" } }, // dup
     ]);
     expect(inserted).toBe(4);
-    expect(countAll(t)).toBe(4);
+    expect(await countAll(t)).toBe(4);
   });
 
-  it("lets the same work be re-enqueued once the previous row has finished", () => {
-    const first = defined(enqueueJob(t.db, { kind: "hash_batch" }));
-    completeJob(t.db, first);
+  it("lets the same work be re-enqueued once the previous row has finished", async () => {
+    const first = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
+    await completeJob(t.db, first);
     // A finished row must not block the next pass — the dedupe index is partial
     // on (pending|running) precisely so a later sync can scan again.
-    const second = enqueueJob(t.db, { kind: "hash_batch" });
+    const second = await enqueueJob(t.db, { kind: "hash_batch" });
     expect(second).not.toBeNull();
     expect(second).not.toBe(first);
   });
 
-  it("does not dedupe against a job that is running — a continuation is a new row", () => {
-    enqueueJob(t.db, { kind: "hash_batch" });
-    const claimed = defined(claimNextJob(t.db, 1_000));
+  it("does not dedupe against a job that is running — a continuation is a new row", async () => {
+    await enqueueJob(t.db, { kind: "hash_batch" });
+    const claimed = defined(await claimNextJob(t.db, 1_000));
     expect(claimed.state).toBe("running");
     // While it runs, re-requesting is still a duplicate…
-    expect(enqueueJob(t.db, { kind: "hash_batch" })).toBeNull();
+    expect(await enqueueJob(t.db, { kind: "hash_batch" })).toBeNull();
     // …but once it settles, its own continuation goes in. This ordering is why
     // the worker records the outcome BEFORE enqueuing what the job chained.
-    completeJob(t.db, claimed.id);
-    expect(enqueueJob(t.db, { kind: "hash_batch" })).not.toBeNull();
+    await completeJob(t.db, claimed.id);
+    expect(await enqueueJob(t.db, { kind: "hash_batch" })).not.toBeNull();
   });
 });
 
@@ -100,26 +100,26 @@ describe("job_queue: atomic claim", () => {
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  it("never hands the same job to two claimants", () => {
-    enqueueJob(t.db, { kind: "hash_batch" });
-    const a = claimNextJob(t.db, 1_000);
-    const b = claimNextJob(t.db, 1_000);
+  it("never hands the same job to two claimants", async () => {
+    await enqueueJob(t.db, { kind: "hash_batch" });
+    const a = await claimNextJob(t.db, 1_000);
+    const b = await claimNextJob(t.db, 1_000);
     expect(a).not.toBeNull();
     expect(b).toBeNull(); // the only job is already claimed
-    expect(stateOf(t, defined(a).id)).toBe("running");
+    expect(await stateOf(t, defined(a).id)).toBe("running");
   });
 
-  it("hands out distinct jobs to interleaved claimants", () => {
-    enqueueJobs(t.db, [
+  it("hands out distinct jobs to interleaved claimants", async () => {
+    await enqueueJobs(t.db, [
       { kind: "upload_asset", payload: { assetId: "a1" } },
       { kind: "upload_asset", payload: { assetId: "a2" } },
       { kind: "upload_asset", payload: { assetId: "a3" } },
     ]);
     const claimed = [
-      claimNextJob(t.db, 1_000),
-      claimNextJob(t.db, 1_000),
-      claimNextJob(t.db, 1_000),
-      claimNextJob(t.db, 1_000),
+      await claimNextJob(t.db, 1_000),
+      await claimNextJob(t.db, 1_000),
+      await claimNextJob(t.db, 1_000),
+      await claimNextJob(t.db, 1_000),
     ];
     const ids = claimed.filter(Boolean).map((j) => defined(j).id);
     expect(ids).toHaveLength(3);
@@ -127,20 +127,20 @@ describe("job_queue: atomic claim", () => {
     expect(claimed[3]).toBeNull();
   });
 
-  it("increments attempts on claim, so a job that never reports back still ages", () => {
-    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
-    expect(defined(claimNextJob(t.db, 1_000)).attempts).toBe(1);
-    reclaimStaleJobs(t.db, 2_000);
+  it("increments attempts on claim, so a job that never reports back still ages", async () => {
+    const id = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
+    expect(defined(await claimNextJob(t.db, 1_000)).attempts).toBe(1);
+    await reclaimStaleJobs(t.db, 2_000);
     // Reclaim refunds the attempt: a crash is not evidence the job is bad.
-    expect(defined(getJob(t.db, id)).attempts).toBe(0);
+    expect(defined(await getJob(t.db, id)).attempts).toBe(0);
   });
 
-  it("skips jobs whose backoff window has not opened", () => {
-    enqueueJob(t.db, { kind: "hash_batch", notBefore: 5_000 });
-    expect(claimNextJob(t.db, 1_000)).toBeNull();
-    expect(hasEligibleJob(t.db, 1_000)).toBe(false);
-    expect(nextJobDueAt(t.db)).toBe(5_000);
-    expect(claimNextJob(t.db, 5_000)).not.toBeNull();
+  it("skips jobs whose backoff window has not opened", async () => {
+    await enqueueJob(t.db, { kind: "hash_batch", notBefore: 5_000 });
+    expect(await claimNextJob(t.db, 1_000)).toBeNull();
+    expect(await hasEligibleJob(t.db, 1_000)).toBe(false);
+    expect(await nextJobDueAt(t.db)).toBe(5_000);
+    expect(await claimNextJob(t.db, 5_000)).not.toBeNull();
   });
 });
 
@@ -149,10 +149,10 @@ describe("job_queue: priority ordering", () => {
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  it("runs interactive work before background work regardless of insertion order", () => {
+  it("runs interactive work before background work regardless of insertion order", async () => {
     // Deliberately enqueued worst-first: ordering must come from priority, not
     // from the order the caller happened to ask.
-    enqueueJobs(t.db, [
+    await enqueueJobs(t.db, [
       { kind: "integrity_check" }, // 95
       { kind: "thumb_prefetch" }, // 90
       { kind: "hash_batch" }, // 60
@@ -161,10 +161,10 @@ describe("job_queue: priority ordering", () => {
     ]);
     const order: string[] = [];
     for (;;) {
-      const job = claimNextJob(t.db, 1_000);
+      const job = await claimNextJob(t.db, 1_000);
       if (!job) break;
       order.push(job.kind);
-      completeJob(t.db, job.id);
+      await completeJob(t.db, job.id);
     }
     expect(order).toEqual([
       "outbox_replay",
@@ -175,21 +175,21 @@ describe("job_queue: priority ordering", () => {
     ]);
   });
 
-  it("round-robins the three background stages by insertion order (same priority)", () => {
+  it("round-robins the three background stages by insertion order (same priority)", async () => {
     // device_scan / hash_batch / upload_asset deliberately share priority 60.
     // Distinct priorities would let the best-ranked one monopolise the worker —
     // which is the strict chain this queue replaced, re-implemented in data.
-    enqueueJobs(t.db, [
+    await enqueueJobs(t.db, [
       { kind: "device_scan", payload: { chunk: 0 } },
       { kind: "hash_batch" },
       { kind: "upload_asset", payload: { assetId: "a1" } },
     ]);
     const order: string[] = [];
     for (;;) {
-      const job = claimNextJob(t.db, 1_000);
+      const job = await claimNextJob(t.db, 1_000);
       if (!job) break;
       order.push(job.kind);
-      completeJob(t.db, job.id);
+      await completeJob(t.db, job.id);
     }
     expect(order).toEqual(["device_scan", "hash_batch", "upload_asset"]);
   });
@@ -200,21 +200,21 @@ describe("job_queue: retry + backoff", () => {
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  it("returns a failed job to pending behind an exponential window", () => {
-    enqueueJob(t.db, { kind: "hash_batch" });
-    const job = defined(claimNextJob(t.db, 1_000));
-    const outcome = failJob(t.db, job, "boom", 1_000);
+  it("returns a failed job to pending behind an exponential window", async () => {
+    await enqueueJob(t.db, { kind: "hash_batch" });
+    const job = defined(await claimNextJob(t.db, 1_000));
+    const outcome = await failJob(t.db, job, "boom", 1_000);
 
     expect(outcome.state).toBe("pending");
     expect(outcome.retryAt).toBe(1_000 + JOB_BACKOFF_BASE_MS); // attempts=1 ⇒ base * 2^0
-    const row = defined(getJob(t.db, job.id));
+    const row = defined(await getJob(t.db, job.id));
     expect(row.state).toBe("pending");
     expect(row.last_error).toBe("boom");
     expect(row.started_at).toBeNull();
-    expect(claimNextJob(t.db, 1_000)).toBeNull(); // still inside the window
+    expect(await claimNextJob(t.db, 1_000)).toBeNull();
   });
 
-  it("widens the window with each attempt and caps it", () => {
+  it("widens the window with each attempt and caps it", async () => {
     expect(jobBackoffDelay(1)).toBe(JOB_BACKOFF_BASE_MS);
     expect(jobBackoffDelay(2)).toBe(JOB_BACKOFF_BASE_MS * 2);
     expect(jobBackoffDelay(3)).toBe(JOB_BACKOFF_BASE_MS * 4);
@@ -223,62 +223,62 @@ describe("job_queue: retry + backoff", () => {
     expect(jobBackoffDelay(50)).toBe(5 * 60_000);
   });
 
-  it("becomes terminally failed at the attempt cap, keeping the error", () => {
-    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
+  it("becomes terminally failed at the attempt cap, keeping the error", async () => {
+    const id = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
     let now = 1_000;
     for (let i = 0; i < MAX_JOB_ATTEMPTS; i += 1) {
-      const job = claimNextJob(t.db, now);
+      const job = await claimNextJob(t.db, now);
       expect(job).not.toBeNull();
-      failJob(t.db, defined(job), `boom ${i}`, now);
+      await failJob(t.db, defined(job), `boom ${i}`, now);
       now += jobBackoffDelay(i + 1) + 1;
     }
-    const row = defined(getJob(t.db, id));
+    const row = defined(await getJob(t.db, id));
     expect(row.state).toBe("failed");
     expect(row.attempts).toBe(MAX_JOB_ATTEMPTS);
     expect(row.last_error).toBe(`boom ${MAX_JOB_ATTEMPTS - 1}`);
     // Terminal means terminal: it will not be claimed again on its own.
-    expect(claimNextJob(t.db, now + 10 * 60_000)).toBeNull();
+    expect(await claimNextJob(t.db, now + 10 * 60_000)).toBeNull();
   });
 
-  it("retryFailedJobs revives terminal failures for the user's retry button", () => {
-    const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
-    const job = defined(claimNextJob(t.db, 1_000));
-    failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "nope", 1_000);
-    expect(stateOf(t, id)).toBe("failed");
+  it("retryFailedJobs revives terminal failures for the user's retry button", async () => {
+    const id = defined(await enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: "a1" } }));
+    const job = defined(await claimNextJob(t.db, 1_000));
+    await failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "nope", 1_000);
+    expect(await stateOf(t, id)).toBe("failed");
 
-    expect(retryFailedJobs(t.db)).toBe(1);
-    const row = defined(getJob(t.db, id));
+    expect(await retryFailedJobs(t.db)).toBe(1);
+    const row = defined(await getJob(t.db, id));
     expect(row.state).toBe("pending");
     expect(row.attempts).toBe(0);
     expect(row.last_error).toBeNull();
   });
 
-  it("retryFailedJobs collapses two failures that share a dedupe key", () => {
+  it("retryFailedJobs collapses two failures that share a dedupe key", async () => {
     // The same work can die terminally in two different sessions, leaving two
     // `failed` rows with one key. Reviving both would violate the one-live-row
     // guarantee the partial unique index enforces — so only the newest returns.
-    const older = defined(enqueueJob(t.db, { kind: "hash_batch" }));
-    failJob(t.db, { id: defined(claimNextJob(t.db, 1_000)).id, attempts: MAX_JOB_ATTEMPTS }, "a", 1_000);
-    const newer = defined(enqueueJob(t.db, { kind: "hash_batch" }));
-    failJob(t.db, { id: defined(claimNextJob(t.db, 2_000)).id, attempts: MAX_JOB_ATTEMPTS }, "b", 2_000);
+    const older = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
+    await failJob(t.db, { id: defined(await claimNextJob(t.db, 1_000)).id, attempts: MAX_JOB_ATTEMPTS }, "a", 1_000);
+    const newer = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
+    await failJob(t.db, { id: defined(await claimNextJob(t.db, 2_000)).id, attempts: MAX_JOB_ATTEMPTS }, "b", 2_000);
 
-    expect(() => retryFailedJobs(t.db)).not.toThrow();
-    expect(getJob(t.db, older)).toBeNull();
-    expect(defined(getJob(t.db, newer)).state).toBe("pending");
+    await expect(retryFailedJobs(t.db)).resolves.toBeGreaterThanOrEqual(0);
+    expect(await getJob(t.db, older)).toBeNull();
+    expect(defined(await getJob(t.db, newer)).state).toBe("pending");
   });
 
-  it("retryFailedJobs drops a failure whose work has already been re-requested", () => {
-    const stale = defined(enqueueJob(t.db, { kind: "hash_batch" }));
-    const job = defined(claimNextJob(t.db, 1_000));
-    failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "nope", 1_000);
+  it("retryFailedJobs drops a failure whose work has already been re-requested", async () => {
+    const stale = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
+    const job = defined(await claimNextJob(t.db, 1_000));
+    await failJob(t.db, { id: job.id, attempts: MAX_JOB_ATTEMPTS }, "nope", 1_000);
     // A newer row now carries the same dedupe key…
-    const fresh = defined(enqueueJob(t.db, { kind: "hash_batch" }));
+    const fresh = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
 
-    retryFailedJobs(t.db);
+    await retryFailedJobs(t.db);
     // …so reviving the old one would violate the uniqueness guarantee. The
     // newer row wins and the stale failure is discarded.
-    expect(getJob(t.db, stale)).toBeNull();
-    expect(defined(getJob(t.db, fresh)).state).toBe("pending");
+    expect(await getJob(t.db, stale)).toBeNull();
+    expect(defined(await getJob(t.db, fresh)).state).toBe("pending");
   });
 });
 
@@ -287,39 +287,39 @@ describe("job_queue: crash recovery", () => {
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  it("reclaims a `running` row left behind by a killed process", () => {
-    enqueueJobs(t.db, [{ kind: "hash_batch" }, { kind: "device_scan", payload: { chunk: 0 } }]);
-    const a = defined(claimNextJob(t.db, 1_000));
-    const b = defined(claimNextJob(t.db, 1_000));
-    expect(stateOf(t, a.id)).toBe("running");
-    expect(stateOf(t, b.id)).toBe("running");
+  it("reclaims a `running` row left behind by a killed process", async () => {
+    await enqueueJobs(t.db, [{ kind: "hash_batch" }, { kind: "device_scan", payload: { chunk: 0 } }]);
+    const a = defined(await claimNextJob(t.db, 1_000));
+    const b = defined(await claimNextJob(t.db, 1_000));
+    expect(await stateOf(t, a.id)).toBe("running");
+    expect(await stateOf(t, b.id)).toBe("running");
 
     // The process dies here. Nothing marks these done or failed; without a
     // reclaim they would wedge forever, exactly as the old pipeline wedged when
     // a reload discarded the call stack.
-    expect(reclaimStaleJobs(t.db, 2_000)).toBe(2);
-    expect(stateOf(t, a.id)).toBe("pending");
-    expect(stateOf(t, b.id)).toBe("pending");
-    expect(defined(getJob(t.db, a.id)).started_at).toBeNull();
+    expect(await reclaimStaleJobs(t.db, 2_000)).toBe(2);
+    expect(await stateOf(t, a.id)).toBe("pending");
+    expect(await stateOf(t, b.id)).toBe("pending");
+    expect(defined(await getJob(t.db, a.id)).started_at).toBeNull();
     // Reclaimed work is immediately claimable again — no backoff penalty.
-    expect(claimNextJob(t.db, 2_000)).not.toBeNull();
+    expect(await claimNextJob(t.db, 2_000)).not.toBeNull();
   });
 
-  it("honours a staleness threshold so a mid-session sweep spares live jobs", () => {
-    enqueueJob(t.db, { kind: "hash_batch" });
-    claimNextJob(t.db, 10_000);
+  it("honours a staleness threshold so a mid-session sweep spares live jobs", async () => {
+    await enqueueJob(t.db, { kind: "hash_batch" });
+    await claimNextJob(t.db, 10_000);
     // Claimed 5s ago; a 60s threshold must leave it alone.
-    expect(reclaimStaleJobs(t.db, 15_000, 60_000)).toBe(0);
-    expect(reclaimStaleJobs(t.db, 90_000, 60_000)).toBe(1);
+    expect(await reclaimStaleJobs(t.db, 15_000, 60_000)).toBe(0);
+    expect(await reclaimStaleJobs(t.db, 90_000, 60_000)).toBe(1);
   });
 
-  it("releaseJob hands a cancelled job back with its attempt refunded", () => {
-    const id = defined(enqueueJob(t.db, { kind: "hash_batch" }));
-    claimNextJob(t.db, 1_000);
-    expect(defined(getJob(t.db, id)).attempts).toBe(1);
+  it("releaseJob hands a cancelled job back with its attempt refunded", async () => {
+    const id = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
+    await claimNextJob(t.db, 1_000);
+    expect(defined(await getJob(t.db, id)).attempts).toBe(1);
 
-    releaseJob(t.db, id);
-    const row = defined(getJob(t.db, id));
+    await releaseJob(t.db, id);
+    const row = defined(await getJob(t.db, id));
     expect(row.state).toBe("pending");
     // Backgrounding the app repeatedly must not exhaust a job's retry budget.
     expect(row.attempts).toBe(0);
@@ -332,25 +332,25 @@ describe("job_queue: housekeeping", () => {
   beforeEach(() => (t = createTestDb()));
   afterEach(() => t.close());
 
-  it("prunes old `done` rows but keeps failures", () => {
+  it("prunes old `done` rows but keeps failures", async () => {
     for (let i = 0; i < 12; i += 1) {
-      const id = defined(enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: `a${i}` } }));
-      completeJob(t.db, id);
+      const id = defined(await enqueueJob(t.db, { kind: "upload_asset", payload: { assetId: `a${i}` } }));
+      await completeJob(t.db, id);
     }
-    const failed = defined(enqueueJob(t.db, { kind: "hash_batch" }));
-    failJob(t.db, { id: failed, attempts: MAX_JOB_ATTEMPTS }, "kept", 1_000);
+    const failed = defined(await enqueueJob(t.db, { kind: "hash_batch" }));
+    await failJob(t.db, { id: failed, attempts: MAX_JOB_ATTEMPTS }, "kept", 1_000);
 
-    expect(pruneJobs(t.db, 5)).toBe(7);
-    expect((t.db.get(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'done'`) as { c: number }).c).toBe(5);
+    expect(await pruneJobs(t.db, 5)).toBe(7);
+    expect((await t.db.get<{ c: number }>(sql`SELECT COUNT(*) AS c FROM job_queue WHERE state = 'done'`)).c).toBe(5);
     // Failures are the only record of a blocker, so they survive pruning.
-    expect(defined(getJob(t.db, failed)).state).toBe("failed");
+    expect(defined(await getJob(t.db, failed)).state).toBe("failed");
   });
 
-  it("counts live work and clears the queue", () => {
-    enqueueJobs(t.db, [{ kind: "hash_batch" }, { kind: "thumb_prefetch" }]);
-    claimNextJob(t.db, 1_000);
-    expect(pendingJobCount(t.db)).toBe(2); // pending + running are both "live"
-    clearJobs(t.db);
-    expect(countAll(t)).toBe(0);
+  it("counts live work and clears the queue", async () => {
+    await enqueueJobs(t.db, [{ kind: "hash_batch" }, { kind: "thumb_prefetch" }]);
+    await claimNextJob(t.db, 1_000);
+    expect(await pendingJobCount(t.db)).toBe(2);
+    await clearJobs(t.db);
+    expect(await countAll(t)).toBe(0);
   });
 });

@@ -1,9 +1,10 @@
 import { photoLicenseUrl, type PhotoLicenseId } from "@librephotos/api-client";
-import { ActionIcon, Anchor, CopyButton, Group, Paper, Stack, Text, Textarea, Tooltip } from "@mantine/core";
+import { ActionIcon, Anchor, CopyButton, Group, Stack, Text, Textarea, Tooltip } from "@mantine/core";
 import { IconAlertCircle, IconCheck, IconCopy, IconExternalLink, IconX, type Icon } from "@tabler/icons-react";
 import type { ParseKeys, TFunction } from "i18next";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { Panel } from "../common/surfaces/Panel";
 import { SectionTitle } from "../lightbox/SectionTitle";
 import { LicenseBadge } from "./LicenseBadge";
 import { asLicense, LICENSES, type LicenseTerms } from "./photoLicenses";
@@ -13,7 +14,7 @@ type Rights = Readonly<{ license: string | null; creator: string | null; copyrig
 
 type TermRow = Readonly<{ icon: Icon; color: string; text: ParseKeys }>;
 
-const ALLOWED: Pick<TermRow, "icon" | "color"> = { icon: IconCheck, color: "teal" };
+const ALLOWED: Pick<TermRow, "icon" | "color"> = { icon: IconCheck, color: "green" };
 const DENIED: Pick<TermRow, "icon" | "color"> = { icon: IconX, color: "red" };
 const REQUIRED: Pick<TermRow, "icon" | "color"> = { icon: IconAlertCircle, color: "orange" };
 
@@ -49,7 +50,7 @@ function HowToCredit({ line }: Readonly<{ line: string }>) {
   const { t } = useTranslation();
   const canCopy = window.isSecureContext && typeof navigator.clipboard?.writeText === "function";
   return (
-    <Paper withBorder p="xs" radius="sm">
+    <Panel p="xs">
       <Stack gap={6}>
         <Group justify="space-between" wrap="nowrap">
           <Text size="sm" fw={600}>
@@ -61,7 +62,7 @@ function HowToCredit({ line }: Readonly<{ line: string }>) {
                 <Tooltip label={copied ? t("rights.public.copied") : t("rights.public.copy")}>
                   <ActionIcon
                     variant="subtle"
-                    color={copied ? "teal" : "gray"}
+                    color={copied ? "green" : "gray"}
                     size="sm"
                     onClick={copy}
                     aria-label={t("rights.public.copy")}
@@ -82,7 +83,7 @@ function HowToCredit({ line }: Readonly<{ line: string }>) {
           onFocus={event => event.currentTarget.select()}
         />
       </Stack>
-    </Paper>
+    </Panel>
   );
 }
 

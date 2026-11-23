@@ -35,6 +35,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 from django.test import SimpleTestCase
 
+from api.tests.sidecar_client import test_client
 from api.tests.stubs import load_backend_file
 
 MODEL_NAME = "openclip_vitb32"
@@ -70,7 +71,7 @@ tags_main = _load_tags_main()
 class TagsServiceTestCase(SimpleTestCase):
     def setUp(self):
         tags_main.app.config["TESTING"] = False
-        self.client = tags_main.app.test_client()
+        self.client = test_client(tags_main.app)
         tags_main.tagger_instances.clear()
         tags_main.app.extensions["librephotos_sidecar"].last_request_time = None
         self.model_cls = MagicMock(name="OpenCLIP")

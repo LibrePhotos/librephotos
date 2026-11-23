@@ -28,7 +28,8 @@ export function FinishUpgradeCard({ tasks }: Readonly<{ tasks: UpgradeTask[] }>)
 
   return (
     <NoticeCard
-      color="orange"
+      tone="orange"
+      contentIndent={12}
       icon={<ListCheck size={20} />}
       title={open ? t("upgradetasks.header") : t("upgradetasks.finishedheader")}
       badge={

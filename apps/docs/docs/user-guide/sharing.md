@@ -188,6 +188,12 @@ When you also [share your whole library](#sharing-your-whole-library) with someo
 
 Public links do not use this setting: what a visitor of a public album or photo link sees is set by the [Photo details](#photo-details) of the link, and **Share detected faces** there also shows only the people you named.
 
+## Edited photos
+
+<Since version="1.7.0" />
+
+When you share a photo you [edited](./editing-photos.md), everyone you share it with sees and downloads the edited picture, never your original file: users you share it or an album with, album members, people you share your library with and visitors of a public link. This holds even with **Original files** or **Download original files** on, and while the full-size edited picture is still being made. See [Downloads and sharing](./editing-photos.md#downloads-and-sharing).
+
 ## Public Album Sharing via Link
 
 You can create a public link for any user album, making it accessible to anyone — even people without an account on your LibrePhotos instance.
@@ -232,7 +238,7 @@ When public sharing is enabled, click **Show settings** in the sharing dialog to
 Change the URL slug to something memorable — 3–64 characters using only lowercase letters, digits and hyphens. Capitals you type are converted to lowercase automatically; spaces, underscores and other punctuation are rejected. Slugs must be unique across the instance, and the field checks availability as you type. For example: `summer-vacation-2025` → `/public/s/summer-vacation-2025`.
 
 #### Expiration
-Expiration is optional. Pick any expiry date and time with the date picker (down to the second), or use the built-in **7 days**, **30 days** or **90 days** presets in the picker's dropdown for a quick choice. Click **Never** (or clear the field) to remove the expiry so the link never expires. After expiration, the link no longer works.
+Expiration is optional. Pick any expiry date and time in the field (down to the second; it uses your browser's own date and time control), or click **7 days**, **30 days** or **90 days** under it for a quick choice. <Since version="1.7.0" /> Up to 1.6.0 these presets were in the picker's dropdown. Click **Never** (or clear the field) to remove the expiry so the link never expires. After expiration, the link no longer works.
 
 #### Photo Details
 

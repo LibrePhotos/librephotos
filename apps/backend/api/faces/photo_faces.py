@@ -9,6 +9,7 @@ as its first argument.
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Iterable
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -23,6 +24,7 @@ from django.db.utils import IntegrityError
 from django.utils import timezone
 
 import api.models
+from api.editing.faces import region_frame
 from api.faces import extractor, video_faces
 from api.faces.geometry import (
     FACE_OVERLAP_IOU_THRESHOLD,
@@ -33,7 +35,7 @@ from api.faces.geometry import (
 from api.faces.labels import recreate_search_captions
 from api.faces.recognition import face_model_name, get_face_encodings
 from api.lazy_import import LazyModule
-from api.metadata.reader import sidecar_files_for_photo
+from api.metadata.reader import MetadataReadError, sidecar_files_for_photo
 from api.runtime.features import feature_enabled
 
 if TYPE_CHECKING:
@@ -79,6 +81,11 @@ def extract_faces(photo: Photo, second_try: bool = False) -> None:
     if not feature_enabled("FACE_DETECTION"):
         logger.info("Face detection is disabled")
         return
+    if not _big_thumbnail_on_disk(photo):
+        logger.warning(
+            "image %s: no big thumbnail to find faces in, skipped", photo.image_hash
+        )
+        return
 
     unknown_cluster: api.models.cluster.Cluster = (
         api.models.cluster.get_unknown_cluster(user=photo.owner)
@@ -89,11 +96,24 @@ def extract_faces(photo: Photo, second_try: bool = False) -> None:
         _retry_face_extraction(photo, second_try)
         return
     except Exception as e:
-        logger.error("image %s: scan face failed", photo)
+        # The caller logs it, with its stack.
         if _fails_for_good(e):
             _mark_faces_scanned(photo)
         raise e
     _mark_faces_scanned(photo)
+
+
+def _big_thumbnail_on_disk(photo: Photo) -> bool:
+    """Whether the picture faces are found in is there.
+
+    Not when making it failed (the row names no file) or its file is gone.
+    The photo stays unscanned: the scan that makes its thumbnail puts it on
+    the next incremental Scan Faces.
+    """
+    thumbnail: api.models.thumbnail.Thumbnail | None = getattr(photo, "thumbnail", None)
+    if thumbnail is None or not thumbnail.thumbnail_big:
+        return False
+    return os.path.exists(thumbnail.thumbnail_big.path)
 
 
 def _fails_for_good(error: Exception) -> bool:
@@ -166,12 +186,47 @@ def _face_regions(
     thumbnail_path: str,
     detected: list[extractor.FaceLocation] | None,
 ) -> list[extractor.FaceLocation] | None:
-    """The photo's face regions from XMP, checked against ``detected``."""
+    """The photo's face regions from XMP, checked against ``detected``.
+
+    Optional: when the exif service cannot read the file, the photo gets the
+    detected faces alone, and a Rescan Faces reads its regions again.
+    """
+    try:
+        return read_face_regions(photo, thumbnail_path, detected)
+    except MetadataReadError:
+        # The error names the file's path, which is only logged at DEBUG.
+        logger.warning(
+            "image %s: face regions not read, detected faces only", photo.image_hash
+        )
+        logger.debug("image %s: face regions not read", photo.image_hash, exc_info=True)
+        return None
+
+
+def read_face_regions(
+    photo: Photo,
+    thumbnail_path: str,
+    detected: list[extractor.FaceLocation] | None,
+) -> list[extractor.FaceLocation] | None:
+    """The photo's face regions from XMP on its big thumbnail, checked against ``detected``.
+
+    Through the photo's edit when it crops or turns the picture
+    (``api.editing.faces.region_frame``): the regions are of the unedited one.
+    """
     assert photo.main_file is not None
+    sidecar_files = sidecar_files_for_photo(photo)
+    frame = region_frame(photo, thumbnail_path)
+    if frame is not None:
+        return extractor.extract_through_edit(
+            frame,
+            photo.main_file.path,
+            sidecar_files,
+            photo.local_orientation,
+            detected,
+        )
     return extractor.extract_from_exif(
         photo.main_file.path,
         thumbnail_path,
-        sidecar_files_for_photo(photo),
+        sidecar_files,
         local_orientation=photo.local_orientation,
         detected_faces=detected,
     )

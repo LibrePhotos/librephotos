@@ -30,6 +30,11 @@ export async function logout(client: ApiClient, refresh: string | undefined): Pr
   return parseResponse(S.LogoutResponse, res, "logout response");
 }
 
+export async function refreshAccessToken(client: ApiClient, refresh: string): Promise<S.RefreshResponse> {
+  const res = await client.post<unknown>("/auth/token/refresh/", { refresh });
+  return parseResponse(S.RefreshResponse, res, "token refresh");
+}
+
 /** Create a user. On a fresh instance (see fetchIsFirstTimeSetup) the first one becomes the admin. */
 export async function signUp(client: ApiClient, data: S.SignupRequest): Promise<S.SignupUser> {
   const res = await client.post<unknown>("/user/", data);
@@ -381,6 +386,36 @@ export async function fetchPublicAlbumPhoto(
     `/public/albums/s/${encodeURIComponent(slug)}/photos/${encodeURIComponent(photoId)}/`
   );
   return parseResponse(S.PublicPhotoDetailResponse, res, "public photo detail");
+}
+
+/* ---- photo edits (non-destructive editing) ----------------------------- */
+
+const photoEditPath = (photoId: string) => `/photos/${encodeURIComponent(photoId)}/edit/`;
+
+/** A photo's edit; a photo never edited answers the default recipe with `version` 0. */
+export async function fetchPhotoEdit(client: ApiClient, photoId: string): Promise<S.PhotoEdit> {
+  const res = await client.get<unknown>(photoEditPath(photoId));
+  return parseResponse(S.PhotoEdit, res, "photo edit");
+}
+
+/**
+ * Save a photo's recipe and history. The server renders the thumbnails before it answers and the
+ * full-size rendition afterwards (`rendition: "pending"`). ApiError 400 `not_editable` for a video.
+ */
+export async function savePhotoEdit(client: ApiClient, photoId: string, edit: S.PhotoEditUpdate): Promise<S.PhotoEdit> {
+  const res = await client.request<unknown>(photoEditPath(photoId), { method: "PUT", body: edit });
+  return parseResponse(S.PhotoEdit, res, "photo edit");
+}
+
+/** Remove a photo's edit, its history and its rendition: the photo shows its original again. Answers 204. */
+export async function deletePhotoEdit(client: ApiClient, photoId: string): Promise<void> {
+  await client.delete(photoEditPath(photoId));
+}
+
+/** The reduced source the editor's preview works on, as an edit source file ("LPES"). */
+export async function fetchPhotoEditSource(client: ApiClient, photoId: string): Promise<ArrayBuffer> {
+  const blob = await client.getBlob(`${photoEditPath(photoId)}source/`);
+  return blob.arrayBuffer();
 }
 
 /* ---- photo links (one photo shared by URL, issue #2028) ---------------- */
@@ -2192,6 +2227,16 @@ export async function fetchImageTag(client: ApiClient): Promise<S.ImageTag> {
 export async function fetchUpdateStatus(client: ApiClient): Promise<S.UpdateStatus> {
   const res = await client.get<unknown>("/updates/");
   return parseResponse(S.UpdateStatus, res, "update status");
+}
+
+export async function fetchParallelWorkers(client: ApiClient): Promise<S.ParallelWorkers> {
+  const res = await client.get<unknown>("/parallel-workers/");
+  return parseResponse(S.ParallelWorkers, res, "parallel workers");
+}
+
+export async function setWorkerIntention(client: ApiClient, intention: S.WorkerIntention): Promise<S.ParallelWorkers> {
+  const res = await client.patch<unknown>("/parallel-workers/", { intention });
+  return parseResponse(S.ParallelWorkers, res, "parallel workers");
 }
 
 /** Admin: Skip this release; `""` shows the newest release again. Answers the new status. */

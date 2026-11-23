@@ -136,7 +136,7 @@ export function ConfigBurstDetection({ value, onChange }: ConfigBurstDetectionPr
       <Table.Td className={classes.ruleCell} opacity={isRuleEnabled(rule) ? 1 : 0.6}>
         <Group gap="xs">
           <strong>{rule.name}</strong>
-          <Badge size="xs" color={isHardRule(rule) ? "blue" : "orange"}>
+          <Badge size="xs" color={isHardRule(rule) ? "brand" : "orange"}>
             {isHardRule(rule) ? t("settings.burst.hard_criterion") : t("settings.burst.soft_criterion")}
           </Badge>
         </Group>

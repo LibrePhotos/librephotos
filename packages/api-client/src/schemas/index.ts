@@ -23,6 +23,7 @@ export * from "./folders";
 export * from "./geocode";
 export * from "./photoLocations";
 export * from "./photoRights";
+export * from "./photoEdits";
 export * from "./userPlaces";
 export * from "./photoMoves";
 export * from "./photoRenames";

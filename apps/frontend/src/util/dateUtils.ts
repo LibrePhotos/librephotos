@@ -37,89 +37,41 @@ export function fromUnixSeconds(seconds: number): DateTime {
   return DateTime.fromSeconds(seconds);
 }
 
-/**
- * Convert an `exif_timestamp` into a JS `Date` whose *local* fields hold the
- * wall clock, for date/time pickers that read `getHours()` and friends.
- *
- * The fields are copied across rather than converted, so the result is the same
- * whatever zone the browser is in.
- */
-export function photoTimestampToPickerDate(timestamp: string): Date | null {
+export type WallClock = Readonly<{ day: string; time: string }>;
+
+const DAY_INPUT = "yyyy-MM-dd";
+const TIME_INPUT = "HH:mm:ss";
+const DATE_TIME_INPUT = "yyyy-MM-dd'T'HH:mm:ss";
+const WHOLE_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const WHOLE_TIME = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
+
+export function isWholeTime(time: string): boolean {
+  return WHOLE_TIME.test(time);
+}
+
+export function photoTimestampWallClock(timestamp: string): WallClock | null {
   const parsed = parsePhotoTimestamp(timestamp);
-  if (!parsed.isValid) {
-    return null;
-  }
-  return new Date(
-    parsed.year,
-    parsed.month - 1,
-    parsed.day,
-    parsed.hour,
-    parsed.minute,
-    parsed.second,
-    parsed.millisecond
-  );
+  return parsed.isValid ? { day: parsed.toFormat(DAY_INPUT), time: parsed.toFormat(TIME_INPUT) } : null;
 }
 
-/**
- * Read a value out of a date picker as a calendar day.
- *
- * Mantine hands back either a `Date` or a date-only string like `"2023-09-21"`,
- * and `new Date("2023-09-21")` resolves that string to UTC midnight — which is
- * still the *previous* day for anyone west of UTC. Parsing it as a local
- * calendar day keeps the day the user actually clicked.
- */
-export function parsePickerDate(value: Date | string): Date | null {
-  const parsed = value instanceof Date ? DateTime.fromJSDate(value) : DateTime.fromISO(value);
-  return parsed.isValid ? parsed.toJSDate() : null;
+export function wallClockToPhotoTimestamp({ day, time }: WallClock): string | null {
+  if (!WHOLE_DAY.test(day) || !isWholeTime(time)) return null;
+  const parsed = DateTime.fromISO(`${day}T${time}`, { zone: "utc" });
+  return parsed.isValid ? parsed.toISO() : null;
 }
 
-/**
- * Inverse of {@link photoTimestampToPickerDate}: turn a picker `Date` back into
- * an `exif_timestamp`, keeping the wall clock the user typed rather than
- * converting it to a real UTC instant.
- */
-export function pickerDateToPhotoTimestamp(date: Date): string | null {
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return DateTime.fromObject(
-    {
-      year: date.getFullYear(),
-      month: date.getMonth() + 1,
-      day: date.getDate(),
-      hour: date.getHours(),
-      minute: date.getMinutes(),
-      second: date.getSeconds(),
-      millisecond: date.getMilliseconds(),
-    },
-    { zone: "utc" }
-  ).toISO();
-}
-
-// The string a DateTimePicker with `withSeconds` reads and writes: local wall clock, no zone.
-const PICKER_FORMAT = "yyyy-MM-dd HH:mm:ss";
-
-/**
- * A stored instant (an album link's expiry) as the local wall clock a
- * DateTimePicker shows. Empty string when there is no usable instant.
- */
-export function toPickerValue(iso: string): string {
+export function toDateTimeInputValue(iso: string): string {
   const parsed = parseInstant(iso);
-  return parsed.isValid ? parsed.toFormat(PICKER_FORMAT) : "";
+  return parsed.isValid ? parsed.toFormat(DATE_TIME_INPUT) : "";
 }
 
-/**
- * A DateTimePicker value (local wall clock, as the user picked it) as an
- * instant in UTC, ISO 8601 with `Z`. Null when it does not parse.
- */
-export function fromPickerValue(value: string): string | null {
-  const parsed = DateTime.fromFormat(value, PICKER_FORMAT);
+export function fromDateTimeInputValue(value: string): string | null {
+  const parsed = value ? DateTime.fromISO(value) : DateTime.invalid("empty");
   return parsed.isValid ? parsed.toUTC().toISO() : null;
 }
 
-/** The picker value `days` calendar days from now, in the viewer's zone, for the presets. */
-export function pickerValueDaysFromNow(days: number): string {
-  return DateTime.now().plus({ days }).toFormat(PICKER_FORMAT);
+export function dateTimeInputDaysFromNow(days: number): string {
+  return DateTime.now().plus({ days }).toFormat(DATE_TIME_INPUT);
 }
 
 /**

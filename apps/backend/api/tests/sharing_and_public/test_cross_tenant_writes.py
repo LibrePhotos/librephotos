@@ -137,6 +137,7 @@ NOT_PHOTO_SCOPED = {
     "api/updates/skip/": "admin-only, instance-wide update check state",
     "api/updates/snooze/": "admin-only, instance-wide update check state",
     "api/updates/install/": "admin-only, downloads the newest release (#2788)",
+    "api/parallel-workers/": "admin-only, the instance's worker intention (#3073)",
     "api/updates/restart/": "admin-only, restarts the instance into an update",
     "api/look-up-places/": "admin-only, instance-wide place name lookup job",
     "api/deduplicate-faces/": "admin-only, instance-wide face deduplication job",
@@ -573,6 +574,16 @@ class CrossTenantWriteTest(TestCase):
                 {"title": "pwned"},
             ),
             ("post", f"/api/photos/{self.v_pub.pk}/metadata/revert-all", {}),
+            (
+                "put",
+                f"/api/photos/{self.v_pub.pk}/edit/",
+                {
+                    "settings": {"version": 1, "light": {"exposure": 1}},
+                    "history": [],
+                    "history_cursor": -1,
+                },
+            ),
+            ("delete", f"/api/photos/{self.v_pub.pk}/edit/", None),
             ("post", f"/api/photos/{self.v_pub.pk}/metadata/revert/{uuid.uuid4()}", {}),
             (
                 "patch",

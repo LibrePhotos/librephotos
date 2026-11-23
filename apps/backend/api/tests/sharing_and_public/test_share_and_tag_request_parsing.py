@@ -6,6 +6,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
+from api.tests.queue_recorder import QueueRecorder
 from api.tests.utils import (
     create_test_album_user,
     create_test_photo,
@@ -110,7 +111,7 @@ class GenerateOcrBodyTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=create_test_user())
 
-    @patch("api.jobs.queue.AsyncTask")
+    @patch("api.jobs.store.add", new_callable=QueueRecorder)
     def test_full_scan_is_a_boolean(self, async_task):
         for body, full_scan in (
             ({}, False),

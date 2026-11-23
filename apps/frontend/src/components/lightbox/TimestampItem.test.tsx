@@ -9,6 +9,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
+import { calendarDaysAgo } from "../../util/dateUtils";
 import { defined } from "../../util/defined.test-utils";
 import { expectDisabledWithReason } from "../common/disabledReason.test-utils";
 import { TimestampItem } from "./TimestampItem";
@@ -104,13 +105,14 @@ async function typeTime(container: HTMLElement, value: string) {
   });
 }
 
-/** A day of the month shown in the open calendar. */
-function dayCell(container: HTMLElement, day: string) {
-  return (
-    Array.from(container.querySelectorAll<HTMLButtonElement>("table button")).find(
-      cell => cell.getAttribute("data-outside") !== "true" && cell.textContent === day
-    ) ?? null
-  );
+async function pickDay(container: HTMLElement, day: string) {
+  const input = defined(container.querySelector<HTMLInputElement>('input[type="date"]'));
+  const month = (input.value || calendarDaysAgo(0)).slice(0, 8);
+  const setValue = defined(Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set);
+  await act(async () => {
+    setValue.call(input, `${month}${day.padStart(2, "0")}`);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
 }
 
 describe("TimestampItem", () => {
@@ -129,11 +131,11 @@ describe("TimestampItem", () => {
     await render(root, PHOTO_B);
 
     await click(button(container, "Edit date and time"));
-    const timeInput = container.querySelector<HTMLInputElement>("input");
+    const timeInput = container.querySelector<HTMLInputElement>('input[type="time"]');
     expect(timeInput?.value).toBe("19:40:00");
 
     // A new day keeps this photo's time of day.
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     await click(button(container, "Save"));
     expect(updatePhoto).toHaveBeenCalledTimes(1);
     const { id, data } = defined(updatePhoto.mock.calls[0])[0];
@@ -158,7 +160,7 @@ describe("TimestampItem", () => {
     await render(root, PHOTO_A);
 
     await click(button(container, "Edit date and time"));
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     await click(button(container, "Save"));
     await click(button(container, "Edit date and time"));
     await click(button(container, "Save"));
@@ -180,7 +182,7 @@ describe("TimestampItem", () => {
 
     // Change photo A's day, so its Undo shows up.
     await click(button(container, "Edit date and time"));
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     await click(button(container, "Save"));
     expect(button(container, "Undo timestamp modification")).toBeTruthy();
 
@@ -188,12 +190,12 @@ describe("TimestampItem", () => {
     expect(button(container, "Undo timestamp modification")).toBeNull();
   });
 
-  it("opens the calendar on the photo's month, not today's", async () => {
+  it("opens on the photo's day, so the browser's calendar shows its month", async () => {
     const { container, root } = mount();
     await render(root, PHOTO_B);
 
     await click(button(container, "Edit date and time"));
-    expect(container.textContent).toContain("November 2019");
+    expect(container.querySelector<HTMLInputElement>('input[type="date"]')?.value).toMatch(/^2019-11-/);
   });
 });
 
@@ -299,7 +301,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
     await render(root, PHOTO_A);
 
     await click(button(container, "Edit date and time"));
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     await click(button(container, "Save"));
 
     expect(updatePhoto).toHaveBeenCalledTimes(1);
@@ -312,7 +314,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
     await render(root, PHOTO_A);
 
     await click(button(container, "Edit date and time"));
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     await click(button(container, "Save"));
     await render(root, { ...PHOTO_A, exif_timestamp: "2024-05-10T08:15:00+00:00", date_set_by_user: true });
 
@@ -327,7 +329,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
     await render(root, PHOTO_A);
 
     await click(button(container, "Edit date and time"));
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     await click(button(container, "Save"));
 
     expect(button(container, "Save")).toBeTruthy();
@@ -352,7 +354,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
 
     await click(button(container, "Edit date and time"));
     await typeTime(container, "");
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
 
     expect(container.querySelector<HTMLInputElement>('input[type="time"]')?.value).toBe("");
     expectDisabledWithReason(defined(button(container, "Save")), "Invalid timestamp");
@@ -363,7 +365,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
     await render(root, UNDATED);
 
     await click(button(container, "Edit date and time"));
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
 
     expect(container.querySelector<HTMLInputElement>('input[type="time"]')?.value).toBe("00:00:00");
     expect(button(container, "Save")?.getAttribute("aria-disabled")).toBeNull();
@@ -375,7 +377,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
 
     await click(button(container, "Edit date and time"));
     await typeTime(container, "10:20:30");
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     await click(button(container, "Save"));
 
     expect(updatePhoto).toHaveBeenCalledTimes(1);
@@ -388,7 +390,7 @@ describe("TimestampItem removing and saving (#2280)", () => {
     await render(root, FROM_THE_FILE);
 
     await click(button(container, "Edit date and time"));
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     await click(button(container, "Save"));
     await click(button(container, "Undo timestamp modification"));
 
@@ -408,12 +410,12 @@ describe("TimestampItem's unsaved draft (#2284)", () => {
     expect(drafts.dirtyFields()).toEqual([]);
     expect(container.textContent).not.toContain("Unsaved");
 
-    await click(dayCell(container, "10"));
+    await pickDay(container, "10");
     expect(drafts.dirtyFields()).toEqual(["date"]);
     expect(container.textContent).toContain("Unsaved");
 
     // Back to the photo's own day: nothing left to lose.
-    await click(dayCell(container, "1"));
+    await pickDay(container, "1");
     expect(drafts.dirtyFields()).toEqual([]);
 
     await typeTime(container, "09:00:00");

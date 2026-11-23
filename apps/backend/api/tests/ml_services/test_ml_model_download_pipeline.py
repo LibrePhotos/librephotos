@@ -193,7 +193,8 @@ class DownloadModelUnpackTest(TestCase):
             )
             # The archive (and its .part sibling) are gone.
             self.assertEqual(
-                ["custom_tar"], sorted(p.name for p in model_folder.iterdir())
+                [".locks", "custom_tar"],
+                sorted(p.name for p in model_folder.iterdir()),
             )
 
     def test_zip_model_is_extracted_into_target_dir(self):
@@ -318,7 +319,7 @@ class DownloadModelUnpackTest(TestCase):
                     with self.assertRaisesRegex(OSError, "holds no custom_unknown"):
                         download_model(model)
 
-            self.assertEqual([], list(model_folder.iterdir()))
+            self.assertEqual([".locks"], [p.name for p in model_folder.iterdir()])
 
     def test_download_target_paths_per_unpack_command(self):
         folder = Path("/models")
@@ -602,7 +603,8 @@ class DownloadFileProgressTest(TestCase):
                 with self.assertRaises(OSError):
                     _download_file("https://example.invalid/x", target, "m")
 
-    def test_mid_stream_connection_error_removes_the_partial_file(self):
+    @patch("api.runtime.ml_models.time.sleep")
+    def test_mid_stream_connection_error_removes_the_partial_file(self, sleep):
         response = _ExplodingResponse(
             chunks=[b"partial"], headers={"content-length": "4096"}
         )
@@ -747,6 +749,7 @@ class DownloadFileProgressTest(TestCase):
                 stream=True,
                 allow_redirects=True,
                 timeout=MODEL_DOWNLOAD,
+                headers={},
             )
         connect, read = MODEL_DOWNLOAD
         self.assertGreater(connect, 0)

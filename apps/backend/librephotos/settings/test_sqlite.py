@@ -5,12 +5,12 @@ Usage:
     DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite python manage.py test api.tests.migrations
 """
 
-from ._sqlite import SQLITE_SILENCED_CHECKS
+from ._sqlite import SQLITE_ENGINE, SQLITE_SILENCED_CHECKS
 from .test import *  # noqa
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
+        "ENGINE": SQLITE_ENGINE,
         "NAME": ":memory:",
     },
 }

@@ -39,7 +39,7 @@
 /* The status colours: a strong shade in the light scheme, a lighter one that stays readable on the
    dark surface (the dark primary shade, 2, read as a pastel decoration). */
 .success {
-  --toast-accent: light-dark(var(--mantine-color-teal-7), var(--mantine-color-teal-4));
+  --toast-accent: light-dark(var(--mantine-color-green-7), var(--mantine-color-green-4));
 }
 
 .warning {

@@ -1,7 +1,6 @@
 {
-  "src/components/charts/FaceClusterGraph.tsx": { "lines": 441, "function": 393 },
+  "src/components/charts/FaceClusterGraph.tsx": { "lines": 439, "function": 391 },
   "src/components/charts/LocationLink.tsx": { "lines": 426, "function": 331 },
   "src/components/lightbox/VideoPlayer.tsx": { "function": 308 },
-  "src/components/lightbox/ContentViewer.tsx": { "function": 301 },
   "src/components/react-pig/index.tsx": { "function": 279 }
 }

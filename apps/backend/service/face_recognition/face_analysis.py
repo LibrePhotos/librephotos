@@ -203,6 +203,15 @@ def norm_crop(
     return np.asarray(warped, dtype=np.uint8)
 
 
+def blob_from_images(
+    images: list[ImageArray], scale: float, mean: float
+) -> Float32Array:
+    batch = np.stack(images)[..., ::-1].astype(np.float32)
+    batch -= np.float32(mean)
+    batch *= np.float32(scale)
+    return np.ascontiguousarray(batch.transpose(0, 3, 1, 2))
+
+
 def _distance2bbox(points: Float32Array, distance: Float32Array) -> Float32Array:
     x1 = points[:, 0] - distance[:, 0]
     y1 = points[:, 1] - distance[:, 1]
@@ -275,14 +284,7 @@ class Detector:
         scores_list = []
         bboxes_list = []
         kpss_list = []
-        input_size = tuple(image.shape[0:2][::-1])
-        blob = cv2.dnn.blobFromImage(
-            image,
-            1.0 / self.input_std,
-            input_size,
-            (self.input_mean, self.input_mean, self.input_mean),
-            swapRB=True,
-        )
+        blob = blob_from_images([image], 1.0 / self.input_std, self.input_mean)
         net_outs = self.session.run(self.output_names, {self.input_name: blob})
 
         input_height = blob.shape[2]
@@ -315,6 +317,9 @@ class Detector:
         else:
             new_width = input_size[0]
             new_height = int(new_width * im_ratio)
+        if new_width < 1 or new_height < 1:
+            # Too thin to shrink onto the input (cv2.resize refuses 0 px): no face fits.
+            return np.zeros((0, 5), np.float32), np.zeros((0, 5, 2), np.float32)
         det_scale = float(new_height) / image.shape[0]
         resized_img = cv2.resize(image, (new_width, new_height))
         det_img = np.zeros((input_size[1], input_size[0], 3), dtype=np.uint8)
@@ -384,13 +389,7 @@ class Recognizer:
 
     def embedding(self, image: ImageArray, landmarks: Float32Array) -> Float32Array:
         aligned = norm_crop(image, landmarks, image_size=self.input_size[0])
-        blob = cv2.dnn.blobFromImages(
-            [aligned],
-            1.0 / self.input_std,
-            self.input_size,
-            (self.input_mean, self.input_mean, self.input_mean),
-            swapRB=True,
-        )
+        blob = blob_from_images([aligned], 1.0 / self.input_std, self.input_mean)
         net_out = self.session.run(self.output_names, {self.input_name: blob})[0]
         return np.asarray(net_out, dtype=np.float32).flatten()
 

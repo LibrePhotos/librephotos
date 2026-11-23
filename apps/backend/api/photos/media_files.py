@@ -124,16 +124,41 @@ def looks_like_media(path: str) -> bool:
     return (sniffed_mime_type(path) or "").startswith(("image/", "video/"))
 
 
-def is_valid_media(path: str, user: User | None) -> bool:
+def is_valid_media(path: str, user: User | None, name: str | None = None) -> bool:
+    """Whether the scan or an upload takes the file at ``path``.
+
+    Args:
+        path: The file on disk.
+        user: Its owner.
+        name: The client's file name, for an upload staged at a path of its
+            own (``<upload_id>.part``) whose extension says nothing. The
+            name's extension is the client's claim, so it is checked against
+            the content: a RAW name is taken when LibRaw opens the file, and
+            a sidecar name not at all (an upload is a photo or a video).
+    """
     if is_video(path=path):
         # Once per file of a scan: feature_enabled caches the site switches.
         video_on = feature_enabled("VIDEO")
         if not video_on:
             logger.info("Video support is disabled, skipping %s", path)
         return video_on
+    if name is not None:
+        return (is_raw(name) and _libraw_opens(path)) or _can_decode(path)
     if is_metadata(path=path) or is_raw(path=path):
         return True
     return _can_decode(path)
+
+
+def _libraw_opens(path: str) -> bool:
+    """Whether LibRaw recognises ``path`` as a camera RAW."""
+    try:
+        # Imported here for the same reason as in _can_decode.
+        from api.thumbnails import decoding
+
+        return decoding.libraw_opens(path)
+    except ImportError as e:
+        logger.info("Could not handle %s, because %s", path, str(e))
+        return False
 
 
 def _can_decode(path: str) -> bool:

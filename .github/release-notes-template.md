@@ -186,6 +186,12 @@ Do them in this order, so the docs and their pictures are live before the releas
    `-f rebuild_from_ref=<branch>` for a fix that is not in the tag (the release notes then say so), and
    `-f replace_asset=true` if some of the assets were attached already. A fix on the build path is often
    better shipped as a point release.
+9. The same release also starts the `desktop` workflow (about 30 minutes). After its install, launch and
+   uninstall smoke test it attaches `librephotos-desktop-<tag>-windows-x64-setup.exe`,
+   `librephotos-desktop-windows-x64-setup.exe` and `SHA256SUMS-desktop`; it never changes which release is
+   latest. If it fails, it opens an issue "Desktop installer failed for <tag>"; re-run the failed job, or
+   dispatch `gh workflow run desktop.yml --ref <tag> -f tag=<tag>` (with `-f replace_asset=true` if some
+   assets were attached already).
 
 A release created without `--latest=false` breaks nothing else: GitHub marks it latest at once, and the
 download link gives a 404 until the zip is attached.

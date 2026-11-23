@@ -11,7 +11,7 @@
  *      scrolling still sees progress, and
  *   2. a full drain still completes while the user interacts throughout.
  */
-import { createTestDb, type TestDb } from "@/db/test-db";
+import { createTestDb, type TestDb } from "@librephotos/local-db/testing";
 import { enqueueJobs } from "../jobs/queue";
 import { runWorker, resetBootReclaimForTests } from "../jobs/worker";
 import {
@@ -170,7 +170,7 @@ describe("back-off never stalls the pipeline", () => {
     });
 
     let remaining = 12;
-    enqueueJobs(t.db, [{ kind: "device_scan", payload: { chunk: 0 } }], Date.now());
+    await enqueueJobs(t.db, [{ kind: "device_scan", payload: { chunk: 0 } }], Date.now());
 
     const stats = await runWorker(t.db, {
       yield: yieldFn,

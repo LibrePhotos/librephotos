@@ -33,17 +33,26 @@ export function thumbhashDataUrl(hash: string | null | undefined): string | null
 }
 
 /**
- * `url` with a short digest of the photo's ThumbHash as `?v=`. The backend makes the ThumbHash
- * again whenever it builds the thumbnails again (a rotation), so a changed picture gets a new
- * address, and the server lets the browser keep each one for a year without asking again.
- * Unchanged without a hash.
+ * `url` with a short digest of the photo's ThumbHash and its `thumbnail_version` as `?v=`. The
+ * backend makes the ThumbHash again whenever it builds the thumbnails again (a rotation), and the
+ * thumbnail version goes up with every saved or reverted edit, whose thumbnails a subtle change
+ * (sharpening, grain) can leave with the same ThumbHash, and once more when the edit's full-size
+ * rendition is ready (the thumbnails are made again from it after a tight crop). So a changed picture gets a new address,
+ * and the server lets the browser keep each one for a year without asking again. A photo without
+ * an edit (version 0, or a server that does not send it) keeps the address it always had.
+ * Unchanged with neither.
  */
-export function withThumbhashVersion(url: string, hash: string | null | undefined): string {
-  if (!hash) return url;
+export function withThumbhashVersion(
+  url: string,
+  hash: string | null | undefined,
+  thumbnailVersion?: number | null
+): string {
+  const key = `${hash ?? ""}${thumbnailVersion ? `:${thumbnailVersion}` : ""}`;
+  if (!key) return url;
   // FNV-1a, 32 bits: short, and two versions of one photo practically never share it.
   let digest = 0x811c9dc5;
-  for (let i = 0; i < hash.length; i++) {
-    digest = Math.imul(digest ^ hash.charCodeAt(i), 0x01000193) >>> 0;
+  for (let i = 0; i < key.length; i++) {
+    digest = Math.imul(digest ^ key.charCodeAt(i), 0x01000193) >>> 0;
   }
   return `${url}${url.includes("?") ? "&" : "?"}v=${digest.toString(36)}`;
 }

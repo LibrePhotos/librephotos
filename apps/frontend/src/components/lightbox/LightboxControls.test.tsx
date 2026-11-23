@@ -35,6 +35,8 @@ const stubs = vi.hoisted(() => ({
 vi.mock("../photolist/FileActionItems", () => ({
   FileActionItems: ({ photoIds }: { photoIds: string[] }) => <span data-file-actions={photoIds.join(",")} />,
 }));
+// So are an edited photo's downloads (EditedDownloadItems.test.tsx), whose toasts load the app's i18n.
+vi.mock("./EditedDownloadItems", () => ({ EditedDownloadItems: () => null }));
 vi.mock("../../api_client/photos/hooks", () => ({
   useFetchPhotoSharesQuery: () => ({ data: [] }),
   useMarkPhotosDeletedMutation: () => ({ mutate: stubs.markDeleted }),

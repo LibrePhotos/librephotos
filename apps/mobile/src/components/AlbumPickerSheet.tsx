@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FlatList, Modal, Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useReactiveQuery } from "@/db/provider";
-import { userAlbums, type UserAlbumRow } from "@/db/queries/albums";
+import { userAlbums, type UserAlbumRow } from "@librephotos/local-db";
 import { TextPromptModal } from "./TextPromptModal";
 import { useTheme } from "@/theme";
 
@@ -24,7 +24,7 @@ export function AlbumPickerSheet({
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const albums = useReactiveQuery<UserAlbumRow[]>((db) => userAlbums(db), []);
+  const { data: albums } = useReactiveQuery(["user-albums", "default"], (db) => userAlbums(db), [] as UserAlbumRow[]);
   const [creating, setCreating] = useState(false);
 
   return (

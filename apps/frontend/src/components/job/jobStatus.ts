@@ -28,8 +28,8 @@ export function jobOutcome(job: JobState): JobOutcome {
 }
 
 export const JOB_OUTCOME_COLOR: Record<JobOutcome, string> = {
-  queued: "blue",
-  running: "yellow",
+  queued: "gray",
+  running: "brand",
   failed: "red",
   cancelled: "gray",
   partial_failure: "orange",
