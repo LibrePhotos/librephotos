@@ -31,6 +31,14 @@
   text-anchor: middle;
 }
 
+.axisLabel[data-anchor="start"] {
+  text-anchor: start;
+}
+
+.axisLabel[data-anchor="end"] {
+  text-anchor: end;
+}
+
 /* The column of the bar shown in the tooltip. */
 .cursor {
   fill: var(--mantine-primary-color-light);
@@ -80,6 +88,12 @@
 .level4 {
   fill: var(--app-heatmap-level-4);
   background-color: var(--app-heatmap-level-4);
+}
+
+.restDay {
+  fill: none;
+  stroke: var(--app-heatmap-level-0);
+  stroke-width: 1;
 }
 
 /* A hairline of the page between two stays, so neighbouring tints read as two places. */
@@ -164,7 +178,14 @@
   min-width: 0;
 }
 
+.dayLayout {
+  display: flex;
+  align-items: flex-start;
+}
+
 .dayScroll {
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   padding-bottom: 4px;
@@ -181,7 +202,7 @@
 
 .rankList {
   list-style: none;
-  margin: 0;
+  margin: 0 -6px;
   padding: 4px 0 0;
   display: flex;
   flex-direction: column;
@@ -262,8 +283,11 @@
 }
 
 .rankMore {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   align-self: flex-start;
-  margin: 4px 0 0 6px;
+  margin-top: 4px;
 }
 
 @media (max-width: 47.99em) {

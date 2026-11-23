@@ -9,4 +9,8 @@
   bottom: 10px;
   left: 10px;
   z-index: 1;
+  padding: 3px;
+  border-radius: 999px;
+  background-color: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-sm);
 }

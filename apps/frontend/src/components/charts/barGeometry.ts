@@ -64,3 +64,11 @@ export function barPath(x: number, bottom: number, width: number, height: number
     "Z",
   ].join("");
 }
+
+export type LabelPlacement = Readonly<{ x: number; anchor: "start" | "middle" | "end" }>;
+
+export function axisLabelPlacement(centre: number, halfWidth: number, width: number): LabelPlacement {
+  if (centre + halfWidth > width) return { x: width, anchor: "end" };
+  if (centre - halfWidth < 0) return { x: 0, anchor: "start" };
+  return { x: centre, anchor: "middle" };
+}

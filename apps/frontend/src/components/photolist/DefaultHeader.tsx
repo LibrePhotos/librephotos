@@ -8,6 +8,7 @@ import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { parseInstant } from "../../util/dateUtils";
 import { PageHeader } from "../PageHeader";
+import type { SizeSort } from "./photoSort";
 import { isPhotosView, PhotosViewSwitcher } from "./PhotosViewSwitcher";
 import { ScanDirectoryWelcome } from "./ScanDirectoryWelcome";
 
@@ -39,7 +40,10 @@ type Props = Readonly<{
   actions?: React.ReactNode;
   // See PhotoListView's `collection`.
   collection?: CollectionHeader;
+  sizeCap?: SizeCap;
 }>;
+
+export type SizeCap = Readonly<{ sort: SizeSort; shown: number; total: number }>;
 
 /**
  * An album, event, place or thing: its header has the larger title and one meta line, the days its
@@ -63,6 +67,7 @@ type PhotoCounterProps = Readonly<
     | "date"
     | "dayHeaderPrefix"
     | "collection"
+    | "sizeCap"
   >
 >;
 
@@ -75,9 +80,18 @@ function photoCountLine(
     numPhotos,
     countsVideos,
     collection,
-  }: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos" | "collection">
+    sizeCap,
+  }: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos" | "collection" | "sizeCap">
 ): string {
-  const items = t(countsVideos ? "defaultheader.videoscount" : "defaultheader.photoscount", { count: numPhotos });
+  const items = t(countsVideos ? "defaultheader.videoscount" : "defaultheader.photoscount", {
+    count: sizeCap?.total ?? numPhotos,
+  });
+  if (sizeCap) {
+    const shown = t(sizeCap.sort === "largest" ? "photosort.largestshown" : "photosort.smallestshown", {
+      shown: sizeCap.shown,
+    });
+    return `${items} · ${shown}`;
+  }
   if (collection) return collection.dateSpan ? `${collection.dateSpan} · ${items}` : items;
   if (numPhotosetItems === numPhotos) return items;
   // Photos first, as the count people look for: "3 photos · 1 day"
@@ -87,7 +101,10 @@ function photoCountLine(
 // The count line, with "· Oldest first" when the days are in that order.
 function countLineWithOrder(
   t: TFunction,
-  props: Pick<PhotoCounterProps, "numPhotosetItems" | "numPhotos" | "countsVideos" | "oldestFirst" | "collection">
+  props: Pick<
+    PhotoCounterProps,
+    "numPhotosetItems" | "numPhotos" | "countsVideos" | "oldestFirst" | "collection" | "sizeCap"
+  >
 ): string {
   const line = photoCountLine(t, props);
   return props.oldestFirst ? t("defaultheader.oldestfirst", { counts: line }) : line;
@@ -111,6 +128,7 @@ function PhotoCounter({
   date,
   dayHeaderPrefix,
   collection,
+  sizeCap,
 }: PhotoCounterProps) {
   const { t } = useTranslation();
   if (loading) {
@@ -138,7 +156,7 @@ function PhotoCounter({
 
   return (
     <Text ta="left" c="dimmed" size="sm">
-      {countLineWithOrder(t, { numPhotosetItems, numPhotos, countsVideos, oldestFirst, collection })}
+      {countLineWithOrder(t, { numPhotosetItems, numPhotos, countsVideos, oldestFirst, collection, sizeCap })}
       {dayDate(date, dayHeaderPrefix)}
     </Text>
   );
@@ -184,6 +202,7 @@ export function DefaultHeader(props: Props) {
     oldestFirst,
     actions,
     collection,
+    sizeCap,
   } = props;
 
   // Don't fetch user data on public pages
@@ -227,6 +246,7 @@ export function DefaultHeader(props: Props) {
           date={(!hasEmptyState || numPhotosetItems > 0) && date ? date : undefined}
           dayHeaderPrefix={dayHeaderPrefix}
           collection={collection}
+          sizeCap={sizeCap}
         />
       }
       size={collection ? "collection" : "page"}

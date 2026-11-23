@@ -108,6 +108,26 @@ describe("DefaultHeader counter", () => {
     );
   });
 
+  it("counts every match and says how many are shown when a size sort is capped", async () => {
+    const text = (
+      await render({ numPhotosetItems: 1000, numPhotos: 1000, sizeCap: { sort: "largest", shown: 1000, total: 4321 } })
+    ).textContent;
+    expect(text).toContain("4,321 photos · 1,000 largest shown");
+    expect(text).not.toContain("1,000 photos");
+  });
+
+  it("names the smallest and counts videos as videos in a capped size sort", async () => {
+    const text = (
+      await render({
+        numPhotosetItems: 2,
+        numPhotos: 2,
+        countsVideos: true,
+        sizeCap: { sort: "smallest", shown: 2, total: 3 },
+      })
+    ).textContent;
+    expect(text).toContain("3 videos · 2 smallest shown");
+  });
+
   it("groups the digits of large counts", async () => {
     expect((await render({ numPhotosetItems: 1200, numPhotos: 25123 })).textContent).toContain(
       "25,123 photos · 1,200 days"

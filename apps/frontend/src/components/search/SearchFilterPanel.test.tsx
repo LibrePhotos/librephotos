@@ -177,7 +177,9 @@ describe("SearchFilterPanel", () => {
 
   it("sets a shutter band with a preset", async () => {
     await renderPanel({});
-    await act(async () => chip("1/500 to 1/60").click());
+    for (const label of ["1/500 s or faster", "1/500–1/60 s", "1/60–1 s", "1 s or longer"])
+      expect(chip(label)).toBeDefined();
+    await act(async () => chip("1/500–1/60 s").click());
     expect(onChange).toHaveBeenCalledWith({ shutter_min: 1 / 500, shutter_max: 1 / 60 });
   });
 

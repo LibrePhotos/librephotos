@@ -8,6 +8,11 @@ import { convertPhotoTimestamp } from "../../util/dateUtils";
 import type { ChangeDateTimeValues } from "./ChangeDateTimeModal.schema";
 import { DateTimePreviewTable } from "./DateTimePreviewTable";
 
+const ZONE_COMBOBOX = {
+  position: "bottom-start",
+  middlewares: { flip: true, shift: { padding: 8 } },
+} as const;
+
 type Props = Readonly<{
   form: UseFormReturnType<ChangeDateTimeValues>;
   summary: DateSummary;
@@ -25,8 +30,10 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
       <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="xs">
         <Select
           searchable
+          comboboxProps={ZONE_COMBOBOX}
           label={t("changedatetime.fromzone")}
-          placeholder={t("changedatetime.fromzoneplaceholder")}
+          description={t("changedatetime.fromzonedescription")}
+          placeholder={t("changedatetime.zoneplaceholder")}
           data={[...timezones]}
           {...form.getInputProps("fromTimezone")}
           value={fromTimezone || null}
@@ -34,8 +41,10 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
         />
         <Select
           searchable
+          comboboxProps={ZONE_COMBOBOX}
           label={t("changedatetime.tozone")}
-          placeholder={t("changedatetime.tozoneplaceholder")}
+          description={t("changedatetime.tozonedescription")}
+          placeholder={t("changedatetime.zoneplaceholder")}
           data={[...timezones]}
           {...form.getInputProps("toTimezone")}
           value={toTimezone || null}
@@ -48,6 +57,7 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
           fromTimezone && toTimezone ? convertPhotoTimestamp(photo.exif_timestamp, fromTimezone, toTimezone) : null
         }
         pending="—"
+        withSeconds={false}
       />
       {summary.without_date > 0 && (
         <Text size="sm" c="orange">

@@ -1,7 +1,7 @@
 import type { SearchFilters } from "@librephotos/api-client";
 import type { TFunction } from "i18next";
 import { formatCalendarDay } from "../../util/dateUtils";
-import { formatExposureTime } from "../../util/exifFormat";
+import { formatExposureValue } from "../../util/exifFormat";
 import { RANGE_FIELDS, type RangeField } from "./searchFilterRanges";
 
 // The chips under the search title: one sentence per active filter ("ISO 3,200 or more",
@@ -45,8 +45,37 @@ export function formatRangeValue(field: RangeField, value: number, ctx: Pick<Chi
     case "mm":
       return ctx.t("searchfilter.unit.mm", { value: number });
     case "seconds":
-      return formatExposureTime(value, ctx.language);
+      return ctx.t("searchfilter.unit.seconds", { value: formatExposureValue(value, ctx.language) });
   }
+}
+
+type RangeWording = Readonly<{
+  between: "searchfilter.chip.between" | "searchfilter.chip.betweenseconds";
+  atleast: "searchfilter.chip.atleast" | "searchfilter.chip.longer";
+  atmost: "searchfilter.chip.atmost" | "searchfilter.chip.faster";
+}>;
+
+const AMOUNT_CHIPS: RangeWording = {
+  between: "searchfilter.chip.between",
+  atleast: "searchfilter.chip.atleast",
+  atmost: "searchfilter.chip.atmost",
+};
+
+const SPEED_CHIPS: RangeWording = {
+  between: "searchfilter.chip.betweenseconds",
+  atleast: "searchfilter.chip.longer",
+  atmost: "searchfilter.chip.faster",
+};
+
+export function formatRangeEnds(
+  field: RangeField,
+  low: number,
+  high: number,
+  ctx: Pick<ChipContext, "t" | "language">
+): Readonly<{ low: string; high: string }> {
+  if (field.unit !== "seconds")
+    return { low: formatRangeValue(field, low, ctx), high: formatRangeValue(field, high, ctx) };
+  return { low: formatExposureValue(low, ctx.language), high: formatExposureValue(high, ctx.language) };
 }
 
 function rangeChip(field: RangeField, filters: SearchFilters, ctx: ChipContext): SearchFilterChip | undefined {
@@ -57,22 +86,19 @@ function rangeChip(field: RangeField, filters: SearchFilters, ctx: ChipContext):
   patch[field.min] = undefined;
   patch[field.max] = undefined;
   const id = field.id;
+  const wording = field.unit === "seconds" ? SPEED_CHIPS : AMOUNT_CHIPS;
   if (low !== undefined && low === high) {
     return { id, label: ctx.t("searchfilter.chip.equals", { name, value: formatRangeValue(field, low, ctx) }), patch };
   }
   if (low !== undefined && high !== undefined) {
-    const label = ctx.t("searchfilter.chip.between", {
-      name,
-      low: formatRangeValue(field, low, ctx),
-      high: formatRangeValue(field, high, ctx),
-    });
+    const label = ctx.t(wording.between, { name, ...formatRangeEnds(field, low, high, ctx) });
     return { id, label, patch };
   }
   if (low !== undefined) {
-    return { id, label: ctx.t("searchfilter.chip.atleast", { name, low: formatRangeValue(field, low, ctx) }), patch };
+    return { id, label: ctx.t(wording.atleast, { name, low: formatRangeValue(field, low, ctx) }), patch };
   }
   if (high !== undefined) {
-    return { id, label: ctx.t("searchfilter.chip.atmost", { name, high: formatRangeValue(field, high, ctx) }), patch };
+    return { id, label: ctx.t(wording.atmost, { name, high: formatRangeValue(field, high, ctx) }), patch };
   }
   return undefined;
 }

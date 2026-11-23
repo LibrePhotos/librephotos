@@ -1,9 +1,11 @@
 import type { SearchFilters } from "@librephotos/api-client";
 import { Anchor, Box, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { TabCount } from "../common/TabCount";
 import classes from "./StatisticsCharts.module.css";
 
 export type RankRow = Readonly<{
@@ -51,7 +53,18 @@ export function RankBarList({ rows, limit }: Props) {
           aria-controls={listId}
           onClick={toggle}
         >
-          {expanded ? t("statistics.showfewer") : t("statistics.showall", { count: rows.length })}
+          {expanded ? (
+            <>
+              {t("statistics.showfewer")}
+              <IconChevronUp size={14} aria-hidden />
+            </>
+          ) : (
+            <>
+              {t("statistics.showall")}
+              <TabCount count={rows.length} />
+              <IconChevronDown size={14} aria-hidden />
+            </>
+          )}
         </Anchor>
       )}
     </Stack>

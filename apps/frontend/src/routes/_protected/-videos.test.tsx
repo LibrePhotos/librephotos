@@ -129,5 +129,13 @@ describe("the Videos page sort", () => {
     expect(props.sort).toBe("largest");
     expect(props.sortTotal).toBe(4200);
     expect(props.updateGroups).toBeUndefined();
+    expect(props.headerActions).toBeDefined();
+  });
+
+  it("offers no sort while there are no videos", async () => {
+    const props = await renderVideos();
+
+    expect(props.photoset).toEqual([]);
+    expect(props.headerActions).toBeUndefined();
   });
 });

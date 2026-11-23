@@ -46,8 +46,13 @@ export function formatAperture(fstop: number | null | undefined, locale: string)
 
 /** ExifTool's PrintExposureTime: `1/N` up to 1/4 s, seconds with a unit above. */
 function exposureSeconds(seconds: number, locale: string): string {
+  const value = formatExposureValue(seconds, locale);
+  return seconds <= 0.25001 ? value : `${value} s`;
+}
+
+export function formatExposureValue(seconds: number, locale: string): string {
   if (seconds <= 0.25001) return `1/${Math.round(1 / seconds)}`;
-  return `${decimal(seconds, locale, 1)} s`;
+  return decimal(seconds, locale, 1);
 }
 
 /**

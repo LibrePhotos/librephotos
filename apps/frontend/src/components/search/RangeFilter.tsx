@@ -5,7 +5,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { i18nResolvedLanguage } from "../../i18n";
 import { makeRangeFilterSchema, type RangeFilterValues } from "./RangeFilter.schema";
-import { formatRangeValue } from "./searchFilterLabels";
+import { formatRangeEnds, formatRangeValue } from "./searchFilterLabels";
 import type { RangeField } from "./searchFilterRanges";
 
 export type RangeFilterProps = Readonly<{
@@ -19,14 +19,17 @@ const toEnd = (value: number | string): number | undefined => (typeof value === 
 
 function presetLabel(field: RangeField, min: number | undefined, max: number | undefined, t: TFunction) {
   const ctx = { t, language: i18nResolvedLanguage() };
+  const speed = field.unit === "seconds";
   if (min !== undefined && max !== undefined) {
-    return t("searchfilter.preset.between", {
-      low: formatRangeValue(field, min, ctx),
-      high: formatRangeValue(field, max, ctx),
-    });
+    const ends = formatRangeEnds(field, min, max, ctx);
+    return speed ? t("searchfilter.preset.betweenseconds", { ...ends }) : t("searchfilter.preset.between", { ...ends });
   }
-  if (min !== undefined) return t("searchfilter.preset.atleast", { low: formatRangeValue(field, min, ctx) });
-  return t("searchfilter.preset.upto", { high: formatRangeValue(field, max ?? 0, ctx) });
+  if (min !== undefined) {
+    const low = formatRangeValue(field, min, ctx);
+    return speed ? t("searchfilter.preset.longer", { low }) : t("searchfilter.preset.atleast", { low });
+  }
+  const high = formatRangeValue(field, max ?? 0, ctx);
+  return speed ? t("searchfilter.preset.faster", { high }) : t("searchfilter.preset.upto", { high });
 }
 
 /**

@@ -33,7 +33,7 @@ type RouteOptions = {
 
 const stubs = vi.hoisted(() => ({
   options: undefined as RouteOptions | undefined,
-  album: undefined as UserAlbum | undefined,
+  album: undefined as UserAlbum | null | undefined,
   slugsFetched: [] as string[],
   lightbox: [] as LightboxProps[],
 }));
@@ -262,5 +262,20 @@ describe("public album slideshow link (#1457)", () => {
     const label = i18n.t("publicalbum.playSlideshow");
     expect(container.querySelector(`[aria-label="${label}"]`)).toBeNull();
     expect(container.textContent).not.toContain(label);
+  });
+});
+
+describe("public album that is gone", () => {
+  it("shows the shared not-found state with the album wording and a way home", async () => {
+    stubs.album = null;
+    const { container, router } = await renderPage();
+
+    expect(container.textContent).toContain("Album not found or the link has expired");
+    expect(container.textContent).toContain("Please check the URL or ask the owner to regenerate a new link.");
+    const home = defined([...container.querySelectorAll("button")].find(button => button.textContent === "Go to Home"));
+    expect(container.querySelector('[data-testid="pig"]')).toBeNull();
+
+    await step(router, () => home.click());
+    expect(router.state.location.pathname).toBe("/");
   });
 });

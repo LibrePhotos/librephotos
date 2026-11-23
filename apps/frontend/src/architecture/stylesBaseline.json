@@ -39,6 +39,5 @@
   "src/routes/__root.tsx": { "inlineStyles": 1 },
   "src/routes/_protected/album/folder.$id.tsx": { "inlineStyles": 2 },
   "src/routes/public/p.$slug.tsx": { "inlineStyles": 1 },
-  "src/routes/public/route.tsx": { "inlineStyles": 1 },
-  "src/routes/public/s.$slug.tsx": { "inlineStyles": 1 }
+  "src/routes/public/route.tsx": { "inlineStyles": 1 }
 }

@@ -210,18 +210,22 @@ describe("ChangeDateTimeModal", () => {
 
     await click(segment("Convert"));
     expect(inputLabelled("From time zone").value).toBe("America/New_York");
-    expect(inputLabelled("To time zone").placeholder).toBe("The zone the photos were taken in");
+    expect(inputLabelled("To time zone").placeholder).toBe("Pick a zone");
+    expect(document.body.textContent).toContain("Where you took them");
     expect(previewRows()).toEqual([
-      ["Oldest", "Oct 9, 2025, 8:14:02 AM", "—"],
-      ["Newest", "Oct 11, 2025, 7:40:55 PM", "—"],
+      ["Oldest", "Oct 9, 2025, 8:14 AM", "—"],
+      ["Newest", "Oct 11, 2025, 7:40 PM", "—"],
     ]);
     expectDisabledWithReason(buttonWithText("Convert 3 photos"), "Pick the two time zones");
     await pickZone("To time zone", "Asia/Tokyo");
 
     expect(previewRows()).toEqual([
-      ["Oldest", "Oct 9, 2025, 8:14:02 AM", "Oct 9, 2025, 9:14:02 PM"],
-      ["Newest", "Oct 11, 2025, 7:40:55 PM", "Oct 12, 2025, 8:40:55 AM"],
+      ["Oldest", "Oct 9, 2025, 8:14 AM", "Oct 9, 2025, 9:14 PM"],
+      ["Newest", "Oct 11, 2025, 7:40 PM", "Oct 12, 2025, 8:40 AM"],
     ]);
+    const changed = defined(document.body.querySelectorAll("tbody td")[1]);
+    expect(changed.getAttribute("style") ?? "").not.toContain("brand");
+    expect(changed.getAttribute("style") ?? "").toContain("font-weight: 600");
     await click(buttonWithText("Convert 3 photos"));
     expect(defined(stubs.mutate.mock.calls[0])[0].change).toEqual({
       mode: "convert_timezone",
@@ -237,12 +241,12 @@ describe("ChangeDateTimeModal", () => {
 
     await click(segment("Convert"));
     expect(inputLabelled("From time zone").value).toBe("");
-    expect(inputLabelled("From time zone").placeholder).toBe("The zone the camera was set to");
+    expect(inputLabelled("From time zone").placeholder).toBe("Pick a zone");
     await pickZone("From time zone", "UTC");
     expectDisabledWithReason(buttonWithText("Convert 3 photos"), "Pick the two time zones");
     await pickZone("To time zone", "Asia/Tokyo");
 
-    expect(previewRows()[0]).toEqual(["Oldest", "Oct 9, 2025, 8:14:02 AM", "Oct 9, 2025, 5:14:02 PM"]);
+    expect(previewRows()[0]).toEqual(["Oldest", "Oct 9, 2025, 8:14 AM", "Oct 9, 2025, 5:14 PM"]);
   });
 
   it("sets every photo to one date and time, starting from the oldest photo's", async () => {

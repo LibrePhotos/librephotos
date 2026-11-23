@@ -1130,8 +1130,9 @@
     "converthint": "Move every selected photo's date from one time zone to another, for a camera left on home time. The move can differ between photos when the zones' offsets differ.",
     "fromzone": "From time zone",
     "tozone": "To time zone",
-    "fromzoneplaceholder": "The zone the camera was set to",
-    "tozoneplaceholder": "The zone the photos were taken in",
+    "fromzonedescription": "Your camera's clock",
+    "tozonedescription": "Where you took them",
+    "zoneplaceholder": "Pick a zone",
     "pickzones": "Pick the two time zones",
     "samezone": "Pick two different time zones",
     "day": "Day",
@@ -1302,13 +1303,14 @@
     "walldisplay": {
       "title": "Wall display",
       "keepawake": "Keep the screen awake",
-      "keepawakedesc": "While the slideshow plays, the screen stays on, sleep hours included, so the photos come back at the wake time.",
+      "keepawakedesc": "Keeps the screen on while the slideshow plays, also during sleep hours, so it can wake on time.",
       "sleep": "Sleep on a schedule",
       "sleepdesc": "Between these times the screen goes black and the slideshow pauses. Tap the screen to wake it.",
       "sleepfrom": "Sleep from",
       "wakeat": "Wake at",
       "sleepoff": "The two times are the same, so the screen does not sleep.",
       "wake": "Wake the screen and stop the slideshow",
+      "sleepinghint": "Sleeping until {{time}} · Click or tap to wake",
       "burnin": "Burn-in protection",
       "burnindesc": "Slowly drift the photo a few pixels, so static parts of the screen do not burn in.",
       "hidecursor": "Hide the cursor",
@@ -2355,6 +2357,7 @@
     "monthchartsummary": "Photos per month from {{from}} to {{to}}, the most in {{peak}} ({{value}}). Use the arrow keys to read each bar.",
     "photosperday": "Photos per day",
     "dayheatmapyear": "Year",
+    "nodatedphotos": "No dated photos yet",
     "daychartsummary": "Photos per day from {{from}} to {{to}}, the most on {{peak}} ({{value}}). Use the arrow keys to move by a day or a week, Enter opens a day.",
     "less": "Less",
     "more": "More",
@@ -2363,7 +2366,7 @@
     "cameras": "Cameras",
     "lenses": "Lenses",
     "distchartsummary": "{{name}} of your photos from {{from}} to {{to}}, most often {{peak}} ({{value}}). Use the arrow keys to read each bar and Enter to search its photos.",
-    "showall": "Show all ({{count}})",
+    "showall": "Show all",
     "showfewer": "Show fewer",
     "bucketname": "{{name}} {{value}}"
   },
@@ -2617,8 +2620,8 @@
   "photosort": {
     "largestfirst": "Largest files first",
     "smallestfirst": "Smallest files first",
-    "showinglargest": "Showing the {{shown, number}} largest of {{total, number}}",
-    "showingsmallest": "Showing the {{shown, number}} smallest of {{total, number}}"
+    "largestshown": "{{shown, number}} largest shown",
+    "smallestshown": "{{shown, number}} smallest shown"
   },
   "personedit": {
     "labelfaces": "Label faces",
@@ -3703,11 +3706,15 @@
     "preset": {
       "upto": "Up to {{high}}",
       "between": "{{low}} to {{high}}",
-      "atleast": "{{low}} or more"
+      "atleast": "{{low}} or more",
+      "faster": "{{high}} or faster",
+      "betweenseconds": "{{low}}–{{high}} s",
+      "longer": "{{low}} or longer"
     },
     "unit": {
       "fnumber": "f/{{value}}",
-      "mm": "{{value}} mm"
+      "mm": "{{value}} mm",
+      "seconds": "{{value}} s"
     },
     "rating": {
       "any": "Any",
@@ -3744,6 +3751,9 @@
       "between": "{{name}} {{low}} to {{high}}",
       "atleast": "{{name}} {{low}} or more",
       "atmost": "{{name}} up to {{high}}",
+      "faster": "{{name}} {{high}} or faster",
+      "betweenseconds": "{{name}} {{low}}–{{high}} s",
+      "longer": "{{name}} {{low}} or longer",
       "equals": "{{name}} {{value}}",
       "favorites": "Favorites only",
       "rating_one": "{{count}} star or more",

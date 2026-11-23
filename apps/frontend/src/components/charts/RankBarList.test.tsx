@@ -70,7 +70,8 @@ describe("RankBarList", () => {
   it("shows the first rows and every row on Show all", async () => {
     await render(rows);
     expect(links()).toHaveLength(12);
-    expect(toggle().textContent).toBe("Show all (14)");
+    expect(toggle().textContent).toBe("Show all14");
+    expect(toggle().querySelector("svg")).not.toBeNull();
     expect(toggle().getAttribute("aria-expanded")).toBe("false");
 
     await act(async () => toggle().click());

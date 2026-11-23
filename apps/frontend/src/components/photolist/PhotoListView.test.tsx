@@ -106,12 +106,14 @@ vi.mock("./DefaultHeader", () => ({
     actions,
     oldestFirst,
     additionalSubHeader,
+    sizeCap,
   }: {
     title: string;
     titleBadge?: React.ReactNode;
     actions?: React.ReactNode;
     oldestFirst?: boolean;
     additionalSubHeader?: React.ReactNode;
+    sizeCap?: { sort: string; shown: number; total: number };
   }) => (
     <div>
       <h1 data-testid="title">
@@ -119,6 +121,7 @@ vi.mock("./DefaultHeader", () => ({
         {titleBadge}
       </h1>
       {oldestFirst && <span data-testid="oldest-first" />}
+      {sizeCap && <span data-testid="size-cap">{`${sizeCap.sort} ${sizeCap.shown} of ${sizeCap.total}`}</span>}
       {additionalSubHeader}
       {actions}
     </div>
@@ -649,17 +652,17 @@ describe("PhotoListView photo order (#2712)", () => {
 describe("PhotoListView size sort", () => {
   it("says how many it shows of all matches when the server capped the list", async () => {
     await render({ photoset: items, idx2hash: items, sort: "largest", sortTotal: 5000 });
-    expect(document.body.textContent).toContain("Showing the 2 largest of 5,000");
+    expect(document.querySelector('[data-testid="size-cap"]')?.textContent).toBe("largest 2 of 5000");
   });
 
   it("names the smallest for the smallest first", async () => {
     await render({ photoset: items, idx2hash: items, sort: "smallest", sortTotal: 3 });
-    expect(document.body.textContent).toContain("Showing the 2 smallest of 3");
+    expect(document.querySelector('[data-testid="size-cap"]')?.textContent).toBe("smallest 2 of 3");
   });
 
   it("says nothing when every match is on the page", async () => {
     await render({ photoset: items, idx2hash: items, sort: "largest", sortTotal: 2 });
-    expect(document.body.textContent).not.toContain("Showing the");
+    expect(document.querySelector('[data-testid="size-cap"]')).toBeNull();
   });
 });
 

@@ -69,11 +69,13 @@ function OnlyVideos() {
       sort={sort}
       sortTotal={sizeSort ? sizeQuery.data?.count : undefined}
       headerActions={
-        <PhotoSortMenu
-          sort={sort}
-          onChange={photoSort.setSort}
-          onReset={photoSort.explicit ? photoSort.reset : undefined}
-        />
+        flat.length > 0 ? (
+          <PhotoSortMenu
+            sort={sort}
+            onChange={photoSort.setSort}
+            onReset={photoSort.explicit ? photoSort.reset : undefined}
+          />
+        ) : undefined
       }
     />
   );

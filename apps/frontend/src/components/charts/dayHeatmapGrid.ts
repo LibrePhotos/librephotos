@@ -15,8 +15,11 @@ export type DayCell = Readonly<{
 
 type MonthTick = Readonly<{ column: number; text: string }>;
 
+type DaySlot = Readonly<{ day: string; column: number; row: number }>;
+
 export type DayGrid = Readonly<{
   cells: readonly DayCell[];
+  rest: readonly DaySlot[];
   weeks: number;
   monthTicks: readonly MonthTick[];
   weekdayLabels: ReadonlyArray<Readonly<{ row: number; text: string }>>;
@@ -24,7 +27,7 @@ export type DayGrid = Readonly<{
 
 export type DayCount = Readonly<{ day: string; count: number }>;
 
-export const DAY_CELL_PX = { min: 12, max: 16 } as const;
+export const DAY_CELL_PX = { min: 12, max: 20 } as const;
 export const DAY_CELL_GAP_PX = 3;
 export const DAY_HEATMAP_LEFT_PX = 30;
 
@@ -33,7 +36,7 @@ const DAY_FORMAT = "yyyy-MM-dd";
 
 const weekdayRow = (day: DateTime, weekStartDay: number) => (day.weekday - weekStartDay + 7) % 7;
 
-const EMPTY_GRID: DayGrid = { cells: [], weeks: 0, monthTicks: [], weekdayLabels: [] };
+const EMPTY_GRID: DayGrid = { cells: [], rest: [], weeks: 0, monthTicks: [], weekdayLabels: [] };
 
 function countsByDay(counts: readonly DayCount[]): Map<string, number> {
   const byDay = new Map<string, number>();
@@ -60,8 +63,9 @@ export function dayGridWidth(weeks: number, cellPx: number): number {
   return DAY_HEATMAP_LEFT_PX + weeks * cellPx + Math.max(0, weeks - 1) * DAY_CELL_GAP_PX;
 }
 
-export function dayLevel(count: number, quartiles: readonly [number, number, number]): DayLevel {
+export function dayLevel(count: number, quartiles: readonly [number, number, number], max: number): DayLevel {
   if (count <= 0) return 0;
+  if (count >= max) return 4;
   const above = quartiles.reduce((over, edge) => over + (count > edge ? 1 : 0), 0);
   return ([1, 2, 3, 4] as const)[above] ?? 4;
 }
@@ -95,23 +99,33 @@ export function dayHeatmap(
 
   const days: DateTime[] = [];
   for (let day = first; day <= end; day = day.plus({ days: 1 })) days.push(day);
-  const quartiles = countQuartiles(daysOfYear.map(day => byDay.get(day) ?? 0));
+  const yearCounts = daysOfYear.map(day => byDay.get(day) ?? 0);
+  const quartiles = countQuartiles(yearCounts);
+  const max = Math.max(0, ...yearCounts);
 
   const monthTicks: MonthTick[] = [];
-  const cells = days.map((day, index): DayCell => {
-    const key = day.toFormat(DAY_FORMAT);
+  const slot = (day: DateTime, index: number): DaySlot => {
     const column = Math.floor((index + offset) / 7);
-    const count = byDay.get(key) ?? 0;
     if (day.day === 1 && !monthTicks.some(tick => tick.column === column)) {
       monthTicks.push({ column, text: day.toLocaleString({ month: "short" }) });
     }
-    return { day: key, column, row: weekdayRow(day, weekStartDay), count, level: dayLevel(count, quartiles) };
+    return { day: day.toFormat(DAY_FORMAT), column, row: weekdayRow(day, weekStartDay) };
+  };
+  const cells = days.map((day, index): DayCell => {
+    const place = slot(day, index);
+    const count = byDay.get(place.day) ?? 0;
+    return { ...place, count, level: dayLevel(count, quartiles, max) };
   });
+  const rest: DaySlot[] = [];
+  for (let day = first.plus({ days: days.length }); day.year === year; day = day.plus({ days: 1 })) {
+    rest.push(slot(day, days.length + rest.length));
+  }
 
   const weekdayLabels = LABELLED_WEEKDAYS.map(weekday => ({
     row: (weekday - weekStartDay + 7) % 7,
     text: Info.weekdays("short")[weekday - 1] ?? "",
   }));
 
-  return { cells, weeks: (cells.at(-1)?.column ?? -1) + 1, monthTicks, weekdayLabels };
+  const lastColumn = rest.at(-1)?.column ?? cells.at(-1)?.column ?? -1;
+  return { cells, rest, weeks: lastColumn + 1, monthTicks, weekdayLabels };
 }
