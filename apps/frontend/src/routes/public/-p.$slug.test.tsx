@@ -15,12 +15,18 @@ import { Settings } from "luxon";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../api_client/apiError";
 import { defined } from "../../util/defined.test-utils";
 
 const stubs = vi.hoisted(() => {
-  const state: { component: React.ComponentType | undefined; photo: SharedPhoto | undefined } = {
+  const state: {
+    component: React.ComponentType | undefined;
+    photo: SharedPhoto | null | undefined;
+    error: Error | null;
+  } = {
     component: undefined,
     photo: undefined,
+    error: null,
   };
   return state;
 });
@@ -38,7 +44,12 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/photos/hooks", () => ({
-  useFetchSharedPhotoQuery: () => ({ data: stubs.photo, isLoading: false, isError: false }),
+  useFetchSharedPhotoQuery: () => ({
+    data: stubs.photo,
+    isLoading: false,
+    isError: stubs.error !== null,
+    error: stubs.error,
+  }),
 }));
 vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 
@@ -72,6 +83,7 @@ const mounted: Array<() => Promise<void>> = [];
 afterEach(async () => {
   while (mounted.length) await defined(mounted.pop())();
   stubs.photo = undefined;
+  stubs.error = null;
 });
 
 async function renderPage() {
@@ -154,5 +166,35 @@ describe("shared photo page", () => {
     // 01:00 where the camera was; read as an instant it would be 9 PM the day before.
     expect(container.textContent).toContain("Apr 1, 2024");
     expect(container.textContent).toMatch(/1:00\sAM/);
+  });
+
+  it("tells a visitor of an expired link that it expired, not that the photo is gone", async () => {
+    stubs.error = new ApiError("This link has expired.", 410, "This link has expired.", "/public/photo/s1/", {
+      errors: [{ field: "detail", message: "This link has expired.", code: "link_expired" }],
+    });
+
+    const container = await renderPage();
+
+    expect(container.textContent).toContain("publicphoto.expired");
+    expect(container.textContent).toContain("publicphoto.expiredHint");
+    expect(container.textContent).not.toContain("publicphoto.notFound");
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("says not found for an unknown or revoked link", async () => {
+    stubs.photo = null;
+
+    const container = await renderPage();
+
+    expect(container.textContent).toContain("publicphoto.notFound");
+    expect(container.textContent).not.toContain("publicphoto.expired");
+  });
+
+  it("says not found, not expired, for any other failure", async () => {
+    stubs.error = new ApiError("Internal Server Error", 500, null, "/public/photo/s1/");
+
+    const container = await renderPage();
+
+    expect(container.textContent).toContain("publicphoto.notFound");
   });
 });

@@ -18,6 +18,7 @@ import { usePhotoShareMutation } from "../../api_client/photos/hooks";
 import { shareAddress } from "../../api_client/urls";
 import { DIALOG_SIZE } from "../modals/dialogSize";
 import { ConfirmPopover } from "./ConfirmPopover";
+import { isLinkExpired, linkExpiryCaption } from "./linkExpiry";
 import { LinkExpirySetting } from "./LinkExpirySetting";
 
 type Props = {
@@ -54,11 +55,35 @@ export function PhotoShareLinkModal({ photoId, onClose }: Readonly<Props>) {
   );
 }
 
+function useLatestExpirySave(save: (expiresAt: string) => Promise<unknown>) {
+  const [failed, setFailed] = useState(false);
+  const wanted = useRef<string | null>(null);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+
+  const request = (expiresAt: string) => {
+    wanted.current = expiresAt;
+    setFailed(false);
+    queue.current = queue.current.then(async () => {
+      if (wanted.current !== expiresAt) return;
+      try {
+        await save(expiresAt);
+      } catch {
+        if (wanted.current === expiresAt) setFailed(true);
+      }
+    });
+  };
+
+  return { request, failed };
+}
+
 function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose: () => void }>) {
   const { t } = useTranslation();
   const { mutate, mutateAsync } = usePhotoShareMutation();
   const [link, setLink] = useState<LinkState>({ status: "creating" });
   const requested = useRef(false);
+  const expirySave = useLatestExpirySave(expiresAt =>
+    mutateAsync({ photoId, action: "enable", expiresAt: expiresAt || null })
+  );
 
   useEffect(() => {
     // One request per opening: StrictMode runs this effect twice, and two "enable" requests for
@@ -93,7 +118,7 @@ function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose
 
   const setExpiry = (state: Extract<LinkState, { status: "shown" }>, expiresAt: string) => {
     setLink({ ...state, expiresAt });
-    void mutateAsync({ photoId, action: "enable", expiresAt: expiresAt || null });
+    expirySave.request(expiresAt);
   };
 
   return (
@@ -116,6 +141,7 @@ function ShareLinkBody({ photoId, onClose }: Readonly<{ photoId: string; onClose
           url={`${shareAddress}${link.url}`}
           expiresAt={link.expiresAt}
           replace={link.replace}
+          expirySaveFailed={expirySave.failed}
           onReplace={() => void replace(link.url, link.expiresAt)}
           onExpiryChange={expiresAt => setExpiry(link, expiresAt)}
           onRevoke={() => mutate({ photoId, action: "disable" }, { onSuccess: onClose })}
@@ -129,13 +155,15 @@ type ShownLinkProps = Readonly<{
   url: string;
   expiresAt: string;
   replace: "idle" | "running" | "failed";
+  expirySaveFailed: boolean;
   onReplace: () => void;
   onExpiryChange: (expiresAt: string) => void;
   onRevoke: () => void;
 }>;
 
-function ShownLink({ url, expiresAt, replace, onReplace, onExpiryChange, onRevoke }: ShownLinkProps) {
+function ShownLink({ url, expiresAt, replace, expirySaveFailed, onReplace, onExpiryChange, onRevoke }: ShownLinkProps) {
   const { t } = useTranslation();
+  const expired = isLinkExpired(expiresAt);
   return (
     <>
       <Group gap="xs" wrap="nowrap">
@@ -161,6 +189,18 @@ function ShownLink({ url, expiresAt, replace, onReplace, onExpiryChange, onRevok
         </Text>
       )}
       <LinkExpirySetting value={expiresAt} onChange={onExpiryChange} />
+      {expiresAt && (
+        <Text size="sm" c={expired ? "orange" : "dimmed"}>
+          {expired
+            ? t("sharing.linkExpiredHint", { expired: linkExpiryCaption(t, expiresAt) })
+            : linkExpiryCaption(t, expiresAt)}
+        </Text>
+      )}
+      {expirySaveFailed && (
+        <Text size="sm" c="red">
+          {t("sharing.expirySaveFailed")}
+        </Text>
+      )}
       {/* Both end the link the recipients already have, for good. */}
       <Group justify="flex-end" gap="xs">
         <ConfirmPopover
