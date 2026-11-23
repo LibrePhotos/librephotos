@@ -4,6 +4,7 @@
 from datetime import UTC
 from typing import Any
 
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from api.drf.params import JsonIntegerField
@@ -19,11 +20,14 @@ CONVERT_TIMEZONE = "convert_timezone"
 MAX_SHIFT_SECONDS = 100 * 366 * 24 * 60 * 60
 
 
+@extend_schema_serializer(
+    description="The photos (as every bulk photo action names them) and the "
+    'change: ``{"mode": "shift", "seconds": -3600}``, '
+    '``{"mode": "set", "datetime": "2025-10-11T10:18:00"}`` or '
+    '``{"mode": "convert_timezone", "from_timezone": "America/New_York", '
+    '"to_timezone": "Asia/Tokyo"}``.'
+)
 class SetPhotosDateTimeRequest(PhotoSelectionRequest):
-    """The photos (as every bulk photo action names them) and the change:
-    ``{"mode": "shift", "seconds": -3600}`` or
-    ``{"mode": "set", "datetime": "2025-10-11T10:18:00"}``."""
-
     mode = serializers.ChoiceField(
         choices=[SHIFT, SET, CONVERT_TIMEZONE],
         help_text="shift moves every dated photo by seconds; set gives every "
@@ -73,13 +77,21 @@ class SetPhotosDateTimeRequest(PhotoSelectionRequest):
                     raise serializers.ValidationError(
                         {field: "Not a time zone name; pick one /api/timezones/ lists."}
                     )
+            if attrs["from_timezone"] == attrs["to_timezone"]:
+                raise serializers.ValidationError(
+                    {"to_timezone": "A conversion needs two different time zones."}
+                )
         return attrs
 
 
 class SetPhotosDateTimeResponse(serializers.Serializer[None]):
     count = serializers.IntegerField(help_text="Photos that got the new date")
     skipped_without_date = serializers.IntegerField(
-        help_text="Photos a shift left alone because they have no date"
+        help_text="Photos a shift or conversion left alone because they have no date"
+    )
+    skipped_other_zone = serializers.IntegerField(
+        help_text="Photos a conversion left alone because their stored UTC "
+        "offset is not from_timezone's at their date; 0 for shift and set"
     )
 
 

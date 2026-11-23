@@ -60,7 +60,10 @@ class ShiftTest(BulkDateTimeTestCase):
         response = self._post(self.trip, mode="shift", seconds=-3600)
 
         self.assertEqual(200, response.status_code, response.content)
-        self.assertEqual({"count": 3, "skipped_without_date": 0}, response.json())
+        self.assertEqual(
+            {"count": 3, "skipped_without_date": 0, "skipped_other_zone": 0},
+            response.json(),
+        )
         hour = datetime.timedelta(hours=1)
         self.assertEqual([d - hour for d in before], self._dates(self.trip))
         for photo in Photo.objects.filter(pk__in=[p.pk for p in self.trip]):
@@ -70,7 +73,10 @@ class ShiftTest(BulkDateTimeTestCase):
     def test_a_photo_without_a_date_is_skipped_and_counted(self):
         response = self._post([*self.trip, self.undated], mode="shift", seconds=90)
 
-        self.assertEqual({"count": 3, "skipped_without_date": 1}, response.json())
+        self.assertEqual(
+            {"count": 3, "skipped_without_date": 1, "skipped_other_zone": 0},
+            response.json(),
+        )
         undated = Photo.objects.get(pk=self.undated.pk)
         self.assertIsNone(undated.exif_timestamp)
         self.assertIsNone(undated.timestamp)
@@ -110,7 +116,10 @@ class ShiftTest(BulkDateTimeTestCase):
 
         response = self._post([theirs, self.trip[0]], mode="shift", seconds=60)
 
-        self.assertEqual({"count": 1, "skipped_without_date": 0}, response.json())
+        self.assertEqual(
+            {"count": 1, "skipped_without_date": 0, "skipped_other_zone": 0},
+            response.json(),
+        )
         self.assertEqual([at(10)], self._dates([theirs]))
         self.assertFalse(MetadataEdit.objects.filter(photo_id=theirs.pk).exists())
 
@@ -140,7 +149,10 @@ class SetTest(BulkDateTimeTestCase):
             [*self.trip, self.undated], mode="set", datetime="2025-10-11T10:18:00"
         )
 
-        self.assertEqual({"count": 4, "skipped_without_date": 0}, response.json())
+        self.assertEqual(
+            {"count": 4, "skipped_without_date": 0, "skipped_other_zone": 0},
+            response.json(),
+        )
         self.assertEqual(
             [at(10, 18, day=11)] * 4, self._dates([*self.trip, self.undated])
         )
@@ -174,7 +186,10 @@ class ConvertTimeZoneTest(BulkDateTimeTestCase):
         )
 
         self.assertEqual(200, response.status_code, response.content)
-        self.assertEqual({"count": 1, "skipped_without_date": 0}, response.json())
+        self.assertEqual(
+            {"count": 1, "skipped_without_date": 0, "skipped_other_zone": 0},
+            response.json(),
+        )
         self.assertEqual([at(21, 14, 2)], self._dates(self.trip[:1]))
 
     def test_a_date_over_a_daylight_saving_change_moves_less(self):
@@ -208,7 +223,10 @@ class ConvertTimeZoneTest(BulkDateTimeTestCase):
             to_timezone="Asia/Tokyo",
         )
 
-        self.assertEqual({"count": 0, "skipped_without_date": 1}, response.json())
+        self.assertEqual(
+            {"count": 0, "skipped_without_date": 1, "skipped_other_zone": 0},
+            response.json(),
+        )
 
     def test_missing_or_unknown_zones_are_refused(self):
         for body, field in (
@@ -229,6 +247,135 @@ class ConvertTimeZoneTest(BulkDateTimeTestCase):
                 self.assertEqual(field, response.json()["errors"][0]["field"])
         self.assertEqual([at(8, 14, 2)], self._dates(self.trip[:1]))
 
+    def test_the_same_zone_twice_is_refused(self):
+        response = self._convert(
+            self.trip, from_timezone="Asia/Tokyo", to_timezone="Asia/Tokyo"
+        )
+
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("to_timezone", response.json()["errors"][0]["field"])
+        self.assertEqual([at(8, 14, 2)], self._dates(self.trip[:1]))
+
+    def test_another_users_photo_is_not_touched(self):
+        theirs = self._photo(at(10), owner=self.other)
+
+        response = self._convert(
+            [theirs, self.trip[0]],
+            from_timezone="America/New_York",
+            to_timezone="Asia/Tokyo",
+        )
+
+        self.assertEqual(1, response.json()["count"])
+        self.assertEqual([at(10)], self._dates([theirs]))
+        self.assertIsNone(Photo.objects.get(pk=theirs.pk).exif_timestamp_offset)
+        self.assertFalse(MetadataEdit.objects.filter(photo_id=theirs.pk).exists())
+
+    def test_each_changed_photo_gets_one_edit_in_the_history(self):
+        self._convert(
+            self.trip, from_timezone="America/New_York", to_timezone="Asia/Tokyo"
+        )
+
+        edits_made = MetadataEdit.objects.filter(field_name=edits.DATE_TAKEN)
+        self.assertEqual(3, edits_made.count())
+        first = edits_made.get(photo_id=self.trip[0].pk)
+        self.assertEqual("2025-10-09T08:14:02Z", first.old_value)
+        self.assertEqual("2025-10-09T21:14:02Z", first.new_value)
+        self.assertEqual(self.user, first.user)
+
+    def test_one_job_writes_the_converted_photos(self):
+        self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
+        self.user.save()
+
+        with (
+            patch("api.metadata.jobs.enqueue_task") as enqueue,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            self._convert(
+                [*self.trip, self.undated],
+                from_timezone="America/New_York",
+                to_timezone="Asia/Tokyo",
+            )
+
+        enqueue.assert_called_once()
+        func, ids, field, use_sidecar = enqueue.call_args.args
+        self.assertIs(write_photo_fields, func)
+        self.assertEqual({p.pk for p in self.trip}, set(ids))
+        self.assertEqual((edits.DATE_TAKEN, True), (field, use_sidecar))
+
+    def test_a_repeated_hour_reads_as_standard_time(self):
+        repeated = self._photo(datetime.datetime(2025, 11, 2, 1, 30, tzinfo=UTC))
+
+        self._convert(
+            [repeated], from_timezone="America/New_York", to_timezone="Asia/Tokyo"
+        )
+
+        self.assertEqual(
+            [datetime.datetime(2025, 11, 2, 15, 30, tzinfo=UTC)],
+            self._dates([repeated]),
+        )
+
+    def test_a_repeated_hour_with_a_known_offset_keeps_it(self):
+        repeated = self._photo(datetime.datetime(2025, 11, 2, 1, 30, tzinfo=UTC))
+        Photo.objects.filter(pk=repeated.pk).update(exif_timestamp_offset=-4 * 60)
+
+        self._convert(
+            [repeated], from_timezone="America/New_York", to_timezone="Asia/Tokyo"
+        )
+
+        self.assertEqual(
+            [datetime.datetime(2025, 11, 2, 14, 30, tzinfo=UTC)],
+            self._dates([repeated]),
+        )
+
+    def test_a_skipped_hour_reads_at_the_offset_before_the_change(self):
+        skipped = self._photo(datetime.datetime(2025, 3, 9, 2, 30, tzinfo=UTC))
+
+        self._convert(
+            [skipped], from_timezone="America/New_York", to_timezone="Asia/Tokyo"
+        )
+
+        self.assertEqual(
+            [datetime.datetime(2025, 3, 9, 16, 30, tzinfo=UTC)],
+            self._dates([skipped]),
+        )
+
+    def test_a_photo_with_another_zones_offset_is_skipped_and_counted(self):
+        home, elsewhere = self.trip[0], self.trip[1]
+        Photo.objects.filter(pk=home.pk).update(exif_timestamp_offset=-4 * 60)
+        Photo.objects.filter(pk=elsewhere.pk).update(exif_timestamp_offset=2 * 60)
+
+        response = self._convert(
+            [home, elsewhere],
+            from_timezone="America/New_York",
+            to_timezone="Asia/Tokyo",
+        )
+
+        self.assertEqual(
+            {"count": 1, "skipped_without_date": 0, "skipped_other_zone": 1},
+            response.json(),
+        )
+        self.assertEqual([at(21, 14, 2), at(12, 30)], self._dates([home, elsewhere]))
+        self.assertEqual(
+            2 * 60, Photo.objects.get(pk=elsewhere.pk).exif_timestamp_offset
+        )
+        self.assertFalse(MetadataEdit.objects.filter(photo_id=elsewhere.pk).exists())
+
+    def test_converting_again_changes_nothing(self):
+        body = {"from_timezone": "America/New_York", "to_timezone": "Asia/Tokyo"}
+        self._convert(self.trip, **body)
+        after_first = self._dates(self.trip)
+
+        response = self._convert(self.trip, **body)
+
+        self.assertEqual(
+            {"count": 0, "skipped_without_date": 0, "skipped_other_zone": 3},
+            response.json(),
+        )
+        self.assertEqual(after_first, self._dates(self.trip))
+        self.assertEqual(
+            3, MetadataEdit.objects.filter(field_name=edits.DATE_TAKEN).count()
+        )
+
 
 class SelectAllTest(BulkDateTimeTestCase):
     def test_the_query_and_the_excluded_hashes_decide(self):
@@ -248,7 +395,10 @@ class SelectAllTest(BulkDateTimeTestCase):
             format="json",
         )
 
-        self.assertEqual({"count": 2, "skipped_without_date": 1}, response.json())
+        self.assertEqual(
+            {"count": 2, "skipped_without_date": 1, "skipped_other_zone": 0},
+            response.json(),
+        )
         self.assertEqual(
             [at(9, 14, 2), at(13, 30), at(19, 40, 55, day=11), at(9), at(9)],
             self._dates([*self.trip, hidden, theirs]),
@@ -269,7 +419,10 @@ class SelectAllTest(BulkDateTimeTestCase):
                 format="json",
             )
 
-        self.assertEqual({"count": 3, "skipped_without_date": 1}, response.json())
+        self.assertEqual(
+            {"count": 3, "skipped_without_date": 1, "skipped_other_zone": 0},
+            response.json(),
+        )
         enqueue.assert_called_once()
         func, ids, field, use_sidecar = enqueue.call_args.args
         self.assertIs(write_photo_fields, func)

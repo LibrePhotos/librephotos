@@ -2902,6 +2902,7 @@ export async function setPhotoTimestamp(
   return parseResponse(S.PhotoEditResponse, res, "set timestamp");
 }
 
+/** How a bulk date change moves the photos: by a number of seconds, or all to one wall-clock time. */
 export type DateTimeChange =
   | { mode: "shift"; seconds: number }
   | { mode: "set"; datetime: string }

@@ -11436,7 +11436,7 @@
     "/api/photosedit/datetime/": {
       "post": {
         "operationId": "api_photosedit_datetime_create",
-        "description": "Shift the requester's selected photos by a number of seconds, or give\nthem all one date and time.\n\nThe body names the photos as every bulk photo action does\n(``image_hashes``, or ``select_all`` with ``query`` and\n``excluded_hashes``). A shift moves each photo from the date it shows, so\nthe photos keep their order and spacing; a photo without a date is left\nalone and counted in ``skipped_without_date``. The new date is the\nuser's: it wins over the owner's date rules, and is written to the file\nor sidecar in the background when the owner syncs metadata to disk.",
+        "description": "Shift the requester's selected photos by a number of seconds, give them all one date and time, or convert their dates from one time zone to another.\n\nThe body names the photos as every bulk photo action does (``image_hashes``, or ``select_all`` with ``query`` and ``excluded_hashes``). A shift moves each photo from the date it shows, so the photos keep their order and spacing. A conversion reads each photo's wall clock in ``from_timezone`` and gives it the same moment in ``to_timezone``, with that zone's UTC offset; a photo whose stored offset is not ``from_timezone``'s at that date (one converted before) is left alone and counted in ``skipped_other_zone``, so a repeated conversion changes nothing. A shift or conversion leaves a photo without a date alone and counts it in ``skipped_without_date``. The new date is the user's: it wins over the owner's date rules, and is written to the file or sidecar in the background when the owner syncs metadata to disk.",
         "tags": [
           "api"
         ],
@@ -30079,7 +30079,7 @@
       },
       "SetPhotosDateTimeRequestRequest": {
         "type": "object",
-        "description": "The photos (as every bulk photo action names them) and the change:\n``{\"mode\": \"shift\", \"seconds\": -3600}`` or\n``{\"mode\": \"set\", \"datetime\": \"2025-10-11T10:18:00\"}``.",
+        "description": "The photos (as every bulk photo action names them) and the change: ``{\"mode\": \"shift\", \"seconds\": -3600}``, ``{\"mode\": \"set\", \"datetime\": \"2025-10-11T10:18:00\"}`` or ``{\"mode\": \"convert_timezone\", \"from_timezone\": \"America/New_York\", \"to_timezone\": \"Asia/Tokyo\"}``.",
         "properties": {
           "select_all": {
             "type": "boolean",
@@ -30149,11 +30149,16 @@
           },
           "skipped_without_date": {
             "type": "integer",
-            "description": "Photos a shift left alone because they have no date"
+            "description": "Photos a shift or conversion left alone because they have no date"
+          },
+          "skipped_other_zone": {
+            "type": "integer",
+            "description": "Photos a conversion left alone because their stored UTC offset is not from_timezone's at their date; 0 for shift and set"
           }
         },
         "required": [
           "count",
+          "skipped_other_zone",
           "skipped_without_date"
         ]
       },

@@ -368,7 +368,7 @@ describe("bulk photo mutations", () => {
 });
 
 describe("bulk date and time (#2278)", () => {
-  const changed = { count: 3, skipped_without_date: 1 };
+  const changed = { count: 3, skipped_without_date: 1, skipped_other_zone: 0 };
 
   it("shifts photos by hash", async () => {
     const { client, requests } = fakeServer(changed);
@@ -382,14 +382,15 @@ describe("bulk date and time (#2278)", () => {
   });
 
   it("sets a selected-all set to one date and time", async () => {
-    const { client, requests } = fakeServer({ count: 7, skipped_without_date: 0 });
+    const { client, requests } = fakeServer({ count: 7, skipped_without_date: 0, skipped_other_zone: 0 });
     await endpoints.setPhotosDateTime(client, [], { mode: "set", datetime: "2025-10-11T10:18:00.000Z" }, selectAll);
     expect(defined(requests[0]).body).toEqual({ ...selectAllBody, mode: "set", datetime: "2025-10-11T10:18:00.000Z" });
   });
 
   it("converts the dates from one time zone to another (#3042)", async () => {
-    const { client, requests } = fakeServer(changed);
-    await endpoints.setPhotosDateTime(client, ["h1"], {
+    const converted = { count: 2, skipped_without_date: 0, skipped_other_zone: 1 };
+    const { client, requests } = fakeServer(converted);
+    const answer = await endpoints.setPhotosDateTime(client, ["h1"], {
       mode: "convert_timezone",
       from_timezone: "America/New_York",
       to_timezone: "Asia/Tokyo",
@@ -400,6 +401,7 @@ describe("bulk date and time (#2278)", () => {
       from_timezone: "America/New_York",
       to_timezone: "Asia/Tokyo",
     });
+    expect(answer).toEqual(converted);
   });
 
   it("fails loudly on an answer without the counts", async () => {
