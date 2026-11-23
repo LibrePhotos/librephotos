@@ -1,0 +1,16 @@
+# Accepted differences for run_suite.sh mut:people_faces (grep -E patterns
+# over dump_state.py diff lines).
+#
+# Deleting the person "Carla" (02 §5 S3): Django 500s on the cover-face
+# cascade and rolls the whole delete back; Rust deletes the person and
+# unlabels its face.
+^- api_person \[[0-9]+\]: .*"name": "Carla"
+^~ api_face \[[0-9]+\] person_id: [0-9]+ -> null$
+# Renaming "Ben" to "Benjamin" (S19): Rust rebuilds the search captions of
+# the photos with his faces (bumping updated_at); Django leaves them stale.
+^~ api_photo_search \["[0-9a-f-]+"\] search_captions: ".* Ben <media>.*" -> ".* Benjamin <media>.*"$
+^~ api_photo_search \["[0-9a-f-]+"\] updated_at: "<unchanged>" -> "<bumped>"$
+# A manually added face gets a crop named <hash>_manual_<random hex>.jpg,
+# written by a different JPEG encoder on each side.
+^~ api_face \[[0-9]+\] image: "faces/[0-9a-f]+_manual_[0-9a-f]+\.jpg" -> "faces/[0-9a-f]+_manual_[0-9a-f]+\.jpg"$
+^[+-] files \["protected_media/faces/[0-9a-f]+_manual_[0-9a-f]+\.jpg"\]:

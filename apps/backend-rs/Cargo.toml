@@ -1,0 +1,196 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+# Internal crates
+lp-core = { path = "crates/lp-core" }
+lp-db = { path = "crates/lp-db" }
+lp-auth = { path = "crates/lp-auth" }
+lp-api = { path = "crates/lp-api" }
+lp-media = { path = "crates/lp-media" }
+lp-jobs = { path = "crates/lp-jobs" }
+lp-ingest = { path = "crates/lp-ingest" }
+lp-exif = { path = "crates/lp-exif" }
+lp-proc = { path = "crates/lp-proc" }
+lp-sidecars = { path = "crates/lp-sidecars" }
+lp-tasks = { path = "crates/lp-tasks" }
+lp-server = { path = "crates/lp-server" }
+lp-testkit = { path = "crates/lp-testkit" }
+lp-ml = { path = "crates/lp-ml" }
+
+# HTTP stack
+axum = { version = "0.8", features = ["multipart", "macros"] }
+axum-extra = { version = "0.10", features = ["cookie", "typed-header", "query"] }
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io", "codec", "rt"] }
+tokio-stream = { version = "0.1", features = ["fs", "sync"] }
+tower = { version = "0.5", features = ["util", "timeout", "limit"] }
+tower-http = { version = "0.6", features = ["fs", "trace", "cors", "timeout", "request-id", "set-header", "limit", "util"] }
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http = "1"
+http-body = "1"
+http-body-util = "0.1"
+bytes = "1"
+futures = "0.3"
+async-stream = "0.3"
+pin-project-lite = "0.2"
+mime = "0.3"
+mime_guess = "2"
+httpdate = "1"
+cookie = "0.18"
+percent-encoding = "2"
+urlencoding = "2"
+serde_urlencoded = "0.7"
+
+# Database
+sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls", "uuid", "chrono", "json", "macros", "migrate"] }
+
+# Serialization / types
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+tzf-rs = "2"
+indexmap = { version = "2", features = ["serde"] }
+hex = "0.4"
+base64 = "0.22"
+itertools = "0.14"
+
+# Crypto / auth
+jsonwebtoken = "9"
+argon2 = { version = "0.5", features = ["std"] }
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+sha1 = "0.10"
+sha2 = "0.10"
+hmac = "0.12"
+md-5 = "0.10"
+hkdf = "0.12"
+aes-gcm = "0.10"
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc", "block-padding"] }
+rand = "0.8"
+subtle = "2"
+
+# Errors / logging / CLI
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+clap = { version = "4", features = ["derive", "env"] }
+
+# Concurrency / caching
+arc-swap = "1"
+once_cell = "1"
+dashmap = "6"
+rayon = "1"
+
+# HTTP client, mail
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "rustls-tls", "stream", "gzip"] }
+# OIDC single sign-on (lp-api). Same reqwest 0.12 as the rest.
+openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls", "accept-string-booleans"] }
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls-tls", "hostname"] }
+
+# Text
+regex = "1"
+fancy-regex = "0.14"
+
+# Files / media
+infer = "0.19"
+memchr = "2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+walkdir = "2"
+jwalk = "0.8"
+tempfile = "3"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "tiff", "bmp"] }
+fast_image_resize = "5"
+webp = "0.3"
+# RAW decoding for the in-process RAW thumbnails (LGPL-2.1, pure Rust).
+rawler = "0.8"
+rustdct = "0.7"
+libloading = "0.8"
+sysinfo = "0.33"
+
+# ML (lp-ml). ORT is loaded at runtime (load-dynamic) so Rust and the Python
+# sidecars can share one onnxruntime build; api-17 = works with ORT >= 1.17.
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "load-dynamic", "ndarray", "tracing", "cuda", "directml"] }
+ndarray = "0.17"
+tokenizers = { version = "0.22", default-features = false, features = ["fancy-regex"] }
+async-trait = "0.1"
+flate2 = "1"
+tar = "0.4"
+
+# Dev / test
+insta = { version = "1", features = ["json"] }
+proptest = "1"
+
+[profile.dev]
+debug = "line-tables-only"
+
+# Password hashing and pixel work are unusably slow unoptimized; keep dev builds usable.
+# Generic hash code is monomorphized in the calling crate, so lp-auth itself needs it too.
+[profile.dev.package.lp-auth]
+opt-level = 2
+# pHash / dominant-colour resampling and the thumbnail pipeline run per photo.
+[profile.dev.package.lp-ingest]
+opt-level = 2
+[profile.dev.package.argon2]
+opt-level = 3
+[profile.dev.package.hmac]
+opt-level = 3
+[profile.dev.package.digest]
+opt-level = 3
+[profile.dev.package.blake2]
+opt-level = 3
+[profile.dev.package.pbkdf2]
+opt-level = 3
+[profile.dev.package.sha2]
+opt-level = 3
+[profile.dev.package.sha1]
+opt-level = 3
+[profile.dev.package.md-5]
+opt-level = 3
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.fast_image_resize]
+opt-level = 3
+[profile.dev.package.rustdct]
+opt-level = 3
+[profile.dev.package.rawler]
+opt-level = 3
+[profile.dev.package.libwebp-sys]
+opt-level = 3
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+# Tensor preprocessing and tokenizing run per image / query.
+[profile.dev.package.lp-ml]
+opt-level = 2
+[profile.dev.package.tokenizers]
+opt-level = 3
+# Face clustering trains MLPs on thousands of encodings (dgemm).
+[profile.dev.package.matrixmultiply]
+opt-level = 3
+[profile.dev.package.ndarray]
+opt-level = 3
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "allow"

@@ -1,0 +1,254 @@
+{
+ "bookworm/amd64": {
+  "version": "8.14.1-3+deb12u3",
+  "ffmpeg_version": "7:5.1.9-0+deb12u1",
+  "libvips_closure": {
+   "packages": 96,
+   "installed_mb": 161.1,
+   "debs_mb": 47.8
+  },
+  "libvips_largest_installed_mb": {
+   "libicu72": 35.3,
+   "libx265-199": 15.8,
+   "librsvg2-2": 10.7,
+   "libmagickcore-6.q16-6": 6.5,
+   "libssl3": 5.9,
+   "libaom3": 5.4,
+   "shared-mime-info": 4.9,
+   "libpoppler126": 4.5,
+   "libopenexr-3-1-30": 4.4,
+   "libglib2.0-0": 4.0,
+   "libnss3": 4.0,
+   "libhdf5-103-1": 3.9
+  },
+  "saving_with_ffmpeg_bin_wheel": {
+   "packages": 95,
+   "installed_mb": 155.2,
+   "debs_mb": 45.7
+  },
+  "rest_ffmpeg_bin_wheel": {
+   "packages": 4,
+   "installed_mb": 30.9,
+   "debs_mb": 7.5
+  },
+  "saving_with_debian_ffmpeg_cli": {
+   "packages": 37,
+   "installed_mb": 43.7,
+   "debs_mb": 14.5
+  },
+  "rest_debian_ffmpeg_cli": {
+   "packages": 203,
+   "installed_mb": 484.1,
+   "debs_mb": 139.3
+  },
+  "saving_with_debian_av_libs": {
+   "packages": 37,
+   "installed_mb": 43.7,
+   "debs_mb": 14.5
+  },
+  "rest_debian_av_libs": {
+   "packages": 144,
+   "installed_mb": 298.7,
+   "debs_mb": 92.7
+  },
+  "debian_ffmpeg_cli_alone": {
+   "packages": 200,
+   "installed_mb": 459.0,
+   "debs_mb": 133.9
+  },
+  "debian_av_libs_alone": {
+   "packages": 141,
+   "installed_mb": 273.6,
+   "debs_mb": 87.3
+  }
+ },
+ "bookworm/arm64": {
+  "version": "8.14.1-3+deb12u3",
+  "ffmpeg_version": "7:5.1.9-0+deb12u1",
+  "libvips_closure": {
+   "packages": 96,
+   "installed_mb": 148.5,
+   "debs_mb": 43.1
+  },
+  "libvips_largest_installed_mb": {
+   "libicu72": 35.4,
+   "libmagickcore-6.q16-6": 11.2,
+   "librsvg2-2": 9.5,
+   "libssl3": 5.8,
+   "shared-mime-info": 4.9,
+   "libglib2.0-0": 4.5,
+   "libopenexr-3-1-30": 4.4,
+   "libpoppler126": 4.3,
+   "libnss3": 4.0,
+   "libhdf5-103-1": 4.0,
+   "libaom3": 3.5,
+   "libvips42": 3.4
+  },
+  "saving_with_ffmpeg_bin_wheel": {
+   "packages": 95,
+   "installed_mb": 142.7,
+   "debs_mb": 41.3
+  },
+  "rest_ffmpeg_bin_wheel": {
+   "packages": 4,
+   "installed_mb": 30.9,
+   "debs_mb": 7.2
+  },
+  "saving_with_debian_ffmpeg_cli": {
+   "packages": 37,
+   "installed_mb": 47.7,
+   "debs_mb": 13.0
+  },
+  "rest_debian_ffmpeg_cli": {
+   "packages": 199,
+   "installed_mb": 421.7,
+   "debs_mb": 123.6
+  },
+  "saving_with_debian_av_libs": {
+   "packages": 37,
+   "installed_mb": 47.7,
+   "debs_mb": 13.0
+  },
+  "rest_debian_av_libs": {
+   "packages": 142,
+   "installed_mb": 242.1,
+   "debs_mb": 81.7
+  },
+  "debian_ffmpeg_cli_alone": {
+   "packages": 196,
+   "installed_mb": 396.6,
+   "debs_mb": 118.1
+  },
+  "debian_av_libs_alone": {
+   "packages": 139,
+   "installed_mb": 217.0,
+   "debs_mb": 76.2
+  }
+ },
+ "trixie/amd64": {
+  "version": "8.16.1-1+deb13u1",
+  "ffmpeg_version": "7:7.1.5-0+deb13u1",
+  "libvips_closure": {
+   "packages": 121,
+   "installed_mb": 126.1,
+   "debs_mb": 40.2
+  },
+  "libvips_largest_installed_mb": {
+   "libmagickcore-7.q16-10": 7.0,
+   "libopenexr-3-1-30": 6.1,
+   "librsvg2-2": 6.0,
+   "shared-mime-info": 5.0,
+   "gnupg-l10n": 4.9,
+   "libpoppler147": 4.7,
+   "libhwy1t64": 4.6,
+   "libnss3": 4.4,
+   "libglib2.0-0t64": 4.3,
+   "libhdf5-310": 4.2,
+   "libjxl0.11": 3.6,
+   "libgnutls30t64": 3.4
+  },
+  "saving_with_ffmpeg_bin_wheel": {
+   "packages": 121,
+   "installed_mb": 126.1,
+   "debs_mb": 40.2
+  },
+  "rest_ffmpeg_bin_wheel": {
+   "packages": 8,
+   "installed_mb": 79.0,
+   "debs_mb": 15.1
+  },
+  "saving_with_debian_ffmpeg_cli": {
+   "packages": 56,
+   "installed_mb": 61.5,
+   "debs_mb": 19.3
+  },
+  "rest_debian_ffmpeg_cli": {
+   "packages": 215,
+   "installed_mb": 524.3,
+   "debs_mb": 148.5
+  },
+  "saving_with_debian_av_libs": {
+   "packages": 57,
+   "installed_mb": 61.9,
+   "debs_mb": 19.4
+  },
+  "rest_debian_av_libs": {
+   "packages": 161,
+   "installed_mb": 307.5,
+   "debs_mb": 96.2
+  },
+  "debian_ffmpeg_cli_alone": {
+   "packages": 207,
+   "installed_mb": 445.3,
+   "debs_mb": 133.3
+  },
+  "debian_av_libs_alone": {
+   "packages": 153,
+   "installed_mb": 228.5,
+   "debs_mb": 81.1
+  }
+ },
+ "trixie/arm64": {
+  "version": "8.16.1-1+deb13u1",
+  "ffmpeg_version": "7:7.1.5-0+deb13u1",
+  "libvips_closure": {
+   "packages": 121,
+   "installed_mb": 130.7,
+   "debs_mb": 36.6
+  },
+  "libvips_largest_installed_mb": {
+   "libmagickcore-7.q16-10": 12.1,
+   "libopenexr-3-1-30": 6.1,
+   "librsvg2-2": 5.5,
+   "shared-mime-info": 5.1,
+   "gnupg-l10n": 4.9,
+   "libglib2.0-0t64": 4.9,
+   "libpoppler147": 4.5,
+   "libnss3": 4.5,
+   "libhdf5-310": 4.4,
+   "libhwy1t64": 4.0,
+   "libgnutls30t64": 3.5,
+   "libvips42t64": 3.5
+  },
+  "saving_with_ffmpeg_bin_wheel": {
+   "packages": 121,
+   "installed_mb": 130.7,
+   "debs_mb": 36.6
+  },
+  "rest_ffmpeg_bin_wheel": {
+   "packages": 8,
+   "installed_mb": 80.8,
+   "debs_mb": 14.9
+  },
+  "saving_with_debian_ffmpeg_cli": {
+   "packages": 56,
+   "installed_mb": 67.5,
+   "debs_mb": 17.8
+  },
+  "rest_debian_ffmpeg_cli": {
+   "packages": 212,
+   "installed_mb": 491.1,
+   "debs_mb": 136.2
+  },
+  "saving_with_debian_av_libs": {
+   "packages": 57,
+   "installed_mb": 68.1,
+   "debs_mb": 17.9
+  },
+  "rest_debian_av_libs": {
+   "packages": 160,
+   "installed_mb": 285.7,
+   "debs_mb": 89.6
+  },
+  "debian_ffmpeg_cli_alone": {
+   "packages": 204,
+   "installed_mb": 410.3,
+   "debs_mb": 121.2
+  },
+  "debian_av_libs_alone": {
+   "packages": 152,
+   "installed_mb": 204.9,
+   "debs_mb": 74.7
+  }
+ }
+}
