@@ -209,7 +209,7 @@ The public album is accessible at `https://your-instance/public/s/{slug}`.
 
 On your public profile, `https://your-instance/public/<username>?album={slug}` shows the same album. A link always needs the slug: the album's number alone opens nothing for a visitor.
 
-The dialog shows it as the **Album link**, with buttons to copy it and to open it in a new tab.
+The dialog shows it as the **Album link**, with buttons to copy it, to show a QR code for it, and to open it in a new tab. <Since version="1.7.0" /> The QR code is new; it opens the link on a phone's camera.
 
 ### Slideshow Link
 
@@ -295,7 +295,7 @@ To reverse this, select the photos again and choose **"Make private"** from the 
 
 ### Revocable Photo Links
 
-The **Share link** button in the lightbox (the share icon, shortcut **P**; on a phone it is in the bar at the bottom) does something different from the bulk *Make public* action above: it creates a *share link* for that one photo and opens a dialog showing it, with a button to copy it. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo. Creating a link does **not** make the photo public: it does not appear on your public profile or under *Make public*, and the photo's own `/media/...` URLs still require a login.
+The **Share link** button in the lightbox (the share icon, shortcut **P**; on a phone it is in the bar at the bottom) does something different from the bulk *Make public* action above: it creates a *share link* for that one photo and opens a dialog showing it, with buttons to copy it and to show a QR code for it. <Since version="1.7.0" /> The QR code is new; it opens the link on a phone's camera. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo. Creating a link does **not** make the photo public: it does not appear on your public profile or under *Make public*, and the photo's own `/media/...` URLs still require a login.
 
 Because the slug is random, the link can be withdrawn:
 

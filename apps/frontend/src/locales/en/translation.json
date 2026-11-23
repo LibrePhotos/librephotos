@@ -804,6 +804,8 @@
     "days90": "90 days",
     "never": "Never",
     "generating": "Generating...",
+    "qrCode": "QR code",
+    "qrCodeHint": "Scan to open this link on your phone",
     "copied": "Copied",
     "copyLink": "Copy link",
     "photoLinks": "Photo links",
