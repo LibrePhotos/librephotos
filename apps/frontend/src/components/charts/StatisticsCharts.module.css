@@ -14,7 +14,7 @@
 }
 
 .valueLabel,
-.yearLabel,
+.axisLabel,
 .monthLabel,
 .weekdayLabel {
   fill: var(--mantine-color-dimmed);
@@ -27,7 +27,7 @@
   text-anchor: end;
 }
 
-.yearLabel {
+.axisLabel {
   text-anchor: middle;
 }
 
@@ -151,6 +151,10 @@
   height: 280px;
 }
 
+.distributionPlot {
+  height: 220px;
+}
+
 .stayPlot {
   height: 56px;
 }
@@ -173,4 +177,106 @@
 .daySwatch {
   flex-shrink: 0;
   border-radius: 2px;
+}
+
+.rankList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rankLink {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr) auto;
+  grid-template-areas: "name track count";
+  align-items: center;
+  gap: 12px;
+  padding: 5px 6px;
+  border-radius: var(--mantine-radius-sm);
+  color: inherit;
+  text-decoration: none;
+  font-size: var(--mantine-font-size-sm);
+}
+
+.rankLink:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.rankLink:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.rankName {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankTrack {
+  grid-area: track;
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--mantine-primary-color-light);
+  overflow: hidden;
+}
+
+.rankFill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--mantine-primary-color-filled);
+}
+
+.rankCount {
+  grid-area: count;
+  min-width: 72px;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.barLink {
+  fill: var(--mantine-primary-color-filled);
+  cursor: pointer;
+}
+
+.barLink:focus {
+  outline: none;
+}
+
+.barLink:focus-visible path {
+  stroke: var(--mantine-color-text);
+  stroke-width: 2;
+}
+
+.linkSurface {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.rankMore {
+  align-self: flex-start;
+  margin: 4px 0 0 6px;
+}
+
+@media (max-width: 47.99em) {
+  .rankLink {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name name"
+      "track count";
+    row-gap: 4px;
+  }
+
+  .rankName {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }

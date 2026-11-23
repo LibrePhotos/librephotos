@@ -521,6 +521,8 @@ export type SearchFilters = {
   focal_max?: number;
   focal35_min?: number;
   focal35_max?: number;
+  shutter_min?: number;
+  shutter_max?: number;
   /** 1 to 5 stars. */
   rating_min?: number;
   taken_after?: string;
@@ -548,6 +550,8 @@ function searchFiltersQuery(filter: SearchFilters) {
     focal_max: filter.focal_max,
     focal35_min: filter.focal35_min,
     focal35_max: filter.focal35_max,
+    shutter_min: filter.shutter_min,
+    shutter_max: filter.shutter_max,
     rating_min: filter.rating_min,
     taken_after: filter.taken_after,
     taken_before: filter.taken_before,
@@ -2198,6 +2202,11 @@ export async function fetchClusterFaces(client: ApiClient): Promise<S.ClusterFac
 export async function fetchCountStats(client: ApiClient): Promise<S.CountStats> {
   const res = await client.get<unknown>("/stats/");
   return parseResponse(S.CountStats, res, "count stats");
+}
+
+export async function fetchCameraStats(client: ApiClient): Promise<S.CameraStats> {
+  const res = await client.get<unknown>("/camera-stats/");
+  return parseResponse(S.CameraStats, res, "camera stats");
 }
 
 export async function fetchLocationSunburst(client: ApiClient): Promise<S.LocationSunburst> {

@@ -831,6 +831,7 @@ urlpatterns = [
     path("api/datetime-rules/check/", date_rules.DateRuleCheckView.as_view()),
     path("api/datetime-rules/test/", date_rules.DateRulesTestView.as_view()),
     re_path(r"^api/stats/?$", dataviz.StatsView.as_view()),
+    path("api/camera-stats/", dataviz.CameraStatsView.as_view()),
     re_path(r"^api/storagestats/?$", server_info.StorageStatsView.as_view()),
     re_path(r"^api/imagetag/?$", server_info.ImageTagView.as_view()),
     re_path(r"^api/serverstats/?$", dataviz.ServerStatsView.as_view()),

@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.dataviz.camera_stats import get_camera_stats
 from api.dataviz.stats import (
     get_count_stats,
     get_location_clusters,
@@ -34,6 +35,7 @@ from api.serializers.server import (
     ServerStatsSerializer,
 )
 from api.serializers.stats import (
+    CameraStatsSerializer,
     CountStatsSerializer,
     LocationSunburstSerializer,
     LocationTimelineSpanSerializer,
@@ -146,6 +148,14 @@ class StatsView(APIView):
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_count_stats(user=request_user(request))
         return Response(res)
+
+
+class CameraStatsView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(responses=CameraStatsSerializer)
+    def get(self, request: Request, format: str | None = None) -> Response:
+        return Response(get_camera_stats(request_user(request)))
 
 
 class LocationClustersView(APIView):
