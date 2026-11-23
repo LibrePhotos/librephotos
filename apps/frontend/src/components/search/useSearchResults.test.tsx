@@ -4,7 +4,7 @@
  * a search with words selects the listed photos, and a filter the server refuses is explained
  * with a way out instead of a failed list.
  */
-import { ApiError, type MediaType, type SearchFilters } from "@librephotos/api-client";
+import { ApiError, type MediaType, type SearchFilters, type SearchSort } from "@librephotos/api-client";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -19,7 +19,9 @@ type SearchUpdater = (prev: Record<string, unknown>) => Record<string, unknown>;
 const stubs = vi.hoisted(() => ({
   search: {} as Record<string, unknown>,
   navigate: vi.fn<(options: { to: string; search: SearchUpdater }) => Promise<void>>(),
-  asked: [] as [string, MediaType | undefined, SearchFilters | undefined][],
+  asked: [] as [string, MediaType | undefined, SearchFilters | undefined, SearchSort | undefined][],
+  askedOptions: [] as unknown[],
+  count: undefined as number | undefined,
   error: null as Error | null,
   props: undefined as PhotoListViewProps | undefined,
 }));
@@ -39,11 +41,21 @@ vi.mock("../../api_client/user/hooks", () => ({
     data: { semantic_search_topk: 0, rating_mode: "favorite", favorite_min_rating: 4 },
   }),
 }));
+vi.mock("../../api_client/user/hooks/usePhotoOrder", () => ({
+  usePhotoOrder: () => ({ order: "newest", ready: true }),
+}));
 vi.mock("../../api_client/search/hooks", () => ({
-  useSearchPhotosQuery: (term: string, mediaType?: MediaType, filters?: SearchFilters) => {
-    stubs.asked.push([term, mediaType, filters]);
+  useSearchPhotosQuery: (
+    term: string,
+    mediaType?: MediaType,
+    filters?: SearchFilters,
+    sort?: SearchSort,
+    options?: unknown
+  ) => {
+    stubs.asked.push([term, mediaType, filters, sort]);
+    stubs.askedOptions.push(options);
     return {
-      data: stubs.error ? undefined : { photosFlat: [], photosGroupedByDate: [] },
+      data: stubs.error ? undefined : { photosFlat: [], photosGroupedByDate: [], count: stubs.count },
       isPending: false,
       isError: stubs.error !== null,
       isFetching: false,
@@ -61,7 +73,10 @@ beforeAll(async () => {
 afterEach(() => {
   stubs.search = {};
   stubs.asked = [];
+  stubs.askedOptions = [];
+  stubs.count = undefined;
   stubs.error = null;
+  localStorage.clear();
   stubs.props = undefined;
   stubs.navigate.mockReset();
 });
@@ -85,7 +100,7 @@ describe("SearchResultsView", () => {
     stubs.search = { media: "photos", camera: "X-T5", person: [3, 7], iso_min: "bad" };
     const { props, unmount } = await renderView("");
 
-    expect(stubs.asked.at(-1)).toEqual(["", "photos", { camera: "X-T5", person: [3, 7] }]);
+    expect(stubs.asked.at(-1)).toEqual(["", "photos", { camera: "X-T5", person: [3, 7] }, "newest"]);
     expect(props.title).toBe("Filtered photos");
     expect(props.photosetQuery).toEqual({
       camera: "X-T5",
@@ -112,6 +127,27 @@ describe("SearchResultsView", () => {
 
     expect(props.emptyStateConfig?.title).toBe("Choose filters");
     expect(props.loading).toBe(false);
+    await unmount();
+  });
+
+  it("never lets a stored size sort search without words or filters", async () => {
+    localStorage.setItem("lp:photoSort.search.v1", JSON.stringify("largest"));
+    const { props, unmount } = await renderView("");
+
+    expect(stubs.asked.at(-1)).toEqual(["", "all", {}, "largest"]);
+    expect(stubs.askedOptions.at(-1)).toBeUndefined();
+    expect(props.loading).toBe(false);
+    expect(props.emptyStateConfig?.title).toBe("Choose filters");
+    await unmount();
+  });
+
+  it("hands the page sort and the size sorted total to the list", async () => {
+    localStorage.setItem("lp:photoSort.search.v1", JSON.stringify("smallest"));
+    stubs.count = 1500;
+    const { props, unmount } = await renderView("beach");
+
+    expect(props.sort).toBe("smallest");
+    expect(props.sortTotal).toBe(1500);
     await unmount();
   });
 

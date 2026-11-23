@@ -2594,6 +2594,12 @@
     "largestfirst": "Largest first",
     "smallestfirst": "Smallest first"
   },
+  "photosort": {
+    "largestfirst": "Largest files first",
+    "smallestfirst": "Smallest files first",
+    "showinglargest": "Showing the {{shown, number}} largest of {{total, number}}",
+    "showingsmallest": "Showing the {{shown, number}} smallest of {{total, number}}"
+  },
   "personedit": {
     "labelfaces": "Label faces",
     "numberselected": "Label selected {{number}} face(s) as…",
