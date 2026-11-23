@@ -98,7 +98,7 @@ Besides the words you type, a search can be narrowed by the people in the photo,
 
 - **People**: pick one or more people. With several, you get the photos with all of them together. While you type a name, the matching people are listed with the most faces first. <Since version="1.5.0" /> Up to 1.4.0, matches stayed in name order.
 - **Camera**: the maker, the camera and the lens. The lists show the cameras of your own photos, most used first, with how many photos of your library each one took.
-- **Exposure**: ISO, aperture, focal length and 35 mm equivalent focal length, each as a lowest and a highest value (either can stay empty), and <Since version="1.7.0" /> the shutter speed, one exact value from your photos. A value applies when you leave the field or press Enter. Shortcuts set common ISO and focal length bands in one click.
+- **Exposure**: ISO, aperture, focal length, 35 mm equivalent focal length and <Since version="1.7.0" /> shutter speed, each as a lowest and a highest value (either can stay empty). A value applies when you leave the field or press Enter. Type a shutter speed as the camera shows it, `1/250` or `2 s` (or `0.5` seconds); the lowest is the fastest. Shortcuts set common ISO, focal length and shutter speed bands in one click.
 - **Rating**: with star ratings, the fewest stars a photo needs. With the favorite toggle (see the rating style in Settings), one **Favorites only** switch.
 - **Taken**: on or after and on or before a day, or **This year**, **Last year** and **Last 12 months**.
 - **Location**: only photos with GPS coordinates, or only those without.
@@ -119,11 +119,11 @@ The filters are query parameters of `GET /api/photos/searchlist/`. They combine 
 | `camera` | taken with this camera model, for example `X-T5` (the whole name, any letter case) |
 | `make` | taken with a camera from this maker, for example `FUJIFILM` |
 | `lens` | taken with this lens model |
-| <Since version="1.7.0" /> `shutter` | taken at this shutter speed, exactly as the camera recorded it, for example `1/250` |
 | `iso_min`, `iso_max` | with an ISO speed in this range |
 | `aperture_min`, `aperture_max` | with an f-number in this range, for example `aperture_min=1.4&aperture_max=2` |
 | `focal_min`, `focal_max` | with a focal length in this range, in millimetres |
 | `focal35_min`, `focal35_max` | with a 35 mm equivalent focal length in this range |
+| <Since version="1.7.0" /> `shutter_min`, `shutter_max` | with an exposure time in this range, in seconds: `shutter_min=0.004&shutter_max=0.008` finds 1/250 s to 1/125 s. A bound matches the camera's own value however it was rounded, so `shutter_max=0.016666666666666666` (1/60) also finds a stored `0.0166666666666667` |
 | `rating_min` | rated at least this many stars (1 to 5) |
 | `taken_after`, `taken_before` | taken on or after, or on or before, this day (`2024-03-01`) |
 | `has_location` | with GPS coordinates (`true`) or without them (`false`, the same photos as the **No Location** page) |
@@ -135,7 +135,7 @@ Ranges include both ends, and either end can be left out. A photo without the va
 
 The camera maker comes from the photo's EXIF data since the release after 1.3.0. Photos scanned before that have none until you rescan them, so `make` does not find them yet.
 
-`GET /api/search/metadata-values/?field=camera` lists the camera models of your photos with how many photos each one took, most used first. `field=make` lists the makers, `field=lens` the lenses and <Since version="1.7.0" /> `field=shutter` the shutter speeds. Pick a filter value from there to be sure it matches.
+`GET /api/search/metadata-values/?field=camera` lists the camera models of your photos with how many photos each one took, most used first. `field=make` lists the makers and `field=lens` the lenses. Pick a filter value from there to be sure it matches.
 
 The bulk actions take the same parameters in their select-all `query`. Send `show_all_stack_photos: true` with them, because search lists every photo of a stack, not only the one the timeline shows. The search words themselves are not part of a select-all, so after a search with words the web app sends the listed photos instead.
 

@@ -99,31 +99,29 @@ export const SocialGraph = z.object({
 });
 export type SocialGraph = z.infer<typeof SocialGraph>;
 
-const NamedStat = z.object({
+const RankStat = z.object({
   label: z.string(),
   value: z.string(),
   count: z.number(),
 });
 
-const CameraStat = NamedStat.extend({ make: z.string() });
+const CameraStat = RankStat.extend({ make: z.string() });
 
-const NumberStat = z.object({
-  value: z.number(),
+export const RangeBucket = z.object({
+  label: z.string(),
+  min: z.number(),
+  max: z.number(),
   count: z.number(),
 });
-
-const TextStat = z.object({
-  value: z.string(),
-  count: z.number(),
-});
+export type RangeBucket = z.infer<typeof RangeBucket>;
 
 export const CameraStats = z.object({
   cameras: CameraStat.array(),
-  lenses: NamedStat.array(),
-  iso: NumberStat.array(),
-  aperture: NumberStat.array(),
-  focal_length: NumberStat.array(),
-  focal_length_35mm: NumberStat.array(),
-  shutter_speed: TextStat.array(),
+  lenses: RankStat.array(),
+  iso: RangeBucket.array(),
+  aperture: RangeBucket.array(),
+  focal_length: RangeBucket.array(),
+  focal_length_35mm: RangeBucket.array(),
+  shutter_speed: RangeBucket.array(),
 });
 export type CameraStats = z.infer<typeof CameraStats>;

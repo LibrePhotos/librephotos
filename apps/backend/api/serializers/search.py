@@ -13,7 +13,7 @@ from api.search.metadata_filter import VALUE_COLUMNS
 class MetadataValuesQuery(serializers.Serializer[None]):
     field = serializers.ChoiceField(
         choices=list(VALUE_COLUMNS),
-        help_text="camera (model), make (camera maker), lens (model) or shutter (speed)",
+        help_text="camera (model), make (camera maker) or lens (model)",
     )
 
 

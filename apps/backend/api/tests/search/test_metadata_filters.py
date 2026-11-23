@@ -83,6 +83,7 @@ class CameraAndExposureFilterTest(MetadataFilterTestCase):
             focal_length=23.0,
             focal_length_35mm=35,
             shutter_speed="1/250",
+            shutter_speed_seconds=1 / 250,
         )
         self.r5 = self.photo(
             camera_make="Canon",
@@ -93,6 +94,7 @@ class CameraAndExposureFilterTest(MetadataFilterTestCase):
             focal_length=70.0,
             focal_length_35mm=70,
             shutter_speed="1/60",
+            shutter_speed_seconds=1 / 60,
         )
         self.no_metadata = self.photo()
 
@@ -107,10 +109,23 @@ class CameraAndExposureFilterTest(MetadataFilterTestCase):
         self.assert_matches({"make": "canon"}, [self.r5])
         self.assert_matches({"lens": "XF23mmF1.4 R LM WR"}, [self.xt5])
 
-    def test_shutter_matches_the_stored_text_ignoring_case(self):
-        self.assert_matches({"shutter": "1/250"}, [self.xt5])
-        self.assert_matches({"shutter": "1/60"}, [self.r5])
-        self.assert_matches({"shutter": "1/2"}, [])
+    def test_shutter_ranges_are_inclusive_seconds(self):
+        self.assert_matches(
+            {"shutter_min": 1 / 250, "shutter_max": 1 / 250}, [self.xt5]
+        )
+        self.assert_matches({"shutter_min": 1 / 60}, [self.r5])
+        self.assert_matches({"shutter_max": 1 / 125}, [self.xt5])
+        self.assert_matches({"shutter_min": 0.5}, [])
+
+    def test_a_shutter_speed_matches_however_its_seconds_were_rounded(self):
+        exiftool_sixtieth = self.photo(shutter_speed_seconds=0.0166666666666667)
+        exiftool_thirtieth = self.photo(shutter_speed_seconds=0.0333333333333333)
+        self.assert_matches(
+            {"shutter_min": 1 / 60, "shutter_max": 1 / 60}, [self.r5, exiftool_sixtieth]
+        )
+        self.assert_matches(
+            {"shutter_min": 1 / 30, "shutter_max": 1 / 30}, [exiftool_thirtieth]
+        )
 
     def test_ranges_are_inclusive(self):
         self.assert_matches({"iso_min": 3200}, [self.xt5])
@@ -144,10 +159,13 @@ class CameraAndExposureFilterTest(MetadataFilterTestCase):
         self.assert_refused({"iso_min": "a lot"}, "iso_min")
         self.assert_refused({"aperture_max": "-1"}, "aperture_max")
         self.assert_refused({"focal35_min": "1.5"}, "focal35_min")
+        self.assert_refused({"shutter_min": "1/250"}, "shutter_min")
+        self.assert_refused({"shutter_max": "-1"}, "shutter_max")
 
     def test_a_lowest_value_above_its_highest_is_refused(self):
         self.assert_refused({"iso_min": 800, "iso_max": 400}, "iso_max")
         self.assert_refused({"focal_min": 50, "focal_max": 20}, "focal_max")
+        self.assert_refused({"shutter_min": 1, "shutter_max": 0.5}, "shutter_max")
 
     def test_the_filter_also_narrows_semantic_search(self):
         self.user.semantic_search_topk = 10
@@ -420,14 +438,8 @@ class MetadataValuesTest(MetadataFilterTestCase):
                     response.data["results"], [{"value": value, "count": 1}]
                 )
 
-    def test_shutter_speeds(self):
-        self.photo(shutter_speed="1/250")
-        self.photo()
-        response = self.client.get(VALUES_URL, {"field": "shutter"})
-        self.assertEqual(response.data["results"], [{"value": "1/250", "count": 1}])
-
     def test_an_unknown_field_is_refused(self):
-        for params in ({"field": "iso"}, {}):
+        for params in ({"field": "iso"}, {"field": "shutter"}, {}):
             with self.subTest(params):
                 response = self.client.get(VALUES_URL, params)
                 self.assertEqual(response.status_code, 400)

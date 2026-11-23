@@ -42,7 +42,8 @@ describe("describeSearchFilters", () => {
         focal_max: 35,
         focal35_min: 24,
         focal35_max: 70,
-        shutter: "1/250",
+        shutter_min: 1 / 250,
+        shutter_max: 2,
         rating_min: 4,
         taken_after: "2024-03-01",
         taken_before: "2024-05-31",
@@ -62,7 +63,7 @@ describe("describeSearchFilters", () => {
       "Aperture f/1.4 to f/2",
       "Focal length up to 35 mm",
       "35 mm equivalent 24 mm to 70 mm",
-      "Shutter speed: 1/250",
+      "Shutter speed 1/250 to 2 s",
       "4 stars or more",
       "Taken Mar 1, 2024 to May 31, 2024",
       "No location",
@@ -87,6 +88,15 @@ describe("describeSearchFilters", () => {
       { taken_after: undefined, taken_before: undefined },
     ]);
     expect(chips.map(chip => chip.label)).toEqual(["ISO up to 800", "Taken on or before Jan 31, 2024"]);
+  });
+
+  it("names a range with one value once, as a statistics bar links it", () => {
+    const chips = describeSearchFilters(
+      { iso_min: 400, iso_max: 400, aperture_min: 1.78, aperture_max: 1.8, shutter_min: 1 / 60, shutter_max: 1 / 60 },
+      context()
+    );
+    expect(chips.map(chip => chip.label)).toEqual(["ISO 400", "Aperture f/1.78 to f/1.8", "Shutter speed 1/60"]);
+    expect(chips[0]?.patch).toEqual({ iso_min: undefined, iso_max: undefined });
   });
 
   it("calls the favorite threshold Favorites only in the favorite rating mode", () => {

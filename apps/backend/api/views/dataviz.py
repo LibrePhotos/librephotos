@@ -11,8 +11,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.dataviz.camera_stats import get_camera_stats
 from api.dataviz.stats import (
-    get_camera_stats,
     get_count_stats,
     get_location_clusters,
     get_location_sunburst,

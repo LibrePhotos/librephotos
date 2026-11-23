@@ -4,6 +4,7 @@ import {
   IconArchive,
   IconBook,
   IconCalendarEvent,
+  IconCamera,
   IconChartBar,
   IconClock,
   IconClockOff,
@@ -274,6 +275,13 @@ function statisticsActions(t: Translate, navigate: Navigate): SpotlightAction[] 
       leftSection: React.createElement(IconTimeline, iconProps),
       onClick: () => void navigate({ to: "/statistics/timeline" }),
       keywords: ["timeline", "history"],
+    },
+    {
+      id: "nav-cameras",
+      label: t("spotlight.nav.cameras"),
+      leftSection: React.createElement(IconCamera, iconProps),
+      onClick: () => void navigate({ to: "/statistics/cameras" }),
+      keywords: ["cameras", "lenses", "exposure", "iso", "aperture", "shutter speed", "focal length"],
     },
     {
       id: "nav-socialgraph",

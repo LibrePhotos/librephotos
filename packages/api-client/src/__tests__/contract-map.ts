@@ -217,6 +217,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   // statistics
   CountStats: { schema: S.CountStats, components: ["CountStats"] },
   CameraStats: { schema: S.CameraStats, components: ["CameraStats"] },
+  RangeBucket: { schema: S.RangeBucket, components: ["RangeBucket"] },
   WordCloudResponse: { schema: S.WordCloudResponse, components: ["WordCloud"] },
   SocialGraph: { schema: S.SocialGraph, components: ["SocialGraph"] },
   PhotoMonthCount: { schema: S.PhotoMonthCount, components: ["PhotoMonthCount"] },

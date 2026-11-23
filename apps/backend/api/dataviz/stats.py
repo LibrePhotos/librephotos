@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.conf import settings
 from django.db import connection, transaction
-from django.db.models import Count, Exists, Max, Model, OuterRef, Q, QuerySet, Sum
+from django.db.models import Count, Exists, Model, OuterRef, Q, QuerySet, Sum
 from django.db.models.functions import TruncMonth
 
 from api.dataviz.color_palettes import hex_palette
@@ -27,7 +27,6 @@ from api.models import (
     Photo,
     User,
 )
-from api.models.photo_metadata import with_maker
 from api.models.place_names import place_name
 from api.models.user import get_deleted_user
 from api.runtime import binaries, capacity
@@ -344,112 +343,6 @@ def get_count_stats(user: User) -> dict[str, int]:
         "library_bytes": photos["library_bytes"] or 0,
     }
     return res
-
-
-class NamedStat(TypedDict):
-    label: str
-    value: str
-    count: int
-
-
-class CameraStat(NamedStat):
-    make: str
-
-
-class NumberStat(TypedDict):
-    value: float
-    count: int
-
-
-class TextStat(TypedDict):
-    value: str
-    count: int
-
-
-class CameraStats(TypedDict):
-    cameras: list[CameraStat]
-    lenses: list[NamedStat]
-    iso: list[NumberStat]
-    aperture: list[NumberStat]
-    focal_length: list[NumberStat]
-    focal_length_35mm: list[NumberStat]
-    shutter_speed: list[TextStat]
-
-
-def _camera_stats(photos: QuerySet[Photo]) -> list[CameraStat]:
-    rows = (
-        photos.filter(metadata__camera_model__gt="")
-        .values("metadata__camera_make", "metadata__camera_model")
-        .annotate(count=Count("pk"))
-        .order_by("-count", "metadata__camera_model", "metadata__camera_make")
-    )
-    return [
-        CameraStat(
-            label=with_maker(
-                row["metadata__camera_make"], row["metadata__camera_model"]
-            )
-            or row["metadata__camera_model"],
-            value=row["metadata__camera_model"],
-            make=row["metadata__camera_make"] or "",
-            count=row["count"],
-        )
-        for row in rows
-    ]
-
-
-def _lens_stats(photos: QuerySet[Photo]) -> list[NamedStat]:
-    rows = (
-        photos.filter(metadata__lens_model__gt="")
-        .values("metadata__lens_model")
-        .annotate(count=Count("pk"))
-        .order_by("-count", "metadata__lens_model")
-    )
-    return [
-        NamedStat(
-            label=row["metadata__lens_model"],
-            value=row["metadata__lens_model"],
-            count=row["count"],
-        )
-        for row in rows
-    ]
-
-
-def _number_stats(photos: QuerySet[Photo], column: str) -> list[NumberStat]:
-    rows = (
-        photos.filter(**{f"{column}__isnull": False})
-        .values(column)
-        .annotate(count=Count("pk"))
-        .order_by(column)
-    )
-    return [NumberStat(value=row[column], count=row["count"]) for row in rows]
-
-
-def _shutter_stats(photos: QuerySet[Photo]) -> list[TextStat]:
-    rows = (
-        photos.filter(metadata__shutter_speed__gt="")
-        .values("metadata__shutter_speed")
-        .annotate(count=Count("pk"), seconds=Max("metadata__shutter_speed_seconds"))
-    )
-    ordered = sorted(
-        rows, key=lambda row: (row["seconds"] is None, row["seconds"] or 0.0)
-    )
-    return [
-        TextStat(value=row["metadata__shutter_speed"], count=row["count"])
-        for row in ordered
-    ]
-
-
-def get_camera_stats(user: User) -> CameraStats:
-    photos = Photo.visible.owned_by(user)
-    return CameraStats(
-        cameras=_camera_stats(photos),
-        lenses=_lens_stats(photos),
-        iso=_number_stats(photos, "metadata__iso"),
-        aperture=_number_stats(photos, "metadata__aperture"),
-        focal_length=_number_stats(photos, "metadata__focal_length"),
-        focal_length_35mm=_number_stats(photos, "metadata__focal_length_35mm"),
-        shutter_speed=_shutter_stats(photos),
-    )
 
 
 def get_photo_month_counts(user: User) -> list[dict[str, str | int]]:

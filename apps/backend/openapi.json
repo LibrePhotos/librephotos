@@ -10890,13 +10890,23 @@
           },
           {
             "in": "query",
-            "name": "shutter",
+            "name": "shutter_max",
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 20
+              "type": "number",
+              "format": "double",
+              "minimum": 0
             },
-            "description": "Shutter speed, exact match ignoring case (values: metadata-values?field=shutter)"
+            "description": "Longest exposure time in seconds"
+          },
+          {
+            "in": "query",
+            "name": "shutter_min",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "minimum": 0
+            },
+            "description": "Shortest exposure time in seconds, for example 0.004 for 1/250"
           },
           {
             "in": "query",
@@ -12999,6 +13009,7 @@
     "/api/search/metadata-values/": {
       "get": {
         "operationId": "api_search_metadata_values_retrieve",
+        "description": "The cameras, makers or lenses of the requester's photos, for the\nsuggestions of the search filters: each distinct value with its photo\ncount, most photos first, in one answer (a library has few).",
         "parameters": [
           {
             "in": "query",
@@ -13007,13 +13018,12 @@
               "enum": [
                 "camera",
                 "make",
-                "lens",
-                "shutter"
+                "lens"
               ],
               "type": "string",
               "minLength": 1
             },
-            "description": "camera (model), make (camera maker), lens (model) or shutter (speed)\n\n* `camera` - camera\n* `make` - make\n* `lens` - lens\n* `shutter` - shutter",
+            "description": "camera (model), make (camera maker) or lens (model)\n\n* `camera` - camera\n* `make` - make\n* `lens` - lens",
             "required": true
           }
         ],
@@ -17625,29 +17635,9 @@
           "status"
         ]
       },
-      "CancelJobResponse": {
-        "type": "object",
-        "description": "The answer of POST /api/jobs/{id}/cancel/: the cancelled job, nested.",
-        "properties": {
-          "status": {
-            "type": "boolean"
-          },
-          "job": {
-            "$ref": "#/components/schemas/LongRunningJob"
-          }
-        },
-        "required": [
-          "job",
-          "status"
-        ]
-      },
       "CameraStat": {
         "type": "object",
         "properties": {
-          "label": {
-            "type": "string",
-            "description": "The shown name"
-          },
           "value": {
             "type": "string",
             "description": "The value the search filters on"
@@ -17655,9 +17645,13 @@
           "count": {
             "type": "integer"
           },
+          "label": {
+            "type": "string",
+            "description": "The shown name"
+          },
           "make": {
             "type": "string",
-            "description": "The camera maker the count groups with, blank when unknown"
+            "description": "The camera maker the search filters on, blank when some of the model's photos have none: the row then counts the model with any maker"
           }
         },
         "required": [
@@ -17679,38 +17673,43 @@
           "lenses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/NamedStat"
+              "$ref": "#/components/schemas/RankStat"
             }
           },
           "iso": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/NumberStat"
-            }
+              "$ref": "#/components/schemas/RangeBucket"
+            },
+            "description": "Third stops of ISO, lowest first"
           },
           "aperture": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/NumberStat"
-            }
+              "$ref": "#/components/schemas/RangeBucket"
+            },
+            "description": "Third stops of the f-number, widest first"
           },
           "focal_length": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/NumberStat"
-            }
+              "$ref": "#/components/schemas/RangeBucket"
+            },
+            "description": "Focal length bands in mm, shortest first"
           },
           "focal_length_35mm": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/NumberStat"
-            }
+              "$ref": "#/components/schemas/RangeBucket"
+            },
+            "description": "35 mm equivalent focal length bands, shortest first"
           },
           "shutter_speed": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TextStat"
-            }
+              "$ref": "#/components/schemas/RangeBucket"
+            },
+            "description": "Whole stops of the exposure time in seconds, fastest first"
           }
         },
         "required": [
@@ -17721,6 +17720,22 @@
           "iso",
           "lenses",
           "shutter_speed"
+        ]
+      },
+      "CancelJobResponse": {
+        "type": "object",
+        "description": "The answer of POST /api/jobs/{id}/cancel/: the cancelled job, nested.",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "job": {
+            "$ref": "#/components/schemas/LongRunningJob"
+          }
+        },
+        "required": [
+          "job",
+          "status"
         ]
       },
       "Capacity": {
@@ -23792,47 +23807,9 @@
         "type": "string",
         "description": "* `owner` - owner\n* `contributor` - contributor\n* `viewer` - viewer\n* `none` - none"
       },
-      "NamedStat": {
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string",
-            "description": "The shown name"
-          },
-          "value": {
-            "type": "string",
-            "description": "The value the search filters on"
-          },
-          "count": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "count",
-          "label",
-          "value"
-        ]
-      },
       "NullEnum": {
         "enum": [
           null
-        ]
-      },
-      "NumberStat": {
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": "number",
-            "format": "double",
-            "description": "The value a range filter can match"
-          },
-          "count": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "count",
-          "value"
         ]
       },
       "OutcomeEnum": {
@@ -28738,6 +28715,55 @@
           "status"
         ]
       },
+      "RangeBucket": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "number",
+            "format": "double",
+            "description": "The lowest value of the bucket's photos, the range search's lower end"
+          },
+          "max": {
+            "type": "number",
+            "format": "double",
+            "description": "The highest value of the bucket's photos, the range search's upper end"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string",
+            "description": "The bucket's name: a standard ISO, f-number or shutter speed, or a focal length band"
+          }
+        },
+        "required": [
+          "count",
+          "label",
+          "max",
+          "min"
+        ]
+      },
+      "RankStat": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "The value the search filters on"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string",
+            "description": "The shown name"
+          }
+        },
+        "required": [
+          "count",
+          "label",
+          "value"
+        ]
+      },
       "RatingModeEnum": {
         "enum": [
           "favorite",
@@ -32876,22 +32902,6 @@
         ],
         "type": "string",
         "description": "* `left` - Left\n* `right` - Right"
-      },
-      "TextStat": {
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": "string",
-            "description": "The value the search filters on"
-          },
-          "count": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "count",
-          "value"
-        ]
       },
       "TimeOfDayEnum": {
         "enum": [

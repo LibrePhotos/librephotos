@@ -33,12 +33,14 @@ A single horizontal stacked bar spanning your whole library, laid out chronologi
 
 <Since version="1.7.0" />
 
-The Cameras view shows which cameras and lenses took your photos, and the spread of your exposure settings:
+The Cameras view shows which cameras and lenses took your photos, and the spread of your exposure settings. Spotlight (`Ctrl+K`) finds it as "Cameras".
 
-- **Cameras** and **Lenses** — the camera and lens models your photos were taken with, most photos first. A camera is counted with its maker, so the same model name from two makers is listed separately.
-- **Exposure charts** — one bar chart each for ISO, aperture, focal length, 35 mm equivalent focal length and shutter speed, a bar per stored value showing how many photos carry it.
+- **Cameras** and **Lenses**: the camera and lens models your photos were taken with, most photos first, with the twelve most used shown until you click **Show all**. Names that differ only in letter case count as one, as the search matches them. A camera is counted with its maker, so the same model name from two makers is listed twice. When some photos of a model carry no maker (photos scanned before 1.4.0 have none until you rescan them), the model is listed once with all its photos.
+- **Exposure charts**: one bar chart each for ISO, aperture, focal length, 35 mm equivalent focal length and shutter speed. Close values share a bar, so a phone's ISO 51 and 64 or its 1/121 s and 1/125 s do not each get their own: ISO and aperture in third stops (ISO 100, 125, 160, f/1.8, f/2, f/2.2), shutter speeds in whole stops (1/250, 1/125, 1/60), and focal lengths in bands of millimetres (24–28 mm, 28–35 mm).
 
-Every row and every bar opens the search its count comes from: a camera row searches for that model (and its maker, when known), and an exposure bar searches for that exact value.
+Every row and every bar opens the search its count comes from. A camera row searches for that model, and its maker when every photo of the model names one. A bar searches for the range of its own photos, from the lowest to the highest value they carry, so the search finds exactly the photos the bar counts. On a phone, the first tap on a bar shows its count and a second tap on the same bar opens the search.
+
+`GET /api/camera-stats/` answers the same lists for your own photos (not hidden, trashed or missing ones). Each camera and lens has a `label`, the `value` to search for and its `count`, a camera also the `make` to search with (empty when the row counts the model with any maker). Each exposure bar has a `label`, its `count`, and the `min` and `max` value of its photos, ready for the `iso_min`/`iso_max`, `aperture_min`/`aperture_max`, `focal_min`/`focal_max`, `focal35_min`/`focal35_max` and `shutter_min`/`shutter_max` search filters (shutter speeds in seconds).
 
 ## Word Clouds
 

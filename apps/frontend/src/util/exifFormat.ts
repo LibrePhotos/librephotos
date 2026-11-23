@@ -70,6 +70,28 @@ export function formatShutterSpeed(value: string | null | undefined, locale: str
   return seconds > 0 ? exposureSeconds(seconds, locale) : null;
 }
 
+export function formatExposureTime(seconds: number, locale: string): string {
+  return exposureSeconds(seconds, locale);
+}
+
+const EXPOSURE_FRACTION = /^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/;
+const EXPOSURE_SECONDS = /^\d+(?:\.\d+)?$/;
+
+function exposureSecondsOf(value: string): number {
+  const fraction = EXPOSURE_FRACTION.exec(value);
+  if (fraction) return Number(fraction[1]) / Number(fraction[2]);
+  return EXPOSURE_SECONDS.test(value) ? Number(value) : Number.NaN;
+}
+
+export function parseExposureTime(text: string): number | undefined {
+  const value = text
+    .trim()
+    .replace(/\s*(?:s|sec|″|")$/i, "")
+    .replaceAll(",", ".");
+  const seconds = exposureSecondsOf(value);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
+}
+
 /** `ISO 200`. Cameras print the number without grouping (`ISO 12800`). */
 export function formatIso(iso: number | null | undefined): string | null {
   return positive(iso) ? `ISO ${Math.round(iso)}` : null;

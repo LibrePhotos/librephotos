@@ -1,6 +1,7 @@
 import type { SearchFilters } from "@librephotos/api-client";
 import type { TFunction } from "i18next";
 import { formatCalendarDay } from "../../util/dateUtils";
+import { formatExposureTime } from "../../util/exifFormat";
 import { RANGE_FIELDS, type RangeField } from "./searchFilterRanges";
 
 // The chips under the search title: one sentence per active filter ("ISO 3,200 or more",
@@ -26,10 +27,10 @@ export type ChipContext = {
 
 function numberFormat(language: string) {
   try {
-    return new Intl.NumberFormat(language, { maximumFractionDigits: 1 });
+    return new Intl.NumberFormat(language, { maximumFractionDigits: 2 });
   } catch {
     // An unknown language tag
-    return new Intl.NumberFormat("en", { maximumFractionDigits: 1 });
+    return new Intl.NumberFormat("en", { maximumFractionDigits: 2 });
   }
 }
 
@@ -43,6 +44,8 @@ export function formatRangeValue(field: RangeField, value: number, ctx: Pick<Chi
       return ctx.t("searchfilter.unit.fnumber", { value: number });
     case "mm":
       return ctx.t("searchfilter.unit.mm", { value: number });
+    case "seconds":
+      return formatExposureTime(value, ctx.language);
   }
 }
 
@@ -54,6 +57,9 @@ function rangeChip(field: RangeField, filters: SearchFilters, ctx: ChipContext):
   patch[field.min] = undefined;
   patch[field.max] = undefined;
   const id = field.id;
+  if (low !== undefined && low === high) {
+    return { id, label: ctx.t("searchfilter.chip.equals", { name, value: formatRangeValue(field, low, ctx) }), patch };
+  }
   if (low !== undefined && high !== undefined) {
     const label = ctx.t("searchfilter.chip.between", {
       name,
@@ -86,15 +92,6 @@ function takenChip(filters: SearchFilters, t: TFunction): SearchFilterChip | und
     return { id: "taken", label: t("searchfilter.chip.takenbefore", { day: formatCalendarDay(before) }), patch };
   }
   return undefined;
-}
-
-function shutterChip(filters: SearchFilters, t: TFunction): SearchFilterChip | undefined {
-  if (!filters.shutter) return undefined;
-  return {
-    id: "shutter",
-    label: t("searchfilter.chip.shutter", { value: filters.shutter }),
-    patch: { shutter: undefined },
-  };
 }
 
 function ratingChip(rating: number | undefined, ctx: ChipContext): SearchFilterChip | undefined {
@@ -159,7 +156,6 @@ export function describeSearchFilters(filters: SearchFilters, ctx: ChipContext):
     ...personChips(filters.person, ctx),
     ...textChips(filters, ctx.t),
     ...ranges,
-    shutterChip(filters, ctx.t),
     ratingChip(filters.rating_min, ctx),
     takenChip(filters, ctx.t),
     ...fileChips(filters, ctx.t),

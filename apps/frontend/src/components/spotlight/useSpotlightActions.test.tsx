@@ -237,6 +237,15 @@ describe("navigation", () => {
     expect(stubs.navigate).toHaveBeenCalledWith({ to: "/noalbum" });
   });
 
+  it("goes to the Cameras statistics, right after Timeline", async () => {
+    await render();
+    const ids = allActions().map(entry => entry.id);
+    expect(ids.indexOf("nav-cameras")).toBe(ids.indexOf("nav-timeline") + 1);
+
+    await trigger("nav-cameras");
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/statistics/cameras" });
+  });
+
   it("opens the search page with filters only", async () => {
     await render();
     await trigger("nav-filterphotos");

@@ -14,7 +14,7 @@
 }
 
 .valueLabel,
-.yearLabel {
+.axisLabel {
   fill: var(--mantine-color-dimmed);
   font-size: var(--mantine-font-size-xs);
   dominant-baseline: middle;
@@ -24,7 +24,7 @@
   text-anchor: end;
 }
 
-.yearLabel {
+.axisLabel {
   text-anchor: middle;
 }
 
@@ -137,6 +137,7 @@
 .rankLink {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr) auto;
+  grid-template-areas: "name track count";
   align-items: center;
   gap: 12px;
   padding: 5px 6px;
@@ -156,12 +157,14 @@
 }
 
 .rankName {
+  grid-area: name;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .rankTrack {
+  grid-area: track;
   display: block;
   height: 10px;
   border-radius: 5px;
@@ -177,6 +180,7 @@
 }
 
 .rankCount {
+  grid-area: count;
   min-width: 72px;
   color: var(--mantine-color-dimmed);
   font-size: var(--mantine-font-size-xs);
@@ -196,4 +200,29 @@
 .barLink:focus-visible path {
   stroke: var(--mantine-color-text);
   stroke-width: 2;
+}
+
+.linkSurface {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.rankMore {
+  align-self: flex-start;
+  margin: 4px 0 0 6px;
+}
+
+@media (max-width: 47.99em) {
+  .rankLink {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name name"
+      "track count";
+    row-gap: 4px;
+  }
+
+  .rankName {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }

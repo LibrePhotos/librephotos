@@ -9,14 +9,12 @@ const LABEL_KEYS = {
   make: "searchfilter.make.label",
   camera: "searchfilter.camera.label",
   lens: "searchfilter.lens.label",
-  shutter: "searchfilter.shutter.label",
 } as const;
 
 const PLACEHOLDER_KEYS = {
   make: "searchfilter.make.placeholder",
   camera: "searchfilter.camera.placeholder",
   lens: "searchfilter.lens.placeholder",
-  shutter: "searchfilter.shutter.placeholder",
 } as const;
 
 type Props = Readonly<{
@@ -36,6 +34,8 @@ function countFormat() {
   }
 }
 
+// A maker, camera or lens: the values of the user's own photos, most used first, with how many
+// photos each one took (library-wide, not the current results).
 export function MetadataValueSelect({ field, value, onChange, active }: Props) {
   const { t } = useTranslation();
   const { data, isLoading } = useMetadataValuesQuery(field, active);

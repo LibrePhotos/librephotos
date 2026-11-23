@@ -195,6 +195,7 @@ class StatsResponsesTest(DeclaredResponseTestCase):
             iso=400,
             fstop=2.0,
             focal_length=23.0,
+            focal_length_35mm=35,
             shutter_speed="1/250",
             shutter_speed_seconds=0.004,
         )

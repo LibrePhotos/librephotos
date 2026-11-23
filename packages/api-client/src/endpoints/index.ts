@@ -513,7 +513,6 @@ export type SearchFilters = {
   camera?: string;
   make?: string;
   lens?: string;
-  shutter?: string;
   iso_min?: number;
   iso_max?: number;
   aperture_min?: number;
@@ -522,6 +521,8 @@ export type SearchFilters = {
   focal_max?: number;
   focal35_min?: number;
   focal35_max?: number;
+  shutter_min?: number;
+  shutter_max?: number;
   /** 1 to 5 stars. */
   rating_min?: number;
   taken_after?: string;
@@ -541,7 +542,6 @@ function searchFiltersQuery(filter: SearchFilters) {
     camera: filter.camera,
     make: filter.make,
     lens: filter.lens,
-    shutter: filter.shutter,
     iso_min: filter.iso_min,
     iso_max: filter.iso_max,
     aperture_min: filter.aperture_min,
@@ -550,6 +550,8 @@ function searchFiltersQuery(filter: SearchFilters) {
     focal_max: filter.focal_max,
     focal35_min: filter.focal35_min,
     focal35_max: filter.focal35_max,
+    shutter_min: filter.shutter_min,
+    shutter_max: filter.shutter_max,
     rating_min: filter.rating_min,
     taken_after: filter.taken_after,
     taken_before: filter.taken_before,
@@ -938,6 +940,7 @@ export async function searchPhotos(
   };
 }
 
+/** The cameras, makers or lenses of my photos, most photos first: the suggestions of the search filters. */
 export async function fetchMetadataValues(
   client: ApiClient,
   field: S.MetadataValueField
