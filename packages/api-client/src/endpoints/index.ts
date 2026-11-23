@@ -521,6 +521,8 @@ export type SearchFilters = {
   focal_max?: number;
   focal35_min?: number;
   focal35_max?: number;
+  shutter_min?: number;
+  shutter_max?: number;
   /** 1 to 5 stars. */
   rating_min?: number;
   taken_after?: string;
@@ -548,6 +550,8 @@ function searchFiltersQuery(filter: SearchFilters) {
     focal_max: filter.focal_max,
     focal35_min: filter.focal35_min,
     focal35_max: filter.focal35_max,
+    shutter_min: filter.shutter_min,
+    shutter_max: filter.shutter_max,
     rating_min: filter.rating_min,
     taken_after: filter.taken_after,
     taken_before: filter.taken_before,
@@ -2200,6 +2204,11 @@ export async function fetchCountStats(client: ApiClient): Promise<S.CountStats> 
   return parseResponse(S.CountStats, res, "count stats");
 }
 
+export async function fetchCameraStats(client: ApiClient): Promise<S.CameraStats> {
+  const res = await client.get<unknown>("/camera-stats/");
+  return parseResponse(S.CameraStats, res, "camera stats");
+}
+
 export async function fetchLocationSunburst(client: ApiClient): Promise<S.LocationSunburst> {
   const res = await client.get<unknown>("/locationsunburst/");
   return parseResponse(S.LocationSunburst, res, "location tree");
@@ -2208,6 +2217,11 @@ export async function fetchLocationSunburst(client: ApiClient): Promise<S.Locati
 export async function fetchPhotoMonthCounts(client: ApiClient): Promise<S.PhotoMonthCountResponse> {
   const res = await client.get<unknown>("/photomonthcounts/");
   return parseResponse(S.PhotoMonthCountResponse, res, "photo month counts");
+}
+
+export async function fetchPhotoDayCounts(client: ApiClient): Promise<S.PhotoDayCountResponse> {
+  const res = await client.get<unknown>("/photo-day-counts/");
+  return parseResponse(S.PhotoDayCountResponse, res, "photo day counts");
 }
 
 export async function fetchSocialGraph(client: ApiClient): Promise<S.SocialGraph> {

@@ -29,6 +29,8 @@ const EVERY_FILTER: SearchFilters = {
   focal_max: 56.5,
   focal35_min: 35,
   focal35_max: 85,
+  shutter_min: 1 / 250,
+  shutter_max: 1 / 60,
   rating_min: 4,
   taken_after: "2024-03-01",
   taken_before: "2024-05-31",
@@ -49,6 +51,8 @@ describe("validateSearchFilters", () => {
       iso_min: -5,
       iso_max: 1.5,
       focal35_min: "wide",
+      shutter_min: "1/250",
+      shutter_max: -1,
       rating_min: 6,
       taken_after: "2023-02-29",
       taken_before: "yesterday",
@@ -100,7 +104,7 @@ describe("countSearchFilters", () => {
   it("counts a range or a day span once and each person once", () => {
     expect(countSearchFilters({})).toBe(0);
     expect(countSearchFilters({ iso_min: 400, iso_max: 800, taken_after: "2024-01-01" })).toBe(2);
-    expect(countSearchFilters(EVERY_FILTER)).toBe(14);
+    expect(countSearchFilters(EVERY_FILTER)).toBe(15);
     expect(hasSearchFilters({ person: [1] })).toBe(true);
     expect(hasSearchFilters({ camera: undefined })).toBe(false);
   });

@@ -12,6 +12,7 @@ export type MapLayerColors = Readonly<{
   pointStroke: string;
   /** Your places (#1365): their circles' outline, and their fill at a low opacity. */
   place: string;
+  heatmap: Readonly<{ fade: string; ramp: readonly [string, string, string, string, string] }>;
 }>;
 
 /**
@@ -25,6 +26,10 @@ const LIGHT_MAP_LAYER_COLORS: MapLayerColors = {
   point: "#228be6",
   pointStroke: "#fff",
   place: "#228be6",
+  heatmap: {
+    fade: "rgba(168, 199, 250, 0)",
+    ramp: ["#a8c7fa", "#4c8df6", "#1a66d2", "#114894", "#0b3670"],
+  },
 };
 
 /**
@@ -40,6 +45,10 @@ const DARK_MAP_LAYER_COLORS: MapLayerColors = {
   point: "#1388ed",
   pointStroke: "#000",
   place: "#1287f1",
+  heatmap: {
+    fade: "rgba(113, 154, 255, 0)",
+    ramp: ["#719aff", "#4c82ff", "#2655ae", "#19366d", "#01060f"],
+  },
 };
 
 /** The colours to paint the layers with on a map in this colour scheme. */

@@ -1,4 +1,9 @@
-import type { CircleLayerSpecification, ExpressionSpecification, SymbolLayerSpecification } from "maplibre-gl";
+import type {
+  CircleLayerSpecification,
+  ExpressionSpecification,
+  HeatmapLayerSpecification,
+  SymbolLayerSpecification,
+} from "maplibre-gl";
 import type { MapLayerColors } from "../../theme/mapColors";
 
 /** The layers of the Places page's clustered "locations" source of photo points (#343). */
@@ -6,7 +11,10 @@ type ClusterLayers = Readonly<{
   clusters: CircleLayerSpecification;
   clusterCount: SymbolLayerSpecification;
   unclusteredPoint: CircleLayerSpecification;
+  heatmap: HeatmapLayerSpecification;
 }>;
+
+export const PHOTO_DENSITY_SOURCE = "photo-density";
 
 /** The photos a point or a cluster stands for: each point's `photos`, which a cluster sums. */
 const PHOTOS: ExpressionSpecification = ["get", "photos"];
@@ -59,6 +67,34 @@ export function clusterLayers(colors: MapLayerColors): ClusterLayers {
         "circle-radius": 7,
         "circle-stroke-width": 2,
         "circle-stroke-color": colors.pointStroke,
+      },
+    },
+    heatmap: {
+      id: "photo-heatmap",
+      type: "heatmap",
+      source: PHOTO_DENSITY_SOURCE,
+      paint: {
+        "heatmap-weight": ["interpolate", ["linear"], PHOTOS, 1, 0.35, 10, 0.6, 100, 0.85, 1000, 1],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 6, 2, 12, 3],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 14, 4, 20, 9, 30, 14, 40],
+        "heatmap-color": [
+          "interpolate",
+          ["linear"],
+          ["heatmap-density"],
+          0,
+          colors.heatmap.fade,
+          0.08,
+          colors.heatmap.ramp[0],
+          0.3,
+          colors.heatmap.ramp[1],
+          0.55,
+          colors.heatmap.ramp[2],
+          0.8,
+          colors.heatmap.ramp[3],
+          1,
+          colors.heatmap.ramp[4],
+        ],
+        "heatmap-opacity": 0.85,
       },
     },
   };

@@ -3,6 +3,7 @@ import { Divider, Stack, Text } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Person } from "../../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
+import { ExposureTimeRangeFilter } from "./ExposureTimeRangeFilter";
 import { FileFilter, LocationFilter } from "./FileFilter";
 import { MetadataValueSelect } from "./MetadataValueSelect";
 import { PeopleFilter } from "./PeopleFilter";
@@ -66,8 +67,9 @@ export function SearchFilterPanel({ filters, onChange, people, favoriteRating, a
         {RANGE_FIELDS.map(field => {
           const low = filters[field.min];
           const high = filters[field.max];
+          const Filter = field.unit === "seconds" ? ExposureTimeRangeFilter : RangeFilter;
           return (
-            <RangeFilter
+            <Filter
               // A new range from the URL (a chip removed, Back) starts the fields over.
               key={`${field.id}:${low}:${high}`}
               field={field}

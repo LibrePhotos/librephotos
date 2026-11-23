@@ -51,7 +51,9 @@ RANGE_FILTERS = (
     ("aperture_min", "aperture_max", "metadata__aperture"),
     ("focal_min", "focal_max", "metadata__focal_length"),
     ("focal35_min", "focal35_max", "metadata__focal_length_35mm"),
+    ("shutter_min", "shutter_max", "metadata__shutter_speed_seconds"),
 )
+EXPOSURE_TIME_SLACK = {"shutter_min": -1e-6, "shutter_max": 1e-6}
 #: The most people one search may ask for at once.
 MAX_PEOPLE = 20
 
@@ -154,6 +156,16 @@ class MetadataFilterQuery(serializers.Serializer[None]):
         min_value=0,
         help_text="Longest 35 mm equivalent focal length in mm",
     )
+    shutter_min = serializers.FloatField(
+        required=False,
+        min_value=0,
+        help_text="Shortest exposure time in seconds, for example 0.004 for 1/250",
+    )
+    shutter_max = serializers.FloatField(
+        required=False,
+        min_value=0,
+        help_text="Longest exposure time in seconds",
+    )
     rating_min = serializers.IntegerField(
         required=False,
         min_value=1,
@@ -251,13 +263,18 @@ def _taken_q(filters: Mapping[str, Any]) -> list[Q]:
     return found
 
 
+def _bound(filters: Mapping[str, Any], param: str) -> float:
+    value: float = filters[param]
+    return value + abs(value) * EXPOSURE_TIME_SLACK.get(param, 0)
+
+
 def _range_q(filters: Mapping[str, Any]) -> list[Q]:
     found = []
     for low, high, column in RANGE_FILTERS:
         if low in filters:
-            found.append(Q(**{f"{column}__gte": filters[low]}))
+            found.append(Q(**{f"{column}__gte": _bound(filters, low)}))
         if high in filters:
-            found.append(Q(**{f"{column}__lte": filters[high]}))
+            found.append(Q(**{f"{column}__lte": _bound(filters, high)}))
     return found
 
 

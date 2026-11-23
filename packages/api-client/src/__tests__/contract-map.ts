@@ -216,9 +216,12 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   ClusterFacesResponse: { schema: S.ClusterFacesResponse, components: ["ClusterFacesResponse"] },
   // statistics
   CountStats: { schema: S.CountStats, components: ["CountStats"] },
+  CameraStats: { schema: S.CameraStats, components: ["CameraStats"] },
+  RangeBucket: { schema: S.RangeBucket, components: ["RangeBucket"] },
   WordCloudResponse: { schema: S.WordCloudResponse, components: ["WordCloud"] },
   SocialGraph: { schema: S.SocialGraph, components: ["SocialGraph"] },
   PhotoMonthCount: { schema: S.PhotoMonthCount, components: ["PhotoMonthCount"] },
+  PhotoDayCount: { schema: S.PhotoDayCount, components: ["PhotoDayCount"] },
   LocationTimelineSpan: { schema: S.LocationTimelineSpan, components: ["LocationTimelineSpan"] },
   // server
   ImageTag: { schema: S.ImageTag, components: ["ImageTag"] },

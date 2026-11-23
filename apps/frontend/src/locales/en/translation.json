@@ -708,6 +708,7 @@
     "timeline": "Timeline",
     "socialgraph": "Social graph",
     "facecluster": "Face clusters",
+    "cameras": "Cameras",
     "datavizsmall": "Data",
     "statistics": "Statistics",
     "facerecognition": "Faces",
@@ -1824,6 +1825,7 @@
       "placeTree": "Go to Place tree",
       "wordClouds": "Go to Word clouds",
       "timeline": "Go to Timeline",
+      "cameras": "Go to Cameras",
       "socialGraph": "Go to Social graph",
       "faceClusters": "Go to Face clusters",
       "admin": "Go to Admin area",
@@ -2341,8 +2343,19 @@
     "otherplaces": "Other",
     "barlabel": "{{label}}: {{value}}",
     "monthchartsummary": "Photos per month from {{from}} to {{to}}, the most in {{peak}} ({{value}}). Use the arrow keys to read each bar.",
+    "photosperday": "Photos per day",
+    "dayheatmapyear": "Year",
+    "daychartsummary": "Photos per day from {{from}} to {{to}}, the most on {{peak}} ({{value}}). Use the arrow keys to move by a day or a week, Enter opens a day.",
+    "less": "Less",
+    "more": "More",
     "staylabel": "{{place}}, {{from}} – {{to}}",
-    "staychartsummary": "Where your photos were taken from {{from}} to {{to}}, place by place. Use the arrow keys to read each stay."
+    "staychartsummary": "Where your photos were taken from {{from}} to {{to}}, place by place. Use the arrow keys to read each stay.",
+    "cameras": "Cameras",
+    "lenses": "Lenses",
+    "distchartsummary": "{{name}} of your photos from {{from}} to {{to}}, most often {{peak}} ({{value}}). Use the arrow keys to read each bar and Enter to search its photos.",
+    "showall": "Show all ({{count}})",
+    "showfewer": "Show fewer",
+    "bucketname": "{{name}} {{value}}"
   },
   "autoalbum": {
     "subtitle": "Showing {{ autoalbumlength }} events",
@@ -2479,7 +2492,10 @@
     "openPhotos_one": "Open {{count}} photo",
     "openPhotos_other": "Open {{count}} photos",
     "openPhoto": "Open this photo",
-    "mapHeight": "Map height"
+    "mapHeight": "Map height",
+    "mapMode": "Map display",
+    "mapModeClusters": "Clusters",
+    "mapModeHeatmap": "Heatmap"
   },
   "thingalbum": {
     "showingthings": "Showing {{number}} things",
@@ -3253,6 +3269,10 @@
       "title": "No timeline data",
       "description": "Add photos with timestamps to see your photo timeline."
     },
+    "camerastats": {
+      "title": "No camera data yet",
+      "description": "Photos that carry camera, lens or exposure data in their EXIF appear here once they are scanned."
+    },
     "scanning": {
       "titlewithjob": "Scan in progress: {{job}}",
       "refresh": "Refresh the page to see newly scanned photos.",
@@ -3661,11 +3681,13 @@
       "iso": "ISO",
       "aperture": "Aperture",
       "focal": "Focal length",
-      "focal35": "35 mm equivalent"
+      "focal35": "35 mm equivalent",
+      "shutter": "Shutter speed"
     },
     "min": "Min",
     "max": "Max",
     "rangeerror": "Lower than the lowest value",
+    "exposuretimeerror": "A time like 1/250 or 2 s",
     "preset": {
       "upto": "Up to {{high}}",
       "between": "{{low}} to {{high}}",
@@ -3710,6 +3732,7 @@
       "between": "{{name}} {{low}} to {{high}}",
       "atleast": "{{name}} {{low}} or more",
       "atmost": "{{name}} up to {{high}}",
+      "equals": "{{name}} {{value}}",
       "favorites": "Favorites only",
       "rating_one": "{{count}} star or more",
       "rating_other": "{{count}} stars or more",
