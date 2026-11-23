@@ -230,6 +230,7 @@ CLIENT_PATHS = {
     "/api/nextcloud/scanphotos/": "nextcloud.views.ScanPhotosView",
     "/api/persons/": "api.views.albums.PersonViewSet get=list",
     "/api/persons/1/": "api.views.albums.PersonViewSet delete=destroy,get=retrieve,patch=partial_update",
+    "/api/photo-day-counts/": "api.views.dataviz.PhotoDayCountsView",
     "/api/photo/share": "api.views.public_photos.SetPhotoShare",
     "/api/photo/share/list": "api.views.public_photos.PhotoShareList",
     "/api/photomonthcounts/": "api.views.dataviz.PhotoMonthCountsView",

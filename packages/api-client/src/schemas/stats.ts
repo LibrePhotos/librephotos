@@ -68,6 +68,14 @@ export const PhotoMonthCount = z.object({
 export const PhotoMonthCountResponse = z.array(PhotoMonthCount);
 export type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponse>;
 
+export const PhotoDayCount = z.object({
+  day: z.string(),
+  count: z.number(),
+});
+
+export const PhotoDayCountResponse = z.array(PhotoDayCount);
+export type PhotoDayCountResponse = z.infer<typeof PhotoDayCountResponse>;
+
 /** One stretch of `GET /locationtimeline/`: `data` holds its duration in seconds, `start`/`end` are Unix times. */
 export const LocationTimelineSpan = z.object({
   data: z.array(z.number()),

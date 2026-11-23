@@ -2313,6 +2313,10 @@
     "otherplaces": "Other",
     "barlabel": "{{label}}: {{value}}",
     "monthchartsummary": "Photos per month from {{from}} to {{to}}, the most in {{peak}} ({{value}}). Use the arrow keys to read each bar.",
+    "photosperday": "Photos per day",
+    "daychartsummary": "Photos per day from {{from}} to {{to}}, the most on {{peak}} ({{value}}). Use the arrow keys to move by a day or a week, Enter opens a day.",
+    "less": "Less",
+    "more": "More",
     "staylabel": "{{place}}, {{from}} – {{to}}",
     "staychartsummary": "Where your photos were taken from {{from}} to {{to}}, place by place. Use the arrow keys to read each stay."
   },
@@ -2451,7 +2455,10 @@
     "openPhotos_one": "Open {{count}} photo",
     "openPhotos_other": "Open {{count}} photos",
     "openPhoto": "Open this photo",
-    "mapHeight": "Map height"
+    "mapHeight": "Map height",
+    "mapMode": "Map display",
+    "mapModeClusters": "Clusters",
+    "mapModeHeatmap": "Heatmap"
   },
   "thingalbum": {
     "showingthings": "Showing {{number}} things",

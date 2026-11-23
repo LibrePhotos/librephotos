@@ -1,5 +1,6 @@
 export * from "./useFetchCountStatsQuery";
 export * from "./useFetchPhotoMonthCountQuery";
+export * from "./useFetchPhotoDayCountQuery";
 export * from "./useLocationTimelineQuery";
 export * from "./useFetchWordCloudQuery";
 export * from "./useFetchLocationTreeQuery";

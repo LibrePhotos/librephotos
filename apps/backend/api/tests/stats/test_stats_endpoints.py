@@ -71,6 +71,28 @@ class TestApiUtil(TestCase):
         actual = response.json()
         self.assertEqual(actual, [])
 
+    def test_photo_day_count(self):
+        create_photos(self.user)
+        response = self.client.get("/api/photo-day-counts/")
+        actual = response.json()
+        self.assertEqual(
+            actual,
+            [
+                {"day": "2017-08-09", "count": 1},
+                {"day": "2017-08-17", "count": 3},
+                {"day": "2017-08-22", "count": 1},
+                {"day": "2017-08-23", "count": 1},
+                {"day": "2017-10-12", "count": 1},
+                {"day": "2017-10-17", "count": 1},
+                {"day": "2017-10-18", "count": 1},
+            ],
+        )
+
+    def test_photo_day_count_no_photos(self):
+        response = self.client.get("/api/photo-day-counts/")
+        actual = response.json()
+        self.assertEqual(actual, [])
+
     def test_location_sunburst(self):
         create_photos(self.user)
         response = self.client.get("/api/locationsunburst/")

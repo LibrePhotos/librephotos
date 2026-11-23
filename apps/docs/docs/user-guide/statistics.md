@@ -19,11 +19,17 @@ The Place Tree shows all your photo locations organized in a hierarchical tree â
 
 ## Timeline
 
-The Timeline view provides two charts that show how your photo-taking habits have changed over time:
+The Timeline view provides three charts that show how your photo-taking habits have changed over time:
 
 ### Photo Count per Month
 
 A bar chart showing how many photos you took each month. This makes it easy to spot busy months (vacations, events) vs. quieter periods.
+
+### Photos per day
+
+<Since version="1.7.0" />
+
+A calendar heatmap like a contribution graph: every column is a week and every cell a day, and the deeper the colour the more photos you took that day. It spans the year up to your most recent photo (less on a narrow screen). Hover or focus a cell to see the date and its count, and click a day (or press `Enter` on it) to open that day's photos in the search view.
 
 ### Location Duration
 

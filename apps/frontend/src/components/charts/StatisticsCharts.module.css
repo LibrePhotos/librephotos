@@ -14,13 +14,16 @@
 }
 
 .valueLabel,
-.yearLabel {
+.yearLabel,
+.monthLabel,
+.weekdayLabel {
   fill: var(--mantine-color-dimmed);
   font-size: var(--mantine-font-size-xs);
   dominant-baseline: middle;
 }
 
-.valueLabel {
+.valueLabel,
+.weekdayLabel {
   text-anchor: end;
 }
 
@@ -38,14 +41,43 @@
 }
 
 .bar:focus,
-.stay:focus {
+.stay:focus,
+.dayCell:focus {
   outline: none;
 }
 
 .bar:focus-visible path,
-.stay:focus-visible rect {
+.stay:focus-visible rect,
+.dayCell:focus-visible rect {
   stroke: var(--mantine-color-text);
   stroke-width: 2;
+}
+
+.dayCell {
+  cursor: pointer;
+}
+
+.level0 {
+  fill: var(--mantine-color-default-hover);
+}
+
+.level1 {
+  fill: var(--mantine-primary-color-filled);
+  fill-opacity: 0.35;
+}
+
+.level2 {
+  fill: var(--mantine-primary-color-filled);
+  fill-opacity: 0.55;
+}
+
+.level3 {
+  fill: var(--mantine-primary-color-filled);
+  fill-opacity: 0.75;
+}
+
+.level4 {
+  fill: var(--mantine-primary-color-filled);
 }
 
 /* A hairline of the page between two stays, so neighbouring tints read as two places. */
@@ -119,4 +151,9 @@
 
 .stayPlot {
   height: 56px;
+}
+
+.dayPlot {
+  width: 100%;
+  overflow-x: auto;
 }

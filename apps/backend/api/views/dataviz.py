@@ -16,6 +16,7 @@ from api.dataviz.stats import (
     get_location_clusters,
     get_location_sunburst,
     get_location_timeline,
+    get_photo_day_counts,
     get_photo_month_counts,
     get_searchterms_wordcloud,
     get_server_stats,
@@ -36,6 +37,7 @@ from api.serializers.stats import (
     CountStatsSerializer,
     LocationSunburstSerializer,
     LocationTimelineSpanSerializer,
+    PhotoDayCountSerializer,
     PhotoMonthCountSerializer,
     SocialGraphSerializer,
     WordCloudSerializer,
@@ -179,6 +181,15 @@ class PhotoMonthCountsView(APIView):
     @extend_schema(responses=PhotoMonthCountSerializer(many=True))
     def get(self, request: Request, format: str | None = None) -> Response:
         res = get_photo_month_counts(request_user(request))
+        return Response(res)
+
+
+class PhotoDayCountsView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(responses=PhotoDayCountSerializer(many=True))
+    def get(self, request: Request, format: str | None = None) -> Response:
+        res = get_photo_day_counts(request_user(request))
         return Response(res)
 
 

@@ -219,6 +219,7 @@ export const CONTRACT_MAP: Readonly<Record<string, ContractEntry>> = {
   WordCloudResponse: { schema: S.WordCloudResponse, components: ["WordCloud"] },
   SocialGraph: { schema: S.SocialGraph, components: ["SocialGraph"] },
   PhotoMonthCount: { schema: S.PhotoMonthCount, components: ["PhotoMonthCount"] },
+  PhotoDayCount: { schema: S.PhotoDayCount, components: ["PhotoDayCount"] },
   LocationTimelineSpan: { schema: S.LocationTimelineSpan, components: ["LocationTimelineSpan"] },
   // server
   ImageTag: { schema: S.ImageTag, components: ["ImageTag"] },

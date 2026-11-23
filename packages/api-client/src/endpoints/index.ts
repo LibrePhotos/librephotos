@@ -2200,6 +2200,11 @@ export async function fetchPhotoMonthCounts(client: ApiClient): Promise<S.PhotoM
   return parseResponse(S.PhotoMonthCountResponse, res, "photo month counts");
 }
 
+export async function fetchPhotoDayCounts(client: ApiClient): Promise<S.PhotoDayCountResponse> {
+  const res = await client.get<unknown>("/photo-day-counts/");
+  return parseResponse(S.PhotoDayCountResponse, res, "photo day counts");
+}
+
 export async function fetchSocialGraph(client: ApiClient): Promise<S.SocialGraph> {
   const res = await client.get<unknown>("/socialgraph/");
   return parseResponse(S.SocialGraph, res, "social graph");
