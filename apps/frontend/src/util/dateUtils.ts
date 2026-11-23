@@ -111,9 +111,15 @@ export function shiftPhotoTimestamp(timestamp: string, seconds: number): string 
   return parsed.isValid ? parsed.plus({ seconds }).toISO() : null;
 }
 
+function readInZone(wallClock: DateTime, zone: string): DateTime {
+  const zoned = wallClock.setZone(zone, { keepLocalTime: true });
+  const candidates = zoned.getPossibleOffsets();
+  const standard = candidates.filter(candidate => !candidate.isInDST);
+  return (standard.length === 1 ? standard[0] : candidates[candidates.length - 1]) ?? zoned;
+}
+
 export function convertPhotoTimestamp(timestamp: string, fromZone: string, toZone: string): string | null {
-  const parsed = parsePhotoTimestamp(timestamp);
-  const converted = parsed.setZone(fromZone, { keepLocalTime: true }).setZone(toZone);
+  const converted = readInZone(parsePhotoTimestamp(timestamp), fromZone).setZone(toZone);
   return converted.isValid ? converted.setZone("utc", { keepLocalTime: true }).toISO() : null;
 }
 

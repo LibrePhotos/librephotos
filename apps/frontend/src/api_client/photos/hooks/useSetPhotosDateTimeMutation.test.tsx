@@ -13,7 +13,7 @@ import { useSetPhotosDateTimeMutation, type SetPhotosDateTimeRequest } from "./u
 
 const stubs = vi.hoisted(() => ({
   post: vi.fn<(endpoint: string, data?: unknown) => Promise<unknown>>(),
-  photosDateChanged: vi.fn<(changed: number, skipped: number) => void>(),
+  photosDateChanged: vi.fn<(changed: number, skipped: number, otherZone: number) => void>(),
 }));
 
 vi.mock("../../api", async importOriginal => ({
@@ -58,7 +58,7 @@ async function change(request: SetPhotosDateTimeRequest) {
 
 describe("useSetPhotosDateTimeMutation", () => {
   it("shifts the photos and refreshes what shows their dates", async () => {
-    stubs.post.mockResolvedValue({ count: 2, skipped_without_date: 1 });
+    stubs.post.mockResolvedValue({ count: 2, skipped_without_date: 1, skipped_other_zone: 0 });
     const timeline = photoGridKeys.dateAlbumList([Photoset.NONE, undefined, undefined, undefined, "all", ""]);
     const keys = [timeline, statsKeys.photoMonthCounts(), photoKeys.detail("a")];
     keys.forEach(queryKey => queryClient.setQueryData(queryKey, {}));
@@ -70,12 +70,12 @@ describe("useSetPhotosDateTimeMutation", () => {
       mode: "shift",
       seconds: -3600,
     });
-    expect(stubs.photosDateChanged).toHaveBeenCalledWith(2, 1);
+    expect(stubs.photosDateChanged).toHaveBeenCalledWith(2, 1, 0);
     keys.forEach(queryKey => expect(isStale(queryKey)).toBe(true));
   });
 
   it("sets a selected-all set to one date", async () => {
-    stubs.post.mockResolvedValue({ count: 40, skipped_without_date: 0 });
+    stubs.post.mockResolvedValue({ count: 40, skipped_without_date: 0, skipped_other_zone: 0 });
 
     await change({
       selection: { select_all: true, query: { no_timestamp: true }, excluded_hashes: ["x"] },
@@ -89,6 +89,17 @@ describe("useSetPhotosDateTimeMutation", () => {
       mode: "set",
       datetime: "2025-10-11T10:18:00.000Z",
     });
-    expect(stubs.photosDateChanged).toHaveBeenCalledWith(40, 0);
+    expect(stubs.photosDateChanged).toHaveBeenCalledWith(40, 0, 0);
+  });
+
+  it("reports the photos a conversion skipped because they are in another zone (#3042)", async () => {
+    stubs.post.mockResolvedValue({ count: 1, skipped_without_date: 1, skipped_other_zone: 2 });
+
+    await change({
+      selection: { image_hashes: ["a", "b", "c", "d"] },
+      change: { mode: "convert_timezone", from_timezone: "America/New_York", to_timezone: "Asia/Tokyo" },
+    });
+
+    expect(stubs.photosDateChanged).toHaveBeenCalledWith(1, 1, 2);
   });
 });

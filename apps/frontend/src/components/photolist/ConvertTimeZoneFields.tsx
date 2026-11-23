@@ -26,6 +26,7 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
         <Select
           searchable
           label={t("changedatetime.fromzone")}
+          placeholder={t("changedatetime.fromzoneplaceholder")}
           data={[...timezones]}
           {...form.getInputProps("fromTimezone")}
           value={fromTimezone || null}
@@ -34,6 +35,7 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
         <Select
           searchable
           label={t("changedatetime.tozone")}
+          placeholder={t("changedatetime.tozoneplaceholder")}
           data={[...timezones]}
           {...form.getInputProps("toTimezone")}
           value={toTimezone || null}
@@ -42,7 +44,10 @@ export function ConvertTimeZoneFields({ form, summary }: Props) {
       </SimpleGrid>
       <DateTimePreviewTable
         summary={summary}
-        after={photo => convertPhotoTimestamp(photo.exif_timestamp, fromTimezone, toTimezone)}
+        after={photo =>
+          fromTimezone && toTimezone ? convertPhotoTimestamp(photo.exif_timestamp, fromTimezone, toTimezone) : null
+        }
+        pending="—"
       />
       {summary.without_date > 0 && (
         <Text size="sm" c="orange">

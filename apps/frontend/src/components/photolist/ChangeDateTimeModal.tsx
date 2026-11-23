@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDateSummaryQuery, useSetPhotosDateTimeMutation } from "../../api_client/photos/hooks";
 import type { PhotoSelection } from "../../api_client/photos/photoSelection";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { calendarDaysAgo, photoTimestampWallClock } from "../../util/dateUtils";
 import { DisabledReason } from "../common/DisabledReason";
 import { ErrorState } from "../common/ErrorState";
@@ -29,13 +30,14 @@ type Props = Readonly<{
 
 type FormProps = Readonly<{
   summary: DateSummary;
+  defaultTimezone: string;
   selection: PhotoSelection;
   onClose: () => void;
   onSaved: () => void;
 }>;
 
 /** Set starts on the oldest selected photo's day and time, or on today when none has a date. */
-function initialValues(summary: DateSummary): ChangeDateTimeValues {
+function initialValues(summary: DateSummary, defaultTimezone: string): ChangeDateTimeValues {
   const start = summary.oldest ? photoTimestampWallClock(summary.oldest.exif_timestamp) : null;
   const { day, time } = start ?? { day: calendarDaysAgo(0), time: "00:00:00" };
   return {
@@ -48,14 +50,14 @@ function initialValues(summary: DateSummary): ChangeDateTimeValues {
     seconds: 0,
     day,
     time,
-    fromTimezone: "",
+    fromTimezone: defaultTimezone,
     toTimezone: "",
   };
 }
 
-function ChangeDateTimeForm({ summary, selection, onClose, onSaved }: FormProps) {
+function ChangeDateTimeForm({ summary, defaultTimezone, selection, onClose, onSaved }: FormProps) {
   const { t } = useTranslation();
-  const [initial] = useState<ChangeDateTimeValues>(() => initialValues(summary));
+  const [initial] = useState<ChangeDateTimeValues>(() => initialValues(summary, defaultTimezone));
   const form = useForm({
     initialValues: initial,
     validate: schemaResolver(makeChangeDateTimeSchema(t), { sync: true }),
@@ -143,8 +145,9 @@ function ChangeDateTimeForm({ summary, selection, onClose, onSaved }: FormProps)
 export function ChangeDateTimeModal({ opened, onClose, selection, onSaved }: Props) {
   const { t } = useTranslation();
   const summaryQuery = useDateSummaryQuery(selection, opened);
+  const userQuery = useCurrentUserSelfDetailsQuery();
   const failure = useListFailure(summaryQuery);
-  const summary = summaryQuery.data;
+  const summary = userQuery.isLoading ? undefined : summaryQuery.data;
   const isPhone = useMediaQuery("(max-width: 36em)") ?? false;
   return (
     <Modal
@@ -157,7 +160,15 @@ export function ChangeDateTimeModal({ opened, onClose, selection, onSaved }: Pro
     >
       {/* No focus ring at open: nothing is focused until Tab */}
       <FocusTrap.InitialFocus />
-      {summary && <ChangeDateTimeForm summary={summary} selection={selection} onClose={onClose} onSaved={onSaved} />}
+      {summary && (
+        <ChangeDateTimeForm
+          summary={summary}
+          defaultTimezone={userQuery.data?.default_timezone ?? ""}
+          selection={selection}
+          onClose={onClose}
+          onSaved={onSaved}
+        />
+      )}
       {!summary && failure && <ErrorState failure={failure} compact />}
       {!summary && !failure && <PageLoader label={t("changedatetime.loading")} />}
     </Modal>
