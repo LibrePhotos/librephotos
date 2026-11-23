@@ -31,12 +31,19 @@ export const SemanticSearchPhotos = z.object({
 });
 export type SemanticSearchPhotos = z.infer<typeof SemanticSearchPhotos>;
 
+export const SizeSortedSearchPhotos = z.object({
+  results: z.array(PigPhoto),
+  count: z.number(),
+});
+export type SizeSortedSearchPhotos = z.infer<typeof SizeSortedSearchPhotos>;
+
 export const SearchSort = z.enum(["newest", "oldest", "largest", "smallest"]);
 export type SearchSort = z.infer<typeof SearchSort>;
 
 export const SearchPhotosResult = z.object({
   photosFlat: z.array(PigPhoto),
   photosGroupedByDate: PhotosGroupedByDate,
+  count: z.number().optional(),
 });
 export type SearchPhotosResult = z.infer<typeof SearchPhotosResult>;
 

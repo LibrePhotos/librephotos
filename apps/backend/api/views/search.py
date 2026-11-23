@@ -1,7 +1,7 @@
 from typing import Any
 
 from django.core.cache import cache
-from django.db.models import Q, QuerySet
+from django.db.models import Case, Q, QuerySet, Value, When
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -35,10 +35,17 @@ from api.views.custom_api_view import ListViewSet
 # once a mobile release that accepts it has shipped.
 LEGACY_UNDATED_DATE = "No timestamp"
 
+SIZE_SORT_LIMIT = 1000
+
 SIZE_SORT_ORDERINGS: dict[str, tuple[str, ...]] = {
     "largest": ("-size", "-exif_timestamp", "pk"),
     "smallest": ("size", "-exif_timestamp", "pk"),
 }
+
+
+def _size_sorted(queryset: QuerySet[Photo], sort: str) -> QuerySet[Photo]:
+    unknown_size_last = Case(When(size=0, then=Value(1)), default=Value(0))
+    return queryset.order_by(unknown_size_last, *SIZE_SORT_ORDERINGS[sort])
 
 
 class SearchListViewSet(ListViewSet):
@@ -80,7 +87,9 @@ class SearchListViewSet(ListViewSet):
             "search on (the user's semantic_search_topk), results is a flat "
             "list of photo summaries instead of date groups. sort=largest or "
             "sort=smallest answers a flat list by file size, whatever the "
-            "semantic setting."
+            f"semantic setting: at most the {SIZE_SORT_LIMIT} largest or smallest matches, "
+            "with count, the number of all matches; a photo of unknown size "
+            "comes last."
         ),
         responses=SearchResultsSerializer,
     )
@@ -93,13 +102,15 @@ class SearchListViewSet(ListViewSet):
         # The request: a shared library's photos show what their owner shares.
         context = {"request": request}
         if sort in SIZE_SORT_ORDERINGS:
-            queryset = self._with_libraries(
-                request, self.filter_queryset(photos)
-            ).order_by(*SIZE_SORT_ORDERINGS[sort])
-            summary_serializer = PhotoSummarySerializer(
-                queryset, many=True, context=context
+            queryset = _size_sorted(
+                self._with_libraries(request, self.filter_queryset(photos)), sort
             )
-            return Response({"results": summary_serializer.data})
+            summary_serializer = PhotoSummarySerializer(
+                queryset[:SIZE_SORT_LIMIT], many=True, context=context
+            )
+            return Response(
+                {"results": summary_serializer.data, "count": queryset.count()}
+            )
         if user.semantic_search_topk == 0:
             ordering = "exif_timestamp" if sort == "oldest" else "-exif_timestamp"
             queryset = self._with_libraries(

@@ -924,7 +924,6 @@ export async function searchPhotos(
   filter: AlbumMediaFilter & SearchFilters = {},
   sort?: S.SearchSort
 ): Promise<S.SearchPhotosResult> {
-  const flat = semantic || sort === "largest" || sort === "smallest";
   const query = buildQuery({
     search: searchTerm,
     ...albumMediaQuery(filter),
@@ -932,8 +931,12 @@ export async function searchPhotos(
     sort: sort === undefined || sort === "newest" ? undefined : sort,
   });
   const res = await client.get<unknown>(`/photos/searchlist/${query}`);
-  if (flat) {
-    const parsed = parseResponse(S.SemanticSearchPhotos, res, "flat search photos");
+  if (sort === "largest" || sort === "smallest") {
+    const parsed = parseResponse(S.SizeSortedSearchPhotos, res, "size sorted search photos");
+    return { photosFlat: parsed.results, photosGroupedByDate: [], count: parsed.count };
+  }
+  if (semantic) {
+    const parsed = parseResponse(S.SemanticSearchPhotos, res, "semantic search photos");
     return { photosFlat: parsed.results, photosGroupedByDate: [] };
   }
   const parsed = parseResponse(S.SearchPhotos, res, "search photos");

@@ -10669,7 +10669,7 @@
     "/api/photos/searchlist/": {
       "get": {
         "operationId": "api_photos_searchlist_list",
-        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. The structured filters (camera, lens, exposure ranges, rating, capture days, location, file type, people) narrow the results with or without a search term; a bad value is a 400 naming the parameter. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries instead of date groups. sort=largest or sort=smallest answers a flat list by file size, whatever the semantic setting.",
+        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. The structured filters (camera, lens, exposure ranges, rating, capture days, location, file type, people) narrow the results with or without a search term; a bad value is a 400 naming the parameter. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries instead of date groups. sort=largest or sort=smallest answers a flat list by file size, whatever the semantic setting: at most the 1000 largest or smallest matches, with count, the number of all matches; a photo of unknown size comes last.",
         "parameters": [
           {
             "in": "query",
@@ -29709,6 +29709,10 @@
             "items": {
               "$ref": "#/components/schemas/GroupedPhotos"
             }
+          },
+          "count": {
+            "type": "integer",
+            "description": "sort=largest or sort=smallest only: the number of all matches, of which results holds the first ones"
           }
         },
         "required": [
