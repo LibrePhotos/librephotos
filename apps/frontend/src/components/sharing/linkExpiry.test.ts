@@ -41,4 +41,20 @@ describe("linkExpiryCaption", () => {
     expect(linkExpiryCaption(i18n.t, "2026-11-23T12:00:00Z", NOW)).toBe("Expires in 3 days");
     expect(linkExpiryCaption(i18n.t, "2026-11-18T12:00:00Z", NOW)).toBe("Expired 2 days ago");
   });
+
+  it("names the preset just picked, not one day less, though a few seconds have passed", () => {
+    for (const days of [7, 30, 90]) {
+      const picked = NOW.plus({ days }).startOf("minute").toUTC().toISO() ?? "";
+      expect(linkExpiryCaption(i18n.t, picked, NOW.plus({ seconds: 20 }))).toBe(`Expires in ${days} days`);
+    }
+  });
+
+  it("rounds to the nearest day, and counts hours and minutes within a day", () => {
+    expect(linkExpiryCaption(i18n.t, "2026-11-23T02:00:00Z", NOW)).toBe("Expires in 3 days");
+    expect(linkExpiryCaption(i18n.t, "2026-11-21T13:00:00Z", NOW)).toBe("Expires tomorrow");
+    expect(linkExpiryCaption(i18n.t, "2026-11-20T17:10:00Z", NOW)).toBe("Expires in 5 hours");
+    expect(linkExpiryCaption(i18n.t, "2026-11-20T12:20:00Z", NOW)).toBe("Expires in 20 minutes");
+    expect(linkExpiryCaption(i18n.t, "2026-11-20T09:00:00Z", NOW)).toBe("Expired 3 hours ago");
+    expect(linkExpiryCaption(i18n.t, "2026-11-19T11:00:00Z", NOW)).toBe("Expired yesterday");
+  });
 });

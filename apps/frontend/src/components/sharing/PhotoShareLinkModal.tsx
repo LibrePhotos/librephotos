@@ -183,19 +183,22 @@ function ShownLink({ url, expiresAt, replace, expirySaveFailed, onReplace, onExp
             </Tooltip>
           )}
         </CopyButton>
-        <QrLinkButton url={url} warning={expired ? t("sharing.qrCodeExpired") : null} />
+        <QrLinkButton url={url} position="right-start" warning={expired ? t("sharing.qrCodeExpired") : null} />
       </Group>
+      {expired && (
+        <Text size="sm" c="orange">
+          {t("sharing.linkExpiredHint", { expired: linkExpiryCaption(t, expiresAt) })}
+        </Text>
+      )}
       {replace === "failed" && (
         <Text size="sm" c="red">
           {t("sharing.rotateLinkFailed")}
         </Text>
       )}
       <LinkExpirySetting value={expiresAt} onChange={onExpiryChange} />
-      {expiresAt && (
-        <Text size="sm" c={expired ? "orange" : "dimmed"}>
-          {expired
-            ? t("sharing.linkExpiredHint", { expired: linkExpiryCaption(t, expiresAt) })
-            : linkExpiryCaption(t, expiresAt)}
+      {!expired && (
+        <Text size="sm" c="dimmed">
+          {expiresAt ? linkExpiryCaption(t, expiresAt) : t("sharing.neverExpires")}
         </Text>
       )}
       {expirySaveFailed && (

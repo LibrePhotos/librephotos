@@ -41,6 +41,7 @@ vi.mock("@tanstack/react-router", () => ({
     return route;
   },
   Link: ({ children }: { children?: React.ReactNode }) => <a href="/">{children}</a>,
+  useNavigate: () => () => Promise.resolve(),
 }));
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
 vi.mock("../../api_client/photos/hooks", () => ({

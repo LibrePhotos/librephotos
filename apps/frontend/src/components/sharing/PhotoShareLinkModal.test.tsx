@@ -219,6 +219,7 @@ describe("PhotoShareLinkModal", () => {
 
       await act(async () => buttonNamed(i18n.t("sharing.never")).click());
       expect(mutation.mutateAsync).toHaveBeenLastCalledWith({ photoId: "photo-1", action: "enable", expiresAt: null });
+      expect(document.body.textContent).toContain(i18n.t("sharing.neverExpires"));
     });
 
     it("shows the link's current expiry in the date field", async () => {
@@ -239,6 +240,11 @@ describe("PhotoShareLinkModal", () => {
       await renderModal("photo-1");
 
       expect(document.body.textContent).toContain("Expired 2 days ago. Visitors are told the link has expired");
+      const hint = Array.from(document.querySelectorAll("p")).find(p =>
+        p.textContent?.startsWith("Expired 2 days ago")
+      );
+      const field = document.querySelector('input[type="datetime-local"]');
+      expect(hint && field && hint.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
       const qrButton = document.querySelector<HTMLButtonElement>(
         `button[aria-label="${i18n.t("sharing.showQrCode")}"]`

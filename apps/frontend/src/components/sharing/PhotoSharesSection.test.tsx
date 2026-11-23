@@ -132,10 +132,12 @@ describe("PhotoSharesSection", () => {
     const expiredPanel = document.querySelector(`[role="dialog"][aria-label="${i18n.t("sharing.qrCode")}"]`);
     expect(expiredPanel?.querySelector("svg")).not.toBeNull();
     expect(expiredPanel?.textContent).toContain(i18n.t("sharing.qrCodeExpired"));
+    expect(expiredPanel?.textContent).not.toContain(i18n.t("sharing.qrCodeHint"));
     await act(async () => qrOf("closed")?.click());
 
     await act(async () => qrOf("open")?.click());
     const openPanel = document.querySelector(`[role="dialog"][aria-label="${i18n.t("sharing.qrCode")}"]`);
     expect(openPanel?.textContent).not.toContain(i18n.t("sharing.qrCodeExpired"));
+    expect(openPanel?.textContent).toContain(i18n.t("sharing.qrCodeHint"));
   });
 });
