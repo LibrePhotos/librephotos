@@ -105,6 +105,7 @@ export type LightboxControlsProps = {
   toggleOcrText: () => void;
   /** Copy the photo to the clipboard; absent when the page has no image clipboard or the item is a video. */
   onCopyToClipboard?: () => void;
+  onOpenWallDisplay: () => void;
   /** Called once the photo was moved to (or restored from) the trash. */
   onAfterTrashToggle?: () => void;
   /** Runs the trash request at once, or once the user chose to discard an unsaved edit. */

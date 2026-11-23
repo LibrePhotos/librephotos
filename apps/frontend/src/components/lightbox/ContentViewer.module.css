@@ -15,6 +15,7 @@
   /* Pure black, as Google Photos, Apple Photos and Immich show a photo: the theme's "black" is the
      near-black text colour, which reads grey around a photo. */
   background: black;
+  overflow: hidden;
 }
 
 /* The photo takes the whole stage, as in Immich and Google Photos: the toolbar floats over its top
@@ -26,6 +27,10 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
+}
+
+.stage[data-hidecursor] {
+  cursor: none;
 }
 
 /* A phone (useCompactViewer): a video's box (MediaDisplay .videoStage) runs from under the

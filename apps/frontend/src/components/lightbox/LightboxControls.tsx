@@ -126,6 +126,7 @@ export function LightboxControls({
   showOcrText,
   toggleOcrText,
   onCopyToClipboard,
+  onOpenWallDisplay,
   onAfterTrashToggle,
   beforeTrash,
   panorama,
@@ -228,6 +229,7 @@ export function LightboxControls({
             toggleSlideshow={toggleSlideshow}
             onCopyToClipboard={onCopyToClipboard}
             copyLabel={copyLabel}
+            onOpenWallDisplay={onOpenWallDisplay}
             isFullscreen={isFullscreen}
             toggleFullscreen={toggleFullscreen}
             fullscreenLabel={fullscreenLabel}

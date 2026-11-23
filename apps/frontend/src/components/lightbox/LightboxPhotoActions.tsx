@@ -3,6 +3,7 @@ import { ActionIcon, Menu, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconCopy as Copy,
+  IconDeviceTv as DeviceTv,
   IconDotsVertical as Dots,
   IconArrowsMaximize as Maximize,
   IconArrowsMinimize as Minimize,
@@ -76,6 +77,7 @@ type MoreMenuProps = Readonly<{
   toggleSlideshow: () => void;
   /** Absent where copy cannot work (a video, a page without an image clipboard). */
   onCopyToClipboard?: () => void;
+  onOpenWallDisplay: () => void;
   copyLabel: string;
   isFullscreen: boolean;
   toggleFullscreen: () => void;
@@ -110,7 +112,7 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
   const { actions, ownPhoto, isSlideshowActive, toggleSlideshow, slideshowLabel, zoom } = props;
-  const { onCopyToClipboard, copyLabel, isFullscreen, toggleFullscreen, fullscreenLabel } = props;
+  const { onCopyToClipboard, copyLabel, isFullscreen, toggleFullscreen, fullscreenLabel, onOpenWallDisplay } = props;
   const photoItems = useRotationItems(props);
   const zoomLabel = zoom?.isZoomed ? t("lightbox.controls.zoomout") : t("lightbox.controls.zoomin");
   const label = t("lightbox.toolbar.moreActions");
@@ -149,6 +151,9 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
           onClick={toggleSlideshow}
         >
           {slideshowLabel}
+        </Menu.Item>
+        <Menu.Item leftSection={<DeviceTv size={ICON_SIZE.menu} />} onClick={onOpenWallDisplay}>
+          {t("lightbox.controls.walldisplay")}
         </Menu.Item>
         {onCopyToClipboard && (
           <Menu.Item

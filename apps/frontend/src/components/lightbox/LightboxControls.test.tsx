@@ -124,6 +124,7 @@ async function renderControls(props: Partial<LightboxControlsProps> & { photo?: 
             showOcrText={false}
             toggleOcrText={() => {}}
             onCopyToClipboard={() => {}}
+            onOpenWallDisplay={() => {}}
             {...rest}
           />
         </LightboxCommandsContext.Provider>
@@ -175,6 +176,7 @@ describe("LightboxControls", () => {
     expect(await openMenu(container)).toEqual([
       "lightbox.controls.zoomin",
       "lightbox.controls.slideshow",
+      "lightbox.controls.walldisplay",
       "lightbox.controls.copy",
       "lightbox.controls.fullscreen",
       "lightbox.toolbar.hidePhoto",
@@ -279,6 +281,7 @@ describe("LightboxControls", () => {
     expect(await openMenu(noDetails)).toEqual([
       "lightbox.controls.zoomin",
       "lightbox.controls.slideshow",
+      "lightbox.controls.walldisplay",
       "lightbox.controls.copy",
       "lightbox.controls.fullscreen",
     ]);
@@ -300,6 +303,15 @@ describe("LightboxControls", () => {
     await act(async () => menuItem(container, "lightbox.controls.zoomin").click());
 
     expect(toggleZoom).toHaveBeenCalledOnce();
+  });
+
+  it("opens the wall display settings from the ⋮", async () => {
+    const onOpenWallDisplay = vi.fn<() => void>();
+    const container = await renderControls({ onOpenWallDisplay });
+    await openMenu(container);
+    await act(async () => menuItem(container, "lightbox.controls.walldisplay").click());
+
+    expect(onOpenWallDisplay).toHaveBeenCalledOnce();
   });
 
   it("pauses a running slideshow from the toolbar", async () => {
@@ -355,6 +367,7 @@ describe("LightboxControls", () => {
     expect(await openMenu(container)).toEqual([
       "lightbox.controls.zoomin",
       "lightbox.controls.slideshow",
+      "lightbox.controls.walldisplay",
       "lightbox.controls.copy",
       "lightbox.controls.fullscreen",
     ]);
