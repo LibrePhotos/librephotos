@@ -19,6 +19,8 @@ export type ChangeDateTimeValues = {
   seconds: NumberField;
   day: string;
   time: string;
+  fromTimezone: string;
+  toTimezone: string;
 };
 
 export const SHIFT_UNITS = ["days", "hours", "minutes", "seconds"] as const;
@@ -48,6 +50,12 @@ export function dateTimeChange(values: ChangeDateTimeValues): DateTimeChange | n
     const seconds = shiftSeconds(values);
     return seconds === 0 ? null : { mode: "shift", seconds };
   }
+  if (values.mode === "convert_timezone") {
+    const { fromTimezone, toTimezone } = values;
+    return fromTimezone && toTimezone && fromTimezone !== toTimezone
+      ? { mode: "convert_timezone", from_timezone: fromTimezone, to_timezone: toTimezone }
+      : null;
+  }
   const datetime = wallClockToPhotoTimestamp(values);
   return datetime ? { mode: "set", datetime } : null;
 }
@@ -61,7 +69,7 @@ const unitField = (max: number) => z.union([z.number().int().min(0).max(max), z.
 export function makeChangeDateTimeSchema(t: TFunction) {
   return z
     .object({
-      mode: z.enum(["shift", "set"]),
+      mode: z.enum(["shift", "set", "convert_timezone"]),
       direction: z.enum(["earlier", "later"]),
       days: unitField(UNIT_MAX.days),
       hours: unitField(UNIT_MAX.hours),
@@ -69,11 +77,31 @@ export function makeChangeDateTimeSchema(t: TFunction) {
       seconds: unitField(UNIT_MAX.seconds),
       day: z.string(),
       time: z.string(),
+      fromTimezone: z.string(),
+      toTimezone: z.string(),
     })
     .superRefine((values, context) => {
       if (values.mode === "shift") {
         if (shiftSeconds(values) === 0) {
           context.addIssue({ code: "custom", path: ["days"], message: t("changedatetime.entershift") });
+        }
+        return;
+      }
+      if (values.mode === "convert_timezone") {
+        if (!values.fromTimezone || !values.toTimezone) {
+          context.addIssue({
+            code: "custom",
+            path: [values.fromTimezone ? "toTimezone" : "fromTimezone"],
+            message: t("changedatetime.pickzones"),
+          });
+          return;
+        }
+        if (values.fromTimezone === values.toTimezone) {
+          context.addIssue({
+            code: "custom",
+            path: ["toTimezone"],
+            message: t("changedatetime.samezone"),
+          });
         }
         return;
       }

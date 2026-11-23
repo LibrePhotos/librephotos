@@ -43,7 +43,8 @@ import logging
 import uuid
 from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
+from enum import Enum
 from typing import NamedTuple
 
 from django.db import transaction
@@ -54,6 +55,7 @@ from django.utils.dateparse import parse_datetime
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.geocode.photo_location import clear_location, usable_coordinates
+from api.metadata.datetime_rules import CaptureTime
 from api.metadata.jobs import (
     queue_field_write,
     queue_keyword_write,
@@ -88,6 +90,7 @@ from api.models.photo_metadata import (
 )
 from api.models.photo_search import PhotoSearch, place_label
 from api.models.tag import Tag, sync_tags_from_keywords, tag_names
+from api.models.time_zones import localize, time_zone
 from api.models.user import User
 from api.places.membership import refresh_photo_places
 
@@ -199,6 +202,14 @@ class CaptureTimesResult(NamedTuple):
 
     changed: int
     skipped_without_date: int
+    skipped_other_zone: int
+
+
+class Skip(Enum):
+    OTHER_ZONE = "other_zone"
+
+
+ComputeCaptureTime = Callable[[Photo], CaptureTime | Skip | None]
 
 
 #: Photos per transaction in ``set_capture_times``: a select-all over a whole
@@ -208,7 +219,7 @@ CAPTURE_TIME_BATCH_SIZE = 200
 
 def set_capture_times(
     photos: QuerySet[Photo],
-    compute_new: Callable[[Photo], datetime | None],
+    compute_new: ComputeCaptureTime,
     user: User,
 ) -> CaptureTimesResult:
     """Give each of ``photos`` the capture time ``compute_new`` returns (#2278).
@@ -222,7 +233,7 @@ def set_capture_times(
     to its file or sidecar when the owner syncs metadata to disk.
     """
     photo_ids = list(photos.order_by().values_list("id", flat=True).distinct())
-    count = skipped = 0
+    count = skipped = other_zone = 0
     to_write: list[uuid.UUID] = []
     try:
         for start in range(0, len(photo_ids), CAPTURE_TIME_BATCH_SIZE):
@@ -231,57 +242,103 @@ def set_capture_times(
                 result = _set_capture_time_batch(batch, compute_new, user)
             count += result.changed
             skipped += result.skipped_without_date
+            other_zone += result.skipped_other_zone
             to_write += result.written
     finally:
         # The batches committed before a failure are written all the same.
         queue_field_write(user, to_write, DATE_TAKEN)
-    return CaptureTimesResult(changed=count, skipped_without_date=skipped)
+    return CaptureTimesResult(
+        changed=count, skipped_without_date=skipped, skipped_other_zone=other_zone
+    )
 
 
-def shifted_by(delta: timedelta) -> Callable[[Photo], datetime | None]:
+def shifted_by(delta: timedelta) -> Callable[[Photo], CaptureTime | None]:
     """``compute_new`` of a shift: each photo's date ``delta`` later (earlier
     when negative), so the photos keep their order and spacing. None for a
     photo without a date: there is nothing to shift."""
 
-    def compute(photo: Photo) -> datetime | None:
+    def compute(photo: Photo) -> CaptureTime | None:
         if photo.exif_timestamp is None:
             return None
-        return photo.exif_timestamp + delta
+        return CaptureTime(photo.exif_timestamp + delta)
 
     return compute
 
 
-def set_to(value: datetime) -> Callable[[Photo], datetime | None]:
+def set_to(value: datetime) -> Callable[[Photo], CaptureTime | None]:
     """``compute_new`` that gives every photo ``value``."""
-    return lambda photo: value
+    return lambda photo: CaptureTime(value)
+
+
+def _read_in_zone(
+    wall_clock: datetime, known_offset: int | None, zone: tzinfo
+) -> datetime | None:
+    if known_offset is None:
+        return localize(wall_clock, zone)
+    for fold in (0, 1):
+        candidate = wall_clock.replace(tzinfo=zone, fold=fold)
+        if candidate.utcoffset() == timedelta(minutes=known_offset):
+            return candidate
+    return None
+
+
+def converted_time_zone(from_zone: str, to_zone: str) -> ComputeCaptureTime:
+    source = time_zone(from_zone)
+    target = time_zone(to_zone)
+
+    def compute(photo: Photo) -> CaptureTime | Skip | None:
+        if photo.exif_timestamp is None:
+            return None
+        taken = _read_in_zone(
+            photo.exif_timestamp.replace(tzinfo=None),
+            photo.exif_timestamp_offset,
+            source,
+        )
+        if taken is None:
+            return Skip.OTHER_ZONE
+        converted = taken.astimezone(target)
+        offset = converted.utcoffset()
+        return CaptureTime(
+            converted.replace(tzinfo=UTC),
+            int(offset.total_seconds()) // 60 if offset is not None else None,
+        )
+
+    return compute
 
 
 class _BatchResult(NamedTuple):
     changed: int
     skipped_without_date: int
+    skipped_other_zone: int
     written: list[uuid.UUID]
 
 
 def _set_capture_time_batch(
     photo_ids: list[uuid.UUID],
-    compute_new: Callable[[Photo], datetime | None],
+    compute_new: ComputeCaptureTime,
     user: User,
 ) -> _BatchResult:
     """``set_capture_times`` for one batch, inside its transaction."""
     changes: list[Change] = []
     written: list[uuid.UUID] = []
-    count = skipped = 0
+    count = skipped = other_zone = 0
     for photo in Photo.objects.filter(id__in=photo_ids).select_related("owner"):
-        value = compute_new(photo)
-        if value is None:
+        found = compute_new(photo)
+        if found is None:
             skipped += 1
+            continue
+        if found is Skip.OTHER_ZONE:
+            other_zone += 1
             continue
         count += 1
         old = photo.exif_timestamp
-        if photo.timestamp != value:
+        if (
+            photo.timestamp != found.local_time
+            or photo.exif_timestamp_offset != found.utc_offset
+        ):
             written.append(photo.id)
-        photo.timestamp = value
-        photo.exif_timestamp_offset = None
+        photo.timestamp = found.local_time
+        photo.exif_timestamp_offset = found.utc_offset
         extract_date_time(photo, commit=False)
         photo.save(
             update_fields=[
@@ -295,7 +352,7 @@ def _set_capture_time_batch(
         if photo.exif_timestamp != old:
             changes.append(Change(photo.id, old, photo.exif_timestamp))
     _record(user, DATE_TAKEN, changes)
-    return _BatchResult(count, skipped, written)
+    return _BatchResult(count, skipped, other_zone, written)
 
 
 # -------------------------------------------------------------------- location

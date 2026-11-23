@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.functions import Length
 from django.utils import timezone
 
 from api.lazy_import import LazyModule
@@ -17,8 +18,10 @@ from api.models import (
     Photo,
     User,
 )
+from api.models.file import MD5_HEX_LENGTH
 from api.models.long_running_job import JobCancelledError
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
+from api.photos.files import stand_in_for_gone_main_files
 
 if TYPE_CHECKING:
     import numpy as np
@@ -247,10 +250,10 @@ def delete_missing_photos(user: User, job_id: uuid.UUID | str) -> int:
     if lrj is None:
         return 0
     try:
+        stand_in_for_gone_main_files(Photo.objects.owned_by(user))
+
         missing_pks = list(
-            Photo.objects.owned_by(user)
-            .filter(Q(files=None) | Q(main_file=None))
-            .values_list("pk", flat=True)
+            Photo.objects.owned_by(user).missing().values_list("pk", flat=True)
         )
         target = len(missing_pks)
         lrj.update_progress(current=0, target=target)
@@ -286,10 +289,12 @@ def delete_missing_photos(user: User, job_id: uuid.UUID | str) -> int:
 
         # File.hash is composed as `md5 + str(user.id)` (see api/models/file.py),
         # so the user-owned subset of missing files is identified by that suffix.
-        missing_files = File.objects.filter(
-            Q(hash__endswith=str(user.id)) & Q(missing=True)
-        )
-        missing_files.delete()
+        owner_part = str(user.id)
+        File.objects.annotate(hash_length=Length("hash")).filter(
+            hash__endswith=owner_part,
+            hash_length=MD5_HEX_LENGTH + len(owner_part),
+            missing=True,
+        ).delete()
 
         lrj.complete()
     except Exception as e:

@@ -2908,7 +2908,10 @@ export async function setPhotoTimestamp(
 }
 
 /** How a bulk date change moves the photos: by a number of seconds, or all to one wall-clock time. */
-export type DateTimeChange = { mode: "shift"; seconds: number } | { mode: "set"; datetime: string };
+export type DateTimeChange =
+  | { mode: "shift"; seconds: number }
+  | { mode: "set"; datetime: string }
+  | { mode: "convert_timezone"; from_timezone: string; to_timezone: string };
 
 /**
  * Shift the date of photos by `seconds` (negative for earlier), or give them all one date and time

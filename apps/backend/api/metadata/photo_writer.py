@@ -147,9 +147,7 @@ def write_photo_metadata(
             # Serialized in exiftool's canonical form; ``photo.timestamp`` is
             # local time carrying a UTC tzinfo, so the offset is dropped
             # rather than written out as a misleading "+00:00".
-            tags_to_write[Tags.DATE_CREATED] = (
-                photo.timestamp.strftime("%Y:%m:%d %H:%M:%S") if photo.timestamp else ""
-            )
+            tags_to_write[Tags.DATE_CREATED] = date_created_value(photo)
 
     if write_face_tags:
         from api.metadata.face_regions import get_face_region_tags
@@ -161,6 +159,18 @@ def write_photo_metadata(
         indexed = _indexed_files(photo)
         write_metadata(photo.main_file.path, tags_to_write, use_sidecar=use_sidecar)
         indexed_mtimes.record_own_write(indexed)
+
+
+def date_created_value(photo: Photo) -> str:
+    if photo.timestamp is None:
+        return ""
+    wall_clock = photo.timestamp.strftime("%Y:%m:%d %H:%M:%S")
+    offset = photo.exif_timestamp_offset
+    if offset is None:
+        return wall_clock
+    sign = "-" if offset < 0 else "+"
+    hours, minutes = divmod(abs(offset), 60)
+    return f"{wall_clock}{sign}{hours:02}:{minutes:02}"
 
 
 # ---------------------------------------------------------- caption, location
