@@ -89,10 +89,18 @@ function registryDump(key) {
   return asked.status === 0 ? asked.stdout.trim() : `${key}: (none)`;
 }
 
+const HIVE_NAMES = { HKCU: "HKEY_CURRENT_USER", HKLM: "HKEY_LOCAL_MACHINE" };
+
 function defaultClass(extension) {
-  const value = registryValue(`${classes}\\${extension}`);
-  if (value === undefined) return "(none)";
-  return value || "(empty)";
+  const key = `Registry::${HIVE_NAMES[scope.hive]}\\Software\\Classes\\${extension}`;
+  const script = [
+    `$key = Get-Item -LiteralPath '${key}' -ErrorAction SilentlyContinue`,
+    "if ($null -eq $key -or $null -eq $key.GetValue('')) { '(none)' } else { '=' + $key.GetValue('') }",
+  ].join("; ");
+  const asked = spawnSync("powershell", ["-NoProfile", "-Command", script], { encoding: "utf8" });
+  const answer = asked.stdout.trim();
+  if (answer === "(none)") return answer;
+  return answer.slice(1) || "(empty)";
 }
 
 function expectRegistry(key, value, why) {
