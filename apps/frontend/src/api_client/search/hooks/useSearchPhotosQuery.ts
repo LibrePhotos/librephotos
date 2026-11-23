@@ -1,23 +1,13 @@
 import { ApiError, endpoints, photoGridKeys } from "@librephotos/api-client";
-import type { MediaType, PhotoOrder, SearchFilters, SearchPhotosResult, SearchSort } from "@librephotos/api-client";
+import type { MediaType, SearchFilters, SearchSort } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback } from "react";
 import { mediaTypeToBulkQuery } from "../../../components/photolist/mediaTypeFilter";
 import { isSizeSort } from "../../../components/photolist/photoSort";
-import { orderDateGroups } from "../../../util/photoOrder";
 import { apiClient } from "../../api";
 import { useCurrentUserSelfDetailsQuery } from "../../user/hooks/useCurrentUserSelfDetailsQuery";
 import { usePhotoOrder } from "../../user/hooks/usePhotoOrder";
 
-/**
- * Date-grouped results in the user's photo order (#2712), the flat list (the lightbox's) with them.
- * Semantic results are a flat list by relevance and stay as they are.
- */
-export function orderSearchResult(result: SearchPhotosResult, order: PhotoOrder): SearchPhotosResult {
-  if (order === "newest" || result.photosGroupedByDate.length === 0) return result;
-  const photosGroupedByDate = orderDateGroups(result.photosGroupedByDate, order);
-  return { photosGroupedByDate, photosFlat: photosGroupedByDate.flatMap(group => group.items) };
-}
+type SearchPhotosOptions = Readonly<{ sizeSortWithoutTerm?: boolean }>;
 
 /**
  * A search: the words, the media button and the structured filters (#2259, #329). With filters the
@@ -27,7 +17,8 @@ export const useSearchPhotosQuery = (
   searchTerm: string,
   mediaType?: MediaType,
   filters: SearchFilters = {},
-  sort: SearchSort = "newest"
+  sort?: SearchSort,
+  { sizeSortWithoutTerm = false }: SearchPhotosOptions = {}
 ) => {
   const { data: currentUser, isError: userFailed } = useCurrentUserSelfDetailsQuery();
   // The backend picks the response shape from this user setting, so the query
@@ -38,10 +29,10 @@ export const useSearchPhotosQuery = (
   // never sending the query.
   const semantic = (currentUser?.semantic_search_topk ?? 0) > 0;
   const filtered = Object.values(filters).some(value => value !== undefined);
-  const { ready } = usePhotoOrder();
-  const order: PhotoOrder = sort === "oldest" ? "oldest" : "newest";
-  const select = useCallback((data: SearchPhotosResult) => orderSearchResult(data, order), [order]);
-  const keySort = sort === "newest" ? undefined : sort;
+  const photoOrder = usePhotoOrder();
+  const effectiveSort = sort ?? photoOrder.order;
+  const keySort = effectiveSort === "newest" ? undefined : effectiveSort;
+  const asked = searchTerm.length > 0 || filtered || (sizeSortWithoutTerm && isSizeSort(effectiveSort));
 
   return useQuery({
     // Unfiltered searches keep their old key; a filtered one sits under it, so both refresh together.
@@ -62,11 +53,7 @@ export const useSearchPhotosQuery = (
         { ...mediaTypeToBulkQuery(mediaType), ...filters },
         keySort
       ),
-    enabled:
-      (searchTerm.length > 0 || filtered || isSizeSort(sort)) &&
-      (currentUser !== undefined || userFailed) &&
-      ready,
-    select,
+    enabled: asked && (currentUser !== undefined || userFailed) && photoOrder.ready,
     // A 400 is a filter the server will not take (a person deleted elsewhere): asking again changes nothing.
     retry: (failures, error) => !(error instanceof ApiError && error.status === 400) && failures < 1,
   });

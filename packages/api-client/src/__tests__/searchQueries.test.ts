@@ -42,10 +42,11 @@ describe("photo search query", () => {
     expect(plain).toEqual(photoGridKeys.search("tram", "all", "grouped"));
   });
 
-  it("searches by a size sort alone, without words or filters", () => {
-    expect(searchPhotosQueryOptions(client, "", false, {}, "largest").enabled).toBe(true);
-    expect(searchPhotosQueryOptions(client, "", false, {}, "smallest").enabled).toBe(true);
+  it("asks nothing for a sort alone, without words or filters", () => {
+    expect(searchPhotosQueryOptions(client, "", false, {}, "largest").enabled).toBe(false);
+    expect(searchPhotosQueryOptions(client, "", false, {}, "smallest").enabled).toBe(false);
     expect(searchPhotosQueryOptions(client, "", false, {}, "oldest").enabled).toBe(false);
+    expect(searchPhotosQueryOptions(client, "", false, { camera: "X-T5" }, "largest").enabled).toBe(true);
   });
 
   it("keys the suggestions of each filter apart, under the search keys", () => {

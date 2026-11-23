@@ -329,7 +329,7 @@ export function searchPhotosQueryOptions(
       ? photoGridKeys.filteredSearch(searchTerm, "all", semantic ? "semantic" : "grouped", filters, keySort)
       : photoGridKeys.search(searchTerm, "all", semantic ? "semantic" : "grouped", keySort),
     queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic, filters, keySort),
-    enabled: searchTerm.length > 0 || filtered || sort === "largest" || sort === "smallest",
+    enabled: searchTerm.length > 0 || filtered,
   });
 }
 

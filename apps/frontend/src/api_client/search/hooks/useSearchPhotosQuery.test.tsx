@@ -6,22 +6,23 @@
  * popped a "Failed to parse search photos ... report this on GitHub" toast.
  */
 import { ApiError, ResponseParseError } from "@librephotos/api-client";
-import type { MediaType, SearchFilters, SearchSort } from "@librephotos/api-client";
+import type { MediaType, PhotoOrder, SearchFilters, SearchSort } from "@librephotos/api-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../../util/defined.test-utils";
-import { tempPigPhoto } from "../../../util/util";
-import { orderSearchResult, useSearchPhotosQuery } from "./useSearchPhotosQuery";
+import { useSearchPhotosQuery } from "./useSearchPhotosQuery";
 
 const stubs = vi.hoisted(() => ({
   get: vi.fn<(endpoint: string) => Promise<unknown>>(),
   user: undefined as { semantic_search_topk: number } | undefined,
   userFailed: false,
+  photoOrder: { order: "newest", ready: true } as { order: PhotoOrder; ready: boolean },
 }));
 
 vi.mock("../../api", () => ({ apiClient: { get: stubs.get } }));
+vi.mock("../../user/hooks/usePhotoOrder", () => ({ usePhotoOrder: () => stubs.photoOrder }));
 vi.mock("../../user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user, isError: stubs.userFailed }),
 }));
@@ -38,10 +39,18 @@ const pigPhoto = {
 let root: ReturnType<typeof createRoot> | undefined;
 let container: HTMLDivElement;
 let result: ReturnType<typeof useSearchPhotosQuery>;
-let args: { term: string; mediaType?: MediaType; filters?: SearchFilters; sort?: SearchSort } = { term: "beach" };
+let args: {
+  term: string;
+  mediaType?: MediaType;
+  filters?: SearchFilters;
+  sort?: SearchSort;
+  sizeSortWithoutTerm?: boolean;
+} = { term: "beach" };
 
 function Probe() {
-  result = useSearchPhotosQuery(args.term, args.mediaType, args.filters, args.sort);
+  result = useSearchPhotosQuery(args.term, args.mediaType, args.filters, args.sort, {
+    sizeSortWithoutTerm: args.sizeSortWithoutTerm,
+  });
   return null;
 }
 
@@ -73,6 +82,7 @@ afterEach(async () => {
   stubs.get.mockReset();
   stubs.user = undefined;
   stubs.userFailed = false;
+  stubs.photoOrder = { order: "newest", ready: true };
   args = { term: "beach" };
 });
 
@@ -188,21 +198,6 @@ describe("useSearchPhotosQuery", () => {
     expect(result.fetchStatus).toBe("idle");
   });
 
-  it("searches by a size sort alone and sends the sort", async () => {
-    stubs.user = { semantic_search_topk: 0 };
-    stubs.get.mockResolvedValue({ results: [{ ...pigPhoto, size: 42000 }] });
-    args = { term: "", mediaType: "videos", sort: "largest" };
-    container = document.createElement("div");
-    root = createRoot(container);
-
-    await render(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
-    await settle(() => result.isSuccess);
-
-    expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?video=true&sort=largest");
-    expect(result.data?.photosFlat[0]?.size).toBe(42000);
-    expect(result.data?.photosGroupedByDate).toEqual([]);
-  });
-
   it("does not ask again after the server refused a filter", async () => {
     stubs.user = { semantic_search_topk: 0 };
     stubs.get.mockRejectedValue(new ApiError(400, "/photos/searchlist/", "Bad Request", undefined, "Unknown person"));
@@ -216,30 +211,100 @@ describe("useSearchPhotosQuery", () => {
 
     expect(stubs.get).toHaveBeenCalledTimes(1);
   });
-});
 
-describe("orderSearchResult (#2712)", () => {
-  const photo = (id: string) => ({ ...tempPigPhoto(id), image_hash: id, isTemp: false });
-  const grouped = {
-    photosGroupedByDate: [
-      { date: "2024-05-02T09:00:00Z", location: "", items: [photo("b2"), photo("b1")] },
-      { date: "2024-05-01T09:00:00Z", location: "", items: [photo("a1")] },
-    ],
-    photosFlat: [photo("b2"), photo("b1"), photo("a1")],
-  };
+  it.each(["largest", "smallest"] as const)(
+    "asks nothing for a %s sort alone unless the caller opts in",
+    async sort => {
+      stubs.user = { semantic_search_topk: 0 };
+      args = { term: "", sort };
+      container = document.createElement("div");
+      root = createRoot(container);
 
-  it("puts date groups oldest first, and the lightbox's flat list with them", () => {
-    const ordered = orderSearchResult(grouped, "oldest");
-    expect(ordered.photosGroupedByDate.map(group => group.date)).toEqual([
-      "2024-05-01T09:00:00Z",
-      "2024-05-02T09:00:00Z",
-    ]);
-    expect(ordered.photosFlat.map(item => item.id)).toEqual(["a1", "b1", "b2"]);
+      await render(new QueryClient());
+
+      expect(stubs.get).not.toHaveBeenCalled();
+      expect(result.fetchStatus).toBe("idle");
+    }
+  );
+
+  it("searches by a size sort alone when the caller opts in and sends the sort", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    stubs.get.mockResolvedValue({ results: [{ ...pigPhoto, size: 42000 }], count: 1 });
+    args = { term: "", mediaType: "videos", sort: "largest", sizeSortWithoutTerm: true };
+    container = document.createElement("div");
+    root = createRoot(container);
+
+    await render(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    await settle(() => result.isSuccess);
+
+    expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?video=true&sort=largest");
+    expect(result.data?.photosFlat[0]?.size).toBe(42000);
+    expect(result.data?.photosGroupedByDate).toEqual([]);
+    expect(result.data?.count).toBe(1);
   });
 
-  it("leaves newest first and a semantic result, ordered by relevance, as they came", () => {
-    expect(orderSearchResult(grouped, "newest")).toBe(grouped);
-    const semantic = { photosGroupedByDate: [], photosFlat: [photo("x"), photo("y")] };
-    expect(orderSearchResult(semantic, "oldest")).toBe(semantic);
+  const oldestFirst = {
+    results: [
+      {
+        date: "2024-05-01T09:00:00Z",
+        location: "",
+        items: [{ ...pigPhoto, id: "a1111111-1111-1111-1111-111111111111", image_hash: "a1" }],
+      },
+      {
+        date: "2024-05-02T09:00:00Z",
+        location: "",
+        items: [
+          { ...pigPhoto, id: "b1111111-1111-1111-1111-111111111111", image_hash: "b1" },
+          { ...pigPhoto, id: "b2222222-2222-2222-2222-222222222222", image_hash: "b2" },
+        ],
+      },
+    ],
+  };
+
+  async function searchedGroups() {
+    container = document.createElement("div");
+    root = createRoot(container);
+    await render(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    await settle(() => result.isSuccess);
+    return {
+      dates: result.data?.photosGroupedByDate.map(group => group.date),
+      flat: result.data?.photosFlat.map(item => item.image_hash),
+    };
+  }
+
+  it("keeps the oldest-first groups the server sorted as they came", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    stubs.get.mockResolvedValue(oldestFirst);
+    args = { term: "beach", sort: "oldest" };
+
+    const { dates, flat } = await searchedGroups();
+
+    expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?search=beach&sort=oldest");
+    expect(dates).toEqual(["2024-05-01T09:00:00Z", "2024-05-02T09:00:00Z"]);
+    expect(flat).toEqual(["a1", "b1", "b2"]);
+  });
+
+  it("asks the server for the user's photo order without a sort and keeps its groups", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    stubs.photoOrder = { order: "oldest", ready: true };
+    stubs.get.mockResolvedValue(oldestFirst);
+    args = { term: "beach" };
+
+    const { dates, flat } = await searchedGroups();
+
+    expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?search=beach&sort=oldest");
+    expect(dates).toEqual(["2024-05-01T09:00:00Z", "2024-05-02T09:00:00Z"]);
+    expect(flat).toEqual(["a1", "b1", "b2"]);
+  });
+
+  it("keeps a newest sort out of the query for a user who reads oldest first", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    stubs.photoOrder = { order: "oldest", ready: true };
+    stubs.get.mockResolvedValue({ results: [] });
+    args = { term: "beach", sort: "newest" };
+
+    await searchedGroups();
+
+    expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?search=beach");
   });
 });

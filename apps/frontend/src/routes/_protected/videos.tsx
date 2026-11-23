@@ -33,7 +33,7 @@ function OnlyVideos() {
     { photosetType: Photoset.VIDEOS, order: sort === "oldest" ? "oldest" : "newest" },
     { skip: sizeSort }
   );
-  const sizeQuery = useSearchPhotosQuery("", "videos", {}, sort);
+  const sizeQuery = useSearchPhotosQuery("", "videos", {}, sort, { sizeSortWithoutTerm: true });
   const { data: photosGroupedByDate, isLoading } = photosQuery;
   const listFailure = useListFailure(sizeSort ? sizeQuery : photosQuery);
 
@@ -66,7 +66,8 @@ function OnlyVideos() {
       emptyStateConfig={emptyStateConfig}
       error={listFailure}
       photosetQuery={{ video: true }}
-      showFileSize={sizeSort}
+      sort={sort}
+      sortTotal={sizeSort ? sizeQuery.data?.count : undefined}
       headerActions={
         <PhotoSortMenu
           sort={sort}

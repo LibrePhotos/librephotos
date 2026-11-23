@@ -10,4 +10,6 @@ export const PHOTO_SORT_LABELS: Record<SearchSort, ParseKeys> = {
   smallest: "photosort.smallestfirst",
 };
 
-export const isSizeSort = (sort: SearchSort): boolean => sort === "largest" || sort === "smallest";
+export type SizeSort = Extract<SearchSort, "largest" | "smallest">;
+
+export const isSizeSort = (sort: SearchSort): sort is SizeSort => sort === "largest" || sort === "smallest";

@@ -88,7 +88,11 @@ The search results header also has a media button in the top right for narrowing
 
 Results are displayed grouped by date, similar to the main timeline view.
 
-<Since version="1.7.0" /> The header's **Sort** button also offers **Largest files first** and **Smallest files first**, which list the matches by file size as one flat list instead of grouping them by day — a way to find what takes the most space. In a size order each tile shows the file's size, and the same sort is on the [Videos page](./viewing-photos.md#videos-only). In the API the order is the `sort` parameter of `GET /api/photos/searchlist/` (`sort=largest`, `sort=smallest`, `sort=oldest`; the default `newest` groups by day).
+<Since version="1.7.0" /> The header's **Sort** button picks the order of the results: **Newest first**, **Oldest first**, **Largest files first** or **Smallest files first**. Until you pick one, the results follow your [photo order](./viewing-photos.md#photo-order); a sort you pick is remembered in this browser, and **Reset to default** goes back to the photo order. Since the Sort button decides, the view options of the results have no **Order**.
+
+The two size orders list the matches by file size as one flat list instead of grouping them by day, a way to find what takes the most space. They need a search term or a filter: on the search page without either, the Explore page stays. In a size order each tile shows the file's size (a file whose size is not known yet shows none and comes last), and at most the 1,000 largest or smallest matches are listed; when there are more, the header says so, for example *Showing the 1,000 largest of 4,250*. The same sort is on the [Videos page](./viewing-photos.md#videos-only).
+
+In the API the order is the `sort` parameter of `GET /api/photos/searchlist/`: `sort=oldest` groups the days oldest first, the default `newest` newest first. `sort=largest` and `sort=smallest` answer a flat `results` list of at most 1,000 photos, whatever the semantic search setting, with `count`, the number of all matches.
 
 ## Search Filters
 

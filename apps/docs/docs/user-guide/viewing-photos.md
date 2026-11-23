@@ -27,6 +27,8 @@ The photos within a day follow the same order, and the scroll scrubber turns rou
 
 Events always read oldest first, as they happened: on an event the **Order** control shows that and cannot be changed.
 
+<Since version="1.7.0" /> The Videos view and search results have a **Sort** button of their own: they start in this order until you pick another there, and their view options have no **Order**.
+
 #### Scroll bar style
 
 <Since version="1.5.0" />
@@ -114,7 +116,7 @@ Shows only still photos, filtering out all videos.
 
 Shows only video files, filtering out all still photos.
 
-<Since version="1.7.0" /> The header's **Sort** button also offers **Largest files first** and **Smallest files first**: the videos then list by file size as one flat list instead of day groups, and each tile shows the file's size — handy for finding the videos that take the most space.
+<Since version="1.7.0" /> The header's **Sort** button picks the order: **Newest first** or **Oldest first** for the days, which start in your [photo order](#photo-order), or **Largest files first** and **Smallest files first**. The size orders list the videos by file size as one flat list instead of day groups, and each tile shows the file's size, handy for finding the videos that take the most space. At most the 1,000 largest or smallest videos are listed, and the header says when there are more. Since the Sort button decides, the view options of the Videos view have no **Order**.
 
 ### Screenshots and Documents
 

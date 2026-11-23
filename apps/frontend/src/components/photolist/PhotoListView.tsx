@@ -1,4 +1,12 @@
-import type { BulkPhotoQuery, DatePhotosGroup, MediaType, PhotoOrder, PigPhoto, User } from "@librephotos/api-client";
+import type {
+  BulkPhotoQuery,
+  DatePhotosGroup,
+  MediaType,
+  PhotoOrder,
+  PigPhoto,
+  SearchSort,
+  User,
+} from "@librephotos/api-client";
 import { Box, RemoveScroll } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { useLocation } from "@tanstack/react-router";
@@ -27,6 +35,8 @@ import { selectedOf } from "./photoListSelection";
 import { PhotoListSelectionBar } from "./PhotoListSelectionBar";
 import { PhotoListToolbar } from "./PhotoListToolbar";
 import classes from "./PhotoListView.module.css";
+import { isSizeSort } from "./photoSort";
+import { SizeSortNote } from "./SizeSortNote";
 import { TopRightOverlay } from "./TopRightOverlay";
 import { usePhotoListAlbumCover } from "./usePhotoListAlbumCover";
 import { usePhotoListClick } from "./usePhotoListClick";
@@ -142,7 +152,8 @@ type Props = Readonly<{
   eventOrder?: boolean;
   // An album, event, place or thing: the larger title and one "dates · N photos" meta line.
   collection?: CollectionHeader;
-  showFileSize?: boolean;
+  sort?: SearchSort;
+  sortTotal?: number;
 }>;
 
 // An admin's empty timeline before a scan directory is set: DefaultHeader shows the setup
@@ -171,6 +182,31 @@ function listPhotoOrder(isDateView: boolean, eventOrder: boolean | undefined): "
 /** The count line says "Oldest first" where the user's order puts the days that way. */
 function showsOldestFirst(listOrder: "setting" | "events" | undefined, userOrder: PhotoOrder): boolean {
   return listOrder === "setting" && userOrder === "oldest";
+}
+
+function pageOrSettingOldestFirst(
+  listOrder: "setting" | "events" | undefined,
+  userOrder: PhotoOrder,
+  sort: SearchSort | undefined,
+  isDateView: boolean
+): boolean {
+  if (sort === undefined) return showsOldestFirst(listOrder, userOrder);
+  return isDateView && sort === "oldest";
+}
+
+function withSortNote(
+  additionalSubHeader: React.ReactNode,
+  sort: SearchSort | undefined,
+  shown: number,
+  total: number | undefined
+): React.ReactNode {
+  if (sort === undefined || !isSizeSort(sort) || total === undefined || total <= shown) return additionalSubHeader;
+  return (
+    <>
+      {additionalSubHeader}
+      <SizeSortNote sort={sort} shown={shown} total={total} />
+    </>
+  );
 }
 
 /** Still loading: the parent's data, or (outside public pages) who is looking. */
@@ -213,7 +249,8 @@ function PhotoListViewComponent({
   onSlideshowClose,
   eventOrder,
   collection,
-  showFileSize = false,
+  sort,
+  sortTotal,
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle<PigPhoto>>(null);
@@ -238,7 +275,7 @@ function PhotoListViewComponent({
   const slideshowState = usePhotoListSlideshow(idx2hash, lightbox, { slideshow, ready: !isLoading, onSlideshowClose });
 
   const isDateView = photoset !== idx2hash;
-  const photoOrder = listPhotoOrder(isDateView, eventOrder);
+  const photoOrder = sort === undefined ? listPhotoOrder(isDateView, eventOrder) : undefined;
   // Pig re-lays-out the whole grid whenever `imageData` changes identity, so
   // only re-format the date groups when the photoset itself changes.
   const photos = useMemo(
@@ -301,13 +338,13 @@ function PhotoListViewComponent({
                 titleLeading={titleLeading}
                 dayHeaderPrefix={dayHeaderPrefix}
                 date={date}
-                additionalSubHeader={additionalSubHeader}
+                additionalSubHeader={withSortNote(additionalSubHeader, sort, getNumPhotos(), sortTotal)}
                 hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
                 isPublic={isPublic}
                 countsVideos={mediaType === "videos" || location.pathname.startsWith("/videos")}
                 titleOrder={titleOrder}
                 filterHint={mediaType === undefined ? undefined : <MediaTypeHint />}
-                oldestFirst={showsOldestFirst(photoOrder, preferences.photoOrder)}
+                oldestFirst={pageOrSettingOldestFirst(photoOrder, preferences.photoOrder, sort, isDateView)}
                 collection={collection}
                 actions={
                   isFirstTimeSetup ? undefined : (
@@ -366,7 +403,7 @@ function PhotoListViewComponent({
           stickyHeader={headerRef}
         >
           <Box px={PAGE_GUTTER_PX} py={10} ref={gridRef} data-selecting={selectMode.selecting}>
-            <FileSizeMarksContext value={showFileSize}>
+            <FileSizeMarksContext value={sort !== undefined && isSizeSort(sort)}>
               <Pig<PigPhoto>
                 ref={pigRef}
                 className={SCROLL_SCRUBBER_TARGET}

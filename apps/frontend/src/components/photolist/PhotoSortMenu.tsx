@@ -1,16 +1,10 @@
 import type { SearchSort } from "@librephotos/api-client";
-import { ActionIcon, Button, Indicator, Menu, Tooltip, useMantineTheme } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
-import {
-  IconArrowsSort as ArrowsSort,
-  IconCheck as Check,
-  IconChevronDown as ChevronDown,
-  IconRestore as Restore,
-} from "@tabler/icons-react";
+import { Menu } from "@mantine/core";
+import { IconCheck as Check, IconRestore as Restore } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { ICON_SIZE, TOOLBAR_ACTION_SIZE, TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
-import { toolbarLook } from "../common/toolbarLook";
+import { ICON_SIZE } from "../../uiConstants";
+import { SortMenuTarget } from "../common/SortMenuTarget";
 import { PHOTO_SORT_LABELS, PHOTO_SORTS } from "./photoSort";
 
 type Props = Readonly<{
@@ -21,37 +15,12 @@ type Props = Readonly<{
 
 export function PhotoSortMenu({ sort, onChange, onReset }: Props) {
   const { t } = useTranslation();
-  const theme = useMantineTheme();
-  const isPhone = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`, undefined, { getInitialValueInEffect: false });
-  const label = t(PHOTO_SORT_LABELS[sort]);
-  const name = t("albumsort.button", { key: label });
-  const look = toolbarLook(onReset !== undefined);
+  const name = t("albumsort.button", { key: t(PHOTO_SORT_LABELS[sort]) });
   const check = <Check size={ICON_SIZE.inline} />;
 
   return (
     <Menu position="bottom-end" shadow="md">
-      <Menu.Target>
-        {isPhone ? (
-          <Indicator size={8} offset={4} disabled={onReset === undefined}>
-            <Tooltip label={name} position="bottom">
-              <ActionIcon {...look} size={TOOLBAR_ACTION_SIZE} aria-label={name}>
-                <ArrowsSort size={ICON_SIZE.toolbar} />
-              </ActionIcon>
-            </Tooltip>
-          </Indicator>
-        ) : (
-          <Button
-            {...look}
-            h={TOOLBAR_CONTROL_HEIGHT}
-            leftSection={<ArrowsSort size={ICON_SIZE.toolbar} />}
-            rightSection={<ChevronDown size={ICON_SIZE.inline} />}
-            aria-label={name}
-            title={name}
-          >
-            {name}
-          </Button>
-        )}
-      </Menu.Target>
+      <SortMenuTarget name={name} label={name} active={onReset !== undefined} />
       <Menu.Dropdown>
         <Menu.Label>{t("albumsort.sortby")}</Menu.Label>
         {PHOTO_SORTS.map(value => (

@@ -61,7 +61,7 @@ export function BottomRightOverlay({ item }: Readonly<{ item: Item }>) {
   const fileSizeMarks = useContext(FileSizeMarksContext);
   return (
     <TileCorner position="bottomRight">
-      {fileSizeMarks && typeof item.size === "number" && <FileSizeBadge bytes={item.size} />}
+      {fileSizeMarks && item.size !== undefined && item.size > 0 && <FileSizeBadge bytes={item.size} />}
       {typeof item.person_video_time === "number" && <PersonMomentBadge seconds={item.person_video_time} />}
       <OwnerMark item={item} />
     </TileCorner>

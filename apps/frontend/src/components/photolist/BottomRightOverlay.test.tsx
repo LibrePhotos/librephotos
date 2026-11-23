@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
 import { BottomRightOverlay } from "./BottomRightOverlay";
+import { FileSizeMarksContext } from "./fileSizeMarks";
 
 type StubUser = Pick<User, "favorite_min_rating" | "rating_mode"> & { id?: number };
 
@@ -85,5 +86,41 @@ describe("BottomRightOverlay owner mark (#2731)", () => {
 
   it("marks nothing on my own photo", async () => {
     expect(await renderOwned(1)).toBeNull();
+  });
+});
+
+describe("BottomRightOverlay file size", () => {
+  async function renderSized(size: number | undefined, marks: boolean) {
+    const item = PigPhoto.parse({
+      id: "00000000-0000-4000-8000-000000000004",
+      image_hash: "hash-4",
+      aspectRatio: 1,
+      size,
+    });
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () =>
+      root.render(
+        <FileSizeMarksContext value={marks}>
+          <BottomRightOverlay item={item} />
+        </FileSizeMarksContext>
+      )
+    );
+    const text = container.textContent;
+    await act(async () => root.unmount());
+    return text;
+  }
+
+  it("shows the file size in a size sorted list", async () => {
+    expect(await renderSized(2000, true)).toMatch(/^2\s?kB$/);
+  });
+
+  it("shows no size where it is unknown", async () => {
+    expect(await renderSized(0, true)).toBe("");
+    expect(await renderSized(undefined, true)).toBe("");
+  });
+
+  it("shows no size outside a size sorted list", async () => {
+    expect(await renderSized(2000, false)).toBe("");
   });
 });

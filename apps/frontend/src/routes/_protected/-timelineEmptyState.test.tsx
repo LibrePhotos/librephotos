@@ -42,6 +42,12 @@ vi.mock("../../api_client/albums/hooks", () => ({
   useFetchDateAlbumsQuery: () => stubs.emptyTimeline,
   useDateAlbumDayPages: () => () => {},
 }));
+vi.mock("../../api_client/user/hooks/usePhotoOrder", () => ({
+  usePhotoOrder: () => ({ order: "newest", ready: true }),
+}));
+vi.mock("../../api_client/search/hooks", () => ({
+  useSearchPhotosQuery: () => ({ data: undefined, isPending: false, isError: false, isFetching: false }),
+}));
 vi.mock("../../api_client/photos/hooks/useFetchRecentlyAddedPhotosQuery", () => ({
   useFetchRecentlyAddedPhotosQuery: () => stubs.emptyRecent,
 }));

@@ -1,4 +1,4 @@
-import { ApiError } from "@librephotos/api-client";
+import { ApiError, type SearchPhotosResult } from "@librephotos/api-client";
 import { Box } from "@mantine/core";
 import { IconAlertTriangle, IconFilter, IconSearch } from "@tabler/icons-react";
 import type { TFunction } from "i18next";
@@ -21,7 +21,7 @@ import { SearchFilterChips } from "./SearchFilterChips";
 import { SearchMatchChips } from "./SearchMatchChips";
 import { useFavoriteRating, useSearchFilters } from "./useSearchFilters";
 
-const DEFAULTS = {
+const DEFAULTS: SearchPhotosResult = {
   photosFlat: [],
   photosGroupedByDate: [],
 };
@@ -100,7 +100,7 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
   const photoSort = usePhotoSort(STORAGE_KEYS.photoSortSearch, photoOrder);
   const { sort } = photoSort;
   const searchResult = useSearchPhotosQuery(term, mediaType, filters, sort);
-  const { data: { photosGroupedByDate, photosFlat } = DEFAULTS, isPending, error } = searchResult;
+  const { data: { photosGroupedByDate, photosFlat, count } = DEFAULTS, isPending, error } = searchResult;
   const listFailure = useListFailure(searchResult);
   const rejection = rejectionOf(error);
   const flat = Boolean(currentUser?.semantic_search_topk) || isSizeSort(sort);
@@ -114,12 +114,13 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
   return {
     // No trailing "...": the header shows its own loading state.
     title: term ? t("search.resultsfor", { query: term }) : t("searchfilter.filteredtitle"),
-    loading: isPending && (term.length > 0 || filtered || isSizeSort(sort)),
+    loading: isPending && (term.length > 0 || filtered),
     photoset: flat ? photosFlat : photosGroupedByDate,
     idx2hash: photosFlat,
     mediaType,
     selectable: true,
-    showFileSize: isSizeSort(sort),
+    sort,
+    sortTotal: count,
     emptyStateConfig,
     // A refused filter is not a failed list: the empty state says which and offers to clear.
     error: rejection === undefined ? listFailure : undefined,
@@ -136,7 +137,7 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
           onChange={setFilters}
           onClear={clearFilters}
           favoriteRating={favoriteRating}
-          resultCount={photosFlat.length}
+          resultCount={count ?? photosFlat.length}
           {...filterPanel}
         />
       </>
