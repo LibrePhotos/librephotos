@@ -209,7 +209,7 @@ The public album is accessible at `https://your-instance/public/s/{slug}`.
 
 On your public profile, `https://your-instance/public/<username>?album={slug}` shows the same album. A link always needs the slug: the album's number alone opens nothing for a visitor.
 
-The dialog shows it as the **Album link**, with buttons to copy it, to show a QR code for it, and to open it in a new tab. <Since version="1.7.0" /> The QR code is new; it opens the link on a phone's camera.
+The dialog shows it as the **Album link**, with buttons to copy it and to open it in a new tab.
 
 ### Slideshow Link
 
@@ -223,6 +223,10 @@ Under the album link, the dialog also shows a **Slideshow link**: the same addre
 Only whole albums can be shared as a slideshow: there is no slideshow link for a hand-picked selection of photos. Put the photos in an album and share that.
 
 <Since version="1.4.0" /> Up to 1.3.0, a public album link always opened on the photo grid.
+
+### QR Codes
+
+<Since version="1.7.0" /> Every public link has a **Show QR code** button next to its copy button: the **Album link** and the **Slideshow link** in the album's sharing dialog, the photo **Share link** dialog from the lightbox, and each photo link under the **Photos** tab of your **Public links** page. It opens the full link as a QR code. Point a phone's camera at it to open the link on the phone, or click **Download SVG** to save the code as an image you can print or put on a slide. The code stays black on white in the dark theme, because that is what phone cameras read. While a new album link is still being made, the button is greyed out and says so. Up to 1.6.0, links had no QR code.
 
 ### Revoking a Public Link
 
@@ -295,7 +299,7 @@ To reverse this, select the photos again and choose **"Make private"** from the 
 
 ### Revocable Photo Links
 
-The **Share link** button in the lightbox (the share icon, shortcut **P**; on a phone it is in the bar at the bottom) does something different from the bulk *Make public* action above: it creates a *share link* for that one photo and opens a dialog showing it, with buttons to copy it and to show a QR code for it. <Since version="1.7.0" /> The QR code is new; it opens the link on a phone's camera. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo. Creating a link does **not** make the photo public: it does not appear on your public profile or under *Make public*, and the photo's own `/media/...` URLs still require a login.
+The **Share link** button in the lightbox (the share icon, shortcut **P**; on a phone it is in the bar at the bottom) does something different from the bulk *Make public* action above: it creates a *share link* for that one photo and opens a dialog showing it, with a button to copy it. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo. Creating a link does **not** make the photo public: it does not appear on your public profile or under *Make public*, and the photo's own `/media/...` URLs still require a login.
 
 Because the slug is random, the link can be withdrawn:
 

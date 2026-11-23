@@ -61,7 +61,7 @@ export function ShareLinkRow({ label, description, link, copyLabel, openLabel, o
           <CopyIcon size={18} />
         </ActionIcon>
       </DisabledReason>
-      {link && <QrLinkButton url={link} />}
+      <QrLinkButton url={link} reason={noLinkYet} variant="light" />
       <DisabledReason label={openLabel} reason={noLinkYet}>
         <ActionIcon variant="light" size="lg" aria-label={openLabel} onClick={open}>
           <OpenIcon size={18} />

@@ -48,7 +48,7 @@ function PhotoShareRow({ share }: Readonly<{ share: PhotoShareLink }>) {
             </Tooltip>
           )}
         </CopyButton>
-        <QrLinkButton url={fullUrl} size="sm" />
+        <QrLinkButton url={fullUrl} />
         {/* Icon-only, right next to Copy: a misclick used to end the link at once. */}
         <ConfirmPopover
           message={t("sharing.rotateLinkConfirm")}

@@ -1,31 +1,93 @@
-import { ActionIcon, Popover, Stack, Text } from "@mantine/core";
-import { IconQrcode as QrcodeIcon } from "@tabler/icons-react";
-import React from "react";
+import { ActionIcon, Button, Popover, Stack, Text, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { IconDownload as DownloadIcon, IconQrcode as QrcodeIcon } from "@tabler/icons-react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { DisabledReason } from "../common/DisabledReason";
 import { QrCode } from "./QrCode";
+import { qrSquares, qrSvgDataUrl } from "./qrMatrix";
+
+const QR_SIZE = 176;
+const QR_FILE_NAME = "qr-code.svg";
 
 type Props = Readonly<{
   url: string;
-  size?: "sm" | "lg";
+  reason?: string | false;
+  variant?: "light" | "subtle";
 }>;
 
-export function QrLinkButton({ url, size = "lg" }: Props) {
+const LOOKS = {
+  light: { variant: "light", size: "lg" },
+  subtle: { variant: "subtle", color: "gray" },
+} as const;
+
+export function QrLinkButton({ url, reason, variant = "subtle" }: Props) {
   const { t } = useTranslation();
-  return (
-    <Popover position="bottom-end" withArrow shadow="md">
-      <Popover.Target>
-        <ActionIcon variant="light" size={size} aria-label={t("sharing.qrCode")}>
-          <QrcodeIcon size={18} />
+  const [opened, { open, close, toggle }] = useDisclosure(false);
+  const label = t("sharing.showQrCode");
+  const icon = <QrcodeIcon size={18} />;
+
+  if (reason) {
+    return (
+      <DisabledReason label={label} reason={reason}>
+        <ActionIcon {...LOOKS[variant]} aria-label={label}>
+          {icon}
         </ActionIcon>
+      </DisabledReason>
+    );
+  }
+
+  return (
+    <Popover
+      opened={opened}
+      onChange={isOpen => (isOpen ? open() : close())}
+      withRoles={false}
+      withArrow
+      trapFocus
+      returnFocus
+      position="bottom-end"
+      shadow="md"
+    >
+      <Popover.Target>
+        <Tooltip label={label} withArrow disabled={opened}>
+          <ActionIcon
+            {...LOOKS[variant]}
+            aria-label={label}
+            aria-haspopup="dialog"
+            aria-expanded={opened}
+            onClick={toggle}
+          >
+            {icon}
+          </ActionIcon>
+        </Tooltip>
       </Popover.Target>
-      <Popover.Dropdown>
-        <Stack gap={4} align="center">
-          <QrCode value={url} />
-          <Text size="xs" c="dimmed">
-            {t("sharing.qrCodeHint")}
-          </Text>
-        </Stack>
+      <Popover.Dropdown role="dialog" aria-label={t("sharing.qrCode")}>
+        <QrCodePanel url={url} />
       </Popover.Dropdown>
     </Popover>
+  );
+}
+
+function QrCodePanel({ url }: Readonly<{ url: string }>) {
+  const { t } = useTranslation();
+  const squares = useMemo(() => qrSquares(url), [url]);
+  return (
+    <Stack gap="xs" align="center" maw={QR_SIZE}>
+      <QrCode squares={squares} label={t("sharing.qrCode")} size={QR_SIZE} />
+      <Text size="xs" c="dimmed" ta="center">
+        {t("sharing.qrCodeHint")}
+      </Text>
+      <Button
+        component="a"
+        href={qrSvgDataUrl(squares)}
+        download={QR_FILE_NAME}
+        size="xs"
+        variant="light"
+        leftSection={<DownloadIcon size={14} />}
+        data-mantine-stop-propagation
+      >
+        {t("sharing.downloadQrCode")}
+      </Button>
+    </Stack>
   );
 }
