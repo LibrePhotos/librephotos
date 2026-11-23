@@ -63,3 +63,8 @@ jobs:
             -e SECRET_KEY=image-check -e BASE_DATA=/tmp/librephotos -e BASE_LOGS=/tmp/librephotos/logs \
             -e DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite \
             librephotos-backend:pr bash -c 'mkdir -p /tmp/librephotos/logs && python manage.py check --fail-level WARNING'
+      - name: ExifTool can unpack Brotli-compressed metadata boxes (JPEG XL brob)
+        run: |
+          docker run --rm librephotos-backend:pr \
+            perl -MIO::Uncompress::Brotli -e 'print "IO::Uncompress::Brotli $IO::Uncompress::Brotli::VERSION\n"'
+          docker run --rm librephotos-backend:pr exiftool -ver
