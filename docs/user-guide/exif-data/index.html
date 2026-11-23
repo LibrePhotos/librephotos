@@ -5,7 +5,7 @@
 <meta name="generator" content="Docusaurus v3.10.2">
 <title data-rh="true">Exif data | LibrePhotos</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://docs.librephotos.com/img/logo-round.png"><meta data-rh="true" name="twitter:image" content="https://docs.librephotos.com/img/logo-round.png"><meta data-rh="true" property="og:url" content="https://docs.librephotos.com/docs/user-guide/exif-data"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Exif data | LibrePhotos"><meta data-rh="true" name="description" content="Which metadata LibrePhotos reads from your photos and their XMP sidecars, and what it writes back"><meta data-rh="true" property="og:description" content="Which metadata LibrePhotos reads from your photos and their XMP sidecars, and what it writes back"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.librephotos.com/docs/user-guide/exif-data"><link data-rh="true" rel="alternate" href="https://docs.librephotos.com/docs/user-guide/exif-data" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.librephotos.com/docs/user-guide/exif-data" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"User guide","item":"https://docs.librephotos.com/docs/user-guide/"},{"@type":"ListItem","position":2,"name":"Exif data","item":"https://docs.librephotos.com/docs/user-guide/exif-data"}]}</script><link rel="alternate" type="application/rss+xml" href="/blog/rss.xml" title="LibrePhotos RSS Feed">
 <link rel="alternate" type="application/atom+xml" href="/blog/atom.xml" title="LibrePhotos Atom Feed"><link rel="stylesheet" href="/assets/css/styles.4a849751.css">
-<script src="/assets/js/runtime~main.871f0c22.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.bd3661ae.js" defer="defer"></script>
 <script src="/assets/js/main.f906d96a.js" defer="defer"></script>
 </head>
 <body>
@@ -92,6 +92,12 @@ file next to the JPEG (<code>IMG_2.CR2</code>). The sidecar of a photo&#x27;s RA
 not written: the edit goes to the sidecar of the photo&#x27;s main file, the JPEG.</p>
 <p>A photo that up to 1.3.0 got an <code>IMG_2.xmp</code> next to an existing <code>IMG_2.jpg.xmp</code> keeps both:
 LibrePhotos reads and writes <code>IMG_2.xmp</code>, and the other app keeps its own file.</p>
+<p><span class="since_Hom5" data-since="1.7.0" data-released="false">Not released yet (comes after 1.6.0)</span> An existing sidecar is rewritten in place: the file stays the same file,
+so its owner, permissions, ACL and extended attributes stay as you or the other app set them. Up to
+1.6.0 every write replaced the sidecar with a new file and copied the old mode bits onto it. On a
+share governed by ACLs, such as a Synology shared folder, the mode bits read <code>000</code>, so the sidecar
+lost its ACL and only root could open it. A write into the photo or video itself (<code>Save to media file</code>) still goes to a new file that replaces the old one, so a crash mid-write cannot damage the
+photo.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="sidecars-in-a-download">Sidecars in a download<a href="#sidecars-in-a-download" class="hash-link" aria-label="Direct link to Sidecars in a download" title="Direct link to Sidecars in a download" translate="no">​</a></h3>
 <p><a class="since_Hom5" data-since="1.4.0" data-released="true" href="/blog/1-4-0">New in 1.4.0</a> A zip download of photos also holds the XMP sidecars next to their files,
 so the edits saved to a sidecar travel with the photo and another app reads them from the
