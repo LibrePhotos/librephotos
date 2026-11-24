@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/urls";
 import { ICON_SIZE } from "../../uiConstants";
+import { ageNote, type Age } from "../album/personAge";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import { ConfirmModal } from "../modals/ConfirmModal";
@@ -31,6 +32,8 @@ type Props = {
   notThisPerson: (faceId: number) => void;
   /** Found by the Detect faces again just run on this photo (#1117). */
   isNew?: boolean;
+  /** How old the person was when the photo was taken (#3036), for the owner; none without one. */
+  age?: Age | null;
 };
 
 type FaceActionsProps = Readonly<{
@@ -106,7 +109,15 @@ const FACE_ACTION_ICON = 14;
 /** The face crop: a rounded square, as Immich shows the faces of a photo. */
 const FACE_SIZE = 64;
 
-export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson, isNew = false }: Props) {
+export function PersonDetail({
+  person,
+  isPublic,
+  setFaceLocation,
+  onPersonEdit,
+  notThisPerson,
+  isNew = false,
+  age = null,
+}: Props) {
   const { t } = useTranslation();
   const [tooltipOpened, { open: openTooltip, close: closeTooltip }] = useDisclosure(false);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
@@ -165,6 +176,12 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
     </Text>
   );
 
+  const ageLine = age && (
+    <Text className={classes.faceName} c="dimmed">
+      {ageNote(t, age)}
+    </Text>
+  );
+
   return (
     // One tile per face: the crop with its name under it, the actions in a ⋮ on the crop's corner
     // that shows on hover or focus (always on a touch screen).
@@ -178,6 +195,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         <div className={classes.faceButton}>
           {face}
           {label}
+          {ageLine}
         </div>
       ) : (
         <UnstyledButton
@@ -194,6 +212,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         >
           {face}
           {label}
+          {ageLine}
         </UnstyledButton>
       )}
       {isNew && (

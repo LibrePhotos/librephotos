@@ -21,6 +21,8 @@ import {
 import { PeopleSection } from "./PeopleSection";
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
+// The ages of #3036 are covered in PeopleSection.issue3036.test.tsx; here nobody has a birth date.
+vi.mock("../../api_client/albums/hooks", () => ({ useFetchPeopleAlbumsQuery: () => ({ data: [] }) }));
 vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
 const detect = vi.hoisted(() => ({
   outcome: null as DetectFacesOutcome | null,

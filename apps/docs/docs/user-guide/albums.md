@@ -39,6 +39,8 @@ A photo that shows up under the wrong person can be taken off them from the pers
 
 With a birth date, the person's page shows "Born _date_ · _N_ years old" under their name, and their age on each day beside the day's date ("Age 6", "4 months", "Newborn"). Photos without a date, or from before the birth, show no age. A person without a birth date looks as before.
 
+<Since version="1.7.0" /> The same age shows in the photo's **People** section, under each face's name, as it was on the day the photo was taken ("Age 3", "4 months", "Newborn"). It follows the same rules: no age for a person without a birth date, a photo without a date, or one from before the birth. Public links, shared albums and photos another user shares with you never show it. Up to 1.6.0, ages showed on the person's page only.
+
 Only you see a birth date: it is not part of shared albums, public links or what other users see of a photo. [Face training](./face-recognition.md#train-faces) also uses it: it never suggests a person for a face on a photo taken before their birth date.
 
 #### Groups of people
