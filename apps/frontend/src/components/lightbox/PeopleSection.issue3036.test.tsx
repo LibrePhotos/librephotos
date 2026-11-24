@@ -1,8 +1,3 @@
-/**
- * The People section of the lightbox shows how old each person was when the photo was taken
- * (#3036), to the owner only: a birth date is private, so a public or shared view neither shows it
- * nor asks for the people it comes from.
- */
 import type { PhotoPerson } from "@librephotos/api-client";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";

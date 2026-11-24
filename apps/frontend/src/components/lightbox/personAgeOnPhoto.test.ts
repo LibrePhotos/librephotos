@@ -1,7 +1,3 @@
-/**
- * The age shown beside a face in the lightbox (#3036): how old the person was on the day of the
- * photo, and nothing when that cannot be said.
- */
 import { describe, expect, it } from "vitest";
 import { ageOnPhoto } from "./personAgeOnPhoto";
 
@@ -11,7 +7,6 @@ describe("ageOnPhoto", () => {
   });
 
   it("reads the photo's own wall-clock day, not the viewer's time zone", () => {
-    // 23:30 on the 3rd is the birthday, whatever the viewer's offset is
     expect(ageOnPhoto("2019-05-03", "2020-05-03T23:30:00Z")?.years).toBe(1);
     expect(ageOnPhoto("2019-05-03", "2020-05-02T23:30:00Z")?.years).toBe(0);
   });

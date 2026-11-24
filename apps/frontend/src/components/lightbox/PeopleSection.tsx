@@ -53,7 +53,6 @@ export function PeopleSection({
   const { t } = useTranslation();
 
   const people = useMemo(() => photoDetail.people ?? [], [photoDetail.people]);
-  // Ages are the owner's: a birth date is private, so a public or shared view never asks for the people.
   const { data: knownPeople } = useFetchPeopleAlbumsQuery(isPublic);
   const birthDates = useMemo(
     () => new Map((knownPeople ?? []).flatMap(person => (person.birth_date ? [[person.name, person.birth_date]] : []))),

@@ -32,7 +32,6 @@ type Props = {
   notThisPerson: (faceId: number) => void;
   /** Found by the Detect faces again just run on this photo (#1117). */
   isNew?: boolean;
-  /** How old the person was when the photo was taken (#3036), for the owner; none without one. */
   age?: Age | null;
 };
 
