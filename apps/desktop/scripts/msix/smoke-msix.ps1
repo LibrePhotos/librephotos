@@ -212,6 +212,24 @@ function Save-Screenshot([int]$ProcessId, [string]$Name) {
   Step "saved screenshots $Name-screen.png and $Name-window.png"
 }
 
+function Save-DefaultAppsPage([string]$Aumid) {
+  try {
+    Start-Process "ms-settings:defaultapps?registeredAUMID=$([uri]::EscapeDataString($Aumid))"
+    Start-Sleep -Seconds 10
+    $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    $shot = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
+    $graphics = [System.Drawing.Graphics]::FromImage($shot)
+    $graphics.CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
+    $graphics.Dispose()
+    $shot.Save((Join-Path $OutDir 'msix-default-apps-screen.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+    $shot.Dispose()
+    Get-Process SystemSettings -ErrorAction SilentlyContinue | Stop-Process -Force
+    Step 'saved msix-default-apps-screen.png'
+  } catch {
+    Write-Host "::warning::no Default apps screenshot: $_"
+  }
+}
+
 $manifest = Read-PackageManifest $Package
 $identityName = $manifest.Package.Identity.Name
 $publisher = $manifest.Package.Identity.Publisher
@@ -332,6 +350,7 @@ foreach ($path in @((Join-Path $root 'local.db'), (Join-Path $root 'EBWebView'))
 if (Test-Path $Installer) { Fail "the packaged app wrote to $Installer instead of its package folder" }
 Step "data written under $root, nothing under $Installer"
 Stop-Tree $first
+Save-DefaultAppsPage $aumid
 Assert-Removed $installed $progIds
 
 Step 'scenario 2: the installer build has data, the first packaged start imports it once'
