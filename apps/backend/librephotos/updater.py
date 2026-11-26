@@ -156,9 +156,13 @@ def finisher_command(
 def _spawn(
     command: Sequence[str], environ: dict[str, str], cwd: Path, flags: int
 ) -> subprocess.Popen[bytes]:
-    if os.name == "nt":
-        return subprocess.Popen(command, env=environ, cwd=str(cwd), creationflags=flags)
-    return subprocess.Popen(command, env=environ, cwd=str(cwd), start_new_session=True)
+    return subprocess.Popen(
+        command,
+        env=environ,
+        cwd=str(cwd),
+        creationflags=flags,
+        start_new_session=os.name != "nt",
+    )
 
 
 def start_finisher(
