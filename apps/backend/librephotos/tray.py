@@ -19,11 +19,14 @@ import sys
 import threading
 import webbrowser
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import pystray
     from PIL import Image
+
+    from librephotos.macos_app import MainThread, Termination
 
 APP_NAME = "LibrePhotos"
 # Windows cuts a notification-area tooltip at 127 characters.
@@ -42,6 +45,33 @@ def tray_image(candidates: tuple[str, ...]) -> Image.Image:
     return Image.new("RGB", (64, 64), (30, 120, 200))
 
 
+@dataclass(frozen=True)
+class MenuBar:
+    main_thread: MainThread
+    termination: Termination
+    start_at_login: Callable[[], bool]
+    toggle_start_at_login: Callable[[], None]
+
+
+def _open_folder(path: str) -> None:
+    if sys.platform == "win32":
+        os.startfile(path)
+    elif sys.platform == "darwin":
+        from librephotos.macos_app import open_path
+
+        open_path(path)
+
+
+@dataclass(frozen=True)
+class TraySetup:
+    url: str
+    image: Image.Image
+    status: str
+    on_quit: Callable[[], None]
+    folders: tuple[str, str]
+    menu_bar: MenuBar | None = None
+
+
 class Tray:
     """The icon, its status line and its menu.
 
@@ -51,29 +81,27 @@ class Tray:
     Every method is safe to call from any thread.
     """
 
-    def __init__(
-        self,
-        url: str,
-        image: Image.Image,
-        status: str,
-        on_quit: Callable[[], None],
-        folders: tuple[str, str],
-    ) -> None:
+    def __init__(self, setup: TraySetup) -> None:
         import pystray
 
+        url, image, on_quit, menu_bar = (
+            setup.url,
+            setup.image,
+            setup.on_quit,
+            setup.menu_bar,
+        )
+        self.menu_bar = menu_bar
         self.url = url
-        self._status = status
+        self._status = setup.status
         self._update_label: str | None = None
         self._update_action: Callable[[], None] | None = None
         self._on_check_updates: Callable[[], None] | None = None
         self._shown = threading.Event()
-        data_folder, logs_folder = folders
+        data_folder, logs_folder = setup.folders
 
         def open_folder(path: str) -> Callable[[object, object], None]:
             def open_it(icon: object, item: object) -> None:
-                # The icon only exists on Windows (Startup.show_tray).
-                if sys.platform == "win32":
-                    os.startfile(path)
+                _open_folder(path)
 
             return open_it
 
@@ -81,43 +109,85 @@ class Tray:
             on_quit()
             icon.stop()
 
-        self.icon = pystray.Icon(
-            "librephotos",
-            image,
-            self._tooltip(),
-            menu=pystray.Menu(
-                pystray.MenuItem(lambda item: self._status, None, enabled=False),
-                pystray.Menu.SEPARATOR,
-                pystray.MenuItem(
-                    "Open LibrePhotos",
-                    lambda icon, item: webbrowser.open(url),
-                    default=True,
+        def make_icon() -> pystray.Icon:
+            return pystray.Icon(
+                "librephotos",
+                image,
+                self._tooltip(),
+                menu=pystray.Menu(
+                    pystray.MenuItem(lambda item: self._status, None, enabled=False),
+                    pystray.Menu.SEPARATOR,
+                    pystray.MenuItem(
+                        "Open LibrePhotos",
+                        lambda icon, item: webbrowser.open(url),
+                        default=True,
+                    ),
+                    pystray.MenuItem(
+                        self._update_text,
+                        lambda icon, item: self._run_update(),
+                        visible=self._update_shown,
+                        enabled=self._update_enabled,
+                    ),
+                    pystray.MenuItem(
+                        "Check for updates",
+                        lambda icon, item: self._check_updates(),
+                        visible=self._check_shown,
+                    ),
+                    pystray.MenuItem("Open data folder", open_folder(data_folder)),
+                    pystray.MenuItem("Open logs", open_folder(logs_folder)),
+                    pystray.MenuItem(
+                        "Open at Login",
+                        lambda icon, item: self._toggle_start_at_login(),
+                        checked=lambda item: self._starts_at_login(),
+                        visible=menu_bar is not None,
+                    ),
+                    pystray.Menu.SEPARATOR,
+                    pystray.MenuItem("Quit LibrePhotos", quit_app),
                 ),
-                pystray.MenuItem(
-                    self._update_text,
-                    lambda icon, item: self._run_update(),
-                    visible=self._update_shown,
-                    enabled=self._update_enabled,
-                ),
-                pystray.MenuItem(
-                    "Check for updates",
-                    lambda icon, item: self._check_updates(),
-                    visible=self._check_shown,
-                ),
-                pystray.MenuItem("Open data folder", open_folder(data_folder)),
-                pystray.MenuItem("Open logs", open_folder(logs_folder)),
-                pystray.Menu.SEPARATOR,
-                pystray.MenuItem("Quit LibrePhotos", quit_app),
-            ),
-        )
-        threading.Thread(target=self._run, daemon=True, name="tray").start()
+            )
+
+        if menu_bar is None:
+            self.icon = make_icon()
+            threading.Thread(target=self._run, daemon=True, name="tray").start()
+        else:
+            self.icon = menu_bar.main_thread.call(make_icon)
+            menu_bar.main_thread.submit(self._run_menu_bar)
 
     def _run(self) -> None:
         self.icon.run(setup=self._setup)
 
+    def _run_menu_bar(self) -> None:
+        from librephotos.macos_app import install_quit_handlers
+
+        if self.menu_bar is None:
+            return
+        self.menu_bar.main_thread.enter_appkit()
+        try:
+            install_quit_handlers(self.menu_bar.termination)
+            self.icon.run(setup=self._setup)
+        finally:
+            self.menu_bar.main_thread.leave_appkit()
+
+    def _ui(self, task: Callable[[], None]) -> None:
+        if self.menu_bar is None:
+            task()
+        else:
+            self.menu_bar.main_thread.submit(task)
+
     def _setup(self, icon: pystray.Icon) -> None:
-        icon.visible = True
-        self._shown.set()
+        def show() -> None:
+            icon.visible = True
+            self._shown.set()
+
+        self._ui(show)
+
+    def _starts_at_login(self) -> bool:
+        return self.menu_bar is not None and self.menu_bar.start_at_login()
+
+    def _toggle_start_at_login(self) -> None:
+        if self.menu_bar is not None:
+            self.menu_bar.toggle_start_at_login()
+            self._ui(self.icon.update_menu)
 
     def _tooltip(self) -> str:
         return f"{APP_NAME}: {self._status}"[:_TOOLTIP_LIMIT]
@@ -128,8 +198,12 @@ class Tray:
 
     def set_status(self, status: str) -> None:
         self._status = status
-        self.icon.title = self._tooltip()
-        self.icon.update_menu()
+
+        def show() -> None:
+            self.icon.title = self._tooltip()
+            self.icon.update_menu()
+
+        self._ui(show)
 
     def _update_text(self, item: object) -> str:
         return self._update_label or ""
@@ -155,10 +229,14 @@ class Tray:
         runs ``action`` (None greys it out, as while a download runs)."""
         self._update_label = label
         self._update_action = action
-        self.icon.update_menu()
+        self._ui(self.icon.update_menu)
 
     def confirm(self, title: str, text: str) -> bool:
         """A Yes/No question in a message box; True for Yes."""
+        if sys.platform == "darwin":
+            from librephotos.macos_app import confirm
+
+            return confirm(title, text)
         if sys.platform != "win32":
             return False
         import ctypes
@@ -171,7 +249,7 @@ class Tray:
     def enable_update_check(self, on_check: Callable[[], None]) -> None:
         """Show Check for updates, which runs ``on_check`` in a thread of its own."""
         self._on_check_updates = on_check
-        self.icon.update_menu()
+        self._ui(self.icon.update_menu)
 
     def _check_updates(self) -> None:
         # It asks GitHub: never on the thread that draws the menu.
@@ -186,4 +264,4 @@ class Tray:
         self.icon.notify(message, title)
 
     def stop(self) -> None:
-        self.icon.stop()
+        self._ui(self.icon.stop)

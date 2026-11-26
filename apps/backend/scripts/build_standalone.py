@@ -125,6 +125,13 @@ BYTECODE_MODULES = [
     "rest_framework",  # 73
     "drf_spectacular",  # 36
 ]
+MACOS_BYTECODE_MODULES = [
+    "AppKit",
+    "Foundation",
+    "CoreFoundation",
+    "objc",
+    "PyObjCTools",
+]
 
 # Wheels whose executables the binary puts on PATH (librephotos.standalone).
 BUNDLED_BINARY_DIRS = {
@@ -220,19 +227,12 @@ def nuitka_command(output_dir, jobs, version, cache=True):
         "--assume-yes-for-downloads",
         f"--output-dir={output_dir}",
         f"--output-filename={DIST_NAME}",
-        "--company-name=LibrePhotos",
-        "--product-name=LibrePhotos",
-        f"--product-version={version}",
-        "--file-description=LibrePhotos standalone server",
         "--python-flag=-u",
         # `manage shell -c` passes -c through argv, which Nuitka's guard against
         # a program re-running itself otherwise refuses.
         "--no-deployment-flag=self-execution",
-        # A Windows GUI program: a double-click opens no console window and
-        # the application lives in the notification area, while a start from
-        # a terminal or with redirected output still prints there.
-        "--windows-console-mode=attach",
     ]
+    command += platform_options(version)
     if jobs:
         command.append(f"--jobs={jobs}")
     if not cache:
@@ -243,7 +243,10 @@ def nuitka_command(output_dir, jobs, version, cache=True):
     command += [f"--include-package={name}" for name in INCLUDE_PACKAGES]
     command += [f"--include-package-data={name}" for name in INCLUDE_PACKAGE_DATA]
     command += [f"--nofollow-import-to={name}" for name in NOFOLLOW]
-    command += [f"--noinclude-custom-mode={name}:bytecode" for name in BYTECODE_MODULES]
+    bytecode = BYTECODE_MODULES + (
+        MACOS_BYTECODE_MODULES if sys.platform == "darwin" else []
+    )
+    command += [f"--noinclude-custom-mode={name}:bytecode" for name in bytecode]
     for directory in SIDECAR_DIRS:
         module = directory.relative_to(BACKEND).as_posix().replace("/", ".")
         command.append(f"--include-module={module}.main")
@@ -257,6 +260,18 @@ def nuitka_command(output_dir, jobs, version, cache=True):
     )
     command.append(str(ENTRY))
     return command
+
+
+def platform_options(version):
+    if sys.platform == "darwin":
+        return []
+    return [
+        "--company-name=LibrePhotos",
+        "--product-name=LibrePhotos",
+        f"--product-version={version}",
+        "--file-description=LibrePhotos standalone server",
+        "--windows-console-mode=attach",
+    ]
 
 
 def compile_binary(output_dir, jobs, version, cache=True):
@@ -383,7 +398,8 @@ def stage_runtime_files(dist, frontend_build, static, version):
     copy_source_files(site_packages, dist)
     for name in ("LICENSE", "README.md"):
         shutil.copy(BACKEND / name, dist / name)
-    (dist / "START_HERE.txt").write_text(START_HERE_TEXT, encoding="utf-8")
+    if sys.platform != "darwin":
+        (dist / "START_HERE.txt").write_text(START_HERE_TEXT, encoding="utf-8")
     # Read back by librephotos/standalone.py (BUILD_INFO_NAME). Last, so its
     # list of the release's top-level entries is complete: the updater deletes
     # an old program folder only when it holds exactly those (#2788).
@@ -393,6 +409,12 @@ def stage_runtime_files(dist, frontend_build, static, version):
 
 # Written next to the zips and attached to the release with them (#2317).
 CHECKSUMS_NAME = "SHA256SUMS"
+
+
+def checksums_name():
+    if sys.platform == "darwin":
+        return f"{CHECKSUMS_NAME}-{platform_suffix()}"
+    return CHECKSUMS_NAME
 
 
 def platform_suffix():
@@ -481,12 +503,25 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     dist = compile_binary(output_dir, args.jobs, args.version, cache=not args.no_cache)
     stage_runtime_files(dist, frontend_build, static, args.version)
+    if sys.platform == "darwin":
+        package_macos(dist, output_dir, args.version)
+        return
     from windows_signing import sign_folder
 
     sign_folder(dist)
     print(f"built: {dist}")
     if args.zip:
         archive(dist, output_dir, args.version)
+
+
+def package_macos(dist, output_dir, version):
+    from macos_bundle import package
+
+    suffix = platform_suffix()
+    assets = package(dist, output_dir, version, archive_names(version, suffix), suffix)
+    checksums = write_checksums(assets, output_dir / checksums_name())
+    for written in (*assets, checksums):
+        print(f"archive: {written} ({os.path.getsize(written) / 2**20:.0f} MB)")
 
 
 if __name__ == "__main__":

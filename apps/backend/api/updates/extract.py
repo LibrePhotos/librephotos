@@ -19,11 +19,17 @@ import zipfile
 import zlib
 from pathlib import Path
 
+from librephotos import release_layout
+from librephotos.release_layout import ReleaseLayout
+
 from .download import CHUNK_BYTES, DownloadError
 
-TOP_DIR = "librephotos"
-EXECUTABLE = "librephotos.exe"
-BUILD_INFO = "build_info.json"
+LAYOUT = release_layout.current()
+TOP_DIR = LAYOUT.top_dir
+EXECUTABLE = LAYOUT.binary_name
+BUILD_INFO = release_layout.BUILD_INFO
+UNIX_SYSTEM = 3
+EXECUTABLE_BITS = 0o111
 # The 1.4.0 zip has about 9,000 entries and unpacks to 1.1 GB.
 MAX_ENTRIES = 100_000
 MAX_UNPACKED_BYTES = 8 * 2**30
@@ -64,13 +70,13 @@ def _safe_part(part: str) -> bool:
     )
 
 
-def entry_parts(name: str) -> tuple[str, ...]:
+def entry_parts(name: str, top_dir: str = TOP_DIR) -> tuple[str, ...]:
     """The path of a zip entry as parts under TOP_DIR; DownloadError for any
     name that could land outside the target folder."""
     if "\\" in name or ":" in name or name.startswith("/"):
         raise _unsafe()
     parts = tuple(name.rstrip("/").split("/"))
-    if parts[0] != TOP_DIR or not all(_safe_part(part) for part in parts):
+    if parts[0] != top_dir or not all(_safe_part(part) for part in parts):
         raise _unsafe()
     return parts
 
@@ -95,10 +101,16 @@ def _check_sizes(entries: list[zipfile.ZipInfo]) -> None:
         raise DownloadError("too_large_unpacked")
 
 
+def _is_executable(info: zipfile.ZipInfo) -> bool:
+    return info.create_system == UNIX_SYSTEM and bool(
+        (info.external_attr >> 16) & EXECUTABLE_BITS
+    )
+
+
 def _extract_entry(
-    archive: zipfile.ZipFile, entry: zipfile.ZipInfo, target: Path
+    archive: zipfile.ZipFile, entry: zipfile.ZipInfo, target: Path, top_dir: str
 ) -> None:
-    destination = target.joinpath(*entry_parts(entry.filename))
+    destination = target.joinpath(*entry_parts(entry.filename, top_dir))
     if _is_link(entry) or not _inside(destination, target):
         raise _unsafe()
     if entry.is_dir():
@@ -111,30 +123,38 @@ def _extract_entry(
             shutil.copyfileobj(source, sink, CHUNK_BYTES)
     except FileExistsError as error:
         raise _unsafe() from error
+    if os.name != "nt" and _is_executable(entry):
+        destination.chmod(0o755)
 
 
-def extract_release(zip_path: Path, target: Path) -> Path:
+def extract_release(
+    zip_path: Path, target: Path, layout: ReleaseLayout | None = None
+) -> Path:
     """Unpack the release zip into the empty folder ``target``; returns the
     program folder in it (``target/librephotos``)."""
+    top_dir = (layout or LAYOUT).top_dir
     try:
         with zipfile.ZipFile(zip_path) as archive:
             entries = archive.infolist()
             _check_sizes(entries)
             for entry in entries:
-                _extract_entry(archive, entry, target)
+                _extract_entry(archive, entry, target, top_dir)
     except _ZIP_ERRORS as error:
         raise DownloadError("bad_zip") from error
-    return target / TOP_DIR
+    return target / top_dir
 
 
-def check_release(program: Path, version: str) -> None:
-    """The unpacked folder is the Windows app of release ``version``."""
+def check_release(
+    program: Path, version: str, layout: ReleaseLayout | None = None
+) -> None:
+    layout = layout or LAYOUT
     try:
-        info = json.loads((program / BUILD_INFO).read_text(encoding="utf-8"))
+        info = json.loads(layout.build_info(program).read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
         raise DownloadError("wrong_release") from error
     if (
-        not (program / EXECUTABLE).is_file()
+        not layout.binary(program).is_file()
+        or not layout.launcher(program).is_file()
         or not isinstance(info, dict)
         or info.get("version") != version
     ):

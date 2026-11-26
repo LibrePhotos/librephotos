@@ -32,6 +32,8 @@ from constance import config as site_config
 from django.conf import settings
 from django.utils import timezone
 
+from librephotos import release_layout
+
 from .install import InstallState, install_state
 from .versions import Version, is_newer, parse_version
 
@@ -47,9 +49,15 @@ REQUEST_TIMEOUT_SECONDS = 10
 WINDOWS_ASSET = "librephotos-windows-x64.zip"
 
 WINDOWS, DOCKER, SOURCE = "windows", "docker", "source"
+MACOS = release_layout.MACOS_ARM64.install_type
+STANDALONE_ASSETS = {
+    WINDOWS: WINDOWS_ASSET,
+    MACOS: release_layout.MACOS_ARM64.archive_name,
+}
 _DOCS = "https://docs.librephotos.com/docs/installation/"
 HOW_TO_UPDATE_URLS = {
     WINDOWS: _DOCS + "windows-standalone#updating",
+    MACOS: _DOCS + "macos#updating",
     DOCKER: _DOCS + "upgrading",
     SOURCE: _DOCS + "upgrading",
 }
@@ -138,22 +146,21 @@ def update_check_enabled() -> bool:
     return not update_check_locked() and bool(site_config.UPDATE_CHECK)
 
 
-def _has_windows_asset(item: dict[str, object]) -> bool:
+def _has_asset(item: dict[str, object], name: str) -> bool:
     assets = item.get("assets")
     return isinstance(assets, list) and any(
-        isinstance(asset, dict) and asset.get("name") == WINDOWS_ASSET
-        for asset in assets
+        isinstance(asset, dict) and asset.get("name") == name for asset in assets
     )
 
 
-def _offered_release(item: object, windows: bool) -> CheckResult | None:
+def _offered_release(item: object, asset: str | None) -> CheckResult | None:
     """A release from GitHub's list as this server may be offered it, or None."""
     if not isinstance(item, dict) or item.get("draft") or item.get("prerelease"):
         return None
     tag = item.get("tag_name")
     if not isinstance(tag, str) or parse_version(tag) is None:
         return None
-    if windows and not _has_windows_asset(item):
+    if asset is not None and not _has_asset(item, asset):
         return None
     url, published = item.get("html_url"), item.get("published_at")
     return CheckResult(
@@ -164,11 +171,11 @@ def _offered_release(item: object, windows: bool) -> CheckResult | None:
     )
 
 
-def newest_release(releases: list[object], windows: bool) -> CheckResult | None:
+def newest_release(releases: list[object], asset: str | None) -> CheckResult | None:
     """The newest release this server may be offered, by version, not by date."""
     offered = [
         release
-        for release in (_offered_release(item, windows) for item in releases)
+        for release in (_offered_release(item, asset) for item in releases)
         if release is not None
     ]
     return max(offered, key=_release_version, default=None)
@@ -215,7 +222,7 @@ def _run_check(session: requests.Session) -> CheckResult:
         logger.warning("Update check: GitHub did not answer (%s)", failure.code)
         previous = stored_result() or CheckResult(checked_at=checked_at)
         return dataclasses.replace(previous, checked_at=checked_at, error=failure.code)
-    newest = newest_release(releases, windows=install_type() == WINDOWS)
+    newest = newest_release(releases, STANDALONE_ASSETS.get(install_type()))
     if newest is None:
         return CheckResult(checked_at=checked_at)
     return dataclasses.replace(newest, checked_at=checked_at)

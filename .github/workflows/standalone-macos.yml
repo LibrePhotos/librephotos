@@ -1,0 +1,365 @@
+name: standalone-macos
+
+on:
+  release:
+    types: [created]
+  pull_request:
+    paths:
+      - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements.nodeps.txt'
+      - 'apps/backend/requirements.standalone.txt'
+      - 'apps/backend/requirements.unified.txt'
+      - 'apps/backend/scripts/build_standalone.py'
+      - 'apps/backend/scripts/macos_bundle.py'
+      - 'apps/backend/scripts/smoke_standalone.py'
+      - 'apps/backend/scripts/smoke_installer.py'
+      - 'apps/backend/scripts/smoke_macos.py'
+      - 'apps/backend/scripts/ffmpeg/**'
+      - 'apps/backend/scripts/build_ffmpeg_wheel.py'
+      - 'apps/backend/macos/**'
+      - 'apps/backend/librephotos_standalone.py'
+      - 'apps/backend/librephotos/standalone.py'
+      - 'apps/backend/librephotos/updater.py'
+      - 'apps/backend/librephotos/tray.py'
+      - 'apps/backend/librephotos/macos_app.py'
+      - 'apps/backend/librephotos/login_item.py'
+      - 'apps/backend/librephotos/release_layout.py'
+      - 'apps/backend/librephotos/settings/standalone.py'
+      - 'apps/backend/api/updates/**'
+      - 'deploy/homebrew/**'
+      - '.github/workflows/standalone-macos.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/backend/requirements.txt'
+      - 'apps/backend/requirements.nodeps.txt'
+      - 'apps/backend/requirements.standalone.txt'
+      - 'apps/backend/requirements.unified.txt'
+      - 'apps/backend/scripts/build_standalone.py'
+      - 'apps/backend/scripts/macos_bundle.py'
+      - 'apps/backend/scripts/smoke_macos.py'
+      - 'apps/backend/scripts/ffmpeg/**'
+      - 'apps/backend/macos/**'
+      - 'apps/backend/librephotos/standalone.py'
+      - 'apps/backend/librephotos/updater.py'
+      - 'apps/backend/librephotos/tray.py'
+      - 'apps/backend/librephotos/macos_app.py'
+      - 'apps/backend/librephotos/release_layout.py'
+      - 'apps/backend/api/updates/**'
+      - '.github/workflows/standalone-macos.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and attach the Mac app to; dispatch from that tag (leave empty for an artifact only)"
+        required: false
+      version:
+        description: "Numeric X.Y.Z stamped into the app; left at 0.0.0, a tag that is X.Y.Z is used instead"
+        required: false
+        default: "0.0.0"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: standalone-macos-${{ inputs.tag || github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
+
+env:
+  REUSE_BUILD_FROM_RUN: ""
+  PLATFORM: macos-arm64
+  STABLE_ZIP: librephotos-macos-arm64.zip
+  STABLE_DMG: LibrePhotos-Server-macos-arm64.dmg
+  CHECKSUMS: SHA256SUMS-macos-arm64
+
+jobs:
+  ffmpeg:
+    if: github.event_name != 'release' || (!github.event.release.prerelease && !github.event.release.draft)
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - id: cache
+        uses: actions/cache@v5
+        with:
+          path: out/wheels
+          key: ffmpeg-bin-macos-arm64-${{ hashFiles('apps/backend/scripts/ffmpeg/**', 'apps/backend/scripts/build_ffmpeg_wheel.py') }}
+      - name: Build ffmpeg and ffprobe
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          LIBTOOLIZE: glibtoolize
+        run: |
+          brew install bash autoconf automake libtool pkgconf
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet -r apps/backend/scripts/ffmpeg/requirements.build.txt
+          export PATH="$RUNNER_TEMP/venv/bin:$PATH" PYTHON="$RUNNER_TEMP/venv/bin/python"
+          version=$(python apps/backend/scripts/ffmpeg/sources.py version)
+          source_url="https://github.com/${{ github.repository }}/releases/tag/ffmpeg-bin-$version"
+          python apps/backend/scripts/ffmpeg/sources.py fetch "$RUNNER_TEMP/src" "$RUNNER_TEMP/archives"
+          "$(brew --prefix)/bin/bash" apps/backend/scripts/ffmpeg/build.sh macos-arm64 "$RUNNER_TEMP/src" out/stage "$source_url" "$RUNNER_TEMP/work"
+          python apps/backend/scripts/build_ffmpeg_wheel.py out/stage macos-arm64 "$version" "$source_url" out/wheels
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ffmpeg-bin-macos-arm64
+          path: out/wheels/*.whl
+          if-no-files-found: error
+
+  from-source:
+    needs: ffmpeg
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            apps/backend/requirements.txt
+            apps/backend/requirements.nodeps.txt
+            apps/backend/requirements.standalone.txt
+            apps/backend/requirements.unified.txt
+      - uses: actions/download-artifact@v8
+        with:
+          name: ffmpeg-bin-macos-arm64
+          path: ${{ runner.temp }}/ffmpeg-wheel
+      - name: Install the backend
+        working-directory: apps/backend
+        run: |
+          python -m pip install -U pip wheel
+          pip install -r requirements.txt -r requirements.standalone.txt "$RUNNER_TEMP"/ffmpeg-wheel/*.whl
+          pip install --no-deps -r requirements.nodeps.txt
+          ffmpeg -hide_banner -version | head -n 1
+          ffprobe -hide_banner -version | head -n 1
+          exiftool -ver
+      - name: Smoke test from source
+        working-directory: apps/backend
+        run: python scripts/smoke_standalone.py --from-source --work-dir "$RUNNER_TEMP/librephotos-source-smoke"
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: macos-from-source-logs
+          path: ${{ runner.temp }}/librephotos-source-smoke/data/logs
+          if-no-files-found: warn
+
+  build:
+    needs: ffmpeg
+    runs-on: macos-15
+    timeout-minutes: 300
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      INPUT_VERSION: ${{ inputs.version || github.event.release.tag_name || '0.0.0' }}
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+    steps:
+      - name: Resolve the version
+        run: |
+          VERSION="$INPUT_VERSION"
+          if [ "$VERSION" = "0.0.0" ] && [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            VERSION="$TAG"
+          fi
+          if [ -n "$TAG" ] && [ "$VERSION" != "$TAG" ]; then
+            echo "::error::A release build is stamped with its tag, but version is $VERSION and tag is $TAG"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        with:
+          persist-credentials: false
+          ref: ${{ (inputs.tag && format('refs/tags/{0}', inputs.tag)) || '' }}
+      - uses: actions/setup-node@v7
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        with:
+          node-version: 24
+          cache: yarn
+          cache-dependency-path: apps/frontend/yarn.lock
+      - uses: actions/setup-python@v7
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            apps/backend/requirements.txt
+            apps/backend/requirements.nodeps.txt
+            apps/backend/requirements.standalone.txt
+            apps/backend/requirements.unified.txt
+      - uses: actions/download-artifact@v8
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        with:
+          name: ffmpeg-bin-macos-arm64
+          path: ${{ runner.temp }}/ffmpeg-wheel
+      - name: Install the backend and the build tools
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        working-directory: apps/backend
+        run: |
+          python -m pip install -U pip wheel
+          pip install -r requirements.txt -r requirements.standalone.txt "$RUNNER_TEMP"/ffmpeg-wheel/*.whl
+          pip install --no-deps -r requirements.nodeps.txt
+          python -c "import ffmpeg_bin, exiftool_bin, AppKit, pystray._darwin; print('build dependencies import')"
+      - name: Prepare code signing
+        if: env.REUSE_BUILD_FROM_RUN == '' && env.APPLE_CERTIFICATE != ''
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(openssl rand -hex 24)
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/certificate.p12"
+          {
+            echo "APPLE_KEYCHAIN=$keychain"
+            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET"
+          } >> "$GITHUB_ENV"
+      - name: Say that the app is signed ad hoc
+        if: env.REUSE_BUILD_FROM_RUN == '' && env.APPLE_CERTIFICATE == ''
+        run: echo "::notice::No APPLE_CERTIFICATE secret, so the app is signed ad hoc and not notarized. It runs on this runner; a downloaded copy is blocked by Gatekeeper until it is signed with a Developer ID."
+      - name: Prepare notarization
+        if: env.REUSE_BUILD_FROM_RUN == '' && env.APPLE_CERTIFICATE != '' && env.APPLE_API_KEY != ''
+        run: |
+          key="$RUNNER_TEMP/notary/AuthKey.p8"
+          mkdir -p "$(dirname "$key")"
+          printf '%s' "$APPLE_API_KEY" > "$key"
+          echo "APPLE_API_KEY_PATH=$key" >> "$GITHUB_ENV"
+      - name: Say that the app is not notarized
+        if: env.REUSE_BUILD_FROM_RUN == '' && (env.APPLE_CERTIFICATE == '' || env.APPLE_API_KEY == '')
+        run: echo "::notice::Notarization skipped (it needs APPLE_CERTIFICATE, APPLE_API_KEY, APPLE_API_KEY_ID and APPLE_API_ISSUER)."
+      - name: Build
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        working-directory: apps/backend
+        run: python scripts/build_standalone.py --zip --no-cache --version "$VERSION"
+      - name: Check the checksums
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        working-directory: apps/backend/build/standalone
+        run: |
+          cat "$CHECKSUMS"
+          shasum -a 256 -c "$CHECKSUMS"
+      - name: Quick check
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        working-directory: apps/backend/build/standalone
+        run: |
+          launcher="LibrePhotos Server.app/Contents/MacOS/LibrePhotos Server"
+          "./$launcher" --help
+          "./$launcher" --data-dir "$RUNNER_TEMP/librephotos-check" manage check
+          codesign --display --verbose=2 "LibrePhotos Server.app"
+          codesign --verify --deep --strict --verbose=2 "LibrePhotos Server.app"
+          spctl --assess --type execute --verbose "LibrePhotos Server.app" || echo "::notice::Gatekeeper does not accept this build (expected without a Developer ID and notarization)"
+      - uses: actions/upload-artifact@v7
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        with:
+          name: librephotos-macos-arm64
+          path: |
+            apps/backend/build/standalone/librephotos-*macos-arm64.zip
+            apps/backend/build/standalone/LibrePhotos-Server-*macos-arm64.dmg
+            apps/backend/build/standalone/SHA256SUMS-macos-arm64
+          if-no-files-found: error
+          compression-level: 0
+
+  smoke:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install what the smoke test needs
+        run: |
+          python -m pip install psutil==7.2.2 requests==2.34.2 Pillow==13.0.0 playwright==1.65.2
+          python -m playwright install chromium
+      - uses: actions/download-artifact@v8
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        with:
+          name: librephotos-macos-arm64
+          path: ${{ runner.temp }}/release
+      - uses: actions/download-artifact@v8
+        if: env.REUSE_BUILD_FROM_RUN != ''
+        with:
+          name: librephotos-macos-arm64
+          path: ${{ runner.temp }}/release
+          run-id: ${{ env.REUSE_BUILD_FROM_RUN }}
+          github-token: ${{ github.token }}
+      - name: Install, update, start at login, quit and uninstall
+        id: smoke
+        working-directory: apps/backend
+        run: |
+          python scripts/smoke_macos.py "$RUNNER_TEMP/release/$STABLE_DMG" \
+            --work-dir "$RUNNER_TEMP/librephotos-macos-smoke" \
+            --screenshots "$RUNNER_TEMP/screenshots"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: macos-screenshots
+          path: ${{ runner.temp }}/screenshots
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.smoke.outcome == 'failure'
+        with:
+          name: macos-smoke-logs
+          path: |
+            ${{ runner.temp }}/librephotos-macos-smoke/logs
+            ~/Library/Application Support/LibrePhotos/logs
+          if-no-files-found: warn
+
+  release:
+    needs: [build, smoke]
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: librephotos-macos-arm64
+          path: release
+      - name: Attach to the release
+        working-directory: release
+        run: |
+          ls -l
+          sha256sum -c "$CHECKSUMS"
+          gh release upload "$TAG" ./*macos-arm64.zip ./*macos-arm64.dmg "$CHECKSUMS"
+
+  failure-alert:
+    needs: [ffmpeg, build, smoke, release]
+    if: failure() && (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.tag != ''))
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open an issue about the failure
+        run: |
+          title="macOS build failed for $TAG"
+          body="The [standalone-macos run]($RUN_URL) for $TAG failed, so $TAG has no Mac download yet. Windows and Docker are not affected. Fix the build, then re-run the failed jobs or dispatch the workflow from the tag with tag=$TAG."
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+            exit 0
+          fi
+          gh issue create --title "$title" --body "$body" --label macos \
+            || gh issue create --title "$title" --body "$body"

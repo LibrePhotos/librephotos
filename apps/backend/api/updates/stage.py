@@ -26,6 +26,9 @@ from pathlib import Path
 
 import requests
 
+from librephotos import release_layout
+from librephotos.release_layout import ReleaseLayout
+
 from . import signature
 from .download import (
     GITHUB,
@@ -38,17 +41,18 @@ from .download import (
     parse_checksums,
     sha256_file,
 )
-from .extract import EXECUTABLE, check_release, extract_release
+from .extract import check_release, extract_release
 
-ZIP_NAME = "librephotos-windows-x64.zip"
-CHECKSUMS_NAME = "SHA256SUMS"
+LAYOUT = release_layout.current()
+ZIP_NAME = LAYOUT.archive_name
+CHECKSUMS_NAME = LAYOUT.checksums_name
 # The 1.4.0 zip is 450 MB.
 MAX_ZIP_BYTES = 2 * 2**30
 MAX_SMALL_FILE_BYTES = 64 * 2**10
 # The zip plus the unpacked folder (1.1 GB), with room to spare.
 REQUIRED_FREE_BYTES = 3 * 2**30
 # In a prepared release folder: written once every check passed.
-MARKER_NAME = ".librephotos-update.json"
+MARKER_NAME = release_layout.MARKER_NAME
 
 # phase(name): what stage_release is doing now (VERIFYING, EXTRACTING).
 VERIFYING = "verifying"
@@ -76,6 +80,7 @@ class ProgramFolder:
     """The running program folder and the folders an update puts next to it."""
 
     path: Path
+    layout: ReleaseLayout = LAYOUT
 
     def _sibling(self, suffix: str) -> Path:
         return self.path.parent / f"{self.path.name}{suffix}"
@@ -87,21 +92,22 @@ class ProgramFolder:
         return self._sibling(f"-{version}.partial")
 
 
-def read_marker(folder: Path) -> dict[str, object] | None:
+def read_marker(
+    folder: Path, layout: ReleaseLayout = LAYOUT
+) -> dict[str, object] | None:
     try:
-        marker = json.loads((folder / MARKER_NAME).read_text(encoding="utf-8"))
+        marker = json.loads(layout.marker(folder).read_text(encoding="utf-8"))
     except OSError, ValueError:
         return None
     return marker if isinstance(marker, dict) else None
 
 
-def is_staged(folder: Path, version: str) -> bool:
-    """``folder`` holds release ``version``, downloaded and checked before."""
-    marker = read_marker(folder)
+def is_staged(folder: Path, version: str, layout: ReleaseLayout = LAYOUT) -> bool:
+    marker = read_marker(folder, layout)
     return (
         marker is not None
         and marker.get("version") == version
-        and (folder / EXECUTABLE).is_file()
+        and layout.binary(folder).is_file()
     )
 
 
@@ -110,19 +116,39 @@ def check_free_space(folder: Path, required: int = REQUIRED_FREE_BYTES) -> None:
         raise DownloadError("disk_full")
 
 
+def _fetch_listed(
+    session: requests.Session,
+    source: ReleaseSource,
+    version: str,
+    name: str,
+    missing: str,
+) -> bytes:
+    try:
+        return fetch_small(session, source, version, name, MAX_SMALL_FILE_BYTES)
+    except DownloadError as error:
+        if error.code.startswith("missing_"):
+            raise DownloadError(missing) from error
+        raise
+
+
 def expected_sha256(
     session: requests.Session,
     source: ReleaseSource,
     version: str,
     name: str,
+    layout: ReleaseLayout = LAYOUT,
 ) -> str:
     public_key = signature.PUBLIC_KEY
-    checksums = fetch_small(
-        session, source, version, CHECKSUMS_NAME, MAX_SMALL_FILE_BYTES
+    checksums = _fetch_listed(
+        session, source, version, layout.checksums_name, "missing_sha256sums"
     )
     if public_key:
-        signed = fetch_small(
-            session, source, version, signature.SIGNATURE_NAME, MAX_SMALL_FILE_BYTES
+        signed = _fetch_listed(
+            session,
+            source,
+            version,
+            layout.signature_name,
+            "missing_sha256sums_minisig",
         )
         try:
             signature.verify_minisign(
@@ -140,13 +166,13 @@ def verify_download(archive: Path, expected: str) -> None:
         raise DownloadError("checksum_mismatch")
 
 
-def _unpack(archive: Path, partial: Path, version: str) -> Path:
+def _unpack(archive: Path, partial: Path, version: str, layout: ReleaseLayout) -> Path:
     unpacked = partial / "unpacked"
     if unpacked.exists():
         shutil.rmtree(unpacked)
     unpacked.mkdir()
-    program = extract_release(archive, unpacked)
-    check_release(program, version)
+    program = extract_release(archive, unpacked, layout)
+    check_release(program, version, layout)
     return program
 
 
@@ -159,8 +185,9 @@ def stage_release(
 ) -> Path:
     """Download, check and unpack release ``version`` next to the program
     folder; returns the prepared folder. Raises DownloadError (or OSError)."""
+    layout = folder.layout
     staged = folder.staged(version)
-    if is_staged(staged, version):
+    if is_staged(staged, version, layout):
         return staged
     if staged.exists():
         # Not one this updater finished: someone else's folder.
@@ -169,18 +196,22 @@ def stage_release(
     partial.mkdir(exist_ok=True)
     check_free_space(partial)
     public_key = signature.PUBLIC_KEY
-    expected = expected_sha256(session, source, version, ZIP_NAME)
-    archive = partial / f"{ZIP_NAME}.part"
-    url = source.asset_url(version, ZIP_NAME)
+    zip_name = layout.archive_name
+    expected = expected_sha256(session, source, version, zip_name, layout)
+    archive = partial / f"{zip_name}.part"
+    url = source.asset_url(version, zip_name)
     download_asset(
         session, source, url, Target(archive, MAX_ZIP_BYTES, reporter.progress)
     )
     reporter.phase(VERIFYING)
     verify_download(archive, expected)
     reporter.phase(EXTRACTING)
-    program = _unpack(archive, partial, version)
+    program = _unpack(archive, partial, version, layout)
     marker = {"version": version, "sha256": expected, "signed": bool(public_key)}
-    (program / MARKER_NAME).write_text(json.dumps(marker), encoding="utf-8")
+    if layout.marker_inside:
+        layout.marker(program).write_text(json.dumps(marker), encoding="utf-8")
     program.rename(staged)
+    if not layout.marker_inside:
+        layout.marker(staged).write_text(json.dumps(marker), encoding="utf-8")
     shutil.rmtree(partial, ignore_errors=True)
     return staged

@@ -431,10 +431,10 @@ def fake_pystray():
 
 class TrayTest(SimpleTestCase):
     def tray(self, on_quit=lambda: None):
-        from librephotos.tray import Tray
+        from librephotos.tray import Tray, TraySetup
 
         with stub_modules({"pystray": fake_pystray()}):
-            tray = Tray(URL, MagicMock(), "Starting...", on_quit, ("d", "l"))
+            tray = Tray(TraySetup(URL, MagicMock(), "Starting...", on_quit, ("d", "l")))
         tray._shown.wait(1)
         return tray
 

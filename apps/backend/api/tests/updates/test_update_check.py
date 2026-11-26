@@ -231,17 +231,17 @@ class NewestReleaseTest(TestCase):
             {"tag_name": 5},
             release("1.2.0"),
         ]
-        newest = newest_release(releases, windows=False)
+        newest = newest_release(releases, None)
         self.assertIsNotNone(newest)
         self.assertEqual(newest.latest, "1.2.0")
 
     def test_a_release_without_assets_is_not_offered_to_windows(self):
         self.assertIsNone(
-            newest_release([{"tag_name": "1.2.0", "assets": None}], windows=True)
+            newest_release([{"tag_name": "1.2.0", "assets": None}], WINDOWS_ASSET)
         )
 
     def test_missing_links_stay_empty(self):
-        newest = newest_release([{"tag_name": "1.2.0"}], windows=False)
+        newest = newest_release([{"tag_name": "1.2.0"}], None)
         self.assertEqual((newest.release_url, newest.published_at), (None, None))
 
 

@@ -14,6 +14,7 @@ WHEEL_TAGS = {
     "win64": "py3-none-win_amd64",
     "linux-x86_64": "py3-none-manylinux_2_28_x86_64",
     "linux-aarch64": "py3-none-manylinux_2_28_aarch64",
+    "macos-arm64": "py3-none-macosx_14_0_arm64",
 }
 
 

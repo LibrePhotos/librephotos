@@ -11,3 +11,6 @@ pystray==0.19.5
 # pystray draws the icon with Pillow: the same pin as requirements.txt, so the
 # file alone never admits a release with a known vulnerability.
 Pillow==13.0.0
+pyobjc-core==13.1 ; sys_platform == "darwin"
+pyobjc-framework-Cocoa==13.1 ; sys_platform == "darwin"
+pyobjc-framework-Quartz==13.1 ; sys_platform == "darwin"
