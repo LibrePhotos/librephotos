@@ -1,6 +1,7 @@
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::Connection;
 use serde::Serialize;
@@ -10,6 +11,12 @@ use crate::localdb;
 pub const MARKER: &str = "imported-from-installer-build.json";
 pub const SETTINGS: &str = "settings.json";
 const STAGING_SUFFIX: &str = ".importing";
+
+fn unix_millis() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX))
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Outcome {
@@ -84,7 +91,7 @@ fn stage(legacy: &Path, staging: &Path, files: &[&str]) -> Result<(), String> {
     let marker = Marker {
         from: legacy.display().to_string(),
         files,
-        imported_at_ms: chrono::Utc::now().timestamp_millis(),
+        imported_at_ms: unix_millis(),
     };
     let json = serde_json::to_vec_pretty(&marker).map_err(|e| at(MARKER, &e))?;
     fs::write(staging.join(MARKER), json).map_err(|e| at(MARKER, &e))
@@ -130,7 +137,10 @@ mod tests {
             let dir = std::env::temp_dir().join(format!(
                 "lpview-import-{name}-{}-{}",
                 std::process::id(),
-                chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos()
             ));
             fs::create_dir_all(&dir).unwrap();
             Scratch(dir)
