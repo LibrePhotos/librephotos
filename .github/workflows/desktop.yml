@@ -398,7 +398,12 @@ jobs:
             local names=""
             for name in "$@"; do
               if [ -z "${!name}" ]; then
-                names="$names $name"
+                case "$name" in
+                  DEVELOPER_ID_IDENTITY) names="$names APPLE_SIGNING_IDENTITY" ;;
+                  APP_STORE_IDENTITY) names="$names APPLE_APP_STORE_IDENTITY" ;;
+                  INSTALLER_IDENTITY) names="$names APPLE_INSTALLER_IDENTITY" ;;
+                  *) names="$names $name" ;;
+                esac
               fi
             done
             echo "$names"

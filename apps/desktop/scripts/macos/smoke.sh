@@ -166,7 +166,10 @@ if ! sips -s format heic "$PHOTOS/e2e_04.jpg" --out "$HEIC_DIR/e2e_04.heic" >/de
   fail "sips could not write a HEIC on this runner"
 fi
 step "made $(sips -g format "$HEIC_DIR/e2e_04.heic" | tail -n 1 | sed 's/^ *//') with sips"
-PICS_BEFORE=$(ls -la "$PICS" "$HEIC_DIR" | md5)
+folder_state() { find "$PICS" "$HEIC_DIR" -exec stat -f "%N %z %m" {} + | sort; }
+PICS_BEFORE=$(folder_state)
+TYPES=("$PICS/e2e_01.jpg" "$HEIC_DIR/e2e_04.heic" public.jpeg public.png public.tiff public.heif public.avif org.webmproject.webp com.adobe.raw-image com.canon.cr2-raw-image com.canon.cr3-raw-image com.nikon.raw-image com.sony.arw-raw-image)
+DEFAULTS_BEFORE=$("$PROBE" handlers "$BUNDLE_ID" "${TYPES[@]}" | cut -f1,3 || true)
 
 if [ "$MODE" = dmg ]; then
   MOUNT="$WORK/mount"
@@ -225,10 +228,12 @@ fi
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 "$LSREGISTER" -f "$APP"
 echo "LaunchServices database: $("$LSREGISTER" -dump 2>/dev/null | grep -c "$BUNDLE_ID" || true) lines mention $BUNDLE_ID"
-"$PROBE" handlers "$BUNDLE_ID" "$PICS/e2e_01.jpg" "$HEIC_DIR/e2e_04.heic" public.png public.tiff public.heif public.avif org.webmproject.webp com.adobe.raw-image com.canon.cr2-raw-image com.canon.cr3-raw-image com.nikon.raw-image com.sony.arw-raw-image | sed 's/^/  /' || fail "LaunchServices does not offer the app for every type"
-JPEG_DEFAULT=$("$PROBE" handlers "$BUNDLE_ID" public.jpeg | cut -f3)
-[ "$JPEG_DEFAULT" != "default=$BUNDLE_ID" ] || fail "installing made the app the default for JPEG"
-step "LaunchServices offers the app under Open With for every type; JPEG still opens with ${JPEG_DEFAULT#default=}"
+HANDLERS=$("$PROBE" handlers "$BUNDLE_ID" "${TYPES[@]}") || fail "LaunchServices does not offer the app for every type: $HANDLERS"
+echo "$HANDLERS" | sed "s/^/  /"
+DEFAULTS_AFTER=$(echo "$HANDLERS" | cut -f1,3)
+TAKEN=$(diff <(echo "$DEFAULTS_BEFORE") <(echo "$DEFAULTS_AFTER") | grep "^<" | grep -v "default=(none)$" || true)
+[ -z "$TAKEN" ] || fail "installing changed the default app for: $TAKEN"
+step "LaunchServices offers the app under Open With for every type; every type that had a default app before keeps it"
 
 touch "$MARK"
 sleep 1
@@ -277,7 +282,8 @@ else
   [ -z "$UNLISTED" ] || fail "the app wrote where the docs and the cask's zap list do not say: $UNLISTED"
   step "no sandbox container; everything the app wrote is in the documented folders: $(new_paths | sed "s|^$HOME/Library/||" | cut -d/ -f1-2 | sort -u | tr '\n' ' ')"
 fi
-[ "$(ls -la "$PICS" "$HEIC_DIR" | md5)" = "$PICS_BEFORE" ] || fail "viewing changed the picture folders"
+AFTER=$(folder_state)
+[ "$AFTER" = "$PICS_BEFORE" ] || fail "viewing changed the picture folders: $(diff <(echo "$PICS_BEFORE") <(echo "$AFTER"))"
 step "the picture folders are unchanged"
 
 stop_app "$PID"
