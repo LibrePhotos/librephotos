@@ -4,6 +4,7 @@ import logging
 import os
 import signal
 import subprocess
+import sys
 import threading
 from collections import deque
 from collections.abc import Callable
@@ -218,6 +219,16 @@ def install_quit_handlers(termination: Termination) -> None:
 
 
 _delegates: list[object] = []
+
+
+def end_process(code: int) -> None:
+    logging.shutdown()
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.flush()
+        except OSError, ValueError:
+            continue
+    os._exit(code)
 
 
 def quit_on_signal(on_quit: Task) -> None:

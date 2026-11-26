@@ -118,6 +118,15 @@ class MainThreadTest(SimpleTestCase):
             main.leave_appkit()
         self.assertEqual(call_after.call_args_list, [call(first), call(second)])
 
+    def test_the_process_ends_after_the_menu_bar(self):
+        with (
+            patch.object(macos_app.logging, "shutdown") as shutdown,
+            patch.object(macos_app.os, "_exit") as exit_now,
+        ):
+            macos_app.end_process(3)
+        shutdown.assert_called_once_with()
+        exit_now.assert_called_once_with(3)
+
     def test_termination_asks_once(self):
         on_quit = MagicMock()
         finished = threading.Event()

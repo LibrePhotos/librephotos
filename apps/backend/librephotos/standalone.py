@@ -1583,7 +1583,7 @@ def run_app(args: argparse.Namespace, startup: Startup) -> None:
 
 
 def run_with_menu_bar(args: argparse.Namespace, startup: Startup) -> int:
-    from librephotos.macos_app import MainThread, quit_on_signal
+    from librephotos.macos_app import MainThread, end_process, quit_on_signal
 
     main_thread = MainThread()
     startup.main_thread = main_thread
@@ -1600,6 +1600,7 @@ def run_with_menu_bar(args: argparse.Namespace, startup: Startup) -> int:
     quit_on_signal(startup.quit)
     threading.Thread(target=work, name="librephotos").start()
     main_thread.serve()
+    end_process(exit_code[0])
     return exit_code[0]
 
 

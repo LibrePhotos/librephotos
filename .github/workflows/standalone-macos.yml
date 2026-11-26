@@ -315,7 +315,7 @@ jobs:
           path: ${{ runner.temp }}/screenshots
           if-no-files-found: warn
       - uses: actions/upload-artifact@v7
-        if: always() && steps.smoke.outcome == 'failure'
+        if: always()
         with:
           name: macos-smoke-logs
           path: |

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import functools
+import http.server
 import json
 import os
 import plistlib
@@ -10,6 +12,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
@@ -35,11 +38,11 @@ from macos_bundle import (
 from smoke_installer import (
     Feed,
     Instance,
+    QuietHandler,
     check,
     install_state,
     offer_release,
     restart,
-    serve,
     wait_prepared,
 )
 from smoke_standalone import (
@@ -75,6 +78,7 @@ READY_TIMEOUT_SECONDS = 1500.0
 EXIT_TIMEOUT_SECONDS = 120.0
 ORPHAN_TIMEOUT_SECONDS = 90.0
 FINISH_TIMEOUT_SECONDS = 600.0
+UPDATE_TIMEOUT_SECONDS = 600.0
 SERVICE_TIMEOUT_SECONDS = 180.0
 SCENARIOS = ("fresh", "update", "autostart", "quit", "uninstall", "cask")
 CASK_TEMPLATE = SCRIPTS.parents[2] / "deploy" / "homebrew" / "librephotos-server.rb"
@@ -234,6 +238,25 @@ class Context:
         return self.work / "logs"
 
 
+class LoopbackServer(http.server.ThreadingHTTPServer):
+    def server_bind(self) -> None:
+        self.socket.bind(self.server_address)
+        self.server_address = self.socket.getsockname()
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
+
+
+@contextlib.contextmanager
+def serve(feed: Feed) -> Iterator[str]:
+    handler = functools.partial(QuietHandler, directory=str(feed.root))
+    server = LoopbackServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        yield f"http://127.0.0.1:{server.server_address[1]}/releases/download"
+    finally:
+        server.shutdown()
+
+
 @contextlib.contextmanager
 def mounted(dmg: Path, mountpoint: Path) -> Iterator[Path]:
     mountpoint.mkdir(parents=True, exist_ok=True)
@@ -387,12 +410,12 @@ def take_browser_screenshots(context: Context) -> None:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=False)
         page = browser.new_page(viewport={"width": 1280, "height": 760})
-        response = page.request.post(
-            f"{URL}api/auth/token/obtain/",
-            data={"username": ADMIN_USERNAME, "password": context.instance.password},
-        )
-        check(response.ok, f"the browser could not log in: {response.status}")
         page.goto(URL, wait_until="networkidle")
+        page.get_by_label("Username").fill(ADMIN_USERNAME)
+        page.get_by_label("Password", exact=True).fill(context.instance.password)
+        page.get_by_role("button", name="Sign in").click()
+        page.wait_for_url(lambda url: "/login" not in url, timeout=60000)
+        page.wait_for_load_state("networkidle")
         page.wait_for_timeout(5000)
         page.screenshot(path=str(context.screenshots / "web-ui.png"))
         full = screenshot(context, "desktop")
@@ -455,7 +478,16 @@ def update_in_place(context: Context) -> None:
     old_roots = {process.pid for process in roots()}
     restart(instance)
 
+    seen = [0]
+
+    def report_progress() -> None:
+        log = update_log()
+        if len(log) > seen[0]:
+            step(f"update.log: {log[seen[0] :].strip()}")
+            seen[0] = len(log)
+
     def running_next() -> bool:
+        report_progress()
         if not instance.ready():
             return False
         try:
@@ -466,7 +498,7 @@ def update_in_place(context: Context) -> None:
             return False
 
     wait_until(
-        running_next, READY_TIMEOUT_SECONDS, f"{NEXT_VERSION} running from {APP}"
+        running_next, UPDATE_TIMEOUT_SECONDS, f"{NEXT_VERSION} running from {APP}"
     )
     wait_until(
         lambda: "the update is done" in update_log(),
