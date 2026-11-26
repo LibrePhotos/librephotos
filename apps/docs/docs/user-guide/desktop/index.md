@@ -22,6 +22,7 @@ It works without a server. Everything you do to your own pictures stays on your 
 | [Library and search](./library.md) | Adding folders, the timeline, searching your pictures |
 | [Connecting a server and backup](./server.md) | Signing in, backing up folders, uploading one picture, what the server adds to the viewer |
 | [Settings](./settings.md) | Where edits are saved, maps, changes waiting for the server |
+| [Privacy policy](./privacy.md) | What the app stores, what it sends and to whom |
 
 ## Installing it
 
