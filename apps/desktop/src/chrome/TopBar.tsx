@@ -29,6 +29,7 @@ import { IconButton } from "../ui/IconButton";
 import { Logo } from "../ui/Logo";
 import { Menu } from "../ui/Menu";
 import "./TopBar.css";
+import { shortcut } from "../platform";
 
 export { IconButton };
 
@@ -115,7 +116,7 @@ export function TopBar({ file, index, count, infoOpen, fullscreen, favorite, act
     <header className="topbar" onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
       <div className="topbar-start">
         <IconButton icon={IconArrowLeft} label="Library" shortcut="L" onClick={actions.library} />
-        <IconButton icon={IconPhotoPlus} label="Open" shortcut="Ctrl+O" onClick={actions.open} />
+        <IconButton icon={IconPhotoPlus} label="Open" shortcut={shortcut("O")} onClick={actions.open} />
         <div className="zoom-group needs-file opt-2" role="group" aria-label="Zoom">
           <IconButton icon={IconZoomOut} label="Zoom out" shortcut="-" onClick={actions.zoomOut} disabled={noPicture} />
           <ZoomReadout onClick={actions.toggleActual} disabled={noPicture} />
@@ -196,7 +197,7 @@ export function TopBar({ file, index, count, infoOpen, fullscreen, favorite, act
               { icon: IconRotate, label: "Rotate left", shortcut: "Shift+R", onSelect: () => actions.rotate(false), disabled: noPicture },
             ],
             [
-              { icon: IconCopy, label: "Copy", shortcut: "Ctrl+C", onSelect: actions.copy, disabled: noPicture },
+              { icon: IconCopy, label: "Copy", shortcut: shortcut("C"), onSelect: actions.copy, disabled: noPicture },
               { icon: IconFolderOpen, label: "Show in folder", onSelect: actions.reveal, disabled: none },
             ],
             [

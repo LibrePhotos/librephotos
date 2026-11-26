@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>LibrePhotos Viewer shows, rates and tags the pictures you open from your Desktop.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>LibrePhotos Viewer shows, rates and tags the pictures you open from your Documents folder.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>LibrePhotos Viewer shows, rates and tags the pictures you open from your Downloads folder.</string>
+  <key>NSRemovableVolumesUsageDescription</key>
+  <string>LibrePhotos Viewer shows the pictures you open from memory cards and external drives.</string>
+  <key>NSNetworkVolumesUsageDescription</key>
+  <string>LibrePhotos Viewer shows the pictures you open from network drives.</string>
+</dict>
+</plist>

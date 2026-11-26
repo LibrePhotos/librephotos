@@ -9,7 +9,20 @@ pub fn trash_file(path: &str) -> Result<(), String> {
     if !Path::new(path).exists() {
         return Err(format!("{path} not found"));
     }
-    trash::delete(path).map_err(|e| e.to_string())
+    trash_context().delete(path).map_err(|e| e.to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn trash_context() -> trash::TrashContext {
+    use trash::macos::{DeleteMethod, TrashContextExtMacos};
+    let mut context = trash::TrashContext::new();
+    context.set_delete_method(DeleteMethod::NsFileManager);
+    context
+}
+
+#[cfg(not(target_os = "macos"))]
+fn trash_context() -> trash::TrashContext {
+    trash::TrashContext::new()
 }
 
 pub fn rotate_file(path: &str, clockwise: bool) -> Result<i64, String> {

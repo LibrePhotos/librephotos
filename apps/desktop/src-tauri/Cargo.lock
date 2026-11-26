@@ -2640,6 +2640,8 @@ dependencies = [
  "md-5",
  "natord",
  "notify",
+ "objc2",
+ "objc2-foundation",
  "percent-encoding",
  "png",
  "reqwest",

@@ -212,6 +212,14 @@
   gap: 2px;
   color: var(--lp-color-text);
 }
+.folder-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(76px + var(--lp-space-4));
+  z-index: 5;
+  transform: translateX(-50%);
+}
+
 .link-btn {
   justify-self: start;
   padding: 0;

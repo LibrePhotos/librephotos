@@ -3,12 +3,14 @@ pub mod cache;
 pub mod commands;
 pub mod decode;
 pub mod diskcache;
+pub mod folder_access;
 pub mod formats;
 pub mod heif;
 pub mod info;
 pub mod jpegmeta;
 pub mod listing;
 pub mod localdb;
+pub mod opened;
 pub mod ops;
 pub mod orient;
 pub mod packaged;
@@ -26,7 +28,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
 use serde::Serialize;
-use tauri::{Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, State};
 
 use crate::pipeline::{Pipeline, Priority};
 use crate::request::{Kind, THUMB_EDGE};
@@ -47,8 +49,8 @@ fn arg_path() -> Option<String> {
 }
 
 #[tauri::command]
-fn initial_path() -> Option<String> {
-    arg_path()
+fn initial_path(launch: State<'_, opened::Launch>) -> Option<String> {
+    launch.claim(arg_path())
 }
 
 type Listing = Result<listing::FolderListing, String>;
@@ -154,6 +156,11 @@ async fn clear_cache(pipeline: State<'_, Arc<Pipeline>>) -> Result<u64, String> 
 }
 
 #[tauri::command]
+async fn remember_folder(app: AppHandle, path: String) -> Result<bool, String> {
+    blocking(move || app.state::<folder_access::FolderAccess>().remember(&path)).await
+}
+
+#[tauri::command]
 async fn open_default_apps_settings() -> Result<(), String> {
     blocking(ops::open_default_apps_settings).await
 }
@@ -228,6 +235,66 @@ struct OpenPayload {
     path: String,
 }
 
+fn focus_main(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+fn show_open(app: &AppHandle, path: String) {
+    let _ = app.emit("viewer://open", OpenPayload { path });
+    focus_main(app);
+}
+
+#[cfg(target_os = "macos")]
+fn deliver_open(app: &AppHandle, path: String) {
+    match app.state::<opened::Launch>().offer(path) {
+        opened::Offer::Held(path) => start_listing(path),
+        opened::Offer::Deliver(path) => show_open(app, path),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn on_run_event(app: &AppHandle, event: RunEvent) {
+    if let RunEvent::Opened { urls } = event
+        && let Some(path) = urls.iter().find_map(|u| u.to_file_path().ok())
+    {
+        deliver_open(app, path.to_string_lossy().into_owned());
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn on_run_event(app: &AppHandle, event: RunEvent) {
+    let _ = (app, event);
+}
+
+#[cfg(not(target_os = "macos"))]
+fn with_single_instance(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    if std::env::var_os("LPVIEW_MULTI_INSTANCE").is_some() {
+        return builder;
+    }
+    builder.plugin(tauri_plugin_single_instance::init(
+        |app, argv, _cwd| match argv.iter().skip(1).find(|a| !a.starts_with('-')) {
+            Some(path) => show_open(app, path.clone()),
+            None => focus_main(app),
+        },
+    ))
+}
+
+#[cfg(target_os = "macos")]
+fn with_single_instance(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
+    builder
+}
+
+fn restore_folder_access() -> folder_access::FolderAccess {
+    let (access, restored) = folder_access::open(appdirs::data_dir());
+    if !restored.dropped.is_empty() {
+        eprintln!("folders no longer accessible: {:?}", restored.dropped);
+    }
+    access
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let pipeline = Arc::new(Pipeline::with_disk(
@@ -243,19 +310,11 @@ pub fn run() {
     let tiles = TileService::new(tiles::disk::default_root(), tiles::disk::DEFAULT_CAP_BYTES);
     let tile_handler = tiles.clone();
     let watchers = commands::open_watchers();
-    let mut builder = tauri::Builder::default().manage(tiles).manage(watchers);
-    if std::env::var_os("LPVIEW_MULTI_INSTANCE").is_none() {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            if let Some(path) = argv.iter().skip(1).find(|a| !a.starts_with('-')) {
-                let _ = app.emit("viewer://open", OpenPayload { path: path.clone() });
-            }
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
-        }));
-    }
-    builder
+    let builder = tauri::Builder::default()
+        .manage(tiles)
+        .manage(watchers)
+        .manage(opened::Launch::default());
+    with_single_instance(builder)
         .plugin(tauri_plugin_dialog::init())
         .manage(pipeline)
         .setup(|app| {
@@ -263,6 +322,7 @@ pub fn run() {
             if let Some(outcome) = appdirs::import_installer_data() {
                 eprintln!("installer build data: {outcome:?}");
             }
+            app.manage(restore_folder_access());
             app.manage(commands::open_local_db());
             app.manage(commands::open_server());
             if let Some(win) = app.get_webview_window("main")
@@ -305,6 +365,7 @@ pub fn run() {
             prewarm_thumbs,
             clear_cache,
             open_default_apps_settings,
+            remember_folder,
             tile_info,
             tile_release,
             commands::server_status,
@@ -327,6 +388,7 @@ pub fn run() {
             commands::fs_stat,
             commands::fs_md5
         ])
-        .run(context())
-        .expect("error while running the viewer");
+        .build(context())
+        .expect("error while building the viewer")
+        .run(on_run_event);
 }

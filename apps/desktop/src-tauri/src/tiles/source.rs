@@ -49,6 +49,10 @@ pub fn probe_dims(path: &Path) -> Option<(u32, u32)> {
             if let Ok(s) = crate::decode::wic::open_file(path) {
                 return Some(s.oriented_dims());
             }
+            #[cfg(target_os = "macos")]
+            if let Some(dims) = crate::decode::imageio::oriented_dims(path) {
+                return Some(dims);
+            }
             image::image_dimensions(path).ok()
         }
     }
@@ -73,6 +77,10 @@ pub fn open(path: &Path) -> Result<Opened, String> {
                 Ok(o) => return Ok(o),
                 Err(e) if crate::formats::is_jpeg(&ext) => return Err(e),
                 Err(_) => {}
+            }
+            #[cfg(target_os = "macos")]
+            if let Ok(p) = crate::decode::imageio::render(path, Kind::Full, u32::MAX, u32::MAX) {
+                return Ok(memory(p));
             }
             let p = crate::decode::generic::render(path, Kind::Full, u32::MAX, u32::MAX)?;
             Ok(memory(p))

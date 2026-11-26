@@ -9,6 +9,7 @@ import { Modal } from "../ui/Modal";
 import { PageHeader } from "../ui/PageHeader";
 import type { LibraryProgress, Root } from "./api";
 import "./Pages.css";
+import { FILE_MANAGER } from "../platform";
 
 export function folderName(path: string): string {
   const parts = path.split(/[\\/]/).filter(Boolean);
@@ -52,7 +53,7 @@ function FolderRow({
             { icon: IconPhoto, label: "Show photos", onSelect: onShow },
             {
               icon: IconFolderOpen,
-              label: "Show in Explorer",
+              label: `Show in ${FILE_MANAGER}`,
               onSelect: () => revealInFolder(root.path).catch((err: unknown) => notify(`Couldn't show the folder: ${errorText(err)}`, "error")),
             },
           ],

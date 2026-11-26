@@ -1,4 +1,6 @@
 pub mod generic;
+#[cfg(target_os = "macos")]
+pub mod imageio;
 pub mod raw;
 #[cfg(windows)]
 pub mod wic;
@@ -100,9 +102,9 @@ fn image_render(
             return Ok(Rendered::Passthrough);
         }
     }
-    if !cfg!(windows) && matches!(ext, "heic" | "heif" | "hif" | "avif") {
+    if !cfg!(any(windows, target_os = "macos")) && matches!(ext, "heic" | "heif" | "hif" | "avif") {
         return Err(RenderError::Unsupported(format!(
-            ".{ext} needs the Windows codecs"
+            ".{ext} needs the Windows or macOS image codecs"
         )));
     }
     platform_render(path, kind, bw, bh).map_err(RenderError::Failed)
@@ -143,19 +145,24 @@ fn jpeg_fast_path(path: &Path, kind: Kind, bw: u32, bh: u32) -> Option<Rendered>
 
 fn platform_render(path: &Path, kind: Kind, bw: u32, bh: u32) -> Result<Rendered, String> {
     #[cfg(windows)]
-    let wic_err = match wic_render(path, kind, bw, bh) {
+    let native_err = match wic_render(path, kind, bw, bh) {
         Ok(r) => return Ok(r),
         Err(e) => e,
     };
-    #[cfg(not(windows))]
-    let wic_err = String::new();
+    #[cfg(target_os = "macos")]
+    let native_err = match imageio::render(path, kind, bw, bh) {
+        Ok(p) => return Ok(Rendered::Pixels(p)),
+        Err(e) => e,
+    };
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let native_err = String::new();
     generic::render(path, kind, bw, bh)
         .map(Rendered::Pixels)
         .map_err(|e| {
-            if wic_err.is_empty() {
+            if native_err.is_empty() {
                 e
             } else {
-                format!("{wic_err}; {e}")
+                format!("{native_err}; {e}")
             }
         })
 }

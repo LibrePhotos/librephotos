@@ -35,7 +35,7 @@ pub fn default_dir() -> Option<PathBuf> {
     if cfg!(windows) {
         env_dir("LOCALAPPDATA").map(|d| d.join(crate::appdirs::DIR_NAME).join("cache"))
     } else if cfg!(target_os = "macos") {
-        env_dir("HOME").map(|d| d.join("Library/Caches").join(crate::appdirs::DIR_NAME))
+        env_dir("HOME").map(|d| crate::appdirs::macos_caches(&d).join("thumbs"))
     } else {
         env_dir("XDG_CACHE_HOME")
             .or_else(|| env_dir("HOME").map(|h| h.join(".cache")))

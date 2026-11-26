@@ -315,3 +315,323 @@ jobs:
           msstore reconfigure --tenantId "$MSSTORE_TENANT_ID" --sellerId "$MSSTORE_SELLER_ID" --clientId "$MSSTORE_CLIENT_ID" --clientSecret "$MSSTORE_CLIENT_SECRET"
           msstore publish dist-store -i "dist-store/librephotos-desktop-$VERSION-windows-x64.msixupload" -id "$MSSTORE_PRODUCT_ID" --noCommit
           echo "Uploaded librephotos-desktop-$VERSION-windows-x64.msixupload to a draft Store submission; commit it in Partner Center." >> "$GITHUB_STEP_SUMMARY"
+
+  macos:
+    if: github.event_name != 'release' || (!github.event.release.prerelease && !github.event.release.draft)
+    runs-on: macos-15
+    timeout-minutes: 90
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      developer-id: ${{ steps.signing.outputs.developer-id }}
+    env:
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      BUILD_NUMBER: ${{ github.run_number }}
+      TARGET: universal-apple-darwin
+      BUNDLE: apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      DEVELOPER_ID_IDENTITY: ${{ vars.APPLE_SIGNING_IDENTITY }}
+      APP_STORE_IDENTITY: ${{ vars.APPLE_APP_STORE_IDENTITY }}
+      INSTALLER_IDENTITY: ${{ vars.APPLE_INSTALLER_IDENTITY }}
+    steps:
+      - name: Resolve the version
+        id: version
+        run: |
+          VERSION=0.0.0
+          if [ -n "$TAG" ]; then
+            if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::A release build is stamped with its tag, which must be X.Y.Z; got $TAG"
+              exit 1
+            fi
+            VERSION="$TAG"
+          fi
+          {
+            echo "VERSION=$VERSION"
+            echo "DMG=librephotos-desktop-$VERSION-macos-universal.dmg"
+            echo "PKG=librephotos-desktop-$VERSION-macos-universal-appstore.pkg"
+          } >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Test the packaging script
+        run: |
+          node --test "apps/desktop/scripts/macos/*.test.mjs"
+          node apps/desktop/scripts/macos/config.mjs check
+      - name: Install
+        working-directory: apps/desktop
+        run: npm ci --no-audit --no-fund
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0
+        with:
+          workspaces: apps/desktop/src-tauri
+          shared-key: desktop-macos
+      - name: Build the UI
+        working-directory: apps/desktop
+        run: npx vite build
+      - name: Clippy on macOS
+        working-directory: apps/desktop/src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Test on macOS
+        working-directory: apps/desktop/src-tauri
+        run: cargo test
+      - name: Check the signing settings
+        id: signing
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: |
+          missing() {
+            local names=""
+            for name in "$@"; do
+              if [ -z "${!name}" ]; then
+                names="$names $name"
+              fi
+            done
+            echo "$names"
+          }
+          common="APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_TEAM_ID APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_API_PRIVATE_KEY"
+          dev=$(missing $common DEVELOPER_ID_IDENTITY)
+          store=$(missing $common APP_STORE_IDENTITY INSTALLER_IDENTITY APPLE_PROVISIONING_PROFILE)
+          if [ -n "$dev" ]; then
+            echo "Developer ID signing and notarization skipped, not configured:$dev" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "developer-id=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "developer-id=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$store" ]; then
+            echo "App Store signing and upload skipped, not configured:$store" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "app-store=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "app-store=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the universal app
+        working-directory: apps/desktop
+        run: |
+          node scripts/macos/config.mjs overlay --flavor developer-id --version "$VERSION" --build "$BUILD_NUMBER" --identity - --out "$RUNNER_TEMP/adhoc"
+          node scripts/macos/config.mjs overlay --flavor app-store --version "$VERSION" --build "$BUILD_NUMBER" --identity - --team-id "" --out "$RUNNER_TEMP/adhoc"
+          npx tauri build --target "$TARGET" --no-bundle --config "$RUNNER_TEMP/adhoc/tauri.developer-id.json"
+      - name: Bundle the direct download, signed ad hoc
+        working-directory: apps/desktop
+        run: |
+          npx tauri bundle --target "$TARGET" --bundles app,dmg --config "$RUNNER_TEMP/adhoc/tauri.developer-id.json"
+          mkdir -p "$GITHUB_WORKSPACE/dist-macos"
+          built=("$GITHUB_WORKSPACE/$BUNDLE"/dmg/*.dmg)
+          if [ "${#built[@]}" -ne 1 ] || [ ! -f "${built[0]}" ]; then
+            echo "::error::Expected one disk image, found: ${built[*]}"
+            exit 1
+          fi
+          cp "${built[0]}" "$GITHUB_WORKSPACE/dist-macos/$DMG"
+          rm "${built[0]}"
+      - name: Bundle the App Store app, signed ad hoc, and package it
+        working-directory: apps/desktop
+        run: |
+          npx tauri bundle --target "$TARGET" --bundles app --config "$RUNNER_TEMP/adhoc/tauri.app-store.json"
+          scripts/macos/package-app-store.sh "$GITHUB_WORKSPACE/$BUNDLE/macos/LibrePhotos Viewer.app" "$GITHUB_WORKSPACE/dist-macos/$PKG"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: librephotos-desktop-macos-universal-adhoc
+          path: dist-macos/
+          if-no-files-found: error
+          compression-level: 0
+      - name: Import the signing certificates
+        if: steps.signing.outputs.developer-id == 'true' || steps.signing.outputs.app-store == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(openssl rand -hex 24)
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificates.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/certificates.p12" -k "$keychain" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/productsign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" login.keychain-db
+          rm "$RUNNER_TEMP/certificates.p12"
+          mkdir -p "$RUNNER_TEMP/private_keys"
+          printf '%s' "$APPLE_API_PRIVATE_KEY" > "$RUNNER_TEMP/private_keys/AuthKey_$APPLE_API_KEY_ID.p8"
+          security find-identity -v
+      - name: Sign, notarize and staple the direct download
+        if: steps.signing.outputs.developer-id == 'true'
+        working-directory: apps/desktop
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          export APPLE_API_KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_$APPLE_API_KEY.p8"
+          node scripts/macos/config.mjs overlay --flavor developer-id --version "$VERSION" --build "$BUILD_NUMBER" --identity "$DEVELOPER_ID_IDENTITY" --out "$RUNNER_TEMP/signed"
+          APPLE_SIGNING_IDENTITY="$DEVELOPER_ID_IDENTITY" npx tauri bundle --target "$TARGET" --bundles app,dmg --config "$RUNNER_TEMP/signed/tauri.developer-id.json"
+          mkdir -p "$GITHUB_WORKSPACE/dist-macos-signed"
+          mv "$GITHUB_WORKSPACE/$BUNDLE"/dmg/*.dmg "$GITHUB_WORKSPACE/dist-macos-signed/$DMG"
+          cd "$GITHUB_WORKSPACE/dist-macos-signed"
+          codesign --force --timestamp --sign "$DEVELOPER_ID_IDENTITY" "$DMG"
+          xcrun notarytool submit "$DMG" --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER" --wait
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+          spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG"
+          echo "Signed $DMG with $DEVELOPER_ID_IDENTITY, notarized and stapled it." >> "$GITHUB_STEP_SUMMARY"
+      - name: Sign and package for the App Store
+        if: steps.signing.outputs.app-store == 'true'
+        working-directory: apps/desktop
+        env:
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          printf '%s' "$APPLE_PROVISIONING_PROFILE" | base64 --decode > "$RUNNER_TEMP/viewer.provisionprofile"
+          node scripts/macos/config.mjs overlay --flavor app-store --version "$VERSION" --build "$BUILD_NUMBER" --identity "$APP_STORE_IDENTITY" --team-id "$APPLE_TEAM_ID" --profile "$RUNNER_TEMP/viewer.provisionprofile" --out "$RUNNER_TEMP/signed"
+          APPLE_SIGNING_IDENTITY="$APP_STORE_IDENTITY" npx tauri bundle --target "$TARGET" --bundles app --config "$RUNNER_TEMP/signed/tauri.app-store.json"
+          mkdir -p "$GITHUB_WORKSPACE/dist-macos-signed"
+          scripts/macos/package-app-store.sh "$GITHUB_WORKSPACE/$BUNDLE/macos/LibrePhotos Viewer.app" "$GITHUB_WORKSPACE/dist-macos-signed/$PKG" "$INSTALLER_IDENTITY"
+          cd "$RUNNER_TEMP"
+          xcrun altool --validate-app --type macos --file "$GITHUB_WORKSPACE/dist-macos-signed/$PKG" --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_ISSUER"
+      - name: Upload to App Store Connect
+        if: steps.signing.outputs.app-store == 'true' && env.TAG != ''
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        working-directory: ${{ runner.temp }}
+        run: |
+          xcrun altool --upload-app --type macos --file "$GITHUB_WORKSPACE/dist-macos-signed/$PKG" --apiKey "$APPLE_API_KEY_ID" --apiIssuer "$APPLE_API_ISSUER"
+          echo "Uploaded $PKG to App Store Connect; it shows up in TestFlight once Apple has processed it." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: steps.signing.outputs.developer-id == 'true' || steps.signing.outputs.app-store == 'true'
+        with:
+          name: librephotos-desktop-macos-universal-signed
+          path: dist-macos-signed/
+          if-no-files-found: error
+          compression-level: 0
+      - name: Remove the signing keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/private_keys" "$RUNNER_TEMP/viewer.provisionprofile"
+
+  macos-smoke:
+    needs: macos
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+        mode: [dmg, app-store]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.macos.outputs.version }}
+      MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v7
+        with:
+          name: librephotos-desktop-macos-universal-adhoc
+          path: dist-macos
+      - name: Install, open pictures, check the data and remove the app
+        run: |
+          if [ "$MODE" = dmg ]; then
+            artifact="dist-macos/librephotos-desktop-$VERSION-macos-universal.dmg"
+          else
+            artifact="dist-macos/librephotos-desktop-$VERSION-macos-universal-appstore.pkg"
+          fi
+          apps/desktop/scripts/macos/smoke.sh "$MODE" "$artifact" deploy/e2e/photos macos-smoke
+      - name: Install and zap the Homebrew cask
+        if: matrix.mode == 'dmg'
+        run: apps/desktop/scripts/macos/cask-smoke.sh "dist-macos/librephotos-desktop-$VERSION-macos-universal.dmg" "$VERSION"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: macos-smoke-${{ matrix.mode }}-${{ matrix.runner }}
+          path: macos-smoke/*.png
+          if-no-files-found: ignore
+
+  macos-release:
+    needs: [macos, macos-smoke]
+    if: inputs.tag != '' || github.event_name == 'release'
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      VERSION: ${{ needs.macos.outputs.version }}
+      REPLACE_ASSET: ${{ inputs.replace_asset && 'true' || 'false' }}
+      SIGNED: ${{ needs.macos.outputs.developer-id }}
+      STABLE_DMG: librephotos-desktop-macos-universal.dmg
+      CHECKSUMS: SHA256SUMS-desktop-macos
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ needs.macos.outputs.developer-id == 'true' && 'librephotos-desktop-macos-universal-signed' || 'librephotos-desktop-macos-universal-adhoc' }}
+          path: downloaded
+      - name: Name the disk image, its checksum and the cask
+        run: |
+          versioned="librephotos-desktop-$VERSION-macos-universal.dmg"
+          echo "VERSIONED_DMG=$versioned" >> "$GITHUB_ENV"
+          mkdir -p dist-release "$RUNNER_TEMP/cask"
+          cp "downloaded/$versioned" "dist-release/$versioned"
+          cp "downloaded/$versioned" "dist-release/$STABLE_DMG"
+          cd dist-release
+          shasum -a 256 "$versioned" "$STABLE_DMG" > "$CHECKSUMS"
+          cat "$CHECKSUMS"
+          node "$GITHUB_WORKSPACE/apps/desktop/scripts/macos/config.mjs" cask --version "$VERSION" --sha256 "$(shasum -a 256 "$versioned" | cut -d' ' -f1)" --out "$RUNNER_TEMP/cask/librephotos-viewer.rb"
+          if [ "$SIGNED" != "true" ]; then
+            echo "::warning::$versioned is signed ad hoc, not with a Developer ID: Gatekeeper makes users allow it in System Settings, and the cask cannot go to homebrew/cask yet."
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: librephotos-viewer-cask
+          path: ${{ runner.temp }}/cask/librephotos-viewer.rb
+          if-no-files-found: error
+      - name: Attach to the release
+        working-directory: dist-release
+        run: |
+          existing=$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>/dev/null || true)
+          clash=""
+          for name in "$VERSIONED_DMG" "$STABLE_DMG" "$CHECKSUMS"; do
+            if grep -qxF "$name" <<<"$existing"; then
+              clash="$clash $name"
+            fi
+          done
+          if [ -n "$clash" ] && [ "$REPLACE_ASSET" != "true" ]; then
+            echo "::error::Release $TAG already has$clash. Dispatch with replace_asset to replace them."
+            exit 1
+          fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --title "$TAG" --prerelease \
+              --notes "Desktop app installers; see the desktop app docs." || gh release view "$TAG" >/dev/null
+          fi
+          clobber=()
+          if [ "$REPLACE_ASSET" = "true" ]; then
+            clobber=(--clobber)
+          fi
+          gh release upload "$TAG" "$VERSIONED_DMG" "$STABLE_DMG" "$CHECKSUMS" ${clobber[@]+"${clobber[@]}"}
+          echo "Attached $VERSIONED_DMG, $STABLE_DMG and $CHECKSUMS to $TAG (Developer ID signed: $SIGNED)." >> "$GITHUB_STEP_SUMMARY"

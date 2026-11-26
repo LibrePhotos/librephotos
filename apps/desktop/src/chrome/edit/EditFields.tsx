@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { IconButton } from "../../ui/IconButton";
 import "./Edit.css";
+import { shortcut } from "../../platform";
 
 const STARS = [1, 2, 3, 4, 5] as const;
 
@@ -38,7 +39,7 @@ export function RatingStars({
             role="radio"
             aria-checked={n === rating}
             aria-label={label}
-            data-tip={`${label}  Ctrl+${n === rating ? 0 : n}`}
+            data-tip={`${label}  ${shortcut(String(n === rating ? 0 : n))}`}
             className={`rating-star${n <= shown ? " on" : ""}`}
             disabled={disabled}
             onPointerEnter={() => setHover(n)}

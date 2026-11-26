@@ -3,7 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export type FileKind = "image" | "raw" | "video";
 export type FileEntry = { path: string; name: string; size: number; modifiedMs: number; kind: FileKind };
-export type FolderListing = { folder: string; files: FileEntry[]; index: number };
+export type FolderListing = { folder: string; files: FileEntry[]; index: number; limited: boolean };
 export type ImageInfo = {
   path: string;
   name: string;
@@ -122,6 +122,10 @@ export async function openDefaultAppsSettings(): Promise<void> {
   else throw new Error("only in the desktop app");
 }
 
+export async function rememberFolder(path: string): Promise<boolean> {
+  return inTauri ? invoke<boolean>("remember_folder", { path }) : false;
+}
+
 export async function clearThumbnailCache(): Promise<number> {
   return inTauri ? invoke<number>("clear_cache") : 0;
 }
@@ -154,7 +158,7 @@ const mockFiles: FileEntry[] = Array.from({ length: MOCK_COUNT }, (_, i) => {
 
 function mockListing(path: string): FolderListing {
   const index = Math.max(0, mockFiles.findIndex(f => f.path === path));
-  return { folder: "C:\\mock", files: mockFiles, index };
+  return { folder: "C:\\mock", files: mockFiles, index, limited: mockParams.has("limited") };
 }
 
 function mockSize(i: number): [number, number] {
