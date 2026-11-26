@@ -270,6 +270,22 @@ class StandaloneOnMacTest(SimpleTestCase):
         )
         self.assertIn("documentation for macOS", message)
 
+    def test_the_finisher_is_the_prepared_app(self):
+        staged = Path("/Applications/LibrePhotos Server.app-1.8.0")
+        binary_folder = staged / "Contents" / "Resources" / "librephotos"
+        argv = ["finish-update", "--old-pid", "1", "--old-dir", str(APP)]
+        argv += ["--url", "http://localhost:8000/", "--log", "l"]
+        with (
+            patch.object(
+                standalone.release_layout, "current", return_value=MACOS_ARM64
+            ),
+            patch.object(standalone, "install_root", return_value=str(binary_folder)),
+            patch("librephotos.updater.finish_update", return_value=0) as finish,
+            self.assertRaises(SystemExit),
+        ):
+            standalone.main(argv)
+        self.assertEqual(finish.call_args.args[0].staged, staged)
+
     def test_the_login_item_keeps_the_data_folder(self):
         launch = Launch(("--data-dir", "/Volumes/LP", "run", "--no-browser"), {}, "/")
         self.assertEqual(

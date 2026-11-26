@@ -1531,7 +1531,7 @@ def main(argv: list[str] | None = None) -> None:
         # environment the old one had, not with this process's additions.
         from librephotos import updater
 
-        request = updater.FinishRequest.from_arguments(args, Path(install_root()))
+        request = updater.FinishRequest.from_arguments(args, program_folder())
         raise SystemExit(updater.finish_update(request, _tell))
     if args.command == "finish-move":
         from librephotos import move_to_installed
