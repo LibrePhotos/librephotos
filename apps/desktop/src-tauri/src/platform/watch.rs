@@ -46,6 +46,7 @@ pub struct Pending {
     touched: BTreeMap<PathBuf, bool>,
     renames: Vec<(PathBuf, PathBuf)>,
     rename_from: Option<PathBuf>,
+    unpaired_names: Vec<PathBuf>,
 }
 
 impl Pending {
@@ -86,7 +87,28 @@ impl Pending {
                     self.rename(from, to);
                 }
             }
+            EventKind::Modify(ModifyKind::Name(RenameMode::Any)) => {
+                self.unpaired_names.extend(paths);
+            }
             _ => paths.for_each(|p| self.touch(p, false)),
+        }
+    }
+
+    fn pair_names(&mut self) {
+        let names = std::mem::take(&mut self.unpaired_names);
+        let mut i = 0;
+        while i < names.len() {
+            let here = &names[i];
+            match names.get(i + 1) {
+                Some(next) if next != here && !here.exists() && next.exists() => {
+                    self.rename(here.clone(), next.clone());
+                    i += 2;
+                }
+                _ => {
+                    self.touch(here.clone(), here.exists());
+                    i += 1;
+                }
+            }
         }
     }
 
@@ -94,6 +116,7 @@ impl Pending {
         if let Some(from) = self.rename_from.take() {
             self.touch(from, false);
         }
+        self.pair_names();
         let mut out = FsChanges {
             root: root.to_string(),
             ..Default::default()
@@ -184,6 +207,19 @@ fn add_created(created: &mut BTreeMap<String, FsEntry>, p: &Path) {
     }
 }
 
+pub fn rebase(p: PathBuf, real: &Path, root: &Path) -> PathBuf {
+    match p.strip_prefix(real) {
+        Ok(rest) if rest.as_os_str().is_empty() => root.to_path_buf(),
+        Ok(rest) => root.join(rest),
+        Err(_) => p,
+    }
+}
+
+fn real_root(root: &str) -> Option<PathBuf> {
+    let real = std::fs::canonicalize(root).ok()?;
+    (cfg!(target_os = "macos") && real != Path::new(root)).then_some(real)
+}
+
 fn watched(root: &str, p: &Path) -> bool {
     let ps = p.to_string_lossy();
     if !is_within(&ps, root) {
@@ -229,8 +265,17 @@ impl WatchService {
         }
         let tx = self.tx.clone();
         let name = root.clone();
+        let real = real_root(&root);
         let mut w = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
-            if let Ok(ev) = res {
+            if let Ok(mut ev) = res {
+                if let Some(real) = &real {
+                    let shown = Path::new(&name);
+                    ev.paths = ev
+                        .paths
+                        .into_iter()
+                        .map(|p| rebase(p, real, shown))
+                        .collect();
+                }
                 let _ = tx.send((name.clone(), ev));
             }
         })
@@ -416,6 +461,54 @@ mod tests {
         assert!(json["created"][0]["mtimeMs"].is_i64());
         std::fs::remove_dir_all(&dir).unwrap();
         std::fs::remove_dir_all(outside.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn names_changed_one_by_one_pair_up_into_renames() {
+        let dir = temp_dir("names");
+        let root = dir.to_string_lossy().into_owned();
+        let (a, b, c, d) = (
+            dir.join("a.jpg"),
+            dir.join("b.jpg"),
+            dir.join("c.jpg"),
+            dir.join("d.jpg"),
+        );
+        std::fs::write(&b, b"1").unwrap();
+        std::fs::write(&c, b"2").unwrap();
+        let name = EventKind::Modify(ModifyKind::Name(RenameMode::Any));
+        let mut p = Pending::default();
+        p.ingest(ev(name, &[&a]));
+        p.ingest(ev(name, &[&b]));
+        p.ingest(ev(name, &[&c]));
+        p.ingest(ev(name, &[&d]));
+        let out = p.resolve(&root);
+        assert_eq!(
+            out.renamed,
+            [Renamed {
+                from: a.to_string_lossy().into_owned(),
+                to: b.to_string_lossy().into_owned(),
+                dir: false
+            }]
+        );
+        let created: Vec<_> = out.created.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(created, ["c.jpg"]);
+        assert_eq!(out.removed, [d.to_string_lossy().into_owned()]);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn events_under_a_symlinked_root_come_back_under_the_root_that_was_watched() {
+        let real = Path::new("/private/var/folders/x/T/lib");
+        let root = Path::new("/var/folders/x/T/lib");
+        assert_eq!(
+            rebase(real.join("a").join("b.jpg"), real, root),
+            root.join("a").join("b.jpg")
+        );
+        assert_eq!(rebase(real.to_path_buf(), real, root), root);
+        assert_eq!(
+            rebase(PathBuf::from("/elsewhere/c.jpg"), real, root),
+            PathBuf::from("/elsewhere/c.jpg")
+        );
     }
 
     #[test]
