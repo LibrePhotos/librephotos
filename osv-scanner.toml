@@ -1,0 +1,29 @@
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429"
+effectiveUntil = 2027-03-01T00:00:00Z
+reason = "apps/desktop/src-tauri/Cargo.lock: glib 0.18.5 comes from tauri 2.12's gtk 0.18 stack. Blocked upstream until tauri ships tauri-apps/tauri#16170 (gtk-rs 0.19, merged for tauri 2.13); bump tauri then and drop this entry."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+effectiveUntil = 2027-03-01T00:00:00Z
+reason = "apps/desktop/src-tauri/Cargo.lock: proc-macro-error 1.0.4 is a build-time dependency of the gtk-rs 0.18 macros pulled in by tauri 2.12. Blocked upstream until tauri ships tauri-apps/tauri#16170 (tauri 2.13)."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370"
+effectiveUntil = 2027-03-01T00:00:00Z
+reason = "apps/desktop/src-tauri/Cargo.lock: zvariant 5 (unmaintained notice) comes from zbus 5, required by tauri-plugin-single-instance. Blocked upstream until tauri-apps/plugins-workspace#3759 (zbus 6) is released."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371"
+effectiveUntil = 2027-03-01T00:00:00Z
+reason = "apps/desktop/src-tauri/Cargo.lock: zbus_names 4 (unmaintained notice) comes from zbus 5, required by tauri-plugin-single-instance. Blocked upstream until tauri-apps/plugins-workspace#3759 (zbus 6) is released."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372"
+effectiveUntil = 2027-03-01T00:00:00Z
+reason = "apps/desktop/src-tauri/Cargo.lock: zvariant_derive 5 (unmaintained notice) comes from zbus 5, required by tauri-plugin-single-instance. Blocked upstream until tauri-apps/plugins-workspace#3759 (zbus 6) is released."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"
+effectiveUntil = 2027-03-01T00:00:00Z
+reason = "apps/desktop/src-tauri/Cargo.lock: chrono (unmaintained notice) is listed only as an optional dependency of serde_with that no crate enables, so it is never compiled. Cargo keeps optional dependencies in the lockfile; drop this entry once serde_with stops declaring it."

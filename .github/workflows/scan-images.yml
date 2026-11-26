@@ -1,0 +1,82 @@
+name: scan-images
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/docker/frontend/**'
+      - 'deploy/docker/proxy/**'
+      - '.trivyignore.yaml'
+      - '.github/workflows/scan-images.yml'
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TRIVY_VERSION: 0.76.2
+  TRIVY_SHA256: bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf
+
+jobs:
+  pull-request:
+    if: github.event_name == 'pull_request'
+    name: build and scan (${{ matrix.image }})
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [frontend, proxy]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    env:
+      IMAGE: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install Trivy
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/trivy.tar.gz" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  $RUNNER_TEMP/trivy.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/trivy.tar.gz" -C "$RUNNER_TEMP" trivy
+          "$RUNNER_TEMP/trivy" --version
+      - name: Build the image
+        run: docker build -f "deploy/docker/${IMAGE}/Dockerfile" -t "librephotos-${IMAGE}:scan" .
+      - name: No known vulnerability, fixed or not
+        run: |
+          "$RUNNER_TEMP/trivy" image --scanners vuln --exit-code 1 --no-progress \
+            --ignorefile .trivyignore.yaml "librephotos-${IMAGE}:scan"
+
+  published:
+    if: github.event_name != 'pull_request'
+    name: scan published ${{ matrix.image }}:dev (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [librephotos-frontend, librephotos-proxy]
+        platform: [linux/amd64, linux/arm64]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      IMAGE: reallibrephotos/${{ matrix.image }}:dev
+      PLATFORM: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install Trivy
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/trivy.tar.gz" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  $RUNNER_TEMP/trivy.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/trivy.tar.gz" -C "$RUNNER_TEMP" trivy
+          "$RUNNER_TEMP/trivy" --version
+      - name: No known vulnerability, fixed or not
+        run: |
+          "$RUNNER_TEMP/trivy" image --scanners vuln --exit-code 1 --no-progress \
+            --ignorefile .trivyignore.yaml --image-src remote --platform "$PLATFORM" "$IMAGE"

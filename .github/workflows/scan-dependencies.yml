@@ -1,0 +1,66 @@
+name: scan-dependencies
+
+on:
+  pull_request:
+  push:
+    branches: [dev]
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OSV_SCANNER_VERSION: 2.7.1
+  OSV_SCANNER_SHA256: fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8
+
+jobs:
+  osv-scanner:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install osv-scanner
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  $RUNNER_TEMP/osv-scanner" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+          "$RUNNER_TEMP/osv-scanner" --version
+      - name: Lockfiles and requirements files
+        run: |
+          "$RUNNER_TEMP/osv-scanner" scan source --recursive --no-resolve \
+            --config osv-scanner.toml .
+      - name: Resolve the backend's Python environment
+        id: resolve
+        if: ${{ !cancelled() }}
+        working-directory: apps/backend
+        run: |
+          mkdir -p "$RUNNER_TEMP/resolved"
+          python -m pip install --dry-run --ignore-installed --quiet --report "$RUNNER_TEMP/full.json" \
+            -r requirements.txt -r requirements.unified.txt
+          python -m pip install --dry-run --ignore-installed --quiet --no-deps --report "$RUNNER_TEMP/nodeps.json" \
+            -r requirements.nodeps.txt
+          python - "$RUNNER_TEMP/full.json" "$RUNNER_TEMP/nodeps.json" > "$RUNNER_TEMP/resolved/requirements.txt" <<'EOF'
+          import json, sys
+          for report in sys.argv[1:]:
+              for item in json.load(open(report))["install"]:
+                  if item["download_info"]["url"].startswith("https://files.pythonhosted.org/"):
+                      print(f'{item["metadata"]["name"]}=={item["metadata"]["version"]}')
+          EOF
+          cat "$RUNNER_TEMP/resolved/requirements.txt"
+      - name: The resolved Python environment, transitive packages included
+        if: ${{ !cancelled() && steps.resolve.outcome == 'success' }}
+        run: |
+          "$RUNNER_TEMP/osv-scanner" scan source --no-resolve --config osv-scanner.toml \
+            --lockfile "$RUNNER_TEMP/resolved/requirements.txt"
