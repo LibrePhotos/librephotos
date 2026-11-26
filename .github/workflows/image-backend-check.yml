@@ -13,6 +13,7 @@ on:
       - 'apps/backend/requirements.nodeps.txt'
       - 'apps/backend/requirements.unified.txt'
       - 'deploy/docker/backend/**'
+      - '.trivyignore.yaml'
       - '.github/workflows/image-backend-check.yml'
 
 permissions:
@@ -21,6 +22,11 @@ permissions:
 concurrency:
   group: image-backend-check-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  TRIVY_VERSION: 0.76.2
+  TRIVY_SHA256: bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf
+  TRIVY_ARM64_SHA256: ab9d51f86e6a5fb936f605faff6b593ac51bc378fff4d3e8b9d58358b9c367c3
 
 jobs:
   build:
@@ -32,16 +38,49 @@ jobs:
           - { runner: ubuntu-26.04, arch: amd64 }
           - { runner: ubuntu-26.04-arm, arch: arm64 }
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      # The docker driver keeps both builds in the local image store, so the
-      # backend's FROM reallibrephotos/librephotos-base:${BASE_TAG} finds the
-      # base built one step earlier instead of pulling the published one.
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          use: false
       - name: Build the base image
-        run: docker build -t reallibrephotos/librephotos-base:pr deploy/docker/backend/base
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: deploy/docker/backend/base
+          load: true
+          provenance: false
+          sbom: false
+          tags: reallibrephotos/librephotos-base:pr
+          cache-from: type=gha,scope=librephotos-base-${{ matrix.arch }}
+          cache-to: type=gha,scope=librephotos-base-${{ matrix.arch }},mode=max,ignore-error=true
+          no-cache-filters: runtime
+      - name: The Vulkan drivers load and every ICD file names one
+        env:
+          CHECK: |
+            import ctypes, glob, json, os, subprocess
+            loader = sorted(glob.glob("/lib/ld-linux*.so.*"))[0]
+            drivers = sorted(glob.glob("/usr/lib/libvulkan_*.so"))
+            for driver in drivers:
+                listing = subprocess.run([loader, "--list", driver], capture_output=True, text=True)
+                assert listing.returncode == 0 and "not found" not in listing.stdout, f"{driver}: {listing.stdout}{listing.stderr}"
+                ctypes.CDLL(driver)
+                print("loads", driver)
+            targets = set()
+            for icd in sorted(glob.glob("/usr/share/vulkan/icd.d/*.json")):
+                with open(icd) as file:
+                    path = json.load(file)["ICD"]["library_path"]
+                assert os.path.isfile(path), f"{icd} names {path}, which does not exist"
+                targets.add(path)
+                print(icd, "->", path)
+            wanted = {f"/usr/lib/libvulkan_{name}.so" for name in ("intel", "intel_hasvk", "virtio", "asahi", "radeon", "lvp")}
+            assert wanted <= targets, f"no ICD file for {sorted(wanted - targets)}"
+        run: docker run --rm -e CHECK reallibrephotos/librephotos-base:pr python -c "$CHECK"
       - name: Build the backend image on it
         run: |
           docker build -f deploy/docker/backend/Dockerfile \
@@ -69,3 +108,23 @@ jobs:
             perl -MIO::Uncompress::Brotli -e 'print "IO::Uncompress::Brotli $IO::Uncompress::Brotli::VERSION\n"'
           docker run --rm librephotos-backend:pr python -c \
             'import shutil, subprocess; tool = shutil.which("exiftool"); assert tool, "no exiftool"; print(tool, subprocess.run([tool, "-ver"], capture_output=True, text=True, check=True).stdout.strip())'
+      - name: Install Trivy
+        run: |
+          case "$RUNNER_ARCH" in
+            X64) asset=Linux-64bit checksum="$TRIVY_SHA256" ;;
+            ARM64) asset=Linux-ARM64 checksum="$TRIVY_ARM64_SHA256" ;;
+            *) echo "::error::no Trivy checksum for $RUNNER_ARCH"; exit 1 ;;
+          esac
+          curl -fsSL -o "$RUNNER_TEMP/trivy.tar.gz" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_${asset}.tar.gz"
+          echo "${checksum}  $RUNNER_TEMP/trivy.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/trivy.tar.gz" -C "$RUNNER_TEMP" trivy
+          "$RUNNER_TEMP/trivy" --version
+      - name: No known vulnerability in the base, fixed or not
+        run: |
+          "$RUNNER_TEMP/trivy" image --scanners vuln --exit-code 1 --no-progress \
+            --ignorefile .trivyignore.yaml reallibrephotos/librephotos-base:pr
+      - name: No known vulnerability in the backend, fixed or not
+        run: |
+          "$RUNNER_TEMP/trivy" image --scanners vuln --exit-code 1 --no-progress \
+            --ignorefile .trivyignore.yaml librephotos-backend:pr

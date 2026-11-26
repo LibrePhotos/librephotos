@@ -196,6 +196,21 @@ describe("YAML", () => {
     assert.deepEqual(reported(".github/workflows/x.yml", text), [1, 10, 11, 12]);
   });
 
+  it("allows the version comment of an action pinned by commit SHA, and nothing else after uses", () => {
+    const sha = "f87e5991a6d7451dcb8d9637bfbc97413f497069";
+    const text = lines(
+      "jobs:",
+      "  check:",
+      "    steps:",
+      `      - uses: docker/setup-buildx-action@${sha} # v4.4.1`,
+      `        uses: actions/cache/restore@${sha} # v5`,
+      `      - uses: docker/login-action@${sha} # the login`,
+      "      - uses: actions/checkout@v7 # v7",
+      "      - name: x # v1.2.3",
+    );
+    assert.deepEqual(reported(".github/workflows/x.yml", text), [6, 7, 8]);
+  });
+
   it("leaves block scalars alone outside workflow run steps", () => {
     const text = lines("config: |", "  # part of the value", "other: 1");
     assert.deepEqual(reported("deploy/k8s/a.yaml", text), []);

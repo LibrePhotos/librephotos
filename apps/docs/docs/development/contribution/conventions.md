@@ -36,6 +36,7 @@ These pass, because they are not explanations:
 - a Python encoding declaration (`# -*- coding: utf-8 -*-`) on the first two lines;
 - the `# raw-create: <reason>` marker on a test's raw `Model.objects.create`, which `api/tests/infra/test_test_data_factories.py` reads;
 - parser directives (`# syntax=`, `# escape=`, `# check=`) at the top of a Dockerfile;
+- the version comment of a GitHub Action pinned by commit SHA (`uses: docker/login-action@<40 hex digits> # v4.8.0`), which Renovate reads to know which release the SHA is and updates together with it;
 - generated and vendored files: lockfiles, anything under a `migrations/` folder (Django and Drizzle, with their JSON), `*.gen.*` files such as `routeTree.gen.ts`, `apps/backend/openapi.json`, `apps/backend/vulture_whitelist.py` (printed by `check_dead_code.py --make-whitelist`), Tauri's `src-tauri/gen/`, `node_modules`, the vendored `apps/backend/chunked_upload/`, snapshots and minified files.
 
 The allow-list lives in `scripts/conventions/comments.mjs` (`GENERATED_PATHS`, `ALLOWED_COMMENTS`) and every entry has a test in `scripts/check-conventions.test.mjs`.

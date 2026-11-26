@@ -1,12 +1,3 @@
-# The Python versions the backend supports: the one place that says so. The
-# floor is the lowest Python a build runs. Every build runs 3.14 now: the backend
-# and unified images (ubuntu:resolute), the Windows standalone build and the
-# prebuilt wheels requirements.txt pins by URL. The ceiling is 3.15 because
-# onnxruntime ships no cp315 wheel yet. test-backend.yml runs the suite on every
-# image's Python, and api/tests/infra/test_python_versions.py keeps the images,
-# the workflows and the requirements markers inside this range. Nothing
-# installs the backend as a package; `name` and `version` are only here because
-# a [project] table needs them.
 [project]
 name = "librephotos-backend"
 version = "0"

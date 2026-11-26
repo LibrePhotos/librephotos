@@ -19,9 +19,9 @@
       "datasourceTemplate": "github-releases"
     },
     {
-      "description": "Trivy, which scan-images.yml downloads by version and SHA-256.",
+      "description": "Trivy, which scan-images.yml and image-backend-check.yml download by version and SHA-256 (image-backend-check.yml also for arm64).",
       "customType": "regex",
-      "managerFilePatterns": ["/^\\.github/workflows/scan-images\\.yml$/"],
+      "managerFilePatterns": ["/^\\.github/workflows/scan-images\\.yml$/", "/^\\.github/workflows/image-backend-check\\.yml$/"],
       "matchStrings": ["TRIVY_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)"],
       "depNameTemplate": "aquasecurity/trivy",
       "datasourceTemplate": "github-releases",
@@ -35,6 +35,35 @@
       "depNameTemplate": "google/osv-scanner",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "description": "The Mesa release whose Intel, virtio and asahi Vulkan drivers the backend base image compiles (deploy/docker/backend/base/Dockerfile), downloaded from archive.mesa3d.org by version and SHA-256. Tags are mesa-<x.y.z>; release candidates (mesa-<x.y.z>-rc<n>) and branchpoint tags do not match the versioning and are skipped.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^deploy/docker/backend/base/Dockerfile$/"],
+      "matchStrings": ["ARG MESA_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "mesa/mesa",
+      "datasourceTemplate": "gitlab-tags",
+      "registryUrlTemplate": "https://gitlab.freedesktop.org",
+      "extractVersionTemplate": "^mesa-(?<version>.+)$",
+      "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$"
+    },
+    {
+      "description": "SPIRV-LLVM-Translator, which the base image's mesa-vulkan stage builds against the llvm-23 packages of that stage (deploy/docker/backend/base/Dockerfile), downloaded by version and SHA-256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^deploy/docker/backend/base/Dockerfile$/"],
+      "matchStrings": ["ARG SPIRV_LLVM_TRANSLATOR_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "KhronosGroup/SPIRV-LLVM-Translator",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "description": "The IO::Compress::Brotli Perl module, which the base image's perl-brotli stage builds from its CPAN tarball by version and SHA-256 (deploy/docker/backend/base/Dockerfile). The download URL names the uploader (TIMLEGGE); a release by another CPAN author needs that path changed too.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^deploy/docker/backend/base/Dockerfile$/"],
+      "matchStrings": ["ARG IO_COMPRESS_BROTLI_VERSION=(?<currentValue>\\d+\\.\\d+)"],
+      "depNameTemplate": "IO::Compress::Brotli",
+      "datasourceTemplate": "cpan",
+      "versioningTemplate": "perl"
     }
   ],
   "packageRules": [
@@ -127,12 +156,6 @@
     {
       "description": "The k8s manifests pin release tags and a Postgres major by hand; a Postgres major refuses to start on an existing data volume. Update them manually with a documented migration.",
       "matchFileNames": ["deploy/k8s/**"],
-      "enabled": false
-    },
-    {
-      "description": "A new Ubuntu release swaps the distro Python under the backend base image (resolute = 26.04 ships 3.14; the prebuilt wheels are cp314). Move between LTS releases by hand after a test build.",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ubuntu"],
       "enabled": false
     },
     {
@@ -231,6 +254,26 @@
       "description": "Renovate moves the scanner version but not the SHA-256 next to it, so the scan fails until the checksum of the new release is copied in by hand (apps/docs/docs/development/vulnerability-scanning.md). They come outside the github-actions group and never automerge.",
       "matchPackageNames": ["aquasecurity/trivy", "google/osv-scanner"],
       "groupName": "vulnerability scanners",
+      "automerge": false
+    },
+    {
+      "description": "The sources the backend base image compiles (Mesa, SPIRV-LLVM-Translator, IO::Compress::Brotli). Renovate moves the version ARG but not the SHA-256 ARG under it, so the image-backend-check build fails until the new checksum is copied in by hand (apps/docs/docs/development/vulnerability-scanning.md). One group, never automerged. Trivy cannot see these files, so these pull requests are how their fixes reach the image.",
+      "matchPackageNames": ["mesa/mesa", "KhronosGroup/SPIRV-LLVM-Translator", "IO::Compress::Brotli"],
+      "groupName": "backend base sources",
+      "automerge": false
+    },
+    {
+      "description": "SPIRV-LLVM-Translator releases one branch per LLVM major (v23.x builds against LLVM 23 only), and the mesa-vulkan stage installs llvm-23. Move to the next major together with the llvm-NN, llvm-NN-dev, clang-NN and libclang-cpp-NN packages of that stage, by hand.",
+      "matchPackageNames": ["KhronosGroup/SPIRV-LLVM-Translator"],
+      "allowedVersions": "/^23\\./"
+    },
+    {
+      "description": "Every stage of the backend base image starts FROM wolfi-base:latest pinned by digest, so a digest update rebuilds the base from scratch (Mesa included, about an hour per architecture in image-backend-check). Its own pull request, never automerged, refreshed once a week.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["cgr.dev/chainguard/wolfi-base"],
+      "matchUpdateTypes": ["digest"],
+      "groupName": "backend base image digest",
+      "schedule": ["* 0-5 * * 1"],
       "automerge": false
     }
   ]

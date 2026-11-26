@@ -36,6 +36,8 @@ The baseline is per file and code, not per finding, so a file listed for `BLE001
 
 <Since version="1.5.0" /> The supported Python versions are `requires-python` in `apps/backend/pyproject.toml`: 3.14, the Python of the Docker images (Wolfi's `python-3.14` package; Ubuntu 26.04 up to 1.6.0), the Windows standalone build and the prebuilt wheels (cp314). Ruff targets its floor, so it reports syntax 3.14 cannot parse, and the `test-backend` workflow runs the suite on 3.14 for every pull request. Python 3.15 waits for an onnxruntime release with cp315 wheels. Up to 1.4.0 the floor was 3.11 (the Windows build) and the images ran 3.12.
 
+`requires-python` is the only place that names the range: the floor is the lowest Python any build runs, the ceiling the first Python a dependency has no wheels for. `api/tests/infra/test_python_versions.py` keeps the images, the workflows and the `python_version` markers in the requirements files inside it, and fails when the Python of an image is missing from the `python` matrix of `test-backend.yml`; a second Python joins that matrix when `requires-python` widens again. Nothing installs the backend as a package, so `name` and `version` in `pyproject.toml` are only there because a `[project]` table needs them.
+
 ### Type checking
 
 The backend is type-checked with [mypy](https://mypy.readthedocs.io/) and the [django-stubs](https://github.com/typeddjango/django-stubs) and [djangorestframework-stubs](https://github.com/typeddjango/djangorestframework-stubs) plugins, which understand the ORM: a `null=True` field is `Optional`, custom managers and `<fk>_id` attributes are typed, and so are reverse relations. Run it from `apps/backend/`:

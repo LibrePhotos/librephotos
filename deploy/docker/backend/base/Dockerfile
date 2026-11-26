@@ -36,7 +36,8 @@ RUN curl -fsSL -o spirv-llvm-translator.tar.gz "https://github.com/KhronosGroup/
       -DLLVM_DIR="$(llvm-config --cmakedir)" \
       -DLLVM_SPIRV_INCLUDE_TESTS=OFF -DBUILD_SHARED_LIBS=OFF && \
     cmake --build spirv-llvm-translator/build && \
-    cmake --install spirv-llvm-translator/build
+    cmake --install spirv-llvm-translator/build && \
+    rm -rf spirv-llvm-translator spirv-llvm-translator.tar.gz
 RUN curl -fsSL -o mesa.tar.xz "https://archive.mesa3d.org/mesa-${MESA_VERSION}.tar.xz" && \
     echo "${MESA_SHA256}  mesa.tar.xz" | sha256sum -c - && \
     mkdir mesa && \
@@ -49,9 +50,10 @@ RUN curl -fsSL -o mesa.tar.xz "https://archive.mesa3d.org/mesa-${MESA_VERSION}.t
       -Dvalgrind=disabled -Dlibunwind=disabled -Dbuild-tests=false && \
     meson compile -C mesa/build && \
     meson install -C mesa/build --destdir /out && \
-    rm /out/usr/share/drirc.d/00-mesa-defaults.conf
+    rm /out/usr/share/drirc.d/00-mesa-defaults.conf && \
+    rm -rf mesa mesa.tar.xz
 
-FROM cgr.dev/chainguard/wolfi-base:latest@sha256:43f53fe2a02ba1a9484cc560ccf188da32f4a4b38055752514d78a3923ff05c8
+FROM cgr.dev/chainguard/wolfi-base:latest@sha256:43f53fe2a02ba1a9484cc560ccf188da32f4a4b38055752514d78a3923ff05c8 AS runtime
 
 RUN apk add --no-cache bash python-3.14 py3.14-pip perl libstdc++ vulkan-loader-libs mesa spirv-tools && \
     mkdir -p /usr/local/bin && \

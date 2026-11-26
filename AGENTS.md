@@ -29,7 +29,8 @@ A self-hosted photo manager. This is a monorepo; each app has its own stack and 
 - New or changed code carries no comments, docstrings included: names, types and tests explain it, and the
   why goes in the commit message, the PR or the docs. A line you touch loses its comment.
   `scripts/check-conventions.mjs` (CI: `conventions.yml`) fails on a comment on an added line; only shebangs,
-  `/// <reference>`, `@ts-check`, coding lines, `# raw-create:` and generated or vendored files pass.
+  `/// <reference>`, `@ts-check`, coding lines, `# raw-create:`, the `# vX.Y.Z` after a SHA-pinned `uses:` and
+  generated or vendored files pass.
 - Release notes follow `.github/release-notes-template.md`: plain "What's new for you" and "After you update"
   blocks above the technical part, UI labels from `locales/en`, no em dashes. They are written as a post in
   `apps/docs/blog/` and the GitHub release body is generated from it (`scripts/check-release-posts.mjs` in CI).

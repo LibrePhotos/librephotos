@@ -23,6 +23,7 @@ PROXY_DOCKERFILE = DOCKER_DIR / "proxy" / "Dockerfile"
 E2E_COMPOSE = COMPOSE_DIR / "docker-compose.e2e.yml"
 SCAN_IMAGES = WORKFLOWS_DIR / "scan-images.yml"
 SCAN_DEPENDENCIES = WORKFLOWS_DIR / "scan-dependencies.yml"
+BACKEND_CHECK = WORKFLOWS_DIR / "image-backend-check.yml"
 OSV_CONFIG = REPO_ROOT / "osv-scanner.toml"
 TRIVY_IGNORE = REPO_ROOT / ".trivyignore.yaml"
 
@@ -30,14 +31,19 @@ SERVER_MODULE = "github.com/halverneus/static-file-server/bin/serve"
 SERVER_VERSION_ARG = "STATIC_FILE_SERVER_VERSION"
 LONGEST_IGNORE = timedelta(days=183)
 SCANNER_PINS = {
-    SCAN_IMAGES: ("TRIVY_VERSION", "TRIVY_SHA256"),
-    SCAN_DEPENDENCIES: ("OSV_SCANNER_VERSION", "OSV_SCANNER_SHA256"),
+    SCAN_IMAGES: ("TRIVY_VERSION", ("TRIVY_SHA256",)),
+    BACKEND_CHECK: ("TRIVY_VERSION", ("TRIVY_SHA256", "TRIVY_ARM64_SHA256")),
+    SCAN_DEPENDENCIES: ("OSV_SCANNER_VERSION", ("OSV_SCANNER_SHA256",)),
 }
+BACKEND_IMAGES = ["librephotos-base", "librephotos", "librephotos-unified"]
+PLATFORMS = ["linux/amd64", "linux/arm64"]
 
 _EVEN_MINOR_ALPINE_SLIM = re.compile(r"^nginx:\d+\.\d*[02468]-alpine-slim$")
 _RELEASE = re.compile(r"^v\d+\.\d+\.\d+$")
 _SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_BUILT_TAG = re.compile(r"\bdocker build\b.*?\s-t\s+(\S+)", re.DOTALL)
+_TRIVY_SCAN = re.compile(r'trivy"? image\b')
 
 
 def _arguments(instructions: list[tuple[str, str]], keyword: str) -> list[str]:
@@ -127,6 +133,39 @@ def workflow_env(text: str) -> dict[str, str]:
     return {str(k): str(v) for k, v in (data.get("env") or {}).items()}
 
 
+def _built_tags(step: dict[str, object]) -> list[str]:
+    options = step.get("with") or {}
+    if isinstance(options, dict) and "docker/build-push-action@" in str(
+        step.get("uses", "")
+    ):
+        return str(options.get("tags", "")).split()
+    return _BUILT_TAG.findall(str(step.get("run", "")))
+
+
+def backend_check_problems(workflow: dict[object, object]) -> list[str]:
+    triggers = workflow.get("on", workflow.get(True)) or {}
+    paths = triggers["pull_request"]["paths"]
+    problems = []
+    if ".trivyignore.yaml" not in paths:
+        problems.append("a change to .trivyignore.yaml does not run it")
+    steps = workflow["jobs"]["build"]["steps"]
+    scans = [
+        str(step["run"])
+        for step in steps
+        if _TRIVY_SCAN.search(str(step.get("run", "")))
+    ]
+    for scan in scans:
+        if "--exit-code 1" not in scan or "--ignorefile .trivyignore.yaml" not in scan:
+            problems.append(f"a scan does not fail on a finding: {scan.strip()}")
+    built = [tag for step in steps for tag in _built_tags(step)]
+    if not built:
+        problems.append("builds no image")
+    for tag in built:
+        if not any(scan.split()[-1] == tag for scan in scans):
+            problems.append(f"{tag} is built but not scanned")
+    return problems
+
+
 class WebImageDetectionTest(SimpleTestCase):
     frontend = (
         "FROM node:24-slim as builder\n"
@@ -175,6 +214,39 @@ class WebImageDetectionTest(SimpleTestCase):
             len(proxy_image_problems(good.replace("RUN apk upgrade --no-cache\n", ""))),
         )
 
+    def test_the_backend_check_scans_every_image_it_builds(self):
+        scan = (
+            '"$RUNNER_TEMP/trivy" image --scanners vuln --exit-code 1 --no-progress '
+            "--ignorefile .trivyignore.yaml {tag}"
+        )
+        workflow = {
+            True: {"pull_request": {"paths": ["deploy/**", ".trivyignore.yaml"]}},
+            "jobs": {
+                "build": {
+                    "steps": [
+                        {
+                            "uses": "docker/build-push-action@abc # v7",
+                            "with": {"tags": "base:pr"},
+                        },
+                        {"run": "docker build -f Dockerfile \\\n  -t backend:pr ."},
+                        {"run": scan.format(tag="base:pr")},
+                        {"run": scan.format(tag="backend:pr")},
+                    ]
+                }
+            },
+        }
+        self.assertEqual([], backend_check_problems(workflow))
+        steps = workflow["jobs"]["build"]["steps"]
+        steps.pop()
+        self.assertEqual(
+            ["backend:pr is built but not scanned"], backend_check_problems(workflow)
+        )
+        steps.append(
+            {"run": scan.format(tag="backend:pr").replace(" --exit-code 1", "")}
+        )
+        workflow[True]["pull_request"]["paths"].pop()
+        self.assertEqual(2, len(backend_check_problems(workflow)))
+
     def test_an_ignore_needs_a_near_expiry_and_a_reason(self):
         today = date(2026, 11, 26)
         entries = [
@@ -214,26 +286,46 @@ class WebImagesTest(SimpleTestCase):
         self.assertIn("127.0.0.1", test)
 
     def test_scanners_are_pinned_by_version_and_checksum(self):
-        for workflow, (version_key, checksum_key) in SCANNER_PINS.items():
+        for workflow, (version_key, checksum_keys) in SCANNER_PINS.items():
             with self.subTest(workflow=workflow.name):
                 text = workflow.read_text(encoding="utf-8")
                 env = workflow_env(text)
                 self.assertRegex(env.get(version_key, ""), _SEMVER)
-                self.assertRegex(env.get(checksum_key, ""), _SHA256)
-                self.assertIn(f'echo "${{{checksum_key}}}', text)
+                for checksum_key in checksum_keys:
+                    self.assertRegex(env.get(checksum_key, ""), _SHA256)
+                    self.assertRegex(text, rf"\$\{{?{checksum_key}\b")
                 self.assertIn("sha256sum -c -", text)
+
+    def test_every_workflow_runs_the_same_trivy(self):
+        pins = {
+            workflow.name: workflow_env(workflow.read_text(encoding="utf-8"))
+            for workflow, (version_key, _) in SCANNER_PINS.items()
+            if version_key == "TRIVY_VERSION"
+        }
+        self.assertEqual(
+            1,
+            len({(env["TRIVY_VERSION"], env["TRIVY_SHA256"]) for env in pins.values()}),
+        )
 
     def test_every_scanned_image_rebuilds_its_scan_on_a_pull_request(self):
         data = yaml.safe_load(SCAN_IMAGES.read_text(encoding="utf-8"))
         triggers = data.get("on", data.get(True))
         paths = triggers["pull_request"]["paths"]
         images = data["jobs"]["pull-request"]["strategy"]["matrix"]["image"]
-        published = data["jobs"]["published"]["strategy"]["matrix"]["image"]
-        self.assertEqual([f"librephotos-{image}" for image in images], published)
+        published = data["jobs"]["published"]["strategy"]["matrix"]
+        self.assertEqual(
+            [f"librephotos-{image}" for image in images] + BACKEND_IMAGES,
+            published["image"],
+        )
+        self.assertEqual(PLATFORMS, published["platform"])
         for image in images:
             with self.subTest(image=image):
                 self.assertTrue((DOCKER_DIR / image / "Dockerfile").is_file())
                 self.assertIn(f"deploy/docker/{image}/**", paths)
+
+    def test_the_backend_check_scans_the_images_it_builds(self):
+        workflow = yaml.safe_load(BACKEND_CHECK.read_text(encoding="utf-8"))
+        self.assertEqual([], backend_check_problems(workflow))
 
     def test_osv_ignores_expire_and_name_their_blocker(self):
         config = tomllib.loads(OSV_CONFIG.read_text(encoding="utf-8"))
