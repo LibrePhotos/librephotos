@@ -115,18 +115,22 @@ Paste these into **Store listings** > **English**. They lead with what the built
 
 > LibrePhotos Viewer opens your pictures the moment you double-click them: JPEG, PNG, WebP, TIFF, JPEG XL and camera RAW files from Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax and DNG with its own decoders, HEIC and AVIF through the Windows image extensions, plus MP4 and MOV videos.
 >
-> Rate, caption and tag pictures without changing them. Your edits go into XMP sidecar files next to each picture, which digiKam, darktable, Lightroom and LibrePhotos read too, so nothing is locked into this app.
+> Rate, caption and tag pictures without changing them. Your edits go into XMP sidecar files next to each picture, which digiKam, darktable and LibrePhotos read too, so nothing is locked into this app.
 >
 > Add your folders to a library to browse them as a timeline and search them by file name, folder, date, camera, caption or keyword. The library follows your folders as you add, move and delete pictures.
 >
 > No account, no subscription, no ads, no telemetry. Your pictures stay where they are.
 >
 > Run your own LibrePhotos server? Sign in to back up your folders to it and see the people, albums and places it found. LibrePhotos is free, open-source software (MIT license).
+>
+> HEIC and HEIF pictures need the HEIF Image Extensions and the HEVC Video Extensions from the Microsoft Store, and AVIF pictures the free AV1 Video Extension. Many PCs come with them; without them, the app cannot show these pictures.
+>
+> Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Adobe, Microsoft and Windows are trademarks of their respective owners. LibrePhotos is not affiliated with or endorsed by them.
 
 **Product features** (one per line)
 
 > Opens camera RAW and JPEG XL pictures with its own decoders, no extra codecs needed
-> Opens HEIC and AVIF pictures through the Windows image extensions
+> Opens HEIC and AVIF pictures through the Windows image extensions (HEIF, HEVC and AV1 extensions)
 > Rate, caption and tag pictures in XMP sidecars other photo apps read
 > A library of your own folders with a timeline and search
 > Zoom, rotate, slideshow and keyboard shortcuts for going through a folder fast

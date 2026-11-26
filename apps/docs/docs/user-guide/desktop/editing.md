@@ -47,7 +47,7 @@ Each panel shows where its picture's edits go, under **Edits are saved** in **De
 
 ### The XMP sidecar
 
-The sidecar is the file LibrePhotos itself writes when **Write edits to files** is set to the sidecar, and the one digiKam, darktable and Lightroom use:
+The sidecar is the file LibrePhotos itself writes when **Write edits to files** is set to the sidecar, and the one digiKam and darktable use (Lightroom only reads `IMG_1234.xmp`, so it sees the app's edits when such a sidecar was there already):
 
 - An existing sidecar is updated: `IMG_1234.xmp` first, then `IMG_1234.jpg.xmp`, as LibrePhotos reads them. Everything else in it (other apps' settings, history, labels, other languages of the caption) is kept.
 - Without one, the app makes `IMG_1234.jpg.xmp`, named after the whole file name, so a RAW file and the JPEG next to it (`IMG_1234.CR2` and `IMG_1234.JPG`) do not share one by accident.

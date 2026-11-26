@@ -7,6 +7,7 @@ import { parseArgs } from "node:util";
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(here, "..", "..");
 const tauriRoot = join(appRoot, "src-tauri");
+export const NOTICES_NAME = "THIRD-PARTY-NOTICES.txt";
 
 export const PLACEHOLDERS = {
   name: "PLACEHOLDER.LibrePhotosViewer",
@@ -123,7 +124,10 @@ export function packageNames(version, arch) {
   return { msix: `${stem}.msix`, upload: `${stem}.msixupload` };
 }
 
-function pack({ exe, version, out, arch, requireIdentity }) {
+function pack({ exe, notices, version, out, arch, requireIdentity }) {
+  if (!existsSync(notices)) {
+    throw new Error(`the third-party notices ${notices} are missing: run node apps/desktop/scripts/notices/generate.mjs`);
+  }
   const config = readTauriConfig();
   const identity = identityFrom(process.env);
   const missing = placeholdersIn(identity);
@@ -139,6 +143,7 @@ function pack({ exe, version, out, arch, requireIdentity }) {
   mkdirSync(join(layout, "Assets"), { recursive: true });
   const executable = basename(exe);
   copyFileSync(exe, join(layout, executable));
+  copyFileSync(notices, join(layout, NOTICES_NAME));
   run("powershell", [
     "-NoProfile",
     "-ExecutionPolicy",
@@ -193,6 +198,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const { values } = parseArgs({
     options: {
       exe: { type: "string" },
+      notices: { type: "string", default: join(appRoot, "public", NOTICES_NAME) },
       version: { type: "string" },
       out: { type: "string", default: "dist-msix" },
       arch: { type: "string", default: "x64" },
@@ -200,13 +206,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     },
   });
   if (!values.exe || !values.version) {
-    console.error("usage: node pack.mjs --exe <librephotos-viewer.exe> --version <X.Y.Z> [--out <dir>] [--arch x64] [--require-identity]");
+    console.error("usage: node pack.mjs --exe <librephotos-viewer.exe> --version <X.Y.Z> [--notices <THIRD-PARTY-NOTICES.txt>] [--out <dir>] [--arch x64] [--require-identity]");
     process.exit(2);
   }
   try {
     mkdirSync(values.out, { recursive: true });
     pack({
       exe: resolve(values.exe),
+      notices: resolve(values.notices),
       version: values.version,
       out: resolve(values.out),
       arch: values.arch,
