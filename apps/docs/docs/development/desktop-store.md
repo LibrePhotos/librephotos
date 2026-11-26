@@ -104,8 +104,42 @@ The first submission is done by hand in [Partner Center](https://partner.microso
 
    > The app works without an account or a server: open any JPEG, PNG, HEIC or RAW picture with it (or start it and add a folder of pictures in the library). Connecting to a LibrePhotos server is optional; it is the user's own self-hosted server (https://docs.librephotos.com), so there is no test account to provide. The app has no in-app purchases and collects no telemetry.
 
-7. **Privacy policy.** The Store requires one because the app can connect to a server and, if the user turns the map on, loads map tiles from OpenStreetMap. It has to say: no telemetry and no analytics; pictures, the library and edits stay on the computer and in sidecars; with a server connected, pictures and edits go only to the server the user chose, and the sign-in token is kept in the Credential Manager; with the map on, `tile.openstreetmap.org` sees the approximate location of the pictures shown. The page does not exist yet; add it to the docs and link it in **Properties**.
+7. **Privacy policy.** The Store requires one because the app can connect to a server and, if the user turns the map on, loads map tiles from OpenStreetMap. Enter `https://docs.librephotos.com/docs/user-guide/desktop/privacy` in **Properties**. The page is [user-guide/desktop/privacy.md](../user-guide/desktop/privacy.md): update it in the same PR as any change to what the app sends, such as a new online service, crash reporting or an update check.
 8. **Submit.** Certification usually takes one to three business days.
+
+### Store listing text
+
+Paste these into **Store listings** > **English**. They lead with what the built-in Photos app lacks (camera RAW, no account, your own folders) and keep the server optional, so the app reads as complete on its own.
+
+**Description**
+
+> LibrePhotos Viewer opens your pictures the moment you double-click them: JPEG, PNG, WebP, TIFF, JPEG XL and camera RAW files from Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax and DNG with its own decoders, HEIC and AVIF through the Windows image extensions, plus MP4 and MOV videos.
+>
+> Rate, caption and tag pictures without changing them. Your edits go into XMP sidecar files next to each picture, which digiKam, darktable, Lightroom and LibrePhotos read too, so nothing is locked into this app.
+>
+> Add your folders to a library to browse them as a timeline and search them by file name, folder, date, camera, caption or keyword. The library follows your folders as you add, move and delete pictures.
+>
+> No account, no subscription, no ads, no telemetry. Your pictures stay where they are.
+>
+> Run your own LibrePhotos server? Sign in to back up your folders to it and see the people, albums and places it found. LibrePhotos is free, open-source software (MIT license).
+
+**Product features** (one per line)
+
+> Opens camera RAW and JPEG XL pictures with its own decoders, no extra codecs needed
+> Opens HEIC and AVIF pictures through the Windows image extensions
+> Rate, caption and tag pictures in XMP sidecars other photo apps read
+> A library of your own folders with a timeline and search
+> Zoom, rotate, slideshow and keyboard shortcuts for going through a folder fast
+> Moves deleted pictures to the Recycle Bin
+> No account, no subscription, no ads, no telemetry
+> Optional backup to your own LibrePhotos server
+> Free and open source
+
+**Search terms**: `photo viewer`, `RAW viewer`, `HEIC viewer`, `image viewer`, `XMP`, `self-hosted`, `LibrePhotos`.
+
+**Screenshots** (at least 1366 x 768, PNG): the shots in `apps/docs/static/img/shots/desktop/` are 1600 x 1025; convert them with `magick <name>.webp <name>.png`. Use the info panel shot first, then editing details. Add a shot of the library timeline once the user guide has one. They use the demo library, no personal pictures.
+
+**Privacy policy URL**: `https://docs.librephotos.com/docs/user-guide/desktop/privacy`. **Website**: `https://docs.librephotos.com/docs/user-guide/desktop/`. **Support contact**: `https://github.com/LibrePhotos/librephotos/issues`.
 
 ### Later updates from CI
 
