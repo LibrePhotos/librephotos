@@ -42,11 +42,20 @@ To update, run the installer of the newer release; your library, settings and ed
 
 macOS and Linux builds don't exist yet. To build the app yourself, see [Development: Desktop app](../../development/desktop.md).
 
+### The Microsoft Store build
+
+<Since version="1.7.0" /> The app is being prepared for the Microsoft Store and is not listed there yet. The Store build is the same app; Windows installs, updates and removes it, and it needs no administrator rights.
+
+- **Making it your photo viewer:** the Store build never changes which app opens your pictures either. Choose **Set as default photo viewer** in the **⋮** menu of the viewer, or go to **Settings** → **Apps** → **Default apps** → **LibrePhotos Viewer**, and pick it for the formats you want. It is also listed under **Open with**.
+- **Switching from the installer:** keep the installer build installed until you have started the Store build once. On its first start the Store build copies your library, search index and settings from the installer build (once; caches are rebuilt), and you stay signed in to your server. Then uninstall the installer build. Leave **Delete the application data** unticked to keep its copy of the library, or tick it to remove that copy. From then on the two copies are separate.
+- **Both installed:** this works, but **Open with** lists LibrePhotos Viewer twice and only one of them runs at a time: a picture you open with the other one shows up in the one already running.
+- **Removing it** from **Settings** → **Apps** → **Installed apps** deletes the Store build's library, caches and settings with it. Your pictures and their sidecars stay.
+
 ## Where the app keeps its data
 
 | What | Where |
 | --- | --- |
-| The library, search index and settings | `%LOCALAPPDATA%\com.librephotos.viewer\local.db` |
+| The library, search index and settings | `%LOCALAPPDATA%\com.librephotos.viewer\local.db`; for the [Microsoft Store build](#the-microsoft-store-build) `%LOCALAPPDATA%\Packages\<LibrePhotos Viewer's package>\LocalCache\Local\com.librephotos.viewer\local.db` |
 | Thumbnails and zoom tiles | `%LOCALAPPDATA%\com.librephotos.viewer\cache` and `tiles` |
 | Your server sign-in | the server address and user in `settings.json` next to the database; the sign-in token in the Windows Credential Manager |
 | Ratings, captions, keywords and dates you edit | next to each picture in an XMP sidecar by default, see [Where edits are saved](./editing.md#where-edits-are-saved) |
