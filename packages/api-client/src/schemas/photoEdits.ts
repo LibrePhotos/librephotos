@@ -47,7 +47,7 @@ export const EditCurvePoints = z
   .min(2)
   .max(16)
   .refine(points => points.every((point, i) => i === 0 || point[0] > (points[i - 1]?.[0] ?? -1)), {
-    message: "x must be strictly increasing",
+    error: "x must be strictly increasing",
   });
 export type EditCurvePoints = z.infer<typeof EditCurvePoints>;
 
