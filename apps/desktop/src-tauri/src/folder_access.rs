@@ -245,7 +245,10 @@ mod tests {
             let dir = std::env::temp_dir().join(format!(
                 "lpview-access-{tag}-{}-{}",
                 std::process::id(),
-                chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos()
             ));
             std::fs::create_dir_all(&dir).unwrap();
             Scratch(dir)
