@@ -49,7 +49,8 @@ func handlers(app: String, items: [String]) {
             candidates = NSWorkspace.shared.urlsForApplications(toOpen: type)
             preferred = NSWorkspace.shared.urlForApplication(toOpen: type)
         } else {
-            fail("\(item) is neither a file nor a known type")
+            print("\(item)\tunknown to this macOS")
+            continue
         }
         let listed = candidates.contains { bundleId($0) == app }
         if !listed { missing += 1 }

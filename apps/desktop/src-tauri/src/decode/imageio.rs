@@ -223,7 +223,7 @@ fn opaque(alpha_info: u32) -> bool {
 }
 
 pub fn unpremultiply(rgba: &mut [u8]) {
-    for px in rgba.chunks_exact_mut(4) {
+    for px in rgba.as_chunks_mut::<4>().0 {
         let a = u32::from(px[3]);
         if a == 0 || a == 255 {
             continue;
@@ -236,7 +236,7 @@ pub fn unpremultiply(rgba: &mut [u8]) {
 
 pub fn drop_padding(rgbx: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(rgbx.len() / 4 * 3);
-    for px in rgbx.chunks_exact(4) {
+    for px in rgbx.as_chunks::<4>().0 {
         out.extend_from_slice(&px[..3]);
     }
     out

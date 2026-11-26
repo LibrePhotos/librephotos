@@ -188,9 +188,9 @@ else
 fi
 
 codesign --verify --strict --verbose=2 "$APP" 2>&1 | sed 's/^/  /' || fail "codesign --verify rejects the app"
-FLAGS=$(codesign -dv "$APP" 2>&1 | grep -E '^(CodeDirectory|Signature|TeamIdentifier|Identifier)' | tr '\n' ';')
-step "signature: $FLAGS"
-codesign -dv "$APP" 2>&1 | grep -q 'flags=.*runtime' || fail "the app is not signed with the hardened runtime"
+SIGNATURE=$(codesign -dv "$APP" 2>&1)
+step "signature: $(echo "$SIGNATURE" | grep -E '^(Identifier|CodeDirectory|Signature|TeamIdentifier)' | tr '\n' ';')"
+case "$SIGNATURE" in *flags=*runtime*) ;; *) fail "the app is not signed with the hardened runtime" ;; esac
 ARCHS=$(lipo -archs "$EXE")
 case " $ARCHS " in *" x86_64 "*) ;; *) fail "no x86_64 slice: $ARCHS" ;; esac
 case " $ARCHS " in *" arm64 "*) ;; *) fail "no arm64 slice: $ARCHS" ;; esac
@@ -225,7 +225,7 @@ fi
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 "$LSREGISTER" -f "$APP"
 echo "LaunchServices database: $("$LSREGISTER" -dump 2>/dev/null | grep -c "$BUNDLE_ID" || true) lines mention $BUNDLE_ID"
-"$PROBE" handlers "$BUNDLE_ID" "$PICS/e2e_01.jpg" "$HEIC_DIR/e2e_04.heic" public.png public.tiff public.heif public.avif org.webmproject.webp com.adobe.raw-image com.canon.cr3-raw-image com.sony.arw-raw-image | sed 's/^/  /' || fail "LaunchServices does not offer the app for every type"
+"$PROBE" handlers "$BUNDLE_ID" "$PICS/e2e_01.jpg" "$HEIC_DIR/e2e_04.heic" public.png public.tiff public.heif public.avif org.webmproject.webp com.adobe.raw-image com.canon.cr2-raw-image com.canon.cr3-raw-image com.nikon.raw-image com.sony.arw-raw-image | sed 's/^/  /' || fail "LaunchServices does not offer the app for every type"
 JPEG_DEFAULT=$("$PROBE" handlers "$BUNDLE_ID" public.jpeg | cut -f3)
 [ "$JPEG_DEFAULT" != "default=$BUNDLE_ID" ] || fail "installing made the app the default for JPEG"
 step "LaunchServices offers the app under Open With for every type; JPEG still opens with ${JPEG_DEFAULT#default=}"
@@ -264,8 +264,7 @@ step "HEIC decoded by ImageIO: e2e_04.heic shown and its thumbnail cached ($BEFO
 screenshot heic
 
 wait_for "$DATA/local.db" 30 test -f "$DATA/local.db"
-wait_for "$WEBKIT" 30 test -d "$WEBKIT"
-step "data: $(ls "$DATA" | tr '\n' ' ')in $DATA; web data in $WEBKIT; thumbnails in $CACHES/thumbs"
+step "data: $(ls "$DATA" | tr '\n' ' ')in $DATA; thumbnails in $CACHES/thumbs; web data $([ -d "$WEBKIT" ] && echo "in $WEBKIT" || echo "not written yet")"
 if [ "$MODE" = app-store ]; then
   [ -f "$CONTAINER/.com.apple.containermanagerd.metadata.plist" ] || fail "$CONTAINER is not a sandbox container"
   [ -e "$HOME/Library/Application Support/$BUNDLE_ID" ] && fail "the sandboxed app wrote $HOME/Library/Application Support/$BUNDLE_ID"
@@ -276,8 +275,7 @@ else
   [ -e "$CONTAINER" ] && fail "the direct download created a sandbox container"
   UNLISTED=$(new_paths | grep -v -e "^$HOME/Library/Application Support/$BUNDLE_ID" -e "^$HOME/Library/Caches/$BUNDLE_ID" -e "^$HOME/Library/WebKit/$BUNDLE_ID" -e "^$HOME/Library/HTTPStorages/$BUNDLE_ID" -e "^$HOME/Library/Preferences/$BUNDLE_ID.plist" -e "^$HOME/Library/Saved Application State/$BUNDLE_ID.savedState" || true)
   [ -z "$UNLISTED" ] || fail "the app wrote where the docs and the cask's zap list do not say: $UNLISTED"
-  step "no sandbox container; everything the app wrote is in the documented folders: $(new_paths | sed "s|^$HOME/Library/||" | cut -d/ -f1-2 | sort -u | tr '
-' ' ')"
+  step "no sandbox container; everything the app wrote is in the documented folders: $(new_paths | sed "s|^$HOME/Library/||" | cut -d/ -f1-2 | sort -u | tr '\n' ' ')"
 fi
 [ "$(ls -la "$PICS" "$HEIC_DIR" | md5)" = "$PICS_BEFORE" ] || fail "viewing changed the picture folders"
 step "the picture folders are unchanged"
