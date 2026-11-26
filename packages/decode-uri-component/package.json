@@ -1,0 +1,15 @@
+{
+  "name": "@librephotos/decode-uri-component",
+  "version": "0.5.1",
+  "description": "CommonJS port of decode-uri-component 0.5.1 for query-string 7 under expo-router (Expo SDK 57). Delete it, and its override in the root package.json, once expo-router no longer depends on query-string.",
+  "private": true,
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test src/index.test.js"
+  }
+}

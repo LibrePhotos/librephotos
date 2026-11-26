@@ -47,3 +47,5 @@ jobs:
         run: npm run lint --workspace apps/mobile
       - name: test (jest — rn + node projects)
         run: npm run test --workspace apps/mobile
+      - name: test (decode-uri-component port)
+        run: npm run test --workspace packages/decode-uri-component
