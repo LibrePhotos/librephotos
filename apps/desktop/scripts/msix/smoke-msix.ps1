@@ -30,18 +30,33 @@ namespace LpvSmoke {
   [ComImport, Guid("2e941141-7f97-4756-ba1d-9decde894a3d"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
   interface IApplicationActivationManager {
     [PreserveSig] int ActivateApplication([MarshalAs(UnmanagedType.LPWStr)] string appUserModelId, [MarshalAs(UnmanagedType.LPWStr)] string arguments, int options, out uint processId);
-    [PreserveSig] int ActivateForFile([MarshalAs(UnmanagedType.LPWStr)] string appUserModelId, IntPtr itemArray, [MarshalAs(UnmanagedType.LPWStr)] string verb, out uint processId);
   }
 
   [ComImport, Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")]
   class ApplicationActivationManager {}
 
   public static class Activation {
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    static extern int SHCreateItemFromParsingName(string path, IntPtr bindContext, ref Guid riid, out IntPtr item);
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct ShellExecuteInfo {
+      public int cbSize;
+      public uint fMask;
+      public IntPtr hwnd;
+      public string lpVerb;
+      public string lpFile;
+      public string lpParameters;
+      public string lpDirectory;
+      public int nShow;
+      public IntPtr hInstApp;
+      public IntPtr lpIDList;
+      public string lpClass;
+      public IntPtr hkeyClass;
+      public uint dwHotKey;
+      public IntPtr hIcon;
+      public IntPtr hProcess;
+    }
 
-    [DllImport("shell32.dll")]
-    static extern int SHCreateShellItemArrayFromShellItem(IntPtr item, ref Guid riid, out IntPtr array);
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool ShellExecuteExW(ref ShellExecuteInfo info);
 
     [DllImport("user32.dll")]
     static extern bool GetWindowRect(IntPtr window, out Rect rect);
@@ -59,22 +74,15 @@ namespace LpvSmoke {
       return pid;
     }
 
-    public static uint OpenFile(string aumid, string path) {
-      Guid itemId = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe");
-      Guid arrayId = new Guid("b63ea76d-1f85-456f-a19c-48159efa858b");
-      IntPtr item;
-      IntPtr array;
-      Marshal.ThrowExceptionForHR(SHCreateItemFromParsingName(path, IntPtr.Zero, ref itemId, out item));
-      Marshal.ThrowExceptionForHR(SHCreateShellItemArrayFromShellItem(item, ref arrayId, out array));
-      try {
-        var manager = (IApplicationActivationManager)new ApplicationActivationManager();
-        uint pid;
-        Marshal.ThrowExceptionForHR(manager.ActivateForFile(aumid, array, "open", out pid));
-        return pid;
-      } finally {
-        Marshal.Release(array);
-        Marshal.Release(item);
-      }
+    public static void OpenWith(string progId, string path) {
+      var info = new ShellExecuteInfo();
+      info.cbSize = Marshal.SizeOf(typeof(ShellExecuteInfo));
+      info.fMask = 0x1 | 0x100 | 0x400;
+      info.lpVerb = "open";
+      info.lpFile = path;
+      info.lpClass = progId;
+      info.nShow = 1;
+      if (!ShellExecuteExW(ref info)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
     }
 
     public static int[] Bounds(IntPtr window) {
@@ -308,8 +316,8 @@ $running = @(Get-PackagedProcesses $installed.InstallLocation)
 if ($running.Count -ne 1) { Fail "expected one packaged process, found $($running.Count)" }
 Save-Screenshot $first 'msix-viewer'
 
-$forwarder = [int][LpvSmoke.Activation]::OpenFile($aumid, $SecondPicture)
-Step "opened $(Split-Path $SecondPicture -Leaf) through the file association (pid $forwarder)"
+[LpvSmoke.Activation]::OpenWith($progIds['.jpg'], $SecondPicture)
+Step "opened $(Split-Path $SecondPicture -Leaf) with the package's .jpg ProgID $($progIds['.jpg']), as Open with does"
 Wait-Title $first $SecondPicture
 Wait-For 'the second activation to hand over and exit' 30 { @(Get-PackagedProcesses $installed.InstallLocation).Count -eq 1 } | Out-Null
 Step 'the running viewer took the file: single instance works packaged'
@@ -339,7 +347,7 @@ $installed = Install-Package
 $aumid = "$($installed.PackageFamilyName)!App"
 $progIds = Assert-Registered $installed
 $root = Join-Path $env:LOCALAPPDATA "Packages\$($installed.PackageFamilyName)\LocalCache\Local\$DataName"
-$opened = [int][LpvSmoke.Activation]::OpenFile($aumid, $Picture)
+[LpvSmoke.Activation]::OpenWith($progIds['.jpg'], $Picture)
 $viewer = Wait-For 'the packaged viewer to start' 60 { Get-PackagedProcesses $installed.InstallLocation | Select-Object -First 1 }
 Wait-Title ([int]$viewer.ProcessId) $Picture
 
@@ -355,7 +363,7 @@ $after = Get-TreeSnapshot $Installer
 if (Compare-Object $before $after) {
   Fail "the packaged app changed the installer build's folder:`n$((Compare-Object $before $after | Out-String))"
 }
-Step "imported (pid $opened opened it): library and settings carried over once, the installer build's folder untouched"
+Step "imported: library and settings carried over once, the installer build's folder untouched"
 
 $other = Start-Process -FilePath $Exe -ArgumentList "`"$SecondPicture`"" -PassThru
 Wait-Title ([int]$viewer.ProcessId) $SecondPicture
