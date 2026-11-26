@@ -107,12 +107,13 @@ main thread to `macos_app.MainThread`: it runs queued work until the icon starts
 and every later change to the icon goes there with `AppHelper.callAfter`. uvicorn skips its signal handlers
 off the main thread, so `macos_app.install_quit_handlers` handles SIGTERM (PyObjC's `MachSignals`, which
 work inside the run loop) and the quit Apple Event (`applicationShouldTerminate:` answers
-`NSTerminateLater` and replies once the server stopped), both like **Quit LibrePhotos**. Dialogs are
-`osascript`; the tray's notifications come from pystray.
+`NSTerminateLater` and replies once the server stopped), both like **Quit LibrePhotos**. Dialogs and
+notifications are `osascript`, started without waiting so a failure never stops the server.
 
 Windows ends the children with a job object. macOS has none, so the root exports `LIBREPHOTOS_ROOT_PID`
-and every child (services, workers, start-up commands) watches it (`watch_root`) and ends itself when the
-root is gone, also after `kill -9`.
+and every child (services, workers, start-up commands) watches it (`librephotos/root_watch.py`, started
+by `bootstrap_process` and by the services' `serve_forever`). When the root is gone, also after
+`kill -9`, a child ends its own children first (ExifTool's Perl) and then itself.
 
 ## Updating an app bundle
 

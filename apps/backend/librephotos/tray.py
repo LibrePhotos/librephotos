@@ -261,6 +261,11 @@ class Tray:
     def notify(self, title: str, message: str) -> None:
         """A Windows notification ("toast") from the icon."""
         self._shown.wait(_SHOWN_TIMEOUT_SECONDS)
+        if self.menu_bar is not None:
+            from librephotos.macos_app import notify
+
+            notify(title, message)
+            return
         self.icon.notify(message, title)
 
     def stop(self) -> None:

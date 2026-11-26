@@ -188,6 +188,26 @@ class OpenedApp(App):
             command += ["--env", f"{key}={value}"]
         step(f"opening {APP} the way Finder does: {' '.join(command)}")
         run_tool(command, timeout=60)
+        wait_until(roots, 60, f"{APP.name} to start")
+
+
+def send_quit_event() -> tuple[int, str]:
+    script = (
+        "with timeout of 60 seconds\n"
+        f'tell application id "{release_layout.BUNDLE_ID}" to quit\n'
+        "end timeout"
+    )
+    try:
+        completed = subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True,
+            text=True,
+            timeout=90,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return 124, "osascript got no answer in 90 s"
+    return completed.returncode, completed.stderr.strip()
 
 
 @dataclass
@@ -454,6 +474,7 @@ def update_in_place(context: Context) -> None:
         "the finisher to finish",
     )
     step(f"update.log:\n{update_log()}")
+    wait_until(lambda: len(roots()) == 1, EXIT_TIMEOUT_SECONDS, "the finisher to exit")
     check(release_version(APP) == NEXT_VERSION, f"{APP} is not {NEXT_VERSION}")
     check(release_version(ROLLBACK) == VERSION, f"{ROLLBACK} is not {VERSION}")
     check(not staged.exists(), f"{staged} is still there")
@@ -541,18 +562,8 @@ def quit_scenario(context: Context) -> None:
     step("quitting through Apple Events, as the menu bar's Quit and a logout do")
     context.app.open()
     wait_ready(context)
-    quit_event = subprocess.run(
-        [
-            "osascript",
-            "-e",
-            f'tell application id "{release_layout.BUNDLE_ID}" to quit',
-        ],
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=False,
-    )
-    step(f"osascript quit: exit {quit_event.returncode} {quit_event.stderr.strip()}")
+    quit_code, quit_error = send_quit_event()
+    step(f"osascript quit: exit {quit_code} {quit_error}")
     try:
         wait_all_gone(
             EXIT_TIMEOUT_SECONDS, "every process to exit after the quit event"
@@ -560,7 +571,7 @@ def quit_scenario(context: Context) -> None:
         step("the quit Apple Event stopped every process")
     except SmokeError:
         check(
-            quit_event.returncode != 0,
+            quit_code != 0,
             "the quit event was delivered but the app kept running",
         )
         step("this runner refused the Apple Event; SIGTERM ends the instance instead")

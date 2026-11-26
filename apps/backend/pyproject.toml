@@ -119,6 +119,7 @@ allow-star-arg-any = true
 "librephotos/move_to_installed.py" = ["TID251"]
 "librephotos/macos_app.py" = ["TID251"]
 "librephotos/login_item.py" = ["TID251"]
+"librephotos/root_watch.py" = ["TID251"]
 # They pick DJANGO_SETTINGS_MODULE from DEBUG before any settings exist.
 "manage.py" = ["TID251"]
 "librephotos/wsgi.py" = ["TID251"]

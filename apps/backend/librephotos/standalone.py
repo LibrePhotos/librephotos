@@ -28,7 +28,6 @@ import json
 import logging
 import os
 import re
-import signal
 import subprocess
 import sys
 import threading
@@ -39,7 +38,13 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from librephotos import installation, instance_lock, release_layout, startup_page
+from librephotos import (
+    installation,
+    instance_lock,
+    release_layout,
+    root_watch,
+    startup_page,
+)
 
 if TYPE_CHECKING:
     # Only for annotations: the GUI and the server modules are imported lazily
@@ -72,9 +77,6 @@ SUBCOMMANDS = (
     "finish-move",
     "start-at-login",
 )
-ROOT_PID_ENV = "LIBREPHOTOS_ROOT_PID"
-ROOT_POLL_SECONDS = 2.0
-ROOT_GONE_GRACE_SECONDS = 20.0
 # Written next to the binary by scripts/build_standalone.py: the release and
 # commit it was built from, which the Docker images get from build arguments.
 BUILD_INFO_NAME = "build_info.json"
@@ -281,8 +283,7 @@ def bootstrap_process() -> None:
     there, as __parents_main__, without calling main()). From source, and on
     other platforms, it does nothing.
     """
-    if sys.platform != "win32":
-        watch_root()
+    root_watch.watch_root()
     if standalone_executable() is None:
         return
     if sys.platform == "darwin":
@@ -303,47 +304,6 @@ def _bootstrap_macos() -> None:
     console_log = os.environ.get(CONSOLE_LOG_ENV)
     if console_log and _output_is_discarded():
         _redirect_output(console_log, "a")
-
-
-def root_pid(environ: dict[str, str] | os._Environ[str]) -> int | None:
-    value = environ.get(ROOT_PID_ENV, "")
-    if not value.isdigit():
-        return None
-    pid = int(value)
-    return None if pid == os.getpid() else pid
-
-
-def watch_root() -> threading.Thread | None:
-    pid = root_pid(os.environ)
-    if pid is None:
-        return None
-    thread = threading.Thread(
-        target=exit_with_root, args=(pid,), daemon=True, name="root-watch"
-    )
-    thread.start()
-    return thread
-
-
-def root_alive(pid: int) -> bool:
-    import psutil
-
-    try:
-        return psutil.Process(pid).status() != psutil.STATUS_ZOMBIE
-    except psutil.Error:
-        return False
-
-
-def exit_with_root(
-    pid: int,
-    alive: Callable[[int], bool] = root_alive,
-    sleep: Callable[[float], None] = time.sleep,
-) -> None:
-    while alive(pid):
-        sleep(ROOT_POLL_SECONDS)
-    print(f"LibrePhotos: process {pid} that started this one is gone", flush=True)
-    os.kill(os.getpid(), signal.SIGTERM)
-    sleep(ROOT_GONE_GRACE_SECONDS)
-    os._exit(1)
 
 
 def install_root() -> str:
@@ -606,7 +566,7 @@ def _take_children_down_with_us() -> None:
     mechanism that follows the process tree regardless of how the root died.
     """
     if sys.platform != "win32":
-        os.environ[ROOT_PID_ENV] = str(os.getpid())
+        root_watch.mark_root()
         return
     import ctypes
     from ctypes import wintypes

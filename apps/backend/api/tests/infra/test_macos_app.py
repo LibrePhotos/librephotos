@@ -13,7 +13,7 @@ from django.test import SimpleTestCase
 
 from api.tests.infra.deploy_files import BACKEND_ROOT, REPO_ROOT
 from api.tests.stubs import load_backend_file
-from librephotos import login_item, macos_app, release_layout, standalone
+from librephotos import login_item, macos_app, release_layout, root_watch, standalone
 from librephotos.release_layout import MACOS_ARM64
 from librephotos.updater import Launch
 
@@ -46,6 +46,20 @@ class AppleScriptTest(SimpleTestCase):
         confirm = macos_app.confirm_script("Restart to update?", "A job runs.")
         self.assertIn('buttons {"Cancel", "Restart"}', confirm)
         self.assertIn('cancel button "Cancel"', confirm)
+
+    def test_messages_never_wait_and_never_fail(self):
+        with patch.object(macos_app.subprocess, "Popen") as popen:
+            macos_app.notify("LibrePhotos 1.8.0 is ready", 'Choose "Restart"')
+            macos_app.alert("Port 8000 is used")
+            popen.side_effect = OSError(2, "no osascript")
+            macos_app.notify("t", "x")
+        script = popen.call_args_list[0].args[0][2]
+        self.assertEqual(
+            script,
+            'display notification "Choose \\"Restart\\"" '
+            'with title "LibrePhotos 1.8.0 is ready"',
+        )
+        self.assertIn("display alert", popen.call_args_list[1].args[0][2])
 
     def test_confirm_is_yes_only_for_restart(self):
         with patch.object(macos_app.subprocess, "run") as run:
@@ -171,36 +185,43 @@ class LoginItemTest(SimpleTestCase):
 
 class StandaloneOnMacTest(SimpleTestCase):
     def test_the_root_process_is_read_from_the_environment(self):
-        self.assertEqual(standalone.root_pid({"LIBREPHOTOS_ROOT_PID": "123"}), 123)
+        self.assertEqual(root_watch.root_pid({"LIBREPHOTOS_ROOT_PID": "123"}), 123)
         self.assertIsNone(
-            standalone.root_pid({"LIBREPHOTOS_ROOT_PID": str(os.getpid())})
+            root_watch.root_pid({"LIBREPHOTOS_ROOT_PID": str(os.getpid())})
         )
-        self.assertIsNone(standalone.root_pid({"LIBREPHOTOS_ROOT_PID": "x"}))
-        self.assertIsNone(standalone.root_pid({}))
+        self.assertIsNone(root_watch.root_pid({"LIBREPHOTOS_ROOT_PID": "x"}))
+        self.assertIsNone(root_watch.root_pid({}))
 
     def test_a_child_ends_itself_when_the_root_is_gone(self):
         answers = iter([True, True, False])
         sleeps = []
         with (
-            patch.object(standalone.os, "kill") as kill,
-            patch.object(standalone.os, "_exit") as exit_now,
+            patch.object(root_watch.os, "kill") as kill,
+            patch.object(root_watch.os, "_exit") as exit_now,
+            patch.object(root_watch, "stop_children") as stop_children,
         ):
-            standalone.exit_with_root(7, lambda pid: next(answers), sleeps.append)
+            root_watch.exit_with_root(7, lambda pid: next(answers), sleeps.append)
+        stop_children.assert_called_once_with()
         kill.assert_called_once_with(os.getpid(), signal.SIGTERM)
         exit_now.assert_called_once_with(1)
         self.assertEqual(
             sleeps,
-            [standalone.ROOT_POLL_SECONDS] * 2 + [standalone.ROOT_GONE_GRACE_SECONDS],
+            [root_watch.ROOT_POLL_SECONDS] * 2 + [root_watch.ROOT_GONE_GRACE_SECONDS],
         )
 
     def test_a_process_that_does_not_exist_is_not_alive(self):
-        self.assertFalse(standalone.root_alive(2**22 + 12345))
-        self.assertTrue(standalone.root_alive(os.getpid()))
+        self.assertFalse(root_watch.root_alive(2**22 + 12345))
+        self.assertTrue(root_watch.root_alive(os.getpid()))
 
     def test_without_a_root_nothing_is_watched(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("LIBREPHOTOS_ROOT_PID", None)
-            self.assertIsNone(standalone.watch_root())
+            self.assertIsNone(root_watch.watch_root())
+
+    def test_the_root_marks_itself(self):
+        environ = {}
+        root_watch.mark_root(environ)
+        self.assertEqual(environ, {"LIBREPHOTOS_ROOT_PID": str(os.getpid())})
 
     @skipIf(os.name == "nt", "the null device is a POSIX file here")
     def test_output_to_the_null_device_is_discarded(self):

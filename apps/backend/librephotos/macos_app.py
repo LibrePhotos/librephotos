@@ -57,8 +57,26 @@ def launched_by_launch_services(environ: dict[str, str] | None = None) -> bool:
     return values.get("__CFBundleIdentifier") == release_layout.BUNDLE_ID
 
 
+def notification_script(title: str, message: str) -> str:
+    return (
+        f"display notification {applescript_text(message)} "
+        f"with title {applescript_text(title)}"
+    )
+
+
+def _osascript(script: str) -> None:
+    try:
+        subprocess.Popen([OSASCRIPT, "-e", script])
+    except OSError:
+        logger.warning("osascript could not show a message")
+
+
 def alert(message: str) -> None:
-    subprocess.Popen([OSASCRIPT, "-e", alert_script(message)])
+    _osascript(alert_script(message))
+
+
+def notify(title: str, message: str) -> None:
+    _osascript(notification_script(title, message))
 
 
 def confirm(title: str, text: str) -> bool:

@@ -277,7 +277,11 @@ def platform_options(version):
 def built_folder(output_dir):
     if sys.platform != "darwin":
         return output_dir / f"{ENTRY.stem}.dist"
-    bundles = sorted(output_dir.glob("*.app"))
+    bundles = sorted(
+        bundle
+        for bundle in output_dir.glob("*.app")
+        if bundle.name != "LibrePhotos Server.app"
+    )
     if len(bundles) != 1:
         sys.exit(
             f"expected one app bundle from Nuitka in {output_dir}, found {bundles}"
