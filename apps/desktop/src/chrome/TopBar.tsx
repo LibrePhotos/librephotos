@@ -29,7 +29,7 @@ import { IconButton } from "../ui/IconButton";
 import { Logo } from "../ui/Logo";
 import { Menu } from "../ui/Menu";
 import "./TopBar.css";
-import { shortcut } from "../platform";
+import { isMac, shortcut } from "../platform";
 
 export { IconButton };
 
@@ -215,7 +215,7 @@ export function TopBar({ file, index, count, infoOpen, fullscreen, favorite, act
               },
             ],
             [
-              { icon: IconAppWindow, label: "Set as default photo viewer", onSelect: actions.setDefaultViewer },
+              ...(isMac ? [] : [{ icon: IconAppWindow, label: "Set as default photo viewer", onSelect: actions.setDefaultViewer }]),
               { icon: IconEraser, label: "Clear thumbnail cache", onSelect: actions.clearCache },
             ],
           ]}

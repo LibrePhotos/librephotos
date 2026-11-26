@@ -419,6 +419,10 @@ export function App() {
         void editable.save({ rating: stars === editable.value.rating ? 0 : stars });
         return true;
       }
+      if (e.metaKey && key === "Backspace") {
+        requestDelete(e.shiftKey);
+        return true;
+      }
       switch (key) {
         case "ArrowLeft":
         case "PageUp":

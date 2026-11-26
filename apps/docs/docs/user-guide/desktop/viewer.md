@@ -13,6 +13,7 @@ The viewer shows one picture at a time, with the other pictures of its folder in
 ## Opening pictures
 
 - Double-click a picture in Explorer once the app is your default viewer, or open it with **Open with > LibrePhotos Viewer**. A second double-click while the app runs goes to the same window.
+  On a Mac, use **Open With** → **LibrePhotos Viewer** in Finder, or drop the picture on the app's Dock icon.
 - **Open** (`Ctrl+O`) in the top bar picks a file.
 - Drop a file onto the window.
 - Click a picture in the [library](./library.md).
@@ -41,10 +42,12 @@ The viewer opens what the app can show: JPEG, PNG, GIF, WebP, BMP, TIFF, HEIC an
 | `Ctrl+1` to `Ctrl+5` | Rate the picture 1 to 5 stars; the same key again, or `Ctrl+0`, clears the rating |
 | `R`, `Shift+R` | Rotate right or left. JPEG and TIFF files are turned by changing their orientation tag (no re-compression), PNG and BMP files are saved again without loss; other formats turn on screen only |
 | `Ctrl+C` | Copy the picture to the clipboard |
-| `Del` | Move the file to the Recycle Bin (asks first; `Shift+Del` does not ask) |
+| `Del` | Move the file to the Recycle Bin (asks first; `Shift+Del` does not ask). On a Mac `⌘⌫` moves it to the Trash |
 | `I` | Show or hide the info panel |
 
-The **⋮** menu holds the rest: **Show in folder**, **Add this folder to library**, **Upload to LibrePhotos** (while a server is connected), **Set as default photo viewer** and **Clear thumbnail cache**.
+On a Mac, press `⌘` wherever this page says `Ctrl`.
+
+The **⋮** menu holds the rest: **Show in folder**, **Add this folder to library**, **Upload to LibrePhotos** (while a server is connected), **Set as default photo viewer** (Windows only) and **Clear thumbnail cache**.
 
 Favourites, ratings, captions, keywords and dates are explained in [Editing a picture's details](./editing.md).
 
