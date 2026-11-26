@@ -131,19 +131,23 @@ pub fn copy_image(path: &str) -> Result<(), String> {
 
 pub const REGISTERED_APP_NAME: &str = "LibrePhotos Viewer";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Registration {
+    Package(String),
     User,
     Machine,
     None,
 }
 
-pub fn default_apps_uri(reg: Registration) -> String {
-    let name = percent_encoding::utf8_percent_encode(
-        REGISTERED_APP_NAME,
-        percent_encoding::NON_ALPHANUMERIC,
-    );
+pub fn default_apps_uri(reg: &Registration) -> String {
+    let encode = |s: &str| {
+        percent_encoding::utf8_percent_encode(s, percent_encoding::NON_ALPHANUMERIC).to_string()
+    };
+    let name = encode(REGISTERED_APP_NAME);
     match reg {
+        Registration::Package(aumid) => {
+            format!("ms-settings:defaultapps?registeredAUMID={}", encode(aumid))
+        }
         Registration::User => format!("ms-settings:defaultapps?registeredAppUser={name}"),
         Registration::Machine => format!("ms-settings:defaultapps?registeredAppMachine={name}"),
         Registration::None => "ms-settings:defaultapps".into(),
@@ -156,6 +160,9 @@ fn registration() -> Registration {
         HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ, RegGetValueW,
     };
     use windows::core::{HSTRING, w};
+    if let Some(identity) = crate::packaged::identity() {
+        return Registration::Package(identity.app_user_model_id.clone());
+    }
     let name = HSTRING::from(REGISTERED_APP_NAME);
     let has = |root: HKEY| unsafe {
         RegGetValueW(
@@ -197,8 +204,8 @@ pub fn open_default_apps_settings() -> Result<(), String> {
         r.0 as usize > 32
     };
     let reg = registration();
-    if open(&default_apps_uri(reg))
-        || (reg != Registration::None && open(&default_apps_uri(Registration::None)))
+    if open(&default_apps_uri(&reg))
+        || (reg != Registration::None && open(&default_apps_uri(&Registration::None)))
     {
         Ok(())
     } else {
@@ -227,15 +234,21 @@ mod tests {
     #[test]
     fn default_apps_uris() {
         assert_eq!(
-            default_apps_uri(Registration::User),
+            default_apps_uri(&Registration::Package(
+                "LibrePhotos.Viewer_8wekyb3d8bbwe!App".into()
+            )),
+            "ms-settings:defaultapps?registeredAUMID=LibrePhotos%2EViewer%5F8wekyb3d8bbwe%21App"
+        );
+        assert_eq!(
+            default_apps_uri(&Registration::User),
             "ms-settings:defaultapps?registeredAppUser=LibrePhotos%20Viewer"
         );
         assert_eq!(
-            default_apps_uri(Registration::Machine),
+            default_apps_uri(&Registration::Machine),
             "ms-settings:defaultapps?registeredAppMachine=LibrePhotos%20Viewer"
         );
         assert_eq!(
-            default_apps_uri(Registration::None),
+            default_apps_uri(&Registration::None),
             "ms-settings:defaultapps"
         );
     }

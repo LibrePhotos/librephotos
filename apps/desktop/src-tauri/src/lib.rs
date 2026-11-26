@@ -11,6 +11,7 @@ pub mod listing;
 pub mod localdb;
 pub mod ops;
 pub mod orient;
+pub mod packaged;
 pub mod pipeline;
 pub mod pixels;
 pub mod platform;
@@ -213,6 +214,15 @@ mod tests {
     }
 }
 
+fn context() -> tauri::Context {
+    let mut context = tauri::generate_context!();
+    if let Some(root) = appdirs::override_dir().filter(|d| d.is_absolute()) {
+        context.config_mut().app.app_directories_override =
+            Some(tauri::utils::config::AppDirectoriesOverride::Root(root));
+    }
+    context
+}
+
 #[derive(Clone, Serialize)]
 struct OpenPayload {
     path: String,
@@ -232,15 +242,8 @@ pub fn run() {
     let for_protocol = pipeline.clone();
     let tiles = TileService::new(tiles::disk::default_root(), tiles::disk::DEFAULT_CAP_BYTES);
     let tile_handler = tiles.clone();
-    let local_db = commands::open_local_db();
     let watchers = commands::open_watchers();
-    let server = commands::open_server();
-    let for_remote = server.clone();
-    let mut builder = tauri::Builder::default()
-        .manage(tiles)
-        .manage(local_db)
-        .manage(watchers)
-        .manage(server);
+    let mut builder = tauri::Builder::default().manage(tiles).manage(watchers);
     if std::env::var_os("LPVIEW_MULTI_INSTANCE").is_none() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(path) = argv.iter().skip(1).find(|a| !a.starts_with('-')) {
@@ -257,6 +260,11 @@ pub fn run() {
         .manage(pipeline)
         .setup(|app| {
             let _ = commands::APP.set(app.handle().clone());
+            if let Some(outcome) = appdirs::import_installer_data() {
+                eprintln!("installer build data: {outcome:?}");
+            }
+            app.manage(commands::open_local_db());
+            app.manage(commands::open_server());
             if let Some(win) = app.get_webview_window("main")
                 && let (Ok(size), Ok(scale)) = (win.inner_size(), win.scale_factor())
             {
@@ -268,10 +276,15 @@ pub fn run() {
             }
             Ok(())
         })
-        .register_asynchronous_uri_scheme_protocol("lpview", move |_ctx, request, responder| {
+        .register_asynchronous_uri_scheme_protocol("lpview", move |ctx, request, responder| {
             if request.uri().path() == "/remote" {
                 let query = request.uri().query();
-                commands::handle_remote(for_remote.clone(), query, move |r| responder.respond(r));
+                let server = ctx
+                    .app_handle()
+                    .state::<Arc<server::Server>>()
+                    .inner()
+                    .clone();
+                commands::handle_remote(server, query, move |r| responder.respond(r));
             } else if tiles::is_tile_url(request.uri().path()) {
                 let query = request.uri().query();
                 tiles::handle(&tile_handler, query, move |r| responder.respond(r));
@@ -314,6 +327,6 @@ pub fn run() {
             commands::fs_stat,
             commands::fs_md5
         ])
-        .run(tauri::generate_context!())
+        .run(context())
         .expect("error while running the viewer");
 }

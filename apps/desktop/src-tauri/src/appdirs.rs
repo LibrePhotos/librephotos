@@ -3,9 +3,10 @@ use std::path::PathBuf;
 pub const DIR_NAME: &str = "com.librephotos.viewer";
 
 pub fn data_dir() -> Option<PathBuf> {
-    if let Some(d) = override_dir() {
-        return Some(d);
-    }
+    override_dir().or_else(installer_dir)
+}
+
+pub fn installer_dir() -> Option<PathBuf> {
     let env_dir = |k: &str| {
         std::env::var_os(k)
             .filter(|d| !d.is_empty())
@@ -23,9 +24,22 @@ pub fn data_dir() -> Option<PathBuf> {
 }
 
 pub fn override_dir() -> Option<PathBuf> {
+    env_override().or_else(crate::packaged::data_dir)
+}
+
+fn env_override() -> Option<PathBuf> {
     std::env::var_os("LPVIEW_DATA_DIR")
         .filter(|d| !d.is_empty())
         .map(PathBuf::from)
+}
+
+pub fn import_installer_data() -> Option<crate::packaged::import::Outcome> {
+    if env_override().is_some() {
+        return None;
+    }
+    let root = crate::packaged::data_dir()?;
+    let legacy = installer_dir()?;
+    Some(crate::packaged::import::import_once(&legacy, &root))
 }
 
 pub fn keyring_service() -> String {

@@ -87,6 +87,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -97,6 +99,7 @@ jobs:
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - name: Resolve the version
+        id: version
         run: |
           VERSION=0.0.0
           if [ -n "$TAG" ]; then
@@ -110,6 +113,7 @@ jobs:
             echo "VERSION=$VERSION"
             echo "VERSIONED_SETUP=librephotos-desktop-$VERSION-windows-x64-setup.exe"
           } >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
@@ -145,6 +149,13 @@ jobs:
       - name: Build the installer
         working-directory: apps/desktop
         run: npx tauri build --bundles nsis --config "{\"version\":\"$VERSION\"}"
+      - name: Keep the app for the Store package
+        uses: actions/upload-artifact@v7
+        with:
+          name: librephotos-viewer-exe
+          path: apps/desktop/src-tauri/target/release/librephotos-viewer.exe
+          if-no-files-found: error
+          retention-days: 1
       - name: Name the installer and its checksum
         run: |
           mkdir -p dist-desktop
@@ -196,3 +207,102 @@ jobs:
             exit 0
           fi
           gh issue create --title "$title" --body "$body"
+
+  msix:
+    needs: installer
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      VERSION: ${{ needs.installer.outputs.version }}
+      MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+      MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+      MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
+      MSSTORE_PRODUCT_ID: ${{ vars.MSSTORE_PRODUCT_ID }}
+      MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+      MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
+      MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+      MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Test the packaging script
+        run: node --test "apps/desktop/scripts/msix/*.test.mjs"
+      - uses: actions/download-artifact@v7
+        with:
+          name: librephotos-viewer-exe
+          path: dist-exe
+      - name: Build the MSIX package
+        run: |
+          node apps/desktop/scripts/msix/pack.mjs --exe dist-exe/librephotos-viewer.exe --version "$VERSION" --out dist-msix
+          rm -rf dist-msix/layout dist-msix/priconfig.xml
+          ls -l dist-msix
+      - name: Install, launch, import and remove the package
+        shell: powershell
+        run: |
+          apps/desktop/scripts/msix/smoke-msix.ps1 `
+            -Package "dist-msix/librephotos-desktop-$env:VERSION-windows-x64.msix" `
+            -Exe dist-exe/librephotos-viewer.exe `
+            -Picture deploy/e2e/photos/e2e_01.jpg `
+            -SecondPicture deploy/e2e/photos/e2e_02.jpg `
+            -OutDir msix-smoke
+      - name: Windows App Certification Kit
+        shell: powershell
+        run: |
+          apps/desktop/scripts/msix/wack.ps1 `
+            -Package "msix-smoke/test-signed/librephotos-desktop-$env:VERSION-windows-x64.msix" `
+            -Report msix-smoke/wack-report.xml
+      - uses: actions/upload-artifact@v7
+        with:
+          name: librephotos-desktop-windows-x64-msix
+          path: |
+            dist-msix/*.msix
+            dist-msix/*.msixupload
+          if-no-files-found: error
+          compression-level: 0
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: msix-smoke-report
+          path: |
+            msix-smoke/*.png
+            msix-smoke/wack-report.xml
+          if-no-files-found: ignore
+      - name: Check the Store submission settings
+        id: store
+        if: env.TAG != ''
+        run: |
+          missing=""
+          for name in MSSTORE_PRODUCT_ID MSSTORE_TENANT_ID MSSTORE_SELLER_ID MSSTORE_CLIENT_ID MSSTORE_CLIENT_SECRET MSIX_IDENTITY_NAME MSIX_PUBLISHER MSIX_PUBLISHER_DISPLAY_NAME; do
+            if [ -z "${!name}" ]; then
+              missing="$missing $name"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "Store submission skipped, not configured:$missing" >> "$GITHUB_STEP_SUMMARY"
+            echo "submit=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "submit=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Package for the Store with the reserved identity
+        if: steps.store.outputs.submit == 'true'
+        run: |
+          node apps/desktop/scripts/msix/pack.mjs --exe dist-exe/librephotos-viewer.exe --version "$VERSION" --out dist-store --require-identity
+          rm -rf dist-store/layout dist-store/priconfig.xml
+      - name: Set up the Microsoft Store Developer CLI
+        if: steps.store.outputs.submit == 'true'
+        uses: microsoft/microsoft-store-apppublisher@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0
+      - name: Submit to the Microsoft Store as a draft
+        if: steps.store.outputs.submit == 'true'
+        run: |
+          msstore reconfigure --tenantId "$MSSTORE_TENANT_ID" --sellerId "$MSSTORE_SELLER_ID" --clientId "$MSSTORE_CLIENT_ID" --clientSecret "$MSSTORE_CLIENT_SECRET"
+          msstore publish dist-store -i "dist-store/librephotos-desktop-$VERSION-windows-x64.msixupload" -id "$MSSTORE_PRODUCT_ID" --noCommit
+          echo "Uploaded librephotos-desktop-$VERSION-windows-x64.msixupload to a draft Store submission; commit it in Partner Center." >> "$GITHUB_STEP_SUMMARY"

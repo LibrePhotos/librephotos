@@ -135,7 +135,7 @@ Pictures with more than 24 MP (`MIN_TILED_PIXELS`, displayed size, opaque) are z
 
 The disk cache (`diskcache.rs`) keeps one file per response under `<root>/v1/<hh>/<hash>.lpc`. The file starts with the full cache id (kind, box, mtime, size and path of the source), so a hash collision or a torn file is a miss, never a wrong picture. Writes go through one background thread (temp file plus rename, so readers and a second app instance never see half a file); when 512 writes wait, more are dropped, since the cache is best effort. "Used" is the file's mtime, refreshed by a hit at most once an hour; a sweep deletes the least recently used files down to 90 % of the cap, plus temp files older than an hour left by a crash. The first sweep waits 20 s after start-up so it does not compete with the first pictures. Several processes can share the directory: every operation tolerates files appearing or vanishing underneath it.
 
-`appdirs.rs` puts everything under one data directory (`%LOCALAPPDATA%\com.librephotos.viewer`, macOS `~/Library/Application Support/com.librephotos.viewer`, else `$XDG_DATA_HOME/com.librephotos.viewer`); `LPVIEW_DATA_DIR` moves all of it, so test runs never touch the user's state.
+`appdirs.rs` puts everything under one data directory (`%LOCALAPPDATA%\com.librephotos.viewer`, macOS `~/Library/Application Support/com.librephotos.viewer`, else `$XDG_DATA_HOME/com.librephotos.viewer`); `LPVIEW_DATA_DIR` moves all of it, the WebView2 profile included, so test runs never touch the user's state. The Microsoft Store package keeps it in its own package folder and imports the installer build's library once, see [Desktop app: Microsoft Store package](./desktop-store.md#where-the-packaged-app-keeps-its-data).
 
 ## Local database
 
@@ -204,7 +204,7 @@ For test runs over the Chrome DevTools Protocol the page exposes `window.__lpDev
 
 | Variable | Does |
 | --- | --- |
-| `LPVIEW_DATA_DIR` | moves the database, settings and every cache |
+| `LPVIEW_DATA_DIR` | moves the database, settings, every cache and the WebView2 profile |
 | `LPVIEW_CACHE_DIR`, `LPVIEW_DISK_CACHE=0` | move or turn off the thumbnail disk cache |
 | `LPVIEW_TILE_CACHE=<dir>` or `=off`, `LPVIEW_TILES=off` | move or turn off the tile disk cache; no tiling at all (big pictures load `full`, for comparisons) |
 | `LPVIEW_SCREEN_PASSTHROUGH=<n>` | see [Decode pipeline](#decode-pipeline) |
@@ -222,6 +222,7 @@ For test runs over the Chrome DevTools Protocol the page exposes `window.__lpDev
 | --- | --- |
 | `check` | `npm ci`, the UI's typecheck and build, `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test` |
 | `installer` | builds the NSIS installer with `npx tauri build --bundles nsis`, stamped with the release tag (`0.0.0` outside a release), and smoke-tests it with `apps/desktop/scripts/smoke-installer.mjs` |
+| `msix` | packages the same exe as an MSIX for the Microsoft Store, installs, launches, imports and removes it on the runner, runs the Windows App Certification Kit and, when configured, submits it to the Store; see [Desktop app: Microsoft Store package](./desktop-store.md) |
 
 The smoke test is what a user does, once per install scope (`--scope user`, the default, and `--scope machine`): it installs silently (`/S` with `/CurrentUser` or `/AllUsers`), reads where the program went from `InstallLocation` of the scope's `Uninstall\LibrePhotos Viewer` key (HKCU or HKLM, which must also carry the `CurrentUser` or `AllUsers` marker) and fails unless that folder is under `%LOCALAPPDATA%` for `user` or `%ProgramW6432%` for `machine`, checks the registry entries the installer hooks write for **Open with** and **Set as default photo viewer** (`RegisteredApplications`, `Capabilities\FileAssociations`, the `LibrePhotosViewer.Image` ProgID, `.jpg\OpenWithProgids`, the `Applications` entry, `App Paths`) and that `.jpg`'s default class is the one it found before installing, starts the installed app on a picture and waits until its window title is `<picture> - LibrePhotos Viewer` (the viewer sets it once it has listed the folder and opened the picture; GitHub's Windows runners don't answer on WebView2's remote-debugging port, so the test reads the title through Windows instead), then uninstalls silently and checks that the program, its `Uninstall` entry and its registration are gone and `.jpg`'s default class is unchanged. When it fails it prints every `librephotos-viewer.exe` under `%LOCALAPPDATA%`, `%LOCALAPPDATA%\Programs` and Program Files, and the `Uninstall` and `Software\librephotos\LibrePhotos Viewer` keys of both hives, so the log shows where an install actually landed. Run it locally with `node apps/desktop/scripts/smoke-installer.mjs [--scope user|machine] <setup.exe> <picture>`; `user` installs into your own profile, `machine` needs an elevated shell.
 
