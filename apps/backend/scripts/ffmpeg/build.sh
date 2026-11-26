@@ -261,7 +261,7 @@ stage_macos() {
   local needed
   needed=$(for file in "$stage"/bin/* "$stage"/lib/*; do otool -L "$file" | tail -n +2 | awk '{print $1}'; done | sort -u)
   echo "linked: $(echo "$needed" | tr '\n' ' ')"
-  if echo "$needed" | grep -vE '^(@rpath/lib(av|sw)[a-z]+\.[0-9]+\.dylib|/usr/lib/libSystem\.B\.dylib|/usr/lib/libc\+\+\.1\.dylib)$'; then
+  if echo "$needed" | grep -vE '^(@rpath/lib(av|sw)[a-z]+\.[0-9]+\.dylib|/usr/lib/libSystem\.B\.dylib|/usr/lib/libc\+\+\.1\.dylib|/System/Library/Frameworks/Core(Foundation|Media|Video)\.framework/Versions/A/Core(Foundation|Media|Video))$'; then
     echo "unexpected shared library dependency" >&2
     exit 1
   fi

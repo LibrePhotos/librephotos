@@ -13,6 +13,13 @@ import { unsupportedReasonKey } from "./updateInstallText";
 /** The toast after Skip this release; one at a time. */
 const SKIPPED_TOAST_ID = "release-skipped";
 
+function HowToUpdateLabel({ installType }: Readonly<{ installType: string }>) {
+  const { t } = useTranslation();
+  if (installType === "windows") return t("updates.howtoupdatewindows");
+  if (installType === "macos") return t("updates.howtoupdatemacos");
+  return t("updates.howtoupdate");
+}
+
 /** How to update: the docs' steps for this install, and why the Windows app cannot do it itself. */
 function HowToUpdate({ status }: Readonly<{ status: UpdateStatus }>) {
   const { t } = useTranslation();
@@ -26,7 +33,7 @@ function HowToUpdate({ status }: Readonly<{ status: UpdateStatus }>) {
         rel="noreferrer"
         leftSection={<Book size={16} />}
       >
-        {status.install_type === "windows" ? t("updates.howtoupdatewindows") : t("updates.howtoupdate")}
+        <HowToUpdateLabel installType={status.install_type} />
       </Button>
       {reason ? (
         <Text size="sm" c="dimmed" w="100%">

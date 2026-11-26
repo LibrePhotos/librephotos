@@ -127,6 +127,10 @@ class Started(Protocol):
 
     def poll(self) -> int | None: ...
 
+    def kill(self) -> None: ...
+
+    def wait(self, timeout: float | None = None) -> int: ...
+
 
 def finisher_command(
     staged: Path, old_dir: Path, url: str, log: Path, launch: Launch
@@ -337,6 +341,17 @@ class OpenedRelease:
         if time.monotonic() - self._started < OPEN_GRACE_SECONDS:
             return None
         return None if processes_in(self._folder) else 0
+
+    def kill(self) -> None:
+        for process in processes_in(self._folder):
+            try:
+                process.kill()
+            except psutil.Error:
+                continue
+
+    def wait(self, timeout: float | None = None) -> int:
+        psutil.wait_procs(processes_in(self._folder), timeout=timeout)
+        return 0
 
 
 def opened_by_launch_services(environ: dict[str, str]) -> bool:

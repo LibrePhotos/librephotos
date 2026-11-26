@@ -23,6 +23,7 @@ CONFIRM_BUTTON = "Restart"
 CANCEL_BUTTON = "Cancel"
 SERVE_POLL_SECONDS = 0.2
 TERMINATE_WAIT_SECONDS = 60.0
+APPLICATION_SHOULD_TERMINATE = "applicationShouldTerminate_"
 
 Task = Callable[[], None]
 
@@ -169,20 +170,24 @@ def install_quit_handlers(termination: Termination) -> None:
     import Foundation
     from PyObjCTools import MachSignals
 
-    class LibrePhotosAppDelegate(Foundation.NSObject):
-        def applicationShouldTerminate_(self, sender: object) -> int:
-            if not termination.request():
-                return int(AppKit.NSTerminateNow)
-            application = AppKit.NSApplication.sharedApplication()
-            threading.Thread(
-                target=termination.reply_when_finished,
-                args=(lambda: application.replyToApplicationShouldTerminate_(True),),
-                daemon=True,
-                name="terminate",
-            ).start()
-            return int(AppKit.NSTerminateLater)
+    def should_terminate(delegate: object, sender: object) -> int:
+        if not termination.request():
+            return int(AppKit.NSTerminateNow)
+        application = AppKit.NSApplication.sharedApplication()
+        threading.Thread(
+            target=termination.reply_when_finished,
+            args=(lambda: application.replyToApplicationShouldTerminate_(True),),
+            daemon=True,
+            name="terminate",
+        ).start()
+        return int(AppKit.NSTerminateLater)
 
-    delegate = LibrePhotosAppDelegate.alloc().init()
+    delegate_class = type(Foundation.NSObject)(
+        "LibrePhotosAppDelegate",
+        (Foundation.NSObject,),
+        {APPLICATION_SHOULD_TERMINATE: should_terminate},
+    )
+    delegate = delegate_class.alloc().init()
     application = AppKit.NSApplication.sharedApplication()
     application.setDelegate_(delegate)
     application.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)

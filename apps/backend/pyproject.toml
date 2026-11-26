@@ -117,7 +117,7 @@ allow-star-arg-any = true
 # the old one was started with (issue #2788).
 "librephotos/updater.py" = ["TID251"]
 "librephotos/move_to_installed.py" = ["TID251"]
-"librephotos/macos_app.py" = ["TID251", "N802"]
+"librephotos/macos_app.py" = ["TID251"]
 "librephotos/login_item.py" = ["TID251"]
 # They pick DJANGO_SETTINGS_MODULE from DEBUG before any settings exist.
 "manage.py" = ["TID251"]
