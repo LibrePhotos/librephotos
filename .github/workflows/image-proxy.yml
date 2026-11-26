@@ -8,13 +8,14 @@ on:
     paths:
       - 'deploy/docker/proxy/**'
       - '.github/workflows/image-proxy.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   dev:
-    if: github.event_name != 'release'
+    if: github.event_name != 'release' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7

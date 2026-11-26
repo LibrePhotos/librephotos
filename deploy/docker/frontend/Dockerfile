@@ -20,12 +20,24 @@ COPY apps/frontend/ ./
 ARG GIT_HASH=unknown
 RUN yarn run build && echo "${GIT_HASH}" > dist/git_hash.txt
 
-FROM halverneus/static-file-server:v1.8.12
-ENV PORT 3000
+FROM golang:1.27-alpine AS static-file-server
+ARG STATIC_FILE_SERVER_VERSION=v1.8.12
+RUN CGO_ENABLED=0 GOBIN=/out go install -trimpath -tags netgo \
+      -ldflags "-s -w -X github.com/halverneus/static-file-server/cli/version.version=${STATIC_FILE_SERVER_VERSION#v}" \
+      "github.com/halverneus/static-file-server/bin/serve@${STATIC_FILE_SERVER_VERSION}" \
+ && printf '%s\n' \
+      'root:x:0:0:root:/root:/sbin/nologin' \
+      'nobody:x:65534:65534:nobody:/nonexistent:/sbin/nologin' \
+      'static:x:1000:65534::/nonexistent:/sbin/nologin' > /out/passwd
+
+FROM scratch
+COPY --from=static-file-server /out/serve /serve
+COPY --from=static-file-server /out/passwd /etc/passwd
+USER static
+ENV PORT=3000
 EXPOSE 3000
 
 COPY --from=builder /usr/src/app/apps/frontend/dist /web
-COPY --from=builder /usr/src/app/apps/frontend/dist/git_hash.txt /web
 
 ENTRYPOINT ["/serve"]
 CMD []

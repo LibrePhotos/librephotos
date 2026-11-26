@@ -111,7 +111,7 @@ def unpinned_from_lines(dockerfile: str) -> list[str]:
     problems = []
     aliases: set[str] = set()
     for image, alias, _ in dockerfile_stages(dockerfile):
-        if image not in aliases and not _is_pinned(image):
+        if image not in aliases and image != "scratch" and not _is_pinned(image):
             problems.append(image)
         if alias:
             aliases.add(alias)
@@ -280,6 +280,7 @@ class DeployImageDetectionTest(SimpleTestCase):
             "FROM node:24-slim as builder\n"
             "FROM reallibrephotos/librephotos-base:${BASE_TAG}\n"
             "FROM builder\n"
+            "FROM scratch\n"
             "FROM ubuntu\n"
             "FROM --platform=linux/amd64 nginx:latest\n"
         )
