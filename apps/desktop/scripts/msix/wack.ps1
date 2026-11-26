@@ -41,13 +41,15 @@ $lines = @(
 foreach ($test in $xml.SelectNodes('//TEST')) {
   $result = $test.RESULT.'#cdata-section'
   if (-not $result) { $result = $test.RESULT.InnerText }
-  $lines += "| $($test.NAME) | $($result.Trim()) |"
+  $kind = if ($test.OPTIONAL -eq 'TRUE') { ' (optional)' } else { '' }
+  $lines += "| $($test.NAME)$kind | $($result.Trim()) |"
 }
 Write-Summary ($lines -join "`n")
 foreach ($test in $xml.SelectNodes('//TEST')) {
   $result = $test.RESULT.InnerText.Trim()
   if ($result -ne 'PASS') {
-    Write-Host "::warning::WACK $($test.NAME): $result"
+    $kind = if ($test.OPTIONAL -eq 'TRUE') { 'optional test' } else { 'required test' }
+    Write-Host "::warning::WACK $kind $($test.NAME): $result"
     foreach ($message in $test.SelectNodes('.//MESSAGE')) { Write-Host "  $($message.TEXT)" }
   }
 }
