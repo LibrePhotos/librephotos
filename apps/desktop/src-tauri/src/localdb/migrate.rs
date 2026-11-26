@@ -66,7 +66,7 @@ pub fn applied(conn: &Connection) -> rusqlite::Result<Vec<(String, i64)>> {
 }
 
 fn now_ms() -> i64 {
-    chrono::Utc::now().timestamp_millis()
+    jiff::Timestamp::now().as_millisecond()
 }
 
 pub fn apply(conn: &mut Connection, migrations: &[Migration]) -> Result<Vec<String>, MigrateError> {
@@ -135,7 +135,7 @@ fn read_rows(conn: &Connection, table: &str) -> SavedRows {
     let Ok(mut st) = conn.prepare(&format!("SELECT * FROM `{table}`")) else {
         return Vec::new();
     };
-    let names: Vec<String> = st.column_names().iter().map(|n| n.to_string()).collect();
+    let names: Vec<String> = st.column_names().map(str::to_owned).collect();
     let rows = st.query_map([], |r| {
         names
             .iter()

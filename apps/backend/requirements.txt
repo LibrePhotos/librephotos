@@ -38,6 +38,13 @@ urllib3==2.8.0
 cryptography==50.0.2
 numpy==2.5.4
 tzdata==2026.6
+# Indirect dependencies, pinned to releases without known vulnerabilities so no
+# resolver picks an older one: certifi and idna through requests, h11 through
+# uvicorn, PyJWT through django-allauth[socialaccount] and djangorestframework-simplejwt.
+certifi==2026.11.20
+h11==0.16.0
+idna==3.20
+PyJWT==2.15.1
 # pyvips-binary bundles libvips, but without HEVC (HEIC), JPEG XL, BMP and JPEG 2000
 # loaders; api/thumbnails/decoding.py falls back to Pillow with these two plugins.
 pyvips[binary]==3.2.0
