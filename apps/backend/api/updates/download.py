@@ -38,7 +38,7 @@ MAX_REDIRECTS = 5
 CHUNK_BYTES = 2**20
 _REDIRECTS = frozenset({301, 302, 303, 307, 308})
 # X.Y.Z only: the version goes into a URL path.
-_RELEASE_VERSION = re.compile(r"[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}")
+RELEASE_VERSION = re.compile(r"[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}")
 # sha256sum's format: "<64 hex>  <name>", or "<64 hex> *<name>" in binary mode.
 _CHECKSUM_LINE = re.compile(r"([0-9a-fA-F]{64}) [ *](.+)")
 
@@ -65,7 +65,7 @@ class ReleaseSource:
     schemes: frozenset[str] = field(default_factory=lambda: frozenset({"https"}))
 
     def asset_url(self, version: str, name: str) -> str:
-        if not _RELEASE_VERSION.fullmatch(version):
+        if not RELEASE_VERSION.fullmatch(version):
             raise DownloadError("bad_version")
         return f"{self.base_url}/{version}/{name}"
 
@@ -83,6 +83,22 @@ class ReleaseSource:
 
 
 GITHUB = ReleaseSource()
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def release_source(base_url: str) -> ReleaseSource:
+    if not base_url:
+        return GITHUB
+    parts = urlsplit(base_url)
+    host = parts.hostname
+    plain_http = parts.scheme == "http" and host in LOOPBACK_HOSTS
+    if not host or not (parts.scheme == "https" or plain_http):
+        raise ValueError("a release source is https, or http on this machine")
+    return ReleaseSource(
+        base_url=base_url.rstrip("/"),
+        hosts=frozenset({host}),
+        schemes=frozenset({parts.scheme}),
+    )
 
 
 @dataclass(frozen=True)

@@ -38,7 +38,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from librephotos import instance_lock, startup_page
+from librephotos import installation, instance_lock, startup_page
 
 if TYPE_CHECKING:
     # Only for annotations: the GUI and the server modules are imported lazily
@@ -62,7 +62,7 @@ CONSOLE_LOG_NAME = "console.log"
 # The previous start's console.log, kept so a failed start can still be
 # explained after the next attempt (#2316).
 PREVIOUS_CONSOLE_LOG_NAME = "console.previous.log"
-SUBCOMMANDS = ("run", "manage", "service", "finish-update")
+SUBCOMMANDS = ("run", "manage", "service", "finish-update", "finish-move")
 # Written next to the binary by scripts/build_standalone.py: the release and
 # commit it was built from, which the Docker images get from build arguments.
 BUILD_INFO_NAME = "build_info.json"
@@ -608,6 +608,11 @@ NOTICE_ALREADY_STARTING = (
     "LibrePhotos is already starting",
     "It opens in your browser when it is ready.",
 )
+NOTICE_MOVED = (
+    "LibrePhotos now runs from the installed version",
+    "The folder you unzipped it into, {old}, is no longer used. Delete it once "
+    "everything works.",
+)
 # Restart to update: how long the server keeps answering before it quits.
 RESTART_DELAY_SECONDS = 1.0
 # How long a second start waits for the first one to answer, and how often it asks.
@@ -705,6 +710,36 @@ class Startup:
             from api.updates.tray import watch_updates
 
             watch_updates(self.tray, stop)
+
+    def restart_to_move(self, setup: Path, url: str) -> None:
+        from librephotos import move_to_installed
+
+        if self.launch is None:
+            raise OSError("LibrePhotos was not started through main()")
+        executable = standalone_executable()
+        if executable is None:
+            raise OSError("only the compiled app moves to the installed version")
+        logs = Path(os.environ["BASE_LOGS"])
+        start = move_to_installed.MoveStart(
+            executable=Path(executable),
+            setup=setup,
+            data_dir=Path(os.environ["BASE_DATA"]),
+            url=url,
+            log=logs / "update.log",
+        )
+        left_job = move_to_installed.start_move_finisher(start, self.launch)
+        self.release_job_on_exit = not left_job
+        threading.Timer(RESTART_DELAY_SECONDS, self.quit).start()
+
+    def announce_move(self) -> None:
+        record = installation.announce_move(
+            Path(install_root()), Path(os.environ["BASE_DATA"])
+        )
+        if record is not None:
+            self.notify(
+                NOTICE_MOVED[0],
+                NOTICE_MOVED[1].format(old=record.moved_from),
+            )
 
     def restart_to_update(self, staged: Path, url: str) -> None:
         """Restart to update (#2788): start the prepared release's finisher,
@@ -1035,6 +1070,7 @@ def run_server(
         return
 
     _capture_console_output()
+    sync_installed_version()
     # Something else answers on the port, or nothing does but the port is
     # still not ours to take (#2323): say so before doing any work.
     check_port(host, port)
@@ -1218,11 +1254,18 @@ def enable_updater(startup: Startup, url: str) -> None:
         return
     from api.updates import install
 
+    program = Path(install_root())
+    data = Path(os.environ["BASE_DATA"])
     try:
         install.enable(
-            Path(install_root()),
-            [Path(os.environ["BASE_DATA"]), Path(os.environ["BASE_LOGS"])],
+            program,
+            [data, Path(os.environ["BASE_LOGS"])],
             lambda staged: startup.restart_to_update(staged, url),
+            install.Moves(
+                layout=installation.layout(program, installation.UninstallEntry()),
+                downloads=data / installation.DOWNLOADS_DIR_NAME,
+                move=lambda setup: startup.restart_to_move(setup, url),
+            ),
         )
     except Exception:
         # An updater problem must never keep LibrePhotos from starting: the
@@ -1239,6 +1282,7 @@ def _say_when_running(
         if stopped.wait(0.5) or startup.cancelled:
             return
     startup.status(STATUS_RUNNING.format(url=url))
+    startup.announce_move()
     startup.watch_updates(stopped)
 
 
@@ -1251,6 +1295,33 @@ def _server_start_failure(host: str, port: int) -> Exception:
     if error is not None:
         return StartupError(port_unavailable_message(port, error))
     return RuntimeError(f"The server could not start on {host}:{port}")
+
+
+def sync_installed_version() -> None:
+    if standalone_executable() is None:
+        return
+    program = Path(install_root())
+    try:
+        installation.sync_display_version(
+            program,
+            installation.release_version(program),
+            installation.UninstallEntry(),
+        )
+    except OSError as error:
+        print(f"Could not update the version in Installed apps: {error}", flush=True)
+
+
+def forward_to_installed(data_dir: str, launch: Launch) -> bool:
+    if standalone_executable() is None:
+        return False
+    target = installation.forward_target(
+        Path(install_root()), Path(data_dir), installation.UninstallEntry()
+    )
+    if target is None:
+        return False
+    print(f"LibrePhotos moved to {target.parent}; starting it there", flush=True)
+    subprocess.Popen([str(target), *launch.argv], env=launch.environ, cwd=launch.cwd)
+    return True
 
 
 WORKERS_STOP_SECONDS = 35
@@ -1342,6 +1413,11 @@ def build_parser() -> argparse.ArgumentParser:
     finish.add_argument("--log", type=Path, required=True)
     finish.add_argument("--cwd", default="")
     finish.add_argument("--relaunch", default="[]")
+    from librephotos import move_to_installed
+
+    move_to_installed.add_arguments(
+        sub.add_parser("finish-move", help="(internal) move to the installed version")
+    )
     return parser
 
 
@@ -1363,11 +1439,21 @@ def main(argv: list[str] | None = None) -> None:
 
         request = updater.FinishRequest.from_arguments(args, Path(install_root()))
         raise SystemExit(updater.finish_update(request, _tell))
+    if args.command == "finish-move":
+        from librephotos import move_to_installed
+
+        tools = move_to_installed.MoveTools(
+            installation.UninstallEntry(), move_to_installed.run_setup, SUBCOMMANDS
+        )
+        move_request = move_to_installed.MoveRequest.from_arguments(args)
+        raise SystemExit(move_to_installed.finish_move(move_request, _tell, tools))
     from librephotos.updater import Launch
 
     launch = Launch.capture(argv)
-    prepare_environment(args.data_dir, args.photos)
+    data_dir = prepare_environment(args.data_dir, args.photos)
 
+    if args.command == "run" and forward_to_installed(data_dir, launch):
+        return
     if args.command == "manage":
         run_manage(args.argv)
     elif args.command == "service":

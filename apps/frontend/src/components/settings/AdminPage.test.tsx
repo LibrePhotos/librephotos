@@ -40,6 +40,7 @@ const mocks = vi.hoisted(() => {
     // What useUpdateNotice answers an admin; the flag it was asked with.
     updateNotice: null as { latest: string } | null,
     updateNoticeAsked: [] as boolean[],
+    moveNotice: null as { current: string } | null,
     // What the theme's sm breakpoint query answers: true is the desktop layout.
     desktop: false,
     deleteAll: vi.fn<(variables: undefined, options?: { onSettled?: () => void }) => void>(),
@@ -60,6 +61,7 @@ vi.mock("../../api_client/server/hooks", () => ({
     mocks.updateNoticeAsked.push(isAdmin);
     return isAdmin ? mocks.updateNotice : null;
   },
+  useMoveNotice: (isAdmin: boolean) => (isAdmin ? mocks.moveNotice : null),
 }));
 vi.mock("../../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => ({ data: mocks.users, isFetching: false }),
@@ -76,6 +78,9 @@ vi.mock("../../api_client/jobs/hooks/useUpgradeTasks", () => ({
 vi.mock("./FinishUpgradeCard", () => ({ FinishUpgradeCard: () => "finish-upgrade-card" }));
 vi.mock("./UpdateAvailableCard", () => ({
   UpdateAvailableCard: ({ status }: { status: { latest: string } }) => `update-card ${status.latest}`,
+}));
+vi.mock("./MoveToInstalledCard", () => ({
+  MoveToInstalledCard: ({ status }: { status: { current: string } }) => `move-card ${status.current}`,
 }));
 vi.mock("../../i18n", () => ({ i18nResolvedLanguage: () => "en" }));
 vi.mock("../job/JobList", () => ({ JobList: () => null }));
@@ -126,6 +131,7 @@ beforeEach(() => {
   mocks.upgradeTasksEnabled = [];
   mocks.updateNotice = null;
   mocks.updateNoticeAsked = [];
+  mocks.moveNotice = null;
   mocks.desktop = false;
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -245,6 +251,20 @@ describe("AdminPage", () => {
     expect([...toc.querySelectorAll("a")].slice(0, 2).map(link => link.getAttribute("href"))).toEqual([
       "#admin-update",
       "#admin-upgrade",
+    ]);
+  });
+
+  it("offers the move to the installed version after the update card", async () => {
+    mocks.selfDetails = { data: { is_superuser: true }, isPending: false };
+    mocks.updateNotice = { latest: "1.8.0" };
+    mocks.moveNotice = { current: "1.7.0" };
+    await render();
+
+    expect(document.getElementById("admin-move")?.textContent).toBe("move-card 1.7.0");
+    const toc = defined(container.querySelector("nav"), "the section navigation");
+    expect([...toc.querySelectorAll("a")].slice(0, 2).map(link => link.getAttribute("href"))).toEqual([
+      "#admin-update",
+      "#admin-move",
     ]);
   });
 

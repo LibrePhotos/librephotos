@@ -27,6 +27,7 @@ from api.updates.install import (
     READ_ONLY,
     READY,
     RESTARTING,
+    Fetching,
     Installer,
     InstallError,
     blocked_reason,
@@ -68,7 +69,9 @@ def make_installer(test, files=None, restart=None):
     program = program_folder(test)
     session = release_session(VERSION, files or release_files(VERSION))
     return Installer(
-        ProgramFolder(program), restart or MagicMock(), session_factory=lambda: session
+        ProgramFolder(program),
+        restart or MagicMock(),
+        fetching=Fetching(lambda: session),
     )
 
 

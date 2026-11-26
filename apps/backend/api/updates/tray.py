@@ -45,10 +45,13 @@ from .check import (
     UP_TO_DATE,
     UpdateStatus,
     check_for_updates,
+    current_version,
     update_status,
 )
 from .install import (
+    BUSY,
     DOWNLOADING,
+    MOVE,
     READY,
     RESTARTING,
     Installer,
@@ -73,8 +76,15 @@ MENU_DOWNLOADING_UNSIZED = "Downloading {version}..."
 MENU_PREPARING = "Preparing {version}..."
 MENU_RESTART = "Restart to update to {version}"
 MENU_RESTARTING = "Restarting to update..."
+MENU_MOVE = "Move to the installed version"
+MENU_MOVE_DOWNLOADING = "Downloading the installer ({percent} %)"
+MENU_MOVE_DOWNLOADING_UNSIZED = "Downloading the installer..."
+MENU_MOVE_PREPARING = "Checking the installer..."
+MENU_MOVE_RESTART = "Restart to finish moving"
+MENU_MOVING = "Moving to the installed version..."
 # What choosing the update item does.
 OPEN_DOCS, DOWNLOAD, RESTART = "docs", "download", "restart"
+START_MOVE = "move"
 
 Notice = tuple[str, str]
 NOTICE_AVAILABLE = (
@@ -89,6 +99,15 @@ NOTICE_READY = (
     "LibrePhotos {version} is ready",
     "Right-click the LibrePhotos icon and choose Restart to update.",
 )
+NOTICE_MOVE_READY = (
+    "The installed version is ready",
+    "Right-click the LibrePhotos icon and choose Restart to finish moving.",
+)
+NOTICE_MOVING = (
+    "Downloading the installer",
+    "LibrePhotos keeps running meanwhile. You are told when it is ready.",
+)
+NOTICE_MOVE_FAILED = "LibrePhotos could not move to the installed version"
 NOTICE_FAILED = "LibrePhotos {version} could not be installed"
 NOTICE_FAILED_UNNAMED = "The update could not be installed"
 CONFIRM_RESTART = (
@@ -112,6 +131,8 @@ FAILURES = {
     "to the program folder. Move it away and try again.",
     "restart_failed": "LibrePhotos could not start the new release. Try again, "
     "or update by hand.",
+    "already_installed": "LibrePhotos already runs from the installed version.",
+    "not_a_release": "Only a release of LibrePhotos can move to the installed version.",
 }
 FAILURE_DEFAULT = "Try again later, or update by hand (see the documentation)."
 # What Check for updates answers when there is nothing to install, by status.
@@ -167,6 +188,35 @@ def _downloading(install: InstallState, version: str) -> str:
     return MENU_DOWNLOADING.format(version=version, percent=percent)
 
 
+def _move_downloading(install: InstallState) -> str:
+    total = install["total_bytes"]
+    if not total:
+        return MENU_MOVE_DOWNLOADING_UNSIZED
+    percent = min(100, install["received_bytes"] * 100 // total)
+    return MENU_MOVE_DOWNLOADING.format(percent=percent)
+
+
+def _move_entry(install: InstallState) -> tuple[str | None, str | None]:
+    state = install["state"]
+    if install["kind"] == MOVE and state == READY:
+        return MENU_MOVE_RESTART, RESTART
+    if install["kind"] == MOVE and state == DOWNLOADING:
+        return _move_downloading(install), None
+    if install["kind"] == MOVE and state == RESTARTING:
+        return MENU_MOVING, None
+    if install["kind"] == MOVE and state in BUSY:
+        return MENU_MOVE_PREPARING, None
+    if install["move_supported"] and state not in BUSY:
+        return MENU_MOVE, START_MOVE
+    return None, None
+
+
+def _moving(install: InstallState) -> bool:
+    return install["kind"] == MOVE and (
+        install["state"] in BUSY or install["state"] == READY
+    )
+
+
 def _install_entry(install: InstallState, latest: str) -> tuple[str, str | None]:
     version = install["version"] or latest
     state = install["state"]
@@ -185,8 +235,9 @@ def menu_entry(status: UpdateStatus) -> tuple[str | None, str | None]:
     """The update item's label (None hides it) and what choosing it does:
     OPEN_DOCS, DOWNLOAD, RESTART, or None (greyed out)."""
     latest = status["latest"]
-    if not status["update_available"] or latest is None:
-        return None, None
+    install = status["install"]
+    if _moving(install) or not status["update_available"] or latest is None:
+        return _move_entry(install)
     if not status["install"]["supported"]:
         return MENU_LABEL.format(version=latest), OPEN_DOCS
     return _install_entry(status["install"], latest)
@@ -224,6 +275,10 @@ def failure_notice(version: str | None, code: str | None) -> Notice:
 def install_notice(install: InstallState) -> Notice | None:
     """What the end of a download says: ready, or failed and why."""
     version = install["version"]
+    if install["kind"] == MOVE and install["state"] == READY:
+        return NOTICE_MOVE_READY
+    if install["kind"] == MOVE and install["state"] == INSTALL_FAILED:
+        return NOTICE_MOVE_FAILED, FAILURES.get(install["error"] or "", FAILURE_DEFAULT)
     if install["state"] == READY:
         title, text = NOTICE_READY
         return title.format(version=version), text
@@ -251,6 +306,8 @@ class TrayUpdates:
             return functools.partial(_open_page, status["how_to_update_url"])
         if kind == DOWNLOAD and status["latest"] is not None:
             return functools.partial(self.download, status["latest"])
+        if kind == START_MOVE:
+            return self.move
         return self.restart if kind == RESTART else None
 
     def _show_menu(self, status: UpdateStatus) -> None:
@@ -323,6 +380,18 @@ class TrayUpdates:
             return
         title, text = NOTICE_DOWNLOADING
         self.tray.notify(title.format(version=version), text)
+
+    def move(self) -> None:
+        if self.updater is None:
+            return
+        try:
+            self.updater.start_move(current_version())
+        except InstallError as error:
+            self.tray.notify(
+                NOTICE_MOVE_FAILED, FAILURES.get(error.code, FAILURE_DEFAULT)
+            )
+            return
+        self.tray.notify(*NOTICE_MOVING)
 
     def restart(self) -> None:
         """Restart to update; asks first while a job runs."""

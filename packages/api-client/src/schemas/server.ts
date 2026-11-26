@@ -37,6 +37,10 @@ export const InstallState = z.object({
   error: z.string().nullable(),
   /** Whether the download's signature is checked too; until #2317 only its SHA-256 is. */
   signature_checked: z.boolean(),
+  kind: z.string().optional(),
+  layout: z.string().nullable().optional(),
+  move_supported: z.boolean().optional(),
+  move_reason: z.string().nullable().optional(),
 });
 export type InstallState = z.infer<typeof InstallState>;
 

@@ -635,6 +635,7 @@ STAFF_ONLY_VIEWS = {
     "api.views.site_settings.TrashRetentionPreviewView",
     "api.views.gallery.GalleryPreviewView",
     "api.views.updates.InstallUpdateView",
+    "api.views.updates.MoveToInstalledView",
     "api.views.updates.RestartToUpdateView",
     "api.views.updates.SkipReleaseView",
     "api.views.updates.SnoozeUpdateNoticeView",

@@ -481,6 +481,9 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     dist = compile_binary(output_dir, args.jobs, args.version, cache=not args.no_cache)
     stage_runtime_files(dist, frontend_build, static, args.version)
+    from windows_signing import sign_folder
+
+    sign_folder(dist)
     print(f"built: {dist}")
     if args.zip:
         archive(dist, output_dir, args.version)

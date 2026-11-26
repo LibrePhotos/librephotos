@@ -256,4 +256,8 @@ every sidecar (`librephotos/standalone.py` dispatches on `run`/`manage`/`service
 `librephotos.settings.standalone`. `.github/workflows/standalone-windows.yml` builds it in CI, runs the zip
 with `scripts/smoke_standalone.py` (server, sidecars, a scan, the shutdown; `--from-source` tries it without a
 build) and only then attaches it to the release and marks the release latest; its release path is guarded by
-`api/tests/infra/test_standalone_windows_workflow.py`.
+`api/tests/infra/test_standalone_windows_workflow.py`. The per-user installer (`installer/librephotos.iss`, Inno Setup,
+`scripts/build_installer.py`) wraps the same build; `scripts/smoke_installer.py` installs, updates, uninstalls and
+migrates a published zip to it on the runner only (it writes to the user profile). Its `AppId`, the switches the app
+passes and the `finish-move` arguments are pinned by `api/tests/infra/test_installation.py` and
+`test_move_to_installed.py`.

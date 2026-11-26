@@ -5,8 +5,12 @@ sidebar_position: 5
 ---
 
 :::tip Download
-[**librephotos-windows-x64.zip**](https://github.com/LibrePhotos/librephotos/releases/latest/download/librephotos-windows-x64.zip)
-from the latest release (64-bit Windows). Every release since 1.2.0 carries it under
+<Since version="1.7.0" /> [**LibrePhotos-Setup.exe**](https://github.com/LibrePhotos/librephotos/releases/latest/download/LibrePhotos-Setup.exe),
+the installer, from the latest release (64-bit Windows; see [Installing](#installing)). It needs no
+administrator rights.
+
+Or the portable zip, [**librephotos-windows-x64.zip**](https://github.com/LibrePhotos/librephotos/releases/latest/download/librephotos-windows-x64.zip),
+which you unzip yourself ([Running it from the zip](#running-it)). Every release since 1.2.0 carries it under
 **Assets** on the [releases page](https://github.com/LibrePhotos/librephotos/releases).
 
 <Since version="1.4.0" /> The same zip is also there as `librephotos-<version>-windows-x64.zip`, so a
@@ -32,8 +36,8 @@ of the Docker deployments.
 
 LibrePhotos keeps two things apart:
 
-- The **program folder**: the `librephotos` folder from the zip, with `librephotos.exe`. An update
-  replaces it.
+- The **program folder**: the `librephotos` folder with `librephotos.exe`, from the installer
+  (`%LOCALAPPDATA%\Programs\LibrePhotos\librephotos`) or from the zip. An update replaces it.
 - The **data folder**, `%LOCALAPPDATA%\LibrePhotos`: the database (users, albums, people, settings),
   thumbnails, the machine learning models and the logs. An update keeps it, and every copy of the
   program uses the same one.
@@ -41,7 +45,62 @@ LibrePhotos keeps two things apart:
 Your photos stay in your own folders. LibrePhotos reads them there and never moves them into
 either folder.
 
-## Running it {#running-it}
+## Installing {#installing}
+
+<Since version="1.7.0" /> The installer puts LibrePhotos into your own user account: no administrator
+rights, no UAC prompt, and nothing for the other users of the PC.
+
+1. Download `LibrePhotos-Setup.exe` (see above). It is about 450 MB and holds everything; it
+   downloads nothing while it installs. To be sure it arrived complete, [check
+   it](#checking-your-download).
+2. Double-click it. Windows may show **Windows protected your PC**, because the installer is not
+   signed yet: click **More info**, then **Run anyway**.
+3. Choose what else you want, both off unless you tick them: **Create a desktop shortcut** and
+   **Start LibrePhotos when I sign in to Windows**. Click **Next**, then **Install**.
+4. Leave **Start LibrePhotos now** ticked and click **Finish**. LibrePhotos starts in the
+   background and opens `http://localhost:8000/` in your browser. Continue with step 5 of [Running
+   it from the zip](#running-it): the first start, the tray icon and the admin account are the same.
+
+What the installer does:
+
+| What | Where |
+|---|---|
+| Program folder | `%LOCALAPPDATA%\Programs\LibrePhotos\librephotos` |
+| Start menu entry | **LibrePhotos** (and on the desktop, if you chose it) |
+| Start when you sign in | Only if you chose it: a **LibrePhotos** entry in **Settings > Apps > Startup** |
+| Entry in **Settings > Apps > Installed apps** | **LibrePhotos**, with its version and **Uninstall** |
+| Data folder | Unchanged: `%LOCALAPPDATA%\LibrePhotos`, the same one the zip uses |
+
+Running the installer of a newer release over an installed LibrePhotos updates it; quit LibrePhotos
+first (the installer says so if it still runs). The release you had stays in
+`%LOCALAPPDATA%\Programs\LibrePhotos\librephotos-old`, as after an [update from
+LibrePhotos](#update-from-the-app). Usually you do not need to: the installed LibrePhotos [updates
+itself](#update-from-the-app) the same way the zip does.
+
+If you used the zip before, see [Moving to the installed version](#moving-to-the-installed-version).
+
+### Installing without questions {#silent-install}
+
+For a script, a deployment tool or the Microsoft Store, the installer runs without any window:
+
+```bat
+LibrePhotos-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
+```
+
+| Option | What it does |
+|---|---|
+| `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-` | No window, no message box, no restart |
+| `/TASKS="desktopicon,autostart"` | Also the desktop shortcut and the start at sign-in (both off without it) |
+| `/DATADIR="D:\LibrePhotos"` | The shortcuts and the start at sign-in use this data folder (`--data-dir`); kept for later installs |
+| `/PHOTOS="D:\"` | The same for the topmost photo folder (`--photos`) |
+| `/LOG="C:\Temp\setup.log"` | Writes a log of the installation |
+
+It exits with 0 when LibrePhotos is installed. 7 means it did not install because LibrePhotos is
+running: quit it and run the installer again. Uninstalling works the same way:
+`"%LOCALAPPDATA%\Programs\LibrePhotos\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART`. It
+keeps the data folder.
+
+## Running it from the zip {#running-it}
 
 1. Download `librephotos-windows-x64.zip` (see above). It is about 450 MB. To be sure it arrived
    complete, [check it](#checking-your-download).
@@ -97,8 +156,8 @@ still be explained after you tried again. For commands, see [Running a command](
 
 ### Checking your download {#checking-your-download}
 
-<Since version="1.4.0" /> Every release lists the SHA-256 checksums of its zips in a file called
-`SHA256SUMS`, under **Assets** next to the zip. If the checksum of your download is the same, the
+<Since version="1.4.0" /> Every release lists the SHA-256 checksums of its zips (<Since version="1.7.0" /> and of
+its installers) in a file called `SHA256SUMS`, under **Assets** next to the zip. If the checksum of your download is the same, the
 file arrived complete and is the one the release build made. It does not say who made the build:
 the program is not signed yet.
 
@@ -113,7 +172,8 @@ the program is not signed yet.
    (Get-FileHash $zip -Algorithm SHA256).Hash -eq $line.Line.Split(" ")[0]
    ```
 
-   For the zip with the version in its name, put that name in the first line instead.
+   For the installer (`LibrePhotos-Setup.exe`) or a file with the version in its name, put that
+   name in the first line instead.
 
 `True` means the download is fine. `False` means the file is incomplete or not the release's: delete
 it and download it again. You can also compare by eye: `Get-FileHash librephotos-windows-x64.zip`
@@ -332,6 +392,63 @@ own folder:
 - a photo folder is inside the program folder: the topmost photos folder (`--photos`), a user's scan
   directory or upload folder, or a library folder. Keep your photos outside the program folder.
 
+With the installed version (see [Installing](#installing)) the same happens in
+`%LOCALAPPDATA%\Programs\LibrePhotos`: `librephotos-1.8.0` next to `librephotos`, and `librephotos-old`
+afterwards. The Start menu entry keeps starting `librephotos\librephotos.exe`, and **Settings > Apps >
+Installed apps** shows the new version once it has started.
+
+### Moving to the installed version {#moving-to-the-installed-version}
+
+<Since version="1.7.0" /> A LibrePhotos you unzipped yourself can move to the installed version: a Start
+menu entry, an optional start when you sign in, and **Uninstall** in Windows' Settings. Your library
+does not move: the installed version uses the same data folder, so your photos, albums, people,
+users and settings are all there.
+
+From 1.6.0 or 1.5.x, first [update from LibrePhotos](#update-from-the-app) to this release as usual:
+those releases only know the zip, so the update still arrives as a zip. Then:
+
+1. In the browser, open **Admin area**. While LibrePhotos runs from an unzipped folder, a **Move to
+   the installed version** card is there. Click **Move to the installed version** on it (or
+   right-click the LibrePhotos icon in the tray and choose **Move to the installed version**).
+2. LibrePhotos downloads the installer of the release it runs from GitHub (about 450 MB) into the
+   `updates` folder of the data folder, and checks it against the release's `SHA256SUMS`, as it
+   checks an update.
+3. When the card says the installer is ready, click **Restart to finish moving** (tray: **Restart
+   to finish moving**).
+4. LibrePhotos quits, installs itself into `%LOCALAPPDATA%\Programs\LibrePhotos` without any window
+   and starts from there with the same options (`--data-dir`, `--port`, ...). After a minute the
+   browser page reloads by itself, and a notification says where the old folder is.
+
+What stays and what changes:
+
+- The folder you unzipped into (for example `C:\Users\<you>\LibrePhotos-app`, with `librephotos` and
+  `librephotos-old` in it) stays as it was: it is the way back. Nothing runs from it any more. Delete
+  it once everything works, together with the shortcuts you made to it.
+- A shortcut to the old `librephotos.exe` that is still there (on the desktop, in the Startup
+  folder, in Task Scheduler) starts the installed version instead.
+- A data folder of your own (`--data-dir`) and the topmost photo folder (`--photos`) go into the new
+  Start menu entry. Other options, such as `run --port 8080`, do not: add them to that shortcut as in
+  [Using another port](#using-another-port).
+- If you opened LibrePhotos to your network (`run --host 0.0.0.0`), Windows Firewall asks once more,
+  for the new program folder. The rule for the old folder can go: **Windows Security > Firewall &
+  network protection > Allow an app through firewall**.
+- The downloaded installer is deleted after the move. Its log, `setup.log`, is next to `update.log`
+  in the logs folder.
+
+If the installer fails, or the installed version does not start, LibrePhotos starts again from the
+old folder and a message box says why; `update.log` in the logs folder has the details, and the
+card offers the move again.
+
+Running `LibrePhotos-Setup.exe` yourself works too: quit the unzipped LibrePhotos first (the
+installer refuses while it runs), install, and start LibrePhotos from the Start menu. It uses the
+same data folder, so your library is there. Shortcuts to the old folder then still start the old
+release, which refuses to start once the installed version has updated the database: delete the
+old folder and its shortcuts.
+
+To go back to the unzipped copy, uninstall LibrePhotos (see [Uninstalling](#uninstalling)) and start
+`librephotos.exe` in the old folder again. If the installed version has updated the database in the
+meantime, put the database from before back as in [Going back](#going-back).
+
 ### Updating by hand {#update-by-hand}
 
 The steps assume the program is in `C:\Users\<you>\LibrePhotos-app\librephotos`; use your own
@@ -467,8 +584,10 @@ The previous release is in `librephotos-old` next to the program folder, whether
 LibrePhotos](#update-from-the-app) or [by hand](#update-by-hand).
 
 1. Quit LibrePhotos.
-2. In `C:\Users\<you>\LibrePhotos-app`, rename the new `librephotos` folder to `librephotos-new`,
-   and `librephotos-old` back to `librephotos`.
+2. In `C:\Users\<you>\LibrePhotos-app` (the installed version: `%LOCALAPPDATA%\Programs\LibrePhotos`),
+   rename the new `librephotos` folder to `librephotos-new`, and `librephotos-old` back to
+   `librephotos`. <Since version="1.7.0" /> **Settings > Apps > Installed apps** shows the version you went
+   back to once it has started.
 3. If the new release updated the database, put the database from before the update back:
    [your own backup](#restoring), or the newest automatic copy in `db\backups`, the one named after
    the new release ([Restoring a backup](upgrading.md#restore)). An older release cannot run on the database a
@@ -483,8 +602,19 @@ next scan finds photos added since.
 
 ## Uninstalling {#uninstalling}
 
+<Since version="1.7.0" /> The installed version:
+
+1. Quit LibrePhotos (tray: **Quit LibrePhotos**).
+2. Open **Settings > Apps > Installed apps**, click **...** next to **LibrePhotos** and choose
+   **Uninstall** (Windows 10: **Settings > Apps**, click **LibrePhotos**, then **Uninstall**).
+3. The uninstaller removes the program folder `%LOCALAPPDATA%\Programs\LibrePhotos` (with
+   `librephotos-old` and any downloaded update in it), the Start menu and desktop shortcuts and the
+   start at sign-in. Then it asks whether to delete your library in `%LOCALAPPDATA%\LibrePhotos`
+   too; it keeps it unless you click **Yes**, and it never deletes a data folder of your own
+   (`--data-dir`): delete that yourself if you do not want it any more, as in step 3 below.
+
 The zip installs nothing outside its folder: no Start menu entry, no service and no registry
-settings. To remove LibrePhotos:
+settings. To remove it:
 
 1. Quit LibrePhotos (tray: **Quit LibrePhotos**).
 2. Delete the program folder, for example `C:\Users\<you>\LibrePhotos-app` (with `librephotos`
@@ -519,3 +649,14 @@ scans three sample photos, then ends `librephotos.exe` and fails if any of its p
 ```powershell
 .\.venv\Scripts\python scripts\smoke_standalone.py build\standalone\librephotos-windows-x64.zip
 ```
+
+<Since version="1.7.0" /> The installer is built from that folder with [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+(`ISCC.exe` in its usual place, or set `ISCC`); it lands next to the zip, and `--checksums` adds it
+to `SHA256SUMS`:
+
+```powershell
+.\.venv\Scripts\python scripts\build_installer.py --checksums
+```
+
+How the installer, its updates and the move from the zip fit together, and what the Microsoft Store
+needs, is in [The Windows installer](../development/contribution/backend/windows-installer.md).

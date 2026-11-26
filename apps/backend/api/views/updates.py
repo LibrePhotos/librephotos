@@ -22,7 +22,12 @@ from api.serializers.updates import (
     SkipReleaseRequest,
     UpdateStatusSerializer,
 )
-from api.updates.check import skip_release, snooze_notice, update_status
+from api.updates.check import (
+    current_version,
+    skip_release,
+    snooze_notice,
+    update_status,
+)
 from api.updates.install import Installer, InstallError, installer, running_job
 
 # What a refused install or restart says, by InstallError code.
@@ -35,6 +40,8 @@ INSTALL_ERRORS = {
     "library_in_program_folder": "A photo folder is inside the program folder,"
     " which an update replaces.",
     "read_only": "LibrePhotos cannot write next to its program folder.",
+    "already_installed": "LibrePhotos already runs from the installed version.",
+    "not_a_release": "Only a release of LibrePhotos can move to the installed version.",
 }
 
 
@@ -140,6 +147,28 @@ class RestartToUpdateView(APIView):
             )
         try:
             updater.restart()
+        except InstallError as error:
+            raise _refused(error) from error
+        return _status_response(status.HTTP_202_ACCEPTED)
+
+
+class MoveToInstalledView(APIView):
+    permission_classes = (IsAdminUser,)
+
+    @extend_schema(
+        description="**Move to the installed version** in a Windows app that"
+        " runs from an unzipped folder: download the installer of the release it"
+        " runs and check its SHA-256 against the release's SHA256SUMS. Restart to"
+        " finish moving (POST /api/updates/restart/) then installs it, starts it"
+        " and keeps the old folder. 409 not_supported elsewhere,"
+        " already_installed when it runs from the installed version.",
+        request=None,
+        responses={status.HTTP_202_ACCEPTED: UpdateStatusSerializer},
+    )
+    def post(self, request: Request, format: str | None = None) -> Response:
+        updater = _updater()
+        try:
+            updater.start_move(current_version())
         except InstallError as error:
             raise _refused(error) from error
         return _status_response(status.HTTP_202_ACCEPTED)

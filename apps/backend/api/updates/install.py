@@ -30,9 +30,17 @@ from django.conf import settings
 from api.models.library_folder import LibraryFolder
 from api.models.long_running_job import LongRunningJob
 from api.models.user import User
+from librephotos.installation import PORTABLE
 
 from . import signature
-from .download import DownloadError
+from .download import (
+    GITHUB,
+    RELEASE_VERSION,
+    DownloadError,
+    ReleaseSource,
+    release_source,
+)
+from .setup_file import stage_setup
 from .stage import (
     EXTRACTING,
     VERIFYING,
@@ -50,6 +58,8 @@ READY = "ready"
 RESTARTING = "restarting"
 FAILED = "failed"
 BUSY = frozenset({DOWNLOADING, VERIFYING, EXTRACTING, RESTARTING})
+UPDATE = "update"
+MOVE = "move"
 
 # Why the updater cannot run here; the update steps in the docs apply instead.
 NOT_WINDOWS_APP = "not_windows_app"
@@ -58,6 +68,8 @@ DATA_IN_PROGRAM_FOLDER = "data_in_program_folder"
 LIBRARY_IN_PROGRAM_FOLDER = "library_in_program_folder"
 # A failure no DownloadError names; the log has the traceback.
 UNEXPECTED = "unexpected"
+ALREADY_INSTALLED = "already_installed"
+NOT_A_RELEASE = "not_a_release"
 
 # restart(prepared folder): start librephotos.updater from it, then quit.
 RestartHook = Callable[[Path], None]
@@ -76,6 +88,10 @@ class InstallState(TypedDict):
     total_bytes: int | None
     error: str | None
     signature_checked: bool
+    kind: str
+    layout: str | None
+    move_supported: bool
+    move_reason: str | None
 
 
 Listener = Callable[[InstallState], None]
@@ -96,18 +112,31 @@ class _Progress:
     received_bytes: int = 0
     total_bytes: int | None = None
     error: str | None = None
+    kind: str = UPDATE
 
 
-def _as_state(progress: _Progress, reason: str | None = None) -> InstallState:
+@dataclasses.dataclass(frozen=True)
+class _Offer:
+    reason: str | None = None
+    layout: str | None = None
+    move_reason: str | None = NOT_WINDOWS_APP
+
+
+def _as_state(progress: _Progress, offer: _Offer | None = None) -> InstallState:
+    offer = offer or _Offer()
     return InstallState(
-        supported=reason is None,
-        reason=reason,
+        supported=offer.reason is None,
+        reason=offer.reason,
         state=progress.state,
         version=progress.version,
         received_bytes=progress.received_bytes,
         total_bytes=progress.total_bytes,
         error=progress.error,
         signature_checked=bool(signature.PUBLIC_KEY),
+        kind=progress.kind,
+        layout=offer.layout,
+        move_supported=offer.move_reason is None,
+        move_reason=offer.move_reason,
     )
 
 
@@ -121,6 +150,19 @@ class Surroundings:
     libraries: Libraries = lambda: ()
 
 
+@dataclasses.dataclass(frozen=True)
+class Fetching:
+    session_factory: Callable[[], requests.Session] = requests.Session
+    source: ReleaseSource = GITHUB
+
+
+@dataclasses.dataclass(frozen=True)
+class Moves:
+    layout: str
+    downloads: Path
+    move: RestartHook
+
+
 class Installer:
     """One program folder's updater. Every method is safe from any thread."""
 
@@ -129,16 +171,23 @@ class Installer:
         folder: ProgramFolder,
         restart: RestartHook,
         surroundings: Surroundings | None = None,
-        session_factory: Callable[[], requests.Session] = requests.Session,
+        fetching: Fetching | None = None,
+        moves: Moves | None = None,
     ) -> None:
         self.folder = folder
         self._restart = restart
         self._surroundings = surroundings or Surroundings()
-        self._session_factory = session_factory
+        self._fetching = fetching or Fetching()
+        self._moves = moves
         self._lock = threading.Lock()
         self._now = _Progress()
         self._staged: Path | None = None
         self._listeners: list[Listener] = []
+        self._current = ""
+        self._last_offer = _Offer(
+            layout=moves.layout if moves is not None else None,
+            move_reason=NOT_A_RELEASE if moves is not None else NOT_WINDOWS_APP,
+        )
 
     def subscribe(self, listener: Listener) -> None:
         """``listener`` hears every change, progress included, on the thread
@@ -146,7 +195,7 @@ class Installer:
         self._listeners.append(listener)
 
     def _publish(self, progress: _Progress) -> InstallState:
-        state = _as_state(progress)
+        state = _as_state(progress, self._last_offer)
         for listener in self._listeners:
             listener(state)
         return state
@@ -164,19 +213,41 @@ class Installer:
             self.folder.path, surroundings.data_dirs, surroundings.libraries()
         )
 
-    def _check_allowed(self) -> None:
-        reason = self.blocked()
+    def move_blocked(self, version: str) -> str | None:
+        moves = self._moves
+        if moves is None:
+            return NOT_WINDOWS_APP
+        if moves.layout != PORTABLE:
+            return ALREADY_INSTALLED
+        if not RELEASE_VERSION.fullmatch(version):
+            return NOT_A_RELEASE
+        surroundings = self._surroundings
+        return inside_reason(
+            self.folder.path, surroundings.data_dirs, surroundings.libraries()
+        )
+
+    def _offer(self, reason: str | None = None) -> _Offer:
+        self._last_offer = _Offer(
+            reason=reason if reason is not None else self.blocked(),
+            layout=self._moves.layout if self._moves is not None else None,
+            move_reason=self.move_blocked(self._current),
+        )
+        return self._last_offer
+
+    def _check_allowed(self, kind: str, version: str) -> None:
+        reason = self.blocked() if kind == UPDATE else self.move_blocked(version)
         if reason is not None:
             raise InstallError(reason)
 
-    def state(self, latest: str | None = None) -> InstallState:
+    def state(self, latest: str | None = None, current: str = "") -> InstallState:
         """The state now. ``latest``, the newest release, counts as ready
         when an earlier run of LibrePhotos prepared it already."""
+        self._current = current
         with self._lock:
             now = self._now
         reason = self.blocked()
         if reason is not None:
-            return _as_state(now, reason)
+            return _as_state(now, self._offer(reason))
         if (
             latest
             and now.state in (IDLE, FAILED)
@@ -185,25 +256,33 @@ class Installer:
             self._staged = self.folder.staged(latest)
             return self._change(
                 lambda now: dataclasses.replace(
-                    now, state=READY, version=latest, error=None
+                    now, state=READY, version=latest, error=None, kind=UPDATE
                 )
             )
-        return _as_state(now)
+        return _as_state(now, self._offer())
 
     def start(self, version: str) -> InstallState:
         """Download, check and unpack ``version`` in the background."""
-        self._check_allowed()
+        return self._begin(UPDATE, version, self._download)
+
+    def start_move(self, version: str) -> InstallState:
+        self._current = version
+        return self._begin(MOVE, version, self._download_setup)
+
+    def _begin(
+        self, kind: str, version: str, work: Callable[[str], None]
+    ) -> InstallState:
+        self._check_allowed(kind, version)
         with self._lock:
             now = self._now
-            if now.version == version and (now.state in BUSY or now.state == READY):
-                return _as_state(now)
+            same = now.kind == kind and now.version == version
+            if same and (now.state in BUSY or now.state == READY):
+                return _as_state(now, self._offer())
             if now.state in BUSY:
                 raise InstallError("update_in_progress")
-            self._now = _Progress(state=DOWNLOADING, version=version)
+            self._now = _Progress(state=DOWNLOADING, version=version, kind=kind)
             started = self._now
-        threading.Thread(
-            target=self._download, args=(version,), daemon=True, name="update"
-        ).start()
+        threading.Thread(target=work, args=(version,), daemon=True, name=kind).start()
         return self._publish(started)
 
     def _progress(self, received: int, total: int | None) -> None:
@@ -220,13 +299,32 @@ class Installer:
         self._change(lambda now: dataclasses.replace(now, state=state, error=error))
 
     def _download(self, version: str) -> None:
+        self._fetch(
+            version,
+            lambda session, reporter: stage_release(
+                session, self.folder, version, reporter, self._fetching.source
+            ),
+        )
+
+    def _download_setup(self, version: str) -> None:
+        if self._moves is None:
+            self._settle(FAILED, NOT_WINDOWS_APP)
+            return
+        downloads = self._moves.downloads
+        self._fetch(
+            version,
+            lambda session, reporter: stage_setup(
+                session, downloads, version, reporter, self._fetching.source
+            ),
+        )
+
+    def _fetch(
+        self, version: str, stage: Callable[[requests.Session, Reporter], Path]
+    ) -> None:
         try:
-            with self._session_factory() as session:
-                staged = stage_release(
-                    session,
-                    self.folder,
-                    version,
-                    Reporter(progress=self._progress, phase=self._phase),
+            with self._fetching.session_factory() as session:
+                staged = stage(
+                    session, Reporter(progress=self._progress, phase=self._phase)
                 )
         except DownloadError as error:
             logger.warning("Update to %s failed: %s", version, error.code)
@@ -244,24 +342,32 @@ class Installer:
             self._staged = staged
             self._settle(READY, None)
 
+    def _hand_over(self, kind: str) -> RestartHook | None:
+        if kind == UPDATE:
+            return self._restart
+        return self._moves.move if self._moves is not None else None
+
     def restart(self) -> InstallState:
         """Hand over to the prepared release: LibrePhotos quits and the new
         release starts in its place."""
-        self._check_allowed()
+        with self._lock:
+            kind, version = self._now.kind, self._now.version or ""
+        self._check_allowed(kind, version)
+        hook = self._hand_over(kind)
         with self._lock:
             staged = self._staged
-            if self._now.state != READY or staged is None:
+            if self._now.state != READY or staged is None or hook is None:
                 raise InstallError("update_not_ready")
             self._now = dataclasses.replace(self._now, state=RESTARTING, error=None)
             restarting = self._now
         self._publish(restarting)
         try:
-            self._restart(staged)
+            hook(staged)
         except OSError as error:
             logger.warning("Update: the restart failed: errno %s", error.errno)
             self._settle(READY, "restart_failed")
             raise InstallError("restart_failed") from error
-        return _as_state(restarting)
+        return _as_state(restarting, self._offer())
 
 
 @dataclasses.dataclass
@@ -301,16 +407,22 @@ def library_dirs() -> list[Path]:
     return [Path(path) for path in paths if path]
 
 
-def blocked_reason(
+def inside_reason(
     program_dir: Path, data_dirs: Sequence[Path], libraries: Sequence[Path] = ()
 ) -> str | None:
-    """Why this program folder cannot be replaced, or None when it can. The
-    swap moves the folder to librephotos-old, and the update after deletes
-    it: nothing of the user's may be inside."""
     if any(_inside(data, program_dir) for data in data_dirs):
         return DATA_IN_PROGRAM_FOLDER
     if any(_inside(library, program_dir) for library in libraries):
         return LIBRARY_IN_PROGRAM_FOLDER
+    return None
+
+
+def blocked_reason(
+    program_dir: Path, data_dirs: Sequence[Path], libraries: Sequence[Path] = ()
+) -> str | None:
+    reason = inside_reason(program_dir, data_dirs, libraries)
+    if reason is not None:
+        return reason
     if not _writable(program_dir.parent):
         # Program Files, or a folder the user cannot write to.
         return READ_ONLY
@@ -318,13 +430,22 @@ def blocked_reason(
 
 
 def enable(
-    program_dir: Path, data_dirs: Sequence[Path], restart: RestartHook
+    program_dir: Path,
+    data_dirs: Sequence[Path],
+    restart: RestartHook,
+    moves: Moves | None = None,
 ) -> Installer:
     """Turn the updater on for the running program folder (the Windows app's
     root process). Whether it may replace the folder is asked each time
     (``Installer.blocked``)."""
     surroundings = Surroundings(tuple(data_dirs), library_dirs)
-    _registry.installer = Installer(ProgramFolder(program_dir), restart, surroundings)
+    _registry.installer = Installer(
+        ProgramFolder(program_dir),
+        restart,
+        surroundings,
+        Fetching(source=release_source(settings.UPDATE_RELEASE_SOURCE)),
+        moves,
+    )
     return _registry.installer
 
 
@@ -332,12 +453,12 @@ def installer() -> Installer | None:
     return _registry.installer
 
 
-def install_state(latest: str | None) -> InstallState:
+def install_state(latest: str | None, current: str = "") -> InstallState:
     """What the updater can do for ``latest``, the newest release known."""
-    current = _registry.installer
-    if current is None:
-        return _as_state(_Progress(), NOT_WINDOWS_APP)
-    return current.state(latest)
+    updater = _registry.installer
+    if updater is None:
+        return _as_state(_Progress(), _Offer(reason=NOT_WINDOWS_APP))
+    return updater.state(latest, current)
 
 
 def running_job() -> str | None:

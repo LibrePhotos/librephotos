@@ -15100,6 +15100,35 @@
         }
       }
     },
+    "/api/updates/move/": {
+      "post": {
+        "operationId": "api_updates_move_create",
+        "description": "**Move to the installed version** in a Windows app that runs from an unzipped folder: download the installer of the release it runs and check its SHA-256 against the release's SHA256SUMS. Restart to finish moving (POST /api/updates/restart/) then installs it, starts it and keeps the old folder. 409 not_supported elsewhere, already_installed when it runs from the installed version.",
+        "tags": [
+          "api"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatus"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/updates/restart/": {
       "post": {
         "operationId": "api_updates_restart_create",
@@ -22338,10 +22367,32 @@
           "signature_checked": {
             "type": "boolean",
             "description": "Whether the download's signature is checked too; until a signing key is chosen (#2317) only its SHA-256 is."
+          },
+          "kind": {
+            "type": "string",
+            "description": "What state follows: update (a new release's zip) or move (the installer of the running release, to move to the installed version)."
+          },
+          "layout": {
+            "type": "string",
+            "nullable": true,
+            "description": "installed (from the installer) or portable (an unzipped folder); null outside the Windows app."
+          },
+          "move_supported": {
+            "type": "boolean",
+            "description": "Move to the installed version is offered: a portable Windows app of a release."
+          },
+          "move_reason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why not, when move_supported is false: not_windows_app, already_installed, not_a_release, data_in_program_folder or library_in_program_folder."
           }
         },
         "required": [
           "error",
+          "kind",
+          "layout",
+          "move_reason",
+          "move_supported",
           "reason",
           "received_bytes",
           "signature_checked",

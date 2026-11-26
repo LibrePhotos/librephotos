@@ -720,6 +720,7 @@ urlpatterns = [
     path("api/updates/snooze/", updates.SnoozeUpdateNoticeView.as_view()),
     path("api/updates/install/", updates.InstallUpdateView.as_view()),
     path("api/updates/restart/", updates.RestartToUpdateView.as_view()),
+    path("api/updates/move/", updates.MoveToInstalledView.as_view()),
     re_path(r"^api/autoalbumgen/?$", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(
         r"^api/autoalbumtitlegen/?$", album_auto.RegenerateAutoAlbumTitles.as_view()

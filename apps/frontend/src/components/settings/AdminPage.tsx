@@ -5,7 +5,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
 import { useUpgradeTasksQuery } from "../../api_client/jobs/hooks/useUpgradeTasks";
-import { useFetchServerStatsQuery, useUpdateNotice } from "../../api_client/server/hooks";
+import { useFetchServerStatsQuery, useMoveNotice, useUpdateNotice } from "../../api_client/server/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { EmptyState } from "../common/EmptyState";
 import { PageLoader } from "../common/PageLoader";
@@ -20,6 +20,7 @@ import { EmailSettings } from "./EmailSettings";
 import { FeaturesCard } from "./FeaturesCard";
 import { FinishUpgradeCard } from "./FinishUpgradeCard";
 import { LookUpPlacesTool } from "./LookUpPlacesTool";
+import { MoveToInstalledCard } from "./MoveToInstalledCard";
 import { PublicGallerySetting } from "./PublicGallerySetting";
 import { ADMIN_SECTIONS } from "./sectionIds";
 import { SectionNav } from "./SectionNav";
@@ -134,6 +135,7 @@ export function AdminPage() {
   const upgradeTasks = useUpgradeTasksQuery({ enabled: currentUser?.is_superuser === true }).data?.tasks ?? [];
   // A newer release is out (#2311), unless skipped or closed this week.
   const update = useUpdateNotice(currentUser?.is_superuser === true);
+  const move = useMoveNotice(currentUser?.is_superuser === true);
 
   if (isPending) {
     return <PageLoader />;
@@ -153,6 +155,7 @@ export function AdminPage() {
 
   const sections = [
     ...(update ? [{ id: ADMIN_SECTIONS.update, label: t("updates.header") }] : []),
+    ...(move ? [{ id: ADMIN_SECTIONS.move, label: t("updates.move.header") }] : []),
     ...(upgradeTasks.length ? [{ id: ADMIN_SECTIONS.upgrade, label: t("upgradetasks.header") }] : []),
     { id: ADMIN_SECTIONS.site, label: t("adminarea.sitesettings") },
     { id: ADMIN_SECTIONS.gallery, label: t("sitesettings.publicGallery") },
@@ -173,6 +176,11 @@ export function AdminPage() {
           {update ? (
             <SettingsSection id={ADMIN_SECTIONS.update}>
               <UpdateAvailableCard status={update} />
+            </SettingsSection>
+          ) : null}
+          {move ? (
+            <SettingsSection id={ADMIN_SECTIONS.move}>
+              <MoveToInstalledCard status={move} />
             </SettingsSection>
           ) : null}
           {upgradeTasks.length ? (

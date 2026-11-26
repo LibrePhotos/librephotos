@@ -105,19 +105,18 @@ def is_staged(folder: Path, version: str) -> bool:
     )
 
 
-def _check_free_space(folder: Path) -> None:
-    if shutil.disk_usage(folder).free < REQUIRED_FREE_BYTES:
+def check_free_space(folder: Path, required: int = REQUIRED_FREE_BYTES) -> None:
+    if shutil.disk_usage(folder).free < required:
         raise DownloadError("disk_full")
 
 
-def _expected_sha256(
+def expected_sha256(
     session: requests.Session,
     source: ReleaseSource,
     version: str,
-    public_key: str | None,
+    name: str,
 ) -> str:
-    """The zip's SHA-256 from the release's SHA256SUMS, whose signature is
-    checked first when a public key is built in."""
+    public_key = signature.PUBLIC_KEY
     checksums = fetch_small(
         session, source, version, CHECKSUMS_NAME, MAX_SMALL_FILE_BYTES
     )
@@ -131,10 +130,10 @@ def _expected_sha256(
             )
         except signature.SignatureError as error:
             raise DownloadError("bad_signature") from error
-    return parse_checksums(checksums.decode("utf-8", "replace"), ZIP_NAME)
+    return parse_checksums(checksums.decode("utf-8", "replace"), name)
 
 
-def _verify(archive: Path, expected: str) -> None:
+def verify_download(archive: Path, expected: str) -> None:
     if sha256_file(archive) != expected:
         # Corrupt, or a resumed file the server changed meanwhile: start over.
         archive.unlink()
@@ -168,16 +167,16 @@ def stage_release(
         raise DownloadError("folder_in_the_way")
     partial = folder.partial(version)
     partial.mkdir(exist_ok=True)
-    _check_free_space(partial)
+    check_free_space(partial)
     public_key = signature.PUBLIC_KEY
-    expected = _expected_sha256(session, source, version, public_key)
+    expected = expected_sha256(session, source, version, ZIP_NAME)
     archive = partial / f"{ZIP_NAME}.part"
     url = source.asset_url(version, ZIP_NAME)
     download_asset(
         session, source, url, Target(archive, MAX_ZIP_BYTES, reporter.progress)
     )
     reporter.phase(VERIFYING)
-    _verify(archive, expected)
+    verify_download(archive, expected)
     reporter.phase(EXTRACTING)
     program = _unpack(archive, partial, version)
     marker = {"version": version, "sha256": expected, "signed": bool(public_key)}

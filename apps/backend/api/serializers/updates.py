@@ -42,6 +42,25 @@ class InstallStateSerializer(serializers.Serializer[InstallState]):
         help_text="Whether the download's signature is checked too; until a"
         " signing key is chosen (#2317) only its SHA-256 is."
     )
+    kind = serializers.CharField(
+        help_text="What state follows: update (a new release's zip) or move (the"
+        " installer of the running release, to move to the installed version)."
+    )
+    layout = serializers.CharField(
+        allow_null=True,
+        help_text="installed (from the installer) or portable (an unzipped"
+        " folder); null outside the Windows app.",
+    )
+    move_supported = serializers.BooleanField(
+        help_text="Move to the installed version is offered: a portable Windows"
+        " app of a release."
+    )
+    move_reason = serializers.CharField(
+        allow_null=True,
+        help_text="Why not, when move_supported is false: not_windows_app,"
+        " already_installed, not_a_release, data_in_program_folder or"
+        " library_in_program_folder.",
+    )
 
 
 class UpdateStatusSerializer(serializers.Serializer[UpdateStatus]):

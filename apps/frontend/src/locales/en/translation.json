@@ -3908,7 +3908,22 @@
         "read_only": "LibrePhotos cannot update itself here: it cannot write next to its program folder (for example in Program Files). Follow the update steps instead.",
         "data_in_program_folder": "LibrePhotos cannot update itself here: the data folder is inside the program folder, which an update replaces. Follow the update steps instead.",
         "library_in_program_folder": "LibrePhotos cannot update itself here: a photo folder (the photos folder, a scan directory, an upload or library folder) is inside the program folder, which an update replaces. Move the photos out of it, or follow the update steps instead."
-      }
+      },
+      "duringmove": "LibrePhotos is moving to the installed version. Update it once that is done."
+    },
+    "move": {
+      "header": "Installed version",
+      "title": "Move to the installed version",
+      "description": "LibrePhotos {{version}} runs from a folder you unzipped. The installed version has a Start menu entry, can start when you sign in and can be uninstalled in Windows' Settings. Your library stays where it is: the installed version uses the same data folder.",
+      "start": "Move to the installed version",
+      "hint": "LibrePhotos downloads the installer of {{version}} from GitHub and checks it against the release's SHA-256 checksums. It keeps running meanwhile; you choose when to restart. The folder you unzipped stays as it is.",
+      "downloading": "Downloading the installer: {{received}} of {{total}}",
+      "downloadingunsized": "Downloading the installer: {{received}}",
+      "verifying": "Checking the installer...",
+      "ready": "The installer is downloaded and checked. LibrePhotos quits, installs itself and starts again from the installed version; this page reloads when it is back. The folder you unzipped stays as the way back.",
+      "restart": "Restart to finish moving",
+      "restarting": "LibrePhotos is moving to the installed version. This page reloads when it is back.",
+      "failed": "LibrePhotos could not move to the installed version: {{reason}}"
     }
   },
   "processingstatus": {
