@@ -170,9 +170,10 @@ fn run_statement(conn: &Connection, st: &Statement, out: &mut Vec<u8>) -> Result
     }
     let cols = stmt.column_count();
     let columns = match st.method {
-        Method::All | Method::Get => {
-            Some(serde_json::to_vec(&stmt.column_names()).map_err(|e| e.to_string())?)
-        }
+        Method::All | Method::Get => Some(
+            serde_json::to_vec(&stmt.column_names().collect::<Vec<_>>())
+                .map_err(|e| e.to_string())?,
+        ),
         Method::Run | Method::Values => None,
     };
     let mut rows = stmt.raw_query();

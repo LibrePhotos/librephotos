@@ -29,14 +29,14 @@ jpeg-encoder = { version = "0.7", features = ["simd"] }
 png = "0.18"
 trash = "5"
 arboard = { version = "3", default-features = false, features = ["image-data"] }
-rusqlite = { version = "0.40", features = ["bundled", "hooks"] }
+rusqlite = { version = "0.43", features = ["bundled", "hooks"] }
 base64 = "0.23"
 itoa = "1"
 notify = "8"
 md-5 = "0.10"
 reqwest = { version = "0.13", default-features = false, features = ["native-tls"] }
 keyring = { version = "3", features = ["windows-native", "apple-native", "linux-native"] }
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+jiff = { version = "1", default-features = false, features = ["std"] }
 tokio = { version = "1", features = ["time", "sync", "rt", "macros"] }
 
 [target.'cfg(windows)'.dependencies]

@@ -321,6 +321,12 @@ These are load-bearing — changing them breaks the build or tests:
   their newest versions, which put a second copy of both next to the versions
   SDK 57 bundles — expo-router would then resolve different screens/safe-area
   modules than the app. The overrides pin one copy of each.
+- **`decode-uri-component` is `packages/decode-uri-component` until SDK 58.**
+  `expo-router` 57 still parses deep link queries with `query-string` 7, which
+  `require()`s a `decode-uri-component` whose fixed releases are ESM-only. The
+  root `package.json` hands `query-string` a CommonJS port of 0.5.1 instead;
+  the package README says why and when to delete it (once `expo-router` drops
+  `query-string`).
 - **`babel-preset-expo` is a direct devDependency** even though `expo` already
   depends on it. It peer-depends back on `expo`, so npm resolves that cycle by
   nesting it inside `node_modules/expo`, where Babel — resolving presets

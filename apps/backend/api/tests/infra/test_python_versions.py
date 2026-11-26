@@ -41,6 +41,8 @@ DISTRO_PYTHON: dict[str, Version] = {
 OWN_BASE_IMAGES = {
     "reallibrephotos/librephotos-base": "deploy/docker/backend/base/Dockerfile",
 }
+PACKAGED_PYTHON_IMAGES = ("cgr.dev/chainguard/wolfi-base:*",)
+_APK_PYTHON = re.compile(r"\bpython-3\.(\d+)\b")
 
 _REQUIRES_PYTHON = re.compile(r'^requires-python\s*=\s*"([^"]*)"', re.MULTILINE)
 _RANGE = re.compile(r"^\s*>=\s*3\.(\d+)\s*,\s*<\s*3\.(\d+)\s*$")
@@ -99,12 +101,25 @@ def distro_python(image: str) -> Version:
     )
 
 
+def packaged_python(dockerfile_text: str) -> Version:
+    versions = {(3, int(minor)) for minor in _APK_PYTHON.findall(dockerfile_text)}
+    if len(versions) != 1:
+        raise LookupError(
+            "a Wolfi-based image installs exactly one python-3.N package, found "
+            f"{sorted(map(_format, versions))}"
+        )
+    return versions.pop()
+
+
 def image_python(dockerfile: Path) -> Version:
     """The Python an image runs, through our own base image to the distro."""
-    image = final_stage_image(dockerfile.read_text(encoding="utf-8"))
+    text = dockerfile.read_text(encoding="utf-8")
+    image = final_stage_image(text)
     base = OWN_BASE_IMAGES.get(image.split(":", 1)[0])
     if base is not None:
         return image_python(REPO_ROOT / base)
+    if any(fnmatchcase(image, pattern) for pattern in PACKAGED_PYTHON_IMAGES):
+        return packaged_python(text)
     return distro_python(image)
 
 
@@ -384,6 +399,17 @@ class PlantedViolationTests(unittest.TestCase):
     def test_known_base_images_resolve(self):
         self.assertEqual(distro_python("ubuntu:noble"), (3, 12))
         self.assertEqual(distro_python("ubuntu:resolute"), (3, 14))
+
+    def test_a_wolfi_image_runs_the_python_package_it_installs(self):
+        dockerfile = (
+            "FROM cgr.dev/chainguard/wolfi-base:latest@sha256:abc\n"
+            "RUN apk add --no-cache bash python-3.14 py3.14-pip perl\n"
+        )
+        self.assertEqual(packaged_python(dockerfile), (3, 14))
+        with self.assertRaisesRegex(LookupError, "3.13"):
+            packaged_python(dockerfile.replace("perl", "python-3.13"))
+        with self.assertRaisesRegex(LookupError, "exactly one"):
+            packaged_python("FROM cgr.dev/chainguard/wolfi-base:latest\n")
 
     def test_an_unsupported_workflow_python_is_found(self):
         workflow = 'steps:\n  - uses: actions/setup-python@v7\n    with:\n      python-version: "3.9"\n'

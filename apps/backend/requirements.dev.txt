@@ -6,6 +6,12 @@ pre-commit==4.7.0
 coverage==7.17.2
 Faker==40.44.0
 setuptools==84.2.1
+# Indirect dependencies, pinned to releases without known vulnerabilities:
+# virtualenv and filelock through pre-commit, anyio and idna through watchfiles.
+virtualenv==21.15.13
+filelock==4.3.1
+anyio==4.16.0
+idna==3.20
 pyfakefs==6.3.2
 # Development only: librephotos/settings/development.py adds them to
 # INSTALLED_APPS when they are installed (the DEBUG=1 image build installs this

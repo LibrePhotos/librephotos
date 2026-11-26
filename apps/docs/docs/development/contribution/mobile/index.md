@@ -2,7 +2,7 @@
 title: "Mobile"
 description: "Development Information regarding the LibrePhotos Mobile App."
 sidebar_position: 3
-last_modified_at: 2026-11-20
+last_modified_at: 2026-11-26
 ---
 
 The LibrePhotos mobile app lives in [`apps/mobile/`](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile). It is an [Expo](https://expo.dev/) (React Native, New Architecture) app for Android and iOS with an offline-first data model: a local SQLite mirror of the library, kept current by delta sync against the backend, plus camera-roll backup. The [app README](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile#readme) is the full developer guide, and the design documents are in [`plans/mobile-v2/`](https://github.com/LibrePhotos/librephotos/tree/dev/plans/mobile-v2).
@@ -37,7 +37,10 @@ npm run typecheck --workspace packages/local-db
 npm run lint --workspace packages/local-db
 npm run test --workspace packages/local-db
 npm run db:check --workspace packages/local-db
+npm run test --workspace packages/decode-uri-component
 ```
+
+`packages/decode-uri-component` is a CommonJS port of decode-uri-component 0.5.1 that the root `package.json` gives to `query-string` 7, which `expo-router` uses to parse deep link queries, in place of the vulnerable 0.2.2. It goes away with Expo SDK 58, whose `expo-router` no longer uses `query-string`; its README lists what to delete.
 
 ## 🌐 Translations
 

@@ -23,7 +23,7 @@ RUN if [ "$DEBUG" = 1 ] ; then \
   pip install --break-system-packages -r requirements.dev.txt; \
   fi
 RUN if [ "$MLVALIDATION" = 1 ] ; then \
-  apt-get update && apt-get install default-jre -y; \
+  apk add --no-cache openjdk-25-jre openjdk-25-default-jvm; \
   pip install --break-system-packages -r requirements.mlval.txt; \
   fi
 COPY apps/backend/ /code/

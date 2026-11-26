@@ -28,6 +28,13 @@ export const ALLOWED_COMMENTS = [
   ["@ts-check", (comment) => comment.language === "ts" && /^\/\/\s*@ts-check\s*$/.test(comment.text)],
   ["encoding declaration", (comment) => comment.language === "python" && comment.line <= 2 && /^#.*?coding[:=]\s*[-\w.]+/.test(comment.text)],
   ["raw-create marker", (comment) => comment.language === "python" && /^#\s*raw-create:\s*\S/.test(comment.text)],
+  [
+    "action version of a SHA pin",
+    (comment) =>
+      comment.language === "yaml" &&
+      /^#\s*v\d+(\.\d+){0,2}$/.test(comment.text) &&
+      /^\s*(-\s+)?uses:\s+[\w.-]+\/[\w./-]+@[0-9a-f]{40}\s+#/.test(comment.lineText ?? ""),
+  ],
 ];
 
 const EXTENSIONS = new Map([
@@ -249,7 +256,7 @@ export function commentViolations(files) {
     const lines = file.text.split("\n");
     const reported = new Set();
     for (const comment of comments) {
-      if (allowedReason({ ...comment, line: comment.start, language, text: comment.text || lines[comment.start - 1].trim() })) continue;
+      if (allowedReason({ ...comment, line: comment.start, language, text: comment.text || lines[comment.start - 1].trim(), lineText: lines[comment.start - 1] })) continue;
       for (let line = comment.start; line <= comment.end; line += 1) {
         if (!file.added.has(line) || reported.has(line)) continue;
         reported.add(line);

@@ -1,6 +1,7 @@
 use std::path::{MAIN_SEPARATOR, Path};
 
-use chrono::NaiveDateTime;
+use jiff::civil::DateTime;
+use jiff::tz::TimeZone;
 
 use crate::formats::{FileKind, kind_of};
 use crate::listing::modified_ms;
@@ -49,9 +50,11 @@ pub fn is_within(path: &str, dir: &str) -> bool {
 
 pub fn taken_ms(iso: &str) -> Option<i64> {
     let s = iso.get(..19)?;
-    NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S")
+    let civil = DateTime::strptime("%Y-%m-%dT%H:%M:%S", s).ok()?;
+    TimeZone::UTC
+        .to_timestamp(civil)
         .ok()
-        .map(|d| d.and_utc().timestamp_millis())
+        .map(|t| t.as_millisecond())
 }
 
 pub fn file_stat(path: &Path, meta: &std::fs::Metadata) -> Option<FileStat> {

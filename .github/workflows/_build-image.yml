@@ -36,6 +36,16 @@ on:
         required: false
         default: ""
         type: string
+      cache-scope:
+        description: "If set, reuse and save the BuildKit layer cache of every stage in the GitHub Actions cache, as <cache-scope>-amd64 and <cache-scope>-arm64 (mode=max). image-backend-check.yml reads the same scopes."
+        required: false
+        default: ""
+        type: string
+      no-cache-filters:
+        description: "Newline-separated Dockerfile stages that are always rebuilt, even with a cache, e.g. the final stage so its packages are current."
+        required: false
+        default: ""
+        type: string
     secrets:
       DOCKER_HUB_USERNAME:
         required: true
@@ -112,6 +122,9 @@ jobs:
             ${{ inputs.build-args }}
             ${{ steps.tag.outputs.base-arg }}
           tags: ${{ steps.tag.outputs.tag }}
+          cache-from: ${{ inputs.cache-scope != '' && format('type=gha,scope={0}-amd64', inputs.cache-scope) || '' }}
+          cache-to: ${{ inputs.cache-scope != '' && format('type=gha,scope={0}-amd64,mode=max,ignore-error=true', inputs.cache-scope) || '' }}
+          no-cache-filters: ${{ inputs.no-cache-filters }}
 
   build-arm64:
     needs: pin-base
@@ -153,6 +166,9 @@ jobs:
             ${{ inputs.build-args }}
             ${{ steps.tag.outputs.base-arg }}
           tags: ${{ steps.tag.outputs.tag }}
+          cache-from: ${{ inputs.cache-scope != '' && format('type=gha,scope={0}-arm64', inputs.cache-scope) || '' }}
+          cache-to: ${{ inputs.cache-scope != '' && format('type=gha,scope={0}-arm64,mode=max,ignore-error=true', inputs.cache-scope) || '' }}
+          no-cache-filters: ${{ inputs.no-cache-filters }}
 
   combine-manifest:
     needs: [build-amd64, build-arm64]

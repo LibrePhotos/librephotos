@@ -32,12 +32,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The Python of every image: 3.14 is the backend and unified images
-        # (ubuntu:resolute), the Windows standalone build and the only Python
-        # requires-python allows (apps/backend/pyproject.toml). A second Python
-        # joins this list when requires-python widens again.
-        # api/tests/infra/test_python_versions.py fails when an image's Python
-        # is missing from it.
         python: ["3.14"]
     steps:
       - uses: actions/checkout@v7

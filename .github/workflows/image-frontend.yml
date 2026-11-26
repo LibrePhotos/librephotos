@@ -11,13 +11,14 @@ on:
       - 'deploy/docker/frontend/Dockerfile'
       - '.github/workflows/image-frontend.yml'
       - '.github/workflows/_build-image.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   dev:
-    if: github.event_name != 'release'
+    if: github.event_name != 'release' && github.ref == 'refs/heads/dev'
     uses: ./.github/workflows/_build-image.yml
     with:
       image: reallibrephotos/librephotos-frontend

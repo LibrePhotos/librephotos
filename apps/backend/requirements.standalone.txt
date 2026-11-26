@@ -8,3 +8,6 @@ ordered-set==4.1.0
 zstandard==0.25.0
 # Notification area (tray) icon of the standalone build.
 pystray==0.19.5
+# pystray draws the icon with Pillow: the same pin as requirements.txt, so the
+# file alone never admits a release with a known vulnerability.
+Pillow==13.0.0

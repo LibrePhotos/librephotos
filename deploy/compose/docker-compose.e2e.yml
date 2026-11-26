@@ -32,7 +32,7 @@ services:
     ports:
       - 8080:80
     healthcheck:
-      test: curl -sI localhost | grep HTTP | grep 200
+      test: wget -q -O /dev/null http://127.0.0.1/
       interval: 5s
       timeout: 5s
       retries: 12
