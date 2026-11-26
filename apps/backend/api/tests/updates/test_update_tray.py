@@ -22,7 +22,7 @@ from api.tests.utils import create_test_job, create_test_user
 from api.updates import install
 from api.updates import tray as tray_updates
 from api.updates.check import check_for_updates, skip_release, update_status
-from api.updates.install import InstallError
+from api.updates.install import Fetching, InstallError
 from api.updates.tray import (
     TrayUpdates,
     check_answer,
@@ -298,6 +298,10 @@ def install_state(state, **fields):
         "total_bytes": None,
         "error": None,
         "signature_checked": False,
+        "kind": "update",
+        "layout": "portable",
+        "move_supported": False,
+        "move_reason": "not_a_release",
         **fields,
     }
 
@@ -400,7 +404,7 @@ class TrayInstallTest(TestCase):
         self.restart.assert_called_once()
 
     def test_a_failed_download_says_why_and_offers_it_again(self):
-        self.updater._session_factory = lambda: release_session("1.4.0", {})
+        self.updater._fetching = Fetching(lambda: release_session("1.4.0", {}))
         self.download()
         self.assertEqual(
             self.tray.notified[-1],

@@ -304,7 +304,7 @@ def update_status(now: datetime.datetime | None = None) -> UpdateStatus:
         how_to_update_url=HOW_TO_UPDATE_URLS.get(kind, HOW_TO_UPDATE_URLS[SOURCE]),
         skipped_release=skipped_release,
         snoozed_until=snoozed_until if snoozed else None,
-        install=install_state(latest if available else None),
+        install=install_state(latest if available else None, current),
     )
 
 

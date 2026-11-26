@@ -2299,6 +2299,11 @@ export async function restartToUpdate(client: ApiClient, force: boolean): Promis
   return parseResponse(S.UpdateStatus, res, "restart to update");
 }
 
+export async function moveToInstalled(client: ApiClient): Promise<S.UpdateStatus> {
+  const res = await client.post<unknown>("/updates/move/", {});
+  return parseResponse(S.UpdateStatus, res, "move to the installed version");
+}
+
 /** Disk space where the server keeps its data (bytes). */
 export async function fetchStorageStats(client: ApiClient): Promise<S.StorageStats> {
   const res = await client.get<unknown>("/storagestats/");

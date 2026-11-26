@@ -39,7 +39,14 @@ on:
       - 'apps/backend/librephotos_standalone.py'
       - 'apps/backend/librephotos/standalone.py'
       - 'apps/backend/librephotos/updater.py'
+      - 'apps/backend/librephotos/installation.py'
+      - 'apps/backend/librephotos/move_to_installed.py'
       - 'apps/backend/librephotos/settings/standalone.py'
+      - 'apps/backend/api/updates/**'
+      - 'apps/backend/installer/**'
+      - 'apps/backend/scripts/build_installer.py'
+      - 'apps/backend/scripts/smoke_installer.py'
+      - 'apps/backend/scripts/windows_signing.py'
       - '.github/workflows/standalone-windows.yml'
   push:
     branches: [dev]
@@ -54,7 +61,14 @@ on:
       - 'apps/backend/librephotos_standalone.py'
       - 'apps/backend/librephotos/standalone.py'
       - 'apps/backend/librephotos/updater.py'
+      - 'apps/backend/librephotos/installation.py'
+      - 'apps/backend/librephotos/move_to_installed.py'
       - 'apps/backend/librephotos/settings/standalone.py'
+      - 'apps/backend/api/updates/**'
+      - 'apps/backend/installer/**'
+      - 'apps/backend/scripts/build_installer.py'
+      - 'apps/backend/scripts/smoke_installer.py'
+      - 'apps/backend/scripts/windows_signing.py'
       - '.github/workflows/standalone-windows.yml'
   workflow_dispatch:
     inputs:
@@ -102,7 +116,11 @@ jobs:
       REPLACE_ASSET: ${{ inputs.replace_asset && 'true' || 'false' }}
       # build_standalone.py's archive(); SHA256SUMS lists both zips.
       STABLE_ZIP: librephotos-windows-x64.zip
+      STABLE_SETUP: LibrePhotos-Setup.exe
       CHECKSUMS: SHA256SUMS
+      SIGNING_CERTIFICATE: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE }}
+      SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}
+      INNO_SETUP_VERSION: "6.7.1"
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - name: Resolve the version
@@ -122,6 +140,7 @@ jobs:
           {
             echo "VERSION=$VERSION"
             echo "VERSIONED_ZIP=librephotos-$VERSION-windows-x64.zip"
+            echo "VERSIONED_SETUP=LibrePhotos-Setup-$VERSION.exe"
           } >> "$GITHUB_ENV"
       - uses: actions/checkout@v7
         with:
@@ -150,7 +169,7 @@ jobs:
           # Before the three-hour build: re-uploading needs replace_asset.
           existing=$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>/dev/null || true)
           clash=""
-          for name in "$VERSIONED_ZIP" "$STABLE_ZIP" "$CHECKSUMS"; do
+          for name in "$VERSIONED_ZIP" "$STABLE_ZIP" "$VERSIONED_SETUP" "$STABLE_SETUP" "$CHECKSUMS"; do
             if grep -qxF "$name" <<<"$existing"; then
               clash="$clash $name"
             fi
@@ -179,6 +198,22 @@ jobs:
           python -m pip install -U pip wheel
           pip install -r requirements.txt -r requirements.standalone.txt
           pip install --no-deps -r requirements.nodeps.txt
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --version $env:INNO_SETUP_VERSION --allow-downgrade -y --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "choco install innosetup failed" }
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe is not at $iscc" }
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Prepare code signing
+        if: env.SIGNING_CERTIFICATE != ''
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_CERTIFICATE))
+          $arguments = "sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f `"$pfx`" /p `"$env:SIGNING_PASSWORD`""
+          "WINDOWS_SIGN_ARGS=$arguments" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       # No Nuitka caches here: clcache keys an object on cl.exe and the Python
       # headers, which change with the runner image (weekly) and the Python
       # patch release, and a pull request compiles its merge with a moving dev.
@@ -191,6 +226,10 @@ jobs:
         working-directory: apps/backend
         shell: bash
         run: python scripts/build_standalone.py --zip --no-cache --version "$VERSION"
+      - name: Build the installer
+        working-directory: apps/backend
+        shell: bash
+        run: python scripts/build_installer.py --version "$VERSION" --checksums
       - name: Check the checksums
         working-directory: apps/backend/build/standalone
         shell: bash
@@ -250,6 +289,37 @@ jobs:
           path: apps/backend/build/standalone/librephotos-windows-x64.zip
           if-no-files-found: error
           compression-level: 0
+      - uses: actions/upload-artifact@v7
+        if: success() || steps.smoke.outcome == 'failure'
+        with:
+          name: librephotos-setup-windows-x64
+          path: apps/backend/build/standalone/LibrePhotos-Setup*.exe
+          if-no-files-found: error
+          compression-level: 0
+      - name: Download the latest release's zip
+        shell: bash
+        run: |
+          gh release download --repo "$GH_REPO" --pattern "$STABLE_ZIP" \
+            --dir "$RUNNER_TEMP/previous-release"
+      - name: Installer smoke test
+        id: installer-smoke
+        timeout-minutes: 60
+        continue-on-error: ${{ github.event_name == 'release' }}
+        working-directory: apps/backend
+        shell: bash
+        run: |
+          python scripts/smoke_installer.py build/standalone/librephotos \
+            --previous-zip "$RUNNER_TEMP/previous-release/$STABLE_ZIP" \
+            --work-dir "$RUNNER_TEMP/librephotos-installer-smoke"
+      - name: Upload the installer smoke test's logs
+        if: always() && steps.installer-smoke.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-smoke-test-logs
+          path: |
+            ${{ runner.temp }}/librephotos-installer-smoke/logs
+            ${{ runner.temp }}/librephotos-installer-smoke/*/data/logs
+          if-no-files-found: warn
       - name: Attach to the release
         if: env.TAG != ''
         working-directory: apps/backend/build/standalone
@@ -259,7 +329,7 @@ jobs:
             gh release create "$TAG" --verify-tag --title "$TAG" --prerelease \
               --notes "Standalone Windows build; see the installation docs."
           fi
-          files=("$VERSIONED_ZIP" "$STABLE_ZIP" "$CHECKSUMS")
+          files=("$VERSIONED_ZIP" "$STABLE_ZIP" "$VERSIONED_SETUP" "$STABLE_SETUP" "$CHECKSUMS")
           clobber=()
           if [ "$REPLACE_ASSET" = "true" ]; then
             clobber=(--clobber)

@@ -33,17 +33,44 @@ export const useUpdateStatusQuery = ({ enabled }: { enabled: boolean }) =>
  */
 function useReloadAfterRestart(status: UpdateStatus | undefined) {
   const [target, setTarget] = useState<string | null>(null);
-  const restartingTo = status?.install?.state === "restarting" ? status.install.version : null;
+  const install = status?.install;
+  const restartingTo =
+    install?.state === "restarting" ? (install.kind === "move" ? INSTALLED_TARGET : install.version) : null;
   if (restartingTo !== null && restartingTo !== target) {
     setTarget(restartingTo);
   }
-  const current = status?.current;
+  const reached = target === INSTALLED_TARGET ? install?.layout === "installed" : status?.current === target;
   useEffect(() => {
-    if (target !== null && current === target) {
+    if (target !== null && reached) {
       window.location.reload();
     }
-  }, [target, current]);
+  }, [target, reached]);
 }
+
+const INSTALLED_TARGET = "installed";
+
+const MOVE_ACTIVE = new Set(["downloading", "verifying", "ready", "restarting", "failed"]);
+
+export function isMovable(status: UpdateStatus): boolean {
+  const install = status.install;
+  if (!install) {
+    return false;
+  }
+  return install.move_supported === true || (install.kind === "move" && MOVE_ACTIVE.has(install.state));
+}
+
+export function useMoveNotice(isAdmin: boolean): UpdateStatus | null {
+  const { data } = useUpdateStatusQuery({ enabled: isAdmin });
+  return isAdmin && data && isMovable(data) ? data : null;
+}
+
+export const useMoveToInstalledMutation = () => {
+  const store = useStoreUpdateStatus();
+  return useMutation({
+    mutationFn: () => endpoints.moveToInstalled(apiClient),
+    onSuccess: store,
+  });
+};
 
 /** The newer release an admin should hear about (the card and the sidebar dot); null otherwise. */
 export function useUpdateNotice(isAdmin: boolean): UpdateStatus | null {

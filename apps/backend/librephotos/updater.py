@@ -42,6 +42,7 @@ import traceback
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import psutil
 import requests
@@ -88,6 +89,15 @@ MESSAGE_NOT_READY = (
 )
 
 Notify = Callable[[str], None]
+
+
+class Relaunch(Protocol):
+    @property
+    def cwd(self) -> str: ...
+
+    @property
+    def relaunch(self) -> tuple[str, ...]: ...
+
 
 logger = logging.getLogger(__name__)
 
@@ -146,15 +156,20 @@ def start_finisher(
     before it exits."""
     command = finisher_command(staged, old_dir, url, log, launch)
     # Not inside the old folder: a working directory there blocks its rename.
-    cwd = staged.parent
+    return spawn_outside_job(command, launch.environ, staged.parent)
+
+
+def spawn_outside_job(
+    command: Sequence[str], environ: dict[str, str], cwd: Path
+) -> bool:
     breakaway = getattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB", 0)
     if breakaway:
         try:
-            _spawn(command, launch.environ, cwd, breakaway)
+            _spawn(command, environ, cwd, breakaway)
             return True
         except OSError:
             pass
-    _spawn(command, launch.environ, cwd, 0)
+    _spawn(command, environ, cwd, 0)
     return False
 
 
@@ -295,7 +310,7 @@ def stop_leftovers(folder: Path, timeout: float, log: Callable[[str], None]) -> 
     psutil.wait_procs(alive, timeout=10)
 
 
-def launch_release(folder: Path, request: FinishRequest) -> subprocess.Popen[bytes]:
+def launch_release(folder: Path, request: Relaunch) -> subprocess.Popen[bytes]:
     """Start ``librephotos.exe`` from ``folder`` as the old one was started."""
     cwd = Path(request.cwd) if request.cwd and os.path.isdir(request.cwd) else None
     return _spawn(

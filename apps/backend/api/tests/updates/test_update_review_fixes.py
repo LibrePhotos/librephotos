@@ -24,7 +24,7 @@ from api.tests.updates.release_fixtures import (
 from api.updates import extract, install
 from api.updates.download import GITHUB, DownloadError
 from api.updates.extract import entry_parts
-from api.updates.install import Installer
+from api.updates.install import Fetching, Installer
 from api.updates.stage import MARKER_NAME, ProgramFolder
 from api.updates.versions import is_newer, parse_version
 from librephotos import standalone, updater
@@ -78,7 +78,7 @@ class UnexpectedZipErrorTest(SimpleTestCase):
         }
         session = release_session(VERSION, files)
         updater_ = Installer(
-            ProgramFolder(program), MagicMock(), session_factory=lambda: session
+            ProgramFolder(program), MagicMock(), fetching=Fetching(lambda: session)
         )
         done = threading.Event()
         updater_.subscribe(

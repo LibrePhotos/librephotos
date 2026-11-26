@@ -178,6 +178,7 @@ INSTALL_TYPE = "docker" if IMAGE_TAG else "source"
 # The daily check for a newer release (#2311). UPDATE_CHECK=false turns it off
 # for good, whatever the site setting says: nothing is sent to github.com.
 UPDATE_CHECK_ALLOWED = env_flag("UPDATE_CHECK", default=True)
+UPDATE_RELEASE_SOURCE = env_str("UPDATE_RELEASE_SOURCE")
 
 # Error reporting (#2938, api/error_reports). The backend and the web app keep
 # their errors, scrubbed, in the ErrorReport table; nothing is sent until an

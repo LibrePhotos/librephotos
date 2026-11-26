@@ -18,6 +18,7 @@ export const SETTINGS_SECTIONS = {
 
 export const ADMIN_SECTIONS = {
   update: "admin-update",
+  move: "admin-move",
   upgrade: "admin-upgrade",
   site: "admin-site",
   gallery: "admin-gallery",

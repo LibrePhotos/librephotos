@@ -473,11 +473,13 @@ class StandaloneHookTest(SimpleTestCase):
                 patch.object(standalone.Startup, "restart_to_update") as restart,
             ):
                 standalone.enable_updater(startup, URL)
-                enabled_dir, data_dirs, hook = enable.call_args.args
+                enabled_dir, data_dirs, hook, moves = enable.call_args.args
                 hook(Path("P", "librephotos-1.5.0"))
         self.assertEqual(enabled_dir, program_dir)
         self.assertEqual(data_dirs, [data, logs])
         restart.assert_called_once_with(Path("P", "librephotos-1.5.0"), URL)
+        self.assertEqual(moves.layout, "portable")
+        self.assertEqual(moves.downloads, data / "updates")
 
     def test_restart_starts_the_finisher_then_quits(self):
         startup = standalone.Startup()

@@ -165,6 +165,31 @@ describe("update check", () => {
       body: { force: true },
     });
   });
+
+  it("moves an unzipped Windows app to the installed version", async () => {
+    const { client, requests } = fakeServer(updateStatus);
+    await endpoints.moveToInstalled(client);
+    expect(defined(requests[0])).toMatchObject({ url: `${API}/updates/move/`, method: "POST" });
+  });
+
+  it("reads the move fields, which older servers leave out", async () => {
+    const install = {
+      supported: true,
+      reason: null,
+      state: "ready",
+      version: "1.7.0",
+      received_bytes: 1,
+      total_bytes: 1,
+      error: null,
+      signature_checked: false,
+      kind: "move",
+      layout: "portable",
+      move_supported: true,
+      move_reason: null,
+    };
+    const { client } = fakeServer({ ...updateStatus, install });
+    await expect(endpoints.fetchUpdateStatus(client)).resolves.toMatchObject({ install });
+  });
 });
 
 describe("server", () => {

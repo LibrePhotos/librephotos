@@ -126,7 +126,13 @@ const VIEWS: Partial<Record<string, (props: PanelProps) => React.ReactNode>> = {
  * The Windows app's built-in updater on the Update available card (#2788): Download update, its
  * progress, then Restart to update. A state a later server adds shows Download update.
  */
+function MovingNotice() {
+  const { t } = useTranslation();
+  return <Text size="sm">{t("updates.install.duringmove")}</Text>;
+}
+
 export function UpdateInstallPanel({ install, latest }: Readonly<{ install: InstallState; latest: string }>) {
-  const View = VIEWS[install.state] ?? DownloadControls;
+  const moving = install.kind === "move" && install.state !== "idle" && install.state !== "failed";
+  const View = moving ? MovingNotice : (VIEWS[install.state] ?? DownloadControls);
   return <View install={install} version={install.version ?? latest} latest={latest} />;
 }

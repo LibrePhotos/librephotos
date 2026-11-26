@@ -10,7 +10,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   isInstallingUpdate,
+  isMovable,
   useInstallUpdateMutation,
+  useMoveNotice,
+  useMoveToInstalledMutation,
   useRestartToUpdateMutation,
   useSkipReleaseMutation,
   useSnoozeUpdateNoticeMutation,
@@ -52,6 +55,8 @@ let skip: ((version: string) => Promise<UpdateStatus>) | undefined;
 let snooze: (() => Promise<UpdateStatus>) | undefined;
 let install: ((version: string) => Promise<UpdateStatus>) | undefined;
 let restart: ((force: boolean) => Promise<UpdateStatus>) | undefined;
+let moveNotice: UpdateStatus | null | undefined;
+let move: (() => Promise<UpdateStatus>) | undefined;
 
 function Harness({ isAdmin }: { isAdmin: boolean }) {
   notice = useUpdateNotice(isAdmin);
@@ -59,6 +64,8 @@ function Harness({ isAdmin }: { isAdmin: boolean }) {
   snooze = useSnoozeUpdateNoticeMutation().mutateAsync;
   install = useInstallUpdateMutation().mutateAsync;
   restart = useRestartToUpdateMutation().mutateAsync;
+  moveNotice = useMoveNotice(isAdmin);
+  move = useMoveToInstalledMutation().mutateAsync;
   return null;
 }
 
@@ -215,6 +222,76 @@ describe("the Windows app's updater (#2788)", () => {
       });
       expect(reload).not.toHaveBeenCalled();
       stubs.get.mockResolvedValue(status({ current: "1.5.0", notice: false, update_available: false }));
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: serverKeys.updates() });
+      });
+      await settle();
+      expect(reload).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+function moving(state: string, layout = "portable"): UpdateStatus {
+  return status({
+    install_type: "windows",
+    current: "1.7.0",
+    latest: "1.7.0",
+    update_available: false,
+    notice: false,
+    install: {
+      supported: true,
+      reason: null,
+      state,
+      version: "1.7.0",
+      received_bytes: 0,
+      total_bytes: null,
+      error: null,
+      signature_checked: false,
+      kind: state === "idle" ? "update" : "move",
+      layout,
+      move_supported: layout === "portable",
+      move_reason: layout === "portable" ? null : "already_installed",
+    },
+  });
+}
+
+describe("the move to the installed version", () => {
+  it("is shown to an admin of a portable copy, and while it runs", async () => {
+    expect(isMovable(moving("idle"))).toBe(true);
+    expect(isMovable(moving("idle", "installed"))).toBe(false);
+    expect(isMovable(status())).toBe(false);
+    stubs.get.mockResolvedValue(moving("idle"));
+    await render(true);
+    expect(moveNotice?.install?.layout).toBe("portable");
+    stubs.post.mockResolvedValue(moving("downloading"));
+    await act(async () => {
+      await move?.();
+    });
+    expect(stubs.post).toHaveBeenCalledWith("/updates/move/", {});
+    await settle();
+    expect(moveNotice?.install?.state).toBe("downloading");
+  });
+
+  it("asks nothing for anyone else", async () => {
+    await render(false);
+    expect(moveNotice).toBeNull();
+  });
+
+  it("reloads the page once the installed copy answers, not before", async () => {
+    const reload = vi.fn<() => void>();
+    vi.stubGlobal("location", { ...window.location, reload });
+    try {
+      stubs.get.mockResolvedValue(moving("restarting"));
+      await render(true);
+      expect(reload).not.toHaveBeenCalled();
+      stubs.get.mockResolvedValue(moving("idle"));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(POLL_ACTIVE_MS);
+      });
+      expect(reload).not.toHaveBeenCalled();
+      stubs.get.mockResolvedValue(moving("idle", "installed"));
       await act(async () => {
         await queryClient.invalidateQueries({ queryKey: serverKeys.updates() });
       });
