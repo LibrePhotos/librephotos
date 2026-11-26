@@ -345,8 +345,9 @@ class Notary:
     @classmethod
     def from_environment(cls) -> Notary | None:
         values = [
-            os.environ.get(name, "").strip()
-            for name in (NOTARY_KEY_ENV, NOTARY_KEY_ID_ENV, NOTARY_ISSUER_ENV)
+            os.environ.get(NOTARY_KEY_ENV, "").strip(),
+            os.environ.get(NOTARY_KEY_ID_ENV, "").strip(),
+            os.environ.get(NOTARY_ISSUER_ENV, "").strip(),
         ]
         if not all(values):
             print(

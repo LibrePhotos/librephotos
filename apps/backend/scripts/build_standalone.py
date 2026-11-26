@@ -223,7 +223,7 @@ def nuitka_command(output_dir, jobs, version, cache=True):
         sys.executable,
         "-m",
         "nuitka",
-        "--standalone",
+        "--mode=app" if sys.platform == "darwin" else "--standalone",
         "--assume-yes-for-downloads",
         f"--output-dir={output_dir}",
         f"--output-filename={DIST_NAME}",
@@ -274,6 +274,17 @@ def platform_options(version):
     ]
 
 
+def built_folder(output_dir):
+    if sys.platform != "darwin":
+        return output_dir / f"{ENTRY.stem}.dist"
+    bundles = sorted(output_dir.glob("*.app"))
+    if len(bundles) != 1:
+        sys.exit(
+            f"expected one app bundle from Nuitka in {output_dir}, found {bundles}"
+        )
+    return bundles[0] / "Contents" / "MacOS"
+
+
 def compile_binary(output_dir, jobs, version, cache=True):
     env = {
         **os.environ,
@@ -283,7 +294,7 @@ def compile_binary(output_dir, jobs, version, cache=True):
         ),
     }
     run(nuitka_command(output_dir, jobs, version, cache), cwd=BACKEND, env=env)
-    built = output_dir / f"{ENTRY.stem}.dist"
+    built = built_folder(output_dir)
     dist = output_dir / DIST_NAME
     shutil.rmtree(dist, ignore_errors=True)
     # Right after linking, the virus scanner still holds the new binary open
@@ -296,6 +307,8 @@ def compile_binary(output_dir, jobs, version, cache=True):
             if attempt == 9:
                 raise
             time.sleep(3)
+    if sys.platform == "darwin":
+        shutil.rmtree(built.parents[1])
     return dist
 
 

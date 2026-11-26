@@ -136,9 +136,11 @@ jobs:
           python -m pip install -U pip wheel
           pip install -r requirements.txt -r requirements.standalone.txt "$RUNNER_TEMP"/ffmpeg-wheel/*.whl
           pip install --no-deps -r requirements.nodeps.txt
-          ffmpeg -hide_banner -version | head -n 1
-          ffprobe -hide_banner -version | head -n 1
-          exiftool -ver
+          python - <<'PY'
+          import subprocess
+          for tool in (["ffmpeg", "-hide_banner", "-version"], ["ffprobe", "-hide_banner", "-version"], ["exiftool", "-ver"]):
+              print(subprocess.run(tool, capture_output=True, text=True, check=True).stdout.splitlines()[0])
+          PY
       - name: Smoke test from source
         working-directory: apps/backend
         run: python scripts/smoke_standalone.py --from-source --work-dir "$RUNNER_TEMP/librephotos-source-smoke"
