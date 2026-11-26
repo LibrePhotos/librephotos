@@ -127,7 +127,7 @@ Never run `smoke.sh` on your own Mac: it installs into `/Applications` with `sud
 3. **App ID** `com.librephotos.viewer` (Identifiers, explicit, platform macOS), no extra capabilities.
 4. **Provisioning profile**: **Mac App Store Connect** distribution profile for that App ID and the distribution certificate.
 5. **App Store Connect API key** (Users and Access > Integrations > App Store Connect API, role Developer or App Manager): its Key ID, the Issuer ID and the downloaded `AuthKey_<id>.p8`. One key serves notarization and uploads.
-6. **App Store Connect record**: Apps > New App, platform macOS, bundle ID `com.librephotos.viewer`, SKU `librephotos-viewer`, category Photography, price free; the privacy policy URL and the App Privacy answers (no data collected: the app sends pictures only to the user's own server); the App Review notes from the [Microsoft Store page](./desktop-store.md#submitting-to-the-store) apply here too (works without a server, no test account needed).
+6. **App Store Connect record**: Apps > New App, platform macOS, bundle ID `com.librephotos.viewer`, SKU `librephotos-viewer`, category Photography, price free; the privacy policy URL `https://docs.librephotos.com/docs/user-guide/desktop/privacy` ([the page](../user-guide/desktop/privacy.md) covers the Mac builds too) and the App Privacy answers (Data Not Collected: the app sends pictures only to the user's own server); the App Review notes from the [Microsoft Store page](./desktop-store.md#submitting-to-the-store) apply here too (works without a server, no test account needed).
 
 ### Repository settings
 
