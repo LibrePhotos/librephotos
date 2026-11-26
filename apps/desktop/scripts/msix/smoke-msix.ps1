@@ -248,7 +248,11 @@ function Install-Package {
   $installed = Get-AppxPackage -Name $identityName
   if (-not $installed) { Fail "Get-AppxPackage does not list $identityName after Add-AppxPackage" }
   Step "installed $($installed.PackageFullName) into $($installed.InstallLocation)"
-  return $installed
+  return [pscustomobject]@{
+    PackageFullName   = [string]$installed.PackageFullName
+    PackageFamilyName = [string]$installed.PackageFamilyName
+    InstallLocation   = [string]$installed.InstallLocation
+  }
 }
 
 function Assert-Registered($Installed) {
