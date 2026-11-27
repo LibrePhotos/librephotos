@@ -20,7 +20,7 @@ A problem with one of your files, rather than with LibrePhotos, is a warning in 
 
 - **Off: keep reports on this server** (the default). Reports are saved and nothing is sent.
 - **My own server**: your own [GlitchTip](https://glitchtip.com) or [Sentry](https://sentry.io) project. Set its DSN in [`SENTRY_DSN`](../installation/environment-variables.md#error-reporting) and restart; until then this choice is greyed out.
-- **Share with the LibrePhotos maintainers**: the maintainers' GlitchTip project. It helps us find and fix bugs we would otherwise only hear about in an issue.
+- **Share with the LibrePhotos maintainers**: the maintainers' error tracker at `errors.librephotos.app`. It helps us find and fix bugs we would otherwise only hear about in an issue.
 
 A new server asks during its first-time setup, in the **Errors** step; **Off: keep reports on this server** is the first button. A server set up before error reporting existed asks its admins once instead, in a **Help fix bugs in LibrePhotos?** dialog with the same choices and **Not now**. Whichever admin answers first answers for the server: the question does not come back, on any device, and the choice can be changed any time under **Admin area > Error reporting**.
 
