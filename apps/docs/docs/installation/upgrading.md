@@ -130,6 +130,14 @@ PostgreSQL databases are not backed up automatically: use `pg_dump` as shown abo
 
 Starting the release named in the backup's file name, or any newer one, on the restored database runs the update again, after making a new backup.
 
+### A damaged SQLite database {#sqlite-malformed}
+
+When the log says `database disk image is malformed`, the SQLite file itself is damaged. LibrePhotos only writes it through SQLite, and <Since version="1.7.0" /> its background workers start as fresh processes and keep going when a query fails, so the usual causes are outside it: the database on a network share or an unreliable bind mount, two containers or hosts using the same database, a copy of `librephotos.sqlite3` taken or put back without its `-wal` file while LibrePhotos ran, a full disk, or a failing one (see [Where `/db` lives](unified-deployment.md)). Up to 1.6.0 the workers' supervisor was forked from a process that had the database open, which SQLite warns against.
+
+1. Stop LibrePhotos and move the database somewhere that fixes the cause.
+2. Restore the newest backup from the `backups` folder ([Restoring a backup](#restore)); it was checked with SQLite's `integrity_check` when it was made. Changes made since that backup are lost.
+3. Without a backup, `sqlite3 librephotos.sqlite3 ".recover" | sqlite3 recovered.sqlite3` (the `sqlite3` command line tool, 3.29 or newer) copies what is still readable into a new file; rename it to `librephotos.sqlite3` and start LibrePhotos, then run a scan to fill what was lost.
+
 ## Going back to an older release {#downgrade}
 
 <Since version="1.4.0" /> Up to 1.3.0, an older release started on a newer database without a word and failed later, when it saved a change.
