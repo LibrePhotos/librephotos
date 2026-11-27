@@ -81,6 +81,11 @@ Where a field lists several tags, the first one the photo has is used.
 | File size | `File:FileSize` | Shown in Info. Read from the photo file, never from a sidecar. |
 | Bursts | `EXIF:SubSecTimeOriginal`, `EXIF:ImageNumber`; `MakerNotes:BurstMode`, `MakerNotes:ContinuousDrive`, `MakerNotes:SequenceNumber` | Used by [stack detection](./stacks-and-file-variants.md) to find burst sequences. The `MakerNotes` tags are only read while the matching burst detection rule is on in your settings. |
 
+<Since version="1.7.0" /> A whole number that does not fit the database, such as the `0xFFFFFFFF` some cameras write into
+`EXIF:ImageNumber` or `EXIF:ISO` for "unknown", is left out: the photo is imported without it,
+as if the file did not have the tag. Rating, ISO, 35 mm focal length, width, height, orientation,
+bit depth and image number are whole numbers.
+
 ## XMP sidecars
 
 ### Which sidecars are read
