@@ -847,8 +847,13 @@ def handle_new_image(
     except Exception as e:
         error = _describe_failure(path, e)
         try:
-            logger.exception(
-                "job %s: could not load image %s. reason: %s", job_id, path, str(e)
+            render.log_media_failure(
+                logger,
+                e,
+                "job %s: could not load image %s. reason: %s",
+                job_id,
+                path,
+                str(e),
             )
         except Exception:
             logger.exception("job %s: could not load image %s", job_id, path)
@@ -903,7 +908,9 @@ def _log_file_group_failure(
     job_id: UUID | str, file_paths: list[str], error: Exception
 ) -> None:
     try:
-        logger.exception(
+        render.log_media_failure(
+            logger,
+            error,
             "job %s: could not process file group %s. reason: %s",
             job_id,
             file_paths,

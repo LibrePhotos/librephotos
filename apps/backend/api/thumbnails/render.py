@@ -411,6 +411,25 @@ class VideoThumbnailTimeoutError(VideoThumbnailError):
     pass
 
 
+class UnreadableVideoError(VideoThumbnailError):
+    pass
+
+
+AVERROR_INVALIDDATA = -0x41444E49
+INVALID_DATA_EXITS = frozenset(
+    {AVERROR_INVALIDDATA & 0xFFFFFFFF, AVERROR_INVALIDDATA & 0xFF}
+)
+
+
+def log_media_failure(
+    log: logging.Logger, error: Exception, message: str, *args: object
+) -> None:
+    if isinstance(error, UnreadableVideoError):
+        log.warning(message, *args)
+        return
+    log.exception(message, *args)
+
+
 # What ffmpeg prints when it decoded no frame to write, whether it then exits
 # 0 (an empty WebP, an mp4 with no frame) or fails (libwebp_anim flushed empty
 # reports "Cannot allocate memory").
@@ -453,8 +472,11 @@ def _wrote_a_frame(args: list[str], output: str, quiet: bool = False) -> bool:
 
 
 def _video_error(error: binaries.ToolError) -> VideoThumbnailError:
-    if isinstance(error, binaries.ToolFailedError) and error.returncode is None:
+    returncode = error.returncode if isinstance(error, binaries.ToolFailedError) else 0
+    if returncode is None:
         return VideoThumbnailTimeoutError(str(error))
+    if returncode in INVALID_DATA_EXITS:
+        return UnreadableVideoError(str(error))
     return VideoThumbnailError(str(error))
 
 
@@ -796,8 +818,11 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
         if photo.video:
             _remove_replaced_video_squares(photo_hash, square_extension)
     except Exception as e:
-        logger.exception(
-            "could not generate thumbnail for image %s", thumbnail.main_file_path()
+        log_media_failure(
+            logger,
+            e,
+            "could not generate thumbnail for image %s",
+            thumbnail.main_file_path(),
         )
         raise e
 

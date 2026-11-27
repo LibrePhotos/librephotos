@@ -10,6 +10,8 @@ When something breaks, LibrePhotos saves a report of the error on your server. N
 
 Both the backend (the web server and the background workers) and the web app save their errors here. The web app hands its errors to your server, never to a reporting server directly. <Since version="1.7.0" /> An error whose stack has no line of the web app's own scripts, such as one a browser extension throws in the page, is not saved.
 
+A problem with one of your files, rather than with LibrePhotos, is a warning in the log and not a report. <Since version="1.7.0" /> That includes a video ffmpeg cannot open at all ("Invalid data found when processing input"), which is most often a recording cut short before the camera or phone finished writing it, or a copy that stopped half-way: the scan lists it among its failed files, and the video gets no thumbnail until a whole copy replaces the file.
+
 ## The choices
 
 **Admin area > Error reporting** decides where new reports go:
