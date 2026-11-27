@@ -13,6 +13,7 @@ import os
 import shutil
 import tempfile
 from datetime import timedelta
+from unittest import mock
 
 from django.db import connection
 from django.test import TestCase, override_settings
@@ -560,3 +561,24 @@ def _patch_scandir_to_raise():
     from unittest import mock
 
     return mock.patch("api.views.album_folder.os.scandir", side_effect=OSError("boom"))
+
+
+class UnreadableSubfolderTests(SubfoldersTestBase):
+    def test_a_folder_the_server_cannot_read_is_left_out(self):
+        admin = create_test_user(is_admin=True)
+        _mkdirs(self.root, "My Documents", "Pictures")
+        for name in ("My Documents", "Pictures"):
+            self.add_photo_in(admin, os.path.join(self.root, name))
+        unreadable = os.path.join(self.root, "My Documents")
+        getmtime = os.path.getmtime
+
+        def denied(path):
+            if os.fspath(path) == unreadable:
+                raise PermissionError(13, "Access is denied", unreadable)
+            return getmtime(path)
+
+        with mock.patch("api.views.album_folder.os.path.getmtime", side_effect=denied):
+            resp = self.client_for(admin).get(URL)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual([f["name"] for f in resp.json()["results"]], ["Pictures"])

@@ -89,6 +89,8 @@ The **Folders** page lists the folders of your scan directory. Each tile shows t
 
 <Since version="1.4.0" /> Up to 1.3.0, every folder showed the same folder icon.
 
+<Since version="1.7.0" /> A folder the server is not allowed to look into is left out of the list, and the other folders are still shown. On Windows that is, for example, the hidden `My Documents` link in a user's profile folder. Up to 1.6.0 such a folder made the whole page fail with "Error scanning directory".
+
 ### Places Albums
 Automatically generated albums based on the GPS location data in your photos.
 
