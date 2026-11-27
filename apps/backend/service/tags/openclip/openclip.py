@@ -99,6 +99,7 @@ PROMPT_TEMPLATES = (
     "a bright photo of {tag}.",
     "a dark photo of {tag}.",
 )
+QUERY_PROMPT = "a photo of {query}."
 TEXT_BATCH_SIZE = 64
 # Images per image-tower run when a request brings several (re-embedding).
 IMAGE_BATCH_SIZE = 16
@@ -575,6 +576,11 @@ class OpenCLIP:
         if self.text_session is None:
             self.text_session = inference_session(TEXTUAL_PATH)
         return self._run_text(self.text_session, [text])[0]
+
+    def embed_query(self, query: str) -> npt.NDArray[np.float32]:
+        texts = (query, QUERY_PROMPT.format(query=query))
+        both = _l2_normalize(np.stack([self.embed_text_raw(text) for text in texts]))
+        return _l2_normalize(both.sum(axis=0)).astype(np.float32)
 
     # ----------------------------------------------------------------- image
     def _run_vision(

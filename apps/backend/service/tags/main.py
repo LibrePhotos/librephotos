@@ -109,9 +109,8 @@ def image_embeddings() -> ResponseReturnValue:
 
 @app.route("/query-embeddings", methods=["POST"])
 def query_embeddings() -> ResponseReturnValue:
-    """``{"query"}`` -> ``{"emb", "magnitude"}``, the raw text embedding."""
     (query,) = json_fields("query")
-    embedding = get_tagger().embed_text_raw(str(query))
+    embedding = get_tagger().embed_query(str(query))
     return {"emb": embedding.tolist(), "magnitude": float(np.linalg.norm(embedding))}
 
 

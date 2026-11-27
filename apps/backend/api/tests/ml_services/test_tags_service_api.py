@@ -174,11 +174,11 @@ class TagsServiceTestCase(SimpleTestCase):
         )
 
     def test_query_embeddings(self):
-        self.model.embed_text_raw.return_value = np.array([0.0, 2.0], np.float32)
+        self.model.embed_query.return_value = np.array([0.0, 1.0], np.float32)
         response = self.client.post("/query-embeddings", json={"query": "a dog"})
 
-        self.assertEqual(response.get_json(), {"emb": [0.0, 2.0], "magnitude": 2.0})
-        self.model.embed_text_raw.assert_called_once_with("a dog")
+        self.assertEqual(response.get_json(), {"emb": [0.0, 1.0], "magnitude": 1.0})
+        self.model.embed_query.assert_called_once_with("a dog")
 
     # -------------------------------------------------------------- errors
     def test_missing_file_is_a_400_that_keeps_the_loaded_model(self):
