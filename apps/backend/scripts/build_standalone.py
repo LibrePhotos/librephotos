@@ -75,6 +75,8 @@ INCLUDE_PACKAGES = [
     "pystray",
 ]
 
+THING_NAMES = BACKEND / "api" / "search" / "thing_names.json"
+
 # Non-Python files those packages read: templates, locale, static files, data.
 INCLUDE_PACKAGE_DATA = [
     "django",
@@ -255,6 +257,7 @@ def nuitka_command(output_dir, jobs, version, cache=True):
     command.append(
         f"--include-data-files={BACKEND / 'service' / 'tags' / 'tags.txt'}=tags.txt"
     )
+    command.append(f"--include-data-files={THING_NAMES}=api/search/thing_names.json")
     command.append(str(ENTRY))
     return command
 

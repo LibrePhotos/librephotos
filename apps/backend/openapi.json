@@ -10729,7 +10729,7 @@
     "/api/photos/searchlist/": {
       "get": {
         "operationId": "api_photos_searchlist_list",
-        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. The structured filters (camera, lens, exposure ranges, rating, capture days, location, file type, people) narrow the results with or without a search term; a bad value is a 400 naming the parameter. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries instead of date groups. sort=largest or sort=smallest answers a flat list by file size, whatever the semantic setting: at most the 1000 largest or smallest matches, with count, the number of all matches; a photo of unknown size comes last.",
+        "description": "Search photos and videos. Pass video=true to return only videos or photo=true to return only photos. The structured filters (camera, lens, exposure ranges, rating, capture days, location, file type, people) narrow the results with or without a search term; a bad value is a 400 naming the parameter. With semantic search on (the user's semantic_search_topk), results is a flat list of photo summaries, the best matches first: a year, month or season, a named person or a place in the words narrows the results, and the rest is matched both as words (weighted by where they appear) and by meaning, fused by rank; sort=newest or sort=oldest orders the same matches by date. sort=largest or sort=smallest answers a flat list by file size, whatever the semantic setting: at most the 1000 largest or smallest matches, with count, the number of all matches; a photo of unknown size comes last.",
         "parameters": [
           {
             "in": "query",
@@ -10865,6 +10865,16 @@
           },
           {
             "in": "query",
+            "name": "language",
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 16
+            },
+            "description": "The app language of the searcher, for example de or pt_BR: words that name a thing in it also search for the thing"
+          },
+          {
+            "in": "query",
             "name": "lens",
             "schema": {
               "type": "string",
@@ -10917,8 +10927,10 @@
             "in": "query",
             "name": "search",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": ""
+            },
+            "description": "The words. Dates, named people and places in them become filters; the rest is matched as words and by meaning"
           },
           {
             "in": "query",
@@ -10942,19 +10954,30 @@
           },
           {
             "in": "query",
+            "name": "similar_to",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "description": "A photo's id: ranks the results by how much they look like it (with the words, if any, by both), as a flat list whatever the semantic search setting; the photo itself is left out"
+          },
+          {
+            "in": "query",
             "name": "sort",
             "schema": {
               "enum": [
+                "relevance",
                 "newest",
                 "oldest",
                 "largest",
                 "smallest"
               ],
               "type": "string",
-              "default": "newest",
+              "default": "relevance",
               "minLength": 1
             },
-            "description": "newest (the default) or oldest: the matches grouped by day; largest or smallest: a flat list by file size\n\n* `newest` - Newest\n* `oldest` - Oldest\n* `largest` - Largest\n* `smallest` - Smallest"
+            "description": "relevance (the default): the best matches first with semantic search on, newest first otherwise; newest or oldest: by date, grouped by day with semantic search off; largest or smallest: a flat list by file size\n\n* `relevance` - Best match\n* `newest` - Newest\n* `oldest` - Oldest\n* `largest` - Largest\n* `smallest` - Smallest"
           },
           {
             "in": "query",

@@ -95,7 +95,7 @@ class User(AbstractUser):
     confidence = models.FloatField(default=0.1, db_index=True)
     confidence_person = models.FloatField(default=0.9)
     image_scale = models.FloatField(default=1)
-    semantic_search_topk = models.IntegerField(default=0)
+    semantic_search_topk = models.IntegerField(default=100)
     avatar = models.ImageField(upload_to="avatars", null=True, blank=True)
     transcode_videos = models.BooleanField(default=False)
     nextcloud_server_address = models.CharField(max_length=200, default="", blank=True)

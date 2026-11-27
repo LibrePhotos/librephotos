@@ -547,6 +547,35 @@ class OpenCLIPTaggerTest(SimpleTestCase):
         tagger.unload()
         self.assertIsNone(tagger.text_session)
 
+    def test_a_query_is_the_mean_direction_of_its_words_and_a_photo_of_them(self):
+        def text_output(feed):
+            texts = [
+                "".join(chr(i - 100) for i in row if i > 2) for row in feed["input_ids"]
+            ]
+            return np.stack(
+                [
+                    _direction(0.0, 5.0) if "photo" in t else _direction(3.0)
+                    for t in texts
+                ]
+            )
+
+        self.text_session.output = text_output
+        tagger = OpenCLIP()
+
+        query = tagger.embed_query("fox")
+
+        self.assertEqual(
+            [
+                "".join(chr(i - 100) for i in row if i > 2)
+                for call in self.text_session.calls
+                for row in call["input_ids"]
+            ],
+            ["fox", "a photo of fox."],
+        )
+        np.testing.assert_allclose(query, _direction(1.0, 1.0) / np.sqrt(2), atol=1e-6)
+        self.assertEqual(query.dtype, np.float32)
+        self.assertEqual(self.sessions_made, ["textual.onnx"])
+
     def _write_tags(self, text):
         with open(openclip_module.TAGS_FILE, "w", encoding="utf-8") as f:
             f.write(text)

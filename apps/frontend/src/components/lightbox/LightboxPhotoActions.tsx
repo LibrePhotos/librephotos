@@ -24,6 +24,7 @@ import { DisabledReason } from "../common/DisabledReason";
 import { menuShortcut } from "../common/menuShortcut";
 import { FileActionItems } from "../photolist/FileActionItems";
 import { EditedDownloadItems } from "./EditedDownloadItems";
+import { FindSimilarPhotosItem } from "./FindSimilarPhotosItem";
 import { COPY_KEY } from "./lightbox.hotkeys";
 import { LightboxToolbarButton, TOOLBAR_BUTTON, TOOLBAR_ICON_SIZE } from "./LightboxToolbarButton";
 import { VisibilityMenuItems } from "./LightboxVisibilityActions";
@@ -174,6 +175,7 @@ export function LightboxMoreMenu(props: MoreMenuProps) {
         {ownPhoto && (
           <>
             <Menu.Divider />
+            <FindSimilarPhotosItem photoId={ownPhoto.id} />
             <VisibilityMenuItems actions={actions} />
             {photoItems.map(({ label: itemLabel, icon, onClick }) => (
               <Menu.Item key={itemLabel} leftSection={icon} onClick={onClick}>

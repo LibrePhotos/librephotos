@@ -320,15 +320,16 @@ export function searchPhotosQueryOptions(
   searchTerm: string,
   semantic = false,
   filters: endpoints.SearchFilters = {},
-  sort?: SearchSort
+  sort?: SearchSort,
+  language?: string
 ) {
   const filtered = Object.values(filters).some(value => value !== undefined);
-  const keySort = sort === undefined || sort === "newest" ? undefined : sort;
+  const keySort = endpoints.isDefaultSearchSort(sort, semantic) ? undefined : sort;
   return queryOptions({
     queryKey: filtered
-      ? photoGridKeys.filteredSearch(searchTerm, "all", semantic ? "semantic" : "grouped", filters, keySort)
-      : photoGridKeys.search(searchTerm, "all", semantic ? "semantic" : "grouped", keySort),
-    queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic, filters, keySort),
+      ? photoGridKeys.filteredSearch(searchTerm, "all", semantic ? "semantic" : "grouped", filters, keySort, language)
+      : photoGridKeys.search(searchTerm, "all", semantic ? "semantic" : "grouped", keySort, language),
+    queryFn: () => endpoints.searchPhotos(client, searchTerm, semantic, filters, keySort, language),
     enabled: searchTerm.length > 0 || filtered,
   });
 }
@@ -337,10 +338,11 @@ export function useSearchPhotosQuery(
   searchTerm: string,
   semantic = false,
   filters: endpoints.SearchFilters = {},
-  sort?: SearchSort
+  sort?: SearchSort,
+  language?: string
 ) {
   const client = useApiClient();
-  return useQuery(searchPhotosQueryOptions(client, searchTerm, semantic, filters, sort));
+  return useQuery(searchPhotosQueryOptions(client, searchTerm, semantic, filters, sort, language));
 }
 
 /** The suggestions of one search filter: my cameras, makers or lenses, most photos first. */

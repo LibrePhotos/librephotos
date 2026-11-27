@@ -37,7 +37,7 @@ export const SizeSortedSearchPhotos = z.object({
 });
 export type SizeSortedSearchPhotos = z.infer<typeof SizeSortedSearchPhotos>;
 
-export const SearchSort = z.enum(["newest", "oldest", "largest", "smallest"]);
+export const SearchSort = z.enum(["relevance", "newest", "oldest", "largest", "smallest"]);
 export type SearchSort = z.infer<typeof SearchSort>;
 
 export const SearchPhotosResult = z.object({

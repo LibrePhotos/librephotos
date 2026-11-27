@@ -72,12 +72,6 @@ def result_rows(payload: object) -> int:
     return len(payload)
 
 
-def grouped_rows(payload: object) -> int:
-    """The photos of a response grouped by date (``GroupedPhotosSerializer``)."""
-    assert isinstance(payload, dict), payload
-    return sum(len(group["items"]) for group in payload["results"])
-
-
 @dataclass(frozen=True)
 class ListFixture:
     """How to fill one list endpoint with rows, and who asks for it.
@@ -370,14 +364,12 @@ LIST_ROUTE_FIXTURES: dict[str, tuple[ListFixture, ...]] = {
         ListFixture(
             lambda user, index: _tile_photo(user, search_captions="beach"),
             params={"search": "beach"},
-            rows=grouped_rows,
         ),
         # The structured search filters (#2259) join PhotoMetadata, one row
         # per photo, and add no query per result.
         ListFixture(
             lambda user, index: _tile_photo(user, camera="X-T5", iso=400, rating=4),
             params={"camera": "x-t5", "iso_min": "200", "rating_min": "3"},
-            rows=grouped_rows,
         ),
     ),
     # The public gallery (#434): each row a new owner, so the counts also hold

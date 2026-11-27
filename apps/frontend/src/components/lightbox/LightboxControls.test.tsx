@@ -28,8 +28,11 @@ const stubs = vi.hoisted(() => ({
   setFavorite: vi.fn<(variables: { image_hashes: string[]; favorite: boolean }) => void>(),
   setRating: vi.fn<(variables: { image_hashes: string[]; rating: number }) => void>(),
   setArchived: vi.fn<(variables: { image_hashes: string[]; archived: boolean }) => void>(),
+  navigate: vi.fn<(options: { to: string; search: Record<string, string> }) => Promise<void>>(),
   user: undefined as StubUser | undefined,
 }));
+
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
 
 // The Files items have their own tests (FileActionItems.test.tsx); here they show what they got.
 vi.mock("../photolist/FileActionItems", () => ({
@@ -82,6 +85,7 @@ afterEach(async () => {
   stubs.setFavorite.mockClear();
   stubs.setRating.mockClear();
   stubs.setArchived.mockClear();
+  stubs.navigate.mockClear();
   stubs.user = FAVORITE_USER;
 });
 
@@ -179,6 +183,7 @@ describe("LightboxControls", () => {
       "lightbox.controls.walldisplay",
       "lightbox.controls.copy",
       "lightbox.controls.fullscreen",
+      "lightbox.toolbar.findSimilar",
       "lightbox.toolbar.hidePhoto",
       "lightbox.toolbar.archivePhoto",
       "lightbox.toolbar.rotateCCW",
@@ -348,6 +353,14 @@ describe("LightboxControls", () => {
     await openMenu(container);
 
     expect(container.querySelector("[data-file-actions]")?.getAttribute("data-file-actions")).toBe("p1");
+  });
+
+  it("opens the search for the photos like this one from the ⋮", async () => {
+    const container = await renderControls();
+    await openMenu(container);
+    await act(async () => menuItem(container, "lightbox.toolbar.findSimilar").click());
+
+    expect(stubs.navigate).toHaveBeenCalledWith({ to: "/search", search: { similar_to: "p1" } });
   });
 
   it("offers no file actions on a photo shared with you", async () => {

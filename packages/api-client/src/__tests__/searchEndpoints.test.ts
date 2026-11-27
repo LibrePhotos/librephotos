@@ -37,6 +37,14 @@ describe("search", () => {
     expect(result.photosGroupedByDate).toEqual([]);
   });
 
+  it("searches by a photo and reads the flat answer whatever the semantic setting", async () => {
+    const { client, requests } = fakeServer({ results: [pigPhoto] });
+    const result = await endpoints.searchPhotos(client, "", false, { similar_to: pigPhoto.id }, "newest");
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?similar_to=${pigPhoto.id}&sort=newest`);
+    expect(result.photosFlat).toHaveLength(1);
+    expect(result.photosGroupedByDate).toEqual([]);
+  });
+
   it("sends sort=oldest and reads the grouped answer", async () => {
     const { client, requests } = fakeServer({ results: [{ date: "2024-04-02", location: "", items: [pigPhoto] }] });
     const result = await endpoints.searchPhotos(client, "beach", false, {}, "oldest");
@@ -66,10 +74,28 @@ describe("search", () => {
     expect(result.count).toBeUndefined();
   });
 
-  it("leaves the default and an explicit newest sort out of the query", async () => {
+  it("leaves the default and an explicit relevance sort out of the query", async () => {
+    const { client, requests } = fakeServer({ results: [] });
+    await endpoints.searchPhotos(client, "beach", true, {}, "relevance");
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?search=beach`);
+  });
+
+  it("leaves newest out for date groups, the server's order for them", async () => {
     const { client, requests } = fakeServer({ results: [] });
     await endpoints.searchPhotos(client, "beach", false, {}, "newest");
     expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?search=beach`);
+  });
+
+  it("sends newest for a ranked list, since the server ranks by relevance unless told", async () => {
+    const { client, requests } = fakeServer({ results: [] });
+    await endpoints.searchPhotos(client, "beach", true, {}, "newest");
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?search=beach&sort=newest`);
+  });
+
+  it("sends the app language so words of it find the things they name", async () => {
+    const { client, requests } = fakeServer({ results: [] });
+    await endpoints.searchPhotos(client, "Strand", true, {}, undefined, "de");
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?search=Strand&language=de`);
   });
 
   it("sends the structured filters, one person parameter per person", async () => {

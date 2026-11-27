@@ -38,6 +38,7 @@ const EVERY_FILTER: SearchFilters = {
   file_type: "raw",
   extension: "cr3",
   person: [3, 7],
+  similar_to: "11111111-1111-4111-8111-111111111111",
 };
 
 describe("validateSearchFilters", () => {
@@ -60,6 +61,7 @@ describe("validateSearchFilters", () => {
       file_type: "gif",
       extension: "../etc",
       person: [0],
+      similar_to: "../photos/1",
       lens: "XF23mmF1.4 R",
     });
     expect(filters).toEqual({ lens: "XF23mmF1.4 R" });
@@ -109,6 +111,12 @@ describe("countSearchFilters", () => {
     expect(hasSearchFilters({ camera: undefined })).toBe(false);
   });
 
+  it("lists the photos like one photo without counting it on the Filters button", () => {
+    const filters = { similar_to: "11111111-1111-4111-8111-111111111111" };
+    expect(countSearchFilters(filters)).toBe(0);
+    expect(hasSearchFilters(filters)).toBe(true);
+  });
+
   it("knows every filter key", () => {
     expect(SEARCH_FILTER_KEYS).toHaveLength(Object.keys(EVERY_FILTER).length);
   });
@@ -127,5 +135,10 @@ describe("searchSelectAllQuery", () => {
   it("selects the listed photos themselves when the search has words", () => {
     // The server's select-all ignores the words: it would act on photos the page does not show.
     expect(searchSelectAllQuery("beach", { camera: "X-T5" }, "all")).toBeUndefined();
+  });
+
+  it("selects the listed photos themselves when the search is by a photo", () => {
+    const filters = { similar_to: "11111111-1111-4111-8111-111111111111" };
+    expect(searchSelectAllQuery("", filters, "all")).toBeUndefined();
   });
 });

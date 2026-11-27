@@ -333,7 +333,7 @@ class SearchTest(TestCase):
 
         body = client.get("/api/photos/searchlist/", {"search": "grandma"}).json()
 
-        items = [item["id"] for group in body["results"] for item in group["items"]]
+        items = [item["id"] for item in body["results"]]
         self.assertEqual(items, [str(photo.pk)])
         self.assertTrue(place.photos.filter(pk=photo.pk).exists())
 

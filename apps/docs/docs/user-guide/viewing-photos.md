@@ -221,6 +221,7 @@ The toolbar at the top starts with the back arrow (**Close**), which returns to 
     - **Hide the cursor** (off by default) - Hide the pointer after three seconds without movement. Moving the mouse shows it again. Offered only on a device with a mouse or trackpad.
   - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. It is offered for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
   - **Fullscreen** / **Exit fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
+  - **Find similar photos** - <Since version="1.7.0" /> Search your library for photos like this one (see [Find similar photos](./search.md#find-similar-photos)). Shown on your own photos.
   - **Hide photo** / **Unhide photo** - Hide the photo everywhere but the Hidden page, or unhide it.
   - **Archive photo** / **Unarchive photo** - Take the photo off the timeline and Memories, or put it back (see [Archive](#archive)).
   - **Rotate 90° counter-clockwise** / **Rotate 90° clockwise** - Rotate the photo 90° in either direction (see [Rotating Photos](#rotating-photos)).
@@ -397,7 +398,7 @@ Displays photos that are visually similar to the current one. This is useful for
 - Discovering related photos from the same event
 - Browsing photos with similar content
 
-Click on any similar photo to view it directly.
+Click on any similar photo to view it directly. To list all the photos like it, best match first, use **Find similar photos** in the ⋮ (see [Find similar photos](./search.md#find-similar-photos)).
 
 ## Photo Page
 

@@ -80,7 +80,7 @@ class RoutingAndThresholdsTest(TestCase):
         self.assertEqual(tags, [["cat"]])
 
     def test_thresholds_are_openclips(self):
-        self.assertEqual(semantic.SEARCH_THRESHOLD, 31.3)
+        self.assertEqual(semantic.SEARCH_COSINE_FLOOR, 0.15)
         self.assertEqual(semantic.SIMILAR_THRESHOLD, 138.9)
 
     def test_only_openclip_rows_are_current(self):

@@ -180,4 +180,4 @@ class UserPlacePrivacyTest(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(PLACE_NAME, response.content.decode())
         body = client.get("/api/photos/searchlist/", {"search": PLACE_NAME}).json()
-        self.assertEqual(sum(len(group["items"]) for group in body["results"]), 2)
+        self.assertEqual(len(body["results"]), 2)

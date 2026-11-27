@@ -35,7 +35,7 @@ class BuildPhotoQuerysetMediaCategoryTest(TestCase):
     """The shared bulk-select helper honors is_screenshot / is_document."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
 
     def test_filters_by_is_screenshot(self):
         create_test_photos(number_of_photos=2, owner=self.user, is_screenshot=False)
@@ -69,7 +69,7 @@ class SearchListMediaCategoryFilterTest(TestCase):
     """The semantic-search endpoint (SemanticSearchFilter) honors the params."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         now = timezone.now()
@@ -117,7 +117,7 @@ class DayMediaCategoryFilterTest(TestCase):
     """Both timeline reads: a day's photos and the day list."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         now = timezone.now()
@@ -162,7 +162,7 @@ class SearchCaptionMediaCategoryTest(TestCase):
     """recreate_search_captions emits type tokens and search finds them."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
@@ -211,7 +211,7 @@ class CountStatsMediaCategoryTest(TestCase):
     """The count-stats tiles report num_screenshots / num_documents."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
 
     def test_counts(self):
         create_test_photos(number_of_photos=3, owner=self.user, is_screenshot=True)
@@ -229,7 +229,7 @@ class ManualOverridePatchTest(TestCase):
     category_source="user", which the classify_media backfill then respects."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 

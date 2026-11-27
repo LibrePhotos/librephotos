@@ -79,6 +79,14 @@ class LibraryRecipientReadTest(reads.CrossTenantReadTest):
                 leaked = sorted(m for m in markers if m in body and m not in url)
                 self.assertEqual(leaked, [], f"{response.status_code}: {body[:300]}")
 
+    def test_a_search_by_meaning_finds_only_shared_photos(self):
+        body, searched = self.search_by_meaning_for_attacker()
+        markers = self.victim_markers - self.photo_markers
+        self.assertEqual(sorted(m for m in markers if m in body), [], body[:300])
+        for photo in self.v_photos:
+            self.assertIn(photo.image_hash, body)
+        self.assertEqual(searched, {self.attacker.id, self.victim.id})
+
     def test_the_recipient_does_reach_the_photos(self):
         client = self.client_for(self.attacker)
         for url in (

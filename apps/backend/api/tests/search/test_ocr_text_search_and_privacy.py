@@ -35,7 +35,7 @@ class OcrSearchTest(TestCase):
     """The searchlist endpoint returns photos matching on OCR text."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         self.now = timezone.now()
@@ -134,7 +134,7 @@ class OcrPrivacyTest(TestCase):
     ALLOWED_SERIALIZERS = {"PhotoSerializer"}
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         self.photo = create_test_photo(owner=self.user, exif_timestamp=timezone.now())

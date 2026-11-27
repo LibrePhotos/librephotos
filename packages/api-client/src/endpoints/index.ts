@@ -539,6 +539,7 @@ export type SearchFilters = {
   /** The main file's extension, with or without the dot. */
   extension?: string;
   person?: readonly number[];
+  similar_to?: string;
 };
 
 /** The query parameters of `filter`; unset filters are left out. */
@@ -564,6 +565,7 @@ function searchFiltersQuery(filter: SearchFilters) {
     file_type: filter.file_type,
     extension: filter.extension,
     person: filter.person,
+    similar_to: filter.similar_to,
   };
 }
 
@@ -926,25 +928,32 @@ export async function fetchUserPlacePhotos(
  * videos or screenshots, and by the structured search filters (`SearchFilters`); with filters the
  * term may be empty.
  */
+export function isDefaultSearchSort(sort: S.SearchSort | undefined, semantic: boolean): boolean {
+  return sort === undefined || sort === "relevance" || (sort === "newest" && !semantic);
+}
+
 export async function searchPhotos(
   client: ApiClient,
   searchTerm: string,
   semantic = false,
   filter: AlbumMediaFilter & SearchFilters = {},
-  sort?: S.SearchSort
+  sort?: S.SearchSort,
+  language?: string
 ): Promise<S.SearchPhotosResult> {
+  const ranked = semantic || filter.similar_to !== undefined;
   const query = buildQuery({
     search: searchTerm,
+    language: language || undefined,
     ...albumMediaQuery(filter),
     ...searchFiltersQuery(filter),
-    sort: sort === undefined || sort === "newest" ? undefined : sort,
+    sort: isDefaultSearchSort(sort, ranked) ? undefined : sort,
   });
   const res = await client.get<unknown>(`/photos/searchlist/${query}`);
   if (sort === "largest" || sort === "smallest") {
     const parsed = parseResponse(S.SizeSortedSearchPhotos, res, "size sorted search photos");
     return { photosFlat: parsed.results, photosGroupedByDate: [], count: parsed.count };
   }
-  if (semantic) {
+  if (ranked) {
     const parsed = parseResponse(S.SemanticSearchPhotos, res, "semantic search photos");
     return { photosFlat: parsed.results, photosGroupedByDate: [] };
   }
