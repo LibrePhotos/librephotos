@@ -101,6 +101,7 @@ PROMPT_TEMPLATES = (
 )
 QUERY_PROMPT = "a photo of {query}."
 TEXT_BATCH_SIZE = 64
+CHECKPOINT_PROMPTS = 256
 # Images per image-tower run when a request brings several (re-embedding).
 IMAGE_BATCH_SIZE = 16
 EMBEDDING_DIM = 512
@@ -374,11 +375,77 @@ def _cache_hash_path() -> str:
 
 def _read_cache_hash() -> str | None:
     """The tag-list hash the cache was built for; None for a cache without one."""
+    return _read_text(_cache_hash_path())
+
+
+def _read_text(path: str) -> str | None:
     try:
-        with open(_cache_hash_path(), encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return f.read().strip()
     except FileNotFoundError:
         return None
+
+
+def _write_text(path: str, text: str) -> None:
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(text)
+
+
+def _save_array(path: str, array: npt.NDArray[np.floating]) -> None:
+    temporary = f"{path}.tmp"
+    with open(temporary, "wb") as f:
+        np.save(f, array)
+    os.replace(temporary, path)
+
+
+def _partial_paths() -> tuple[str, str]:
+    stem = os.path.splitext(EMBEDDINGS_CACHE)[0]
+    return f"{stem}.partial.npy", f"{stem}.partial.sha256"
+
+
+def _remove_partial() -> None:
+    for path in _partial_paths():
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+
+
+def _resumed_prompt_embeddings(
+    tags_hash: str, prompt_count: int
+) -> npt.NDArray[np.float32]:
+    array_path, hash_path = _partial_paths()
+    if _read_text(hash_path) == tags_hash:
+        try:
+            done = np.load(array_path)
+        except OSError, ValueError:
+            done = None
+        if (
+            done is not None
+            and done.ndim == 2
+            and done.shape[1] == EMBEDDING_DIM
+            and done.shape[0] <= prompt_count
+        ):
+            return done.astype(np.float32)
+    _remove_partial()
+    _write_text(hash_path, tags_hash)
+    return np.zeros((0, EMBEDDING_DIM), np.float32)
+
+
+def _cached_tag_embeddings(
+    entries: Sequence[TagEntry],
+) -> npt.NDArray[np.floating] | None:
+    if not os.path.exists(EMBEDDINGS_CACHE):
+        return None
+    cache = np.load(EMBEDDINGS_CACHE)
+    reason = _stale_cache_reason(
+        cache, len(entries), _read_cache_hash(), tag_list_hash(entries)
+    )
+    if reason is not None:
+        logger.info("%s: %s, rebuilding...", MODEL_NAME, reason)
+        os.remove(EMBEDDINGS_CACHE)
+        return None
+    return cache
 
 
 def _hash_mismatch_reason(cached_hash: str | None, tags_hash: str) -> str | None:
@@ -467,6 +534,20 @@ class OpenCLIP:
         self._load_or_build_tag_embeddings(tag_list.entries)
         self.is_loaded = True
 
+    def load_cached(self) -> bool:
+        tag_list = self._load_tags()
+        cache = _cached_tag_embeddings(tag_list.entries)
+        if cache is None:
+            return False
+        self._load_vision()
+        self.tag_list = tag_list
+        self.tag_embeddings = cache
+        self.is_loaded = True
+        return True
+
+    def build_tag_embeddings(self) -> None:
+        self._build_tag_embeddings(self._load_tags().entries)
+
     @staticmethod
     def _load_tags() -> TagList:
         """tags.txt, then the admin's custom things it does not have yet."""
@@ -529,42 +610,57 @@ class OpenCLIP:
         owners = np.repeat(
             np.arange(len(entries)), [len(entry.prompts) for entry in entries]
         )
-        prompt_embeddings = np.concatenate(
-            [
-                _l2_normalize(
-                    self._run_text(session, prompts[start : start + TEXT_BATCH_SIZE])
-                )
-                for start in range(0, len(prompts), TEXT_BATCH_SIZE)
-            ],
-            axis=0,
+        tags_hash = tag_list_hash(entries)
+        os.makedirs(os.path.dirname(EMBEDDINGS_CACHE), exist_ok=True)
+        prompt_embeddings = self._embed_prompts(
+            session, prompts, _resumed_prompt_embeddings(tags_hash, len(prompts))
         )
         del session
 
         sums = np.zeros((len(entries), prompt_embeddings.shape[1]), np.float32)
         np.add.at(sums, owners, prompt_embeddings)
         self.tag_embeddings = _l2_normalize(sums)
-        os.makedirs(os.path.dirname(EMBEDDINGS_CACHE), exist_ok=True)
-        np.save(EMBEDDINGS_CACHE, self.tag_embeddings)
-        # Written after the array: a cache whose hash is missing is rebuilt.
-        with open(_cache_hash_path(), "w", encoding="utf-8") as f:
-            f.write(tag_list_hash(entries))
+        _save_array(EMBEDDINGS_CACHE, self.tag_embeddings)
+        _write_text(_cache_hash_path(), tags_hash)
+        _remove_partial()
         logger.info("%s: cached %s tag embeddings", MODEL_NAME, len(entries))
 
+    def _embed_prompts(
+        self,
+        session: ort.InferenceSession,
+        prompts: Sequence[str],
+        done: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.float32]:
+        if len(done):
+            logger.info(
+                "%s: resuming the tag embeddings at prompt %s of %s",
+                MODEL_NAME,
+                len(done),
+                len(prompts),
+            )
+        unsaved = 0
+        for start in range(len(done), len(prompts), TEXT_BATCH_SIZE):
+            batch = _l2_normalize(
+                self._run_text(session, prompts[start : start + TEXT_BATCH_SIZE])
+            )
+            done = np.concatenate([done, batch.astype(np.float32)], axis=0)
+            unsaved += len(batch)
+            if unsaved >= CHECKPOINT_PROMPTS and len(done) < len(prompts):
+                _save_array(_partial_paths()[0], done)
+                unsaved = 0
+                logger.info(
+                    "%s: embedded %s of %s tag prompts",
+                    MODEL_NAME,
+                    len(done),
+                    len(prompts),
+                )
+        return done
+
     def _load_or_build_tag_embeddings(self, entries: Sequence[TagEntry]) -> None:
-        if not os.path.exists(EMBEDDINGS_CACHE):
+        cache = _cached_tag_embeddings(entries)
+        if cache is None:
             self._build_tag_embeddings(entries)
             return
-
-        cache = np.load(EMBEDDINGS_CACHE)
-        reason = _stale_cache_reason(
-            cache, len(entries), _read_cache_hash(), tag_list_hash(entries)
-        )
-        if reason is not None:
-            logger.info("%s: %s, rebuilding...", MODEL_NAME, reason)
-            os.remove(EMBEDDINGS_CACHE)
-            self._build_tag_embeddings(entries)
-            return
-
         self.tag_embeddings = cache
 
     def embed_text_raw(self, text: str) -> npt.NDArray[np.float32]:

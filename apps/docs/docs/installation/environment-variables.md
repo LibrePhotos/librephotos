@@ -260,6 +260,8 @@ The backend runs its heavy models in separate sidecar processes, and a watchdog 
 
 <Since version="1.7.0" /> A service whose switch is turned off while it runs is stopped at the watchdog's next check, within a minute. A service that still runs but answers no health check for three minutes, longer than any request to it may take, counts as hung and is restarted; one that is only busy answers in time and is left alone.
 
+<Since version="1.7.0" /> The first time the Things service (`tags`) is asked for things, it builds its tag embeddings: a few minutes on a desktop, up to half an hour on a small Arm server, once per tag list. It builds them in the background, keeps answering its health check (as busy and loading, so the watchdog neither restarts it nor unloads its model) and saves its progress as it goes, so a restart carries on where it stopped. Photos tagged meanwhile are skipped and get their things from the next scan; search embeddings and search keep working. Up to 1.6.0 the build blocked the service, the watchdog took it for hung and restarted it every few minutes, and on a slow server the build never finished.
+
 | Switch | Service that stops being started |
 | --- | --- |
 | `FEATURE_FACE_DETECTION` | `face_recognition` |

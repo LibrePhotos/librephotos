@@ -20,7 +20,7 @@ The server refuses every change with `403` and the error code `demo_site_read_on
 
 Use photos you may publish. Never use your own photos: everyone who opens the demo sees them, with their dates and places.
 
-Run the image normally first, without `DEMO_SITE`, so the machine learning services find faces, things and places. A desktop does this in minutes; on a small Arm server the Things model's first start alone can take half an hour, so prepare on a faster machine if you can and copy the folders to the server afterwards.
+Run the image normally first, without `DEMO_SITE`, so the machine learning services find faces, things and places. A desktop does this in minutes. On a small Arm server the Things model alone first spends up to half an hour building its tag embeddings, and photos scanned during that time get their things only from the next scan, so prepare on a faster machine if you can and copy the folders to the server afterwards.
 
 ```bash
 docker run -d --name demo-prep \
