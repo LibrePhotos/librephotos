@@ -19,6 +19,8 @@ from api.search.translate import lexicon_for
 logger = logging.getLogger(__name__)
 
 FUSION = FusionSettings(semantic_floor=SEARCH_COSINE_FLOOR)
+PLACELESS_FUSION = FusionSettings(semantic_floor=0.2)
+FEW_PLACE_MATCHES = 10
 SEMANTIC_POOL = 2000
 LEXICAL_LIMIT = 1000
 MAX_RESULTS = 5000
@@ -81,7 +83,9 @@ def _newest(queryset: QuerySet[Photo]) -> list[UUID]:
     return list(ordered.values_list("pk", flat=True)[:MAX_RESULTS])
 
 
-def _semantic(user: User, queryset: QuerySet[Photo], parsed: ParsedQuery) -> list[UUID]:
+def _semantic(
+    user: User, queryset: QuerySet[Photo], parsed: ParsedQuery, floor: float
+) -> list[UUID]:
     try:
         embedding, _ = calculate_query_embeddings(parsed.semantic_text)
     except (requests.RequestException, KeyError, ValueError) as error:
@@ -89,7 +93,7 @@ def _semantic(user: User, queryset: QuerySet[Photo], parsed: ParsedQuery) -> lis
         return []
     pool = SEMANTIC_POOL if parsed.has_filters else user.semantic_search_topk
     scored = search_ranked_embedding(
-        user.id, embedding, max(pool, user.semantic_search_topk), FUSION.semantic_floor
+        user.id, embedding, max(pool, user.semantic_search_topk), floor
     )
     rows = dict(
         queryset.filter(image_hash__in=[h for h, _ in scored]).values_list(
@@ -99,11 +103,16 @@ def _semantic(user: User, queryset: QuerySet[Photo], parsed: ParsedQuery) -> lis
     inside = [(rows[h], score) for h, score in scored if h in rows]
     if parsed.has_filters:
         return [pk for pk, _ in inside]
-    kept = cut_semantic(inside, FUSION.semantic_floor)
+    kept = cut_semantic(inside, floor)
     return kept[: user.semantic_search_topk]
 
 
-def _ranked(user: User, queryset: QuerySet[Photo], parsed: ParsedQuery) -> list[UUID]:
+def _ranked(
+    user: User,
+    queryset: QuerySet[Photo],
+    parsed: ParsedQuery,
+    fusion: FusionSettings = FUSION,
+) -> list[UUID]:
     filtered = queryset.filter(*parsed_q(user, parsed))
     if not parsed.terms and not parsed.phrases:
         return _newest(filtered)
@@ -116,11 +125,15 @@ def _ranked(user: User, queryset: QuerySet[Photo], parsed: ParsedQuery) -> list[
         )
         .values_list("pk", flat=True)[:LEXICAL_LIMIT]
     )
-    semantic = _semantic(user, filtered, parsed) if parsed.semantic_text else []
+    semantic = (
+        _semantic(user, filtered, parsed, fusion.semantic_floor)
+        if parsed.semantic_text
+        else []
+    )
     if parsed.phrases:
         allowed = set(lexical)
         semantic = [pk for pk in semantic if pk in allowed]
-    return fuse(lexical, semantic, FUSION)[:MAX_RESULTS]
+    return fuse(lexical, semantic, fusion)[:MAX_RESULTS]
 
 
 def ranked_photo_ids(
@@ -133,5 +146,6 @@ def ranked_photo_ids(
         return found
     without_places = Vocabulary(people=words.people, translations=words.translations)
     seen = set(found)
-    more = _ranked(user, queryset, parse(text, without_places))
+    fusion = FUSION if len(found) < FEW_PLACE_MATCHES else PLACELESS_FUSION
+    more = _ranked(user, queryset, parse(text, without_places), fusion)
     return [*found, *(pk for pk in more if pk not in seen)][:MAX_RESULTS]

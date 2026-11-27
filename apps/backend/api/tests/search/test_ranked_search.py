@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from api.search.ranked import FEW_PLACE_MATCHES
 from api.search.semantic import OPENCLIP
 from api.tests.utils import (
     create_test_album_place,
@@ -115,6 +116,33 @@ class RankedSearchTest(TestCase):
             {"search": "city in Berlin"}, [(self.beach_2022.image_hash, 0.3)]
         )
         self.assertEqual(found, [self.city.image_hash, self.beach_2022.image_hash])
+
+    def test_a_place_with_few_photos_is_filled_with_the_usual_matches(self):
+        berlin = create_test_album_place(owner=self.user, title="Berlin")
+        berlin.photos.add(self.city)
+        found = self._search(
+            {"search": "city in Berlin"}, [(self.beach_2022.image_hash, 0.17)]
+        )
+        self.assertEqual(found, [self.city.image_hash, self.beach_2022.image_hash])
+
+    def test_a_place_with_many_photos_adds_only_strong_matches_elsewhere(self):
+        in_berlin = [
+            create_test_photo(owner=self.user, exif_timestamp=_taken(2020))
+            for _ in range(FEW_PLACE_MATCHES)
+        ]
+        berlin = create_test_album_place(owner=self.user, title="Berlin")
+        berlin.photos.add(*in_berlin)
+        found = self._search(
+            {"search": "lake in Berlin"},
+            [
+                (self.beach_2022.image_hash, 0.25),
+                (self.looks_like_beach.image_hash, 0.17),
+                *((photo.image_hash, 0.1) for photo in in_berlin),
+            ],
+        )
+        self.assertEqual(len(found), FEW_PLACE_MATCHES + 1)
+        self.assertEqual(found[-1], self.beach_2022.image_hash)
+        self.assertEqual(self.last_semantic_call.args[3], 0.2)
 
     def test_a_place_that_finds_nothing_is_searched_as_a_word(self):
         create_test_album_place(owner=self.user, title="Beach Town")
