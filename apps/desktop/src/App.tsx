@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Filmstrip } from "./chrome/Filmstrip";
 import { InfoPanel } from "./chrome/InfoPanel";
-import { ConfirmDelete, DropOverlay, EmptyState, Toasts, useToasts } from "./chrome/Overlays";
+import { ConfirmDelete, DropOverlay, EmptyState, FolderAccessHint, Toasts, useToasts } from "./chrome/Overlays";
 import { TopBar, type TopBarActions } from "./chrome/TopBar";
 import {
   clearThumbnailCache,
@@ -12,6 +12,7 @@ import {
   onOpenRequest,
   openDefaultAppsSettings,
   prewarmThumbs,
+  rememberFolder,
   revealInFolder,
   rotateFile,
   trashFile,
@@ -23,7 +24,7 @@ import { addLibraryRoot, serverUploadFile, type LibraryFile } from "./library/ap
 import { useLibraryStatus, useServerStatus } from "./library/hooks";
 import { LibraryView } from "./library/LibraryView";
 import { contractErrorText, onContractError } from "./server/errors";
-import { focusWindow, onFileDrop, onFullscreenChange, pickFile, setFullscreen, setWindowTitle } from "./platform";
+import { TRASH, focusWindow, onFileDrop, onFullscreenChange, pickFile, pickFolderAccess, setFullscreen, setWindowTitle } from "./platform";
 import { Slideshow } from "./stage/Slideshow";
 import { Stage, useNeighbours, type StageHandle } from "./stage/Stage";
 import type { PhotoEdit, SaveResult } from "./edits/photoEdits";
@@ -31,7 +32,7 @@ import { useEditable } from "./edits/useEditable";
 import "./chrome/edit/Edit.css";
 import "./App.css";
 
-type View = { folder: string; files: FileEntry[]; index: number };
+type View = { folder: string; files: FileEntry[]; index: number; limited: boolean };
 
 const IDLE_MS = 2500;
 const PREWARM_DELAY_MS = 2000;
@@ -140,7 +141,7 @@ export function App() {
         const listing = await listFolder(path);
         if (seq !== openSeq.current) return;
         if (listing.files.length === 0) throw new Error(`No pictures or videos in ${listing.folder}`);
-        setView({ folder: listing.folder, files: listing.files, index: clampIndex(listing.index, listing.files.length) });
+        setView({ folder: listing.folder, files: listing.files, index: clampIndex(listing.index, listing.files.length), limited: listing.limited });
         setOpenError(null);
         setMode("viewer");
       } catch (err) {
@@ -157,43 +158,41 @@ export function App() {
 
   useEffect(() => {
     let live = true;
-    initialPath().then(
-      path => {
-        if (!live) return;
-        if (path) void openPath(path);
-        else {
-          setStarting(false);
-          setMode("library");
+    let unlisten: (() => void) | null = null;
+    onOpenRequest(path => {
+      focusWindow();
+      void openPath(path);
+    })
+      .then(fn => {
+        if (!live) {
+          fn();
+          return null;
         }
-      },
-      (err: unknown) => {
-        if (!live) return;
-        setOpenError(errorText(err));
-        setStarting(false);
-      },
-    );
+        unlisten = fn;
+        return initialPath();
+      })
+      .then(
+        path => {
+          if (!live) return;
+          if (path) void openPath(path);
+          else {
+            setStarting(false);
+            setMode("library");
+          }
+        },
+        (err: unknown) => {
+          if (!live) return;
+          setOpenError(errorText(err));
+          setStarting(false);
+        },
+      );
     return () => {
       live = false;
+      unlisten?.();
     };
   }, [openPath]);
 
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    let disposed = false;
-    void onOpenRequest(path => {
-      focusWindow();
-      void openPath(path);
-    }).then(fn => {
-      if (disposed) fn();
-      else unlisten = fn;
-    });
-    const stopDrop = onFileDrop({ onHover: setDropHover, onDrop: path => void openPath(path) });
-    return () => {
-      disposed = true;
-      unlisten?.();
-      stopDrop();
-    };
-  }, [openPath]);
+  useEffect(() => onFileDrop({ onHover: setDropHover, onDrop: path => void openPath(path) }), [openPath]);
 
   useEffect(() => onFullscreenChange(setFs), []);
 
@@ -233,7 +232,7 @@ export function App() {
   const openFromLibrary = useCallback((list: LibraryFile[], at: number) => {
     if (list.length === 0) return;
     openSeq.current++;
-    setView({ folder: "Library", files: list, index: clampIndex(at, list.length) });
+    setView({ folder: "Library", files: list, index: clampIndex(at, list.length), limited: false });
     setOpenError(null);
     setMode("viewer");
   }, []);
@@ -300,7 +299,7 @@ export function App() {
       try {
         await trashFile(file.path);
         setView(v => (v ? withoutFile(v, file.path) : v));
-        push(`Moved ${file.name} to the Recycle Bin`);
+        push(`Moved ${file.name} to the ${TRASH}`);
       } catch (err) {
         push(`Couldn't delete ${file.name}: ${errorText(err)}`, "error");
       }
@@ -357,6 +356,18 @@ export function App() {
     );
   }, [openPath, push]);
 
+  const showWholeFolder = useCallback(() => {
+    if (!view || !current) return;
+    const path = current.path;
+    pickFolderAccess(view.folder)
+      .then(async folder => {
+        if (!folder) return;
+        await rememberFolder(folder).catch(() => false);
+        await openPath(path);
+      })
+      .catch((err: unknown) => push(`Couldn't open the folder dialog: ${errorText(err)}`, "error"));
+  }, [view, current, openPath, push]);
+
   const setDefaultViewer = useCallback(() => {
     openDefaultAppsSettings().catch((err: unknown) => push(`Couldn't open the default apps settings: ${errorText(err)}`, "error"));
   }, [push]);
@@ -406,6 +417,10 @@ export function App() {
         if (!editable.value || current?.kind === "video") return true;
         const stars = Number(key);
         void editable.save({ rating: stars === editable.value.rating ? 0 : stars });
+        return true;
+      }
+      if (e.metaKey && key === "Backspace") {
+        requestDelete(e.shiftKey);
         return true;
       }
       switch (key) {
@@ -563,6 +578,7 @@ export function App() {
               onSetDefault={setDefaultViewer}
             />
           )}
+          {view?.limited && current && !slideshow && <FolderAccessHint folder={view.folder} onAllow={showWholeFolder} />}
           {files.length > 0 && (
             <Filmstrip
               files={files}

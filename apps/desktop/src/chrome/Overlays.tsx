@@ -1,6 +1,7 @@
-import { IconAlertTriangle, IconAppWindow, IconCheck, IconFileUpload, IconPhotoPlus, IconTrash, IconX } from "@tabler/icons-react";
+import { IconAlertTriangle, IconAppWindow, IconCheck, IconFileUpload, IconFolderOpen, IconPhotoPlus, IconTrash, IconX } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FileEntry } from "../ipc";
+import { FILE_MANAGER, MOD_KEY, TRASH } from "../platform";
 import { IconButton } from "../ui/IconButton";
 import { Logo } from "../ui/Logo";
 import "./Overlays.css";
@@ -47,7 +48,7 @@ export function ConfirmDelete({
           <span className="dialog-icon" aria-hidden="true">
             <IconTrash size={20} stroke={1.75} />
           </span>
-          <h2 id="confirm-title">Move to Recycle Bin?</h2>
+          <h2 id="confirm-title">Move to {TRASH}?</h2>
         </div>
         <p className="dialog-file">{file.name}</p>
         <label className="check">
@@ -126,7 +127,7 @@ function DefaultViewerHint({ onSetDefault }: { onSetDefault(): void }) {
     <div className="default-hint" role="note">
       <IconAppWindow size={20} stroke={1.5} aria-hidden="true" />
       <div className="default-hint-text">
-        <span>Open pictures from File Explorer with LibrePhotos Viewer?</span>
+        <span>Open pictures from {FILE_MANAGER === "Explorer" ? "File Explorer" : FILE_MANAGER} with LibrePhotos Viewer?</span>
         <button
           type="button"
           className="link-btn"
@@ -161,10 +162,25 @@ export function EmptyState({ error, onOpen, onSetDefault }: { error: string | nu
           Open a picture
         </button>
         <p className="empty-hint">
-          or drop one here · <kbd className="kbd">Ctrl</kbd> <kbd className="kbd">O</kbd>
+          or drop one here · <kbd className="kbd">{MOD_KEY}</kbd> <kbd className="kbd">O</kbd>
         </p>
       </div>
       <DefaultViewerHint onSetDefault={onSetDefault} />
+    </div>
+  );
+}
+
+export function FolderAccessHint({ folder, onAllow }: { folder: string; onAllow(): void }) {
+  const name = folder.split(/[\\/]/).filter(Boolean).pop() ?? folder;
+  return (
+    <div className="default-hint folder-hint" role="note">
+      <IconFolderOpen size={20} stroke={1.5} aria-hidden="true" />
+      <div className="default-hint-text">
+        <span>Only this picture is shown. To see the rest of {name}, choose the folder once.</span>
+        <button type="button" className="link-btn" onClick={onAllow}>
+          Show the whole folder
+        </button>
+      </div>
     </div>
   );
 }

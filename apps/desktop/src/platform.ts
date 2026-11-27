@@ -7,6 +7,15 @@ export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "jpe", "jfif", "png", "gif", "we
 export const RAW_EXTENSIONS = ["dng", "cr2", "cr3", "nef", "nrw", "arw", "srf", "sr2", "orf", "rw2", "raf", "pef", "srw", "raw", "rwl", "3fr", "erf", "kdc", "mrw", "x3f"];
 export const VIDEO_EXTENSIONS = ["mp4", "mov", "m4v", "webm", "mkv", "avi"];
 
+export const isMac = navigator.userAgent.includes("Mac OS X") || navigator.userAgent.includes("Macintosh");
+export const FILE_MANAGER = isMac ? "Finder" : "Explorer";
+export const TRASH = isMac ? "Trash" : "Recycle Bin";
+export const MOD_KEY = isMac ? "⌘" : "Ctrl";
+
+export function shortcut(key: string): string {
+  return isMac ? `⌘${key}` : `Ctrl+${key}`;
+}
+
 export function setWindowTitle(title: string): void {
   if (inTauri) void getCurrentWindow().setTitle(title).catch(() => undefined);
   else document.title = title;
@@ -67,6 +76,13 @@ export async function pickFile(): Promise<string | null> {
       { name: "Videos", extensions: VIDEO_EXTENSIONS },
     ],
   });
+  return typeof picked === "string" ? picked : null;
+}
+
+export async function pickFolderAccess(folder: string): Promise<string | null> {
+  if (!inTauri) return null;
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const picked = await open({ directory: true, multiple: false, defaultPath: folder, title: "Show the pictures in this folder" });
   return typeof picked === "string" ? picked : null;
 }
 

@@ -10,7 +10,7 @@ All paths are absolute OS paths (`C:\Users\...` on Windows). Errors reject with 
 
 | Command | Args | Returns |
 |---|---|---|
-| `initial_path` | none | `string \| null`: the file or folder given on the command line (first non-flag argument), or null. Without one the UI starts in the library. |
+| `initial_path` | none | `string \| null`: on macOS the last file Finder opened with the app (an Apple Event) before the UI asked, otherwise the file or folder given on the command line (first non-flag argument), or null. Without one the UI starts in the library. The UI listens for `viewer://open` before it asks, so a file opened in between is never lost. |
 | `list_folder` | `{ path }` (a file or a folder) | `FolderListing` |
 | `image_info` | `{ path }` | `ImageInfo` |
 | `write_metadata` | `{ path, edits: MetadataEdits, target: "sidecar" \| "file" }` | `WriteOutcome`; saves rating, caption, keywords and date taken (see "Edits") |
@@ -20,6 +20,7 @@ All paths are absolute OS paths (`C:\Users\...` on Windows). Errors reject with 
 | `reveal_in_folder` | `{ path }` | `null`; opens Explorer/Finder/file manager with the file selected |
 | `copy_image` | `{ path }` | `null`; puts the decoded image (orientation applied) on the clipboard |
 | `prewarm_thumbs` | `{ paths }` | `number` queued. Replaces the pre-warm list: Rust makes the `thumb` of each file (in the given order, nearest first) into the disk cache when no other request is waiting, skipping files already cached. `[]` cancels. |
+| `remember_folder` | `{ path }` | `boolean`: in the macOS App Store build (sandboxed) keeps a security-scoped bookmark of a folder the user picked, so the app can read it again after a restart; `false` and nothing stored elsewhere |
 | `clear_cache` | none | `number`: bytes deleted from the disk cache (also cancels pre-warming) |
 | `open_default_apps_settings` | none | `null`; opens Settings > Apps > Default apps at this app's page (`ms-settings:defaultapps?registeredAppUser=LibrePhotos%20Viewer`, or `registeredAppMachine=`, or plain `ms-settings:defaultapps` when the app is not registered). Windows only; rejects with "not supported yet" elsewhere. |
 | `tile_info` | `{ path }` | `TileInfo \| null`: the deep-zoom pyramid of a big picture, or null when it is not tiled (see "Tiles"). Cheap (header only) except for RAW, where it develops the file once. Makes the picture the one whose pyramid is filled in the background. |
@@ -28,7 +29,7 @@ All paths are absolute OS paths (`C:\Users\...` on Windows). Errors reject with 
 ```ts
 type FileKind = "image" | "raw" | "video";
 type FileEntry = { path: string; name: string; size: number; modifiedMs: number; kind: FileKind };
-type FolderListing = { folder: string; files: FileEntry[]; index: number }; // index of `path` when it is a file, else 0
+type FolderListing = { folder: string; files: FileEntry[]; index: number; limited: boolean }; // index of `path` when it is a file, else 0; limited: the sandbox let the app read only this file, so `files` holds just it
 type TileInfo = { width: number; height: number; tileSize: number; levels: number }; // displayed full size
 type ImageInfo = {
   path: string; name: string; size: number; modifiedMs: number;
@@ -67,7 +68,7 @@ Sort order: natural, case-insensitive by file name (`IMG_2.jpg` before `IMG_10.j
 
 | Event | Payload | When |
 |---|---|---|
-| `viewer://open` | `{ path: string }` | A second launch (double-click in Explorer while running) forwarded its file. The UI switches to it and focuses. |
+| `viewer://open` | `{ path: string }` | A file to show now: on Windows and Linux a second launch (double-click in Explorer while running) forwarded it; on macOS Finder or `open` sent it as an Apple Event to the running app. The UI switches to it and focuses. |
 
 Drag and drop of files onto the window is handled in the UI with `getCurrentWebview().onDragDropEvent`.
 

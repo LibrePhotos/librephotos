@@ -12,6 +12,10 @@ pub fn default_root() -> Option<PathBuf> {
     if let Some(d) = crate::appdirs::override_dir() {
         return Some(d.join("tiles"));
     }
+    if cfg!(target_os = "macos") {
+        let home = std::env::var_os("HOME").filter(|h| !h.is_empty())?;
+        return Some(crate::appdirs::macos_caches(Path::new(&home)).join("tiles"));
+    }
     let base = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from))

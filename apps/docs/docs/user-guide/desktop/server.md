@@ -12,7 +12,7 @@ The desktop app works on its own. Connecting it to your LibrePhotos server adds 
 
 ## Signing in
 
-Open **LibrePhotos** in the sidebar, enter the **Server address** (`photos.example.com`; `https://` is assumed, `http://` for `localhost` and addresses in your home network), your **Username** and **Password**, and click **Sign in**. Your password is sent to your server only. The app keeps the sign-in in the Windows Credential Manager, so it stays signed in after a restart. **Sign out** on the same page forgets it.
+Open **LibrePhotos** in the sidebar, enter the **Server address** (`photos.example.com`; `https://` is assumed, `http://` for `localhost` and addresses in your home network), your **Username** and **Password**, and click **Sign in**. Your password is sent to your server only. The app keeps the sign-in in the Windows Credential Manager (on a Mac, in the login Keychain), so it stays signed in after a restart. **Sign out** on the same page forgets it.
 
 ## Backup
 

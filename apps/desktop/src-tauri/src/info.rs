@@ -307,6 +307,10 @@ fn image_dims(path: &Path, ext: &str) -> Option<(u32, u32)> {
     if let Ok(src) = crate::decode::wic::open_file(path) {
         return Some(src.oriented_dims());
     }
+    #[cfg(target_os = "macos")]
+    if let Some(dims) = crate::decode::imageio::oriented_dims(path) {
+        return Some(dims);
+    }
     let (w, h) = image::image_dimensions(path).ok()?;
     let o = if matches!(ext, "tif" | "tiff") {
         std::fs::read(path)

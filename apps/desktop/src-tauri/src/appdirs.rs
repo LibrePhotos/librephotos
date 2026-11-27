@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub const DIR_NAME: &str = "com.librephotos.viewer";
 
@@ -21,6 +21,10 @@ pub fn installer_dir() -> Option<PathBuf> {
             .or_else(|| env_dir("HOME").map(|h| h.join(".local/share")))
             .map(|d| d.join(DIR_NAME))
     }
+}
+
+pub fn macos_caches(home: &Path) -> PathBuf {
+    home.join("Library").join("Caches").join(DIR_NAME)
 }
 
 pub fn override_dir() -> Option<PathBuf> {
@@ -56,5 +60,13 @@ mod tests {
         let config: serde_json::Value =
             serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
         assert_eq!(config["identifier"].as_str(), Some(super::DIR_NAME));
+    }
+
+    #[test]
+    fn macos_caches_sit_where_the_cask_zaps_them() {
+        assert_eq!(
+            super::macos_caches(std::path::Path::new("/Users/u")),
+            std::path::Path::new("/Users/u/Library/Caches/com.librephotos.viewer")
+        );
     }
 }

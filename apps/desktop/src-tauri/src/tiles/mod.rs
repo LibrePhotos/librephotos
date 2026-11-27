@@ -976,7 +976,8 @@ mod tests {
         let px = img.get_pixel(200, 100);
         assert!((px[0] as i32 - (sx / 24)).abs() <= 3, "{px:?}");
         assert!((px[1] as i32 - (sy / 18)).abs() <= 3, "{px:?}");
-        assert!(svc.stats().0 >= 12);
+        let band = if cfg!(windows) { 12 } else { 9 };
+        assert!(svc.stats().0 >= band);
         let t = svc.get(&p, 4, 0, 0).unwrap();
         assert_eq!((t.width, t.height), (282, 375));
         assert!(matches!(

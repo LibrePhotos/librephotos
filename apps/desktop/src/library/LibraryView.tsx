@@ -16,7 +16,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { prewarmThumbs, revealInFolder } from "../ipc";
+import { prewarmThumbs, rememberFolder, revealInFolder } from "../ipc";
 import { errorText } from "../lib/infoCache";
 import { Button, Loader } from "../ui/Button";
 import { Alert, Avatar, EmptyState, Progress } from "../ui/Display";
@@ -35,6 +35,7 @@ import { searchServer, type ServerHit } from "./serverApi";
 import { ServerPanel, hostOf } from "./ServerPanel";
 import { SettingsPage } from "./SettingsPage";
 import "./Library.css";
+import { FILE_MANAGER, MOD_KEY } from "../platform";
 
 const LOCAL_DEBOUNCE_MS = 120;
 const SERVER_DEBOUNCE_MS = 350;
@@ -50,7 +51,9 @@ export type LibraryViewProps = {
 export async function pickFolder(): Promise<string | null> {
   const { open } = await import("@tauri-apps/plugin-dialog");
   const picked = await open({ directory: true, multiple: false, title: "Add a folder to the library" });
-  return typeof picked === "string" ? picked : null;
+  if (typeof picked !== "string") return null;
+  await rememberFolder(picked).catch(() => false);
+  return picked;
 }
 
 type Search = {
@@ -324,7 +327,7 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
             roots.length > 0 ? (
               root ? (
                 <Button variant="neutral" leftIcon={IconFolderOpen} onClick={() => revealInFolder(root.path).catch((err: unknown) => notify(`Couldn't show the folder: ${errorText(err)}`, "error"))}>
-                  Show in Explorer
+                  Show in {FILE_MANAGER}
                 </Button>
               ) : (
                 <Button variant="neutral" leftIcon={IconFolderPlus} onClick={addFolder}>
@@ -401,7 +404,7 @@ export function LibraryView({ onOpen, onOpenPicture, onBack, notify }: LibraryVi
               </button>
             ) : (
               <span className="lib-search-kbd" aria-hidden="true">
-                <kbd className="kbd">Ctrl</kbd>
+                <kbd className="kbd">{MOD_KEY}</kbd>
                 <kbd className="kbd">F</kbd>
               </span>
             )}
