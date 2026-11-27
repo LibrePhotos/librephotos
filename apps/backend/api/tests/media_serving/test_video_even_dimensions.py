@@ -48,7 +48,10 @@ class EvenDimensionsCommandTest(SimpleTestCase):
                 render.create_animated_thumbnail(
                     "/v.mov", height, "out", "h", transfer=""
                 )
-            self.assertEqual(_filter(run.call_args.args[0]), f"scale=-2:{height}")
+            self.assertEqual(
+                _filter(run.call_args.args[0]),
+                f"{render.PREVIEW_FRAME_RATE},scale=-2:{height}",
+            )
 
 
 def _real_ffmpeg():

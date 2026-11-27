@@ -461,6 +461,12 @@ def _remove_partial(output: str) -> None:
         pass
 
 
+PREVIEW_MAX_FPS = 30
+PREVIEW_FRAME_RATE = (
+    f"fps='if(between(source_fps,1,{PREVIEW_MAX_FPS}),source_fps,{PREVIEW_MAX_FPS})'"
+)
+
+
 def create_animated_thumbnail(
     input_path: str,
     output_height: int,
@@ -482,7 +488,9 @@ def create_animated_thumbnail(
         str(settings.VIDEO_PREVIEW_CRF),
         "-an",
         *NO_METADATA,
-        *color.h264_video_args(input_path, f"scale=-2:{output_height}", transfer),
+        *color.h264_video_args(
+            input_path, f"{PREVIEW_FRAME_RATE},scale=-2:{output_height}", transfer
+        ),
         output,
     ]
     _run_ffmpeg(command, output)
