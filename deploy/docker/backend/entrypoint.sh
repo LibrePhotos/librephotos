@@ -166,18 +166,16 @@ if [[ "$demo_site" == false ]]; then
     python manage.py run_workers 2>&1 | tee "$logs_dir/workers.log" &
 fi
 
-# WEB_CONCURRENCY uvicorn processes; recycle each one after WEB_MAX_REQUESTS
-# requests when there is more than one, so a recycled worker never takes the
-# whole API down. The unified image sets both higher in its Dockerfile (4 and
-# 2000): it serves the web app and every thumbnail through Django too. Not under
-# --reload: uvicorn then runs a single child that its reloader would not restart.
 args=(librephotos.asgi:application --host 0.0.0.0 --port 8001 --log-level info --workers "${WEB_CONCURRENCY:-1}")
 if [[ "$DEBUG" = 1 ]]; then
     echo "development backend starting"
     args+=(--reload)
 else
     echo "production backend starting"
-    if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then args+=(--limit-max-requests "${WEB_MAX_REQUESTS:-50}"); fi
+    if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then
+        max_requests="${WEB_MAX_REQUESTS:-10000}"
+        args+=(--limit-max-requests "$max_requests" --limit-max-requests-jitter "$((max_requests / 10))")
+    fi
 fi
 # Give the port to uvicorn. The web app bridges the seconds in between: it
 # shows "not answering" for a 502 or no answer, and reloads once ready.

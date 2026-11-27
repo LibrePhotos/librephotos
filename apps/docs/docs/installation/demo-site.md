@@ -59,7 +59,7 @@ docker run -d --name demo --restart unless-stopped \
   -v /srv/demo/logs:/logs \
   -e SERVE_FRONTEND=true \
   -e DEMO_SITE=true -e DEMO_USERNAME=demo -e DEMO_PASSWORD=demo1234 \
-  -e WEB_CONCURRENCY=2 -e WEB_MAX_REQUESTS=100000 \
+  -e WEB_CONCURRENCY=2 \
   -e NUM_PROXIES=1 -e AUTH_THROTTLE_RATE=120/minute \
   -e UPDATE_CHECK=false \
   -p 3000:8001 \
@@ -72,7 +72,6 @@ docker run -d --name demo --restart unless-stopped \
 | `DEMO_USERNAME`, `DEMO_PASSWORD` | The account the login page offers. Its password is public. |
 | `DEMO_SERVICES` | Leave it unset: it defaults to `image_similarity`, without which every opened photo waits about a second for Similar photos. `image_similarity,tags` also brings back search by meaning, for about 1 GB more memory; the demo account then needs semantic search results turned on in its settings. |
 | `WEB_CONCURRENCY=2` | One web server process per core. `1` saves about 170 MiB and answers fewer people at once (see below). |
-| `WEB_MAX_REQUESTS=100000` | The image restarts a web server process after 2,000 requests when there are several. Under load that is every few seconds, and the restarts take the CPU the visitors need. |
 | `NUM_PROXIES=1` | Behind a reverse proxy (Traefik, Caddy, nginx). Otherwise every visitor seems to come from the proxy's address and all of them share one sign-in budget ([Sign-in rate limits](environment-variables.md#sign-in-rate-limits)). Leave it at `0` when visitors reach the container directly. |
 | `AUTH_THROTTLE_RATE=120/minute` | Visitors behind one address (a classroom, a conference) all sign in to the same account, and the default of 10 a minute would turn some of them away. |
 | `UPDATE_CHECK=false` | Nobody installs updates on a demo through the app. |

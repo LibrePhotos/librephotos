@@ -200,7 +200,7 @@ Two settings size the web API, separately from the background workers. `WEB_CONC
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
 | `WEB_CONCURRENCY` | `gunniWorkers` | `1` (backend image), `4` (single-container image) | Number of uvicorn worker processes. Above `1` each worker is recycled after `WEB_MAX_REQUESTS` requests, so a recycled one never takes the whole API down. |
-| `WEB_MAX_REQUESTS` | _(none)_ | `50` (backend image), `2000` (single-container image) | With more than one worker, the requests a worker answers before it is restarted. The single-container image serves the web app and the photos through Django too, so it restarts them less often. |
+| `WEB_MAX_REQUESTS` | _(none)_ | `10000` | With more than one worker, the requests a worker answers before it is restarted, plus a random extra of up to a tenth, so the workers do not restart at the same moment. <Since version="1.7.0" /> Up to 1.6.0 the default was `50` in the backend image and `2000` in the single-container image, and all workers restarted together: opening the web app alone is about 70 requests, and a busy server spent much of its CPU starting workers again and answered some requests with 502 meanwhile. |
 | `WEB_THREADS` | _(none)_ | `16` | Requests one uvicorn worker serves at the same time; further requests wait for a free thread. |
 
 ### Turning features off

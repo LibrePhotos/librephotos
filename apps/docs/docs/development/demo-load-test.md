@@ -56,7 +56,7 @@ A returning visitor, whose browser keeps the 247 files, is not cheaper for the s
 
 Settings that mattered:
 
-- `WEB_MAX_REQUESTS`: the single-container image restarts a web server process after 2,000 requests when there is more than one. At 150 requests a second each process restarted every 13 seconds, and starting Django again ate the second core: two processes were no faster than one and answered a few requests with 502. `100000` keeps them running.
+- `WEB_MAX_REQUESTS`: up to 1.6.0 the single-container image restarted a web server process after 2,000 requests when there is more than one. At 150 requests a second each process restarted every 13 seconds, and starting Django again ate the second core: two processes were no faster than one and answered a few requests with 502. The demo ran with `100000`; the default is now `10000` with a random extra of up to a tenth, so the processes restart rarely and never together.
 - `NUM_PROXIES=1`: behind Traefik every visitor arrives from Traefik's address. With the image's default `0` all visitors share one sign-in budget (`AUTH_THROTTLE_RATE`, 10 a minute per address and account), and everyone signs in to the same account. The first run hit it: 0.2 % to 0.4 % of requests were `429`.
 - The `image_similarity` service: without it every photo the visitor opens waits about a second for the Similar photos call to give up.
 
