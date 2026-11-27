@@ -44,16 +44,76 @@ _EXACT_BLOCK = 4096
 
 
 def exact_distances(
-    rows: npt.NDArray[np.float64], point: npt.NDArray[np.float64]
+    points: npt.NDArray[np.float64],
+    indices: npt.NDArray[np.intp],
+    point: npt.NDArray[np.float64],
 ) -> npt.NDArray[np.float64]:
-    """The Euclidean distance of each row to ``point``, its squared differences
-    added in feature order (a cumulative sum adds in order, unlike ``sum``)."""
-    result = np.empty(len(rows))
-    for start in range(0, len(rows), _EXACT_BLOCK):
-        difference = rows[start : start + _EXACT_BLOCK] - point
+    result = np.empty(len(indices))
+    for start in range(0, len(indices), _EXACT_BLOCK):
+        difference = points[indices[start : start + _EXACT_BLOCK]] - point
         difference *= difference
         result[start : start + _EXACT_BLOCK] = np.cumsum(difference, axis=1)[:, -1]
     return np.sqrt(result)
+
+
+_HASH_MULTIPLIERS = np.random.default_rng(0x48444253).integers(
+    1, 1 << 63, size=4096, dtype=np.uint64
+) | np.uint64(1)
+
+
+@dataclass(frozen=True)
+class DistinctRows:
+    first: npt.NDArray[np.intp]
+    copy_of: npt.NDArray[np.intp]
+
+    @classmethod
+    def of(cls, points: npt.NDArray[np.float64]) -> DistinctRows:
+        representative = _representatives(points, _row_hashes(points))
+        first, copy_of = np.unique(representative, return_inverse=True)
+        return cls(first.astype(np.intp), copy_of.ravel().astype(np.intp))
+
+
+def _row_hashes(points: npt.NDArray[np.float64]) -> npt.NDArray[np.uint64]:
+    multipliers = np.resize(_HASH_MULTIPLIERS, points.shape[1])
+    hashes = np.empty(len(points), dtype=np.uint64)
+    block = max(1, _BLOCK_ENTRIES // max(1, points.shape[1]))
+    for start in range(0, len(points), block):
+        rows = points[start : start + block] + 0.0
+        bits = rows.view(np.uint64)
+        bits *= multipliers
+        hashes[start : start + block] = bits.sum(axis=1, dtype=np.uint64)
+    return hashes
+
+
+def _representatives(
+    points: npt.NDArray[np.float64], hashes: npt.NDArray[np.uint64]
+) -> npt.NDArray[np.intp]:
+    representative = np.arange(len(points), dtype=np.intp)
+    order = np.argsort(hashes, kind="stable")
+    ordered = hashes[order]
+    starts = np.flatnonzero(np.r_[True, ordered[1:] != ordered[:-1]])
+    lengths = np.diff(np.r_[starts, len(ordered)])
+    shared = lengths > 1
+    for start, length in zip(starts[shared].tolist(), lengths[shared].tolist()):
+        _same_rows(points, order[start : start + length], representative)
+    return representative
+
+
+def _same_rows(
+    points: npt.NDArray[np.float64],
+    group: npt.NDArray[np.intp],
+    representative: npt.NDArray[np.intp],
+) -> None:
+    firsts: list[int] = []
+    for index in group.tolist():
+        match = next(
+            (first for first in firsts if np.array_equal(points[first], points[index])),
+            None,
+        )
+        if match is None:
+            firsts.append(index)
+        else:
+            representative[index] = match
 
 
 @dataclass(frozen=True)
@@ -89,37 +149,44 @@ class _Gram:
 
 
 def core_distances(
-    points: npt.NDArray[np.float64], min_samples: int
+    points: npt.NDArray[np.float64],
+    min_samples: int,
+    distinct: DistinctRows | None = None,
 ) -> npt.NDArray[np.float64]:
-    """The distance of each point to its ``min_samples``-th nearest neighbour,
-    the point itself being the 0th (``KDTree.query(k=min_samples + 1)``)."""
-    # Copies of a point share its core distance: compute it once.
-    queries, copies_of = np.unique(points, axis=0, return_inverse=True)
+    distinct = distinct or DistinctRows.of(points)
     gram = _Gram.of(points)
-    query_gram = _Gram.of(queries)
-    result = np.empty(len(queries))
+    result = np.empty(len(distinct.first))
     block = max(1, _BLOCK_ENTRIES // len(points))
-    for start in range(0, len(queries), block):
-        rows = slice(start, min(start + block, len(queries)))
-        lower, upper = gram.bounds(
-            queries[rows] @ points.T,
-            query_gram.squared_norms[rows],
-            query_gram.norms[rows],
+    for start in range(0, len(distinct.first), block):
+        queries = distinct.first[start : start + block]
+        result[start : start + len(queries)] = _core_block(
+            points, gram, queries, min_samples
         )
-        # The k-th smallest upper bound is at least the k-th exact distance:
-        # a point whose lower bound is above it cannot be among the k nearest.
-        cutoff = np.partition(upper, min_samples, axis=1)[:, min_samples]
-        row_index, column_index = np.nonzero(lower <= cutoff[:, None])
-        squared = np.empty(len(row_index))
-        for chunk in range(0, len(row_index), _EXACT_BLOCK):
-            part = slice(chunk, chunk + _EXACT_BLOCK)
-            difference = queries[row_index[part] + start] - points[column_index[part]]
-            difference *= difference
-            squared[part] = np.cumsum(difference, axis=1)[:, -1]
-        order = np.lexsort((squared, row_index))
-        first = np.searchsorted(row_index[order], np.arange(rows.stop - start))
-        result[rows] = np.sqrt(squared[order][first + min_samples])
-    return result[copies_of.ravel()]
+    return result[distinct.copy_of]
+
+
+def _core_block(
+    points: npt.NDArray[np.float64],
+    gram: _Gram,
+    queries: npt.NDArray[np.intp],
+    min_samples: int,
+) -> npt.NDArray[np.float64]:
+    lower, upper = gram.bounds(
+        points[queries] @ points.T,
+        gram.squared_norms[queries],
+        gram.norms[queries],
+    )
+    cutoff = np.partition(upper, min_samples, axis=1)[:, min_samples]
+    row_index, column_index = np.nonzero(lower <= cutoff[:, None])
+    squared = np.empty(len(row_index))
+    for chunk in range(0, len(row_index), _EXACT_BLOCK):
+        part = slice(chunk, chunk + _EXACT_BLOCK)
+        difference = points[queries[row_index[part]]] - points[column_index[part]]
+        difference *= difference
+        squared[part] = np.cumsum(difference, axis=1)[:, -1]
+    order = np.lexsort((squared, row_index))
+    first = np.searchsorted(row_index[order], np.arange(len(queries)))
+    return np.sqrt(squared[order][first + min_samples])
 
 
 class _Prim:
@@ -151,7 +218,7 @@ class _Prim:
         candidates = np.flatnonzero(~self.in_tree & (reach_bound < best))
         if candidates.size:
             reach = np.maximum(
-                exact_distances(points[candidates], points[current]),
+                exact_distances(points, candidates, points[current]),
                 floor[candidates],
             )
             closer = reach < best[candidates]
@@ -160,23 +227,20 @@ class _Prim:
 
 
 def minimum_spanning_tree(
-    points: npt.NDArray[np.float64], core: npt.NDArray[np.float64]
+    points: npt.NDArray[np.float64],
+    core: npt.NDArray[np.float64],
+    distinct: DistinctRows | None = None,
 ) -> npt.NDArray[np.float64]:
-    """Prim's algorithm over mutual reachability distances, as hdbscan's
-    ``mst_linkage_core_vector``: rows of (source, joining point, distance) in
-    the order the points join, starting from point 0; the lowest index wins a
-    tie."""
+    distinct = distinct or DistinctRows.of(points)
     prim = _Prim(points, core)
     result = np.empty((len(points) - 1, 3))
-    # A copy of a point already in the tree has its distances and core
-    # distance, so it cannot bring any point closer: its update is skipped.
-    seen: set[bytes] = set()
+    brought = np.zeros(len(distinct.first), dtype=bool)
     current = 0
     for step in range(len(points) - 1):
         prim.in_tree[current] = True
-        key = points[current].tobytes()
-        if key not in seen:
-            seen.add(key)
+        row = distinct.copy_of[current]
+        if not brought[row]:
+            brought[row] = True
             prim.bring_closer(current)
         remaining = np.where(prim.in_tree, np.inf, prim.best)
         joining = int(np.argmin(remaining))
@@ -398,6 +462,16 @@ def label_points(tree: CondensedTree, clusters: set[int]) -> npt.NDArray[np.intp
     return np.array([label[point] for point in range(root)], dtype=np.intp)
 
 
+def _finite_rows(data: npt.NDArray[np.float64]) -> npt.NDArray[np.intp]:
+    block = max(1, _BLOCK_ENTRIES // max(1, data.shape[1]))
+    finite = np.empty(len(data), dtype=bool)
+    for start in range(0, len(data), block):
+        finite[start : start + block] = np.isfinite(data[start : start + block]).all(
+            axis=1
+        )
+    return np.flatnonzero(finite)
+
+
 def hdbscan_labels(
     points: npt.ArrayLike,
     min_cluster_size: int,
@@ -412,13 +486,14 @@ def hdbscan_labels(
         )
     data = np.ascontiguousarray(points, dtype=np.float64)
     labels = np.full(len(data), -1, dtype=np.intp)
-    # Rows with an infinite or missing value are noise, as in the original.
-    finite = np.flatnonzero(np.isfinite(data).all(axis=1))
+    finite = _finite_rows(data)
     if len(finite) < 2:
         raise ValueError(f"Clustering needs at least two faces, got {len(finite)}")
-    data = data[finite]
-    core = core_distances(data, min(len(data) - 1, min_samples))
-    spanning_tree = minimum_spanning_tree(data, core)
+    if len(finite) < len(data):
+        data = data[finite]
+    distinct = DistinctRows.of(data)
+    core = core_distances(data, min(len(data) - 1, min_samples), distinct)
+    spanning_tree = minimum_spanning_tree(data, core, distinct)
     spanning_tree = spanning_tree[np.argsort(spanning_tree.T[2]), :]
     tree = condense_tree(single_linkage(spanning_tree), min_cluster_size)
     clusters = select_clusters(tree, compute_stability(tree), cluster_selection_epsilon)

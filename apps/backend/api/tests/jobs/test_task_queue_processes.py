@@ -100,3 +100,10 @@ class SpawnEntryTest(TestCase):
         )
 
         self.assertEqual(0, completed.returncode)
+
+    def test_workers_start_in_a_new_interpreter_not_a_fork_of_the_supervisor(self):
+        from api.jobs.pool import Pool, PoolSettings
+
+        pool = Pool(PoolSettings(workers=1))
+
+        self.assertEqual("spawn", pool.context.get_start_method())

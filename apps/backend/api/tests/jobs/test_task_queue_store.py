@@ -241,7 +241,9 @@ class LeaseTest(TestCase):
         store.add(record)
         store.claim("host:0:123", ["default"])
 
-        self.assertEqual(1, store.requeue_worker("host:0:123", "its worker exited"))
+        self.assertEqual(
+            1, len(store.requeue_worker("host:0:123", "its worker exited"))
+        )
         self.assertEqual(QUEUED, QueuedTask.objects.get().status)
 
 

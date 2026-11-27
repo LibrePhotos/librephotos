@@ -227,7 +227,7 @@ process simply shows up as `librephotos.exe`. The machine learning processes onl
 
 | What | Where |
 |---|---|
-| Database | `db` in the data folder, `%LOCALAPPDATA%\LibrePhotos\db` (`--data-dir` to move the whole data folder) |
+| Database | `db` in the data folder, `%LOCALAPPDATA%\LibrePhotos\db` (`--data-dir` to move the whole data folder; keep it on a local drive, not a network drive, see [A damaged SQLite database](upgrading.md#sqlite-malformed)) |
 | Database backups made before an update | <Since version="1.4.0" /> `%LOCALAPPDATA%\LibrePhotos\db\backups` (see [Upgrading](upgrading.md#sqlite-backups)) |
 | Secret key | `%LOCALAPPDATA%\LibrePhotos\protected_media\secret.key` (1.3.0 and older: `logs\secret.key`, see below) |
 | Thumbnails, profile pictures, machine learning models | `%LOCALAPPDATA%\LibrePhotos\protected_media` |

@@ -111,6 +111,14 @@ run, `geocode` while none runs. The count and the claim share the transaction; o
 requeues the task of a worker it saw die at once; any supervisor requeues a `running` row whose lease
 ran out (a host that went away) within a minute. A requeued task with `attempts >= max_attempts` becomes
 `failed`, so a photo that kills its worker every time stops after three tries instead of looping.
+The supervisor's warning about a worker that died (killed for memory by the system, say) names the task
+it was running, and is a warning, not an error report.
+
+**Database errors.** A worker that cannot claim a task, or record the end of one, because the database
+fails (locked past the timeout, a dropped connection, a damaged SQLite file) logs a warning and tries
+again, waiting twice as long each time up to a minute, instead of exiting. A task whose end it could not
+record runs again once its lease runs out. Up to 1.6.0 django-q2's pusher and monitor exited on such an
+error and were started again ("reincarnated pusher ... after sudden death").
 
 **Release guard.** Before each claim a worker checks, with one `count(*)` of `django_migrations`, whether
 anything was applied since its last look, and only then compares names (`unknown_applied_migrations`).
@@ -174,6 +182,16 @@ manage.py run_workers  (supervisor: one per host or container)
   neither.
 - **`held_job_ids`** for the stuck-job cleanup is `SELECT DISTINCT job_id ... WHERE status IN
   ('waiting','queued','running')`.
+- **One job row, many writers.** Every task of a fan-out job reports into the job's `result` JSON
+  (`update_job_result` in `api/directory_watcher/utils.py`: errors, counts, the face service's unreachable
+  streak; `LongRunningJob._merge_result` when it ends). Each write reads the row `select_for_update` in a
+  transaction and writes it back there, so concurrent writers queue on the row lock (on SQLite, on the
+  write lock `BEGIN IMMEDIATE` takes) and none is lost or refused.
+  <Since version="1.7.0" /> Up to 1.6.0 this was a compare-and-swap that read the row, wrote only if
+  `result` was still what it read, and gave up after 50 tries. When many workers wrote at once (say a Scan
+  Faces whose face service was down, every chunk writing an error per photo), a worker could lose 50 races
+  in a row ("gave up updating its result after 50 conflicting writes"), and the item it was counting was
+  never counted, so the job could not reach its target.
 
 ## Scheduler
 

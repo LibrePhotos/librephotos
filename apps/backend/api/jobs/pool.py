@@ -211,6 +211,20 @@ class Pool:
                 self.start_worker(slot)
         db.close_old_connections()
 
+    def _requeue(self, slot: int, process: SpawnProcess, reason: str) -> str:
+        try:
+            held = store.requeue_worker(
+                self.worker_name(slot, process.pid), f"its worker {reason}"
+            )
+            if process.exitcode == EXIT_MEMORY:
+                WorkerProcess.objects.filter(name=f"{self.host}:{slot}").update(
+                    memory_recycles=F("memory_recycles") + 1, last_recycle=reason
+                )
+        except Exception:
+            logger.exception("could not requeue the task of worker %s", slot)
+            return ""
+        return "".join(f" while running task {task.pk} ({task.func})" for task in held)
+
     def replace(self, slot: int, process: SpawnProcess) -> None:
         code = process.exitcode
         process.join(0)
@@ -218,16 +232,7 @@ class Pool:
             EXIT_RECYCLE: "recycled",
             EXIT_MEMORY: "over its memory limit",
         }.get(code or 0, f"exited with {code}")
-        try:
-            store.requeue_worker(
-                self.worker_name(slot, process.pid), f"its worker {reason}"
-            )
-            if code == EXIT_MEMORY:
-                WorkerProcess.objects.filter(name=f"{self.host}:{slot}").update(
-                    memory_recycles=F("memory_recycles") + 1, last_recycle=reason
-                )
-        except Exception:
-            logger.exception("could not requeue the task of worker %s", slot)
+        running = self._requeue(slot, process, reason)
         del self.processes[slot]
         lived = time.monotonic() - self.started.get(slot, 0.0)
         crashed = code not in (0, EXIT_RECYCLE, EXIT_MEMORY)
@@ -240,7 +245,11 @@ class Pool:
         delay = min(MAX_RESTART_DELAY_SECONDS, 2.0**quick) if quick else 0.0
         if crashed:
             logger.warning(
-                "worker %s %s; starting a new one in %.0f s", slot, reason, delay
+                "worker %s %s%s; starting a new one in %.0f s",
+                slot,
+                reason,
+                running,
+                delay,
             )
         self.restart_at[slot] = time.monotonic() + delay
 

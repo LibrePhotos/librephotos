@@ -8,16 +8,22 @@ flags went into it and was never committed, until the sidecar restarted.
 """
 
 import importlib
+import json
 import os
 import tempfile
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import requests
 from django.test import SimpleTestCase, TestCase
 
 from api.models.long_running_job import LongRunningJob
 from api.search import embedding_jobs
-from api.search.similarity import SimilarityIndexError, build_image_similarity_index
+from api.search.similarity import (
+    INDEX_PAGE_SIZE,
+    SimilarityIndexError,
+    build_image_similarity_index,
+)
 from api.tests.sidecar_client import test_client
 from api.tests.stubs import load_backend_file
 from api.tests.utils import create_test_photos, create_test_user
@@ -26,6 +32,7 @@ retrieval_index = importlib.import_module("image_similarity.retrieval_index")
 RetrievalIndex = retrieval_index.RetrievalIndex
 RebuildNotOpenError = retrieval_index.RebuildNotOpenError
 DIM = retrieval_index.embedding_size
+MAX_PAGE_BYTES = 16 * 1024 * 1024
 
 
 def unit(axis):
@@ -255,20 +262,47 @@ class ClientSessionTest(TestCase):
         self.assertEqual(post.call_count, 2)
 
     @patch("api.runtime.sidecars.http.post")
-    def test_an_expired_rebuild_still_fails(self, post):
+    def test_a_rebuild_the_sidecar_lost_starts_over_once(self, post):
+        post.side_effect = [
+            _reply({"status": True, "index_size": 1, "rebuild_token": "lost"}),
+            _reply(
+                {"status": False, "error": "expired", "code": "rebuild_not_open"},
+                status_code=409,
+            ),
+            _reply({"status": True, "index_size": 1, "rebuild_token": "again"}),
+            _reply({"status": True, "index_size": 2, "rebuild_token": "again"}),
+            _reply({"status": True, "index_size": 3, "rebuild_token": "again"}),
+        ]
+
+        with (
+            patch("api.search.similarity.INDEX_PAGE_SIZE", 1),
+            self.assertLogs("api.search.similarity", "WARNING"),
+        ):
+            size = build_image_similarity_index(self.user)
+
+        tokens = [
+            call.kwargs["json"].get("rebuild_token") for call in post.call_args_list
+        ]
+        self.assertEqual([None, "lost", None, "again", "again"], tokens)
+        self.assertEqual(3, size)
+
+    @patch("api.runtime.sidecars.http.post")
+    def test_a_rebuild_lost_twice_fails(self, post):
         post.side_effect = [
             _reply({"status": True, "index_size": 1, "rebuild_token": "old"}),
             _reply(
                 {"status": False, "error": "expired", "code": "rebuild_not_open"},
                 status_code=409,
             ),
-        ]
+        ] * 2
 
         with (
             patch("api.search.similarity.INDEX_PAGE_SIZE", 1),
+            self.assertLogs("api.search.similarity", "WARNING"),
             self.assertRaisesRegex(SimilarityIndexError, "expired"),
         ):
             build_image_similarity_index(self.user)
+        self.assertEqual(4, post.call_count)
 
     @patch("api.runtime.sidecars.http.post")
     def test_the_embedding_job_completes_when_its_rebuild_was_superseded(self, post):
@@ -282,3 +316,19 @@ class ClientSessionTest(TestCase):
         job = LongRunningJob.objects.filter(started_by=self.user).latest("queued_at")
         self.assertFalse(job.failed)
         self.assertTrue(job.finished)
+
+
+class PageSizeTest(SimpleTestCase):
+    def test_a_full_page_is_a_request_a_slow_machine_parses_in_time(self):
+        rng = np.random.default_rng(0)
+        vectors = rng.standard_normal((INDEX_PAGE_SIZE, DIM)).astype(np.float32)
+        vectors /= np.linalg.norm(vectors, axis=1, keepdims=True)
+        page = {
+            "user_id": 1,
+            "image_hashes": [f"{row:032x}" for row in range(INDEX_PAGE_SIZE)],
+            "image_embeddings": [row.tolist() for row in vectors],
+            "begin": True,
+            "commit": False,
+        }
+
+        self.assertLess(len(json.dumps(page)), MAX_PAGE_BYTES)
