@@ -9,7 +9,10 @@ const desktopRoot = resolve(here, "..", "..");
 const tauriRoot = join(desktopRoot, "src-tauri");
 export const NOTICES_PATH = join(desktopRoot, "public", "THIRD-PARTY-NOTICES.txt");
 
-export const HEADER = [
+export const WINDOWS_TARGET = "x86_64-pc-windows-msvc";
+export const MACOS_TARGETS = ["aarch64-apple-darwin", "x86_64-apple-darwin"];
+
+const COMMON_HEADER = [
   "LibrePhotos Viewer: third-party notices",
   "",
   "LibrePhotos Viewer is free software under the MIT license: https://github.com/LibrePhotos/librephotos",
@@ -20,10 +23,34 @@ export const HEADER = [
   "",
   "Components under the Mozilla Public License 2.0 are used unmodified. Their source code is",
   "available at the repository or crates.io address given with each of them.",
-  "",
-  "On Windows, pictures in the formats HEIC, HEIF and AVIF, and videos, are decoded by components of",
-  "Windows (Windows Imaging Component, Media Foundation, Microsoft Edge WebView2), not by this app.",
 ];
+
+const PLATFORM_CODECS = [
+  {
+    matches: (target) => target.includes("-windows-"),
+    lines: [
+      "On Windows, pictures in the formats HEIC, HEIF and AVIF, and videos, are decoded by components of",
+      "Windows (Windows Imaging Component, Media Foundation, Microsoft Edge WebView2), not by this app.",
+    ],
+  },
+  {
+    matches: (target) => target.endsWith("-apple-darwin"),
+    lines: [
+      "On macOS, pictures in the formats HEIC, HEIF and AVIF are decoded by ImageIO, and videos are played",
+      "by WebKit, both components of macOS, not by this app.",
+    ],
+  },
+];
+
+export function header(targets) {
+  const lines = [...COMMON_HEADER];
+  for (const codecs of PLATFORM_CODECS) {
+    if (targets.some(codecs.matches)) lines.push("", ...codecs.lines);
+  }
+  return lines;
+}
+
+export const HEADER = header([WINDOWS_TARGET]);
 
 const LICENSE_FILE = /^(licen[cs]e|copying|notice|copyright|unlicense|authors)([-._].*)?$/i;
 
@@ -82,7 +109,7 @@ export function shippedNpmPackages(lock, nodeModulesRoot) {
     });
 }
 
-export function render(components) {
+export function render(components, targets = [WINDOWS_TARGET]) {
   const unique = new Map();
   for (const component of components) {
     unique.set(`${component.kind}:${component.name}@${component.version}`, component);
@@ -101,7 +128,7 @@ export function render(components) {
     return { component, refs };
   });
   const rule = "=".repeat(78);
-  const lines = [...HEADER, "", `Components (${sorted.length})`, rule, ""];
+  const lines = [...header(targets), "", `Components (${sorted.length})`, rule, ""];
   for (const { component, refs } of entries) {
     const label = component.kind === "crate" ? "Rust crate" : "npm package";
     lines.push(`${component.name} ${component.version} (${label}), ${component.license}`, `  ${component.source}`);
@@ -115,30 +142,34 @@ export function render(components) {
   return `${lines.join("\n").trimEnd()}\n`;
 }
 
-export function generate({ target }) {
-  const metadata = JSON.parse(
+function cargoMetadata(target) {
+  return JSON.parse(
     execFileSync(
       "cargo",
       ["metadata", "--format-version", "1", "--locked", "--filter-platform", target, "--manifest-path", join(tauriRoot, "Cargo.toml")],
       { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
     ),
   );
+}
+
+export function generate({ targets }) {
+  const crates = targets.flatMap((target) => shippedCrates(cargoMetadata(target)));
   const lock = JSON.parse(readFileSync(join(desktopRoot, "package-lock.json"), "utf8"));
   const nodeModules = join(desktopRoot, "node_modules");
   if (!existsSync(nodeModules)) {
     throw new Error("apps/desktop/node_modules is missing: run npm ci in apps/desktop first");
   }
-  return render([...shippedCrates(metadata), ...shippedNpmPackages(lock, nodeModules)]);
+  return render([...crates, ...shippedNpmPackages(lock, nodeModules)], targets);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const { values } = parseArgs({
     options: {
-      target: { type: "string", default: "x86_64-pc-windows-msvc" },
+      target: { type: "string", multiple: true, default: [WINDOWS_TARGET] },
       out: { type: "string", default: NOTICES_PATH },
     },
   });
-  const text = generate({ target: values.target });
+  const text = generate({ targets: values.target });
   writeFileSync(values.out, text);
   console.log(`wrote ${values.out} (${text.length} bytes)`);
 }

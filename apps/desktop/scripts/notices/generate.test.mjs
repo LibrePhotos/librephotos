@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { HEADER, licenseFiles, render, shippedCrates, shippedNpmPackages } from "./generate.mjs";
+import { HEADER, MACOS_TARGETS, WINDOWS_TARGET, header, licenseFiles, render, shippedCrates, shippedNpmPackages } from "./generate.mjs";
 
 function scratch(t) {
   const dir = mkdtempSync(join(tmpdir(), "lpview-notices-"));
@@ -105,4 +105,29 @@ test("identical license texts are printed once and every component refers to the
   assert.match(text, /\[T1\] used by a 1\.0\.0, b 1\.0\.0/);
   assert.ok(text.indexOf("a 1.0.0 (Rust crate)") < text.indexOf("b 1.0.0 (Rust crate)"));
   assert.match(text, /c 1\.0\.0 \(npm package\), ISC\n {2}https:\/\/c\n {2}The package ships no license file/);
+});
+
+test("the header names the system codecs of the platform the notices ship with", (t) => {
+  const windows = header([WINDOWS_TARGET]).join("\n");
+  assert.deepEqual(header([WINDOWS_TARGET]), HEADER);
+  assert.match(windows, /On Windows, pictures in the formats HEIC, HEIF and AVIF/);
+  assert.doesNotMatch(windows, /macOS/);
+
+  const mac = header(MACOS_TARGETS).join("\n");
+  assert.match(mac, /On macOS, pictures in the formats HEIC, HEIF and AVIF are decoded by ImageIO/);
+  assert.doesNotMatch(mac, /Windows Imaging Component|WebView2/);
+  assert.match(mac, /This product includes DNG technology under license by Adobe\./);
+
+  const dir = crate(scratch(t), "a", { LICENSE: "MIT text" });
+  const text = render([{ kind: "crate", name: "a", version: "1.0.0", license: "MIT", source: "https://a", dir }], MACOS_TARGETS);
+  assert.ok(text.startsWith(header(MACOS_TARGETS).join("\n")));
+  assert.doesNotMatch(text, /Windows/);
+});
+
+test("crates shipped for several targets are listed once", (t) => {
+  const dir = crate(scratch(t), "objc2", { LICENSE: "MIT text" });
+  const objc2 = { kind: "crate", name: "objc2", version: "0.6.5", license: "MIT", source: "https://o", dir };
+  const text = render([objc2, { ...objc2 }], MACOS_TARGETS);
+  assert.equal(text.split("objc2 0.6.5 (Rust crate)").length - 1, 1);
+  assert.match(text, /Components \(1\)/);
 });
