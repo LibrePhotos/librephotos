@@ -192,7 +192,7 @@ UPDATE_RELEASE_SOURCE = env_str("UPDATE_RELEASE_SOURCE")
 SENTRY_DSN = env_str("SENTRY_DSN", "")
 ERROR_REPORTING_MAINTAINERS_DSN = env_str(
     "ERROR_REPORTING_MAINTAINERS_DSN",
-    "https://4762d1d2e6814985b39254fd9886d391@errors.niaz.omg.lol/6",
+    "https://4762d1d2e6814985b39254fd9886d391@errors.librephotos.app/6",
 )
 # Whether ApiConfig.ready() starts the capture; the test settings turn it off.
 ERROR_REPORTING_CAPTURE = True
