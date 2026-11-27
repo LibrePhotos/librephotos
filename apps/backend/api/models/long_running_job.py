@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models.functions import Coalesce, Greatest
 from django.db.models.lookups import GreaterThanOrEqual, LessThan
 from django.utils import timezone
@@ -382,10 +382,6 @@ class LongRunningJob(models.Model):
         "result",
     )
 
-    # Bound on ``_merge_result``'s compare-and-swap retries; the row has
-    # ended by then, so hardly anything else writes its result.
-    RESULT_MERGE_ATTEMPTS = 50
-
     # When ``stop_if_cancelled`` last read the row (``time.monotonic()``).
     _cancel_checked_at: float | None = None
 
@@ -464,21 +460,11 @@ class LongRunningJob(models.Model):
         return bool(ended)
 
     def _merge_result(self, update: dict[str, Any]) -> None:
-        """Add ``update`` to the row's result, keeping the keys it does not name.
-
-        A compare-and-swap, like ``update_job_result``: a write that lands
-        between the read and this one is re-read, not overwritten.
-        """
         rows = type(self).objects.filter(pk=self.pk)
-        for _ in range(self.RESULT_MERGE_ATTEMPTS):
-            read = rows.values_list("result", flat=True).first()
+        with transaction.atomic():
+            read = rows.select_for_update().values_list("result", flat=True).first()
             base = read if isinstance(read, dict) else {}
-            unchanged = (
-                models.Q(result__isnull=True) if read is None else models.Q(result=read)
-            )
-            if rows.filter(unchanged).update(result={**base, **update}):
-                return
-        logger.error("job %s: gave up merging its result", self.job_id)
+            rows.update(result={**base, **update})
 
     def complete(self, result: dict[str, Any] | None = None) -> bool:
         """Mark the job completed, unless it has ended already.

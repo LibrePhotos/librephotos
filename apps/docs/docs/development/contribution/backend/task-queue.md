@@ -182,6 +182,16 @@ manage.py run_workers  (supervisor: one per host or container)
   neither.
 - **`held_job_ids`** for the stuck-job cleanup is `SELECT DISTINCT job_id ... WHERE status IN
   ('waiting','queued','running')`.
+- **One job row, many writers.** Every task of a fan-out job reports into the job's `result` JSON
+  (`update_job_result` in `api/directory_watcher/utils.py`: errors, counts, the face service's unreachable
+  streak; `LongRunningJob._merge_result` when it ends). Each write reads the row `select_for_update` in a
+  transaction and writes it back there, so concurrent writers queue on the row lock (on SQLite, on the
+  write lock `BEGIN IMMEDIATE` takes) and none is lost or refused.
+  <Since version="1.7.0" /> Up to 1.6.0 this was a compare-and-swap that read the row, wrote only if
+  `result` was still what it read, and gave up after 50 tries. When many workers wrote at once (say a Scan
+  Faces whose face service was down, every chunk writing an error per photo), a worker could lose 50 races
+  in a row ("gave up updating its result after 50 conflicting writes"), and the item it was counting was
+  never counted, so the job could not reach its target.
 
 ## Scheduler
 

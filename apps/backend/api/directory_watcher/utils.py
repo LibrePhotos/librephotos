@@ -35,11 +35,6 @@ CANCELLATION_CHECK_INTERVAL = 100
 FAILURE_ERROR_FLOOR = 10  # absolute floor — below this, never sticky
 FAILURE_ERROR_RATE = 0.05  # otherwise: failed if errors exceed 5% of target
 
-# Every failed compare-and-swap in ``update_job_result`` means another worker's
-# write landed, so the job as a whole always makes progress; the bound only
-# stops one unlucky worker from spinning forever under a pathological storm.
-RESULT_UPDATE_ATTEMPTS = 50
-
 
 def _exceeds_failure_threshold(error_count: int, target: int) -> bool:
     """Return True when aggregate errors should mark ``job.failed`` as True."""
@@ -282,42 +277,22 @@ def update_job_result(
     mutate: Callable[[dict[str, Any], LongRunningJob], dict[str, Any] | None],
     unfinished_only: bool = False,
 ) -> LongRunningJob | None:
-    """Apply ``mutate`` to a job's ``result`` JSON without losing concurrent writes.
-
-    Many workers report into one job row at once. A plain read-modify-write
-    lets a worker that writes between another's read and save wipe out that
-    save. ``select_for_update`` would serialize them on PostgreSQL but is a
-    no-op on SQLite (the Windows standalone build, dev_windows and the test
-    suite), so this is a compare-and-swap instead: the write only lands if
-    ``result`` is still what was read, otherwise it re-reads and re-applies.
-
-    ``mutate(result, job)`` edits ``result`` (a private copy) in place and
-    returns a dict of other fields to write with it. Returns the job as read
-    for the successful write, or ``None`` if the job is gone or cancelled, or
-    with ``unfinished_only`` has ended.
-    """
     writable = (
         Q(cancelled=False, finished=False) if unfinished_only else Q(cancelled=False)
     )
-    for _ in range(RESULT_UPDATE_ATTEMPTS):
-        job = LongRunningJob.objects.filter(writable, job_id=job_id).first()
+    with transaction.atomic():
+        job = (
+            LongRunningJob.objects.select_for_update()
+            .filter(writable, job_id=job_id)
+            .first()
+        )
         if job is None:
             return None
         read = job.result
         result: dict[str, Any] = copy.deepcopy(read) if isinstance(read, dict) else {}
         other_fields = mutate(result, job) or {}
-        unchanged = Q(result__isnull=True) if read is None else Q(result=read)
-        written = LongRunningJob.objects.filter(unchanged, writable, pk=job.pk).update(
-            result=result, **other_fields
-        )
-        if written:
-            return job
-    logger.error(
-        "job %s: gave up updating its result after %s conflicting writes",
-        job_id,
-        RESULT_UPDATE_ATTEMPTS,
-    )
-    return None
+        LongRunningJob.objects.filter(pk=job.pk).update(result=result, **other_fields)
+    return job
 
 
 # Key in a scan job's ``result`` counting the directories it skipped, which
