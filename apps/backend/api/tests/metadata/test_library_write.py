@@ -21,6 +21,7 @@ from api.metadata.library_write import (
     write_metadata_batch,
     write_photos,
 )
+from api.metadata.reader import MetadataReadError
 from api.metadata.writer import MetadataWriteError
 from api.models import LongRunningJob, User
 from api.models.photo import LocationSource
@@ -221,6 +222,21 @@ class WritePhotosTest(TestCase):
                 "dates: could not be written"
             ],
             outcome.errors,
+        )
+
+    def test_a_file_the_exif_service_cannot_read_is_a_failed_photo(self):
+        photo = create_test_photo(owner=self.user, rating=4)
+        unreadable = MetadataReadError("exif service could not read the file: 500")
+
+        with (
+            MockWriters(fail={("ratings", photo.pk): unreadable}),
+            self.assertLogs("api.metadata.library_write", "WARNING") as logs,
+        ):
+            outcome = write_photos(self.user, [photo.pk], ["ratings"], False)
+
+        self.assertEqual([record.levelname for record in logs.records], ["WARNING"])
+        self.assertEqual(
+            [f"{photo.main_file.path}: ratings: {unreadable}"], outcome.errors
         )
 
     def test_a_nextcloud_copy_is_skipped(self):

@@ -383,6 +383,10 @@ Labelling a face, drawing one and rotating a photo also return the reason as `wr
 API response, and the **Write metadata to files** job and `manage.py save_metadata` list the photos
 they could not write.
 
+<Since version="1.7.0" /> The **Write metadata to files** job also lists, with the reason, a photo
+whose file the exif service could not read first: writing face tags reads the photo's size and
+orientation before it writes. Up to 1.6.0 the job only said "could not be written" for it.
+
 In the web app, a face label, a drawn face or a rotation that did not reach the file shows an
 orange **Not written to the file** notice next to the usual confirmation: "Saved in LibrePhotos,
 but not written to the file", followed by the reason. It stays until you close it. Changing a
