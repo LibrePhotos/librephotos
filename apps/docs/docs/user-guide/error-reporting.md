@@ -12,6 +12,8 @@ Both the backend (the web server and the background workers) and the web app sav
 
 A problem with one of your files, rather than with LibrePhotos, is a warning in the log and not a report. <Since version="1.7.0" /> That includes a video ffmpeg cannot open at all ("Invalid data found when processing input"), which is most often a recording cut short before the camera or phone finished writing it, or a copy that stopped half-way: the scan lists it among its failed files, and the video gets no thumbnail until a whole copy replaces the file.
 
+<Since version="1.7.0" /> The Windows app no longer saves a report when a browser drops its connection while the server is still answering, for example a tab closed or reloaded while the page loads. Python's Windows event loop logs that as "Exception in callback _ProactorBasePipeTransport._call_connection_lost()" with a `ConnectionResetError` (WinError 10054) or WinError 10022; nothing was wrong, and the log still shows the line.
+
 ## The choices
 
 **Admin area > Error reporting** decides where new reports go:
