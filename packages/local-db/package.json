@@ -32,7 +32,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.0",
     "@types/better-sqlite3": "^9.6.0",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.0.0",
     "better-sqlite3": "^13.0.3",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",

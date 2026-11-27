@@ -12,8 +12,8 @@
   "//zod": "zod is pinned here, to the SAME range as apps/mobile and packages/api-client, so one zod 4 copy hoists to the root. @expo/cli still depends on zod 3; without the pin npm hoists that copy and nests a zod 4 under apps/mobile and under packages/api-client, so the app and the shared schemas it imports would each get their own zod. scripts/check-shared-deps.mjs checks the versions.",
   "dependencies": {
     "decode-uri-component": "file:packages/decode-uri-component",
-    "expo": "~57.0.24",
-    "expo-router": "~57.0.22",
+    "expo": "~58.1.0",
+    "expo-router": "~58.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "zod": "^4.6.6"
