@@ -1605,11 +1605,11 @@ export async function fetchDuplicateStats(client: ApiClient): Promise<S.Duplicat
 export async function resolveDuplicate(
   client: ApiClient,
   duplicateId: string,
-  keepPhotoHash: string,
+  keepPhotoId: string,
   trashOthers: boolean
 ): Promise<S.ResolveDuplicateResponse> {
   const res = await client.post<unknown>(`/duplicates/${duplicateId}/resolve`, {
-    keep_photo_hash: keepPhotoHash,
+    keep_photo_id: keepPhotoId,
     trash_others: trashOthers,
   });
   return parseResponse(S.ResolveDuplicateResponse, res, "resolve duplicate");

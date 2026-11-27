@@ -51,13 +51,13 @@ export const useResolveDuplicateMutation = () => {
   return useMutation({
     mutationFn: ({
       id,
-      keep_photo_hash,
+      keep_photo_id,
       trash_others,
     }: {
       id: string;
-      keep_photo_hash: string;
+      keep_photo_id: string;
       trash_others: boolean;
-    }) => endpoints.resolveDuplicate(apiClient, id, keep_photo_hash, trash_others),
+    }) => endpoints.resolveDuplicate(apiClient, id, keep_photo_id, trash_others),
     onSuccess: (_, { id }) => {
       // Invalidate the specific duplicate and the list
       queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });
