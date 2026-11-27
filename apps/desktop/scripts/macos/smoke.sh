@@ -146,7 +146,13 @@ stop_app() {
 }
 
 entitlements_json() {
-  codesign -d --entitlements - --xml "$APP" 2>/dev/null | plutil -convert json -o - - 2>/dev/null || echo '{}'
+  local xml
+  xml=$(codesign -d --entitlements - --xml "$APP" 2>/dev/null || true)
+  if [ -z "$xml" ]; then
+    echo '{}'
+  else
+    echo "$xml" | plutil -convert json -o - - 2>/dev/null || echo '{}'
+  fi
 }
 
 has_entitlement() {
@@ -207,7 +213,7 @@ PLIST="$APP/Contents/Info.plist"
 [ "$(plist_value "$PLIST" ITSAppUsesNonExemptEncryption)" = false ] || fail "ITSAppUsesNonExemptEncryption is not false"
 [ "$(plist_value "$PLIST" LSMinimumSystemVersion)" = 12.0 ] || fail "LSMinimumSystemVersion is not 12.0"
 TYPES=$(plutil -extract CFBundleDocumentTypes json -o - "$PLIST")
-for uti in public.jpeg public.png public.heic public.heif public.avif public.tiff public.camera-raw-image com.adobe.raw-image; do
+for uti in public.jpeg public.png public.heic public.heif public.avif public.tiff public.camera-raw-image; do
   echo "$TYPES" | grep -q "\"$uti\"" || fail "CFBundleDocumentTypes does not claim $uti"
 done
 step "Info.plist: $BUNDLE_ID $(plist_value "$PLIST" CFBundleShortVersionString) ($(plist_value "$PLIST" CFBundleVersion)), Photography, export compliance set, $(plutil -extract CFBundleDocumentTypes raw "$PLIST") document types"

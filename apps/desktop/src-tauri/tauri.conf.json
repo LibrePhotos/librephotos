@@ -55,7 +55,7 @@
       },
       {
         "ext": ["dng", "cr2", "cr3", "nef", "nrw", "arw", "orf", "rw2", "raf", "pef", "srw", "raw"],
-        "contentTypes": ["public.camera-raw-image", "com.adobe.raw-image"],
+        "contentTypes": ["public.camera-raw-image"],
         "name": "LibrePhotosViewer.Raw",
         "description": "Camera RAW image",
         "role": "Viewer",

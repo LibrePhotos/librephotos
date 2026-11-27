@@ -26,7 +26,7 @@ export const UTI_BY_EXTENSION = {
   hif: "public.heif",
   avif: "public.avif",
   jxl: "public.jpeg-xl",
-  dng: "com.adobe.raw-image",
+  dng: "public.camera-raw-image",
   cr2: "public.camera-raw-image",
   cr3: "public.camera-raw-image",
   nef: "public.camera-raw-image",
