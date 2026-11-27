@@ -416,7 +416,11 @@ def take_browser_screenshots(context: Context) -> None:
         page.get_by_role("button", name="Sign in").click()
         page.wait_for_url(lambda url: "/login" not in url, timeout=60000)
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(5000)
+        page.wait_for_timeout(3000)
+        not_now = page.get_by_role("button", name="Not now")
+        if not_now.count():
+            not_now.first.click()
+        page.wait_for_timeout(3000)
         page.screenshot(path=str(context.screenshots / "web-ui.png"))
         full = screenshot(context, "desktop")
         crop_menu_bar(full, context.screenshots / "menu-bar.png")
