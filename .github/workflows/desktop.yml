@@ -230,10 +230,10 @@ jobs:
       MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
       MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
       MSSTORE_PRODUCT_ID: ${{ vars.MSSTORE_PRODUCT_ID }}
-      MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
-      MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
-      MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
-      MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+      MSSTORE_TENANT_ID: ${{ github.event_name != 'pull_request' && secrets.MSSTORE_TENANT_ID || '' }}
+      MSSTORE_SELLER_ID: ${{ github.event_name != 'pull_request' && secrets.MSSTORE_SELLER_ID || '' }}
+      MSSTORE_CLIENT_ID: ${{ github.event_name != 'pull_request' && secrets.MSSTORE_CLIENT_ID || '' }}
+      MSSTORE_CLIENT_SECRET: ${{ github.event_name != 'pull_request' && secrets.MSSTORE_CLIENT_SECRET || '' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -387,13 +387,21 @@ jobs:
       - name: Check the signing settings
         id: signing
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          APPLE_CERTIFICATE: ${{ github.event_name != 'pull_request' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_PROVISIONING_PROFILE: ${{ github.event_name != 'pull_request' && secrets.APPLE_PROVISIONING_PROFILE || '' }}
+          APPLE_API_KEY_ID: ${{ github.event_name != 'pull_request' && secrets.APPLE_API_KEY_ID || '' }}
+          APPLE_API_ISSUER: ${{ github.event_name != 'pull_request' && secrets.APPLE_API_ISSUER || '' }}
+          APPLE_API_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.APPLE_API_PRIVATE_KEY || '' }}
         run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            echo "Pull request builds are signed ad hoc and get no Apple secrets; Developer ID signing, notarization and the App Store package run on dev, manual runs and releases." | tee -a "$GITHUB_STEP_SUMMARY"
+            {
+              echo "developer-id=false"
+              echo "app-store=false"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           missing() {
             local names=""
             for name in "$@"; do
