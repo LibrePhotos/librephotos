@@ -13,6 +13,8 @@ The **LibrePhotos desktop app** (its window is called *LibrePhotos Viewer*) is t
 - a **picture viewer** that opens JPEG, HEIC, AVIF, JPEG XL, PNG, WebP, TIFF and camera RAW files at once when you double-click them in Explorer or Finder, and lets you rate, caption and tag them, and
 - a **library** of the folders you choose, with search, that can back them up to your LibrePhotos server.
 
+For an overview with screenshots and the downloads, see the [LibrePhotos Viewer page](/viewer).
+
 It works without a server. Everything you do to your own pictures stays on your computer and in the pictures' own files, so other photo apps (and the LibrePhotos server, if it scans the same folders) see it too. When you connect a server, the app also shows what the server knows about a picture, such as the people in it and its albums.
 
 | Page | What it covers |

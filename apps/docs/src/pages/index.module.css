@@ -156,6 +156,10 @@
   color: var(--app-dimmed);
 }
 
+.heroNote + .heroNote {
+  margin-top: 0.75rem;
+}
+
 .heroArt {
   min-width: 0;
 }
