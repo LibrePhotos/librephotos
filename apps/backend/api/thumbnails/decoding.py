@@ -14,7 +14,7 @@ import pillow_heif
 import pillow_jxl  # noqa: F401  registers the JPEG XL plugin on import
 import pyvips
 import rawpy
-from PIL import Image, ImageFile, ImageOps
+from PIL import EpsImagePlugin, Image, ImageFile, ImageOps
 
 pillow_heif.register_heif_opener()
 # The Pillow path decodes the whole image into memory, so a crafted JPEG XL or BMP
@@ -186,8 +186,12 @@ def can_decode(path: str) -> bool:
     except pyvips.Error:
         pass
     try:
-        with Image.open(path):
-            return True
+        with Image.open(path) as image:
+            return _pillow_can_load(image)
     except OSError, ValueError, Image.DecompressionBombError:
         # UnidentifiedImageError is an OSError; a bomb is refused from the header.
         return False
+
+
+def _pillow_can_load(image: Image.Image) -> bool:
+    return image.format != "EPS" or EpsImagePlugin.has_ghostscript()
