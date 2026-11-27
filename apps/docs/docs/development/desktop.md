@@ -70,6 +70,7 @@ Every picture the webview shows comes from a custom URI scheme, `lpview`, so ima
 - A request first looks in the memory LRU of encoded `thumb` and `screen` responses (256 MB, keyed by path, mtime, kind and box; an entry bigger than a quarter of the budget is not kept), then in the [disk cache](#caches) on one of two I/O threads (so a disk hit never waits behind a decode), then goes to a pool of six decode workers. Identical requests in flight share one decode.
 - Three lanes: `High` before `Low` before `Idle`. `High` and `Low` are LIFO, because the newest request is the picture the user is looking at; `Idle` runs in the order the UI gave. `Low` and `Idle` never take the last free worker, so a `screen` request always finds one; `Idle` uses at most two workers (`IDLE_WORKERS`), runs only when nothing else is queued, and lowers its thread's CPU and I/O priority. A request asked for again moves to the top of its lane, or to a better lane (a filmstrip thumb the stage asks for becomes `High`).
 - Pre-warmed thumbs nobody asked for go to the disk cache only, so they never push the pictures being looked at out of memory.
+- The lane rules live in `State::enqueue`, `pick` and `State::finish`, which only change the queue state; the worker and I/O threads lock it and call them. Tests of the rules drive those three step by step instead of timing real decodes, so they give the same answer on a busy CI runner.
 
 `decode/mod.rs` picks the cheapest way to make what was asked:
 
