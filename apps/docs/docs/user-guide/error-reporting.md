@@ -8,7 +8,7 @@ sidebar_position: 18
 
 When something breaks, LibrePhotos saves a report of the error on your server. Nothing leaves the server until an admin decides so: errors are kept, scrubbed, so you can still share them later, or never.
 
-Both the backend (the web server and the background workers) and the web app save their errors here. The web app hands its errors to your server, never to a reporting server directly. <Since version="1.7.0" /> An error whose stack has no line of the web app's own scripts, such as one a browser extension throws in the page, is not saved.
+Both the backend (the web server and the background workers) and the web app save their errors here. The web app hands its errors to your server, never to a reporting server directly. <Since version="1.7.0" /> An error whose stack has no line of the web app's own scripts, such as one a browser extension throws in the page, is not saved. Nor is an error of a tab that was open during an upgrade and could not load a part of the old web app: the tab [reloads itself](../installation/upgrading.md#open-pages) instead. It is saved when the reload a minute before did not help.
 
 A problem with one of your files, rather than with LibrePhotos, is a warning in the log and not a report. <Since version="1.7.0" /> That includes a video ffmpeg cannot open at all ("Invalid data found when processing input"), which is most often a recording cut short before the camera or phone finished writing it, or a copy that stopped half-way: the scan lists it among its failed files, and the video gets no thumbnail until a whole copy replaces the file.
 

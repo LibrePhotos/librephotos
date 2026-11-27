@@ -55,6 +55,12 @@ The page never shows error messages or file paths, only the reason code; the det
 
 With Docker Compose, the backend's healthcheck asks `/api/healthz/ready`, so `docker compose ps` shows the backend as `starting` while it updates, `healthy` once it serves, and `unhealthy` after a failed update (the healthcheck gives an update 15 minutes before it counts). `/api/healthz` answers from the first seconds on, so scripts that wait for LibrePhotos to serve should ask `/api/healthz/ready` instead.
 
+## Pages open during the upgrade {#open-pages}
+
+<Since version="1.7.0" /> A browser tab that was open while LibrePhotos was upgraded still runs the old web app. Its pages are loaded in parts as you open them, and the new release no longer has the old parts. When the tab asks for one of them, it reloads itself once and so loads the new web app. This can also happen when you only point at a link in the menu, because LibrePhotos loads the page behind it ahead of the click. If the part still fails to load within a minute of that reload (the server is not reachable, or a proxy serves something else for `/assets/`), the tab does not reload again and shows "Something went wrong" with **Reload**.
+
+Up to 1.6.0, such a tab showed "Something went wrong" right away, and you had to reload it yourself.
+
 ## The Update available card {#update-available}
 
 <Since version="1.5.0" /> When a newer release is out, admins see an **Update available** card at the top of **Account menu > Admin area**: "LibrePhotos 1.5.0 is available", the release you run, and when the new one was published. The sidebar shows a dot next to the version, with "Update available: 1.5.0" when you point at it.

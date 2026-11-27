@@ -115,6 +115,26 @@ export function writeStoredLanguage(language: string): void {
   }
 }
 
+const NEW_BUILD_RELOAD_STORAGE_KEY = "lp:newBuildReload.at.v1";
+
+export function readNewBuildReloadTime(): number | undefined {
+  try {
+    const time = Number(sessionStorage.getItem(NEW_BUILD_RELOAD_STORAGE_KEY));
+    return Number.isFinite(time) && time > 0 ? time : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function writeNewBuildReloadTime(time: number): boolean {
+  try {
+    sessionStorage.setItem(NEW_BUILD_RELOAD_STORAGE_KEY, String(time));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Calls `listener` after each write to `key` made through writeStored or useStoredState. */
 export function subscribeStored(key: StorageKey, listener: Listener): () => void {
   const subscribers = listeners.get(key) ?? new Set<Listener>();
