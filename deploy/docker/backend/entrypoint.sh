@@ -129,7 +129,8 @@ startup_phase starting >/dev/null
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
 python manage.py collectstatic --no-input
 demo_site=false
-demo_services=" ${DEMO_SERVICES//,/ } "
+demo_services="${DEMO_SERVICES-image_similarity}"
+demo_services=" ${demo_services//,/ } "
 if echo "$DEMO_SITE" | grep -qiE '^(true|1|yes|on)$'; then
     demo_site=true
     echo "View-only demo: no background workers, sidecars only from DEMO_SERVICES:${demo_services}"
