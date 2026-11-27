@@ -19,7 +19,8 @@ from PIL import Image
 
 from api.directory_watcher import processing_jobs
 from api.directory_watcher.processing_jobs import scan_faces
-from api.models import Face, LongRunningJob, Photo
+from api.faces.photo_faces import extract_faces
+from api.models import Face, File, LongRunningJob, Photo
 from api.runtime import sidecars
 from api.tests.queue_recorder import run_queued
 from api.tests.utils import create_test_photo, create_test_user
@@ -42,8 +43,7 @@ def _post(url: str, json: dict[str, object], **kwargs: object) -> requests.Respo
     return _response("face_recognition", "/face-locations", 200, ONE_FACE)
 
 
-@override_settings(FEATURE_FACE_DETECTION=True)
-class FaceRegionsUnreadableTest(TestCase):
+class FaceScanTestCase(TestCase):
     def setUp(self) -> None:
         self.user = create_test_user()
         for name in ("_queue_face_followups",):
@@ -59,6 +59,9 @@ class FaceRegionsUnreadableTest(TestCase):
         self.addCleanup(os.remove, path)
         return photo
 
+
+@override_settings(FEATURE_FACE_DETECTION=True)
+class FaceRegionsUnreadableTest(FaceScanTestCase):
     def test_the_detected_faces_are_saved_when_the_regions_cannot_be_read(
         self,
     ) -> None:
@@ -84,3 +87,37 @@ class FaceRegionsUnreadableTest(TestCase):
         self.assertTrue(
             any(photo.image_hash in line for line in logs.output), logs.output
         )
+
+
+def _faces_only(
+    url: str, json: dict[str, object], **kwargs: object
+) -> requests.Response:
+    if url == sidecars.sidecar_url("exif", "/get-tags"):
+        raise AssertionError("a photo without a main file has no regions to read")
+    return _response("face_recognition", "/face-locations", 200, ONE_FACE)
+
+
+@override_settings(FEATURE_FACE_DETECTION=True)
+class FaceScanWithoutMainFileTest(FaceScanTestCase):
+    def test_a_photo_without_a_main_file_gets_the_detected_faces(self) -> None:
+        photo = self._photo()
+        Photo.objects.filter(pk=photo.pk).update(main_file=None)
+        job_id = uuid.uuid4()
+
+        with patch.object(sidecars.http, "post", side_effect=_faces_only):
+            scan_faces(self.user, job_id)
+            run_queued()
+
+        job = LongRunningJob.objects.get(job_id=str(job_id))
+        self.assertNotIn("error_count", job.result or {})
+        self.assertEqual(Face.objects.filter(photo=photo).count(), 1)
+
+    def test_a_main_file_removed_during_the_scan_costs_only_the_regions(self) -> None:
+        photo = Photo.objects.get(pk=self._photo().pk)
+        File.objects.filter(pk=photo.main_file_id).delete()
+
+        with patch.object(sidecars.http, "post", side_effect=_faces_only):
+            extract_faces(photo)
+
+        self.assertEqual(Face.objects.filter(photo=photo).count(), 1)
+        self.assertIsNotNone(Photo.objects.get(pk=photo.pk).faces_scanned_at)
