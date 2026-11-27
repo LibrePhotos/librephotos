@@ -407,6 +407,10 @@ class VideoThumbnailError(RuntimeError):
     """ffmpeg failed, or never finished, making a video thumbnail."""
 
 
+class VideoThumbnailTimeoutError(VideoThumbnailError):
+    pass
+
+
 # What ffmpeg prints when it decoded no frame to write, whether it then exits
 # 0 (an empty WebP, an mp4 with no frame) or fails (libwebp_anim flushed empty
 # reports "Cannot allocate memory").
@@ -444,8 +448,14 @@ def _wrote_a_frame(args: list[str], output: str, quiet: bool = False) -> bool:
         if quiet or _decoded_no_frame(e):
             return False
         _remove_partial(output)
-        raise VideoThumbnailError(str(e)) from e
+        raise _video_error(e) from e
     return _NO_FRAME.encode() not in stderr
+
+
+def _video_error(error: binaries.ToolError) -> VideoThumbnailError:
+    if isinstance(error, binaries.ToolFailedError) and error.returncode is None:
+        return VideoThumbnailTimeoutError(str(error))
+    return VideoThumbnailError(str(error))
 
 
 def _decoded_no_frame(error: binaries.ToolError) -> bool:
@@ -662,7 +672,7 @@ def _try_video_posters(thumbnail: Thumbnail) -> None:
         )
 
 
-def _create_video_squares(thumbnail: Thumbnail, extension: str) -> None:
+def _create_video_squares(thumbnail: Thumbnail, extension: str) -> str:
     """Make the square thumbnails of a video that are missing in ``extension``.
 
     The big thumbnail exists by now: the stills are resized from it. A video
@@ -670,8 +680,21 @@ def _create_video_squares(thumbnail: Thumbnail, extension: str) -> None:
     """
     if extension != ".mp4":
         create_video_posters(thumbnail)
-        return
+        return extension
     _try_video_posters(thumbnail)
+    try:
+        _create_video_clips(thumbnail)
+    except VideoThumbnailTimeoutError as error:
+        if not thumbnail.video_poster:
+            raise
+        logger.warning(
+            "video %s gets no animated preview: %s", thumbnail.photo.image_hash, error
+        )
+        return ".webp"
+    return extension
+
+
+def _create_video_clips(thumbnail: Thumbnail) -> None:
     photo = thumbnail.photo
     for output_path in ANIMATED_THUMBNAIL_DIRS:
         if does_video_thumbnail_exist(output_path, photo.image_hash):
@@ -729,7 +752,7 @@ def _create_missing_static_thumbnails(thumbnail: Thumbnail) -> None:
         )
 
 
-def _create_missing_video_thumbnails(thumbnail: Thumbnail, extension: str) -> None:
+def _create_missing_video_thumbnails(thumbnail: Thumbnail, extension: str) -> str:
     """A video's big thumbnail (its first frame) and its squares, those missing."""
     photo = thumbnail.photo
     if not does_static_thumbnail_exist("thumbnails_big", photo.image_hash):
@@ -740,7 +763,7 @@ def _create_missing_video_thumbnails(thumbnail: Thumbnail, extension: str) -> No
             file_type=".webp",
             transfer=photo.video_color_transfer,
         )
-    _create_video_squares(thumbnail, extension)
+    return _create_video_squares(thumbnail, extension)
 
 
 def generate_thumbnail(thumbnail: Thumbnail) -> None:
@@ -758,8 +781,9 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
         # Set again when a video's stills are there (create_video_posters).
         thumbnail.video_poster = False
         if photo.video:
-            square_extension = _video_square_extension()
-            _create_missing_video_thumbnails(thumbnail, square_extension)
+            square_extension = _create_missing_video_thumbnails(
+                thumbnail, _video_square_extension()
+            )
         else:
             _create_missing_static_thumbnails(thumbnail)
         thumbnail.thumbnail_big.name = os.path.join(
