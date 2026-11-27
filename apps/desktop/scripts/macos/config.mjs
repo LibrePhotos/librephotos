@@ -146,7 +146,7 @@ export function cask({ version, sha256, url = DMG_URL }) {
     strategy :github_latest
   end
 
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   app "${APP_NAME}.app"
 

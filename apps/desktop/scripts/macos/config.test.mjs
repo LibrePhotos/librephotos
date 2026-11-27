@@ -106,7 +106,7 @@ test("the cask installs the app and zaps every folder the app writes", () => {
   assert.match(text, new RegExp(`sha256 "${sha}"`));
   assert.match(text, /url "https:\/\/github\.com\/LibrePhotos\/librephotos\/releases\/download\/#\{version\}\/librephotos-desktop-#\{version\}-macos-universal\.dmg",\n {6}verified: "github\.com\/LibrePhotos\/librephotos\/"/);
   assert.match(text, /app "LibrePhotos Viewer\.app"/);
-  assert.match(text, /depends_on macos: ">= :monterey"/);
+  assert.match(text, /depends_on macos: :monterey$/m);
   for (const path of DATA_LOCATIONS) assert.ok(text.includes(`"${path}",`), path);
   assert.doesNotMatch(cask({ version: "1.7.0", sha256: sha, url: "file:///tmp/x.dmg" }), /verified/);
   assert.throws(() => cask({ version: "1.7.0", sha256: "abc" }), /64 hex/);
