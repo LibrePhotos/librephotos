@@ -243,6 +243,29 @@ describe("detection options", { timeout: 15_000 }, () => {
   });
 });
 
+describe("detection option checkboxes", { timeout: 15_000 }, () => {
+  it("each turns off and on again", async () => {
+    await render();
+    await click(button("Detection options"));
+    const options = Array.from(document.querySelectorAll<HTMLInputElement>("input[type=checkbox]")).filter(input =>
+      ["Exact file copies", "Visual duplicates", "Clear pending duplicates"].some(label =>
+        input.closest(".mantine-Checkbox-root")?.textContent?.includes(label)
+      )
+    );
+    expect(options).toHaveLength(3);
+
+    for (const option of options) {
+      const initial = option.checked;
+      await click(option);
+      await click(option);
+      await click(option);
+      expect(option.checked).toBe(!initial);
+      await click(option);
+      expect(option.checked).toBe(initial);
+    }
+  });
+});
+
 describe("the selection", () => {
   it("is dropped when moving to another page", async () => {
     await render();

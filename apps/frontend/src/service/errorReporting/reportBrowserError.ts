@@ -5,6 +5,7 @@
  * one never downloads it. Every error goes to this server, which scrubs and saves it and sends it
  * on only when an admin chose a server; the web app never talks to a reporting server itself.
  */
+import { reloadsForNewBuild } from "../newBuildReload";
 
 /** A page stuck in an error loop sends this many and then stops. */
 const MAX_REPORTS_PER_PAGE = 10;
@@ -24,7 +25,7 @@ function loadClient(): Promise<SentryClient> {
 
 /** Report one error; it is dropped silently when it cannot be forwarded. */
 export function reportBrowserError(error: unknown): void {
-  if (reported >= MAX_REPORTS_PER_PAGE) {
+  if (reloadsForNewBuild(error) || reported >= MAX_REPORTS_PER_PAGE) {
     return;
   }
   reported += 1;

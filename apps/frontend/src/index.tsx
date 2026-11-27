@@ -11,6 +11,7 @@ import { apiClient, queryClient } from "./api_client/api";
 import { App } from "./App";
 import { i18nReady } from "./i18n";
 import { installErrorReporting } from "./service/errorReporting/reportBrowserError";
+import { installNewBuildReload } from "./service/newBuildReload";
 
 const container = document.getElementById("root");
 if (!container) {
@@ -18,6 +19,7 @@ if (!container) {
 }
 // Uncaught errors go to the server's saved error reports (#2938), which sends nothing on its own.
 installErrorReporting();
+installNewBuildReload();
 const root = createRoot(container);
 Promise.allSettled([wdyrReady, i18nReady]).then(() =>
   root.render(

@@ -296,7 +296,7 @@ export function StacksPageContent() {
                     <Checkbox
                       size="sm"
                       checked={detectOptions.detect_bursts}
-                      onChange={e => setDetectOptions(o => ({ ...o, detect_bursts: e.currentTarget.checked }))}
+                      onChange={event => setDetectOptions({ detect_bursts: event.currentTarget.checked })}
                       label={t("stacks.options.detectbursts")}
                     />
                     {detectOptions.detect_bursts && (
