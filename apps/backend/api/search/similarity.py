@@ -34,8 +34,7 @@ class SimilarPhotosReply(TypedDict):
     result: list[str]
 
 
-# Embeddings per request of an index rebuild.
-INDEX_PAGE_SIZE = 5000
+INDEX_PAGE_SIZE = 1000
 
 
 def search_similar_embedding(
@@ -129,6 +128,10 @@ class SimilarityRebuildSupersededError(SimilarityIndexError):
     """A newer rebuild of the same index took over from this one."""
 
 
+class SimilarityRebuildLostError(SimilarityIndexError):
+    pass
+
+
 class _BuildPage(TypedDict):
     image_hashes: list[str]
     image_embeddings: list[list[float]]
@@ -153,7 +156,7 @@ def build_image_similarity_index(user: User) -> int:
     logger.info("building similarity index for user %s", user.id)
     start = datetime.now()
     try:
-        index_size = _send_rebuild(user)
+        index_size = _send_rebuild_again_if_lost(user)
     except SimilarityRebuildSupersededError as superseded:
         logger.info("%s; the newer rebuild carries on", superseded)
         return 0
@@ -162,6 +165,14 @@ def build_image_similarity_index(user: User) -> int:
         "building similarity index of %d photos took %.2f seconds", index_size, elapsed
     )
     return index_size
+
+
+def _send_rebuild_again_if_lost(user: User) -> int:
+    try:
+        return _send_rebuild(user)
+    except SimilarityRebuildLostError as lost:
+        logger.warning("%s; starting the rebuild again", lost)
+    return _send_rebuild(user)
 
 
 def _send_rebuild(user: User) -> int:
@@ -232,6 +243,8 @@ def _post_build_page(where: str, post_data: dict[str, object]) -> dict[str, Any]
         message = f"{where} failed: {sidecars.error_detail(error)}"
         if _error_code(error) == "rebuild_superseded":
             raise SimilarityRebuildSupersededError(message) from error
+        if _error_code(error) == "rebuild_not_open":
+            raise SimilarityRebuildLostError(message) from error
         raise SimilarityIndexError(message) from error
     if not isinstance(body, dict) or body.get("status") is not True:
         raise SimilarityIndexError(f"{where} was refused: {body!r}")
