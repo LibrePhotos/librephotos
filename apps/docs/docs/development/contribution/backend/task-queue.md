@@ -111,6 +111,14 @@ run, `geocode` while none runs. The count and the claim share the transaction; o
 requeues the task of a worker it saw die at once; any supervisor requeues a `running` row whose lease
 ran out (a host that went away) within a minute. A requeued task with `attempts >= max_attempts` becomes
 `failed`, so a photo that kills its worker every time stops after three tries instead of looping.
+The supervisor's warning about a worker that died (killed for memory by the system, say) names the task
+it was running, and is a warning, not an error report.
+
+**Database errors.** A worker that cannot claim a task, or record the end of one, because the database
+fails (locked past the timeout, a dropped connection, a damaged SQLite file) logs a warning and tries
+again, waiting twice as long each time up to a minute, instead of exiting. A task whose end it could not
+record runs again once its lease runs out. Up to 1.6.0 django-q2's pusher and monitor exited on such an
+error and were started again ("reincarnated pusher ... after sudden death").
 
 **Release guard.** Before each claim a worker checks, with one `count(*)` of `django_migrations`, whether
 anything was applied since its last look, and only then compares names (`unknown_applied_migrations`).

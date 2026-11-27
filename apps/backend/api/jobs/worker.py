@@ -14,6 +14,7 @@ from typing import Protocol
 
 import psutil
 from django import db
+from django.db import DatabaseError
 from django.utils import timezone
 
 from api.jobs import payload, store
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 EXIT_RECYCLE = 3
 EXIT_MEMORY = 4
 MB = 1024 * 1024
+MAX_DATABASE_BACKOFF_SECONDS = 60.0
 
 
 class Flag(Protocol):
@@ -125,6 +127,7 @@ class Worker:
         self.guard = ReleaseGuard()
         self.running = _Running()
         self.exit_process = exit_process
+        self.database_failures = 0
 
     def run(self) -> int:
         global _state, _stop
@@ -145,7 +148,7 @@ class Worker:
     def _loop(self) -> int:
         while not self.stop.is_set():
             if not self.run_one():
-                time.sleep(self.settings.poll_seconds)
+                time.sleep(self.idle_seconds())
             if self.running.drain:
                 return EXIT_RECYCLE
             recycle = self.settings.recycle_rss_mb
@@ -154,15 +157,41 @@ class Worker:
                 return EXIT_RECYCLE
         return 0
 
+    def idle_seconds(self) -> float:
+        poll = self.settings.poll_seconds
+        if not self.database_failures:
+            return poll
+        return min(MAX_DATABASE_BACKOFF_SECONDS, poll * 2**self.database_failures)
+
+    def _database_failed(self, doing: str, error: DatabaseError) -> None:
+        self.database_failures += 1
+        logger.warning(
+            "worker %s could not %s: %s; trying again in %.0f s",
+            self.name,
+            doing,
+            error,
+            self.idle_seconds(),
+        )
+        _close_old_connections()
+
+    def _claim(self) -> QueuedTask | None:
+        try:
+            task = store.claim(
+                self.name,
+                self.settings.queues or QUEUES,
+                {**store.CAPS, HEAVY_QUEUE: self.limits[1], **self.settings.caps},
+            )
+        except DatabaseError as error:
+            self._database_failed("take a task", error)
+            return None
+        self.database_failures = 0
+        return task
+
     def run_one(self) -> bool:
         if self.slot >= self.limits[0] or self.guard.database_is_newer():
             return False
         _close_old_connections()
-        task = store.claim(
-            self.name,
-            self.settings.queues or QUEUES,
-            {**store.CAPS, HEAVY_QUEUE: self.limits[1], **self.settings.caps},
-        )
+        task = self._claim()
         if task is None:
             return False
         with self.running.lock:
@@ -173,6 +202,10 @@ class Worker:
             logger.info("worker %s: task %s paused (%s)", self.name, task.pk, stopping)
             store.release(task, count_attempt=False)
             self.running.drain = self.running.drain or str(stopping)
+        except DatabaseError as error:
+            self._database_failed(
+                f"record the end of task {task.pk} ({task.func})", error
+            )
         finally:
             with self.running.lock:
                 self.running.task = None

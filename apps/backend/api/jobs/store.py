@@ -310,11 +310,11 @@ def requeue_expired() -> int:
     return len(expired)
 
 
-def requeue_worker(worker: str, reason: str) -> int:
+def requeue_worker(worker: str, reason: str) -> list[QueuedTask]:
     held = list(QueuedTask.objects.filter(status=RUNNING, worker=worker))
     for task in held:
         _lost(task, reason)
-    return len(held)
+    return held
 
 
 def cancel_job_tasks(job_id: str) -> int:
