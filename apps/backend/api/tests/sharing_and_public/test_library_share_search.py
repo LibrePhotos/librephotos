@@ -12,7 +12,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import Photo
-from api.search.ranked import ranked_photo_ids
+from api.search.ranked import RankedSearch, ranked_photo_ids
 from api.search.semantic import TAG_THING_TYPE
 from api.sharing.library_search import library_search
 from api.tests.utils import (
@@ -233,5 +233,6 @@ class LibraryMeaningSearchTest(TestCase):
         ]
         libraries = library_search(self.recipient, ["sunset"], [], False)
         own = Photo.visible.owned_by(self.recipient)
-        ranked = ranked_photo_ids(self.recipient, own, "sunset", libraries=libraries)
+        search = RankedSearch(self.recipient, libraries)
+        ranked = ranked_photo_ids(search, own, "sunset")
         self.assertEqual(ranked, [self.sunset.pk])

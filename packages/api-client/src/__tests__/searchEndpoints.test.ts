@@ -37,6 +37,14 @@ describe("search", () => {
     expect(result.photosGroupedByDate).toEqual([]);
   });
 
+  it("searches by a photo and reads the flat answer whatever the semantic setting", async () => {
+    const { client, requests } = fakeServer({ results: [pigPhoto] });
+    const result = await endpoints.searchPhotos(client, "", false, { similar_to: pigPhoto.id }, "newest");
+    expect(defined(requests[0]).url).toBe(`${API}/photos/searchlist/?similar_to=${pigPhoto.id}&sort=newest`);
+    expect(result.photosFlat).toHaveLength(1);
+    expect(result.photosGroupedByDate).toEqual([]);
+  });
+
   it("sends sort=oldest and reads the grouped answer", async () => {
     const { client, requests } = fakeServer({ results: [{ date: "2024-04-02", location: "", items: [pigPhoto] }] });
     const result = await endpoints.searchPhotos(client, "beach", false, {}, "oldest");

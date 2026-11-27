@@ -62,6 +62,13 @@ def search_ranked_embedding(
     return list(zip(body["result"], body.get("scores", []), strict=True))
 
 
+def photo_embedding(photo: Photo) -> list[float] | None:
+    embedding = photo.get_clip_embeddings()
+    if embedding is None or not is_current_embedding(photo):
+        return None
+    return list(embedding)
+
+
 def search_similar_image(
     user: User | int, photo: Photo, threshold: float | None = None
 ) -> SimilarPhotosReply | list[str]:
@@ -75,10 +82,8 @@ def search_similar_image(
     else:
         user_id = user.id
 
-    clip_embeddings = photo.get_clip_embeddings()
+    clip_embeddings = photo_embedding(photo)
     if clip_embeddings is None:
-        return []
-    if not is_current_embedding(photo):
         return []
     if threshold is None:
         threshold = SIMILAR_THRESHOLD

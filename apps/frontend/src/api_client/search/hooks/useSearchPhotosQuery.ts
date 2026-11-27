@@ -30,7 +30,7 @@ export const useSearchPhotosQuery = (
   // keyed by it (switching the setting must not reuse the other shape). If the
   // user cannot be loaded, search anyway with the default shape rather than
   // never sending the query.
-  const semantic = (currentUser?.semantic_search_topk ?? 0) > 0;
+  const semantic = (currentUser?.semantic_search_topk ?? 0) > 0 || filters.similar_to !== undefined;
   const filtered = Object.values(filters).some(value => value !== undefined);
   const photoOrder = usePhotoOrder();
   const effectiveSort = sort ?? (semantic ? "relevance" : photoOrder.order);

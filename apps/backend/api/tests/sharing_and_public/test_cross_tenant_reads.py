@@ -231,6 +231,7 @@ class CrossTenantReadTest(TestCase):
                 f"/api/photos/searchlist/?person={v.v_person.pk}",
                 v.v_photo.image_hash,
             ),
+            (f"/api/photos/searchlist/?similar_to={v.v_photo.pk}", None),
             (
                 "/api/photos/located-nearby-in-time/?"
                 + urlencode(

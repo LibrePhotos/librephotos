@@ -14,7 +14,8 @@ from api.drf.request_user import request_user, scope_user
 from api.models import Photo
 from api.search.filters import SemanticSearchFilter
 from api.search.metadata_filter import MetadataFilterQuery, metadata_values
-from api.search.ranked import MAX_RESULTS, ranked_photo_ids
+from api.search.ranked import MAX_RESULTS, RankedSearch, ranked_photo_ids
+from api.search.similarity import photo_embedding
 from api.search.term_examples import get_search_term_examples
 from api.serializers.photos import (
     GroupedPhotosSerializer,
@@ -61,6 +62,23 @@ def _ranked_matches(
         return own.filter(pk__in=ranked)
     reachable = Q(pk__in=own.values("pk")) | Q(pk__in=shared.values("pk"))
     return with_photo_summary_relations(Photo.objects.filter(reachable, pk__in=ranked))
+
+
+def _ranked_search(
+    search: RankedSearch,
+    own: QuerySet[Photo],
+    text: str,
+    language: str,
+    similar: Photo | None,
+) -> tuple[list[UUID], QuerySet[Photo]]:
+    if similar is None and not text:
+        return [], own
+    if similar is not None and search.like is None and not text:
+        return [], own.none()
+    ranked = ranked_photo_ids(search, own, text, language)
+    if similar is not None:
+        ranked = [pk for pk in ranked if pk != similar.pk]
+    return ranked, _ranked_matches(own, search.libraries, ranked)
 
 
 def _taken(photo: Photo) -> float:
@@ -136,21 +154,21 @@ class SearchListViewSet(ListViewSet):
         sort = query["sort"]
         photos = with_photo_summary_relations(Photo.visible.owned_by(user))
         context = {"request": request}
-        if user.semantic_search_topk == 0:
+        similar: Photo | None = query["similar_to"]
+        if user.semantic_search_topk == 0 and similar is None:
             return self._grouped(request, photos, sort, context)
         search_filter = SemanticSearchFilter()
         own = search_filter.structured_queryset(request, photos)
         text = query["search"].strip()
-        libraries = search_filter.library_search(request)
-        if text:
-            ranked = ranked_photo_ids(user, own, text, query["language"], libraries)
-            matches = _ranked_matches(own, libraries, ranked)
-        else:
-            ranked = []
-            matches = own
+        search = RankedSearch(
+            user,
+            search_filter.library_search(request),
+            photo_embedding(similar) if similar is not None else None,
+        )
+        ranked, matches = _ranked_search(search, own, text, query["language"], similar)
         if sort in SIZE_SORT_ORDERINGS:
             return _size_answer(matches, sort, context)
-        if sort in ("newest", "oldest") or not text:
+        if sort in ("newest", "oldest") or not (text or similar):
             taken = F("exif_timestamp")
             by_date = (
                 taken.asc(nulls_last=True)

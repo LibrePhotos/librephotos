@@ -48,6 +48,7 @@ export const CLEARED_SEARCH_FILTERS: Record<SearchFilterKey, undefined> = {
   file_type: undefined,
   extension: undefined,
   person: undefined,
+  similar_to: undefined,
 };
 
 /** Every filter key, for the badge count. */
@@ -81,6 +82,7 @@ const SearchFilterParams = z.object({
     .optional()
     .catch(undefined),
   person: people.optional().catch(undefined),
+  similar_to: z.uuid().optional().catch(undefined),
 } satisfies Record<SearchFilterKey, z.ZodType>);
 
 /**
@@ -120,7 +122,7 @@ export function countSearchFilters(filters: SearchFilters): number {
 }
 
 export function hasSearchFilters(filters: SearchFilters): boolean {
-  return countSearchFilters(filters) > 0;
+  return countSearchFilters(filters) > 0 || filters.similar_to !== undefined;
 }
 
 /**
@@ -134,7 +136,7 @@ export function searchSelectAllQuery(
   filters: SearchFilters,
   mediaType: MediaType
 ): BulkPhotoQuery | undefined {
-  if (term.length > 0) return undefined;
+  if (term.length > 0 || filters.similar_to !== undefined) return undefined;
   const { person, ...rest } = filters;
   return {
     ...rest,

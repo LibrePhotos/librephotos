@@ -1,6 +1,8 @@
 from typing import Any
 
 from django.db.models import Model, QuerySet
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.models import Photo
@@ -18,6 +20,14 @@ class OwnedPhotoField(serializers.PrimaryKeyRelatedField):
 
     def get_queryset(self) -> QuerySet[Photo]:
         return Photo.objects.owned_by(
+            getattr(self.context.get("request"), "user", None)
+        )
+
+
+@extend_schema_field(OpenApiTypes.UUID)
+class VisiblePhotoField(serializers.PrimaryKeyRelatedField):
+    def get_queryset(self) -> QuerySet[Photo]:
+        return Photo.visible.visible_to(
             getattr(self.context.get("request"), "user", None)
         )
 

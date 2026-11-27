@@ -10954,6 +10954,16 @@
           },
           {
             "in": "query",
+            "name": "similar_to",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "description": "A photo's id: ranks the results by how much they look like it (with the words, if any, by both), as a flat list whatever the semantic search setting; the photo itself is left out"
+          },
+          {
+            "in": "query",
             "name": "sort",
             "schema": {
               "enum": [

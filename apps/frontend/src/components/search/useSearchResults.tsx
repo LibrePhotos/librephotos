@@ -68,6 +68,11 @@ function searchEmptyState(input: EmptyStateInput, t: TFunction): EmptyStateConfi
   };
 }
 
+function searchTitle(term: string, byPhoto: boolean, t: TFunction): string {
+  if (term) return t("search.resultsfor", { query: term });
+  return byPhoto ? t("search.similartitle") : t("searchfilter.filteredtitle");
+}
+
 function rejectionOf(error: Error | null): string | undefined {
   if (!(error instanceof ApiError) || error.status !== 400) return undefined;
   // The sentence the page adds after it brings its own full stop.
@@ -97,14 +102,15 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
   // user, and the page flashed "No matching photos" on every hard load. A
   // filter-only page without filters asks nothing, so it is not loading.
   const { order: photoOrder } = usePhotoOrder();
-  const ranked = Boolean(currentUser?.semantic_search_topk) && term.length > 0;
+  const byPhoto = filters.similar_to !== undefined;
+  const ranked = (Boolean(currentUser?.semantic_search_topk) && term.length > 0) || byPhoto;
   const photoSort = usePhotoSort(STORAGE_KEYS.photoSortSearch, ranked ? "relevance" : photoOrder);
   const sort = photoSort.sort === "relevance" && !ranked ? photoOrder : photoSort.sort;
   const searchResult = useSearchPhotosQuery(term, mediaType, filters, sort);
   const { data: { photosGroupedByDate, photosFlat, count } = DEFAULTS, isPending, error } = searchResult;
   const listFailure = useListFailure(searchResult);
   const rejection = rejectionOf(error);
-  const flat = Boolean(currentUser?.semantic_search_topk) || isSizeSort(sort);
+  const flat = Boolean(currentUser?.semantic_search_topk) || isSizeSort(sort) || byPhoto;
 
   const emptyStateConfig = useMemo(
     () => searchEmptyState({ term, filtered, rejection, clearFilters }, t),
@@ -114,7 +120,7 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
 
   return {
     // No trailing "...": the header shows its own loading state.
-    title: term ? t("search.resultsfor", { query: term }) : t("searchfilter.filteredtitle"),
+    title: searchTitle(term, byPhoto, t),
     loading: isPending && (term.length > 0 || filtered),
     photoset: flat ? photosFlat : photosGroupedByDate,
     idx2hash: photosFlat,

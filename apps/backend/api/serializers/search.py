@@ -8,6 +8,7 @@ both domain code, read them.
 from rest_framework import serializers
 
 from api.search.metadata_filter import VALUE_COLUMNS
+from api.serializers.fields import VisiblePhotoField
 
 SEARCH_SORT_CHOICES = [
     ("relevance", "Best match"),
@@ -41,6 +42,14 @@ class SearchListQuery(serializers.Serializer[None]):
         "semantic search on, newest first otherwise; newest or oldest: by "
         "date, grouped by day with semantic search off; largest or smallest: "
         "a flat list by file size",
+    )
+    similar_to = VisiblePhotoField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="A photo's id: ranks the results by how much they look like "
+        "it (with the words, if any, by both), as a flat list whatever the "
+        "semantic search setting; the photo itself is left out",
     )
 
 

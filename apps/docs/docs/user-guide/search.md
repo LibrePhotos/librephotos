@@ -194,11 +194,19 @@ Releases up to 1.2.x searched with CLIP ViT-B/32 and detected things with anothe
 3. The image-similarity service ranks your photos by cosine similarity to it, best first (`POST /search/` with `"metric": "cosine"` and `"with_scores": true` answers the scores too; the default `ip` metric, the raw inner product, still serves Similar photos)
 4. That ranking is merged with the word matches as described in [How results are ranked](#how-results-are-ranked), and the merged list is returned best match first
 
+## Find similar photos
+
+<Since version="1.7.0" /> To search by a photo instead of words, open it in the viewer and choose **Find similar photos** in the ⋮ (**More actions**). The search page lists your photos that look most like it, best match first, the photo itself left out. Photos from libraries [shared with you](./sharing.md#a-library-shared-with-you) and shown in your timeline are included, as in any search. This works whether [semantic search](#semantic-search) is on or off; with it off, up to 100 photos are listed.
+
+The photo shows as a chip under the title, **Like this photo**, with a small picture of it. Its cross removes it, and **Clear all** removes it with the filters. The media button, the **Sort** button and the [filters](#search-filters) work together with it. Words do too, through the page address: `/search/beach?similar_to=<id>` ranks the photos both by how much they look like the photo and by how well they match *beach* (as words and by meaning), so the beach photos most like yours come first, and a date, person or place in the words narrows the list as usual. A new search from the search field starts without the photo. A photo that has no search embedding yet (a new upload before its embedding job ran) finds nothing on its own.
+
+In the API it is the `similar_to` parameter of `GET /api/photos/searchlist/`, a photo's `id`; it must be a photo you can see (yours, one shared with you or a photo of a library shared with you), otherwise the answer is a 400 naming `similar_to`. The answer is always the flat list of photo summaries. The photo's embedding and the embedding of the words, each scaled to length one, are added, and the photos are ranked by cosine similarity to the sum.
+
 ## Similar Photos
 
 When viewing a photo in the lightbox, the **Similar photos** section in the sidebar shows visually similar photos from your library. These are found using the same CLIP embedding technology as semantic search.
 
-Click on any similar photo to navigate directly to it. This is useful for:
+Click on any similar photo to navigate directly to it. The section shows the few closest ones; [Find similar photos](#find-similar-photos) lists them all, best match first. This is useful for:
 
 - Finding photos from the same scene or event
 - Discovering visually related content

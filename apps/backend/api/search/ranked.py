@@ -3,11 +3,14 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import requests
 from django.db.models import F, Q, QuerySet
 
+from api.lazy_import import LazyModule
 from api.models import AlbumPlace, Person, Photo, User, UserPlace
 from api.search.hybrid import FusionSettings, cut_semantic, fuse
 from api.search.lexical import lexical_matches
@@ -18,6 +21,12 @@ from api.search.similarity import search_ranked_embedding
 from api.search.translate import lexicon_for
 from api.sharing.library_search import LibrarySearch
 
+if TYPE_CHECKING:
+    import numpy as np
+    import numpy.typing as npt
+else:
+    np = LazyModule("numpy")
+
 logger = logging.getLogger(__name__)
 
 FUSION = FusionSettings(semantic_floor=SEARCH_COSINE_FLOOR)
@@ -26,6 +35,7 @@ LEXICAL_LIMIT = 1000
 MAX_RESULTS = 5000
 MIN_FIRST_NAME = 3
 NO_LIBRARIES = LibrarySearch()
+DEFAULT_TOPK = 100
 
 
 def vocabulary(user: User, language: str = "") -> Vocabulary:
@@ -99,31 +109,57 @@ def _scored_rows(
     return [(rows[h], score) for h, score in scored if h in rows]
 
 
-def _semantic(
-    user: User,
-    queryset: QuerySet[Photo],
-    parsed: ParsedQuery,
-    libraries: LibrarySearch,
-) -> list[UUID]:
+@dataclass(frozen=True)
+class RankedSearch:
+    user: User
+    libraries: LibrarySearch = NO_LIBRARIES
+    like: Sequence[float] | None = None
+
+    @property
+    def topk(self) -> int:
+        return self.user.semantic_search_topk or DEFAULT_TOPK
+
+
+def _unit(vector: Sequence[float]) -> npt.NDArray[np.float32]:
+    array = np.asarray(vector, dtype=np.float32)
+    norm = float(np.linalg.norm(array))
+    return array / norm if norm > 0 else array
+
+
+def _query_embedding(
+    parsed: ParsedQuery, like: Sequence[float] | None
+) -> Sequence[float] | None:
+    if not parsed.semantic_text:
+        return like
     try:
-        embedding, _ = calculate_query_embeddings(parsed.semantic_text)
+        text, _ = calculate_query_embeddings(parsed.semantic_text)
     except (requests.RequestException, KeyError, ValueError) as error:
         logger.warning("semantic search unavailable, using words only: %s", error)
-        return []
-    pool = max(
-        SEMANTIC_POOL if parsed.has_filters else user.semantic_search_topk,
-        user.semantic_search_topk,
-    )
+        return like
+    if like is None:
+        return text
+    combined: list[float] = (_unit(like) + _unit(text)).tolist()
+    return combined
+
+
+def _semantic(
+    search: RankedSearch,
+    queryset: QuerySet[Photo],
+    parsed: ParsedQuery,
+    embedding: Sequence[float],
+) -> list[UUID]:
+    user, topk = search.user, search.topk
+    pool = max(SEMANTIC_POOL if parsed.has_filters else topk, topk)
     inside = _scored_rows(user.id, queryset, embedding, pool)
     filters = parsed_q(user, parsed)
-    for library in libraries.libraries:
+    for library in search.libraries.libraries:
         shown = library.photos.filter(*filters)
         inside += _scored_rows(library.owner_id, shown, embedding, pool)
     inside.sort(key=lambda row: -row[1])
     if parsed.has_filters:
         return [pk for pk, _ in inside]
     kept = cut_semantic(inside, FUSION.semantic_floor)
-    return kept[: user.semantic_search_topk]
+    return kept[:topk]
 
 
 def _shared_words(libraries: LibrarySearch) -> list[UUID]:
@@ -134,24 +170,33 @@ def _shared_words(libraries: LibrarySearch) -> list[UUID]:
     return list(ordered.values_list("pk", flat=True)[:LEXICAL_LIMIT])
 
 
-def _ranked(
-    user: User,
-    queryset: QuerySet[Photo],
-    parsed: ParsedQuery,
-    libraries: LibrarySearch,
+def _lexical(
+    search: RankedSearch, filtered: QuerySet[Photo], parsed: ParsedQuery
 ) -> list[UUID]:
-    filtered = queryset.filter(*parsed_q(user, parsed))
-    shared_words = _shared_words(libraries)
-    if not parsed.terms and not parsed.phrases:
-        return fuse(_newest(filtered), shared_words, FUSION)[:MAX_RESULTS]
     own_words = list(
         lexical_matches(filtered, parsed.terms, parsed.phrases)
         .order_by(F("lexical_score").desc(), F("exif_timestamp").desc(), "pk")
         .values_list("pk", flat=True)[:LEXICAL_LIMIT]
     )
-    lexical = fuse(own_words, shared_words, FUSION)
+    return fuse(own_words, _shared_words(search.libraries), FUSION)
+
+
+def _ranked(
+    search: RankedSearch, queryset: QuerySet[Photo], parsed: ParsedQuery
+) -> list[UUID]:
+    filtered = queryset.filter(*parsed_q(search.user, parsed))
+    has_words = bool(parsed.terms or parsed.phrases)
+    if not has_words and search.like is None:
+        shared_words = _shared_words(search.libraries)
+        return fuse(_newest(filtered), shared_words, FUSION)[:MAX_RESULTS]
+    lexical = _lexical(search, filtered, parsed) if has_words else []
+    embedding = (
+        _query_embedding(parsed, search.like)
+        if parsed.semantic_text or search.like is not None
+        else None
+    )
     semantic = (
-        _semantic(user, filtered, parsed, libraries) if parsed.semantic_text else []
+        _semantic(search, filtered, parsed, embedding) if embedding is not None else []
     )
     if parsed.phrases:
         allowed = set(lexical)
@@ -160,18 +205,15 @@ def _ranked(
 
 
 def ranked_photo_ids(
-    user: User,
-    queryset: QuerySet[Photo],
-    text: str,
-    language: str = "",
-    libraries: LibrarySearch = NO_LIBRARIES,
+    search: RankedSearch, queryset: QuerySet[Photo], text: str, language: str = ""
 ) -> list[UUID]:
+    user = search.user
     words = vocabulary(user, language)
     parsed = parse(text, words)
-    found = _ranked(user, queryset, parsed, libraries)
+    found = _ranked(search, queryset, parsed)
     if not parsed.places:
         return found
     without_places = Vocabulary(people=words.people, translations=words.translations)
     seen = set(found)
-    more = _ranked(user, queryset, parse(text, without_places), libraries)
+    more = _ranked(search, queryset, parse(text, without_places))
     return [*found, *(pk for pk in more if pk not in seen)][:MAX_RESULTS]
