@@ -30,7 +30,7 @@
       "minimatch": "^11.0.5"
     },
     "@esbuild-kit/core-utils": {
-      "esbuild": "^0.25.12"
+      "esbuild": "^0.28.0"
     },
     "query-string": {
       "decode-uri-component": "$decode-uri-component"
