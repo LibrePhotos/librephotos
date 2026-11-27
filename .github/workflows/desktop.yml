@@ -423,6 +423,10 @@ jobs:
           else
             echo "app-store=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Generate the third-party notices for both Mac targets
+        run: |
+          node apps/desktop/scripts/notices/generate.mjs --target aarch64-apple-darwin --target x86_64-apple-darwin
+          grep -q 'decoded by ImageIO' apps/desktop/public/THIRD-PARTY-NOTICES.txt
       - name: Build the universal app
         working-directory: apps/desktop
         run: |

@@ -218,6 +218,14 @@ for uti in public.jpeg public.png public.heic public.heif public.avif public.tif
 done
 step "Info.plist: $BUNDLE_ID $(plist_value "$PLIST" CFBundleShortVersionString) ($(plist_value "$PLIST" CFBundleVersion)), Photography, export compliance set, $(plutil -extract CFBundleDocumentTypes raw "$PLIST") document types"
 
+NOTICES="$APP/Contents/Resources/THIRD-PARTY-NOTICES.txt"
+[ -f "$NOTICES" ] || fail "the app has no $NOTICES"
+grep -q 'decoded by ImageIO' "$NOTICES" || fail "the notices do not name ImageIO as the HEIC decoder"
+grep -q 'Windows Imaging Component' "$NOTICES" && fail "the Mac app ships the Windows notices"
+grep -qE '^objc2-foundation [0-9.]+ \(Rust crate\)' "$NOTICES" || fail "the notices miss the macOS-only crate objc2-foundation"
+grep -qE '^windows [0-9.]+ \(Rust crate\)' "$NOTICES" && fail "the notices list the Windows-only crate windows"
+step "third-party notices in the app: $(grep -E '^Components \(' "$NOTICES"), macOS codec line, objc2-foundation listed, no Windows-only crates"
+
 ENTITLEMENTS=$(entitlements_json)
 echo "entitlements: $ENTITLEMENTS"
 if [ "$MODE" = app-store ]; then

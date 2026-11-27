@@ -36,6 +36,6 @@ The last card, **About LibrePhotos Viewer**, shows the app's version and links t
 
 ![The About LibrePhotos Viewer card at the bottom of Settings: the version, the MIT license, the Adobe DNG and Independent JPEG Group notices, and the Open-source licences, Source code and Privacy policy buttons](../../../static/img/shots/desktop/about-card.webp)
 
-**Open-source licences** lists every open-source component the app is built with, each with its license text. The same list is the file `THIRD-PARTY-NOTICES.txt` in the app's install folder.
+**Open-source licences** lists every open-source component the app is built with, each with its license text. The same list is the file `THIRD-PARTY-NOTICES.txt` in the app's install folder (on a Mac, inside the app: right-click it in Applications, **Show Package Contents**, `Contents/Resources`).
 
 ![The Open-source licences dialog listing the components, their licenses and where their source is](../../../static/img/shots/desktop/open-source-licences.webp)
