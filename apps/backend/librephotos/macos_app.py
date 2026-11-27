@@ -187,7 +187,6 @@ class Termination:
 def install_quit_handlers(termination: Termination) -> None:
     import AppKit
     import Foundation
-    from PyObjCTools import MachSignals
 
     def should_terminate(delegate: object, sender: object) -> int:
         if not termination.request():
@@ -212,11 +211,6 @@ def install_quit_handlers(termination: Termination) -> None:
     application.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
     _delegates.append(delegate)
 
-    def on_signal(*_: object) -> None:
-        termination.request()
-
-    MachSignals.signal(signal.SIGTERM, on_signal)
-
 
 _delegates: list[object] = []
 
@@ -231,9 +225,29 @@ def end_process(code: int) -> None:
     os._exit(code)
 
 
-def quit_on_signal(on_quit: Task) -> None:
+QUIT_SIGNALS = (signal.SIGTERM, signal.SIGINT)
+
+
+def quit_on_signal(on_quit: Task) -> threading.Thread:
     def handler(signum: int, frame: FrameType | None) -> None:
         on_quit()
 
-    signal.signal(signal.SIGTERM, handler)
-    signal.signal(signal.SIGINT, handler)
+    for number in QUIT_SIGNALS:
+        signal.signal(number, handler)
+    read_end, write_end = os.pipe()
+    os.set_blocking(write_end, False)
+    signal.set_wakeup_fd(write_end, warn_on_full_buffer=False)
+    relay = threading.Thread(
+        target=relay_signals, args=(read_end, on_quit), daemon=True, name="signals"
+    )
+    relay.start()
+    return relay
+
+
+def relay_signals(read_end: int, on_quit: Task) -> None:
+    while True:
+        received = os.read(read_end, 64)
+        if not received:
+            return
+        if any(number in QUIT_SIGNALS for number in received):
+            on_quit()

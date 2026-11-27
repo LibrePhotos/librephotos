@@ -118,6 +118,15 @@ class MainThreadTest(SimpleTestCase):
             main.leave_appkit()
         self.assertEqual(call_after.call_args_list, [call(first), call(second)])
 
+    def test_a_quit_signal_is_relayed_off_the_main_thread(self):
+        read_end, write_end = os.pipe()
+        on_quit = MagicMock()
+        os.write(write_end, bytes([signal.SIGTERM, 0]))
+        os.close(write_end)
+        macos_app.relay_signals(read_end, on_quit)
+        os.close(read_end)
+        on_quit.assert_called_once_with()
+
     def test_the_process_ends_after_the_menu_bar(self):
         with (
             patch.object(macos_app.logging, "shutdown") as shutdown,

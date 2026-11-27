@@ -105,9 +105,11 @@ The tray is `pystray` on both systems; on macOS its backend is AppKit through Py
 main thread. `standalone.main()` therefore runs the server in a thread (`run_with_menu_bar`) and gives the
 main thread to `macos_app.MainThread`: it runs queued work until the icon starts, then AppKit's run loop,
 and every later change to the icon goes there with `AppHelper.callAfter`. uvicorn skips its signal handlers
-off the main thread, so `macos_app.install_quit_handlers` handles SIGTERM (PyObjC's `MachSignals`, which
-work inside the run loop) and the quit Apple Event (`applicationShouldTerminate:` answers
-`NSTerminateLater` and replies once the server stopped), both like **Quit LibrePhotos**. Dialogs and
+off the main thread, and Python runs a signal handler only once the main thread runs Python again, which
+it does not while AppKit's run loop waits. `macos_app.quit_on_signal` therefore lets the C-level handler
+write SIGTERM and SIGINT to a wakeup pipe (`signal.set_wakeup_fd`) that a thread reads.
+`macos_app.install_quit_handlers` answers the quit Apple Event (`applicationShouldTerminate:` answers
+`NSTerminateLater` and replies once the server stopped). Both work like **Quit LibrePhotos**. Dialogs and
 notifications are `osascript`, started without waiting so a failure never stops the server.
 
 Windows ends the children with a job object. macOS has none, so the root exports `LIBREPHOTOS_ROOT_PID`

@@ -412,7 +412,7 @@ def take_browser_screenshots(context: Context) -> None:
         page = browser.new_page(viewport={"width": 1280, "height": 760})
         page.goto(URL, wait_until="networkidle")
         page.get_by_label("Username").fill(ADMIN_USERNAME)
-        page.get_by_label("Password", exact=True).fill(context.instance.password)
+        page.locator('input[type="password"]').fill(context.instance.password)
         page.get_by_role("button", name="Sign in").click()
         page.wait_for_url(lambda url: "/login" not in url, timeout=60000)
         page.wait_for_load_state("networkidle")
