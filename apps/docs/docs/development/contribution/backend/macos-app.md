@@ -82,19 +82,20 @@ hardened runtime, executables with `ENTITLEMENTS`, then the bundle itself, and v
 None of these is a sandbox entitlement, and the app needs no `com.apple.security.network.server`: only a
 sandboxed app needs it to listen.
 
-Without secrets the workflow signs ad hoc (`codesign --sign -`), says so in a notice and skips
-notarization: that is enough to run on the runner, and Gatekeeper blocks a downloaded copy. With these
-repository secrets it signs with the Developer ID and notarizes:
+The server and the [desktop app's macOS builds](https://docs.librephotos.com/docs/development/desktop-macos#repository-settings)
+share one Apple account and one set of repository settings; that page has the account steps and what each
+setting holds. The server uses these of them:
 
-| Secret | What |
-| --- | --- |
-| `APPLE_CERTIFICATE` | the Developer ID Application certificate with its key, as a base64 `.p12` |
-| `APPLE_CERTIFICATE_PASSWORD` | the `.p12` password |
-| `APPLE_SIGNING_IDENTITY` | `Developer ID Application: <name> (<team ID>)` |
-| `APPLE_API_KEY` | the App Store Connect API key (`.p8` content) for `notarytool` |
-| `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | its key ID and issuer ID |
+| Name | Kind | Used for |
+| --- | --- | --- |
+| `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` | secrets | the `.p12` with the Developer ID Application certificate and its password |
+| `APPLE_TEAM_ID` | variable | checked against the identity |
+| `APPLE_SIGNING_IDENTITY` | variable | `Developer ID Application: <name> (<team>)`, what `codesign` signs with |
+| `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_PRIVATE_KEY` | secrets | the App Store Connect API key `notarytool` notarizes with |
 
-The certificate goes into a temporary keychain. The app is zipped with `ditto`, submitted with
+Without the first four the workflow signs ad hoc (`codesign --sign -`) and says in a notice which are
+missing: that is enough to run on the runner, and Gatekeeper blocks a downloaded copy. With them but without
+the API key it signs with the Developer ID and does not notarize. The certificate goes into a temporary keychain. The app is zipped with `ditto`, submitted with
 `xcrun notarytool submit --wait` and stapled; then the disk image is made from the stapled app, signed,
 submitted and stapled too. Only the maintainer can create the Developer ID (an Apple Developer Program
 membership), the certificate and the API key.

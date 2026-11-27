@@ -161,10 +161,11 @@ jobs:
       INPUT_VERSION: ${{ inputs.version || github.event.release.tag_name || '0.0.0' }}
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
       APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
       APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      DEVELOPER_ID_IDENTITY: ${{ vars.APPLE_SIGNING_IDENTITY }}
     steps:
       - name: Resolve the version
         run: |
@@ -211,8 +212,39 @@ jobs:
           pip install -r requirements.txt -r requirements.standalone.txt "$RUNNER_TEMP"/ffmpeg-wheel/*.whl
           pip install --no-deps -r requirements.nodeps.txt
           python -c "import ffmpeg_bin, exiftool_bin, AppKit, pystray._darwin; print('build dependencies import')"
+      - name: Decide what can be signed
+        if: env.REUSE_BUILD_FROM_RUN == ''
+        run: |
+          missing() {
+            for name in "$@"; do
+              if [ -z "${!name}" ]; then
+                case $name in
+                  DEVELOPER_ID_IDENTITY) printf ' APPLE_SIGNING_IDENTITY' ;;
+                  *) printf ' %s' "$name" ;;
+                esac
+              fi
+            done
+          }
+          signing=$(missing APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_TEAM_ID DEVELOPER_ID_IDENTITY)
+          notarizing=$(missing APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_API_PRIVATE_KEY)
+          if [ -n "$signing" ]; then
+            echo "::notice::Signed ad hoc and not notarized (missing:$signing). It runs on this runner; a downloaded copy is blocked by Gatekeeper until it is signed with a Developer ID."
+            echo "SIGN_DEVELOPER_ID=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if [[ "$DEVELOPER_ID_IDENTITY" != *"($APPLE_TEAM_ID)" ]]; then
+            echo "::error::APPLE_SIGNING_IDENTITY ($DEVELOPER_ID_IDENTITY) is not an identity of team $APPLE_TEAM_ID"
+            exit 1
+          fi
+          echo "SIGN_DEVELOPER_ID=true" >> "$GITHUB_ENV"
+          if [ -n "$notarizing" ]; then
+            echo "::notice::Signed with the Developer ID but not notarized (missing:$notarizing)."
+            echo "NOTARIZE=false" >> "$GITHUB_ENV"
+          else
+            echo "NOTARIZE=true" >> "$GITHUB_ENV"
+          fi
       - name: Prepare code signing
-        if: env.REUSE_BUILD_FROM_RUN == '' && env.APPLE_CERTIFICATE != ''
+        if: env.REUSE_BUILD_FROM_RUN == '' && env.SIGN_DEVELOPER_ID == 'true'
         run: |
           keychain="$RUNNER_TEMP/signing.keychain-db"
           password=$(openssl rand -hex 24)
@@ -220,27 +252,21 @@ jobs:
           security create-keychain -p "$password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
           security unlock-keychain -p "$password" "$keychain"
-          security import "$RUNNER_TEMP/certificate.p12" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$APPLE_CERTIFICATE_PASSWORD" -f pkcs12 -k "$keychain" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -k "$password" "$keychain" >/dev/null
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
           rm -f "$RUNNER_TEMP/certificate.p12"
           {
             echo "APPLE_KEYCHAIN=$keychain"
-            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET"
+            echo "APPLE_SIGNING_IDENTITY=$DEVELOPER_ID_IDENTITY"
           } >> "$GITHUB_ENV"
-      - name: Say that the app is signed ad hoc
-        if: env.REUSE_BUILD_FROM_RUN == '' && env.APPLE_CERTIFICATE == ''
-        run: echo "::notice::No APPLE_CERTIFICATE secret, so the app is signed ad hoc and not notarized. It runs on this runner; a downloaded copy is blocked by Gatekeeper until it is signed with a Developer ID."
       - name: Prepare notarization
-        if: env.REUSE_BUILD_FROM_RUN == '' && env.APPLE_CERTIFICATE != '' && env.APPLE_API_KEY != ''
+        if: env.REUSE_BUILD_FROM_RUN == '' && env.NOTARIZE == 'true'
         run: |
-          key="$RUNNER_TEMP/notary/AuthKey.p8"
+          key="$RUNNER_TEMP/private_keys/AuthKey_$APPLE_API_KEY_ID.p8"
           mkdir -p "$(dirname "$key")"
-          printf '%s' "$APPLE_API_KEY" > "$key"
+          printf '%s' "$APPLE_API_PRIVATE_KEY" > "$key"
           echo "APPLE_API_KEY_PATH=$key" >> "$GITHUB_ENV"
-      - name: Say that the app is not notarized
-        if: env.REUSE_BUILD_FROM_RUN == '' && (env.APPLE_CERTIFICATE == '' || env.APPLE_API_KEY == '')
-        run: echo "::notice::Notarization skipped (it needs APPLE_CERTIFICATE, APPLE_API_KEY, APPLE_API_KEY_ID and APPLE_API_ISSUER)."
       - name: Build
         if: env.REUSE_BUILD_FROM_RUN == ''
         working-directory: apps/backend
