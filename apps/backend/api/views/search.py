@@ -29,6 +29,7 @@ from api.serializers.search import (
     SearchListQuery,
     SearchTermExamplesSerializer,
 )
+from api.sharing.library_search import LibrarySearch
 from api.views.custom_api_view import ListViewSet
 
 # The date of the undated group in search results. The other grouped lists send
@@ -50,6 +51,16 @@ def _in_rank_order(matches: QuerySet[Photo], ranked: list[UUID]) -> list[Photo]:
     return sorted(
         matches, key=lambda photo: (rank.get(photo.pk, len(rank)), -_taken(photo))
     )
+
+
+def _ranked_matches(
+    own: QuerySet[Photo], libraries: LibrarySearch, ranked: list[UUID]
+) -> QuerySet[Photo]:
+    shared = libraries.photos()
+    if shared is None:
+        return own.filter(pk__in=ranked)
+    reachable = Q(pk__in=own.values("pk")) | Q(pk__in=shared.values("pk"))
+    return with_photo_summary_relations(Photo.objects.filter(reachable, pk__in=ranked))
 
 
 def _taken(photo: Photo) -> float:
@@ -127,12 +138,16 @@ class SearchListViewSet(ListViewSet):
         context = {"request": request}
         if user.semantic_search_topk == 0:
             return self._grouped(request, photos, sort, context)
-        own = SemanticSearchFilter().structured_queryset(request, photos)
+        search_filter = SemanticSearchFilter()
+        own = search_filter.structured_queryset(request, photos)
         text = query["search"].strip()
-        ranked = ranked_photo_ids(user, own, text, query["language"]) if text else []
-        matches = self._with_libraries(
-            request, own.filter(pk__in=ranked) if text else own
-        )
+        libraries = search_filter.library_search(request)
+        if text:
+            ranked = ranked_photo_ids(user, own, text, query["language"], libraries)
+            matches = _ranked_matches(own, libraries, ranked)
+        else:
+            ranked = []
+            matches = own
         if sort in SIZE_SORT_ORDERINGS:
             return _size_answer(matches, sort, context)
         if sort in ("newest", "oldest") or not text:
@@ -173,7 +188,7 @@ class SearchListViewSet(ListViewSet):
     ) -> QuerySet[Photo]:
         """``own`` matches plus the matches in the libraries the requester
         shows in their timeline, under each owner's rules (#2731)."""
-        shared = SemanticSearchFilter().library_matches(request)
+        shared = SemanticSearchFilter().library_search(request).word_matches()
         if shared is None:
             return own
         return with_photo_summary_relations(

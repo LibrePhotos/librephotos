@@ -161,6 +161,8 @@ For example, searching "sunset at the beach" will find photos that look like a s
 
 Both lists are merged by rank (reciprocal rank fusion): a photo high on both comes first, and a photo found only one way still shows up. Matches by meaning whose similarity to the query is very low are left out.
 
+<Since version="1.7.0" /> A library someone [shares with you](./sharing.md#a-library-shared-with-you) and you show in your timeline is searched the same way: by meaning always, and by words only in what its owner shares (things always; places, people's names, captions and cameras with their switches). Its matches are ranked together with yours, so a better match from their library comes before a weaker one of yours. Up to 1.6.0 they came after all of your own matches, by words only.
+
 ### Enabling Semantic Search
 
 <Since version="1.7.0" /> Semantic search is on by default, at **Top 100**, and the update turns it on for every user who had it off. Up to 1.6.0 it was off by default and its matches came back in no particular order.

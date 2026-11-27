@@ -302,6 +302,29 @@ class CrossTenantReadTest(TestCase):
                 )
                 self.assertEqual(leaked, [], f"{response.status_code}: {body[:300]}")
 
+    def search_by_meaning_for_attacker(self):
+        perfect = [(photo.image_hash, 1.0) for photo in self.v_photos]
+        client = self.client_for(self.attacker)
+        with (
+            patch(
+                "api.search.ranked.calculate_query_embeddings",
+                return_value=([0.1] * 512, 1.0),
+            ),
+            patch(
+                "api.search.ranked.search_ranked_embedding", return_value=perfect
+            ) as ranked,
+        ):
+            response = client.get("/api/photos/searchlist/", {"search": "anything"})
+        self.assertEqual(response.status_code, 200)
+        searched = {call.args[0] for call in ranked.call_args_list}
+        return response.content.decode(), searched
+
+    def test_a_search_by_meaning_finds_only_shared_photos(self):
+        body, searched = self.search_by_meaning_for_attacker()
+        leaked = sorted(m for m in self.victim_markers if m in body)
+        self.assertEqual(leaked, [], body[:300])
+        self.assertEqual(searched, {self.attacker.id})
+
     def test_another_users_day_is_empty_and_their_cursor_a_400(self):
         """A day id is a date anyone can name: its pages hold the requester's
         photos only, and a cursor on another user's photo must not tell

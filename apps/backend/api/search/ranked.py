@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 from uuid import UUID
 
 import requests
@@ -15,16 +16,16 @@ from api.search.query_parser import DateSpec, ParsedQuery, Vocabulary, parse
 from api.search.semantic import SEARCH_COSINE_FLOOR, calculate_query_embeddings
 from api.search.similarity import search_ranked_embedding
 from api.search.translate import lexicon_for
+from api.sharing.library_search import LibrarySearch
 
 logger = logging.getLogger(__name__)
 
 FUSION = FusionSettings(semantic_floor=SEARCH_COSINE_FLOOR)
-PLACELESS_FUSION = FusionSettings(semantic_floor=0.2)
-FEW_PLACE_MATCHES = 10
 SEMANTIC_POOL = 2000
 LEXICAL_LIMIT = 1000
 MAX_RESULTS = 5000
 MIN_FIRST_NAME = 3
+NO_LIBRARIES = LibrarySearch()
 
 
 def vocabulary(user: User, language: str = "") -> Vocabulary:
@@ -79,73 +80,98 @@ def parsed_q(user: User, parsed: ParsedQuery) -> list[Q]:
 
 
 def _newest(queryset: QuerySet[Photo]) -> list[UUID]:
-    ordered = queryset.order_by(F("exif_timestamp").desc(nulls_last=True), "pk")
+    ordered = queryset.order_by("-exif_timestamp", "pk")
     return list(ordered.values_list("pk", flat=True)[:MAX_RESULTS])
 
 
+def _scored_rows(
+    owner_id: int,
+    photos: QuerySet[Photo],
+    embedding: Sequence[float],
+    pool: int,
+) -> list[tuple[UUID, float]]:
+    scored = search_ranked_embedding(owner_id, embedding, pool, FUSION.semantic_floor)
+    rows = dict(
+        photos.filter(image_hash__in=[h for h, _ in scored]).values_list(
+            "image_hash", "pk"
+        )
+    )
+    return [(rows[h], score) for h, score in scored if h in rows]
+
+
 def _semantic(
-    user: User, queryset: QuerySet[Photo], parsed: ParsedQuery, floor: float
+    user: User,
+    queryset: QuerySet[Photo],
+    parsed: ParsedQuery,
+    libraries: LibrarySearch,
 ) -> list[UUID]:
     try:
         embedding, _ = calculate_query_embeddings(parsed.semantic_text)
     except (requests.RequestException, KeyError, ValueError) as error:
         logger.warning("semantic search unavailable, using words only: %s", error)
         return []
-    pool = SEMANTIC_POOL if parsed.has_filters else user.semantic_search_topk
-    scored = search_ranked_embedding(
-        user.id, embedding, max(pool, user.semantic_search_topk), floor
+    pool = max(
+        SEMANTIC_POOL if parsed.has_filters else user.semantic_search_topk,
+        user.semantic_search_topk,
     )
-    rows = dict(
-        queryset.filter(image_hash__in=[h for h, _ in scored]).values_list(
-            "image_hash", "pk"
-        )
-    )
-    inside = [(rows[h], score) for h, score in scored if h in rows]
+    inside = _scored_rows(user.id, queryset, embedding, pool)
+    filters = parsed_q(user, parsed)
+    for library in libraries.libraries:
+        shown = library.photos.filter(*filters)
+        inside += _scored_rows(library.owner_id, shown, embedding, pool)
+    inside.sort(key=lambda row: -row[1])
     if parsed.has_filters:
         return [pk for pk, _ in inside]
-    kept = cut_semantic(inside, floor)
+    kept = cut_semantic(inside, FUSION.semantic_floor)
     return kept[: user.semantic_search_topk]
+
+
+def _shared_words(libraries: LibrarySearch) -> list[UUID]:
+    matches = libraries.word_matches()
+    if matches is None:
+        return []
+    ordered = matches.order_by("-exif_timestamp", "pk")
+    return list(ordered.values_list("pk", flat=True)[:LEXICAL_LIMIT])
 
 
 def _ranked(
     user: User,
     queryset: QuerySet[Photo],
     parsed: ParsedQuery,
-    fusion: FusionSettings = FUSION,
+    libraries: LibrarySearch,
 ) -> list[UUID]:
     filtered = queryset.filter(*parsed_q(user, parsed))
+    shared_words = _shared_words(libraries)
     if not parsed.terms and not parsed.phrases:
-        return _newest(filtered)
-    lexical = list(
+        return fuse(_newest(filtered), shared_words, FUSION)[:MAX_RESULTS]
+    own_words = list(
         lexical_matches(filtered, parsed.terms, parsed.phrases)
-        .order_by(
-            F("lexical_score").desc(),
-            F("exif_timestamp").desc(nulls_last=True),
-            "pk",
-        )
+        .order_by(F("lexical_score").desc(), F("exif_timestamp").desc(), "pk")
         .values_list("pk", flat=True)[:LEXICAL_LIMIT]
     )
+    lexical = fuse(own_words, shared_words, FUSION)
     semantic = (
-        _semantic(user, filtered, parsed, fusion.semantic_floor)
-        if parsed.semantic_text
-        else []
+        _semantic(user, filtered, parsed, libraries) if parsed.semantic_text else []
     )
     if parsed.phrases:
         allowed = set(lexical)
         semantic = [pk for pk in semantic if pk in allowed]
-    return fuse(lexical, semantic, fusion)[:MAX_RESULTS]
+    return fuse(lexical, semantic, FUSION)[:MAX_RESULTS]
 
 
 def ranked_photo_ids(
-    user: User, queryset: QuerySet[Photo], text: str, language: str = ""
+    user: User,
+    queryset: QuerySet[Photo],
+    text: str,
+    language: str = "",
+    libraries: LibrarySearch = NO_LIBRARIES,
 ) -> list[UUID]:
     words = vocabulary(user, language)
     parsed = parse(text, words)
-    found = _ranked(user, queryset, parsed)
+    found = _ranked(user, queryset, parsed, libraries)
     if not parsed.places:
         return found
     without_places = Vocabulary(people=words.people, translations=words.translations)
     seen = set(found)
-    fusion = FUSION if len(found) < FEW_PLACE_MATCHES else PLACELESS_FUSION
-    more = _ranked(user, queryset, parse(text, without_places), fusion)
+    more = _ranked(user, queryset, parse(text, without_places), libraries)
     return [*found, *(pk for pk in more if pk not in seen)][:MAX_RESULTS]

@@ -14,12 +14,11 @@ from rest_framework.views import APIView
 
 from api.albums.timeline_filter import timeline_filter_q
 from api.drf.request_user import request_user
-from api.models.photo import Photo
 from api.models.photo_search import fold
 from api.models.tag import Tag
 from api.models.user_place import UserPlace
 from api.search.metadata_filter import metadata_filter_q, parse_metadata_filter
-from api.sharing.library_search import library_matches
+from api.sharing.library_search import LibrarySearch, library_search
 
 # The filter is only used on photo lists, but DRF's BaseFilterBackend is generic
 # in the model, and an override has to accept every queryset the base accepts.
@@ -119,19 +118,12 @@ def _media_params(request: Request) -> dict[str, str | None]:
 
 
 class SemanticSearchFilter(filters.SearchFilter):
-    def library_matches(self, request: Request) -> QuerySet[Photo] | None:
-        """The matches in the libraries the requester shows in their timeline
-        (#2731), under each owner's rules; None when there are none to add.
-
-        Read as the requester's own matches are: the same terms and media
-        filter. A structured filter (camera, rating, location, ...) leaves the
-        shared libraries out, since it would probe what a share hides.
-        """
+    def library_search(self, request: Request) -> LibrarySearch:
         user = request_user(request)
         structured = metadata_filter_q(
             parse_metadata_filter(user, request.query_params)
         )
-        return library_matches(
+        return library_search(
             user,
             self.get_search_terms(request),
             timeline_filter_q(user, _media_params(request)),

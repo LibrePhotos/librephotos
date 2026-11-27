@@ -148,6 +148,8 @@ An original file keeps its GPS position, camera serial number and keywords insid
 
 **Search follows the same rules.** With **Location** off, searching a place name does not find your photos for them; with **People names** off, searching a person's name does not either, and the same goes for captions and cameras. Searching for what is in a photo, such as *beach* or *dog*, works, because they see the photo.
 
+<Since version="1.7.0" /> With [semantic search](./search.md#semantic-search) on, their search also finds your photos by meaning, whatever the switches: *sunset at the beach* finds a photo that looks like one, as it finds theirs, because the match comes from the picture itself and not from its place, people, captions or camera. Your photos and theirs are ranked together, best match first. Only the photos the share shows can match, never a hidden or trashed one, and a search that uses a [search filter](./search.md#search-filters) leaves your photos out, as it does for words. Up to 1.6.0 their search found your photos by words only, after their own.
+
 They can open, search and download your photos. They cannot edit, delete, favourite, rate or hide them, add them to their albums, or change their people.
 
 The switches also apply to the photos and albums you share with that user one by one: once you share your library with someone, its switches decide what they see of every photo of yours.
