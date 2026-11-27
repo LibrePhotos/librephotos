@@ -1,6 +1,6 @@
 import { Box, Button, Checkbox, Flex, Group, Menu, SegmentedControl, Stack, Text } from "@mantine/core";
 import { IconChevronDown, IconRefresh } from "@tabler/icons-react";
-import type { Dispatch, SetStateAction } from "react";
+import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { TOOLBAR_CONTROL_HEIGHT } from "../../uiConstants";
 import { toolbarLook } from "../common/toolbarLook";
@@ -11,6 +11,8 @@ type DetectOptions = {
   visual_threshold: number;
   clear_pending: boolean;
 };
+
+type DetectSwitch = "detect_exact_copies" | "detect_visual_duplicates" | "clear_pending";
 
 export function DetectDuplicatesMenu({
   isPhone,
@@ -26,6 +28,10 @@ export function DetectDuplicatesMenu({
   isDetecting: boolean;
 }) {
   const { t } = useTranslation();
+  const toggle = (option: DetectSwitch) => (event: ChangeEvent<HTMLInputElement>) => {
+    const { checked } = event.currentTarget;
+    setDetectOptions(options => ({ ...options, [option]: checked }));
+  };
   // Stacked on phones: side by side the two buttons are wider than the screen
   return (
     <Group gap="xs" w={isPhone ? "100%" : undefined}>
@@ -48,13 +54,13 @@ export function DetectDuplicatesMenu({
                 <Checkbox
                   size="sm"
                   checked={detectOptions.detect_exact_copies}
-                  onChange={e => setDetectOptions(o => ({ ...o, detect_exact_copies: e.currentTarget.checked }))}
+                  onChange={toggle("detect_exact_copies")}
                   label={t("duplicates.detectExactCopies")}
                 />
                 <Checkbox
                   size="sm"
                   checked={detectOptions.detect_visual_duplicates}
-                  onChange={e => setDetectOptions(o => ({ ...o, detect_visual_duplicates: e.currentTarget.checked }))}
+                  onChange={toggle("detect_visual_duplicates")}
                   label={t("duplicates.detectVisualDuplicates")}
                 />
                 {detectOptions.detect_visual_duplicates && (
@@ -93,7 +99,7 @@ export function DetectDuplicatesMenu({
               <Checkbox
                 size="sm"
                 checked={detectOptions.clear_pending}
-                onChange={e => setDetectOptions(o => ({ ...o, clear_pending: e.currentTarget.checked }))}
+                onChange={toggle("clear_pending")}
                 label={
                   <Stack gap={0}>
                     <Text size="sm">{t("duplicates.clearPending")}</Text>
