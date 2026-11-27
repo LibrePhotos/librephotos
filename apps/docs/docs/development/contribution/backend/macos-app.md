@@ -96,7 +96,7 @@ ID Application certificate in the `.p12` and uses these settings:
 
 Without the first four the workflow signs ad hoc (`codesign --sign -`) and says in a notice which are
 missing: that is enough to run on the runner, and Gatekeeper blocks a downloaded copy. With them but without
-the API key it signs with the Developer ID and does not notarize. The certificate goes into a temporary keychain. The app is zipped with `ditto`, submitted with
+the API key it signs with the Developer ID and does not notarize. Pull requests never get these secrets and always sign ad hoc, so a dependency update or a branch cannot sign with the maintainer's certificate; pushes to `dev`, manual runs and releases sign and notarize. The certificate goes into a temporary keychain. The app is zipped with `ditto`, submitted with
 `xcrun notarytool submit --wait` and stapled; then the disk image is made from the stapled app, signed,
 submitted and stapled too. Only the maintainer can create the Developer ID (an Apple Developer Program
 membership), the certificate and the API key.

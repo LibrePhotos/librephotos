@@ -159,11 +159,11 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ inputs.tag || github.event.release.tag_name }}
       INPUT_VERSION: ${{ inputs.version || github.event.release.tag_name || '0.0.0' }}
-      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-      APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+      APPLE_CERTIFICATE: ${{ github.event_name != 'pull_request' && secrets.APPLE_CERTIFICATE || '' }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+      APPLE_API_KEY_ID: ${{ github.event_name != 'pull_request' && secrets.APPLE_API_KEY_ID || '' }}
+      APPLE_API_ISSUER: ${{ github.event_name != 'pull_request' && secrets.APPLE_API_ISSUER || '' }}
+      APPLE_API_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.APPLE_API_PRIVATE_KEY || '' }}
       APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
       DEVELOPER_ID_IDENTITY: ${{ vars.APPLE_SIGNING_IDENTITY }}
     steps:
@@ -225,6 +225,11 @@ jobs:
               fi
             done
           }
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            echo "::notice::Pull request builds are signed ad hoc and get no Apple secrets; Developer ID signing and notarization run on dev, manual runs and releases."
+            echo "SIGN_DEVELOPER_ID=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
           signing=$(missing APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_TEAM_ID DEVELOPER_ID_IDENTITY)
           notarizing=$(missing APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_API_PRIVATE_KEY)
           if [ -n "$signing" ]; then
