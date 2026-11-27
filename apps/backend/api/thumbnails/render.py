@@ -985,6 +985,11 @@ def calculate_aspect_ratio(thumbnail: Thumbnail) -> None:
         thumbnail.save()
         if changed:
             _resend_photo(thumbnail)
+    except FileNotFoundError:
+        logger.warning(
+            "the big thumbnail of photo %s is not on disk; no aspect ratio",
+            thumbnail.photo_id,
+        )
     except Exception:
         logger.exception(
             "could not calculate aspect ratio for image %s",

@@ -22,6 +22,7 @@ const stubs = vi.hoisted(() => ({
   tagsSections: [] as string[],
   publicAlbumPhoto: undefined as PublicPhotoDetailResponse | undefined,
   people: [] as string[],
+  demo: null as { username: string; password: string } | null,
 }));
 
 vi.mock("../../api_client/photos/hooks", () => ({
@@ -41,6 +42,7 @@ vi.mock("../../api_client/faces", () => ({
   useDrawnFaceResult: () => null,
 }));
 vi.mock("../LocationMap", () => ({ LocationMap: () => null }));
+vi.mock("../demo/useDemoSite", () => ({ useDemoSite: () => stubs.demo }));
 vi.mock("../modals/ModalPersonEdit", () => ({ ModalPersonEdit: () => null }));
 // The owner's sections have hooks of their own; only which sections render matters here.
 // The place is handed to it, to end the Details under the camera
@@ -92,6 +94,7 @@ afterEach(async () => {
   stubs.tagsSections = [];
   stubs.publicAlbumPhoto = undefined;
   stubs.people = [];
+  stubs.demo = null;
 });
 
 async function renderSidebar(gridItem?: LightboxItem, isPublic = true, publicAlbumSlug?: string) {
@@ -251,6 +254,22 @@ const publicPhoto: PublicPhotoDetailResponse["results"] = {
   search_location: "Berlin, Germany",
   people: [{ name: "Ada", face_url: null, face_id: 7 }],
 };
+
+describe("Sidebar on a view-only demo", () => {
+  it("shows the owner's photo without the tag and rights editors", async () => {
+    stubs.demo = { username: "demo", password: "demo1234" };
+    stubs.ownPhoto = makePhoto({
+      id: "p1",
+      image_hash: "h1",
+      rights: { license: "cc-by-4.0", creator: "Ada", copyright: null },
+    });
+
+    const container = await renderSidebar(undefined, false);
+
+    expect(stubs.tagsSections).toEqual([]);
+    expect(container.textContent).toContain("CC BY 4.0");
+  });
+});
 
 describe("Sidebar on a public album page", () => {
   it("shows what the album shares", async () => {

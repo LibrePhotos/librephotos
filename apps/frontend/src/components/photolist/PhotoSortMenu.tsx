@@ -11,9 +11,10 @@ type Props = Readonly<{
   sort: SearchSort;
   onChange: (sort: SearchSort) => void;
   onReset?: () => void;
+  options?: readonly SearchSort[];
 }>;
 
-export function PhotoSortMenu({ sort, onChange, onReset }: Props) {
+export function PhotoSortMenu({ sort, onChange, onReset, options = PHOTO_SORTS }: Props) {
   const { t } = useTranslation();
   const name = t("albumsort.button", { key: t(PHOTO_SORT_LABELS[sort]) });
   const check = <Check size={ICON_SIZE.inline} />;
@@ -23,7 +24,7 @@ export function PhotoSortMenu({ sort, onChange, onReset }: Props) {
       <SortMenuTarget name={name} label={name} active={onReset !== undefined} />
       <Menu.Dropdown>
         <Menu.Label>{t("albumsort.sortby")}</Menu.Label>
-        {PHOTO_SORTS.map(value => (
+        {options.map(value => (
           <Menu.RadioItem
             key={value}
             value={value}

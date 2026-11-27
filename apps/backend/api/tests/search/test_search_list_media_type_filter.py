@@ -17,15 +17,8 @@ def _hashes_in_grouped_response(response):
 
 
 class SearchMediaTypeFilterTest(TestCase):
-    """The search endpoint should honor the video/photo media-type filters.
-
-    semantic_search_topk defaults to 0 for a fresh user, so these exercise the
-    date-grouped branch of SearchListViewSet.list without needing the CLIP
-    embedding service.
-    """
-
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         # Dated, so both land in one day group; undated media are grouped

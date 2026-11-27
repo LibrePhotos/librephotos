@@ -1,11 +1,13 @@
-import type { SearchFilters } from "@librephotos/api-client";
+import type { Photo, SearchFilters } from "@librephotos/api-client";
 import { Avatar, Badge, Button, CloseButton, Group } from "@mantine/core";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
+import { MediaThumbnail } from "../common/MediaThumbnail";
 import { faceSource } from "./PeopleFilter";
-import { describeSearchFilters } from "./searchFilterLabels";
+import { describeSearchFilters, type SearchFilterChip } from "./searchFilterLabels";
 
 type Props = Readonly<{
   filters: SearchFilters;
@@ -15,12 +17,25 @@ type Props = Readonly<{
   favoriteRating: number | undefined;
 }>;
 
+type ChipPictures = Readonly<{
+  face: (personId: number) => string | undefined;
+  similar: Pick<Photo, "image_hash" | "video"> | null | undefined;
+}>;
+
+function chipPicture(chip: SearchFilterChip, { face, similar }: ChipPictures) {
+  if (chip.personId !== undefined) return <Avatar src={face(chip.personId)} alt="" radius="xl" size={18} />;
+  if (chip.similarTo === undefined || !similar) return undefined;
+  return <MediaThumbnail imageHash={similar.image_hash} video={similar.video} size={18} radius="sm" />;
+}
+
 // The active search filters as removable sentence chips under the title, plus Clear all (which
 // keeps the words and the media type). People chips carry the face.
 export function SearchFilterChips({ filters, onChange, onClear, favoriteRating }: Props) {
   const { t } = useTranslation();
   const { data: people } = useFetchPeopleAlbumsQuery(!filters.person);
   const byId = useMemo(() => new Map((people ?? []).map(person => [Number(person.id), person])), [people]);
+  const { data: similarPhoto } = useFetchPhotoDetailsQuery(filters.similar_to ?? "", !filters.similar_to);
+  const pictures = { face: (id: number) => faceSource(byId.get(id)), similar: similarPhoto };
   const chips = describeSearchFilters(filters, {
     t,
     language: i18nResolvedLanguage(),
@@ -39,11 +54,7 @@ export function SearchFilterChips({ filters, onChange, onClear, favoriteRating }
           tt="none"
           fw={500}
           pr={2}
-          leftSection={
-            chip.personId === undefined ? undefined : (
-              <Avatar src={faceSource(byId.get(chip.personId))} alt="" radius="xl" size={18} />
-            )
-          }
+          leftSection={chipPicture(chip, pictures)}
           rightSection={
             <CloseButton
               size="xs"

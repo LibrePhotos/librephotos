@@ -357,3 +357,37 @@ class WhileServingTest(_Store):
         staged = index._staging[1].rows
         self.assertIsNone(staged._map)
         self.assertEqual(index.staged_size(1, token), 3)
+
+
+class CosineSearchTest(SimpleTestCase):
+    def setUp(self):
+        self.rows = retrieval_index._MemoryRows()
+        long_off_axis = np.array(unit(0, 0.5), dtype=np.float32)
+        long_off_axis[1] = 3.0
+        self.rows.append(
+            np.stack([np.array(unit(0, 1.0), dtype=np.float32), long_off_axis]),
+            ["aligned", "long"],
+        )
+
+    def test_the_inner_product_favours_long_vectors(self):
+        query = unit(0)
+        query[1] = 0.5
+        scored = retrieval_index.search_rows_scored(self.rows, query, 2, -1e30)
+        self.assertEqual([h for h, _ in scored], ["long", "aligned"])
+
+    def test_cosine_ranks_by_direction_with_its_scores(self):
+        query = unit(0)
+        query[1] = 0.5
+        scored = retrieval_index.search_rows_scored(self.rows, query, 2, -1.0, "cosine")
+        self.assertEqual([h for h, _ in scored], ["aligned", "long"])
+        self.assertAlmostEqual(scored[0][1], 1 / np.sqrt(1.25), places=5)
+
+    def test_the_threshold_is_on_the_metric_scale(self):
+        scored = retrieval_index.search_rows_scored(
+            self.rows, unit(0), 2, 0.9, "cosine"
+        )
+        self.assertEqual(scored, [("aligned", 1.0)])
+
+    def test_an_unknown_metric_is_refused(self):
+        with self.assertRaises(ValueError):
+            retrieval_index.search_rows_scored(self.rows, unit(0), 2, 0.0, "l2")

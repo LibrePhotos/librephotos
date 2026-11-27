@@ -29,14 +29,20 @@ Embeddings
   * ``/query-embeddings`` returns the raw text embedding and its norm.
 """
 
+import threading
+import time
 import types
+from collections.abc import Callable
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import requests
 from django.test import SimpleTestCase
 
+from api.runtime.http_timeouts import HEALTH_CHECK
 from api.tests.sidecar_client import test_client
 from api.tests.stubs import load_backend_file
+from service._wsgi_server import WSGIServer
 
 MODEL_NAME = "openclip_vitb32"
 
@@ -68,7 +74,7 @@ def _load_tags_main():
 tags_main = _load_tags_main()
 
 
-class TagsServiceTestCase(SimpleTestCase):
+class TagsServiceBase(SimpleTestCase):
     def setUp(self):
         tags_main.app.config["TESTING"] = False
         self.client = test_client(tags_main.app)
@@ -86,6 +92,8 @@ class TagsServiceTestCase(SimpleTestCase):
     def _post(self, **body):
         return self.client.post("/generate-tags", json=body)
 
+
+class TagsServiceTestCase(TagsServiceBase):
     # ------------------------------------------------------------- tagging
     def test_tags_come_from_openclip_at_its_cut_off(self):
         self.model.predict.return_value = {"tags": ["beach", "ocean"]}
@@ -174,11 +182,11 @@ class TagsServiceTestCase(SimpleTestCase):
         )
 
     def test_query_embeddings(self):
-        self.model.embed_text_raw.return_value = np.array([0.0, 2.0], np.float32)
+        self.model.embed_query.return_value = np.array([0.0, 1.0], np.float32)
         response = self.client.post("/query-embeddings", json={"query": "a dog"})
 
-        self.assertEqual(response.get_json(), {"emb": [0.0, 2.0], "magnitude": 2.0})
-        self.model.embed_text_raw.assert_called_once_with("a dog")
+        self.assertEqual(response.get_json(), {"emb": [0.0, 1.0], "magnitude": 1.0})
+        self.model.embed_query.assert_called_once_with("a dog")
 
     # -------------------------------------------------------------- errors
     def test_missing_file_is_a_400_that_keeps_the_loaded_model(self):
@@ -237,3 +245,121 @@ class TagsServiceTestCase(SimpleTestCase):
         self.assertEqual(self.client.post("/unload-model").status_code, 200)
 
         self.assertFalse(self.client.get("/health").get_json()["model_loaded"])
+
+
+def _wait_for(condition: Callable[[], bool]) -> None:
+    deadline = time.monotonic() + 10
+    while not condition():
+        if time.monotonic() > deadline:
+            raise AssertionError("timed out")
+        time.sleep(0.01)
+
+
+class BuildingTagEmbeddingsBase(TagsServiceBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.model.is_loaded = False
+        self.model.load_cached.return_value = False
+        self.release = threading.Event()
+        self.model.build_tag_embeddings.side_effect = lambda: self.release.wait(10)
+        self.model.predict.side_effect = self._predict_as_before
+        self.addCleanup(self._finish_build)
+
+    def _predict_as_before(self, *_args: object, **_kwargs: object) -> dict:
+        if not self.model.is_loaded:
+            self.release.wait(10)
+        return {"tags": ["beach"]}
+
+    def _finish_build(self) -> None:
+        self.release.set()
+        _wait_for(lambda: not tags_main.tag_embeddings_build.running())
+
+    def _built(self) -> None:
+        self._finish_build()
+
+        def load_cached() -> bool:
+            self.model.is_loaded = True
+            return True
+
+        self.model.load_cached.side_effect = load_cached
+
+
+class TagEmbeddingsBuildTest(BuildingTagEmbeddingsBase):
+    def test_tagging_is_a_503_while_the_tag_embeddings_build(self):
+        responses = [self._post(image_path="/a.jpg") for _ in range(3)]
+
+        self.assertEqual([r.status_code for r in responses], [503, 503, 503])
+        self.assertEqual(responses[0].get_json()["code"], "loading")
+        self.assertEqual(self.model.build_tag_embeddings.call_count, 1)
+        self.model.predict.assert_not_called()
+
+    def test_health_reports_the_build_and_refuses_an_unload(self):
+        self._post(image_path="/a.jpg")
+
+        health = self.client.get("/health").get_json()
+
+        self.assertEqual((health["loading"], health["busy"]), (True, True))
+        self.assertEqual(self.client.post("/unload-model").status_code, 409)
+        self.assertIn(MODEL_NAME, tags_main.tagger_instances)
+
+    def test_tagging_works_once_the_build_is_done(self):
+        self._post(image_path="/a.jpg")
+        self._built()
+
+        response = self._post(image_path="/a.jpg")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"tags": {"tags": ["beach"]}})
+        self.assertFalse(self.client.get("/health").get_json()["loading"])
+
+    def test_a_cached_model_loads_in_the_request(self):
+        self._built()
+
+        self.assertEqual(self._post(image_path="/a.jpg").status_code, 200)
+        self.model.build_tag_embeddings.assert_not_called()
+
+    def test_embeddings_come_without_tags_while_the_build_runs(self):
+        self.model.embed_images_raw.return_value = [np.array([3.0, 4.0], np.float32)]
+
+        response = self.client.post(
+            "/clip-embeddings", json={"imgs": ["/a.jpg"], "with_tags": True}
+        )
+
+        self.assertEqual(
+            response.get_json(), {"imgs_emb": [[3.0, 4.0]], "magnitudes": [5.0]}
+        )
+        self.assertTrue(tags_main.tag_embeddings_build.running())
+        self.model.tags_for.assert_not_called()
+
+    def test_a_failed_build_is_logged_and_the_next_request_tries_again(self):
+        self.model.build_tag_embeddings.side_effect = RuntimeError("no text tower")
+
+        with self.assertLogs("tags", "ERROR"):
+            self._post(image_path="/a.jpg")
+            _wait_for(lambda: not tags_main.tag_embeddings_build.running())
+        self.model.build_tag_embeddings.side_effect = None
+        self._post(image_path="/a.jpg")
+
+        self.assertEqual(self.model.build_tag_embeddings.call_count, 2)
+
+
+class SlowFirstBuildOverTheServerTest(BuildingTagEmbeddingsBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.server = WSGIServer(("127.0.0.1", 0), tags_main.app, tags_main.log)
+        thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join, 10)
+        self.addCleanup(self.server.stop)
+        host, port = self.server.address
+        self.url = f"http://{host}:{port}"
+
+    def test_health_answers_the_watchdog_while_the_build_runs(self):
+        tagging = requests.post(
+            f"{self.url}/generate-tags", json={"image_path": "/a.jpg"}, timeout=(5, 5)
+        )
+        health = requests.get(f"{self.url}/health", timeout=HEALTH_CHECK)
+
+        self.assertEqual(tagging.status_code, 503)
+        self.assertEqual(health.status_code, 200)
+        self.assertTrue(health.json()["loading"])

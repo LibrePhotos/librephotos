@@ -271,13 +271,24 @@ def _write_at(path: str, offset: int, data: bytes) -> None:
         os.fsync(out.fileno())
 
 
-def search_rows(rows: _Rows, in_embedding: object, n: int, thres: float) -> list[str]:
-    """The image hashes of the ``n`` rows closest to ``in_embedding``,
-    best first, that score at least ``thres``.
+METRICS = ("ip", "cosine")
 
-    Raises ValueError for an embedding that is not 512 numbers or ``n`` < 1,
-    which FAISS refused too.
-    """
+
+def _scores(rows: _Rows, query: Matrix, metric: str) -> Matrix:
+    if metric == "ip":
+        return rows.matrix() @ query
+    if metric != "cosine":
+        raise ValueError(f"metric must be one of {METRICS}, not {metric!r}")
+    matrix = rows.matrix()
+    norms = np.linalg.norm(matrix, axis=1) * float(np.linalg.norm(query))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        cosine = (matrix @ query) / norms
+    return np.nan_to_num(cosine, nan=-1.0).astype(np.float32)
+
+
+def search_rows_scored(
+    rows: _Rows, in_embedding: object, n: int, thres: float, metric: str = "ip"
+) -> list[tuple[str, float]]:
     query = np.asarray(in_embedding, dtype=np.float32)
     if query.shape != (embedding_size,):
         raise ValueError(
@@ -285,11 +296,17 @@ def search_rows(rows: _Rows, in_embedding: object, n: int, thres: float) -> list
         )
     if n < 1:
         raise ValueError(f"n must be at least 1, not {n}")
+    if metric not in METRICS:
+        raise ValueError(f"metric must be one of {METRICS}, not {metric!r}")
     if rows.ntotal == 0:
         return []
-    scores = rows.matrix() @ query
+    scores = _scores(rows, query, metric)
     order = ranked(scores, top_k(scores, n))
-    return [rows.image_hashes[row] for row in order if scores[row] >= thres]
+    return [
+        (rows.image_hashes[row], float(scores[row]))
+        for row in order
+        if scores[row] >= thres
+    ]
 
 
 # ------------------------------------------------------------ legacy files
@@ -831,12 +848,23 @@ class RetrievalIndex:
         in_embedding: list[float],
         n: int = 100,
         thres: float = 27.0,
+        metric: str = "ip",
     ) -> list[str]:
-        """Image hashes of the user's photos closest to the embedding.
+        return [
+            image_hash
+            for image_hash, _ in self.search_similar_scored(
+                user_id, in_embedding, n, thres, metric
+            )
+        ]
 
-        A user without an index (never built, or built before the index was
-        kept on disk) has no similar photos yet rather than an error.
-        """
+    def search_similar_scored(
+        self,
+        user_id: int,
+        in_embedding: list[float],
+        n: int = 100,
+        thres: float = 27.0,
+        metric: str = "ip",
+    ) -> list[tuple[str, float]]:
         index = self._live(user_id)
         if index is None:
             if user_id not in self._warned_missing:
@@ -849,7 +877,7 @@ class RetrievalIndex:
             return []
 
         start = datetime.datetime.now()
-        res = search_rows(index, in_embedding, n, thres)
+        res = search_rows_scored(index, in_embedding, n, thres, metric)
         elapsed = (datetime.datetime.now() - start).total_seconds()
         logger.info(
             "searched for %d images for user %d - took %.2f seconds",

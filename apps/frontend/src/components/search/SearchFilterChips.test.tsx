@@ -13,6 +13,14 @@ import { SearchFilterChips } from "./SearchFilterChips";
 
 const stubs = vi.hoisted(() => ({
   peopleSkipped: [] as boolean[],
+  photoAsked: [] as string[],
+}));
+
+vi.mock("../../api_client/photos/hooks", () => ({
+  useFetchPhotoDetailsQuery: (id: string, skip: boolean) => {
+    if (!skip) stubs.photoAsked.push(id);
+    return { data: skip ? undefined : { id, image_hash: "likehash", video: false } };
+  },
 }));
 
 vi.mock("../../api_client/albums/hooks", () => ({
@@ -50,6 +58,7 @@ beforeEach(() => {
   onChange.mockReset();
   onClear.mockReset();
   stubs.peopleSkipped = [];
+  stubs.photoAsked = [];
 });
 
 async function renderChips(filters: SearchFilters, favoriteRating?: number) {
@@ -100,5 +109,21 @@ describe("SearchFilterChips", () => {
   it("names the favorite threshold Favorites only", async () => {
     const container = await renderChips({ rating_min: 4 }, 4);
     expect(container.textContent).toContain("Favorites only");
+  });
+
+  it("shows a search by a photo as a chip with the photo, which removes it", async () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    const container = await renderChips({ similar_to: id });
+    expect(container.textContent).toContain("Like this photo");
+    expect(stubs.photoAsked).toEqual([id]);
+    expect(container.querySelector("img")?.getAttribute("src")).toContain("likehash");
+
+    await act(async () => button(container, "Remove filter: Like this photo").click());
+    expect(onChange).toHaveBeenCalledWith({ similar_to: undefined });
+  });
+
+  it("does not load a photo without a search by a photo", async () => {
+    await renderChips({ camera: "X-T5" });
+    expect(stubs.photoAsked).toEqual([]);
   });
 });

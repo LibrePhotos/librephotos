@@ -69,10 +69,7 @@ ENV GIT_HASH=${GIT_HASH}
 
 # The backend entrypoint. Its SERVE_FRONTEND block selects the no-proxy settings
 # (librephotos/settings/production_noproxy.py, shipped with the source above).
-# This image serves the web app and every thumbnail through Django, so it runs
-# more uvicorn workers and recycles them less often than the backend image.
 ENV WEB_CONCURRENCY=4
-ENV WEB_MAX_REQUESTS=2000
 COPY deploy/docker/backend/entrypoint.sh /entrypoint.sh
 
 EXPOSE 8001

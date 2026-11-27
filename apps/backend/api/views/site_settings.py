@@ -3,6 +3,7 @@
 from typing import Any
 
 from constance import config as site_config
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny, BasePermission, IsAdminUser
 from rest_framework.request import Request
@@ -172,9 +173,13 @@ class SiteSettingsView(APIView):
     @extend_schema(responses=SiteSettingsSerializer)
     def get(self, request: Request, format: str | None = None) -> Response:
         config = site_config_values(SETTING_KEYS)
+        demo = bool(settings.DEMO_SITE)
         out: dict[str, object] = {}
-        out["allow_registration"] = config["ALLOW_REGISTRATION"]
-        out["allow_upload"] = config["ALLOW_UPLOAD"]
+        out["allow_registration"] = config["ALLOW_REGISTRATION"] and not demo
+        out["allow_upload"] = config["ALLOW_UPLOAD"] and not demo
+        out["demo_site"] = demo
+        out["demo_username"] = settings.DEMO_USERNAME
+        out["demo_password"] = settings.DEMO_PASSWORD
         out["skip_patterns"] = config["SKIP_PATTERNS"]
         out["heavyweight_process"] = 0
         out["map_api_provider"] = config["MAP_API_PROVIDER"]

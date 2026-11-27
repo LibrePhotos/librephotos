@@ -29,7 +29,7 @@ def _hashes_of_flat(response):
 
 class SearchListSortTest(TestCase):
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         day = timezone.now()
@@ -267,12 +267,12 @@ class SearchListSizeSortSemanticTest(TestCase):
     def _search(self, sort):
         with (
             patch(
-                "api.search.filters.calculate_query_embeddings",
+                "api.search.ranked.calculate_query_embeddings",
                 return_value=([0.1] * 512, 1.0),
             ),
             patch(
-                "api.search.filters.search_similar_embedding",
-                return_value=[self.semantic_match.image_hash],
+                "api.search.ranked.search_ranked_embedding",
+                return_value=[(self.semantic_match.image_hash, 0.3)],
             ),
         ):
             return self.client.get(SEARCH_URL, {"search": "beach", "sort": sort})

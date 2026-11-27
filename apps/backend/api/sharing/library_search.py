@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import operator
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from functools import reduce
 
 from django.db.models import F, Q, QuerySet
@@ -64,33 +65,61 @@ def term_q(term: str, grant: LibraryGrant) -> Q:
     return q
 
 
-def _share_q(user: User, share: LibraryShare, terms: Sequence[str]) -> Q:
-    grant = LibraryGrant.of(share)
-    shares = LibraryShare.objects.filter(pk=share.pk)
-    return reduce(
-        operator.and_,
-        (term_q(term, grant) for term in terms),
-        shared_library_q(user, shares),
-    )
+@dataclass(frozen=True)
+class SharedLibrary:
+    owner_id: int
+    grant: LibraryGrant
+    shown: Q
+
+    @property
+    def photos(self) -> QuerySet[Photo]:
+        return Photo.visible.filter(self.shown)
+
+    def words_q(self, terms: Sequence[str]) -> Q:
+        return reduce(
+            operator.and_, (term_q(term, self.grant) for term in terms), self.shown
+        )
 
 
-def library_matches(
+@dataclass(frozen=True)
+class LibrarySearch:
+    libraries: tuple[SharedLibrary, ...] = ()
+    terms: tuple[str, ...] = ()
+
+    def word_matches(self) -> QuerySet[Photo] | None:
+        if not self.terms or not self.libraries:
+            return None
+        match = reduce(
+            operator.or_, (library.words_q(self.terms) for library in self.libraries)
+        )
+        return Photo.visible.filter(match)
+
+    def photos(self) -> QuerySet[Photo] | None:
+        if not self.libraries:
+            return None
+        shown = reduce(operator.or_, (library.shown for library in self.libraries))
+        return Photo.visible.filter(shown)
+
+
+def library_search(
     user: User,
     terms: Sequence[str],
     media_q: Iterable[Q],
     owner_only_filters: bool,
-) -> QuerySet[Photo] | None:
-    """The shared photos a search for every one of ``terms`` finds.
-
-    None without a term, with a structured filter (``owner_only_filters``)
-    or when no library is in ``user``'s timeline. ``media_q`` is the media
-    filter (photos, videos, screenshots, documents), applied as on the
-    searcher's own photos.
-    """
-    if not terms or owner_only_filters:
-        return None
-    shares = list(timeline_shares(user))
-    if not shares:
-        return None
-    match = reduce(operator.or_, (_share_q(user, share, terms) for share in shares))
-    return Photo.visible.filter(match, *media_q)
+) -> LibrarySearch:
+    if owner_only_filters:
+        return LibrarySearch()
+    media = list(media_q)
+    libraries = tuple(
+        SharedLibrary(
+            owner_id=share.owner_id,
+            grant=LibraryGrant.of(share),
+            shown=reduce(
+                operator.and_,
+                media,
+                shared_library_q(user, LibraryShare.objects.filter(pk=share.pk)),
+            ),
+        )
+        for share in timeline_shares(user)
+    )
+    return LibrarySearch(libraries=libraries, terms=tuple(terms))

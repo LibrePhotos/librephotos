@@ -2,6 +2,7 @@ import { Box, Flex, Group } from "@mantine/core";
 import React from "react";
 import { LEFT_MENU_WIDTH, PAGE_GUTTER } from "../../uiConstants";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
+import { DemoBadge } from "../demo/DemoBadge";
 import { SpotlightTrigger } from "../spotlight";
 import { ColorModeSwitch } from "./ColorModeSwitch";
 import { MobileBackButton } from "./MobileBackButton";
@@ -32,6 +33,7 @@ export function TopMenu(): React.ReactNode {
         {/* display: flex on the wrappers, so each tile is centred itself rather
             than sitting on a text baseline (the avatar sat 3px higher). */}
         <Group wrap="nowrap" gap="xs">
+          <DemoBadge />
           <Box visibleFrom="sm" display="flex">
             <ColorModeSwitch />
           </Box>

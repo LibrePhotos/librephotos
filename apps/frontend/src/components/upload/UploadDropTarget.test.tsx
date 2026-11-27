@@ -60,6 +60,15 @@ const fire = async (type: "dragenter" | "dragover" | "dragleave" | "drop", targe
 const page = () => defined(container.querySelector('[data-testid="page"]'));
 const overlay = () => container.querySelector<HTMLElement>('[data-testid="upload-drop-overlay"]');
 
+const pageAncestors = () => {
+  const ancestors: Element[] = [];
+  for (let node = page().parentElement; node && node !== container; node = node.parentElement) ancestors.push(node);
+  return ancestors;
+};
+
+const announcingAttributes = (element: Element) =>
+  element.getAttributeNames().filter(name => name === "role" || name === "tabindex" || name.startsWith("aria-"));
+
 beforeAll(async () => {
   window.matchMedia = (query: string): MediaQueryList => ({
     matches: false,
@@ -201,6 +210,17 @@ describe("UploadDropTarget", () => {
     expect(stubs.start).not.toHaveBeenCalled();
     expect(drop.defaultPrevented).toBe(true);
   });
+
+  it.each<UploadAvailability>(["off", "no_scan_directory", "ready"])(
+    "wraps the page without a role, tab stop or aria attribute when uploads are %s",
+    async availability => {
+      stubs.availability = availability;
+      await render();
+
+      expect(pageAncestors().length).toBeGreaterThan(0);
+      expect(pageAncestors().flatMap(announcingAttributes)).toEqual([]);
+    }
+  );
 
   it("ignores a drag that started on the page, such as a thumbnail", async () => {
     await render();

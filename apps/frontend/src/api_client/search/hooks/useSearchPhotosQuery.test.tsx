@@ -186,6 +186,20 @@ describe("useSearchPhotosQuery", () => {
     expect(stubs.get).toHaveBeenCalledWith("/photos/searchlist/?photo=true&camera=X-T5&iso_min=3200&person=3&person=7");
   });
 
+  it("searches by a photo as a flat list, sending the sort, for a user without semantic search", async () => {
+    stubs.user = { semantic_search_topk: 0 };
+    stubs.get.mockResolvedValue({ results: [pigPhoto] });
+    args = { term: "", filters: { similar_to: pigPhoto.id }, sort: "newest" };
+    container = document.createElement("div");
+    root = createRoot(container);
+
+    await render(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    await settle(() => result.isSuccess);
+
+    expect(stubs.get).toHaveBeenCalledWith(`/photos/searchlist/?similar_to=${pigPhoto.id}&sort=newest`);
+    expect(result.data?.photosFlat).toHaveLength(1);
+  });
+
   it("asks nothing without words or filters", async () => {
     stubs.user = { semantic_search_topk: 0 };
     args = { term: "", filters: { camera: undefined } };

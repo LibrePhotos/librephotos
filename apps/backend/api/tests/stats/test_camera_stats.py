@@ -296,7 +296,7 @@ class CameraStatsViewTest(TestCase):
     def search_count(self, params):
         response = self.client.get(SEARCH_URL, params)
         self.assertEqual(response.status_code, 200, response.data)
-        return sum(len(day["items"]) for day in response.data["results"])
+        return len(response.data["results"])
 
     def test_the_endpoint_answers_the_stats(self):
         self.photo(camera_make="FUJIFILM", camera="X-T5", iso=400)

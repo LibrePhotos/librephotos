@@ -200,7 +200,7 @@ Two settings size the web API, separately from the background workers. `WEB_CONC
 | Variable | `.env` key | Default | What it does |
 | --- | --- | --- | --- |
 | `WEB_CONCURRENCY` | `gunniWorkers` | `1` (backend image), `4` (single-container image) | Number of uvicorn worker processes. Above `1` each worker is recycled after `WEB_MAX_REQUESTS` requests, so a recycled one never takes the whole API down. |
-| `WEB_MAX_REQUESTS` | _(none)_ | `50` (backend image), `2000` (single-container image) | With more than one worker, the requests a worker answers before it is restarted. The single-container image serves the web app and the photos through Django too, so it restarts them less often. |
+| `WEB_MAX_REQUESTS` | _(none)_ | `10000` | With more than one worker, the requests a worker answers before it is restarted, plus a random extra of up to a tenth, so the workers do not restart at the same moment. <Since version="1.7.0" /> Up to 1.6.0 the default was `50` in the backend image and `2000` in the single-container image, and all workers restarted together: opening the web app alone is about 70 requests, and a busy server spent much of its CPU starting workers again and answered some requests with 502 meanwhile. |
 | `WEB_THREADS` | _(none)_ | `16` | Requests one uvicorn worker serves at the same time; further requests wait for a free thread. |
 
 ### Turning features off
@@ -259,6 +259,8 @@ services:
 The backend runs its heavy models in separate sidecar processes, and a watchdog restarts any of them that dies. A switch that is off keeps its service from being started at all, and the watchdog leaves it alone rather than bringing it back a minute later — which is where the memory saving actually comes from, since a loaded model costs its memory whether or not anything asks it a question.
 
 <Since version="1.7.0" /> A service whose switch is turned off while it runs is stopped at the watchdog's next check, within a minute. A service that still runs but answers no health check for three minutes, longer than any request to it may take, counts as hung and is restarted; one that is only busy answers in time and is left alone.
+
+<Since version="1.7.0" /> The first time the Things service (`tags`) is asked for things, it builds its tag embeddings: a few minutes on a desktop, up to half an hour on a small Arm server, once per tag list. It builds them in the background, keeps answering its health check (as busy and loading, so the watchdog neither restarts it nor unloads its model) and saves its progress as it goes, so a restart carries on where it stopped. Photos tagged meanwhile are skipped and get their things from the next scan; search embeddings and search keep working. Up to 1.6.0 the build blocked the service, the watchdog took it for hung and restarted it every few minutes, and on a slow server the build never finished.
 
 | Switch | Service that stops being started |
 | --- | --- |
@@ -582,7 +584,15 @@ The single-container image (see [Unified deployment](unified-deployment.md)) has
 
 ### Demo mode
 
-`DEMO_SITE=true` runs LibrePhotos as a public demo: password changes submitted through the API are ignored. It is off unless set to `true`, `1`, `yes` or `on`. (Before 1.2.0, any value other than exactly `False` - including `false`, `0` or an empty value - switched demo mode on.)
+`DEMO_SITE=true` runs LibrePhotos as a public, view-only demo. It is off unless set to `true`, `1`, `yes` or `on`. (Before 1.2.0, any value other than exactly `False` - including `false`, `0` or an empty value - switched demo mode on.) See [Running a public demo](demo-site.md) for a complete setup.
+
+<Since version="1.7.0" /> Up to 1.6.0, demo mode only ignored password changes. Now the server refuses every change with a 403 (error code `demo_site_read_only`): uploads, scans, edits, deletes, sharing, settings and user admin, for every account, admins included. Only signing in and out still work. The web app shows a **Demo, view only** badge and hides upload, selecting, editing, sharing and delete. The container starts no background workers and of the machine learning services only those in `DEMO_SERVICES`, so it idles low.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEMO_USERNAME` | _(empty)_ | <Since version="1.7.0" /> With `DEMO_SITE`, the account the login page fills in. Create it before you switch demo mode on: nothing can be created afterwards. |
+| `DEMO_PASSWORD` | _(empty)_ | <Since version="1.7.0" /> With `DEMO_SITE`, that account's password. The login page shows it, and so does `/api/sitesettings` to anyone, so never reuse a real password. |
+| `DEMO_SERVICES` | `image_similarity` | <Since version="1.7.0" /> With `DEMO_SITE`, the services the entrypoint still starts, separated by spaces or commas. The default keeps Similar photos working; add `tags` for search by meaning (about 1 GB more memory). Set it empty to start none. |
 
 ### Hosting under a sub-path (subdirectory)
 

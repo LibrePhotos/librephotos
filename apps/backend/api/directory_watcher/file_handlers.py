@@ -9,6 +9,7 @@ import datetime
 import logging
 import os
 import tempfile
+from collections.abc import Sequence
 from functools import partial
 from typing import NamedTuple
 from uuid import UUID
@@ -529,6 +530,19 @@ def _adopt_files_into_photo(
         renditions.follow_main_file(photo)
 
 
+def _first_photo(
+    lookups: Sequence[PhotoQuerySet], order: Sequence[str]
+) -> Photo | None:
+    pks = [
+        pk
+        for lookup in lookups
+        for pk in lookup.order_by(*order).values_list("pk", flat=True)[:1]
+    ]
+    if not pks:
+        return None
+    return Photo.objects.filter(pk__in=pks).order_by(*order).first()
+
+
 def group_files_into_photo(
     user: User, files: list[File], job_id: UUID | str
 ) -> Photo | None:
@@ -571,14 +585,18 @@ def group_files_into_photo(
     # before its JPEG), the one whose main file is the group's wins: adopting
     # into the RAW's photo would make it a second photo of the JPEG, which
     # the repair job no longer touches. The repair job merges the rest.
-    matching = Photo.objects.owned_by(user).filter(
-        Q(files__in=non_metadata_files) | Q(main_file__in=non_metadata_files)
-    )
+    owned = Photo.objects.owned_by(user)
     # The File may carry the salt of another user who scanned the path first.
     image_hash = hash_for_owner(main_file.hash, user.id)
     existing_photo = (
-        matching.filter(main_file=main_file).first()
-        or matching.first()
+        owned.filter(main_file=main_file).first()
+        or _first_photo(
+            [
+                owned.filter(main_file__in=non_metadata_files),
+                owned.filter(files__in=non_metadata_files),
+            ],
+            ["pk"],
+        )
         # The same bytes under another path: a shared File holds the other
         # user's salt, so the user's own copy of it has a File of its own,
         # but it is the same photo to them, as any exact copy is (#1957).
@@ -693,11 +711,10 @@ def _photo_of_path(user: User, path: str) -> Photo | None:
     came back, and attaches the file to it again. Without it a second call for an indexed path built a second
     Photo on the same File (#2257).
     """
-    photo = (
-        Photo.objects.owned_by(user)
-        .filter(Q(files__path=path) | Q(main_file__path=path))
-        .order_by("added_on")
-        .first()
+    owned = Photo.objects.owned_by(user)
+    photo = _first_photo(
+        [owned.filter(main_file__path=path), owned.filter(files__path=path)],
+        ["added_on", "pk"],
     )
     if photo is not None and not photo.files.filter(path=path).exists():
         # Back after it was flagged missing: get_or_create_file clears the

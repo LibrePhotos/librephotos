@@ -52,6 +52,8 @@ export function UploadDropTarget({ children }: { children: React.ReactNode }) {
         onDragLeave: ignoreInPageDrag,
         onDrop: ignoreInPageDrag,
       })}
+      role={undefined}
+      aria-disabled={undefined}
     >
       {children}
       {isDragActive && (

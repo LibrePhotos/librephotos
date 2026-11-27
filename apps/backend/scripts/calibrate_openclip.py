@@ -11,10 +11,6 @@ no torch), against a model directory and a folder of photos::
 Each threshold of a new model is chosen so that it behaves like the model it
 replaces, measured on the same photos:
 
-``api.search.semantic.SEARCH_THRESHOLD``
-    the inner product of a raw query and a raw image embedding that returns
-    as many photos per query, on average, as the previous model did at its own
-    threshold (``search_hits_per_query`` in the reference);
 ``api.search.semantic.SIMILAR_THRESHOLD``
     the same for photo-to-photo inner products (``similar_hits_per_photo``);
 
@@ -44,6 +40,7 @@ BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
+RAW_SEARCH_THRESHOLD = 31.3
 
 _V = [f"portrait_astronaut_{s}" for s in ("big", "bright", "flip", "orig", "padded")]
 _H = [f"portrait_hanks_{s}" for s in ("big", "bright", "flip", "orig", "padded")]
@@ -289,7 +286,7 @@ def main(argv=None):
             images,
             stems,
             texts,
-            semantic.SEARCH_THRESHOLD,
+            RAW_SEARCH_THRESHOLD,
             semantic.SIMILAR_THRESHOLD,
         )
     }

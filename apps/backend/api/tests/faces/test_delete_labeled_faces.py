@@ -102,11 +102,7 @@ class DeleteLabeledFacesTest(TestCase):
         self._delete_wrong_face()
 
         response = self.client.get("/api/photos/searchlist/", {"search": "Zebulon"})
-        hashes = [
-            item["image_hash"]
-            for group in response.json()["results"]
-            for item in group["items"]
-        ]
+        hashes = [item["image_hash"] for item in response.json()["results"]]
         self.assertEqual(hashes, [self.kept.image_hash])
 
     def test_rebuilt_captions_skip_a_deleted_face(self):

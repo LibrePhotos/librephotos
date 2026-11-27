@@ -54,6 +54,7 @@ type UpdateUser = ReturnType<typeof useUpdateUserMutation>["mutate"];
 const pig = vi.hoisted(() => ({ props: [] as PigProps<PigPhoto>[] }));
 const lightbox = vi.hoisted(() => ({ props: [] as LightboxProps[] }));
 const selectionBar = vi.hoisted(() => ({ props: undefined as SelectionBarProps | undefined }));
+const demoSite = vi.hoisted(() => ({ current: null as { username: string; password: string } | null }));
 // The photo details a photo the list does not hold is checked against.
 const details = vi.hoisted(() => ({
   result: { data: undefined as Photo | undefined, isError: false },
@@ -66,6 +67,7 @@ const userHooks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "", shareAddress: "" }));
+vi.mock("../demo/useDemoSite", () => ({ useDemoSite: () => demoSite.current }));
 vi.mock("../../api_client/albums/hooks", () => ({
   useSetPersonAlbumCoverMutation: () => ({ mutate: () => {} }),
   useSetEventCoverMutation: () => ({ mutate: () => {} }),
@@ -733,6 +735,23 @@ const pressEscape = (target: Element = document.body) =>
   act(async () => {
     target.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
   });
+
+describe("PhotoListView on a view-only demo", () => {
+  afterEach(() => {
+    demoSite.current = null;
+  });
+
+  it("offers no Select, since every selection action changes the library", async () => {
+    demoSite.current = { username: "demo", password: "demo1234" };
+    await render({});
+
+    const select = Array.from(document.body.querySelectorAll("button")).find(
+      el => el.textContent?.trim() === i18n.t("selectionbar.selectmode")
+    );
+    expect(select).toBeUndefined();
+    expect(selectionToolbar()).toBeNull();
+  });
+});
 
 describe("PhotoListView selection bar on demand (#2240)", () => {
   it("shows no selection bar while browsing, only the Select button", async () => {

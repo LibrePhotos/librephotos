@@ -86,13 +86,13 @@ Accents and letter case do not matter, in either direction: `Zurich` finds photo
 
 The search results header also has a media button in the top right for narrowing the results to photos, videos, screenshots or documents, and a **Filters** button for everything else (see [Search Filters](#search-filters)).
 
-Results are displayed grouped by date, similar to the main timeline view.
+With [semantic search](#semantic-search) on (the default), the results are one list with the best matches first; with it off, they are grouped by date, similar to the main timeline view.
 
-<Since version="1.7.0" /> The header's **Sort** button picks the order of the results: **Newest first**, **Oldest first**, **Largest files first** or **Smallest files first**. Until you pick one, the results follow your [photo order](./viewing-photos.md#photo-order); a sort you pick is remembered in this browser, and **Reset to default** goes back to the photo order. Since the Sort button decides, the view options of the results have no **Order**.
+<Since version="1.7.0" /> The header's **Sort** button picks the order of the results: **Best match**, **Newest first**, **Oldest first**, **Largest files first** or **Smallest files first**. With semantic search on, a search with words starts on **Best match**; otherwise the results follow your [photo order](./viewing-photos.md#photo-order). A sort you pick is remembered in this browser, and **Reset to default** goes back. With semantic search on, photos without a date come last in both date orders. Since the Sort button decides, the view options of the results have no **Order**.
 
 The two size orders list the matches by file size as one flat list instead of grouping them by day, a way to find what takes the most space. They need a search term or a filter: on the search page without either, the Explore page stays. In a size order each tile shows the file's size (a file whose size is not known yet shows none and comes last), and at most the 1,000 largest or smallest matches are listed; when there are more, the count under the title says so, for example *4,250 photos · 1,000 largest shown*. The same sort is on the [Videos page](./viewing-photos.md#videos-only).
 
-In the API the order is the `sort` parameter of `GET /api/photos/searchlist/`: `sort=oldest` groups the days oldest first, the default `newest` newest first. `sort=largest` and `sort=smallest` answer a flat `results` list of at most 1,000 photos, whatever the semantic search setting, with `count`, the number of all matches.
+In the API the order is the `sort` parameter of `GET /api/photos/searchlist/`. The default, `relevance`, lists the best matches first with semantic search on and the newest first with it off; `sort=newest` and `sort=oldest` order the same matches by date (grouped by day with semantic search off). `sort=largest` and `sort=smallest` answer a flat `results` list of at most 1,000 photos, whatever the semantic search setting, with `count`, the number of all matches.
 
 ## Search Filters
 
@@ -151,13 +151,27 @@ Semantic search uses AI (CLIP embeddings) to find photos by meaning rather than 
 
 For example, searching "sunset at the beach" will find photos that look like a sunset at a beach, even if none of those words appear in the photo's metadata or caption.
 
+### How results are ranked
+
+<Since version="1.7.0" /> With semantic search on, a search reads your words in three steps:
+
+1. **Dates, people and places become filters.** A year (`2022`), a month or season with or without a year (`October 2026`, `summer 2022`, `Dezember 2020`), *this year* or *last year*, the name of a person you named, and the name of one of your [places](./places.md) or of a place a photo was geocoded to (`Berlin`, `Provence`, `Zurich`) narrow the results to those photos. `sea in France` searches for *sea* among the photos taken in France; `Halloween 2022` for *Halloween* among the photos of 2022. A query that is only a date, a person or a place lists those photos, newest first and photos without a date last. Since many photos have no location (most cameras record none), the photos of a place come first and the same search without the place follows, so `beach in Tenerife` still finds the beach photos of a camera without GPS further down. When the place already has 10 photos or more in the results, that second search adds only the photos that match the words, or match by meaning clearly better than the usual cut-off, so `lake in Zurich` with no lake photo taken in Zurich lists the photos of Zurich and a few close matches from elsewhere rather than a hundred lakes.
+2. **The rest is matched as words.** Each word must appear as a whole word (a plural counts: `dogs` finds *dog*), and where it appears decides its weight: a person's name counts most, then the place, the things and your tags, the captions, the text in the photo, and last everything else, such as the file path. So `car` no longer finds a folder called *cards*, and a photo of *Berlin* ranks above one whose path contains it.
+3. **The rest is also matched by meaning**, by the CLIP model. Words in another language are looked up in the translated names of the things LibrePhotos detects (the same translations the Things page shows), so `Strand`, `plage` or `spiaggia` search for *beach*. The original word still matches captions and text in that language. <Since version="1.7.0" /> The model reads the words twice, as you typed them and as *a photo of …*, and looks for photos close to both: a single phrasing misses photos the other finds.
+
+Both lists are merged by rank (reciprocal rank fusion): a photo high on both comes first, and a photo found only one way still shows up. Matches by meaning whose similarity to the query is very low are left out.
+
+<Since version="1.7.0" /> A library someone [shares with you](./sharing.md#a-library-shared-with-you) and you show in your timeline is searched the same way: by meaning always, and by words only in what its owner shares (things always; places, people's names, captions and cameras with their switches). Its matches are ranked together with yours, so a better match from their library comes before a weaker one of yours. Up to 1.6.0 they came after all of your own matches, by words only.
+
 ### Enabling Semantic Search
 
-Semantic search is disabled by default. It works from CLIP embeddings, which LibrePhotos computes for your photos during a scan, plus a similarity index built from those embeddings.
+<Since version="1.7.0" /> Semantic search is on by default, at **Top 100**, and the update turns it on for every user who had it off. Up to 1.6.0 it was off by default and its matches came back in no particular order.
+
+It works from CLIP embeddings, which LibrePhotos computes for your photos during a scan, plus a similarity index built from those embeddings. To change it:
 
 1. Go to **Settings**
 2. Find the **Semantic search max results** setting
-3. Set it to **Top 100**, **Top 50**, or **Top 10** — the maximum number of semantically similar photos to add to your results. Matches that fall below an internal similarity threshold are dropped, so you may get fewer than this, and because keyword matches are still included the total number of results can be higher.
+3. Pick **Top 100**, **Top 50**, or **Top 10** — the most matches by meaning a search adds — or **Off** to search by words only, with the results grouped by date.
 
 Turning the setting on also queues a background job that computes CLIP embeddings for any photos that do not have one yet and then builds the similarity index. Semantic results only start appearing once that job has finished, which can take a while on a large library that has never been embedded. The image-similarity service keeps the index on disk under `protected_media/similarity/`, so it survives a restart of that service, and it is rebuilt automatically each time the backend container starts. The first query after a while without searches can take a moment while the CLIP model loads again, after which queries are fast.
 
@@ -176,15 +190,23 @@ Releases up to 1.2.x searched with CLIP ViT-B/32 and detected things with anothe
 ### How It Works
 
 1. During scanning, LibrePhotos computes a CLIP embedding for each photo — a numerical representation of the image's visual content
-2. When you search, your text query is also converted to a CLIP embedding
-3. Photos whose embeddings are closest to your query embedding are returned as results
-4. Matching photos are returned as a single flat list instead of being grouped by date. The list is not sorted by similarity score — the CLIP ranking only decides *which* photos come back (the top N you configured), not the order they appear in
+2. When you search, the words left after the dates, people and places (in English, see above) are converted to a CLIP embedding
+3. The image-similarity service ranks your photos by cosine similarity to it, best first (`POST /search/` with `"metric": "cosine"` and `"with_scores": true` answers the scores too; the default `ip` metric, the raw inner product, still serves Similar photos)
+4. That ranking is merged with the word matches as described in [How results are ranked](#how-results-are-ranked), and the merged list is returned best match first
+
+## Find similar photos
+
+<Since version="1.7.0" /> To search by a photo instead of words, open it in the viewer and choose **Find similar photos** in the ⋮ (**More actions**). The search page lists your photos that look most like it, best match first, the photo itself left out. Photos from libraries [shared with you](./sharing.md#a-library-shared-with-you) and shown in your timeline are included, as in any search. This works whether [semantic search](#semantic-search) is on or off; with it off, up to 100 photos are listed.
+
+The photo shows as a chip under the title, **Like this photo**, with a small picture of it. Its cross removes it, and **Clear all** removes it with the filters. The media button, the **Sort** button and the [filters](#search-filters) work together with it. Words do too, through the page address: `/search/beach?similar_to=<id>` ranks the photos both by how much they look like the photo and by how well they match *beach* (as words and by meaning), so the beach photos most like yours come first, and a date, person or place in the words narrows the list as usual. A new search from the search field starts without the photo. A photo that has no search embedding yet (a new upload before its embedding job ran) finds nothing on its own.
+
+In the API it is the `similar_to` parameter of `GET /api/photos/searchlist/`, a photo's `id`; it must be a photo you can see (yours, one shared with you or a photo of a library shared with you), otherwise the answer is a 400 naming `similar_to`. The answer is always the flat list of photo summaries. The photo's embedding and the embedding of the words, each scaled to length one, are added, and the photos are ranked by cosine similarity to the sum.
 
 ## Similar Photos
 
 When viewing a photo in the lightbox, the **Similar photos** section in the sidebar shows visually similar photos from your library. These are found using the same CLIP embedding technology as semantic search.
 
-Click on any similar photo to navigate directly to it. This is useful for:
+Click on any similar photo to navigate directly to it. The section shows the few closest ones; [Find similar photos](#find-similar-photos) lists them all, best match first. This is useful for:
 
 - Finding photos from the same scene or event
 - Discovering visually related content

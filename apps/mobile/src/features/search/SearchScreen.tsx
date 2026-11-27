@@ -10,7 +10,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { mediaHeaders, squareThumbnailUrl, useSearchPhotosQuery } from "@librephotos/api-client";
+import {
+  mediaHeaders,
+  squareThumbnailUrl,
+  useSearchPhotosQuery,
+  useUserSelfDetailsQuery,
+} from "@librephotos/api-client";
 import { Image } from "expo-image";
 import { Icon } from "@/components/Icon";
 import { SearchField } from "@/components/SearchField";
@@ -29,6 +34,7 @@ import {
   type SearchPersonHit,
 } from "@librephotos/local-db";
 import { useAccessToken } from "@/hooks/use-access-token";
+import { useAuthStore } from "@/stores/auth";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { serverAddress } from "@/lib/apiClient";
 import { useTheme, type ThemeColors } from "@/theme";
@@ -81,7 +87,7 @@ function groupAlbumHits(albums: SearchAlbumHit[]) {
  * scroller above the photo grid so the two never nest virtualized lists.
  */
 export function SearchScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const db = useDb();
   const isOnline = useOnlineStatus();
@@ -109,7 +115,11 @@ export function SearchScreen() {
     { keepPrevious: true }
   );
 
-  const server = useSearchPhotosQuery(query, false);
+  const userId = useAuthStore((s) => s.userId);
+  const user = useUserSelfDetailsQuery(userId ?? undefined);
+  const semantic = (user.data?.semantic_search_topk ?? 0) > 0;
+  const userKnown = userId == null || user.data !== undefined || user.isError;
+  const server = useSearchPhotosQuery(userKnown ? query : "", semantic, {}, undefined, i18n.language);
 
   // Remember a term once it yields something (either surface).
   useEffect(() => {

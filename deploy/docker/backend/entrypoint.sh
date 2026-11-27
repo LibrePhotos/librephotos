@@ -128,15 +128,29 @@ done
 startup_phase starting >/dev/null
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
 python manage.py collectstatic --no-input
-python manage.py start_service all
-python manage.py start_cleaning_service
-python manage.py start_job_cleanup_service
+demo_site=false
+demo_services="${DEMO_SERVICES-image_similarity}"
+demo_services=" ${demo_services//,/ } "
+if echo "$DEMO_SITE" | grep -qiE '^(true|1|yes|on)$'; then
+    demo_site=true
+    echo "View-only demo: no background workers, sidecars only from DEMO_SERVICES:${demo_services}"
+    for service in $demo_services; do
+        python manage.py start_service "$service"
+    done
+else
+    python manage.py start_service all
+    python manage.py start_cleaning_service
+    python manage.py start_job_cleanup_service
+fi
 python manage.py clear_cache
-python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log" \
-    || echo "build_similarity_index failed, continuing. See $logs_dir/command_build_similarity_index.log" >&2
-# The automatic post-upgrade tasks (Admin page, Finish the upgrade), each once.
-python manage.py start_upgrade_tasks 2>&1 | tee "$logs_dir/command_start_upgrade_tasks.log" \
-    || echo "start_upgrade_tasks failed, continuing. See $logs_dir/command_start_upgrade_tasks.log" >&2
+if [[ "$demo_site" == false || "$demo_services" == *" image_similarity "* ]]; then
+    python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log" \
+        || echo "build_similarity_index failed, continuing. See $logs_dir/command_build_similarity_index.log" >&2
+fi
+if [[ "$demo_site" == false ]]; then
+    python manage.py start_upgrade_tasks 2>&1 | tee "$logs_dir/command_start_upgrade_tasks.log" \
+        || echo "start_upgrade_tasks failed, continuing. See $logs_dir/command_start_upgrade_tasks.log" >&2
+fi
 
 # The admin account is only ever touched through createadmin: it creates the
 # account on the first start (ADMIN_EMAIL is used then, and may be blank) and
@@ -148,20 +162,20 @@ fi
 
 echo "Running backend server..."
 
-python manage.py run_workers 2>&1 | tee "$logs_dir/workers.log" &
+if [[ "$demo_site" == false ]]; then
+    python manage.py run_workers 2>&1 | tee "$logs_dir/workers.log" &
+fi
 
-# WEB_CONCURRENCY uvicorn processes; recycle each one after WEB_MAX_REQUESTS
-# requests when there is more than one, so a recycled worker never takes the
-# whole API down. The unified image sets both higher in its Dockerfile (4 and
-# 2000): it serves the web app and every thumbnail through Django too. Not under
-# --reload: uvicorn then runs a single child that its reloader would not restart.
 args=(librephotos.asgi:application --host 0.0.0.0 --port 8001 --log-level info --workers "${WEB_CONCURRENCY:-1}")
 if [[ "$DEBUG" = 1 ]]; then
     echo "development backend starting"
     args+=(--reload)
 else
     echo "production backend starting"
-    if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then args+=(--limit-max-requests "${WEB_MAX_REQUESTS:-50}"); fi
+    if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then
+        max_requests="${WEB_MAX_REQUESTS:-10000}"
+        args+=(--limit-max-requests "$max_requests" --limit-max-requests-jitter "$((max_requests / 10))")
+    fi
 fi
 # Give the port to uvicorn. The web app bridges the seconds in between: it
 # shows "not answering" for a 502 or no answer, and reloads once ready.

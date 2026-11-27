@@ -11,6 +11,7 @@ Duplicates are separate from Stacks because they have different purposes:
 """
 
 import logging
+from uuid import UUID
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Sum
@@ -171,8 +172,7 @@ class DuplicateDetailView(APIView):
                 "size": p.size,
                 "camera": camera,
                 "exif_timestamp": p.exif_timestamp,
-                "is_kept": duplicate.kept_photo
-                and p.image_hash == duplicate.kept_photo.image_hash,
+                "is_kept": p.pk == duplicate.kept_photo_id,
                 "file_path": p.main_file.path if p.main_file else None,
                 "file_type": p.main_file.get_type_display() if p.main_file else None,
                 "thumbnail_url": f"/media/square_thumbnails/{p.image_hash}"
@@ -210,6 +210,20 @@ class DuplicateDetailView(APIView):
         )
 
 
+def _photo_to_keep(
+    duplicate: Duplicate, keep_photo_id: UUID | None, keep_photo_hash: str | None
+) -> Photo:
+    photos = duplicate.photos.order_by("pk")
+    if keep_photo_id is not None:
+        photos = photos.filter(pk=keep_photo_id)
+    else:
+        photos = photos.filter(image_hash=keep_photo_hash)
+    keep_photo = photos.first()
+    if keep_photo is None:
+        raise ValidationError("Photo not found in this duplicate group")
+    return keep_photo
+
+
 class DuplicateResolveView(APIView):
     """Resolve a duplicate group by selecting a photo to keep and optionally trashing others."""
 
@@ -227,28 +241,21 @@ class DuplicateResolveView(APIView):
             raise NotFound("Duplicate group not found")
 
         body = parse_body(request, DuplicateResolveRequest)
-        keep_photo_hash = body["keep_photo_hash"]
-        trash_others = body["trash_others"]
-
-        # Verify photo exists in duplicate group
-        try:
-            keep_photo = duplicate.photos.get(image_hash=keep_photo_hash)
-        except Photo.DoesNotExist:
-            raise ValidationError("Photo not found in this duplicate group")
-
-        # Resolve the duplicate
-        duplicate.resolve(keep_photo, trash_others)
+        keep_photo = _photo_to_keep(
+            duplicate, body.get("keep_photo_id"), body.get("keep_photo_hash")
+        )
+        duplicate.resolve(keep_photo, body["trash_others"])
 
         logger.info(
             "Resolved duplicate %s: kept %s, trashed %s",
             duplicate.id,
-            keep_photo_hash,
+            keep_photo.pk,
             duplicate.trashed_count,
         )
         return Response(
             {
                 "status": "resolved",
-                "kept_photo": keep_photo_hash,
+                "kept_photo": keep_photo.image_hash,
                 "trashed_count": duplicate.trashed_count,
             }
         )

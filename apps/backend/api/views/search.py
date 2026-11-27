@@ -1,7 +1,8 @@
 from typing import Any
+from uuid import UUID
 
 from django.core.cache import cache
-from django.db.models import Case, Q, QuerySet, Value, When
+from django.db.models import Case, F, Q, QuerySet, Value, When
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -13,6 +14,8 @@ from api.drf.request_user import request_user, scope_user
 from api.models import Photo
 from api.search.filters import SemanticSearchFilter
 from api.search.metadata_filter import MetadataFilterQuery, metadata_values
+from api.search.ranked import MAX_RESULTS, RankedSearch, ranked_photo_ids
+from api.search.similarity import photo_embedding
 from api.search.term_examples import get_search_term_examples
 from api.serializers.photos import (
     GroupedPhotosSerializer,
@@ -27,6 +30,7 @@ from api.serializers.search import (
     SearchListQuery,
     SearchTermExamplesSerializer,
 )
+from api.sharing.library_search import LibrarySearch
 from api.views.custom_api_view import ListViewSet
 
 # The date of the undated group in search results. The other grouped lists send
@@ -41,6 +45,54 @@ SIZE_SORT_ORDERINGS: dict[str, tuple[str, ...]] = {
     "largest": ("-size", "-exif_timestamp", "pk"),
     "smallest": ("size", "-exif_timestamp", "pk"),
 }
+
+
+def _in_rank_order(matches: QuerySet[Photo], ranked: list[UUID]) -> list[Photo]:
+    rank = {pk: i for i, pk in enumerate(ranked)}
+    return sorted(
+        matches, key=lambda photo: (rank.get(photo.pk, len(rank)), -_taken(photo))
+    )
+
+
+def _ranked_matches(
+    own: QuerySet[Photo], libraries: LibrarySearch, ranked: list[UUID]
+) -> QuerySet[Photo]:
+    shared = libraries.photos()
+    if shared is None:
+        return own.filter(pk__in=ranked)
+    reachable = Q(pk__in=own.values("pk")) | Q(pk__in=shared.values("pk"))
+    return with_photo_summary_relations(Photo.objects.filter(reachable, pk__in=ranked))
+
+
+def _ranked_search(
+    search: RankedSearch,
+    own: QuerySet[Photo],
+    text: str,
+    language: str,
+    similar: Photo | None,
+) -> tuple[list[UUID], QuerySet[Photo]]:
+    if similar is None and not text:
+        return [], own
+    if similar is not None and search.like is None and not text:
+        return [], own.none()
+    ranked = ranked_photo_ids(search, own, text, language)
+    if similar is not None:
+        ranked = [pk for pk in ranked if pk != similar.pk]
+    return ranked, _ranked_matches(own, search.libraries, ranked)
+
+
+def _taken(photo: Photo) -> float:
+    return photo.exif_timestamp.timestamp() if photo.exif_timestamp else 0.0
+
+
+def _size_answer(
+    matches: QuerySet[Photo], sort: str, context: dict[str, Request]
+) -> Response:
+    queryset = _size_sorted(matches, sort)
+    serializer = PhotoSummarySerializer(
+        queryset[:SIZE_SORT_LIMIT], many=True, context=context
+    )
+    return Response({"results": serializer.data, "count": queryset.count()})
 
 
 def _size_sorted(queryset: QuerySet[Photo], sort: str) -> QuerySet[Photo]:
@@ -70,7 +122,6 @@ class SearchListViewSet(ListViewSet):
 
     @extend_schema(
         parameters=[
-            OpenApiParameter("search", OpenApiTypes.STR),
             OpenApiParameter("video", OpenApiTypes.BOOL),
             OpenApiParameter("photo", OpenApiTypes.BOOL),
             OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
@@ -85,7 +136,11 @@ class SearchListViewSet(ListViewSet):
             "file type, people) narrow the results with or without a search "
             "term; a bad value is a 400 naming the parameter. With semantic "
             "search on (the user's semantic_search_topk), results is a flat "
-            "list of photo summaries instead of date groups. sort=largest or "
+            "list of photo summaries, the best matches first: a year, month "
+            "or season, a named person or a place in the words narrows the "
+            "results, and the rest is matched both as words (weighted by "
+            "where they appear) and by meaning, fused by rank; sort=newest or "
+            "sort=oldest orders the same matches by date. sort=largest or "
             "sort=smallest answers a flat list by file size, whatever the "
             f"semantic setting: at most the {SIZE_SORT_LIMIT} largest or smallest matches, "
             "with count, the number of all matches; a photo of unknown size "
@@ -94,50 +149,64 @@ class SearchListViewSet(ListViewSet):
         responses=SearchResultsSerializer,
     )
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        # The helper loads the stacks, files and local_orientation the summary
-        # serializer reads; without them every match cost three more queries.
         user = request_user(request)
-        sort = parse_query(request, SearchListQuery)["sort"]
+        query = parse_query(request, SearchListQuery)
+        sort = query["sort"]
         photos = with_photo_summary_relations(Photo.visible.owned_by(user))
-        # The request: a shared library's photos show what their owner shares.
         context = {"request": request}
+        similar: Photo | None = query["similar_to"]
+        if user.semantic_search_topk == 0 and similar is None:
+            return self._grouped(request, photos, sort, context)
+        search_filter = SemanticSearchFilter()
+        own = search_filter.structured_queryset(request, photos)
+        text = query["search"].strip()
+        search = RankedSearch(
+            user,
+            search_filter.library_search(request),
+            photo_embedding(similar) if similar is not None else None,
+        )
+        ranked, matches = _ranked_search(search, own, text, query["language"], similar)
         if sort in SIZE_SORT_ORDERINGS:
-            queryset = _size_sorted(
-                self._with_libraries(request, self.filter_queryset(photos)), sort
+            return _size_answer(matches, sort, context)
+        if sort in ("newest", "oldest") or not (text or similar):
+            taken = F("exif_timestamp")
+            by_date = (
+                taken.asc(nulls_last=True)
+                if sort == "oldest"
+                else taken.desc(nulls_last=True)
             )
-            summary_serializer = PhotoSummarySerializer(
-                queryset[:SIZE_SORT_LIMIT], many=True, context=context
-            )
-            return Response(
-                {"results": summary_serializer.data, "count": queryset.count()}
-            )
-        if user.semantic_search_topk == 0:
-            ordering = "exif_timestamp" if sort == "oldest" else "-exif_timestamp"
-            queryset = self._with_libraries(
-                request, self.filter_queryset(photos.order_by(ordering))
-            ).order_by(ordering)
-            grouped_photos = get_photos_ordered_by_date(
-                queryset, undated_date=LEGACY_UNDATED_DATE
-            )
-            serializer = GroupedPhotosSerializer(
-                grouped_photos, many=True, context=context
-            )
-            return Response({"results": serializer.data})
+            ordered = list(matches.order_by(by_date, "pk")[:MAX_RESULTS])
         else:
-            queryset = self._with_libraries(request, self.filter_queryset(photos))
-            if sort == "oldest":
-                queryset = queryset.order_by("exif_timestamp", "pk")
-            summary_serializer = PhotoSummarySerializer(
-                queryset, many=True, context=context
-            )
-            return Response({"results": summary_serializer.data})
+            ordered = _in_rank_order(matches, ranked)
+        serializer = PhotoSummarySerializer(ordered, many=True, context=context)
+        return Response({"results": serializer.data})
+
+    def _grouped(
+        self,
+        request: Request,
+        photos: QuerySet[Photo],
+        sort: str,
+        context: dict[str, Request],
+    ) -> Response:
+        if sort in SIZE_SORT_ORDERINGS:
+            matches = self._with_libraries(request, self.filter_queryset(photos))
+            return _size_answer(matches, sort, context)
+        ordering = "exif_timestamp" if sort == "oldest" else "-exif_timestamp"
+        queryset = self._with_libraries(
+            request, self.filter_queryset(photos.order_by(ordering))
+        ).order_by(ordering)
+        grouped_photos = get_photos_ordered_by_date(
+            queryset, undated_date=LEGACY_UNDATED_DATE
+        )
+        serializer = GroupedPhotosSerializer(grouped_photos, many=True, context=context)
+        return Response({"results": serializer.data})
 
     def _with_libraries(
         self, request: Request, own: QuerySet[Photo]
     ) -> QuerySet[Photo]:
         """``own`` matches plus the matches in the libraries the requester
         shows in their timeline, under each owner's rules (#2731)."""
-        shared = SemanticSearchFilter().library_matches(request)
+        shared = SemanticSearchFilter().library_search(request).word_matches()
         if shared is None:
             return own
         return with_photo_summary_relations(

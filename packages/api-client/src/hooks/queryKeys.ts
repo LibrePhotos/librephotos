@@ -124,21 +124,30 @@ export const photoGridKeys = {
   /** Every view of one tag's album. */
   tagAlbum: (id: string) => [...gridKind("tagAlbum"), id] as const,
   tagAlbumView: (id: string, mediaType: MediaType) => [...photoGridKeys.tagAlbum(id), mediaType] as const,
-  search: (term: string, mediaType: MediaType, mode: "semantic" | "grouped", sort?: SearchSort) =>
-    sort === undefined
-      ? ([...gridKind("search"), term, mediaType, mode] as const)
-      : ([...gridKind("search"), term, mediaType, mode, sort] as const),
+  search: (term: string, mediaType: MediaType, mode: "semantic" | "grouped", sort?: SearchSort, language?: string) =>
+    [
+      ...gridKind("search"),
+      term,
+      mediaType,
+      mode,
+      ...(sort === undefined ? [] : [sort]),
+      ...(language ? [language] : []),
+    ] as const,
   /** A search narrowed by the structured filters: under the same search, so it refreshes with it. */
   filteredSearch: (
     term: string,
     mediaType: MediaType,
     mode: "semantic" | "grouped",
     filters: SearchFilters,
-    sort?: SearchSort
+    sort?: SearchSort,
+    language?: string
   ) =>
-    sort === undefined
-      ? ([...photoGridKeys.search(term, mediaType, mode), filters] as const)
-      : ([...photoGridKeys.search(term, mediaType, mode), filters, sort] as const),
+    [
+      ...photoGridKeys.search(term, mediaType, mode),
+      filters,
+      ...(sort === undefined ? [] : [sort]),
+      ...(language ? [language] : []),
+    ] as const,
   withoutTimestamp: (page: number, mediaType: MediaType) => [...gridKind("withoutTimestamp"), page, mediaType] as const,
   withoutLocation: (page: number, mediaType: MediaType) => [...gridKind("withoutLocation"), page, mediaType] as const,
   /** One of my places' photos (#1365). */

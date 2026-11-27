@@ -1,6 +1,7 @@
 import gc
 import logging
 import sys
+import threading
 import time
 from collections.abc import Callable
 from typing import Any
@@ -26,6 +27,32 @@ def logger(name: str) -> logging.Logger:
     return configure_standalone(name)
 
 
+class BackgroundLoad:
+    def __init__(self, work: Callable[[], object], log: logging.Logger) -> None:
+        self._work = work
+        self._logger = log
+        self._thread: threading.Thread | None = None
+
+    def running(self) -> bool:
+        return self._thread is not None and self._thread.is_alive()
+
+    def start(self) -> None:
+        if self.running():
+            return
+        self._thread = threading.Thread(
+            target=self._run, name=f"{self._logger.name}-load", daemon=True
+        )
+        self._thread.start()
+
+    def _run(self) -> None:
+        try:
+            self._work()
+        except Exception:
+            self._logger.exception(
+                "%s: loading in the background failed", self._logger.name
+            )
+
+
 def replica_index() -> int:
     from api.runtime.replicas import replica_argument
 
@@ -37,12 +64,16 @@ def create_app(
     unload: Callable[[], object] | None = None,
     is_loaded: Callable[[], object] | None = None,
     device: Callable[[], str | None] | None = None,
+    loading: Callable[[], bool] | None = None,
 ) -> App:
     app = App(name)
     state = _State()
     app.extensions["librephotos_sidecar"] = state
     log = logger(name)
     replica = replica_index()
+
+    def loading_now() -> bool:
+        return loading is not None and loading()
 
     def counts(endpoint: str | None) -> bool:
         return endpoint not in ("health", "unload_model")
@@ -71,12 +102,14 @@ def create_app(
 
     @app.get("/health", strict_slashes=False)
     def health() -> ResponseReturnValue:
+        is_loading = loading_now()
         return {
             "status": "OK",
             "service": name,
             "last_request_time": state.last_request_time,
             "model_loaded": None if is_loaded is None else bool(is_loaded()),
-            "busy": state.in_flight > 0,
+            "busy": state.in_flight > 0 or is_loading,
+            "loading": is_loading,
             "replica": replica,
             "device": None if device is None else device(),
         }, 200
@@ -85,7 +118,7 @@ def create_app(
 
         @app.route("/unload-model", methods=["GET", "POST"])
         def unload_model() -> ResponseReturnValue:
-            if state.in_flight:
+            if state.in_flight or loading_now():
                 # A request that started long ago may still be using it.
                 return {"status": "busy"}, 409
             unload()

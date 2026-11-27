@@ -12,7 +12,7 @@ from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.search.similarity import search_similar_embedding, search_similar_image
+from api.search.similarity import search_ranked_embedding, search_similar_image
 from api.tests.utils import create_test_photo, create_test_user
 
 FAILURES = (requests.ConnectionError("refused"), requests.ReadTimeout("busy"))
@@ -33,7 +33,7 @@ class SimilaritySearchFailureTest(SimpleTestCase):
                 self.subTest(failure=type(failure).__name__),
                 patch("api.runtime.sidecars.http.post", side_effect=failure),
             ):
-                self.assertEqual(search_similar_embedding(1, [0.1] * 512), [])
+                self.assertEqual(search_ranked_embedding(1, [0.1] * 512, 10, 0.15), [])
                 self.assertEqual(search_similar_image(1, _Photo()), [])
 
 
@@ -78,7 +78,7 @@ class SemanticSearchWithoutClipSidecarTest(TestCase):
             with (
                 self.subTest(failure=type(failure).__name__),
                 patch(
-                    "api.search.filters.calculate_query_embeddings", side_effect=failure
+                    "api.search.ranked.calculate_query_embeddings", side_effect=failure
                 ),
             ):
                 self.assertEqual(self._hashes(), {self.match.image_hash})
@@ -86,12 +86,12 @@ class SemanticSearchWithoutClipSidecarTest(TestCase):
     def test_semantic_matches_are_added_when_the_sidecar_answers(self):
         with (
             patch(
-                "api.search.filters.calculate_query_embeddings",
+                "api.search.ranked.calculate_query_embeddings",
                 return_value=([0.1] * 512, 1.0),
             ),
             patch(
-                "api.search.filters.search_similar_embedding",
-                return_value=[self.other.image_hash],
+                "api.search.ranked.search_ranked_embedding",
+                return_value=[(self.other.image_hash, 0.3)],
             ),
         ):
             self.assertEqual(

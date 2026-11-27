@@ -14,6 +14,7 @@ export type SearchFilterChip = {
   patch: SearchFilters;
   /** A person chip shows the face. */
   personId?: number;
+  similarTo?: string;
 };
 
 export type ChipContext = {
@@ -175,10 +176,16 @@ function personChips(people: readonly number[] | undefined, ctx: ChipContext): S
   });
 }
 
+function similarChip(photoId: string | undefined, t: TFunction): SearchFilterChip | undefined {
+  if (photoId === undefined) return undefined;
+  return { id: "similar", label: t("searchfilter.chip.similar"), patch: { similar_to: undefined }, similarTo: photoId };
+}
+
 /** The chips of `filters`, in the panel's order: people, camera, exposure, rating, day, location, file. */
 export function describeSearchFilters(filters: SearchFilters, ctx: ChipContext): SearchFilterChip[] {
   const ranges = RANGE_FIELDS.map(field => rangeChip(field, filters, ctx));
   return [
+    similarChip(filters.similar_to, ctx.t),
     ...personChips(filters.person, ctx),
     ...textChips(filters, ctx.t),
     ...ranges,

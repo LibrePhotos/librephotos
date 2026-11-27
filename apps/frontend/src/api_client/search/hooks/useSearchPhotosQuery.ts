@@ -1,6 +1,7 @@
 import { ApiError, endpoints, photoGridKeys } from "@librephotos/api-client";
 import type { MediaType, SearchFilters, SearchSort } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { mediaTypeToBulkQuery } from "../../../components/photolist/mediaTypeFilter";
 import { isSizeSort } from "../../../components/photolist/photoSort";
 import { apiClient } from "../../api";
@@ -20,6 +21,8 @@ export const useSearchPhotosQuery = (
   sort?: SearchSort,
   { sizeSortWithoutTerm = false }: SearchPhotosOptions = {}
 ) => {
+  const { i18n } = useTranslation();
+  const language = i18n.language;
   const { data: currentUser, isError: userFailed } = useCurrentUserSelfDetailsQuery();
   // The backend picks the response shape from this user setting, so the query
   // waits for the user (on a hard load of /search/<q> it is not loaded yet, and
@@ -27,11 +30,11 @@ export const useSearchPhotosQuery = (
   // keyed by it (switching the setting must not reuse the other shape). If the
   // user cannot be loaded, search anyway with the default shape rather than
   // never sending the query.
-  const semantic = (currentUser?.semantic_search_topk ?? 0) > 0;
+  const semantic = (currentUser?.semantic_search_topk ?? 0) > 0 || filters.similar_to !== undefined;
   const filtered = Object.values(filters).some(value => value !== undefined);
   const photoOrder = usePhotoOrder();
-  const effectiveSort = sort ?? photoOrder.order;
-  const keySort = effectiveSort === "newest" ? undefined : effectiveSort;
+  const effectiveSort = sort ?? (semantic ? "relevance" : photoOrder.order);
+  const keySort = endpoints.isDefaultSearchSort(effectiveSort, semantic) ? undefined : effectiveSort;
   const asked = searchTerm.length > 0 || filtered || (sizeSortWithoutTerm && isSizeSort(effectiveSort));
 
   return useQuery({
@@ -42,16 +45,18 @@ export const useSearchPhotosQuery = (
           mediaType ?? "all",
           semantic ? "semantic" : "grouped",
           filters,
-          keySort
+          keySort,
+          language
         )
-      : photoGridKeys.search(searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped", keySort),
+      : photoGridKeys.search(searchTerm, mediaType ?? "all", semantic ? "semantic" : "grouped", keySort, language),
     queryFn: () =>
       endpoints.searchPhotos(
         apiClient,
         searchTerm,
         semantic,
         { ...mediaTypeToBulkQuery(mediaType), ...filters },
-        keySort
+        keySort,
+        language
       ),
     enabled: asked && (currentUser !== undefined || userFailed) && photoOrder.ready,
     // A 400 is a filter the server will not take (a person deleted elsewhere): asking again changes nothing.
