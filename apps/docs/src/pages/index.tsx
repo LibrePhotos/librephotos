@@ -88,6 +88,10 @@ function Hero() {
             <Link to="/docs/installation/windows-standalone">how it works</Link>). Android app included. Built
             by volunteers, so <Link href={SPONSORS_URL}>sponsoring</Link> keeps it going.
           </p>
+          <p className={styles.heroNote}>
+            Just want a picture viewer for your PC or Mac, with no server? Try{" "}
+            <Link to="/viewer">LibrePhotos Viewer</Link>.
+          </p>
         </div>
         <HeroShot />
       </div>

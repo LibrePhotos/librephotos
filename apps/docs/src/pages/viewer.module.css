@@ -1,0 +1,313 @@
+.features {
+  display: grid;
+  gap: 4rem;
+}
+
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 3rem;
+  align-items: center;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1rem);
+}
+
+.feature:nth-child(even) .featureCopy {
+  order: 2;
+}
+
+.featureCopy {
+  min-width: 0;
+}
+
+.featureShot {
+  min-width: 0;
+}
+
+.featureTitle {
+  font-weight: 700;
+  font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  margin: 0 0 0.6rem;
+}
+
+.featureBody {
+  margin: 0 0 1rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.featurePoints {
+  margin: 0 0 1.25rem;
+  padding-left: 1.1rem;
+  color: var(--app-dimmed);
+  line-height: 1.55;
+}
+
+.featurePoints li + li {
+  margin-top: 0.4rem;
+}
+
+.more {
+  font-weight: 600;
+}
+
+.shotNote {
+  margin: 2.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--app-dimmed);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 1.5rem 3rem;
+  align-items: start;
+}
+
+.splitFoot {
+  grid-column: 2;
+  margin: 0;
+  font-weight: 600;
+}
+
+.cardList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+  line-height: 1.5;
+}
+
+.card strong {
+  font-weight: 600;
+}
+
+.card span {
+  color: var(--app-dimmed);
+  font-size: 0.9375rem;
+}
+
+.factList {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.factList li {
+  position: relative;
+  padding: 0.85rem 1.1rem 0.85rem 2.6rem;
+  border-radius: var(--app-radius-card);
+  background: var(--app-chrome);
+  line-height: 1.5;
+}
+
+.factList li::before {
+  content: "";
+  position: absolute;
+  left: 1.1rem;
+  top: 1.25rem;
+  width: 0.7rem;
+  height: 0.4rem;
+  border-left: 2px solid var(--app-primary-light-color);
+  border-bottom: 2px solid var(--app-primary-light-color);
+  transform: rotate(-45deg);
+}
+
+.formats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(14rem, 100%), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.format {
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+}
+
+.format dt {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.format dd {
+  margin: 0;
+}
+
+.formatItems {
+  font-size: 0.9375rem;
+}
+
+.format .formatNote {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--app-dimmed);
+  line-height: 1.5;
+}
+
+.downloads {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.download {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.375rem 1.375rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-panel);
+  background: var(--app-surface);
+}
+
+.download[data-tonal] {
+  border-color: transparent;
+  background: var(--app-primary-light);
+}
+
+.download p {
+  margin: 0 0 1.25rem;
+  color: var(--app-dimmed);
+  line-height: 1.55;
+}
+
+.downloadIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 0.9rem;
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface-tonal);
+  color: var(--app-nav-icon);
+}
+
+.download[data-tonal] .downloadIcon {
+  background: var(--app-surface);
+  color: var(--app-primary-light-color);
+}
+
+.downloadIcon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.downloadCta {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  min-height: 2.5rem;
+  margin-top: auto;
+  padding: 0 1.1rem;
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface-tonal);
+  color: var(--app-text);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.downloadCta:hover {
+  background: var(--app-surface-tonal-hover);
+  color: var(--app-text);
+  text-decoration: none;
+}
+
+.download[data-tonal] .downloadCta,
+.download[data-tonal] .downloadCta:hover {
+  color: var(--app-primary-contrast);
+}
+
+.download[data-tonal] .downloadCta {
+  background: var(--app-primary-filled);
+}
+
+.download[data-tonal] .downloadCta:hover {
+  background: var(--app-primary-filled-hover);
+}
+
+.downloadPending {
+  margin-top: auto;
+  font-size: 0.9375rem;
+}
+
+.faq {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 48rem;
+}
+
+.faqItem {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+}
+
+.faqItem summary {
+  padding: 0.9rem 1.15rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.faqAnswer {
+  padding: 0 1.15rem 1rem;
+  color: var(--app-dimmed);
+  line-height: 1.6;
+}
+
+@media (max-width: 996px) {
+  .features {
+    gap: 3rem;
+  }
+
+  .feature,
+  .split {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .feature:nth-child(even) .featureCopy {
+    order: 0;
+  }
+
+  .splitFoot {
+    grid-column: 1;
+  }
+
+  .downloads {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .cardList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .downloadCta {
+    transition: none;
+  }
+}
