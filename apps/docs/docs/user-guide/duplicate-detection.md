@@ -90,6 +90,8 @@ Click on a duplicate group to open the review modal:
 4. Click **"Keep selected & trash others"** — the other photos are moved to trash
 5. The group status changes to **Resolved**
 
+<Since version="1.7.0" /> Exact copies have the same picture, so two photos of a group can share an image hash; the one you select is the one kept. Up to 1.6.0, keeping one of them failed with "Something went wrong on the server", and selecting one marked both. For scripts, `POST /api/duplicates/{id}/resolve/` takes the photo's id as `keep_photo_id`; `keep_photo_hash` still works and keeps the first of the photos with that hash.
+
 #### Other Actions
 
 - **"Not duplicates"** — Dismiss the group if the photos aren't actually duplicates. The group's status changes to **Dismissed** and it is listed under the **Dismissed** filter with its photos. Detection does not offer these photos again; a group that gains a new photo (a further copy found later) goes back to **Pending**. Dismissing a resolved group first takes the photos its resolution trashed out of the trash. <Since version="1.7.0" /> Up to 1.6.0, dismissing unlinked the photos, so a dismissed group was listed nowhere and the next detection offered the same photos again.

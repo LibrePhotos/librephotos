@@ -49,15 +49,8 @@ export const useDetectDuplicatesMutation = () => {
 export const useResolveDuplicateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      keep_photo_hash,
-      trash_others,
-    }: {
-      id: string;
-      keep_photo_hash: string;
-      trash_others: boolean;
-    }) => endpoints.resolveDuplicate(apiClient, id, keep_photo_hash, trash_others),
+    mutationFn: ({ id, keep_photo_id, trash_others }: { id: string; keep_photo_id: string; trash_others: boolean }) =>
+      endpoints.resolveDuplicate(apiClient, id, keep_photo_id, trash_others),
     onSuccess: (_, { id }) => {
       // Invalidate the specific duplicate and the list
       queryClient.invalidateQueries({ queryKey: duplicateKeys.detail(id) });

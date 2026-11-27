@@ -30,12 +30,25 @@ class DuplicateListQuery(serializers.Serializer[None]):
 
 
 class DuplicateResolveRequest(serializers.Serializer[None]):
+    keep_photo_id = serializers.UUIDField(
+        required=False, help_text="id of the photo to keep; it must be in the group"
+    )
     keep_photo_hash = serializers.CharField(
-        help_text="image_hash of the photo to keep; it must be in the group"
+        required=False,
+        help_text="image_hash of the photo to keep, without keep_photo_id. Exact "
+        "copies share one; the first of them (by id) is kept",
     )
     trash_others = serializers.BooleanField(
         default=True, help_text="Move the group's other photos to the trash"
     )
+
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
+        if "keep_photo_id" not in attrs and "keep_photo_hash" not in attrs:
+            raise serializers.ValidationError(
+                {"keep_photo_hash": "Give keep_photo_id or keep_photo_hash."},
+                code="required",
+            )
+        return attrs
 
 
 class DetectDuplicatesRequest(serializers.Serializer[None]):

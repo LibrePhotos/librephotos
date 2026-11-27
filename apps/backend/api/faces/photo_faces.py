@@ -191,6 +191,9 @@ def _face_regions(
     Optional: when the exif service cannot read the file, the photo gets the
     detected faces alone, and a Rescan Faces reads its regions again.
     """
+    if _main_file(photo) is None:
+        logger.info("image %s: no main file, detected faces only", photo.image_hash)
+        return None
     try:
         return read_face_regions(photo, thumbnail_path, detected)
     except MetadataReadError:
@@ -199,6 +202,13 @@ def _face_regions(
             "image %s: face regions not read, detected faces only", photo.image_hash
         )
         logger.debug("image %s: face regions not read", photo.image_hash, exc_info=True)
+        return None
+
+
+def _main_file(photo: Photo) -> api.models.File | None:
+    try:
+        return photo.main_file
+    except api.models.File.DoesNotExist:
         return None
 
 

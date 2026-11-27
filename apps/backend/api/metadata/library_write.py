@@ -38,6 +38,7 @@ from api.metadata.photo_writer import (
     write_rotation,
     write_target,
 )
+from api.metadata.reader import MetadataReadError
 from api.metadata.rights import RIGHTS_FIELDS
 from api.metadata.writer import MetadataWriteError, one_exiftool_process
 from api.models import LongRunningJob, Photo, Tag, User
@@ -188,7 +189,7 @@ def _write_photo(photo: Photo, types: Sequence[str], use_sidecar: bool) -> str |
     for name in types:
         try:
             WRITE_TYPES[name].write(photo, use_sidecar)
-        except MetadataWriteError as error:
+        except (MetadataWriteError, MetadataReadError) as error:
             logger.warning(
                 "The %s of photo %s were not written: %s",
                 name,

@@ -107,6 +107,8 @@ Your disk is not full. Postgres keeps the shared memory of parallel queries in `
 
 <Since version="1.5.0" /> The bundled Compose files give the `db` service `shm_size: 256mb`, and the Kubernetes manifest mounts a memory-backed `emptyDir` at `/dev/shm`. Both are ceilings: memory is used only for what Postgres actually allocates, so a small library pays nothing. 1.5.0 also stopped the pages above from needing that much shared memory in the first place.
 
+<Since version="1.7.0" /> A scan could fail single files with the same message ("could not process file group ... could not resize shared memory segment" in the scan job's errors): looking up the photo a file belongs to joined every photo of the library to every file. Each file is now looked up on its own index, which needs no shared memory. Files that failed this way are read again by the next scan.
+
 If you run your own Compose file, or a release up to 1.4.0, add the setting to the `db` service and recreate it with `docker compose up -d db`:
 
 ```yaml

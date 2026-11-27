@@ -199,7 +199,7 @@ describe("duplicate changes", () => {
     expect((await endpoints.deleteDuplicate(remove.client, "d1")).unlinked_count).toBe(2);
     const sent = [resolve, dismiss, revert, remove].map(({ requests }) => defined(requests[0]));
     expect(sent.map(({ url, method, body }) => ({ url, method, body }))).toEqual([
-      { url: `${API}/duplicates/d1/resolve`, method: "POST", body: { keep_photo_hash: "a", trash_others: true } },
+      { url: `${API}/duplicates/d1/resolve`, method: "POST", body: { keep_photo_id: "a", trash_others: true } },
       { url: `${API}/duplicates/d1/dismiss`, method: "POST", body: {} },
       { url: `${API}/duplicates/d1/revert`, method: "POST", body: {} },
       { url: `${API}/duplicates/d1/delete`, method: "DELETE", body: undefined },

@@ -4101,8 +4101,7 @@
                 "$ref": "#/components/schemas/DuplicateResolveRequestRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "security": [
           {
@@ -19733,20 +19732,22 @@
       "DuplicateResolveRequestRequest": {
         "type": "object",
         "properties": {
+          "keep_photo_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "id of the photo to keep; it must be in the group"
+          },
           "keep_photo_hash": {
             "type": "string",
             "minLength": 1,
-            "description": "image_hash of the photo to keep; it must be in the group"
+            "description": "image_hash of the photo to keep, without keep_photo_id. Exact copies share one; the first of them (by id) is kept"
           },
           "trash_others": {
             "type": "boolean",
             "default": true,
             "description": "Move the group's other photos to the trash"
           }
-        },
-        "required": [
-          "keep_photo_hash"
-        ]
+        }
       },
       "DuplicateSensitivityEnum": {
         "enum": [

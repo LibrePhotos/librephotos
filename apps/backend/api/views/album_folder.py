@@ -94,11 +94,21 @@ def _root_entries(user: User) -> list[tuple[str, str, float]]:
     ]
 
 
+def _folder_entry(item: os.DirEntry[str]) -> tuple[str, str, float] | None:
+    if item.name.startswith("."):
+        return None
+    try:
+        if not item.is_dir():
+            return None
+        return item.name, item.path, os.path.getmtime(item.path)
+    except OSError as error:
+        logger.debug("folder %s left out of the listing: %s", item.path, error)
+        return None
+
+
 def _scan_folder_entries(base_path: str) -> list[tuple[str, str, float]]:
-    entries: list[tuple[str, str, float]] = []
-    for item in os.scandir(base_path):
-        if item.is_dir() and not item.name.startswith("."):
-            entries.append((item.name, item.path, os.path.getmtime(item.path)))
+    with os.scandir(base_path) as items:
+        entries = [entry for item in items if (entry := _folder_entry(item))]
     entries.sort(key=lambda x: x[0].lower())
     return entries
 

@@ -48,6 +48,25 @@ def _assign_number(target: object, field: str, value: object) -> None:
         setattr(target, field, value)
 
 
+_INTEGER_COLUMN = range(-(2**31), 2**31)
+
+
+def _fits_integer_column(value: object) -> bool:
+    return isinstance(value, int | float) and (
+        _INTEGER_COLUMN.start <= value < _INTEGER_COLUMN.stop
+    )
+
+
+def _assign_nonzero_integer(target: object, field: str, value: object) -> None:
+    if _fits_integer_column(value):
+        _assign_nonzero_number(target, field, value)
+
+
+def _assign_integer(target: object, field: str, value: object) -> None:
+    if _fits_integer_column(value):
+        _assign_number(target, field, value)
+
+
 def _assign_string(target: object, field: str, value: object) -> None:
     if value and isinstance(value, str):
         setattr(target, field, value)
@@ -385,7 +404,7 @@ def file_rating_of(values: Mapping[str, object]) -> int | None:
     rating = values.get("rating")
     if isinstance(rating, bool) or not isinstance(rating, int | float):
         return None
-    return int(rating)
+    return int(rating) if _fits_integer_column(rating) else None
 
 
 # The MetadataEdit field name of a rating edit (``api.metadata.edits.RATING``).
@@ -635,7 +654,7 @@ class PhotoMetadata(models.Model):
         image_number = values["image_number"]
         # ExifTool's JSON holds only ints and floats here; the narrower check
         # is what lets int() below type-check.
-        if image_number is not None and isinstance(image_number, int | float):
+        if isinstance(image_number, int | float) and _fits_integer_column(image_number):
             photo.image_sequence_number = int(image_number)
 
     @staticmethod
@@ -673,13 +692,12 @@ class PhotoMetadata(models.Model):
         ``width`` and ``height`` are the size the photo is shown at, as its
         thumbnails, their aspect ratio and its face boxes are.
         """
-        for field, name in (
-            ("aperture", "fstop"),
-            ("focal_length", "focal_length"),
-            ("iso", "iso"),
-            ("focal_length_35mm", "focal_length_35mm"),
-        ):
-            _assign_nonzero_number(metadata, field, values[name])
+        _assign_nonzero_number(metadata, "aperture", values["fstop"])
+        _assign_nonzero_number(metadata, "focal_length", values["focal_length"])
+        _assign_nonzero_integer(metadata, "iso", values["iso"])
+        _assign_nonzero_integer(
+            metadata, "focal_length_35mm", values["focal_length_35mm"]
+        )
 
         width, height = values["width"], values["height"]
         if _shown_sideways(values, local_orientation, shown_aspect_ratio):
@@ -687,9 +705,9 @@ class PhotoMetadata(models.Model):
             # or 270 degrees, a portrait photo often with an EXIF orientation
             # of 5-8 (#2568): keep the size it is shown at.
             width, height = height, width
-        _assign_nonzero_number(metadata, "width", width)
-        _assign_nonzero_number(metadata, "height", height)
-        _assign_number(metadata, "orientation", values["orientation"])
+        _assign_nonzero_integer(metadata, "width", width)
+        _assign_nonzero_integer(metadata, "height", height)
+        _assign_integer(metadata, "orientation", values["orientation"])
 
         # Videos carry no EXIF; their camera is in the QuickTime atoms.
         _assign_string(
@@ -767,7 +785,7 @@ class PhotoMetadata(models.Model):
 
         bits = values["bits_per_sample"]
         if isinstance(bits, int) and not isinstance(bits, bool) and bits > 0:
-            metadata.bit_depth = bits
+            _assign_integer(metadata, "bit_depth", bits)
 
     @staticmethod
     def _apply_text_fields(

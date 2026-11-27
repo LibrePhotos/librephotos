@@ -23,7 +23,7 @@ After a scan or an upload, LibrePhotos keeps working on the new photos for a whi
 
 | Stage | What is left |
 | --- | --- |
-| **Thumbnails** | Photos without a thumbnail, or whose thumbnail has no size yet; such photos show a grey square or are missing from the timeline. **Run now** reads their files again (as a [rescan](#rescan-some-photos)), and so does the next **Scan**. |
+| **Thumbnails** | Photos without a thumbnail, or whose thumbnail has no size yet; such photos show a grey square or are missing from the timeline. **Run now** reads their files again (as a [rescan](#rescan-some-photos)), and so does the next **Scan**. <Since version="1.7.0" /> A thumbnail file deleted from disk before the photo got its size is made again the same way; up to 1.6.0 every scan also logged it as an error. |
 | **Things** | Photos not checked for things yet (only while [Things](./feature-toggles.md) are on). |
 | **Search** | Photos without search data for the current search model. |
 | **Places** | Photos with a GPS position whose place name was not looked up yet (only while reverse geocoding is on). |

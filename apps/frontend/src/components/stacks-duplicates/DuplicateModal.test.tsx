@@ -142,6 +142,6 @@ describe("DuplicateModal", () => {
     await act(async () => keep?.click());
     expect(stubs.resolve).toHaveBeenCalledTimes(1);
     const [variables] = stubs.resolve.mock.calls[0] ?? [];
-    expect(variables).toEqual({ id: "dup-1", keep_photo_hash: "hash-big", trash_others: true });
+    expect(variables).toEqual({ id: "dup-1", keep_photo_id: "p2", trash_others: true });
   });
 });

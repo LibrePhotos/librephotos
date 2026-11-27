@@ -53,7 +53,7 @@ export function DuplicateModal({
   const handleResolve = () => {
     if (selectedPhoto) {
       resolveDuplicate(
-        { id: duplicateId, keep_photo_hash: selectedPhoto, trash_others: true },
+        { id: duplicateId, keep_photo_id: selectedPhoto, trash_others: true },
         {
           onSuccess: () => {
             onClose();
@@ -88,7 +88,7 @@ export function DuplicateModal({
       // First try kept photo
       const kept = duplicate.photos.find(p => p.is_kept);
       if (kept) {
-        setSelectedPhoto(kept.image_hash);
+        setSelectedPhoto(kept.id);
         return;
       }
       // Otherwise pick best by resolution then size
@@ -99,7 +99,7 @@ export function DuplicateModal({
         return b.size - a.size;
       })[0];
       if (best !== undefined) {
-        setSelectedPhoto(best.image_hash);
+        setSelectedPhoto(best.id);
       }
     }
   }, [duplicate, selectedPhoto]);
@@ -187,10 +187,10 @@ export function DuplicateModal({
               <SimpleGrid cols={{ base: 1, sm: 2, md: duplicate.photos.length > 2 ? 3 : 2 }} spacing="md" p="xs">
                 {duplicate.photos.map(photo => (
                   <DuplicatePhotoCard
-                    key={photo.image_hash}
+                    key={photo.id}
                     photo={photo}
-                    isSelected={selectedPhoto === photo.image_hash}
-                    onSelect={() => setSelectedPhoto(photo.image_hash)}
+                    isSelected={selectedPhoto === photo.id}
+                    onSelect={() => setSelectedPhoto(photo.id)}
                     onViewFull={() => handleViewFull(photo)}
                     showSelectButton={!isReviewed}
                   />
