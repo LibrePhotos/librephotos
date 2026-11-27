@@ -241,6 +241,28 @@ class GenerateOcrWorkerTest(TestCase):
         self.assertEqual(job.result.get("error_count"), 1)
         self.assertTrue(job.finished)
 
+    @patch("api.runtime.sidecars.http.post")
+    def test_a_500_for_one_photo_is_a_warning(self, mock_post):
+        mock_post.return_value = _error_response(500)
+        job_id = uuid.uuid4()
+        create_test_job(
+            started_by=self.user,
+            job_id=str(job_id),
+            job_type=LongRunningJob.JOB_GENERATE_OCR,
+            progress_target=2,
+        )
+
+        with self.assertLogs("api", "WARNING") as logs:
+            generate_ocr_job(self.photo, job_id)
+
+        self.assertEqual({record.levelname for record in logs.records}, {"WARNING"})
+        self.assertIn(self.photo.image_hash, logs.output[-1])
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.ocr_failures, 1)
+        job = LongRunningJob.objects.get(job_id=str(job_id))
+        self.assertEqual(job.result.get("error_count"), 1)
+        self.assertFalse(job.finished)
+
 
 class PhotoSerializerOcrFieldTest(TestCase):
     """The ``ocr`` field on PhotoSerializer: owner-gated, normalized geometry.

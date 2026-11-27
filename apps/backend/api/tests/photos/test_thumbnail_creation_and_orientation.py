@@ -170,16 +170,14 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
         )
         self.thumb.write_to_file.assert_not_called()
 
-    def test_exception_is_logged_and_reraised(self):
+    def test_exception_is_left_to_the_caller(self):
         boom = RuntimeError("vips exploded")
         self.decode.side_effect = boom
         with mock.patch("api.thumbnails.render.logger") as logger:
             with self.assertRaises(RuntimeError) as ctx:
                 create_thumbnail("/data/photo.jpg", 200, "thumbnails_big", "h")
         self.assertIs(ctx.exception, boom)
-        logger.error.assert_called_once_with(
-            "Could not create thumbnail for file %s", "/data/photo.jpg"
-        )
+        logger.error.assert_not_called()
 
 
 @override_settings(MEDIA_ROOT=MEDIA_ROOT)
@@ -276,16 +274,14 @@ class CreateThumbnailRawTests(SimpleTestCase):
         create_thumbnail(self.RAW_PATH, 800, "nested/thumbnails_big/x", "h")
         self.requests.post.assert_called_once()
 
-    def test_raw_service_error_is_logged_and_reraised(self):
+    def test_raw_service_error_is_left_to_the_caller(self):
         boom = ValueError("service down")
         self.requests.post.side_effect = boom
         with mock.patch("api.thumbnails.render.logger") as logger:
             with self.assertRaises(ValueError) as ctx:
                 create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "h")
         self.assertIs(ctx.exception, boom)
-        logger.error.assert_called_once_with(
-            "Could not create thumbnail for file %s", self.RAW_PATH
-        )
+        logger.error.assert_not_called()
 
     def test_missing_thumbnail_key_in_response_raises_keyerror(self):
         self.requests.post.return_value.json.return_value = {}

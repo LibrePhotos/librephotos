@@ -20,6 +20,7 @@ TIMEOUT = 300
 PREVIEW_SECONDS = 5
 PREVIEW_CRF = 20
 SQUARE_HEIGHT = 500
+PREVIEW_FRAME_RATE = "fps='if(between(source_fps,1,30),source_fps,30)'"
 LIVE_THREADS = "2"
 LIVE_READRATE = "2.0"
 LIVE_BURST_SECONDS = "30.0"
@@ -40,6 +41,7 @@ REQUIRED = {
         "hflip",
         "vflip",
         "aresample",
+        "fps",
     },
     "protocols": {"file", "pipe"},
     "options": {
@@ -605,7 +607,9 @@ def preview_args(source: Path, output: Path, transfer: str | None) -> list[str]:
         str(PREVIEW_CRF),
         "-an",
         *NO_METADATA,
-        *color.h264_video_args(str(source), f"scale=-2:{SQUARE_HEIGHT}", transfer),
+        *color.h264_video_args(
+            str(source), f"{PREVIEW_FRAME_RATE},scale=-2:{SQUARE_HEIGHT}", transfer
+        ),
         str(output),
     ]
 

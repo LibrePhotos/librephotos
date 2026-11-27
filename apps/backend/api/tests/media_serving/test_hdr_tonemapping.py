@@ -254,7 +254,8 @@ class ConversionSitesTest(SimpleTestCase):
             with mock.patch.object(render.binaries, "run_tool") as run_tool:
                 render.create_animated_thumbnail("/v.mov", 720, "out", "h")
         self.assertEqual(
-            _filter_arg(run_tool.call_args[0][1]), "scale=-2:720," + TONEMAP
+            _filter_arg(run_tool.call_args[0][1]),
+            f"{render.PREVIEW_FRAME_RATE},scale=-2:720,{TONEMAP}",
         )
 
     def test_the_poster_frame_tonemaps_an_hdr_source(self):

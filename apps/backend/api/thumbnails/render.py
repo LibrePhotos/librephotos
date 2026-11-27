@@ -346,25 +346,20 @@ def create_thumbnail(
     local_orientation: int = 1,
 ) -> str:
     """Render one static (WebP) thumbnail of ``input_path`` into ``output_path``."""
-    try:
-        raw = is_raw(input_path)
-        complete_path = _media_path(output_path, hash, ".webp")
-        if not raw:
-            return _render_thumbnail(
-                input_path,
-                output_height,
-                complete_path,
-                local_orientation,
-                _webp_for(output_path),
-            )
-        if "thumbnails_big" in output_path:
-            return _render_raw_thumbnail(
-                input_path, output_height, complete_path, local_orientation
-            )
-        return _resize_big_thumbnail(output_height, complete_path, hash, ".webp")
-    except Exception as e:
-        logger.error("Could not create thumbnail for file %s", input_path)
-        raise e
+    complete_path = _media_path(output_path, hash, ".webp")
+    if not is_raw(input_path):
+        return _render_thumbnail(
+            input_path,
+            output_height,
+            complete_path,
+            local_orientation,
+            _webp_for(output_path),
+        )
+    if "thumbnails_big" in output_path:
+        return _render_raw_thumbnail(
+            input_path, output_height, complete_path, local_orientation
+        )
+    return _resize_big_thumbnail(output_height, complete_path, hash, ".webp")
 
 
 # Output directory -> height of the square (WebP) thumbnails. They are resized
@@ -412,6 +407,29 @@ class VideoThumbnailError(RuntimeError):
     """ffmpeg failed, or never finished, making a video thumbnail."""
 
 
+class VideoThumbnailTimeoutError(VideoThumbnailError):
+    pass
+
+
+class UnreadableVideoError(VideoThumbnailError):
+    pass
+
+
+AVERROR_INVALIDDATA = -0x41444E49
+INVALID_DATA_EXITS = frozenset(
+    {AVERROR_INVALIDDATA & 0xFFFFFFFF, AVERROR_INVALIDDATA & 0xFF}
+)
+
+
+def log_media_failure(
+    log: logging.Logger, error: Exception, message: str, *args: object
+) -> None:
+    if isinstance(error, UnreadableVideoError):
+        log.warning(message, *args)
+        return
+    log.exception(message, *args)
+
+
 # What ffmpeg prints when it decoded no frame to write, whether it then exits
 # 0 (an empty WebP, an mp4 with no frame) or fails (libwebp_anim flushed empty
 # reports "Cannot allocate memory").
@@ -449,8 +467,17 @@ def _wrote_a_frame(args: list[str], output: str, quiet: bool = False) -> bool:
         if quiet or _decoded_no_frame(e):
             return False
         _remove_partial(output)
-        raise VideoThumbnailError(str(e)) from e
+        raise _video_error(e) from e
     return _NO_FRAME.encode() not in stderr
+
+
+def _video_error(error: binaries.ToolError) -> VideoThumbnailError:
+    returncode = error.returncode if isinstance(error, binaries.ToolFailedError) else 0
+    if returncode is None:
+        return VideoThumbnailTimeoutError(str(error))
+    if returncode in INVALID_DATA_EXITS:
+        return UnreadableVideoError(str(error))
+    return VideoThumbnailError(str(error))
 
 
 def _decoded_no_frame(error: binaries.ToolError) -> bool:
@@ -466,6 +493,12 @@ def _remove_partial(output: str) -> None:
         pass
 
 
+PREVIEW_MAX_FPS = 30
+PREVIEW_FRAME_RATE = (
+    f"fps='if(between(source_fps,1,{PREVIEW_MAX_FPS}),source_fps,{PREVIEW_MAX_FPS})'"
+)
+
+
 def create_animated_thumbnail(
     input_path: str,
     output_height: int,
@@ -474,32 +507,25 @@ def create_animated_thumbnail(
     transfer: str | None = None,
 ) -> None:
     """Write the first VIDEO_PREVIEW_SECONDS of a video, ``output_height`` high, as an mp4."""
-    try:
-        output = _media_path(output_path, hash, ".mp4")
-        command = [
-            "-y",
-            "-i",
-            input_path,
-            "-to",
-            str(settings.VIDEO_PREVIEW_SECONDS),
-            "-vcodec",
-            "libx264",
-            "-crf",
-            str(settings.VIDEO_PREVIEW_CRF),
-            "-an",
-            *NO_METADATA,
-            # Tonemapped when the source is HDR, or the gallery shows the same
-            # washed-out picture the player does. See :mod:`api.video.color`.
-            *color.h264_video_args(input_path, f"scale=-2:{output_height}", transfer),
-            output,
-        ]
-
-        _run_ffmpeg(command, output)
-    except Exception as e:
-        logger.error(
-            "Could not create animated thumbnail for file %s: %s", input_path, e
-        )
-        raise e
+    output = _media_path(output_path, hash, ".mp4")
+    command = [
+        "-y",
+        "-i",
+        input_path,
+        "-to",
+        str(settings.VIDEO_PREVIEW_SECONDS),
+        "-vcodec",
+        "libx264",
+        "-crf",
+        str(settings.VIDEO_PREVIEW_CRF),
+        "-an",
+        *NO_METADATA,
+        *color.h264_video_args(
+            input_path, f"{PREVIEW_FRAME_RATE},scale=-2:{output_height}", transfer
+        ),
+        output,
+    ]
+    _run_ffmpeg(command, output)
 
 
 def create_thumbnail_for_video(
@@ -668,7 +694,7 @@ def _try_video_posters(thumbnail: Thumbnail) -> None:
         )
 
 
-def _create_video_squares(thumbnail: Thumbnail, extension: str) -> None:
+def _create_video_squares(thumbnail: Thumbnail, extension: str) -> str:
     """Make the square thumbnails of a video that are missing in ``extension``.
 
     The big thumbnail exists by now: the stills are resized from it. A video
@@ -676,8 +702,21 @@ def _create_video_squares(thumbnail: Thumbnail, extension: str) -> None:
     """
     if extension != ".mp4":
         create_video_posters(thumbnail)
-        return
+        return extension
     _try_video_posters(thumbnail)
+    try:
+        _create_video_clips(thumbnail)
+    except VideoThumbnailTimeoutError as error:
+        if not thumbnail.video_poster:
+            raise
+        logger.warning(
+            "video %s gets no animated preview: %s", thumbnail.photo.image_hash, error
+        )
+        return ".webp"
+    return extension
+
+
+def _create_video_clips(thumbnail: Thumbnail) -> None:
     photo = thumbnail.photo
     for output_path in ANIMATED_THUMBNAIL_DIRS:
         if does_video_thumbnail_exist(output_path, photo.image_hash):
@@ -735,7 +774,7 @@ def _create_missing_static_thumbnails(thumbnail: Thumbnail) -> None:
         )
 
 
-def _create_missing_video_thumbnails(thumbnail: Thumbnail, extension: str) -> None:
+def _create_missing_video_thumbnails(thumbnail: Thumbnail, extension: str) -> str:
     """A video's big thumbnail (its first frame) and its squares, those missing."""
     photo = thumbnail.photo
     if not does_static_thumbnail_exist("thumbnails_big", photo.image_hash):
@@ -746,7 +785,7 @@ def _create_missing_video_thumbnails(thumbnail: Thumbnail, extension: str) -> No
             file_type=".webp",
             transfer=photo.video_color_transfer,
         )
-    _create_video_squares(thumbnail, extension)
+    return _create_video_squares(thumbnail, extension)
 
 
 def generate_thumbnail(thumbnail: Thumbnail) -> None:
@@ -764,8 +803,9 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
         # Set again when a video's stills are there (create_video_posters).
         thumbnail.video_poster = False
         if photo.video:
-            square_extension = _video_square_extension()
-            _create_missing_video_thumbnails(thumbnail, square_extension)
+            square_extension = _create_missing_video_thumbnails(
+                thumbnail, _video_square_extension()
+            )
         else:
             _create_missing_static_thumbnails(thumbnail)
         thumbnail.thumbnail_big.name = os.path.join(
@@ -778,8 +818,11 @@ def generate_thumbnail(thumbnail: Thumbnail) -> None:
         if photo.video:
             _remove_replaced_video_squares(photo_hash, square_extension)
     except Exception as e:
-        logger.exception(
-            "could not generate thumbnail for image %s", thumbnail.main_file_path()
+        log_media_failure(
+            logger,
+            e,
+            "could not generate thumbnail for image %s",
+            thumbnail.main_file_path(),
         )
         raise e
 

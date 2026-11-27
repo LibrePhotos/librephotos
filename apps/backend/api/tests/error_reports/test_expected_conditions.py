@@ -89,3 +89,22 @@ class ReRaisedErrorsAreLoggedOnceTest(TestCase):
             render.create_thumbnail_for_video(
                 "/data/photos/a.mp4", "thumbnails_big", "abc", ".webp"
             )
+
+    def test_a_failed_animated_thumbnail_is_left_to_its_caller(self) -> None:
+        with (
+            patch.object(render, "_run_ffmpeg", side_effect=OSError("ffmpeg")),
+            patch.object(render.color, "h264_video_args", return_value=[]),
+            self.assertNoLogs("api.thumbnails.render", "ERROR"),
+            self.assertRaises(OSError),
+        ):
+            render.create_animated_thumbnail(
+                "/data/photos/a.mp4", 500, "square_thumbnails", "abc"
+            )
+
+    def test_a_failed_single_thumbnail_is_left_to_its_caller(self) -> None:
+        with (
+            patch.object(render, "_render_thumbnail", side_effect=OSError("bad")),
+            self.assertNoLogs("api.thumbnails.render", "ERROR"),
+            self.assertRaises(OSError),
+        ):
+            render.create_thumbnail("/data/photos/a.jpg", 500, "thumbnails_big", "abc")

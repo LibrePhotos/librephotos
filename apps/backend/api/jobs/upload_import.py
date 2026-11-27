@@ -76,6 +76,7 @@ from api.models import LongRunningJob, Photo, User
 from api.models.long_running_job import LongRunningJobQuerySet
 from api.models.photo_caption import PhotoCaption
 from api.search import semantic
+from api.thumbnails import render
 
 logger = logging.getLogger(__name__)
 
@@ -309,6 +310,15 @@ def run_upload_steps(upload: UploadedPhoto) -> UploadOutcome:
     for stage, step in UPLOAD_STEPS:
         try:
             step(upload)
+        except render.UnreadableVideoError as error:
+            logger.warning(
+                "job %s: step %s failed for photo %s: %s",
+                upload.job_id,
+                stage,
+                upload.photo.pk,
+                error,
+            )
+            outcome.fail(stage, error)
         except Exception as error:
             logger.exception(
                 "job %s: step %s failed for photo %s",

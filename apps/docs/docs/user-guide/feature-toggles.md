@@ -145,6 +145,8 @@ Videos that already have an animated preview keep it: turning the switch off cha
 
 With the switch on, a scan makes the two WebP stills as well, and the grid shows a video's still with its length until you rest the pointer on it (or reach it with the keyboard): only then does its clip load and play, and it stops when you move on. A page full of videos so loads small pictures instead of a video player for each of them. Phones and tablets show the still, since there is no pointer to rest, and with reduced motion set on your device the grid never plays the clips. The videos added before 1.5.0 get their stills from the [Make Video Posters](./job-system.md#make-video-posters) job, which runs by itself after the update; until then they play their clip as before.
 
+<Since version="1.7.0" /> A clip ffmpeg cannot encode within five minutes, such as a long slow-motion video on a slow server, no longer fails the video's thumbnails: the video keeps its still in the grid, the log says it got no animated preview, and the scan goes on. A **Rescan** tries the clip again.
+
 Face detection, image captioning and Things run on a machine learning model. Under each of these switches a line says whether its model is ready. When a model is missing, saving a switch starts the **Download models** job, and the line shows its progress with a link to the job. If the download fails, the line says so and offers **Retry**.
 
 :::note Embedded media

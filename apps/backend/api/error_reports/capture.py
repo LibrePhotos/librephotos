@@ -30,6 +30,7 @@ from sentry_sdk.integrations.excepthook import ExcepthookIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 from sentry_sdk.integrations.threading import ThreadingIntegration
 from sentry_sdk.transport import Transport
+from sentry_sdk.types import Event, Hint
 
 from api.error_reports import background
 from api.error_reports.scrub import (
@@ -78,6 +79,26 @@ class _RateLimit:
 
 
 _rate_limit = _RateLimit(MAX_EVENTS_PER_MINUTE)
+
+PROACTOR_CONNECTION_LOST = (
+    "Exception in callback _ProactorBasePipeTransport._call_connection_lost"
+)
+
+
+def _client_disconnect(hint: Hint) -> bool:
+    record = hint.get("log_record")
+    exc_info = hint.get("exc_info")
+    return (
+        isinstance(record, logging.LogRecord)
+        and record.name == "asyncio"
+        and record.getMessage().startswith(PROACTOR_CONNECTION_LOST)
+        and exc_info is not None
+        and isinstance(exc_info[1], OSError)
+    )
+
+
+def _drop_noise(event: Event, hint: Hint) -> Event | None:
+    return None if _client_disconnect(hint) else event
 
 
 def _events(envelope: Envelope) -> list[dict[str, Json]]:
@@ -133,6 +154,7 @@ def start_capture() -> None:
         max_breadcrumbs=0,
         send_client_reports=False,
         auto_session_tracking=False,
+        before_send=_drop_noise,
         default_integrations=False,
         auto_enabling_integrations=False,
         integrations=[
