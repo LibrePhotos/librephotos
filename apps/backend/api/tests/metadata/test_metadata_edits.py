@@ -64,11 +64,7 @@ class MetadataApiTestCase(TestCase):
     def search(self, term):
         response = self.client.get("/api/photos/searchlist/", {"search": term})
         self.assertEqual(response.status_code, 200)
-        return [
-            item["image_hash"]
-            for group in response.json()["results"]
-            for item in group["items"]
-        ]
+        return [item["image_hash"] for item in response.json()["results"]]
 
 
 class RatingTest(MetadataApiTestCase):

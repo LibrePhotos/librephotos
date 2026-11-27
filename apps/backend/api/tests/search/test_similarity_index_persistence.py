@@ -27,7 +27,7 @@ from api.search import embedding_jobs
 from api.search.similarity import (
     SimilarityIndexError,
     build_image_similarity_index,
-    search_similar_embedding,
+    search_ranked_embedding,
 )
 from api.tests.sidecar_client import test_client
 from api.tests.stubs import load_backend_file
@@ -388,14 +388,20 @@ class SearchSimilarEmbeddingTest(SimpleTestCase):
     def test_an_error_reply_is_no_result(self, post):
         post.return_value = _error_reply()
 
-        self.assertEqual(search_similar_embedding(1, unit(0)), [])
+        self.assertEqual(search_ranked_embedding(1, unit(0), 10, 0.15), [])
 
     @patch("api.runtime.sidecars.http.post")
     def test_the_result_is_returned(self, post):
         post.return_value = _build_reply()
-        post.return_value.json.return_value = {"status": True, "result": ["a"]}
+        post.return_value.json.return_value = {
+            "status": True,
+            "result": ["a"],
+            "scores": [0.3],
+        }
 
-        self.assertEqual(search_similar_embedding(1, unit(0)), ["a"])
+        self.assertEqual(search_ranked_embedding(1, unit(0), 10, 0.15), [("a", 0.3)])
+        sent = post.call_args.kwargs["json"]
+        self.assertEqual((sent["metric"], sent["with_scores"]), ("cosine", True))
 
 
 class ClipJobFailsWithTheIndexTest(TestCase):

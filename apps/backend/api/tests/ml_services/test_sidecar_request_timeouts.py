@@ -97,12 +97,12 @@ class ExifReaderTimeoutTest(SimpleTestCase):
 
 class ImageSimilarityTimeoutTest(SimpleTestCase):
     @patch("api.runtime.sidecars.http.post")
-    def test_search_similar_embedding_passes_timeout(self, mock_post):
-        mock_post.return_value = _ok_response({"result": []})
+    def test_search_ranked_embedding_passes_timeout(self, mock_post):
+        mock_post.return_value = _ok_response({"result": [], "scores": []})
 
-        from api.search.similarity import search_similar_embedding
+        from api.search.similarity import search_ranked_embedding
 
-        search_similar_embedding(user=1, emb=[0.0] * 512)
+        search_ranked_embedding(1, [0.0] * 512, 10, 0.2)
 
         _assert_finite_timeout(mock_post.call_args)
         self.assertEqual(

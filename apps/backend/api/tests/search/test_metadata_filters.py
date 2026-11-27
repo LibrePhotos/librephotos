@@ -173,10 +173,13 @@ class CameraAndExposureFilterTest(MetadataFilterTestCase):
         hashes = [self.xt5.image_hash, self.r5.image_hash]
         with (
             patch(
-                "api.search.filters.calculate_query_embeddings",
+                "api.search.ranked.calculate_query_embeddings",
                 return_value=([0.1] * 512, 1.0),
             ),
-            patch("api.search.filters.search_similar_embedding", return_value=hashes),
+            patch(
+                "api.search.ranked.search_ranked_embedding",
+                return_value=[(image_hash, 0.3) for image_hash in hashes],
+            ),
         ):
             self.assert_matches({"search": "anything", "camera": "X-T5"}, [self.xt5])
 

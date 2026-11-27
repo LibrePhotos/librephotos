@@ -13,7 +13,6 @@ from api.models import Photo, User
 from api.runtime import sidecars
 from api.runtime.http_timeouts import SIMILARITY
 from api.search.semantic import (
-    SEARCH_THRESHOLD,
     SIMILAR_THRESHOLD,
     is_current_embedding,
     produced_by_openclip,
@@ -37,43 +36,30 @@ class SimilarPhotosReply(TypedDict):
 INDEX_PAGE_SIZE = 1000
 
 
-def search_similar_embedding(
-    user: User | int,
-    emb: Sequence[float],
-    result_count: int = 100,
-    threshold: float | None = None,
-) -> list[str]:
-    """Hashes of the user's photos closest to ``emb``, a query embedding;
-    ``threshold`` defaults to the search cut."""
-    if threshold is None:
-        threshold = SEARCH_THRESHOLD
-    if isinstance(user, int):
-        user_id = user
-    else:
-        user_id = user.id
-
-    image_embedding = np.array(emb, dtype=np.float32)
-
+def search_ranked_embedding(
+    user_id: int, emb: Sequence[float], result_count: int, threshold: float
+) -> list[tuple[str, float]]:
     post_data = {
         "user_id": user_id,
-        "image_embedding": image_embedding.tolist(),
+        "image_embedding": np.asarray(emb, dtype=np.float32).tolist(),
         "n": result_count,
         "threshold": threshold,
+        "metric": "cosine",
+        "with_scores": True,
     }
     try:
         res = sidecars.post(
             "image_similarity", "/search/", json=post_data, timeout=SIMILARITY
         )
-    # Not only an error reply: a stopped, restarting or busy sidecar raises a
-    # ConnectionError or a timeout, which used to fail the whole search.
     except requests.RequestException as error:
         logger.error(
-            "error retrieving similar embeddings for user %s: %s",
+            "error retrieving ranked embeddings for user %s: %s",
             user_id,
             sidecars.error_detail(error),
         )
         return []
-    return res.json()["result"]
+    body = res.json()
+    return list(zip(body["result"], body.get("scores", []), strict=True))
 
 
 def search_similar_image(

@@ -26,7 +26,12 @@ forgets them until the next Calculate CLIP embeddings job.
 import atexit
 import os
 
-from retrieval_index import IndexBuildError, RebuildNotOpenError, RetrievalIndex
+from retrieval_index import (
+    METRICS,
+    IndexBuildError,
+    RebuildNotOpenError,
+    RetrievalIndex,
+)
 
 from librephotos.env import protected_media_root
 from service._common import create_app, json_fields, logger, serve_forever
@@ -121,21 +126,42 @@ def delete_index() -> ResponseReturnValue:
 
 @app.route("/search/", methods=["POST"])
 def search_index() -> ResponseReturnValue:
-    user_id, image_embedding, n, threshold = json_fields(
-        "user_id", "image_embedding", n=100, threshold=27.0
+    user_id, image_embedding, n, threshold, metric, with_scores = json_fields(
+        "user_id",
+        "image_embedding",
+        n=100,
+        threshold=27.0,
+        metric="ip",
+        with_scores=False,
     )
     try:
         user_id = _user_id(user_id)
         n = int(n)
         threshold = float(threshold)
+        metric = str(metric)
     except (TypeError, ValueError) as e:
         return _failed(str(e))
+    if metric not in METRICS:
+        return _failed(f"metric must be one of {METRICS}")
     try:
-        result = index.search_similar(user_id, image_embedding, n, threshold)
+        if with_scores is not True:
+            return {
+                "status": True,
+                "result": index.search_similar(
+                    user_id, image_embedding, n, threshold, metric
+                ),
+            }
+        scored = index.search_similar_scored(
+            user_id, image_embedding, n, threshold, metric
+        )
     except Exception as e:
         log.error("search for user %s failed: %s", user_id, e)
         return {"status": False, "result": [], "error": str(e)}, 500
-    return {"status": True, "result": result}
+    return {
+        "status": True,
+        "result": [image_hash for image_hash, _ in scored],
+        "scores": [score for _, score in scored],
+    }
 
 
 def serve() -> None:

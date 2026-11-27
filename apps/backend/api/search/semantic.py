@@ -51,8 +51,7 @@ logger = logging.getLogger(__name__)
 OPENCLIP = "openclip_vitb32"
 TAG_THING_TYPE = f"{OPENCLIP}_tag"
 
-# Inner-product cuts: text search, and "similar photos" in the photo detail.
-SEARCH_THRESHOLD = 31.3
+SEARCH_COSINE_FLOOR = 0.15
 SIMILAR_THRESHOLD = 138.9
 
 SIDECAR = "tags"

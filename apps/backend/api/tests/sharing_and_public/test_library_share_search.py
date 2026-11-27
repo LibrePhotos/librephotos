@@ -27,11 +27,7 @@ def found(user, term, **params):
     client.force_authenticate(user=user)
     response = client.get("/api/photos/searchlist/", {"search": term, **params})
     assert response.status_code == 200, response.content[:300]
-    return {
-        item["image_hash"]
-        for group in response.json()["results"]
-        for item in group["items"]
-    }
+    return {item["image_hash"] for item in response.json()["results"]}
 
 
 class LibrarySearchTest(TestCase):

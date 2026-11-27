@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import datetime
 import logging
 import operator
 from functools import reduce
 from typing import TypeVar, cast
 
-import requests
 from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.db import connection
 from django.db.models import Model, Q, QuerySet
@@ -21,8 +19,6 @@ from api.models.photo_search import fold
 from api.models.tag import Tag
 from api.models.user_place import UserPlace
 from api.search.metadata_filter import metadata_filter_q, parse_metadata_filter
-from api.search.semantic import calculate_query_embeddings
-from api.search.similarity import search_similar_embedding
 from api.sharing.library_search import library_matches
 
 # The filter is only used on photo lists, but DRF's BaseFilterBackend is generic
@@ -162,20 +158,14 @@ class SemanticSearchFilter(filters.SearchFilter):
         places = UserPlace.objects.owned_by(request_user(request))
         return {pid: fold(name) for pid, name in places.values_list("id", "name")}
 
-    def _semantic_matches(self, request: Request) -> list[str]:
-        """Hashes of the requester's photos closest to the query, by the
-        semantic search model (api.search.semantic), at its threshold."""
-        user = request_user(request)
-        query = request.query_params.get("search")
-        start = datetime.datetime.now()
-        emb, magnitude = calculate_query_embeddings(query)
-        elapsed = (datetime.datetime.now() - start).total_seconds()
-        logger.info("finished calculating query embedding - took %.2f seconds", elapsed)
-        start = datetime.datetime.now()
-        image_hashes = search_similar_embedding(user.id, emb, user.semantic_search_topk)
-        elapsed = (datetime.datetime.now() - start).total_seconds()
-        logger.info("search similar embedding - took %.2f seconds", elapsed)
-        return image_hashes
+    def structured_queryset(
+        self, request: Request, queryset: QuerySet[_ModelT, _RowT]
+    ) -> QuerySet[_ModelT, _RowT]:
+        queryset = queryset.filter(
+            *timeline_filter_q(request.user, _media_params(request))
+        )
+        metadata = parse_metadata_filter(request_user(request), request.query_params)
+        return queryset.filter(*metadata_filter_q(metadata))
 
     def filter_queryset(
         self,
@@ -183,20 +173,7 @@ class SemanticSearchFilter(filters.SearchFilter):
         queryset: QuerySet[_ModelT, _RowT],
         view: APIView,
     ) -> QuerySet[_ModelT, _RowT]:
-        # Narrow by media type and category (video/photo, is_screenshot,
-        # is_document) independent of the search term, parsed like the
-        # album-date endpoints do (tri-state). Search never applies the saved
-        # timeline default or the favorites filter. This is applied before the
-        # no-search-term early return so the filter works whether or not a
-        # query is supplied.
-        queryset = queryset.filter(
-            *timeline_filter_q(request.user, _media_params(request))
-        )
-        # The structured filters (camera, exposure, rating, dates, location,
-        # file type, people) narrow the same way, with or without a term; a
-        # bad value is a 400 naming the parameter.
-        metadata = parse_metadata_filter(request_user(request), request.query_params)
-        queryset = queryset.filter(*metadata_filter_q(metadata))
+        queryset = self.structured_queryset(request, queryset)
 
         search_fields = self.get_search_fields(view, request)
         search_terms = self.get_search_terms(request)
@@ -218,17 +195,6 @@ class SemanticSearchFilter(filters.SearchFilter):
             for search_field in search_fields
         ]
 
-        image_hashes = None
-        if request_user(request).semantic_search_topk > 0:
-            try:
-                image_hashes = self._semantic_matches(request)
-            except (requests.RequestException, KeyError, ValueError) as error:
-                # The text, tag and OCR matches still answer while the CLIP
-                # sidecar is down, busy or missing its model.
-                logger.warning(
-                    "semantic search unavailable, using the text match only: %s",
-                    error,
-                )
         fields = [str(f) for f in search_fields]
         folded_tags = self._folded_tags(request, fields)
         folded_places = self._folded_user_places(request, fields)
@@ -242,9 +208,6 @@ class SemanticSearchFilter(filters.SearchFilter):
             # lookups above: each term may be satisfied by any field or by the
             # OCR text, and terms are AND-ed together (reduce(and_) below).
             queries.append(build_ocr_search_q(search_term, vendor))
-
-            if image_hashes is not None:
-                queries += [Q(image_hash__in=image_hashes)]
 
             conditions.append(reduce(operator.or_, queries))
         queryset = queryset.filter(reduce(operator.and_, conditions))

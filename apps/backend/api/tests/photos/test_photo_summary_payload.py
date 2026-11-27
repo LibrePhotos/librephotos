@@ -101,6 +101,12 @@ class PhotoSummaryPayloadTest(TestCase):
         self._assert_tiles(self._get("/api/photos/recentlyadded/")["results"])
 
     def test_search(self):
+        found = self._get("/api/photos/searchlist/", params={"search": "beach"})
+        self._assert_tiles(found["results"])
+
+    def test_search_by_date(self):
+        self.owner.semantic_search_topk = 0
+        self.owner.save()
         groups = self._get("/api/photos/searchlist/", params={"search": "beach"})
         self._assert_tiles(
             [tile for group in groups["results"] for tile in group["items"]]

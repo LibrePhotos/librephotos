@@ -10,6 +10,7 @@ from rest_framework import serializers
 from api.search.metadata_filter import VALUE_COLUMNS
 
 SEARCH_SORT_CHOICES = [
+    ("relevance", "Best match"),
     ("newest", "Newest"),
     ("oldest", "Oldest"),
     ("largest", "Largest"),
@@ -18,11 +19,28 @@ SEARCH_SORT_CHOICES = [
 
 
 class SearchListQuery(serializers.Serializer[None]):
+    search = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text="The words. Dates, named people and places in them become "
+        "filters; the rest is matched as words and by meaning",
+    )
+    language = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+        max_length=16,
+        help_text="The app language of the searcher, for example de or pt_BR: "
+        "words that name a thing in it also search for the thing",
+    )
     sort = serializers.ChoiceField(
         choices=SEARCH_SORT_CHOICES,
-        default="newest",
-        help_text="newest (the default) or oldest: the matches grouped by day; "
-        "largest or smallest: a flat list by file size",
+        default="relevance",
+        help_text="relevance (the default): the best matches first with "
+        "semantic search on, newest first otherwise; newest or oldest: by "
+        "date, grouped by day with semantic search off; largest or smallest: "
+        "a flat list by file size",
     )
 
 

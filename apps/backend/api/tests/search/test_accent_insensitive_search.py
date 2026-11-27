@@ -60,7 +60,7 @@ class SearchFoldedColumnTest(TestCase):
     """``search_folded`` follows the captions and the location."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.photo = create_test_photo(owner=self.user)
 
     def test_update_search_location_folds_the_location(self):
@@ -123,7 +123,7 @@ class AccentInsensitiveSearchTest(TestCase):
     """The searchlist endpoint finds a photo with or without its accents."""
 
     def setUp(self):
-        self.user = create_test_user()
+        self.user = create_test_user(semantic_search_topk=0)
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         self.now = timezone.now()

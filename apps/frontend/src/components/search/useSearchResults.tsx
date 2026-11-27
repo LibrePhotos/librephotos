@@ -11,7 +11,7 @@ import { PAGE_GUTTER_PX } from "../../uiConstants";
 import { STORAGE_KEYS } from "../../util/storage";
 import { useListFailure } from "../common/useListFailure";
 import type { EmptyStateConfig, PhotoListView } from "../photolist/PhotoListView";
-import { isSizeSort } from "../photolist/photoSort";
+import { isSizeSort, PHOTO_SORTS, RANKED_PHOTO_SORTS } from "../photolist/photoSort";
 import { PhotoSortMenu } from "../photolist/PhotoSortMenu";
 import { useMediaTypeFilter } from "../photolist/useMediaTypeFilter";
 import { usePhotoSort } from "../photolist/usePhotoSort";
@@ -97,8 +97,9 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
   // user, and the page flashed "No matching photos" on every hard load. A
   // filter-only page without filters asks nothing, so it is not loading.
   const { order: photoOrder } = usePhotoOrder();
-  const photoSort = usePhotoSort(STORAGE_KEYS.photoSortSearch, photoOrder);
-  const { sort } = photoSort;
+  const ranked = Boolean(currentUser?.semantic_search_topk) && term.length > 0;
+  const photoSort = usePhotoSort(STORAGE_KEYS.photoSortSearch, ranked ? "relevance" : photoOrder);
+  const sort = photoSort.sort === "relevance" && !ranked ? photoOrder : photoSort.sort;
   const searchResult = useSearchPhotosQuery(term, mediaType, filters, sort);
   const { data: { photosGroupedByDate, photosFlat, count } = DEFAULTS, isPending, error } = searchResult;
   const listFailure = useListFailure(searchResult);
@@ -131,6 +132,7 @@ export function useSearchResults(term: string, filterPanel?: FilterPanelState): 
           sort={sort}
           onChange={photoSort.setSort}
           onReset={photoSort.explicit ? photoSort.reset : undefined}
+          options={ranked ? RANKED_PHOTO_SORTS : PHOTO_SORTS}
         />
         <SearchFilterButton
           filters={filters}
