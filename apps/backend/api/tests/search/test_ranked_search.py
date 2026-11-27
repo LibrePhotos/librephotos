@@ -173,3 +173,48 @@ class RankedSearchTextTest(TestCase):
     def test_words_alone_answer_while_the_clip_sidecar_is_down(self):
         photo = create_test_photo(owner=self.user, search_captions="beach")
         self.assertEqual(self._search("beach"), [photo.image_hash])
+
+
+class UndatedPhotosLastTest(TestCase):
+    def setUp(self):
+        self.user = create_test_user(semantic_search_topk=100)
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.undated = create_test_photo(owner=self.user, search_captions="beach")
+        self.dated = create_test_photo(
+            owner=self.user, exif_timestamp=_taken(2022), search_captions="beach"
+        )
+
+    def _search(self, params):
+        with patch(
+            "api.search.ranked.calculate_query_embeddings",
+            side_effect=requests.ConnectionError("refused"),
+        ):
+            response = self.client.get(SEARCH_URL, params)
+        self.assertEqual(response.status_code, 200)
+        return [item["image_hash"] for item in response.data["results"]]
+
+    def test_equal_word_matches_list_the_undated_photo_last(self):
+        found = self._search({"search": "beach"})
+        self.assertEqual(found, [self.dated.image_hash, self.undated.image_hash])
+
+    def test_a_place_alone_lists_the_undated_photo_last(self):
+        berlin = create_test_album_place(owner=self.user, title="Berlin")
+        berlin.photos.add(self.undated, self.dated)
+        found = self._search({"search": "Berlin"})
+        self.assertEqual(found, [self.dated.image_hash, self.undated.image_hash])
+
+    def test_newest_and_oldest_list_the_undated_photo_last(self):
+        older = create_test_photo(
+            owner=self.user, exif_timestamp=_taken(2020), search_captions="beach"
+        )
+        newest = self._search({"search": "beach", "sort": "newest"})
+        oldest = self._search({"search": "beach", "sort": "oldest"})
+        self.assertEqual(
+            newest,
+            [self.dated.image_hash, older.image_hash, self.undated.image_hash],
+        )
+        self.assertEqual(
+            oldest,
+            [older.image_hash, self.dated.image_hash, self.undated.image_hash],
+        )

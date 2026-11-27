@@ -77,7 +77,7 @@ def parsed_q(user: User, parsed: ParsedQuery) -> list[Q]:
 
 
 def _newest(queryset: QuerySet[Photo]) -> list[UUID]:
-    ordered = queryset.order_by("-exif_timestamp", "pk")
+    ordered = queryset.order_by(F("exif_timestamp").desc(nulls_last=True), "pk")
     return list(ordered.values_list("pk", flat=True)[:MAX_RESULTS])
 
 
@@ -109,7 +109,11 @@ def _ranked(user: User, queryset: QuerySet[Photo], parsed: ParsedQuery) -> list[
         return _newest(filtered)
     lexical = list(
         lexical_matches(filtered, parsed.terms, parsed.phrases)
-        .order_by(F("lexical_score").desc(), F("exif_timestamp").desc(), "pk")
+        .order_by(
+            F("lexical_score").desc(),
+            F("exif_timestamp").desc(nulls_last=True),
+            "pk",
+        )
         .values_list("pk", flat=True)[:LEXICAL_LIMIT]
     )
     semantic = _semantic(user, filtered, parsed) if parsed.semantic_text else []

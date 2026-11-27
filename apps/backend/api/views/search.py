@@ -2,7 +2,7 @@ from typing import Any
 from uuid import UUID
 
 from django.core.cache import cache
-from django.db.models import Case, Q, QuerySet, Value, When
+from django.db.models import Case, F, Q, QuerySet, Value, When
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -136,8 +136,13 @@ class SearchListViewSet(ListViewSet):
         if sort in SIZE_SORT_ORDERINGS:
             return _size_answer(matches, sort, context)
         if sort in ("newest", "oldest") or not text:
-            ordering = "exif_timestamp" if sort == "oldest" else "-exif_timestamp"
-            ordered = list(matches.order_by(ordering, "pk")[:MAX_RESULTS])
+            taken = F("exif_timestamp")
+            by_date = (
+                taken.asc(nulls_last=True)
+                if sort == "oldest"
+                else taken.desc(nulls_last=True)
+            )
+            ordered = list(matches.order_by(by_date, "pk")[:MAX_RESULTS])
         else:
             ordered = _in_rank_order(matches, ranked)
         serializer = PhotoSummarySerializer(ordered, many=True, context=context)
