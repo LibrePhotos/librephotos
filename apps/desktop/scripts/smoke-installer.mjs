@@ -169,6 +169,7 @@ if (!isInside(scope.root, installDir)) fail(`the ${values.scope} install went to
 const exe = join(installDir, EXE_NAME);
 const uninstaller = join(installDir, "uninstall.exe");
 if (!existsSync(exe)) fail(`${exe} is missing after the install`);
+if (!existsSync(join(installDir, "THIRD-PARTY-NOTICES.txt"))) fail(`THIRD-PARTY-NOTICES.txt is missing in ${installDir}`);
 step(`installed into ${installDir}`);
 expectRegistry(`${scope.hive}\\Software\\RegisteredApplications`, PRODUCT, "Default apps has no page for the app");
 expectRegistry(`${scope.hive}\\Software\\${PRODUCT}\\Capabilities\\FileAssociations`, ".jpg", "no capability for .jpg");

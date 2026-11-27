@@ -349,3 +349,15 @@
     animation: none;
   }
 }
+.about-actions {
+  margin-top: var(--lp-space-3);
+}
+.notices-text {
+  max-height: 60vh;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: var(--lp-font-family-mono);
+  font-size: var(--lp-font-size-xs);
+  color: var(--lp-color-text);
+}

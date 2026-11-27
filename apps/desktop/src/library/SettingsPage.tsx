@@ -6,11 +6,12 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Display";
 import { PageHeader } from "../ui/PageHeader";
 import { Switch } from "../ui/Toggles";
+import { AboutCard } from "./AboutCard";
 import "../chrome/edit/Edit.css";
 
 const TARGET_HELP: Record<MetadataTarget, string> = {
   sidecar:
-    "A small .xmp file next to the picture holds the rating, caption, keywords and date. The picture itself is never changed, and LibrePhotos, digiKam, darktable and Lightroom read the same file.",
+    "A small .xmp file next to the picture holds the rating, caption, keywords and date. The picture itself is never changed. LibrePhotos, digiKam and darktable read the same file, and a Lightroom sidecar that is already there is updated.",
   file: "Written into the picture itself, without re-compressing it. Only JPEG files can be changed this way; for other formats saving is refused. A sidecar the picture already has is updated too, since apps read it first. A changed file counts as a new file for backups.",
   app: "Kept only in this app's database. Files and other apps never see these changes.",
 };
@@ -91,6 +92,7 @@ export function SettingsPage({ notify }: { notify(text: string, tone?: "error"):
                   .join(" · ")}
           </p>
         </Card>
+        <AboutCard />
       </div>
     </div>
   );

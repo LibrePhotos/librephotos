@@ -58,6 +58,8 @@ jobs:
       - name: Install
         working-directory: apps/desktop
         run: npm ci --no-audit --no-fund
+      - name: Test the notices generator
+        run: node --test apps/desktop/scripts/notices/generate.test.mjs
       - name: Typecheck
         working-directory: apps/desktop
         run: npm run typecheck
@@ -146,14 +148,20 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri
           shared-key: desktop-release
+      - name: Generate the third-party notices from the lockfiles
+        run: node apps/desktop/scripts/notices/generate.mjs
       - name: Build the installer
         working-directory: apps/desktop
         run: npx tauri build --bundles nsis --config "{\"version\":\"$VERSION\"}"
+      - name: Collect the app and its notices for the Store package
+        run: |
+          mkdir -p dist-exe
+          cp apps/desktop/src-tauri/target/release/librephotos-viewer.exe apps/desktop/public/THIRD-PARTY-NOTICES.txt dist-exe/
       - name: Keep the app for the Store package
         uses: actions/upload-artifact@v7
         with:
           name: librephotos-viewer-exe
-          path: apps/desktop/src-tauri/target/release/librephotos-viewer.exe
+          path: dist-exe/
           if-no-files-found: error
           retention-days: 1
       - name: Name the installer and its checksum
@@ -242,9 +250,10 @@ jobs:
           path: dist-exe
       - name: Build the MSIX package
         run: |
-          node apps/desktop/scripts/msix/pack.mjs --exe dist-exe/librephotos-viewer.exe --version "$VERSION" --out dist-msix
+          node apps/desktop/scripts/msix/pack.mjs --exe dist-exe/librephotos-viewer.exe --notices dist-exe/THIRD-PARTY-NOTICES.txt --version "$VERSION" --out dist-msix
           rm -rf dist-msix/layout dist-msix/priconfig.xml
           ls -l dist-msix
+          unzip -l "dist-msix/librephotos-desktop-$VERSION-windows-x64.msix" | grep -q 'THIRD-PARTY-NOTICES.txt' || { echo "::error::THIRD-PARTY-NOTICES.txt is not in the MSIX package"; exit 1; }
       - name: Install, launch, import and remove the package
         shell: powershell
         run: |
@@ -295,7 +304,7 @@ jobs:
       - name: Package for the Store with the reserved identity
         if: steps.store.outputs.submit == 'true'
         run: |
-          node apps/desktop/scripts/msix/pack.mjs --exe dist-exe/librephotos-viewer.exe --version "$VERSION" --out dist-store --require-identity
+          node apps/desktop/scripts/msix/pack.mjs --exe dist-exe/librephotos-viewer.exe --notices dist-exe/THIRD-PARTY-NOTICES.txt --version "$VERSION" --out dist-store --require-identity
           rm -rf dist-store/layout dist-store/priconfig.xml
       - name: Set up the Microsoft Store Developer CLI
         if: steps.store.outputs.submit == 'true'
