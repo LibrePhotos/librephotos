@@ -368,8 +368,8 @@ function OwnerSidebar({
         <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
         {/* Tags stay owner-only: public shares have no flag for them. The file's
             keywords are tags too (a scan makes one of each), marked as such. */}
-        <TagsSection photoDetail={photoDetail} />
-        <RightsSection photo={photoDetail} />
+        {!viewOnly && <TagsSection photoDetail={photoDetail} />}
+        {viewOnly ? <PublicRightsSection rights={photoDetail.rights} /> : <RightsSection photo={photoDetail} />}
         <AlbumsSection imageHash={photoDetail.image_hash} />
         <SimilarPhotosSection photoDetail={photoDetail} />
         <AlbumThreadSection photoKey={id} />
