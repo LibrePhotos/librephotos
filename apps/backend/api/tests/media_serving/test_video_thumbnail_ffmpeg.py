@@ -84,7 +84,7 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
     def test_the_animated_thumbnail_fails_the_same_way(self):
         with (
             mock.patch.object(render.binaries, "run_tool", side_effect=_failed_run),
-            self.assertLogs("api.thumbnails.render", "ERROR"),
+            self.assertNoLogs("api.thumbnails.render", "ERROR"),
         ):
             with self.assertRaises(render.VideoThumbnailError):
                 render.create_animated_thumbnail("/v.mov", 250, "out", "h")

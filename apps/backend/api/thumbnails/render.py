@@ -346,25 +346,20 @@ def create_thumbnail(
     local_orientation: int = 1,
 ) -> str:
     """Render one static (WebP) thumbnail of ``input_path`` into ``output_path``."""
-    try:
-        raw = is_raw(input_path)
-        complete_path = _media_path(output_path, hash, ".webp")
-        if not raw:
-            return _render_thumbnail(
-                input_path,
-                output_height,
-                complete_path,
-                local_orientation,
-                _webp_for(output_path),
-            )
-        if "thumbnails_big" in output_path:
-            return _render_raw_thumbnail(
-                input_path, output_height, complete_path, local_orientation
-            )
-        return _resize_big_thumbnail(output_height, complete_path, hash, ".webp")
-    except Exception as e:
-        logger.error("Could not create thumbnail for file %s", input_path)
-        raise e
+    complete_path = _media_path(output_path, hash, ".webp")
+    if not is_raw(input_path):
+        return _render_thumbnail(
+            input_path,
+            output_height,
+            complete_path,
+            local_orientation,
+            _webp_for(output_path),
+        )
+    if "thumbnails_big" in output_path:
+        return _render_raw_thumbnail(
+            input_path, output_height, complete_path, local_orientation
+        )
+    return _resize_big_thumbnail(output_height, complete_path, hash, ".webp")
 
 
 # Output directory -> height of the square (WebP) thumbnails. They are resized
@@ -474,32 +469,23 @@ def create_animated_thumbnail(
     transfer: str | None = None,
 ) -> None:
     """Write the first VIDEO_PREVIEW_SECONDS of a video, ``output_height`` high, as an mp4."""
-    try:
-        output = _media_path(output_path, hash, ".mp4")
-        command = [
-            "-y",
-            "-i",
-            input_path,
-            "-to",
-            str(settings.VIDEO_PREVIEW_SECONDS),
-            "-vcodec",
-            "libx264",
-            "-crf",
-            str(settings.VIDEO_PREVIEW_CRF),
-            "-an",
-            *NO_METADATA,
-            # Tonemapped when the source is HDR, or the gallery shows the same
-            # washed-out picture the player does. See :mod:`api.video.color`.
-            *color.h264_video_args(input_path, f"scale=-2:{output_height}", transfer),
-            output,
-        ]
-
-        _run_ffmpeg(command, output)
-    except Exception as e:
-        logger.error(
-            "Could not create animated thumbnail for file %s: %s", input_path, e
-        )
-        raise e
+    output = _media_path(output_path, hash, ".mp4")
+    command = [
+        "-y",
+        "-i",
+        input_path,
+        "-to",
+        str(settings.VIDEO_PREVIEW_SECONDS),
+        "-vcodec",
+        "libx264",
+        "-crf",
+        str(settings.VIDEO_PREVIEW_CRF),
+        "-an",
+        *NO_METADATA,
+        *color.h264_video_args(input_path, f"scale=-2:{output_height}", transfer),
+        output,
+    ]
+    _run_ffmpeg(command, output)
 
 
 def create_thumbnail_for_video(
