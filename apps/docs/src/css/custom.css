@@ -260,6 +260,10 @@ a {
   font-weight: 500;
 }
 
+.navbar__item.dropdown > .navbar__link {
+  white-space: nowrap;
+}
+
 /* Infima hides the header items below 997 px (they move to the menu panel), so only lay them
    out from there up. */
 @media (min-width: 997px) {

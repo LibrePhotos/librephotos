@@ -121,6 +121,19 @@ const config = {
             label: "Development",
             activeBaseRegex: "^/docs/development",
           },
+          {
+            type: "dropdown",
+            label: "Use cases",
+            position: "left",
+            items: [
+              { to: "/use-cases", label: "All use cases", activeBaseRegex: "^/use-cases/?$" },
+              { to: "/use-cases/photographers", label: "Photographers" },
+              { to: "/use-cases/archivists", label: "Archivists and family historians" },
+              { to: "/use-cases/families", label: "Families" },
+              { to: "/use-cases/self-hosters", label: "Self-hosters and homelab users" },
+              { href: "pathname:///viewer", html: "LibrePhotos Viewer (desktop app)", target: "_self" },
+            ],
+          },
           { to: "/blog", label: "Blog", position: "left" },
           // The local search (themes above), a pill like the app's header search
           { type: "search", position: "right" },
@@ -181,6 +194,13 @@ const config = {
               {
                 label: "Blog",
                 to: "/blog",
+              },
+              {
+                label: "Use cases",
+                to: "/use-cases",
+              },
+              {
+                html: '<a class="footer__link-item" href="/viewer">LibrePhotos Viewer</a>',
               },
               {
                 label: "Demo",
