@@ -65,7 +65,7 @@ On the first packaged start, if the package folder has no `local.db`, `settings.
 
 1. `local.db` (with its `-wal`, if any) and `settings.json` are copied into `com.librephotos.viewer.importing` next to the package folder. A leftover from an earlier, interrupted import is deleted first.
 2. The copied database must pass `PRAGMA quick_check`; it is checkpointed so it no longer needs a `-wal`.
-3. `imported-from-installer-build.json` (where from, which files, when) is written, then the files and the marker are moved into the package folder, the marker last.
+3. `imported-from-installer-build.json` (where from, which files, and when as Unix milliseconds from the system clock, `std::time`) is written, then the files and the marker are moved into the package folder, the marker last.
 
 Any failure deletes the staging folder and the app starts with an empty library; nothing is ever merged into a packaged library that already exists, and the installer build's folder is only read. Caches, tiles and the WebView2 profile are not copied: they are rebuilt (the only web storage the UI keeps is whether the default-viewer hint was dismissed). The import runs in Tauri's `setup`, after the single-instance check, so it never runs in a second instance or while another one has the library open; that is also why the local database and the server connection are opened there.
 
