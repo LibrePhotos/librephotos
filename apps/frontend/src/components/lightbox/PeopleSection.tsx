@@ -3,10 +3,12 @@ import { ActionIcon, Alert, Box, Button, Group, Text } from "@mantine/core";
 import { IconUserPlus } from "@tabler/icons-react";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import { useDetectFacesReport, useDrawnFaceResult } from "../../api_client/faces";
 import { DisabledReason } from "../common/DisabledReason";
 import { DetectFacesStatus, DrawnFaceStatus } from "./FaceSearchStatus";
 import type { FaceLocationType } from "./lightbox.types";
+import { ageOnPhoto } from "./personAgeOnPhoto";
 import { PersonDetail } from "./PersonDetailComponent";
 import { SectionTitle } from "./SectionTitle";
 import classes from "./Sidebar.module.css";
@@ -16,7 +18,7 @@ type PeopleSectionProps = {
    * `id` follows a Detect faces again of this photo, `image_hash` what became of a box drawn on it
    * (#1117); without them neither is shown.
    */
-  photoDetail: Pick<PhotoType, "people"> & Partial<Pick<PhotoType, "id" | "image_hash">>;
+  photoDetail: Pick<PhotoType, "people"> & Partial<Pick<PhotoType, "id" | "image_hash" | "exif_timestamp">>;
   isPublic: boolean;
   showTitle?: boolean;
   /**
@@ -51,6 +53,11 @@ export function PeopleSection({
   const { t } = useTranslation();
 
   const people = useMemo(() => photoDetail.people ?? [], [photoDetail.people]);
+  const { data: knownPeople } = useFetchPeopleAlbumsQuery(isPublic);
+  const birthDates = useMemo(
+    () => new Map((knownPeople ?? []).flatMap(person => (person.birth_date ? [[person.name, person.birth_date]] : []))),
+    [knownPeople]
+  );
   const canAddFace = !isPublic && !!onAddFaceRequest;
   const faceIds = useMemo(() => people.map(person => person.face_id), [people]);
   // Detect faces again on this photo answers here (#1117); its new faces are marked
@@ -109,6 +116,7 @@ export function PeopleSection({
             onPersonEdit={onPersonEdit}
             notThisPerson={notThisPerson}
             isNew={newFaceIds.has(person.face_id)}
+            age={isPublic ? null : ageOnPhoto(birthDates.get(person.name), photoDetail.exif_timestamp)}
           />
         ))}
       </Box>

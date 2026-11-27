@@ -21,6 +21,7 @@ import {
 import { PeopleSection } from "./PeopleSection";
 
 vi.mock("../../api_client/urls", () => ({ serverAddress: "" }));
+vi.mock("../../api_client/albums/hooks", () => ({ useFetchPeopleAlbumsQuery: () => ({ data: [] }) }));
 vi.mock("../../service/notifications", () => ({ notification: new Proxy({}, { get: () => () => {} }) }));
 const detect = vi.hoisted(() => ({
   outcome: null as DetectFacesOutcome | null,
