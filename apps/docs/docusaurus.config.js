@@ -134,6 +134,7 @@ const config = {
               { href: "pathname:///viewer", html: "LibrePhotos Viewer (desktop app)", target: "_self" },
             ],
           },
+          { to: "/roadmap", label: "Roadmap", position: "left" },
           { to: "/blog", label: "Blog", position: "left" },
           // The local search (themes above), a pill like the app's header search
           { type: "search", position: "right" },
@@ -198,6 +199,10 @@ const config = {
               {
                 label: "Use cases",
                 to: "/use-cases",
+              },
+              {
+                label: "Roadmap",
+                to: "/roadmap",
               },
               {
                 html: '<a class="footer__link-item" href="/viewer">LibrePhotos Viewer</a>',

@@ -1,0 +1,294 @@
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2.5rem;
+  margin: 0;
+}
+
+.fact dt {
+  margin-bottom: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--app-dimmed);
+}
+
+.fact dd {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.factNote {
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--app-dimmed);
+}
+
+.filter {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.filter[aria-pressed="true"],
+.filter[aria-pressed="true"]:hover {
+  background: var(--app-primary-light);
+  color: var(--app-primary-light-color);
+}
+
+.navSpacer {
+  flex: 1 0 1rem;
+}
+
+.group + .group {
+  margin-top: 3rem;
+}
+
+.groupHead {
+  margin-bottom: 1.25rem;
+}
+
+.groupTitle {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.groupLead {
+  margin: 0;
+  color: var(--app-dimmed);
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 1.25rem 1.375rem 1.375rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-panel);
+  background: var(--app-surface);
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.cardBody {
+  flex: 1;
+  margin: 0 0 1rem;
+  line-height: 1.6;
+  color: var(--app-dimmed);
+}
+
+.status {
+  display: inline-block;
+  padding: 0 0.6em;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.status[data-status="in-progress"] {
+  background: color-mix(in srgb, var(--app-info) 12%, transparent);
+  color: var(--app-info-text);
+}
+
+.status[data-status="beta"] {
+  background: color-mix(in srgb, var(--app-warning) 14%, transparent);
+  color: var(--app-warning-text);
+}
+
+.status[data-status="planned"] {
+  background: var(--app-surface-tonal);
+  color: var(--app-text);
+}
+
+.track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--app-dimmed);
+  white-space: nowrap;
+}
+
+.track svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: none;
+}
+
+.track[data-track="install"] {
+  color: var(--app-tip-text);
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 58rem;
+}
+
+.release {
+  position: relative;
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0 0 2.25rem;
+}
+
+.release::before {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  bottom: 0;
+  left: calc(9rem + 0.75rem - 1px);
+  width: 2px;
+  background: var(--app-border-soft);
+}
+
+.release:last-child::before {
+  display: none;
+}
+
+.release::after {
+  content: "";
+  position: absolute;
+  top: 0.3rem;
+  left: calc(9rem + 0.75rem - 0.4rem);
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--app-primary-filled);
+  border-radius: 999px;
+  background: var(--app-body);
+}
+
+.release:first-child::after {
+  background: var(--app-primary-filled);
+}
+
+.releaseHead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  text-align: right;
+}
+
+.releaseVersion {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.releaseDate {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-dimmed);
+}
+
+.milestones {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.5rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.milestone {
+  display: grid;
+  grid-template-columns: 4.75rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: baseline;
+  margin: 0;
+}
+
+.milestoneTitle {
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--app-text);
+}
+
+.milestoneTitle:hover {
+  color: var(--app-primary-light-color);
+}
+
+.milestoneBody {
+  margin: 0.15rem 0 0;
+  line-height: 1.55;
+  color: var(--app-dimmed);
+}
+
+@media (max-width: 996px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .navSpacer {
+    display: none;
+  }
+
+  .release {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+    padding-left: 1.75rem;
+  }
+
+  .release::before {
+    left: calc(0.4rem - 1px);
+  }
+
+  .release::after {
+    left: 0;
+  }
+
+  .releaseHead {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.75rem;
+    text-align: left;
+  }
+
+  .milestones {
+    padding-left: 0;
+  }
+
+  .milestone {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.2rem;
+  }
+}
