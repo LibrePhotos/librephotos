@@ -12,7 +12,14 @@ import { defined } from "../../util/defined.test-utils";
 import { LoginForm } from "./LoginForm";
 
 type Credentials = { username: string; password: string; remember_me?: boolean };
-type Settings = { remember_me_days?: number; email_configured?: boolean; allow_registration?: boolean };
+type Settings = {
+  remember_me_days?: number;
+  email_configured?: boolean;
+  allow_registration?: boolean;
+  demo_site?: boolean;
+  demo_username?: string;
+  demo_password?: string;
+};
 type SsoConfig = { enabled: boolean; label: string; providers: { id: string; name: string; login_url: string }[] };
 
 const stubs = vi.hoisted(() => {
@@ -183,5 +190,27 @@ describe("LoginForm: links under the button", () => {
 
     expect(host.querySelector('a[href="/signup"]')).toBeNull();
     expect(host.querySelector('a[href="/password-reset"]')).not.toBeNull();
+  });
+});
+
+describe("LoginForm: view-only demo", () => {
+  it("offers one click into the demo account and says its password", () => {
+    stubs.settings.current = { demo_site: true, demo_username: "demo", demo_password: "demo1234" };
+    const host = render();
+
+    expect(host.textContent).toContain("This is a view-only demo");
+    expect(host.textContent).toContain("Sign in as demo with the password demo1234 to look around.");
+    const button = defined(
+      [...host.querySelectorAll("button")].find(element => element.textContent === "Sign in to the demo")
+    );
+    act(() => button.click());
+
+    expect(stubs.login).toHaveBeenCalledWith({ username: "demo", password: "demo1234" });
+  });
+
+  it("shows nothing of the demo on a normal server", () => {
+    const host = render();
+
+    expect(host.textContent).not.toContain("Sign in to the demo");
   });
 });

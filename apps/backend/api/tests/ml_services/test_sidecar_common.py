@@ -9,6 +9,7 @@ image_similarity.
 
 import os
 import sys
+import threading
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -47,6 +48,7 @@ class HealthTest(SimpleTestCase):
                 "last_request_time": None,
                 "model_loaded": None,
                 "busy": False,
+                "loading": False,
                 "replica": 0,
                 "device": None,
             },
@@ -126,6 +128,61 @@ class BusyTest(SimpleTestCase):
         test_client(app).post("/work", json={})
 
         self.assertIs(test_client(app).get("/health").get_json()["busy"], False)
+
+
+class LoadingTest(SimpleTestCase):
+    def test_a_model_loading_in_the_background_is_busy_and_blocks_an_unload(self):
+        loading = {"now": True}
+        unloads = []
+        app = _app(unload=lambda: unloads.append(1), loading=lambda: loading["now"])
+        client = test_client(app)
+
+        health = client.get("/health").get_json()
+        self.assertEqual((health["loading"], health["busy"]), (True, True))
+        self.assertEqual(client.get("/unload-model").status_code, 409)
+
+        loading["now"] = False
+        health = client.get("/health").get_json()
+        self.assertEqual((health["loading"], health["busy"]), (False, False))
+        self.assertEqual(client.get("/unload-model").status_code, 200)
+        self.assertEqual(unloads, [1])
+
+    def test_background_load_runs_once_off_the_calling_thread(self):
+        release = threading.Event()
+        threads = []
+
+        def work() -> None:
+            threads.append(threading.current_thread())
+            release.wait(10)
+
+        load = _common.BackgroundLoad(work, _common.logger("probe"))
+        load.start()
+        load.start()
+        self.assertTrue(load.running())
+        release.set()
+        threads[0].join(10)
+
+        self.assertFalse(load.running())
+        self.assertEqual(len(threads), 1)
+        self.assertIsNot(threads[0], threading.current_thread())
+        self.assertTrue(threads[0].daemon)
+
+    def test_background_load_logs_a_failure_and_can_start_again(self):
+        calls = []
+
+        def work() -> None:
+            calls.append(threading.current_thread())
+            raise RuntimeError("model file missing")
+
+        load = _common.BackgroundLoad(work, _common.logger("probe"))
+        with self.assertLogs("probe", "ERROR") as logs:
+            load.start()
+            calls[0].join(10)
+        load.start()
+        calls[1].join(10)
+
+        self.assertIn("model file missing", " ".join(logs.output))
+        self.assertEqual(len(calls), 2)
 
 
 class UnloadModelTest(SimpleTestCase):

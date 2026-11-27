@@ -1,6 +1,9 @@
 {
   "allow_registration": false,
   "allow_upload": true,
+  "demo_site": false,
+  "demo_username": "",
+  "demo_password": "",
   "skip_patterns": "",
   "heavyweight_process": 0,
   "map_api_provider": "nominatim",

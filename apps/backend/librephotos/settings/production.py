@@ -121,9 +121,9 @@ VIDEO_PREVIEW_SECONDS = min(30, max(1, env_int("VIDEO_PREVIEW_SECONDS", 5)))
 VIDEO_PREVIEW_CRF = min(51, max(0, env_int("VIDEO_PREVIEW_CRF", 20)))
 
 
-# Demo mode ignores password changes (see api/serializers/user.py), so it is
-# strictly opt-in: DEMO_SITE=false, 0 or an empty value all leave it off.
 DEMO_SITE = env_flag("DEMO_SITE", default=False)
+DEMO_USERNAME = env_str("DEMO_USERNAME", "") if DEMO_SITE else ""
+DEMO_PASSWORD = env_str("DEMO_PASSWORD", "") if DEMO_SITE else ""
 
 
 # analyze files to detect embedded media (e.g. in motion photos)
@@ -770,6 +770,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "api.accounts.demo_site.DemoSiteReadOnlyMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",

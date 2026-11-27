@@ -17,7 +17,13 @@ from openclip.openclip import (
     OpenCLIP,
 )
 
-from service._common import create_app, json_fields, logger, serve_forever
+from service._common import (
+    BackgroundLoad,
+    create_app,
+    json_fields,
+    logger,
+    serve_forever,
+)
 from service._web import ResponseReturnValue
 
 MAX_TAGS = DEFAULT_MAX_TAGS
@@ -31,7 +37,21 @@ def unload_tagger() -> None:
     tagger_instances.clear()
 
 
-app = create_app("tags", unload=unload_tagger, is_loaded=lambda: bool(tagger_instances))
+def build_tag_embeddings() -> None:
+    OpenCLIP().build_tag_embeddings()
+
+
+tag_embeddings_build = BackgroundLoad(build_tag_embeddings, log)
+TAG_EMBEDDINGS_LOADING = (
+    "The Things model is still building its tag embeddings (first run only)"
+)
+
+app = create_app(
+    "tags",
+    unload=unload_tagger,
+    is_loaded=lambda: bool(tagger_instances),
+    loading=tag_embeddings_build.running,
+)
 
 
 def parse_tag_request() -> tuple[object, object, bool]:
@@ -52,6 +72,15 @@ def get_tagger() -> OpenCLIP:
     return tagger_instances[MODEL_NAME]
 
 
+def tag_embeddings_ready(tagger: OpenCLIP) -> bool:
+    if tagger.is_loaded:
+        return True
+    if not tag_embeddings_build.running() and tagger.load_cached():
+        return True
+    tag_embeddings_build.start()
+    return False
+
+
 @app.route("/generate-tags", methods=["POST"])
 def generate_tags() -> ResponseReturnValue:
     image_path, tagging_model, with_embedding = parse_tag_request()
@@ -67,6 +96,8 @@ def generate_tags() -> ResponseReturnValue:
         return {"error": "Image not found"}, 400
 
     tagger = get_tagger()
+    if not tag_embeddings_ready(tagger):
+        return {"error": TAG_EMBEDDINGS_LOADING, "code": "loading"}, 503
     try:
         return {
             "tags": tagger.predict(
@@ -90,6 +121,7 @@ def image_embeddings() -> ResponseReturnValue:
     cannot be read. The tags come from the same image-tower run."""
     imgs, with_tags = json_fields("imgs", with_tags=False)
     tagger = get_tagger()
+    with_tags = bool(with_tags) and tag_embeddings_ready(tagger)
     embeddings = tagger.embed_images_raw(imgs)
     body: dict[str, object] = {
         "imgs_emb": [None if e is None else e.tolist() for e in embeddings],

@@ -4895,5 +4895,12 @@
       "collapse": "Hide the controls",
       "expand": "Show the controls"
     }
+  },
+  "demoSite": {
+    "badge": "Demo, view only",
+    "badgeHint": "This is a public demo with sample photos. You can look around, but nothing can be changed.",
+    "signInTitle": "This is a view-only demo",
+    "signInBody": "Sign in as {{username}} with the password {{password}} to look around.",
+    "signInButton": "Sign in to the demo"
   }
 }

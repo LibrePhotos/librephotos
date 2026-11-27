@@ -18,6 +18,7 @@ import { PAGE_GUTTER_PX, TOP_MENU_HEIGHT } from "../../uiConstants";
 import { formatDateForPhotoGroups, type GroupNote } from "../../util/util";
 import { whenIdle } from "../common/lazyWithPreload";
 import type { ListFailure } from "../common/useListFailure";
+import { useDemoSite } from "../demo/useDemoSite";
 import { lightbox as lightboxChunk } from "../lightbox/LazyLightbox";
 import Pig from "../react-pig";
 import type { PigHandle, PigVisibleGroup } from "../react-pig";
@@ -208,7 +209,7 @@ function PhotoListViewComponent({
   loading,
   photoset,
   idx2hash,
-  selectable,
+  selectable: selectableList,
   isPublic = false,
   publicAlbumSlug,
   numberOfItems = 0,
@@ -282,6 +283,8 @@ function PhotoListViewComponent({
   useEffect(() => whenIdle(lightboxChunk.prefetch), []);
 
   const { throttledUpdateGroups, throttledUpdateItems } = usePhotoListThrottledUpdates(updateGroups, updateItems);
+  const viewOnly = useDemoSite() !== null;
+  const selectable = selectableList && !viewOnly;
 
   const { selection, readSelection, dispatch, handleSelection, handleSelections, pigSelectedItems } =
     usePhotoListSelection(idx2hash, mediaType, photosetQuery);
@@ -304,7 +307,7 @@ function PhotoListViewComponent({
   // Use live prop length so UI reflects data availability immediately on load
   const getNumPhotos = () => idx2hash.length;
   // Read-only views select nothing, except a contributor's album, where they remove their own.
-  const canSelect = canSelectPhotos(isPublic, contributor);
+  const canSelect = !viewOnly && canSelectPhotos(isPublic, contributor);
   const isUserAlbum = location.pathname.startsWith("/album/user/");
   // While selecting, the selection bar takes the header's place (Google Photos, Immich): the
   // title and toolbar come back when select mode ends.

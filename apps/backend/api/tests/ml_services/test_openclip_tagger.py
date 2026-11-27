@@ -412,6 +412,82 @@ class OpenCLIPTaggerTest(SimpleTestCase):
                 self.assertEqual(len(self.text_session.calls), 1)
                 self.assertEqual(tagger.tag_embeddings.shape, (3, DIM))
 
+    def _small_batches(self) -> None:
+        for name, value in (("TEXT_BATCH_SIZE", 4), ("CHECKPOINT_PROMPTS", 8)):
+            p = patch.object(openclip_module, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def _fail_text_tower_after(self, batches: int) -> None:
+        self._working_text_tower = self.text_session.output
+
+        def failing(feed):
+            if len(self.text_session.calls) > batches:
+                raise RuntimeError("killed")
+            return self._working_text_tower(feed)
+
+        self.text_session.output = failing
+
+    def _restore_text_tower(self) -> None:
+        self.text_session.output = self._working_text_tower
+        self.text_session.calls.clear()
+
+    def test_a_killed_build_resumes_where_its_last_checkpoint_left_off(self):
+        self._small_batches()
+        uninterrupted = OpenCLIP()
+        uninterrupted.load()
+        expected = uninterrupted.tag_embeddings
+        os.remove(self.cache)
+        self.text_session.calls.clear()
+        self._fail_text_tower_after(3)
+
+        with self.assertRaises(RuntimeError):
+            OpenCLIP().build_tag_embeddings()
+
+        self.assertFalse(os.path.exists(self.cache))
+        partial = os.path.join(self.tmp.name, "cache", "tag_embeddings.partial.npy")
+        self.assertEqual(np.load(partial).shape, (8, DIM))
+        self._restore_text_tower()
+
+        tagger = OpenCLIP()
+        tagger.load()
+
+        self.assertEqual(len(self.text_session.calls), 4)
+        np.testing.assert_allclose(tagger.tag_embeddings, expected, atol=1e-6)
+        self.assertFalse(os.path.exists(partial))
+        self.assertTrue(tagger.load_cached())
+
+    def test_a_checkpoint_of_another_tag_list_is_not_resumed(self):
+        self._small_batches()
+        self._fail_text_tower_after(3)
+        with self.assertRaises(RuntimeError):
+            OpenCLIP().build_tag_embeddings()
+        with open(openclip_module.TAGS_FILE, "w", encoding="utf-8") as f:
+            f.write("## scene max=3 min=0\nbeach\ndog\nkitten\n")
+        self._restore_text_tower()
+
+        OpenCLIP().load()
+
+        self.assertEqual(len(self.text_session.calls), 6)
+
+    def test_load_cached_loads_nothing_while_the_cache_is_missing(self):
+        tagger = OpenCLIP()
+
+        self.assertFalse(tagger.load_cached())
+
+        self.assertFalse(tagger.is_loaded)
+        self.assertEqual(self.sessions_made, [])
+
+    def test_load_cached_uses_a_good_cache_without_the_text_tower(self):
+        self._write_cache(np.eye(3, DIM), _hash("beach", "dog", "cat"))
+        tagger = OpenCLIP()
+
+        self.assertTrue(tagger.load_cached())
+
+        self.assertTrue(tagger.is_loaded)
+        self.assertEqual(self.sessions_made, ["visual.onnx"])
+        self.assertEqual(tagger.predict("/a.jpg")["tags"][0], "beach")
+
     def _write_custom_tags(self, text):
         with open(self.custom_tags, "w", encoding="utf-8") as f:
             f.write(text)

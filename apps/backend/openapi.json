@@ -31568,6 +31568,18 @@
           "allow_upload": {
             "type": "boolean"
           },
+          "demo_site": {
+            "type": "boolean",
+            "description": "The server runs as a view-only demo (DEMO_SITE): every change is refused. Sent to everyone."
+          },
+          "demo_username": {
+            "type": "string",
+            "description": "The demo account the login page fills in; empty unless demo_site."
+          },
+          "demo_password": {
+            "type": "string",
+            "description": "The demo account's password, which is public on a demo site; empty unless demo_site."
+          },
           "skip_patterns": {
             "type": "string"
           },
@@ -31728,6 +31740,9 @@
           "auto_create_user_directory",
           "captioning_available",
           "captioning_model",
+          "demo_password",
+          "demo_site",
+          "demo_username",
           "email_configured",
           "face_recognition_model",
           "geocode_language",

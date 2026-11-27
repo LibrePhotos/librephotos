@@ -6,6 +6,8 @@ import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsAuthenticatedQuery, useLoginMutation, useSsoConfigQuery } from "../../api_client/auth";
 import { useGetSettingsQuery } from "../../api_client/settings";
+import { DemoSignIn } from "../demo/DemoSignIn";
+import { useDemoSite } from "../demo/useDemoSite";
 import { AuthCard } from "./AuthCard";
 import { LoginLinks } from "./LoginLinks";
 import { RememberMeRow } from "./RememberMeRow";
@@ -21,6 +23,7 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
   const { data: siteSettings } = useGetSettingsQuery();
   const { data: ssoConfig } = useSsoConfigQuery();
+  const demo = useDemoSite();
   const target = redirect ?? "/";
   const { mutate: login, isPending: isLoading } = useLoginMutation({ redirectTo: target });
   const form = useForm({
@@ -59,6 +62,13 @@ export function LoginForm({ redirect }: LoginFormProps): React.JSX.Element {
       links={forgotPassword || signup ? <LoginLinks forgotPassword={forgotPassword} signup={signup} /> : undefined}
     >
       <SsoErrorAlert />
+      {demo && (
+        <DemoSignIn
+          demo={demo}
+          loading={isLoading}
+          onSignIn={credentials => login({ username: credentials.username, password: credentials.password })}
+        />
+      )}
 
       <form onSubmit={onSubmit}>
         <Stack>
