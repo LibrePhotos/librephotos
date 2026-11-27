@@ -4,13 +4,13 @@ import datetime
 import logging
 import uuid
 from collections import defaultdict
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, TypedDict
 
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from api.dataviz.color_palettes import hex_palette
 from api.faces.birth_dates import (
@@ -28,7 +28,12 @@ from api.faces.clustering_gate import (
 from api.jobs.queue import enqueue_followup
 from api.lazy_import import LazyModule
 from api.models import Face, LongRunningJob, Person
-from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
+from api.models.cluster import (
+    UNKNOWN_CLUSTER_ID,
+    Cluster,
+    get_unknown_cluster,
+    unit_length,
+)
 from api.models.long_running_job import JobCancelledError
 from api.models.user import User
 from api.runtime.features import feature_enabled
@@ -54,6 +59,14 @@ class _FaceData(TypedDict):
 
     encoding: list[npt.NDArray[float64]]
     id: list[int]
+
+
+class _FaceMatrix(TypedDict):
+    encoding: npt.NDArray[float64]
+    id: list[int]
+
+
+ENCODING_PAGE = 2000
 
 
 # The numpy implementations load on first use: the API server imports this
@@ -210,29 +223,54 @@ def cluster_all_faces(user: User, job_id: uuid.UUID | str | None = None) -> bool
         return False
 
 
-def collect_face_encodings(user: User) -> _FaceData:
-    """The encoding of every face of the user's that clustering learns from
-    (``FaceQuerySet.for_recognition``), alongside its face id"""
-    encodings: list[npt.NDArray[float64]] = []
-    ids: list[int] = []
-    encoding_length: int | None = None
-    face: Face
-    for face in Face.objects.owned_by(user).for_recognition():
-        enc = face.get_encoding_array()
-        if encoding_length is None:
-            encoding_length = len(enc)
-        elif len(enc) != encoding_length:
+@dataclass
+class _EncodingRows:
+    capacity: int
+    ids: list[int] = field(default_factory=list)
+    matrix: npt.NDArray[float64] | None = None
+
+    def add(self, face_id: int, encoding: npt.NDArray[float64]) -> None:
+        if self.matrix is None:
+            self.matrix = np.empty((max(1, self.capacity), len(encoding)))
+        if len(encoding) != self.matrix.shape[1]:
             logger.warning(
                 "Skipping face %d: encoding length %d does not match expected %d "
                 "(face recognition model may have changed)",
-                face.id,
-                len(enc),
-                encoding_length,
+                face_id,
+                len(encoding),
+                self.matrix.shape[1],
             )
-            continue
-        encodings.append(enc)
-        ids.append(face.id)
-    return {"encoding": encodings, "id": ids}
+            return
+        if len(self.ids) == len(self.matrix):
+            self.matrix = np.concatenate([self.matrix, np.empty_like(self.matrix)])
+        self.matrix[len(self.ids)] = encoding
+        self.ids.append(face_id)
+
+    def data(self) -> _FaceMatrix:
+        if self.matrix is None:
+            return {"encoding": np.empty((0, 0)), "id": []}
+        return {"encoding": self.matrix[: len(self.ids)], "id": self.ids}
+
+
+def _encoding_pages(faces: QuerySet[Face]) -> Iterator[list[tuple[int, str]]]:
+    after = 0
+    while True:
+        page = list(
+            faces.filter(id__gt=after).values_list("id", "encoding")[:ENCODING_PAGE]
+        )
+        yield page
+        if len(page) < ENCODING_PAGE:
+            return
+        after = page[-1][0]
+
+
+def collect_face_encodings(user: User) -> _FaceMatrix:
+    faces = Face.objects.owned_by(user).for_recognition()
+    rows = _EncodingRows(faces.count())
+    for page in _encoding_pages(faces):
+        for face_id, encoding in page:
+            rows.add(face_id, unit_length(np.frombuffer(bytes.fromhex(encoding))))
+    return rows.data()
 
 
 def resolve_min_cluster_size(user: User, target_count: int) -> int:
@@ -285,7 +323,7 @@ def plan_clusters(user: User) -> ClusterPlan:
 
     clt = build_clusterer(user, target_count)
     logger.info("Before finding clusters")
-    clt.fit(np.array(data["encoding"]))
+    clt.fit(data["encoding"])
     logger.info("After finding clusters")
 
     sorted_indexes = group_indexes_by_label(clt.labels_)
