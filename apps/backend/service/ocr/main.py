@@ -76,7 +76,7 @@ def ocr() -> ResponseReturnValue:
         return {"error": "Failed to decode image"}, 400
     except Exception as e:
         log.error("Error processing image %s: %s", image_path, e)
-        return {"error": "Failed to process image"}, 500
+        return {"error": f"Failed to process image: {type(e).__name__}: {e}"}, 500
 
 
 def serve() -> None:

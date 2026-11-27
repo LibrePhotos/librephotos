@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import tempfile
+from unittest import mock
 
 import cv2
 import numpy as np
@@ -412,3 +413,21 @@ class MainRequestValidationTests(SimpleTestCase):
         client = test_client(main.app)
         response = client.post("/ocr", json={})
         self.assertEqual(response.status_code, 400)
+
+    def test_an_engine_failure_is_a_500_that_names_it(self):
+        main = _load_ocr_main_module()
+        client = test_client(main.app)
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as image:
+            image.write(b"png")
+        self.addCleanup(os.remove, image.name)
+        engine = mock.Mock()
+        engine.predict.side_effect = MemoryError("bad allocation")
+
+        with mock.patch.object(main, "_get_engine", return_value=engine):
+            response = client.post("/ocr", json={"image_path": image.name})
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.get_json(),
+            {"error": "Failed to process image: MemoryError: bad allocation"},
+        )

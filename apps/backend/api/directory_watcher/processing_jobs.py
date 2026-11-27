@@ -616,6 +616,10 @@ def generate_ocr(
         lrj.fail(error=err)
 
 
+class OcrServiceError(RuntimeError):
+    pass
+
+
 def generate_ocr_job(photo_id: UUID | Photo, job_id: str) -> None:
     """
     Worker task to run OCR for a single photo and store the result.
@@ -627,17 +631,21 @@ def generate_ocr_job(photo_id: UUID | Photo, job_id: str) -> None:
     photo = _photo_for_task(photo_id, job_id)
     if photo is None:
         return
-    failed = False
     error = None
     try:
         _run_ocr_for_photo(photo)
+    except OcrServiceError as err:
+        logger.warning("OCR of photo %s failed: %s", photo.image_hash, err)
+        error = _ocr_failure(photo, err)
     except Exception as err:
         logger.exception("An error occurred: %s", photo.image_hash)
-        _count_ocr_failure(photo, err)
-        failed = True
-        error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
-        error = error_msg
-    _count_photo(job_id, photo.pk, failed, error)
+        error = _ocr_failure(photo, err)
+    _count_photo(job_id, photo.pk, error is not None, error)
+
+
+def _ocr_failure(photo: Photo, err: Exception) -> str:
+    _count_ocr_failure(photo, err)
+    return f"Photo {photo.image_hash}: {err}\n{traceback.format_exc()}"
 
 
 def _count_ocr_failure(photo: Photo, err: Exception) -> None:
@@ -753,7 +761,7 @@ def _run_ocr_for_photo(photo: Photo) -> None:
         # sidecars.post raises through raise_for_status(), which always attaches
         # the response to the error.
         assert error.response is not None
-        raise RuntimeError(
+        raise OcrServiceError(
             f"OCR service returned status {error.response.status_code} "
             f"for {image_path}: {sidecars.error_detail(error)}"
         ) from error
