@@ -357,6 +357,17 @@ class SiteSettingsSerializer(serializers.Serializer[None]):
 
     allow_registration = serializers.BooleanField()
     allow_upload = serializers.BooleanField()
+    demo_site = serializers.BooleanField(
+        help_text="The server runs as a view-only demo (DEMO_SITE): every change"
+        " is refused. Sent to everyone."
+    )
+    demo_username = serializers.CharField(
+        help_text="The demo account the login page fills in; empty unless demo_site."
+    )
+    demo_password = serializers.CharField(
+        help_text="The demo account's password, which is public on a demo site;"
+        " empty unless demo_site."
+    )
     skip_patterns = serializers.CharField()
     heavyweight_process = serializers.IntegerField()
     map_api_provider = serializers.CharField()

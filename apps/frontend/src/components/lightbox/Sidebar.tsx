@@ -9,6 +9,7 @@ import { useIsAuthenticatedQuery } from "../../api_client/auth";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
 import { useSheetDrag } from "../common/useSheetDrag";
+import { useDemoSite } from "../demo/useDemoSite";
 import { isLibraryPhoto } from "../libraryShare/libraryShareFields";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { useYourPlaceAt } from "../places/useYourPlaceAt";
@@ -299,6 +300,7 @@ function OwnerSidebar({
   const { data: photoDetail, isError: isPhotoDetailError } = useFetchPhotoDetailsQuery(id);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
   const yourPlace = useYourPlaceAt(photoDetail?.exif_gps_lat, photoDetail?.exif_gps_lon);
+  const viewOnly = useDemoSite() !== null;
 
   if (!photoDetail) {
     // Keep the panel in place while loading, and say so if the photo has no
@@ -339,10 +341,10 @@ function OwnerSidebar({
       <Stack gap="lg">
         {photoDetail.in_trashcan && <TrashedItem trashedAt={photoDetail.trashed_at} />}
         {/* What the owner writes first, then who is in it, then the facts: Google Photos' and Immich's order. */}
-        <Description photoDetail={photoDetail} isPublic={false} />
+        <Description photoDetail={photoDetail} isPublic={viewOnly} />
         <PeopleSection
           photoDetail={photoDetail}
-          isPublic={false}
+          isPublic={viewOnly}
           setFaceLocation={setFaceLocation}
           onPersonEdit={handlePersonEdit}
           notThisPerson={notThisPerson}
@@ -353,13 +355,13 @@ function OwnerSidebar({
         />
         <Stack gap="md">
           <SectionTitle>{t("lightbox.sidebar.details")}</SectionTitle>
-          <TimestampItem photoDetail={photoDetail} isPublic={false} dateInfo={<WhyThisDate photo={photoDetail} />} />
+          <TimestampItem photoDetail={photoDetail} isPublic={viewOnly} dateInfo={<WhyThisDate photo={photoDetail} />} />
           <VersionComponent
             photoDetail={photoDetail}
-            isPublic={false}
+            isPublic={viewOnly}
             category={<CategoryBadge key={photoDetail.image_hash} photoDetail={photoDetail} look="text" />}
             location={
-              <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={false} yourPlace={yourPlace} />
+              <LocationSection photoDetail={photoDetail} mapHeight={200} isPublic={viewOnly} yourPlace={yourPlace} />
             }
           />
         </Stack>

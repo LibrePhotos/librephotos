@@ -7,6 +7,7 @@ import {
 } from "@tabler/icons-react";
 import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useDemoSite } from "../demo/useDemoSite";
 import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
@@ -134,9 +135,10 @@ export function LightboxControls({
 }: LightboxControlsProps) {
   const { t } = useTranslation();
   const compact = useCompactViewer();
+  const viewOnly = useDemoSite() !== null;
 
   // Favourite, hide, archive, share link and trash, as the photo page has them too.
-  const actions = usePhotoActions({ photoDetail, isPublic, onAfterTrashToggle, beforeTrash });
+  const actions = usePhotoActions({ photoDetail, isPublic: isPublic || viewOnly, onAfterTrashToggle, beforeTrash });
 
   // The keyboard shortcuts of the lightbox that owns this toolbar
   const commands = useLightboxCommands();
@@ -164,7 +166,7 @@ export function LightboxControls({
   const copyLabel = t("lightbox.controls.copy", { shortcut: copyKeyLabel() });
   const fullscreenLabel = isFullscreen ? t("lightbox.controls.exitfullscreen") : t("lightbox.controls.fullscreen");
   const infoLabel = lightboxSidebarShow ? t("lightbox.toolbar.hideInfoPanel") : t("lightbox.toolbar.showInfoPanel");
-  const ownPhoto = !isPublic && photoDetail ? photoDetail : null;
+  const ownPhoto = !isPublic && !viewOnly && photoDetail ? photoDetail : null;
   const activePanorama = panorama?.available ? panorama : undefined;
   // The 360° view zooms itself: the item stays, saying why it does nothing.
   const zoom =

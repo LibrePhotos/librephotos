@@ -128,15 +128,28 @@ done
 startup_phase starting >/dev/null
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
 python manage.py collectstatic --no-input
-python manage.py start_service all
-python manage.py start_cleaning_service
-python manage.py start_job_cleanup_service
+demo_site=false
+demo_services=" ${DEMO_SERVICES//,/ } "
+if echo "$DEMO_SITE" | grep -qiE '^(true|1|yes|on)$'; then
+    demo_site=true
+    echo "View-only demo: no background workers, sidecars only from DEMO_SERVICES:${demo_services}"
+    for service in $demo_services; do
+        python manage.py start_service "$service"
+    done
+else
+    python manage.py start_service all
+    python manage.py start_cleaning_service
+    python manage.py start_job_cleanup_service
+fi
 python manage.py clear_cache
-python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log" \
-    || echo "build_similarity_index failed, continuing. See $logs_dir/command_build_similarity_index.log" >&2
-# The automatic post-upgrade tasks (Admin page, Finish the upgrade), each once.
-python manage.py start_upgrade_tasks 2>&1 | tee "$logs_dir/command_start_upgrade_tasks.log" \
-    || echo "start_upgrade_tasks failed, continuing. See $logs_dir/command_start_upgrade_tasks.log" >&2
+if [[ "$demo_site" == false || "$demo_services" == *" image_similarity "* ]]; then
+    python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log" \
+        || echo "build_similarity_index failed, continuing. See $logs_dir/command_build_similarity_index.log" >&2
+fi
+if [[ "$demo_site" == false ]]; then
+    python manage.py start_upgrade_tasks 2>&1 | tee "$logs_dir/command_start_upgrade_tasks.log" \
+        || echo "start_upgrade_tasks failed, continuing. See $logs_dir/command_start_upgrade_tasks.log" >&2
+fi
 
 # The admin account is only ever touched through createadmin: it creates the
 # account on the first start (ADMIN_EMAIL is used then, and may be blank) and
@@ -148,7 +161,9 @@ fi
 
 echo "Running backend server..."
 
-python manage.py run_workers 2>&1 | tee "$logs_dir/workers.log" &
+if [[ "$demo_site" == false ]]; then
+    python manage.py run_workers 2>&1 | tee "$logs_dir/workers.log" &
+fi
 
 # WEB_CONCURRENCY uvicorn processes; recycle each one after WEB_MAX_REQUESTS
 # requests when there is more than one, so a recycled worker never takes the

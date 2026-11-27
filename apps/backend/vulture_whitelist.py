@@ -20,6 +20,7 @@ _ = _Used()
 _.NoLocalSignupAccountAdapter  # class in api/accounts/adapters.py (ACCOUNT_ADAPTER)
 _.SSOSocialAccountAdapter  # class in api/accounts/adapters.py (SOCIALACCOUNT_ADAPTER)
 _.DynamicEmailBackend  # class in api/accounts/mail.py (EMAIL_BACKEND)
+_.DemoSiteReadOnlyMiddleware
 _.custom_exception_handler  # function in api/views/exception_handler.py (REST_FRAMEWORK)
 _.require_page_keys  # function in api/drf/openapi.py (SPECTACULAR_SETTINGS POSTPROCESSING_HOOKS)
 _.on_authentication_error  # SSOSocialAccountAdapter hook; allauth's render_authentication_error calls it

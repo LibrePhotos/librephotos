@@ -582,7 +582,15 @@ The single-container image (see [Unified deployment](unified-deployment.md)) has
 
 ### Demo mode
 
-`DEMO_SITE=true` runs LibrePhotos as a public demo: password changes submitted through the API are ignored. It is off unless set to `true`, `1`, `yes` or `on`. (Before 1.2.0, any value other than exactly `False` - including `false`, `0` or an empty value - switched demo mode on.)
+`DEMO_SITE=true` runs LibrePhotos as a public, view-only demo. It is off unless set to `true`, `1`, `yes` or `on`. (Before 1.2.0, any value other than exactly `False` - including `false`, `0` or an empty value - switched demo mode on.) See [Running a public demo](demo-site.md) for a complete setup.
+
+<Since version="1.7.0" /> Up to 1.6.0, demo mode only ignored password changes. Now the server refuses every change with a 403 (error code `demo_site_read_only`): uploads, scans, edits, deletes, sharing, settings and user admin, for every account, admins included. Only signing in and out still work. The web app shows a **Demo, view only** badge and hides upload, editing, sharing and delete. The container starts no background workers and no machine learning services, so it idles low.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEMO_USERNAME` | _(empty)_ | <Since version="1.7.0" /> With `DEMO_SITE`, the account the login page fills in. Create it before you switch demo mode on: nothing can be created afterwards. |
+| `DEMO_PASSWORD` | _(empty)_ | <Since version="1.7.0" /> With `DEMO_SITE`, that account's password. The login page shows it, and so does `/api/sitesettings` to anyone, so never reuse a real password. |
+| `DEMO_SERVICES` | _(none)_ | <Since version="1.7.0" /> With `DEMO_SITE`, the services the entrypoint still starts, separated by spaces or commas, for example `tags,image_similarity` for search by meaning. Without them, search matches text only. |
 
 ### Hosting under a sub-path (subdirectory)
 

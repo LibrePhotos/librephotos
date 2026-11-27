@@ -66,6 +66,9 @@ export type SiteSsoProvider = z.infer<typeof SiteSsoProvider>;
 export const SiteSettings = z.object({
   allow_registration: z.boolean(),
   allow_upload: z.boolean(),
+  demo_site: z.boolean().optional(),
+  demo_username: z.string().optional(),
+  demo_password: z.string().optional(),
   skip_patterns: z.string(),
   map_api_key: z.string(),
   map_api_provider: z.string(),

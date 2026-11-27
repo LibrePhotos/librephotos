@@ -11,6 +11,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defined } from "../../util/defined.test-utils";
+import type { DemoSite } from "../demo/useDemoSite";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { createLightboxCommands, LightboxCommandsContext } from "./lightboxCommands";
 import { LightboxControls } from "./LightboxControls";
@@ -30,6 +31,7 @@ const stubs = vi.hoisted(() => ({
   setArchived: vi.fn<(variables: { image_hashes: string[]; archived: boolean }) => void>(),
   navigate: vi.fn<(options: { to: string; search: Record<string, string> }) => Promise<void>>(),
   user: undefined as StubUser | undefined,
+  demo: null as DemoSite | null,
 }));
 
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => stubs.navigate }));
@@ -52,6 +54,7 @@ vi.mock("../../api_client/user/hooks/useCurrentUserSelfDetailsQuery", () => ({
   useCurrentUserSelfDetailsQuery: () => ({ data: stubs.user }),
 }));
 vi.mock("../sharing/PhotoShareLinkModal", () => ({ PhotoShareLinkModal: () => null }));
+vi.mock("../demo/useDemoSite", () => ({ useDemoSite: () => stubs.demo }));
 
 beforeAll(() => {
   stubs.user = FAVORITE_USER;
@@ -87,6 +90,7 @@ afterEach(async () => {
   stubs.setArchived.mockClear();
   stubs.navigate.mockClear();
   stubs.user = FAVORITE_USER;
+  stubs.demo = null;
 });
 
 const photo: Partial<Photo> = { id: "p1", image_hash: "h1", hidden: false, rating: 0, in_trashcan: false };
@@ -384,6 +388,39 @@ describe("LightboxControls", () => {
       "lightbox.controls.copy",
       "lightbox.controls.fullscreen",
     ]);
+  });
+});
+
+describe("LightboxControls on a view-only demo", () => {
+  it("shows the view items only, like a public page", async () => {
+    stubs.demo = { username: "demo", password: "demo1234" };
+    const container = await renderControls();
+
+    expect(labels(container)).toEqual([
+      "lightbox.controls.close",
+      "lightbox.toolbar.showInfoPanel",
+      "lightbox.toolbar.moreActions",
+    ]);
+    expect(await openMenu(container)).toEqual([
+      "lightbox.controls.zoomin",
+      "lightbox.controls.slideshow",
+      "lightbox.controls.walldisplay",
+      "lightbox.controls.copy",
+      "lightbox.controls.fullscreen",
+    ]);
+  });
+
+  it("ignores the favorite and delete shortcuts", async () => {
+    stubs.demo = { username: "demo", password: "demo1234" };
+    await renderControls();
+
+    await act(async () => {
+      lightbox.emit("favorite");
+      lightbox.emit("delete");
+    });
+
+    expect(stubs.setFavorite).not.toHaveBeenCalled();
+    expect(stubs.markDeleted).not.toHaveBeenCalled();
   });
 });
 
