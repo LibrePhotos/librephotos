@@ -82,9 +82,10 @@ hardened runtime, executables with `ENTITLEMENTS`, then the bundle itself, and v
 None of these is a sandbox entitlement, and the app needs no `com.apple.security.network.server`: only a
 sandboxed app needs it to listen.
 
-The server and the [desktop app's macOS builds](https://docs.librephotos.com/docs/development/desktop-macos#repository-settings)
-share one Apple account and one set of repository settings; that page has the account steps and what each
-setting holds. The server uses these of them:
+The server and the [desktop app's macOS builds](../../desktop-macos.md#signing-and-publishing) share one
+Apple account and one set of repository settings; that page has the account steps (**What the maintainer
+sets up once**) and what each setting holds (**Repository settings**). The server needs only the Developer
+ID Application certificate in the `.p12` and uses these settings:
 
 | Name | Kind | Used for |
 | --- | --- | --- |
