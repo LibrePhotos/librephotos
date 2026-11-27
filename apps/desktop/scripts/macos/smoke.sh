@@ -168,8 +168,8 @@ fi
 step "made $(sips -g format "$HEIC_DIR/e2e_04.heic" | tail -n 1 | sed 's/^ *//') with sips"
 folder_state() { find "$PICS" "$HEIC_DIR" -exec stat -f "%N %z %m" {} + | sort; }
 PICS_BEFORE=$(folder_state)
-TYPES=("$PICS/e2e_01.jpg" "$HEIC_DIR/e2e_04.heic" public.jpeg public.png public.tiff public.heif public.avif org.webmproject.webp com.adobe.raw-image com.canon.cr2-raw-image com.canon.cr3-raw-image com.nikon.raw-image com.sony.arw-raw-image)
-DEFAULTS_BEFORE=$("$PROBE" handlers "$BUNDLE_ID" "${TYPES[@]}" | cut -f1,3 || true)
+OPEN_WITH=("$PICS/e2e_01.jpg" "$HEIC_DIR/e2e_04.heic" public.jpeg public.png public.tiff public.heif public.avif org.webmproject.webp com.adobe.raw-image com.canon.cr2-raw-image com.canon.cr3-raw-image com.nikon.raw-image com.sony.arw-raw-image)
+DEFAULTS_BEFORE=$("$PROBE" handlers "$BUNDLE_ID" "${OPEN_WITH[@]}" | cut -f1,3 || true)
 
 if [ "$MODE" = dmg ]; then
   MOUNT="$WORK/mount"
@@ -228,7 +228,7 @@ fi
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 "$LSREGISTER" -f "$APP"
 echo "LaunchServices database: $("$LSREGISTER" -dump 2>/dev/null | grep -c "$BUNDLE_ID" || true) lines mention $BUNDLE_ID"
-HANDLERS=$("$PROBE" handlers "$BUNDLE_ID" "${TYPES[@]}") || fail "LaunchServices does not offer the app for every type: $HANDLERS"
+HANDLERS=$("$PROBE" handlers "$BUNDLE_ID" "${OPEN_WITH[@]}") || fail "LaunchServices does not offer the app for every type: $HANDLERS"
 echo "$HANDLERS" | sed "s/^/  /"
 DEFAULTS_AFTER=$(echo "$HANDLERS" | cut -f1,3)
 TAKEN=$(diff <(echo "$DEFAULTS_BEFORE") <(echo "$DEFAULTS_AFTER") | grep "^<" | grep -v "default=(none)$" || true)
