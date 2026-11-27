@@ -85,6 +85,14 @@ class CalculateAspectRatioTest(TestCase):
         photo.thumbnail.refresh_from_db()
         self.assertIsNone(photo.thumbnail.aspect_ratio)
 
+    def test_a_big_thumbnail_gone_from_disk_is_a_warning(self):
+        photo = create_test_photo(owner=self.user, aspect_ratio=None)
+
+        with self.assertLogs("api.thumbnails.render", "WARNING") as logs:
+            render.calculate_aspect_ratio(photo.thumbnail)
+
+        self.assertEqual([record.levelname for record in logs.records], ["WARNING"])
+
     def test_empty_thumbnail_field_does_not_raise(self):
         """No thumbnail file at all: warn and return, never raise.
 
