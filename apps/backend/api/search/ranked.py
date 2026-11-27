@@ -30,6 +30,9 @@ else:
 logger = logging.getLogger(__name__)
 
 FUSION = FusionSettings(semantic_floor=SEARCH_COSINE_FLOOR)
+PLACELESS_FUSION = FusionSettings(semantic_floor=0.25)
+FEW_PLACE_MATCHES = 10
+ANY_SIMILARITY = -1.0
 SEMANTIC_POOL = 2000
 LEXICAL_LIMIT = 1000
 MAX_RESULTS = 5000
@@ -90,7 +93,7 @@ def parsed_q(user: User, parsed: ParsedQuery) -> list[Q]:
 
 
 def _newest(queryset: QuerySet[Photo]) -> list[UUID]:
-    ordered = queryset.order_by("-exif_timestamp", "pk")
+    ordered = queryset.order_by(F("exif_timestamp").desc(nulls_last=True), "pk")
     return list(ordered.values_list("pk", flat=True)[:MAX_RESULTS])
 
 
@@ -99,8 +102,9 @@ def _scored_rows(
     photos: QuerySet[Photo],
     embedding: Sequence[float],
     pool: int,
+    floor: float,
 ) -> list[tuple[UUID, float]]:
-    scored = search_ranked_embedding(owner_id, embedding, pool, FUSION.semantic_floor)
+    scored = search_ranked_embedding(owner_id, embedding, pool, floor)
     rows = dict(
         photos.filter(image_hash__in=[h for h, _ in scored]).values_list(
             "image_hash", "pk"
@@ -147,18 +151,20 @@ def _semantic(
     queryset: QuerySet[Photo],
     parsed: ParsedQuery,
     embedding: Sequence[float],
+    floor: float,
 ) -> list[UUID]:
     user, topk = search.user, search.topk
     pool = max(SEMANTIC_POOL if parsed.has_filters else topk, topk)
-    inside = _scored_rows(user.id, queryset, embedding, pool)
+    threshold = ANY_SIMILARITY if parsed.has_filters else floor
+    inside = _scored_rows(user.id, queryset, embedding, pool, threshold)
     filters = parsed_q(user, parsed)
     for library in search.libraries.libraries:
         shown = library.photos.filter(*filters)
-        inside += _scored_rows(library.owner_id, shown, embedding, pool)
+        inside += _scored_rows(library.owner_id, shown, embedding, pool, threshold)
     inside.sort(key=lambda row: -row[1])
     if parsed.has_filters:
         return [pk for pk, _ in inside]
-    kept = cut_semantic(inside, FUSION.semantic_floor)
+    kept = cut_semantic(inside, floor)
     return kept[:topk]
 
 
@@ -166,7 +172,7 @@ def _shared_words(libraries: LibrarySearch) -> list[UUID]:
     matches = libraries.word_matches()
     if matches is None:
         return []
-    ordered = matches.order_by("-exif_timestamp", "pk")
+    ordered = matches.order_by(F("exif_timestamp").desc(nulls_last=True), "pk")
     return list(ordered.values_list("pk", flat=True)[:LEXICAL_LIMIT])
 
 
@@ -175,14 +181,21 @@ def _lexical(
 ) -> list[UUID]:
     own_words = list(
         lexical_matches(filtered, parsed.terms, parsed.phrases)
-        .order_by(F("lexical_score").desc(), F("exif_timestamp").desc(), "pk")
+        .order_by(
+            F("lexical_score").desc(),
+            F("exif_timestamp").desc(nulls_last=True),
+            "pk",
+        )
         .values_list("pk", flat=True)[:LEXICAL_LIMIT]
     )
     return fuse(own_words, _shared_words(search.libraries), FUSION)
 
 
 def _ranked(
-    search: RankedSearch, queryset: QuerySet[Photo], parsed: ParsedQuery
+    search: RankedSearch,
+    queryset: QuerySet[Photo],
+    parsed: ParsedQuery,
+    fusion: FusionSettings = FUSION,
 ) -> list[UUID]:
     filtered = queryset.filter(*parsed_q(search.user, parsed))
     has_words = bool(parsed.terms or parsed.phrases)
@@ -196,12 +209,14 @@ def _ranked(
         else None
     )
     semantic = (
-        _semantic(search, filtered, parsed, embedding) if embedding is not None else []
+        _semantic(search, filtered, parsed, embedding, fusion.semantic_floor)
+        if embedding is not None
+        else []
     )
     if parsed.phrases:
         allowed = set(lexical)
         semantic = [pk for pk in semantic if pk in allowed]
-    return fuse(lexical, semantic, FUSION)[:MAX_RESULTS]
+    return fuse(lexical, semantic, fusion)[:MAX_RESULTS]
 
 
 def ranked_photo_ids(
@@ -215,5 +230,6 @@ def ranked_photo_ids(
         return found
     without_places = Vocabulary(people=words.people, translations=words.translations)
     seen = set(found)
-    more = _ranked(search, queryset, parse(text, without_places))
+    fusion = FUSION if len(found) < FEW_PLACE_MATCHES else PLACELESS_FUSION
+    more = _ranked(search, queryset, parse(text, without_places), fusion)
     return [*found, *(pk for pk in more if pk not in seen)][:MAX_RESULTS]

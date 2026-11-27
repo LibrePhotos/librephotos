@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.search.ranked import FEW_PLACE_MATCHES
+from api.search.ranked import ANY_SIMILARITY, FEW_PLACE_MATCHES, PLACELESS_FUSION
 from api.search.semantic import OPENCLIP
 from api.tests.utils import (
     create_test_album_place,
@@ -117,6 +117,13 @@ class RankedSearchTest(TestCase):
         )
         self.assertEqual(found, [self.city.image_hash, self.beach_2022.image_hash])
 
+    def test_a_filter_ranks_all_of_its_photos_by_meaning(self):
+        found = self._search(
+            {"search": "beach 2021"}, [(self.looks_like_beach.image_hash, 0.02)]
+        )
+        self.assertEqual(found, [self.looks_like_beach.image_hash])
+        self.assertEqual(self.last_semantic_call.args[3], ANY_SIMILARITY)
+
     def test_a_place_with_few_photos_is_filled_with_the_usual_matches(self):
         berlin = create_test_album_place(owner=self.user, title="Berlin")
         berlin.photos.add(self.city)
@@ -142,7 +149,9 @@ class RankedSearchTest(TestCase):
         )
         self.assertEqual(len(found), FEW_PLACE_MATCHES + 1)
         self.assertEqual(found[-1], self.beach_2022.image_hash)
-        self.assertEqual(self.last_semantic_call.args[3], 0.2)
+        self.assertEqual(
+            self.last_semantic_call.args[3], PLACELESS_FUSION.semantic_floor
+        )
 
     def test_a_place_that_finds_nothing_is_searched_as_a_word(self):
         create_test_album_place(owner=self.user, title="Beach Town")
