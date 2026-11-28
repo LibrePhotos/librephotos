@@ -11,6 +11,8 @@
 
 A self-hosted, open-source photo management service with automatic face recognition, object detection, and semantic search — powered by modern machine learning.
 
+**[Try the demo](https://demo.librephotos.app/)**: a view-only LibrePhotos with sample photos. The login page signs you in with one click.
+
 ## Repository layout
 
 This is a monorepo that consolidates what was previously five separate repositories.
