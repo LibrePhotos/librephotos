@@ -8,6 +8,8 @@ sidebar_position: 7
 
 A demo lets people look around LibrePhotos before they install it. It is the normal single-container image with a few environment variables: `DEMO_SITE=true` makes the whole server view-only, and the machine learning services and background workers stay off, so the container idles at a fraction of its usual memory. The library is prepared once, with machine learning on, and then served as it is.
 
+The official demo at [demo.librephotos.app](https://demo.librephotos.app/) runs this way.
+
 ## What visitors can and cannot do
 
 Visitors sign in with one shared account. The login page shows its name and password and offers **Sign in to the demo**, so nobody has to type them.

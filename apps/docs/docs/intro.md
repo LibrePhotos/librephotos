@@ -11,6 +11,7 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 
 ## Get started
 
+- **[Try the demo](https://demo.librephotos.app/)**: look around a view-only LibrePhotos with sample photos, no install needed.
 - **[Install LibrePhotos](installation/index.md)** — pick a deployment method and get the server running.
 - **[First steps](user-guide/first-steps.md)** — what to do right after your first login.
 - **[Development setup](development/index.md)** — build LibrePhotos locally and contribute.

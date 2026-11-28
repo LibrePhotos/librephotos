@@ -18,6 +18,7 @@ const DESCRIPTION =
 const SPONSORS_URL = "https://github.com/sponsors/derneuere";
 // Who took the sample photos in the screenshots, kept next to them.
 const CREDITS_URL = "https://github.com/LibrePhotos/librephotos/blob/dev/apps/docs/static/img/shots/CREDITS.md";
+const DEMO_URL = "https://demo.librephotos.app/";
 const PAYPAL_URL = "https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96";
 // Every release from 1.2.0 on carries the zip (standalone-windows workflow), so /latest/download always resolves.
 const WINDOWS_ZIP_URL = "https://github.com/LibrePhotos/librephotos/releases/latest/download/librephotos-windows-x64.zip";
@@ -70,8 +71,8 @@ function Hero() {
             <Link className={clsx(styles.button, styles.buttonFilled)} to="/docs/installation">
               Install LibrePhotos
             </Link>
-            <a className={clsx(styles.button, styles.buttonDefault)} href="#tour">
-              See it in action
+            <a className={clsx(styles.button, styles.buttonDefault)} href={DEMO_URL}>
+              Try the demo
             </a>
           </div>
           <a className={styles.windowsLink} href={WINDOWS_ZIP_URL}>

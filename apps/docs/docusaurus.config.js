@@ -139,6 +139,11 @@ const config = {
           // The local search (themes above), a pill like the app's header search
           { type: "search", position: "right" },
           {
+            href: "https://demo.librephotos.app/",
+            label: "Demo",
+            position: "right",
+          },
+          {
             href: "https://github.com/LibrePhotos/librephotos",
             label: "GitHub",
             position: "right",
@@ -209,7 +214,7 @@ const config = {
               },
               {
                 label: "Demo",
-                href: "https://demo2.librephotos.com/",
+                href: "https://demo.librephotos.app/",
               },
             ],
           },
