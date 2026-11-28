@@ -81,6 +81,11 @@ class SyncPhotoItemSerializer(serializers.Serializer[None]):
     dominant_color = serializers.CharField(
         allow_null=True, help_text="#rrggbb; null without one"
     )
+    thumbhash = serializers.CharField(
+        allow_null=True,
+        help_text="The grid placeholder, a base64 ThumbHash; null until the "
+        "server has sampled it",
+    )
 
 
 class SyncPersonItemSerializer(serializers.Serializer[None]):

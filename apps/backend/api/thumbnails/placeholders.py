@@ -14,8 +14,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from django.db.models import QuerySet
+from django.utils import timezone
 
-from api.models import LongRunningJob, Thumbnail
+from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.long_running_job import JobCancelledError
 from api.models.user import User
 from api.thumbnails import render
@@ -73,6 +74,9 @@ def make_thumbhashes(
             else:
                 made.append(thumbnail)
         Thumbnail.objects.bulk_update(made, ["thumbhash"])
+        Photo.objects.filter(pk__in=[thumbnail.photo_id for thumbnail in made]).update(
+            last_modified=timezone.now()
+        )
         result.made += len(made)
         done += len(batch)
         if progress:

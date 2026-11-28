@@ -58,6 +58,7 @@ export const SyncPhotoItem = z.looseObject({
   /** "" without a place name. */
   search_location: z.string(),
   dominant_color: z.string().nullable(),
+  thumbhash: z.string().nullish(),
 });
 export type SyncPhotoItem = z.infer<typeof SyncPhotoItem>;
 

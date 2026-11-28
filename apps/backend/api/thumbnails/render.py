@@ -928,8 +928,11 @@ def refresh_thumbhash(thumbnail: Thumbnail) -> None:
 
     One that cannot be sampled is cleared: the dominant colour shows instead.
     """
+    previous = thumbnail.thumbhash
     thumbnail.thumbhash = thumbhash_of(thumbnail)
     thumbnail.save(update_fields=["thumbhash"])
+    if thumbnail.thumbhash != previous:
+        _resend_photo(thumbnail)
 
 
 def refresh_perceptual_hash(thumbnail: Thumbnail) -> None:

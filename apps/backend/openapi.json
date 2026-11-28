@@ -32574,6 +32574,11 @@
             "type": "string",
             "nullable": true,
             "description": "#rrggbb; null without one"
+          },
+          "thumbhash": {
+            "type": "string",
+            "nullable": true,
+            "description": "The grid placeholder, a base64 ThumbHash; null until the server has sampled it"
           }
         },
         "required": [
@@ -32596,6 +32601,7 @@
           "rating",
           "removed",
           "search_location",
+          "thumbhash",
           "timestamp",
           "type",
           "video_length_ms"

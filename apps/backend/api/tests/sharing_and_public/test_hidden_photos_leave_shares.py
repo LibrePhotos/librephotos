@@ -15,7 +15,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.models import Photo
+from api.models import Photo, Thumbnail
 from api.models.photo_stack import PhotoStack
 from api.serializers.sync import PHOTO_ROW_FIELDS
 from api.tests.test_sync_api import sync_pull
@@ -262,6 +262,13 @@ class SyncLibraryShareTest(DirectShareFixture):
         self.assertEqual(row["search_location"], "Starnberg Bavaria")
         self.assertEqual(row["rating"], 0)
         self.assertFalse(row["is_favorite"])
+
+    def test_the_thumbhash_shows_with_every_switch_off(self):
+        Thumbnail.objects.filter(photo=self.photo).update(
+            thumbhash="1QcSHQRnh493V4dIh4eXh1h4kJUI"
+        )
+        create_test_library_share(owner=self.owner, recipient=self.recipient)
+        self.assertEqual(self.row()["thumbhash"], "1QcSHQRnh493V4dIh4eXh1h4kJUI")
 
     def test_every_sync_row_field_is_classified(self):
         """A new feed field is a decision: add it to PHOTO_ROW_FIELDS, or

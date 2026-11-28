@@ -400,6 +400,20 @@ describe("loose objects keep the fields a newer server adds", () => {
     ).toBe(false);
   });
 
+  it("reads a sync photo's ThumbHash, null before it is sampled and absent on older servers", () => {
+    const pulled = SyncPhotosResponse.parse({
+      v: 1,
+      items: [{ ...photoRow, thumbhash: "1QcSHQRnh493V4dIh4eXh1h4kJUI" }, { ...photoRow, thumbhash: null }, photoRow],
+      next_cursor: null,
+      server_time: "",
+    });
+    expect(pulled.items.map(item => item.thumbhash)).toEqual(["1QcSHQRnh493V4dIh4eXh1h4kJUI", null, undefined]);
+    expect(
+      SyncPhotosResponse.safeParse({ v: 1, items: [{ ...photoRow, thumbhash: 7 }], next_cursor: null, server_time: "" })
+        .success
+    ).toBe(false);
+  });
+
   it("still rejects a sync payload with the wrong version", () => {
     expect(() => SyncPhotosResponse.parse({ v: 2, items: [], next_cursor: null, server_time: "" })).toThrow();
   });

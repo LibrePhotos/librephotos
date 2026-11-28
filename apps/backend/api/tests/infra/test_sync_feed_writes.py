@@ -18,7 +18,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import AlbumThing, Person, Photo, Tag
+from api.models import AlbumThing, Person, Photo, Tag, Thumbnail
 from api.models.synced import SyncedModel
 from api.models.tag import refresh_tag_photo_counts
 from api.tests.utils import (
@@ -30,7 +30,7 @@ from api.tests.utils import (
     create_test_user,
     share_test_photos,
 )
-from api.thumbnails import render
+from api.thumbnails import placeholders, render
 from api.views import sync
 
 # Feeds whose rows are not a SyncedModel, with the reason.
@@ -43,6 +43,7 @@ NOT_SYNCED_MODELS = {
 RELATED_PHOTO_COLUMNS = {
     "thumbnail__aspect_ratio": "render.calculate_aspect_ratio",
     "thumbnail__dominant_color": "render.calculate_dominant_color",
+    "thumbnail__thumbhash": "render.refresh_thumbhash, placeholders.make_thumbhashes",
     "search_instance__search_location": "the place writers save GEOCODED_COLUMNS",
     "owner__favorite_min_rating": "the phone keeps the last one it saw",
 }
@@ -247,6 +248,45 @@ class ThumbnailColumnsBumpThePhotoTest(TestCase):
             render.calculate_dominant_color(thumbnail)
 
         self.assertGreater(_last_modified(photo), before)
+
+    def test_a_new_thumbhash_bumps_the_photo(self):
+        photo = create_test_photo(owner=self.user)
+        thumbnail = photo.thumbnail
+        thumbnail.thumbhash = "old"
+        thumbnail.save()
+        before = _age(photo)
+
+        with mock.patch.object(render, "thumbhash_of", return_value="new"):
+            render.refresh_thumbhash(thumbnail)
+
+        self.assertGreater(_last_modified(photo), before)
+
+    def test_the_same_thumbhash_does_not_bump(self):
+        photo = create_test_photo(owner=self.user)
+        thumbnail = photo.thumbnail
+        thumbnail.thumbhash = "same"
+        thumbnail.save()
+        before = _age(photo)
+
+        with mock.patch.object(render, "thumbhash_of", return_value="same"):
+            render.refresh_thumbhash(thumbnail)
+
+        self.assertEqual(_last_modified(photo), before)
+
+    def test_a_backfilled_thumbhash_bumps_the_photo(self):
+        made = create_test_photo(owner=self.user)
+        unreadable = create_test_photo(owner=self.user)
+        Thumbnail.objects.filter(photo__in=[made, unreadable]).update(thumbhash=None)
+        made_before, unreadable_before = _age(made), _age(unreadable)
+
+        def sample(thumbnail):
+            return "made" if thumbnail.photo_id == made.pk else None
+
+        with mock.patch.object(render, "thumbhash_of", side_effect=sample):
+            placeholders.make_thumbhashes()
+
+        self.assertGreater(_last_modified(made), made_before)
+        self.assertEqual(_last_modified(unreadable), unreadable_before)
 
 
 class LibraryShareChangesResendSharedPhotosTest(TestCase):
