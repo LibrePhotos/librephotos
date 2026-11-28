@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 EXIT_RECYCLE = 3
 EXIT_MEMORY = 4
+EXIT_PARKED = 5
 MB = 1024 * 1024
 MAX_DATABASE_BACKOFF_SECONDS = 60.0
 
@@ -148,6 +149,9 @@ class Worker:
     def _loop(self) -> int:
         while not self.stop.is_set():
             if not self.run_one():
+                if self.slot >= self.limits[0]:
+                    self._park()
+                    return EXIT_PARKED
                 time.sleep(self.idle_seconds())
             if self.running.drain:
                 return EXIT_RECYCLE
@@ -225,6 +229,23 @@ class Worker:
             },
         )
         db.connections.close_all()
+
+    def _park(self) -> None:
+        logger.info(
+            "worker %s: outside the %s parallel workers, stopping",
+            self.name,
+            self.limits[0],
+        )
+        try:
+            WorkerProcess.objects.filter(
+                name=f"{socket.gethostname()}:{self.slot}"
+            ).update(active=False, task_id=None, heartbeat_at=timezone.now())
+        except DatabaseError as error:
+            logger.warning(
+                "worker %s could not record that it stopped: %s", self.name, error
+            )
+        finally:
+            db.connections.close_all()
 
     def _renew_forever(self) -> None:
         while True:

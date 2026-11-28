@@ -827,6 +827,7 @@ DATABASES = {
         # (type conversion issues with COUNT queries - see error with UUID returned as string)
         "CONN_MAX_AGE": 600,
         "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {"options": "-c jit=off"},
     },
 }
 

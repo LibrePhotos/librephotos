@@ -105,7 +105,7 @@ The backend container runs two things: **uvicorn**, which answers API requests, 
 - **Balanced** (the default): half the cores, at most 4.
 - **Fast first import**: all cores but one, at most 8, until the first import is done; then it switches back to Balanced by itself.
 
-Each choice is then held to the memory it may use, out of 60 % of the available memory (80 % for Fast), counting what LibrePhotos itself already holds as available to it. The budget adds up what runs: about 300 MB for the web server, the helper services that are switched on (metadata 150 MB, RAW thumbnails 150 MB, similar photos 120 MB, tags and search 700 MB, captions 1.1 GB, text recognition 600 MB), the face services (see [Faces in parallel](#faces-in-parallel)) and 600 MB per worker. On SQLite at most 4 workers run, since SQLite has one writer. At least one always runs; when even that does not fit, the admin area says so. When the container runs low on memory, LibrePhotos pauses one worker at a time and resumes them once there is room, without a restart. A worker above 1.5 GB is stopped and replaced, and its task runs again. Up to 1.6.0 there was one worker per *host* core, whatever the container limit.
+Each choice is then held to the memory it may use, out of 60 % of the available memory (80 % for Fast), counting what LibrePhotos itself already holds as available to it. The budget adds up what runs: about 300 MB for the web server, the helper services that are switched on (metadata 150 MB, RAW thumbnails 150 MB, similar photos 120 MB, tags and search 700 MB, captions 1.1 GB, text recognition 600 MB), the face services (see [Faces in parallel](#faces-in-parallel)) and 600 MB per worker. On SQLite at most 4 workers run, since SQLite has one writer. At least one always runs; when even that does not fit, the admin area says so. Only the workers of the current choice run, so an idle Balanced server holds the memory of 4 workers, not of the 8 that Fast first import may start. When the container runs low on memory, LibrePhotos stops one idle worker at a time, which gives its memory back, and starts them again once a whole worker fits again (600 MB above the low-memory mark), without a restart. A worker above 1.5 GB is stopped and replaced, and its task runs again. Up to 1.6.0 there was one worker per *host* core, whatever the container limit.
 
 To set the number yourself, use `workerConcurrency` in your `.env` (the variable it fills in is `WORKER_CONCURRENCY`); it wins over the choice in the admin area:
 
@@ -571,6 +571,8 @@ These describe the PostgreSQL server. The bundled `.env` sets the first three; `
 | `DB_PORT` | _(none)_ | `5432` | Port of the PostgreSQL server. |
 | `DB_NAME` | `dbName` | `db` | Name of the database. |
 | `DB_USER` | `dbUser` | `docker` | The user the backend connects as. Its password is `DB_PASS`. |
+
+<Since version="1.7.0" /> The backend turns off PostgreSQL's JIT compiler for its own connections (`-c jit=off`). The queries LibrePhotos runs take milliseconds, and JIT spent up to a second compiling some of them: on a library of 19,000 photos the library counts the web app asks for when it opens took 1.1 s instead of 0.1 s. Other clients of the same PostgreSQL server keep the server's setting. PgBouncer in front of PostgreSQL refuses a startup parameter it does not handle unless `ignore_startup_parameters` lists it; with `options` listed there the backend connects and JIT stays at the server's setting.
 
 ### Single-container image
 

@@ -404,6 +404,13 @@ def face_threads(cores: int, physical: int | None, replicas: int) -> int:
     return max(1, usable // max(1, replicas))
 
 
-def low_on_memory(found: Capacity) -> bool:
+def low_water_mb(found: Capacity) -> float:
+    return max(LOW_WATER_MB, 0.1 * found.ram_total / MB)
 
-    return found.ram_available / MB < max(LOW_WATER_MB, 0.1 * found.ram_total / MB)
+
+def low_on_memory(found: Capacity) -> bool:
+    return found.ram_available / MB < low_water_mb(found)
+
+
+def room_for_another_worker(found: Capacity) -> bool:
+    return found.ram_available / MB >= low_water_mb(found) + LIGHT_LANE_MB
