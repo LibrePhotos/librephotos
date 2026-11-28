@@ -18,6 +18,8 @@ UNKNOWN_CLUSTER_ID = -1
 def merge_duplicate_clusters(
     apps: Apps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute("SET CONSTRAINTS ALL IMMEDIATE")
     Cluster = apps.get_model("api", "Cluster")
     Face = apps.get_model("api", "Face")
     duplicated = (
