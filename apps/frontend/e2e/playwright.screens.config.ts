@@ -29,6 +29,7 @@ export default defineConfig({
     locale: "en-US",
     timezoneId: "UTC",
     reducedMotion: "reduce",
+    actionTimeout: 30_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

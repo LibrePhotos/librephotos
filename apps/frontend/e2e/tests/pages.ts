@@ -9,14 +9,16 @@ export class LoginPage {
   readonly submit: Locator;
 
   constructor(readonly page: Page) {
-    this.username = page.getByLabel("Username", { exact: true });
-    this.password = page.getByLabel("Password", { exact: true });
+    this.username = page.getByRole("textbox", { name: "Username", exact: true });
+    this.password = page.getByRole("textbox", { name: "Password", exact: true });
     this.submit = page.getByRole("button", { name: "Sign in", exact: true });
   }
 
   async goto() {
     await this.page.goto("/login");
     await expect(this.page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
+    await expect(this.username, "the sign-in form has no Username field").toBeVisible();
+    await expect(this.password, "the sign-in form has no Password field").toBeVisible();
   }
 
   async login(username: string, password: string) {

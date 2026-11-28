@@ -18,7 +18,8 @@ cp -n /e2e/photos/*.jpg "$SCAN_DIR"/
         sleep 2
     done
     echo "[e2e] seeding: scan directory $SCAN_DIR for ${ADMIN_USERNAME:-admin}"
-    python manage.py shell -c "from api.models import User; User.objects.filter(username='${ADMIN_USERNAME:-admin}').update(scan_directory='$SCAN_DIR')"
+    python manage.py shell -c "from api.models import User; User.objects.filter(username='${ADMIN_USERNAME:-admin}').update(scan_directory='$SCAN_DIR', support_prompt_seen=True)"
+    python manage.py shell -c "from constance import config; config.ERROR_REPORTING_ASKED = True"
     python manage.py scan
     echo "[e2e] seeding: scan queued"
 ) &
