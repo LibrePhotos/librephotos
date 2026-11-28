@@ -419,9 +419,6 @@ CONSTANCE_CONFIG = {
         " included. 0 keeps photos in the trash until their owner empties it.",
         int,
     ),
-    # The automatic library scan (#235, api/directory_watcher/scan_schedule.py).
-    # Saving them in the site settings rewrites its django-q schedule; so does
-    # start_cleaning_service when the server starts.
     "PARALLEL_WORKERS": (
         "balanced",
         "How many background workers run, within what the machine or container"
@@ -871,13 +868,6 @@ CSRF_TRUSTED_ORIGINS = [
     *env_list("CSRF_TRUSTED_ORIGINS"),
 ]
 
-# The whole log configuration lives in librephotos/logging_bootstrap.py so the
-# non-Django processes can share it. LOG_LEVEL, LOG_LEVELS (per-logger
-# overrides, parsed inside build_logging_config) and LOG_TO_CONSOLE are read from
-# the environment rather than from constance: the qcluster workers and the ML
-# services need the same answer and several of them never touch the database.
-# Rotation size and backup count start at the defaults here and are refined from
-# constance once the database is up (see api.apps.reconfigure_logging).
 LOGGING = build_logging_config(
     logs_root=LOGS_ROOT,
     level=env_str("LOG_LEVEL", None),
