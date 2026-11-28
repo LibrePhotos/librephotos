@@ -48,6 +48,63 @@ struct State {
     busy: [usize; LANES],
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum Wake {
+    Workers,
+    Probe,
+    Nobody,
+}
+
+impl State {
+    fn enqueue(
+        &mut self,
+        key: Key,
+        size: u64,
+        prio: Priority,
+        waiter: Waiter,
+        probe: bool,
+    ) -> Wake {
+        if let Some(job) = self.inflight.get_mut(&key) {
+            job.waiters.push(waiter);
+            let (old, queued) = (job.prio, job.queued);
+            let new = old.min(prio);
+            job.prio = new;
+            trace("joined", &key, new, "");
+            if !queued {
+                return Wake::Nobody;
+            }
+            let from = &mut self.lanes[lane(old)];
+            if let Some(i) = from.iter().position(|k| *k == key) {
+                let k = from.remove(i);
+                self.lanes[lane(new)].push(k);
+            }
+            return Wake::Workers;
+        }
+        trace("queued", &key, prio, if probe { "probe" } else { "" });
+        self.inflight.insert(
+            key.clone(),
+            Job {
+                waiters: vec![waiter],
+                size,
+                prio,
+                queued: !probe,
+            },
+        );
+        if probe {
+            self.probe.push(key);
+            Wake::Probe
+        } else {
+            self.lanes[lane(prio)].push(key);
+            Wake::Workers
+        }
+    }
+
+    fn finish(&mut self, key: &Key, ran_as: Priority) -> Option<Job> {
+        self.busy[lane(ran_as)] -= 1;
+        self.inflight.remove(key)
+    }
+}
+
 struct Inner {
     state: Mutex<State>,
     cv: Condvar,
@@ -184,43 +241,17 @@ impl Pipeline {
             trace("memory", &key, prio, "");
             return waiter(Ok(hit));
         }
-        let mut st = self.inner.state.lock().unwrap();
-        if let Some(job) = st.inflight.get_mut(&key) {
-            job.waiters.push(waiter);
-            let (old, queued) = (job.prio, job.queued);
-            let new = old.min(prio);
-            job.prio = new;
-            if queued {
-                let from = &mut st.lanes[lane(old)];
-                if let Some(i) = from.iter().position(|k| *k == key) {
-                    let k = from.remove(i);
-                    st.lanes[lane(new)].push(k);
-                }
-                drop(st);
-                self.inner.cv.notify_all();
-            }
-            trace("joined", &key, new, "");
-            return;
-        }
         let probe = self.inner.disk.is_some() && cacheable(kind);
-        trace("queued", &key, prio, if probe { "probe" } else { "" });
-        st.inflight.insert(
-            key.clone(),
-            Job {
-                waiters: vec![waiter],
-                size,
-                prio,
-                queued: !probe,
-            },
-        );
-        if probe {
-            st.probe.push(key);
-            drop(st);
-            self.inner.probe_cv.notify_one();
-        } else {
-            st.lanes[lane(prio)].push(key);
-            drop(st);
-            self.inner.cv.notify_all();
+        let wake = self
+            .inner
+            .state
+            .lock()
+            .unwrap()
+            .enqueue(key, size, prio, waiter, probe);
+        match wake {
+            Wake::Workers => self.inner.cv.notify_all(),
+            Wake::Probe => self.inner.probe_cv.notify_one(),
+            Wake::Nobody => {}
         }
     }
 
@@ -427,11 +458,7 @@ fn worker(inner: Arc<Inner>) {
                 .unwrap()
                 .insert(key.clone(), e.clone(), e.bytes.len() + 256);
         }
-        let job = {
-            let mut st = inner.state.lock().unwrap();
-            st.busy[lane(ran_as)] -= 1;
-            st.inflight.remove(&key)
-        };
+        let job = inner.state.lock().unwrap().finish(&key, ran_as);
         inner.cv.notify_all();
         let Some(job) = job else { continue };
         trace(
@@ -571,34 +598,73 @@ mod tests {
 
     #[test]
     fn high_thumbs_jump_the_filmstrip_and_idle_waits() {
-        let (dir, files) = slow_pngs("lanes", 8);
-        let pipe = Pipeline::new(2, 1 << 20);
-        let (tx, rx) = std::sync::mpsc::channel();
-        let ask = |f: &PathBuf, name: String, prio| {
-            let tx = tx.clone();
-            pipe.submit_with(
-                f.clone(),
-                Kind::Thumb,
-                320,
-                320,
-                prio,
-                Box::new(move |r| _ = tx.send((name, r.is_ok()))),
-            );
+        let key = |n: &str| Key {
+            path: PathBuf::from(n),
+            mtime: 0,
+            kind: Kind::Thumb,
+            w: 320,
+            h: 320,
         };
-        for (i, f) in files.iter().enumerate().take(6) {
-            ask(f, format!("film{i}"), Priority::Low);
+        let noop = || -> Waiter { Box::new(|_: Reply| {}) };
+        let workers = 2;
+        let mut st = State::default();
+        for i in 0..6 {
+            let wake = st.enqueue(key(&format!("film{i}")), 0, Priority::Low, noop(), false);
+            assert_eq!(wake, Wake::Workers);
         }
-        ask(&files[7], "stage".into(), Priority::High);
-        ask(&files[1], "stage-again".into(), Priority::High);
-        let order: Vec<String> = (0..8).map(|_| rx.recv().unwrap().0).collect();
-        let pos = |n: &str| order.iter().position(|o| o == n).unwrap();
-        let both_stage_done = pos("stage").max(pos("stage-again"));
-        let films_before = order[..both_stage_done]
-            .iter()
-            .filter(|n| n.starts_with("film") && n.as_str() != "film1")
-            .count();
-        assert!(films_before <= 1, "{order:?}");
-        std::fs::remove_dir_all(&dir).ok();
+        st.enqueue(key("warm"), 0, Priority::Idle, noop(), false);
+
+        assert_eq!(pick(&mut st, workers), Some((key("film5"), Priority::Low)));
+        assert_eq!(
+            pick(&mut st, workers),
+            None,
+            "one worker stays free for the stage"
+        );
+
+        assert_eq!(
+            st.enqueue(key("stage"), 0, Priority::High, noop(), false),
+            Wake::Workers
+        );
+        assert_eq!(
+            st.enqueue(key("film1"), 0, Priority::High, noop(), false),
+            Wake::Workers
+        );
+        assert!(
+            st.lanes[lane(Priority::Low)]
+                .iter()
+                .all(|k| *k != key("film1"))
+        );
+        assert_eq!(pick(&mut st, workers), Some((key("film1"), Priority::High)));
+        assert_eq!(
+            st.enqueue(key("film5"), 0, Priority::High, noop(), false),
+            Wake::Nobody,
+            "a running job only gains a waiter"
+        );
+
+        assert_eq!(
+            st.finish(&key("film5"), Priority::Low)
+                .map(|j| j.waiters.len()),
+            Some(2)
+        );
+        assert_eq!(pick(&mut st, workers), Some((key("stage"), Priority::High)));
+        assert_eq!(
+            st.finish(&key("film1"), Priority::High)
+                .map(|j| j.waiters.len()),
+            Some(2)
+        );
+        assert!(st.finish(&key("stage"), Priority::High).is_some());
+
+        for film in ["film4", "film3", "film2", "film0"] {
+            assert_eq!(pick(&mut st, workers), Some((key(film), Priority::Low)));
+            assert_eq!(
+                pick(&mut st, workers),
+                None,
+                "{film}: idle waits for the filmstrip"
+            );
+            assert!(st.finish(&key(film), Priority::Low).is_some());
+        }
+        assert_eq!(pick(&mut st, workers), Some((key("warm"), Priority::Idle)));
+        assert_eq!(pick(&mut st, workers), None);
     }
 
     #[test]
