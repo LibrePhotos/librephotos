@@ -19,6 +19,7 @@ from api.serializers.album_auto import (
     AlbumAutoListSerializer,
     AlbumAutoSerializer,
     with_event_cover,
+    with_event_photos,
 )
 from api.serializers.job import JobStartedResponseSerializer
 from api.serializers.person import person_groups_prefetch
@@ -52,12 +53,9 @@ class AlbumAutoViewSet(
             return AlbumAuto.objects.owned_by(user)
 
         return (
-            with_event_cover(AlbumAuto.objects.owned_by(user))
+            with_event_photos(with_event_cover(AlbumAuto.objects.owned_by(user)))
             .prefetch_related(
                 Prefetch("owner"),
-                # PhotoSimpleSerializer renders the square thumbnail of every
-                # photo, which costs a query each without this join (issue #619).
-                Prefetch("photos", queryset=Photo.visible.select_related("thumbnail")),
                 Prefetch("photos__faces"),
                 # No cover-face annotations here: `face_url`, `face_photo_url`
                 # and `video` are `SerializerMethodField`s on PersonSerializer,

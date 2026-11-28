@@ -27864,6 +27864,11 @@
             "nullable": true,
             "readOnly": true
           },
+          "thumbnail_version": {
+            "type": "integer",
+            "readOnly": true,
+            "description": "Which thumbnails the grid shows: twice the edit's version, plus one once its rendition is ready, plus the times the thumbnails were made again (a rotation, a rebuild); 0 for a photo never edited nor rebuilt. It never goes back. Grids fold it into the thumbnail URL's v with the ThumbHash"
+          },
           "video_length": {
             "type": "string",
             "readOnly": true
@@ -27902,6 +27907,7 @@
           "rating",
           "square_thumbnail",
           "thumbhash",
+          "thumbnail_version",
           "video",
           "video_length",
           "video_poster"
@@ -28173,8 +28179,8 @@
           },
           "thumbnail_version": {
             "type": "integer",
-            "description": "Which thumbnails of the photo's edit the grid shows: twice the edit's\nversion, plus one once its full-size rendition is ready (the thumbnails\nare made again from it when the save's render was smaller than they\nare). 0 without an edit; it never goes back (a save or a revert raises\nthe version). Grids fold it into the thumbnail URL's ``v``.",
-            "readOnly": true
+            "readOnly": true,
+            "description": "Which thumbnails the grid shows: twice the edit's version, plus one once its rendition is ready, plus the times the thumbnails were made again (a rotation, a rebuild); 0 for a photo never edited nor rebuilt. It never goes back. Grids fold it into the thumbnail URL's v with the ThumbHash"
           },
           "url": {
             "type": "string",

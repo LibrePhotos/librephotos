@@ -4,16 +4,12 @@ from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import (
-    Case,
     Count,
-    F,
     Model,
     OuterRef,
     Prefetch,
     QuerySet,
     Subquery,
-    Value,
-    When,
 )
 from django.db.models.functions import Coalesce
 from drf_spectacular.types import OpenApiTypes
@@ -63,9 +59,12 @@ from api.serializers.photo_metadata import (
 )
 from api.serializers.PhotosGroupedByDate import PhotosGroupedByDate
 from api.serializers.simple import (
+    THUMBNAIL_VERSION,
+    THUMBNAIL_VERSION_HELP,
     SimpleUserSerializer,
     has_animated_preview,
     has_video_poster,
+    thumbnail_version_annotation,
 )
 from api.sharing.grants import (
     DETAIL_FIELDS,
@@ -121,10 +120,9 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     # The grid's placeholder until the thumbnail loads (base64 ThumbHash);
     # null for a photo scanned before it existed, which shows dominantColor.
     thumbhash = serializers.SerializerMethodField()
-    # The photo's edit version (0 without an edit; it goes on growing
-    # through reverts): the grid folds it into the thumbnail URL with the
-    # ThumbHash, which a subtle edit may leave unchanged.
-    thumbnail_version = serializers.SerializerMethodField()
+    thumbnail_version = serializers.SerializerMethodField(
+        help_text=THUMBNAIL_VERSION_HELP
+    )
     aspectRatio = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
@@ -263,11 +261,6 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
         return thumbnail.thumbhash if thumbnail else None
 
     def get_thumbnail_version(self, obj: Photo) -> int:
-        """Which thumbnails of the photo's edit the grid shows: twice the edit's
-        version, plus one once its full-size rendition is ready (the thumbnails
-        are made again from it when the save's render was smaller than they
-        are). 0 without an edit; it never goes back (a save or a revert raises
-        the version). Grids fold it into the thumbnail URL's ``v``."""
         return loaded_count(obj, THUMBNAIL_VERSION)
 
     def get_type(self, obj: Photo) -> str:
@@ -364,20 +357,6 @@ class SearchResultsSerializer(serializers.Serializer[None]):
     )
 
 
-# The annotation ``PhotoSummarySerializer.get_thumbnail_version`` reads.
-THUMBNAIL_VERSION = "thumbnail_version_annotation"
-
-
-def _thumbnail_version() -> Coalesce:
-    """``2 * version + 1`` once the edit's rendition is ready, ``2 * version``
-    before; 0 without an edit row (see ``get_thumbnail_version``)."""
-    ready = Case(
-        When(edit__rendition=PhotoEdit.Rendition.READY, then=Value(1)),
-        default=Value(0),
-    )
-    return Coalesce(F("edit__version") * 2 + ready, Value(0))
-
-
 def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
     """Load everything ``PhotoSummarySerializer`` reads in a constant number of queries.
 
@@ -425,7 +404,7 @@ def with_photo_summary_relations(queryset: QuerySet[Photo]) -> QuerySet[Photo]:
         )
         .select_related("thumbnail", "search_instance", "main_file")
         # The edit row is a reverse one-to-one: a LEFT JOIN, one row per photo.
-        .annotate(**{THUMBNAIL_VERSION: _thumbnail_version()})
+        .annotate(**{THUMBNAIL_VERSION: thumbnail_version_annotation()})
         .only(
             "image_hash",
             "thumbnail__aspect_ratio",

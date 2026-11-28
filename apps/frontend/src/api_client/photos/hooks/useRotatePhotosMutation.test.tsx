@@ -3,6 +3,7 @@
  * positive, so "Rotate 90° clockwise" said "1 photo(s) rotated by -90°." (#2587). The hook now
  * takes the turn as the user sees it, sends the server its own angle, and names the direction.
  */
+import { photoGridKeys } from "@librephotos/api-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { act } from "react";
@@ -88,6 +89,15 @@ describe("useRotatePhotosMutation", () => {
     expect(toasts.success).toHaveBeenCalledTimes(1);
     expect(toasts.success.mock.calls[0]?.[0]).toBe(message);
     expect(toasts.success.mock.calls[0]?.[1]).toEqual({ title: "Rotate photo" });
+  });
+
+  it("refreshes every grid, whose tiles show the rebuilt thumbnails under a new version", async () => {
+    const keys = [photoGridKeys.autoAlbum("4"), photoGridKeys.userAlbum("7"), photoGridKeys.recentlyAdded()];
+    for (const key of keys) queryClient.setQueryData(key, { photos: [] });
+
+    await rotate(90);
+
+    for (const key of keys) expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
   });
 
   it("says nothing went well when the server refuses", async () => {

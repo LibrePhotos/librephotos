@@ -16,7 +16,11 @@ from api.serializers.fields import (
 )
 from api.serializers.person import PersonSerializer
 from api.serializers.photos import PhotoHashListSerializer
-from api.serializers.simple import PhotoSimpleSerializer
+from api.serializers.simple import (
+    THUMBNAIL_VERSION,
+    PhotoSimpleSerializer,
+    thumbnail_version_annotation,
+)
 
 
 class EventTitlePartsSerializer(serializers.Serializer):
@@ -57,6 +61,13 @@ def with_event_cover(queryset: QuerySet[AlbumAuto]) -> QuerySet[AlbumAuto]:
     return queryset.prefetch_related(
         Prefetch("cover_photo", queryset=Photo.visible.all())
     )
+
+
+def with_event_photos(queryset: QuerySet[AlbumAuto]) -> QuerySet[AlbumAuto]:
+    photos = Photo.visible.select_related("thumbnail").annotate(
+        **{THUMBNAIL_VERSION: thumbnail_version_annotation()}
+    )
+    return queryset.prefetch_related(Prefetch("photos", queryset=photos))
 
 
 def custom_cover(album: AlbumAuto) -> Photo | None:

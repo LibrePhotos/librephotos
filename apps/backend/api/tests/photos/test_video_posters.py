@@ -141,21 +141,25 @@ class PosterFlagTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
+    def _loaded(self, photo):
+        return with_photo_summary_relations(Photo.objects.filter(pk=photo.pk)).get()
+
     def _summary(self, photo):
-        loaded = with_photo_summary_relations(Photo.objects.filter(pk=photo.pk)).get()
-        return PhotoSummarySerializer(loaded).data
+        return PhotoSummarySerializer(self._loaded(photo)).data
 
     def test_a_video_with_a_poster_says_so(self):
         video = create_test_photo(owner=self.user, video=True)
         Thumbnail.objects.filter(photo=video).update(video_poster=True)
         video = Photo.objects.get(pk=video.pk)
         self.assertTrue(self._summary(video)["video_poster"])
-        self.assertTrue(PhotoSimpleSerializer(video).data["video_poster"])
+        self.assertTrue(PhotoSimpleSerializer(self._loaded(video)).data["video_poster"])
 
     def test_a_video_scanned_before_has_none_yet(self):
         video = create_test_photo(owner=self.user, video=True)
         self.assertFalse(self._summary(video)["video_poster"])
-        self.assertFalse(PhotoSimpleSerializer(video).data["video_poster"])
+        self.assertFalse(
+            PhotoSimpleSerializer(self._loaded(video)).data["video_poster"]
+        )
 
     def test_a_photo_never_has_one(self):
         photo = create_test_photo(owner=self.user)

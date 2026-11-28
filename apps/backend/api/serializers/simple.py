@@ -1,6 +1,11 @@
+from django.db.models import Case, F, Value, When
+from django.db.models.expressions import CombinedExpression
+from django.db.models.functions import Coalesce
 from rest_framework import serializers
 
 from api.models import Photo, User
+from api.models.photo_edit import PhotoEdit
+from api.serializers.fields import loaded_count
 from api.serializers.sync import dominant_hex
 from api.video import color
 
@@ -31,6 +36,24 @@ def has_video_poster(photo: Photo) -> bool:
     return bool(thumbnail and thumbnail.video_poster)
 
 
+THUMBNAIL_VERSION = "thumbnail_version_annotation"
+THUMBNAIL_VERSION_HELP = (
+    "Which thumbnails the grid shows: twice the edit's version, plus one once its "
+    "rendition is ready, plus the times the thumbnails were made again (a rotation, "
+    "a rebuild); 0 for a photo never edited nor rebuilt. It never goes back. Grids "
+    "fold it into the thumbnail URL's v with the ThumbHash"
+)
+
+
+def thumbnail_version_annotation() -> CombinedExpression:
+    ready = Case(
+        When(edit__rendition=PhotoEdit.Rendition.READY, then=Value(1)),
+        default=Value(0),
+    )
+    edits = Coalesce(F("edit__version") * 2 + ready, Value(0))
+    return edits + Coalesce(F("thumbnail__revision"), Value(0))
+
+
 class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
@@ -44,6 +67,9 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
     aspectRatio = serializers.SerializerMethodField()
     dominantColor = serializers.SerializerMethodField()
     thumbhash = serializers.SerializerMethodField()
+    thumbnail_version = serializers.SerializerMethodField(
+        help_text=THUMBNAIL_VERSION_HELP
+    )
     video_length = serializers.SerializerMethodField()
     is_hdr = serializers.SerializerMethodField()
     animated_preview = serializers.SerializerMethodField()
@@ -65,6 +91,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             "aspectRatio",
             "dominantColor",
             "thumbhash",
+            "thumbnail_version",
             "video_length",
             "is_hdr",
             "animated_preview",
@@ -91,6 +118,9 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
     def get_thumbhash(self, obj: Photo) -> str | None:
         thumbnail = getattr(obj, "thumbnail", None)
         return thumbnail.thumbhash if thumbnail else None
+
+    def get_thumbnail_version(self, obj: Photo) -> int:
+        return loaded_count(obj, THUMBNAIL_VERSION)
 
     def get_video_length(self, obj: Photo) -> str:
         return obj.video_length or ""

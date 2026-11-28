@@ -278,14 +278,18 @@ class AnimatedPreviewFlagTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
+    def _loaded(self, photo):
+        return with_photo_summary_relations(Photo.objects.filter(pk=photo.pk)).get()
+
     def _summary(self, photo):
-        loaded = with_photo_summary_relations(Photo.objects.filter(pk=photo.pk)).get()
-        return PhotoSummarySerializer(loaded).data
+        return PhotoSummarySerializer(self._loaded(photo)).data
 
     def test_a_video_with_a_clip_is_animated(self):
         photo = create_test_photo(owner=self.user, video=True)
         self.assertTrue(self._summary(photo)["animated_preview"])
-        self.assertTrue(PhotoSimpleSerializer(photo).data["animated_preview"])
+        self.assertTrue(
+            PhotoSimpleSerializer(self._loaded(photo)).data["animated_preview"]
+        )
 
     def test_the_grid_relations_load_what_the_flag_reads(self):
         """No query per video: the summary's .only() keeps the square's name."""
@@ -301,7 +305,9 @@ class AnimatedPreviewFlagTest(TestCase):
         )
         photo = Photo.objects.get(pk=photo.pk)
         self.assertFalse(self._summary(photo)["animated_preview"])
-        self.assertFalse(PhotoSimpleSerializer(photo).data["animated_preview"])
+        self.assertFalse(
+            PhotoSimpleSerializer(self._loaded(photo)).data["animated_preview"]
+        )
 
     def test_a_photo_is_not(self):
         photo = create_test_photo(owner=self.user)

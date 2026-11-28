@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from PIL import Image
 
@@ -866,6 +867,7 @@ def regenerate_thumbnails(
         # Only these change the colours of the picture: a rotation keeps
         # them, and a rewritten file has had its colour cleared already.
         refresh_dominant_color(thumbnail)
+    _count_rebuild(thumbnail)
     # A rotation turns the placeholder too, so it is made again every time.
     refresh_thumbhash(thumbnail)
 
@@ -877,6 +879,12 @@ def regenerate_thumbnails(
         place_after_regeneration(
             thumbnail.photo, big_before, big_thumbnail_size(photo_hash)
         )
+
+
+def _count_rebuild(thumbnail: Thumbnail) -> None:
+    rows = Thumbnail.objects.filter(pk=thumbnail.pk)
+    rows.update(revision=F("revision") + 1)
+    thumbnail.revision = rows.values_list("revision", flat=True).get()
 
 
 def refresh_dominant_color(thumbnail: Thumbnail) -> None:
