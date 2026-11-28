@@ -2,20 +2,24 @@
 set -euo pipefail
 
 if [ $# -lt 4 ]; then
-  echo "usage: build.sh <linux-x86_64|linux-aarch64|win64> <src-dir> <stage-dir> <source-url> [work-dir]" >&2
+  echo "usage: build.sh <linux-x86_64|linux-aarch64|win64|macos-arm64> <src-dir> <stage-dir> <source-url> [work-dir]" >&2
   exit 2
 fi
 
+python=${PYTHON:-python3}
+absolute() {
+  "$python" -c 'import os, sys; print(os.path.abspath(sys.argv[1]))' "$1"
+}
+
 target=$1
-src=$(realpath "$2")
-stage=$(realpath -m "$3")
+src=$(absolute "$2")
+stage=$(absolute "$3")
 source_url=$4
-work=$(realpath -m "${5:-$PWD/ffmpeg-work-$target}")
+work=$(absolute "${5:-$PWD/ffmpeg-work-$target}")
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 prefix=$work/prefix
 install=$work/install
-jobs=$(nproc)
-python=${PYTHON:-python3}
+jobs=$(getconf _NPROCESSORS_ONLN)
 
 rm -rf "$work" "$stage"
 mkdir -p "$prefix/lib/pkgconfig" "$prefix/include" "$prefix/bin" "$stage"
@@ -66,6 +70,16 @@ EOF
     ffmpeg_ldflags="-static-libgcc -static-libstdc++"
     ffmpeg_libs="-lm"
     ;;
+  macos-arm64)
+    export MACOSX_DEPLOYMENT_TARGET=14.0
+    export CC=clang CXX=clang++ AR=ar RANLIB=ranlib STRIP=strip
+    export CFLAGS="-O2 -fPIC -arch arm64" CXXFLAGS="-O2 -fPIC -arch arm64" LDFLAGS="-arch arm64"
+    host_args=()
+    meson_cross=()
+    ffmpeg_target=(--enable-pthreads --arch=aarch64 --install-name-dir=@rpath)
+    ffmpeg_ldflags=""
+    ffmpeg_libs="-lc++ -lm"
+    ;;
   *)
     echo "unknown target $target" >&2
     exit 2
@@ -73,7 +87,7 @@ EOF
 esac
 
 build_nasm() {
-  if [ "$target" = linux-aarch64 ] || command -v nasm >/dev/null; then
+  if [ "$target" = linux-aarch64 ] || [ "$target" = macos-arm64 ] || command -v nasm >/dev/null; then
     return
   fi
   cp -a "$src/nasm" "$work/nasm"
@@ -124,6 +138,9 @@ build_zimg() {
   make -j"$jobs" install
   if [ "$target" = win64 ]; then
     sed -i 's/-lstdc++/-l:libstdc++.a/g' "$prefix/lib/pkgconfig/zimg.pc"
+  fi
+  if [ "$target" = macos-arm64 ]; then
+    sed -i.orig 's/-lstdc++/-lc++/g' "$prefix/lib/pkgconfig/zimg.pc"
   fi
   cd - >/dev/null
 }
@@ -221,6 +238,36 @@ stage_linux() {
   fi
 }
 
+stage_macos() {
+  mkdir -p "$stage/bin" "$stage/lib"
+  cp "$install/bin/ffmpeg" "$install/bin/ffprobe" "$stage/bin/"
+  local lib name
+  for lib in "$install"/lib/lib*.dylib; do
+    name=$(basename "$lib")
+    if [[ $name =~ ^lib[a-z]+\.[0-9]+\.dylib$ ]]; then
+      cp -L "$lib" "$stage/lib/$name"
+    fi
+  done
+  chmod 755 "$stage"/bin/* "$stage"/lib/*
+  "$STRIP" -x "$stage"/bin/* "$stage"/lib/*
+  local file
+  for file in "$stage"/bin/*; do
+    install_name_tool -add_rpath @loader_path/../lib "$file"
+  done
+  for file in "$stage"/lib/*; do
+    install_name_tool -add_rpath @loader_path "$file"
+  done
+  codesign --force --sign - "$stage"/bin/* "$stage"/lib/*
+  local needed
+  needed=$(for file in "$stage"/bin/* "$stage"/lib/*; do otool -L "$file" | tail -n +2 | awk '{print $1}'; done | sort -u)
+  echo "linked: $(echo "$needed" | tr '\n' ' ')"
+  if echo "$needed" | grep -vE '^(@rpath/lib(av|sw)[a-z]+\.[0-9]+\.dylib|/usr/lib/libSystem\.B\.dylib|/usr/lib/libc\+\+\.1\.dylib|/System/Library/Frameworks/Core(Foundation|Media|Video)\.framework/Versions/A/Core(Foundation|Media|Video))$'; then
+    echo "unexpected shared library dependency" >&2
+    exit 1
+  fi
+  "$stage/bin/ffmpeg" -hide_banner -version | head -n 1
+}
+
 stage_win64() {
   mkdir -p "$stage/bin"
   cp "$install"/bin/ffmpeg.exe "$install"/bin/ffprobe.exe "$install"/bin/*.dll "$stage/bin/"
@@ -242,14 +289,14 @@ build_zimg
 build_libwebp
 build_ffmpeg
 
-if [ "$target" = win64 ]; then
-  stage_win64
-else
-  stage_linux
-fi
+case $target in
+  win64) stage_win64 ;;
+  macos-arm64) stage_macos ;;
+  *) stage_linux ;;
+esac
 
 configure_line="${configure_args[*]}"
 configure_line=${configure_line//$prefix/<deps>}
 configure_line=${configure_line//$install/<prefix>}
 "$python" "$here/sources.py" notices "$src" "$stage" "$source_url" "$configure_line" "$($CC --version | head -n 1)"
-du -ab "$stage" | sort -n | tail -n 20
+{ du -ab "$stage" 2>/dev/null || du -ak "$stage"; } | sort -n | tail -n 20

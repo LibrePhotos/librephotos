@@ -213,10 +213,12 @@ class CheckAnswerTest(TestCase):
 
 class TrayMenuTest(TestCase):
     def tray(self):
-        from librephotos.tray import Tray
+        from librephotos.tray import Tray, TraySetup
 
         with stub_modules({"pystray": fake_pystray()}):
-            tray = Tray(URL, MagicMock(), "Running", lambda: None, ("d", "l"))
+            tray = Tray(
+                TraySetup(URL, MagicMock(), "Running", lambda: None, ("d", "l"))
+            )
         tray._shown.wait(1)
         return tray
 

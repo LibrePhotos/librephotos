@@ -174,8 +174,10 @@ def release_memory() -> None:
 def serve_forever(app: App, name: str) -> None:
     from api.runtime.replicas import replica_port
     from api.runtime.sidecars import SERVICES
+    from librephotos.root_watch import watch_root
     from service._wsgi_server import serve
 
+    watch_root()
     log = logger(name)
     # What the settings-free startup noticed before a handler existed, such
     # as an environment value librephotos.env could not read.

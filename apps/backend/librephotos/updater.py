@@ -47,12 +47,15 @@ from typing import Protocol
 import psutil
 import requests
 
+from librephotos import release_layout
+
 EXECUTABLE = "librephotos.exe"
-# Written by scripts/build_standalone.py; its "files" lists the release's
-# top-level entries (remove_superseded).
-BUILD_INFO = "build_info.json"
-# api/updates/stage.py marks a prepared release with it.
-UPDATE_MARKER = ".librephotos-update.json"
+LAYOUT = release_layout.current()
+BUILD_INFO = release_layout.BUILD_INFO
+UPDATE_MARKER = release_layout.MARKER_NAME
+LAUNCHED_BY_LAUNCH_SERVICES = "__CFBundleIdentifier"
+OPEN_COMMAND = "/usr/bin/open"
+OPEN_GRACE_SECONDS = 60.0
 # The process-name hard links LibrePhotos makes next to the binary
 # (librephotos.standalone.PROCESS_NAMES).
 _RUNTIME_LINK = re.compile(r"librephotos-[a-z]+\.exe")
@@ -64,9 +67,6 @@ LEFTOVER_TIMEOUT_SECONDS = 60.0
 # Migrations after a big update can take a long time.
 READY_TIMEOUT_SECONDS = 30 * 60.0
 READY_POLL_SECONDS = 2.0
-GOING_BACK_URL = (
-    "https://docs.librephotos.com/docs/installation/windows-standalone#going-back"
-)
 
 MESSAGE_OLD_RUNNING = (
     "LibrePhotos did not stop within five minutes, so the update was not "
@@ -117,11 +117,26 @@ class Launch:
         return cls(tuple(argv), dict(os.environ), os.getcwd())
 
 
+def going_back_url() -> str:
+    return LAYOUT.docs_url + "#going-back"
+
+
+class Started(Protocol):
+    @property
+    def pid(self) -> int: ...
+
+    def poll(self) -> int | None: ...
+
+    def kill(self) -> None: ...
+
+    def wait(self, timeout: float | None = None) -> int: ...
+
+
 def finisher_command(
     staged: Path, old_dir: Path, url: str, log: Path, launch: Launch
 ) -> list[str]:
     return [
-        str(staged / EXECUTABLE),
+        str(LAYOUT.binary(staged)),
         FINISH_COMMAND,
         "--old-pid",
         str(os.getpid()),
@@ -141,9 +156,13 @@ def finisher_command(
 def _spawn(
     command: Sequence[str], environ: dict[str, str], cwd: Path, flags: int
 ) -> subprocess.Popen[bytes]:
-    # No standard handles are passed on: a child without them binds its output
-    # to NUL and so writes console.log, as after a double-click.
-    return subprocess.Popen(command, env=environ, cwd=str(cwd), creationflags=flags)
+    return subprocess.Popen(
+        command,
+        env=environ,
+        cwd=str(cwd),
+        creationflags=flags,
+        start_new_session=os.name != "nt",
+    )
 
 
 def start_finisher(
@@ -310,15 +329,58 @@ def stop_leftovers(folder: Path, timeout: float, log: Callable[[str], None]) -> 
     psutil.wait_procs(alive, timeout=10)
 
 
-def launch_release(folder: Path, request: Relaunch) -> subprocess.Popen[bytes]:
-    """Start ``librephotos.exe`` from ``folder`` as the old one was started."""
-    cwd = Path(request.cwd) if request.cwd and os.path.isdir(request.cwd) else None
-    return _spawn(
-        [str(folder / EXECUTABLE), *request.relaunch],
-        dict(os.environ),
-        cwd or folder.parent,
-        0,
+class OpenedRelease:
+    def __init__(self, opener: subprocess.Popen[bytes], folder: Path) -> None:
+        self._opener = opener
+        self._folder = folder
+        self._started = time.monotonic()
+        self.pid = opener.pid
+
+    def poll(self) -> int | None:
+        code = self._opener.poll()
+        if code is None:
+            return None
+        if code != 0:
+            return code
+        if time.monotonic() - self._started < OPEN_GRACE_SECONDS:
+            return None
+        return None if processes_in(self._folder) else 0
+
+    def kill(self) -> None:
+        for process in processes_in(self._folder):
+            try:
+                process.kill()
+            except psutil.Error:
+                continue
+
+    def wait(self, timeout: float | None = None) -> int:
+        psutil.wait_procs(processes_in(self._folder), timeout=timeout)
+        return 0
+
+
+def opened_by_launch_services(environ: dict[str, str]) -> bool:
+    return (
+        LAYOUT.is_bundle
+        and environ.get(LAUNCHED_BY_LAUNCH_SERVICES) == release_layout.BUNDLE_ID
     )
+
+
+def relaunch_command(
+    folder: Path, relaunch: Sequence[str], environ: dict[str, str]
+) -> list[str]:
+    if opened_by_launch_services(environ):
+        return [OPEN_COMMAND, "-n", "-a", str(folder), "--args", *relaunch]
+    return [str(LAYOUT.launcher(folder)), *relaunch]
+
+
+def launch_release(folder: Path, request: Relaunch) -> Started:
+    cwd = Path(request.cwd) if request.cwd and os.path.isdir(request.cwd) else None
+    environ = dict(os.environ)
+    command = relaunch_command(folder, request.relaunch, environ)
+    process = _spawn(command, environ, cwd or folder.parent, 0)
+    if command[0] == OPEN_COMMAND:
+        return OpenedRelease(process, folder)
+    return process
 
 
 def _answers_ready(url: str) -> bool:
@@ -330,7 +392,7 @@ def _answers_ready(url: str) -> bool:
 
 def wait_ready(
     url: str,
-    process: subprocess.Popen[bytes],
+    process: Started,
     timeout: float,
     sleep: Callable[[float], None] = time.sleep,
 ) -> bool:
@@ -353,18 +415,24 @@ def unexpected_entries(folder: Path) -> list[str] | None:
     marker). None when it does not say what it holds: then it may hold
     anything, and nothing in it is deleted."""
     try:
-        info = json.loads((folder / BUILD_INFO).read_text(encoding="utf-8"))
-        names = os.listdir(folder)
+        info = json.loads(LAYOUT.build_info(folder).read_text(encoding="utf-8"))
+        names = os.listdir(LAYOUT.binary_folder(folder))
     except OSError, ValueError:
         return None
     files = info.get("files") if isinstance(info, dict) else None
-    if not isinstance(files, list) or not (folder / EXECUTABLE).is_file():
+    if not isinstance(files, list) or not LAYOUT.binary(folder).is_file():
+        return None
+    skeleton = release_layout.skeleton_extras(LAYOUT, folder)
+    if skeleton is None:
         return None
     allowed = {name for name in files if isinstance(name, str)} | {UPDATE_MARKER}
     return sorted(
-        name
-        for name in names
-        if name not in allowed and not _RUNTIME_LINK.fullmatch(name)
+        skeleton
+        + [
+            name
+            for name in names
+            if name not in allowed and not _RUNTIME_LINK.fullmatch(name)
+        ]
     )
 
 
@@ -404,6 +472,11 @@ def _swap_or_restore(
     return plan
 
 
+def discard_marker(staged: Path) -> None:
+    if not LAYOUT.marker_inside:
+        LAYOUT.marker(staged).unlink(missing_ok=True)
+
+
 def rollback_of(program_dir: Path) -> Path:
     return program_dir.with_name(program_dir.name + ROLLBACK_SUFFIX)
 
@@ -415,13 +488,13 @@ def recover(request: FinishRequest, log: Callable[[str], None]) -> None:
     if _answers_ready(request.url):
         return
     for folder in (request.old_dir, rollback_of(request.old_dir)):
-        if (folder / EXECUTABLE).is_file():
+        if LAYOUT.binary(folder).is_file():
             try:
                 launch_release(folder, request)
             except OSError as error:
-                log(f"could not start {folder / EXECUTABLE}: {error}")
+                log(f"could not start {LAYOUT.launcher(folder)}: {error}")
                 continue
-            log(f"started {folder / EXECUTABLE} again")
+            log(f"started {LAYOUT.launcher(folder)} again")
             return
     log("found no LibrePhotos to start")
 
@@ -439,7 +512,7 @@ def finish_update(request: FinishRequest, notify: Notify) -> int:
         recover(request, log)
         notify(
             MESSAGE_FAILED.format(
-                error=error, rollback=rollback_of(request.old_dir), url=GOING_BACK_URL
+                error=error, rollback=rollback_of(request.old_dir), url=going_back_url()
             )
         )
         return 1
@@ -455,11 +528,12 @@ def _finish(request: FinishRequest, notify: Notify, log: Log) -> int:
     plan = _swap_or_restore(request, notify, log)
     if plan is None:
         return 1
+    discard_marker(plan.staged)
     process = launch_release(plan.current, request)
-    log(f"started {plan.current / EXECUTABLE} (process {process.pid})")
+    log(f"started {LAYOUT.launcher(plan.current)} (process {process.pid})")
     if not wait_ready(request.url, process, READY_TIMEOUT_SECONDS):
         log("the new release did not become ready; nothing was deleted")
-        notify(MESSAGE_NOT_READY.format(rollback=plan.rollback, url=GOING_BACK_URL))
+        notify(MESSAGE_NOT_READY.format(rollback=plan.rollback, url=going_back_url()))
         return 1
     remove_superseded(plan, log)
     log("the update is done")

@@ -30,6 +30,7 @@ from librephotos.updater import (
     Launch,
     Log,
     Notify,
+    Started,
     launch_release,
     spawn_outside_job,
     stop_leftovers,
@@ -175,7 +176,7 @@ def _start_old(request: MoveRequest, log: Log) -> None:
         log(f"could not start {request.old_dir / EXECUTABLE}: {error}")
 
 
-def _stop(process: subprocess.Popen[bytes], folder: Path, log: Log) -> None:
+def _stop(process: Started, folder: Path, log: Log) -> None:
     try:
         process.kill()
         process.wait(STOP_TIMEOUT_SECONDS)

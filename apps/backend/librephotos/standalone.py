@@ -38,7 +38,13 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from librephotos import installation, instance_lock, startup_page
+from librephotos import (
+    installation,
+    instance_lock,
+    release_layout,
+    root_watch,
+    startup_page,
+)
 
 if TYPE_CHECKING:
     # Only for annotations: the GUI and the server modules are imported lazily
@@ -46,7 +52,8 @@ if TYPE_CHECKING:
     import uvicorn
     from PIL import Image
 
-    from librephotos.tray import Tray
+    from librephotos.macos_app import MainThread
+    from librephotos.tray import MenuBar, Tray
     from librephotos.updater import Launch
 
 logger = logging.getLogger(__name__)
@@ -62,7 +69,14 @@ CONSOLE_LOG_NAME = "console.log"
 # The previous start's console.log, kept so a failed start can still be
 # explained after the next attempt (#2316).
 PREVIOUS_CONSOLE_LOG_NAME = "console.previous.log"
-SUBCOMMANDS = ("run", "manage", "service", "finish-update", "finish-move")
+SUBCOMMANDS = (
+    "run",
+    "manage",
+    "service",
+    "finish-update",
+    "finish-move",
+    "start-at-login",
+)
 # Written next to the binary by scripts/build_standalone.py: the release and
 # commit it was built from, which the Docker images get from build arguments.
 BUILD_INFO_NAME = "build_info.json"
@@ -132,7 +146,7 @@ def named_executable(role: str | None) -> str | None:
     """
     executable = standalone_executable()
     name = PROCESS_NAMES.get(role) if role is not None else None
-    if executable is None or name is None:
+    if executable is None or name is None or release_layout.current().is_bundle:
         return executable
     target = os.path.join(
         os.path.dirname(executable), name + os.path.splitext(executable)[1]
@@ -166,7 +180,21 @@ def _output_is_discarded() -> bool:
     """Started without a console and without redirection (a double-click from
     Explorer, or a child of such a process): the binary is a Windows GUI
     program, and Nuitka then binds stdout and stderr to NUL."""
-    return getattr(sys.stdout, "name", None) in (None, "NUL:", "nul")
+    if getattr(sys.stdout, "name", None) in (None, "NUL:", "nul"):
+        return True
+    if sys.platform != "darwin":
+        return False
+    return _is_null_device(sys.stdout)
+
+
+def _is_null_device(stream: object) -> bool:
+    fileno = getattr(stream, "fileno", None)
+    if fileno is None:
+        return False
+    try:
+        return os.path.samestat(os.fstat(fileno()), os.stat(os.devnull))
+    except OSError, ValueError:
+        return False
 
 
 def _redirect_output(path: str, mode: str) -> None:
@@ -255,11 +283,24 @@ def bootstrap_process() -> None:
     there, as __parents_main__, without calling main()). From source, and on
     other platforms, it does nothing.
     """
-    if standalone_executable() is None or sys.platform != "win32":
+    root_watch.watch_root()
+    if standalone_executable() is None:
+        return
+    if sys.platform == "darwin":
+        _bootstrap_macos()
+        return
+    if sys.platform != "win32":
         return
     _repair_standard_handles()
     if not _has_console_window():
         _hide_child_consoles()
+    console_log = os.environ.get(CONSOLE_LOG_ENV)
+    if console_log and _output_is_discarded():
+        _redirect_output(console_log, "a")
+
+
+def _bootstrap_macos() -> None:
+    sys.dont_write_bytecode = True
     console_log = os.environ.get(CONSOLE_LOG_ENV)
     if console_log and _output_is_discarded():
         _redirect_output(console_log, "a")
@@ -525,6 +566,7 @@ def _take_children_down_with_us() -> None:
     mechanism that follows the process tree regardless of how the root died.
     """
     if sys.platform != "win32":
+        root_watch.mark_root()
         return
     import ctypes
     from ctypes import wintypes
@@ -635,6 +677,7 @@ class Startup:
     """
 
     def __init__(self) -> None:
+        self.main_thread: MainThread | None = None
         self.tray: Tray | None = None
         self.server: uvicorn.Server | None = None
         self.page: startup_page.StartupPage | None = None
@@ -652,22 +695,39 @@ class Startup:
         return self._cancelled.is_set()
 
     def show_tray(self, url: str, status: str = STATUS_STARTING) -> None:
-        """The notification area icon (Windows only; nothing elsewhere)."""
-        if sys.platform != "win32" or self.tray is not None:
+        if self.tray is not None:
+            return
+        if sys.platform != "win32" and self.main_thread is None:
             return
         try:
-            from librephotos.tray import Tray
+            from librephotos.tray import Tray, TraySetup
 
             self.tray = Tray(
-                url,
-                _tray_image(),
-                status,
-                self.quit,
-                (os.environ["BASE_DATA"], os.environ["BASE_LOGS"]),
+                TraySetup(
+                    url,
+                    _tray_image(),
+                    status,
+                    self.quit,
+                    (os.environ["BASE_DATA"], os.environ["BASE_LOGS"]),
+                    self._menu_bar(),
+                )
             )
         except Exception as error:
             # pystray missing, no desktop session: LibrePhotos runs anyway.
             print(f"No notification area icon: {error!r}", flush=True)
+
+    def _menu_bar(self) -> MenuBar | None:
+        if self.main_thread is None:
+            return None
+        from librephotos.macos_app import Termination
+        from librephotos.tray import MenuBar
+
+        return MenuBar(
+            self.main_thread,
+            Termination(self.quit, self.main_thread.finished),
+            login_item_enabled,
+            lambda: toggle_login_item(self.launch),
+        )
 
     def show_page(self, host: str, port: int) -> None:
         """Answer on the server's port with the start-up page (#2310) until
@@ -750,7 +810,7 @@ class Startup:
             raise OSError("LibrePhotos was not started through main()")
         left_job = updater.start_finisher(
             staged,
-            Path(install_root()),
+            program_folder(),
             url,
             Path(os.environ["BASE_LOGS"]) / updater.LOG_NAME,
             self.launch,
@@ -821,6 +881,9 @@ def _report_failure(message: str) -> None:
     """Say why the start failed. Without a console there is nowhere to read
     it, and an application that silently does nothing is the worst outcome."""
     print(message, flush=True)
+    if sys.platform == "darwin":
+        _alert_without_terminal(message)
+        return
     if sys.platform == "win32" and not _has_console_window():
         import ctypes
 
@@ -839,10 +902,20 @@ def _tell(message: str) -> None:
     """A message for the user: printed, and in a message box when there is
     no console window to read it in (the update's finisher, #2788)."""
     print(message, flush=True)
+    if sys.platform == "darwin":
+        _alert_without_terminal(message)
+        return
     if sys.platform == "win32" and not _has_console_window():
         import ctypes
 
         ctypes.windll.user32.MessageBoxW(None, message, "LibrePhotos", 0x10)
+
+
+def _alert_without_terminal(message: str) -> None:
+    from librephotos import macos_app
+
+    if macos_app.launched_by_launch_services():
+        macos_app.alert(message)
 
 
 # A line of Django's system check output naming one of LibrePhotos' own errors
@@ -948,10 +1021,11 @@ def port_unavailable_message(port: int, error: OSError | None) -> str:
     from api.runtime.ports import port_owner
 
     example = ALTERNATIVE_PORT if port != ALTERNATIVE_PORT else ALTERNATIVE_PORT + 1
+    command, system = run_command_hint()
     another_port = (
         "start LibrePhotos on another port, for example with "
-        f'"librephotos.exe run --port {example}" (see "Using another port" in '
-        "the LibrePhotos documentation for Windows)."
+        f'"{command} run --port {example}" (see "Using another port" in '
+        f"the LibrePhotos documentation for {system})."
     )
     owner = port_owner(port)
     if owner is not None or error is None or error.errno == errno.EADDRINUSE:
@@ -966,8 +1040,16 @@ def port_unavailable_message(port: int, error: OSError | None) -> str:
         )
     return (
         f"LibrePhotos cannot use port {port}: {error.strerror or error}.\n\n"
-        f"Windows keeps some ports for itself or for other programs; {another_port}"
+        f"{system} keeps some ports for itself or for other programs; {another_port}"
     )
+
+
+def run_command_hint() -> tuple[str, str]:
+    layout = release_layout.current()
+    if not layout.is_bundle:
+        return layout.binary_name, "Windows"
+    program = layout.program_folder(Path(install_root()))
+    return f"'{layout.launcher(program)}'", "macOS"
 
 
 def check_port(host: str, port: int) -> None:
@@ -1016,7 +1098,8 @@ def check_sidecar_ports() -> None:
         f"by other programs:\n\n{listing}\n\n"
         "Close those programs and start LibrePhotos again, or move the services "
         f"to free ports, for example with {first_variable} (see "
-        '"Using another port" in the LibrePhotos documentation for Windows).'
+        '"Using another port" in the LibrePhotos documentation for '
+        f"{run_command_hint()[1]})."
     )
 
 
@@ -1254,18 +1337,21 @@ def enable_updater(startup: Startup, url: str) -> None:
         return
     from api.updates import install
 
-    program = Path(install_root())
+    program = program_folder()
     data = Path(os.environ["BASE_DATA"])
+    moves = None
+    if not release_layout.current().is_bundle:
+        moves = install.Moves(
+            layout=installation.layout(program, installation.UninstallEntry()),
+            downloads=data / installation.DOWNLOADS_DIR_NAME,
+            move=lambda setup: startup.restart_to_move(setup, url),
+        )
     try:
         install.enable(
             program,
             [data, Path(os.environ["BASE_LOGS"])],
             lambda staged: startup.restart_to_update(staged, url),
-            install.Moves(
-                layout=installation.layout(program, installation.UninstallEntry()),
-                downloads=data / installation.DOWNLOADS_DIR_NAME,
-                move=lambda setup: startup.restart_to_move(setup, url),
-            ),
+            moves,
         )
     except Exception:
         # An updater problem must never keep LibrePhotos from starting: the
@@ -1297,8 +1383,12 @@ def _server_start_failure(host: str, port: int) -> Exception:
     return RuntimeError(f"The server could not start on {host}:{port}")
 
 
+def program_folder() -> Path:
+    return release_layout.current().program_folder(Path(install_root()))
+
+
 def sync_installed_version() -> None:
-    if standalone_executable() is None:
+    if standalone_executable() is None or release_layout.current().is_bundle:
         return
     program = Path(install_root())
     try:
@@ -1312,7 +1402,7 @@ def sync_installed_version() -> None:
 
 
 def forward_to_installed(data_dir: str, launch: Launch) -> bool:
-    if standalone_executable() is None:
+    if standalone_executable() is None or release_layout.current().is_bundle:
         return False
     target = installation.forward_target(
         Path(install_root()), Path(data_dir), installation.UninstallEntry()
@@ -1418,6 +1508,10 @@ def build_parser() -> argparse.ArgumentParser:
     move_to_installed.add_arguments(
         sub.add_parser("finish-move", help="(internal) move to the installed version")
     )
+    login = sub.add_parser(
+        "start-at-login", help="macOS: open LibrePhotos when you log in, or stop it"
+    )
+    login.add_argument("state", choices=("on", "off", "status"))
     return parser
 
 
@@ -1437,7 +1531,7 @@ def main(argv: list[str] | None = None) -> None:
         # environment the old one had, not with this process's additions.
         from librephotos import updater
 
-        request = updater.FinishRequest.from_arguments(args, Path(install_root()))
+        request = updater.FinishRequest.from_arguments(args, program_folder())
         raise SystemExit(updater.finish_update(request, _tell))
     if args.command == "finish-move":
         from librephotos import move_to_installed
@@ -1450,6 +1544,8 @@ def main(argv: list[str] | None = None) -> None:
     from librephotos.updater import Launch
 
     launch = Launch.capture(argv)
+    if args.command == "start-at-login":
+        raise SystemExit(start_at_login(args.state, launch))
     data_dir = prepare_environment(args.data_dir, args.photos)
 
     if args.command == "run" and forward_to_installed(data_dir, launch):
@@ -1461,30 +1557,101 @@ def main(argv: list[str] | None = None) -> None:
     else:
         startup = Startup()
         startup.launch = launch
-        try:
-            run_server(
-                args.host, args.port, not args.no_browser, not args.no_tray, startup
-            )
-        except StartupCancelledError:
-            print("LibrePhotos was quit while it was starting", flush=True)
-        except StartupError as error:
-            # The child's own output, already in the console or console.log,
-            # is the traceback; the message box gets the plain reason, and
-            # the start-up page in the browser its reason code.
-            startup.set_phase(startup_page.FAILED, error.reason_code)
-            _report_failure(str(error))
-            raise SystemExit(1) from error
-        except Exception as error:
-            import traceback
+        if sys.platform == "darwin" and not args.no_tray:
+            raise SystemExit(run_with_menu_bar(args, startup))
+        run_app(args, startup)
 
-            traceback.print_exc()
-            startup.set_phase(startup_page.FAILED)
-            _report_failure(f"LibrePhotos could not start: {error}")
-            raise SystemExit(1) from error
+
+def run_app(args: argparse.Namespace, startup: Startup) -> None:
+    try:
+        run_server(args.host, args.port, not args.no_browser, not args.no_tray, startup)
+    except StartupCancelledError:
+        print("LibrePhotos was quit while it was starting", flush=True)
+    except StartupError as error:
+        startup.set_phase(startup_page.FAILED, error.reason_code)
+        _report_failure(str(error))
+        raise SystemExit(1) from error
+    except Exception as error:
+        import traceback
+
+        traceback.print_exc()
+        startup.set_phase(startup_page.FAILED)
+        _report_failure(f"LibrePhotos could not start: {error}")
+        raise SystemExit(1) from error
+    finally:
+        startup.close()
+
+
+def run_with_menu_bar(args: argparse.Namespace, startup: Startup) -> int:
+    from librephotos.macos_app import MainThread, end_process, quit_on_signal
+
+    main_thread = MainThread()
+    startup.main_thread = main_thread
+    exit_code = [0]
+
+    def work() -> None:
+        try:
+            run_app(args, startup)
+        except SystemExit as stop:
+            exit_code[0] = stop.code if isinstance(stop.code, int) else 1
         finally:
-            # After the message box: the icon and the failure page stay
-            # while it is open.
-            startup.close()
+            main_thread.finish()
+
+    quit_on_signal(startup.quit)
+    threading.Thread(target=work, name="librephotos").start()
+    main_thread.serve()
+    end_process(exit_code[0])
+    return exit_code[0]
+
+
+def login_item_home() -> Path:
+    return Path(os.path.expanduser("~"))
+
+
+def login_item_enabled() -> bool:
+    from librephotos import login_item
+
+    return login_item.is_enabled(login_item_home())
+
+
+def login_item_where(launch: Launch | None) -> list[str]:
+    if launch is None:
+        return []
+    where = installation.where_options(launch.argv, launch.cwd, SUBCOMMANDS)
+    found: list[str] = []
+    if where.data_dir:
+        found += ["--data-dir", where.data_dir]
+    if where.photos:
+        found += ["--photos", where.photos]
+    return found
+
+
+def toggle_login_item(launch: Launch | None) -> None:
+    from librephotos import login_item
+
+    home = login_item_home()
+    if login_item.is_enabled(home):
+        login_item.disable(home)
+    else:
+        login_item.enable(program_folder(), home, login_item_where(launch))
+
+
+def start_at_login(state: str, launch: Launch) -> int:
+    from librephotos import login_item
+
+    home = login_item_home()
+    if not release_layout.current().is_bundle or standalone_executable() is None:
+        print("Opening LibrePhotos at login is for the installed Mac app", flush=True)
+        return 2
+    if state == "on":
+        path = login_item.enable(program_folder(), home, login_item_where(launch))
+        print(f"LibrePhotos opens when you log in ({path})", flush=True)
+    elif state == "off":
+        login_item.disable(home)
+        print("LibrePhotos no longer opens when you log in", flush=True)
+    else:
+        print("on" if login_item.is_enabled(home) else "off", flush=True)
+    return 0
 
 
 # Also at import, not only from the entry script: this module is imported in

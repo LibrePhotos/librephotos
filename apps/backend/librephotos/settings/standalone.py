@@ -10,6 +10,7 @@ already derived the database, media and log locations from the data directory.
 import os
 
 from librephotos.env import env_int, env_list
+from librephotos.release_layout import current as _release_layout
 
 from .production_noproxy import *  # noqa
 
@@ -30,6 +31,4 @@ CSRF_TRUSTED_ORIGINS = env_list(
 
 TASK_WORKERS = env_int("WORKER_CONCURRENCY", None)
 
-# The update check offers only releases with the Windows zip, and links to the
-# Windows app's update steps (api/updates).
-INSTALL_TYPE = "windows"
+INSTALL_TYPE = _release_layout().install_type

@@ -99,7 +99,7 @@ allow-star-arg-any = true
 # Build and maintenance tools, run outside the server: they print to the
 # terminal and read the environment directly.
 "scripts/**" = ["T20", "TID251"]
-"scripts/{build_installer,smoke_installer}.py" = ["E402"]
+"scripts/{build_installer,smoke_installer,macos_bundle,smoke_macos}.py" = ["E402"]
 # Console entry points that print to the terminal on purpose; standalone.py
 # also builds the environment of the child processes it starts.
 "librephotos/standalone.py" = ["T20", "TID251"]
@@ -117,6 +117,9 @@ allow-star-arg-any = true
 # the old one was started with (issue #2788).
 "librephotos/updater.py" = ["TID251"]
 "librephotos/move_to_installed.py" = ["TID251"]
+"librephotos/macos_app.py" = ["TID251"]
+"librephotos/login_item.py" = ["TID251"]
+"librephotos/root_watch.py" = ["TID251"]
 # They pick DJANGO_SETTINGS_MODULE from DEBUG before any settings exist.
 "manage.py" = ["TID251"]
 "librephotos/wsgi.py" = ["TID251"]
@@ -150,6 +153,7 @@ enable_error_code = ["ignore-without-code", "truthy-bool", "redundant-expr"]
 module = ["allauth.*", "constance.*",
           "geopy.*", "onnxruntime.*", "onnxruntime_ep_webgpu",
           "pyclipper.*", "pystray.*", "pyvips.*", "tokenizers.*",
+          "AppKit", "Foundation", "objc", "PyObjCTools.*",
           "lfm2_vl", "openclip.*", "ppocr.*", "retrieval_index", "utils", "vulture"]
 ignore_missing_imports = true
 
