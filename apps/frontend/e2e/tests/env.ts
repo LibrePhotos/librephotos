@@ -10,4 +10,4 @@ export const SCAN_DIRECTORY = process.env.E2E_SCAN_DIR ?? "/data";
 
 /** Number of photos in deploy/e2e/photos, and the two days they were taken on. */
 export const SEED_PHOTO_COUNT = 8;
-export const SEED_DAYS = ["Sunday, May 12, 2024", "Thursday, August 3, 2023"];
+export const SEED_DAYS = ["Sun, May 12, 2024", "Thu, Aug 3, 2023"];

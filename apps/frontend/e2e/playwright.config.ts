@@ -29,6 +29,7 @@ export default defineConfig({
     // The UI picks its language from the browser; pin it so text selectors are stable.
     locale: "en-US",
     timezoneId: "UTC",
+    actionTimeout: 15_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

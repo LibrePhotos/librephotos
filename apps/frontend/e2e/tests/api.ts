@@ -76,3 +76,20 @@ export async function setLastSeenRelease(request: APIRequestContext, token: stri
   });
   expect(response.ok(), `setting last_seen_release failed: ${await response.text()}`).toBeTruthy();
 }
+
+export async function markThankYouSeen(request: APIRequestContext, token: string, userId: number) {
+  const response = await request.patch(`/api/user/${userId}/`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { support_prompt_seen: true },
+  });
+  expect(response.ok(), `setting support_prompt_seen failed: ${await response.text()}`).toBeTruthy();
+}
+
+export async function answerErrorReportingQuestion(request: APIRequestContext, token: string) {
+  const headers = { Authorization: `Bearer ${token}` };
+  const current = await request.get("/api/sitesettings/", { headers });
+  expect(current.ok(), `GET /api/sitesettings/ failed: ${current.status()}`).toBeTruthy();
+  if (field(await current.json(), "error_reporting_asked") !== false) return;
+  const response = await request.post("/api/sitesettings/", { headers, data: { error_reporting_asked: true } });
+  expect(response.ok(), `setting error_reporting_asked failed: ${await response.text()}`).toBeTruthy();
+}

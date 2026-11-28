@@ -97,6 +97,13 @@ A scan started this way first downloads the ML models (about 1.3 GB, once). The 
 the sample library, so run them against an account with no other photos. `E2E_USERNAME` and
 `E2E_PASSWORD` override the credentials.
 
+The suite runs as an admin who already answered the one-time dialogs, so none of them covers the page
+under test: the e2e stack's entrypoint marks the thank-you dialog seen and the error reporting
+question answered before it scans, and the setup step does the same through the API on any other
+backend (on a server without the ML models, answering the question there starts their download).
+Every click and fill gives up after 15 seconds, so a selector that no longer matches fails at once
+with its locator instead of after the setup's 15-minute budget.
+
 ### Docs screenshots {#docs-screenshots}
 
 <Since version="1.5.0" /> The same package takes the screenshots of this site and of the release

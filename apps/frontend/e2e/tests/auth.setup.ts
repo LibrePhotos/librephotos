@@ -1,6 +1,13 @@
 import { expect, test as setup } from "@playwright/test";
 import { STORAGE_STATE } from "../playwright.config";
-import { getSelf, obtainToken, setScanDirectory, startScan } from "./api";
+import {
+  answerErrorReportingQuestion,
+  getSelf,
+  markThankYouSeen,
+  obtainToken,
+  setScanDirectory,
+  startScan,
+} from "./api";
 import { ADMIN_PASSWORD, ADMIN_USERNAME, SCAN_DIRECTORY, SEED_PHOTO_COUNT } from "./env";
 import { LoginPage } from "./pages";
 
@@ -31,6 +38,9 @@ setup("seed library and log in", async ({ page, request }) => {
       intervals: [2_000, 5_000, 10_000],
     })
     .toBeGreaterThanOrEqual(SEED_PHOTO_COUNT);
+
+  await markThankYouSeen(request, token, self.id);
+  await answerErrorReportingQuestion(request, token);
 
   await new LoginPage(page).login(ADMIN_USERNAME, ADMIN_PASSWORD);
   await expect(page).toHaveURL(/\/$/);
