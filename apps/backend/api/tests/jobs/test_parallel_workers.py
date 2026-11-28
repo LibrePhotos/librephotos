@@ -1,6 +1,7 @@
 import threading
+from multiprocessing.context import SpawnProcess
 from unittest import TestCase as PlainTestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from constance import config
 from constance.test import override_config
@@ -10,7 +11,9 @@ from rest_framework.test import APIClient
 from api.jobs import parallel
 from api.jobs.pool import Pool, PoolSettings
 from api.jobs.queue import enqueue_task
-from api.models import LongRunningJob
+from api.jobs.worker import EXIT_PARKED, Worker
+from api.jobs.worker_settings import WorkerSettings
+from api.models import LongRunningJob, WorkerProcess
 from api.runtime import supervisor
 from api.runtime.capacity import (
     BALANCED,
@@ -120,6 +123,54 @@ class SizerTest(TestCase):
         pool.resize()
 
         self.assertEqual([4, 2], list(pool.limits))
+
+
+class Never:
+    def is_set(self) -> bool:
+        return False
+
+
+def gone_process(exitcode: int) -> Mock:
+    process = Mock(spec=SpawnProcess, exitcode=exitcode)
+    process.is_alive.return_value = False
+    return process
+
+
+class WorkersOutsideTheWidthTest(TestCase):
+    def setUp(self):
+        self.pool = Pool(PoolSettings(workers=8, sizer=lambda: (4, 1)))
+        self.pool.resize()
+        self.started: list[int] = []
+        starting = patch.object(self.pool, "start_worker", side_effect=self.start)
+        starting.start()
+        self.addCleanup(starting.stop)
+
+    def start(self, slot: int) -> None:
+        self.started.append(slot)
+        self.pool.processes[slot] = gone_process(0)
+
+    def test_the_pool_starts_only_the_workers_of_its_width(self):
+        self.pool.start_missing()
+
+        self.assertEqual([0, 1, 2, 3], self.started)
+
+    def test_a_worker_outside_the_width_stops_and_says_so(self):
+        worker = Worker(5, Never(), [4, 1], WorkerSettings(poll_seconds=0.01))
+        worker._register()
+
+        self.assertEqual(EXIT_PARKED, worker._loop())
+        self.assertFalse(WorkerProcess.objects.get(slot=5).active)
+
+    def test_a_stopped_worker_starts_again_only_when_the_width_grows(self):
+        self.pool.processes[5] = gone_process(EXIT_PARKED)
+
+        self.pool.replace(5, self.pool.processes[5])
+        self.pool.start_missing()
+        self.assertEqual([0, 1, 2, 3], self.started)
+
+        self.pool.limits[0] = 6
+        self.pool.start_missing()
+        self.assertEqual([0, 1, 2, 3, 4, 5], self.started)
 
 
 class FastFirstImportTest(TestCase):

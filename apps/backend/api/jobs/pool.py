@@ -18,7 +18,7 @@ from django import db
 from django.db.models import F
 
 from api.jobs import legacy_import, scheduler, store
-from api.jobs.worker import EXIT_MEMORY, EXIT_RECYCLE
+from api.jobs.worker import EXIT_MEMORY, EXIT_PARKED, EXIT_RECYCLE
 from api.jobs.worker_entry import worker_main
 from api.jobs.worker_settings import WorkerSettings
 from api.models.task_queue import WorkerProcess
@@ -181,8 +181,6 @@ class Pool:
     def run(self) -> None:
         legacy_import.import_waiting_tasks()
         self.tick()
-        for slot in range(self.settings.workers):
-            self.start_worker(slot)
         try:
             while not self.stopping.is_set():
                 self.tick()
@@ -206,10 +204,16 @@ class Pool:
             if not process.is_alive() and not self.stopping.is_set():
                 self.replace(slot, process)
         for slot, due in list(self.restart_at.items()):
-            if now >= due and not self.stopping.is_set():
+            if now >= due:
                 del self.restart_at[slot]
-                self.start_worker(slot)
+        if not self.stopping.is_set():
+            self.start_missing()
         db.close_old_connections()
+
+    def start_missing(self) -> None:
+        for slot in range(int(self.limits[0])):
+            if slot not in self.processes and slot not in self.restart_at:
+                self.start_worker(slot)
 
     def _requeue(self, slot: int, process: SpawnProcess, reason: str) -> str:
         try:
@@ -228,6 +232,10 @@ class Pool:
     def replace(self, slot: int, process: SpawnProcess) -> None:
         code = process.exitcode
         process.join(0)
+        if code == EXIT_PARKED:
+            del self.processes[slot]
+            logger.info("worker %s stopped: outside the parallel workers", slot)
+            return
         reason = {
             EXIT_RECYCLE: "recycled",
             EXIT_MEMORY: "over its memory limit",

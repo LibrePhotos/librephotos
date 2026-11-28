@@ -255,7 +255,10 @@ one lane does not fit the admin sees a warning and LibrePhotos runs slowly inste
 **The setting.** `PARALLEL_WORKERS` (site setting): `gentle`, `balanced` (default), `fast`. *Fast first
 import* switches itself back to *Balanced* once the queue has been empty for 10 minutes after a completed
 library scan. `WORKER_CONCURRENCY` stays a hard override (also of `N_max`). `N_max` is `W` of *Fast* at
-start, so switching up needs no restart unless the machine got bigger.
+start, so switching up needs no restart unless the machine got bigger. The supervisor runs a process only for the slots below the current width: a worker whose slot falls
+outside it exits once it is idle (`EXIT_PARKED`, 5, its `WorkerProcess` row turns inactive) and is started
+again when the width grows, so a narrower width gives its memory back. Each worker is a spawned interpreter
+with its own copy of Django (about 110 MB idle), so a parked slot saves that much.
 
 **Where it shows.** The first-time setup gets a step after the library path: what was detected ("4 cores,
 8 GB (container limit), no GPU"), the three intentions with the resulting workers and memory budget each,
