@@ -52,7 +52,7 @@ jobs:
           ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - name: Install
@@ -136,7 +136,7 @@ jobs:
           fi
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - name: Install
@@ -241,10 +241,10 @@ jobs:
           ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
       - name: Test the packaging script
         run: node --test "apps/desktop/scripts/msix/*.test.mjs"
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: librephotos-viewer-exe
           path: dist-exe
@@ -318,7 +318,7 @@ jobs:
 
   macos:
     if: github.event_name != 'release' || (!github.event.release.prerelease && !github.event.release.draft)
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -356,7 +356,7 @@ jobs:
           ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - name: Test the packaging script
@@ -560,8 +560,8 @@ jobs:
           ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
-      - uses: actions/download-artifact@v7
+          node-version: '26'
+      - uses: actions/download-artifact@v8
         with:
           name: librephotos-desktop-macos-universal-adhoc
           path: dist-macos
@@ -586,7 +586,7 @@ jobs:
   macos-release:
     needs: [macos, macos-smoke]
     if: inputs.tag != '' || github.event_name == 'release'
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
@@ -604,8 +604,8 @@ jobs:
           ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
-      - uses: actions/download-artifact@v7
+          node-version: '26'
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ needs.macos.outputs.developer-id == 'true' && 'librephotos-desktop-macos-universal-signed' || 'librephotos-desktop-macos-universal-adhoc' }}
           path: downloaded
