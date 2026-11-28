@@ -360,10 +360,12 @@ vram_budget = 0.8 × (nvidia-smi free + what our face services hold)
   worker killed mid-task, lease expiry, exactly one rerun; a supervisor restart while tasks run.
 - Upgrade: a database with pickled `django_q_ormq` tasks (with `User` arguments, a chain, a moved
   function, a bad signature) and `django_q_schedule` rows is converted, nothing runs twice.
+  The [upgrade rehearsal](./upgrade-rehearsal.md) does the same with a database that 1.6.0 itself made, on
+  PostgreSQL and SQLite, and runs `manage.py run_workers` on it.
 - Throughput and memory: a real scan of a demo library (and Scan Faces on a copy of a 100k-photo
   SQLite database) on django-q2 and on the new queue, one and four workers: photos per hour and peak RSS.
-- CI runs the suite on SQLite; a job with a `postgres` service container runs the queue tests on
-  PostgreSQL.
+- CI runs the suite on SQLite; a job with a `postgres` service container runs the queue tests and the
+  tests of the migrations since the last release on PostgreSQL.
 
 ## Phases
 

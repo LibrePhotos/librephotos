@@ -149,7 +149,7 @@ jobs:
           python scripts/typecheck.py $BASE
 
   task-queue-postgres:
-    name: task queue on PostgreSQL
+    name: task queue and recent migrations on PostgreSQL
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -195,3 +195,19 @@ jobs:
         run: |
           . .venv/bin/activate
           python manage.py test api.tests.jobs.test_task_queue_store api.tests.jobs.test_task_queue_processes api.tests.jobs.test_legacy_task_import
+      - name: The migrations since the last release, on PostgreSQL
+        working-directory: apps/backend
+        env:
+          BASE_LOGS: /tmp/librephotos/logs
+          BASE_DATA: /tmp/librephotos
+          SECRET_KEY: test-secret-key
+          DJANGO_SETTINGS_MODULE: librephotos.settings.test
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_NAME: db
+          DB_USER: docker
+          DB_PASS: queue-test
+          NO_COVERAGE: "1"
+        run: |
+          . .venv/bin/activate
+          python manage.py test --parallel 1 api.tests.migrations.test_migration_0230_job_outcome_repair api.tests.migrations.test_migration_0236_review_records api.tests.migrations.test_migration_0241_cluster_unique_cluster_id api.tests.migrations.test_migration_0243_copy_django_q_schedules

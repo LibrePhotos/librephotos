@@ -1,0 +1,146 @@
+name: upgrade-rehearsal
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/backend/api/migrations/**'
+      - 'apps/backend/api/jobs/**'
+      - 'apps/backend/api/models/encrypted_fields.py'
+      - 'apps/backend/scripts/upgrade_rehearsal/**'
+      - 'apps/backend/scripts/setup_test_env.sh'
+      - 'apps/backend/requirements*.txt'
+      - '.github/workflows/upgrade-rehearsal.yml'
+  pull_request:
+    paths:
+      - 'apps/backend/api/migrations/**'
+      - 'apps/backend/api/jobs/**'
+      - 'apps/backend/api/models/encrypted_fields.py'
+      - 'apps/backend/scripts/upgrade_rehearsal/**'
+      - 'apps/backend/scripts/setup_test_env.sh'
+      - 'apps/backend/requirements*.txt'
+      - '.github/workflows/upgrade-rehearsal.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rehearse:
+    name: upgrade from ${{ matrix.release }} on ${{ matrix.database }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["1.6.0"]
+        database: [postgresql, sqlite]
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: docker
+          POSTGRES_PASSWORD: upgrade-rehearsal
+          POSTGRES_DB: librephotos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U docker"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PREVIOUS_IMAGE: reallibrephotos/librephotos:${{ matrix.release }}
+      DJANGO_SETTINGS_MODULE: librephotos.settings.production_noproxy
+      DB_BACKEND: ${{ matrix.database }}
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_NAME: librephotos
+      DB_USER: docker
+      DB_PASS: upgrade-rehearsal
+      SECRET_KEY: upgrade-rehearsal-secret
+      REHEARSAL_DATA: ${{ github.workspace }}/rehearsal-data
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Seed a ${{ matrix.release }} database with the released image, in the background
+        run: |
+          mkdir -p "$REHEARSAL_DATA/logs"
+          docker run -d --name seed --network host --user "$(id -u):$(id -g)" \
+            -v "$PWD/apps/backend/scripts/upgrade_rehearsal:/rehearsal:ro" \
+            -v "$REHEARSAL_DATA:/rehearsal-data" \
+            -e DJANGO_SETTINGS_MODULE -e DB_BACKEND -e DB_HOST -e DB_PORT \
+            -e DB_NAME -e DB_USER -e DB_PASS -e SECRET_KEY \
+            -e BASE_DATA=/rehearsal-data -e BASE_LOGS=/rehearsal-data/logs \
+            -e PYTHONPATH=/code -e HOME=/tmp \
+            --entrypoint python "$PREVIOUS_IMAGE" \
+            /rehearsal/seed_previous_release.py /rehearsal-data
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install this code's dependencies
+        working-directory: apps/backend
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          bash scripts/setup_test_env.sh
+
+      - name: Wait for the seed
+        run: |
+          code=$(docker wait seed)
+          docker logs seed 2>&1 | grep -v '^  Applying .* OK$'
+          docker rm seed
+          test "$code" = 0
+
+      - name: Migrate with this code
+        working-directory: apps/backend
+        env:
+          BASE_DATA: ${{ env.REHEARSAL_DATA }}
+          BASE_LOGS: ${{ env.REHEARSAL_DATA }}/logs
+        run: |
+          . .venv/bin/activate
+          python manage.py migrate --noinput
+          python manage.py migrate --check
+
+      - name: Rows, secrets, schedules and the waiting django-q tasks after the migration
+        working-directory: apps/backend
+        env:
+          BASE_DATA: ${{ env.REHEARSAL_DATA }}
+          BASE_LOGS: ${{ env.REHEARSAL_DATA }}/logs
+        run: |
+          . .venv/bin/activate
+          python scripts/upgrade_rehearsal/check_upgrade.py migrated "$REHEARSAL_DATA"
+
+      - name: The entrypoint's startup commands
+        working-directory: apps/backend
+        env:
+          BASE_DATA: ${{ env.REHEARSAL_DATA }}
+          BASE_LOGS: ${{ env.REHEARSAL_DATA }}/logs
+        run: |
+          . .venv/bin/activate
+          python manage.py start_cleaning_service
+          python manage.py start_job_cleanup_service
+
+      - name: run_workers carries the django-q tasks over and finishes them
+        working-directory: apps/backend
+        env:
+          BASE_DATA: ${{ env.REHEARSAL_DATA }}
+          BASE_LOGS: ${{ env.REHEARSAL_DATA }}/logs
+        run: |
+          . .venv/bin/activate
+          python scripts/upgrade_rehearsal/check_upgrade.py workers "$REHEARSAL_DATA"
+
+      - name: Keep the logs of a failed rehearsal
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: upgrade-rehearsal-${{ matrix.release }}-${{ matrix.database }}
+          path: |
+            rehearsal-data/logs
+            rehearsal-data/run_workers.log
+            rehearsal-data/upgrade-rehearsal.json
+          if-no-files-found: ignore
