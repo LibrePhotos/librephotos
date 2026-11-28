@@ -217,7 +217,7 @@
   },
   "src/api_client/photos/hooks/useRotatePhotosMutation.ts": {
     "@typescript-eslint/no-floating-promises": {
-      "count": 4
+      "count": 1
     },
     "ban/query-client-singleton": {
       "count": 1

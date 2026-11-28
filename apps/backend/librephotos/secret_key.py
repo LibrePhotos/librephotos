@@ -14,11 +14,6 @@ Any start that finds the old file next to the new one holding the same key
 removes it, which finishes a move whose removal failed (on Windows a file
 another process is reading cannot be deleted).
 
-The settings module runs this at import, in every process that loads Django
-settings at once (the uvicorn workers, qcluster and its workers, manage.py),
-so creating the file is race-safe: the key is written to a temporary file and
-hard-linked into place, which fails when another process got there first, and
-the loser reads the winner's key.
 """
 
 import os

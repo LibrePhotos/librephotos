@@ -55,10 +55,6 @@ class PhotoAdmin(admin.ModelAdmin):
     def deduplicate_faces(
         self, request: HttpRequest, queryset: QuerySet[Photo]
     ) -> None:
-        # Only the ids travel to the worker, in chunks. Passing the queryset
-        # itself would make django_q pickle every selected row into the broker
-        # payload, in this request thread, which defeats the point of the
-        # async task.
         photo_ids = list(queryset.values_list("id", flat=True))
         for start in range(0, len(photo_ids), DEDUPLICATE_FACES_CHUNK_SIZE):
             enqueue_task(

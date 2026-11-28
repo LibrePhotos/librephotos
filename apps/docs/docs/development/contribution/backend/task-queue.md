@@ -142,12 +142,26 @@ manage.py run_workers  (supervisor: one per host or container)
 - The supervisor replaces `qcluster`, its sentinel, pusher and monitor. Workers are started with
   multiprocessing `spawn` on every platform, so Linux and Windows behave alike, and in the standalone
   build from the `librephotos-worker` link as today.
+- **The standalone build.** Nuitka leaves `sys.executable` pointing at a `python.exe` the distribution
+  does not have, so `standalone.run_manage` points `multiprocessing.set_executable` at the
+  `librephotos-worker` link, or at the binary itself when the link is gone (the 1.6.0 WinError 2). A
+  spawned worker runs the entry script again as `__parents_main__` without calling `main()`, so
+  `librephotos_standalone.py` and `librephotos/standalone.py` both call `bootstrap_process()` at import:
+  the standard handles, the hidden child consoles and the console log redirect are set up in every
+  process. Whether the process is the compiled build is read from `standalone.py`'s own `__compiled__`,
+  not from `__main__`, which in a spawned worker is multiprocessing's bootstrap. The supervisor itself
+  and the sidecars are plain `subprocess` children of the binary (`standalone.child_command`), each
+  under its own name, so closing the launcher takes the whole application down. On Windows the
+  launcher's job object holds all of them, also a sidecar whose starter has exited since, so
+  `own_process_ids` finds every one at shutdown. The web server stays in the launcher's own process
+  with one uvicorn worker and `WEB_THREADS` threads: more workers would need the same spawn through
+  the binary, and one is enough for a desktop.
 - `N_max` processes start; `W` (the effective width) changes at runtime without a restart, from the
   setting, the capacity check and the memory left. Workers above `W` idle on a 1 s poll and cost their
   idle RSS (~110 MB), which the budget counts.
 - **Stop.** POSIX: `SIGTERM`/`SIGINT`. Windows has no `SIGTERM`, so the standalone launcher starts the
-  supervisor with `--stop-on-stdin-eof` and a pipe on stdin; closing it (or the launcher dying) is the
-  stop. The supervisor sets a shared stop event, workers finish their task, and after 25 s the rest are
+  supervisor with `--stop-file <BASE_DATA>/workers-<pid>.stop` and creates that file to stop it; the
+  supervisor looks for it every half second. The supervisor sets a shared stop event, workers finish their task, and after 25 s the rest are
   killed and their tasks requeued. Processes are always stopped by PID tree, never by a command-line
   filter.
 - **Graceful in the task.** `api.jobs.worker_runtime.checkpoint()` raises `WorkerStopping` (a

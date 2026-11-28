@@ -118,17 +118,6 @@ STARTUP_COMMANDS = (
 
 
 def standalone_executable() -> str | None:
-    """Absolute path of the compiled binary, or None when running from source.
-
-    Nuitka's standalone mode leaves sys.executable pointing at a python.exe
-    that does not exist in the distribution, so anything that starts a child
-    process (the sidecars, django-q2's workers) has to use the binary itself.
-    """
-    # This module's own marker, which Nuitka gives every compiled module, and
-    # not __main__'s: while a multiprocessing child is still importing the
-    # entry script, __main__ is multiprocessing's bootstrap, the check said
-    # "running from source", and bootstrap_process() skipped exactly the
-    # processes (django-q2's sentinel and workers) that needed it.
     compiled = globals().get("__compiled__")
     if compiled is None or not getattr(compiled, "standalone", False):
         return None
@@ -275,14 +264,6 @@ def _hide_child_consoles() -> None:
 
 
 def bootstrap_process() -> None:
-    """Per-process setup of the compiled build.
-
-    librephotos_standalone.py calls this at import, which is the one place
-    that runs in every process: the root, the job cluster, each sidecar, and
-    django-q2's multiprocessing children (Nuitka runs the entry script again
-    there, as __parents_main__, without calling main()). From source, and on
-    other platforms, it does nothing.
-    """
     root_watch.watch_root()
     if standalone_executable() is None:
         return
@@ -392,8 +373,6 @@ def run_manage(argv: list[str]) -> None:
     if worker is None:
         execute_from_command_line(["manage.py", *argv])
         return
-    # django-q2's guard, pusher, monitor and workers are multiprocessing
-    # children; spawn starts them from this executable path.
     import multiprocessing
 
     multiprocessing.set_executable(worker)
@@ -1119,12 +1098,6 @@ def run_server(
 ) -> None:
     """migrate, start the sidecars, the job cluster and the API server.
 
-    The cluster is a child process (django-q2 forks workers of its own) so
-    that closing this one takes the whole application down with it. uvicorn
-    runs in-process with a single worker: more would need multiprocessing
-    spawn through the binary, and one worker with WEB_THREADS threads is
-    enough for a desktop.
-
     The data folder's lock comes first (#2316): a second start from the same
     folder touches neither console.log, nor the database, nor any process,
     and only waits for the first one to answer.
@@ -1446,13 +1419,6 @@ def _shutdown(cluster: subprocess.Popen[bytes] | None) -> None:
 
 
 def own_process_ids() -> set[int]:
-    """The processes this instance started, directly or not.
-
-    On Windows that is the job object of _take_children_down_with_us: it
-    also holds a sidecar the watchdog restarted from a django-q worker that
-    has exited since, which no longer descends from this process. Elsewhere,
-    or without a job, this process's descendants.
-    """
     pids = _job_process_ids()
     if pids is None:
         import psutil

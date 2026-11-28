@@ -21,8 +21,10 @@ from api.models import (
     DeletionLog,
     Person,
     Photo,
+    Thumbnail,
 )
 from api.photos.retention import prune_deletion_log
+from api.serializers.photos import PhotoSummarySerializer, with_photo_summary_relations
 from api.tests.utils import (
     api_error,
     create_test_album_auto,
@@ -149,6 +151,23 @@ class SyncPhotosCursorTest(TestCase):
         items, _t, _c = sync_pull(self.client, PHOTOS_URL)
 
         self.assertEqual(items[0]["timestamp"], int(given.timestamp() * 1000))
+
+    def test_a_row_carries_the_thumbhash_as_the_web_summary_does(self):
+        with_hash = create_test_photo(owner=self.user)
+        without = create_test_photo(owner=self.user)
+        Thumbnail.objects.filter(photo=with_hash).update(
+            thumbhash="1QcSHQRnh493V4dIh4eXh1h4kJUI"
+        )
+        Thumbnail.objects.filter(photo=without).update(thumbhash=None)
+
+        items, _t, _c = sync_pull(self.client, PHOTOS_URL)
+
+        by_id = {item["id"]: item["thumbhash"] for item in items}
+        self.assertEqual(by_id[str(with_hash.pk)], "1QcSHQRnh493V4dIh4eXh1h4kJUI")
+        self.assertIsNone(by_id[str(without.pk)])
+        loaded = with_photo_summary_relations(Photo.objects.filter(pk=with_hash.pk))
+        summary = PhotoSummarySerializer(loaded.get()).data
+        self.assertEqual(summary["thumbhash"], by_id[str(with_hash.pk)])
 
     def test_favorite_flag_resolved_server_side(self):
         create_test_photos(number_of_photos=1, owner=self.user, rating=3)

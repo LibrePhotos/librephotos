@@ -1,7 +1,8 @@
-import { endpoints, photoGridKeys, photoKeys } from "@librephotos/api-client";
+import { endpoints, photoKeys } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { apiClient, queryClient } from "../../api";
+import { invalidatePhotoLists } from "../invalidatePhotoLists";
 
 type RotatePhotoRequest = {
   image_hash: string;
@@ -20,10 +21,7 @@ export const useRotatePhotosMutation = () =>
     onSuccess: (_data, request) => {
       notification.photoRotated(request.clockwiseDegrees);
 
-      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbums") });
-      queryClient.invalidateQueries({ queryKey: photoGridKeys.kind("dateAlbum") });
-      queryClient.invalidateQueries({ queryKey: photoGridKeys.recentlyAdded() });
-
+      invalidatePhotoLists(queryClient);
       queryClient.invalidateQueries({ queryKey: photoKeys.detail(request.image_hash) });
     },
   });

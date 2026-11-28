@@ -96,7 +96,7 @@ Where the apps rely on this:
 
 `deleteOwnedRemotePhotosByHash` drops the owner's photos with the given image hashes after the server deleted them for good. It matches the server, which deletes every row of the requester's that carries the hash (`image_hash` is not unique) and only theirs, so another user's shared photo with the same hash stays. Each statement selects by owner and hash itself, so the batch is atomic without reading ids first.
 
-Mapping API responses onto the writers' inputs is the app's job (`apps/mobile/src/sync/remote/mappers.ts`, `pig-photo.ts`): the package does not depend on the API client. The seed's timeline list does not carry the media categories; the delta feed does. `is_favorite` is materialised from `rating >= favorite_min_rating` when a row is mapped.
+Mapping API responses onto the writers' inputs is the app's job (`apps/mobile/src/sync/remote/mappers.ts`, `pig-photo.ts`): the package does not depend on the API client. The seed's timeline list does not carry the media categories; the delta feed does. The delta feed's photo rows also carry `thumbhash`, the base64 ThumbHash the web grid shows until a thumbnail loads (null until the server has sampled it, sent to a library share's recipient like the thumbnail itself); the mirror does not store it yet. A new ThumbHash, from a rotation, an edit or the upgrade job that samples the missing ones, moves the photo's `last_modified`, so the feed sends the row again. `is_favorite` is materialised from `rating >= favorite_min_rating` when a row is mapped.
 
 ## The schema
 

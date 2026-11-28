@@ -14,6 +14,7 @@ import {
   Media,
   Photo,
   Photoset,
+  PhotoSimple,
   PhotosWithoutTimestampResponse,
   PigPhoto,
   SearchPhotos,
@@ -400,6 +401,20 @@ describe("loose objects keep the fields a newer server adds", () => {
     ).toBe(false);
   });
 
+  it("reads a sync photo's ThumbHash, null before it is sampled and absent on older servers", () => {
+    const pulled = SyncPhotosResponse.parse({
+      v: 1,
+      items: [{ ...photoRow, thumbhash: "1QcSHQRnh493V4dIh4eXh1h4kJUI" }, { ...photoRow, thumbhash: null }, photoRow],
+      next_cursor: null,
+      server_time: "",
+    });
+    expect(pulled.items.map(item => item.thumbhash)).toEqual(["1QcSHQRnh493V4dIh4eXh1h4kJUI", null, undefined]);
+    expect(
+      SyncPhotosResponse.safeParse({ v: 1, items: [{ ...photoRow, thumbhash: 7 }], next_cursor: null, server_time: "" })
+        .success
+    ).toBe(false);
+  });
+
   it("still rejects a sync payload with the wrong version", () => {
     expect(() => SyncPhotosResponse.parse({ v: 2, items: [], next_cursor: null, server_time: "" })).toThrow();
   });
@@ -409,6 +424,24 @@ describe("loose objects keep the fields a newer server adds", () => {
     expect(PigPhoto.parse({ ...tile, type: "motion_photo" }).type).toBe(Media.MOTION_PHOTO);
     expect(PigPhoto.parse(tile).type).toBe(Media.IMAGE);
     expect(PigPhoto.safeParse({ ...tile, type: "hologram" }).success).toBe(false);
+  });
+
+  it("keeps an event photo's thumbnail version, which older servers do not send", () => {
+    const photo = {
+      id: "3f2c1a4e-0b5d-4c7e-9a1f-2d3e4f5a6b7c",
+      square_thumbnail: "",
+      image_hash: "abc",
+      exif_timestamp: "2024-01-01T00:00:00Z",
+      exif_gps_lat: null,
+      exif_gps_lon: null,
+      rating: 0,
+      geolocation_json: {},
+      public: false,
+      video: false,
+    };
+    expect(PhotoSimple.parse({ ...photo, thumbnail_version: 1 }).thumbnail_version).toBe(1);
+    expect(PhotoSimple.parse(photo).thumbnail_version).toBeUndefined();
+    expect(PhotoSimple.safeParse({ ...photo, thumbnail_version: -1 }).success).toBe(false);
   });
 
   it("keeps a tile's thumbnail version, which older servers do not send", () => {

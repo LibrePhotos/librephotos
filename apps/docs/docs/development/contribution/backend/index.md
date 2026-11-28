@@ -124,7 +124,9 @@ services:
       - LOG_LEVELS=api.directory_watcher=DEBUG
 ```
 
-Several overrides are comma-separated (`api.directory_watcher=DEBUG,api.runtime.supervisor=WARNING`), and they work in both directions - use `WARNING` or `ERROR` to quiet a noisy module. The output still goes to `librephotos.log` under `BASE_LOGS` and to the console, in the usual format. When you run the backend outside Docker, export the variable in the shell that starts `manage.py`. The whole configuration is built in `librephotos/logging_bootstrap.py`.
+Several overrides are comma-separated (`api.directory_watcher=DEBUG,api.runtime.supervisor=WARNING`), and they work in both directions - use `WARNING` or `ERROR` to quiet a noisy module. The output still goes to `librephotos.log` under `BASE_LOGS` and to the console, in the usual format. When you run the backend outside Docker, export the variable in the shell that starts `manage.py`. The whole configuration is built in `librephotos/logging_bootstrap.py`, so the processes without Django settings share it. `LOG_LEVEL`, `LOG_LEVELS` and `LOG_TO_CONSOLE` come from the environment rather than from the site settings: the job workers and the ML sidecars need the same answer, and several of them never open the database. The rotation size and backup count start at their defaults and are refined from the site settings once the database is up (`api.apps.reconfigure_logging`). The web server, the job supervisor and its workers all write to the same file, so the handler is `ConcurrentRotatingFileHandler`: the standard library's rotation truncated the file under the other processes (#1765).
+
+Those processes also load the settings at the same moment, and with them `librephotos/secret_key.py`. A key that has to be generated is written to a temporary file and hard-linked into place, which fails for every process but the first; the others read its key.
 
 ### Using silk
 

@@ -363,6 +363,7 @@ export const PhotoSimple = z.object({
   dominantColor: z.string().nullish(),
   // The tile's placeholder (base64 ThumbHash), as in PigPhoto; older backends lack it.
   thumbhash: z.string().nullish(),
+  thumbnail_version: z.number().int().nonnegative().optional(),
   // Seconds as a string, "" for a photo (as in PigPhoto).
   video_length: z.string().optional(),
   is_hdr: z.boolean().optional(),

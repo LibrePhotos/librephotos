@@ -88,6 +88,7 @@ PHOTO_VALUES = (
     "exif_gps_lon",
     "thumbnail__aspect_ratio",
     "thumbnail__dominant_color",
+    "thumbnail__thumbhash",
     "search_instance__search_location",
     "owner__favorite_min_rating",
 )
@@ -134,6 +135,7 @@ def serialize_photo_row(row: dict[str, Any]) -> dict[str, Any]:
         "longitude": row["exif_gps_lon"],
         "search_location": row["search_instance__search_location"] or "",
         "dominant_color": dominant_hex(row["thumbnail__dominant_color"]),
+        "thumbhash": row["thumbnail__thumbhash"],
     }
 
 
@@ -163,6 +165,7 @@ PHOTO_ROW_FIELDS: FieldRules = {
     "longitude": ("location", None),
     "search_location": ("location", ""),
     "dominant_color": (ALWAYS, None),
+    "thumbhash": (ALWAYS, None),
 }
 
 
