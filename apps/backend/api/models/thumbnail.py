@@ -78,7 +78,7 @@ class Thumbnail(models.Model):
     # on the tile and the clip plays (#2026). With the animated previews off
     # (#649) they are the squares themselves.
     video_poster = models.BooleanField(default=False)
-    revision = models.PositiveIntegerField(default=0)
+    revision = models.PositiveIntegerField(default=0, db_default=0)
 
     class Meta:
         indexes = [
