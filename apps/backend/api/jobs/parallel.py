@@ -234,6 +234,8 @@ class Sizer:
         width = min(self.ceiling, planned.workers)
         if capacity.low_on_memory(found):
             width = max(1, min(width, self.width - 1))
+        elif width > self.width and not capacity.room_for_another_worker(found):
+            width = self.width
         if width != self.width:
             logger.info(
                 "parallel workers: %s now (%s, %s MB available)",

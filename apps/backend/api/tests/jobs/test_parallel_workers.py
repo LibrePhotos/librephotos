@@ -117,6 +117,17 @@ class SizerTest(TestCase):
 
         self.assertEqual([3, 2, 1, 1, 1], widths)
 
+    def test_a_stopped_worker_comes_back_only_with_room_for_it(self):
+        sizer = parallel.Sizer(ceiling=4)
+        with override_settings(TASK_WORKERS=4):
+            widths = []
+            for available_gb in (1, 3.5, 3.5, 4, 4):
+                found = machine(16, 32, available_gb)
+                with patch.object(parallel.capacity, "detect", return_value=found):
+                    widths.append(sizer()[0])
+
+        self.assertEqual([3, 3, 3, 4, 4], widths)
+
     def test_the_pool_hands_the_width_to_its_workers(self):
         pool = Pool(PoolSettings(workers=4, sizer=lambda: (9, 2)))
 
