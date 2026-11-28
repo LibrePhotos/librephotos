@@ -572,6 +572,8 @@ These describe the PostgreSQL server. The bundled `.env` sets the first three; `
 | `DB_NAME` | `dbName` | `db` | Name of the database. |
 | `DB_USER` | `dbUser` | `docker` | The user the backend connects as. Its password is `DB_PASS`. |
 
+<Since version="1.7.0" /> The backend turns off PostgreSQL's JIT compiler for its own connections (`-c jit=off`). The queries LibrePhotos runs take milliseconds, and JIT spent up to a second compiling some of them: on a library of 19,000 photos the library counts the web app asks for when it opens took 1.1 s instead of 0.1 s. Other clients of the same PostgreSQL server keep the server's setting.
+
 ### Single-container image
 
 The single-container image (see [Unified deployment](unified-deployment.md)) has three variables of its own. The Compose stack sets `DB_BACKEND=postgresql` and leaves the others unset.
